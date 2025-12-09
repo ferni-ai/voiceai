@@ -13,18 +13,17 @@
  * 3. Injects STRONG guidance to hand off, not answer
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createCriticalInjection,
-  createStandardInjection,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
 import { isTeamMemberUnlocked } from './team-availability.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'RoleBoundaries' });
 
 // ============================================================================
 // DOMAIN DETECTION

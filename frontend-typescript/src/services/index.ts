@@ -26,3 +26,4 @@ export * from './glow-controller.service.js';
 export * from './ritual-engine.service.js';
 export * from './avatar-state.service.js';
 export * from './voice-analyzer.service.js';
+export * from './voice-auth.service.js';

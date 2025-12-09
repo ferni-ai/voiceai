@@ -59,6 +59,10 @@ export interface TuningContext {
   recentBoundaryRespected?: boolean;
   trustScore?: number;
   sessionCount?: number;
+  /** User's preferred learning style for response adaptation */
+  preferredLearningStyle?: string;
+  /** Number of recent topics discussed for context depth */
+  recentTopicCount?: number;
 }
 
 export interface TunedGuidance {

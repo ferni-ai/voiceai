@@ -16,8 +16,10 @@ import { haptic as nativeHaptic, isNative, type HapticStyle } from '../utils/pla
 /**
  * Trigger a subtle, zen-inspired celebration.
  * Uses warmth glow instead of particles for human-like expressiveness.
+ * 
+ * Note: Named triggerDelightEffect to avoid conflict with brand-system celebrate()
  */
-export function celebrate(): void {
+export function triggerDelightEffect(): void {
   // Use warmth glow from celebrations UI
   celebrationsUI.warmthGlow({ intensity: 'gentle' });
   
@@ -74,7 +76,7 @@ export function celebrateConnection(): void {
   // Only celebrate first connection
   if (!hasConnectedBefore) {
     hasConnectedBefore = true;
-    celebrate();
+    triggerDelightEffect();
   }
 }
 
@@ -138,7 +140,7 @@ export function trackAvatarClick(): void {
   
   // Easter egg: 5 rapid clicks
   if (clickCount >= 5) {
-    celebrate();
+    triggerDelightEffect();
     clickCount = 0;
   }
 }
@@ -148,7 +150,8 @@ export function trackAvatarClick(): void {
 // ============================================================================
 
 export const delightService = {
-  celebrate,
+  celebrate: triggerDelightEffect,
+  triggerDelightEffect,
   celebrateConnection,
   onDisconnect,
   showThinking,

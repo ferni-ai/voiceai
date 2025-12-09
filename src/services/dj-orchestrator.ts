@@ -17,8 +17,6 @@ import { getLogger } from '../utils/safe-logger.js';
 import {
   getDJSessionService,
   type SessionContext,
-  type SessionIntro,
-  type SessionOutro,
 } from './dj-session.service.js';
 import {
   getDJStyle,
@@ -403,6 +401,65 @@ export class DJOrchestrator {
   wasRecentMusicPlayed(withinMs = 300000): boolean {
     if (!this.lastMusicPlayedTime) return false;
     return Date.now() - this.lastMusicPlayedTime < withinMs;
+  }
+
+  // ==========================================================================
+  // MUSIC PLAYER ACCESS
+  // ==========================================================================
+
+  /**
+   * Check if music is currently playing
+   */
+  isMusicPlaying(): boolean {
+    const player = getMusicPlayer();
+    return player.isPlaying();
+  }
+
+  /**
+   * Get current track info if music is playing
+   */
+  getCurrentTrack(): { name: string; artist?: string } | null {
+    const player = getMusicPlayer();
+    if (!player.isPlaying()) return null;
+    return player.getCurrentTrack();
+  }
+
+  /**
+   * Get current music volume
+   */
+  getMusicVolume(): number {
+    const player = getMusicPlayer();
+    return player.getVolume();
+  }
+
+  // ==========================================================================
+  // VERBAL SOUND CUES
+  // ==========================================================================
+
+  /**
+   * Get a verbal sound cue for a specific moment.
+   * Use when actual sound effects aren't available.
+   *
+   * @param soundType - Type of verbal cue needed
+   * @returns Verbal cue phrase or null
+   */
+  getVerbalSoundCue(
+    soundType: 'session-start' | 'session-end' | 'handoff' | 'celebration' | 'acknowledgment'
+  ): string | null {
+    // Map to valid SessionSoundType
+    const soundTypeMap: Record<string, 'session-start' | 'session-end' | 'success' | 'notification' | 'handoff'> = {
+      'session-start': 'session-start',
+      'session-end': 'session-end',
+      handoff: 'handoff',
+      celebration: 'success',
+      acknowledgment: 'notification',
+    };
+    const mappedType = soundTypeMap[soundType] || 'notification';
+    const sound = getVerbalSound(mappedType);
+    if (sound) {
+      log.debug('🎧 Got verbal sound cue', { type: soundType, persona: this.currentPersonaId });
+    }
+    return sound;
   }
 }
 

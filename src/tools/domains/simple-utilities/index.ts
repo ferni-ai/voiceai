@@ -37,6 +37,7 @@ import {
   generateInsight,
   getUserPatterns,
   getTimerFollowUp,
+  getProactiveSuggestions,
 } from './pattern-intelligence.js';
 
 // Voice Callbacks - speak to user, don't just log
@@ -1450,8 +1451,6 @@ const clearNotesDef: ToolDefinition = {
 // ============================================================================
 // PROACTIVE / ANTICIPATORY TOOLS
 // ============================================================================
-
-import { getProactiveSuggestions } from './pattern-intelligence.js';
 
 const getUtilitySuggestionsDef: ToolDefinition = {
   id: 'getUtilitySuggestions',

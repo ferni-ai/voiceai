@@ -49,13 +49,15 @@ import {
   showFirstLaunchExperience,
 } from './soul.ui.js';
 
-// Pixar emotions system
+// Ferni expressions system - character-level animations
 import {
-  initPixarEmotions,
-  pixarEmotions,
-  type AdvancedReaction,
+  initFerniExpressions,
+  ferniExpressions,
   type EmotionalExpression,
-} from './pixar-emotions.ui.js';
+} from './ferni-expressions.ui.js';
+
+// Ferni EQ - superhuman emotional intelligence ("Better than Human")
+import { ferni } from './better-than-human.ui.js';
 
 // Weather effects
 import {
@@ -67,7 +69,7 @@ import {
   type WeatherType,
 } from './weather-effects.ui.js';
 
-// Ferni Moments - Pixar-style character expressions
+// Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 
 // Narrative System - Story beats and arcs
@@ -650,46 +652,46 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🎬 NEW: Pixar Emotions - Advanced Eye Lid Expressions -->
+      <!-- 🎬 NEW: Ferni Expressions - Advanced Eye Lid Expressions -->
       <section class="dev-section">
-        <h3 class="dev-section__title">🎬 Pixar Emotions</h3>
+        <h3 class="dev-section__title">🎬 Ferni Expressions</h3>
         <p class="dev-section__desc">Eye lid expressions & advanced reactions</p>
         
         <div class="dev-subsection">
           <span class="dev-label">Eye Lid Expressions</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="happy" title="Squinted, warm">😊 Happy</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="delighted" title="Happy + sparkle">✨ Delighted</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="surprised" title="Wide eyes">😲 Surprised</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="curious" title="Head tilt">🤔 Curious</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="skeptical" title="One brow up">🤨 Skeptical</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="worried" title="Angled brows">😟 Worried</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="sad" title="Droopy lids">😢 Sad</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="sleepy" title="Heavy lids">😴 Sleepy</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="thinking" title="Looking away">💭 Thinking</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="empathetic" title="Soft understanding">🫂 Empathetic</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="excited" title="Wide + sparkle">🎉 Excited</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="neutral" title="Reset to neutral">😐 Neutral</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="happy" title="Squinted, warm">😊 Happy</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="delighted" title="Happy + sparkle">✨ Delighted</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="surprised" title="Wide eyes">😲 Surprised</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="curious" title="Head tilt">🤔 Curious</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="skeptical" title="One brow up">🤨 Skeptical</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="worried" title="Angled brows">😟 Worried</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sad" title="Droopy lids">😢 Sad</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sleepy" title="Heavy lids">😴 Sleepy</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="thinking" title="Looking away">💭 Thinking</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="empathetic" title="Soft understanding">🫂 Empathetic</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="excited" title="Wide + sparkle">🎉 Excited</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="neutral" title="Reset to neutral">😐 Neutral</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Advanced Reactions</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="doubleTake" title="Look away → snap back">👀 Double-Take</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="heldPose" title="Hold at peak emotion">⏸️ Held Pose</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="lookAway" title="Thinking look away">🔄 Look Away</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="nervousEnergy" title="Fidget trembles">😰 Nervous</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="delightSparkle" title="Eye sparkle effect">💫 Sparkle</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="doubleTake" title="Look away → snap back">👀 Double-Take</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="heldPose" title="Hold at peak emotion">⏸️ Held Pose</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="lookAway" title="Thinking look away">🔄 Look Away</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="nervousEnergy" title="Fidget trembles">😰 Nervous</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="delightSparkle" title="Eye sparkle effect">💫 Sparkle</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Text-to-Icon Morph</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="lightbulb" title="Morph to idea icon">💡 Idea Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="heart" title="Morph to heart">❤️ Heart Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="sparkles" title="Morph to sparkles">✨ Sparkle Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">💡 Idea Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">❤️ Heart Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">✨ Sparkle Morph</button>
           </div>
         </div>
       </section>
@@ -697,7 +699,7 @@ function createPanel(): HTMLElement {
       <!-- Ferni Moments - Character Expressions -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.heart} Ferni Moments</h3>
-        <p class="dev-section__desc">Pixar-style character expressions (Lucide icons)</p>
+        <p class="dev-section__desc">Character expressions (Lucide icons)</p>
         
         <div class="dev-subsection">
           <span class="dev-label">Emotional</span>
@@ -780,6 +782,11 @@ function createPanel(): HTMLElement {
           </button>
           <button class="dev-music-btn" data-action="unduck-music" title="Restore full volume">
             🔊 Unduck
+          </button>
+        </div>
+        <div class="dev-music-buttons" style="margin-top: var(--space-2);">
+          <button class="dev-music-btn" data-action="our-song" title="Test 'Our Song' - shared musical memory">
+            💚 Our Song
           </button>
         </div>
       </section>
@@ -1081,6 +1088,85 @@ function createPanel(): HTMLElement {
             </button>
             <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="big" title="BIG celebration">
               🎆 BIG Celebration
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🚀 Ferni EQ - Superhuman Emotional Intelligence -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.sparkles} Ferni EQ</h3>
+        <p class="dev-section__desc">Better than Human - micro-expressions, breath sync, active listening</p>
+        
+        <!-- Micro-Expressions -->
+        <div class="dev-subsection">
+          <span class="dev-label">Micro-Expressions (Subliminal)</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="recognition" title="Flash of recognition (80ms)">
+              👁️ Recognition
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="concern_flash" title="Brief concern flash (60ms)">
+              😟 Concern Flash
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="delight_flash" title="Micro-delight (100ms)">
+              ✨ Delight Flash
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="warmth_pulse" title="Warmth pulse (120ms)">
+              💗 Warmth Pulse
+            </button>
+          </div>
+        </div>
+        
+        <!-- Active Listening -->
+        <div class="dev-subsection">
+          <span class="dev-label">Active Listening</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="micro-nod" title="Barely perceptible nod">
+              👤 Micro-Nod
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="subtle-nod" title="Subtle acknowledgment nod">
+              👤 Subtle Nod
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="visible-nod" title="Visible listening nod">
+              👤 Visible Nod
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="lean" title="Lean in with interest">
+              📐 Lean In
+            </button>
+          </div>
+        </div>
+        
+        <!-- Concern Detection -->
+        <div class="dev-subsection">
+          <span class="dev-label">Concern Response</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="mild" title="Mild concern (subtle)">
+              😐 Mild Concern
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="moderate" title="Moderate concern (visible)">
+              😟 Moderate
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="significant" title="Significant concern (active)">
+              😢 Significant
+            </button>
+          </div>
+        </div>
+        
+        <!-- Breath Sync -->
+        <div class="dev-subsection">
+          <span class="dev-label">Breath Sync</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="slow" title="Sync to slow breath (10/min)">
+              🐢 Slow (10/min)
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="normal" title="Sync to normal breath (15/min)">
+              😌 Normal (15/min)
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="fast" title="Sync to fast breath (20/min)">
+              💨 Fast (20/min)
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="off" title="Disable breath sync">
+              🚫 Off
             </button>
           </div>
         </div>
@@ -1908,32 +1994,32 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎬 Pixar Emotions - Eye Lid Expressions
-  container.querySelectorAll('[data-pixar-expr]').forEach((btn) => {
+  // 🎬 Ferni Expressions - Eye Lid Expressions
+  container.querySelectorAll('[data-ferni-expr]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const expr = (btn as HTMLElement).dataset.pixarExpr as EmotionalExpression;
+      const expr = (btn as HTMLElement).dataset.ferniExpr as EmotionalExpression;
       if (expr) {
-        triggerPixarExpression(expr);
+        triggerFerniExpression(expr);
       }
     });
   });
 
-  // 🎬 Pixar Emotions - Advanced Reactions
-  container.querySelectorAll('[data-pixar-react]').forEach((btn) => {
+  // 🎬 Ferni Expressions - Advanced Reactions
+  container.querySelectorAll('[data-ferni-react]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const react = (btn as HTMLElement).dataset.pixarReact as AdvancedReaction;
+      const react = (btn as HTMLElement).dataset.ferniReact as DevPanelReaction;
       if (react) {
-        triggerPixarReaction(react);
+        triggerFerniReaction(react);
       }
     });
   });
 
-  // 🎬 Pixar Emotions - Text-to-Icon Morph
+  // 🎬 Ferni Expressions - Text-to-Icon Morph
   container.querySelectorAll('[data-morph]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const morph = (btn as HTMLElement).dataset.morph;
       if (morph) {
-        triggerPixarMorph(morph);
+        triggerFerniMorph(morph);
       }
     });
   });
@@ -2061,6 +2147,83 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', () => {
       const ripple = (btn as HTMLElement).dataset.ripple;
       triggerRippleEffect(ripple!);
+    });
+  });
+
+  // 🚀 Ferni EQ - Micro-expression buttons
+  container.querySelectorAll('[data-micro]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const micro = (btn as HTMLElement).dataset.micro as Parameters<typeof ferni.playMicroExpression>[0];
+      ferni.playMicroExpression(micro);
+      log.debug('Micro-expression triggered:', micro);
+    });
+  });
+
+  // 🚀 Ferni EQ - Active listening buttons
+  container.querySelectorAll('[data-listen]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const listen = (btn as HTMLElement).dataset.listen;
+      switch (listen) {
+        case 'micro-nod':
+          ferni.onUserSpeechPause(500); // Triggers micro-nod
+          break;
+        case 'subtle-nod':
+          ferni.onUserSpeechPause(900); // Triggers subtle-nod
+          break;
+        case 'visible-nod':
+          // Force a visible nod by calling the internal function
+          ferni.startActiveListening();
+          ferni.onUserSpeechPause(1200);
+          break;
+        case 'lean':
+          ferni.startActiveListening();
+          ferni.onUserSpeechPause(1000); // Triggers lean
+          break;
+      }
+      log.debug('Active listening triggered:', listen);
+    });
+  });
+
+  // 🚀 Ferni EQ - Concern response buttons
+  container.querySelectorAll('[data-concern]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const concern = (btn as HTMLElement).dataset.concern as 'mild' | 'moderate' | 'significant';
+      // Simulate concern detection
+      const mockTriggers = {
+        mild: { voiceStrain: 0.6 },
+        moderate: { voiceStrain: 0.7, transcript: 'I can\'t handle this' },
+        significant: { voiceStrain: 0.8, transcript: 'Nothing ever works, what\'s the point', voiceBreaking: true },
+      };
+      ferni.analyzeConcern(mockTriggers[concern]);
+      log.debug('Concern response triggered:', concern);
+    });
+  });
+
+  // 🚀 Ferni EQ - Breath sync buttons
+  container.querySelectorAll('[data-breath]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const breath = (btn as HTMLElement).dataset.breath;
+      switch (breath) {
+        case 'slow':
+          ferni.setBreathSyncEnabled(true);
+          ferni.detectUserBreathRate([600, 650, 620, 580, 640]); // ~10/min
+          ferni.syncBreathing();
+          break;
+        case 'normal':
+          ferni.setBreathSyncEnabled(true);
+          ferni.detectUserBreathRate([400, 420, 380, 410, 390]); // ~15/min
+          ferni.syncBreathing();
+          break;
+        case 'fast':
+          ferni.setBreathSyncEnabled(true);
+          ferni.detectUserBreathRate([300, 280, 320, 290, 310]); // ~20/min
+          ferni.syncBreathing();
+          break;
+        case 'off':
+          ferni.setBreathSyncEnabled(false);
+          break;
+      }
+      log.debug('Breath sync triggered:', breath);
     });
   });
 
@@ -2953,55 +3116,58 @@ function triggerExpression(expression: string): void {
 // ============================================================================
 
 /**
- * Trigger a Pixar eye lid expression.
+ * Trigger a Ferni eye lid expression.
  */
-function triggerPixarExpression(expression: EmotionalExpression): void {
+function triggerFerniExpression(expression: EmotionalExpression): void {
   // Initialize if not already done
-  initPixarEmotions();
+  initFerniExpressions();
 
   // Set the expression with hold for demo purposes
   const holdDuration = expression === 'neutral' ? 0 : DURATION.CELEBRATION;
-  pixarEmotions.setExpression(expression, DURATION.SLOW, holdDuration);
+  ferniExpressions.setExpression(expression, DURATION.SLOW, holdDuration);
 
-  log.info({ expression }, 'Triggered Pixar expression');
+  log.info({ expression }, 'Triggered Ferni expression');
 }
 
 /**
- * Trigger a Pixar advanced reaction.
+ * Trigger a Ferni advanced reaction.
  */
-function triggerPixarReaction(reaction: AdvancedReaction): void {
+// Dev panel uses friendlier names that map to CharacterReaction methods
+type DevPanelReaction = 'doubleTake' | 'heldPose' | 'lookAway' | 'nervousEnergy' | 'delightSparkle';
+
+function triggerFerniReaction(reaction: DevPanelReaction): void {
   // Initialize if not already done
-  initPixarEmotions();
+  initFerniExpressions();
 
   switch (reaction) {
     case 'doubleTake':
-      pixarEmotions.doubleTake();
+      ferniExpressions.realization();
       break;
     case 'heldPose':
-      pixarEmotions.heldPose('happy', DURATION.SLOW);
+      ferniExpressions.heldPose('happy', DURATION.SLOW);
       break;
     case 'lookAway':
-      pixarEmotions.lookAwayThinking(2000);
+      ferniExpressions.contemplation(2000);
       break;
     case 'nervousEnergy':
-      pixarEmotions.nervousEnergy(1500);
+      ferniExpressions.noticing(1500);
       break;
     case 'delightSparkle':
-      pixarEmotions.delightSparkle();
+      ferniExpressions.warmthSparkle();
       break;
     default:
-      log.warn({ reaction }, 'Unknown Pixar reaction');
+      log.warn({ reaction }, 'Unknown Ferni reaction');
   }
 
-  log.info({ reaction }, 'Triggered Pixar reaction');
+  log.info({ reaction }, 'Triggered Ferni reaction');
 }
 
 /**
- * Trigger a Pixar text-to-icon morph.
+ * Trigger a Ferni text-to-icon morph.
  */
-async function triggerPixarMorph(iconType: string): Promise<void> {
+async function triggerFerniMorph(iconType: string): Promise<void> {
   // Initialize if not already done
-  initPixarEmotions();
+  initFerniExpressions();
 
   // Define icon SVGs (using Lucide-style icons)
   const icons: Record<string, string> = {
@@ -3020,23 +3186,23 @@ async function triggerPixarMorph(iconType: string): Promise<void> {
   }
 
   // Morph text → icon
-  const iconElement = await pixarEmotions.morphTextToIcon(iconSvg, DURATION.MODERATE);
+  const iconElement = await ferniExpressions.morphTextToIcon(iconSvg, DURATION.MODERATE);
 
   // Hold the icon visible
   await new Promise((resolve) => setTimeout(resolve, DURATION.CELEBRATION));
 
   // Morph icon → text
-  await pixarEmotions.morphIconToText(iconElement);
+  await ferniExpressions.morphIconToText(iconElement);
 
-  log.info({ iconType }, 'Completed Pixar morph');
+  log.info({ iconType }, 'Completed Ferni morph');
 }
 
 function triggerMusicAction(action: string): void {
   switch (action) {
     case 'start-music':
-      // Start dancing - audio level callback not yet implemented
-      avatarFeedback.dancing();
-      log.info('Started music visualization (dancing mode)');
+      // Start music presence - audio level callback not yet implemented
+      avatarFeedback.musicPresence();
+      log.info('Started music visualization (presence mode)');
       break;
 
     case 'stop-music':
@@ -3054,7 +3220,36 @@ function triggerMusicAction(action: string): void {
       avatarFeedback.unduck();
       log.info('Music unduck');
       break;
+
+    case 'our-song':
+      // 💚 Test "Our Song" - shared musical memory with heart indicator
+      testOurSong();
+      break;
   }
+}
+
+/**
+ * 💚 Test "Our Song" feature - shows Now Playing with heart indicator
+ */
+async function testOurSong(): Promise<void> {
+  const { nowPlayingUI } = await import('./now-playing.ui.js');
+  const { waveformUI } = await import('./waveform.ui.js');
+
+  // Show Now Playing with "our song" indicator
+  nowPlayingUI.show({
+    name: 'Here Comes the Sun',
+    artist: 'The Beatles',
+    duration: 180000,
+    isAmbient: false,
+    isOurSong: true,
+    ourSongContext: 'When you got the job offer',
+  });
+
+  // Start music visualization
+  avatarFeedback.musicPresence();
+  waveformUI.setMusicPlaying(true);
+
+  log.info('💚 Testing "Our Song" feature - showing shared memory indicator');
 }
 
 // ============================================================================
@@ -3258,7 +3453,7 @@ function triggerWrapUp(sentiment: string): void {
 }
 
 // ============================================================================
-// DRAMATIC ANIMATIONS - Pixar-style character moves
+// DRAMATIC ANIMATIONS - Character-quality moves
 // ============================================================================
 
 function triggerDramatic(dramatic: string): void {
@@ -3267,7 +3462,7 @@ function triggerDramatic(dramatic: string): void {
 
   switch (dramatic) {
     case 'bounce':
-      // Pixar-style bounce with squash and stretch
+      // Character-quality bounce with squash and stretch
       avatar.animate(
         [
           { transform: 'scale(1, 1) translateY(0)' },

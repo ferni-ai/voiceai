@@ -31,8 +31,10 @@
       "id": "ferni",
       "name": "Ferni",
       "initials": "FN",
-      "role": "Life Coach (Coordinator)",
+      "role": "Life Coach",
       "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
+      "sampleQuote": "I noticed you said 'fine' three times this week. What's actually going on?",
+      "traits": ["Present", "Warm", "Perceptive"],
       "color": "#4a6741"
     },
     {
@@ -40,7 +42,9 @@
       "name": "Nayan",
       "initials": "NP",
       "role": "Sage & Mentor",
-      "bio": "Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.",
+      "bio": "Your lifetime mentor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.",
+      "sampleQuote": "What would 80-year-old you think about this decision?",
+      "traits": ["Wise", "Patient", "Grounded"],
       "color": "#9a7b5a"
     },
     {
@@ -48,15 +52,19 @@
       "name": "Peter",
       "initials": "PL",
       "role": "Research & Discovery",
-      "bio": "The Quant. Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
+      "bio": "Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
+      "sampleQuote": "You spend 23 hours a month on things you said don't matter to you. Want to see?",
+      "traits": ["Analytical", "Curious", "Honest"],
       "color": "#3a6b73"
     },
     {
       "id": "alex",
       "name": "Alex",
       "initials": "AX",
-      "role": "Communication & Coordination",
-      "bio": "Your Chief of Staff and communication coach. Manages your calendar and email, and helps you navigate difficult conversations with confidence.",
+      "role": "Communication",
+      "bio": "Your Chief of Staff and communication coach. Helps you navigate difficult conversations with confidence.",
+      "sampleQuote": "Let's practice that conversation. I'll play your boss. Ready?",
+      "traits": ["Strategic", "Confident", "Practical"],
       "color": "#5a6b8a"
     },
     {
@@ -64,7 +72,9 @@
       "name": "Maya",
       "initials": "MY",
       "role": "Habits & Routines",
-      "bio": "Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time.",
+      "bio": "Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower.",
+      "sampleQuote": "What if we started with just putting your shoes on? That's it. Just the shoes.",
+      "traits": ["Gentle", "Practical", "Patient"],
       "color": "#a67a6a"
     },
     {
@@ -72,7 +82,9 @@
       "name": "Jordan",
       "initials": "JD",
       "role": "Planning & Events",
-      "bio": "Your lifetime planner. Turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter intentionally.",
+      "bio": "Turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter.",
+      "sampleQuote": "You mentioned wanting to visit Japan 'someday.' Let's make it a real day.",
+      "traits": ["Creative", "Enthusiastic", "Detailed"],
       "color": "#c4856a"
     }
   ],
@@ -91,7 +103,7 @@
       "initials": "MR"
     },
     {
-      "quote": "I was skeptical about talking to an AI, but Ferni helped me work through a career decision I'd been stuck on for months. The team approach is brilliant.",
+      "quote": "I was skeptical at first, but Ferni helped me work through a career decision I'd been stuck on for months. The team approach is brilliant.",
       "author": "Jessica L.",
       "role": "Designer",
       "initials": "JL"
@@ -127,8 +139,8 @@
       "answer": "Anything! Career decisions, stress management, building habits, planning events, working through tough situations, or just needing someone to talk to. Ferni is here for all of it."
     },
     {
-      "question": "How is this different from ChatGPT?",
-      "answer": "Ferni is voice-first and remembers your entire history. It's designed specifically for life coaching with specialized AI personas. Plus, you can just call a phone number—no typing required."
+      "question": "How is this different from a friend or therapist?",
+      "answer": "Your therapist has other patients. Your friend has their own problems. Ferni is always available, remembers everything, never judges, and brings six specialized perspectives. We fill the gaps when your people can't be there."
     }
   ],
   

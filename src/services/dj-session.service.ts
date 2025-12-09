@@ -13,7 +13,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
+import { getMusicPlayer } from '../audio/index.js';
 import {
   getDJStyle,
   getSpontaneousMusicOffer,
@@ -525,7 +525,8 @@ class DJSessionService {
   // INTRO GENERATORS
   // ==========================================================================
 
-  private getFirstTimeIntro(context: SessionContext): SessionIntro {
+  private getFirstTimeIntro(_context: SessionContext): SessionIntro {
+    // Note: context available for future personalization (e.g., userName)
     const phrase = this.randomFrom(SESSION_INTROS.firstTime.phrases);
     const followUp = this.randomFrom(SESSION_INTROS.firstTime.followUp);
 
@@ -709,19 +710,9 @@ class DJSessionService {
 
     const player = getMusicPlayer();
 
-    // Fade out
-    const steps = 10;
-    const stepDelay = THINKING_MUSIC_CONFIG.fadeOutDurationMs / steps;
-    const startVolume = THINKING_MUSIC_CONFIG.volume;
-
-    for (let i = 0; i < steps; i++) {
-      const newVolume = startVolume * (1 - (i + 1) / steps);
-      player.setVolume(Math.max(0, newVolume));
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, stepDelay);
-      });
-    }
-
+    // NOTE: BackgroundAudioPlayer doesn't support real-time volume changes,
+    // so we can't actually fade. Stop immediately.
+    // The frontend shows a smooth visual transition regardless.
     player.stop();
     this.isThinkingMusicPlaying = false;
   }
@@ -812,6 +803,70 @@ class DJSessionService {
       musicArtists: this.sessionMusicArtists,
       duration: this.sessionStartTime ? Date.now() - this.sessionStartTime.getTime() : 0,
     };
+  }
+
+  // ==========================================================================
+  // MUSIC INTEGRATION (Uses dj-service functions)
+  // ==========================================================================
+
+  /**
+   * Get a music-based conversation starter for the current context
+   * Good to call during silences or topic transitions
+   */
+  getMusicConversationStarterPhrase(): string | null {
+    if (!this.currentContext?.personaId) {
+      return null;
+    }
+    return getMusicConversationStarter(this.currentContext.personaId, {});
+  }
+
+  /**
+   * Get contextual music suggestion based on current conversation
+   */
+  getContextualMusicSuggestionForTopics(): { suggestion: string; genre: string } | null {
+    if (!this.currentContext?.personaId) {
+      return null;
+    }
+
+    const context = {
+      topics: this.sessionTopics,
+      isHeavyTopic: this.sessionTopics.some(
+        (t) => t.includes('difficult') || t.includes('stress') || t.includes('anxiety')
+      ),
+      isCelebration: this.sessionTopics.some(
+        (t) => t.includes('celebration') || t.includes('success') || t.includes('achievement')
+      ),
+      needsFocus: this.sessionTopics.some(
+        (t) => t.includes('work') || t.includes('focus') || t.includes('study')
+      ),
+    };
+
+    return getContextualMusicSuggestion(context, this.currentContext.personaId);
+  }
+
+  /**
+   * Determine appropriate action based on user behavior during music
+   * @param musicPlayingForSec - How long music has been playing
+   * @param isUserSilent - Is the user currently silent
+   * @param isUserTalking - Is the user currently talking
+   */
+  getReadTheRoomSuggestion(
+    musicPlayingForSec: number,
+    isUserSilent: boolean,
+    isUserTalking: boolean
+  ): { action: 'continue' | 'offer_stop' | 'auto_duck' | 'check_in'; phrase?: string } | null {
+    if (!this.currentContext?.personaId) {
+      return null;
+    }
+
+    return getReadTheRoomAction(
+      {
+        userIsSilentDuringMusic: isUserSilent,
+        userIsTalkingDuringMusic: isUserTalking,
+        musicHasBeenPlayingFor: musicPlayingForSec,
+      },
+      this.currentContext.personaId
+    );
   }
 
   // ==========================================================================

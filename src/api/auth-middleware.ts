@@ -25,7 +25,6 @@ import { sendError } from './helpers.js';
 import { API_ERRORS } from './error-messages.js';
 import {
   trackFailedAuth,
-  clearFailedAuth,
   isLockedOut,
   recordSuccessfulAuth,
   recordSecurityEvent,
@@ -244,8 +243,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
         authMethod: 'api_key',
       };
     }
-    // Invalid API key - track failure (fire and forget)
-    void trackFailedAuth(`apikey:${apiKey.substring(0, 8)}`, ip, 'invalid_api_key');
+    // Invalid API key - track failure with error logging
+    void trackFailedAuth(`apikey:${apiKey.substring(0, 8)}`, ip, 'invalid_api_key')
+      .catch((e) => log.error({ error: String(e) }, 'Failed to track auth failure'));
     void recordSecurityEvent({
       type: 'api_key_invalid',
       ip,
@@ -253,7 +253,7 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       action: 'Invalid API key attempted',
       outcome: 'failure',
       details: { keyPrefix: apiKey.substring(0, 8) },
-    });
+    }).catch((e) => log.error({ error: String(e) }, 'Failed to record security event'));
     return null;
   }
 
@@ -270,11 +270,12 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
         authMethod: 'jwt',
       };
     }
-    // Invalid JWT - track failure
+    // Invalid JWT - track failure with error logging
     const payload = decodeJWTPayload(token);
     const failureType =
       payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
-    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType);
+    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType)
+      .catch((e) => log.error({ error: String(e) }, 'Failed to track auth failure'));
     void recordSecurityEvent({
       type: failureType,
       actorId: payload?.sub,
@@ -282,7 +283,7 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       userAgent,
       action: `JWT ${failureType === 'jwt_expired' ? 'expired' : 'invalid'}`,
       outcome: 'failure',
-    });
+    }).catch((e) => log.error({ error: String(e) }, 'Failed to record security event'));
     return null;
   }
 

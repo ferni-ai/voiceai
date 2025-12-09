@@ -55,6 +55,18 @@ import { handleVoiceAuthRoutes } from './dist/api/voice-auth-handler.js';
 // User preferences routes (timezone, quiet hours, contact info)
 import { handleUserRoutes } from './dist/api/user-routes.js';
 
+// Habit persistence routes (CRUD, completions, streaks)
+import { handleHabitRoutes } from './dist/api/habit-routes.js';
+
+// Subscription routes (Stripe checkout, billing portal, usage tracking)
+import {
+  handleSubscriptionRequest,
+  isSubscriptionRoute,
+} from './dist/api/subscription-routes.js';
+
+// Rate limiting and auth for sensitive endpoints
+import { rateLimit, requireAdmin, requireAuth } from './dist/api/auth-middleware.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -350,12 +362,30 @@ function serveStaticFile(filePath, res) {
   });
 }
 
+// Allowed origins for CORS (restrict in production)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:3004', 'http://localhost:3002', 'https://ferni.ai', 'https://john-bogle-ui-1031920444452.us-central1.run.app'];
+
+function getCorsOrigin(req) {
+  const origin = req.headers.origin;
+  // In development or if origin matches allowed list, return it
+  if (!origin) return ALLOWED_ORIGINS[0];
+  if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+    return origin;
+  }
+  // Default to first allowed origin (won't match, blocking the request effectively)
+  return ALLOWED_ORIGINS[0];
+}
+
 // HTTP server
 const server = http.createServer(async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Enable CORS with origin validation
+  const corsOrigin = getCorsOrigin(req);
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Id, Authorization, Stripe-Signature');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -485,6 +515,55 @@ const server = http.createServer(async (req, res) => {
       const handled = await handleUserRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // Habit persistence routes (CRUD, completions, streaks)
+    if (pathname.startsWith('/api/habits')) {
+      const handled = await handleHabitRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Subscription routes (Stripe checkout, billing portal, usage tracking)
+    if (isSubscriptionRoute(pathname)) {
+      try {
+        // Parse body for POST requests
+        let body = undefined;
+        if (req.method === 'POST' || req.method === 'PUT') {
+          body = await new Promise((resolve) => {
+            let data = '';
+            req.on('data', (chunk) => (data += chunk));
+            req.on('end', () => {
+              try {
+                resolve(data ? JSON.parse(data) : {});
+              } catch {
+                resolve(data); // Keep raw for webhook signature verification
+              }
+            });
+          });
+        }
+
+        // Build request context
+        const ctx = {
+          method: req.method,
+          pathname,
+          query: Object.fromEntries(parsedUrl.searchParams),
+          body,
+          headers: req.headers,
+        };
+
+        // Handle the request
+        const response = await handleSubscriptionRequest(ctx);
+
+        // Send response
+        res.writeHead(response.status, response.headers);
+        res.end(JSON.stringify(response.body));
+        return;
+      } catch (err) {
+        console.error('❌ Subscription route error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+        return;
+      }
+    }
   } catch (err) {
     console.error('❌ API route error:', err);
   }
@@ -500,7 +579,7 @@ const server = http.createServer(async (req, res) => {
 
   // Comprehensive health dashboard endpoint
   if (pathname === '/health/dashboard') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // NOTE: CORS already set at top of handler via getCorsOrigin()
 
     const dashboard = {
       status: 'ok',
@@ -558,6 +637,11 @@ const server = http.createServer(async (req, res) => {
 
   // Exchange Plaid public token for access token
   if (pathname === '/plaid/exchange' && req.method === 'POST') {
+    // Rate limit: 5 exchanges per minute per IP (financial operation)
+    if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) {
+      return; // Rate limited
+    }
+
     let body = '';
     req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
@@ -1092,6 +1176,11 @@ const server = http.createServer(async (req, res) => {
 
   // POST /api/agents/:id/enable - Enable or disable an agent
   if (pathname.match(/^\/api\/agents\/[^/]+\/enable$/) && req.method === 'POST') {
+    // Rate limit: 10 enable/disable per minute per IP
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+      return; // Rate limited
+    }
+
     const agentId = pathname.split('/')[3];
 
     try {
@@ -1192,8 +1281,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/agents/validate - Validate all agent bundles
+  // POST /api/agents/validate - Validate all agent bundles (ADMIN ONLY)
   if (pathname === '/api/agents/validate' && req.method === 'POST') {
+    // SECURITY: This endpoint runs shell commands - require admin auth
+    const auth = requireAdmin(req, res);
+    if (!auth) return; // 401/403 already sent
+
     try {
       const { execSync } = await import('child_process');
 
@@ -1248,8 +1341,12 @@ const server = http.createServer(async (req, res) => {
   // TOOLS ANALYTICS API
   // ============================================================================
 
-  // GET /api/tools/analytics - Dashboard data for tool analytics
+  // GET /api/tools/analytics - Dashboard data for tool analytics (ADMIN ONLY)
   if (pathname === '/api/tools/analytics' && req.method === 'GET') {
+    // SECURITY: Internal analytics data - require admin auth
+    const auth = requireAdmin(req, res);
+    if (!auth) return; // 401/403 already sent
+
     try {
       // Dynamic import of the optimization API
       const { getDashboardData } = await import('./dist/services/optimization-api.js');
@@ -1273,8 +1370,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/tools/optimize - Trigger optimization cycle
+  // POST /api/tools/optimize - Trigger optimization cycle (ADMIN ONLY)
   if (pathname === '/api/tools/optimize' && req.method === 'POST') {
+    // SECURITY: Expensive operation - require admin auth
+    const auth = requireAdmin(req, res);
+    if (!auth) return; // 401/403 already sent
+
+    // Rate limit: 2 optimizations per minute per IP (expensive operation)
+    if (rateLimit(req, res, { maxRequests: 2, windowMs: 60000 })) {
+      return; // Rate limited
+    }
+
     try {
       const { triggerOptimizationCycle } = await import('./dist/services/optimization-api.js');
       const result = await triggerOptimizationCycle();
@@ -1392,8 +1498,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/push/send - Send a push notification (for testing/admin)
+  // POST /api/push/send - Send a push notification (ADMIN ONLY)
   if (pathname === '/api/push/send' && req.method === 'POST') {
+    // SECURITY: Sending notifications to users - require admin auth
+    const auth = requireAdmin(req, res);
+    if (!auth) return; // 401/403 already sent
+
+    // Rate limit: 10 notifications per minute per IP (prevents spam)
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+      return; // Rate limited
+    }
+
     let body = '';
     req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
@@ -1442,6 +1557,11 @@ const server = http.createServer(async (req, res) => {
 
   // Token generation endpoint
   if (pathname === '/token') {
+    // Rate limit: 20 tokens per minute per IP (prevents abuse)
+    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) {
+      return; // Rate limited
+    }
+
     const room = parsedUrl.searchParams.get('room');
     const username = parsedUrl.searchParams.get('username');
     const device_id = parsedUrl.searchParams.get('device_id');

@@ -1,13 +1,15 @@
 /**
- * Coach UI Component - Pixar-Inspired Avatar Animations
+ * Coach UI Component - Ferni Character Animation System
  * 
  * Each persona has distinct animation personality:
- * - Ferni: WALL-E curious, warm bounce
- * - Jack Bogle: Carl from Up, measured and wise
- * - Peter Lynch: Linguini energy, quick and practical
- * - Alex Chen: Joy warmth, empathetic presence
- * - Maya Santos: EVE precision, organized
- * - Jordan Taylor: Dory joy, creative enthusiasm
+ * - Ferni: Curious, warm, grounded presence
+ * - Jack Bogle: Wise, measured, contemplative (sage mentor)
+ * - Peter Lynch: Quick, practical, energetic
+ * - Alex Chen: Empathetic, warm presence
+ * - Maya Santos: Precise, organized, methodical
+ * - Jordan Taylor: Creative, enthusiastic, joyful
+ * 
+ * BRAND PRINCIPLES: Warm, Grounded, Wise, Present, Human
  * 
  * NOTE: Animation profiles imported from @design-system/tokens
  */
@@ -218,8 +220,9 @@ function startBreathingAnimation(): void {
 }
 
 /**
- * Play Pixar-style reaction animation
- * Different intensity based on persona personality
+ * Play character-quality reaction animation.
+ * Different intensity based on persona personality.
+ * Brand: warm, grounded, present.
  */
 function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
   if (!elements) return;
@@ -243,7 +246,7 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
       break;
       
     case 'attention':
-      // Quick snap to attention - like EVE spotting something
+      // Quick snap to attention - alert, present awareness
       keyframes = [
         { transform: 'scale(1) rotate(0deg)', offset: 0 },
         { transform: 'scale(1.03) rotate(-1deg)', offset: 0.3 },
@@ -254,7 +257,7 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
       break;
       
     case 'settle':
-      // Gentle settle - like Carl sitting down
+      // Gentle settle - grounded, present, calming
       keyframes = [
         { transform: 'scale(1.02)', offset: 0 },
         { transform: 'scale(0.99)', offset: 0.5 },
@@ -264,7 +267,7 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
       break;
       
     case 'joy':
-      // Happy bounce - like Luxo Jr.
+      // Happy bounce - warm, genuine, grounded delight
       keyframes = [
         { transform: 'scale(1) translateY(0)', offset: 0 },
         { transform: `scale(${profile.bounceIntensity * 1.02}) translateY(-8px)`, offset: 0.25 },
@@ -285,7 +288,7 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
 
 /**
  * Update the displayed persona with their unique colors.
- * Includes Pixar-style animations unique to each persona.
+ * Includes character-quality animations unique to each persona.
  */
 export function updatePersonaDisplay(persona: PersonaConfig): void {
   if (!elements) return;
@@ -438,7 +441,7 @@ export function setDimmed(dimmed: boolean): void {
 }
 
 // ============================================================================
-// EMOTION HANDLING - Pixar-style emotional reactions
+// EMOTION HANDLING - Character-quality emotional reactions
 // ============================================================================
 
 /**
@@ -455,8 +458,9 @@ const EMOTION_CLASSES: Record<VoiceEmotion, string> = {
 };
 
 /**
- * Emotion to Pixar reaction mapping
- * Each emotion triggers a character-appropriate response
+ * Emotion to reaction mapping.
+ * Each emotion triggers a character-appropriate response.
+ * Brand: warm, grounded, present.
  */
 const EMOTION_REACTIONS: Record<VoiceEmotion, 'bounce' | 'attention' | 'settle' | 'joy' | null> = {
   neutral: null,
@@ -472,7 +476,7 @@ let currentEmotionClass: string | null = null;
 
 /**
  * Set the emotion state for avatar visual feedback.
- * Pixar principle: emotions drive movement
+ * Character principle: emotions drive movement with warmth and presence.
  */
 export function setEmotion(emotion: VoiceEmotion): void {
   if (!elements) return;

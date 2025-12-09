@@ -8,9 +8,9 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 import { getFerniAudioEngine } from '../services/ferni-audio.service.js';
-import { HapticsService } from '../services/haptics.service.js';
+import { getHapticsService } from '../services/haptics.service.js';
 import { getGlowController } from '../services/glow-controller.service.js';
 
 const log = createLogger('CelebrationUI');
@@ -247,7 +247,7 @@ export class CelebrationUI {
     if (!pattern) return;
     
     try {
-      const haptics = HapticsService.getInstance();
+      const haptics = getHapticsService();
       haptics.play(pattern);
     } catch (error) {
       log.warn('Failed to play celebration haptic', { pattern, error });
@@ -429,7 +429,7 @@ export class CelebrationUI {
       element.className = 'confetti-particle';
       
       const size = 8 + Math.random() * 8;
-      const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] || '#4a6741';
       
       Object.assign(element.style, {
         position: 'absolute',

@@ -7,10 +7,10 @@
  * @module @ferni/empty-states
  */
 
-import { createLogger } from '../utils/logger.js';
+// Logger available for future debug logging
+// import { createLogger } from '../utils/logger.js';
+// const log = createLogger('EmptyStateUI');
 import { DURATION, EASING } from '../config/animation-constants.js';
-
-const log = createLogger('EmptyStateUI');
 
 // ============================================================================
 // TYPES
@@ -193,7 +193,8 @@ const ILLUSTRATIONS: Record<string, string> = {
 // ============================================================================
 
 export class EmptyStateUI {
-  private container: HTMLElement | null = null;
+  // Container reserved for future stateful empty state management
+  // private container: HTMLElement | null = null;
   
   /**
    * Create an empty state element
@@ -281,7 +282,8 @@ export class EmptyStateUI {
       marginBottom: 'var(--space-4, 16px)',
     });
     
-    wrapper.innerHTML = ILLUSTRATIONS[type] || ILLUSTRATIONS.zen;
+    const illustration = ILLUSTRATIONS[type] ?? ILLUSTRATIONS.zen ?? '';
+    wrapper.innerHTML = illustration;
     
     if (animate) {
       const svg = wrapper.querySelector('svg');

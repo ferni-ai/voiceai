@@ -20,6 +20,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getDefaultStore } from '../../memory/index.js';
+import { sendVerificationCode, isTwilioConfigured } from '../twilio-sms.js';
 
 const log = getLogger().child({ module: 'HumanFirst2FA' });
 
@@ -815,6 +816,9 @@ export function recordPhoneAskResponse(
 // 2FA VERIFICATION FLOW
 // ============================================================================
 
+// Module-level storage for verification codes (in production, use Redis/Firestore with TTL)
+const verificationCodes = new Map<string, { code: string; expires: Date; phone: string }>();
+
 /**
  * Initiate phone verification (SMS code)
  */
@@ -825,27 +829,43 @@ export async function initiatePhoneVerification(
   // Generate 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // Store code (in production, use Redis with TTL)
-  const verificationCodes = new Map<string, { code: string; expires: Date; phone: string }>();
+  // Store code with 10-minute expiry
   verificationCodes.set(userId, {
     code,
-    expires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    expires: new Date(Date.now() + 10 * 60 * 1000),
     phone: phoneNumber,
   });
 
-  // In production: Send SMS via Twilio
   log.info({ userId, phone: phoneNumber.slice(-4) }, '📲 Phone verification initiated');
 
-  // The message should feel human
-  const smsMessage = `Your Ferni code is ${code}. Just making sure it's really you! 💚`;
-
-  // TODO: Actually send SMS
-  // await sendSMS(phoneNumber, smsMessage);
+  // Send SMS via Twilio
+  if (isTwilioConfigured()) {
+    const messageSid = await sendVerificationCode(phoneNumber, code);
+    if (!messageSid) {
+      log.error({ userId }, 'Failed to send verification SMS');
+      return {
+        success: false,
+        message: "I couldn't send the code right now. Let's try again in a moment?",
+      };
+    }
+  } else {
+    // Development mode - log the code
+    log.warn({ userId, code }, '⚠️ Twilio not configured - code logged for development');
+  }
 
   return {
     success: true,
     message: 'I just texted you a quick code - can you read it back to me?',
   };
+}
+
+/**
+ * Get stored verification code for a user (for verification)
+ */
+export function getStoredVerificationCode(
+  userId: string
+): { code: string; expires: Date; phone: string } | undefined {
+  return verificationCodes.get(userId);
 }
 
 /**
@@ -855,14 +875,30 @@ export async function verifyPhoneCode(
   userId: string,
   providedCode: string
 ): Promise<{ verified: boolean; message: string }> {
-  // In production: Check against stored code
-  // const stored = verificationCodes.get(userId);
-  // const verified = stored && stored.code === providedCode && stored.expires > new Date();
+  const stored = verificationCodes.get(userId);
 
-  // For now, placeholder
-  const verified = providedCode.length === 6 && /^\d+$/.test(providedCode);
+  // No code stored for this user
+  if (!stored) {
+    log.warn({ userId }, 'Verification attempt with no stored code');
+    return {
+      verified: false,
+      message: "I don't have a code pending for you. Want me to send a new one?",
+    };
+  }
 
-  if (verified) {
+  // Code expired
+  if (stored.expires < new Date()) {
+    verificationCodes.delete(userId);
+    log.info({ userId }, 'Verification code expired');
+    return {
+      verified: false,
+      message: 'That code expired. Let me send you a fresh one?',
+    };
+  }
+
+  // Code matches
+  if (stored.code === providedCode) {
+    verificationCodes.delete(userId); // One-time use
     log.info({ userId }, '✅ Phone verified successfully');
     return {
       verified: true,
@@ -870,6 +906,8 @@ export async function verifyPhoneCode(
     };
   }
 
+  // Code doesn't match
+  log.info({ userId }, 'Verification code mismatch');
   return {
     verified: false,
     message: "Hmm, that doesn't match. Want me to send another code?",

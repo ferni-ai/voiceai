@@ -17,6 +17,26 @@ import { getMusicPlayer, type MusicTrack, type SessionMusicEntry } from '../audi
 
 const log = getLogger();
 
+/**
+ * Check if music is currently playing (utility for external use)
+ */
+export function isMusicCurrentlyPlaying(): boolean {
+  const player = getMusicPlayer();
+  return player.isPlaying();
+}
+
+/**
+ * Get current track info if music is playing
+ */
+export function getCurrentPlayingTrack(): MusicTrack | null {
+  const player = getMusicPlayer();
+  if (!player.isPlaying()) return null;
+  const track = player.getCurrentTrack();
+  if (!track) return null;
+  log.debug('DJ Service: Got current track', { track: track.name });
+  return track;
+}
+
 // ============================================================================
 // DJ PERSONA STYLES
 // ============================================================================
@@ -375,8 +395,10 @@ function getContinuityOffer(personaId: string, style: DJPersonaStyle): string {
 /**
  * Get an appreciation comment about the music
  * These are brief comments that show the DJ is enjoying the music too
+ * @param personaId - The persona's ID for style selection
+ * @param _track - Track info for future track-specific comments (currently unused)
  */
-export function getMusicAppreciationComment(personaId: string, track: MusicTrack): string | null {
+export function getMusicAppreciationComment(personaId: string, _track: MusicTrack): string | null {
   const style = getDJStyle(personaId);
 
   // Only comment based on persona's interjection frequency

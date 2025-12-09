@@ -80,6 +80,56 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 - **Monetization & Team Unlocks**: `docs/MONETIZATION-SYSTEM.md`
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design tokens**: `brand/ferni-design-tokens.css`
+- **Emotional Intelligence**: `brand/BETTER-THAN-HUMAN.md`
+
+## 🚀 Ferni EQ - Superhuman Emotional Intelligence
+
+Ferni's avatar implements **superhuman emotional intelligence** - this is core to our "Better than Human" brand promise.
+
+### Five Capabilities (All Required for Avatar Code)
+
+| Capability | What | Why |
+|------------|------|-----|
+| **Micro-Expressions** | 40-150ms subliminal emotional flashes | Builds trust unconsciously |
+| **Active Listening** | Micro-nods during user speech | Shows moment-to-moment presence |
+| **Breath Sync** | Sync breathing with user rhythm | Neural mirroring builds connection |
+| **Concern Detection** | Detect distress from voice/content | Show care before user asks |
+| **Anticipation** | Show emotion before user finishes | "They understand me" feeling |
+
+### Implementation Rules
+
+```typescript
+// ✅ ALWAYS - Initialize Ferni EQ system
+import { initFerniEQ, ferni } from './ui/better-than-human.ui.js';
+
+// ✅ ALWAYS - Micro-expressions are subliminal (40-150ms)
+ferni.playMicroExpression('recognition'); // 80ms
+
+// ✅ ALWAYS - Active listening during user speech
+onUserSpeechStart() { ferni.startActiveListening(); }
+onUserSpeechPause(duration) { ferni.onUserSpeechPause(duration); }
+
+// ✅ ALWAYS - Enable breath synchronization
+ferni.setBreathSyncEnabled(true);
+
+// ✅ ALWAYS - Analyze for concern signals
+ferni.analyzeConcern({ transcript, voiceStrain });
+
+// ✅ ALWAYS - Anticipate from partial input
+ferni.anticipateEmotion({ transcript: partial, tone });
+```
+
+### Avatar Expression Rules
+
+| Wrong | Right |
+|-------|-------|
+| Static avatar during user speech | Active listening micro-nods |
+| React only after message complete | Anticipate from partial input |
+| Expression duration > 150ms for micro | Subliminal: 40-150ms |
+| Ignore user breathing patterns | Sync breathing gradually |
+| Wait for explicit "I'm sad" | Detect distress signals early |
+
+**Reference:** `brand/BETTER-THAN-HUMAN.md` for full documentation.
 
 ## Critical Rules
 

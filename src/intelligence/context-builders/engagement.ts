@@ -11,7 +11,6 @@
  *
  * Extracted from jack-bogle.ts lines 919-937, 1272-1283, 1332-1356
  */
-import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -20,7 +19,6 @@ import {
   type ContextInjection,
 } from './index.js';
 import { detectUserEngagement, getRunningJokeCallback } from '../human-behaviors.js';
-import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
 // TYPES

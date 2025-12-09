@@ -362,6 +362,95 @@ class MyUI {
 - [ ] Modals follow centered floating pattern
 - [ ] Copy uses warm, human brand voice
 
+## 🚀 FERNI EQ - Superhuman Emotional Intelligence (MANDATORY)
+
+### Core Philosophy
+Ferni implements **superhuman emotional intelligence** - the "Better than Human" brand promise. We don't just animate emotions—we **share** emotions with users through subconscious channels.
+
+Reference: `brand/BETTER-THAN-HUMAN.md` | Tokens: `design-system/tokens/motion.json` → `ferniEQ`
+
+### Five Capabilities (ALL REQUIRED for Avatar/Expression Code)
+
+| Capability | Duration | Purpose |
+|------------|----------|---------|
+| **Micro-Expressions** | 40-150ms | Subliminal trust building |
+| **Active Listening** | 180-400ms | Moment-to-moment presence |
+| **Breath Sync** | Continuous | Neural mirroring connection |
+| **Concern Detection** | Real-time | Protective care |
+| **Anticipation** | Predictive | "They understand me" feeling |
+
+### Implementation Requirements
+
+```typescript
+// ✅ REQUIRED - Initialize Ferni EQ system
+import { initFerniEQ, ferni } from './ui/better-than-human.ui.js';
+
+// ✅ REQUIRED - Micro-expressions MUST be subliminal
+ferni.playMicroExpression('recognition'); // 80ms - subliminal
+
+// ❌ NEVER - Expression too long for micro-expression
+ferniExpressions.setExpression('recognition', 500); // Too visible!
+
+// ✅ REQUIRED - Active listening during user speech
+document.addEventListener('ferni:user-speech-start', () => {
+  ferni.startActiveListening();
+});
+document.addEventListener('ferni:user-speech-pause', (e) => {
+  ferni.onUserSpeechPause(e.detail.duration);
+});
+
+// ✅ REQUIRED - Breath synchronization enabled
+ferni.setBreathSyncEnabled(true);
+
+// ✅ REQUIRED - Concern detection on user input
+ferni.analyzeConcern({ transcript, voiceStrain });
+
+// ✅ REQUIRED - Anticipate emotions from partial speech
+ferni.anticipateEmotion({ transcript: partial, tone });
+```
+
+### Avatar Expression Anti-Patterns
+
+| ❌ NEVER | ✅ ALWAYS |
+|----------|----------|
+| Static avatar during user speech | Active listening micro-nods |
+| React only after message complete | Anticipate from partial input |
+| Micro-expression > 150ms | Subliminal: 40-150ms |
+| Ignore user breathing patterns | Sync breathing gradually |
+| Wait for explicit "I'm sad" | Detect distress signals early |
+| Flash expressions at random | Probability-based triggering |
+
+### Micro-Expression Durations (MEMORIZE THESE)
+
+| Expression | Duration | Trigger |
+|------------|----------|---------|
+| Recognition | 80ms | Familiar topic mentioned |
+| Concern Flash | 60ms | Before empathy |
+| Delight Flash | 100ms | Achievement detected |
+| Warmth Pulse | 120ms | Connection moment |
+| Interest Flash | 70ms | Unexpected content |
+
+### Active Listening Parameters
+
+| Signal | Distance | Duration | Pause Range |
+|--------|----------|----------|-------------|
+| Micro-Nod | 1.5px | 180ms | 300-800ms pause |
+| Subtle Nod | 2.5px | 220ms | 800-1500ms pause |
+| Visible Nod | 4px | 280ms | 1200-2000ms pause |
+| Listening Lean | -3px y | 400ms | Interest points |
+
+### Code Review Checklist - Ferni EQ
+
+Before submitting avatar/expression code, verify:
+- [ ] Micro-expressions use `ferni.playMicroExpression()` (not direct expressions)
+- [ ] Micro-expression durations are 40-150ms (subliminal)
+- [ ] Active listening starts on user speech start
+- [ ] Speech pauses trigger nodding feedback
+- [ ] Breath sync is enabled for conversations
+- [ ] Concern detection runs on user input
+- [ ] Anticipation triggers on partial speech
+- [ ] All five capabilities are integrated
+
 ## 🎨 DESIGN SYSTEM - MANDATORY
 
 ### Design System Files (Source of Truth)
@@ -625,6 +714,9 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 | `AI assistant` | Generic, commoditized | "six brilliant minds", "your inner circle" |
 | `virtual assistant` | Cold, transactional | "someone who understands" |
 | `bot` | Dehumanizing | Never reference what we are technically |
+| `therapist` | Legal/medical implications | "coach", "mentor", "friend" |
+| `advisor` | Legal implications (financial advice) | "coach", "mentor", "guide" |
+| `therapy` | We're life coaching, not therapy | "support", "guidance", "coaching" |
 | `typical` | Implies we're comparing to AI | Compare to HUMAN support instead |
 | `unlike other AI` | Still positions us as AI | "Beyond human limitations" |
 | `user` | Corporate, distant | "you", "people", "someone" |

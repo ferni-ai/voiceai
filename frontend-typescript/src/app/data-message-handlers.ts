@@ -41,8 +41,12 @@ import { handoffService } from '../services/index.js';
 import { engagementService } from '../services/index.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { setWrappingUp } from '../state/app.state.js';
-// 🎬 Pixar Emotions - Advanced avatar expressions
-import { pixarEmotions } from '../ui/pixar-emotions.ui.js';
+// 🎬 Ferni Expressions - Character-level avatar expressions
+import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+// 🎚️ Music Audio Controller - Real-time ducking
+import { getMusicAudioController } from '../services/music-audio.controller.js';
+// Connection service - for music track expectation
+import { connectionService } from '../services/index.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -177,7 +181,7 @@ export function handleCelebration(event: CelebrationEvent): void {
     waveformUI.celebrate();
 
     // 🎬 Pixar: Held pose at peak excitement
-    pixarEmotions.heldPose('excited', 600);
+    ferniExpressions.heldPose('excited', 600);
 
     if (event.message) {
       celebrationsUI.celebrateMilestone(event.message);
@@ -196,10 +200,10 @@ export function handleCelebration(event: CelebrationEvent): void {
 
     // 🎬 Pixar: Double-take for "aha!" moments (like WALL-E noticing something)
     if (event.celebrationType === 'aha_moment') {
-      pixarEmotions.doubleTake();
+      ferniExpressions.realization();
     } else {
       // Good news: delighted expression with sparkle
-      pixarEmotions.delight();
+      ferniExpressions.delight();
     }
   }
 }
@@ -265,37 +269,37 @@ function triggerPixarEmotionResponse(emotion: EmotionEvent['emotion'], intensity
     case 'happy':
       // Mirror their joy
       if (intensity > 0.7) {
-        pixarEmotions.delight();
+        ferniExpressions.delight();
       } else {
-        pixarEmotions.happy(800);
+        ferniExpressions.happy(800);
       }
       break;
 
     case 'excited':
       // Share their excitement
-      pixarEmotions.excited();
+      ferniExpressions.excited();
       break;
 
     case 'sad':
       // Show empathetic understanding (soft, supportive expression)
-      pixarEmotions.empathy();
+      ferniExpressions.empathy();
       break;
 
     case 'anxious':
       // Show calm, grounding presence
       // Don't mirror anxiety - show steady supportiveness
-      pixarEmotions.setExpression('empathetic', 300, 2000);
+      ferniExpressions.setExpression('empathetic', 300, 2000);
       break;
 
     case 'frustrated':
       // Show understanding but stay grounded
       // Slight head tilt shows "I hear you"
-      pixarEmotions.curious();
+      ferniExpressions.curious();
       break;
 
     case 'calm':
       // Match their peaceful energy
-      pixarEmotions.setExpression('empathetic', 400, 1500);
+      ferniExpressions.setExpression('empathetic', 400, 1500);
       break;
 
     case 'neutral':
@@ -330,21 +334,21 @@ export function handleExpression(event: ExpressionEvent): void {
     case '😊':
     case '😄':
     case '🙂':
-      pixarEmotions.happy(800);
+      ferniExpressions.happy(800);
       break;
       
     case 'excited':
     case 'enthusiasm':
     case '🎉':
     case '🥳':
-      pixarEmotions.excited();
+      ferniExpressions.excited();
       break;
       
     case 'delight':
     case 'delighted':
     case '✨':
     case '🌟':
-      pixarEmotions.delight();
+      ferniExpressions.delight();
       break;
       
     // Thinking/curious expressions  
@@ -353,14 +357,14 @@ export function handleExpression(event: ExpressionEvent): void {
     case 'considering':
     case '🤔':
     case '💭':
-      pixarEmotions.lookAwayThinking(2000);
+      ferniExpressions.contemplation(2000);
       break;
       
     case 'curious':
     case 'interested':
     case 'intrigued':
     case '🧐':
-      pixarEmotions.curious();
+      ferniExpressions.curious();
       break;
       
     // Surprise expressions
@@ -370,13 +374,13 @@ export function handleExpression(event: ExpressionEvent): void {
     case '😮':
     case '😲':
     case '🤯':
-      pixarEmotions.surprise();
+      ferniExpressions.surprise();
       break;
       
     case 'doubletake':
     case 'waitwhat':
     case '👀':
-      pixarEmotions.doubleTake();
+      ferniExpressions.realization();
       break;
       
     // Empathetic expressions
@@ -385,21 +389,21 @@ export function handleExpression(event: ExpressionEvent): void {
     case 'compassion':
     case '🫂':
     case '💙':
-      pixarEmotions.empathy();
+      ferniExpressions.empathy();
       break;
       
     case 'sad':
     case 'concerned':
     case '😢':
     case '😔':
-      pixarEmotions.sad();
+      ferniExpressions.sad();
       break;
       
     case 'worried':
     case 'concern':
     case '😟':
     case '😰':
-      pixarEmotions.worry();
+      ferniExpressions.worry();
       break;
       
     // Skeptical/questioning
@@ -407,7 +411,7 @@ export function handleExpression(event: ExpressionEvent): void {
     case 'hmm':
     case 'really':
     case '🤨':
-      pixarEmotions.skeptical();
+      ferniExpressions.skeptical();
       break;
       
     // Sleepy/tired
@@ -416,7 +420,7 @@ export function handleExpression(event: ExpressionEvent): void {
     case 'yawn':
     case '😴':
     case '🥱':
-      pixarEmotions.sleepy();
+      ferniExpressions.sleepy();
       break;
       
     // Love/appreciation
@@ -424,14 +428,14 @@ export function handleExpression(event: ExpressionEvent): void {
     case 'heart':
     case '❤️':
     case '💕':
-      pixarEmotions.delight();
+      ferniExpressions.delight();
       break;
       
     // Lightbulb/idea moment
     case 'idea':
     case 'lightbulb':
     case '💡':
-      pixarEmotions.doubleTake(); // "Aha!" moment
+      ferniExpressions.realization(); // "Aha!" moment
       break;
       
     default:
@@ -466,6 +470,11 @@ export function handleMood(event: MoodEvent): void {
  * The avatar is the speaker - warm and human, not flashy.
  * The waveform responds gently and reflectively.
  * Now Playing card shows track info with visualization.
+ *
+ * 🎬 Enhanced with Pixar emotions - avatar shows emotional engagement with music!
+ * - Playing: Delighted, grooving expression
+ * - Fading: Appreciative, content expression
+ * - Stopped: Warm acknowledgment
  */
 export function handleMusic(event: MusicEvent): void {
   log.debug('Music event:', event.state, event.trackName);
@@ -473,14 +482,36 @@ export function handleMusic(event: MusicEvent): void {
   // Import Now Playing UI dynamically to avoid circular deps
   import('../ui/now-playing.ui.js').then(({ nowPlayingUI }) => {
     if (event.state === 'playing') {
-      // Avatar: Bass speaker pulse - music is playing
-      avatarFeedback.dancing();
+      // 🎚️ Signal ConnectionService to expect a music track soon
+      // This helps identify the audio track as music for ducking
+      connectionService.expectMusicTrack();
+      
+      // 🎚️ Unduck music - it's playing normally now
+      getMusicAudioController().unduckFromBackend();
+      
+      // Avatar: Warm presence pulse - music is playing
+      avatarFeedback.musicPresence();
 
       // Waveform: Gentle, reflective visualization (NOT aggressive)
       waveformUI.setMusicPlaying(true);
 
       // Subtle haptic for music start
       delightService.haptic('light');
+
+      // 🎬 Pixar: Show enjoyment when music starts
+      // Different expressions for ambient vs user-requested music
+      if (event.isAmbient) {
+        // Ambient: calm, present
+        ferniExpressions.setExpression('empathetic', 300, 3000);
+      } else {
+        // User-requested: show delight and engagement
+        ferniExpressions.delight();
+        // Follow up with sustained happy expression while music plays
+        setTimeout(() => {
+          // Show happy expression for the duration of the typical track intro
+          ferniExpressions.happy(5000);
+        }, 1000);
+      }
 
       // Show Now Playing card with track info
       if (event.trackName) {
@@ -489,6 +520,8 @@ export function handleMusic(event: MusicEvent): void {
           artist: event.artistName || 'Unknown Artist',
           duration: event.duration,
           isAmbient: event.isAmbient,
+          isOurSong: event.isOurSong,
+          ourSongContext: event.ourSongContext,
         });
       }
 
@@ -497,25 +530,44 @@ export function handleMusic(event: MusicEvent): void {
       // DJ Crossfade - switching tracks smoothly
       avatarFeedback.fading();
       nowPlayingUI.updateState('changing');
+
+      // 🎬 Pixar: Excited anticipation for new track
+      ferniExpressions.curious();
       
       // Subtle haptic for track change
       delightService.haptic('light');
       
       log.debug('Music changing - DJ crossfade in progress');
     } else if (event.state === 'ducking') {
+      // 🎚️ Duck music - agent is speaking over it
+      getMusicAudioController().duckFromBackend();
+      
       // Agent speaking over music - subtle the pulse
       avatarFeedback.ducking();
       nowPlayingUI.updateState('ducking');
+
+      // 🎬 Pixar: Return to neutral while speaking
+      // (Natural transition - avatar focuses on user)
+      
       // Waveform stays in music mode but is naturally calmer during speech
       log.debug('Music ducking (agent speaking)');
     } else if (event.state === 'fading') {
       // DJ-style fade out - track ending soon
       avatarFeedback.fading();
       nowPlayingUI.updateState('fading');
+
+      // 🎬 Pixar: Appreciative expression as music fades
+      // Like savoring the last notes of a good song
+      ferniExpressions.setExpression('happy', 400, 3000);
+
       log.debug('Music fading out...');
     } else if (event.state === 'paused') {
       avatarFeedback.stopDancing();
       nowPlayingUI.updateState('paused');
+
+      // 🎬 Pixar: Curious expression - "paused? everything okay?"
+      ferniExpressions.curious();
+
       log.debug('Music paused');
     } else if (event.state === 'stopped' || event.state === 'idle') {
       // Gracefully return to rest
@@ -523,6 +575,12 @@ export function handleMusic(event: MusicEvent): void {
 
       // Waveform: Return to normal behavior
       waveformUI.setMusicPlaying(false);
+
+      // 🎬 Pixar: Warm, satisfied expression after music ends
+      // Not sad it's over, grateful it happened
+      if (!event.isAmbient) {
+        ferniExpressions.setExpression('empathetic', 300, 2000);
+      }
 
       // Hide Now Playing card
       nowPlayingUI.hide();
@@ -591,7 +649,7 @@ export function handleWrapUp(event: WrapUpEvent): void {
   
   // 🎬 Pixar: Show appropriate emotional expression for farewell
   // Warm farewell with soft, happy expression that lingers
-  pixarEmotions.setExpression('happy', 400, 0); // Hold until conversation ends
+  ferniExpressions.setExpression('happy', 400, 0); // Hold until conversation ends
   
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
@@ -599,24 +657,24 @@ export function handleWrapUp(event: WrapUpEvent): void {
       celebrationsUI.warmthGlow({ intensity: 'gentle' });
       presenceUI.setVoiceEmotion('happy');
       // 🎬 Extra warmth: gentle sparkle
-      pixarEmotions.delightSparkle();
+      ferniExpressions.warmthSparkle();
       break;
     case 'encouraging':
       presenceUI.setVoiceEmotion('encouraging');
       presenceUI.nod(); // Affirming nod
       // 🎬 Supportive held pose
-      pixarEmotions.heldPose('happy', 400);
+      ferniExpressions.heldPose('happy', 400);
       break;
     case 'thoughtful':
       presenceUI.setVoiceEmotion('thoughtful');
       // 🎬 Gentle thinking expression (like "I'm here if you need me")
-      pixarEmotions.setExpression('empathetic', 400, 0);
+      ferniExpressions.setExpression('empathetic', 400, 0);
       break;
     case 'caring':
       presenceUI.setVoiceEmotion('empathetic');
       celebrationsUI.warmthGlow({ intensity: 'warm' });
       // 🎬 Soft, caring expression
-      pixarEmotions.empathy();
+      ferniExpressions.empathy();
       break;
   }
   

@@ -19,7 +19,6 @@ import {
   getConversationHumanizer,
   getEmotionalArcTracker,
   type HumanizationContext,
-  type ContextGuidance,
 } from '../../conversation/index.js';
 
 // ============================================================================

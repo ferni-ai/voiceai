@@ -11,15 +11,16 @@
  * - Celebrating what the team brings together
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
-  createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
 import { isTeamMemberUnlocked } from './team-availability.js';
+
+const log = createLogger({ module: 'TeamDynamics' });
 
 // ============================================================================
 // TEAM MEMBER PATTERNS
@@ -240,7 +241,7 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
           injections.push(createHintInjection('team_mention', content));
         }
 
-        getLogger().debug(
+        log.debug(
           { personaId: persona.id, mentioned: mentionedMember.id, unlocked: memberUnlocked },
           'Team member mentioned - injecting dynamics'
         );
@@ -272,7 +273,7 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
 
         injections.push(createHintInjection('team_expertise', handoffHint));
 
-        getLogger().debug(
+        log.debug(
           { personaId: persona.id, expertMatch: expertMatch.id, reason: 'expertise' },
           'Team expertise match - suggesting natural reference'
         );

@@ -239,12 +239,17 @@ class BackgroundTaskService extends EventEmitter {
   private taskQueue: BackgroundTask[] = [];
   private isProcessing = false;
   private checkInterval: NodeJS.Timeout | null = null;
+  // FIX: Track initialization to prevent double-init
+  private initialized = false;
 
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+    this.initialized = true;
+
     getLogger().info('🔄 Background task service initializing');
 
     // Start the task processor
@@ -267,6 +272,7 @@ class BackgroundTaskService extends EventEmitter {
       await this.persistUserData(userId, data);
     }
 
+    this.initialized = false;
     getLogger().info('✅ Background task service shutdown complete');
   }
 
@@ -895,9 +901,93 @@ class BackgroundTaskService extends EventEmitter {
     }, 10000);
   }
 
+  /**
+   * Clean up old completed/failed/cancelled tasks to prevent memory leaks
+   * Removes items older than maxAgeMs (default 7 days)
+   */
+  cleanupOldTasks(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number {
+    const cutoffTime = Date.now() - maxAgeMs;
+    let cleanedCount = 0;
+
+    for (const [userId, userData] of this.data.entries()) {
+      const finishedStatuses: TaskStatus[] = ['completed', 'failed', 'cancelled'];
+
+      // Clean up old tasks
+      const tasksToKeep = userData.tasks.filter((task) => {
+        const isFinished = finishedStatuses.includes(task.status);
+        const completedTime = task.completedAt?.getTime() ?? 0;
+        const isOld = completedTime > 0 && completedTime < cutoffTime;
+
+        if (isFinished && isOld) {
+          cleanedCount++;
+          return false; // Remove this task
+        }
+        return true; // Keep this task
+      });
+
+      if (tasksToKeep.length !== userData.tasks.length) {
+        userData.tasks = tasksToKeep;
+        this.markDirty(userId);
+      }
+
+      // Clean up old workflows
+      const workflowsToKeep = userData.workflows.filter((workflow) => {
+        const isFinished = workflow.status === 'completed' || workflow.status === 'failed';
+        const completedTime = workflow.completedAt?.getTime() ?? 0;
+        const isOld = completedTime > 0 && completedTime < cutoffTime;
+
+        if (isFinished && isOld) {
+          cleanedCount++;
+          return false;
+        }
+        return true;
+      });
+
+      if (workflowsToKeep.length !== userData.workflows.length) {
+        userData.workflows = workflowsToKeep;
+        this.markDirty(userId);
+      }
+
+      // Clean up old pending actions
+      const actionsToKeep = userData.pendingActions.filter((action) => {
+        const isFinished =
+          action.status === 'completed' || action.status === 'expired' || action.status === 'cancelled';
+        const completedTime = action.completedAt?.getTime() ?? 0;
+        const isOld = completedTime > 0 && completedTime < cutoffTime;
+
+        if (isFinished && isOld) {
+          cleanedCount++;
+          return false;
+        }
+        return true;
+      });
+
+      if (actionsToKeep.length !== userData.pendingActions.length) {
+        userData.pendingActions = actionsToKeep;
+        this.markDirty(userId);
+      }
+    }
+
+    if (cleanedCount > 0) {
+      getLogger().info({ cleanedCount }, '🧹 Cleaned up old background tasks');
+    }
+
+    return cleanedCount;
+  }
+
   private startScheduleChecker(): void {
+    let cleanupCounter = 0;
+    const CLEANUP_EVERY_N_CHECKS = 60; // Run cleanup every 60 minutes (checks run every minute)
+
     const checkSchedules = async () => {
       const now = new Date();
+
+      // Periodic cleanup to prevent memory leaks
+      cleanupCounter++;
+      if (cleanupCounter >= CLEANUP_EVERY_N_CHECKS) {
+        cleanupCounter = 0;
+        this.cleanupOldTasks();
+      }
 
       for (const [userId, data] of this.data.entries()) {
         // Check scheduled jobs

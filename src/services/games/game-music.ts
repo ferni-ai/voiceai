@@ -385,8 +385,10 @@ export async function playGameTrack(track: GameTrack, waitForStart = true): Prom
     duration: track.duration,
   };
 
-  // Set game volume (moderate - user needs to hear and think)
-  player.setVolume(0.4);
+  // Set game volume (moderate - user needs to hear and think clearly)
+  // Lower than before (was 0.4) to ensure speech is always dominant
+  // since BackgroundAudioPlayer doesn't support real-time ducking
+  player.setVolume(0.3);
 
   const success = await player.playFromUrl(track.previewUrl, musicTrack);
 
@@ -408,35 +410,48 @@ export async function playGameTrack(track: GameTrack, waitForStart = true): Prom
 }
 
 /**
- * Stop current game track
+ * Stop current game track and restore normal volume
  */
 export function stopGameTrack(): void {
   const player = getMusicPlayer();
   player.stop();
-  log.debug('🎮 Stopped game track');
+  // Restore default volume for non-game music
+  player.setVolume(0.25);
+  log.debug('🎮 Stopped game track, restored normal volume');
 }
 
 /**
- * Fade out current track (for dramatic reveals)
+ * 🎮 Restore normal music volume after a game ends
+ * Call this when transitioning back to regular conversation
  */
-export async function fadeOutGameTrack(durationMs = 2000): Promise<void> {
+export function restoreNormalVolume(): void {
+  const player = getMusicPlayer();
+  player.setVolume(0.25); // Default 25% for regular playback
+  log.debug('🎮 Restored normal music volume after game');
+}
+
+/**
+ * Stop game track for dramatic reveals
+ *
+ * NOTE: BackgroundAudioPlayer doesn't support real-time volume changes,
+ * so we can't actually fade. We stop immediately but the visual effect
+ * in the frontend still shows the transition smoothly.
+ *
+ * @param delayMs - Optional delay before stopping (for dramatic pause)
+ */
+export async function fadeOutGameTrack(delayMs = 500): Promise<void> {
   const player = getMusicPlayer();
 
-  // Gradually reduce volume
-  const startVolume = 0.4;
-  const steps = 10;
-  const stepDelay = durationMs / steps;
-  const volumeStep = startVolume / steps;
-
-  for (let i = 0; i < steps; i++) {
-    player.setVolume(startVolume - volumeStep * (i + 1));
+  // Brief pause for dramatic effect, then stop
+  if (delayMs > 0) {
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, stepDelay);
+      setTimeout(resolve, delayMs);
     });
   }
 
   player.stop();
-  log.debug('🎮 Faded out game track');
+  restoreNormalVolume();
+  log.debug('🎮 Stopped game track (immediate - fade not supported by audio player)');
 }
 
 /**
@@ -456,28 +471,30 @@ export function isPlaying(): boolean {
 }
 
 /**
- * 🎮 Duck game music (lower volume) when user speaks during a game
+ * 🎮 Duck game music when user speaks during a game
  * Called when user starts speaking - they're making a guess!
+ *
+ * NOTE: BackgroundAudioPlayer doesn't support real-time volume changes.
+ * We use the music player's duck() method which:
+ * - For ambient: pauses the music
+ * - For user music: sends 'ducking' state to frontend (visual fade)
+ * The audio volume doesn't actually change, but the visual feedback helps.
  */
 export function duckForUserGuess(): void {
   const player = getMusicPlayer();
   if (player.isPlaying()) {
-    // Lower volume to let user's guess come through clearly
-    player.setVolume(0.15); // 15% - barely audible
+    player.duck();
     log.debug('🎮 Ducked game music for user guess');
   }
 }
 
 /**
- * 🎮 Restore game music volume after user stops speaking
+ * 🎮 Restore game music after user stops speaking
  */
 export function unduckAfterGuess(): void {
   const player = getMusicPlayer();
-  if (player.isPlaying()) {
-    // Restore to game volume
-    player.setVolume(0.4); // 40% - normal game volume
-    log.debug('🎮 Restored game music volume after guess');
-  }
+  player.unduck();
+  log.debug('🎮 Restored game music after guess');
 }
 
 // ============================================================================
@@ -543,11 +560,14 @@ export async function getPreloadedOrSearch(query?: string): Promise<GameTrack | 
 }
 
 /**
- * Clear the preload queue (e.g., when game ends)
+ * Clear the preload queue and cleanup after game ends
+ * Restores normal volume settings for regular conversation
  */
 export function clearPreloadQueue(): void {
   preloadQueue.length = 0;
-  log.debug('🎮 Cleared preload queue');
+  // Restore normal volume after game ends
+  restoreNormalVolume();
+  log.debug('🎮 Cleared preload queue and restored normal volume');
 }
 
 /**

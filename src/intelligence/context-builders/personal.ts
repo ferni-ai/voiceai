@@ -11,16 +11,17 @@
  *
  * Extracted from jack-bogle.ts lines 709-720, 1261-1270, 1413-1439
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-  type ExtractedDetail,
 } from './index.js';
 import { extractSmallDetails, getDetailCallback } from '../conversation-quality.js';
 import type { UserProfile, FamilyMember } from '../../types/user-profile.js';
+
+const log = createLogger({ module: 'Personal' });
 
 // ============================================================================
 // PERSONAL HELPERS
@@ -106,7 +107,7 @@ function buildPersonalContext(input: ContextBuilderInput): ContextInjection[] {
         -20
       ); // Keep last 20 details
     }
-    getLogger().debug({ count: extractedDetails.length }, 'Extracted small details');
+    log.debug({ count: extractedDetails.length }, 'Extracted small details');
   }
   // If we have previous details, suggest using them
   if (userData?.extractedDetails && userData.extractedDetails.length > 0 && Math.random() < 0.2) {

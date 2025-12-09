@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎬 Ferni Emotion & Animation Mood Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    
+    :root {
+      /* Ferni Brand Colors */
+      --color-bg: #1a1612;
+      --color-bg-elevated: #2c2520;
+      --color-text-primary: #faf6f0;
+      --color-text-secondary: #a89a8c;
+      --color-accent: #C4A265;
+      
+      /* Persona Colors */
+      --ferni: #4a6741;
+      --jack: #9a7b5a;
+      --peter: #3a6b73;
+      --alex: #5a6b8a;
+      --maya: #a67a6a;
+      --jordan: #c4856a;
+      
+      /* Emotion Colors */
+      --happy: #C4A265;
+      --excited: #c4856a;
+      --curious: #3a6b73;
+      --thinking: #5a6b8a;
+      --calm: #4a6741;
+      --sad: #3a6b73;
+      --frustrated: #a65a52;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--ferni), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: var(--color-text-secondary);
+      margin-bottom: 2rem;
+    }
+    
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: var(--color-bg-elevated);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .card-title span {
+      font-size: 1.5rem;
+    }
+    
+    /* Emotion Grid */
+    .emotion-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    
+    .emotion-item {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 2px solid transparent;
+    }
+    
+    .emotion-item:hover {
+      transform: scale(1.05);
+      background: rgba(255,255,255,0.06);
+    }
+    
+    .emotion-item.active {
+      border-color: var(--color-accent);
+      background: rgba(196, 162, 101, 0.1);
+    }
+    
+    .emotion-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    
+    .emotion-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+    
+    .emotion-stats {
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Waveform Preview */
+    .waveform-preview {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 4px;
+      height: 48px;
+      margin: 1rem 0;
+    }
+    
+    .waveform-bar {
+      width: 8px;
+      background: var(--ferni);
+      border-radius: 4px;
+      transition: height 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+    }
+    
+    /* Reaction Buttons */
+    .reaction-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .reaction-btn {
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 0.5rem;
+      color: var(--color-text-primary);
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .reaction-btn:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .reaction-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .reaction-icon {
+      font-size: 1.25rem;
+    }
+    
+    /* Avatar Demo */
+    .avatar-demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .avatar-circle {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--ferni);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      position: relative;
+      animation: breathe 5s infinite;
+      transition: background-color 0.5s ease;
+    }
+    
+    .avatar-ring {
+      position: absolute;
+      inset: -8px;
+      border: 3px solid var(--ferni);
+      border-radius: 50%;
+      opacity: 0.5;
+      animation: ringPulse 5s infinite;
+    }
+    
+    .avatar-glow {
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
+      animation: glowPulse 5s infinite;
+    }
+    
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      35% { transform: scale(1.012) translateY(-1.5px); }
+      75% { transform: scale(1); }
+    }
+    
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      35% { transform: scale(1.02); opacity: 0.7; }
+    }
+    
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Animation Classes */
+    .avatar-circle.nod {
+      animation: nod 0.6s ease;
+    }
+    
+    @keyframes nod {
+      0% { transform: translateY(0) scaleY(1); }
+      25% { transform: translateY(5px) scaleY(0.96); }
+      50% { transform: translateY(-6px) scaleY(1.04); }
+      100% { transform: translateY(0) scaleY(1); }
+    }
+    
+    .avatar-circle.shake {
+      animation: shake 0.5s ease;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: rotate(0); }
+      20% { transform: rotate(-4deg) translateX(-3px); }
+      40% { transform: rotate(3deg) translateX(3px); }
+      60% { transform: rotate(-2deg) translateX(-2px); }
+      80% { transform: rotate(1deg); }
+    }
+    
+    .avatar-circle.bounce {
+      animation: bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes bounce {
+      0% { transform: scaleY(1) translateY(0); }
+      15% { transform: scaleY(0.88) scaleX(1.08) translateY(3px); }
+      35% { transform: scaleY(1.12) scaleX(0.92) translateY(-15px); }
+      50% { transform: scaleY(0.9) scaleX(1.08) translateY(3px); }
+      70% { transform: scaleY(1.04) translateY(-4px); }
+      100% { transform: scaleY(1) translateY(0); }
+    }
+    
+    .avatar-circle.pulse {
+      animation: pulse 0.7s ease;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      30% { transform: scale(1.1); filter: brightness(1.15); }
+      50% { transform: scale(0.96); }
+    }
+    
+    .avatar-circle.surprise {
+      animation: surprise 0.5s ease;
+    }
+    
+    @keyframes surprise {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.15) translateY(-4px); }
+      60% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    
+    .avatar-circle.curious {
+      animation: curious 0.8s ease;
+    }
+    
+    @keyframes curious {
+      0%, 100% { transform: rotate(0) translateX(0); }
+      30% { transform: rotate(-5deg) translateX(-3px); }
+      60% { transform: rotate(3deg) translateX(2px); }
+    }
+    
+    /* Expression Lid Overlays */
+    .lid-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    
+    .lid-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: var(--color-bg-elevated);
+      transition: height 0.3s ease;
+    }
+    
+    .lid-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: var(--color-bg-elevated);
+      transition: height 0.3s ease;
+    }
+    
+    .avatar-circle.happy .lid-top { height: 20%; }
+    .avatar-circle.happy .lid-bottom { height: 15%; }
+    
+    .avatar-circle.excited .lid-top { height: 0; }
+    .avatar-circle.sad .lid-top { height: 30%; }
+    .avatar-circle.sleepy .lid-top { height: 45%; }
+    .avatar-circle.sleepy .lid-bottom { height: 20%; }
+    
+    /* Persona Tabs */
+    .persona-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    
+    .persona-tab {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: none;
+      border-radius: 20px;
+      color: var(--color-text-secondary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .persona-tab:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--color-text-primary);
+    }
+    
+    .persona-tab.active {
+      background: var(--ferni);
+      color: white;
+    }
+    
+    .persona-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    /* Timing Demo */
+    .timing-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .timing-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .timing-label {
+      min-width: 100px;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .timing-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .timing-fill {
+      height: 100%;
+      background: var(--color-accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .timing-value {
+      min-width: 50px;
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      text-align: right;
+    }
+    
+    /* Celebration Preview */
+    .celebration-btn {
+      background: linear-gradient(135deg, var(--ferni), var(--color-accent));
+      border: none;
+      border-radius: 12px;
+      padding: 1rem;
+      color: white;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    
+    .celebration-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+    }
+    
+    .celebration-btn:active {
+      transform: scale(0.98);
+    }
+    
+    /* Sparkle animation */
+    .sparkle {
+      position: fixed;
+      pointer-events: none;
+      width: 8px;
+      height: 8px;
+      background: var(--color-accent);
+      border-radius: 50%;
+      animation: sparkle 0.8s ease-out forwards;
+    }
+    
+    @keyframes sparkle {
+      0% { transform: scale(0) translate(0, 0); opacity: 1; }
+      50% { transform: scale(1.5) translate(var(--tx), var(--ty)); opacity: 0.8; }
+      100% { transform: scale(0.5) translate(var(--tx2), var(--ty2)); opacity: 0; }
+    }
+    
+    /* Expression Preview */
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .expression-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .expression-item:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    
+    .expression-face {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--ferni);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .expression-face .eye {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      top: 35%;
+      transition: all 0.3s ease;
+    }
+    
+    .expression-face .eye.left { left: 30%; }
+    .expression-face .eye.right { right: 30%; }
+    
+    .expression-face.happy .eye { transform: scaleY(0.5); }
+    .expression-face.surprised .eye { transform: scale(1.3); top: 30%; }
+    .expression-face.sad .eye { top: 40%; }
+    .expression-face.sleepy .eye { transform: scaleY(0.2); }
+    
+    .expression-label {
+      font-size: 0.65rem;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--ferni), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.25rem;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      color: var(--color-text-secondary);
+      font-size: 0.85rem;
+    }
+    
+    footer em {
+      color: var(--color-text-primary);
+    }
+  </style>
+</head>
+<body>
+  <h1>🎬 Ferni Emotion & Animation Dashboard</h1>
+  <p class="subtitle">Better than Pixar — The Art of the Possible</p>
+  
+  <div class="dashboard">
+    <!-- Live Avatar Demo -->
+    <div class="card">
+      <h2 class="card-title"><span>🎭</span> Live Avatar</h2>
+      <div class="avatar-demo">
+        <div class="avatar-circle" id="avatar">
+          <div class="avatar-glow"></div>
+          <div class="avatar-ring"></div>
+          <div class="lid-overlay">
+            <div class="lid-top"></div>
+            <div class="lid-bottom"></div>
+          </div>
+          <span>🌿</span>
+        </div>
+        <div class="waveform-preview" id="waveform">
+          <!-- Generated by JS -->
+        </div>
+        <p style="font-size: 0.8rem; color: var(--color-text-secondary);">
+          Current: <strong id="currentEmotion">neutral</strong>
+        </p>
+      </div>
+    </div>
+    
+    <!-- Core Emotions -->
+    <div class="card">
+      <h2 class="card-title"><span>💚</span> Core Emotions</h2>
+      <div class="emotion-grid" id="emotionGrid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    
+    <!-- Pixar Expressions -->
+    <div class="card">
+      <h2 class="card-title"><span>👁️</span> Eye Expressions</h2>
+      <div class="expression-grid" id="expressionGrid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    
+    <!-- Reactions -->
+    <div class="card">
+      <h2 class="card-title"><span>✨</span> Reactions</h2>
+      <div class="reaction-grid" id="reactionGrid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    
+    <!-- Persona Selector -->
+    <div class="card">
+      <h2 class="card-title"><span>👥</span> Personas</h2>
+      <div class="persona-tabs" id="personaTabs">
+        <!-- Generated by JS -->
+      </div>
+      <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 0.5rem;">
+        Each persona has unique idle animations and movement styles
+      </p>
+    </div>
+    
+    <!-- Timing System -->
+    <div class="card">
+      <h2 class="card-title"><span>⏱️</span> Timing System</h2>
+      <div class="timing-demo" id="timingDemo">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    
+    <!-- Celebration -->
+    <div class="card">
+      <h2 class="card-title"><span>🎉</span> Celebrations</h2>
+      <button class="celebration-btn" onclick="triggerCelebration()">
+        🎊 Trigger Celebration
+      </button>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number">12</div>
+          <div class="stat-label">Core Emotions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">12</div>
+          <div class="stat-label">Eye Expressions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">9+</div>
+          <div class="stat-label">Reactions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">8</div>
+          <div class="stat-label">Celebration Types</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <em>"We believe in making AI human, and every animation decision reflects that."</em>
+    <br><br>
+    Full documentation: <code>docs/EMOTION-ANIMATION-AUDIT.md</code>
+  </footer>
+
+  <script>
+    // Core Emotions Data
+    const emotions = [
+      { id: 'neutral', color: '#4a6741', rate: 14, energy: 0.3 },
+      { id: 'happy', color: '#C4A265', rate: 16, energy: 0.6 },
+      { id: 'excited', color: '#c4856a', rate: 20, energy: 0.9 },
+      { id: 'curious', color: '#3a6b73', rate: 15, energy: 0.5 },
+      { id: 'thinking', color: '#5a6b8a', rate: 12, energy: 0.2 },
+      { id: 'calm', color: '#4a6741', rate: 10, energy: 0.15 },
+      { id: 'sad', color: '#3a6b73', rate: 11, energy: 0.1 },
+      { id: 'frustrated', color: '#a65a52', rate: 18, energy: 0.7 },
+      { id: 'listening', color: '#C4A265', rate: 13, energy: 0.4 },
+      { id: 'speaking', color: '#4a6741', rate: 16, energy: 0.6 },
+    ];
+    
+    // Waveform shapes for emotions
+    const waveformShapes = {
+      neutral: [0.3, 0.5, 0.7, 0.85, 1.0, 0.85, 0.7, 0.5, 0.3],
+      happy: [0.9, 0.7, 0.5, 0.4, 0.35, 0.4, 0.5, 0.7, 0.9],
+      excited: [0.85, 0.95, 1.0, 0.9, 1.0, 0.9, 1.0, 0.95, 0.85],
+      sad: [0.2, 0.35, 0.55, 0.75, 0.85, 0.75, 0.55, 0.35, 0.2],
+      calm: [0.5, 0.6, 0.7, 0.75, 0.8, 0.75, 0.7, 0.6, 0.5],
+      curious: [0.4, 0.5, 0.65, 0.8, 0.9, 0.8, 0.65, 0.5, 0.4],
+      thinking: [0.4, 0.5, 0.6, 0.7, 0.8, 0.7, 0.6, 0.5, 0.4],
+      frustrated: [0.3, 0.8, 0.4, 0.9, 0.5, 0.85, 0.35, 0.75, 0.25],
+      listening: [0.5, 0.6, 0.7, 0.8, 0.85, 0.8, 0.7, 0.6, 0.5],
+      speaking: [0.4, 0.6, 0.8, 0.95, 1.0, 0.95, 0.8, 0.6, 0.4],
+    };
+    
+    // Eye expressions
+    const expressions = [
+      { id: 'neutral', label: 'Neutral', lidTop: 0, lidBottom: 0 },
+      { id: 'happy', label: 'Happy', lidTop: 20, lidBottom: 15 },
+      { id: 'delighted', label: 'Delighted', lidTop: 25, lidBottom: 20 },
+      { id: 'surprised', label: 'Surprised', lidTop: 0, lidBottom: 0, scale: 1.1 },
+      { id: 'curious', label: 'Curious', lidTop: 15, lidBottom: 0, tilt: 3 },
+      { id: 'skeptical', label: 'Skeptical', lidTop: 18, lidBottom: 0 },
+      { id: 'worried', label: 'Worried', lidTop: 22, lidBottom: 5 },
+      { id: 'sad', label: 'Sad', lidTop: 30, lidBottom: 0 },
+      { id: 'sleepy', label: 'Sleepy', lidTop: 45, lidBottom: 20 },
+      { id: 'thinking', label: 'Thinking', lidTop: 12, lidBottom: 0 },
+      { id: 'empathetic', label: 'Empathetic', lidTop: 20, lidBottom: 10 },
+      { id: 'excited', label: 'Excited', lidTop: 0, lidBottom: 0, scale: 1.05 },
+    ];
+    
+    // Reactions
+    const reactions = [
+      { id: 'nod', icon: '👍', label: 'Nod' },
+      { id: 'shake', icon: '👎', label: 'Shake' },
+      { id: 'bounce', icon: '🎉', label: 'Bounce' },
+      { id: 'pulse', icon: '💗', label: 'Pulse' },
+      { id: 'surprise', icon: '😮', label: 'Surprise' },
+      { id: 'curious', icon: '🤔', label: 'Curious' },
+    ];
+    
+    // Personas
+    const personas = [
+      { id: 'ferni', name: 'Ferni', color: '#4a6741' },
+      { id: 'jack', name: 'Jack', color: '#9a7b5a' },
+      { id: 'peter', name: 'Peter', color: '#3a6b73' },
+      { id: 'alex', name: 'Alex', color: '#5a6b8a' },
+      { id: 'maya', name: 'Maya', color: '#a67a6a' },
+      { id: 'jordan', name: 'Jordan', color: '#c4856a' },
+    ];
+    
+    // Timing constants
+    const timings = [
+      { label: 'MICRO', value: 50, max: 1500 },
+      { label: 'FAST', value: 100, max: 1500 },
+      { label: 'NORMAL', value: 200, max: 1500 },
+      { label: 'SLOW', value: 300, max: 1500 },
+      { label: 'DELIBERATE', value: 500, max: 1500 },
+      { label: 'DRAMATIC', value: 600, max: 1500 },
+      { label: 'CELEBRATION', value: 800, max: 1500 },
+      { label: 'GLACIAL', value: 1500, max: 1500 },
+    ];
+    
+    // Current state
+    let currentEmotion = 'neutral';
+    let currentPersona = 'ferni';
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderEmotionGrid();
+      renderExpressionGrid();
+      renderReactionGrid();
+      renderPersonaTabs();
+      renderTimingDemo();
+      renderWaveform();
+    });
+    
+    function renderEmotionGrid() {
+      const grid = document.getElementById('emotionGrid');
+      grid.innerHTML = emotions.map(e => `
+        <div class="emotion-item ${e.id === currentEmotion ? 'active' : ''}" 
+             onclick="setEmotion('${e.id}')"
+             data-emotion="${e.id}">
+          <div class="emotion-dot" style="background: ${e.color}; box-shadow: 0 0 12px ${e.color}"></div>
+          <span class="emotion-name">${e.id}</span>
+          <span class="emotion-stats">${e.rate}bpm • ${Math.round(e.energy * 100)}% energy</span>
+        </div>
+      `).join('');
+    }
+    
+    function renderExpressionGrid() {
+      const grid = document.getElementById('expressionGrid');
+      grid.innerHTML = expressions.map(e => `
+        <div class="expression-item" onclick="setExpression('${e.id}')">
+          <div class="expression-face ${e.id}">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+          </div>
+          <span class="expression-label">${e.label}</span>
+        </div>
+      `).join('');
+    }
+    
+    function renderReactionGrid() {
+      const grid = document.getElementById('reactionGrid');
+      grid.innerHTML = reactions.map(r => `
+        <button class="reaction-btn" onclick="triggerReaction('${r.id}')">
+          <span class="reaction-icon">${r.icon}</span>
+          <span>${r.label}</span>
+        </button>
+      `).join('');
+    }
+    
+    function renderPersonaTabs() {
+      const tabs = document.getElementById('personaTabs');
+      tabs.innerHTML = personas.map(p => `
+        <button class="persona-tab ${p.id === currentPersona ? 'active' : ''}"
+                onclick="setPersona('${p.id}')"
+                style="${p.id === currentPersona ? `background: ${p.color}` : ''}">
+          <div class="persona-dot" style="background: ${p.color}"></div>
+          ${p.name}
+        </button>
+      `).join('');
+    }
+    
+    function renderTimingDemo() {
+      const demo = document.getElementById('timingDemo');
+      demo.innerHTML = timings.map(t => `
+        <div class="timing-item">
+          <span class="timing-label">${t.label}</span>
+          <div class="timing-bar">
+            <div class="timing-fill" style="width: ${(t.value / t.max) * 100}%"></div>
+          </div>
+          <span class="timing-value">${t.value}ms</span>
+        </div>
+      `).join('');
+    }
+    
+    function renderWaveform() {
+      const container = document.getElementById('waveform');
+      const shape = waveformShapes[currentEmotion] || waveformShapes.neutral;
+      const emotion = emotions.find(e => e.id === currentEmotion);
+      const color = emotion?.color || '#4a6741';
+      
+      container.innerHTML = shape.map((h, i) => 
+        `<div class="waveform-bar" style="height: ${h * 40}px; background: ${color}"></div>`
+      ).join('');
+    }
+    
+    function setEmotion(emotionId) {
+      currentEmotion = emotionId;
+      document.getElementById('currentEmotion').textContent = emotionId;
+      
+      // Update emotion grid selection
+      document.querySelectorAll('.emotion-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.emotion === emotionId);
+      });
+      
+      // Update avatar color
+      const emotion = emotions.find(e => e.id === emotionId);
+      const avatar = document.getElementById('avatar');
+      avatar.style.backgroundColor = emotion?.color || '#4a6741';
+      
+      // Update waveform
+      renderWaveform();
+      
+      // Update avatar expression class
+      avatar.className = 'avatar-circle';
+      if (['happy', 'sad', 'excited', 'sleepy'].includes(emotionId)) {
+        avatar.classList.add(emotionId);
+      }
+    }
+    
+    function setExpression(expressionId) {
+      const avatar = document.getElementById('avatar');
+      const expression = expressions.find(e => e.id === expressionId);
+      
+      // Update lid overlays
+      const lidTop = avatar.querySelector('.lid-top');
+      const lidBottom = avatar.querySelector('.lid-bottom');
+      
+      lidTop.style.height = `${expression?.lidTop || 0}%`;
+      lidBottom.style.height = `${expression?.lidBottom || 0}%`;
+      
+      // Apply scale if needed
+      if (expression?.scale) {
+        avatar.style.transform = `scale(${expression.scale})`;
+        setTimeout(() => avatar.style.transform = '', 500);
+      }
+    }
+    
+    function setPersona(personaId) {
+      currentPersona = personaId;
+      const persona = personas.find(p => p.id === personaId);
+      
+      // Update tabs
+      document.querySelectorAll('.persona-tab').forEach(tab => {
+        const isActive = tab.textContent.trim().toLowerCase().includes(personaId);
+        tab.classList.toggle('active', isActive);
+        if (isActive) {
+          tab.style.background = persona?.color;
+        } else {
+          tab.style.background = '';
+        }
+      });
+      
+      // Update avatar color
+      const avatar = document.getElementById('avatar');
+      avatar.style.backgroundColor = persona?.color || '#4a6741';
+      
+      // Update ring color
+      const ring = avatar.querySelector('.avatar-ring');
+      ring.style.borderColor = persona?.color || '#4a6741';
+    }
+    
+    function triggerReaction(reactionId) {
+      const avatar = document.getElementById('avatar');
+      
+      // Remove any existing animation classes
+      avatar.classList.remove('nod', 'shake', 'bounce', 'pulse', 'surprise', 'curious');
+      
+      // Force reflow
+      void avatar.offsetWidth;
+      
+      // Add animation class
+      avatar.classList.add(reactionId);
+      
+      // Remove after animation
+      setTimeout(() => {
+        avatar.classList.remove(reactionId);
+      }, 1000);
+    }
+    
+    function triggerCelebration() {
+      // Trigger bounce
+      triggerReaction('bounce');
+      
+      // Create sparkles
+      const avatar = document.getElementById('avatar');
+      const rect = avatar.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      for (let i = 0; i < 12; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        
+        const angle = (Math.PI * 2 * i) / 12;
+        const distance = 50 + Math.random() * 50;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        
+        sparkle.style.cssText = `
+          left: ${centerX}px;
+          top: ${centerY}px;
+          --tx: ${tx}px;
+          --ty: ${ty}px;
+          --tx2: ${tx * 1.5}px;
+          --ty2: ${ty * 1.5 + 30}px;
+          background: ${['#C4A265', '#4a6741', '#c4856a'][Math.floor(Math.random() * 3)]};
+        `;
+        
+        document.body.appendChild(sparkle);
+        
+        setTimeout(() => sparkle.remove(), 800);
+      }
+      
+      // Set excited emotion temporarily
+      const prevEmotion = currentEmotion;
+      setEmotion('excited');
+      setTimeout(() => setEmotion(prevEmotion), 2000);
+    }
+  </script>
+</body>
+</html>
+

@@ -42,6 +42,26 @@ const SPOTIFY_USERS_FILE = path.join(process.cwd(), '.spotify-users.json');
 const oauthStates = new Map();
 
 // ============================================================================
+// CORS CONFIGURATION
+// ============================================================================
+
+// Allowed origins for CORS (restrict in production)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:3004', 'http://localhost:3002', 'https://ferni.ai', 'https://john-bogle-ui-1031920444452.us-central1.run.app'];
+
+function getCorsOrigin(req) {
+  const origin = req.headers.origin;
+  // In development or if origin matches allowed list, return it
+  if (!origin) return ALLOWED_ORIGINS[0];
+  if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+    return origin;
+  }
+  // Default to first allowed origin (won't match, blocking the request effectively)
+  return ALLOWED_ORIGINS[0];
+}
+
+// ============================================================================
 // SPOTIFY USER TOKEN MANAGEMENT
 // ============================================================================
 
@@ -330,10 +350,12 @@ async function createRoomWithAgent(roomName, personaId, deviceId, userName) {
 
 // HTTP server
 const server = http.createServer(async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Enable CORS with origin validation
+  const corsOrigin = getCorsOrigin(req);
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);

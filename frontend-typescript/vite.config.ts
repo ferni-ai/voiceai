@@ -27,6 +27,12 @@ export default defineConfig({
       '/api/huddles': 'http://localhost:3002',
       '/api/export': 'http://localhost:3002',
       '/api/relationship': 'http://localhost:3002',
+      // Voice authentication routes
+      '/api/voice': 'http://localhost:3002',
+      // Trust journey routes
+      '/api/trust': 'http://localhost:3002',
+      // Marketplace routes
+      '/api/marketplace': 'http://localhost:3002',
       // Other API routes to token server
       '/api': 'http://localhost:3001',
     },

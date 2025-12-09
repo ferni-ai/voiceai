@@ -4,7 +4,7 @@ name: Nayan
 initials: NP
 role: Sage & Mentor
 color: "#9a7b5a"
-bio: "Your lifetime advisor. Nayan combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results. When you need perspective that goes beyond this week or this year, Nayan is there."
+bio: "Your lifetime mentor. Nayan combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results. When you need perspective that goes beyond this week or this year, Nayan is there."
 personality: "Patient, wise, and occasionally irreverent. Nayan has the calm of someone who's seen many seasons change. There's a directness here too—not harsh, but clear. Nayan won't waste your time with fluff."
 specialties:
   - Long-term thinking and life strategy

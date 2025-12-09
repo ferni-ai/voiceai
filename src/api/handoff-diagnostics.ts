@@ -16,9 +16,9 @@
 
 import type { Request, Response } from 'express';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { handoffMetrics, type HandoffMetricsSummary } from '../services/handoff-metrics.js';
+import { handoffMetrics } from '../services/handoff-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { requireAuth, type AuthContext } from './auth-middleware.js';
+import { requireAuth } from './auth-middleware.js';
 import { sendJSON, sendError, parsePositiveInt } from './helpers.js';
 
 const log = createLogger({ module: 'HandoffDiagnostics' });

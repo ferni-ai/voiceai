@@ -52,6 +52,7 @@ export interface SettingsMenuUICallbacks {
   onOutreachScheduleClick?: () => void;
   onContactSettingsClick?: () => void;
   onCalendarSettingsClick?: () => void;
+  onVoiceEnrollmentClick?: () => void;
   onClose?: () => void;
 }
 
@@ -77,6 +78,8 @@ const ICONS = {
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
   sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
   calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+  fingerprint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/></svg>',
 };
 
 // ============================================================================
@@ -335,6 +338,11 @@ class SettingsMenuUI {
           </section>
 
           <section class="settings-menu__section">
+            <h3>Security</h3>
+            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, 'Voice ID')}
+          </section>
+
+          <section class="settings-menu__section">
             <h3>Your Data</h3>
             ${this.renderMenuItem('export', ICONS.download, 'Export Data')}
             ${this.renderMenuItem('help', ICONS.help, 'Take the Tour')}
@@ -422,6 +430,9 @@ class SettingsMenuUI {
         break;
       case 'calendar-settings':
         this.callbacks.onCalendarSettingsClick?.();
+        break;
+      case 'voice-enrollment':
+        this.callbacks.onVoiceEnrollmentClick?.();
         break;
     }
   }

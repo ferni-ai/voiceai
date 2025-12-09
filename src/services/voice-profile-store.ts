@@ -31,11 +31,64 @@
  * @module VoiceProfileStore
  */
 
-import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
 
 const log = getLogger().child({ module: 'VoiceProfileStore' });
+
+// ============================================================================
+// Firebase Initialization
+// ============================================================================
+
+let firestoreInstance: Firestore | null = null;
+let initAttempted = false;
+
+// In-memory cache for development when Firestore is unavailable
+const memoryCache = new Map<string, VoiceProfile>();
+const indexCache = new Map<string, { userId: string; centroid: number[]; threshold: number }>();
+
+/**
+ * Get Firestore instance with lazy initialization.
+ * Returns null if Firebase is not available.
+ */
+function getFirestoreInstance(): Firestore | null {
+  if (firestoreInstance) {
+    return firestoreInstance;
+  }
+
+  if (initAttempted) {
+    return null;
+  }
+  initAttempted = true;
+
+  try {
+    // Check if Firebase is already initialized
+    if (admin.apps.length === 0) {
+      // Try to initialize with default credentials or project ID
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+        log.info({ projectId }, 'Firebase initialized for voice profiles');
+      } else {
+        // Try default credentials
+        admin.initializeApp();
+        log.info('Firebase initialized with default credentials');
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    return firestoreInstance;
+  } catch (error) {
+    log.warn({ error }, 'Firebase not available for voice profiles - using in-memory storage');
+    return null;
+  }
+}
 
 // ============================================================================
 // Firestore Paths
@@ -104,7 +157,16 @@ interface FirestoreEnrollmentSample {
  * Save a voice profile to Firestore.
  */
 export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
-  const db = getFirestore();
+  const db = getFirestoreInstance();
+
+  // Save to memory cache (always)
+  memoryCache.set(profile.userId, profile);
+  log.debug({ userId: profile.userId }, 'Voice profile cached in memory');
+
+  if (!db) {
+    log.warn({ userId: profile.userId }, 'Firestore not available - profile saved to memory only');
+    return;
+  }
 
   try {
     // Convert to Firestore format
@@ -160,7 +222,17 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
  * Load a voice profile from Firestore.
  */
 export async function loadVoiceProfile(userId: string): Promise<VoiceProfile | null> {
-  const db = getFirestore();
+  // Check memory cache first
+  const cached = memoryCache.get(userId);
+  if (cached) {
+    log.debug({ userId }, 'Loaded voice profile from memory cache');
+    return cached;
+  }
+
+  const db = getFirestoreInstance();
+  if (!db) {
+    return null;
+  }
 
   try {
     // Load profile document
@@ -214,7 +286,15 @@ export async function loadVoiceProfile(userId: string): Promise<VoiceProfile | n
  * Check if a user has a voice profile.
  */
 export async function hasVoiceProfile(userId: string): Promise<boolean> {
-  const db = getFirestore();
+  // Check memory cache first
+  if (memoryCache.has(userId)) {
+    return true;
+  }
+
+  const db = getFirestoreInstance();
+  if (!db) {
+    return false;
+  }
 
   try {
     const profileRef = db.doc(getProfilePath(userId));
@@ -230,7 +310,15 @@ export async function hasVoiceProfile(userId: string): Promise<boolean> {
  * Delete a voice profile.
  */
 export async function deleteVoiceProfile(userId: string): Promise<void> {
-  const db = getFirestore();
+  // Delete from memory cache
+  memoryCache.delete(userId);
+  indexCache.delete(userId);
+
+  const db = getFirestoreInstance();
+  if (!db) {
+    log.info({ userId }, 'Voice profile deleted from memory');
+    return;
+  }
 
   try {
     // Delete samples first
@@ -257,7 +345,10 @@ export async function deleteVoiceProfile(userId: string): Promise<void> {
  * Update verification count and timestamp.
  */
 export async function recordVerification(userId: string, success: boolean): Promise<void> {
-  const db = getFirestore();
+  const db = getFirestoreInstance();
+  if (!db) {
+    return; // Silent fail - verification recording is non-critical
+  }
 
   try {
     const profileRef = db.doc(getProfilePath(userId));
@@ -282,7 +373,10 @@ export async function recordVerification(userId: string, success: boolean): Prom
  * use a separate index collection.
  */
 export async function loadAllVoiceProfiles(options?: { limit?: number }): Promise<VoiceProfile[]> {
-  const db = getFirestore();
+  const db = getFirestoreInstance();
+  if (!db) {
+    return [];
+  }
   const limit = options?.limit ?? 100;
 
   try {
@@ -346,7 +440,23 @@ export async function getVoiceProfileStats(userId: string): Promise<{
   sampleCount?: number;
   needsReEnrollment?: boolean;
 } | null> {
-  const db = getFirestore();
+  // Check memory cache first
+  const cached = memoryCache.get(userId);
+  if (cached) {
+    return {
+      exists: true,
+      enrolledAt: cached.enrolledAt,
+      qualityScore: cached.qualityScore,
+      verificationCount: cached.verificationCount,
+      sampleCount: cached.metadata.sampleCount,
+      needsReEnrollment: cached.qualityScore < 0.6 || cached.metadata.sampleCount < 3,
+    };
+  }
+
+  const db = getFirestoreInstance();
+  if (!db) {
+    return { exists: false };
+  }
 
   try {
     const profileRef = db.doc(getProfilePath(userId));
@@ -395,7 +505,17 @@ const VOICE_INDEX_COLLECTION = 'voice_profile_index';
  * Update the voice profile index entry.
  */
 export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<void> {
-  const db = getFirestore();
+  // Update memory index cache
+  indexCache.set(profile.userId, {
+    userId: profile.userId,
+    centroid: profile.centroid,
+    threshold: profile.threshold,
+  });
+
+  const db = getFirestoreInstance();
+  if (!db) {
+    return;
+  }
 
   try {
     const indexRef = db.collection(VOICE_INDEX_COLLECTION).doc(profile.userId);
@@ -422,7 +542,11 @@ export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<vo
 export async function loadVoiceProfileIndex(): Promise<
   Array<{ userId: string; centroid: number[]; threshold: number }>
 > {
-  const db = getFirestore();
+  const db = getFirestoreInstance();
+  if (!db) {
+    // Return from memory cache
+    return Array.from(indexCache.values());
+  }
 
   try {
     const indexSnapshot = await db.collection(VOICE_INDEX_COLLECTION).get();
@@ -445,7 +569,10 @@ export async function loadVoiceProfileIndex(): Promise<
  * Remove from voice profile index.
  */
 export async function removeFromVoiceProfileIndex(userId: string): Promise<void> {
-  const db = getFirestore();
+  const db = getFirestoreInstance();
+  if (!db) {
+    return;
+  }
 
   try {
     await db.collection(VOICE_INDEX_COLLECTION).doc(userId).delete();

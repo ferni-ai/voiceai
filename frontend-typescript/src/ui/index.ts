@@ -31,21 +31,19 @@ export { transcriptUI, initTranscriptUI } from './transcript.ui.js';
 export { thinkingUI, initThinkingUI } from './thinking.ui.js';
 export { connectionQualityUI, initConnectionQualityUI } from './connection-quality.ui.js';
 
-// World-class Toast System (Sonner-inspired)
+// World-class Toast System
 export {
-  toastUI,
   toast,
   toastSuccess,
   toastError,
   toastWarning,
   toastInfo,
-  toastLoading,
-  dismiss as dismissToast,
-  dismissAll as dismissAllToasts,
-  update as updateToast,
-  promise as toastPromise,
+  showToast,
+  dismissToast,
+  dismissAllToasts,
+  getToastManager,
 } from './toast.ui.js';
-export type { ToastType, ToastOptions } from './toast.ui.js';
+export type { ToastType, ToastConfig } from './toast.ui.js';
 
 // Premium Experience
 export { soundUI, initSoundUI } from './sound.ui.js';
@@ -63,7 +61,7 @@ export {
   initAnimationOrchestrator,
   runPageLoadSequence,
   animatePersonaTransition,
-  playPixarReaction,
+  playCharacterReaction,
 } from './animation-orchestrator.ui.js';
 
 // ✨ Micro-Interactions - Pixar-quality button & interactive effects
@@ -294,6 +292,16 @@ export {
   hideNotificationSettings,
 } from './notification-settings.ui.js';
 export type { NotificationSettingsUICallbacks } from './notification-settings.ui.js';
+
+// Voice Enrollment UI - Learn user's voice
+export {
+  voiceEnrollment,
+  initVoiceEnrollmentUI,
+  showVoiceEnrollmentModal,
+  hideVoiceEnrollmentModal,
+  isEnrolled as isVoiceEnrolled,
+} from './voice-enrollment.ui.js';
+export type { VoiceEnrollmentOptions } from './voice-enrollment.ui.js';
 
 // Types
 export type { ControlCallbacks } from './controls.ui.js';

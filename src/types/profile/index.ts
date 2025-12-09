@@ -109,22 +109,23 @@ export interface CompositeUserProfile {
   lifeStage?: 'young_adult' | 'early_career' | 'mid_career' | 'pre_retirement' | 'retirement';
 }
 
+// Import factory functions for composite profile creation
+import { createUserIdentity as createIdentity } from './identity.js';
+import { createCommunicationProfile as createComm } from './communication.js';
+import { createRelationshipContext as createRel } from './relationship.js';
+import { createFinancialProfile as createFin } from './financial.js';
+import { createConversationMemory as createMem } from './conversation-memory.js';
+
 /**
  * Create a composite user profile
  */
 export function createCompositeUserProfile(id: string, name?: string): CompositeUserProfile {
-  const { createUserIdentity } = require('./identity.js');
-  const { createCommunicationProfile } = require('./communication.js');
-  const { createRelationshipContext } = require('./relationship.js');
-  const { createFinancialProfile } = require('./financial.js');
-  const { createConversationMemory } = require('./conversation-memory.js');
-
   return {
-    identity: createUserIdentity(id, name),
-    communication: createCommunicationProfile(),
-    relationship: createRelationshipContext(),
-    financial: createFinancialProfile(),
-    memory: createConversationMemory(),
+    identity: createIdentity(id, name),
+    communication: createComm(),
+    relationship: createRel(),
+    financial: createFin(),
+    memory: createMem(),
   };
 }
 

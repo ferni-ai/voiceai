@@ -50,10 +50,8 @@ import {
   getMomentumSummary,
   generateCelebrations,
   // Phase 24: Voice Prosody
-  analyzeDeviation,
   getFamiliarityScore,
   generateVoiceContext,
-  type VoiceCharacteristics,
   // Phase 26: Seasonal Awareness
   buildSeasonalContext,
   generateSeasonalContextForLLM,
@@ -176,6 +174,17 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
     injections.push(createHintInjection('life_events', eventsContext, { category: 'trust' }));
   }
 
+  // Check for events needing reminders
+  const eventsNeedingReminders = getEventsNeedingReminders(userId);
+  if (eventsNeedingReminders.length > 0) {
+    const reminderContext = formatEventsNeedingReminders(eventsNeedingReminders);
+    if (reminderContext) {
+      injections.push(
+        createHintInjection('event_reminders', reminderContext, { category: 'trust' })
+      );
+    }
+  }
+
   // ============================================================================
   // PHASE 16: CELEBRATION MOMENTUM
   // ============================================================================
@@ -212,6 +221,17 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   const voiceContext = generateVoiceContext(userId);
   if (voiceContext) {
     injections.push(createHintInjection('voice_prosody', voiceContext, { category: 'trust' }));
+  }
+
+  // Add familiarity score context
+  const familiarityResult = getFamiliarityScore(userId);
+  if (familiarityResult.score > 0) {
+    const familiarityContext = formatFamiliarityContext(familiarityResult.score);
+    if (familiarityContext) {
+      injections.push(
+        createHintInjection('voice_familiarity', familiarityContext, { category: 'trust' })
+      );
+    }
   }
 
   // ============================================================================
@@ -299,16 +319,28 @@ function buildResponseTuningContext(
     analysis?.intent?.primary === 'advice' || analysis?.intent?.requiresAction
   );
 
+  // Use userData to enhance context with user preferences and history
+  const recentTopics = userData?.recentTopics || [];
+  const hasRecentVulnerableShare = recentTopics.some(
+    (topic) => topic.includes('personal') || topic.includes('emotional')
+  );
+
+  // Get learning profile to adapt response style
+  const learningProfile = getLearningProfile(userId);
+
   return {
     userId,
     relationshipStage,
     currentEmotion: analysis?.emotion?.primary,
     emotionIntensity: analysis?.emotion?.intensity,
     topic: analysis?.topics?.primary || undefined,
-    isVulnerableShare,
+    isVulnerableShare: isVulnerableShare || hasRecentVulnerableShare,
     isAskingForAdvice,
     isCrisis,
     trustScore: healthScore?.overallScore,
+    // Extended context from learning profile
+    preferredLearningStyle: learningProfile?.processing?.style,
+    recentTopicCount: recentTopics.length,
   };
 }
 
@@ -519,6 +551,57 @@ function formatCelebrationOpportunity(
   lines.push("Note: Match their energy. Don't over-celebrate if they're understated.");
 
   return createHintInjection('celebration_opportunity', lines.join('\n'), { category: 'trust' });
+}
+
+/**
+ * Format events needing reminders
+ */
+function formatEventsNeedingReminders(
+  events: ReturnType<typeof getEventsNeedingReminders>
+): string | null {
+  if (events.length === 0) return null;
+
+  const lines: string[] = ['[⏰ EVENTS NEEDING FOLLOW-UP]'];
+
+  for (const event of events.slice(0, 3)) {
+    const daysAgo = Math.floor(
+      (Date.now() - new Date(event.date).getTime()) / (24 * 60 * 60 * 1000)
+    );
+    lines.push(`• ${event.description} (${daysAgo} days ago)`);
+    if (event.importance === 'high') {
+      lines.push(`  ⚠️ High importance - check in on this`);
+    }
+  }
+
+  lines.push('');
+  lines.push('💡 Ask how these events went when natural.');
+
+  return lines.join('\n');
+}
+
+
+/**
+ * Format familiarity context
+ */
+function formatFamiliarityContext(score: number): string | null {
+  if (score < 0.3) return null; // Not familiar enough to mention
+
+  const lines: string[] = ['[🤝 VOICE FAMILIARITY]'];
+
+  if (score > 0.8) {
+    lines.push("You know this person's voice well.");
+    lines.push('You can pick up on subtle changes in how they sound.');
+  } else if (score > 0.5) {
+    lines.push("You're getting to know their voice patterns.");
+    lines.push('Notice their baseline energy and pace.');
+  } else {
+    lines.push('Still learning their voice patterns.');
+  }
+
+  lines.push('');
+  lines.push(`Familiarity: ${Math.round(score * 100)}%`);
+
+  return lines.join('\n');
 }
 
 // ============================================================================

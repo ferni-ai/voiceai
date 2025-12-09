@@ -266,14 +266,25 @@ export function logResponse(
 /**
  * Get analytics for a specific user
  */
-export function getUserAnalytics(userId: string): UserAnalytics {
+export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
   // Check cache
   const cached = userAnalyticsCache.get(userId);
   if (cached && Date.now() - cached.lastUpdated.getTime() < 5 * 60 * 1000) {
     return cached;
   }
 
-  const userEvents = eventStore.filter((e) => e.userId === userId);
+  // Load events from Firestore if available, fall back to in-memory
+  let userEvents = eventStore.filter((e) => e.userId === userId);
+  
+  // If in-memory is empty, try loading from Firestore
+  if (userEvents.length === 0) {
+    const firestoreEvents = await loadUserEvents(userId);
+    if (firestoreEvents.length > 0) {
+      // Add to in-memory cache
+      eventStore.push(...firestoreEvents);
+      userEvents = firestoreEvents;
+    }
+  }
 
   if (userEvents.length === 0) {
     return {
@@ -376,7 +387,9 @@ export function getUserAnalytics(userId: string): UserAnalytics {
     lastUpdated: new Date(),
   };
 
+  // Cache in memory and persist to Firestore
   userAnalyticsCache.set(userId, analytics);
+  void saveUserAnalytics(userId, analytics);
 
   return analytics;
 }
@@ -480,8 +493,8 @@ export function getGlobalAnalytics(): GlobalAnalytics {
 /**
  * Get recommendations for optimizing outreach to a user
  */
-export function getOptimizationRecommendations(userId: string): string[] {
-  const analytics = getUserAnalytics(userId);
+export async function getOptimizationRecommendations(userId: string): Promise<string[]> {
+  const analytics = await getUserAnalytics(userId);
   const recommendations: string[] = [];
 
   if (analytics.totalSent === 0) {

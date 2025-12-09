@@ -116,8 +116,9 @@ export function recordInteraction(
   },
   lastToolId?: string
 ): void {
-  const { autoOptimizer } = require('../auto-optimizer.js');
-  autoOptimizer.processUserMessage(message, context, lastToolId);
+  void import('../auto-optimizer.js').then(({ autoOptimizer }) => {
+    autoOptimizer.processUserMessage(message, context, lastToolId);
+  });
 }
 
 /**
@@ -129,6 +130,7 @@ export function recordToolExecution(
   success: boolean,
   latencyMs: number
 ): void {
-  const { autoOptimizer } = require('../auto-optimizer.js');
-  autoOptimizer.recordToolExecution(sessionId, toolId, success, latencyMs);
+  void import('../auto-optimizer.js').then(({ autoOptimizer }) => {
+    autoOptimizer.recordToolExecution(sessionId, toolId, success, latencyMs);
+  });
 }

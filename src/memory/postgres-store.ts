@@ -195,8 +195,17 @@ export class PostgresStore extends MemoryStore {
     try {
       const limit = options?.limit || 100;
       const offset = options?.offset || 0;
-      const sortBy = options?.sortBy || 'updated_at';
-      const sortOrder = options?.sortOrder || 'desc';
+
+      // Allowlist to prevent SQL injection
+      const ALLOWED_SORT_COLUMNS = ['updated_at', 'created_at', 'id', 'user_id'];
+      const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
+
+      const sortBy = ALLOWED_SORT_COLUMNS.includes(options?.sortBy || '')
+        ? options?.sortBy
+        : 'updated_at';
+      const sortOrder = ALLOWED_SORT_ORDERS.includes(options?.sortOrder || '')
+        ? options?.sortOrder
+        : 'desc';
 
       const result = await this.pool.query(
         `SELECT data FROM user_profiles ORDER BY ${sortBy} ${sortOrder} LIMIT $1 OFFSET $2`,

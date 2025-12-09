@@ -15,6 +15,8 @@ import {
   initializeUnifiedPersistence,
   shutdownUnifiedPersistence,
 } from './trust-systems/unified-persistence.js';
+// NOTE: session-manager imports are done dynamically to avoid circular dependency
+// (session-manager.ts imports getGlobalServices from this file)
 
 // ============================================================================
 // GLOBAL STATE
@@ -23,6 +25,8 @@ import {
 let globalServices: GlobalServices | null = null;
 let personaIndexed = false;
 let startupCapabilities: StartupCapabilities | null = null;
+// FIX: Cache initialization promise to prevent race conditions
+let initializationPromise: Promise<GlobalServices> | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -155,6 +159,15 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio/SendGrid config)');
     }
 
+    // Start session cleanup to prevent orphaned session memory leaks
+    // Dynamic import to avoid circular dependency with session-manager.ts
+    try {
+      const { startSessionCleanup } = await import('./session-manager.js');
+      startSessionCleanup();
+    } catch (cleanupErr) {
+      getLogger().warn({ error: String(cleanupErr) }, 'Session cleanup init skipped (non-critical)');
+    }
+
     getLogger().info('Voice AI services initialized successfully');
     return globalServices;
   } catch (error) {
@@ -217,13 +230,30 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
 
 /**
  * Get global services (initializes if needed, but skips persona indexing if already done)
+ * FIX: Uses promise cache to prevent race conditions during concurrent initialization
  */
 export async function getGlobalServices(): Promise<GlobalServices> {
-  if (!globalServices) {
-    // Don't re-index persona - it should have been done in prewarm
-    return initializeServices(false);
+  // Return existing services if already initialized
+  if (globalServices) {
+    return globalServices;
   }
-  return Promise.resolve(globalServices);
+
+  // Return cached promise if initialization is in progress
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  // Start initialization and cache the promise
+  // Don't re-index persona - it should have been done in prewarm
+  initializationPromise = initializeServices(false);
+
+  try {
+    const services = await initializationPromise;
+    return services;
+  } finally {
+    // Clear the promise cache after completion (success or failure)
+    initializationPromise = null;
+  }
 }
 
 /**
@@ -239,6 +269,14 @@ export function getGlobalServicesSync(): GlobalServices | null {
 export async function resetGlobalServices(): Promise<void> {
   // Stop all auto-saves before resetting
   stopAllAutoSaves();
+
+  // Stop session cleanup scheduler (dynamic import to avoid circular dependency)
+  try {
+    const { stopSessionCleanup } = await import('./session-manager.js');
+    stopSessionCleanup();
+  } catch {
+    // Non-critical
+  }
 
   // Flush and shutdown unified trust persistence
   try {
@@ -258,6 +296,7 @@ export async function resetGlobalServices(): Promise<void> {
   globalServices = null;
   personaIndexed = false;
   startupCapabilities = null;
+  initializationPromise = null;
 }
 
 /**

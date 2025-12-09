@@ -73,7 +73,7 @@
     },
     "spring": {
       "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
-      "description": "Pixar-style bounce with overshoot"
+      "description": "Expressive bounce with overshoot"
     },
     "springGentle": {
       "value": "cubic-bezier(0.34, 1.2, 0.64, 1)",
@@ -268,6 +268,143 @@
     "disableStagger": true,
     "disableTransforms": ["scale", "rotate"],
     "allowedTransforms": ["opacity", "translateY"]
+  },
+  
+  "ferniEQ": {
+    "description": "Superhuman emotional intelligence - Better than Human",
+    
+    "microExpressions": {
+      "description": "Subliminal emotional flashes (40-150ms) - below conscious perception",
+      "recognition": {
+        "value": 80,
+        "unit": "ms",
+        "expression": "curious",
+        "intensity": 0.4,
+        "probability": 0.7,
+        "trigger": "User mentions familiar topic"
+      },
+      "concernFlash": {
+        "value": 60,
+        "unit": "ms",
+        "expression": "worried",
+        "intensity": 0.3,
+        "probability": 0.8,
+        "trigger": "Before empathy kicks in"
+      },
+      "delightFlash": {
+        "value": 100,
+        "unit": "ms",
+        "expression": "pleased",
+        "intensity": 0.5,
+        "probability": 0.9,
+        "trigger": "User achieves something"
+      },
+      "warmthPulse": {
+        "value": 120,
+        "unit": "ms",
+        "expression": "warm",
+        "intensity": 0.3,
+        "probability": 0.6,
+        "trigger": "Connection moments"
+      },
+      "interestFlash": {
+        "value": 70,
+        "unit": "ms",
+        "expression": "curious",
+        "intensity": 0.4,
+        "probability": 0.5,
+        "trigger": "Unexpected content"
+      }
+    },
+    
+    "activeListening": {
+      "description": "Real-time feedback during user speech - shows presence",
+      "microNod": {
+        "duration": 180,
+        "translateY": 1.5,
+        "rotate": 0.3,
+        "easing": "gentle",
+        "pauseRange": { "min": 300, "max": 800 },
+        "description": "Barely perceptible nod"
+      },
+      "subtleNod": {
+        "duration": 220,
+        "translateY": 2.5,
+        "rotate": 0.5,
+        "easing": "gentle",
+        "pauseRange": { "min": 800, "max": 1500 },
+        "description": "Visible acknowledgment nod"
+      },
+      "visibleNod": {
+        "duration": 280,
+        "translateY": 4,
+        "rotate": 0.8,
+        "easing": "gentle",
+        "pauseRange": { "min": 1200, "max": 2000 },
+        "description": "Clear engagement nod"
+      },
+      "listeningLean": {
+        "duration": 400,
+        "translateY": -3,
+        "easing": "gentle",
+        "holdDuration": 1500,
+        "description": "Forward lean showing interest"
+      },
+      "minNodInterval": 2000,
+      "nodProbabilityBase": 0.3
+    },
+    
+    "breathSync": {
+      "description": "Neural mirroring - sync breathing with user for connection",
+      "slowRate": {
+        "value": 10,
+        "unit": "breaths/min",
+        "description": "Calming effect"
+      },
+      "normalRate": {
+        "value": 15,
+        "unit": "breaths/min",
+        "description": "Natural sync"
+      },
+      "fastRate": {
+        "value": 20,
+        "unit": "breaths/min",
+        "description": "Energized connection"
+      },
+      "syncStrength": 0.3,
+      "syncInterval": 5000,
+      "calmingMultiplier": 0.95,
+      "description": "Ferni breathes slightly slower than user for calming effect"
+    },
+    
+    "concernDetection": {
+      "description": "Detect distress signals and respond with care",
+      "triggers": {
+        "voiceStrain": { "weight": 0.3, "description": "Tension in voice" },
+        "longPauses": { "weight": 0.2, "description": "Unusual hesitation" },
+        "sighing": { "weight": 0.25, "description": "Detected sighs" },
+        "breakingVoice": { "weight": 0.5, "description": "Almost crying" },
+        "negativeSelfTalk": { "weight": 0.4, "description": "I'm such an idiot" },
+        "hopelessnessWords": { "weight": 0.5, "description": "What's the point" },
+        "isolationMentions": { "weight": 0.3, "description": "No one understands" }
+      },
+      "levels": {
+        "mild": { "threshold": 0.2, "response": "attentive" },
+        "moderate": { "threshold": 0.5, "response": "empathetic", "holdDuration": 3000 },
+        "significant": { "threshold": 0.8, "response": "accompanying", "triggerCheckin": true }
+      }
+    },
+    
+    "anticipation": {
+      "description": "Predict and show emotion before user finishes expressing",
+      "patterns": [
+        { "partial": "I've been thinking about", "tone": "falling", "emotion": "contemplative" },
+        { "partial": "Guess what", "tone": "rising", "emotion": "curious" },
+        { "partial": "Remember when", "tone": "any", "emotion": "remembering" },
+        { "partial": "I need to tell you", "tone": "any", "emotion": "attentive" },
+        { "partial": "Actually", "tone": "any", "emotion": "curious" }
+      ]
+    }
   }
 }
 

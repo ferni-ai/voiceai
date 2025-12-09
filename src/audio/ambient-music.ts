@@ -18,6 +18,8 @@ import { getLogger } from '../utils/safe-logger.js';
 
 // Cache for Spotify ambient tracks (fetched once per session)
 let cachedSpotifyAmbientTracks: MusicTrack[] | null = null;
+let cacheTimestamp: number | null = null;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes - refresh periodically
 
 // ============================================================================
 // AMBIENT MUSIC TRACKS
@@ -99,12 +101,20 @@ const AMBIENT_SEARCH_QUERIES = [
 ];
 
 /**
- * Fetch ambient tracks from Spotify (cached per session)
+ * Fetch ambient tracks from Spotify (cached with TTL)
  * Returns tracks with preview URLs that can be played
+ *
+ * Cache invalidates after 30 minutes to pick up new tracks and handle Spotify reconnections
  */
 export async function fetchSpotifyAmbientTracks(): Promise<MusicTrack[]> {
-  // Return cached if available
-  if (cachedSpotifyAmbientTracks !== null) {
+  // Check if cache is valid
+  const now = Date.now();
+  const cacheValid =
+    cachedSpotifyAmbientTracks !== null &&
+    cacheTimestamp !== null &&
+    now - cacheTimestamp < CACHE_TTL_MS;
+
+  if (cacheValid && cachedSpotifyAmbientTracks) {
     return cachedSpotifyAmbientTracks;
   }
 
@@ -126,8 +136,9 @@ export async function fetchSpotifyAmbientTracks(): Promise<MusicTrack[]> {
       }
     }
 
-    // Cache the results
+    // Cache the results with timestamp
     cachedSpotifyAmbientTracks = allTracks;
+    cacheTimestamp = now;
 
     if (allTracks.length > 0) {
       getLogger().info({ count: allTracks.length }, '🎵 Fetched ambient tracks from Spotify');
@@ -140,8 +151,19 @@ export async function fetchSpotifyAmbientTracks(): Promise<MusicTrack[]> {
       'Could not fetch Spotify ambient tracks (Spotify may not be connected)'
     );
     cachedSpotifyAmbientTracks = [];
+    cacheTimestamp = now;
     return [];
   }
+}
+
+/**
+ * Clear the ambient tracks cache
+ * Call this when Spotify connection state changes (disconnect/reconnect)
+ */
+export function clearAmbientTracksCache(): void {
+  cachedSpotifyAmbientTracks = null;
+  cacheTimestamp = null;
+  getLogger().debug('🎵 Cleared ambient tracks cache');
 }
 
 /**

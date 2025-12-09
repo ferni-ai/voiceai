@@ -415,12 +415,14 @@ export class AdaptiveEndpointingService {
 
   /**
    * Get current optimal thresholds
+   * @param isReturningUser - Whether this is a returning user (affects timing sensitivity)
    */
   getThresholds(
     transcript: string,
     topicWeight: TopicWeight,
     emotion: EmotionResult,
-    turnDurationMs: number
+    turnDurationMs: number,
+    isReturningUser = false
   ): EndpointingThresholds {
     const ctx: EndpointingContext = {
       topicWeight,
@@ -430,7 +432,7 @@ export class AdaptiveEndpointingService {
       conversationPhase: this.currentPhase,
       currentTurnDuration: turnDurationMs,
       wasRecentlyInterrupted: this.wasRecentlyInterrupted(),
-      isReturningUser: false, // TODO: integrate with user service
+      isReturningUser,
       userTypicalPauseLength: this.getTypicalPauseLength(),
     };
 

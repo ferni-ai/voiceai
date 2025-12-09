@@ -1,54 +1,179 @@
-/**
- * Ferni Website - Main Stylesheet
- * 
- * 🎨 SINGLE SOURCE OF TRUTH
- * All styles flow from the design system tokens.
- * DO NOT add hardcoded colors, spacing, or typography.
- * 
- * Architecture:
- * 1. Tokens (from design-system/tokens/)
- * 2. Base (reset, typography, global)
- * 3. Components (buttons, cards, forms)
- * 4. Sections (hero, team, features, etc.)
- * 5. Utilities (helpers, animations)
- */
+/* Ferni Landing Page Styles - Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* ============================================
-   1. DESIGN TOKENS
-   ============================================ */
-@import './_tokens.css';
+/* Better than Human - Philosophy-driven enhancements */
+@import './better-than-human.css';
 
-/* ============================================
-   2. BASE STYLES
-   ============================================ */
-@import './base/reset.css';
-@import './base/typography.css';
-@import './base/layout.css';
+/* Custom base styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-paper text-ink font-body;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+  
+  ::selection {
+    @apply bg-ferni/20 text-ink;
+  }
+}
 
-/* ============================================
-   3. COMPONENTS
-   ============================================ */
-@import './components/buttons.css';
-@import './components/cards.css';
-@import './components/forms.css';
-@import './components/avatar.css';
-@import './components/nav.css';
+/* Component styles */
+@layer components {
+  /* Ferni Avatar Orb */
+  .ferni-orb {
+    @apply relative flex items-center justify-center;
+    @apply bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark;
+    @apply rounded-full shadow-glow-green;
+  }
+  
+  .ferni-orb-text {
+    @apply font-display font-bold text-white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+  
+  .ferni-orb-ring {
+    @apply absolute rounded-full border-2 border-ferni/20 pointer-events-none;
+  }
+  
+  .ferni-orb-glow {
+    @apply absolute rounded-full pointer-events-none;
+    background: radial-gradient(circle, rgba(74, 103, 65, 0.2) 0%, transparent 70%);
+  }
+  
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3 rounded-full font-display font-semibold;
+    @apply transition-all duration-300 ease-spring;
+    @apply focus:outline-none focus:ring-2 focus:ring-ferni/50 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-ferni text-white;
+    @apply hover:bg-ferni-dark hover:shadow-lg hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-md;
+  }
+  
+  .btn-secondary {
+    @apply bg-paper-cream text-ink border-2 border-ink/10;
+    @apply hover:border-ferni hover:text-ferni hover:shadow-md;
+    @apply active:shadow-sm;
+  }
+  
+  /* Cards */
+  .card {
+    @apply bg-paper-cream rounded-2xl p-6;
+    @apply border border-ink/5;
+    @apply shadow-md hover:shadow-lg;
+    @apply transition-all duration-300 ease-spring;
+  }
+  
+  .card-elevated {
+    @apply bg-white rounded-3xl p-8;
+    @apply shadow-xl;
+  }
+  
+  /* Section containers */
+  .section {
+    @apply py-ma-contemplation px-4;
+  }
+  
+  .section-dark {
+    @apply bg-gradient-to-b from-[#1a1512] via-[#2a2420] to-paper;
+    @apply text-white;
+  }
+  
+  /* Trust badges */
+  .trust-badge {
+    @apply inline-flex items-center gap-2;
+    @apply px-4 py-2 rounded-full;
+    @apply bg-paper-cream border border-ink/5;
+    @apply text-sm text-ink-muted;
+  }
+  
+  /* Navigation */
+  .nav {
+    @apply fixed top-0 left-0 right-0 z-50;
+    @apply bg-paper/80 backdrop-blur-lg;
+    @apply border-b border-ink/5;
+    @apply transition-all duration-300;
+  }
+  
+  .nav-scrolled {
+    @apply shadow-md;
+  }
+  
+  /* Cookie banner */
+  .cookie-banner {
+    @apply fixed bottom-4 left-4 right-4 z-50;
+    @apply bg-paper-cream rounded-xl p-4;
+    @apply shadow-xl border border-ink/10;
+    @apply flex flex-wrap items-center justify-between gap-4;
+    @apply max-w-xl mx-auto;
+  }
+  
+  /* Mobile CTA bar */
+  .mobile-cta {
+    @apply fixed bottom-0 left-0 right-0 z-40;
+    @apply bg-paper-cream/90 backdrop-blur-lg;
+    @apply border-t border-ink/5;
+    @apply p-4 flex gap-3;
+    @apply md:hidden;
+  }
+}
 
-/* ============================================
-   4. SECTIONS
-   ============================================ */
-@import './sections/hero.css';
-@import './sections/team.css';
-@import './sections/features.css';
-@import './sections/testimonials.css';
-@import './sections/faq.css';
-@import './sections/cta.css';
-@import './sections/footer.css';
+/* Utility classes */
+@layer utilities {
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-ferni to-ferni-dark;
+  }
+  
+  /* Glass effect */
+  .glass {
+    @apply bg-white/60 backdrop-blur-lg;
+    @apply border border-white/20;
+  }
+  
+  /* Reveal animation */
+  .reveal {
+    @apply opacity-0 translate-y-6;
+    @apply transition-all duration-700 ease-expo-out;
+  }
+  
+  .reveal.is-visible {
+    @apply opacity-100 translate-y-0;
+  }
+  
+  /* Breathing animation for orbs */
+  .animate-breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+  
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
 
-/* ============================================
-   5. UTILITIES & ANIMATIONS
-   ============================================ */
-@import './utils/animations.css';
-@import './utils/reveal.css';
-@import './utils/helpers.css';
-
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

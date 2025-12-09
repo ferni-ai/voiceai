@@ -80,6 +80,10 @@ export interface ConnectionCallbacks {
   onAudioTrack?: (audioElement: HTMLAudioElement, participantId: string, mediaStreamTrack?: MediaStreamTrack) => void;
   /** Called when agent audio track ends (agent stops speaking). */
   onAudioTrackEnd?: (participantId: string) => void;
+  /** 🎚️ Called when a MUSIC audio track is detected. Route to MusicAudioController for ducking. */
+  onMusicTrack?: (audioElement: HTMLAudioElement, trackId: string) => void;
+  /** 🎚️ Called when music track ends. */
+  onMusicTrackEnd?: (trackId: string) => void;
   onLocalMicActive?: (isActive: boolean) => void;
   onConnectionQuality?: (latencyMs: number) => void;
   onError?: (error: Error) => void;
@@ -100,11 +104,65 @@ class ConnectionService {
   // Cache audio elements by participant to prevent duplicate creation
   private audioElements: Map<string, HTMLAudioElement> = new Map();
 
+  // 🎚️ Music track identification
+  // When we receive music_state: playing, we expect a music track soon
+  private expectingMusicTrack = false;
+  private expectingMusicTrackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private musicTrackIds: Set<string> = new Set(); // Track IDs identified as music
+  private voiceTrackId: string | null = null; // First track is usually voice
+
   /**
    * Register callbacks for connection events.
    */
   setCallbacks(callbacks: ConnectionCallbacks): void {
     this.callbacks = callbacks;
+  }
+
+  // ==========================================================================
+  // 🎚️ MUSIC TRACK IDENTIFICATION
+  // ==========================================================================
+
+  /**
+   * Signal that we're expecting a music track soon.
+   * Called when we receive music_state: 'playing' from backend.
+   * Any new audio track arriving within 3 seconds will be treated as music.
+   */
+  expectMusicTrack(): void {
+    this.expectingMusicTrack = true;
+    
+    // Clear any existing timeout
+    if (this.expectingMusicTrackTimeout) {
+      clearTimeout(this.expectingMusicTrackTimeout);
+    }
+    
+    // Stop expecting after 3 seconds
+    this.expectingMusicTrackTimeout = setTimeout(() => {
+      this.expectingMusicTrack = false;
+      this.expectingMusicTrackTimeout = null;
+    }, 3000);
+    
+    log.debug('🎚️ Expecting music track...');
+  }
+
+  /**
+   * Check if a track is a music track.
+   */
+  isMusicTrack(trackId: string): boolean {
+    return this.musicTrackIds.has(trackId);
+  }
+
+  /**
+   * Mark a track as ended (for cleanup).
+   */
+  private handleTrackEnded(trackId: string): void {
+    if (this.musicTrackIds.has(trackId)) {
+      this.musicTrackIds.delete(trackId);
+      this.callbacks.onMusicTrackEnd?.(trackId);
+      log.debug('🎚️ Music track ended', { trackId });
+    }
+    if (this.voiceTrackId === trackId) {
+      this.voiceTrackId = null;
+    }
   }
 
   /**
@@ -366,7 +424,34 @@ class ConnectionService {
         audioEl = track.attach() as HTMLAudioElement;
         this.audioElements.set(trackKey, audioEl);
         
-        log.debug(`Audio track attached: ${trackKey} (kind: ${track.kind})`);
+        // 🎚️ MUSIC TRACK IDENTIFICATION
+        // Determine if this is a music track or voice track
+        let isMusicTrack = false;
+        
+        if (this.expectingMusicTrack) {
+          // We received a music_state: playing message, so this is likely music
+          isMusicTrack = true;
+          this.expectingMusicTrack = false;
+          if (this.expectingMusicTrackTimeout) {
+            clearTimeout(this.expectingMusicTrackTimeout);
+            this.expectingMusicTrackTimeout = null;
+          }
+          this.musicTrackIds.add(trackKey);
+          log.info('🎚️ Music track identified', { trackKey });
+        } else if (!this.voiceTrackId) {
+          // First track is usually voice - mark it
+          this.voiceTrackId = trackKey;
+          log.debug('🎤 Voice track identified', { trackKey });
+        } else if (!this.musicTrackIds.has(trackKey) && trackKey !== this.voiceTrackId) {
+          // Additional track after voice - could be music
+          // Check if we recently got a music data message (last 5 seconds)
+          // For now, treat additional tracks as music
+          isMusicTrack = true;
+          this.musicTrackIds.add(trackKey);
+          log.info('🎚️ Additional track treated as music', { trackKey });
+        }
+        
+        log.debug(`Audio track attached: ${trackKey} (isMusicTrack: ${isMusicTrack})`);
         
         // iOS/Safari specific attributes
         audioEl.setAttribute('playsinline', '');
@@ -406,6 +491,11 @@ class ConnectionService {
         
         void playAudio();
         
+        // 🎚️ Route music tracks to MusicAudioController for ducking
+        if (isMusicTrack) {
+          this.callbacks.onMusicTrack?.(audioEl, trackKey);
+        }
+        
         // Pass audio element AND track for visualization
         // Track-based visualization works better for WebRTC streams
         this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
@@ -416,14 +506,23 @@ class ConnectionService {
       this.room?.off('trackSubscribed', onTrackSubscribed);
     });
 
-    // Track unsubscribed - agent stopped speaking
+    // Track unsubscribed - agent stopped speaking or music ended
     const onTrackUnsubscribed = (
-      track: { kind: string },
+      track: { kind: string; sid?: string; mediaStreamTrack?: MediaStreamTrack },
       _publication: unknown,
       participant: { identity: string; isLocal?: boolean }
     ) => {
-      // Only care about remote audio tracks (agent speaking)
+      // Only care about remote audio tracks
       if (!participant.isLocal && track.kind === 'audio') {
+        // Try to identify the track
+        const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack?.id || 'unknown'}`;
+        
+        // 🎚️ Check if this was a music track
+        if (this.musicTrackIds.has(trackKey)) {
+          this.handleTrackEnded(trackKey);
+        }
+        
+        // Fire the voice track end callback
         this.callbacks.onAudioTrackEnd?.(participant.identity);
       }
     };

@@ -59,7 +59,7 @@ import { initPresenceUI, presenceUI } from './ui/presence.ui.js';
 import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
 import { initSoundUI, soundUI } from './ui/sound.ui.js';
 import { initStatsUI, statsUI } from './ui/stats.ui.js';
-// ✨ Micro-Interactions - Pixar-quality button & interactive effects
+// ✨ Micro-Interactions - Premium button & interactive effects
 import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
@@ -84,10 +84,18 @@ import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
 // Weather Effects - Seasonal ambient atmosphere (available via dev panel)
 import { initWeatherEffects } from './ui/weather-effects.ui.js';
-// Ferni Moments - Pixar-style character expressions
+// Ferni Moments - Character expressions
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
-// Pixar Emotions - Advanced eye lid expressions
-import { initPixarEmotions, pixarEmotions } from './ui/pixar-emotions.ui.js';
+// Ferni Expressions - Character-level avatar expressions
+import { initFerniExpressions, ferniExpressions } from './ui/ferni-expressions.ui.js';
+// Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
+import { enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
+// Logo Expressions - Animated logo that reacts to emotions
+import { initLogoExpressions, hookIntoAvatarFeedback as hookLogoFeedback } from './ui/logo-expressions.ui.js';
+// Celebration Service - Triggers milestone celebrations
+import { initCelebrationService } from './services/celebration.service.js';
+// Ferni EQ - Superhuman emotional intelligence ("Better than Human")
+import { initFerniEQ } from './ui/better-than-human.ui.js';
 // Demo data for testing without backend
 import {
   disableDemoData,
@@ -140,15 +148,24 @@ import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Settings UI
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
+// Voice Enrollment UI
+import {
+  initVoiceEnrollmentUI,
+  showVoiceEnrollmentModal,
+} from './ui/voice-enrollment.ui.js';
+// Voice Auth Service
+import { getVoiceAuthService } from './services/voice-auth.service.js';
+// Toast for notifications
+import { toast } from './ui/toast.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
 
-// 🎬 Pixar-quality Animation Orchestrator
+// 🎬 Character-quality Animation Orchestrator
 import {
   animatePersonaTransition,
   initAnimationOrchestrator,
-  playPixarReaction,
+  playCharacterReaction,
 } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
@@ -171,6 +188,9 @@ import './ui/soul.test.js';
 
 // 🛠️ Dev Panel - Testing & validation tools
 import { initDevPanel } from './ui/dev-panel.ui.js';
+
+// 🎚️ Music Audio Controller - Real-time ducking via Web Audio API
+import { getMusicAudioController, resetMusicAudioController } from './services/music-audio.controller.js';
 
 // 🌟 Living Favicon - Ferni's presence in the browser tab
 import { initFaviconManager } from './ui/favicon-manager.ui.js';
@@ -716,7 +736,7 @@ class VoiceAIApp {
     this.safeInit('StatsUI', () => initStatsUI());
     this.safeInit('PresenceUI', () => initPresenceUI());
     this.safeInit('RippleUI', () => initRippleUI());
-    this.safeInit('MicroInteractionsUI', () => initMicroInteractions()); // ✨ Pixar button effects
+    this.safeInit('MicroInteractionsUI', () => initMicroInteractions()); // ✨ Premium button effects
     this.safeInit('TranscriptUI', () => initTranscriptUI());
     this.safeInit('ThinkingUI', () => initThinkingUI());
     this.safeInit('ConnectionQualityUI', () => initConnectionQualityUI());
@@ -736,12 +756,38 @@ class VoiceAIApp {
       initFerniMoments();
       // Auto-aware of time-of-day, moments triggered contextually
     });
-    // 🎬 Pixar Emotions - Advanced eye lid expressions & reactions
-    this.safeInit('PixarEmotions', () => {
-      initPixarEmotions();
+    // 🎬 Ferni Expressions - Character-level eye expressions & reactions
+    this.safeInit('FerniExpressions', () => {
+      initFerniExpressions();
       // Creates lid overlay for eye expressions, sparkles, dramatic morphs
     });
-    // 🎬 Animation Orchestrator - Pixar-quality coordinated animations
+    
+    // 🔗 Emotion ↔ Expression Bridge - Auto-triggers expressions on emotion changes
+    this.safeInit('EmotionExpressionBridge', () => {
+      enableEmotionExpressionBridge();
+      // Automatically maps emotion state changes to ferni expressions
+    });
+    
+    // 🎨 Logo Expressions - Animated logo that reacts to emotions
+    this.safeInit('LogoExpressions', () => {
+      initLogoExpressions();
+      hookLogoFeedback();
+      // Logo will react to avatar emotion events
+    });
+    
+    // 🎉 Celebration Service - Triggers milestone celebrations
+    this.safeInit('CelebrationService', () => {
+      initCelebrationService();
+      // Now you can call: celebrationService.smallWin(), .bigWin(), etc.
+    });
+    
+    // 🚀 Ferni EQ - Superhuman emotional intelligence ("Better than Human")
+    this.safeInit('FerniEQ', () => {
+      initFerniEQ();
+      // Micro-expressions, breath sync, active listening, concern detection
+    });
+    
+    // 🎬 Animation Orchestrator - Character-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
 
     // 🌟 Soul System - Living presence with eye tracking, logo expressions, persona magic
@@ -870,6 +916,9 @@ class VoiceAIApp {
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     this.safeInit('TrustJourneyUI', () => initTrustJourneyUI());
 
+    // 🔊 Voice Enrollment UI - Learn user's voice
+    this.safeInit('VoiceEnrollmentUI', () => initVoiceEnrollmentUI());
+
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {
       initSettingsMenuUI({
@@ -891,6 +940,7 @@ class VoiceAIApp {
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
         onCalendarSettingsClick: () => void openCalendarSettings(),
+        onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
       });
 
       // Wire up Spotify state changes to menu
@@ -982,6 +1032,9 @@ class VoiceAIApp {
 
     // 📊 Load engagement data (API first, demo fallback in dev)
     void this.loadEngagementData();
+
+    // 🔊 Check for voice profile re-enrollment needs
+    void this.checkVoiceReEnrollment();
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
@@ -1047,13 +1100,13 @@ class VoiceAIApp {
 
   /**
    * Select a persona (for keyboard shortcuts and gestures).
-   * Now with Pixar-quality transition animations!
+   * Now with character-quality transition animations!
    */
   selectPersona(personaId: PersonaId): void {
     const currentPersona = appState.get('selectedPersona');
     const persona = getPersona(personaId);
 
-    // 🎬 Animate the transition with Pixar principles
+    // 🎬 Animate the transition with animation principles
     void animatePersonaTransition(currentPersona.id, personaId);
 
     // Update state
@@ -1182,6 +1235,33 @@ class VoiceAIApp {
   }
 
   /**
+   * Check if user needs to re-enroll their voice profile.
+   * Shows a toast if quality is low, pointing to Settings > Voice ID.
+   */
+  private async checkVoiceReEnrollment(): Promise<void> {
+    try {
+      const voiceAuth = getVoiceAuthService();
+      const result = await voiceAuth.checkReEnrollmentNeeded();
+
+      if (result.needed && result.message) {
+        // Delay the toast to not overwhelm on startup
+        setTimeout(() => {
+          if (result.severity === 'high') {
+            // High severity - show warning
+            toast.warning('Voice profile quality low. Go to Settings → Voice ID to re-enroll.');
+          } else {
+            // Low severity - just informational
+            toast.info('Voice profile could be improved. Re-enroll in Settings → Voice ID.');
+          }
+        }, 5000); // Wait 5 seconds after app loads
+      }
+    } catch (error) {
+      // Silently fail - not critical
+      log.debug('Voice re-enrollment check skipped:', error);
+    }
+  }
+
+  /**
    * Show streak badge.
    */
   private showStreakBadge(streak: number): void {
@@ -1280,16 +1360,16 @@ class VoiceAIApp {
         presenceUI.bounce();
         soundUI.play('success');
         
-        // 🎬 Pixar: Excited greeting expression
-        pixarEmotions.heldPose('happy', 400);
+        // 🎬 Expression: Excited greeting expression
+        ferniExpressions.heldPose('happy', 400);
       },
 
       onAgentDisconnected: () => {
         messageUI.show('See you next time!', 'info', 2000);
         presenceUI.setSpeaking(false);
         
-        // 🎬 Pixar: Warm farewell expression (soft, lingering)
-        pixarEmotions.setExpression('empathetic', 400, 2000);
+        // 🎬 Expression: Warm farewell expression (soft, lingering)
+        ferniExpressions.setExpression('empathetic', 400, 2000);
       },
 
       onDataMessage: (message) => {
@@ -1307,6 +1387,9 @@ class VoiceAIApp {
         presenceUI.setSpeaking(true);
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
+        
+        // 🎚️ Duck music when agent is speaking
+        getMusicAudioController().duckForAgent();
       },
 
       onAudioTrackEnd: (_participantId) => {
@@ -1316,12 +1399,43 @@ class VoiceAIApp {
         setAudioState('listening');
         // Now we're listening for user input
         waveformUI.setListening(true);
+        
+        // 🎚️ Unduck music when agent stops speaking
+        getMusicAudioController().unduckForAgent();
+      },
+      
+      // 🎚️ Music track detected - attach for ducking control
+      onMusicTrack: (audioElement, trackId) => {
+        log.info('🎚️ Music track detected, attaching for ducking', { trackId });
+        void (async () => {
+          try {
+            const controller = getMusicAudioController();
+            await controller.initialize();
+            await controller.attachMusicTrack(audioElement, trackId);
+          } catch (err) {
+            log.warn('Failed to attach music track for ducking', err);
+          }
+        })();
+      },
+      
+      // 🎚️ Music track ended
+      onMusicTrackEnd: (trackId) => {
+        log.debug('🎚️ Music track ended', { trackId });
+        // Controller handles cleanup automatically via the returned cleanup function
       },
 
       onLocalMicActive: (isActive) => {
         // When user's mic is active, show listening state
         waveformUI.setListening(isActive);
         presenceUI.setListening(isActive);
+        
+        // 🎚️ Duck/unduck music when user is speaking
+        const controller = getMusicAudioController();
+        if (isActive) {
+          controller.duckForUser();
+        } else {
+          controller.unduckForUser();
+        }
       },
 
       // Connection quality monitoring disabled for clean UI
@@ -1348,8 +1462,8 @@ class VoiceAIApp {
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
       
-      // 🎬 Pixar: Curious "thinking" expression during handoff
-      pixarEmotions.lookAwayThinking(1500);
+      // 🎬 Expression: Curious "thinking" expression during handoff
+      ferniExpressions.contemplation(1500);
 
       // Show handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');
@@ -1386,8 +1500,8 @@ class VoiceAIApp {
       // End shimmer, return to normal
       waveformUI.setTransitioning(false);
       
-      // 🎬 Pixar: New persona arrives with excited greeting
-      pixarEmotions.heldPose('happy', 500);
+      // 🎬 Expression: New persona arrives with excited greeting
+      ferniExpressions.heldPose('happy', 500);
 
       // Hide handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');
@@ -1454,10 +1568,10 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Pixar-style celebration on handoff
+      // 🎬 Character-style celebration on handoff
       const avatarContainer = document.querySelector('.avatar-container');
       if (avatarContainer instanceof HTMLElement) {
-        void playPixarReaction(avatarContainer, 'joy', newPersona.id);
+        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
       }
       coachUI.flash();
 
@@ -1553,7 +1667,7 @@ class VoiceAIApp {
       onStreakMilestone: (streak) => {
         // Celebrate streak milestones with brand-aligned animations
         if (isStreakMilestone(streak.count)) {
-          // Play Pixar-style particle celebration
+          // Play character-style particle celebration
           celebrateStreak(streak.count, streak.personaId);
 
           // Show notification
@@ -1623,6 +1737,9 @@ class VoiceAIApp {
     // Dispose services
     audioService.dispose();
     spotifyService.dispose();
+    
+    // 🎚️ Clean up music audio controller
+    resetMusicAudioController();
 
     // Disconnect if connected
     void connectionService.disconnect();
@@ -1641,7 +1758,7 @@ class VoiceAIApp {
     presenceUI.dispose();
     rippleUI.dispose();
     easterEggsUI.dispose();
-    microInteractionsUI.dispose(); // ✨ Clean up Pixar button effects
+    microInteractionsUI.dispose(); // ✨ Clean up premium button effects
     // keyboardUI.dispose();
     transcriptUI.dispose();
     thinkingUI.dispose();

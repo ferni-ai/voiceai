@@ -40,6 +40,8 @@ import type {
   TeamHandlerRegistryEventHandler,
   TeamHandlerRegistryOptions,
   RouteRequestOptions,
+
+
 } from './types.js';
 import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
@@ -611,7 +613,9 @@ export type {
   TeamHandlerRegistryOptions,
   RouteRequestOptions,
 } from './types.js';
+import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
 export { ALL_HANDLER_CAPABILITIES, validateHandlerDefinition } from './types.js';
+import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
 export default teamHandlerRegistry;

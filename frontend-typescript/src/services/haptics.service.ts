@@ -355,15 +355,19 @@ export class HapticsService {
   private detectPlatform(): 'ios' | 'android' | 'web' | 'unsupported' {
     if (typeof window === 'undefined') return 'unsupported';
     
-    const ua = navigator.userAgent;
+    // Type definitions for native bridge interfaces
+    interface IOSBridge { webkit?: { messageHandlers?: { haptics?: unknown } } }
+    interface AndroidBridge { FerniAndroid?: { haptics?: unknown } }
     
     // Check for native iOS (would be injected by native wrapper)
-    if ((window as unknown as Record<string, unknown>).webkit?.messageHandlers?.haptics) {
+    const iosBridge = window as unknown as IOSBridge;
+    if (iosBridge.webkit?.messageHandlers?.haptics) {
       return 'ios';
     }
     
     // Check for native Android (would be injected by native wrapper)
-    if ((window as unknown as Record<string, unknown>).FerniAndroid?.haptics) {
+    const androidBridge = window as unknown as AndroidBridge;
+    if (androidBridge.FerniAndroid?.haptics) {
       return 'android';
     }
     
@@ -466,13 +470,15 @@ export class HapticsService {
   celebrate(magnitude: 'small' | 'medium' | 'large'): void {
     if (!this.isAvailable()) return;
     
-    const patterns: Record<string, string> = {
+    type Magnitude = 'small' | 'medium' | 'large';
+    
+    const patterns: Record<Magnitude, string> = {
       small: 'sparkle',
       medium: 'celebration',
       large: 'milestone',
     };
     
-    const intensities: Record<string, number> = {
+    const intensities: Record<Magnitude, number> = {
       small: 0.8,
       medium: 1,
       large: 1.2,

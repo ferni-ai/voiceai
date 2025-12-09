@@ -779,7 +779,7 @@ export function feedbackStopThinking(): void {
  * The avatar pulses like an old-time bass speaker cone.
  * Halo stays static - no movement, just the avatar responds.
  */
-export function feedbackDancing(): void {
+export function feedbackMusicPresence(): void {
   if (!avatarContainer || !avatar) return;
 
   // Don't double-start
@@ -1271,8 +1271,10 @@ export const avatarFeedback = {
   listening: feedbackListening,
   thinking: feedbackThinking,
   stopThinking: feedbackStopThinking,
-  // Music animations (the avatar is the speaker)
-  dancing: feedbackDancing,
+  // Music animations (the avatar responds with presence)
+  musicPresence: feedbackMusicPresence,
+  // Legacy alias
+  dancing: feedbackMusicPresence,
   ducking: feedbackDucking,
   unduck: feedbackUnduck,
   fading: feedbackFading,

@@ -10,10 +10,7 @@
 import { createLogger } from '../utils/logger.js';
 import {
   initializeBrandSystem,
-  getRitualEngine,
-  wireRitualEngineToApp,
   getGlowController,
-  getFerniAudioEngine,
   preloadPersonaSounds,
   preloadCelebrationSounds,
 } from '../services/brand-system.js';

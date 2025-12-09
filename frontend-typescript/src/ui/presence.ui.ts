@@ -1,5 +1,5 @@
 /**
- * Presence UI - Pixar-Inspired Avatar Life Effects
+ * Presence UI - Ferni Character Life Effects
  * 
  * ✨ PIXAR'S 12 PRINCIPLES OF ANIMATION APPLIED:
  * 
@@ -68,7 +68,7 @@ let isSpeaking = false;
 let isListening = false;
 let breathingAnimation: Animation | null = null;
 let glowAnimation: Animation | null = null; // Secondary action
-let leanInAnimation: Animation | null = null; // 🎬 Pixar attentive lean-in
+let leanInAnimation: Animation | null = null; // 🎬 Attentive lean-in (warm, present)
 let lastMouseX = 0;
 let lastMouseY = 0;
 
@@ -151,10 +151,10 @@ function getCurrentState(): 'idle' | 'connected' | 'speaking' | 'listening' {
 }
 
 /**
- * Get the Pixar animation parameters for current state.
+ * Get the character animation parameters for current state.
  * Uses design system constants for consistency.
  */
-function getPixarParams(): AvatarSquashStretchParams {
+function getCharacterParams(): AvatarSquashStretchParams {
   return getAvatarParams(getCurrentState());
 }
 
@@ -174,7 +174,7 @@ function getBreathingDuration(): number {
 }
 
 /**
- * Start the Pixar-inspired breathing animation.
+ * Start the character-quality breathing animation.
  * 
  * This implements:
  * - SQUASH & STRETCH: scaleX/scaleY change inversely
@@ -191,10 +191,10 @@ function startBreathingAnimation(): void {
     breathingAnimation.cancel();
   }
   
-  const p = getPixarParams();
+  const p = getCharacterParams();
   const duration = getBreathingDuration();
   
-  // Pixar-style breathing with squash & stretch
+  // Character-quality breathing with squash & stretch
   // Notice the ASYMMETRIC timing - inhale is quicker than exhale
   // This creates the "anticipation" feel
   const keyframes: Keyframe[] = [
@@ -305,7 +305,7 @@ function startGlowAnimation(breathDuration: number): void {
  * 
  * Like a character leaning forward to hear better, showing genuine interest.
  * 
- * Pixar Principles:
+ * Character Principles:
  * - ANTICIPATION: Slight pause/settle before leaning
  * - STAGING: Clear forward motion toward the "speaker"
  * - FOLLOW-THROUGH: Gentle overshoot then settle into attentive pose
@@ -736,7 +736,7 @@ export function setListening(listening: boolean): void {
       performBlink();
     }
     
-    // 🎬 Pixar attentive lean-in when user starts speaking
+    // 🎬 Warm attentive lean-in when user starts speaking
     if (listening) {
       startAttentiveLeanIn();
     } else {
@@ -853,9 +853,9 @@ export function flashEmotion(emotion: VoiceEmotion, durationMs: number = 600): v
 // ============================================================================
 
 /**
- * Play a Pixar-style reaction with anticipation.
+ * Play a character-quality reaction with anticipation.
  * 
- * 🎬 Pixar's principle: Every action has three parts:
+ * 🎬 Character principle: Every action has three parts:
  * 1. ANTICIPATION - Small "wind up" in opposite direction
  * 2. ACTION - The main movement with SQUASH & STRETCH
  * 3. FOLLOW-THROUGH - Overshoot and settle
@@ -870,7 +870,7 @@ export function react(type: 'nod' | 'shake' | 'bounce' | 'pulse'): void {
     return;
   }
   
-  // 🎬 Pixar-quality keyframes with proper squash & stretch
+  // 🎬 Character-quality keyframes with proper squash & stretch
   const reactionKeyframes: Record<string, Keyframe[]> = {
     // NOD - Like WALL-E acknowledging understanding
     'nod': [
@@ -1067,7 +1067,7 @@ export function attentiveLean(): void {
  * Like a friend giving you a warm smile and nod before parting.
  * Combines a gentle bow/nod with a warm glow that lingers.
  * 
- * Pixar Principles:
+ * Character Principles:
  * - ANTICIPATION: Slight pause before the farewell
  * - STAGING: Clear, warm gesture
  * - APPEAL: Leaves user with positive feeling
@@ -1184,7 +1184,7 @@ export const presenceUI = {
   shake,
   bounce,
   pulse,
-  // Pixar expressions
+  // Character expressions
   curiousTilt,
   joy,
   attentiveLean,

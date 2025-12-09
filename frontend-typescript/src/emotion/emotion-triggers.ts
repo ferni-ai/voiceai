@@ -46,6 +46,7 @@ export interface TextAnalysisResult {
 // ============================================================================
 
 const EMOTION_PATTERNS: Record<EmotionId, RegExp[]> = {
+  // Core emotions
   happy: [
     /\b(great|wonderful|amazing|love|excited|happy|glad|awesome|fantastic|brilliant)\b/i,
     /\b(yay|woohoo|hurray|yes!|perfect|excellent)\b/i,
@@ -87,6 +88,100 @@ const EMOTION_PATTERNS: Record<EmotionId, RegExp[]> = {
   neutral: [],
   listening: [],
   speaking: [],
+  
+  // Brand-aligned emotion patterns
+  contemplative: [
+    /\b(reflect|consider|ponder|meditate|think deeply|looking back)\b/i,
+    /\b(wisdom|perspective|insight|realize|understand now)\b/i,
+  ],
+  noticing: [
+    /\b(notice|pick up on|sense|feel like|seem to)\b/i,
+    /\b(reading between|underlying|subtle|between the lines)\b/i,
+  ],
+  holdingSpace: [
+    /\b(hard time|going through|dealing with|struggling)\b/i,
+    /\b(it's okay|i'm here|take your time|no rush)\b/i,
+  ],
+  
+  // Phase 1: Listening States
+  attentive: [], // Voice-triggered, not text
+  absorbing: [], // Voice-triggered, not text
+  receiving: [
+    /\b(vulnerable|open up|share|confession|admit)\b/i,
+    /\b(trust you|between us|haven't told)\b/i,
+  ],
+  curiousLean: [
+    /\b(wait|hold on|what do you mean|say more|tell me)\b/i,
+    /\b(really\?|seriously\?|no way)\b/i,
+  ],
+  
+  // Phase 2: Warmth Gradient
+  warm: [], // Default positive state
+  pleased: [
+    /\b(nice|good|glad to hear|that's good)\b/i,
+  ],
+  delighted: [
+    /\b(wonderful|lovely|delightful|so happy)\b/i,
+  ],
+  proud: [
+    /\b(proud of you|well done|you did it|amazing job|incredible)\b/i,
+    /\b(look at you|you've grown|so far you've come)\b/i,
+  ],
+  celebrating: [
+    /\b(congratulations|celebrate|milestone|achievement|victory)\b/i,
+    /🎉|🎊|🏆|⭐/,
+  ],
+  
+  // Phase 3: Presence States
+  present: [], // Default connected state
+  holding: [], // Silence-triggered
+  accompanying: [
+    /\b(with you|here for you|not alone|together)\b/i,
+  ],
+  waiting: [], // Silence-triggered
+  
+  // Phase 4: Coaching Emotions
+  encouraging: [
+    /\b(you can|believe in|you've got this|keep going|don't give up)\b/i,
+    /\b(i know you can|trust yourself|capable)\b/i,
+  ],
+  challenging: [
+    /\b(push yourself|step up|be honest|face it|consider this)\b/i,
+    /\b(what if you|have you tried|challenge)\b/i,
+  ],
+  reflecting: [
+    /\b(sounds like|what i'm hearing|you mentioned|earlier you said)\b/i,
+    /\b(pattern|notice that|seems like)\b/i,
+  ],
+  recognizing: [
+    /\b(i see you|who you are|that's so you|recognize|authentic)\b/i,
+    /\b(core of|essence|true self)\b/i,
+  ],
+  
+  // Phase 5: Relational Moments
+  remembering: [
+    /\b(remember when|you told me|last time|before you said)\b/i,
+    /\b(mentioned|shared with me|our conversation)\b/i,
+  ],
+  reconnecting: [
+    /\b(welcome back|missed you|good to see you|been a while)\b/i,
+  ],
+  insider: [
+    /\b(our thing|you know|as we always say|remember that)\b/i,
+  ],
+  growing: [
+    /\b(you've changed|grown so much|come so far|different now)\b/i,
+    /\b(evolution|progress|growth|transformation)\b/i,
+  ],
+  
+  // Phase 6: Transition States
+  processing: [], // Pause-triggered
+  realizing: [
+    /\b(oh|aha|i see|it makes sense|connects|clicked)\b/i,
+    /\b(just realized|now i understand)\b/i,
+  ],
+  shifting: [], // Topic change detection
+  settling: [], // Post-peak detection
 };
 
 // Intensity boosters - words that amplify the emotion

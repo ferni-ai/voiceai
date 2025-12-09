@@ -20,7 +20,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDORAMetricsService, type Deployment, type Incident } from '../services/dora-metrics.js';
+import { getDORAMetricsService } from '../services/dora-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';

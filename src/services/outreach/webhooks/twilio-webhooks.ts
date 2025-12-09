@@ -8,6 +8,7 @@
  * - Voicemail detection
  */
 
+import { createHmac } from 'crypto';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleSMSStatus } from '../delivery/sms-delivery.js';
 import { updateDeliveryStatus, markResponded } from '../delivery/delivery-tracker.js';
@@ -223,9 +224,7 @@ export function validateTwilioSignature(
     }
 
     // Create HMAC-SHA1 signature
-    const crypto = require('crypto');
-    const expectedSignature = crypto
-      .createHmac('sha1', twilioAuthToken)
+    const expectedSignature = createHmac('sha1', twilioAuthToken)
       .update(data)
       .digest('base64');
 
@@ -378,20 +377,27 @@ export async function handleInboundSMSWebhook(
     }
   }
 
+  // Look up userId from phone number for proper attribution
+  const userProfile = await findUserByPhone(From);
+  const userId = userProfile?.id || 'unknown';
+
   // Mark as responded in delivery tracker
-  // TODO: Look up userId from phone number
-  markResponded('unknown', 'sms');
+  markResponded(userId, 'sms');
 
   // Record response event for analytics
   recordResponseEvent({
     outreachId: 'unknown', // Would need to match to specific outreach
-    userId: 'unknown', // Would look up from phone number
+    userId,
     responseType: 'reply',
     responseTime: 0, // Would calculate from original outreach
     sentiment: detectSentiment(Body),
     engagementScore:
       calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
   });
+
+  if (userId !== 'unknown') {
+    log.info({ userId, from: From }, 'SMS response attributed to user');
+  }
 
   // Auto-reply (optional)
   // For now, don't auto-reply to avoid confusion

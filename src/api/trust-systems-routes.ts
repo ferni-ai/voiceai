@@ -406,6 +406,138 @@ export async function handleTrustSystemsRoutes(
       return true;
     }
 
+    // ========================================================================
+    // RESPONSE TUNING (Phase 15)
+    // ========================================================================
+
+    if (pathname === '/api/trust/tuning' && method === 'GET') {
+      const stage = query.get('stage') || 'building';
+      const emotion = query.get('emotion') || undefined;
+      const topic = query.get('topic') || undefined;
+
+      const guidance = generateTuningGuidance({
+        userId,
+        relationshipStage: stage as 'new' | 'building' | 'established' | 'deep',
+        currentEmotion: emotion,
+        topic,
+      });
+
+      sendJson(res, 200, { guidance });
+      return true;
+    }
+
+    // ========================================================================
+    // LIFE EVENT OUTCOMES (Phase 14 - Extended)
+    // ========================================================================
+
+    if (pathname === '/api/trust/life-events/outcome' && method === 'POST') {
+      const body = await parseBody(req);
+      const eventId = body.eventId as string;
+      const outcome = body.outcome as 'positive' | 'negative' | 'neutral' | 'unknown';
+
+      if (!eventId || !outcome) {
+        sendJson(res, 400, { error: 'eventId and outcome required' });
+        return true;
+      }
+
+      recordEventOutcome(userId, eventId, outcome);
+      
+      // Generate follow-up message based on outcome
+      const events = getUpcomingEvents(userId);
+      const event = [...events.today, ...events.thisWeek, ...events.thisMonth].find(
+        (e) => e.id === eventId
+      );
+      
+      let followUpMessage = null;
+      if (event) {
+        followUpMessage = generateFollowUpMessage(event);
+      }
+
+      sendJson(res, 200, { recorded: true, followUpMessage });
+      return true;
+    }
+
+    if (pathname === '/api/trust/life-events/follow-up' && method === 'GET') {
+      const eventId = query.get('eventId');
+
+      if (!eventId) {
+        sendJson(res, 400, { error: 'eventId required' });
+        return true;
+      }
+
+      const events = getUpcomingEvents(userId);
+      const event = [...events.today, ...events.thisWeek, ...events.thisMonth].find(
+        (e) => e.id === eventId
+      );
+
+      if (!event) {
+        sendJson(res, 404, { error: 'Event not found' });
+        return true;
+      }
+
+      const message = generateFollowUpMessage(event);
+      sendJson(res, 200, { message });
+      return true;
+    }
+
+    // ========================================================================
+    // HEALTH CALCULATION (Phase 12 - Extended)
+    // ========================================================================
+
+    if (pathname === '/api/trust/health/calculate' && method === 'POST') {
+      const body = await parseBody(req);
+      const metrics = body.metrics as Record<string, number> | undefined;
+
+      // Calculate fresh health score with provided or default metrics
+      const health = calculateHealthScore(userId, metrics || {
+        boundaryRespect: 100,
+        emotionalAttunement: 50,
+        growthAcknowledgment: 50,
+        callbackSuccess: 50,
+        outreachReception: 50,
+        sessionDepth: 50,
+        consistency: 50,
+      });
+
+      sendJson(res, 200, {
+        score: health.overallScore,
+        stage: health.stage,
+        stageName: getStageName(health.stage),
+        stageDescription: getStageDescription(health.stage),
+        trend: health.overallTrend,
+        factors: health.factors,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // JOURNALING BEST PROMPT (Phase 25 - Extended)
+    // ========================================================================
+
+    if (pathname === '/api/trust/journaling/best' && method === 'GET') {
+      const context = {
+        userId,
+        timeOfDay: getTimeOfDay(),
+        mood: query.get('mood') || undefined,
+        topic: query.get('topic') || undefined,
+      };
+
+      const prompt = getBestPrompt(context);
+      sendJson(res, 200, { prompt });
+      return true;
+    }
+
+    // ========================================================================
+    // MEDIA SUGGESTIONS BY MOOD (Phase 29 - Extended)
+    // ========================================================================
+
+    if (pathname === '/api/trust/media/mood' && method === 'GET') {
+      const mood = query.get('mood') || 'neutral';
+      const suggestions = getSuggestionsForMood(userId, mood);
+      sendJson(res, 200, { mood, suggestions });
+      return true;
+    }
+
     // Not handled
     return false;
   } catch (error) {

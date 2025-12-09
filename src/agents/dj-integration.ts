@@ -101,6 +101,15 @@ class DJIntegration {
       isWeekend,
     };
 
+    // Play session start sound effect
+    let playedSessionSound = false;
+    try {
+      const sessionSoundResult = await playSessionSound('session-start');
+      playedSessionSound = sessionSoundResult.played;
+    } catch (err) {
+      log.debug('Session sound not available', { error: String(err) });
+    }
+
     // Get intro from orchestrator
     const result = await this.orchestrator.openTheShow(djContext);
 
@@ -112,7 +121,7 @@ class DJIntegration {
     return {
       intro: {
         phrase: result.phrase,
-        playStinger: result.playedSound,
+        playStinger: result.playedSound || playedSessionSound,
         delayMs: result.delayBeforeSpeakingMs,
         introType: context.isFirstSession
           ? 'first-time'
@@ -123,7 +132,7 @@ class DJIntegration {
       },
       phrase: result.phrase,
       shouldReplaceGreeting,
-      playedSound: result.playedSound,
+      playedSound: result.playedSound || playedSessionSound,
     };
   }
 
@@ -140,6 +149,15 @@ class DJIntegration {
   }> {
     log.info('🎧 Wrapping the show');
 
+    // Play session end sound effect
+    let playedSessionSound = false;
+    try {
+      const sessionSoundResult = await playSessionSound('session-end');
+      playedSessionSound = sessionSoundResult.played;
+    } catch (err) {
+      log.debug('Session end sound not available', { error: String(err) });
+    }
+
     const result = await this.orchestrator.wrapTheShow({
       personaId: additionalContext?.personaId || this.currentPersonaId,
     });
@@ -149,12 +167,37 @@ class DJIntegration {
     return {
       outro: {
         phrase: result.phrase,
-        playStinger: result.playedSound,
+        playStinger: result.playedSound || playedSessionSound,
         outroType: 'warm',
       },
       phrase: result.phrase,
-      playedSound: result.playedSound,
+      playedSound: result.playedSound || playedSessionSound,
     };
+  }
+
+  /**
+   * Get a verbal sound cue for a specific moment.
+   * Can be used for acknowledgments, celebrations, etc.
+   *
+   * @param soundType - Type of verbal sound to get
+   * @returns Sound cue phrase or null if not applicable
+   */
+  getVerbalCue(
+    soundType: 'acknowledgment' | 'celebration' | 'transition' | 'thinking'
+  ): string | null {
+    // Map internal sound types to session sound types
+    const soundTypeMap: Record<string, 'success' | 'notification' | 'thinking-start'> = {
+      acknowledgment: 'notification',
+      celebration: 'success',
+      transition: 'notification',
+      thinking: 'thinking-start',
+    };
+    const mappedType = soundTypeMap[soundType] || 'notification';
+    const sound = getVerbalSound(mappedType);
+    if (sound) {
+      log.debug('🎧 Got verbal cue', { type: soundType, sound: sound.slice(0, 30) });
+    }
+    return sound;
   }
 
   // ==========================================================================

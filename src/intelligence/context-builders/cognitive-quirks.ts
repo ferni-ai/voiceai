@@ -9,14 +9,14 @@
  * that make each persona's thinking feel unique.
  */
 
-import { registerContextBuilder, createHintInjection, createStandardInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
+import { registerContextBuilder, createHintInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
 import {
   getCognitiveQuirks,
   getActiveQuirk,
   getTransitionPhrase,
-  type CognitiveQuirk,
   type PersonaCognitiveQuirks,
 } from '../../personas/cognitive-quirks.js';
+import { broadcastQuirkActivated } from '../../services/cognitive-broadcast.js';
 
 // Track quirks used in session to avoid repetition
 const sessionQuirksUsed = new Map<string, Set<string>>();
@@ -71,6 +71,14 @@ async function buildCognitiveQuirksContext(
           `[COGNITIVE QUIRK: ${activeQuirk.name}] ${activeQuirk.description}\nConsider naturally using: "${quirkPhrase}"`,
           { category: 'personality', confidence: 0.7 }
         )
+      );
+
+      // 📡 Broadcast quirk activation for dashboard
+      broadcastQuirkActivated(
+        personaId,
+        activeQuirk.name,
+        '🧠', // CognitiveQuirk doesn't have icon property, use default
+        activeQuirk.frequency
       );
 
       usedQuirks.add(activeQuirk.name);

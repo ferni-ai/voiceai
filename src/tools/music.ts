@@ -157,6 +157,16 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     }
 
     const { track } = result;
+    
+    // 🚨 CRITICAL: Check if preview URL exists
+    if (!track.previewUrl) {
+      log.warn(
+        { track: track.name, artist: track.artist },
+        '🎵 [iTunes] Track found but no preview URL available!'
+      );
+      return `I found "${track.name}" by ${track.artist}, but I can't play a preview of this one. Try a different song?`;
+    }
+    
     log.debug('Track found', {
       name: track.name,
       artist: track.artist,
@@ -171,9 +181,16 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       '🎵 [iTunes] Track found!'
     );
 
-    // Step 2: Get music player
+    // Step 2: Get music player and check initialization
     log.debug('Step 2: Getting music player...');
     const musicPlayer = getMusicPlayer();
+    
+    // 🚨 CRITICAL: Check if music player is initialized
+    if (!musicPlayer.isInitialized()) {
+      log.error('🎵 [iTunes] Music player not initialized! Cannot play audio.');
+      return "I can't play music right now - something went wrong with the audio setup. Try asking again in a moment.";
+    }
+    
     const wasPlaying = musicPlayer.isCurrentlyPlaying();
     const previousTrack = musicPlayer.getCurrentPlayingTrack();
 
@@ -215,8 +232,12 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     log.debug('Play returned', { success, usedCrossfade });
 
     if (!success) {
-      log.error({ track: track.name }, '🎵 [iTunes] playFromUrl returned false!');
-      return 'Had trouble playing that. Let me try again in a moment.';
+      log.error(
+        { track: track.name, artist: track.artist, previewUrl: track.previewUrl?.slice(0, 50) },
+        '🎵 [iTunes] playFromUrl returned false! Music will NOT play.'
+      );
+      // Be honest - don't say "Let me try again" if it didn't work
+      return `I found "${track.name}" by ${track.artist}, but had trouble playing it. The audio might not be available. Try another song?`;
     }
 
     log.info(

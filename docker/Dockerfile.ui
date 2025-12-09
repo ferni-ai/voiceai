@@ -62,7 +62,7 @@ RUN npm run build
 # Requires GITHUB_PAT build arg to clone private repo
 ARG GITHUB_PAT=""
 
-FROM rust:1.75-slim AS speaker-builder
+FROM rust:latest AS speaker-builder
 
 ARG GITHUB_PAT
 
@@ -138,13 +138,44 @@ RUN mkdir -p frontend-typescript/dist
 COPY --from=frontend-builder /app/frontend-typescript/dist ./frontend-typescript/dist/
 
 # Copy ferni-speaker native module (if build succeeded)
-# Using RUN with conditional copy since COPY doesn't support || true
 RUN mkdir -p node_modules/ferni-speaker/models
+
+# Copy from speaker-builder stage
 COPY --from=speaker-builder /app/ferni-speaker/ /tmp/ferni-speaker/
-RUN cp /tmp/ferni-speaker/*.node node_modules/ferni-speaker/ 2>/dev/null || echo "No .node files"
-RUN cp /tmp/ferni-speaker/index.js node_modules/ferni-speaker/ 2>/dev/null || echo "No index.js"
+
+# Debug: list what we have
+RUN echo "=== Files in ferni-speaker ===" && ls -la /tmp/ferni-speaker/ || true
+
+# Copy the native module (.node file)
+RUN cp /tmp/ferni-speaker/*.node node_modules/ferni-speaker/ 2>/dev/null && \
+    echo "✅ Copied .node file" || echo "⚠️ No .node file found"
+
+# Copy JavaScript wrapper and types (these are essential!)
+RUN if [ -f /tmp/ferni-speaker/index.js ]; then \
+      cp /tmp/ferni-speaker/index.js node_modules/ferni-speaker/ && echo "✅ Copied index.js"; \
+    else \
+      echo "⚠️ No index.js - creating minimal wrapper" && \
+      echo 'const path = require("path"); const { existsSync } = require("fs");' > node_modules/ferni-speaker/index.js && \
+      echo 'const platforms = ["linux-x64-gnu", "darwin-arm64", "darwin-x64"];' >> node_modules/ferni-speaker/index.js && \
+      echo 'let nativeModule = null;' >> node_modules/ferni-speaker/index.js && \
+      echo 'for (const p of platforms) { const f = path.join(__dirname, `speaker.${p}.node`); if (existsSync(f)) { nativeModule = require(f); break; } }' >> node_modules/ferni-speaker/index.js && \
+      echo 'if (!nativeModule) { console.warn("ferni-speaker: No native module found"); module.exports = {}; } else { module.exports = nativeModule; }' >> node_modules/ferni-speaker/index.js; \
+    fi
+
+# Copy types
 RUN cp /tmp/ferni-speaker/index.d.ts node_modules/ferni-speaker/ 2>/dev/null || echo "No index.d.ts"
-RUN cp -r /tmp/ferni-speaker/models/* node_modules/ferni-speaker/models/ 2>/dev/null || echo "No models"
+
+# Copy package.json for module resolution
+RUN cp /tmp/ferni-speaker/package.json node_modules/ferni-speaker/ 2>/dev/null || echo "No package.json"
+
+# Copy ONNX model
+RUN cp -r /tmp/ferni-speaker/models/* node_modules/ferni-speaker/models/ 2>/dev/null && \
+    echo "✅ Copied models" || echo "⚠️ No models"
+
+# Verify what we have
+RUN echo "=== Final ferni-speaker contents ===" && ls -la node_modules/ferni-speaker/
+
+# Cleanup
 RUN rm -rf /tmp/ferni-speaker
 
 # Environment

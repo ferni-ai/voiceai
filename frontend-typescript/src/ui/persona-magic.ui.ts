@@ -17,6 +17,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('PersonaMagic');
 
@@ -97,7 +98,10 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
   try {
     const avatar = document.querySelector('#coachAvatar, .avatar-container') as HTMLElement;
     
-    // Phase 1: Slight fade/shrink (acknowledgment of change)
+    // Phase 1: Expression change - "Passing the baton"
+    ferniExpressions.setExpression('empathetic', DURATION.FAST);
+    
+    // Phase 2: Slight fade/shrink (acknowledgment of change)
     if (avatar && !reducedMotion) {
       await animate(avatar, [
         { transform: 'scale(1)', opacity: 1 },
@@ -105,17 +109,20 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
       ], DURATION.FAST, EASING.GENTLE);
     }
     
-    // Phase 2: Play handoff sound
+    // Phase 3: Play handoff sound
     if (playSound) {
       void playHandoffSound(toId);
     }
     
-    // Phase 3: Show banter if provided
+    // Phase 4: Show banter if provided
     if (banter && options.fromName) {
       showHandoffBanter(banter, options.fromName);
     }
     
-    // Phase 4: Expand back (new persona arrives)
+    // Phase 5: Expression shift - "New persona arriving"
+    ferniExpressions.setExpression('curious', DURATION.FAST);
+    
+    // Phase 6: Expand back (new persona arrives)
     if (avatar && !reducedMotion) {
       await animate(avatar, [
         { transform: 'scale(0.96)', opacity: 0.8 },
@@ -127,6 +134,11 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
       avatar.style.transform = '';
       avatar.style.opacity = '';
     }
+    
+    // Phase 7: Welcome expression
+    setTimeout(() => {
+      ferniExpressions.happy(600);
+    }, DURATION.FAST);
     
   } finally {
     isTransitioning = false;
@@ -216,6 +228,10 @@ function showHandoffBanter(banter: string, fromName: string): void {
  * Brief celebration (for milestones)
  */
 export async function celebrationBurst(): Promise<void> {
+  // Trigger delighted expression with sparkle
+  ferniExpressions.delight();
+  ferniExpressions.warmthSparkle();
+  
   if (prefersReducedMotion()) return;
   
   const avatar = document.querySelector('#coachAvatar, .avatar-container') as HTMLElement;
@@ -233,6 +249,9 @@ export async function celebrationBurst(): Promise<void> {
  * Empathy pulse (for emotional moments)
  */
 export async function empathyPulse(): Promise<void> {
+  // Trigger empathetic expression
+  ferniExpressions.empathy();
+  
   if (prefersReducedMotion()) return;
   
   const avatar = document.querySelector('#coachAvatar, .avatar-container') as HTMLElement;

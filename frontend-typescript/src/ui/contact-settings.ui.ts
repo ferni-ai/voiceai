@@ -13,7 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { getUserTimezone, getFriendlyTimezoneName } from '../services/timezone.service.js';
+import { getUserTimezone } from '../services/timezone.service.js';
 
 const log = createLogger('ContactSettingsUI');
 

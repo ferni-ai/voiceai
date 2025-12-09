@@ -181,6 +181,10 @@ export interface MusicEvent {
   readonly duration?: number;
   /** Is this ambient/thinking music? */
   readonly isAmbient?: boolean;
+  /** 💚 Is this a shared musical memory ("our song")? */
+  readonly isOurSong?: boolean;
+  /** 💚 Context for the shared memory (e.g., "When you got the job") */
+  readonly ourSongContext?: string;
   readonly timestamp: number;
 }
 
@@ -203,7 +207,7 @@ export function isMusicMessage(data: unknown): data is MusicEvent {
 /**
  * Type of message to display.
  */
-export type MessageType = 'info' | 'quote' | 'error' | 'success';
+export type MessageType = 'info' | 'quote' | 'error' | 'success' | 'warning';
 
 /**
  * Event fired when a message should be displayed.

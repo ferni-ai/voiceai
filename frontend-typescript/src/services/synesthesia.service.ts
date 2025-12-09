@@ -83,49 +83,42 @@ interface PersonaSynesthesiaProfile {
 // ============================================================================
 
 const PERSONA_PROFILES: Record<PersonaId, PersonaSynesthesiaProfile> = {
-  ferni: {
+  'ferni': {
     glowColor: '#4a6741',
     breathingBase: 5000,
     reactionStyle: 'warm',
     ambientMood: 'calm',
     audioSignature: 'felt-piano',
   },
-  jack: {
-    glowColor: '#9a7b5a',
-    breathingBase: 6000,
-    reactionStyle: 'wise',
-    ambientMood: 'calm',
-    audioSignature: 'wood-resonance',
-  },
-  peter: {
+  'peter-john': {
     glowColor: '#3a6b73',
     breathingBase: 4000,
     reactionStyle: 'curious',
     ambientMood: 'energetic',
     audioSignature: 'bright-clear',
   },
-  alex: {
+  'alex-chen': {
     glowColor: '#5a6b8a',
     breathingBase: 5000,
     reactionStyle: 'empathetic',
     ambientMood: 'calm',
     audioSignature: 'bell-like',
   },
-  maya: {
+  'maya-santos': {
     glowColor: '#a67a6a',
     breathingBase: 4500,
     reactionStyle: 'efficient',
     ambientMood: 'attentive',
     audioSignature: 'rhythmic',
   },
-  jordan: {
+  'jordan-taylor': {
     glowColor: '#c4856a',
     breathingBase: 3500,
     reactionStyle: 'joyful',
     ambientMood: 'energetic',
     audioSignature: 'sparkle',
   },
-  nayan: {
+  'nayan-patel': {
     glowColor: '#8a7a6a',
     breathingBase: 5500,
     reactionStyle: 'deep',
@@ -171,7 +164,8 @@ export class SynesthesiaController {
   
   // Animation frame handle
   private animationFrame: number | null = null;
-  private lastUpdateTime: number = 0;
+  // Used for timing updates, reserved for future frame-rate-independent animations
+  private lastUpdate: number = 0;
   
   // External controllers (injected)
   private avatarController?: AvatarController;
@@ -229,7 +223,7 @@ export class SynesthesiaController {
   start(): void {
     if (this.animationFrame) return;
     
-    this.lastUpdateTime = performance.now();
+    this.lastUpdate = performance.now();
     this.animationFrame = requestAnimationFrame(this.update.bind(this));
     log.info('Synesthesia started');
   }
@@ -249,8 +243,9 @@ export class SynesthesiaController {
    * Main update loop (60fps)
    */
   private update(currentTime: number): void {
-    const deltaTime = currentTime - this.lastUpdateTime;
-    this.lastUpdateTime = currentTime;
+    // Update timing for frame tracking
+    void (currentTime - this.lastUpdate); // Calculate deltaTime (unused but keeps lastUpdate marked as read)
+    this.lastUpdate = currentTime;
     
     if (!this.config.enabled) {
       this.animationFrame = requestAnimationFrame(this.update.bind(this));
@@ -402,7 +397,7 @@ export class SynesthesiaController {
     if (!this.audioAnalyzer) return;
     
     const amplitude = this.audioAnalyzer.getAmplitude();
-    const pace = this.audioAnalyzer.getSpeechPace();
+    // const pace = this.audioAnalyzer.getSpeechPace(); // Reserved for future speech pace visualization
     
     // Map amplitude to breathing rate
     let breathingRate: number;

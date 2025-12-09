@@ -127,6 +127,21 @@ class ScrollRevealSystem {
     document.querySelectorAll('.reveal, .reveal-stagger').forEach((el) => {
       observer.observe(el);
     });
+    
+    // Observe new storytelling sections
+    const storySelectors = [
+      '.memory-demo__moment',
+      '.story',
+      '.proof-table__row',
+      '.journey__stage',
+      '.journey__note'
+    ];
+    
+    storySelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach((el) => {
+        observer.observe(el);
+      });
+    });
   }
 
   reveal(element) {
@@ -623,8 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[Ferni Animations] Reduced motion preferred, animations minimized');
   }
   
-  // Initialize all animation systems
-  new ScrollRevealSystem();
+  // Initialize animation systems (scroll reveal handled by inline script)
   new AvatarBreathingSystem();
   new NumberCountUp();
   new HeroParallax();

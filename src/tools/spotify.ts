@@ -460,6 +460,12 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       getLogger().info('Streaming preview into call...');
       const musicPlayer = getMusicPlayer();
 
+      // 🚨 Check if music player is initialized
+      if (!musicPlayer.isInitialized()) {
+        getLogger().error('🎵 [Spotify] Music player not initialized! Cannot stream preview.');
+        return `I found "${track.name}" by ${artists}, but I can't play it right now. There's an issue with the audio setup.`;
+      }
+
       const musicTrack: MusicTrack = {
         name: track.name,
         artist: artists,
@@ -477,7 +483,8 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
         );
         return `Here's a preview of "${track.name}" by ${artists}. I'll play it softly so we can still chat!`;
       } else {
-        return `I had trouble streaming that. Let me try playing it on your Spotify instead.`;
+        getLogger().error({ track: track.name }, '🎵 [Spotify] playFromUrl returned false!');
+        return `I found "${track.name}" by ${artists}, but had trouble playing the preview. Try asking again in a moment.`;
       }
     }
 
@@ -501,17 +508,25 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       if (previewUrl) {
         getLogger().info('No device - falling back to preview stream');
         const musicPlayer = getMusicPlayer();
-        const musicTrack: MusicTrack = {
-          name: track.name,
-          artist: artists,
-          uri: track.uri,
-          previewUrl: previewUrl,
-          duration: track.duration_ms,
-        };
+        
+        // 🚨 Check if music player is initialized
+        if (!musicPlayer.isInitialized()) {
+          getLogger().error('🎵 [Spotify] Music player not initialized for fallback preview!');
+          // Fall through to device guidance below
+        } else {
+          const musicTrack: MusicTrack = {
+            name: track.name,
+            artist: artists,
+            uri: track.uri,
+            previewUrl: previewUrl,
+            duration: track.duration_ms,
+          };
 
-        const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
-        if (success) {
-          return `I'll play a preview of "${track.name}" by ${artists} right here in our call!`;
+          const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
+          if (success) {
+            return `I'll play a preview of "${track.name}" by ${artists} right here in our call!`;
+          }
+          getLogger().warn({ track: track.name }, '🎵 [Spotify] Fallback preview playback failed');
         }
       }
 

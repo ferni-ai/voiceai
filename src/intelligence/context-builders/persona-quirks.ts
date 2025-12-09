@@ -17,15 +17,15 @@
  * 4. Turn count - don't reveal everything at once
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
-  createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
+
+const log = createLogger({ module: 'PersonaQuirks' });
 
 // ============================================================================
 // QUIRK TRIGGER DETECTION
@@ -209,7 +209,7 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
     if (formatted) {
       injections.push(createHintInjection('persona_quirk_triggered', formatted));
-      getLogger().debug(
+      log.debug(
         { personaId: persona.id, quirkType: trigger.quirkType, trigger: trigger.keywords[0] },
         'Quirk triggered by conversation'
       );
@@ -262,7 +262,7 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
       if (formatted) {
         injections.push(createHintInjection('persona_quirk_spontaneous', formatted));
-        getLogger().debug(
+        log.debug(
           { personaId: persona.id, quirkType: selectedType },
           'Spontaneous quirk reveal'
         );

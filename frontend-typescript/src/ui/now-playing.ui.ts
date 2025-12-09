@@ -28,6 +28,8 @@ const ICONS = {
   skipForward: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>',
   volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
   volumeMuted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+  // 💚 "Our Song" heart - filled to indicate shared memory
+  ourSong: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
 };
 
 // ============================================================================
@@ -39,6 +41,8 @@ export interface NowPlayingTrack {
   artist: string;
   duration?: number; // ms
   isAmbient?: boolean;
+  isOurSong?: boolean; // 💚 Song with shared memory
+  ourSongContext?: string; // Brief context for tooltip
 }
 
 export interface NowPlayingCallbacks {
@@ -162,9 +166,21 @@ class NowPlayingUI {
 
   /**
    * Update music state (playing, ducking, fading, etc.)
+   *
+   * States:
+   * - 'playing': Music actively playing, full waveform animation
+   * - 'ducking': Agent speaking over music, subdued waveform
+   * - 'fading': Track ending soon (~5 seconds left), pulse animation
+   * - 'changing': DJ crossfade in progress, transition animation
+   * - 'paused': Playback paused, static waveform
+   * - 'stopped': Playback stopped, hide the card
+   * - 'idle': No music loaded, hide the card
    */
   updateState(state: MusicPlaybackState): void {
+    const previousState = this._currentState;
     this._currentState = state;
+
+    log.debug('Music state update', { from: previousState, to: state });
 
     if (!this.container) return;
 
@@ -196,13 +212,56 @@ class NowPlayingUI {
         this.pauseWaveform();
         break;
       case 'playing':
+        // If coming back from 'changing', we might have a new track
+        // Re-enable full waveform animation
         this.resumeWaveform();
         break;
       case 'stopped':
       case 'idle':
+        // Always hide on stopped/idle, regardless of previous state
+        this.hide();
+        break;
+      default:
+        // Unknown state - log and hide for safety
+        log.warn('Unknown music state received', { state });
         this.hide();
         break;
     }
+  }
+
+  /**
+   * Check if the Now Playing card is currently visible
+   */
+  isShowing(): boolean {
+    return this.isVisible;
+  }
+
+  /**
+   * Get current track info (if playing)
+   */
+  getCurrentTrack(): NowPlayingTrack | null {
+    return this.currentTrack;
+  }
+
+  /**
+   * 💚 Mark the current track as "our song" - a shared musical memory.
+   * Shows a heart icon and updates the tooltip with context.
+   *
+   * @param context - Brief context for the tooltip (e.g., "When you got the job")
+   */
+  markAsOurSong(context?: string): void {
+    if (!this.currentTrack || !this.container) return;
+
+    this.currentTrack.isOurSong = true;
+    this.currentTrack.ourSongContext = context;
+
+    // Trigger visual update
+    this.updateTrackInfo();
+
+    log.debug('Track marked as "our song"', {
+      track: this.currentTrack.name,
+      context,
+    });
   }
 
   // ==========================================================================
@@ -381,6 +440,39 @@ class NowPlayingUI {
         opacity: 0.5;
       }
       
+      /* 💚 "Our Song" heart indicator - shared musical memory */
+      .now-playing__our-song {
+        display: none;
+        width: 20px;
+        height: 20px;
+        color: var(--persona-primary, #a67a6a);
+        opacity: 0;
+        transition: opacity var(--duration-normal) ease-out;
+        cursor: help;
+        flex-shrink: 0;
+      }
+      
+      .now-playing__our-song svg {
+        width: 100%;
+        height: 100%;
+      }
+      
+      .now-playing--our-song .now-playing__our-song {
+        display: flex;
+        opacity: 1;
+        animation: heartPulse 2s ease-in-out infinite;
+      }
+      
+      @keyframes heartPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      
+      /* Heart glow effect on hover */
+      .now-playing__our-song:hover {
+        filter: drop-shadow(0 0 4px var(--persona-primary, #a67a6a));
+      }
+      
       /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         .now-playing,
@@ -420,6 +512,9 @@ class NowPlayingUI {
         <p class="now-playing__track">Loading...</p>
         <p class="now-playing__artist"></p>
       </div>
+      <div class="now-playing__our-song" title="A song we share" aria-label="Shared musical memory">
+        ${ICONS.ourSong}
+      </div>
       <div class="now-playing__waveform">
         ${Array(5)
           .fill(0)
@@ -444,12 +539,39 @@ class NowPlayingUI {
 
     const trackEl = this.container.querySelector('.now-playing__track');
     const artistEl = this.container.querySelector('.now-playing__artist');
+    const ourSongEl = this.container.querySelector('.now-playing__our-song') as HTMLElement | null;
 
     if (trackEl) {
       trackEl.textContent = this.currentTrack.name;
     }
     if (artistEl) {
       artistEl.textContent = this.currentTrack.artist;
+    }
+
+    // 💚 "Our Song" indicator - shows a heart for shared musical memories
+    if (ourSongEl) {
+      if (this.currentTrack.isOurSong) {
+        this.container.classList.add('now-playing--our-song');
+        ourSongEl.title = this.currentTrack.ourSongContext || 'A song we share';
+
+        // Animate heart appearance
+        if (!prefersReducedMotion()) {
+          ourSongEl.animate(
+            [
+              { transform: 'scale(0)', opacity: 0 },
+              { transform: 'scale(1.2)', opacity: 1 },
+              { transform: 'scale(1)', opacity: 1 },
+            ],
+            {
+              duration: DURATION.MODERATE,
+              easing: EASING.SPRING,
+              fill: 'forwards',
+            }
+          );
+        }
+      } else {
+        this.container.classList.remove('now-playing--our-song');
+      }
     }
 
     // Toggle ambient mode

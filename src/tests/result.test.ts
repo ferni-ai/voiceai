@@ -288,7 +288,7 @@ describe('fromPromise', () => {
 
   it('should use error mapper when provided', async () => {
     const promise = Promise.reject(new Error('string error'));
-    const result = await fromPromise(promise, (e) => new Error(`Mapped: ${e}`));
+    const result = await fromPromise(promise, (e) => new Error(`Mapped: ${e instanceof Error ? e.message : e}`));
 
     expect(isFailure(result)).toBe(true);
     if (isFailure(result)) {

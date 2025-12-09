@@ -1,131 +1,169 @@
 ---
-layout: layouts/page.njk
+layout: layouts/base.njk
 title: Ferni vs Alternatives
-description: How Ferni compares to ChatGPT, Replika, and other AI tools
+description: How Ferni compares to ChatGPT, Replika, therapy, and other options
 permalink: /compare/
 ---
 
-<section class="compare-hero">
-  <div class="container">
-    <div class="compare-hero__content">
-      <span class="eyebrow">Comparisons</span>
-      <h1 class="headline-xl">Why choose<br><span class="text-gradient">Ferni?</span></h1>
-      <p class="body-lg">We get it—there are a lot of AI tools out there. Here's how Ferni is different.</p>
-    </div>
-  </div>
-</section>
+<main class="min-h-screen bg-paper">
 
-<section class="compare-table">
-  <div class="container">
-    <div class="compare-table__wrapper reveal">
-      <table class="compare-table__table">
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th class="compare-table__highlight">Ferni</th>
-            <th>ChatGPT</th>
-            <th>Replika</th>
-            <th>Human Coach</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Voice-first design</td>
-            <td class="compare-table__highlight">✓</td>
-            <td>Limited</td>
-            <td>✓</td>
-            <td>✓</td>
-          </tr>
-          <tr>
-            <td>Remembers conversations</td>
-            <td class="compare-table__highlight">✓ Forever</td>
-            <td>Session only</td>
-            <td>Limited</td>
-            <td>✓</td>
-          </tr>
-          <tr>
-            <td>Specialized team</td>
-            <td class="compare-table__highlight">6 specialists</td>
-            <td>1 generalist</td>
-            <td>1 companion</td>
-            <td>1 person</td>
-          </tr>
-          <tr>
-            <td>Available 24/7</td>
-            <td class="compare-table__highlight">✓</td>
-            <td>✓</td>
-            <td>✓</td>
-            <td>✗</td>
-          </tr>
-          <tr>
-            <td>Phone calling</td>
-            <td class="compare-table__highlight">✓</td>
-            <td>✗</td>
-            <td>✗</td>
-            <td>Sometimes</td>
-          </tr>
-          <tr>
-            <td>No app required</td>
-            <td class="compare-table__highlight">✓</td>
-            <td>✓</td>
-            <td>✗</td>
-            <td>✓</td>
-          </tr>
-          <tr>
-            <td>Response time</td>
-            <td class="compare-table__highlight">&lt;500ms</td>
-            <td>1-5s</td>
-            <td>1-3s</td>
-            <td>Variable</td>
-          </tr>
-          <tr>
-            <td>Starting price</td>
-            <td class="compare-table__highlight">Free</td>
-            <td>Free/$20</td>
-            <td>Free/$15</td>
-            <td>$150+/hr</td>
-          </tr>
-        </tbody>
-      </table>
+  {# Hero Section #}
+  <section class="pt-32 pb-20 px-6 bg-gradient-to-b from-paper-sand to-paper">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Comparisons</p>
+      <h1 class="reveal font-display text-display-xl text-ink mb-6">Why choose<br><span class="text-gradient">Ferni?</span></h1>
+      <p class="reveal text-body-xl text-ink-muted max-w-2xl mx-auto">We get it—there are a lot of options out there. Here's how Ferni is different.</p>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="compare-details">
-  <div class="container">
-    <div class="compare-detail reveal">
-      <div class="compare-detail__content">
-        <h2>Ferni vs ChatGPT</h2>
-        <p>ChatGPT is incredible for tasks—writing emails, coding, research. But for personal growth? It's a generalist that forgets you after each session.</p>
-        <p>Ferni is built specifically for coaching. It <strong>remembers your journey</strong>, <strong>responds instantly</strong>, and brings in <strong>specialized expertise</strong> when you need it. Plus, you can just call a phone number—no typing required.</p>
+  {# Comparison Table #}
+  <section class="py-20 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="reveal bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-ink/10 bg-paper-sand/50">
+                <th class="text-left p-4 lg:p-6 font-display font-semibold text-ink">Feature</th>
+                <th class="text-center p-4 lg:p-6 font-display font-semibold text-white bg-ferni">Ferni</th>
+                <th class="text-center p-4 lg:p-6 font-display font-semibold text-ink">ChatGPT</th>
+                <th class="text-center p-4 lg:p-6 font-display font-semibold text-ink">Replika</th>
+                <th class="text-center p-4 lg:p-6 font-display font-semibold text-ink">Human Coach</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink/5">
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Voice-first design</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">✓</span></td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">Limited</td>
+                <td class="p-4 lg:p-6 text-center">✓</td>
+                <td class="p-4 lg:p-6 text-center">✓</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Remembers conversations</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">Forever</span></td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">Session only</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">Limited</td>
+                <td class="p-4 lg:p-6 text-center">✓</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Specialized team</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">6 specialists</span></td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">1 generalist</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">1 companion</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">1 person</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Available 24/7</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">✓</span></td>
+                <td class="p-4 lg:p-6 text-center">✓</td>
+                <td class="p-4 lg:p-6 text-center">✓</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">✗</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Phone calling</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">✓</span></td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">✗</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">✗</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">Sometimes</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Response time</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">&lt;500ms</span></td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">1-5s</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">1-3s</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">Variable</td>
+              </tr>
+              <tr>
+                <td class="p-4 lg:p-6 text-ink-muted font-medium">Starting price</td>
+                <td class="p-4 lg:p-6 text-center bg-ferni/5"><span class="text-ferni font-bold">Free</span></td>
+                <td class="p-4 lg:p-6 text-center">Free/$20</td>
+                <td class="p-4 lg:p-6 text-center">Free/$15</td>
+                <td class="p-4 lg:p-6 text-center text-ink-light">$150+/hr</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    
-    <div class="compare-detail reveal">
-      <div class="compare-detail__content">
-        <h2>Ferni vs Replika</h2>
-        <p>Replika is designed for companionship and entertainment. That's a valid use case, but it's not what Ferni does.</p>
-        <p>Ferni is focused on <strong>your growth</strong>. Every conversation moves you forward—whether that's managing stress, making decisions, or building habits. It's coaching, not chat.</p>
+  </section>
+
+  {# Detailed Comparisons #}
+  <section class="py-20 px-6 bg-paper-sand">
+    <div class="max-w-3xl mx-auto space-y-12">
+      
+      {# vs ChatGPT #}
+      <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-12 h-12 rounded-xl bg-ferni/10 flex items-center justify-center">
+            <span class="font-display font-bold text-ferni">FE</span>
+          </div>
+          <span class="text-ink-muted">vs</span>
+          <div class="w-12 h-12 rounded-xl bg-ink/10 flex items-center justify-center">
+            <span class="font-display font-bold text-ink">GPT</span>
+          </div>
+        </div>
+        <h2 class="font-display text-display-sm text-ink mb-4">Ferni vs ChatGPT</h2>
+        <div class="space-y-4 text-ink-muted">
+          <p>ChatGPT is incredible for tasks—writing emails, coding, research. But for personal growth? It's a generalist that forgets you after each session.</p>
+          <p>Ferni is built specifically for coaching. It <strong class="text-ink">remembers your journey</strong>, <strong class="text-ink">responds instantly</strong>, and brings in <strong class="text-ink">specialized expertise</strong> when you need it. Plus, you can just call a phone number—no typing required.</p>
+        </div>
+      </div>
+      
+      {# vs Replika #}
+      <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-12 h-12 rounded-xl bg-ferni/10 flex items-center justify-center">
+            <span class="font-display font-bold text-ferni">FE</span>
+          </div>
+          <span class="text-ink-muted">vs</span>
+          <div class="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
+            <span class="font-display font-bold text-pink-500">R</span>
+          </div>
+        </div>
+        <h2 class="font-display text-display-sm text-ink mb-4">Ferni vs Replika</h2>
+        <div class="space-y-4 text-ink-muted">
+          <p>Replika is designed for companionship and entertainment. That's a valid use case, but it's not what Ferni does.</p>
+          <p>Ferni is focused on <strong class="text-ink">your growth</strong>. Every conversation moves you forward—whether that's managing stress, making decisions, or building habits. It's coaching, not chat.</p>
+        </div>
+      </div>
+      
+      {# vs Human Coach #}
+      <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-12 h-12 rounded-xl bg-ferni/10 flex items-center justify-center">
+            <span class="font-display font-bold text-ferni">FE</span>
+          </div>
+          <span class="text-ink-muted">vs</span>
+          <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+            <svg class="w-6 h-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <h2 class="font-display text-display-sm text-ink mb-4">Ferni vs Human Coaching</h2>
+        <div class="space-y-4 text-ink-muted">
+          <p>Human coaches are wonderful—but they're expensive, have limited availability, and require scheduling in advance.</p>
+          <p>Ferni is <strong class="text-ink">always available</strong>. It costs a <strong class="text-ink">fraction of human coaching</strong>. And because it remembers everything, you never have to catch your coach up on context.</p>
+          <p class="text-sm bg-amber-50 rounded-xl p-4 border border-amber-200">⚠️ That said—Ferni isn't a replacement for therapy or clinical support when you need it.</p>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  {# CTA Section #}
+  <section class="py-20 px-6">
+    <div class="max-w-2xl mx-auto">
+      <div class="reveal bg-gradient-to-br from-ferni/10 to-ferni/5 rounded-3xl p-10 lg:p-12 text-center border border-ferni/20">
+        <h2 class="font-display text-display-sm text-ink mb-4">Ready to see the difference?</h2>
+        <p class="text-ink-muted text-lg mb-8">Try Ferni free and discover what AI coaching should feel like.</p>
+        <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold rounded-full shadow-lg shadow-ferni/20 hover:shadow-xl transition-all">
+          Start Free
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
       </div>
     </div>
-    
-    <div class="compare-detail reveal">
-      <div class="compare-detail__content">
-        <h2>Ferni vs Human Coaching</h2>
-        <p>Human coaches are wonderful—but they're expensive, have limited availability, and require scheduling in advance.</p>
-        <p>Ferni is always available. It costs a fraction of human coaching. And because it remembers everything, you never have to catch your coach up on context. That said—Ferni isn't a replacement for therapy or clinical support when you need it.</p>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
 
-<section class="compare-cta">
-  <div class="container container-narrow">
-    <div class="compare-cta__card reveal">
-      <h2>Ready to see the difference?</h2>
-      <p>Try Ferni free and discover what AI coaching should feel like.</p>
-      <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=compare" class="btn btn-primary btn-lg">Start Free</a>
-    </div>
-  </div>
-</section>
+</main>
 
+{% include "partials/footer.njk" %}

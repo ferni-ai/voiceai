@@ -15,7 +15,6 @@ import { getLogger } from '../utils/safe-logger.js';
 import {
   scheduleText,
   scheduleEmail,
-  getUserContactInfo,
   canReachUser,
 } from '../tools/proactive-outreach.js';
 import { getPreferences, canSendOutreach } from './outreach-intelligence.js';
@@ -344,6 +343,25 @@ export async function updateGoalProgress(
 
   // Send celebration if we can reach user
   if (celebration && (await canReachUser(userId)) && canSendOutreach(userId)) {
+    // For goal completion, send email as well as text for a more memorable celebration
+    if (goal.progress >= 100) {
+      // Goal completed - send celebratory email
+      const emailResult = await scheduleEmail(
+        userId,
+        `🎊 You Did It! "${goal.title}" Complete!`,
+        `Congratulations on completing your goal "${goal.title}"!\n\n` +
+          `This achievement represents real dedication and effort. ` +
+          `Take a moment to celebrate what you've accomplished.\n\n` +
+          `- Maya\n\nP.S. What's your next goal? I'd love to help you crush that one too! 🚀`,
+        new Date(),
+        'Maya'
+      );
+      if (emailResult.success) {
+        getLogger().info({ userId, goalId }, '📧 Goal completion email sent');
+      }
+    }
+
+    // Send text message celebration
     const result = await scheduleText(userId, celebration, new Date(), 'Maya');
 
     if (result.success) {

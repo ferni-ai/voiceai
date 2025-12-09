@@ -10,10 +10,9 @@
  * the agent feel more present and observant.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
-  createStandardInjection,
   createHintInjection,
   type ContextBuilder,
   type ContextBuilderInput,
@@ -21,7 +20,7 @@ import {
 } from './index.js';
 import type { UserProfile, EmotionalPattern } from '../../types/user-profile.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'MetaConversation' });
 
 // ============================================================================
 // TYPES

@@ -9,7 +9,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { getGlowController } from './glow-controller.service.js';
-import { HapticsService } from './haptics.service.js';
+import { getHapticsService } from './haptics.service.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('AvatarState');
@@ -49,12 +49,13 @@ export interface AvatarStateConfig {
   hapticsEnabled?: boolean;
 }
 
-interface StateTransition {
-  from: AvatarState;
-  to: AvatarState;
-  duration: number;
-  easing: string;
-}
+// StateTransition type - for future use in transition history tracking
+// interface StateTransition {
+//   from: AvatarState;
+//   to: AvatarState;
+//   duration: number;
+//   easing: string;
+// }
 
 // ============================================================================
 // STATE DEFINITIONS
@@ -123,7 +124,7 @@ export class AvatarStateService {
   
   // Glow integration
   private glowController = getGlowController();
-  private haptics = HapticsService.getInstance();
+  private haptics = getHapticsService();
   
   constructor(config: AvatarStateConfig) {
     this.config = {
@@ -283,8 +284,9 @@ export class AvatarStateService {
     ];
     
     // Determine duration based on transition type
-    let duration = DURATION.NORMAL;
-    let easing = EASING.STANDARD;
+    // Use explicit number/string types to avoid literal type narrowing
+    let duration: number = DURATION.NORMAL;
+    let easing: string = EASING.STANDARD;
     
     if (to === 'celebrating') {
       duration = DURATION.SLOW;

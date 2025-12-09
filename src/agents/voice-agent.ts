@@ -1325,10 +1325,12 @@ class VoiceAgent extends voice.Agent<UserData> {
     }
 
     const userData = this.getUserDataFromContext();
-    const services = userData?.services || globalSessionServices;
+    // FIX: Remove race-condition-prone global fallback
+    // Services should always be available from the session's userData
+    const services = userData?.services;
 
     if (!services) {
-      this.logger.warn('No services available for turn processing');
+      this.logger.error('No services available for turn processing - session may not be properly initialized');
       return;
     }
 
@@ -1527,14 +1529,10 @@ IMPORTANT:
 }
 
 // ============================================================================
-// GLOBAL SESSION SERVICES
-// ============================================================================
-
-let globalSessionServices: SessionServices | undefined;
-
-// ============================================================================
 // AGENT DEFINITION
 // ============================================================================
+// NOTE: Session services are stored in userData.services per-session
+// to avoid race conditions with concurrent sessions.
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
@@ -1745,7 +1743,6 @@ export default defineAgent({
         sessionPersona.personality.energy, // Fallback: derive from energy level
         sessionPersona.id // Persona ID for persona-aware SSML
       );
-      globalSessionServices = services;
 
       // Load trust profiles for "better than human" trust awareness
       if (userId) {
@@ -4004,7 +4001,6 @@ export default defineAgent({
             }
 
             await services.endSession();
-            globalSessionServices = undefined;
 
             // Reset handoff state for next session (via SessionServices now)
             // Note: resetHandoffState/resetMetPersonas are still called for any

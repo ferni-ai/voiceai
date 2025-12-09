@@ -3,19 +3,40 @@
 <title>{{ title }}{% if title %} | {% endif %}{{ site.name }}</title>
 <meta name="description" content="{{ description or site.tagline }}">
 
+<!-- Canonical URL -->
+<link rel="canonical" href="{{ site.url }}{{ page.url }}">
+
 <!-- Open Graph -->
 <meta property="og:title" content="{{ title or site.name }}">
 <meta property="og:description" content="{{ description or site.tagline }}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:site_name" content="{{ site.name }}">
+<meta property="og:locale" content="en_US">
 {% if ogImage %}
 <meta property="og:image" content="{{ site.url }}{{ ogImage }}">
+{% else %}
+<meta property="og:image" content="{{ site.url }}/images/og-default.png">
 {% endif %}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ferniAI">
 <meta name="twitter:title" content="{{ title or site.name }}">
 <meta name="twitter:description" content="{{ description or site.tagline }}">
+{% if ogImage %}
+<meta name="twitter:image" content="{{ site.url }}{{ ogImage }}">
+{% else %}
+<meta name="twitter:image" content="{{ site.url }}/images/og-default.png">
+{% endif %}
+
+<!-- Additional SEO -->
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ferni">
+<meta name="theme-color" content="#4a6741">
+<link rel="manifest" href="/manifest.json">
 
 <!-- Favicon -->
 <link 
@@ -25,10 +46,13 @@
 >
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 
-<!-- Fonts -->
+<!-- Fonts - Preconnect and optimized loading -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</noscript>
 
 <!-- Design Tokens -->
 <link rel="stylesheet" href="/css/design-tokens.css">

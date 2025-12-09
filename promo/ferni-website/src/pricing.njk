@@ -1,176 +1,248 @@
 ---
-layout: layouts/page.njk
-title: Pricing
+layout: layouts/base.njk
+title: Pricing - Ferni
 description: Simple, transparent pricing. Start free, upgrade when you're ready.
-bodyClass: page-pricing
-pageStyles:
-  - pricing-page.css
-  - animations.css
 ---
 
-{# Hero Section #}
-<section class="pricing-hero">
-  <div class="container">
-    <div class="section-header reveal">
-      <p class="eyebrow">Simple Pricing</p>
-      <h1 class="headline-xl">Start free.<br><span class="text-gradient">Grow when ready.</span></h1>
-      <p class="body-lg">No hidden fees. No contracts. Cancel anytime.</p>
+<main class="min-h-screen bg-paper">
+
+  {# Hero Section #}
+  <section class="pt-32 pb-20 px-6 bg-gradient-to-b from-paper-sand to-paper">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Simple Pricing</p>
+      <h1 class="reveal font-display text-display-xl text-ink mb-6">Start free.<br><span class="text-gradient">Grow when ready.</span></h1>
+      <p class="reveal text-body-xl text-ink-muted max-w-2xl mx-auto">No hidden fees. No contracts. Cancel anytime.</p>
     </div>
-  </div>
-</section>
+  </section>
 
-{# Pricing Cards #}
-<section class="pricing-cards-section">
-  <div class="container">
-    <div class="pricing-grid">
-      {# Free Tier #}
-      <article class="pricing-card reveal">
-        <div class="pricing-card-header">
-          <h2 class="pricing-tier-name">Free</h2>
-          <p class="pricing-tier-description">Get to know Ferni</p>
+  {# Pricing Cards #}
+  <section class="py-20 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-3 gap-8 items-start">
+        
+        {# Free Tier #}
+        <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ink/10 transition-all duration-500 hover:-translate-y-1">
+          <h2 class="font-display text-2xl font-bold text-ink mb-2">Free</h2>
+          <div class="mb-6">
+            <span class="font-display text-5xl font-bold text-ink">$0</span>
+            <span class="text-ink-muted">/forever</span>
+          </div>
+          <p class="text-ink-muted mb-8">Get to know Ferni</p>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              5 conversations/month
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Chat with Ferni (Life Coach)
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Web and phone access
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Basic conversation memory
+            </li>
+          </ul>
+          <a href="https://app.ferni.ai" class="block w-full py-4 text-center font-semibold text-ink bg-paper-sand hover:bg-paper-warm rounded-xl transition-colors">
+            Start Free
+          </a>
         </div>
-        <div class="pricing-price">
-          <span class="price-amount">$0</span>
-          <span class="price-period">forever</span>
+        
+        {# Friend Tier - Popular #}
+        <div class="reveal pricing-popular bg-white rounded-3xl p-8 lg:p-10 shadow-2xl border-2 border-ferni relative lg:-mt-4 lg:scale-105">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-2 bg-gradient-to-r from-ferni to-ferni-dark text-white text-xs font-bold rounded-full shadow-lg shadow-ferni/30 animate-pulse">
+            ⭐ Most Popular
+          </div>
+          <h2 class="font-display text-2xl font-bold text-ink mb-2">Friend</h2>
+          <div class="mb-6">
+            <span class="font-display text-5xl font-bold text-ink">$9.99</span>
+            <span class="text-ink-muted">/month</span>
+          </div>
+          <p class="text-ink-muted mb-8">For regular support</p>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              <strong>Unlimited</strong> conversations
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              All 6 AI specialists
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Full conversation memory
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Priority response times
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Web, phone, and SMS access
+            </li>
+          </ul>
+          <a href="https://app.ferni.ai" class="btn-magnetic block w-full py-4 text-center font-semibold text-white bg-ferni hover:bg-ferni-dark rounded-xl shadow-lg shadow-ferni/20 hover:shadow-xl hover:shadow-ferni/30 transition-all">
+            Start Free Trial
+          </a>
+          <p class="text-center text-xs text-ink-muted mt-4">7-day free trial. Cancel anytime.</p>
         </div>
-        <ul class="pricing-features">
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>5 conversations per month</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Chat with Ferni (main coach)</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Web and phone access</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Basic conversation memory</span>
-          </li>
-        </ul>
-        <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=pricing_free" class="btn btn-ghost btn-full">Start Free</a>
-      </article>
-
-      {# Friend Tier #}
-      <article class="pricing-card featured reveal reveal-delay-1">
-        <div class="pricing-badge">Most Popular</div>
-        <div class="pricing-card-header">
-          <h2 class="pricing-tier-name">Friend</h2>
-          <p class="pricing-tier-description">For regular support</p>
+        
+        {# Partner Tier #}
+        <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ferni/20 transition-all duration-500 hover:-translate-y-1">
+          <h2 class="font-display text-2xl font-bold text-ink mb-2">Partner</h2>
+          <div class="mb-6">
+            <span class="font-display text-5xl font-bold text-ink">$19.99</span>
+            <span class="text-ink-muted">/month</span>
+          </div>
+          <p class="text-ink-muted mb-8">For deep partnership</p>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Everything in Friend
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Access to Nayan (Sage Mentor)
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Advanced personalization
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Unlimited memory & context
+            </li>
+            <li class="flex items-center gap-3 text-sm text-ink">
+              <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Early access to features
+            </li>
+          </ul>
+          <a href="https://app.ferni.ai" class="block w-full py-4 text-center font-semibold text-ink bg-paper-sand hover:bg-paper-warm rounded-xl transition-colors">
+            Start Free Trial
+          </a>
+          <p class="text-center text-xs text-ink-muted mt-4">7-day free trial. Cancel anytime.</p>
         </div>
-        <div class="pricing-price">
-          <span class="price-amount">$9.99</span>
-          <span class="price-period">per month</span>
-        </div>
-        <ul class="pricing-features">
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Unlimited conversations</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Access to all core team members</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Full conversation memory</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Priority response times</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Web, phone, and SMS access</span>
-          </li>
-        </ul>
-        <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=pricing_friend" class="btn btn-primary btn-full">Start Free Trial</a>
-        <p class="pricing-footnote">7-day free trial. Cancel anytime.</p>
-      </article>
-
-      {# Partner Tier #}
-      <article class="pricing-card premium reveal reveal-delay-2">
-        <div class="pricing-card-header">
-          <h2 class="pricing-tier-name">Partner</h2>
-          <p class="pricing-tier-description">For deep partnership</p>
-        </div>
-        <div class="pricing-price">
-          <span class="price-amount">$19.99</span>
-          <span class="price-period">per month</span>
-        </div>
-        <ul class="pricing-features">
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Everything in Friend</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Access to Nayan (premium advisor)</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Advanced personalization</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Unlimited memory and context</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Priority support</span>
-          </li>
-          <li>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Early access to new features</span>
-          </li>
-        </ul>
-        <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=pricing_partner" class="btn btn-ghost btn-full">Start Free Trial</a>
-        <p class="pricing-footnote">7-day free trial. Cancel anytime.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-{# FAQ Section #}
-<section class="pricing-faq">
-  <div class="container">
-    <div class="section-header">
-      <p class="eyebrow">Questions</p>
-      <h2 class="headline-lg">Pricing FAQ</h2>
-    </div>
-    
-    <div class="faq-grid">
-      <div class="faq-item">
-        <h3>Can I change plans anytime?</h3>
-        <p>Yes, you can upgrade, downgrade, or cancel your plan at any time. Changes take effect immediately.</p>
-      </div>
-      <div class="faq-item">
-        <h3>What counts as a conversation?</h3>
-        <p>A conversation is a single session with Ferni, regardless of length. You can talk as long as you want in one session.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Is there a free trial?</h3>
-        <p>Yes, both Friend and Partner tiers include a 7-day free trial. No credit card required to start.</p>
-      </div>
-      <div class="faq-item">
-        <h3>How does billing work?</h3>
-        <p>We bill monthly. You can cancel anytime, and you'll retain access until the end of your billing period.</p>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-{# Trust Section #}
-<section class="pricing-trust">
-  <div class="container">
-    <div class="trust-card">
-      <h2 class="headline-md">Built on trust.</h2>
-      <p class="body-lg">Your conversations are yours. Always. We use enterprise-grade encryption and never sell your data.</p>
-      <a href="/privacy/" class="trust-link">Read our Privacy Policy</a>
+  {# Comparison Table #}
+  <section class="py-20 px-6 bg-paper-sand">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Compare Plans</p>
+        <h2 class="reveal font-display text-display-md text-ink">Feature comparison</h2>
+      </div>
+      
+      <div class="reveal bg-white rounded-3xl shadow-lg overflow-hidden">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-ink/10">
+              <th class="text-left p-6 font-display font-semibold text-ink">Feature</th>
+              <th class="text-center p-6 font-display font-semibold text-ink">Free</th>
+              <th class="text-center p-6 font-display font-semibold text-ferni bg-ferni/5">Friend</th>
+              <th class="text-center p-6 font-display font-semibold text-ink">Partner</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm">
+            <tr class="border-b border-ink/5">
+              <td class="p-4 text-ink-muted">Conversations</td>
+              <td class="p-4 text-center">5/month</td>
+              <td class="p-4 text-center bg-ferni/5 font-semibold">Unlimited</td>
+              <td class="p-4 text-center font-semibold">Unlimited</td>
+            </tr>
+            <tr class="border-b border-ink/5">
+              <td class="p-4 text-ink-muted">Team Members</td>
+              <td class="p-4 text-center">Ferni only</td>
+              <td class="p-4 text-center bg-ferni/5">All 6</td>
+              <td class="p-4 text-center">All 6 + Nayan</td>
+            </tr>
+            <tr class="border-b border-ink/5">
+              <td class="p-4 text-ink-muted">Memory</td>
+              <td class="p-4 text-center">Basic</td>
+              <td class="p-4 text-center bg-ferni/5">Full</td>
+              <td class="p-4 text-center">Unlimited</td>
+            </tr>
+            <tr class="border-b border-ink/5">
+              <td class="p-4 text-ink-muted">Response Time</td>
+              <td class="p-4 text-center">Standard</td>
+              <td class="p-4 text-center bg-ferni/5">Priority</td>
+              <td class="p-4 text-center">Priority</td>
+            </tr>
+            <tr class="border-b border-ink/5">
+              <td class="p-4 text-ink-muted">Access Methods</td>
+              <td class="p-4 text-center">Web, Phone</td>
+              <td class="p-4 text-center bg-ferni/5">Web, Phone, SMS</td>
+              <td class="p-4 text-center">Web, Phone, SMS</td>
+            </tr>
+            <tr>
+              <td class="p-4 text-ink-muted">Early Access</td>
+              <td class="p-4 text-center">—</td>
+              <td class="p-4 text-center bg-ferni/5">—</td>
+              <td class="p-4 text-center text-ferni">✓</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
+  {# FAQ Section #}
+  <section class="py-20 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Questions</p>
+        <h2 class="reveal font-display text-display-md text-ink">Pricing FAQ</h2>
+      </div>
+      
+      <div class="space-y-4">
+        <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 overflow-hidden transition-all">
+          <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink">
+            Can I change plans anytime?
+            <svg class="faq-icon w-5 h-5 text-ink-muted flex-shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </summary>
+          <div class="px-6 pb-6 text-ink-muted">Yes, you can upgrade, downgrade, or cancel your plan at any time. Changes take effect immediately.</div>
+        </details>
+        
+        <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 overflow-hidden transition-all">
+          <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink">
+            What counts as a conversation?
+            <svg class="faq-icon w-5 h-5 text-ink-muted flex-shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </summary>
+          <div class="px-6 pb-6 text-ink-muted">A conversation is a single session with Ferni, regardless of length. You can talk as long as you want in one session.</div>
+        </details>
+        
+        <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 overflow-hidden transition-all">
+          <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink">
+            Is there a free trial?
+            <svg class="faq-icon w-5 h-5 text-ink-muted flex-shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </summary>
+          <div class="px-6 pb-6 text-ink-muted">Yes, both Friend and Partner tiers include a 7-day free trial. No credit card required to start.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  {# Trust Section #}
+  <section class="py-20 px-6 bg-paper-sand">
+    <div class="max-w-2xl mx-auto">
+      <div class="reveal bg-white rounded-3xl p-10 lg:p-12 shadow-xl text-center">
+        <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-ferni/10 flex items-center justify-center">
+          <svg class="w-8 h-8 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h2 class="font-display text-display-sm text-ink mb-4">Built on trust.</h2>
+        <p class="text-ink-muted text-lg mb-6">Your conversations are yours. Always. We use enterprise-grade encryption and never sell your data.</p>
+        <a href="/privacy/" class="inline-flex items-center gap-2 text-ferni font-semibold hover:gap-4 transition-all">
+          Read our Privacy Policy
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+{% include "partials/footer.njk" %}

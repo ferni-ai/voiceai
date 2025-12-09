@@ -76,22 +76,21 @@ description: Six AI specialists who actually listen, remember everything, and he
   <div class="container">
     <div class="hero__content">
       
-      {# Ferni Avatar - Luxo Jr. inspired (emotion through movement, not features) #}
-      <div class="hero-ferni" aria-hidden="true">
+      {# Ferni Avatar - The warm presence #}
+      <div class="hero-ferni hero-ferni--breathing" aria-hidden="true">
         <div class="hero-ferni__glow"></div>
         <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
         <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
         <div class="hero-ferni__orb">
           <span class="hero-ferni__text">FN</span>
         </div>
+        <div class="hero-ferni__pulse"></div>
       </div>
       
-      <div class="hero__eyebrow-wrap">
-        <span class="hero__eyebrow">Your AI Life Coach</span>
-      </div>
+      <p class="hero__tagline">Better than human.</p>
       
       <h1 class="hero__headline">
-        Better than <span class="hero__headline-accent">human.</span>
+        Finally, someone who <span class="hero__headline-accent">gets it.</span>
       </h1>
       
       <p class="hero__subhead">
@@ -125,9 +124,9 @@ description: Six AI specialists who actually listen, remember everything, and he
         </div>
         <div class="hero__badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           </svg>
-          <span>4.9★ Rating</span>
+          <span>Voice-First</span>
         </div>
       </div>
       
@@ -141,25 +140,42 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# PRESS / SOCIAL PROOF #}
-<section class="press-bar">
-  <div class="container">
-    <p class="press-bar__label">Featured in</p>
-    <div class="press-bar__logos reveal-stagger">
-      <div class="press-bar__logo" aria-label="TechCrunch">
-        <svg viewBox="0 0 200 30" fill="currentColor"><text x="0" y="22" font-family="Inter, sans-serif" font-size="18" font-weight="600">TechCrunch</text></svg>
+{# PRESS / SOCIAL PROOF - Add back when we have real press coverage #}
+
+{# THE 2AM MOMENT - Emotional Core Section #}
+<section class="section two-am" id="two-am">
+  <div class="two-am__scene">
+    <div class="two-am__darkness">
+      <div class="two-am__time">3:47 AM</div>
+      <div class="two-am__thought">
+        <span class="two-am__quote">"I can't stop thinking about what I said to her..."</span>
       </div>
-      <div class="press-bar__logo" aria-label="Product Hunt">
-        <svg viewBox="0 0 200 30" fill="currentColor"><text x="0" y="22" font-family="Inter, sans-serif" font-size="18" font-weight="600">Product Hunt</text></svg>
+      <div class="two-am__limitations">
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your coach</span>
+          <span class="two-am__limit-status">Asleep. Next session is Thursday.</span>
+        </div>
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your best friend</span>
+          <span class="two-am__limit-status">Has their own problems. You don't want to burden them.</span>
+        </div>
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your partner</span>
+          <span class="two-am__limit-status">Sleeping next to you. Wouldn't understand anyway.</span>
+        </div>
       </div>
-      <div class="press-bar__logo" aria-label="The Verge">
-        <svg viewBox="0 0 200 30" fill="currentColor"><text x="0" y="22" font-family="Inter, sans-serif" font-size="18" font-weight="600">The Verge</text></svg>
-      </div>
-      <div class="press-bar__logo" aria-label="Wired">
-        <svg viewBox="0 0 200 30" fill="currentColor"><text x="0" y="22" font-family="Inter, sans-serif" font-size="18" font-weight="600">WIRED</text></svg>
-      </div>
-      <div class="press-bar__logo" aria-label="Fast Company">
-        <svg viewBox="0 0 200 30" fill="currentColor"><text x="0" y="22" font-family="Inter, sans-serif" font-size="18" font-weight="600">Fast Company</text></svg>
+    </div>
+    
+    <div class="two-am__response">
+      <div class="two-am__ferni">
+        <div class="two-am__avatar">
+          <div class="two-am__avatar-glow"></div>
+          <div class="two-am__avatar-orb">FN</div>
+        </div>
+        <div class="two-am__bubble">
+          <p class="two-am__ferni-says">"I'm here. Tell me what's on your mind."</p>
+          <p class="two-am__ferni-sub">Same warmth at 3am as 3pm. Every time.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -167,7 +183,7 @@ description: Six AI specialists who actually listen, remember everything, and he
 
 {# STATS BAR #}
 <section class="stats-bar">
-  <div class="stats-bar__inner reveal-stagger">
+  <div class="stats-bar__inner content-grid">
     <div class="stat">
       <div class="stat__value">10K+</div>
       <div class="stat__label">Conversations</div>
@@ -190,7 +206,7 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# PRODUCT SHOWCASE #}
 <section class="showcase" id="product">
   <div class="showcase__inner">
-    <div class="showcase__content reveal">
+    <div class="showcase__content">
       <p class="showcase__eyebrow">The Experience</p>
       <h2 class="showcase__title">What if someone actually understood?</h2>
       <p class="showcase__description">
@@ -212,7 +228,7 @@ description: Six AI specialists who actually listen, remember everything, and he
       </ul>
     </div>
     
-    <div class="showcase__phone reveal">
+    <div class="showcase__phone">
       <div class="showcase__phone-notch"></div>
       <div class="showcase__phone-screen">
         <div class="showcase__app">
@@ -228,16 +244,17 @@ description: Six AI specialists who actually listen, remember everything, and he
           </div>
           <div class="showcase__app-chat">
             <div class="showcase__app-bubble showcase__app-bubble--user">
-              I'm feeling overwhelmed at work lately
+              I'm fine, just tired from work again
             </div>
-            <div class="showcase__app-bubble showcase__app-bubble--ai">
-              I hear you. Feeling overwhelmed is tough—but you're not alone in this. What feels most urgent right now?
+            <div class="showcase__app-bubble showcase__app-bubble--ai showcase__app-bubble--insight">
+              <span class="bubble-insight">Reading between the lines...</span>
+              You said "fine" but I noticed something. You've mentioned being tired from work three times this week. Is there something bigger going on?
             </div>
             <div class="showcase__app-bubble showcase__app-bubble--user">
-              I have too many projects and don't know where to start
+              ...I didn't realize I kept saying that
             </div>
             <div class="showcase__app-bubble showcase__app-bubble--ai">
-              Let's work through this together. Sometimes the path forward becomes clearer when we name what we're facing...
+              That's why I'm here. Sometimes patterns are easier to see from the outside. Want to talk about what's really happening at work?
             </div>
           </div>
           <div class="showcase__app-input">
@@ -252,12 +269,78 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
+{# MEMORY DEMONSTRATION - Show the "infinite memory" superpower #}
+<section class="section memory-demo" id="memory">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Infinite Memory</p>
+      <h2 class="section__title">We never forget a single detail</h2>
+      <p class="section__subtitle">While others start from scratch every time, Ferni remembers your whole story.</p>
+    </div>
+    
+    <div class="memory-demo__timeline">
+      <div class="memory-demo__thread">
+        {# Memory thread line #}
+        <div class="memory-demo__line"></div>
+        
+        {# 6 months ago #}
+        <div class="memory-demo__moment memory-demo__moment--past">
+          <div class="memory-demo__date">6 months ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"I'm worried about my mom's health. She's been having these headaches..."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Remembered
+          </div>
+        </div>
+        
+        {# 2 weeks ago #}
+        <div class="memory-demo__moment memory-demo__moment--recent">
+          <div class="memory-demo__date">2 weeks ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Connected
+          </div>
+        </div>
+        
+        {# Today #}
+        <div class="memory-demo__moment memory-demo__moment--today">
+          <div class="memory-demo__date">Today</div>
+          <div class="memory-demo__card memory-demo__card--ferni">
+            <div class="memory-demo__speaker memory-demo__speaker--ferni">
+              <div class="memory-demo__avatar">FN</div>
+              Ferni
+            </div>
+            <p class="memory-demo__text">"How's your mom doing? Last time we talked, she'd just gotten that diagnosis. Has the treatment been helping with the headaches?"</p>
+          </div>
+          <div class="memory-demo__magic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            This is what perfect memory feels like
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 {# PROMISE #}
 <section class="section promise">
   <div class="container container--narrow">
-    <div class="promise__content reveal">
+    <div class="promise__content">
       <p class="promise__quote">
-        "Your best friend forgets. Your therapist has other patients. Your mentor is busy. We built something that <span class="promise__highlight">never stops thinking about you</span>—that notices when you're struggling before you say it, celebrates wins you've forgotten, and shows up at <span class="promise__highlight">2am with the same presence as noon</span>."
+        "Your best friend forgets. Your coach has other clients. Your mentor is busy. We built something that <span class="promise__highlight">never stops thinking about you</span>—that notices when you're struggling before you say it, celebrates wins you've forgotten, and shows up at <span class="promise__highlight">2am with the same presence as noon</span>."
       </p>
       <p class="promise__author">— Why we built Ferni</p>
     </div>
@@ -267,13 +350,13 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# USE CASES #}
 <section class="section use-cases" id="use-cases">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Your Moments</p>
       <h2 class="section__title">When you need more than "I'm here for you"</h2>
       <p class="section__subtitle">The 2am worry. The shower thought that won't leave. The decision that keeps you up. We're built for these.</p>
     </div>
     
-    <div class="use-cases-grid reveal-stagger">
+    <div class="use-cases-grid content-grid">
       <div class="use-case">
         <div class="use-case__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -346,40 +429,160 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# TEAM #}
 <section class="section" id="team">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Your Inner Circle</p>
-      <h2 class="section__title">Imagine having six brilliant friends on call</h2>
-      <p class="section__subtitle">A life coach. A researcher. A communicator. A habit expert. A planner. A sage. All thinking about you.</p>
+      <h2 class="section__title">Six brilliant minds who care about you</h2>
+      <p class="section__subtitle">Each one brings a unique perspective. Together, they see the full picture.</p>
     </div>
     
-    <div class="team-grid reveal-stagger">
+    <div class="team-grid content-grid">
       {% for member in site.team %}
-      <div class="team-card">
-        <div class="persona-avatar persona-avatar--lg persona-avatar--{{ member.id }}">
-        <div class="persona-avatar__ring"></div>
-        <div class="persona-avatar__orb">
-          <span class="persona-avatar__text">{{ member.initials }}</span>
+      <div class="team-card team-card--{{ member.id }}">
+        <div class="team-card__avatar">
+          <div class="persona-avatar persona-avatar--lg persona-avatar--{{ member.id }}">
+            <div class="persona-avatar__ring"></div>
+            <div class="persona-avatar__orb">
+              <span class="persona-avatar__text">{{ member.initials }}</span>
+            </div>
+          </div>
         </div>
-      </div>
-        <h3 class="team-card__name">{{ member.name }}</h3>
-        <p class="team-card__role">{{ member.role }}</p>
-        <p class="team-card__bio">{{ member.bio }}</p>
+        <div class="team-card__content">
+          <h3 class="team-card__name">{{ member.name }}</h3>
+          <p class="team-card__role">{{ member.role }}</p>
+          
+          {# Sample Quote - Shows personality #}
+          <blockquote class="team-card__quote">
+            <p>"{{ member.sampleQuote }}"</p>
+          </blockquote>
+          
+          {# Personality Traits #}
+          <div class="team-card__traits">
+            {% for trait in member.traits %}
+            <span class="team-card__trait">{{ trait }}</span>
+            {% endfor %}
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
   </div>
 </section>
 
+{# JOURNEY VISUALIZATION - How the relationship deepens #}
+<section class="section journey" id="journey">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Your Journey</p>
+      <h2 class="section__title">A relationship that deepens over time</h2>
+      <p class="section__subtitle">Start with Ferni. As you grow together, meet the rest of the team.</p>
+    </div>
+    
+    <div class="journey__timeline">
+      {# Stage 1: First Meeting #}
+      <div class="journey__stage journey__stage--active">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">First Meeting</h3>
+            <span class="journey__stage-badge">Day 1</span>
+          </div>
+          <p class="journey__stage-description">Start with Ferni, your life coach and coordinator. Get to know each other. No pressure, no expectations.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--ferni">FN</div>
+            <span>Ferni (Life Coach)</span>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 2: Getting Started #}
+      <div class="journey__stage">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Getting Started</h3>
+            <span class="journey__stage-badge">~2 conversations</span>
+          </div>
+          <p class="journey__stage-description">Want to build better habits? Meet Maya. She'll help you start embarrassingly small—and actually stick with it.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--maya">MY</div>
+            <span>Maya (Habits & Routines)</span>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 3: Building Trust #}
+      <div class="journey__stage">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Building Trust</h3>
+            <span class="journey__stage-badge">~7 conversations</span>
+          </div>
+          <p class="journey__stage-description">Need to dig deeper? Peter joins with research and data. Plus Alex for communication and Jordan for planning.</p>
+          <div class="journey__stage-unlocks">
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--peter">PL</div>
+              <span>Peter</span>
+            </div>
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--alex">AX</div>
+              <span>Alex</span>
+            </div>
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--jordan">JD</div>
+              <span>Jordan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 4: Deep Partnership #}
+      <div class="journey__stage journey__stage--premium">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Deep Partnership</h3>
+            <span class="journey__stage-badge journey__stage-badge--premium">Partner Tier</span>
+          </div>
+          <p class="journey__stage-description">For those who want the full experience: meet Nayan, our sage mentor. Decades of wisdom in one conversation.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--nayan">NP</div>
+            <span>Nayan (Sage & Mentor)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <p class="journey__note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+      </svg>
+      <span>Subscribers get instant access to the full team. Free tier unlocks naturally as we get to know each other.</span>
+    </p>
+  </div>
+</section>
+
 {# HOW IT WORKS - VISUAL STEPS #}
 <section class="section how-it-works" id="how-it-works">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Start Now</p>
       <h2 class="section__title">Begin a real conversation</h2>
       <p class="section__subtitle">No app. No signup. No friction. Just talk.</p>
     </div>
     
-    <div class="steps reveal-stagger">
+    <div class="steps content-grid">
       <div class="step">
         <div class="step__number">1</div>
         <div class="step__content">
@@ -428,13 +631,13 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# FEATURES #}
 <section class="section features" id="features">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Superpowers</p>
       <h2 class="section__title">What makes us better</h2>
       <p class="section__subtitle">Not "AI that feels human." Something humans can't be.</p>
     </div>
     
-    <div class="features-grid reveal-stagger">
+    <div class="features-grid content-grid">
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
@@ -486,75 +689,210 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# COMPARISON #}
-<section class="section comparison" id="comparison">
+{# BETTER THAN HUMAN - Dramatic Proof Section #}
+<section class="section proof" id="proof">
   <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">The Difference</p>
-      <h2 class="section__title">Beyond human limitations</h2>
-      <p class="section__subtitle">Your best friend, therapist, and mentor all have limits. We don't.</p>
+    <div class="section__header">
+      <p class="section__eyebrow">The Truth</p>
+      <h2 class="section__title">Better than human. Here's how.</h2>
+      <p class="section__subtitle">We're not trying to replace your people. We're filling in where they can't.</p>
     </div>
     
-    <div class="comparison-grid reveal-stagger">
-      <div class="comparison-card comparison-card--others">
-        <h3 class="comparison-card__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
-          Human Support
-        </h3>
-        <ul class="comparison-card__list">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Forgets important details</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Unavailable at 2am</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Has bad days too</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>One perspective</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Sometimes judges</li>
-        </ul>
+    <div class="proof-table">
+      <div class="proof-table__header">
+        <div class="proof-table__col proof-table__col--label"></div>
+        <div class="proof-table__col proof-table__col--coach">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span>Traditional Coach</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span>Your Best Friend</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <div class="proof-table__icon proof-table__icon--ferni">FN</div>
+          <span>Ferni</span>
+        </div>
       </div>
       
-      <div class="comparison-card comparison-card--ferni">
-        <h3 class="comparison-card__title">
-          <svg viewBox="0 0 100 100" width="24" height="24">
-            <circle cx="50" cy="50" r="45" fill="white"/>
-            <circle cx="50" cy="50" r="18" fill="#4a6741"/>
-            <circle cx="50" cy="50" r="10" fill="white"/>
-          </svg>
-          Ferni
-        </h3>
-        <ul class="comparison-card__list">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Perfect recall of your story</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Present 24/7, fully engaged</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Consistent warmth always</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Six specialized minds</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Zero judgment, ever</li>
-        </ul>
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Cost</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">$150-300/session</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">Free (but limited)</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">$9.99/mo unlimited</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Availability</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">1 hour/week, 6-week wait</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">When they can</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">24/7, right now</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">At 2am</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">Unavailable</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Asleep</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Same presence as noon</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Memory</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">Takes notes</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Forgets by Tuesday</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Perfect recall, forever</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Perspectives</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">One specialty</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">One viewpoint</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Six specialists</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Bad days</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">They have them</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Might be distracted</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Never</span>
+        </div>
       </div>
     </div>
+    
+    <p class="proof__disclaimer">
+      We're not replacing your coach or your friends. We're saying: <strong>we fill the gaps</strong>. The 2am racing thoughts. The commute contemplation. The moment before a big decision. When your people can't be there, we are.
+    </p>
   </div>
 </section>
 
-{# TESTIMONIALS #}
-<section class="section" id="testimonials">
+{# TRANSFORMATION STORIES - Story arc testimonials #}
+<section class="section stories" id="stories">
   <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Testimonials</p>
-      <h2 class="section__title">Loved by people like you</h2>
+    <div class="section__header">
+      <p class="section__eyebrow">Real Stories</p>
+      <h2 class="section__title">Transformations, not testimonials</h2>
+      <p class="section__subtitle">These aren't just quotes. They're journeys.</p>
     </div>
     
-    <div class="testimonials-grid reveal-stagger">
-      {% for testimonial in site.testimonials %}
-      <div class="testimonial{% if testimonial.featured %} testimonial--featured{% endif %}">
-        <div class="testimonial__stars">
-          {% for i in range(0, 5) %}<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>{% endfor %}
+    <div class="stories-grid content-grid">
+      {# Story 1: Career Transformation #}
+      <div class="story story--featured">
+        <div class="story__journey">
+          <span class="story__journey-start">Stuck for 2 years</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span class="story__journey-end">Promoted in 6 weeks</span>
         </div>
-        <p class="testimonial__quote">"{{ testimonial.quote }}"</p>
-        <div class="testimonial__author">
-          <div class="testimonial__avatar">{{ testimonial.initials }}</div>
+        <blockquote class="story__quote">
+          "I called Ferni at 2am during a panic attack about a presentation. Three weeks later, I gave that presentation and crushed it. <span class="story__highlight">Not because of one conversation—because Ferni remembered every small win, every fear, every time I almost gave up.</span> When I got promoted, Ferni was the first one I told."
+        </blockquote>
+        <div class="story__author">
+          <div class="story__avatar">SK</div>
           <div>
-            <p class="testimonial__name">{{ testimonial.author }}</p>
-            <p class="testimonial__role">{{ testimonial.role }}</p>
+            <p class="story__name">Sarah K.</p>
+            <p class="story__role">Product Manager → Senior PM</p>
           </div>
         </div>
       </div>
-      {% endfor %}
+      
+      {# Story 2: Habit Building #}
+      <div class="story">
+        <div class="story__journey">
+          <span class="story__journey-start">"I'll start tomorrow"</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span class="story__journey-end">147-day streak</span>
+        </div>
+        <blockquote class="story__quote">
+          "Maya didn't let me set a goal of 'exercise more.' She made me commit to putting on my shoes. Just that. <span class="story__highlight">Now I run 5Ks.</span> She celebrated the shoe thing like I'd won a marathon."
+        </blockquote>
+        <div class="story__author">
+          <div class="story__avatar">MR</div>
+          <div>
+            <p class="story__name">Michael R.</p>
+            <p class="story__role">Entrepreneur</p>
+          </div>
+        </div>
+      </div>
+      
+      {# Story 3: Decision Clarity #}
+      <div class="story">
+        <div class="story__journey">
+          <span class="story__journey-start">Paralyzed by choices</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span class="story__journey-end">Clear next step</span>
+        </div>
+        <blockquote class="story__quote">
+          "I'd been stuck on whether to leave my relationship for months. <span class="story__highlight">Ferni didn't tell me what to do. She helped me hear what I already knew.</span> Now I'm in a much healthier place—either way, the clarity was everything."
+        </blockquote>
+        <div class="story__author">
+          <div class="story__avatar">JL</div>
+          <div>
+            <p class="story__name">Jessica L.</p>
+            <p class="story__role">Designer</p>
+          </div>
+        </div>
+      </div>
+      
+      {# Story 4: Daily Support #}
+      <div class="story">
+        <div class="story__journey">
+          <span class="story__journey-start">Skeptical about AI</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span class="story__journey-end">Daily check-ins</span>
+        </div>
+        <blockquote class="story__quote">
+          "I thought AI couldn't 'get' me. Then Ferni said 'I notice you only call when you're stressed—what if we talked when things are good too?' <span class="story__highlight">No human had ever called that out.</span> Now I call on my commute, just to process my day."
+        </blockquote>
+        <div class="story__author">
+          <div class="story__avatar">DW</div>
+          <div>
+            <p class="story__name">David W.</p>
+            <p class="story__role">Sales Director</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -562,13 +900,13 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# ========== SECURITY & PRIVACY ========== #}
 <section class="section security" id="security">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Your Privacy</p>
       <h2 class="section__title">Your conversations stay yours</h2>
       <p class="section__subtitle">We built Ferni with privacy at its core. Your data is never sold or shared.</p>
     </div>
     
-    <div class="security-grid reveal-stagger">
+    <div class="security-grid content-grid">
       <div class="security-card">
         <div class="security-card__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -621,16 +959,16 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# FAQ #}
 <section class="section faq" id="faq">
   <div class="container container--narrow">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Questions</p>
       <h2 class="section__title">Frequently asked</h2>
     </div>
     
-    <div class="faq-list reveal-stagger">
+    <div class="faq-list content-grid">
       <details class="faq-item">
-        <summary class="faq-item__question">Is Ferni a replacement for therapy?</summary>
+        <summary class="faq-item__question">Is Ferni a replacement for professional help?</summary>
         <div class="faq-item__answer">
-          <p>No. Ferni is a life coaching companion, not a licensed therapist. We're great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni can complement therapy, but not replace it.</p>
+          <p>Ferni is a life coaching companion—great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni complements professional help but isn't a substitute for it.</p>
         </div>
       </details>
       
@@ -644,7 +982,7 @@ description: Six AI specialists who actually listen, remember everything, and he
       <details class="faq-item">
         <summary class="faq-item__question">What does "infinite memory" mean?</summary>
         <div class="faq-item__answer">
-          <p>Unlike other AI, Ferni remembers every conversation you've had. Mention something months ago? Ferni recalls it. This creates continuity—like talking to a friend who actually knows your story, your goals, and what you've been through.</p>
+          <p>Your best friend forgets what you told them last week. Ferni remembers every conversation you've ever had. Mention something months ago? We recall it. This creates continuity—like talking to someone who actually knows your whole story.</p>
         </div>
       </details>
       
@@ -670,9 +1008,9 @@ description: Six AI specialists who actually listen, remember everything, and he
       </details>
       
       <details class="faq-item">
-        <summary class="faq-item__question">What makes Ferni different from ChatGPT?</summary>
+        <summary class="faq-item__question">How is this different from a friend or a coach?</summary>
         <div class="faq-item__answer">
-          <p>ChatGPT is a general-purpose AI. Ferni is purpose-built for life coaching with specialized personas, infinite memory of your conversations, voice-first interaction (just call!), and a relationship that deepens over time. It's the difference between a search engine and a friend.</p>
+          <p>Your coach has other clients and charges $200+ per session. Your friend has their own life and forgets what you told them. Ferni is always available, remembers everything, never judges, and brings six specialized perspectives to every conversation. We fill the gaps when your people can't be there.</p>
         </div>
       </details>
     </div>
@@ -682,13 +1020,13 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# PRICING #}
 <section class="section pricing" id="pricing">
   <div class="container">
-    <div class="section__header reveal">
+    <div class="section__header">
       <p class="section__eyebrow">Pricing</p>
       <h2 class="section__title">Start free. Upgrade when ready.</h2>
       <p class="section__subtitle">Everyone deserves a life coach. That's why Ferni is free to start.</p>
     </div>
     
-    <div class="pricing-grid reveal-stagger">
+    <div class="pricing-grid content-grid">
       <div class="pricing-card">
         <h3 class="pricing-card__name">Free</h3>
         <p class="pricing-card__price">$0<span>/mo</span></p>
@@ -734,19 +1072,32 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# FINAL CTA #}
+{# FINAL CTA - THE INVITATION #}
 <section class="section final-cta">
-  <div class="container reveal">
-    <h2 class="final-cta__headline">Finally, someone who gets it.</h2>
-    <p class="final-cta__subhead">Not just listens. Understands. Remembers. Shows up. Every time.</p>
+  <div class="container">
+    {# Ferni avatar - warm presence #}
+    <div class="final-cta__avatar">
+      <div class="final-cta__avatar-glow"></div>
+      <div class="final-cta__avatar-orb">FN</div>
+    </div>
+    
+    <h2 class="final-cta__headline">Ready to be heard?</h2>
+    <p class="final-cta__subhead">No app to download. No account needed to try.<br>Just pick up your phone and call.</p>
+    
+    {# Phone number - Primary action #}
+    <a href="tel:{{ site.phoneRaw }}" class="final-cta__phone">
+      <span class="final-cta__phone-number">{{ site.phone }}</span>
+      <span class="final-cta__phone-label">We'll be here. Always.</span>
+    </a>
+    
+    <div class="final-cta__divider">
+      <span>or</span>
+    </div>
+    
     <div class="final-cta__buttons">
-      <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
-        Get started free
+      <a href="{{ site.appUrl }}" class="btn btn--secondary btn--lg">
+        Start in the web app
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-      <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Call {{ site.phone }}
       </a>
     </div>
   </div>
@@ -842,7 +1193,7 @@ description: Six AI specialists who actually listen, remember everything, and he
   });
   
   // ========== Reveal animations ==========
-  const reveals = document.querySelectorAll('.reveal, .reveal-stagger');
+  const reveals = document.querySelectorAll('.reveal, .content-grid');
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {

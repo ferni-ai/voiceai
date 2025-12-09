@@ -246,10 +246,11 @@ export class VoiceAnalyzer {
     if (!this.analyser || !this.dataArray || !this.frequencyArray) return;
     
     // Get time domain data (waveform)
-    this.analyser.getByteTimeDomainData(this.dataArray);
+    // Cast to satisfy TypeScript's strict Uint8Array generics
+    this.analyser.getByteTimeDomainData(this.dataArray as Uint8Array<ArrayBuffer>);
     
     // Get frequency data
-    this.analyser.getByteFrequencyData(this.frequencyArray);
+    this.analyser.getByteFrequencyData(this.frequencyArray as Uint8Array<ArrayBuffer>);
     
     // Calculate amplitude
     const amplitude = this.calculateAmplitude();
@@ -296,7 +297,7 @@ export class VoiceAnalyzer {
     
     let sum = 0;
     for (let i = 0; i < this.dataArray.length; i++) {
-      const value = (this.dataArray[i] - 128) / 128;
+      const value = ((this.dataArray[i] ?? 128) - 128) / 128;
       sum += value * value;
     }
     
@@ -319,7 +320,7 @@ export class VoiceAnalyzer {
     let lowSum = 0, midSum = 0, highSum = 0;
     
     for (let i = 0; i < this.frequencyArray.length; i++) {
-      const value = this.frequencyArray[i] / 255;
+      const value = (this.frequencyArray[i] ?? 0) / 255;
       
       if (i < lowEnd) {
         lowSum += value;

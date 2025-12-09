@@ -190,12 +190,7 @@
     </div>
   </div>
   
-  {# ====== GSAP (Pixar-quality animation library) ====== #}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  
-  {# ====== ANIMATION SYSTEM (Pixar-inspired choreography) ====== #}
-  <script src="/js/hero-storytelling.js"></script>
+  {# ====== ANIMATION SYSTEM ====== #}
   <script src="/js/landing-animations.js"></script>
   
   <script>
@@ -203,6 +198,20 @@
     'use strict';
     
     // ========== SCROLL REVEAL ==========
+    const revealElements = document.querySelectorAll('.reveal, .reveal-stagger');
+    
+    // Immediately show elements in viewport
+    const showIfVisible = (el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        el.classList.add('is-visible');
+      }
+    };
+    
+    // Show initially visible elements immediately
+    revealElements.forEach(showIfVisible);
+    
+    // Observer for scroll reveal
     const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -214,14 +223,7 @@
       rootMargin: '0px 0px -50px 0px'
     });
 
-    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
-    
-    document.querySelectorAll('.reveal-stagger').forEach(container => {
-      container.querySelectorAll(':scope > *').forEach((child, index) => {
-        child.style.transitionDelay = `${index * 80}ms`;
-        revealObserver.observe(child);
-      });
-    });
+    revealElements.forEach(el => revealObserver.observe(el));
     
     // ========== NAV SCROLL EFFECT ==========
     const nav = document.getElementById('nav');

@@ -336,9 +336,9 @@ export function animatePersonaTransition(
 
 /**
  * Play a reaction with Pixar's three phases.
- * Every action in Pixar has: Anticipation → Action → Follow-through
+ * Every action has: Anticipation → Action → Follow-through
  */
-export function playPixarReaction(
+export function playCharacterReaction(
   element: HTMLElement,
   type: 'bounce' | 'nod' | 'shake' | 'joy' | 'attention' | 'curious-tilt',
   personaId?: string
@@ -657,7 +657,7 @@ export const animationOrchestrator = {
   init: initAnimationOrchestrator,
   runPageLoadSequence,
   animatePersonaTransition,
-  playPixarReaction,
+  playCharacterReaction,
   applyButtonAnticipation,
   createRipple,
   warmthCelebration,

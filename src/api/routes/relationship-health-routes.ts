@@ -31,13 +31,9 @@ import {
   calculateOutreachReception,
   calculateSessionDepth,
   calculateConsistency,
-  type RelationshipHealthScore,
   type HealthTrend,
 } from '../../services/trust-systems/relationship-health.js';
-import {
-  buildInsightContext,
-  getInsightsForPersona,
-} from '../../services/cross-persona-insights.js';
+import { getInsightsForPersona } from '../../services/cross-persona-insights.js';
 
 const log = createLogger({ module: 'RelationshipHealthAPI' });
 
@@ -163,6 +159,7 @@ export async function handleGetHealthDashboard(
       category: ir.insight.category,
       summary: ir.insight.summary,
       fromPersona: ir.insight.sourcePersona,
+      contextRelevance: ir.relevanceScore > 0.7,
     }));
 
     // Build response

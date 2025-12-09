@@ -28,6 +28,13 @@ import {
   type DJEnhancementController,
 } from './dj-enhancements.js';
 import { getMusicAppreciationComment, getReadTheRoomAction } from '../services/dj-service.js';
+import {
+  detectSignificantMoment,
+  recordOurSong,
+  checkForOurSong,
+  type MomentType,
+} from '../services/trust-systems/our-songs.js';
+import { getFrontendPublisher } from '../agents/realtime/index.js';
 
 const log = getLogger();
 
@@ -120,6 +127,11 @@ export class DJBooth {
   private lastCheckInTime = 0;
   private djEnhancements: DJEnhancementController | null = null;
 
+  // "Our Songs" - shared musical memories
+  private userId: string | null = null;
+  private recentUserText = '';
+  private lastOurSongCallback = 0;
+
   constructor(config: DJBoothConfig, existingMusicPreferences?: Partial<MusicPreferences>) {
     this.config = config;
     this.state = {
@@ -191,6 +203,200 @@ export class DJBooth {
     this.config.personaId = personaId;
     this.djEnhancements?.setPersona(personaId);
     log.debug('🎧 DJ Booth persona updated', { persona: personaId });
+  }
+
+  /**
+   * Set user ID for "Our Songs" tracking
+   */
+  setUserId(userId: string): void {
+    this.userId = userId;
+    log.debug('🎵 DJ Booth user ID set for "Our Songs"', { userId });
+  }
+
+  // ==========================================================================
+  // "OUR SONGS" - SHARED MUSICAL MEMORIES 💚
+  // ==========================================================================
+
+  /**
+   * Process user speech during music to detect significant moments.
+   * Call this when the user speaks while music is playing.
+   *
+   * @param userText - What the user just said
+   * @param emotion - Detected emotion (if available)
+   * @param topic - Current conversation topic (if available)
+   */
+  processUserSpeechDuringMusic(
+    userText: string,
+    emotion?: string,
+    topic?: string
+  ): void {
+    if (!this.userId || !this.state.currentTrack || this.state.musicState !== 'playing') {
+      return;
+    }
+
+    this.recentUserText = userText;
+
+    // Detect if this is a significant moment
+    const detection = detectSignificantMoment({
+      recentUserText: userText,
+      emotion,
+      topic,
+      isUserSpeaking: true,
+    });
+
+    if (detection.isSignificant && detection.type && detection.emotion) {
+      // This is a meaningful moment with music playing - record it!
+      const track = this.state.currentTrack;
+      // Record the "our song" memory (return value intentionally unused - side effect only)
+      recordOurSong({
+        userId: this.userId,
+        song: {
+          name: track.name,
+          artist: track.artist || 'Unknown Artist',
+        },
+        momentType: detection.type,
+        emotion: detection.emotion,
+        context: this.summarizeContext(userText, detection.type),
+        topic,
+        memorableQuote: this.extractMemorableQuote(userText),
+      });
+
+      log.info('🎵 "Our Song" moment captured!', {
+        song: track.name,
+        momentType: detection.type,
+        emotion: detection.emotion,
+        userId: this.userId,
+      });
+
+      // For "they_loved_it" moments, acknowledge immediately
+      if (detection.type === 'they_loved_it') {
+        this.speakOverMusic("I'll remember you love this one.");
+      }
+    }
+  }
+
+  /**
+   * Check if current track is "our song" and speak a callback if so.
+   * Called when a new track starts playing.
+   */
+  private checkForOurSongCallback(track: MusicTrack): void {
+    if (!this.userId) return;
+
+    // Don't callback too frequently (once per 5 minutes max)
+    const timeSinceLastCallback = Date.now() - this.lastOurSongCallback;
+    if (timeSinceLastCallback < 5 * 60 * 1000) {
+      return;
+    }
+
+    const callback = checkForOurSong(this.userId, track.name, track.artist || '');
+
+    if (callback) {
+      this.lastOurSongCallback = Date.now();
+
+      // 💚 Notify frontend immediately - show heart icon
+      const context = callback.memory.moment.context || 'A moment we shared';
+      this.notifyOurSong(track, context);
+
+      // Timing based on significance for speech
+      const delay = callback.timing === 'immediate' ? 2000 : 8000; // After intro for less significant
+
+      this.scheduleTimer(() => {
+        // Only speak if music is still playing this track
+        if (
+          this.state.musicState === 'playing' &&
+          this.state.currentTrack?.name === track.name
+        ) {
+          log.info('🎵 Speaking "Our Song" callback', {
+            song: track.name,
+            phrase: callback.phrase.slice(0, 50) + '...',
+          });
+          this.speakOverMusic(callback.phrase);
+        }
+      }, delay);
+    }
+  }
+
+  /**
+   * 💚 Notify frontend that current track is "our song"
+   * Shows heart icon in Now Playing card
+   */
+  private notifyOurSong(track: MusicTrack, context: string): void {
+    void (async () => {
+      try {
+        const publisher = getFrontendPublisher();
+        if (publisher) {
+          await publisher.sendMusicState(
+            'playing',
+            { name: track.name, artist: track.artist },
+            false, // Not ambient
+            { isOurSong: true, context }
+          );
+          log.info('💚 Notified frontend of "our song"', {
+            track: track.name,
+            context,
+          });
+        }
+      } catch (err) {
+        log.warn('Failed to notify frontend of our song', { error: String(err) });
+      }
+    })();
+  }
+
+  /**
+   * Summarize the context for storage (keep it brief but meaningful)
+   */
+  private summarizeContext(userText: string, momentType: MomentType): string {
+    // Extract the key action/realization from the text
+    const text = userText.toLowerCase();
+
+    if (momentType === 'breakthrough') {
+      // Look for the realization
+      const patterns = [
+        /i finally (.+?)(?:\.|,|$)/,
+        /i realized (.+?)(?:\.|,|$)/,
+        /i'm ready to (.+?)(?:\.|,|$)/,
+      ];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match[1].slice(0, 100);
+      }
+    }
+
+    if (momentType === 'celebration') {
+      const patterns = [/i got (.+?)(?:\.|,|$)/, /they said (.+?)(?:\.|,|$)/, /i did (.+?)(?:\.|,|$)/];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match[1].slice(0, 100);
+      }
+    }
+
+    // Default: take first meaningful clause
+    const firstSentence = userText.split(/[.!?]/)[0];
+    return firstSentence.slice(0, 100);
+  }
+
+  /**
+   * Extract a memorable quote if the text is quote-worthy
+   */
+  private extractMemorableQuote(userText: string): string | undefined {
+    // Only quote if it's short and punchy
+    if (userText.length < 80 && userText.length > 10) {
+      return userText;
+    }
+
+    // Otherwise look for a memorable phrase within
+    const phrases = [
+      /["'](.+?)["']/,
+      /i said ["'](.+?)["']/,
+    ];
+    for (const pattern of phrases) {
+      const match = userText.match(pattern);
+      if (match && match[1].length < 80) {
+        return match[1];
+      }
+    }
+
+    return undefined;
   }
 
   // ==========================================================================
@@ -403,6 +609,9 @@ export class DJBooth {
   private onMusicStarted(track: MusicTrack): void {
     this.state.musicStartTime = Date.now();
     this.clearScheduledMoments();
+
+    // 💚 Check if this is "our song" - shared musical memory
+    this.checkForOurSongCallback(track);
 
     const duration = track.duration || 30000;
 
@@ -721,10 +930,24 @@ export class DJBooth {
 
   /**
    * Smoothly fade to target volume
+   *
+   * NOTE: BackgroundAudioPlayer does NOT support real-time volume changes.
+   * This method tracks volume state for UI purposes and uses the music player's
+   * duck/unduck methods for actual volume control.
+   *
+   * For true volume fading, we'd need to restart playback which isn't practical.
+   * Instead, we:
+   * - Use duck() for lowering volume (pauses ambient, notifies UI for user music)
+   * - Use unduck() for restoring volume
+   * - Track target volumes for state consistency
+   *
+   * @param targetVolume - Target volume (0-1)
+   * @param durationMs - Fade duration (used for UI timing)
    */
   private fadeToVolume(targetVolume: number, durationMs: number): void {
     this.stopVolumeFade();
 
+    const player = getMusicPlayer();
     this.state.targetVolume = targetVolume;
     const startVolume = this.state.currentVolume;
     const volumeDiff = targetVolume - startVolume;
@@ -734,25 +957,28 @@ export class DJBooth {
       return;
     }
 
-    const steps = 20;
-    const stepDuration = durationMs / steps;
-    const stepVolume = volumeDiff / steps;
-    let currentStep = 0;
+    // Use duck/unduck for actual volume control
+    if (targetVolume < VOLUME.AGENT_TALKING + 0.05) {
+      // Fading down - use duck
+      player.duck();
+      this.state.currentVolume = targetVolume;
+    } else if (startVolume < VOLUME.AGENT_TALKING + 0.05 && targetVolume >= VOLUME.NORMAL - 0.1) {
+      // Fading up from ducked state - use unduck
+      player.unduck();
+      this.state.currentVolume = targetVolume;
+    } else {
+      // Just track the state for UI purposes
+      this.state.currentVolume = targetVolume;
+    }
 
-    const player = getMusicPlayer();
+    // Update the volume setting for future tracks
+    player.setVolume(targetVolume);
 
-    this.volumeFadeInterval = setInterval(() => {
-      currentStep++;
-      const newVolume = startVolume + stepVolume * currentStep;
-      this.state.currentVolume = newVolume;
-      player.setVolume(newVolume);
-
-      if (currentStep >= steps) {
-        this.stopVolumeFade();
-        this.state.currentVolume = targetVolume;
-        player.setVolume(targetVolume);
-      }
-    }, stepDuration);
+    log.debug('🎧 Volume fade', {
+      from: startVolume.toFixed(2),
+      to: targetVolume.toFixed(2),
+      durationMs,
+    });
   }
 
   /**
@@ -822,6 +1048,19 @@ export function initializeDJBooth(
 
 export function getDJBooth(): DJBooth | null {
   return djBoothInstance;
+}
+
+/**
+ * Get the DJ Enhancements controller directly (without needing a DJ Booth instance).
+ * Useful for accessing music preferences and session flow tracking.
+ */
+export function getDJEnhancementsController(): ReturnType<typeof getDJEnhancements> {
+  // First try to get from active DJ Booth
+  if (djBoothInstance) {
+    return djBoothInstance.getEnhancements();
+  }
+  // Fall back to global getter (may be null if not initialized)
+  return getDJEnhancements();
 }
 
 export function resetDJBooth(): void {

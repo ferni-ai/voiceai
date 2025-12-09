@@ -13,8 +13,8 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { getRandomAmbientTrack, playAmbientMusic, stopAmbientMusic } from './ambient-music.js';
 import { getMusicPlayer, type MusicTrack } from './music-player.js';
-import { playAmbientMusic, stopAmbientMusic, getRandomAmbientTrack } from './ambient-music.js';
 
 const log = getLogger();
 
@@ -361,7 +361,6 @@ export class ThinkingMusicController {
   private isPlaying = false;
   private startTimer: NodeJS.Timeout | null = null;
   private maxDurationTimer: NodeJS.Timeout | null = null;
-  private fadeInterval: NodeJS.Timeout | null = null;
   private personaId = 'ferni';
   private currentVolume = 0;
 
@@ -467,14 +466,16 @@ export class ThinkingMusicController {
       if (success) {
         this.isPlaying = true;
         this.setupMaxDurationTimer();
+        this.setupNaturalEndMonitor(); // Monitor for natural end
         log.info('Started thinking music via ambient system');
       }
       return;
     }
 
-    // Play the track at thinking volume
-    player.setVolume(0); // Start silent
-    this.currentVolume = 0;
+    // NOTE: BackgroundAudioPlayer doesn't support real-time volume changes,
+    // so we can't fade in. Set the target volume before playing.
+    player.setVolume(this.config.volume);
+    this.currentVolume = this.config.volume;
 
     const success = await player.playFromUrl(track.previewUrl, track, true);
     if (!success) {
@@ -485,11 +486,11 @@ export class ThinkingMusicController {
 
     this.isPlaying = true;
 
-    // Fade in
-    this.fadeToVolume(this.config.volume, this.config.fadeInDuration);
-
     // Setup max duration timer
     this.setupMaxDurationTimer();
+
+    // Monitor for natural track end
+    this.setupNaturalEndMonitor();
 
     log.info('Started thinking music', {
       track: track.name,
@@ -497,50 +498,41 @@ export class ThinkingMusicController {
     });
   }
 
+  /**
+   * Monitor music player state to detect when thinking music ends naturally.
+   * This ensures isPlaying is properly reset even if onMusicEnded() isn't called.
+   */
+  private naturalEndMonitorInterval: NodeJS.Timeout | null = null;
+
+  private setupNaturalEndMonitor(): void {
+    // Clear any existing monitor
+    if (this.naturalEndMonitorInterval) {
+      clearInterval(this.naturalEndMonitorInterval);
+    }
+
+    const player = getMusicPlayer();
+
+    // Check every 500ms if music is still playing
+    this.naturalEndMonitorInterval = setInterval(() => {
+      if (this.isPlaying && !player.isPlaying()) {
+        // Music ended naturally - reset state
+        log.debug('Thinking music detected as ended (monitor)');
+        this.onMusicEnded();
+      }
+    }, 500);
+  }
+
   private stopThinkingMusic(): void {
     if (!this.isPlaying) return;
 
-    // Fade out
-    this.fadeToVolume(0, this.config.fadeOutDuration);
+    // NOTE: BackgroundAudioPlayer doesn't support real-time volume changes,
+    // so we can't actually fade. Instead, we stop immediately.
+    // The ambient music system handles this gracefully.
+    stopAmbientMusic();
+    this.isPlaying = false;
+    this.currentVolume = 0;
 
-    // Stop after fade
-    setTimeout(() => {
-      stopAmbientMusic();
-      this.isPlaying = false;
-    }, this.config.fadeOutDuration + 100);
-
-    log.debug('Stopping thinking music');
-  }
-
-  private fadeToVolume(targetVolume: number, durationMs: number): void {
-    const player = getMusicPlayer();
-    const startVolume = this.currentVolume;
-    const volumeDiff = targetVolume - startVolume;
-    const steps = 20;
-    const stepDuration = durationMs / steps;
-    const stepVolume = volumeDiff / steps;
-    let currentStep = 0;
-
-    if (this.fadeInterval) {
-      clearInterval(this.fadeInterval);
-    }
-
-    this.fadeInterval = setInterval(() => {
-      currentStep++;
-      const newVolume = startVolume + stepVolume * currentStep;
-      const clampedVolume = Math.max(0, Math.min(1, newVolume));
-      player.setVolume(clampedVolume);
-      this.currentVolume = clampedVolume;
-
-      if (currentStep >= steps) {
-        if (this.fadeInterval) {
-          clearInterval(this.fadeInterval);
-          this.fadeInterval = null;
-        }
-        player.setVolume(targetVolume);
-        this.currentVolume = targetVolume;
-      }
-    }, stepDuration);
+    log.debug('Stopped thinking music (immediate stop - fade not supported)');
   }
 
   private setupMaxDurationTimer(): void {
@@ -559,9 +551,10 @@ export class ThinkingMusicController {
       clearTimeout(this.maxDurationTimer);
       this.maxDurationTimer = null;
     }
-    if (this.fadeInterval) {
-      clearInterval(this.fadeInterval);
-      this.fadeInterval = null;
+    // Clear natural end monitor
+    if (this.naturalEndMonitorInterval) {
+      clearInterval(this.naturalEndMonitorInterval);
+      this.naturalEndMonitorInterval = null;
     }
   }
 }
@@ -1029,8 +1022,9 @@ export class MusicMemoryManager {
 
   /**
    * Get a music memory callback phrase
+   * @param _personaId - Persona ID for future personalization (currently unused)
    */
-  getMusicMemoryCallback(personaId: string): string | null {
+  getMusicMemoryCallback(_personaId: string): string | null {
     // Check for recent music
     if (this.preferences.lastPlayed) {
       const daysSinceLastPlay =
@@ -1162,20 +1156,20 @@ export class DJEnhancementController {
     // Schedule timing callbacks (only if track is long enough)
     if ((track.duration || 30000) > 40000 && this.speakCallback) {
       this.trackTimingCleanup = scheduleTrackTimingCallbacks(track, {
-        on30SecondsLeft: (t) => {
+        on30SecondsLeft: (_track) => {
           if (Math.random() < style.commentFrequency) {
             const phrase = getCountdownPhrase('thirtySeconds', this.personaId);
             this.speakCallback?.(phrase);
           }
         },
-        on15SecondsLeft: (t) => {
+        on15SecondsLeft: (_track) => {
           // Less frequent comment
           if (Math.random() < style.commentFrequency * 0.5) {
             const phrase = getCountdownPhrase('fifteenSeconds', this.personaId);
             this.speakCallback?.(phrase);
           }
         },
-        on5SecondsLeft: (t) => {
+        on5SecondsLeft: (_track) => {
           // DJ outro always happens (handled by DJ Booth)
         },
       });

@@ -19,6 +19,7 @@ import {
   detectUserCognitiveStyle,
   type UserCognitiveStyle,
 } from '../../personas/cognitive-advanced.js';
+import { broadcastInsightGenerated } from '../../services/cognitive-broadcast.js';
 
 // Track what insights have been shared to avoid repetition
 const sharedInsights = new Map<string, Set<string>>();
@@ -113,6 +114,14 @@ async function buildCognitiveInsightsContext(
         `[SHAREABLE INSIGHT] You can transparently share: "${insight.shareablePhrase}"\n(Internal: ${insight.message})`,
         { category: 'cognitive-insight', confidence: insight.confidence }
       )
+    );
+
+    // 📡 Broadcast insight generation for dashboard
+    broadcastInsightGenerated(
+      personaId,
+      insight.type,
+      insight.shareablePhrase,
+      true // This is a shared insight
     );
 
     // Mark as shared

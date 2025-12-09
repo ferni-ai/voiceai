@@ -30,22 +30,23 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 
 // Import existing animation systems
-import { playPixarReaction, animatePersonaTransition } from '../ui/animation-orchestrator.ui.js';
+import { playCharacterReaction } from '../ui/animation-orchestrator.ui.js';
 import { triggerMoment, type MomentType } from '../ui/ferni-moments.ui.js';
-import { performMagicalHandoff, celebrationBurst, empathyPulse } from '../ui/persona-magic.ui.js';
-import { revealText, typewriterEffect, scrambleReveal } from '../ui/kinetic-typography.ui.js';
+// Note: These imports are available for future use but currently unused
+// import { performMagicalHandoff, celebrationBurst, empathyPulse } from '../ui/persona-magic.ui.js';
+// import { revealText, typewriterEffect, scrambleReveal } from '../ui/kinetic-typography.ui.js';
 
 // Import brand system
 import { getRitualEngine, type RitualType, type RitualContext } from '../services/ritual-engine.service.js';
 import { getGlowController } from '../services/glow-controller.service.js';
-import { HapticsService } from '../services/haptics.service.js';
+import { getHapticsService } from '../services/haptics.service.js';
 import { getFerniAudioEngine } from '../services/ferni-audio.service.js';
 
 // Import emotion system
-import { emotionState, type EmotionId, setEmotion, transitionEmotion } from '../emotion/emotion-state.js';
+import { type EmotionId, transitionEmotion } from '../emotion/emotion-state.js';
 
 const log = createLogger('NarrativeDirector');
 
@@ -88,6 +89,7 @@ export type StoryBeat =
   | 'user_sad'               // User expressing sadness
   | 'breakthrough'           // User has realization
   | 'empathy_moment'         // Deep connection moment
+  | 'deep_moment'            // Trust system deep moment
   
   // Achievements
   | 'small_win'              // Minor accomplishment
@@ -356,6 +358,14 @@ const BEAT_ORCHESTRATIONS: Record<StoryBeat, BeatOrchestration> = {
     haptic: 'empathy',
   },
   
+  deep_moment: {
+    emotion: 'calm',
+    moment: 'warmGlow',
+    glow: 'empathy',
+    haptic: 'empathy',
+    ritual: 'deep_moment',
+  },
+  
   // Achievements
   small_win: {
     emotion: 'happy',
@@ -507,7 +517,7 @@ export class NarrativeDirector {
   
   // System references
   private glow = getGlowController();
-  private haptics = HapticsService.getInstance();
+  private haptics = getHapticsService();
   private audio = getFerniAudioEngine();
   private ritualEngine = getRitualEngine();
   
@@ -685,8 +695,16 @@ export class NarrativeDirector {
   
   private async triggerReactionSafe(reaction: string): Promise<void> {
     try {
-      playPixarReaction(reaction);
-      await new Promise(resolve => setTimeout(resolve, DURATION.SLOW));
+      // Find the avatar element - this is the main visual element that reacts
+      const avatarElement = document.querySelector('.ferni-avatar, .avatar-container, [data-avatar]') as HTMLElement | null;
+      if (!avatarElement) {
+        log.debug('No avatar element found for reaction', { reaction });
+        return;
+      }
+      
+      // Cast reaction to proper type
+      const reactionType = reaction as 'bounce' | 'nod' | 'shake' | 'joy' | 'attention' | 'curious-tilt';
+      await playCharacterReaction(avatarElement, reactionType, this.currentContext.personaId);
     } catch (error) {
       log.warn('Reaction trigger failed', { reaction, error });
     }
@@ -711,8 +729,9 @@ export class NarrativeDirector {
     log.info('Arc started', { id: arc.id, name: arc.name, beats: arc.beats.length });
     
     // Play first beat
-    if (arc.beats.length > 0) {
-      void this.playBeat(arc.beats[0]);
+    const firstBeat = arc.beats[0];
+    if (firstBeat) {
+      void this.playBeat(firstBeat);
     }
   }
   
@@ -736,7 +755,10 @@ export class NarrativeDirector {
     }
     
     // Play next beat
-    await this.playBeat(arc.beats[arc.currentBeatIndex]);
+    const nextBeat = arc.beats[arc.currentBeatIndex];
+    if (nextBeat) {
+      await this.playBeat(nextBeat);
+    }
     return true;
   }
   
@@ -747,8 +769,11 @@ export class NarrativeDirector {
     const arc = this.activeArcs.get(arcId);
     if (!arc) return null;
     
+    const currentBeat = arc.beats[arc.currentBeatIndex];
+    if (!currentBeat) return null;
+    
     return {
-      beat: arc.beats[arc.currentBeatIndex],
+      beat: currentBeat,
       progress: arc.currentBeatIndex / arc.beats.length,
     };
   }

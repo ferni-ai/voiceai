@@ -507,10 +507,13 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
 // ============================================================================
 
 let schedulerInterval: NodeJS.Timeout | null = null;
+let cleanupCounter = 0;
+const CLEANUP_EVERY_N_INTERVALS = 60; // Run cleanup every 60 intervals (hourly if intervalMs=60000)
 
 /**
  * Start the reminder scheduler
  * Checks for due reminders every minute
+ * Runs cleanup every hour to prevent memory leaks
  */
 export function startReminderScheduler(intervalMs = 60000): void {
   if (schedulerInterval) {
@@ -519,6 +522,7 @@ export function startReminderScheduler(intervalMs = 60000): void {
   }
 
   getLogger().info({ intervalMs }, '🕐 Starting reminder scheduler');
+  cleanupCounter = 0;
 
   schedulerInterval = setInterval(() => {
     void (async () => {
@@ -530,6 +534,13 @@ export function startReminderScheduler(intervalMs = 60000): void {
         for (const reminder of dueReminders) {
           await deliverReminder(reminder);
         }
+      }
+
+      // Periodic cleanup to prevent memory leaks
+      cleanupCounter++;
+      if (cleanupCounter >= CLEANUP_EVERY_N_INTERVALS) {
+        cleanupCounter = 0;
+        cleanupOldReminders();
       }
     })();
   }, intervalMs);

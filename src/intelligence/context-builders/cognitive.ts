@@ -24,7 +24,6 @@ import {
   registerContextBuilder,
   createStandardInjection,
   createHintInjection,
-  createInjection,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
@@ -59,8 +58,6 @@ import {
   broadcastUserStyle,
   broadcastConfidence,
   broadcastApproachUsed,
-  broadcastQuirkActivated,
-  broadcastInsightGenerated,
 } from '../../services/cognitive-broadcast.js';
 
 // Cognitive metrics for performance tracking

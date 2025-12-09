@@ -129,6 +129,10 @@ export interface MusicStateMessage extends BaseMessage {
     artist?: string;
   };
   isAmbient: boolean;
+  /** 💚 Is this a shared musical memory ("our song")? */
+  isOurSong?: boolean;
+  /** 💚 Context for the shared memory (e.g., "When you got the job") */
+  ourSongContext?: string;
 }
 
 /**
@@ -455,15 +459,23 @@ export class FrontendPublisher {
   async sendMusicState(
     state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle',
     track?: { name: string; artist?: string },
-    isAmbient = false
+    isAmbient = false,
+    ourSongInfo?: { isOurSong: boolean; context?: string }
   ): Promise<boolean> {
-    diag.state('Music state', { state, track: track?.name, isAmbient });
+    diag.state('Music state', {
+      state,
+      track: track?.name,
+      isAmbient,
+      isOurSong: ourSongInfo?.isOurSong,
+    });
 
     return this.send<MusicStateMessage>({
       type: 'music_state',
       state,
       track,
       isAmbient,
+      isOurSong: ourSongInfo?.isOurSong,
+      ourSongContext: ourSongInfo?.context,
     });
   }
 

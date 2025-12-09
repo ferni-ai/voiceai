@@ -88,9 +88,9 @@ export interface DashboardData {
 export async function getUserSummary(userId: string): Promise<UserOutreachSummary> {
   const contact = await getUserContactInfo(userId);
   const prefs = getPreferences(userId);
-  const analytics = getUserAnalytics(userId);
+  const analytics = await getUserAnalytics(userId);
   const pending = getPendingReminders(userId);
-  const recommendations = getOptimizationRecommendations(userId);
+  const recommendations = await getOptimizationRecommendations(userId);
 
   return {
     userId,

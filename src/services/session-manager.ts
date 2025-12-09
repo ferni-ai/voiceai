@@ -114,6 +114,88 @@ import { persistenceMetrics } from './persistence-metrics.js';
 
 const activeSessions = new Map<string, SessionServices>();
 
+// Session TTL cleanup - prevent memory leaks from orphaned sessions
+const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours max session age
+const SESSION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // Check every 15 minutes
+let sessionCleanupInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Start periodic cleanup of orphaned sessions
+ * Sessions older than SESSION_MAX_AGE_MS are automatically ended
+ */
+export function startSessionCleanup(): void {
+  if (sessionCleanupInterval) {
+    return; // Already running
+  }
+
+  sessionCleanupInterval = setInterval(() => {
+    void cleanupOrphanedSessions();
+  }, SESSION_CLEANUP_INTERVAL_MS);
+
+  getLogger().info('🧹 Session cleanup scheduler started');
+}
+
+/**
+ * Stop periodic session cleanup (for shutdown)
+ */
+export function stopSessionCleanup(): void {
+  if (sessionCleanupInterval) {
+    clearInterval(sessionCleanupInterval);
+    sessionCleanupInterval = null;
+    getLogger().info('🧹 Session cleanup scheduler stopped');
+  }
+}
+
+/**
+ * Clean up sessions that have exceeded their maximum age
+ * This prevents memory leaks from clients that disconnect without properly ending sessions
+ */
+async function cleanupOrphanedSessions(): Promise<number> {
+  const now = Date.now();
+  let cleanedCount = 0;
+  const orphanedSessions: Array<{ sessionId: string; ageMinutes: number }> = [];
+
+  for (const [sessionId, services] of activeSessions) {
+    const sessionAge = now - services.sessionStartTime;
+    if (sessionAge > SESSION_MAX_AGE_MS) {
+      orphanedSessions.push({
+        sessionId,
+        ageMinutes: Math.round(sessionAge / 60000),
+      });
+    }
+  }
+
+  if (orphanedSessions.length === 0) {
+    return 0;
+  }
+
+  getLogger().warn(
+    { orphanedCount: orphanedSessions.length, sessions: orphanedSessions },
+    '🧹 Cleaning up orphaned sessions'
+  );
+
+  for (const { sessionId } of orphanedSessions) {
+    const services = activeSessions.get(sessionId);
+    if (services) {
+      try {
+        await services.endSession();
+        cleanedCount++;
+      } catch (error) {
+        // Force removal if endSession fails
+        getLogger().error(
+          { sessionId, error: String(error) },
+          'Error ending orphaned session, force removing'
+        );
+        activeSessions.delete(sessionId);
+        cleanedCount++;
+      }
+    }
+  }
+
+  getLogger().info({ cleanedCount }, '🧹 Orphaned session cleanup complete');
+  return cleanedCount;
+}
+
 // ============================================================================
 // SESSION CREATION
 // ============================================================================

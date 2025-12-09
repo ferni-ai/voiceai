@@ -80,6 +80,8 @@ export class RedisCache {
   private client: RedisClient | null = null;
   private config: RedisConfig;
   private initialized = false;
+  // FIX: Cache initialization promise to prevent race conditions
+  private initPromise: Promise<void> | null = null;
 
   // Default TTLs
   private readonly SESSION_TTL = 3600; // 1 hour
@@ -105,6 +107,22 @@ export class RedisCache {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
+    // Return cached promise if initialization is in progress
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    // Start initialization and cache the promise
+    this.initPromise = this.doInitialize();
+
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async doInitialize(): Promise<void> {
     try {
       // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;

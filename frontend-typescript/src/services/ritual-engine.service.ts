@@ -10,12 +10,10 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { DURATION } from '../config/animation-constants.js';
 import { getFerniAudioEngine } from './ferni-audio.service.js';
-import { HapticsService } from './haptics.service.js';
+import { getHapticsService } from './haptics.service.js';
 import { getGlowController } from './glow-controller.service.js';
 import { getCelebrationUI, CelebrationType } from '../ui/celebration.ui.js';
-import { appState } from '../state/app.state.js';
 
 const log = createLogger('RitualEngine');
 
@@ -244,7 +242,7 @@ export class RitualEngine {
   
   // Services
   private audio = getFerniAudioEngine();
-  private haptics = HapticsService.getInstance();
+  private haptics = getHapticsService();
   private glow = getGlowController();
   private celebration = getCelebrationUI();
   
@@ -336,7 +334,7 @@ export class RitualEngine {
     await this.trigger('persona_entrance', { personaId, personaName });
   }
   
-  async personaHandoff(fromId: PersonaId, toId: PersonaId, toName?: string): Promise<void> {
+  async personaHandoff(_fromId: PersonaId, toId: PersonaId, toName?: string): Promise<void> {
     await this.trigger('persona_handoff', { personaId: toId, personaName: toName });
   }
   
@@ -425,7 +423,9 @@ export class RitualEngine {
   private async executeHapticStep(pattern: string, context: RitualContext): Promise<void> {
     try {
       if (pattern === 'persona_signature' && context.personaId) {
-        this.haptics.playPersonaSignature(context.personaId);
+        // TODO: Add persona-specific haptic signatures
+        // For now, use warmWelcome as a generic persona entrance
+        this.haptics.play('warmWelcome');
       } else {
         this.haptics.play(pattern);
       }

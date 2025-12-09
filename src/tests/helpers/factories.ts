@@ -1,10 +1,10 @@
-import type {
-  UserProfile,
-  ConversationSummary,
-  FinancialGoal,
-  KeyMoment,
+import {
+  createUserProfile,
+  type UserProfile,
+  type ConversationSummary,
+  type FinancialGoal,
+  type KeyMoment,
 } from '../../types/user-profile.js';
-import { createUserProfile } from '../../types/user-profile.js';
 
 export function createTestProfile(overrides?: Partial<UserProfile>): UserProfile {
   const testId = `test-user-${Math.random().toString(36).substring(7)}`;

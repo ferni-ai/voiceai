@@ -9,8 +9,12 @@
  * - DSP fallback: <1ms, ~85% accuracy
  */
 
+import { createRequire } from 'module';
 import { getLogger } from '../utils/safe-logger.js';
 import { voiceHumanizationFlags } from '../config/voice-humanization-flags.js';
+
+// Create require function for ESM compatibility with native modules
+const require = createRequire(import.meta.url);
 
 const log = getLogger().child({ module: 'VoiceMemoryEnhanced' });
 

@@ -82,7 +82,7 @@ export const EASING = {
   DECELERATE: 'cubic-bezier(0.0, 0, 0.2, 1)',   // Fast start, slow end
   ACCELERATE: 'cubic-bezier(0.4, 0, 1, 1)',     // Slow start, fast end
   
-  // Spring/Bouncy (Pixar-style)
+  // Spring/Bouncy (character-quality)
   SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',  // Overshoot and settle
   SPRING_GENTLE: 'cubic-bezier(0.25, 1.25, 0.5, 1)',
   SPRING_STRONG: 'cubic-bezier(0.5, 1.8, 0.5, 1)',
@@ -150,7 +150,7 @@ export const ANIMATION_PRESET = {
     easing: EASING.EXPO_OUT,
   },
   
-  // Avatar reactions (Pixar-style)
+  // Avatar reactions (character-quality)
   REACTION_QUICK: {
     duration: DURATION.SLOW,
     easing: EASING.SPRING,
@@ -253,10 +253,10 @@ export interface AnimationStep {
 }
 
 /**
- * Create a Pixar-style 3-phase animation sequence.
- * Every Pixar action has: Anticipation → Action → Follow-through
+ * Create a character-quality 3-phase animation sequence.
+ * Every action has: Anticipation → Action → Follow-through
  */
-export function createPixarSequence(baseDuration: number = DURATION.DELIBERATE): {
+export function createCharacterSequence(baseDuration: number = DURATION.DELIBERATE): {
   anticipation: AnimationStep;
   action: AnimationStep;
   followThrough: AnimationStep;
@@ -279,6 +279,9 @@ export function createPixarSequence(baseDuration: number = DURATION.DELIBERATE):
     },
   };
 }
+
+// Legacy alias for backward compatibility
+export const createPixarSequence = createCharacterSequence;
 
 // ============================================================================
 // ANIMATION CONFLICT PREVENTION

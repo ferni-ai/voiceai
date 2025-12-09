@@ -87,6 +87,8 @@ export class FirestoreStore extends MemoryStore {
   private db: Firestore | null = null;
   private config: FirestoreConfig;
   private readonly USERS_COLLECTION = 'bogle_users';
+  // FIX: Cache initialization promise to prevent race conditions
+  private initPromise: Promise<void> | null = null;
 
   constructor(config?: FirestoreConfig) {
     super();
@@ -101,6 +103,22 @@ export class FirestoreStore extends MemoryStore {
   async initialize(): Promise<void> {
     if (this._initialized) return;
 
+    // Return cached promise if initialization is in progress
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    // Start initialization and cache the promise
+    this.initPromise = this.doInitialize();
+
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async doInitialize(): Promise<void> {
     try {
       const { Firestore } = await import('@google-cloud/firestore');
 

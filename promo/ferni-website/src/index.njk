@@ -1,800 +1,890 @@
 ---
-layout: layouts/story-brand.njk
 title: Ferni - Your AI Life Coach
-description: Six AI specialists who actually listen, remember everything, and help you grow.
+description: Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.
 ---
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  
+  <!-- Fonts - Plus Jakarta Sans (Variable) + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  
+  <!-- OG Tags -->
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  <style>
+    /* Minimal custom styles for things Tailwind can't do */
+    .text-gradient {
+      background: linear-gradient(135deg, #4a6741 0%, #5a7751 50%, #3d5a35 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Stagger animation delays */
+    .stagger-1 { animation-delay: 0.1s; }
+    .stagger-2 { animation-delay: 0.2s; }
+    .stagger-3 { animation-delay: 0.3s; }
+    .stagger-4 { animation-delay: 0.4s; }
+    .stagger-5 { animation-delay: 0.5s; }
+    .stagger-6 { animation-delay: 0.6s; }
+    
+    /* Wave bar animations */
+    .wave-bar { animation: wave 1.2s ease-in-out infinite; }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.25s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.35s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.4s; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.4); }
+    }
+    
+    /* Scroll-triggered reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(60px);
+      transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Magnetic button effect */
+    .btn-magnetic {
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    /* Persona orbit counter-rotation */
+    .persona-counter { animation: orbit 30s linear infinite reverse; }
+  </style>
+</head>
 
-{# ========== SKIP TO CONTENT (Accessibility) ========== #}
-<a href="#main-content" class="skip-link">Skip to main content</a>
-
-{# ========== NAVIGATION ========== #}
-<nav class="nav" id="nav" aria-label="Main navigation">
-  <div class="nav__inner">
-    <a href="/" class="nav__logo">
-      <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
-        <div class="persona-avatar__ring"></div>
-        <div class="persona-avatar__orb">
-          <span class="persona-avatar__text">FN</span>
+<body class="bg-paper text-ink font-body antialiased overflow-x-hidden">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       NAVIGATION
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-500" id="nav">
+    <div class="absolute inset-0 bg-paper/80 backdrop-blur-xl border-b border-ink/5 opacity-0 transition-opacity duration-500" id="nav-bg"></div>
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark flex items-center justify-center shadow-glow-soft group-hover:shadow-glow-ferni transition-shadow duration-500">
+            <span class="font-display font-bold text-white text-sm">FN</span>
+          </div>
+          <span class="font-display font-bold text-xl text-ink">Ferni</span>
+        </a>
+        
+        <!-- Desktop Nav -->
+        <div class="hidden lg:flex items-center gap-10">
+          <a href="#how-it-works" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">How It Works</a>
+          <a href="#team" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Your Team</a>
+          <a href="#pricing" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Pricing</a>
+          <a href="#faq" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">FAQ</a>
         </div>
-      </div>
-      <span class="nav__logo-text">Ferni</span>
-    </a>
-    
-    <ul class="nav__links">
-      <li><a href="#how-it-works" class="nav__link">How It Works</a></li>
-      <li><a href="#team" class="nav__link">Team</a></li>
-      <li><a href="#pricing" class="nav__link">Pricing</a></li>
-      <li><a href="#faq" class="nav__link">FAQ</a></li>
-    </ul>
-    
-    <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
-      Get Started
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-    
-    {# Mobile hamburger #}
-    <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
-  </div>
-</nav>
-
-{# ========== MOBILE MENU ========== #}
-<div class="mobile-menu" id="mobileMenu">
-  <div class="mobile-menu__header">
-    <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
-      <div class="persona-avatar__orb">
-        <span class="persona-avatar__text">FN</span>
+        
+        <!-- CTA -->
+        <div class="flex items-center gap-4">
+          <a href="tel:+14844813081" class="hidden sm:flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ferni transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
+            <span class="font-mono">(484) 481-3081</span>
+          </a>
+          <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-2 px-6 py-3 bg-ferni hover:bg-ferni-dark text-white font-semibold text-sm rounded-full shadow-lg shadow-ferni/20 hover:shadow-xl hover:shadow-ferni/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300">
+            Get Started
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button class="lg:hidden p-2 -mr-2" id="mobile-menu-btn" aria-label="Menu">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
       </div>
     </div>
-    <span class="nav__logo-text">Ferni</span>
-    <button class="mobile-menu__close" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
-  </div>
-  <nav class="mobile-menu__nav">
-    <a href="#how-it-works">How It Works</a>
-    <a href="#team">Meet the Team</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#faq">FAQ</a>
-    <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
   </nav>
-  <div class="mobile-menu__cta">
-    <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
-      Get Started Free
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-  </div>
-</div>
-
-{# ========== HERO ========== #}
-<main id="main-content">
-<section class="section hero">
-  {# Animated Background #}
-  <div class="hero__bg">
-    <div class="hero__bg-gradient"></div>
-    <div class="hero__bg-orbs">
-      <div class="hero__bg-orb hero__bg-orb--1"></div>
-      <div class="hero__bg-orb hero__bg-orb--2"></div>
-      <div class="hero__bg-orb hero__bg-orb--3"></div>
-    </div>
-  </div>
   
-  <div class="container">
-    <div class="hero__content">
-      
-      <div class="hero__eyebrow-wrap">
-        <span class="hero__eyebrow">Your AI Life Coach</span>
-      </div>
-      
-      <h1 class="hero__headline">
-        Better than <span class="hero__headline-accent">human.</span>
-      </h1>
-      
-      <p class="hero__subhead">
-        Six AI specialists who actually listen, remember everything, and help you grow. Available 24/7.
-      </p>
-      
-      <div class="hero__cta">
-        <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
-          Start Free
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </a>
-        <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Call Now
-        </a>
-      </div>
-      
-      {# Trust Badges #}
-      <div class="hero__badges">
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <span>End-to-End Encrypted</span>
-        </div>
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Available 24/7</span>
-        </div>
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          <span>4.9★ Rating</span>
-        </div>
-      </div>
-      
-    </div>
-  </div>
-  
-  {# Scroll indicator #}
-  <div class="scroll-indicator">
-    <div class="scroll-indicator__mouse"></div>
-    <span>Scroll to explore</span>
-  </div>
-</section>
-
-{# STATS BAR #}
-<section class="stats-bar">
-  <div class="stats-bar__inner reveal-stagger">
-    <div class="stat">
-      <div class="stat__value">10K+</div>
-      <div class="stat__label">Conversations</div>
-    </div>
-    <div class="stat">
-      <div class="stat__value">&lt;500ms</div>
-      <div class="stat__label">Response Time</div>
-    </div>
-    <div class="stat">
-      <div class="stat__value">∞</div>
-      <div class="stat__label">Memory</div>
-    </div>
-    <div class="stat">
-      <div class="stat__value">24/7</div>
-      <div class="stat__label">Availability</div>
-    </div>
-  </div>
-</section>
-
-{# PRODUCT SHOWCASE #}
-<section class="showcase" id="product">
-  <div class="showcase__inner">
-    <div class="showcase__content reveal">
-      <p class="showcase__eyebrow">The App</p>
-      <h2 class="showcase__title">A conversation that feels human</h2>
-      <p class="showcase__description">
-        Talk naturally by voice or text. Ferni remembers your story, understands your context, and responds with genuine insight—not generic advice.
-      </p>
-      <ul class="showcase__features">
-        <li class="showcase__feature">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Voice-first—just call and talk
-        </li>
-        <li class="showcase__feature">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Remembers every conversation
-        </li>
-        <li class="showcase__feature">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Connects you to the right specialist
-        </li>
-      </ul>
-    </div>
+  <main>
     
-    <div class="showcase__phone reveal">
-      <div class="showcase__phone-notch"></div>
-      <div class="showcase__phone-screen">
-        <div class="showcase__app">
-          <div class="showcase__app-header">
-            <div class="persona-avatar persona-avatar--md persona-avatar--ferni">
-              <div class="persona-avatar__ring"></div>
-              <div class="persona-avatar__orb">
-                <span class="persona-avatar__text">FN</span>
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         HERO SECTION
+         Bold, cinematic, emotional
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+      <!-- Background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-paper-sand via-paper to-paper-cream"></div>
+      
+      <!-- Floating orbs (background decoration) -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-3xl animate-float-slow"></div>
+        <div class="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-gradient-radial from-maya/10 to-transparent rounded-full blur-3xl animate-float-slow" style="animation-delay: -5s"></div>
+        <div class="absolute top-[40%] left-[30%] w-[200px] h-[200px] bg-gradient-radial from-peter/8 to-transparent rounded-full blur-2xl animate-float" style="animation-delay: -8s"></div>
+      </div>
+      
+      <!-- Content -->
+      <div class="relative z-10 max-w-5xl mx-auto px-6 text-center py-20 lg:py-32 hero-content">
+        
+        <!-- The Orb with personas orbiting -->
+        <div class="relative w-40 h-40 lg:w-52 lg:h-52 mx-auto mb-12 lg:mb-16" data-orb-aware>
+          
+          <!-- Glow effect -->
+          <div class="absolute inset-[-40%] bg-ferni/20 rounded-full blur-3xl orb-glow"></div>
+          
+          <!-- Outer rings -->
+          <div class="absolute inset-[-30%] rounded-full border border-ferni/10"></div>
+          <div class="absolute inset-[-20%] rounded-full border border-ferni/15"></div>
+          <div class="absolute inset-[-10%] rounded-full border border-ferni/20"></div>
+          
+          <!-- Pulse ring -->
+          <div class="absolute inset-0 rounded-full border-2 border-ferni/30 avatar-pulse-ring"></div>
+          
+          <!-- Main Orb -->
+          <div class="absolute inset-0 rounded-full bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark shadow-[0_10px_40px_rgba(74,103,65,0.35)] group cursor-pointer" data-breathe>
+            <!-- FE Initials (visible by default) -->
+            <span class="absolute inset-0 flex items-center justify-center font-display font-bold text-white text-4xl lg:text-5xl group-hover:opacity-0 transition-opacity duration-300" style="text-shadow: 0 2px 4px rgba(0,0,0,0.15);">FE</span>
+            <!-- Waveform (visible on hover) -->
+            <div class="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span class="w-1 h-4 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite;"></span>
+              <span class="w-1 h-7 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.05s;"></span>
+              <span class="w-1 h-10 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.1s;"></span>
+              <span class="w-1 h-12 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.15s;"></span>
+              <span class="w-1 h-10 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.2s;"></span>
+              <span class="w-1 h-7 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.25s;"></span>
+              <span class="w-1 h-4 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.3s;"></span>
+            </div>
+          </div>
+          
+          <!-- Orbiting personas -->
+          <div class="absolute inset-[-50%] persona-orbit">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-peter text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">PJ</div>
+            <div class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-maya text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">MS</div>
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-alex text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">AC</div>
+            <div class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-jordan text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">JT</div>
+          </div>
+        </div>
+        
+        <!-- Eyebrow -->
+        <p class="text-eyebrow uppercase tracking-widest text-ferni mb-6 animate-fade-in-up opacity-0 stagger-1">
+          Better than human.
+        </p>
+        
+        <!-- Headline -->
+        <h1 class="font-display text-display-2xl text-ink mb-8 animate-fade-in-up opacity-0 stagger-2">
+          Finally, someone<br class="hidden sm:block"> who <span class="text-gradient-alive">gets it.</span>
+        </h1>
+        
+        <!-- Subheadline -->
+        <p class="text-body-xl text-ink-muted max-w-2xl mx-auto mb-12 animate-fade-in-up opacity-0 stagger-3">
+          Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.
+        </p>
+        
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up opacity-0 stagger-4">
+          <a href="https://app.ferni.ai" class="btn-magnetic group inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
+            Start Free
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="tel:+14844813081" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-white hover:bg-paper-cream text-ink font-semibold text-lg rounded-full border border-ink/10 hover:border-ferni/30 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <svg class="w-5 h-5 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
+            Call Now
+          </a>
+        </div>
+        
+        <!-- Trust badges -->
+        <div class="flex flex-wrap items-center justify-center gap-4 lg:gap-6 animate-fade-in-up opacity-0 stagger-5">
+          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
+            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            End-to-End Encrypted
+          </span>
+          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
+            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Available 24/7
+          </span>
+          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
+            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Voice-First
+          </span>
+        </div>
+      </div>
+      
+      <!-- Scroll indicator -->
+      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in opacity-0" style="animation-delay: 1.5s">
+        <div class="w-px h-16 bg-gradient-to-b from-ferni to-transparent opacity-40"></div>
+      </div>
+    </section>
+    
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         THE 2AM MOMENT
+         Emotional dark section - the core of our value prop
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section class="relative overflow-hidden night-section">
+      
+      <!-- Dark scene - The loneliness -->
+      <div class="relative bg-gradient-to-b from-[#0d0a08] via-[#1a1512] to-[#2a2420] text-white py-32 lg:py-48 px-6">
+        
+        <!-- Subtle stars/particles background -->
+        <div class="absolute inset-0 opacity-30">
+          <div class="absolute top-1/4 left-1/4 w-1 h-1 bg-white/30 rounded-full animate-pulse"></div>
+          <div class="absolute top-1/3 right-1/3 w-1 h-1 bg-white/20 rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
+          <div class="absolute bottom-1/3 left-1/2 w-1 h-1 bg-white/25 rounded-full animate-pulse" style="animation-delay: 1s;"></div>
+          <div class="absolute top-1/2 right-1/4 w-0.5 h-0.5 bg-white/20 rounded-full animate-pulse" style="animation-delay: 1.5s;"></div>
+        </div>
+        
+        <div class="relative max-w-3xl mx-auto text-center">
+          
+          <!-- Time display with dramatic effect -->
+          <div class="reveal mb-12">
+            <div class="time-display inline-flex items-baseline">
+              <span class="font-mono text-8xl lg:text-[10rem] font-extralight text-white/40 tracking-tighter">3</span>
+              <span class="font-mono text-8xl lg:text-[10rem] font-extralight text-white/40 time-colon">:</span>
+              <span class="font-mono text-8xl lg:text-[10rem] font-extralight text-white/40 tracking-tighter">47</span>
+              <span class="font-mono text-4xl lg:text-6xl font-extralight text-white/20 ml-4 self-end mb-4">AM</span>
+            </div>
+          </div>
+          
+          <!-- The intrusive thought -->
+          <div class="reveal mb-20">
+            <p class="font-display text-2xl lg:text-4xl italic text-white/60 leading-relaxed max-w-2xl mx-auto">
+              "I can't stop thinking about what I said to her..."
+            </p>
+          </div>
+          
+          <!-- Who's unavailable - with dramatic stagger -->
+          <div class="grid sm:grid-cols-3 gap-10 lg:gap-16 text-left max-w-2xl mx-auto">
+            <div class="unavailable-item space-y-3 border-l-2 border-white/10 pl-6">
+              <p class="font-display font-semibold text-white/40 text-lg">Your therapist</p>
+              <p class="text-white/25 text-sm leading-relaxed">Asleep. Next session is Thursday.</p>
+            </div>
+            <div class="unavailable-item space-y-3 border-l-2 border-white/10 pl-6">
+              <p class="font-display font-semibold text-white/40 text-lg">Your best friend</p>
+              <p class="text-white/25 text-sm leading-relaxed">Has their own problems. You don't want to burden them.</p>
+            </div>
+            <div class="unavailable-item space-y-3 border-l-2 border-white/10 pl-6">
+              <p class="font-display font-semibold text-white/40 text-lg">Your partner</p>
+              <p class="text-white/25 text-sm leading-relaxed">Sleeping next to you. Wouldn't understand anyway.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Transition gradient -->
+      <div class="h-32 lg:h-48 bg-gradient-to-b from-[#2a2420] to-paper"></div>
+      
+      <!-- Ferni's response - The relief -->
+      <div class="bg-paper py-20 lg:py-28 px-6 -mt-16 lg:-mt-24">
+        <div class="max-w-xl mx-auto text-center">
+          
+          <!-- Ferni Avatar - Listening State -->
+          <div class="reveal avatar-entrance mb-10">
+            <div class="ferni-avatar w-28 h-28 lg:w-36 lg:h-36 mx-auto" style="--avatar-color: rgba(74, 103, 65, 0.3); --avatar-light: #5a7751; --avatar-dark: #3d5a35;">
+              <!-- Glow -->
+              <div class="avatar-glow"></div>
+              <!-- Rings -->
+              <div class="avatar-ring avatar-ring-1"></div>
+              <div class="avatar-ring avatar-ring-2"></div>
+              <div class="avatar-ring avatar-ring-3"></div>
+              <!-- Pulse ring -->
+              <div class="avatar-pulse-ring"></div>
+              <!-- Main orb with waveform -->
+              <div class="avatar-orb">
+                <div class="waveform-container waveform-listening">
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                </div>
               </div>
             </div>
-            <div class="showcase__app-name">Ferni</div>
-            <div class="showcase__app-status">● Online</div>
           </div>
-          <div class="showcase__app-chat">
-            <div class="showcase__app-bubble showcase__app-bubble--user">
-              I'm feeling overwhelmed at work lately
+          
+          <!-- Response card with floating effect -->
+          <div class="reveal response-card bg-white rounded-3xl p-10 lg:p-12 shadow-2xl shadow-ink/10 border border-ink/5" data-expressive>
+            <p class="font-display text-2xl lg:text-3xl font-semibold text-ink mb-4 leading-snug">
+              "I'm here. Tell me what's on your mind."
+            </p>
+            <p class="text-ink-muted text-lg mb-6">
+              Same warmth at 3am as 3pm. Every time.
+            </p>
+            
+            <!-- Call to action -->
+            <a href="tel:+14844813081" class="btn-magnetic inline-flex items-center gap-3 px-6 py-3 bg-ferni/10 hover:bg-ferni text-ferni hover:text-white font-semibold rounded-full transition-all duration-300">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
+              Call Now
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         HOW IT WORKS
+         Three ways to connect - super simple
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section id="how-it-works" class="py-32 lg:py-40 px-6 bg-paper-sand">
+      <div class="max-w-6xl mx-auto">
+        
+        <!-- Section header -->
+        <div class="text-center mb-20">
+          <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">How to Connect</p>
+          <h2 class="reveal font-display text-display-lg text-ink">Three ways to reach Ferni</h2>
+        </div>
+        
+        <!-- Connection options -->
+        <div class="grid lg:grid-cols-3 gap-8">
+          
+          <!-- Call -->
+          <div class="reveal group bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-ferni/20 transition-all duration-500" data-expressive>
+            <div class="w-18 h-18 rounded-2xl bg-ferni/10 flex items-center justify-center mb-8 group-hover:bg-ferni/15 transition-colors">
+              <svg class="w-9 h-9 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
             </div>
-            <div class="showcase__app-bubble showcase__app-bubble--ai">
-              I hear you. Feeling overwhelmed is tough—but you're not alone in this. What feels most urgent right now?
+            <h3 class="font-display text-2xl font-bold text-ink mb-3">Call</h3>
+            <p class="text-ink-muted mb-6">Dial from any phone—landline or mobile. No app needed. Just talk naturally.</p>
+            <a href="tel:+14844813081" class="inline-flex items-center gap-2 font-mono text-ferni font-semibold hover:gap-4 transition-all">
+              (484) 481-3081
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+          
+          <!-- Text -->
+          <div class="reveal group bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-ferni/20 transition-all duration-500" data-expressive>
+            <div class="w-18 h-18 rounded-2xl bg-ferni/10 flex items-center justify-center mb-8 group-hover:bg-ferni/15 transition-colors">
+              <svg class="w-9 h-9 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <div class="showcase__app-bubble showcase__app-bubble--user">
-              I have too many projects and don't know where to start
+            <h3 class="font-display text-2xl font-bold text-ink mb-3">Text</h3>
+            <p class="text-ink-muted mb-6">Send a message to the same number. Perfect for quiet moments or when you can't talk.</p>
+            <a href="sms:+14844813081" class="inline-flex items-center gap-2 text-ferni font-semibold hover:gap-4 transition-all">
+              Send a text
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+          
+          <!-- Web App -->
+          <div class="reveal group bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-ferni/20 transition-all duration-500" data-expressive>
+            <div class="w-18 h-18 rounded-2xl bg-ferni/10 flex items-center justify-center mb-8 group-hover:bg-ferni/15 transition-colors">
+              <svg class="w-9 h-9 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </div>
-            <div class="showcase__app-bubble showcase__app-bubble--ai">
-              Let's work through this together. Sometimes the path forward becomes clearer when we name what we're facing...
+            <h3 class="font-display text-2xl font-bold text-ink mb-3">Web App</h3>
+            <p class="text-ink-muted mb-6">Open on any device. Voice, text, or video—whatever feels right in the moment.</p>
+            <a href="https://app.ferni.ai" class="inline-flex items-center gap-2 text-ferni font-semibold hover:gap-4 transition-all">
+              Open app
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         MEET YOUR TEAM
+         The six personas with personality
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section id="team" class="py-32 lg:py-40 px-6 bg-paper">
+      <div class="max-w-6xl mx-auto">
+        
+        <!-- Section header -->
+        <div class="text-center mb-20">
+          <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Meet Your Team</p>
+          <h2 class="reveal font-display text-display-lg text-ink mb-6">Six specialists.<br class="sm:hidden"> One conversation.</h2>
+          <p class="reveal text-body-lg text-ink-muted max-w-2xl mx-auto">Every perspective you need, seamlessly woven into a single relationship. No referrals, no waiting.</p>
+        </div>
+        
+        <!-- Team grid -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <!-- Ferni -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border border-ink/5 hover:border-ferni/30 transition-all duration-500" style="--persona-glow: rgba(74, 103, 65, 0.3);" data-expressive>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-ferni-light to-ferni flex items-center justify-center flex-shrink-0 shadow-lg shadow-ferni/20">
+                <span class="font-display font-bold text-white text-lg">FE</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Ferni</h3>
+                <p class="text-ferni text-sm font-semibold mb-3">Life Coach</p>
+                <p class="text-ink-light text-sm leading-relaxed">"I help you see yourself clearly and grow into who you're becoming."</p>
+              </div>
             </div>
           </div>
-          <div class="showcase__app-input">
-            <span>Type a message...</span>
-            <div class="showcase__app-input-mic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/></svg>
+          
+          <!-- Peter -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border border-ink/5 hover:border-peter/30 transition-all duration-500" style="--persona-glow: rgba(58, 107, 115, 0.3);" data-expressive>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-peter to-peter-dark flex items-center justify-center flex-shrink-0 shadow-lg shadow-peter/20">
+                <span class="font-display font-bold text-white text-lg">PJ</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Peter John</h3>
+                <p class="text-peter text-sm font-semibold mb-3">Research & Analysis</p>
+                <p class="text-ink-light text-sm leading-relaxed">"Let's dig into the data and find what really matters."</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Alex -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border border-ink/5 hover:border-alex/30 transition-all duration-500" style="--persona-glow: rgba(90, 107, 138, 0.3);" data-expressive>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-alex to-alex-dark flex items-center justify-center flex-shrink-0 shadow-lg shadow-alex/20">
+                <span class="font-display font-bold text-white text-lg">AC</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Alex Chen</h3>
+                <p class="text-alex text-sm font-semibold mb-3">Communications</p>
+                <p class="text-ink-light text-sm leading-relaxed">"Let's find the right words together."</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Maya -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border border-ink/5 hover:border-maya/30 transition-all duration-500" style="--persona-glow: rgba(166, 122, 106, 0.3);" data-expressive>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-maya to-maya-dark flex items-center justify-center flex-shrink-0 shadow-lg shadow-maya/20">
+                <span class="font-display font-bold text-white text-lg">MS</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Maya Santos</h3>
+                <p class="text-maya text-sm font-semibold mb-3">Habits & Routines</p>
+                <p class="text-ink-light text-sm leading-relaxed">"Small steps, consistently. That's how we change."</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Jordan -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border border-ink/5 hover:border-jordan/30 transition-all duration-500" style="--persona-glow: rgba(196, 133, 106, 0.3);" data-expressive>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-jordan to-jordan-dark flex items-center justify-center flex-shrink-0 shadow-lg shadow-jordan/20">
+                <span class="font-display font-bold text-white text-lg">JT</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Jordan Taylor</h3>
+                <p class="text-jordan text-sm font-semibold mb-3">Events & Celebrations</p>
+                <p class="text-ink-light text-sm leading-relaxed">"Life's milestones deserve to be celebrated fully."</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Nayan (Premium) -->
+          <div class="reveal group persona-card bg-white rounded-3xl p-8 shadow-md hover:shadow-xl border-2 border-ferni/20 hover:border-ferni/40 transition-all duration-500 relative overflow-hidden" style="--persona-glow: rgba(138, 122, 106, 0.3);" data-expressive>
+            <div class="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-ferni/15 to-ferni/5 rounded-full border border-ferni/20">
+              <span class="text-xs font-semibold text-ferni">✨ Partner</span>
+            </div>
+            <div class="flex items-start gap-5">
+              <div class="persona-orb w-16 h-16 rounded-2xl bg-gradient-to-br from-nayan to-nayan-dark flex items-center justify-center flex-shrink-0 shadow-lg shadow-nayan/20 ring-2 ring-ferni/20 ring-offset-2">
+                <span class="font-display font-bold text-white text-lg">NP</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display font-bold text-xl text-ink mb-1">Nayan Patel</h3>
+                <p class="text-nayan text-sm font-semibold mb-3">Sage Mentor</p>
+                <p class="text-ink-light text-sm leading-relaxed">"Wisdom comes from seeing patterns across lifetimes."</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</section>
-
-{# PROMISE #}
-<section class="section promise">
-  <div class="container container--narrow">
-    <div class="promise__content reveal">
-      <p class="promise__quote">
-        "We exist in the space between—the <span class="promise__highlight">2am worry</span>, the commute contemplation, the moment before a big decision. We're <span class="promise__highlight">filling the gaps</span> when your people aren't available."
-      </p>
-      <p class="promise__author">— The Ferni Philosophy</p>
-    </div>
-  </div>
-</section>
-
-{# USE CASES #}
-<section class="section use-cases" id="use-cases">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Real Life</p>
-      <h2 class="section__title">For the moments that matter</h2>
-      <p class="section__subtitle">Ferni meets you where you are—whether you're navigating career decisions, processing stress, or building better habits.</p>
-    </div>
+    </section>
     
-    <div class="use-cases-grid reveal-stagger">
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Career Crossroads</h3>
-        <p class="use-case__description">Navigate job changes, salary negotiations, and that nagging feeling something needs to shift.</p>
-        <p class="use-case__example">"I got a job offer but I'm not sure if I should leave..."</p>
-      </div>
-      
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Stress & Overwhelm</h3>
-        <p class="use-case__description">Process anxiety, talk through what's weighing on you, and find clarity in the chaos.</p>
-        <p class="use-case__example">"I can't stop thinking about everything I need to do..."</p>
-      </div>
-      
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Building Habits</h3>
-        <p class="use-case__description">Start exercising, eat better, sleep more—with Maya's help, small changes stick.</p>
-        <p class="use-case__example">"I keep saying I'll start tomorrow..."</p>
-      </div>
-      
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Life Decisions</h3>
-        <p class="use-case__description">Moving cities, ending relationships, taking risks—the big decisions deserve real thought.</p>
-        <p class="use-case__example">"I don't know if this relationship is working..."</p>
-      </div>
-      
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Relationships</h3>
-        <p class="use-case__description">Navigate family dynamics, friendships, and the complicated relationships that shape us.</p>
-        <p class="use-case__example">"My parents never seem to understand..."</p>
-      </div>
-      
-      <div class="use-case">
-        <div class="use-case__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/>
-          </svg>
-        </div>
-        <h3 class="use-case__title">Daily Check-ins</h3>
-        <p class="use-case__description">Start your day with intention, end it with reflection. Build self-awareness over time.</p>
-        <p class="use-case__example">"I just need someone to talk through my day..."</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# TEAM #}
-<section class="section" id="team">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Meet Your Team</p>
-      <h2 class="section__title">Six specialists. One conversation.</h2>
-      <p class="section__subtitle">Each brings unique expertise. Ferni coordinates them seamlessly based on what you need.</p>
-    </div>
     
-    <div class="team-grid reveal-stagger">
-      {% for member in site.team %}
-      <div class="team-card">
-        <div class="persona-avatar persona-avatar--lg persona-avatar--{{ member.id }}">
-        <div class="persona-avatar__ring"></div>
-        <div class="persona-avatar__orb">
-          <span class="persona-avatar__text">{{ member.initials }}</span>
-        </div>
-      </div>
-        <h3 class="team-card__name">{{ member.name }}</h3>
-        <p class="team-card__role">{{ member.role }}</p>
-        <p class="team-card__bio">{{ member.bio }}</p>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# HOW IT WORKS #}
-<section class="section how-it-works" id="how-it-works">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Getting Started</p>
-      <h2 class="section__title">Three ways to connect</h2>
-      <p class="section__subtitle">No downloads. No accounts required. Start talking in seconds.</p>
-    </div>
-    
-    <div class="steps reveal-stagger">
-      <div class="step">
-        <div class="step__number">1</div>
-        <div class="step__content">
-          <div class="step__icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         WHAT MAKES US DIFFERENT
+         Big feature statements
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section class="py-32 lg:py-40 px-6 bg-paper-sand overflow-hidden">
+      <div class="max-w-6xl mx-auto">
+        
+        <!-- Feature 1: Memory -->
+        <div class="reveal grid lg:grid-cols-2 gap-16 lg:gap-24 items-center mb-32 lg:mb-40">
+          <div class="order-2 lg:order-1">
+            <p class="text-eyebrow uppercase tracking-widest text-ferni mb-4">Perfect Memory</p>
+            <h3 class="font-display text-display-md text-ink mb-6">That thing you mentioned<br>six months ago?<br><span class="text-gradient">We remember.</span></h3>
+            <p class="text-body-lg text-ink-muted">Your best friend forgets what you told them last week. Your therapist has other clients. We remember everything—every breakthrough, every struggle, every detail that matters to you.</p>
           </div>
-          <h3 class="step__title">Call</h3>
-          <p class="step__description">Dial <strong>{{ site.phone }}</strong> from any phone. No app needed. Just talk naturally like you would with a friend.</p>
-          <a href="tel:{{ site.phoneRaw }}" class="step__link">Call now →</a>
-        </div>
-      </div>
-      
-      <div class="step">
-        <div class="step__number">2</div>
-        <div class="step__content">
-          <div class="step__icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+          <div class="order-1 lg:order-2 flex justify-center">
+            <!-- Memory visualization -->
+            <div class="relative w-64 h-64">
+              <div class="absolute inset-0 bg-gradient-radial from-ferni/15 to-transparent rounded-full blur-2xl animate-glow"></div>
+              <div class="absolute inset-8 rounded-full border border-ferni/20 animate-pulse-ring-slow"></div>
+              <div class="absolute inset-12 rounded-full border border-ferni/30"></div>
+              <div class="absolute inset-16 rounded-full bg-gradient-to-br from-ferni/20 to-ferni/5"></div>
+              <!-- Memory dots -->
+              <div class="absolute top-1/4 left-1/4 w-3 h-3 bg-ferni rounded-full shadow-glow-soft animate-float" style="animation-delay: 0s"></div>
+              <div class="absolute top-1/3 right-1/4 w-2 h-2 bg-peter rounded-full shadow-glow-soft animate-float" style="animation-delay: -2s"></div>
+              <div class="absolute bottom-1/4 left-1/3 w-2.5 h-2.5 bg-maya rounded-full shadow-glow-soft animate-float" style="animation-delay: -4s"></div>
+              <div class="absolute bottom-1/3 right-1/3 w-2 h-2 bg-alex rounded-full shadow-glow-soft animate-float" style="animation-delay: -3s"></div>
+            </div>
           </div>
-          <h3 class="step__title">Text</h3>
-          <p class="step__description">Send a message to the same number. Perfect for quiet moments or when you need to organize your thoughts first.</p>
-          <a href="sms:{{ site.phoneRaw }}" class="step__link">Send a text →</a>
         </div>
-      </div>
-      
-      <div class="step">
-        <div class="step__number">3</div>
-        <div class="step__content">
-          <div class="step__icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
+        
+        <!-- Feature 2: Always Available -->
+        <div class="reveal grid lg:grid-cols-2 gap-16 lg:gap-24 items-center mb-32 lg:mb-40">
+          <div class="flex justify-center">
+            <!-- Clock visualization -->
+            <div class="relative w-64 h-64">
+              <div class="absolute inset-0 bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-2xl"></div>
+              <div class="absolute inset-4 rounded-full border border-ink/10"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="font-mono text-6xl font-light text-ferni/80">24<span class="text-2xl">/7</span></span>
+              </div>
+            </div>
           </div>
-          <h3 class="step__title">Web App</h3>
-          <p class="step__description">Open the app on any device. Voice, text, or video—your choice. See your history and track progress.</p>
-          <a href="{{ site.appUrl }}" class="step__link">Open app →</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# FEATURES #}
-<section class="section features" id="features">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Why Ferni Works</p>
-      <h2 class="section__title">Built different</h2>
-      <p class="section__subtitle">The features that make Ferni feel more human than AI.</p>
-    </div>
-    
-    <div class="features-grid reveal-stagger">
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-        </div>
-        <h3 class="feature__title">Voice-First</h3>
-        <p class="feature__description">Call {{ site.phone }} anytime. No app, no login—just natural conversation that flows like talking to a friend.</p>
-      </div>
-      
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <h3 class="feature__title">Infinite Memory</h3>
-        <p class="feature__description">Ferni remembers every conversation—your context, your goals, your story. No repeating yourself.</p>
-      </div>
-      
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <h3 class="feature__title">Always Available</h3>
-        <p class="feature__description">24/7, 365 days. Whether it's 2am anxiety or a lunch break check-in. We're here when you need us.</p>
-      </div>
-      
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <h3 class="feature__title">Six Specialists</h3>
-        <p class="feature__description">Each team member brings unique expertise. Ferni connects you to the right one based on what you're facing.</p>
-      </div>
-      
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <h3 class="feature__title">Private & Secure</h3>
-        <p class="feature__description">Your conversations are encrypted. We don't sell data. You can export or delete anytime. Trust is everything.</p>
-      </div>
-      
-      <div class="feature">
-        <div class="feature__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <h3 class="feature__title">Tracks Progress</h3>
-        <p class="feature__description">See how you're growing. Weekly insights, mood patterns, goal tracking—the data that helps you understand yourself.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# COMPARISON #}
-<section class="section comparison" id="comparison">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Why Ferni</p>
-      <h2 class="section__title">Beyond human limitations</h2>
-      <p class="section__subtitle">Your best friend, therapist, and mentor all have limits. We don't.</p>
-    </div>
-    
-    <div class="comparison-grid reveal-stagger">
-      <div class="comparison-card comparison-card--others">
-        <h3 class="comparison-card__title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
-          Other AI
-        </h3>
-        <ul class="comparison-card__list">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Generic responses</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Forgets everything</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>One-size-fits-all</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Robotic interactions</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Text only</li>
-        </ul>
-      </div>
-      
-      <div class="comparison-card comparison-card--ferni">
-        <h3 class="comparison-card__title">
-          <svg viewBox="0 0 100 100" width="24" height="24">
-            <circle cx="50" cy="50" r="45" fill="white"/>
-            <circle cx="50" cy="50" r="18" fill="#4a6741"/>
-            <circle cx="50" cy="50" r="10" fill="white"/>
-          </svg>
-          Ferni
-        </h3>
-        <ul class="comparison-card__list">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Personalized to your story</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Remembers everything</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>6 specialized personas</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Human-like conversation</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice-first (just call)</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# TESTIMONIALS #}
-<section class="section" id="testimonials">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Testimonials</p>
-      <h2 class="section__title">Loved by people like you</h2>
-    </div>
-    
-    <div class="testimonials-grid reveal-stagger">
-      {% for testimonial in site.testimonials %}
-      <div class="testimonial{% if testimonial.featured %} testimonial--featured{% endif %}">
-        <div class="testimonial__stars">
-          {% for i in range(0, 5) %}<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>{% endfor %}
-        </div>
-        <p class="testimonial__quote">"{{ testimonial.quote }}"</p>
-        <div class="testimonial__author">
-          <div class="testimonial__avatar">{{ testimonial.initials }}</div>
           <div>
-            <p class="testimonial__name">{{ testimonial.author }}</p>
-            <p class="testimonial__role">{{ testimonial.role }}</p>
+            <p class="text-eyebrow uppercase tracking-widest text-ferni mb-4">Always Present</p>
+            <h3 class="font-display text-display-md text-ink mb-6">2am panic?<br><span class="text-gradient">We're fully present.</span></h3>
+            <p class="text-body-lg text-ink-muted">No waiting for appointments. No "office hours." When you need someone, we're here—with the same warmth and attention at 3am as 3pm. No bad days, no distractions.</p>
           </div>
         </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# SECURITY & PRIVACY #}
-<section class="section security" id="security">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Your Privacy</p>
-      <h2 class="section__title">Your conversations stay yours</h2>
-      <p class="section__subtitle">We built Ferni with privacy at its core. Your data is never sold or shared.</p>
-    </div>
-    
-    <div class="security-grid reveal-stagger">
-      <div class="security-card">
-        <div class="security-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <path d="M9 12l2 2 4-4"/>
-          </svg>
-        </div>
-        <h3 class="security-card__title">End-to-End Encrypted</h3>
-        <p class="security-card__description">Your conversations are encrypted in transit and at rest. Only you can access your data.</p>
-      </div>
-      
-      <div class="security-card">
-        <div class="security-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        </div>
-        <h3 class="security-card__title">You Own Your Data</h3>
-        <p class="security-card__description">Export or delete your data anytime with one click. No lock-in, no questions asked.</p>
-      </div>
-      
-      <div class="security-card">
-        <div class="security-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-          </svg>
-        </div>
-        <h3 class="security-card__title">We Never Sell Data</h3>
-        <p class="security-card__description">Your information is never shared with advertisers or third parties. Trust is everything.</p>
-      </div>
-      
-      <div class="security-card">
-        <div class="security-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-        </div>
-        <h3 class="security-card__title">GDPR & CCPA Compliant</h3>
-        <p class="security-card__description">We follow the strictest privacy regulations. Your rights are protected globally.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# FAQ #}
-<section class="section faq" id="faq">
-  <div class="container container--narrow">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Questions</p>
-      <h2 class="section__title">Frequently asked</h2>
-    </div>
-    
-    <div class="faq-list reveal-stagger">
-      <details class="faq-item">
-        <summary class="faq-item__question">Is Ferni a replacement for therapy?</summary>
-        <div class="faq-item__answer">
-          <p>No. Ferni is a life coaching companion, not a licensed therapist. We're great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni can complement therapy, but not replace it.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">How does the phone call feature work?</summary>
-        <div class="faq-item__answer">
-          <p>Just call {{ site.phone }} from any phone—no app needed. Your conversation is linked to your phone number, so Ferni remembers you. It's like calling a friend who actually picks up. Works on any phone, anywhere in the world.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">What does "infinite memory" mean?</summary>
-        <div class="faq-item__answer">
-          <p>Unlike other AI, Ferni remembers every conversation you've had. Mention something months ago? Ferni recalls it. This creates continuity—like talking to a friend who actually knows your story, your goals, and what you've been through.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">Is my data private and secure?</summary>
-        <div class="faq-item__answer">
-          <p>Absolutely. Your conversations are encrypted and never sold or shared. You can export or delete your data anytime. We're building trust systems, not advertising systems. Your privacy is fundamental to how we operate.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">Who are the 6 specialists?</summary>
-        <div class="faq-item__answer">
-          <p>Meet the team: <strong>Ferni</strong> (Life Coach & Coordinator), <strong>Peter</strong> (Research & Deep Dives), <strong>Alex</strong> (Communication & Expression), <strong>Maya</strong> (Habits & Routines), <strong>Jordan</strong> (Planning & Organization), and <strong>Nayan</strong> (Wisdom & Perspective - Partner tier). Ferni connects you to the right specialist based on what you need.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">Can I cancel anytime?</summary>
-        <div class="faq-item__answer">
-          <p>Yes, no contracts, no commitment. Cancel with one click. Your free tier access continues even if you cancel a paid plan. We want you to stay because Ferni helps, not because you're locked in.</p>
-        </div>
-      </details>
-      
-      <details class="faq-item">
-        <summary class="faq-item__question">What makes Ferni different from ChatGPT?</summary>
-        <div class="faq-item__answer">
-          <p>ChatGPT is a general-purpose AI. Ferni is purpose-built for life coaching with specialized personas, infinite memory of your conversations, voice-first interaction (just call!), and a relationship that deepens over time. It's the difference between a search engine and a friend.</p>
-        </div>
-      </details>
-    </div>
-  </div>
-</section>
-
-{# PRICING #}
-<section class="section pricing" id="pricing">
-  <div class="container">
-    <div class="section__header reveal">
-      <p class="section__eyebrow">Pricing</p>
-      <h2 class="section__title">Start free. Upgrade when ready.</h2>
-      <p class="section__subtitle">Everyone deserves a life coach. That's why Ferni is free to start.</p>
-    </div>
-    
-    <div class="pricing-grid reveal-stagger">
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Free</h3>
-        <p class="pricing-card__price">$0<span>/mo</span></p>
-        <p class="pricing-card__description">Get started with Ferni</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5 conversations/month</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Conversation memory</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Get Started</a>
-      </div>
-      
-      <div class="pricing-card pricing-card--featured">
-        <span class="pricing-card__badge">Most Popular</span>
-        <h3 class="pricing-card__name">Friend</h3>
-        <p class="pricing-card__price">$9.99<span>/mo</span></p>
-        <p class="pricing-card__description">Unlimited access to the team</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 6 AI specialists</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority response time</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Progress tracking</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Weekly insights</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--primary pricing-card__cta">Start Free Trial</a>
-      </div>
-      
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Partner</h3>
-        <p class="pricing-card__price">$19.99<span>/mo</span></p>
-        <p class="pricing-card__description">Premium + exclusive features</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Friend</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Nayan (Sage) exclusive</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Advanced analytics</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Calendar integration</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Start Free Trial</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# FINAL CTA #}
-<section class="section final-cta">
-  <div class="container reveal">
-    <h2 class="final-cta__headline">Ready to feel heard?</h2>
-    <p class="final-cta__subhead">Start a conversation with Ferni today. No credit card required.</p>
-    <div class="final-cta__buttons">
-      <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
-        Get started free
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-      <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Call {{ site.phone }}
-      </a>
-    </div>
-  </div>
-</section>
-</main>
-
-{# FOOTER #}
-<footer class="footer">
-  <div class="footer__inner">
-    <div class="footer__grid">
-      <div class="footer__brand">
-        <a href="/" class="footer__logo">
-          <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
-            <div class="persona-avatar__ring"></div>
-            <div class="persona-avatar__orb">
-              <span class="persona-avatar__text">FN</span>
+        
+        <!-- Feature 3: Six Perspectives -->
+        <div class="reveal grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          <div class="order-2 lg:order-1">
+            <p class="text-eyebrow uppercase tracking-widest text-ferni mb-4">Six Perspectives</p>
+            <h3 class="font-display text-display-md text-ink mb-6">Every expert you need,<br><span class="text-gradient">one conversation.</span></h3>
+            <p class="text-body-lg text-ink-muted">No referrals. No waiting weeks for the right specialist. Ferni, Peter, Alex, Maya, Jordan, and Nayan work together seamlessly—switching context instantly based on what you need.</p>
+          </div>
+          <div class="order-1 lg:order-2 flex justify-center">
+            <!-- Team visualization -->
+            <div class="relative w-64 h-64">
+              <div class="absolute inset-0 bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-2xl"></div>
+              <!-- Center orb -->
+              <div class="absolute inset-[30%] rounded-full bg-gradient-to-br from-ferni-light to-ferni shadow-glow-soft flex items-center justify-center animate-breathe">
+                <span class="font-display font-bold text-white">FN</span>
+              </div>
+              <!-- Surrounding personas -->
+              <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-peter flex items-center justify-center text-white text-xs font-bold shadow-lg">PJ</div>
+              <div class="absolute top-1/4 right-0 w-12 h-12 rounded-full bg-alex flex items-center justify-center text-white text-xs font-bold shadow-lg">AC</div>
+              <div class="absolute bottom-1/4 right-0 w-12 h-12 rounded-full bg-maya flex items-center justify-center text-white text-xs font-bold shadow-lg">MS</div>
+              <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-jordan flex items-center justify-center text-white text-xs font-bold shadow-lg">JT</div>
+              <div class="absolute bottom-1/4 left-0 w-12 h-12 rounded-full bg-nayan flex items-center justify-center text-white text-xs font-bold shadow-lg">NP</div>
             </div>
           </div>
-          <span class="nav__logo-text">Ferni</span>
-        </a>
-        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+        </div>
       </div>
-      
-      <div>
-        <h4 class="footer__column-title">Product</h4>
-        <ul class="footer__links">
-          <li><a href="#team">Meet the Team</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-        </ul>
-      </div>
-      
-      <div>
-        <h4 class="footer__column-title">Company</h4>
-        <ul class="footer__links">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/blog/">Blog</a></li>
-          <li><a href="/contact/">Contact</a></li>
-        </ul>
-      </div>
-      
-      <div>
-        <h4 class="footer__column-title">Connect</h4>
-        <ul class="footer__links">
-          <li><a href="{{ site.appUrl }}">Web App</a></li>
-          <li><a href="tel:{{ site.phoneRaw }}">Call Ferni</a></li>
-          <li><a href="{{ site.social.twitter }}">Twitter</a></li>
-        </ul>
-      </div>
-    </div>
+    </section>
     
-    <div class="footer__bottom">
-      <p class="footer__copyright">&copy; 2025 Ferni. All rights reserved.</p>
-      <div class="footer__legal">
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         PRICING
+         Simple, human pricing
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section id="pricing" class="py-32 lg:py-40 px-6 bg-paper">
+      <div class="max-w-5xl mx-auto">
+        
+        <!-- Section header -->
+        <div class="text-center mb-20">
+          <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Pricing</p>
+          <h2 class="reveal font-display text-display-lg text-ink">Start free. Grow together.</h2>
+        </div>
+        
+        <!-- Pricing cards -->
+        <div class="grid lg:grid-cols-3 gap-8">
+          
+          <!-- Free -->
+          <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ink/10 transition-all duration-500">
+            <h3 class="font-display text-2xl font-bold text-ink mb-2">Free</h3>
+            <div class="mb-6">
+              <span class="font-display text-5xl font-bold text-ink">$0</span>
+              <span class="text-ink-muted">/month</span>
+            </div>
+            <p class="text-ink-muted mb-8">Get started with Ferni</p>
+            <ul class="space-y-4 mb-10">
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                5 conversations/month
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Talk to Ferni (Life Coach)
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Voice & text
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Conversation memory
+              </li>
+            </ul>
+            <a href="https://app.ferni.ai" class="block w-full py-4 text-center font-semibold text-ink bg-paper-sand hover:bg-paper-warm rounded-xl transition-colors">
+              Get Started
+            </a>
+          </div>
+          
+          <!-- Friend (Popular) -->
+          <div class="reveal pricing-popular bg-white rounded-3xl p-8 lg:p-10 shadow-2xl border-2 border-ferni relative lg:-mt-4 lg:-mb-4 lg:scale-105">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-2 bg-gradient-to-r from-ferni to-ferni-dark text-white text-xs font-bold rounded-full shadow-lg shadow-ferni/30 animate-pulse">
+              ⭐ Most Popular
+            </div>
+            <h3 class="font-display text-2xl font-bold text-ink mb-2">Friend</h3>
+            <div class="mb-6">
+              <span class="font-display text-5xl font-bold text-ink">$9.99</span>
+              <span class="text-ink-muted">/month</span>
+            </div>
+            <p class="text-ink-muted mb-8">Unlimited access to the team</p>
+            <ul class="space-y-4 mb-10">
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                <strong>Unlimited</strong> conversations
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                All 6 AI specialists
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Priority response time
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Progress tracking
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Weekly insights
+              </li>
+            </ul>
+            <a href="https://app.ferni.ai" class="btn-magnetic block w-full py-4 text-center font-semibold text-white bg-ferni hover:bg-ferni-dark rounded-xl shadow-lg shadow-ferni/20 hover:shadow-xl hover:shadow-ferni/30 transition-all">
+              Start Free Trial
+            </a>
+          </div>
+          
+          <!-- Partner -->
+          <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ink/10 transition-all duration-500">
+            <h3 class="font-display text-2xl font-bold text-ink mb-2">Partner</h3>
+            <div class="mb-6">
+              <span class="font-display text-5xl font-bold text-ink">$19.99</span>
+              <span class="text-ink-muted">/month</span>
+            </div>
+            <p class="text-ink-muted mb-8">Premium + exclusive features</p>
+            <ul class="space-y-4 mb-10">
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Everything in Friend
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Nayan (Sage) exclusive
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Advanced analytics
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Calendar integration
+              </li>
+              <li class="flex items-center gap-3 text-sm text-ink">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Early access to features
+              </li>
+            </ul>
+            <a href="https://app.ferni.ai" class="block w-full py-4 text-center font-semibold text-ink bg-paper-sand hover:bg-paper-warm rounded-xl transition-colors">
+              Start Free Trial
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         FAQ
+         Clear, honest answers
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section id="faq" class="py-32 lg:py-40 px-6 bg-paper-sand">
+      <div class="max-w-3xl mx-auto">
+        
+        <!-- Section header -->
+        <div class="text-center mb-16">
+          <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">FAQ</p>
+          <h2 class="reveal font-display text-display-lg text-ink">Common questions</h2>
+        </div>
+        
+        <!-- FAQ items -->
+        <div class="space-y-4">
+          
+          <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 hover:border-ferni/20 overflow-hidden transition-all duration-300">
+            <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink hover:text-ferni transition-colors">
+              How is this different from talking to a friend or coach?
+              <svg class="faq-icon w-5 h-5 text-ink-muted group-hover:text-ferni flex-shrink-0 transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </summary>
+            <div class="faq-content px-6 pb-6 text-ink-muted leading-relaxed">
+              Your best friend forgets what you told them last week. Your coach has other clients. We remember everything—every breakthrough, every struggle, every detail. And we're always here, with the same presence at 3am as 3pm.
+            </div>
+          </details>
+          
+          <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 hover:border-ferni/20 overflow-hidden transition-all duration-300">
+            <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink hover:text-ferni transition-colors">
+              Is my data private and secure?
+              <svg class="faq-icon w-5 h-5 text-ink-muted group-hover:text-ferni flex-shrink-0 transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </summary>
+            <div class="faq-content px-6 pb-6 text-ink-muted leading-relaxed">
+              Absolutely. All conversations are end-to-end encrypted. We never sell your data. You own your data and can export or delete it at any time. We're GDPR and CCPA compliant.
+            </div>
+          </details>
+          
+          <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 hover:border-ferni/20 overflow-hidden transition-all duration-300">
+            <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink hover:text-ferni transition-colors">
+              Can I really call or text a phone number?
+              <svg class="faq-icon w-5 h-5 text-ink-muted group-hover:text-ferni flex-shrink-0 transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </summary>
+            <div class="faq-content px-6 pb-6 text-ink-muted leading-relaxed">
+              Yes! Dial <strong class="text-ferni">(484) 481-3081</strong> from any phone—landline or mobile, anywhere in the world. No app download required. Just call and start talking.
+            </div>
+          </details>
+          
+          <details class="reveal group faq-item bg-white rounded-2xl shadow-md hover:shadow-lg border border-ink/5 hover:border-ferni/20 overflow-hidden transition-all duration-300">
+            <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer font-display font-semibold text-lg text-ink hover:text-ferni transition-colors">
+              What if I need to cancel?
+              <svg class="faq-icon w-5 h-5 text-ink-muted group-hover:text-ferni flex-shrink-0 transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </summary>
+            <div class="faq-content px-6 pb-6 text-ink-muted leading-relaxed">
+              Cancel anytime with one click. No questions, no hoops, no guilt. We want you here because it's working, not because you're stuck.
+            </div>
+          </details>
+          
+        </div>
+      </div>
+    </section>
+    
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         FINAL CTA
+         Emotional, clear call to action
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <section class="py-32 lg:py-40 px-6 bg-paper relative overflow-hidden">
+      <!-- Background glow - animated -->
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="cta-bg-glow w-[800px] h-[800px] bg-gradient-radial from-ferni/15 via-ferni/5 to-transparent rounded-full blur-3xl"></div>
+      </div>
+      
+      <div class="relative max-w-2xl mx-auto text-center">
+        <div class="reveal">
+          <h2 class="font-display text-display-lg text-ink mb-6">Ready to be heard?</h2>
+          <p class="text-body-xl text-ink-muted mb-12">No app to download. No account needed to try.<br class="hidden sm:block"> Just pick up your phone and call.</p>
+        </div>
+        
+        <div class="reveal">
+          <!-- Phone number with glow -->
+          <a href="tel:+14844813081" class="group block mb-10">
+            <span class="phone-glow phone-number-hover inline-block font-mono text-4xl lg:text-6xl font-bold text-ferni">(484) 481-3081</span>
+            <span class="block text-ink-muted mt-4 text-lg">We'll be here. Always.</span>
+          </a>
+          
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold rounded-full shadow-lg shadow-ferni/25 hover:shadow-xl hover:shadow-ferni/35 hover:-translate-y-1 transition-all duration-300">
+              Start in the web app
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="sms:+14844813081" class="inline-flex items-center gap-2 text-ink-muted hover:text-ferni transition-colors">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Or send a text
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+  
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       FOOTER
+       Clean, organized
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <footer class="bg-paper-warm py-20 px-6 border-t border-ink/5">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-4 gap-12 mb-16">
+        
+        <!-- Brand -->
+        <div>
+          <a href="/" class="inline-flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-lg bg-ferni text-white flex items-center justify-center text-sm font-bold">FN</div>
+            <span class="font-display font-bold text-xl">Ferni</span>
+          </a>
+          <p class="text-sm text-ink-muted">Six specialists, one conversation, infinite memory.</p>
+        </div>
+        
+        <!-- Product -->
+        <div>
+          <h4 class="font-display font-semibold text-sm uppercase tracking-wider text-ink mb-4">Product</h4>
+          <ul class="space-y-3 text-sm text-ink-muted">
+            <li><a href="/team" class="hover:text-ferni transition-colors">Meet the Team</a></li>
+            <li><a href="#how-it-works" class="hover:text-ferni transition-colors">Features</a></li>
+            <li><a href="#pricing" class="hover:text-ferni transition-colors">Pricing</a></li>
+          </ul>
+        </div>
+        
+        <!-- Company -->
+        <div>
+          <h4 class="font-display font-semibold text-sm uppercase tracking-wider text-ink mb-4">Company</h4>
+          <ul class="space-y-3 text-sm text-ink-muted">
+            <li><a href="/about" class="hover:text-ferni transition-colors">About</a></li>
+            <li><a href="/blog" class="hover:text-ferni transition-colors">Blog</a></li>
+            <li><a href="/contact" class="hover:text-ferni transition-colors">Contact</a></li>
+          </ul>
+        </div>
+        
+        <!-- Connect -->
+        <div>
+          <h4 class="font-display font-semibold text-sm uppercase tracking-wider text-ink mb-4">Connect</h4>
+          <ul class="space-y-3 text-sm text-ink-muted">
+            <li><a href="https://app.ferni.ai" class="hover:text-ferni transition-colors">Web App</a></li>
+            <li><a href="tel:+14844813081" class="hover:text-ferni transition-colors">Call Ferni</a></li>
+            <li><a href="https://twitter.com/ferniAI" class="hover:text-ferni transition-colors">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Bottom bar -->
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-ink/5 text-sm text-ink-muted">
+        <p>© 2025 Ferni. All rights reserved.</p>
+        <div class="flex gap-6">
+          <a href="/privacy" class="hover:text-ferni transition-colors">Privacy</a>
+          <a href="/terms" class="hover:text-ferni transition-colors">Terms</a>
+          <a href="/accessibility" class="hover:text-ferni transition-colors">Accessibility</a>
+        </div>
       </div>
     </div>
-  </div>
-</footer>
-
-{# Floating Mobile CTA #}
-<div class="mobile-cta" id="mobileCta">
-  <div class="mobile-cta__inner">
-    <a href="{{ site.appUrl }}" class="btn btn--primary">
+  </footer>
+  
+  
+  <!-- Mobile sticky CTA -->
+  <div class="fixed bottom-0 left-0 right-0 p-4 bg-paper/95 backdrop-blur-xl border-t border-ink/10 flex gap-3 md:hidden z-50">
+    <a href="https://app.ferni.ai" class="flex-1 py-3.5 text-center font-semibold text-white bg-ferni rounded-xl shadow-lg">
       Start Free
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
-    <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-      Call
+    <a href="tel:+14844813081" class="py-3.5 px-5 font-semibold text-ferni bg-white rounded-xl border border-ink/10 shadow-lg">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
     </a>
   </div>
-</div>
+  
+  
+  <!-- Better Than Human Interactions -->
+  <script src="/js/better-than-human.js"></script>
+  
+</body>
+</html>

@@ -44,9 +44,38 @@ import {
   saveVoiceProfile,
   updateVoiceProfileIndex,
 } from '../services/voice-profile-store.js';
+// Security services
+import { checkRateLimit } from '../services/voice-rate-limit.js';
+import { checkLiveness } from '../services/voice-liveness.js';
+import { detectSpoofing } from '../services/voice-antispoofing.js';
+import {
+  logEnrollmentStart,
+  logEnrollmentSample,
+  logEnrollmentComplete,
+  logEnrollmentFail,
+  logVerification,
+  logIdentification,
+  logLivenessFail,
+  logSpoofDetected,
+  logProfileDelete,
+  checkSuspiciousActivity,
+} from '../services/voice-audit-log.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'VoiceAuthHandler' });
+
+// Security configuration
+const SECURITY_CONFIG = {
+  enableLivenessCheck: true,
+  enableAntiSpoofing: true,
+  enableRateLimiting: true,
+  enableAuditLogging: true,
+  livenessMinConfidence: 0.6,
+  antiSpoofMinConfidence: 0.6,
+};
+
+// Default sample rate for audio analysis
+const DEFAULT_SAMPLE_RATE = 16000;
 
 // In-memory session storage (use Redis in production)
 const enrollmentSessions = new Map<string, EnrollmentSession>();
@@ -92,6 +121,123 @@ function sendJson(res: ServerResponse, status: number, data: any): void {
  */
 function getUserId(req: IncomingMessage): string | null {
   return (req.headers['x-user-id'] as string) || null;
+}
+
+/**
+ * Get client IP from request.
+ */
+function getClientIP(req: IncomingMessage): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
+    return ips[0].trim();
+  }
+  const realIP = req.headers['x-real-ip'];
+  if (realIP) {
+    return typeof realIP === 'string' ? realIP : realIP[0];
+  }
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * Get device info from request.
+ */
+function getDeviceInfo(req: IncomingMessage): { userAgent?: string; platform?: string; deviceId?: string } {
+  return {
+    userAgent: req.headers['user-agent'] as string,
+    platform: req.headers['x-platform'] as string,
+    deviceId: req.headers['x-device-id'] as string,
+  };
+}
+
+/**
+ * Check rate limit and send error if exceeded.
+ */
+function checkAndEnforceRateLimit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  endpoint: 'verify' | 'identify' | 'enroll' | 'profile' | 'status'
+): boolean {
+  if (!SECURITY_CONFIG.enableRateLimiting) return true;
+
+  const ipAddress = getClientIP(req);
+  const result = checkRateLimit(userId, endpoint, ipAddress);
+
+  // Set rate limit headers
+  res.setHeader('X-RateLimit-Remaining', String(result.remaining));
+  res.setHeader('X-RateLimit-Reset', String(Math.floor(result.resetAt.getTime() / 1000)));
+
+  if (!result.allowed) {
+    res.setHeader('Retry-After', String(Math.ceil((result.retryAfterMs || 0) / 1000)));
+    sendJson(res, 429, {
+      error: 'Too many requests',
+      message: result.blocked
+        ? 'You have been temporarily blocked due to too many requests'
+        : 'Rate limit exceeded. Please slow down.',
+      retryAfterMs: result.retryAfterMs,
+    });
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Run security checks on audio (liveness + anti-spoofing).
+ */
+async function runSecurityChecks(
+  audio: Float32Array,
+  userId: string,
+  deviceInfo: { userAgent?: string; platform?: string; deviceId?: string }
+): Promise<{ passed: boolean; warnings: string[]; livenessScore?: number; spoofScore?: number }> {
+  const warnings: string[] = [];
+  let livenessScore: number | undefined;
+  let spoofScore: number | undefined;
+
+  // Liveness check
+  if (SECURITY_CONFIG.enableLivenessCheck) {
+    const livenessResult = await checkLiveness(audio, DEFAULT_SAMPLE_RATE);
+    livenessScore = livenessResult.confidence;
+
+    if (!livenessResult.isLive || livenessResult.confidence < SECURITY_CONFIG.livenessMinConfidence) {
+      warnings.push(...livenessResult.warnings);
+
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logLivenessFail(userId, livenessResult.confidence, livenessResult.warnings, deviceInfo);
+      }
+
+      if (!livenessResult.isLive) {
+        return { passed: false, warnings, livenessScore };
+      }
+    }
+  }
+
+  // Anti-spoofing check
+  if (SECURITY_CONFIG.enableAntiSpoofing) {
+    const spoofResult = detectSpoofing(audio, DEFAULT_SAMPLE_RATE);
+    spoofScore = spoofResult.confidence;
+
+    if (!spoofResult.isAuthentic || spoofResult.confidence < SECURITY_CONFIG.antiSpoofMinConfidence) {
+      warnings.push(...spoofResult.warnings);
+
+      if (SECURITY_CONFIG.enableAuditLogging && spoofResult.spoofType) {
+        await logSpoofDetected(
+          userId,
+          spoofResult.spoofType,
+          spoofResult.confidence,
+          spoofResult.warnings,
+          deviceInfo
+        );
+      }
+
+      if (!spoofResult.isAuthentic) {
+        return { passed: false, warnings, livenessScore, spoofScore };
+      }
+    }
+  }
+
+  return { passed: true, warnings, livenessScore, spoofScore };
 }
 
 /**
@@ -180,7 +326,13 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
+      // Rate limiting
+      if (!checkAndEnforceRateLimit(req, res, userId, 'enroll')) {
+        return true;
+      }
+
       const body = await parseBody(req);
+      const deviceInfo = getDeviceInfo(req);
 
       // Check if already enrolled
       const existing = await hasVoiceProfile(userId);
@@ -196,6 +348,11 @@ export async function handleVoiceAuthRoutes(
         requiredSamples: body.requiredSamples,
       });
       enrollmentSessions.set(userId, session);
+
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logEnrollmentStart(userId, deviceInfo, userId);
+      }
 
       log.info({ userId }, 'Enrollment session started');
 
@@ -218,6 +375,11 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
+      // Rate limiting
+      if (!checkAndEnforceRateLimit(req, res, userId, 'enroll')) {
+        return true;
+      }
+
       const session = enrollmentSessions.get(userId);
       if (!session) {
         sendJson(res, 400, { error: 'No enrollment session' });
@@ -226,9 +388,24 @@ export async function handleVoiceAuthRoutes(
 
       const body = await parseBody(req);
       const audio = parseAudio(body);
+      const deviceInfo = getDeviceInfo(req);
 
       if (!audio) {
         sendJson(res, 400, { error: 'Invalid audio data' });
+        return true;
+      }
+
+      // Security checks for enrollment samples too
+      const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+      if (!securityResult.passed) {
+        if (SECURITY_CONFIG.enableAuditLogging) {
+          await logEnrollmentFail(userId, 'Security check failed', deviceInfo);
+        }
+        sendJson(res, 403, {
+          error: 'Security check failed',
+          message: 'Audio sample did not pass security verification',
+          warnings: securityResult.warnings,
+        });
         return true;
       }
 
@@ -239,6 +416,16 @@ export async function handleVoiceAuthRoutes(
 
       enrollmentSessions.set(userId, result.session);
 
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logEnrollmentSample(
+          userId,
+          result.session.samples.length,
+          result.session.currentQuality,
+          deviceInfo
+        );
+      }
+
       sendJson(res, result.success ? 200 : 400, {
         success: result.success,
         message: result.feedback,
@@ -247,6 +434,10 @@ export async function handleVoiceAuthRoutes(
           required: result.session.requiredSamples,
           quality: result.session.currentQuality,
           status: result.session.status,
+        },
+        security: {
+          livenessScore: securityResult.livenessScore,
+          spoofScore: securityResult.spoofScore,
         },
       });
       return true;
@@ -269,9 +460,13 @@ export async function handleVoiceAuthRoutes(
       }
 
       const body = await parseBody(req);
+      const deviceInfo = getDeviceInfo(req);
       const result = await completeEnrollment(session);
 
       if (!result.success || !result.profile) {
+        if (SECURITY_CONFIG.enableAuditLogging) {
+          await logEnrollmentFail(userId, result.error || 'Unknown error', deviceInfo);
+        }
         sendJson(res, 400, { error: result.error });
         return true;
       }
@@ -283,6 +478,16 @@ export async function handleVoiceAuthRoutes(
       await saveVoiceProfile(result.profile);
       await updateVoiceProfileIndex(result.profile);
       enrollmentSessions.delete(userId);
+
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logEnrollmentComplete(
+          userId,
+          result.profile.qualityScore,
+          result.profile.embeddings.length,
+          deviceInfo
+        );
+      }
 
       log.info({ userId, quality: result.profile.qualityScore }, 'Enrollment completed');
 
@@ -322,11 +527,42 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
+      // Rate limiting
+      if (!checkAndEnforceRateLimit(req, res, userId, 'verify')) {
+        return true;
+      }
+
+      // Check for suspicious activity
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        const suspicious = await checkSuspiciousActivity(userId);
+        if (suspicious.isSuspicious && suspicious.riskScore > 0.7) {
+          log.warn({ userId, reasons: suspicious.reasons }, 'Suspicious activity detected');
+          sendJson(res, 403, {
+            error: 'Access temporarily restricted',
+            message: 'Too many failed attempts. Please try again later.',
+          });
+          return true;
+        }
+      }
+
       const body = await parseBody(req);
       const audio = parseAudio(body);
 
       if (!audio) {
         sendJson(res, 400, { error: 'Invalid audio data' });
+        return true;
+      }
+
+      const deviceInfo = getDeviceInfo(req);
+
+      // Security checks (liveness + anti-spoofing)
+      const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+      if (!securityResult.passed) {
+        sendJson(res, 403, {
+          error: 'Security check failed',
+          message: 'Audio did not pass security verification',
+          warnings: securityResult.warnings,
+        });
         return true;
       }
 
@@ -338,6 +574,15 @@ export async function handleVoiceAuthRoutes(
 
       const result = await verifyUser(audio, profile);
 
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logVerification(userId, result.verified, result.confidence, deviceInfo, {
+          processingTimeMs: result.processingTimeMs,
+          livenessScore: securityResult.livenessScore,
+          spoofScore: securityResult.spoofScore,
+        });
+      }
+
       log.info({ userId, verified: result.verified }, 'Verification attempt');
 
       sendJson(res, 200, {
@@ -345,6 +590,11 @@ export async function handleVoiceAuthRoutes(
         confidence: result.confidence,
         processingTimeMs: result.processingTimeMs,
         details: result.details,
+        security: {
+          livenessScore: securityResult.livenessScore,
+          spoofScore: securityResult.spoofScore,
+          warnings: securityResult.warnings.length > 0 ? securityResult.warnings : undefined,
+        },
       });
       return true;
     }
@@ -353,11 +603,29 @@ export async function handleVoiceAuthRoutes(
     // POST /api/voice/identify
     // ========================================================================
     if (route === '/identify' && req.method === 'POST') {
+      // Rate limiting (use anonymous if no user ID)
+      const userId = getUserId(req) || 'anonymous';
+      if (!checkAndEnforceRateLimit(req, res, userId, 'identify')) {
+        return true;
+      }
+
       const body = await parseBody(req);
       const audio = parseAudio(body);
+      const deviceInfo = getDeviceInfo(req);
 
       if (!audio) {
         sendJson(res, 400, { error: 'Invalid audio data' });
+        return true;
+      }
+
+      // Security checks
+      const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+      if (!securityResult.passed) {
+        sendJson(res, 403, {
+          error: 'Security check failed',
+          message: 'Audio did not pass security verification',
+          warnings: securityResult.warnings,
+        });
         return true;
       }
 
@@ -388,6 +656,17 @@ export async function handleVoiceAuthRoutes(
         minThreshold: body.minThreshold,
       });
 
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logIdentification(
+          result.userId || null,
+          result.identified,
+          result.confidence,
+          result.candidates.length,
+          deviceInfo
+        );
+      }
+
       log.info({ identified: result.identified, userId: result.userId }, 'Identification attempt');
 
       sendJson(res, 200, {
@@ -396,6 +675,10 @@ export async function handleVoiceAuthRoutes(
         confidence: result.confidence,
         candidates: result.candidates.slice(0, 5),
         processingTimeMs: result.processingTimeMs,
+        security: {
+          livenessScore: securityResult.livenessScore,
+          spoofScore: securityResult.spoofScore,
+        },
       });
       return true;
     }
@@ -502,8 +785,20 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
+      // Rate limiting
+      if (!checkAndEnforceRateLimit(req, res, userId, 'profile')) {
+        return true;
+      }
+
+      const deviceInfo = getDeviceInfo(req);
+
       await deleteVoiceProfile(userId);
       await removeFromVoiceProfileIndex(userId);
+
+      // Audit logging
+      if (SECURITY_CONFIG.enableAuditLogging) {
+        await logProfileDelete(userId, deviceInfo);
+      }
 
       log.info({ userId }, 'Voice profile deleted');
 

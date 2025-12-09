@@ -104,6 +104,23 @@ export {
   type ThinkingOfYouProfile,
 } from './thinking-of-you.js';
 
+// 💚 "Our Songs" - Shared Musical Memories
+export {
+  detectSignificantMoment,
+  recordOurSong,
+  checkForOurSong,
+  getProactiveRememberWhen,
+  getOurSongsStats,
+  getAllOurSongs,
+  loadOurSongsProfile,
+  getOurSongsProfileForPersistence,
+  type SharedSongMemory,
+  type OurSongsProfile,
+  type MomentType,
+  type EmotionDuringMoment,
+  type SongCallback,
+} from './our-songs.js';
+
 // ============================================================================
 // UNIFIED TRUST CONTEXT
 // ============================================================================

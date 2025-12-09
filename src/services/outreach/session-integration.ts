@@ -7,7 +7,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import {
-  getOutreachDecisionEngine,
   updateUserContext,
   triggerOutreach,
   recordTimingInteraction,

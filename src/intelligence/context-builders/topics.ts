@@ -13,7 +13,6 @@
  *
  * Extracted from jack-bogle.ts lines 1052-1064, 1389-1411
  */
-import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,

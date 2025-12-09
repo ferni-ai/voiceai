@@ -6,14 +6,31 @@
  *
  * Features:
  * - Background music playback via BackgroundAudioPlayer
- * - Automatic ducking when Jack speaks (via volume control)
+ * - DJ-style fade-out at track end (via ffmpeg pre-processing)
  * - Play/pause/skip controls
- * - Spotify preview support (downloads and plays)
+ * - Spotify/iTunes preview support (downloads and plays)
+ * - Crossfade between tracks
  *
  * ARCHITECTURE:
  * - Uses @livekit/agents BackgroundAudioPlayer for actual audio publishing
- * - Downloads Spotify previews to temp files before playing
+ * - Downloads previews to temp files before playing
+ * - Applies ffmpeg fade-out to downloaded tracks (last 5 seconds)
  * - Manages playback state and queue
+ *
+ * ⚠️ VOLUME LIMITATIONS (IMPORTANT):
+ * LiveKit's BackgroundAudioPlayer does NOT support real-time volume changes.
+ * Volume can only be set at play time - it cannot be changed during playback.
+ *
+ * This means:
+ * - setVolume() only affects the NEXT track, not currently playing audio
+ * - True audio ducking during playback is NOT possible
+ * - We work around this with:
+ *   1. Low default volume (25%) so speech is always clear
+ *   2. Pausing ambient music when agent speaks (duck() method)
+ *   3. Visual "ducking" feedback on frontend (waveform calms down)
+ *   4. DJ-style fade-out at track end via ffmpeg pre-processing
+ *
+ * For games and other scenarios, we use 30% volume to ensure speech clarity.
  */
 
 import { voice } from '@livekit/agents';
@@ -420,10 +437,16 @@ export class CallMusicPlayer {
     );
 
     if (!this.state.isInitialized || !this.backgroundPlayer) {
-      if (DEBUG_MUSIC) log.warn('Not initialized, falling back to simulation mode');
-      getLogger().warn('Music player not initialized - call initialize(room) first');
-      // Fallback to simulation mode if not initialized
-      return this.simulatePlayback(track);
+      // 🚨 CRITICAL: Music player not initialized - return false so agent doesn't announce playback!
+      getLogger().error(
+        {
+          track: track.name,
+          isInitialized: this.state.isInitialized,
+          hasBackgroundPlayer: !!this.backgroundPlayer,
+        },
+        '🚨 Cannot play music - player not initialized! Call initializeMusicPlayer(room) first.'
+      );
+      return false;
     }
 
     try {
@@ -554,6 +577,7 @@ export class CallMusicPlayer {
   ): Promise<{ success: boolean; previousTrack: MusicTrack | null }> {
     const previousTrack = this.state.currentTrack;
     const wasPlaying = this.state.isPlaying;
+    const previousAudioPath = this.currentAudioPath;
 
     if (DEBUG_MUSIC)
       log.debug('🎧 DJ Crossfade initiated', {
@@ -599,9 +623,27 @@ export class CallMusicPlayer {
     const audioPath = await downloadPromise;
 
     if (!audioPath) {
-      log.error('Failed to download new track for crossfade');
+      log.error('Failed to download new track for crossfade - recovering state');
       this.state.isChangingTrack = false;
+
+      // 🎧 RECOVERY: Try to gracefully handle the failure
+      // If we had a previous track, notify that we stopped (don't leave UI hanging)
+      this.state.isPlaying = false;
+      this.state.currentTrack = null;
+      this.currentPlayHandle = null;
+      this.currentAudioPath = null;
       this.notifyStateChange('stopped');
+
+      // Clean up the old track's temp file if it exists
+      if (previousAudioPath) {
+        this.cleanupTempFile(previousAudioPath);
+      }
+
+      getLogger().warn(
+        { fromTrack: previousTrack.name, toTrack: track.name },
+        '🎧 Crossfade failed - download error, playback stopped'
+      );
+
       return { success: false, previousTrack };
     }
 
@@ -616,10 +658,20 @@ export class CallMusicPlayer {
 
     if (!this.backgroundPlayer) {
       log.error('Background player not initialized');
+      // Clean up the downloaded file
+      this.cleanupTempFile(audioPath);
+      this.state.isPlaying = false;
+      this.state.currentTrack = null;
+      this.notifyStateChange('stopped');
       return { success: false, previousTrack };
     }
 
     this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
+
+    // Clean up the previous track's temp file
+    if (previousAudioPath && previousAudioPath !== audioPath) {
+      this.cleanupTempFile(previousAudioPath);
+    }
 
     getLogger().info(
       { track: track.name, artist: track.artist, volume, isAmbient },
@@ -628,6 +680,14 @@ export class CallMusicPlayer {
 
     // Notify we're now playing the new track
     this.notifyStateChange('playing');
+
+    // 🎧 Add to session history for DJ callbacks
+    if (!isAmbient) {
+      this.addToSessionHistory(track, true);
+    }
+
+    // 🎤 Schedule mid-song moment for new track
+    this.scheduleMidSongMoment(track);
 
     // Set up the fade-out timer for this new track
     const trackDuration = track.duration || 30000;
@@ -646,6 +706,12 @@ export class CallMusicPlayer {
         clearTimeout(fadeTimer);
         const endedTrack = this.state.currentTrack;
         const wasAmbient = this.state.isAmbientMode;
+
+        // Mark track completed in history
+        if (!wasAmbient) {
+          this.markCurrentTrackCompleted();
+        }
+
         this.onTrackEnded();
 
         if (endedTrack && this.onTrackEndedCallback) {
@@ -803,31 +869,25 @@ export class CallMusicPlayer {
 
   /**
    * Fallback simulation mode (for when BackgroundAudioPlayer isn't available)
+   *
+   * ⚠️ RETURNS FALSE - Audio will NOT be heard!
+   * The agent should NOT announce that music is playing.
    */
   private simulatePlayback(track: MusicTrack): boolean {
-    getLogger().warn(
+    getLogger().error(
       {
         track: track.name,
         artist: track.artist,
         isInitialized: this.state.isInitialized,
         hasBackgroundPlayer: !!this.backgroundPlayer,
       },
-      '⚠️ SIMULATION MODE - Music player not initialized! Audio will NOT be heard. Call initializeMusicPlayer(room) first.'
+      '🚨 MUSIC PLAYBACK FAILED - Player not initialized! Audio will NOT be heard.'
     );
 
-    this.state.currentTrack = track;
-    this.state.isPlaying = true;
+    // DO NOT set state.isPlaying = true - no audio is actually playing!
+    // DO NOT return true - the agent should not announce music is playing!
 
-    // Simulate 30-second duration
-    const duration = track.duration || 30000;
-    setTimeout(
-      () => {
-        this.onTrackEnded();
-      },
-      Math.min(duration, 30000)
-    );
-
-    return true;
+    return false;
   }
 
   /**
@@ -1013,10 +1073,24 @@ export class CallMusicPlayer {
 
   /**
    * Set volume (0-1)
+   *
+   * NOTE: BackgroundAudioPlayer does NOT support real-time volume changes.
+   * This method updates the volume for the NEXT track that plays.
+   * For ducking during playback, we use pause/resume strategies instead.
+   * See duck() and unduck() methods for runtime volume control.
+   *
+   * @param volume - Target volume (0-1), will apply to next playback
    */
   setVolume(volume: number): void {
     this.state.volume = Math.max(0, Math.min(1, volume));
-    getLogger().debug({ volume: Math.round(this.state.volume * 100) }, 'Volume set');
+    getLogger().debug({ volume: Math.round(this.state.volume * 100) }, 'Volume set (applies to next track)');
+  }
+
+  /**
+   * Get current volume setting (0-1)
+   */
+  getVolume(): number {
+    return this.state.volume;
   }
 
   /**

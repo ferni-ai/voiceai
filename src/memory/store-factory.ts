@@ -12,6 +12,8 @@ import { getDefaultStore } from './in-memory-store.js';
 const logger = getLogger().child({ module: 'StoreFactory' });
 
 let storeInstance: MemoryStore | null = null;
+// FIX: Cache initialization promise to prevent race conditions
+let initializationPromise: Promise<MemoryStore> | null = null;
 
 /**
  * Get the active memory store
@@ -22,10 +24,29 @@ let storeInstance: MemoryStore | null = null;
  * 3. In-memory (fallback for development)
  */
 export async function getStore(): Promise<MemoryStore> {
+  // Return existing instance if already initialized
   if (storeInstance) {
     return storeInstance;
   }
 
+  // Return cached promise if initialization is in progress
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  // Start initialization and cache the promise
+  initializationPromise = initializeStore();
+
+  try {
+    const store = await initializationPromise;
+    return store;
+  } finally {
+    // Clear the promise cache after completion
+    initializationPromise = null;
+  }
+}
+
+async function initializeStore(): Promise<MemoryStore> {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasGCP = Boolean(process.env.GOOGLE_CLOUD_PROJECT);
   const hasPostgres = Boolean(process.env.DATABASE_URL);
@@ -66,6 +87,7 @@ export function getStoreSync(): MemoryStore | null {
  */
 export function resetStore(): void {
   storeInstance = null;
+  initializationPromise = null;
 }
 
 /**

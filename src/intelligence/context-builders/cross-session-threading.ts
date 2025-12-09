@@ -10,7 +10,7 @@
  * This makes conversations feel continuous across sessions.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -18,7 +18,9 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { getCrossSessionThreader, type OpenThread } from '../cross-session-threader.js';
+import { getCrossSessionThreader } from '../cross-session-threader.js';
+
+const log = createLogger({ module: 'CrossSessionThreading' });
 
 // ============================================================================
 // CONTEXT BUILDER
@@ -146,7 +148,7 @@ Example: "I've been thinking about what you shared last time..."`,
     }
 
     if (injections.length > 0) {
-      getLogger().debug(
+      log.debug(
         {
           userId,
           openThreads: openThreads.length,
@@ -157,7 +159,7 @@ Example: "I've been thinking about what you shared last time..."`,
       );
     }
   } catch (error) {
-    getLogger().warn({ error }, 'Failed to build cross-session threading context');
+    log.warn({ error }, 'Failed to build cross-session threading context');
   }
 
   return injections;

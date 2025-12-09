@@ -33,7 +33,7 @@
 import gsap from 'gsap';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { morphTextToIcon, morphIconToText, setExpression } from './pixar-emotions.ui.js';
+import { morphTextToIcon, morphIconToText, setExpression } from './ferni-expressions.ui.js';
 
 const log = createLogger('FerniMoments');
 
