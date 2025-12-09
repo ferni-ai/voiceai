@@ -1,51 +1,135 @@
-# Cloud Build ignore file
-# This file overrides .gitignore for Cloud Build
+# ============================================================================
+# Cloud Build Ignore File - OPTIMIZED
+# ============================================================================
+# Only upload what Dockerfile.ui actually needs (~250MB instead of ~3GB)
+# 
+# What we need:
+#   - package*.json, tsconfig*.json
+#   - src/ (backend code)
+#   - ui-server.js
+#   - frontend-typescript/ (frontend code)
+#   - design-system/dist/ (built tokens only)
+#   - docker/ (Dockerfiles)
+#   - cloudbuild*.yaml
+# ============================================================================
 
-# Dependencies
+# ===================
+# LARGE DIRECTORIES - EXCLUDE THESE FIRST
+# ===================
+
+# Apps - Electron, iOS, Android builds (1.4GB)
+apps/
+
+# Ferni-speaker build directory (1.2GB) - rebuilt inside Docker
+ferni-speaker-build/
+
+# Promo/marketing site (639MB)
+promo/
+
+# Firebase functions (106MB) - separate deployment
+functions/
+
+# Design system source (105MB) - only need dist/
+design-system/src/
+design-system/node_modules/
+design-system/*.ts
+design-system/*.json
+!design-system/dist/
+
+# ===================
+# NODE MODULES (always rebuilt)
+# ===================
 node_modules/
+*/node_modules/
+**/node_modules/
 
-# Environment variables
+# ===================
+# BUILD OUTPUTS (rebuilt in Docker)
+# ===================
+dist/
+frontend-typescript/dist/
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ===================
+# GIT & VCS
+# ===================
+.git/
+.gitignore
+.gitattributes
+
+# ===================
+# SECRETS & ENV
+# ===================
 .env
 .env.*
 !.env.example
-
-# Logs
-*.log
-npm-debug.log*
-
-# Secrets
 .livekit-secrets.env
 .plaid-tokens.json
 .spotify-tokens.json
 .spotify-device.json
+*.pem
+*.key
 
-# IDEs
+# ===================
+# IDE & EDITOR
+# ===================
 .vscode/
 .idea/
 *.swp
+*.swo
+.cursor/
 
-# OS
+# ===================
+# OS FILES
+# ===================
 .DS_Store
+Thumbs.db
 
-# Reference / docs
+# ===================
+# LOGS & TEMP
+# ===================
+*.log
+npm-debug.log*
+.deploy-logs/
+tmp/
+temp/
+
+# ===================
+# DOCUMENTATION (not needed in build)
+# ===================
+*.md
+docs/
+brand/
 reference/
-/*.md
-/docs/*.md
 
-# Git
-.git/
-.gitignore
+# ===================
+# TESTING
+# ===================
+e2e/
+__tests__/
+*.test.ts
+*.spec.ts
+jest.config.*
+playwright.config.*
 
-# Build outputs - specific paths only
-# Keep design-system/dist for frontend builds!
-/dist
-/frontend-typescript/dist
-/functions/dist
+# ===================
+# MARKETPLACE (separate repo)
+# ===================
+marketplace-agents/
 
-# Test coverage
-coverage/
-.nyc_output/
+# ===================
+# NATIVE MODULES (rebuilt in Docker)
+# ===================
+ferni-speaker/
+*.node
 
-# Cursor
-.cursor
-
+# ===================
+# MISC
+# ===================
+data/
+scripts/
+*.tgz
+*.tar.gz

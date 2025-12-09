@@ -1,25 +1,52 @@
-node_modules
-*.log
+# ============================================================================
+# Docker Ignore File
+# ============================================================================
+# Mirrors .gcloudignore for local Docker builds
+# ============================================================================
+
+# Large directories
+apps/
+ferni-speaker-build/
+promo/
+functions/
+design-system/src/
+design-system/node_modules/
+
+# Node modules (rebuilt in Docker)
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+frontend-typescript/dist/
+coverage/
+
+# Git
+.git/
+.gitignore
+
+# Secrets
 .env
 .env.*
-!.env.example
-.git
-.gitignore
-.cursor
-reference/
+*.pem
+*.key
 
-# Secrets - prevent accidental inclusion in Docker images
-.livekit-secrets.env
-.plaid-tokens.json
-.spotify-tokens.json
-.spotify-device.json
+# IDE
+.vscode/
+.idea/
+.cursor/
 
-# Ignore root-level markdown but NOT persona bundle content
-/*.md
-/docs/*.md
-!src/personas/bundles/**/*.md
+# Docs & tests
+*.md
+docs/
+e2e/
+__tests__/
 
-# Ignore specific dist folders but keep design-system/dist
-/dist
-/frontend-typescript/dist
-/functions/dist
+# Misc
+.DS_Store
+*.log
+data/
+scripts/
+marketplace-agents/
+ferni-speaker/
