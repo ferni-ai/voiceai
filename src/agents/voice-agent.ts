@@ -19,20 +19,7 @@
 // EARLY STARTUP LOGGING
 // Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
-const DEBUG_STARTUP =
-  process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
-
-// Safe early logger for before LiveKit initializes
-const earlyLog = {
-  info: (msg: string, data?: Record<string, unknown>) => {
-    if (DEBUG_STARTUP) {
-      console.log(`[voice-agent] ${msg}`, data ? JSON.stringify(data) : '');
-    }
-  },
-  warn: (msg: string, data?: Record<string, unknown>) => {
-    console.warn(`[voice-agent] ${msg}`, data ? JSON.stringify(data) : '');
-  },
-};
+import { earlyLog, DEBUG_STARTUP } from './shared/early-logger.js';
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   nodeVersion: process.version,
@@ -59,11 +46,14 @@ import { fileURLToPath } from 'node:url';
 import { TextDecoder, TextEncoder } from 'node:util';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 // Voice authentication - speaker change detection (available for future integration)
-import { getSpeakerChangeDetector, type SpeakerChangeEvent } from '../services/voice-speaker-change.js';
+import {
+  getSpeakerChangeDetector,
+  type SpeakerChangeEvent,
+} from '../services/voice-speaker-change.js';
 
 // Shared Agent Utilities (used by ALL agents)
 import { SILENCE_THRESHOLDS } from './shared/constants.js';
-import { startHealthCheckServer, type UserData } from './shared/index.js';
+import { startHealthCheckServer, hasSsmlTags, type UserData } from './shared/index.js';
 
 // Persona System
 import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
@@ -105,7 +95,7 @@ import {
 import {
   createSessionServices,
   initializeServices,
-  type SessionServices,
+  type SessionServices as _SessionServices, // Used for type context
 } from '../services/index.js';
 
 // Adaptive SSML
@@ -308,12 +298,7 @@ startHealthCheckServer(AGENT_NAME);
 // ============================================================================
 // UserData is imported from ./shared/index.js - see shared/types.ts for full definition
 
-/**
- * Check if text already has SSML tags
- */
-function hasSsmlTags(text: string): boolean {
-  return /<\/?[a-z]+[^>]*>/i.test(text);
-}
+// hasSsmlTags imported from ./shared/helpers.js
 
 // ============================================================================
 // GENERIC VOICE AGENT
@@ -637,7 +622,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                   // try {
                   //   const sessionId = userData.services?.sessionId;
                   //   const lastUserMsg = userData.lastUserMessage || '';
-                  //   
+                  //
                   //   if (sessionId && lastUserMsg) {
                   //     // Import dynamically to avoid startup cost
                   //     import('../services/evalops/voice-agent-integration.js')
@@ -826,7 +811,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                         `$1<break time="${microMs}ms"/> `
                       );
                     }
-                  } catch (wtErr) {
+                  } catch (_wtErr) {
                     // Word timing is non-critical
                   }
                 }
@@ -940,7 +925,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                 const ambientService = getAmbientAwarenessService(sessionId);
                 // Process prosody as ambient indicator (simplified)
                 // Full implementation would process raw frames
-                const isSpeech = voiceEmotion.prosody.speakingRatio > 0.5;
+                const _isSpeech = voiceEmotion.prosody.speakingRatio > 0.5; // Reserved for ambient filtering
                 // Note: We'd need raw Int16Array for full analysis
                 // For now, track noise level from prosody
                 if (userData) {
@@ -959,7 +944,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                     );
                   }
                 }
-              } catch (ambientErr) {
+              } catch (_ambientErr) {
                 // Ambient awareness is non-critical
               }
 
@@ -1026,7 +1011,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                       };
                     }
                   }
-                } catch (laughErr) {
+                } catch (_laughErr) {
                   // Non-critical
                 }
               }
@@ -1037,7 +1022,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                   const rhythmService = getWordTimingRhythmService(sessionId);
                   rhythmService.processUtterance(userData.lastUserMessage, voiceEmotion.prosody);
                   // Rhythm adjustments will be applied in transcriptionNode
-                } catch (rhythmErr) {
+                } catch (_rhythmErr) {
                   // Non-critical
                 }
               }
@@ -1092,10 +1077,11 @@ class VoiceAgent extends voice.Agent<UserData> {
                 voiceEmotion.primary,
                 voiceEmotion.confidence
               );
-              
+
               // 🚀 FERNI EQ: Track current mood globally for "Our Songs" feature
               // This enables recording songs played during emotional moments
-              (globalThis as unknown as { __ferniCurrentMood?: string }).__ferniCurrentMood = voiceEmotion.primary;
+              (globalThis as unknown as { __ferniCurrentMood?: string }).__ferniCurrentMood =
+                voiceEmotion.primary;
             } catch (e) {
               log().debug({ error: String(e) }, 'Voice emotion recording failed (non-blocking)');
             }
@@ -1112,7 +1098,7 @@ class VoiceAgent extends voice.Agent<UserData> {
               .catch((e) =>
                 log().debug({ error: String(e) }, 'Voice emotion publish (non-critical)')
               ); // Fire and forget
-            
+
             // 🚀 FERNI EQ: Send voice prosody data for concern detection & breath sync
             // This enables "Better than Human" emotional intelligence
             agent
@@ -1394,7 +1380,9 @@ class VoiceAgent extends voice.Agent<UserData> {
     const services = userData?.services;
 
     if (!services) {
-      this.logger.error('No services available for turn processing - session may not be properly initialized');
+      this.logger.error(
+        'No services available for turn processing - session may not be properly initialized'
+      );
       return;
     }
 
@@ -1638,7 +1626,7 @@ export default defineAgent({
   },
 
   entry: async (ctx: JobContext) => {
-    const entryStartTime = Date.now();
+    const _entryStartTime = Date.now(); // Reserved for entry timing metrics
     const logger = log();
 
     diag.section('ENTRY FUNCTION CALLED');
@@ -1712,7 +1700,8 @@ export default defineAgent({
           identificationSource = identification.source.type;
 
           // 🚀 FERNI EQ: Track userId globally for trust systems (Our Songs, etc.)
-          (globalThis as unknown as { __ferniCurrentUserId?: string }).__ferniCurrentUserId = userId;
+          (globalThis as unknown as { __ferniCurrentUserId?: string }).__ferniCurrentUserId =
+            userId;
 
           // CRITICAL: Only use REAL names, never placeholders!
           // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
@@ -1771,24 +1760,30 @@ export default defineAgent({
                 isNewSpeaker: event.isNewSpeaker,
               });
               // Notify frontend of speaker change
-              ctx.room.localParticipant?.publishData(
-                new TextEncoder().encode(
-                  JSON.stringify({
-                    type: 'speaker_changed',
-                    previousSpeakerId: event.previousSpeakerId,
-                    currentSpeakerId: event.currentSpeakerId,
-                    confidence: event.confidence,
-                    isNewSpeaker: event.isNewSpeaker,
-                    timestamp: Date.now(),
-                  })
-                ),
-                { reliable: true }
-              ).catch(() => { /* ignore */ });
+              ctx.room.localParticipant
+                ?.publishData(
+                  new TextEncoder().encode(
+                    JSON.stringify({
+                      type: 'speaker_changed',
+                      previousSpeakerId: event.previousSpeakerId,
+                      currentSpeakerId: event.currentSpeakerId,
+                      confidence: event.confidence,
+                      isNewSpeaker: event.isNewSpeaker,
+                      timestamp: Date.now(),
+                    })
+                  ),
+                  { reliable: true }
+                )
+                .catch(() => {
+                  /* ignore */
+                });
             });
             speakerChangeDetector.start(userId);
             diag.session('🎤 Speaker change detection initialized');
           } catch (speakerChangeErr) {
-            diag.warn('Speaker change detection init failed (non-fatal)', { error: String(speakerChangeErr) });
+            diag.warn('Speaker change detection init failed (non-fatal)', {
+              error: String(speakerChangeErr),
+            });
           }
         }
       } catch (e) {
@@ -2182,6 +2177,9 @@ export default defineAgent({
           // The DJ Booth handles volume fading (not abrupt duck/unduck)
           const booth = getDJBooth();
           if (booth) {
+            // 🎵 THINKING MUSIC: Stop thinking music when agent starts speaking
+            // The agent is no longer "thinking" - they have a response!
+            booth.onProcessingEnd();
             // DJ Booth will smoothly fade music to talk-over volume
             // and manage timing for when to restore
             diag.state('🎧 Agent speaking - DJ Booth managing music');
@@ -2361,6 +2359,12 @@ export default defineAgent({
           if (userStopBooth) {
             userStopBooth.onUserStopSpeaking();
             diag.state('🎧 User stopped - DJ Booth managing volume restore');
+
+            // 🎵 THINKING MUSIC: User stopped speaking, agent is "thinking"
+            // Start the thinking music timer - it will play after a delay if agent
+            // doesn't respond quickly. This fills awkward silences during LLM processing.
+            userStopBooth.onProcessingStart();
+            diag.state('🎵 User stopped speaking - thinking music scheduled');
           }
 
           // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
@@ -2547,20 +2551,24 @@ export default defineAgent({
           // Send partial transcript every ~500ms to avoid spam
           const now = Date.now();
           const lastPartialKey = Symbol.for('ferniLastPartialTime');
-          const lastPartialTime = ((globalThis as Record<symbol, number>)[lastPartialKey]) || 0;
+          const lastPartialTime = (globalThis as Record<symbol, number>)[lastPartialKey] || 0;
           if (now - lastPartialTime > 500) {
             (globalThis as Record<symbol, number>)[lastPartialKey] = now;
-            ctx.room.localParticipant?.publishData(
-              new TextEncoder().encode(JSON.stringify({
-                type: 'partial_transcript',
-                text: event.transcript,
-                isFinal: false,
-                timestamp: now,
-              })),
-              { reliable: false } // Use unreliable for partial transcripts (low latency)
-            ).catch(() => {
-              // Non-blocking
-            });
+            ctx.room.localParticipant
+              ?.publishData(
+                new TextEncoder().encode(
+                  JSON.stringify({
+                    type: 'partial_transcript',
+                    text: event.transcript,
+                    isFinal: false,
+                    timestamp: now,
+                  })
+                ),
+                { reliable: false } // Use unreliable for partial transcripts (low latency)
+              )
+              .catch(() => {
+                // Non-blocking
+              });
           }
         }
 
@@ -2617,7 +2625,7 @@ export default defineAgent({
                 }
               }
             }
-          } catch (antErr) {
+          } catch (_antErr) {
             // Response anticipation is non-critical
           }
         }
@@ -2706,6 +2714,80 @@ export default defineAgent({
             .catch((error) => {
               logger.warn({ error }, 'Failed to process message for dynamic tool loading');
             });
+
+          // ===============================================
+          // 🎧 DJ SESSION FLOW TRACKING & "OUR SONGS"
+          // ===============================================
+          // Track conversation topics and emotions for session summaries
+          // Also detect "Our Songs" moments when music is playing
+          void (async () => {
+            try {
+              const booth = getDJBooth();
+              if (!booth) return;
+
+              // Track topics discussed for session summary
+              // Extract topics from transcript using simple keyword detection
+              const topicKeywords: Record<string, string[]> = {
+                work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
+                family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
+                health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
+                finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
+                relationships: [
+                  'dating',
+                  'relationship',
+                  'partner',
+                  'friend',
+                  'boyfriend',
+                  'girlfriend',
+                ],
+                goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
+                stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
+              };
+
+              const transcriptLower = event.transcript.toLowerCase();
+              for (const [topic, keywords] of Object.entries(topicKeywords)) {
+                if (keywords.some((kw) => transcriptLower.includes(kw))) {
+                  booth.trackTopic(topic);
+                  diag.state('🎧 Session flow: tracked topic', { topic });
+                  break; // Only track first match per message
+                }
+              }
+
+              // Track emotional moments
+              const emotionKeywords: Record<string, string[]> = {
+                happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
+                sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
+                anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
+                grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
+              };
+
+              for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+                if (keywords.some((kw) => transcriptLower.includes(kw))) {
+                  booth.trackEmotion(emotion);
+                  diag.state('🎧 Session flow: tracked emotion', { emotion });
+                  break;
+                }
+              }
+
+              // 🎵 "OUR SONGS" - Process user speech during music for meaningful moments
+              // This captures shared music experiences that become relationship memories
+              if (booth.isPlayingMusic()) {
+                const voiceEmotion = userData.voiceEmotion?.primary || undefined;
+                booth.processUserSpeechDuringMusic(
+                  event.transcript,
+                  voiceEmotion,
+                  userData.lastTopic
+                );
+                diag.state('🎵 Processed user speech during music for "Our Songs"', {
+                  transcript: event.transcript.slice(0, 50),
+                  emotion: voiceEmotion,
+                });
+              }
+            } catch (e) {
+              // Session flow tracking is non-critical
+              log().debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
+            }
+          })();
 
           // ===============================================
           // FEEDBACK COLLECTION for tool optimization
@@ -2845,7 +2927,7 @@ export default defineAgent({
       // If we wait until after session.start(), the agent could try to play music
       // before the music player is ready, causing silent "simulation mode" playback.
       const { isMusicEnabled } = await import('../config/environment.js');
-      let djBooth: DJBooth | null = null; // Track for cleanup
+      let _djBooth: DJBooth | null = null; // Track for cleanup
 
       if (ctx.room && isMusicEnabled()) {
         try {
@@ -2877,7 +2959,7 @@ export default defineAgent({
               }
             : undefined;
 
-          djBooth = initializeDJBooth(
+          _djBooth = initializeDJBooth(
             {
               personaId: sessionPersona.id,
               speakCallback: (phrase, options) => {
@@ -2897,9 +2979,16 @@ export default defineAgent({
             existingMusicPrefs
           );
 
+          // Set user ID for "Our Songs" trust system tracking
+          if (services.userId) {
+            _djBooth.setUserId(services.userId);
+            diag.state('🎵 DJ Booth user ID set for "Our Songs"', { userId: services.userId });
+          }
+
           diag.state('🎧 DJ Booth initialized with enhancements', {
             persona: sessionPersona.id,
             hasExistingPrefs: !!existingMusicPrefs,
+            hasUserId: !!services.userId,
           });
           player.setOnTrackEndedCallback((track, wasAmbient) => {
             if (wasAmbient) {
@@ -3204,7 +3293,7 @@ export default defineAgent({
       // Centralized real-time communication with the frontend
       const { initializeFrontendPublisher, getFrontendPublisher } =
         await import('./realtime/index.js');
-      const frontendPublisher = initializeFrontendPublisher(ctx.room);
+      const _frontendPublisher = initializeFrontendPublisher(ctx.room); // Initialized for side effects
       diag.state('Frontend publisher initialized');
 
       // Initialize frontend signal service for lower layers
@@ -4250,31 +4339,8 @@ diag.info('Worker configuration', { defaultPersona: PERSONA.id, agentName });
 // ============================================================================
 // GRACEFUL SHUTDOWN HANDLER
 // ============================================================================
-
-// Handle graceful shutdown - flush all pending data before exit
-async function gracefulShutdown(signal: string) {
-  diag.info(`Received ${signal}, initiating graceful shutdown...`);
-
-  try {
-    // Import and call shutdown services to flush all productivity data
-    const { shutdownServices } = await import('../services/index.js');
-    await shutdownServices();
-    diag.info('Services shutdown complete');
-  } catch (error) {
-    diag.error('Error during graceful shutdown', { error: String(error) });
-  }
-
-  // Give time for final logs
-  setTimeout(() => process.exit(0), 500);
-}
-
-// Register shutdown handlers
-process.on('SIGTERM', () => {
-  void gracefulShutdown('SIGTERM');
-});
-process.on('SIGINT', () => {
-  void gracefulShutdown('SIGINT');
-});
+import { registerShutdownSignalHandlers } from './shared/shutdown-handler.js';
+registerShutdownSignalHandlers();
 
 cli.runApp(
   new WorkerOptions({

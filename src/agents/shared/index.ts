@@ -92,3 +92,12 @@ export {
   preloadCommonModules,
   resetCachedModules,
 } from './cached-imports.js';
+
+// Early Logger (for pre-LiveKit initialization)
+export { earlyLog, DEBUG_STARTUP } from './early-logger.js';
+
+// Shutdown Handler
+export { gracefulShutdown, registerShutdownSignalHandlers } from './shutdown-handler.js';
+
+// Helpers
+export { hasSsmlTags, sanitizeUserName } from './helpers.js';

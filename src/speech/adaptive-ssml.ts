@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { tagTextWithSsml, sanitizeSsml } from './ssml-tagger.js';
+import { tagTextWithSsml, sanitizeSsml } from './ssml-tagger/index.js';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { SpeechContext } from './speech-context.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';

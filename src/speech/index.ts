@@ -75,7 +75,7 @@ export {
 } from './adaptive-ssml.js';
 
 // Re-export SSML functions
-export { tagTextWithSsml, sanitizeSsml } from './ssml-tagger.js';
+export { tagTextWithSsml, sanitizeSsml } from './ssml-tagger/index.js';
 export { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 
 // ============================================================================
