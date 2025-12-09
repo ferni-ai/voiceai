@@ -2546,13 +2546,19 @@ export default defineAgent({
         if (event.transcript && !event.isFinal && event.transcript.length > 10) {
           // Send partial transcript every ~500ms to avoid spam
           const now = Date.now();
-          const lastPartialTime = (this as unknown as { _lastPartialTime?: number })._lastPartialTime || 0;
+          const lastPartialKey = Symbol.for('ferniLastPartialTime');
+          const lastPartialTime = ((globalThis as Record<symbol, number>)[lastPartialKey]) || 0;
           if (now - lastPartialTime > 500) {
-            (this as unknown as { _lastPartialTime?: number })._lastPartialTime = now;
-            this.sendDataMessage('partial_transcript', {
-              text: event.transcript,
-              isFinal: false,
-            }).catch(() => {
+            (globalThis as Record<symbol, number>)[lastPartialKey] = now;
+            ctx.room.localParticipant?.publishData(
+              new TextEncoder().encode(JSON.stringify({
+                type: 'partial_transcript',
+                text: event.transcript,
+                isFinal: false,
+                timestamp: now,
+              })),
+              { reliable: false } // Use unreliable for partial transcripts (low latency)
+            ).catch(() => {
               // Non-blocking
             });
           }
