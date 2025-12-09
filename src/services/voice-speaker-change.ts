@@ -15,7 +15,7 @@
 
 import pino from 'pino';
 import { EventEmitter } from 'events';
-import { extractSpeakerEmbedding } from './voice-memory-enhanced.js';
+import { extractSpeakerEmbedding, type SpeakerEmbedding } from './voice-memory-enhanced.js';
 import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
 
 const log = pino({ name: 'speaker-change' });
@@ -82,7 +82,7 @@ export class SpeakerChangeDetector extends EventEmitter {
   private deviceId: string;
   private checkInterval: ReturnType<typeof setInterval> | null = null;
   private audioBuffer: Float32Array[] = [];
-  private isMonitoring: boolean = false;
+  private isMonitoring = false;
 
   constructor(deviceId: string, config: Partial<SpeakerChangeConfig> = {}) {
     super();
@@ -175,13 +175,16 @@ export class SpeakerChangeDetector extends EventEmitter {
     
     try {
       // Extract embedding
-      const embedding = await extractSpeakerEmbedding(combined);
+      const speakerEmbedding = await extractSpeakerEmbedding(combined);
       
       // Skip if embedding extraction failed
-      if (!embedding) {
+      if (!speakerEmbedding) {
         log.debug('Could not extract embedding from audio');
         return;
       }
+      
+      // Convert Float32Array to number[] for internal use
+      const embedding = Array.from(speakerEmbedding.vector);
       
       // Compare with current speaker
       await this.checkSpeakerChange(embedding);
@@ -278,8 +281,8 @@ export class SpeakerChangeDetector extends EventEmitter {
     const previousSpeakerId = this.state.currentSpeakerId;
     
     // Try to identify new speaker from household
-    let newSpeakerId: string | null = null;
-    let isNewSpeaker = true;
+    const newSpeakerId: string | null = null;
+    const isNewSpeaker = true;
     
     // Update state
     this.state.currentEmbedding = newEmbedding;

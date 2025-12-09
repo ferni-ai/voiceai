@@ -5,19 +5,40 @@
  * This handler wraps the voice-auth-routes for compatibility with
  * the existing http.IncomingMessage/OutgoingMessage pattern.
  *
- * Endpoints:
+ * Core Endpoints:
  * - POST /api/voice/enroll/start     - Start enrollment session
  * - POST /api/voice/enroll/sample    - Add enrollment sample
  * - POST /api/voice/enroll/complete  - Complete enrollment
  * - POST /api/voice/enroll/cancel    - Cancel enrollment
- * - POST /api/voice/verify           - Verify speaker
- * - POST /api/voice/identify         - Identify speaker
- * - POST /api/voice/auth/start       - Start continuous auth
- * - POST /api/voice/auth/check       - Check auth status
- * - POST /api/voice/auth/stop        - Stop continuous auth
+ * - POST /api/voice/verify           - Verify speaker (with emotion analysis)
+ * - POST /api/voice/identify         - Identify speaker (1:N matching)
+ * - POST /api/voice/auth/start       - Start continuous auth session
+ * - POST /api/voice/auth/check       - Check auth status (with security)
+ * - POST /api/voice/auth/stop        - Stop continuous auth session
  * - GET  /api/voice/profile          - Get profile status
  * - DELETE /api/voice/profile        - Delete voice profile
  * - GET  /api/voice/status           - System status
+ *
+ * Household Endpoints:
+ * - GET  /api/voice/household              - Get household for device
+ * - POST /api/voice/household              - Create household
+ * - POST /api/voice/household/members      - Add member to household
+ * - DELETE /api/voice/household/members/:id - Remove member
+ * - POST /api/voice/household/identify     - Identify speaker from household
+ *
+ * Memory Endpoints:
+ * - GET  /api/voice/memory                 - Get user's conversation memory
+ * - GET  /api/voice/memory/context         - Get context for new conversation
+ * - GET  /api/voice/memory/conversations   - Get recent conversations
+ * - POST /api/voice/memory/conversations   - Start recording conversation
+ * - PUT  /api/voice/memory/conversations/:id/end - End conversation
+ *
+ * Security Features:
+ * - Liveness detection (replay attack prevention)
+ * - Anti-spoofing (deepfake/TTS detection)
+ * - Rate limiting (brute-force prevention)
+ * - Audit logging (compliance/monitoring)
+ * - Emotion correlation (explains verification failures)
  *
  * @module VoiceAuthHandler
  */
@@ -60,6 +81,25 @@ import {
   logProfileDelete,
   checkSuspiciousActivity,
 } from '../services/voice-audit-log.js';
+// Emotion correlation
+import { analyzeAuthEmotionContext } from '../services/voice-emotion-correlation.js';
+// Household management
+import {
+  getHousehold,
+  addHouseholdMember,
+  removeHouseholdMember,
+  identifyHouseholdSpeaker,
+  getHouseholdMembers,
+  createHousehold,
+} from '../services/voice-household.js';
+// Conversation memory
+import {
+  startConversation,
+  endConversation,
+  getUserMemory,
+  getConversationContext,
+  getRecentConversations,
+} from '../services/voice-conversation-memory.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'VoiceAuthHandler' });
@@ -73,6 +113,12 @@ const SECURITY_CONFIG = {
   livenessMinConfidence: 0.6,
   antiSpoofMinConfidence: 0.6,
 };
+
+// Test mode - bypass security for E2E testing (NEVER enable in production)
+const TEST_MODE = process.env.VOICE_AUTH_TEST_MODE === 'true';
+if (TEST_MODE) {
+  log.warn('⚠️ VOICE_AUTH_TEST_MODE enabled - security checks bypassed for testing');
+}
 
 // Default sample rate for audio analysis
 const DEFAULT_SAMPLE_RATE = 16000;
@@ -191,6 +237,11 @@ async function runSecurityChecks(
   userId: string,
   deviceInfo: { userAgent?: string; platform?: string; deviceId?: string }
 ): Promise<{ passed: boolean; warnings: string[]; livenessScore?: number; spoofScore?: number }> {
+  // Bypass security checks in test mode (NEVER use in production)
+  if (TEST_MODE) {
+    return { passed: true, warnings: ['TEST_MODE: Security checks bypassed'], livenessScore: 1.0, spoofScore: 1.0 };
+  }
+
   const warnings: string[] = [];
   let livenessScore: number | undefined;
   let spoofScore: number | undefined;
@@ -574,16 +625,27 @@ export async function handleVoiceAuthRoutes(
 
       const result = await verifyUser(audio, profile);
 
+      // Analyze emotion correlation
+      const emotionContext = analyzeAuthEmotionContext(
+        audio,
+        profile.threshold,
+        result.confidence
+      );
+
       // Audit logging
       if (SECURITY_CONFIG.enableAuditLogging) {
         await logVerification(userId, result.verified, result.confidence, deviceInfo, {
           processingTimeMs: result.processingTimeMs,
           livenessScore: securityResult.livenessScore,
           spoofScore: securityResult.spoofScore,
+          emotion: emotionContext.emotion.primary,
         });
       }
 
       log.info({ userId, verified: result.verified }, 'Verification attempt');
+
+      // If verification failed but emotion suggests retry
+      const shouldSuggestRetry = !result.verified && emotionContext.shouldRetry;
 
       sendJson(res, 200, {
         verified: result.verified,
@@ -595,6 +657,16 @@ export async function handleVoiceAuthRoutes(
           spoofScore: securityResult.spoofScore,
           warnings: securityResult.warnings.length > 0 ? securityResult.warnings : undefined,
         },
+        emotion: {
+          detected: emotionContext.emotion.primary,
+          confidence: emotionContext.emotion.confidence,
+          impact: emotionContext.shouldRetry ? 'may_affect_verification' : 'normal',
+        },
+        suggestion: shouldSuggestRetry ? {
+          action: 'retry',
+          message: emotionContext.userMessage || 'Your voice sounds a bit different. Try again?',
+          adjustedThreshold: emotionContext.adjustedThreshold,
+        } : undefined,
       });
       return true;
     }
@@ -732,8 +804,37 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
+      const deviceInfo = getDeviceInfo(req);
+      const userId = getUserId(req) || sessionId;
+
+      // Security checks (liveness + anti-spoofing) for continuous auth
+      const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+      if (!securityResult.passed) {
+        // Log the security failure
+        if (SECURITY_CONFIG.enableAuditLogging) {
+          await logVerification(userId, false, 0, deviceInfo, {
+            reason: 'continuous_auth_security_fail',
+            warnings: securityResult.warnings,
+          });
+        }
+        sendJson(res, 403, {
+          error: 'Security check failed',
+          message: 'Audio did not pass security verification',
+          warnings: securityResult.warnings,
+        });
+        return true;
+      }
+
       const status = await authenticator.processAudioChunk(audio);
-      sendJson(res, 200, status);
+      
+      // Include security scores in response
+      sendJson(res, 200, {
+        ...status,
+        security: {
+          livenessScore: securityResult.livenessScore,
+          spoofScore: securityResult.spoofScore,
+        },
+      });
       return true;
     }
 
@@ -806,6 +907,255 @@ export async function handleVoiceAuthRoutes(
       return true;
     }
 
+    // ========================================================================
+    // HOUSEHOLD MANAGEMENT ROUTES
+    // ========================================================================
+
+    // GET /api/voice/household - Get household for device
+    if (route === '/household' && req.method === 'GET') {
+      const deviceId = req.headers['x-device-id'] as string;
+      if (!deviceId) {
+        sendJson(res, 400, { error: 'Device ID required (X-Device-ID header)' });
+        return true;
+      }
+
+      const household = await getHousehold(deviceId);
+      if (!household) {
+        sendJson(res, 404, { error: 'No household found for this device' });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        id: household.id,
+        name: household.name,
+        members: household.members,
+        settings: household.settings,
+      });
+      return true;
+    }
+
+    // POST /api/voice/household - Create household
+    if (route === '/household' && req.method === 'POST') {
+      const userId = getUserId(req);
+      const deviceId = req.headers['x-device-id'] as string;
+      
+      if (!userId || !deviceId) {
+        sendJson(res, 400, { error: 'User ID and Device ID required' });
+        return true;
+      }
+
+      const body = await parseBody(req);
+      const household = await createHousehold(deviceId, userId, body.name);
+
+      sendJson(res, 201, {
+        success: true,
+        household: {
+          id: household.id,
+          name: household.name,
+        },
+      });
+      return true;
+    }
+
+    // POST /api/voice/household/members - Add member to household
+    if (route === '/household/members' && req.method === 'POST') {
+      const deviceId = req.headers['x-device-id'] as string;
+      if (!deviceId) {
+        sendJson(res, 400, { error: 'Device ID required' });
+        return true;
+      }
+
+      const body = await parseBody(req);
+      const { userId, displayName, role } = body;
+
+      if (!userId || !displayName) {
+        sendJson(res, 400, { error: 'userId and displayName required' });
+        return true;
+      }
+
+      const member = await addHouseholdMember(deviceId, userId, displayName, role);
+      if (!member) {
+        sendJson(res, 400, { error: 'Could not add member - ensure they have a voice profile' });
+        return true;
+      }
+
+      sendJson(res, 201, { success: true, member });
+      return true;
+    }
+
+    // DELETE /api/voice/household/members/:userId
+    if (route.startsWith('/household/members/') && req.method === 'DELETE') {
+      const deviceId = req.headers['x-device-id'] as string;
+      const memberUserId = route.split('/household/members/')[1];
+      
+      if (!deviceId || !memberUserId) {
+        sendJson(res, 400, { error: 'Device ID and member user ID required' });
+        return true;
+      }
+
+      const success = await removeHouseholdMember(deviceId, memberUserId);
+      sendJson(res, success ? 200 : 404, {
+        success,
+        message: success ? 'Member removed' : 'Member not found',
+      });
+      return true;
+    }
+
+    // POST /api/voice/household/identify - Identify speaker from household
+    if (route === '/household/identify' && req.method === 'POST') {
+      const deviceId = req.headers['x-device-id'] as string;
+      if (!deviceId) {
+        sendJson(res, 400, { error: 'Device ID required' });
+        return true;
+      }
+
+      const body = await parseBody(req);
+      const audio = parseAudio(body);
+
+      if (!audio) {
+        sendJson(res, 400, { error: 'Invalid audio data' });
+        return true;
+      }
+
+      const result = await identifyHouseholdSpeaker(deviceId, audio);
+
+      sendJson(res, 200, {
+        identified: result.identified,
+        member: result.member,
+        confidence: result.confidence,
+        isNewSpeaker: result.isNewSpeaker,
+        suggestedAction: result.suggestedAction,
+      });
+      return true;
+    }
+
+    // ========================================================================
+    // CONVERSATION MEMORY ROUTES
+    // ========================================================================
+
+    // GET /api/voice/memory - Get user's conversation memory
+    if (route === '/memory' && req.method === 'GET') {
+      const userId = getUserId(req);
+      if (!userId) {
+        sendJson(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const memory = await getUserMemory(userId);
+      if (!memory) {
+        sendJson(res, 200, {
+          hasMemory: false,
+          totalConversations: 0,
+        });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        hasMemory: true,
+        totalConversations: memory.totalConversations,
+        totalDuration: memory.totalDuration,
+        firstConversation: memory.firstConversation,
+        lastConversation: memory.lastConversation,
+        topTopics: memory.topics.slice(0, 10),
+        recentMilestones: memory.relationshipMilestones.slice(-5),
+      });
+      return true;
+    }
+
+    // GET /api/voice/memory/context - Get context for new conversation
+    if (route === '/memory/context' && req.method === 'GET') {
+      const userId = getUserId(req);
+      if (!userId) {
+        sendJson(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const context = await getConversationContext(userId);
+
+      sendJson(res, 200, {
+        recentTopics: context.recentTopics,
+        unfinishedThreads: context.unfinishedThreads,
+        rememberedDetails: context.rememberedDetails,
+        suggestedFollowUps: context.suggestedFollowUps,
+      });
+      return true;
+    }
+
+    // GET /api/voice/memory/conversations - Get recent conversations
+    if (route === '/memory/conversations' && req.method === 'GET') {
+      const userId = getUserId(req);
+      if (!userId) {
+        sendJson(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const url = new URL(req.url || '', 'http://localhost');
+      const limit = parseInt(url.searchParams.get('limit') || '10', 10);
+      
+      const conversations = await getRecentConversations(userId, limit);
+
+      sendJson(res, 200, {
+        conversations: conversations.map(c => ({
+          id: c.id,
+          startedAt: c.startedAt,
+          endedAt: c.endedAt,
+          summary: c.summary,
+          topics: c.topics,
+          turnCount: c.turns.length,
+          voiceVerified: c.voiceVerified,
+        })),
+      });
+      return true;
+    }
+
+    // POST /api/voice/memory/conversations - Start recording a conversation
+    if (route === '/memory/conversations' && req.method === 'POST') {
+      const userId = getUserId(req);
+      if (!userId) {
+        sendJson(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const body = await parseBody(req);
+      const conversation = startConversation(
+        userId,
+        body.sessionId || `session_${Date.now()}`,
+        body.voiceVerified || false,
+        body.verificationConfidence
+      );
+
+      // Store in memory for later updates
+      activeConversations.set(conversation.id, conversation);
+
+      sendJson(res, 201, {
+        success: true,
+        conversationId: conversation.id,
+        sessionId: conversation.sessionId,
+      });
+      return true;
+    }
+
+    // PUT /api/voice/memory/conversations/:id/end - End a conversation
+    if (route.match(/^\/memory\/conversations\/[^/]+\/end$/) && req.method === 'PUT') {
+      const conversationId = route.split('/')[3];
+      const conversation = activeConversations.get(conversationId);
+
+      if (!conversation) {
+        sendJson(res, 404, { error: 'Conversation not found' });
+        return true;
+      }
+
+      await endConversation(conversation);
+      activeConversations.delete(conversationId);
+
+      sendJson(res, 200, {
+        success: true,
+        summary: conversation.summary,
+        topics: conversation.topics,
+      });
+      return true;
+    }
+
     // Route not found under /api/voice
     return false;
   } catch (error) {
@@ -814,3 +1164,6 @@ export async function handleVoiceAuthRoutes(
     return true;
   }
 }
+
+// Active conversations storage (in-memory, use Redis in production)
+const activeConversations = new Map<string, ReturnType<typeof startConversation>>();

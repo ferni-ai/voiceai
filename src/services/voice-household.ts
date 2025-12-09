@@ -111,7 +111,7 @@ const householdsCache = new Map<string, Household>();
 export async function createHousehold(
   deviceId: string,
   ownerId: string,
-  name: string = 'My Home'
+  name = 'My Home'
 ): Promise<Household> {
   const household: Household = {
     id: `household_${deviceId}`,
@@ -483,9 +483,10 @@ export function endHouseholdSession(deviceId: string): ActiveSession | null {
       duration: Date.now() - session.startedAt.getTime(),
       speakerChanges: session.speakerChanges.length,
     }, 'Household session ended');
+    return session;
   }
   
-  return session;
+  return null;
 }
 
 // ============================================================================

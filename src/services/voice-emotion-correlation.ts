@@ -28,7 +28,7 @@ export interface EmotionAnalysis {
 }
 
 // Extract emotion features from audio
-function extractEmotionFeatures(samples: Float32Array, sampleRate: number = 16000) {
+function extractEmotionFeatures(samples: Float32Array, sampleRate = 16000) {
   // Compute pitch
   const pitchValues: number[] = [];
   const frameSize = Math.floor(sampleRate * 0.03);
@@ -68,7 +68,7 @@ function extractEmotionFeatures(samples: Float32Array, sampleRate: number = 1600
 }
 
 // Classify emotion from features
-export function analyzeEmotion(samples: Float32Array, sampleRate: number = 16000): EmotionAnalysis {
+export function analyzeEmotion(samples: Float32Array, sampleRate = 16000): EmotionAnalysis {
   const features = extractEmotionFeatures(samples, sampleRate);
   
   const normalizedPitch = Math.min(1, Math.max(0, (features.pitchMean - 80) / 200));
@@ -104,7 +104,7 @@ export function analyzeAuthEmotionContext(
   audio: Float32Array,
   originalThreshold: number,
   authConfidence: number,
-  sampleRate: number = 16000
+  sampleRate = 16000
 ) {
   const emotion = analyzeEmotion(audio, sampleRate);
   const adjustedThreshold = getEmotionAdjustedThreshold(originalThreshold, emotion);

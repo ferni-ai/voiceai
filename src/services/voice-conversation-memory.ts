@@ -137,7 +137,7 @@ const memoriesCache = new Map<string, ConversationMemory>();
 export function startConversation(
   userId: string,
   sessionId: string,
-  voiceVerified: boolean = false,
+  voiceVerified = false,
   verificationConfidence?: number
 ): ConversationRecord {
   const conversation: ConversationRecord = {
@@ -457,7 +457,7 @@ export async function getConversationContext(
  */
 export async function getRecentConversations(
   userId: string,
-  limit: number = 10
+  limit = 10
 ): Promise<ConversationRecord[]> {
   // Check cache first
   const cached = conversationsCache.get(userId);
@@ -505,7 +505,7 @@ export async function getRecentConversations(
 export async function searchConversationsByTopic(
   userId: string,
   topic: string,
-  limit: number = 5
+  limit = 5
 ): Promise<ConversationRecord[]> {
   const db = getFirestore();
   if (!db) return [];
