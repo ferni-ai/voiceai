@@ -32,8 +32,8 @@ node_modules/
 */node_modules/
 **/node_modules/
 
-# Build outputs
-dist/
+# Build outputs (at root level only, preserve design-system/dist)
+/dist/
 frontend-typescript/dist/
 coverage/
 

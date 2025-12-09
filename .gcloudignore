@@ -62,7 +62,8 @@ node_modules/
 # ===================
 # BUILD OUTPUTS (rebuilt in Docker)
 # ===================
-dist/
+# Use /dist/ to only match root dist, preserve design-system/dist
+/dist/
 frontend-typescript/dist/
 coverage/
 .nyc_output/
