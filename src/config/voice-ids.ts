@@ -4,8 +4,8 @@
  * This file provides voice ID constants and lookup functions.
  * Used internally by voice-registry.ts.
  *
- * NOTE: For new code, use the voice-registry API:
- *   import { getVoiceId } from '../personas/voice-registry.js';
+ * NOTE: For new code, use the voice-registry API via personas/voice-registry.js
+ * which provides getVoiceId() for voice ID lookups.
  *
  * Environment variables can OVERRIDE these defaults:
  *   JACK_B_VOICE_ID, PETER_JOHN_VOICE_ID, NAYAN_VOICE_ID, etc.

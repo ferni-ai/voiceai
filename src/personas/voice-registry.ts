@@ -22,7 +22,8 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { discoverAndLoadBundles } from './bundles/index.js';
+// Dynamic import used in initializeVoiceRegistry to avoid circular dependency
+// import { discoverAndLoadBundles } from './bundles/index.js';
 import { VOICE_IDS, getVoiceIdForPersona, isValidVoiceId } from '../config/voice-ids.js';
 // Import from persona-ids.ts - the SINGLE SOURCE OF TRUTH for alias resolution
 import {
@@ -97,6 +98,8 @@ export async function initializeVoiceRegistry(): Promise<void> {
   }
 
   try {
+    // Dynamic import to avoid circular dependency
+    const { discoverAndLoadBundles } = await import('./bundles/index.js');
     const result = await discoverAndLoadBundles();
 
     for (const bundle of result.bundles) {

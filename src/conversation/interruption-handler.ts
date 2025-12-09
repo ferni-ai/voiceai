@@ -8,7 +8,8 @@
 import { getLogger } from '../utils/safe-logger.js';
 
 import type { AudioFrame } from '@livekit/rtc-node';
-import { getCanonicalPersonaId } from '../personas/voice-registry.js';
+// Import from persona-ids directly to avoid circular dependency through voice-registry
+import { toCanonical as getCanonicalPersonaId } from '../personas/persona-ids.js';
 
 export interface InterruptionEvent {
   type: 'user_started_speaking' | 'user_stopped_speaking';

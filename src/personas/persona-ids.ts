@@ -1,8 +1,8 @@
 /**
  * Persona IDs - Canonical ID definitions and validation
  *
- * NOTE: For new code, prefer importing via the central module:
- *   import { getCanonicalPersonaId, toCanonical } from '../personas/index.js';
+ * NOTE: For new code, prefer the central module: personas/index.js
+ *   which re-exports getCanonicalPersonaId and toCanonical.
  *
  * This module provides:
  * - CANONICAL_IDS: The canonical persona identifiers
