@@ -630,38 +630,40 @@ class VoiceAgent extends voice.Agent<UserData> {
 
                   // ============================================================
                   // EVALOPS: Evaluate agent response for quality assurance
+                  // TODO: Re-enable when evalops is production-ready
                   // Non-blocking - runs in background, errors are caught
                   // ============================================================
-                  try {
-                    const sessionId = userData.services?.sessionId;
-                    const lastUserMsg = userData.lastUserMessage || '';
-                    
-                    if (sessionId && lastUserMsg) {
-                      // Import dynamically to avoid startup cost
-                      import('../services/evalops/voice-agent-integration.js')
-                        .then(({ evaluateAgentResponse }) => {
-                          evaluateAgentResponse(
-                            sessionId,
-                            agent.persona.id,
-                            lastUserMsg,
-                            accumulatedText,
-                            {
-                              userId: userData.services?.userId,
-                              turnNumber: userData.turnCount || 1,
-                              emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
-                              isNewUser: userData.turnCount === 1,
-                            }
-                          ).catch(() => {
-                            // Non-blocking - silently ignore errors
-                          });
-                        })
-                        .catch(() => {
-                          // Non-blocking - module import failed, skip evaluation
-                        });
-                    }
-                  } catch {
-                    // Non-blocking - EvalOps hook should never crash the agent
-                  }
+                  // NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
+                  // try {
+                  //   const sessionId = userData.services?.sessionId;
+                  //   const lastUserMsg = userData.lastUserMessage || '';
+                  //   
+                  //   if (sessionId && lastUserMsg) {
+                  //     // Import dynamically to avoid startup cost
+                  //     import('../services/evalops/voice-agent-integration.js')
+                  //       .then(({ evaluateAgentResponse }) => {
+                  //         evaluateAgentResponse(
+                  //           sessionId,
+                  //           agent.persona.id,
+                  //           lastUserMsg,
+                  //           accumulatedText,
+                  //           {
+                  //             userId: userData.services?.userId,
+                  //             turnNumber: userData.turnCount || 1,
+                  //             emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+                  //             isNewUser: userData.turnCount === 1,
+                  //           }
+                  //         ).catch(() => {
+                  //           // Non-blocking - silently ignore errors
+                  //         });
+                  //       })
+                  //       .catch(() => {
+                  //         // Non-blocking - module import failed, skip evaluation
+                  //       });
+                  //   }
+                  // } catch {
+                  //   // Non-blocking - EvalOps hook should never crash the agent
+                  // }
 
                   // Track if this response contained humor or story for calibration
                   const lowerText = accumulatedText.toLowerCase();
@@ -2527,6 +2529,25 @@ export default defineAgent({
               transcript: event.transcript.slice(0, 30),
             });
             // The onInterrupt callback handles the actual interruption
+          }
+        }
+
+        // ===============================================
+        // 🚀 FERNI EQ: ANTICIPATION - Send partial transcripts to frontend
+        // Enables "reading the future" - responding before user finishes
+        // ===============================================
+        if (event.transcript && !event.isFinal && event.transcript.length > 10) {
+          // Send partial transcript every ~500ms to avoid spam
+          const now = Date.now();
+          const lastPartialTime = (this as unknown as { _lastPartialTime?: number })._lastPartialTime || 0;
+          if (now - lastPartialTime > 500) {
+            (this as unknown as { _lastPartialTime?: number })._lastPartialTime = now;
+            this.sendDataMessage('partial_transcript', {
+              text: event.transcript,
+              isFinal: false,
+            }).catch(() => {
+              // Non-blocking
+            });
           }
         }
 
