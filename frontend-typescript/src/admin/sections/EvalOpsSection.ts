@@ -42,6 +42,17 @@ interface FlaggedResponse {
   timestamp: string;
 }
 
+interface DimensionAverages {
+  personaVoice: number;
+  emotionalIntelligence: number;
+  helpfulness: number;
+  authenticity: number;
+  safety: number;
+  contextUse: number;
+  trustBuilding: number;
+  sampleSize: number;
+}
+
 /**
  * Render the EvalOps section
  */
@@ -50,6 +61,7 @@ export async function render(): Promise<string> {
 
   const metrics = await fetchEvalMetrics();
   const flagged = await fetchFlaggedResponses();
+  const dimensions = await fetchDimensionAverages();
 
   return `
     <div class="evalops-section">
@@ -109,14 +121,15 @@ export async function render(): Promise<string> {
           Evaluation Dimensions
         </h2>
         <div class="dimensions-grid">
-          ${renderDimension('Persona Voice', 94, 'Does this sound like the character?')}
-          ${renderDimension('Emotional Intelligence', 91, 'Did we read the room?')}
-          ${renderDimension('Helpfulness', 96, 'Did we actually help?')}
-          ${renderDimension('Authenticity', 89, 'Does it feel human?')}
-          ${renderDimension('Safety', 100, 'Is it appropriate?')}
-          ${renderDimension('Context Use', 88, 'Did we use memory well?')}
-          ${renderDimension('Trust Building', 92, 'Did we strengthen the relationship?')}
+          ${renderDimension('Persona Voice', dimensions.personaVoice, 'Does this sound like the character?')}
+          ${renderDimension('Emotional Intelligence', dimensions.emotionalIntelligence, 'Did we read the room?')}
+          ${renderDimension('Helpfulness', dimensions.helpfulness, 'Did we actually help?')}
+          ${renderDimension('Authenticity', dimensions.authenticity, 'Does it feel human?')}
+          ${renderDimension('Safety', dimensions.safety, 'Is it appropriate?')}
+          ${renderDimension('Context Use', dimensions.contextUse, 'Did we use memory well?')}
+          ${renderDimension('Trust Building', dimensions.trustBuilding, 'Did we strengthen the relationship?')}
         </div>
+        ${dimensions.sampleSize === 0 ? '<p class="dimensions-empty">No evaluations yet. Run a test suite to see dimension scores.</p>' : `<p class="dimensions-sample-size">Based on ${dimensions.sampleSize} evaluation${dimensions.sampleSize === 1 ? '' : 's'}</p>`}
       </div>
 
       <!-- Flagged Responses -->
@@ -509,6 +522,43 @@ async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
 
   // Return empty array to indicate no data (not fake data)
   return [];
+}
+
+async function fetchDimensionAverages(): Promise<DimensionAverages> {
+  try {
+    const response = await fetch('/api/evalops/dimensions', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.dimensions || {
+        personaVoice: 0,
+        emotionalIntelligence: 0,
+        helpfulness: 0,
+        authenticity: 0,
+        safety: 0,
+        contextUse: 0,
+        trustBuilding: 0,
+        sampleSize: 0,
+      };
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch dimension averages');
+  }
+
+  // Return zeros to indicate no evaluations yet (not fake data)
+  return {
+    personaVoice: 0,
+    emotionalIntelligence: 0,
+    helpfulness: 0,
+    authenticity: 0,
+    safety: 0,
+    contextUse: 0,
+    trustBuilding: 0,
+    sampleSize: 0,
+  };
 }
 
 export default { render };

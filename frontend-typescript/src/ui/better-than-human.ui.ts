@@ -92,6 +92,10 @@ const breathSync: BreathSyncState = {
   lastSyncTime: 0,
 };
 
+// Collected pause patterns for breath detection (rolling window)
+const pausePatterns: number[] = [];
+const MAX_PAUSE_PATTERNS = 20; // Keep last 20 pauses for analysis
+
 const concernState: ConcernState = {
   level: 'none',
   duration: 0,
@@ -560,6 +564,25 @@ export function onUserSpeechPause(pauseDuration: number): void {
 
   activeListening.pauseCount++;
 
+  // =========================================================================
+  // BREATH SYNC: Collect pause patterns for breath detection
+  // Speech pauses correlate with breathing patterns
+  // =========================================================================
+  if (breathSync.isEnabled && pauseDuration > 100 && pauseDuration < 2000) {
+    pausePatterns.push(pauseDuration);
+    // Keep rolling window of recent pauses
+    if (pausePatterns.length > MAX_PAUSE_PATTERNS) {
+      pausePatterns.shift();
+    }
+    // Update breath rate estimate when we have enough data
+    if (pausePatterns.length >= 5) {
+      detectUserBreathRate(pausePatterns);
+    }
+  }
+
+  // =========================================================================
+  // ACTIVE LISTENING: Visual feedback based on pause duration
+  // =========================================================================
   if (pauseDuration > 300 && pauseDuration < 800) {
     // Short pause - maybe micro-nod
     if (Math.random() < NOD_PROBABILITY_BASE + activeListening.pauseCount * 0.05) {
@@ -599,6 +622,15 @@ export function startActiveListening(): void {
  */
 export function stopActiveListening(): void {
   activeListening.isListening = false;
+
+  // Log breath detection results for this listening session
+  if (breathSync.isEnabled && pausePatterns.length > 3) {
+    log.debug('Session breath analysis:', {
+      pauseCount: pausePatterns.length,
+      estimatedBreathRate: breathSync.userBreathRate.toFixed(1),
+    });
+  }
+
   log.debug('Active listening stopped');
 }
 

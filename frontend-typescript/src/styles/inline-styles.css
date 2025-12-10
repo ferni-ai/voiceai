@@ -2237,12 +2237,13 @@ body {
          Creates visual weight and presence - our "WALL-E" character */
   width: 120px;
   height: 120px;
-  /* NOTE: Do NOT add will-change, transform, translateZ, or contain here - causes visible box in Safari */
+  /* NOTE: Do NOT add will-change, transform, translateZ, contain, or outline here - causes visible box in Safari */
   transform-origin: center center;
-  /* Safari fix: transparent outline forces correct repainting during animations */
-  outline: 1px solid transparent;
   -webkit-transform-style: flat;
   transform-style: flat;
+  /* Force GPU compositing without visible artifacts */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* Reaction animations applied via JS classes */
@@ -2426,7 +2427,9 @@ body {
   border: 1px solid var(--persona-primary);
   opacity: 0.15;
   transition: all var(--transition-slow);
-  outline: 1px solid transparent;
+  /* Force GPU compositing without visible artifacts */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* Connected: subtle warm glow, not tech ring */
@@ -2862,8 +2865,9 @@ body {
   /* Smooth transitions - transforms handled by JS */
   transition: filter var(--transition-base);
   transform-origin: center center;
-  /* Safari fix: transparent outline forces correct repainting during animations */
-  outline: 1px solid transparent;
+  /* Force GPU compositing without visible artifacts */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 

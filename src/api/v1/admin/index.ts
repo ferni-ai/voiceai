@@ -18,6 +18,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { handleAdminAgentsRoutes } from './agents.js';
 import { handleAdminDashboardRoutes } from './dashboard.js';
 import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
+import { handleAdminExperimentsRoutes } from './experiments.js';
 import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
 
@@ -69,6 +70,11 @@ export async function handleAdminRoutes(
     return handleHumanListeningRoutes(req, res, pathname, parsedUrl);
   }
 
+  // Web Experiments management
+  if (pathname.startsWith(`${BASE_PATH}/experiments`)) {
+    return handleAdminExperimentsRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Route not matched
   return false;
 }
@@ -79,6 +85,7 @@ export default { handleAdminRoutes };
 export { handleAdminAgentsRoutes } from './agents.js';
 export { getRecentActivity, handleAdminDashboardRoutes, recordActivity } from './dashboard.js';
 export { handleAdminDiagnosticsRoutes, recordHandoffEvent } from './diagnostics.js';
+export { handleAdminExperimentsRoutes } from './experiments.js';
 export { handleAdminFlagsRoutes } from './flags.js';
 export {
   endLiveSession,

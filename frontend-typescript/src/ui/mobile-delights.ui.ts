@@ -293,7 +293,6 @@ function updateTiltParallax(): void {
   // Apply to avatar elements
   const avatar = document.querySelector('#coachAvatar') as HTMLElement;
   const avatarRing = document.querySelector('#avatarRing') as HTMLElement;
-  const ferniEye = document.querySelector('#ferniEye') as HTMLElement;
 
   if (avatar) {
     avatar.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
@@ -302,14 +301,6 @@ function updateTiltParallax(): void {
   // Ring moves slightly less for depth effect
   if (avatarRing) {
     avatarRing.style.transform = `translate(${xOffset * 0.5}px, ${yOffset * 0.5}px)`;
-  }
-
-  // Eye moves more for "looking" effect
-  if (ferniEye) {
-    const pupilGroup = ferniEye.querySelector('.ferni-eye__pupil-group') as SVGElement;
-    if (pupilGroup) {
-      pupilGroup.style.transform = `translate(${xOffset * 1.5}px, ${yOffset * 1.5}px)`;
-    }
   }
 
   tiltFrame = requestAnimationFrame(updateTiltParallax);

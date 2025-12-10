@@ -8,7 +8,8 @@
  */
 
 // Icon configuration
-const ICON_ATTRS = 'xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const ICON_ATTRS =
+  'xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
 
 // Size variants
 export function iconSm(svg: string): string {
@@ -113,6 +114,9 @@ export const ICON_ZAP = `<svg ${ICON_ATTRS}><polygon points="13 2 3 14 12 14 11 
 /** Play / Run */
 export const ICON_PLAY = `<svg ${ICON_ATTRS}><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
+/** Pause */
+export const ICON_PAUSE = `<svg ${ICON_ATTRS}><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>`;
+
 /** History / Clock */
 export const ICON_HISTORY = `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
@@ -196,7 +200,7 @@ export const ICONS = {
   diagnostics: ICON_DIAGNOSTICS,
   'api-docs': ICON_API_DOCS,
   'design-system': ICON_DESIGN_SYSTEM,
-  
+
   // Actions
   refresh: ICON_REFRESH,
   settings: ICON_SETTINGS,
@@ -212,7 +216,7 @@ export const ICONS = {
   info: ICON_INFO,
   success: ICON_SUCCESS,
   error: ICON_ERROR,
-  
+
   // Section-specific
   health: ICON_HEALTH,
   activity: ICON_ACTIVITY,
@@ -263,4 +267,3 @@ export function icon(name: IconName, className?: string): string {
 }
 
 export default ICONS;
-

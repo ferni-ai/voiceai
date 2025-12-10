@@ -44,6 +44,8 @@ interface ListeningMetrics {
   avgEngagement: number;
   selfSoothingDetections: number;
   hedgingDetections: number;
+  tremorDetections: number;
+  energyFadeDetections: number;
 }
 
 interface RecentSignal {
@@ -55,7 +57,8 @@ interface RecentSignal {
     | 'self_soothing'
     | 'hedging'
     | 'disengagement'
-    | 'tremor';
+    | 'tremor'
+    | 'energy_fade';
   severity: 'low' | 'medium' | 'high';
   details: string;
   actionTaken?: string;
@@ -120,8 +123,8 @@ export async function render(): Promise<string> {
         <div class="detection-grid">
           ${renderDetectionCard('Self-Soothing', metrics.selfSoothingDetections, 'Phrases like "I\'m fine", "It doesn\'t matter"', 'soothing')}
           ${renderDetectionCard('Hedging', metrics.hedgingDetections, 'Uncertainty, minimizing, protecting language', 'hedging')}
-          ${renderDetectionCard('Voice Tremor', 12, 'Wavering, cracking, emotional strain', 'tremor')}
-          ${renderDetectionCard('Energy Fade', 8, 'Voice trailing off, losing confidence', 'fade')}
+          ${renderDetectionCard('Voice Tremor', metrics.tremorDetections, 'Wavering, cracking, emotional strain', 'tremor')}
+          ${renderDetectionCard('Energy Fade', metrics.energyFadeDetections, 'Voice trailing off, losing confidence', 'fade')}
         </div>
       </div>
 
@@ -179,21 +182,22 @@ export async function render(): Promise<string> {
 
         <div class="soul-response-stats">
           <div class="soul-stat">
-            <div class="soul-stat-value" id="soulMicroExpressions">847</div>
+            <div class="soul-stat-value soul-stat-value--pending" id="soulMicroExpressions">--</div>
             <div class="soul-stat-label">Micro-Expressions (24h)</div>
           </div>
           <div class="soul-stat">
-            <div class="soul-stat-value" id="soulProtectiveModes">23</div>
+            <div class="soul-stat-value soul-stat-value--pending" id="soulProtectiveModes">--</div>
             <div class="soul-stat-label">Protective Modes</div>
           </div>
           <div class="soul-stat">
-            <div class="soul-stat-value" id="soulComfortPulses">156</div>
+            <div class="soul-stat-value soul-stat-value--pending" id="soulComfortPulses">--</div>
             <div class="soul-stat-label">Comfort Pulses</div>
           </div>
           <div class="soul-stat">
-            <div class="soul-stat-value" id="soulMemorySparks">89</div>
+            <div class="soul-stat-value soul-stat-value--pending" id="soulMemorySparks">--</div>
             <div class="soul-stat-label">Memory Sparks</div>
           </div>
+          <p class="soul-stats-note">Stats tracking not yet implemented - test effects in Avatar Soul Lab</p>
         </div>
 
         <a href="#avatar-soul" class="soul-link" data-navigate="avatar-soul">
@@ -601,9 +605,23 @@ export async function render(): Promise<string> {
         color: var(--persona-primary, #4a6741);
       }
 
+      .soul-stat-value--pending {
+        color: var(--color-text-muted, #756A5E);
+        opacity: 0.5;
+      }
+
       .soul-stat-label {
         font-size: 0.7rem;
         color: var(--color-text-muted, #888);
+      }
+
+      .soul-stats-note {
+        grid-column: 1 / -1;
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--color-text-muted, #756A5E);
+        margin-top: var(--space-2, 0.5rem);
+        font-style: italic;
       }
 
       .soul-link {
@@ -722,7 +740,11 @@ function renderSoulResponse(trigger: string, response: string, desc: string, cod
 
 async function fetchMetrics(): Promise<ListeningMetrics> {
   try {
-    const response = await fetch('/api/admin/human-listening/metrics');
+    const response = await fetch('/api/v1/admin/human-listening/metrics', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       return response.json();
     }
@@ -730,20 +752,26 @@ async function fetchMetrics(): Promise<ListeningMetrics> {
     log.warn('Failed to fetch listening metrics', err);
   }
 
-  // Mock data for development
+  // Return zeros - no real data yet (not fake numbers)
   return {
-    totalSessions: 1247,
-    distressDetections: 23,
-    avgCognitiveLoad: 0.35,
-    avgEngagement: 0.78,
-    selfSoothingDetections: 156,
-    hedgingDetections: 412,
+    totalSessions: 0,
+    distressDetections: 0,
+    avgCognitiveLoad: 0,
+    avgEngagement: 0,
+    selfSoothingDetections: 0,
+    hedgingDetections: 0,
+    tremorDetections: 0,
+    energyFadeDetections: 0,
   };
 }
 
 async function fetchRecentSignals(): Promise<RecentSignal[]> {
   try {
-    const response = await fetch('/api/admin/human-listening/signals');
+    const response = await fetch('/api/v1/admin/human-listening/signals', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       return response.json();
     }
@@ -751,54 +779,17 @@ async function fetchRecentSignals(): Promise<RecentSignal[]> {
     log.warn('Failed to fetch listening signals', err);
   }
 
-  // Mock data for development
-  return [
-    {
-      sessionId: 'abc123',
-      timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-      signalType: 'self_soothing',
-      severity: 'medium',
-      details: '"I\'m fine, it doesn\'t matter"',
-      actionTaken: 'Slowed response pace',
-    },
-    {
-      sessionId: 'def456',
-      timestamp: new Date(Date.now() - 12 * 60000).toISOString(),
-      signalType: 'cognitive_load',
-      severity: 'high',
-      details: 'Elevated fillers, slowing speech rate',
-      actionTaken: 'Simplified response',
-    },
-    {
-      sessionId: 'ghi789',
-      timestamp: new Date(Date.now() - 25 * 60000).toISOString(),
-      signalType: 'distress',
-      severity: 'high',
-      details: 'Voice tremor + self-soothing detected',
-      actionTaken: 'Gentle validation response',
-    },
-    {
-      sessionId: 'jkl012',
-      timestamp: new Date(Date.now() - 45 * 60000).toISOString(),
-      signalType: 'hedging',
-      severity: 'low',
-      details: '"Maybe, I guess, probably"',
-      actionTaken: 'Gentle probe offered',
-    },
-    {
-      sessionId: 'mno345',
-      timestamp: new Date(Date.now() - 60 * 60000).toISOString(),
-      signalType: 'disengagement',
-      severity: 'medium',
-      details: 'Response length declining',
-      actionTaken: 'Topic shift suggested',
-    },
-  ];
+  // Return empty array - signals will appear when real listening events happen
+  return [];
 }
 
 async function fetchLiveSessions(): Promise<LiveSession[]> {
   try {
-    const response = await fetch('/api/admin/human-listening/live');
+    const response = await fetch('/api/v1/admin/human-listening/live', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       return response.json();
     }

@@ -73,7 +73,16 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Flag Categories -->
-      ${Object.entries(categories).map(([category, categoryFlags]) => `
+      ${flags.length === 0 ? `
+        <div class="admin-card flags-empty">
+          <div class="empty-state">
+            <span class="admin-icon">${iconSm(ICON_FLAGS)}</span>
+            <h3>No Feature Flags Available</h3>
+            <p>Feature flags will appear here when the API is available.</p>
+            <p class="empty-state-hint">Check that the backend is running and connected.</p>
+          </div>
+        </div>
+      ` : Object.entries(categories).map(([category, categoryFlags]) => `
         <div class="admin-card flags-category">
           <h2 class="admin-section-title">
             <span class="admin-icon">${iconSm(getCategoryIcon(category))}</span>
@@ -355,24 +364,11 @@ async function fetchFlags(): Promise<FeatureFlag[]> {
       return [...generalFlags, ...trustFlags];
     }
   } catch {
-    // Fall through to mock data
+    // API unavailable
   }
 
-  // Mock data for development
-  return [
-    { id: 'trust-reading-between-lines', name: 'Reading Between Lines', description: 'Detects what users aren\'t saying', enabled: true, category: 'Trust' },
-    { id: 'trust-boundary-memory', name: 'Boundary Memory', description: 'Remembers topics to avoid', enabled: true, category: 'Trust' },
-    { id: 'trust-growth-reflection', name: 'Growth Reflection', description: 'Notices and reflects user evolution', enabled: true, category: 'Trust' },
-    { id: 'trust-inside-jokes', name: 'Inside Jokes', description: 'Tracks shared history for callbacks', enabled: true, category: 'Trust' },
-    { id: 'trust-small-wins', name: 'Small Wins', description: 'Celebrates effort not just outcomes', enabled: true, category: 'Trust' },
-    { id: 'trust-thinking-of-you', name: 'Thinking of You', description: 'Proactive no-agenda outreach', enabled: false, percentage: 10, category: 'Trust' },
-    { id: 'voice-enhanced-fingerprinting', name: 'Enhanced Voice Fingerprinting', description: 'Uses neural speaker embeddings', enabled: true, category: 'Voice' },
-    { id: 'voice-authentication', name: 'Voice Authentication', description: 'Enable voice enrollment & verification', enabled: true, category: 'Voice' },
-    { id: 'voice-emotion-detection', name: 'Voice Emotion Detection', description: 'Detect emotions from voice', enabled: false, percentage: 25, category: 'Voice' },
-    { id: 'evalops', name: 'EvalOps System', description: 'Master toggle for evaluation system', enabled: true, category: 'EvalOps' },
-    { id: 'evalops-auto-sampling', name: 'Auto Sampling', description: 'Sample conversations automatically', enabled: true, percentage: 5, category: 'EvalOps' },
-    { id: 'evalops-llm-evaluation', name: 'LLM Evaluation', description: 'Full LLM-as-judge (costs API tokens)', enabled: false, category: 'EvalOps' },
-  ];
+  // Return empty array - flags will appear when API is available
+  return [];
 }
 
 export default { render };

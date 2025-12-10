@@ -643,8 +643,8 @@ async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
     const data = await response.json();
     return data.upcoming || [];
   } catch {
-    // Return mock data for development
-    return getMockUpcoming();
+    // Return empty array - real data will appear when outreach is scheduled
+    return [];
   }
 }
 
@@ -655,70 +655,9 @@ async function fetchOutreachHistory(): Promise<OutreachHistory[]> {
     const data = await response.json();
     return data.history || [];
   } catch {
-    // Return mock data for development
-    return getMockHistory();
+    // Return empty array - real history will appear after outreach is sent
+    return [];
   }
-}
-
-function getMockUpcoming(): ScheduledOutreach[] {
-  const now = new Date();
-  return [
-    {
-      id: '1',
-      type: 'commitment_check',
-      personaId: 'maya',
-      personaName: 'Maya Santos',
-      channel: 'sms',
-      scheduledFor: new Date(now.getTime() + 3600000), // 1 hour from now
-      preview: { body: "Hey! How did your morning workout go? I've been thinking about you! 💪" },
-      reason: 'You mentioned starting morning workouts yesterday',
-      priority: 'medium',
-      canReschedule: true,
-      canCancel: true,
-    },
-    {
-      id: '2',
-      type: 'celebration',
-      personaId: 'ferni',
-      personaName: 'Ferni',
-      channel: 'email',
-      scheduledFor: new Date(now.getTime() + 86400000), // Tomorrow
-      preview: {
-        subject: "One week of consistency! 🎉",
-        body: "I just wanted to reach out and celebrate something amazing - you've been consistent for a whole week!",
-      },
-      reason: '7-day streak achievement',
-      priority: 'low',
-      canReschedule: true,
-      canCancel: true,
-    },
-  ];
-}
-
-function getMockHistory(): OutreachHistory[] {
-  const now = new Date();
-  return [
-    {
-      id: '1',
-      type: 'thinking_of_you',
-      personaId: 'ferni',
-      personaName: 'Ferni',
-      channel: 'sms',
-      sentAt: new Date(now.getTime() - 86400000), // Yesterday
-      status: 'responded',
-      preview: 'Just thinking about you! Hope you\'re having a great day 🌱',
-    },
-    {
-      id: '2',
-      type: 'commitment_check',
-      personaId: 'maya',
-      personaName: 'Maya Santos',
-      channel: 'push',
-      sentAt: new Date(now.getTime() - 172800000), // 2 days ago
-      status: 'opened',
-      preview: 'Quick check-in on your meditation habit!',
-    },
-  ];
 }
 
 // ============================================================================

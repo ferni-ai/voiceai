@@ -40,14 +40,7 @@ import { presenceUI } from './presence.ui.js';
 import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
 
 // Soul system imports
-import {
-  celebrationBurst,
-  empathyPulse,
-  makeAvatarLookAround,
-  pauseAllEyeTracking,
-  revealAvatarEye,
-  showFirstLaunchExperience,
-} from './soul.ui.js';
+import { celebrationBurst, empathyPulse, showFirstLaunchExperience } from './soul.ui.js';
 
 // Ferni expressions system - character-level animations
 import {
@@ -94,6 +87,10 @@ import {
   triggerTestBeat,
   type StoryBeat,
 } from '../narrative/index.js';
+
+// Dev Panel Modules (extracted for maintainability)
+import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
+import { ICONS } from './dev-panel/icons.js';
 
 const log = createLogger('DevPanel');
 
@@ -170,56 +167,9 @@ const checkAdminAccess = (): boolean => {
 const DEV_MODE_ENABLED = isDevEnvironment() || checkAdminAccess();
 
 // ============================================================================
-// ICONS (Lucide-style)
+// ICONS - Now imported from ./dev-panel/icons.ts
 // ============================================================================
-
-const ICONS = {
-  close:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-  users:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-  unlock:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
-  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  sparkles:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
-  refresh:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>',
-  zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-  heart:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
-  check:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
-  drama:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-  music:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
-  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
-  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
-  target:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
-  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
-  gamepad:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>',
-  messageCircle:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
-  palmtree:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35z"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/></svg>',
-  headphones:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
-  barChart:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
-  creditCard:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
-  userPlus:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
-  userMinus:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
-  trash:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
-};
+// Icons are imported at the top of the file from './dev-panel/icons.js'
 
 // ============================================================================
 // STATE
@@ -602,14 +552,8 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">✨ Core Magic</span>
           <div class="dev-soul-buttons">
-            <button class="dev-soul-btn dev-soul-btn--primary" data-soul="eye-reveal" title="Avatar transforms into an eye">
-              👁️ Eye Reveal
-            </button>
-            <button class="dev-soul-btn" data-soul="awakening" title="First launch experience">
+            <button class="dev-soul-btn dev-soul-btn--primary" data-soul="awakening" title="First launch experience">
               🌅 Awakening
-            </button>
-            <button class="dev-soul-btn" data-soul="look-around" title="Avatar looks around curiously">
-              👀 Look Around
             </button>
           </div>
         </div>
@@ -3096,238 +3040,13 @@ function triggerHandoff(personaId: string): void {
 }
 
 // ============================================================================
-// OUTREACH TESTING ACTIONS
+// OUTREACH TESTING ACTIONS - Delegated to handlers/outreach.ts
 // ============================================================================
 
 async function handleOutreachAction(action: string): Promise<void> {
-  const statusEl = document.getElementById('outreach-status-value');
-  const setStatus = (text: string, isError = false) => {
-    if (statusEl) {
-      statusEl.textContent = text;
-      statusEl.style.color = isError ? 'var(--color-error)' : 'var(--color-success)';
-    }
-  };
-
-  // Helper to parse response and extract error message
-  const parseResponse = async (res: Response): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const data = await res.json();
-      return { success: data.success ?? res.ok, error: data.error };
-    } catch {
-      return { success: res.ok, error: res.ok ? undefined : 'Request failed' };
-    }
-  };
-
-  // Get userId from app state (or use dev default)
-  const userId = appState.getState().deviceId || 'dev-user';
-
-  log.info({ action }, 'Outreach action triggered');
-  setStatus('Processing...');
-
-  try {
-    switch (action) {
-      // Check channel config first
-      case 'check-config': {
-        setStatus('🔍 Checking config...');
-        const configRes = await fetch(`/api/outreach/contact?userId=${userId}`);
-        const config = await configRes.json();
-        if (!configRes.ok) {
-          setStatus('❌ No contact info configured', true);
-          log.info('No contact info for user. Set via /api/outreach/contact');
-          // eslint-disable-next-line no-console
-          console.log('💡 To set contact info, POST to /api/outreach/contact with:', {
-            userId,
-            phone: '+1234567890',
-            email: 'user@example.com',
-          });
-        } else {
-          const { phone, email } = config;
-          const parts = [];
-          if (phone) parts.push(`📱 ${phone}`);
-          if (email) parts.push(`📧 ${email}`);
-          setStatus(parts.length ? `✓ ${parts.join(' | ')}` : '❌ No channels', !parts.length);
-        }
-        break;
-      }
-
-      // Test channels
-      case 'test-sms': {
-        setStatus('📱 Sending test SMS...');
-        const smsRes = await fetch('/api/outreach/test/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            channel: 'sms',
-            message: 'Hey! This is a test message from Ferni dev panel 🌱',
-          }),
-        });
-        const smsResult = await parseResponse(smsRes);
-        if (smsResult.success) {
-          setStatus('✓ SMS sent!');
-        } else {
-          const hint = smsResult.error?.includes('phone') ? ' (Set phone first)' : '';
-          setStatus(`✕ ${smsResult.error || 'SMS failed'}${hint}`, true);
-        }
-        break;
-      }
-
-      case 'test-email': {
-        setStatus('📧 Sending test email...');
-        const emailRes = await fetch('/api/outreach/test/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            channel: 'email',
-            subject: 'Test from Ferni 🌱',
-            message:
-              'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
-          }),
-        });
-        const emailResult = await parseResponse(emailRes);
-        if (emailResult.success) {
-          setStatus('✓ Email sent!');
-        } else {
-          const hint = emailResult.error?.includes('email') ? ' (Set email first)' : '';
-          setStatus(`✕ ${emailResult.error || 'Email failed'}${hint}`, true);
-        }
-        break;
-      }
-
-      case 'test-call': {
-        setStatus('📞 Making test call...');
-        const callRes = await fetch('/api/outreach/test/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            channel: 'call',
-            message:
-              'Hey! This is Ferni calling from the dev panel. Just a quick test to make sure calls are working!',
-          }),
-        });
-        const callResult = await parseResponse(callRes);
-        if (callResult.success) {
-          setStatus('✓ Call initiated!');
-        } else {
-          const hint = callResult.error?.includes('phone') ? ' (Set phone first)' : '';
-          setStatus(`✕ ${callResult.error || 'Call failed'}${hint}`, true);
-        }
-        break;
-      }
-
-      // Trigger types
-      case 'trigger-commitment': {
-        const commitRes = await fetch('/api/outreach/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            type: 'commitment_check',
-            priority: 'medium',
-            reason: 'Dev panel test - commitment check',
-            commitment: 'your morning workout',
-          }),
-        });
-        setStatus(commitRes.ok ? '✓ Commitment trigger created!' : '✕ Failed', !commitRes.ok);
-        break;
-      }
-
-      case 'trigger-emotional': {
-        const emotionRes = await fetch('/api/outreach/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            type: 'emotional_support',
-            priority: 'high',
-            reason: 'Dev panel test - emotional support',
-          }),
-        });
-        setStatus(emotionRes.ok ? '✓ Emotional trigger created!' : '✕ Failed', !emotionRes.ok);
-        break;
-      }
-
-      case 'trigger-celebration': {
-        const celebRes = await fetch('/api/outreach/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            type: 'celebration',
-            priority: 'medium',
-            reason: 'Dev panel test - celebration',
-            milestone: 'completing an amazing day',
-          }),
-        });
-        setStatus(celebRes.ok ? '✓ Celebration trigger created!' : '✕ Failed', !celebRes.ok);
-        break;
-      }
-
-      case 'trigger-thinking': {
-        const toyRes = await fetch('/api/outreach/thinking-of-you', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            trigger: 'random_kindness',
-            reason: 'Dev panel test',
-          }),
-        });
-        setStatus(toyRes.ok ? '✓ Thinking-of-you triggered!' : '✕ Failed', !toyRes.ok);
-        break;
-      }
-
-      // View data
-      case 'view-pending': {
-        const pendingRes = await fetch(`/api/outreach/pending?userId=${userId}`);
-        const pendingData = await pendingRes.json();
-        log.info({ pending: pendingData }, '📋 Pending outreach');
-        // eslint-disable-next-line no-console
-        console.log('📋 Pending Outreach:', pendingData);
-        setStatus(`${pendingData.count || 0} pending (see console)`);
-        break;
-      }
-
-      case 'view-history': {
-        const historyRes = await fetch(`/api/outreach/history?userId=${userId}&limit=10`);
-        const historyData = await historyRes.json();
-        log.info({ history: historyData }, '📜 Outreach history');
-        // eslint-disable-next-line no-console
-        console.log('📜 Outreach History:', historyData);
-        setStatus(`${historyData.count || 0} in history (see console)`);
-        break;
-      }
-
-      case 'view-context': {
-        const contextRes = await fetch(`/api/outreach/context?userId=${userId}`);
-        const contextData = await contextRes.json();
-        log.info({ context: contextData }, '🧠 User context');
-        // eslint-disable-next-line no-console
-        console.log('🧠 User Context:', contextData);
-        setStatus('Context loaded (see console)');
-        break;
-      }
-
-      case 'view-timing': {
-        const timingRes = await fetch(`/api/outreach/timing?userId=${userId}`);
-        const timingData = await timingRes.json();
-        log.info({ timing: timingData }, '⏰ Timing patterns');
-        // eslint-disable-next-line no-console
-        console.log('⏰ Timing Patterns:', timingData);
-        setStatus('Timing loaded (see console)');
-        break;
-      }
-
-      default:
-        log.warn({ action }, 'Unknown outreach action');
-        setStatus('Unknown action', true);
-    }
-  } catch (error) {
-    log.error({ error, action }, 'Outreach action failed');
-    setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown'}`, true);
-  }
+  // Delegate to extracted handler
+  const getUserId = () => appState.getState().deviceId || 'dev-user';
+  return handleOutreachActionImpl(action, getUserId);
 }
 
 // ============================================================================
@@ -3367,19 +3086,9 @@ function updateNarrativeStats(): void {
 
 function triggerSoulAction(action: string): void {
   switch (action) {
-    case 'eye-reveal':
-      void revealAvatarEye(2500);
-      log.info('Triggered eye reveal');
-      break;
-
     case 'awakening':
       void showFirstLaunchExperience();
       log.info('Triggered awakening experience');
-      break;
-
-    case 'look-around':
-      void makeAvatarLookAround();
-      log.info('Triggered look around');
       break;
 
     case 'celebrate':
@@ -3390,11 +3099,6 @@ function triggerSoulAction(action: string): void {
     case 'empathy':
       void empathyPulse();
       log.info('Triggered empathy pulse');
-      break;
-
-    case 'pause-tracking':
-      pauseAllEyeTracking(3000);
-      log.info('Paused eye tracking for 3s');
       break;
 
     case 'wink':

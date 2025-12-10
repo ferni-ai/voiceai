@@ -64,15 +64,6 @@ export interface DashboardData {
 // CONSTANTS
 // ============================================================================
 
-const DIMENSION_COLORS: Record<string, string> = {
-  mood: 'var(--color-ferni, #4a6741)',
-  energy: 'var(--color-jordan, #c4856a)',
-  worry: 'var(--color-maya, #a67a6a)',
-  loneliness: 'var(--color-peter, #3a6b73)',
-  hopefulness: 'var(--color-alex, #5a6b8a)',
-  sleepQuality: 'var(--color-jack, #9a7b5a)',
-};
-
 /** Human-friendly dimension names (exported for UI display) */
 export const DIMENSION_NAMES: Record<string, string> = {
   mood: 'Mood',
@@ -575,88 +566,16 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     });
 
     if (!response.ok) {
-      // Return mock data for demo
-      return generateMockData();
+      // Return null - UI will show empty state
+      return null;
     }
 
     return await response.json();
   } catch (error) {
-    log.warn('Using mock data:', error);
-    return generateMockData();
+    log.warn('Failed to fetch wellbeing data:', error);
+    // Return null - UI will show empty state
+    return null;
   }
-}
-
-function generateMockData(): DashboardData {
-  const now = new Date();
-  const calendar: MoodCalendarEntry[] = [];
-
-  // Generate 28 days of mock calendar data
-  for (let i = 27; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    calendar.push({
-      date: date.toISOString().split('T')[0] as string,
-      score: 0.4 + Math.random() * 0.4,
-    });
-  }
-
-  return {
-    overall: {
-      overallScore: 68,
-      trend: 'improving',
-      comparisonToLastMonth: 12,
-    },
-    dimensions: [
-      {
-        dimension: 'mood',
-        displayName: 'Mood',
-        currentScore: 0.72,
-        trend: 'up',
-        sparkline: Array.from({ length: 14 }, () => 0.5 + Math.random() * 0.3),
-        insight: 'Your mood peaks on Tuesdays',
-        color: DIMENSION_COLORS.mood ?? 'var(--color-ferni)',
-      },
-      {
-        dimension: 'energy',
-        displayName: 'Energy',
-        currentScore: 0.58,
-        trend: 'stable',
-        sparkline: Array.from({ length: 14 }, () => 0.4 + Math.random() * 0.3),
-        insight: 'Higher energy after morning walks',
-        color: DIMENSION_COLORS.energy ?? 'var(--color-jordan)',
-      },
-      {
-        dimension: 'sleepQuality',
-        displayName: 'Sleep',
-        currentScore: 0.65,
-        trend: 'up',
-        sparkline: Array.from({ length: 14 }, () => 0.5 + Math.random() * 0.3),
-        insight: 'Sleep improving over past week',
-        color: DIMENSION_COLORS.sleepQuality ?? 'var(--color-jack)',
-      },
-      {
-        dimension: 'worry',
-        displayName: 'Calm',
-        currentScore: 0.45,
-        trend: 'stable',
-        sparkline: Array.from({ length: 14 }, () => 0.3 + Math.random() * 0.4),
-        insight: 'Sundays tend to be calmer',
-        color: DIMENSION_COLORS.worry ?? 'var(--color-maya)',
-      },
-    ],
-    calendar,
-    achievements: [
-      { id: '1', title: '7-Day Streak', description: 'Checked in 7 days in a row', earnedAt: new Date().toISOString(), icon: '🔥' },
-      { id: '2', title: 'Sleep Improver', description: 'Sleep quality up 20%', earnedAt: new Date().toISOString(), icon: '😴' },
-      { id: '3', title: 'Self-Aware', description: 'Tracked 50 moods', earnedAt: new Date().toISOString(), icon: '🧠' },
-    ],
-    prediction: {
-      nextWeekForecast: 'Looking good! Your patterns suggest a positive week ahead.',
-      riskFactors: ['Busy schedule mid-week', 'Less sleep on workdays'],
-      protectiveFactors: ['Regular check-ins', 'Weekend rest', 'Morning routines'],
-    },
-    lastUpdated: new Date().toISOString(),
-  };
 }
 
 // ============================================================================

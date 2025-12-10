@@ -374,7 +374,9 @@ description: Six brilliant minds that remember your whole story, hear what you'r
         
         <!-- CTA - simple, clear, warm -->
         <div class="hero-reveal hero-reveal-3">
-          <a href="https://app.ferni.ai" class="btn-magnetic group inline-flex items-center gap-3 px-10 py-5 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/20 hover:shadow-2xl hover:shadow-ferni/30 transition-all duration-300">
+          <a href="https://app.ferni.ai" 
+             class="btn-magnetic group inline-flex items-center gap-3 px-10 py-5 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/20 hover:shadow-2xl hover:shadow-ferni/30 transition-all duration-300"
+             onclick="window.FerniExperiments && FerniExperiments.trackConversionForAll('hero_cta_click')">
             Say hi
             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
@@ -725,7 +727,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
               <div class="absolute inset-0 bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-2xl"></div>
               <!-- Center orb -->
               <div class="absolute inset-[30%] rounded-full bg-gradient-to-br from-ferni-light to-ferni shadow-glow-soft flex items-center justify-center animate-breathe">
-                <span class="font-display font-bold text-white">FN</span>
+                <span class="font-display font-bold text-white">FE</span>
               </div>
               <!-- Surrounding personas -->
               <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-peter flex items-center justify-center text-white text-xs font-bold shadow-lg">PJ</div>
@@ -1027,7 +1029,9 @@ description: Six brilliant minds that remember your whole story, hear what you'r
   
   <!-- Mobile sticky CTA - Shows after scrolling past hero -->
   <div class="mobile-cta md:hidden z-50" aria-label="Quick actions">
-    <a href="https://app.ferni.ai" class="btn flex-1 py-3.5 text-center font-semibold text-white bg-ferni rounded-xl shadow-lg shadow-ferni/20">
+    <a href="https://app.ferni.ai" 
+       class="btn flex-1 py-3.5 text-center font-semibold text-white bg-ferni rounded-xl shadow-lg shadow-ferni/20"
+       onclick="window.FerniExperiments && FerniExperiments.trackConversionForAll('mobile_cta_click')">
       Start Free
     </a>
     <a href="tel:+14844813081" class="btn btn-secondary py-3.5 px-5 font-semibold text-ferni bg-white rounded-xl border border-ink/10 shadow-lg" aria-label="Call Ferni">
@@ -1046,6 +1050,9 @@ description: Six brilliant minds that remember your whole story, hear what you'r
     </svg>
   </button>
   
+  
+  <!-- A/B Testing -->
+  <script src="/js/experiments.js"></script>
   
   <!-- Core Interactions -->
   <script src="/js/utilities.js"></script>
@@ -1088,6 +1095,62 @@ description: Six brilliant minds that remember your whole story, hear what you'r
       
       window.addEventListener('scroll', updateProgress, { passive: true });
       updateProgress();
+    })();
+  </script>
+  
+  <!-- A/B Testing Integration 
+       ═══════════════════════════════════════════════════════════════════════════
+       To run an experiment:
+       
+       1. Create the experiment via Admin Portal or API:
+          POST /api/v1/admin/experiments
+          {
+            "name": "Hero Headline Test",
+            "variants": [
+              { "id": "control", "name": "Current: Finally.", "weight": 50 },
+              { "id": "treatment", "name": "New: Someone gets it.", "weight": 50 }
+            ],
+            "primaryGoal": "hero_cta_click",
+            "minimumSamples": 1000
+          }
+       
+       2. Start the experiment via Admin Portal
+       
+       3. Use this template to apply variants:
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function() {
+      // Example: Hero headline experiment
+      // Uncomment and modify when running an experiment
+      
+      /*
+      if (window.FerniExperiments) {
+        FerniExperiments.getVariant('hero-headline-test').then(function(variant) {
+          if (!variant) return; // User not in experiment
+          
+          var headline = document.querySelector('[data-hero-section] h1');
+          if (!headline) return;
+          
+          // Apply variant
+          if (variant === 'treatment') {
+            headline.textContent = 'Someone who understands.';
+          }
+          // 'control' keeps the default
+        });
+      }
+      */
+      
+      // Track scroll engagement (reaches 50% of page)
+      var hasTrackedScroll = false;
+      window.addEventListener('scroll', function() {
+        if (hasTrackedScroll) return;
+        
+        var scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+        if (scrollPercent >= 50 && window.FerniExperiments) {
+          hasTrackedScroll = true;
+          FerniExperiments.trackConversionForAll('scroll_50_percent');
+        }
+      }, { passive: true });
     })();
   </script>
   

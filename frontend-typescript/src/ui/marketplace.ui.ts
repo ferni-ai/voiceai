@@ -468,7 +468,7 @@ function renderTeamNarrative(): string {
               <div class="leader-info">
                 <h4 class="leader-name">Ferni</h4>
                 <span class="leader-title">CEO & Life Coach</span>
-                <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team and ensures every conversation feels human.</p>
+                <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.</p>
               </div>
             </div>
           </div>

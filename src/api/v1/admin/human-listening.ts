@@ -30,7 +30,8 @@ interface ListeningEvent {
     | 'self_soothing'
     | 'hedging'
     | 'disengagement'
-    | 'tremor';
+    | 'tremor'
+    | 'energy_fade';
   severity: 'low' | 'medium' | 'high';
   details: string;
   actionTaken?: string;
@@ -186,6 +187,8 @@ function calculateMetrics() {
   const distressDetections = dayEvents.filter((e) => e.signalType === 'distress').length;
   const selfSoothingDetections = dayEvents.filter((e) => e.signalType === 'self_soothing').length;
   const hedgingDetections = dayEvents.filter((e) => e.signalType === 'hedging').length;
+  const tremorDetections = dayEvents.filter((e) => e.signalType === 'tremor').length;
+  const energyFadeDetections = dayEvents.filter((e) => e.signalType === 'energy_fade').length;
 
   // Calculate average cognitive load from recent sessions
   const cognitiveLoadEvents = dayEvents.filter((e) => e.signalType === 'cognitive_load');
@@ -203,12 +206,14 @@ function calculateMetrics() {
     sessionIds.size > 0 ? 1 - disengagementEvents.length / sessionIds.size : 0.78;
 
   return {
-    totalSessions: sessionIds.size || 1247, // Fallback for demo
+    totalSessions: sessionIds.size,
     distressDetections,
-    avgCognitiveLoad,
-    avgEngagement: Math.max(0, Math.min(1, avgEngagement)),
+    avgCognitiveLoad: sessionIds.size > 0 ? avgCognitiveLoad : 0,
+    avgEngagement: sessionIds.size > 0 ? Math.max(0, Math.min(1, avgEngagement)) : 0,
     selfSoothingDetections,
     hedgingDetections,
+    tremorDetections,
+    energyFadeDetections,
   };
 }
 

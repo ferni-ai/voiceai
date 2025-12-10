@@ -24,6 +24,7 @@ import type { URL } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
 import { handleAdminRoutes } from './admin/index.js';
 import { handleIntegrationsRoutes } from './integrations/handler.js';
+import { handlePublicExperimentsRoutes } from './public/experiments.js';
 // Note: Voice auth routes (/api/voice/*) are handled directly in ui-server.js
 // They are NOT under /api/v1 namespace since they're a standalone auth system
 
@@ -74,10 +75,10 @@ export async function handleV1Routes(
   //   return handleTrustRoutes(req, res, pathname, parsedUrl);
   // }
 
-  // Public routes (to be migrated)
-  // if (pathname.startsWith(`${BASE_PATH}/public`)) {
-  //   return handlePublicRoutes(req, res, pathname, parsedUrl);
-  // }
+  // Public routes (no auth required)
+  if (pathname.startsWith(`${BASE_PATH}/public/experiments`)) {
+    return handlePublicExperimentsRoutes(req, res, pathname, parsedUrl);
+  }
 
   // Route not matched in v1
   return false;
@@ -88,3 +89,4 @@ export default { handleV1Routes };
 // Re-export sub-routers
 export { handleAdminRoutes } from './admin/index.js';
 export { handleIntegrationsRoutes } from './integrations/handler.js';
+export { handlePublicExperimentsRoutes } from './public/experiments.js';

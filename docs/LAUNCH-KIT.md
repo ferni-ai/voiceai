@@ -1,4 +1,5 @@
 # Ferni Launch Kit
+
 ## Everything You Need to Get Your First 1,000 Users
 
 ---
@@ -6,9 +7,11 @@
 ## A) Reddit Launch Posts
 
 ### Post 1: r/selfimprovement
+
 **Title:** "I built an AI life coach that actually remembers your conversations"
 
 **Body:**
+
 ```
 Hey everyone,
 
@@ -37,9 +40,11 @@ Happy to answer any questions about how it works or why I built it.
 ---
 
 ### Post 2: r/DecidingToBeBetter
+
 **Title:** "Built an AI that helps you actually follow through on becoming better"
 
 **Body:**
+
 ```
 We've all been there - you decide to change something about your life, you're motivated for a week, then... nothing.
 
@@ -60,9 +65,11 @@ Anyone interested?
 ---
 
 ### Post 3: r/productivity
+
 **Title:** "Voice-first AI for daily reflection and goal tracking"
 
 **Body:**
+
 ```
 I've tried every productivity app. Notion, Todoist, journals, habit trackers. The problem? I never stick with them because typing feels like work.
 
@@ -81,9 +88,11 @@ Drop a comment if you want to try it.
 ---
 
 ### Post 4: r/Anxiety (Be Thoughtful Here)
+
 **Title:** "I built an AI for daily emotional check-ins - looking for feedback"
 
 **Body:**
+
 ```
 I want to be clear upfront: this is NOT a replacement for therapy or professional help. If you're in crisis, please reach out to a professional.
 
@@ -109,9 +118,11 @@ Looking for beta testers who can give me honest feedback. Is this helpful or am 
 ---
 
 ### Post 5: r/getdisciplined
+
 **Title:** "AI accountability partner that doesn't let you forget your commitments"
 
 **Body:**
+
 ```
 The problem with accountability partners: they're human. They forget. They get busy. They don't want to nag you.
 
@@ -154,7 +165,7 @@ Free beta - looking for people who want to test it. DM me or comment below.
 │  │  [Your email]                      [Get Early Access]│   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
-│         "Finally, AI that feels human."                     │
+│         "Finally, better than human."                       │
 │                                                             │
 │  ─────────────────────────────────────────────────────────  │
 │                                                             │
@@ -206,13 +217,15 @@ Free beta - looking for people who want to test it. DM me or comment below.
 ### Copy Alternatives to Test
 
 **Headlines (A/B test these):**
+
 1. "An AI life coach that actually remembers you."
-2. "Finally, AI that feels human."
+2. "Better than human."
 3. "Your thoughts deserve better than a chatbot."
 4. "The life coach that's always available."
 5. "Talk through anything. Ferni remembers everything."
 
 **Subheadlines:**
+
 1. "Talk about your goals, habits, stress, career—anything. Ferni remembers every conversation and grows with you."
 2. "Voice-first AI that builds a real relationship with you over time."
 3. "Like having a wise friend available 24/7."
@@ -222,16 +235,19 @@ Free beta - looking for people who want to test it. DM me or comment below.
 ## C) Product Hunt Launch Kit
 
 ### Tagline Options
+
 1. "AI life coach that actually remembers you"
 2. "Voice-first AI that builds a real relationship"
 3. "The life coach that's always available"
 
 ### Description (300 chars)
+
 ```
 Ferni is a voice-first AI life coach. Talk about goals, habits, stress, career—anything. Unlike ChatGPT, Ferni remembers every conversation forever and notices patterns in your life. It's like having a wise friend who knows your whole story.
 ```
 
 ### Maker Comment
+
 ```
 Hey Product Hunt!
 
@@ -254,6 +270,7 @@ Would love your feedback. What would make this useful for you?
 ```
 
 ### First Comment (Post This Immediately)
+
 ```
 Thanks for checking out Ferni!
 
@@ -273,11 +290,13 @@ Happy to answer any questions!
 ```
 
 ### Suggested Launch Day
+
 - **Best days:** Tuesday, Wednesday, Thursday
 - **Best time:** 12:01 AM PST (for full day visibility)
 - **Prep:** Line up 10-15 friends to upvote + comment in first hour
 
 ### Assets Needed
+
 - [ ] Logo (square, 240x240)
 - [ ] Gallery images (1270x760) - 3-5 screenshots
 - [ ] Demo video (optional but highly recommended)
@@ -288,6 +307,7 @@ Happy to answer any questions!
 ## D) Friends & Family Outreach
 
 ### Email Template
+
 **Subject:** Need your help testing something I built
 
 ```
@@ -311,11 +331,13 @@ P.S. - Even if it's not for you, would love to know who you think WOULD use some
 ```
 
 ### Text/DM Template
+
 ```
 Hey! Quick ask - I built an AI life coach app and I'm looking for beta testers. It's voice-based, remembers all your conversations, helps with goals/habits/life stuff. Free to try, just want feedback. Interested?
 ```
 
 ### LinkedIn Message (for professional contacts)
+
 ```
 Hi [Name],
 
@@ -331,6 +353,7 @@ Either way, would love to catch up sometime.
 ```
 
 ### Follow-up (if no response after 3 days)
+
 ```
 Hey [Name] - just bumping this in case it got buried. No pressure at all, just looking for honest feedback on this thing I built. Let me know either way!
 ```
@@ -341,13 +364,14 @@ Hey [Name] - just bumping this in case it got buried. No pressure at all, just l
 
 Create a simple Google Sheet to track outreach:
 
-| Name | Channel | Sent Date | Response | Signed Up | First Convo | Feedback |
-|------|---------|-----------|----------|-----------|-------------|----------|
-| John | Email | 12/7 | Yes | Yes | Yes | "Love the voice" |
-| Sarah | Reddit | 12/7 | - | Yes | No | - |
-| r/selfimprovement | Reddit | 12/8 | 15 comments | 8 signups | 5 | - |
+| Name              | Channel | Sent Date | Response    | Signed Up | First Convo | Feedback         |
+| ----------------- | ------- | --------- | ----------- | --------- | ----------- | ---------------- |
+| John              | Email   | 12/7      | Yes         | Yes       | Yes         | "Love the voice" |
+| Sarah             | Reddit  | 12/7      | -           | Yes       | No          | -                |
+| r/selfimprovement | Reddit  | 12/8      | 15 comments | 8 signups | 5           | -                |
 
 ### Metrics to Track
+
 - **Outreach sent:** How many people/posts
 - **Response rate:** % who reply
 - **Signup rate:** % who create account
@@ -359,36 +383,43 @@ Create a simple Google Sheet to track outreach:
 ## Launch Week Schedule
 
 ### Day 1 (Today)
+
 - [ ] Send email to 10 closest friends/family
 - [ ] Post in r/selfimprovement
 - [ ] Set up tracking spreadsheet
 
 ### Day 2
+
 - [ ] Send 10 more personal outreaches
 - [ ] Post in r/DecidingToBeBetter
 - [ ] Respond to all Reddit comments
 
 ### Day 3
+
 - [ ] Post in r/productivity
 - [ ] Follow up with non-responders
 - [ ] Schedule 3 user calls
 
 ### Day 4
+
 - [ ] Post in r/getdisciplined
 - [ ] LinkedIn outreach (10 people)
 - [ ] Conduct user calls
 
 ### Day 5
+
 - [ ] Post in r/Anxiety (if appropriate)
 - [ ] Compile feedback
 - [ ] Identify top 3 issues to fix
 
 ### Day 6-7
+
 - [ ] Fix critical issues
 - [ ] Reach out to most engaged users for testimonials
 - [ ] Prep Product Hunt assets
 
 ### Week 2
+
 - [ ] Product Hunt launch
 - [ ] Scale what's working from Week 1
 
@@ -397,6 +428,7 @@ Create a simple Google Sheet to track outreach:
 ## Quick Reference: Response Templates
 
 ### When someone says "Sounds cool!"
+
 ```
 Awesome! Here's the link: [link]
 
@@ -404,11 +436,13 @@ Takes about 2 minutes to set up. Just curious - what made you interested? Always
 ```
 
 ### When someone asks "Is this free?"
+
 ```
 Yep, completely free during beta. No credit card, no trial period, no catch. I just want feedback to make it better before we launch.
 ```
 
 ### When someone asks "How is this different from ChatGPT?"
+
 ```
 Three big things:
 
@@ -420,11 +454,13 @@ ChatGPT forgets you exist the moment you close the tab. Ferni builds a real rela
 ```
 
 ### When someone gives feedback
+
 ```
 This is super helpful, thank you! [Acknowledge their specific point]. I'm going to share this with the team. Would you be open to a quick 10-min call sometime? I'd love to dig deeper.
 ```
 
 ### When someone churns/stops using
+
 ```
 Hey [Name], noticed you haven't been back in a bit. Totally fine if it's not for you! But if there's something that didn't work or could be better, I'd genuinely love to know. No hard feelings either way.
 ```
@@ -434,6 +470,7 @@ Hey [Name], noticed you haven't been back in a bit. Totally fine if it's not for
 ## You're Ready!
 
 **Today's actions:**
+
 1. Copy the r/selfimprovement post and submit it
 2. Send the email template to 10 people you know
 3. Set up your tracking spreadsheet

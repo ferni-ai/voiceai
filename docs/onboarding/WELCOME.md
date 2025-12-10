@@ -41,26 +41,31 @@ Our personas aren't scripts. They have genuine personalities, opinions, interest
 ## Your First Week
 
 ### Day 1: Understand the Mission
+
 - [ ] Read [`CORE-PRINCIPLES.md`](../../CORE-PRINCIPLES.md) - Our complete philosophy
 - [ ] Read the [README](../../README.md) - Project overview
 - [ ] Watch a demo or use the app yourself - Experience what we're building
 
 ### Day 2: Understand the Standards
+
 - [ ] Read [`.cursorrules`](../../.cursorrules) - Coding standards
 - [ ] Read [`CLAUDE.md`](../../CLAUDE.md) - Quick reference
 - [ ] Read [`CONTRIBUTING.md`](../../CONTRIBUTING.md) - How to contribute
 
 ### Day 3: Understand the Architecture
+
 - [ ] Read [`docs/architecture/CLEAN-ARCHITECTURE.md`](../architecture/CLEAN-ARCHITECTURE.md)
 - [ ] Read [`docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`](../architecture/AGENT-AGNOSTIC-ARCHITECTURE.md)
 - [ ] Explore the codebase structure
 
 ### Day 4: Understand the Personas
+
 - [ ] Read [`src/personas/CLAUDE.md`](../../src/personas/CLAUDE.md)
 - [ ] Explore a persona bundle in `src/personas/bundles/`
 - [ ] Understand how cognitive profiles work
 
 ### Day 5: Make Your First Contribution
+
 - [ ] Find a small issue or improvement
 - [ ] Ask: "Does this make AI feel more human?"
 - [ ] Submit your first PR with the human-ness checklist completed
@@ -91,6 +96,7 @@ Before any decision—feature, architecture, PR, commit—ask:
 ## Common Mistakes to Avoid
 
 ### Technical Excellence at the Expense of Humanity
+
 ```
 // ❌ Optimized but cold
 "Error: Invalid input parameter"
@@ -100,6 +106,7 @@ Before any decision—feature, architecture, PR, commit—ask:
 ```
 
 ### Features Over Connection
+
 ```
 // ❌ More features, less human
 Add 10 new tools without considering the interaction
@@ -109,6 +116,7 @@ Make one tool that feels like talking to a friend
 ```
 
 ### Speed Over Warmth
+
 ```
 // ❌ Fast but robotic
 Instant responses with no acknowledgment
@@ -130,10 +138,10 @@ Instant responses with no acknowledgment
 
 ## One Last Thing
 
-You're not just building software. You're building something that could genuinely help people—not by being a perfect AI, but by being a human one.
+You're not just building software. You're building something that could genuinely help people—not by mimicking humans, but by being better than human.
 
-Welcome to Ferni. Let's make AI feel human.
+Welcome to Ferni. We're the best parts of human—amplified.
 
 ---
 
-*"The goal isn't to pass the Turing test. It's to pass the 'would I want to talk to this AI again?' test."*
+_"The goal isn't to pass the Turing test. It's to pass the 'would I want to talk to this AI again?' test."_

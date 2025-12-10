@@ -1,7 +1,7 @@
 {
   "name": "voiceai-gemini-cartesia",
   "version": "1.0.0",
-  "description": "Ferni - AI that feels human. Voice-first life coaching platform built on LiveKit, Gemini, and Cartesia.",
+  "description": "Ferni - Better than human. Voice-first life coaching platform built on LiveKit, Gemini, and Cartesia.",
   "type": "module",
   "main": "dist/agent.js",
   "scripts": {

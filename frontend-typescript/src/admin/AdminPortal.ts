@@ -107,6 +107,19 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/HumanListeningSection.js')).render(),
   },
   {
+    id: 'experiments',
+    name: 'Experiments',
+    icon: ICON_FLAGS, // Using flags icon for now
+    description: 'A/B tests and experiments',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/ExperimentsSection.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'flags',
     name: 'Feature Flags',
     icon: ICON_FLAGS,

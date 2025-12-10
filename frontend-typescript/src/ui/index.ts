@@ -63,16 +63,6 @@ export {
 } from './avatar-lamp.ui.js';
 export type { LampEmotion } from './avatar-lamp.ui.js';
 
-// 👁️ Ferni Eye - Pixar-inspired peek-through personality
-export {
-  triggerBlink as eyeBlink,
-  triggerCurious as eyeCurious,
-  triggerPeek as eyePeek,
-  triggerWink as eyeWink,
-  ferniEye,
-  initFerniEye,
-} from './ferni-eye.ui.js';
-
 // Enhanced UI Features
 export { connectionQualityUI, initConnectionQualityUI } from './connection-quality.ui.js';
 export { initKeyboardUI, keyboardUI, setConnected as setKeyboardConnected } from './keyboard.ui.js';

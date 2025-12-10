@@ -179,6 +179,8 @@ import { initHouseholdManager, showHouseholdManager } from './ui/household-manag
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
+// Tip Jar - Support Ferni (monetization)
+import { tipJarUI } from './ui/tip-jar.ui.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications
@@ -1009,11 +1011,10 @@ class VoiceAIApp {
     // 🎬 Animation Orchestrator - Character-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
 
-    // 🌟 Soul System - Living presence with eye tracking, logo expressions, persona magic
+    // 🌟 Soul System - Living presence with logo expressions, persona magic
     this.safeInit('Soul', () => {
       void initSoul({
         showFirstLaunch: false, // Already handled in initialize()
-        enableEyeTracking: true,
         enablePersonaMagic: true,
       });
     });
@@ -1190,6 +1191,12 @@ class VoiceAIApp {
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
+        onTipJarClick: () => {
+          const userId = appState.get('deviceId');
+          if (userId) {
+            tipJarUI.open(userId);
+          }
+        },
       });
 
       // Wire up Spotify state changes to menu

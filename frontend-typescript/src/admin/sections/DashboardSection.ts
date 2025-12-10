@@ -585,9 +585,9 @@ async function fetchSystemHealth(): Promise<SystemHealth> {
     log.warn({ error }, 'Failed to fetch system health');
   }
 
-  // Fallback
+  // Fallback - indicate API unavailable
   return {
-    status: 'healthy',
+    status: 'down',
     uptime: 0,
     services: [],
   };

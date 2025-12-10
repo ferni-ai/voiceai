@@ -38,6 +38,14 @@ interface HandoffEvent {
   timestamp: string;
 }
 
+interface ServiceHealth {
+  name: string;
+  status: 'healthy' | 'degraded' | 'down';
+  latency?: number;
+  lastCheck: string;
+  details?: string;
+}
+
 /**
  * Render the diagnostics section
  */
@@ -46,6 +54,7 @@ export async function render(): Promise<string> {
 
   const metrics = await fetchHandoffMetrics();
   const events = await fetchRecentHandoffs();
+  const services = await fetchServiceHealth();
 
   return `
     <div class="diagnostics-section">
@@ -109,14 +118,17 @@ export async function render(): Promise<string> {
           <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
           System Components
         </h2>
-        <div class="health-grid">
-          ${renderHealthItem('LiveKit', 'healthy', '99.9% uptime')}
-          ${renderHealthItem('Gemini', 'healthy', '45ms avg latency')}
-          ${renderHealthItem('Cartesia', 'healthy', '98ms avg latency')}
-          ${renderHealthItem('Firestore', 'healthy', '12ms avg latency')}
-          ${renderHealthItem('Redis', 'healthy', '< 1ms avg latency')}
-          ${renderHealthItem('Voice Auth', 'healthy', '89 profiles indexed')}
-        </div>
+        ${services.length === 0 ? `
+          <div class="empty-state">
+            <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
+            <h3>Service Health Unavailable</h3>
+            <p>Service status will appear when the backend is connected.</p>
+          </div>
+        ` : `
+          <div class="health-grid">
+            ${services.map(s => renderHealthItem(s.name, s.status, formatServiceDetail(s))).join('')}
+          </div>
+        `}
       </div>
     </div>
 
@@ -310,6 +322,29 @@ export async function render(): Promise<string> {
         font-size: 0.75rem;
         color: var(--color-text-secondary, #a89a8c);
       }
+
+      .empty-state {
+        text-align: center;
+        padding: var(--space-8, 2rem);
+        color: var(--color-text-secondary, #a89a8c);
+      }
+
+      .empty-state .admin-icon {
+        display: block;
+        margin-bottom: var(--space-3, 0.75rem);
+        opacity: 0.5;
+      }
+
+      .empty-state h3 {
+        margin: 0 0 var(--space-2, 0.5rem) 0;
+        color: var(--color-text-primary, #faf6f0);
+        font-size: 1rem;
+      }
+
+      .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+      }
     </style>
   `;
 }
@@ -375,14 +410,15 @@ async function fetchHandoffMetrics(): Promise<HandoffMetrics> {
       return await response.json();
     }
   } catch {
-    // Fall through to mock data
+    // API unavailable - return empty state (not mock data)
   }
 
+  // Return real empty state - no handoffs recorded yet
   return {
-    totalHandoffs: 1847,
-    successRate: 99.2,
-    avgDuration: 145,
-    failedHandoffs: 3,
+    totalHandoffs: 0,
+    successRate: 100,
+    avgDuration: 0,
+    failedHandoffs: 0,
   };
 }
 
@@ -398,16 +434,37 @@ async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
       return data.events || [];
     }
   } catch {
-    // Fall through to mock data
+    // API unavailable - return empty array (not mock data)
   }
 
-  return [
-    { id: 'h1', from: 'Ferni', to: 'Peter', trigger: 'research', duration: 142, status: 'success', timestamp: '5 min ago' },
-    { id: 'h2', from: 'Peter', to: 'Ferni', trigger: 'return', duration: 128, status: 'success', timestamp: '12 min ago' },
-    { id: 'h3', from: 'Ferni', to: 'Maya', trigger: 'habits', duration: 156, status: 'success', timestamp: '28 min ago' },
-    { id: 'h4', from: 'Maya', to: 'Ferni', trigger: 'return', duration: 134, status: 'success', timestamp: '45 min ago' },
-    { id: 'h5', from: 'Ferni', to: 'Alex', trigger: 'email', duration: 289, status: 'failed', timestamp: '1 hour ago' },
-  ];
+  // Return empty array - handoffs will appear when they actually happen
+  return [];
+}
+
+async function fetchServiceHealth(): Promise<ServiceHealth[]> {
+  try {
+    const response = await fetch('/api/v1/admin/diagnostics/services', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.services || [];
+    }
+  } catch {
+    // API unavailable - return empty array
+  }
+
+  // Return empty array - services will appear when backend is connected
+  return [];
+}
+
+function formatServiceDetail(service: ServiceHealth): string {
+  if (service.latency !== undefined) {
+    return `${service.latency}ms latency`;
+  }
+  return service.details || service.status;
 }
 
 export default { render };

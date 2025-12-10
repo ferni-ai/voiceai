@@ -43,11 +43,12 @@ interface TrustEvent {
 export async function render(): Promise<string> {
   log.debug('Rendering trust section');
 
-  const [metrics, events, stages, systems] = await Promise.all([
+  const [metrics, events, stages, systems, warmthStats] = await Promise.all([
     fetchTrustMetrics(),
     fetchTrustEvents(),
     fetchStageDistribution(),
     fetchTrustSystems(),
+    fetchWarmthStats(),
   ]);
 
   return `
@@ -82,9 +83,18 @@ export async function render(): Promise<string> {
           <span class="admin-icon">${iconSm(ICON_DATABASE)}</span>
           Trust Systems
         </h2>
-        <div class="systems-grid">
-          ${systems.map((s) => renderTrustSystem(s.id, s.name, s.description, s.active)).join('')}
-        </div>
+        ${systems.length === 0 ? `
+          <div class="empty-state">
+            <span class="admin-icon">${iconSm(ICON_DATABASE)}</span>
+            <h3>No Trust Systems Available</h3>
+            <p>Trust systems will appear here when the API is available.</p>
+            <p class="empty-state-hint">Check that the backend is running and connected.</p>
+          </div>
+        ` : `
+          <div class="systems-grid">
+            ${systems.map((s) => renderTrustSystem(s.id, s.name, s.description, s.active)).join('')}
+          </div>
+        `}
       </div>
 
       <!-- Relationship Stages -->
@@ -130,15 +140,15 @@ export async function render(): Promise<string> {
         <div class="warmth-stats">
           <div class="warmth-stat">
             <span class="warmth-stat-label">Avg Warmth (All Users)</span>
-            <span class="warmth-stat-value">0.52</span>
+            <span class="warmth-stat-value">${warmthStats.avgWarmth > 0 ? warmthStats.avgWarmth.toFixed(2) : '—'}</span>
           </div>
           <div class="warmth-stat">
             <span class="warmth-stat-label">Users at Max Warmth</span>
-            <span class="warmth-stat-value">23</span>
+            <span class="warmth-stat-value">${warmthStats.usersAtMaxWarmth}</span>
           </div>
           <div class="warmth-stat">
             <span class="warmth-stat-label">Warmth Increases Today</span>
-            <span class="warmth-stat-value">+147</span>
+            <span class="warmth-stat-value">${warmthStats.warmthIncreasesToday > 0 ? `+${warmthStats.warmthIncreasesToday}` : '0'}</span>
           </div>
         </div>
       </div>
@@ -706,6 +716,12 @@ interface TrustSystem {
   lastEvent?: string;
 }
 
+interface WarmthStats {
+  avgWarmth: number;
+  usersAtMaxWarmth: number;
+  warmthIncreasesToday: number;
+}
+
 async function fetchTrustSystems(): Promise<TrustSystem[]> {
   try {
     const response = await fetch('/api/trust/analytics/systems', {
@@ -721,45 +737,8 @@ async function fetchTrustSystems(): Promise<TrustSystem[]> {
     log.warn({ error }, 'Failed to fetch trust systems');
   }
 
-  // Return default systems
-  return [
-    {
-      id: 'reading-between-lines',
-      name: 'Reading Between Lines',
-      description: "Detects what's NOT being said",
-      active: true,
-    },
-    {
-      id: 'boundary-memory',
-      name: 'Boundary Memory',
-      description: 'Tracks what NOT to bring up',
-      active: true,
-    },
-    {
-      id: 'growth-reflection',
-      name: 'Growth Reflection',
-      description: 'Notices user evolution',
-      active: true,
-    },
-    {
-      id: 'inside-jokes',
-      name: 'Inside Jokes',
-      description: 'Builds shared history',
-      active: true,
-    },
-    {
-      id: 'small-wins',
-      name: 'Small Wins',
-      description: 'Celebrates effort, not just outcomes',
-      active: true,
-    },
-    {
-      id: 'thinking-of-you',
-      name: 'Thinking of You',
-      description: 'Proactive no-agenda outreach',
-      active: false,
-    },
-  ];
+  // Return empty array - systems will appear when API is available
+  return [];
 }
 
 function getStageColor(stage: string): string {
@@ -771,6 +750,28 @@ function getStageColor(stage: string): string {
     flourishing: 'var(--color-accent, #C4A265)',
   };
   return colors[stage] || 'var(--color-text-secondary, #a89a8c)';
+}
+
+async function fetchWarmthStats(): Promise<WarmthStats> {
+  try {
+    const response = await fetch('/api/trust/analytics/warmth', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch warmth stats');
+  }
+
+  // Return zeros - no warmth data yet
+  return {
+    avgWarmth: 0,
+    usersAtMaxWarmth: 0,
+    warmthIncreasesToday: 0,
+  };
 }
 
 function renderNoEvents(): string {

@@ -7,21 +7,17 @@
  * @example
  * // In browser console:
  * testSoul.awakening()     // Show first launch experience
- * testSoul.eyeReveal()     // Transform avatar to eye momentarily
  * testSoul.handoff()       // Test persona transition
  * testSoul.celebrate()     // Test celebration animation
  */
 
-import {
-  showFerniAwakens,
-  resetAwakening,
-  revealAvatarEye,
-  performMagicalHandoff,
-  celebrationBurst,
-  pauseAvatarEyeTracking,
-  lookAround,
-} from './soul.ui.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  celebrationBurst,
+  performMagicalHandoff,
+  resetAwakening,
+  showFerniAwakens,
+} from './soul.ui.js';
 
 const log = createLogger('SoulTest');
 
@@ -37,31 +33,6 @@ export async function testAwakening(): Promise<void> {
   resetAwakening();
   await showFerniAwakens();
   log.info('Awakening test complete');
-}
-
-/**
- * Test the avatar eye reveal
- */
-export async function testEyeReveal(): Promise<void> {
-  log.info('Testing eye reveal...');
-  await revealAvatarEye(2500);
-  log.info('Eye reveal test complete');
-}
-
-/**
- * Test eye tracking by doing a look-around
- */
-export async function testLookAround(): Promise<void> {
-  log.info('Testing look around...');
-
-  // Pause normal tracking
-  pauseAvatarEyeTracking(3000);
-
-  // Do look around
-  const id = 'avatar-eye-tracking-test';
-  await lookAround(id);
-
-  log.info('Look around test complete');
 }
 
 /**
@@ -96,9 +67,6 @@ export async function testCelebration(): Promise<void> {
 export async function testAll(): Promise<void> {
   log.info('Running all soul tests...');
 
-  await testEyeReveal();
-  await sleep(1000);
-
   await testCelebration();
   await sleep(500);
 
@@ -121,8 +89,6 @@ function sleep(ms: number): Promise<void> {
 
 const testSoul = {
   awakening: testAwakening,
-  eyeReveal: testEyeReveal,
-  lookAround: testLookAround,
   handoff: testHandoff,
   celebrate: testCelebration,
   all: testAll,

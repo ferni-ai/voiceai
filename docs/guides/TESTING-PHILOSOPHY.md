@@ -2,7 +2,7 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-Our tests don't just verify code works—they verify we're building something that feels human.
+Our tests don't just verify code works—they verify we're building something better than human.
 
 ---
 
