@@ -4,6 +4,7 @@
  */
 
 import 'dotenv/config';
+import crypto from 'crypto';
 import fs from 'fs';
 import http from 'http';
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
@@ -80,6 +81,9 @@ import { handleStoryJourneyRoutes } from './dist/api/story-journey-routes.js';
 // Subscription routes (Stripe checkout, billing portal, usage tracking)
 import { handleSubscriptionRequest, isSubscriptionRoute } from './dist/api/subscription-routes.js';
 
+// Monetization routes (tip jar, value capture, ferni fund, B2B, partnerships)
+import { handleMonetizationRequest, isMonetizationRoute } from './dist/api/monetization-routes.js';
+
 // Rate limiting and auth for sensitive endpoints
 import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
@@ -111,6 +115,70 @@ const SPOTIFY_TOKENS_FILE = path.join(process.cwd(), '.spotify-tokens.json');
 let spotifyWebDeviceId = null;
 let spotifyAccessToken = null;
 let spotifyTokenExpiry = 0;
+
+// ============================================================================
+// DEMO SESSION RATE LIMITING (for landing page try-without-signup)
+// ============================================================================
+
+const demoRateLimits = new Map();
+
+const DEMO_CONFIG = {
+  maxSessionsPerDay: 3,
+  sessionDurationMinutes: 3,
+  cooldownMinutes: 5,
+};
+
+// Cleanup old rate limit entries hourly
+setInterval(() => {
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  for (const [ip, data] of demoRateLimits.entries()) {
+    if (data.lastSession < dayAgo) {
+      demoRateLimits.delete(ip);
+    }
+  }
+}, 60 * 60 * 1000);
+
+function getDemoRateLimit(ip) {
+  const dayStart = new Date().setHours(0, 0, 0, 0);
+  let data = demoRateLimits.get(ip);
+  
+  if (!data || data.dayStart !== dayStart) {
+    data = { dayStart, sessionCount: 0, lastSession: 0 };
+    demoRateLimits.set(ip, data);
+  }
+  return data;
+}
+
+function checkDemoAllowed(ip) {
+  const data = getDemoRateLimit(ip);
+  const now = Date.now();
+  
+  if (data.sessionCount >= DEMO_CONFIG.maxSessionsPerDay) {
+    return { 
+      allowed: false, 
+      reason: 'daily_limit',
+      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`
+    };
+  }
+  
+  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
+  if (data.lastSession && (now - data.lastSession) < cooldownMs) {
+    const retryIn = Math.ceil((cooldownMs - (now - data.lastSession)) / 1000);
+    return {
+      allowed: false,
+      reason: 'cooldown',
+      message: `Please wait ${retryIn} seconds before starting another demo.`
+    };
+  }
+  
+  return { allowed: true, sessionsRemaining: DEMO_CONFIG.maxSessionsPerDay - data.sessionCount };
+}
+
+function recordDemoSession(ip) {
+  const data = getDemoRateLimit(ip);
+  data.sessionCount++;
+  data.lastSession = Date.now();
+}
 
 // Get Spotify refresh token from file or .env
 function getSpotifyRefreshToken() {
@@ -701,6 +769,50 @@ const server = http.createServer(async (req, res) => {
         return;
       } catch (err) {
         console.error('❌ Subscription route error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+        return;
+      }
+    }
+
+    // Monetization routes (tip jar, value capture, ferni fund, B2B, partnerships)
+    if (isMonetizationRoute(pathname)) {
+      try {
+        // Parse body for POST requests
+        let body = undefined;
+
+        if (req.method === 'POST' || req.method === 'PUT') {
+          const chunks = [];
+          await new Promise((resolve) => {
+            req.on('data', (chunk) => chunks.push(chunk));
+            req.on('end', resolve);
+          });
+          const rawBody = Buffer.concat(chunks).toString('utf8');
+          try {
+            body = rawBody ? JSON.parse(rawBody) : {};
+          } catch {
+            body = {};
+          }
+        }
+
+        // Build request context
+        const ctx = {
+          method: req.method,
+          pathname,
+          query: Object.fromEntries(parsedUrl.searchParams),
+          body,
+          headers: req.headers,
+        };
+
+        // Handle the request
+        const response = await handleMonetizationRequest(ctx);
+
+        // Send response
+        res.writeHead(response.status, response.headers);
+        res.end(JSON.stringify(response.body));
+        return;
+      } catch (err) {
+        console.error('❌ Monetization route error:', err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
         return;
@@ -1929,7 +2041,69 @@ const server = http.createServer(async (req, res) => {
   // LIVEKIT ROUTES
   // ============================================================================
 
-  // Token generation endpoint
+  // Demo token endpoint - for landing page try-without-signup
+  if (pathname === '/demo-token') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+               req.headers['x-real-ip'] || 
+               req.socket.remoteAddress || 
+               'unknown';
+    
+    const rateCheck = checkDemoAllowed(ip);
+    if (!rateCheck.allowed) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: rateCheck.reason,
+        message: rateCheck.message
+      }));
+      return;
+    }
+
+    try {
+      const demoId = `demo-${crypto.randomBytes(8).toString('hex')}`;
+      const roomName = `demo-${crypto.randomBytes(12).toString('hex')}`;
+      const username = 'Visitor';
+      
+      const token = await createToken(roomName, username);
+      
+      // Dispatch agent with demo metadata
+      try {
+        await agentDispatch.createDispatch(roomName, AGENT_NAME, {
+          metadata: JSON.stringify({
+            user_name: username,
+            device_id: demoId,
+            persona_id: 'ferni',
+            is_demo: true,
+            source: 'landing_page'
+          }),
+        });
+        console.log(`🎯 Demo session created: ${roomName} (IP: ${ip.substring(0, 10)}...)`);
+      } catch (dispatchError) {
+        console.log(`ℹ️ Demo dispatch note: ${dispatchError.message}`);
+      }
+      
+      recordDemoSession(ip);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        token,
+        url: LIVEKIT_URL,
+        room: roomName,
+        username,
+        persona_id: 'ferni',
+        is_demo: true,
+        session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
+        sessions_remaining: rateCheck.sessionsRemaining - 1,
+        upgrade_url: 'https://app.ferni.ai'
+      }));
+    } catch (error) {
+      console.error('❌ Demo token error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to create demo session' }));
+    }
+    return;
+  }
+
+  // Token generation endpoint (authenticated users)
   if (pathname === '/token') {
     // Rate limit: 20 tokens per minute per IP (prevents abuse)
     if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) {
