@@ -145,6 +145,115 @@ export function onSessionEnd(
 // ============================================================================
 
 /**
+ * Detect vulnerability sharing in user messages
+ * This is CRITICAL for relationship acceleration
+ */
+function detectVulnerabilitySharing(
+  message: string,
+  voiceEmotion?: { primary: string; confidence: number }
+): {
+  isVulnerable: boolean;
+  type?: 'deep_disclosure' | 'first_time_share' | 'emotional_admission' | 'asking_for_help';
+  confidence: number;
+} {
+  const lower = message.toLowerCase();
+
+  // Patterns that indicate vulnerability
+  const vulnerabilityPatterns = [
+    { pattern: /i('ve| have) never told anyone/i, type: 'first_time_share' as const, weight: 0.95 },
+    {
+      pattern: /this is hard (to|for me to) (say|admit|talk about)/i,
+      type: 'deep_disclosure' as const,
+      weight: 0.9,
+    },
+    {
+      pattern: /i('m| am) (scared|afraid|terrified)/i,
+      type: 'emotional_admission' as const,
+      weight: 0.85,
+    },
+    {
+      pattern: /i don't know (who|what) (else )?to (talk|turn) to/i,
+      type: 'asking_for_help' as const,
+      weight: 0.9,
+    },
+    {
+      pattern: /i('ve| have) been (struggling|dealing) with/i,
+      type: 'emotional_admission' as const,
+      weight: 0.75,
+    },
+    { pattern: /nobody (knows|understands)/i, type: 'deep_disclosure' as const, weight: 0.8 },
+    {
+      pattern: /i feel (so )?(alone|lonely|isolated)/i,
+      type: 'emotional_admission' as const,
+      weight: 0.85,
+    },
+    {
+      pattern: /can i (tell|share|confess) (you )?something/i,
+      type: 'first_time_share' as const,
+      weight: 0.7,
+    },
+    {
+      pattern: /i('m| am) (not|really) ok(ay)?/i,
+      type: 'emotional_admission' as const,
+      weight: 0.8,
+    },
+    { pattern: /i need (help|someone|to talk)/i, type: 'asking_for_help' as const, weight: 0.75 },
+    {
+      pattern: /i('ve| have) (never|been afraid to) (admitted|said|shared) this/i,
+      type: 'first_time_share' as const,
+      weight: 0.85,
+    },
+    {
+      pattern: /i('m| am) (really )?struggling/i,
+      type: 'emotional_admission' as const,
+      weight: 0.7,
+    },
+    {
+      pattern: /this is (embarrassing|humiliating|shameful)/i,
+      type: 'deep_disclosure' as const,
+      weight: 0.85,
+    },
+    {
+      pattern: /i('ve| have) been (hiding|keeping)/i,
+      type: 'deep_disclosure' as const,
+      weight: 0.75,
+    },
+  ];
+
+  let bestMatch: {
+    type: 'deep_disclosure' | 'first_time_share' | 'emotional_admission' | 'asking_for_help';
+    weight: number;
+  } | null = null;
+
+  for (const { pattern, type, weight } of vulnerabilityPatterns) {
+    if (pattern.test(message)) {
+      if (!bestMatch || weight > bestMatch.weight) {
+        bestMatch = { type, weight };
+      }
+    }
+  }
+
+  // Boost confidence if voice emotion indicates vulnerability
+  let voiceBoost = 0;
+  if (voiceEmotion?.primary) {
+    const vulnerableEmotions = ['sadness', 'fear', 'anxiety', 'distress'];
+    if (vulnerableEmotions.includes(voiceEmotion.primary.toLowerCase())) {
+      voiceBoost = voiceEmotion.confidence * 0.15;
+    }
+  }
+
+  if (bestMatch) {
+    return {
+      isVulnerable: true,
+      type: bestMatch.type,
+      confidence: Math.min(1, bestMatch.weight + voiceBoost),
+    };
+  }
+
+  return { isVulnerable: false, confidence: 0 };
+}
+
+/**
  * Process a user message through humanization
  * Call this when the user speaks
  */
@@ -169,6 +278,24 @@ export function processUserMessage(
 
   // Record the message for phonetic mirroring and pattern learning
   orchestrator.recordUserMessage(message);
+
+  // VULNERABILITY DETECTION - Critical for relationship acceleration
+  const vulnerability = detectVulnerabilitySharing(message, context?.voiceEmotion);
+  if (vulnerability.isVulnerable) {
+    // Record the comfort event immediately
+    orchestrator.recordComfortEvent('user_shared_vulnerability', state.turnCount);
+
+    // Log for debugging
+    logger.info(
+      { sessionId, type: vulnerability.type, confidence: vulnerability.confidence },
+      '💜 Vulnerability detected - relationship accelerated'
+    );
+
+    // Also record specific types
+    if (vulnerability.type === 'deep_disclosure' || vulnerability.type === 'first_time_share') {
+      orchestrator.recordComfortEvent('deep_disclosure', state.turnCount);
+    }
+  }
 
   // Update turn count
   state.turnCount++;
@@ -458,6 +585,8 @@ export function recordComfortEvent(
     | 'emotional_moment_navigated'
     | 'user_initiated_deeper_topic'
     | 'comfortable_silence'
+    | 'deep_disclosure'
+    | 'reciprocated_vulnerability'
 ): void {
   const state = sessions.get(sessionId);
   if (!state || !state.isActive) {
@@ -470,6 +599,8 @@ export function recordComfortEvent(
   // Update local comfort level estimate
   const comfortIncrease: Record<typeof event, number> = {
     user_shared_vulnerability: 0.1,
+    deep_disclosure: 0.12,
+    reciprocated_vulnerability: 0.1,
     shared_laughter: 0.08,
     accepted_feedback: 0.05,
     emotional_moment_navigated: 0.12,

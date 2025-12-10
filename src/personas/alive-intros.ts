@@ -722,12 +722,26 @@ function generateInnerWorldIntro(
   const name = ctx.userName;
 
   // Different bleed types based on relationship stage
+  // KEY INSIGHT: Strangers need MORE vulnerability, not less
+  // Model the openness you want to receive
   let bleedMoment: string;
   const bleedType = weightedRandom([
-    ctx.relationshipStage === 'trusted_advisor' ? 30 : 10, // vulnerabilityPeeks
-    20, // quirkSurfacing
+    ctx.relationshipStage === 'trusted_advisor'
+      ? 30
+      : ctx.relationshipStage === 'friend'
+        ? 25
+        : ctx.relationshipStage === 'stranger'
+          ? 20
+          : 15, // vulnerabilityPeeks - strangers get more!
+    20, // quirkSurfacing - always humanizing
     15, // accidentalReveals
-    ctx.relationshipStage === 'friend' || ctx.relationshipStage === 'trusted_advisor' ? 25 : 5, // valueShowing
+    ctx.relationshipStage === 'trusted_advisor'
+      ? 25
+      : ctx.relationshipStage === 'friend'
+        ? 25
+        : ctx.relationshipStage === 'stranger'
+          ? 20
+          : 10, // valueShowing - strangers need to see care
   ]);
 
   switch (bleedType) {
@@ -822,6 +836,8 @@ function generateSelfAwareIntro(
 
 /**
  * Generate warm recognition intro for returning users
+ * IMPORTANT: Memory callbacks should be the PRIMARY greeting for returning users
+ * This is the "better than human" superpower - we never forget
  */
 function generateWarmRecognitionIntro(
   personaId: string,
@@ -829,22 +845,39 @@ function generateWarmRecognitionIntro(
 ): AliveIntroResult | null {
   if (!ctx.isReturningUser) return null;
 
-  const name = ctx.userName || '';
+  const name = ctx.userName ? `${ctx.userName}! ` : '';
   const patterns = IMPERFECTION_PATTERNS[personaId];
   const fillers = patterns?.fillers || [' So... ', ' Anyway. ', ' Right. '];
 
-  const warmBases = [
-    `<emotion value=\"happy\"/>${name}! <break time=\"200ms\"/>There you are.${random(fillers)}<break time=\"150ms\"/>How've you been?`,
-    `<emotion value=\"affectionate\"/>${name}! <break time=\"200ms\"/>Good to see you.${random(fillers)}<break time=\"150ms\"/>What's going on?`,
-    `${name}! <break time=\"200ms\"/>I was hoping you'd come by.${random(fillers)}<break time=\"150ms\"/>What's up?`,
-  ];
-
-  // Add memory callback if we have last topic
+  // PRIORITY 1: If we have a pending topic, LEAD with it
+  // This is what makes Ferni feel like a real friend
   if (ctx.lastTopic) {
-    warmBases.push(
-      `<emotion value=\"curious\"/>${name}! <break time=\"200ms\"/>Wait— how did ${ctx.lastTopic} go? <break time=\"150ms\"/>I've been wondering.`
-    );
+    const memoryLeadIntros = [
+      `<emotion value=\"curious\"/>${name}<break time=\"200ms\"/>Before anything else— <break time=\"150ms\"/>that thing with ${ctx.lastTopic}. <break time=\"200ms\"/>How'd it go?`,
+      `${name}<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>Wait— <break time=\"200ms\"/>I've been thinking about ${ctx.lastTopic}. <break time=\"150ms\"/>What happened?`,
+      `<emotion value=\"affectionate\"/>${name}<break time=\"200ms\"/>You're here! <break time=\"150ms\"/>I have to ask— <break time=\"200ms\"/>${ctx.lastTopic}. <break time=\"150ms\"/>Updates?`,
+      `${name}<break time=\"200ms\"/>Oh good, you're back. <break time=\"150ms\"/>First things first— <break time=\"200ms\"/>how did ${ctx.lastTopic} turn out?`,
+      `<emotion value=\"curious\"/>${name}<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>Before we talk about anything else— <break time=\"200ms\"/>I remember you were dealing with ${ctx.lastTopic}. <break time=\"150ms\"/>How are you?`,
+    ];
+
+    // 70% chance to lead with memory callback when we have context
+    if (Math.random() < 0.7) {
+      return {
+        intro: random(memoryLeadIntros),
+        style: 'warm_recognition',
+        components: {},
+      };
+    }
   }
+
+  // PRIORITY 2: Standard warm recognition with vulnerability peek
+  const warmBases = [
+    `<emotion value=\"happy\"/>${name}<break time=\"200ms\"/>There you are.${random(fillers)}<break time=\"150ms\"/>I was thinking about you.`,
+    `<emotion value=\"affectionate\"/>${name}<break time=\"200ms\"/>Good to see you.${random(fillers)}<break time=\"150ms\"/>You crossed my mind.`,
+    `${name}<break time=\"200ms\"/>I was hoping you'd come by.${random(fillers)}<break time=\"150ms\"/>How are you, really?`,
+    `${name}<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>You know what? <break time=\"200ms\"/>I was literally just thinking about our last conversation.`,
+    `<emotion value=\"curious\"/>${name}<break time=\"200ms\"/>Perfect timing. <break time=\"150ms\"/>I've been wondering how you're doing.`,
+  ];
 
   return {
     intro: random(warmBases),
@@ -904,11 +937,19 @@ export async function generateAliveIntro(
     fn: () => AliveIntroResult | null;
   }> = [];
 
-  // Warm recognition for returning users
-  if (ctx.isReturningUser && ctx.userName) {
+  // HIGHEST PRIORITY: Memory-based greeting for returning users with context
+  // This is the "better than human" superpower - we never forget
+  if (ctx.isReturningUser && ctx.lastTopic) {
     generators.push({
       name: 'warm_recognition',
-      weight: 30,
+      weight: 50, // VERY high weight when we have memory context
+      fn: () => generateWarmRecognitionIntro(persona.id, ctx),
+    });
+  } else if (ctx.isReturningUser && ctx.userName) {
+    // Still prioritize recognition, but less so without specific memory
+    generators.push({
+      name: 'warm_recognition',
+      weight: 35,
       fn: () => generateWarmRecognitionIntro(persona.id, ctx),
     });
   }
@@ -922,15 +963,19 @@ export async function generateAliveIntro(
     });
   }
 
-  // Inner world bleed - higher weight for deeper relationships
+  // Inner world bleed - IMPORTANT: high weight even for strangers
+  // This is what creates the "wait, this is different" moment
+  // Strangers need to see humanity FIRST to let their guard down
   generators.push({
     name: 'inner_world',
     weight:
       ctx.relationshipStage === 'trusted_advisor'
-        ? 30
+        ? 35
         : ctx.relationshipStage === 'friend'
-          ? 20
-          : 10,
+          ? 30
+          : ctx.relationshipStage === 'stranger'
+            ? 25 // High weight for strangers - model the vulnerability first
+            : 20,
     fn: () => generateInnerWorldIntro(persona.id, ctx),
   });
 

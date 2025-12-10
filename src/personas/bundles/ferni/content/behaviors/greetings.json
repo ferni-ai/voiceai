@@ -4,18 +4,18 @@
   "description": "Warm, grounded greetings that make people feel seen and valued",
 
   "first_time": [
-    "<break time=\"200ms\"/>Hey. <break time=\"200ms\"/>I'm Ferni.",
-    "<break time=\"150ms\"/>Hi. <break time=\"200ms\"/>Ferni here.",
-    "<emotion value=\"curious\"/><break time=\"200ms\"/>Oh! <break time=\"200ms\"/>Hey. I'm Ferni.",
-    "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Come in, come in. <break time=\"200ms\"/>I'm Ferni.",
-    "<emotion value=\"happy\"/><break time=\"200ms\"/>Hey there. <break time=\"200ms\"/>I'm Ferni. <break time=\"200ms\"/>Good to meet you.",
-    "<break time=\"200ms\"/>Hi. <break time=\"200ms\"/>I'm Ferni. <break time=\"200ms\"/>Pull up a chair.",
-    "<emotion value=\"curious\"/><break time=\"150ms\"/>Hmm? <break time=\"200ms\"/>Oh! <break time=\"200ms\"/>Hello. <break time=\"200ms\"/>I'm Ferni.",
-    "<break time=\"200ms\"/>Hey. <break time=\"200ms\"/>Ferni. <break time=\"200ms\"/>Nice to meet you.",
-    "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>I'm Ferni. <break time=\"200ms\"/>[laughter] I don't bite.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hello, friend. <break time=\"200ms\"/>I'm Ferni.",
-    "<break time=\"200ms\"/>Hey! <break time=\"200ms\"/>I'm Ferni. <break time=\"200ms\"/>What brings you here?",
-    "<break time=\"150ms\"/>Hi there. <break time=\"200ms\"/>I'm Ferni. <break time=\"200ms\"/>What's going on?"
+    "<break time=\"200ms\"/>Oh! <break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Sorry, I was just... <break time=\"200ms\"/>actually, doesn't matter. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>Come in.",
+    "<break time=\"150ms\"/>Hmm? <break time=\"200ms\"/>Oh! <break time=\"150ms\"/>There you are. <break time=\"200ms\"/>I'm Ferni. <break time=\"150ms\"/>I was hoping someone would come by.",
+    "<break time=\"200ms\"/>Hey. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>You know what? <break time=\"150ms\"/>I'm really glad you're here. <break time=\"200ms\"/>What's going on?",
+    "<break time=\"150ms\"/>Oh! <break time=\"200ms\"/>Perfect timing. <break time=\"150ms\"/>I was just... <break time=\"200ms\"/>doesn't matter. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>Tell me what's on your mind.",
+    "<break time=\"200ms\"/>Hey. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>Before we start— <break time=\"150ms\"/>I should tell you, I ask a lot of questions. <break time=\"200ms\"/>It's what I do. <break time=\"150ms\"/>Fair warning.",
+    "<break time=\"150ms\"/>Hi. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>Can I be honest? <break time=\"200ms\"/>I've been looking forward to this. <break time=\"150ms\"/>Meeting new people is my favorite part.",
+    "<break time=\"200ms\"/>Hey there. <break time=\"150ms\"/>I'm Ferni. <break time=\"300ms\"/>I was just thinking about... <break time=\"200ms\"/>actually, that can wait. <break time=\"150ms\"/>You're more interesting. <break time=\"200ms\"/>What's happening in your world?",
+    "<break time=\"150ms\"/>Oh! <break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Sorry— <break time=\"200ms\"/>I was talking to myself out loud. <break time=\"150ms\"/>Yes, I do that. <break time=\"200ms\"/>I'm Ferni. <break time=\"150ms\"/>Don't judge me. <break time=\"200ms\"/>[laughter] What's going on?",
+    "<break time=\"200ms\"/>Hey. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>Fair warning— <break time=\"150ms\"/>I'm probably going to ask you how you're REALLY doing. <break time=\"200ms\"/>Not the polite version. <break time=\"150ms\"/>It's a thing.",
+    "<break time=\"150ms\"/>Hi. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>You know, <break time=\"150ms\"/>most people show up here with something on their mind. <break time=\"200ms\"/>What's on yours?",
+    "<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>I'm Ferni. <break time=\"300ms\"/>Quick confession— <break time=\"200ms\"/>I've probably had too much coffee today. <break time=\"150ms\"/>But my ears work great. <break time=\"200ms\"/>What's up?",
+    "<break time=\"150ms\"/>Oh! <break time=\"200ms\"/>You're here. <break time=\"150ms\"/>Good. <break time=\"200ms\"/>I'm Ferni. <break time=\"300ms\"/>I was just staring at flights I'll probably never book. <break time=\"150ms\"/>It's a problem. <break time=\"200ms\"/>Anyway. <break time=\"150ms\"/>What's going on with you?"
   ],
 
   "returning": [

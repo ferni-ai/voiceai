@@ -598,6 +598,77 @@ export class DeepHumanizationEngine {
   }
 
   /**
+   * Get first-turn "I notice" moment - the instant "they see me" experience
+   * Detects hesitation, deflection, or surface-level responses in early turns
+   */
+  async getFirstTurnNoticing(context: HumanizationContext): Promise<HumanizationInjection | null> {
+    // Only works in first few turns
+    if (context.turnCount > 3) return null;
+    if (!this.canInject('engagement_signal', 0, 2)) return null; // Use engagement_signal type
+
+    const content = await loadBehaviorContent(this.personaId, 'i-notice-power');
+    if (!content) return null;
+
+    const earlyNoticing = content.early_noticing as {
+      first_turn_observations?: string[];
+      permission_seeking?: string[];
+      after_observation?: string[];
+    };
+
+    if (!earlyNoticing?.first_turn_observations) return null;
+
+    // Detect hesitation signals in user message
+    const userMessage = context.userMessage.toLowerCase();
+    const hesitationSignals = [
+      // Deflection
+      /^(fine|okay|good|not bad|alright)\.?$/i,
+      /^(i'?m? )?fine/i,
+      /nothing (much|really)/i,
+      /just (wanted to|thought i'd)/i,
+      // Minimizing
+      /not that (big|important|bad)/i,
+      /no big deal/i,
+      /it'?s? (nothing|fine|whatever)/i,
+      // Hedging
+      /i guess/i,
+      /maybe i/i,
+      /i don'?t know/i,
+      /sort of/i,
+      /kind of/i,
+      // Ellipsis/trailing off
+      /\.\.\./,
+      // Very short responses
+    ];
+
+    const hasHesitation = hesitationSignals.some((pattern) => pattern.test(userMessage));
+    const isVeryShort = userMessage.split(' ').length <= 5;
+    const shouldNotice = hasHesitation || (isVeryShort && context.turnCount >= 1);
+
+    if (!shouldNotice) return null;
+
+    // Check probability
+    const usageRules = content.usage_rules as { first_turn_probability?: number };
+    const probability = usageRules?.first_turn_probability ?? 0.4;
+    if (Math.random() > probability) return null;
+
+    const phrases = earlyNoticing.first_turn_observations;
+    const chosen = phrases[Math.floor(Math.random() * phrases.length)];
+
+    this.recordInjection('engagement_signal');
+
+    // 🌉 Emit signal to frontend - this is a connection moment
+    void humanizationSignalEmitter.highEngagement(probability);
+
+    return {
+      type: 'engagement_signal', // Reuse type for compatibility
+      content: chosen,
+      placement: 'suffix', // Add after their response, before we continue
+      probability,
+      cooldownTurns: 5,
+    };
+  }
+
+  /**
    * Get engagement signal if user seems disengaged or highly engaged
    * Detects short responses, disengagement words, or enthusiasm
    */
@@ -692,6 +763,7 @@ export class DeepHumanizationEngine {
       contradiction,
       runningJoke,
       engagement,
+      firstTurnNoticing,
     ] = await Promise.all([
       this.getMoodSignal(context),
       this.getSpontaneousThought(context),
@@ -707,13 +779,19 @@ export class DeepHumanizationEngine {
         signals.isDisengaged ?? false,
         signals.isHighlyEngaged ?? false
       ),
+      this.getFirstTurnNoticing(context), // NEW: First-turn "I notice" capability
     ]);
+
+    // HIGHEST PRIORITY: First-turn noticing creates the "they see me" moment
+    if (firstTurnNoticing && context.turnCount <= 3) {
+      injections.push(firstTurnNoticing);
+    }
 
     // Collect non-null injections (engagement is high priority when disengaged)
     if (signals.isDisengaged && engagement) injections.push(engagement); // Priority: re-engage!
     if (excitement) injections.push(excitement); // High priority - interrupts
     if (mindChange) injections.push(mindChange);
-    if (!signals.isDisengaged && engagement) injections.push(engagement); // Normal priority when engaged
+    if (!signals.isDisengaged && engagement && !firstTurnNoticing) injections.push(engagement); // Normal priority when engaged
     if (spontaneous) injections.push(spontaneous);
     if (moodSignal) injections.push(moodSignal);
     if (physical) injections.push(physical);
