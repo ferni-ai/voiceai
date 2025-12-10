@@ -18,7 +18,13 @@ import { getLogger } from '../../utils/safe-logger.js';
 
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { Tokens, type Factory, type Container } from './container.js';
-import { success, failure, NotFoundError, ValidationError, type Result } from '../../types/index.js';
+import {
+  success,
+  failure,
+  NotFoundError,
+  ValidationError,
+  type Result,
+} from '../../types/index.js';
 
 /**
  * Extended MemoryStore interface with user lookup methods

@@ -9,6 +9,9 @@
  * - Every pixel intentional
  */
 
+/* Import design tokens */
+@import '../_tokens.css';
+
 /* ============================================
    RESET LINKS IN HERO
    ============================================ */
@@ -31,7 +34,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start; /* Don't center - content can be tall */
-  background: #FAFAF8; /* Pure, clean - not muddy */
+  background: var(--color-bg-primary); /* Pure, clean - not muddy */
   overflow: visible;
   padding: 100px var(--space-6) var(--space-16);
 }

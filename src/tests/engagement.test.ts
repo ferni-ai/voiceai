@@ -358,7 +358,11 @@ describe('TeamEngagementService', () => {
     });
 
     it('should filter by persona when specified', async () => {
-      const events = await service.getUnlockedEvolutions('test-user-evolutions-2', null, 'alex-chen');
+      const events = await service.getUnlockedEvolutions(
+        'test-user-evolutions-2',
+        null,
+        'alex-chen'
+      );
 
       for (const event of events) {
         expect(event.personaId).toBe('alex-chen');

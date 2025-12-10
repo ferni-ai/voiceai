@@ -176,6 +176,12 @@ export const ICON_ARROW_RIGHT = `<svg ${ICON_ATTRS}><path d="M5 12h14"/><path d=
 /** Handoff / Shuffle */
 export const ICON_HANDOFF = `<svg ${ICON_ATTRS}><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>`;
 
+/** Layout Grid / More Dashboards */
+export const ICON_LAYOUT_GRID = `<svg ${ICON_ATTRS}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>`;
+
+/** Sparkles / Avatar Soul */
+export const ICON_SPARKLES = `<svg ${ICON_ATTRS}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`;
+
 // ============================================================================
 // ICON MAP (for dynamic lookup)
 // ============================================================================
@@ -233,6 +239,7 @@ export const ICONS = {
   lock: ICON_LOCK,
   'arrow-right': ICON_ARROW_RIGHT,
   handoff: ICON_HANDOFF,
+  sparkles: ICON_SPARKLES,
 } as const;
 
 export type IconName = keyof typeof ICONS;

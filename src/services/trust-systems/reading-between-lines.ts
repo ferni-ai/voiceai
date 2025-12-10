@@ -15,10 +15,13 @@
  * - Permission-seeking ("Can I tell you something?")
  * - Unfinished thoughts ("Never mind", trailing off)
  *
+ * PERSISTENCE: User emotional profiles are persisted to Firestore.
+ *
  * @module ReadingBetweenLines
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 
 const log = createLogger({ module: 'ReadingBetweenLines' });
 
@@ -182,10 +185,142 @@ const HEAVY_TOPIC_INDICATORS = [
 ];
 
 // ============================================================================
-// IN-MEMORY STORE
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedConversationPattern {
+  topic: string;
+  avoidanceCount: number;
+  lastAvoided: string;
+  deflectionPhrases: string[];
+}
+
+interface PersistedUserUnsaidProfile {
+  userId: string;
+  avoidedTopics: PersistedConversationPattern[];
+  falseFines: Array<{
+    timestamp: string;
+    context: string;
+    actualEmotion?: string;
+  }>;
+  hangingThreads: Array<{
+    topic: string;
+    lastMentioned: string;
+    timesStarted: number;
+    neverFinished: boolean;
+  }>;
+  permissionMoments: Array<{
+    timestamp: string;
+    leadUp: string;
+    didShare: boolean;
+  }>;
+}
+
+function serializeProfile(profile: UserUnsaidProfile): PersistedUserUnsaidProfile {
+  return {
+    userId: profile.userId,
+    avoidedTopics: profile.avoidedTopics.map((t) => ({
+      ...t,
+      lastAvoided: t.lastAvoided.toISOString(),
+    })),
+    falseFines: profile.falseFines.map((f) => ({
+      ...f,
+      timestamp: f.timestamp.toISOString(),
+    })),
+    hangingThreads: profile.hangingThreads.map((h) => ({
+      ...h,
+      lastMentioned: h.lastMentioned.toISOString(),
+    })),
+    permissionMoments: profile.permissionMoments.map((p) => ({
+      ...p,
+      timestamp: p.timestamp.toISOString(),
+    })),
+  };
+}
+
+function deserializeProfile(data: PersistedUserUnsaidProfile): UserUnsaidProfile {
+  return {
+    userId: data.userId,
+    avoidedTopics: data.avoidedTopics.map((t) => ({
+      ...t,
+      lastAvoided: new Date(t.lastAvoided),
+    })),
+    falseFines: data.falseFines.map((f) => ({
+      ...f,
+      timestamp: new Date(f.timestamp),
+    })),
+    hangingThreads: data.hangingThreads.map((h) => ({
+      ...h,
+      lastMentioned: new Date(h.lastMentioned),
+    })),
+    permissionMoments: data.permissionMoments.map((p) => ({
+      ...p,
+      timestamp: new Date(p.timestamp),
+    })),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const userProfiles = new Map<string, UserUnsaidProfile>();
+const loadedUsers = new Set<string>();
+
+let persistence: PersistenceStore<PersistedUserUnsaidProfile> | null = null;
+
+function getPersistence(): PersistenceStore<PersistedUserUnsaidProfile> {
+  if (!persistence) {
+    persistence = createPersistenceStore<PersistedUserUnsaidProfile>({
+      collection: 'reading_between_lines',
+      documentId: 'profile',
+      syncIntervalMs: 5000,
+    });
+  }
+  return persistence;
+}
+
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data) {
+      userProfiles.set(userId, deserializeProfile(data));
+    }
+    loadedUsers.add(userId);
+    log.debug({ userId }, 'Loaded unsaid profile from persistence');
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to load unsaid profile');
+    loadedUsers.add(userId);
+  }
+}
+
+function persistProfile(userId: string): void {
+  const profile = userProfiles.get(userId);
+  if (profile) {
+    getPersistence().set(userId, serializeProfile(profile));
+  }
+}
+
+/**
+ * Flush persistence
+ */
+export async function flushReadingBetweenLinesPersistence(): Promise<void> {
+  await getPersistence().flush();
+  log.info('Reading between lines persistence flushed');
+}
+
+/**
+ * Shutdown reading between lines service
+ */
+export async function shutdownReadingBetweenLines(): Promise<void> {
+  await flushReadingBetweenLinesPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  userProfiles.clear();
+  log.info('Reading between lines service shutdown complete');
+}
 
 function getOrCreateProfile(userId: string): UserUnsaidProfile {
   let profile = userProfiles.get(userId);
@@ -200,6 +335,14 @@ function getOrCreateProfile(userId: string): UserUnsaidProfile {
     userProfiles.set(userId, profile);
   }
   return profile;
+}
+
+/**
+ * Get or create profile with persistence loading
+ */
+async function getOrCreateProfileAsync(userId: string): Promise<UserUnsaidProfile> {
+  await ensureUserLoaded(userId);
+  return getOrCreateProfile(userId);
 }
 
 // ============================================================================
@@ -224,17 +367,20 @@ export function detectUnsaidSignals(
   const signals: UnsaidSignal[] = [];
   const lower = userMessage.toLowerCase();
   const profile = getOrCreateProfile(userId);
+  let profileModified = false;
 
   // 1. Check for emotional mismatch ("I'm fine" + heavy context)
   const emotionalMismatch = detectEmotionalMismatch(lower, context, profile);
   if (emotionalMismatch) {
     signals.push(emotionalMismatch);
+    profileModified = true; // detectEmotionalMismatch modifies profile
   }
 
   // 2. Check for topic avoidance
   const avoidance = detectTopicAvoidance(lower, context, profile);
   if (avoidance) {
     signals.push(avoidance);
+    profileModified = true; // detectTopicAvoidance modifies profile
   }
 
   // 3. Check for deflection
@@ -253,6 +399,7 @@ export function detectUnsaidSignals(
       leadUp: userMessage.slice(0, 100),
       didShare: false, // Will update if they do share
     });
+    profileModified = true;
   }
 
   // 5. Check for unfinished thoughts
@@ -265,6 +412,11 @@ export function detectUnsaidSignals(
   const minimizing = detectMinimizing(lower, context);
   if (minimizing) {
     signals.push(minimizing);
+  }
+
+  // Persist if profile was modified
+  if (profileModified) {
+    persistProfile(userId);
   }
 
   // Log for debugging

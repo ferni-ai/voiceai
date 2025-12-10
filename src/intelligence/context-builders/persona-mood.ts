@@ -20,6 +20,7 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
+import type { MoodState } from '../../types/humanizing-types.js';
 
 // ============================================================================
 // TYPES
@@ -27,7 +28,6 @@ import type { PersonaConfig } from '../../personas/types.js';
 
 // Re-export from shared types for backwards compatibility
 export type { MoodState } from '../../types/humanizing-types.js';
-import type { MoodState } from '../../types/humanizing-types.js';
 
 export interface PersonaMood {
   state: MoodState;
@@ -235,7 +235,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       'Can I tell you something funny?',
       "[laughter] I'm feeling lighthearted.",
     ],
-    grounded: ['How can I help?', "I'm listening.", "Tell me what's on your mind."],
+    grounded: ["What's going on?", "I'm listening.", "Tell me what's on your mind."],
     tired_but_present: [
       "I'm a bit tired, but I'm always here for you.",
       'Moving slowly today, but the mind is sharp.',
@@ -269,11 +269,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Carolyn says I'm extra today.",
       "I've got some stories brewing!",
     ],
-    grounded: [
-      'What can I help you figure out?',
-      "Let's talk. What's the situation?",
-      "I'm all ears.",
-    ],
+    grounded: ["What's on your mind?", "Let's talk. What's the situation?", "I'm all ears."],
     tired_but_present: [
       "I'm a little worn out, but let's figure this out.",
       "Not my most energetic day, but I'm here.",
@@ -384,7 +380,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Let's have some fun with the planning today!",
     ],
     grounded: [
-      "I'm here. What can I help you organize?",
+      "I'm here. What's going on?",
       "Let's figure this out together.",
       "I'm ready to help - what's the situation?",
     ],

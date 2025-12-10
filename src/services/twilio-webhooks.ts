@@ -9,11 +9,18 @@
  *
  * These webhooks enable real-time tracking of appointment calls
  * and communication delivery status.
+ *
+ * PERSISTENCE: Call tracking uses Redis for ephemeral session data.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
+import { getRedisCache } from '../memory/redis-cache.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { getAppointmentFollowUpService } from './appointment-followup.js';
+
+// Redis TTL for call tracking (1 hour - calls should complete by then)
+const CALL_TTL_SECONDS = 3600;
+const SMS_TTL_SECONDS = 86400; // 24 hours for SMS status
 
 // ============================================================================
 // TYPES
@@ -101,12 +108,79 @@ export interface CallTrackingEntry {
 // ============================================================================
 
 class TwilioWebhookService extends EventEmitter {
-  private activeCalls = new Map<string, CallTrackingEntry>();
-  private smsStatus = new Map<string, TwilioSMSStatus>();
+  // In-memory fallback for when Redis is unavailable
+  private activeCallsMemory = new Map<string, CallTrackingEntry>();
+  private smsStatusMemory = new Map<string, TwilioSMSStatus>();
 
   constructor() {
     super();
   }
+
+  // ============================================================================
+  // REDIS PERSISTENCE HELPERS
+  // ============================================================================
+
+  private async getCallFromRedis(callSid: string): Promise<CallTrackingEntry | null> {
+    const redis = getRedisCache();
+    if (!redis) return this.activeCallsMemory.get(callSid) || null;
+
+    try {
+      const data = await redis.get<CallTrackingEntry>(`twilio:call:${callSid}`);
+      if (data) {
+        // Rehydrate dates
+        return {
+          ...data,
+          startedAt: new Date(data.startedAt),
+          endedAt: data.endedAt ? new Date(data.endedAt) : undefined,
+        };
+      }
+    } catch (error) {
+      getLogger().warn({ error, callSid }, 'Redis call fetch failed');
+    }
+    return this.activeCallsMemory.get(callSid) || null;
+  }
+
+  private async setCallInRedis(callSid: string, entry: CallTrackingEntry): Promise<void> {
+    this.activeCallsMemory.set(callSid, entry);
+
+    const redis = getRedisCache();
+    if (!redis) return;
+
+    try {
+      await redis.set(`twilio:call:${callSid}`, entry, CALL_TTL_SECONDS);
+    } catch (error) {
+      getLogger().warn({ error, callSid }, 'Redis call store failed');
+    }
+  }
+
+  private async getSmsFromRedis(messageSid: string): Promise<TwilioSMSStatus | null> {
+    const redis = getRedisCache();
+    if (!redis) return this.smsStatusMemory.get(messageSid) || null;
+
+    try {
+      return await redis.get<TwilioSMSStatus>(`twilio:sms:${messageSid}`);
+    } catch (error) {
+      getLogger().warn({ error, messageSid }, 'Redis SMS fetch failed');
+    }
+    return this.smsStatusMemory.get(messageSid) || null;
+  }
+
+  private async setSmsInRedis(messageSid: string, status: TwilioSMSStatus): Promise<void> {
+    this.smsStatusMemory.set(messageSid, status);
+
+    const redis = getRedisCache();
+    if (!redis) return;
+
+    try {
+      await redis.set(`twilio:sms:${messageSid}`, status, SMS_TTL_SECONDS);
+    } catch (error) {
+      getLogger().warn({ error, messageSid }, 'Redis SMS store failed');
+    }
+  }
+
+  // ============================================================================
+  // CALL TRACKING
+  // ============================================================================
 
   /**
    * Track a new outbound call
@@ -121,7 +195,9 @@ class TwilioWebhookService extends EventEmitter {
       startedAt: new Date(),
     };
 
-    this.activeCalls.set(callSid, entry);
+    // Store in Redis (fire-and-forget)
+    void this.setCallInRedis(callSid, entry);
+
     getLogger().info({ callSid, to, appointmentId }, '📞 Tracking new call');
 
     return entry;
@@ -130,12 +206,12 @@ class TwilioWebhookService extends EventEmitter {
   /**
    * Handle call status webhook from Twilio
    */
-  handleCallStatus(data: TwilioCallStatus): void {
+  async handleCallStatus(data: TwilioCallStatus): Promise<void> {
     const { CallSid, CallStatus, CallDuration, AnsweredBy, ErrorCode, ErrorMessage } = data;
 
     getLogger().info({ CallSid, CallStatus, AnsweredBy }, '📞 Call status update');
 
-    let entry = this.activeCalls.get(CallSid);
+    let entry = await this.getCallFromRedis(CallSid);
     if (!entry) {
       // Create entry if we don't have it (might be from a different instance)
       entry = {
@@ -145,7 +221,6 @@ class TwilioWebhookService extends EventEmitter {
         from: data.From,
         startedAt: new Date(),
       };
-      this.activeCalls.set(CallSid, entry);
     }
 
     entry.status = CallStatus;
@@ -170,6 +245,9 @@ class TwilioWebhookService extends EventEmitter {
       this.handleVoicemailDetected(entry);
     }
 
+    // Save updated entry to Redis
+    void this.setCallInRedis(CallSid, entry);
+
     // Emit event for listeners
     this.emit('call_status', entry);
   }
@@ -177,13 +255,13 @@ class TwilioWebhookService extends EventEmitter {
   /**
    * Handle recording webhook from Twilio
    */
-  handleRecording(data: {
+  async handleRecording(data: {
     CallSid: string;
     RecordingUrl: string;
     RecordingSid: string;
     RecordingDuration: string;
-  }): void {
-    const entry = this.activeCalls.get(data.CallSid);
+  }): Promise<void> {
+    const entry = await this.getCallFromRedis(data.CallSid);
     if (!entry) return;
 
     entry.recording = {
@@ -191,6 +269,9 @@ class TwilioWebhookService extends EventEmitter {
       sid: data.RecordingSid,
       duration: parseInt(data.RecordingDuration, 10),
     };
+
+    // Save updated entry
+    void this.setCallInRedis(data.CallSid, entry);
 
     getLogger().info(
       { callSid: data.CallSid, duration: entry.recording.duration },
@@ -202,16 +283,20 @@ class TwilioWebhookService extends EventEmitter {
   /**
    * Handle transcription webhook from Twilio
    */
-  handleTranscription(data: {
+  async handleTranscription(data: {
     CallSid: string;
     TranscriptionText: string;
     TranscriptionStatus: string;
-  }): void {
-    const entry = this.activeCalls.get(data.CallSid);
+  }): Promise<void> {
+    const entry = await this.getCallFromRedis(data.CallSid);
     if (!entry) return;
 
     if (data.TranscriptionStatus === 'completed') {
       entry.transcription = data.TranscriptionText;
+
+      // Save updated entry
+      void this.setCallInRedis(data.CallSid, entry);
+
       getLogger().info(
         { callSid: data.CallSid, text: data.TranscriptionText.slice(0, 100) },
         '📝 Transcription received'
@@ -224,7 +309,8 @@ class TwilioWebhookService extends EventEmitter {
    * Handle SMS status webhook from Twilio
    */
   handleSMSStatus(data: TwilioSMSStatus): void {
-    this.smsStatus.set(data.MessageSid, data);
+    // Store in Redis
+    void this.setSmsInRedis(data.MessageSid, data);
 
     getLogger().info(
       { MessageSid: data.MessageSid, MessageStatus: data.MessageStatus },
@@ -284,46 +370,60 @@ class TwilioWebhookService extends EventEmitter {
   }
 
   /**
-   * Get call by SID
+   * Get call by SID (sync - from memory cache)
    */
   getCall(callSid: string): CallTrackingEntry | undefined {
-    return this.activeCalls.get(callSid);
+    return this.activeCallsMemory.get(callSid);
   }
 
   /**
-   * Get all active calls
+   * Get call by SID (async - from Redis)
+   */
+  async getCallAsync(callSid: string): Promise<CallTrackingEntry | null> {
+    return this.getCallFromRedis(callSid);
+  }
+
+  /**
+   * Get all active calls (from memory cache)
    */
   getActiveCalls(): CallTrackingEntry[] {
-    return Array.from(this.activeCalls.values()).filter(
+    return Array.from(this.activeCallsMemory.values()).filter(
       (call) => !['completed', 'busy', 'failed', 'no-answer', 'canceled'].includes(call.status)
     );
   }
 
   /**
-   * Get SMS status
+   * Get SMS status (sync - from memory cache)
    */
   getSMSStatus(messageSid: string): TwilioSMSStatus | undefined {
-    return this.smsStatus.get(messageSid);
+    return this.smsStatusMemory.get(messageSid);
+  }
+
+  /**
+   * Get SMS status (async - from Redis)
+   */
+  async getSMSStatusAsync(messageSid: string): Promise<TwilioSMSStatus | null> {
+    return this.getSmsFromRedis(messageSid);
   }
 
   /**
    * Clean up old entries (call this periodically)
+   * Note: Redis handles TTL automatically, this cleans up memory cache
    */
   cleanup(): void {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
 
-    for (const [sid, entry] of this.activeCalls.entries()) {
+    for (const [sid, entry] of this.activeCallsMemory.entries()) {
       if (entry.endedAt && entry.endedAt.getTime() < oneDayAgo) {
-        this.activeCalls.delete(sid);
+        this.activeCallsMemory.delete(sid);
       }
     }
 
     // SMS status is less important, clear after an hour
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    for (const [sid, status] of this.smsStatus.entries()) {
+    for (const [sid] of this.smsStatusMemory.entries()) {
       // Can't check time for SMS, just keep last 1000
-      if (this.smsStatus.size > 1000) {
-        this.smsStatus.delete(sid);
+      if (this.smsStatusMemory.size > 1000) {
+        this.smsStatusMemory.delete(sid);
       }
     }
   }
@@ -436,7 +536,7 @@ export function twilioCallStatusHandler(
   res: { status: (code: number) => { send: (data: string) => void } }
 ): void {
   try {
-    getTwilioWebhookService().handleCallStatus(req.body);
+    void getTwilioWebhookService().handleCallStatus(req.body);
     res.status(200).send('<Response></Response>');
   } catch (error) {
     getLogger().error({ error }, 'Error handling call status webhook');
@@ -475,7 +575,7 @@ export function twilioRecordingHandler(
   res: { status: (code: number) => { send: (data: string) => void } }
 ): void {
   try {
-    getTwilioWebhookService().handleRecording(req.body);
+    void getTwilioWebhookService().handleRecording(req.body);
     res.status(200).send('<Response></Response>');
   } catch (error) {
     getLogger().error({ error }, 'Error handling recording webhook');
@@ -491,7 +591,7 @@ export function twilioTranscriptionHandler(
   res: { status: (code: number) => { send: (data: string) => void } }
 ): void {
   try {
-    getTwilioWebhookService().handleTranscription(req.body);
+    void getTwilioWebhookService().handleTranscription(req.body);
     res.status(200).send('<Response></Response>');
   } catch (error) {
     getLogger().error({ error }, 'Error handling transcription webhook');

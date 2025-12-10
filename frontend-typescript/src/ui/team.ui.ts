@@ -23,6 +23,7 @@ import { rosterPreferences, type TeamMemberId } from '../services/roster-prefere
 import {
   getMemberStatus,
   getTeamMember,
+  isFullTeamUnlocked,
   isTeamMemberUnlocked,
   teamUnlockService,
   type TeamMemberId as UnlockTeamMemberId,
@@ -377,6 +378,7 @@ async function loadDynamicAgents(): Promise<void> {
 
 /**
  * Load and render installed marketplace agents
+ * Only shows marketplace agents if the full core team is unlocked
  */
 function loadInstalledMarketplaceAgents(): void {
   if (!rosterContainer) return;
@@ -384,6 +386,12 @@ function loadInstalledMarketplaceAgents(): void {
   const installed = marketplaceService.getInstalledAgents();
 
   if (installed.length === 0) return;
+
+  // Marketplace agents require full team to be unlocked
+  if (!isFullTeamUnlocked()) {
+    log.debug('Marketplace agents hidden - full team not yet unlocked');
+    return;
+  }
 
   // Add divider before marketplace agents
   const divider = document.createElement('span');

@@ -30,6 +30,7 @@
 import type { PersonaConfig, PersonaId } from '../types/persona.js';
 import { ALL_PERSONA_IDS } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
+import { isFullTeamUnlocked } from './team-unlock.service.js';
 
 const log = createLogger('Marketplace');
 
@@ -200,12 +201,12 @@ export interface PersonaManifest {
 
 /**
  * Marketplace source configuration
- * 
+ *
  * Options:
  * - 'proxy': Use backend proxy at /api/marketplace/* (recommended for private repos)
  * - 'local': Use local files at /voiceai-agents/* (for development)
  * - 'github': Direct GitHub raw URLs (only works for public repos)
- * 
+ *
  * PRODUCTION BEHAVIOR:
  * - Development: Uses 'local' files for fast iteration
  * - Production: Uses 'proxy' for secure API access
@@ -236,7 +237,8 @@ const MARKETPLACE_URLS = {
   },
   github: {
     registry: 'https://raw.githubusercontent.com/sethdford/voiceai-agents/main/registry.json',
-    manifest: (agentId: string) => `https://raw.githubusercontent.com/sethdford/voiceai-agents/main/agents/${agentId}/persona.manifest.json`,
+    manifest: (agentId: string) =>
+      `https://raw.githubusercontent.com/sethdford/voiceai-agents/main/agents/${agentId}/persona.manifest.json`,
   },
 } as const;
 
@@ -281,7 +283,7 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
   const colors = rawColors || DEFAULT_AGENT_COLORS[raw.id] || FALLBACK_COLORS;
   const primaryColor = colors.primary || FALLBACK_COLORS.primary;
   const secondaryColor = colors.secondary || FALLBACK_COLORS.secondary;
-  
+
   return {
     id: raw.id,
     name: raw.name,
@@ -297,7 +299,9 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
     colors: {
       primary: primaryColor,
       secondary: secondaryColor,
-      gradient: ('gradient' in colors && colors.gradient) || `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
+      gradient:
+        ('gradient' in colors && colors.gradient) ||
+        `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
       glow: ('glow' in colors && colors.glow) || `rgba(${hexToRgb(primaryColor)}, 0.3)`,
     },
     path: raw.path || `agents/${raw.id}`,
@@ -321,7 +325,7 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
   try {
     const response = await fetch(REGISTRY_URL, {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Cache-Control': 'no-cache',
       },
     });
@@ -330,8 +334,8 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
       throw new Error(`Failed to fetch registry: ${response.status}`);
     }
 
-    const rawRegistry = await response.json() as RawRegistry;
-    
+    const rawRegistry = (await response.json()) as RawRegistry;
+
     // Normalize the registry format for our UI
     registryCache = {
       version: rawRegistry.version,
@@ -365,7 +369,7 @@ export async function fetchAgentManifest(agentId: string): Promise<PersonaManife
   try {
     const response = await fetch(manifestUrl, {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Cache-Control': 'no-cache',
       },
     });
@@ -374,7 +378,7 @@ export async function fetchAgentManifest(agentId: string): Promise<PersonaManife
       throw new Error(`Failed to fetch manifest: ${response.status}`);
     }
 
-    const manifest = await response.json() as PersonaManifest;
+    const manifest = (await response.json()) as PersonaManifest;
     log.debug(`Loaded manifest for ${agentId}`);
     return manifest;
   } catch (err) {
@@ -399,9 +403,7 @@ export async function getAvailableAgents(): Promise<MarketplaceAgent[]> {
   const installed = getInstalledAgentIds();
   const coreTeam = getCoreTeamAgentIds();
 
-  return registry.agents.filter(agent => 
-    !installed.has(agent.id) && !coreTeam.has(agent.id)
-  );
+  return registry.agents.filter((agent) => !installed.has(agent.id) && !coreTeam.has(agent.id));
 }
 
 /**
@@ -413,17 +415,18 @@ export async function searchAgents(query: string): Promise<MarketplaceAgent[]> {
   const normalizedQuery = query.toLowerCase().trim();
 
   // First filter out core team agents
-  const availableAgents = registry.agents.filter(agent => !coreTeam.has(agent.id));
+  const availableAgents = registry.agents.filter((agent) => !coreTeam.has(agent.id));
 
   if (!normalizedQuery) {
     return availableAgents;
   }
 
-  return availableAgents.filter(agent =>
-    agent.name.toLowerCase().includes(normalizedQuery) ||
-    agent.display_name.toLowerCase().includes(normalizedQuery) ||
-    agent.description.toLowerCase().includes(normalizedQuery) ||
-    agent.tags.some(tag => tag.toLowerCase().includes(normalizedQuery))
+  return availableAgents.filter(
+    (agent) =>
+      agent.name.toLowerCase().includes(normalizedQuery) ||
+      agent.display_name.toLowerCase().includes(normalizedQuery) ||
+      agent.description.toLowerCase().includes(normalizedQuery) ||
+      agent.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
   );
 }
 
@@ -433,10 +436,8 @@ export async function searchAgents(query: string): Promise<MarketplaceAgent[]> {
 export async function getAgentsByCategory(category: string): Promise<MarketplaceAgent[]> {
   const registry = await fetchRegistry();
   const coreTeam = getCoreTeamAgentIds();
-  
-  return registry.agents.filter(agent => 
-    agent.category === category && !coreTeam.has(agent.id)
-  );
+
+  return registry.agents.filter((agent) => agent.category === category && !coreTeam.has(agent.id));
 }
 
 // ============================================================================
@@ -444,11 +445,24 @@ export async function getAgentsByCategory(category: string): Promise<Marketplace
 // ============================================================================
 
 /**
+ * Check if marketplace is unlocked (requires full team to be unlocked)
+ */
+export function isMarketplaceUnlocked(): boolean {
+  return isFullTeamUnlocked();
+}
+
+/**
  * Install an agent from the marketplace
  */
 export async function installAgent(agentId: string): Promise<boolean> {
+  // Marketplace requires full team to be unlocked
+  if (!isFullTeamUnlocked()) {
+    log.warn(`Cannot install ${agentId} - full team not yet unlocked`);
+    return false;
+  }
+
   const registry = await fetchRegistry();
-  const marketplaceAgent = registry.agents.find(a => a.id === agentId);
+  const marketplaceAgent = registry.agents.find((a) => a.id === agentId);
 
   if (!marketplaceAgent) {
     log.error(`Agent ${agentId} not found in registry`);
@@ -537,8 +551,8 @@ export function marketplaceAgentToPersonaConfig(
   manifest: PersonaManifest | null
 ): PersonaConfig {
   const colors = manifest?.marketplace?.colors || agent.colors;
-  const entrancePhrase = manifest?.team?.handoff_phrases?.receive?.[0]
-    || `${agent.name} here. How can I help?`;
+  const entrancePhrase =
+    manifest?.team?.handoff_phrases?.receive?.[0] || `${agent.name} here. How can I help?`;
 
   return {
     id: agent.id as PersonaId,
@@ -553,11 +567,13 @@ export function marketplaceAgentToPersonaConfig(
       primary: colors.primary || '#666666',
       secondary: colors.secondary || '#444444',
       glow: colors.glow || `rgba(${hexToRgb(colors.primary || '#666666')}, 0.3)`,
-      gradient: colors.gradient || `linear-gradient(135deg, ${colors.secondary || '#444444'}, ${colors.primary || '#666666'})`,
+      gradient:
+        colors.gradient ||
+        `linear-gradient(135deg, ${colors.secondary || '#444444'}, ${colors.primary || '#666666'})`,
     },
-    skills: (manifest?.role?.domains || agent.tags).slice(0, 4).map(d => ({
+    skills: (manifest?.role?.domains || agent.tags).slice(0, 4).map((d) => ({
       icon: '',
-      name: d.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name: d.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
     })),
     entrancePhrase,
     handoffSound: 'connect', // Marketplace agents use generic connect sound
@@ -571,8 +587,8 @@ export async function getInstalledAgentsAsPersonaConfigs(): Promise<PersonaConfi
   const installed = getInstalledAgents();
   const registry = await fetchRegistry();
 
-  return installed.map(installedAgent => {
-    const marketplaceAgent = registry.agents.find(a => a.id === installedAgent.id);
+  return installed.map((installedAgent) => {
+    const marketplaceAgent = registry.agents.find((a) => a.id === installedAgent.id);
     if (!marketplaceAgent) {
       log.warn(`Agent ${installedAgent.id} not found in registry`);
       // Return a basic config
@@ -661,6 +677,7 @@ export const marketplaceService = {
   getAgentsByCategory,
 
   // Installation
+  isMarketplaceUnlocked,
   installAgent,
   uninstallAgent,
   isAgentInstalled,
@@ -674,4 +691,3 @@ export const marketplaceService = {
 };
 
 export default marketplaceService;
-

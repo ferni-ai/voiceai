@@ -48,7 +48,11 @@ import {
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from '../../helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from '../../auth-middleware.js';
-import { validateBody, CreateFeatureFlagSchema, UpdateFeatureFlagSchema } from '../../validators.js';
+import {
+  validateBody,
+  CreateFeatureFlagSchema,
+  UpdateFeatureFlagSchema,
+} from '../../validators.js';
 
 const log = createLogger({ module: 'AdminFlagsAPI' });
 
@@ -184,7 +188,7 @@ export async function handleAdminFlagsRoutes(
 
     // POST /api/v1/admin/flags/override - Set user override
     if (subPath === '/override' && method === 'POST') {
-      const body = await parseBody(req) as {
+      const body = (await parseBody(req)) as {
         flagId: TrustFlagId;
         userId: string;
         enabled: boolean;
@@ -209,7 +213,7 @@ export async function handleAdminFlagsRoutes(
 
     // DELETE /api/v1/admin/flags/override - Remove user override
     if (subPath === '/override' && method === 'DELETE') {
-      const body = await parseBody(req) as { flagId: TrustFlagId; userId: string };
+      const body = (await parseBody(req)) as { flagId: TrustFlagId; userId: string };
       const { flagId, userId } = body;
 
       if (!flagId || !userId) {
@@ -292,7 +296,7 @@ export async function handleAdminFlagsRoutes(
     // PUT /api/v1/admin/flags/:id/rollout - Set rollout percentage
     if (rolloutMatch && method === 'PUT') {
       const flagId = decodeURIComponent(rolloutMatch[1]) as TrustFlagId;
-      const body = await parseBody(req) as { percentage: number };
+      const body = (await parseBody(req)) as { percentage: number };
       const { percentage } = body;
 
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
@@ -351,7 +355,7 @@ export async function handleAdminFlagsRoutes(
 
       // Check trust flags first
       if (TRUST_FLAGS[flagId as TrustFlagId]) {
-        const body = await parseBody(req) as { enabled?: boolean; percentage?: number };
+        const body = (await parseBody(req)) as { enabled?: boolean; percentage?: number };
         await setFlag(flagId as TrustFlagId, body);
         const updated = getTrustFlag(flagId as TrustFlagId);
         log.info({ flagId, body }, 'Trust flag updated via API');
@@ -404,4 +408,3 @@ export async function handleAdminFlagsRoutes(
 }
 
 export default { handleAdminFlagsRoutes };
-

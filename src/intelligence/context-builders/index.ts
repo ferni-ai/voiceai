@@ -281,6 +281,18 @@ export function createCriticalInjection(
   return createInjection(source, content, 'critical', options);
 }
 
+/**
+ * BETTER-THAN-HUMAN: High priority for important trust signals
+ * Use this for emotional mismatch detection and similar "superhuman" insights
+ */
+export function createHighInjection(
+  source: string,
+  content: string,
+  options?: { category?: string; confidence?: number }
+): ContextInjection {
+  return createInjection(source, content, 'high', options);
+}
+
 export function createStandardInjection(
   source: string,
   content: string,
@@ -308,14 +320,34 @@ const PRIORITY_ORDER: Record<ContextPriority, number> = {
   hint: 1,
 };
 
+/**
+ * Format context injections for the LLM prompt
+ *
+ * BETTER-THAN-HUMAN: In high-emotion moments, we reduce noise by filtering out
+ * lower-priority context. This helps the AI focus on what matters most.
+ */
 export function formatContextForPrompt(
   injections: ContextInjection[],
-  options?: { maxLength?: number; includeHints?: boolean }
+  options?: {
+    maxLength?: number;
+    includeHints?: boolean;
+    /** BETTER-THAN-HUMAN: If true, only include critical/high priority context */
+    highEmotionMode?: boolean;
+  }
 ): string {
   const maxLength = options?.maxLength ?? 4000;
   const includeHints = options?.includeHints ?? true;
+  const highEmotionMode = options?.highEmotionMode ?? false;
 
-  const filtered = injections.filter((i) => includeHints || i.priority !== 'hint');
+  // BETTER-THAN-HUMAN: In high emotion mode, filter aggressively
+  // Only keep critical and high priority context
+  let filtered: ContextInjection[];
+  if (highEmotionMode) {
+    filtered = injections.filter((i) => i.priority === 'critical' || i.priority === 'high');
+  } else {
+    filtered = injections.filter((i) => includeHints || i.priority !== 'hint');
+  }
+
   filtered.sort((a, b) => PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority]);
 
   const sections: string[] = [];
@@ -332,6 +364,25 @@ export function formatContextForPrompt(
   }
 
   return sections.join('\n\n');
+}
+
+/**
+ * BETTER-THAN-HUMAN: Determine if we should use high-emotion mode
+ *
+ * High emotion mode reduces context noise when the user needs focused support.
+ */
+export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolean {
+  // High emotion mode triggers:
+  // 1. User needs support
+  // 2. High distress level (> 0.7)
+  // 3. High emotion intensity (> 0.8)
+  // 4. Mental health signals detected
+  return Boolean(
+    analysis.emotion.needsSupport ||
+    (analysis.emotion.distressLevel && analysis.emotion.distressLevel > 0.7) ||
+    analysis.emotion.intensity > 0.8 ||
+    (analysis.emotion.mentalHealthSignals && analysis.emotion.mentalHealthSignals.length > 0)
+  );
 }
 
 // ============================================================================
@@ -380,16 +431,24 @@ export async function buildConversationContext(
   // the LLM from seeing the same information multiple times and
   // repeatedly referencing it. See memory.ts getCrossSessionMemory().
 
-  // Run any registered builders
+  // Run all registered builders IN PARALLEL for better performance
+  // Each builder is independent and can run concurrently
   const registeredBuilders = getRegisteredBuilders();
-  for (const builder of registeredBuilders) {
-    try {
-      const builderInjections = await builder.build(input);
-      injections.push(...builderInjections);
-    } catch (error) {
-      getLogger().warn({ builder: builder.name, error }, 'Context builder failed');
+  const builderResults = await Promise.allSettled(
+    registeredBuilders.map((builder) => builder.build(input))
+  );
+
+  // Collect results, logging any failures
+  builderResults.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      injections.push(...result.value);
+    } else {
+      getLogger().warn(
+        { builder: registeredBuilders[index].name, error: result.reason },
+        'Context builder failed'
+      );
     }
-  }
+  });
 
   return injections;
 }
@@ -473,12 +532,49 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./response-length.js'), // Sometimes brief, sometimes elaborate
       import('./energy-mirroring.js'), // Match user's energy level
       import('./ferni-personality.js'), // Genuine preferences, opinions, quirks
+      import('./lovable-presence.js'), // 💕 Orchestrates charm, delight, personality surprises
       // 🎓 Better-than-PhD capabilities
       import('./cognitive-distortions.js'), // Detect cognitive distortions, Socratic intervention
       import('./somatic-context.js'), // Grounding & breathing when distressed
       import('./wellbeing-context.js'), // Continuous wellbeing tracking & alerts
       import('./therapeutic-frameworks.js'), // ACT, DBT, MI frameworks
       import('./behavioral-economics.js'), // Implementation intentions, commitment devices
+      // ============================================================================
+      // 🚀 FERNI 200% - Superhuman capabilities
+      // ============================================================================
+      import('./superhuman-insights.js'), // Pattern surfacing, the mirror, emotional weather, anticipation
+      import('./persona-identity.js'), // Core persona identity injection
+      import('./meta-conversation.js'), // Topic repetition, emotional shifts
+      import('./cross-session-reflection.js'), // Cross-session continuity
+      import('./cross-session-threading.js'), // Open threads/promises from previous sessions
+      import('./role-boundaries.js'), // Domain ownership and handoff triggers
+      import('./spontaneous-vulnerability.js'), // Spontaneous vulnerability moments
+      import('./persona-vulnerability.js'), // 200% persona vulnerability (self-doubt, fears, mortality)
+      import('./voice-emotion-intelligence.js'), // Voice emotion → cognitive state (enhanced)
+      import('./relationship-behaviors.js'), // Relationship-aware behaviors
+      import('./persona-mood.js'), // Persona mood state
+      import('./alive-awareness.js'), // "Alive" presence features
+      import('./inner-world-injector.js'), // Inner world/self-talk
+      // 📊 Cross-user learning (privacy-preserving)
+      import('./wisdom-synthesis.js'), // Population-level wisdom from anonymized patterns
+      // 🎧 Better-than-human listening
+      import('./human-listening.js'), // Voice tremor, breath patterns, cognitive load, hedging
+      // ============================================================================
+      // 🎭 DEEP HUMANIZATION - Make Ferni feel ALIVE
+      // ============================================================================
+      import('./deep-humanization.js'), // Arc-awareness, artifacts, monologue, vocabulary
+      // ============================================================================
+      // 🦸 BETTER-THAN-HUMAN APIs - Superhuman awareness from external data
+      // ============================================================================
+      import('./biometrics.js'), // HRV, sleep, recovery from wearables
+      import('./financial-prediction.js'), // Cash flow, spending anomalies, bill forecasting
+      import('./advanced-voice-emotion.js'), // Hume AI precise emotion detection
+      import('./anticipation.js'), // Location/calendar awareness, travel time, event prep
+      import('./social-relationships.js'), // Social graph, relationship patterns, important dates
+      // ============================================================================
+      // 🧑‍🏫 LIFE COACHING CAPABILITIES
+      // ============================================================================
+      import('./coaching-context.js'), // Goals, actions, obstacles, values, style, journey, team
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);

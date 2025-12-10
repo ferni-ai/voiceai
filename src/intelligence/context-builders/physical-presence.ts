@@ -12,7 +12,7 @@
  * PRIORITY: Bundle data > PERSONA_PRESENCE fallback > DEFAULT actions
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -20,6 +20,9 @@ import {
   type ContextInjection,
 } from './index.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
+import { loadLateNightPresence, getRandomPhraseClean } from '../../services/persona-content-loader.js';
+
+const log = createLogger({ module: 'PhysicalPresence' });
 
 // ============================================================================
 // PHYSICAL PRESENCE PATTERNS
@@ -338,22 +341,95 @@ function getPresenceFromBundle(bundleRuntime: BundleRuntimeEngine | undefined): 
 // ============================================================================
 
 /**
+ * Check if it's late night (10pm - 5am)
+ */
+function isLateNight(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 22 || hour < 5;
+}
+
+/**
+ * Build late-night specific context from persona's late-night-presence.json
+ */
+async function buildLateNightContext(
+  personaId: string,
+  analysis: ContextBuilderInput['analysis']
+): Promise<ContextInjection | null> {
+  const lateNight = await loadLateNightPresence(personaId);
+  if (!lateNight) return null;
+
+  const parts: string[] = [];
+
+  // Late night greeting
+  const greeting = getRandomPhraseClean(lateNight.late_night_greetings);
+  if (greeting) {
+    parts.push(`Greeting option: "${greeting}"`);
+  }
+
+  // Check for can't sleep patterns based on detected emotion
+  const emotion = analysis?.emotion?.primary?.toLowerCase() || '';
+  if (lateNight.cant_sleep_patterns) {
+    if (['anxious', 'worried', 'stressed'].includes(emotion) && lateNight.cant_sleep_patterns.anxiety) {
+      const phrase = getRandomPhraseClean(lateNight.cant_sleep_patterns.anxiety);
+      if (phrase) parts.push(`For anxiety: "${phrase}"`);
+    } else if (['sad', 'heavy', 'overwhelmed'].includes(emotion) && lateNight.cant_sleep_patterns.heavy_thoughts) {
+      const phrase = getRandomPhraseClean(lateNight.cant_sleep_patterns.heavy_thoughts);
+      if (phrase) parts.push(`For heavy thoughts: "${phrase}"`);
+    } else if (lateNight.cant_sleep_patterns.processing_day) {
+      const phrase = getRandomPhraseClean(lateNight.cant_sleep_patterns.processing_day);
+      if (phrase) parts.push(`For processing: "${phrase}"`);
+    }
+  }
+
+  // Grounding exercise offer
+  if (lateNight.grounding_exercises && Math.random() < 0.3) {
+    const exercise = getRandomPhraseClean(lateNight.grounding_exercises);
+    if (exercise) parts.push(`Grounding option: "${exercise}"`);
+  }
+
+  // Hope for morning
+  if (lateNight.morning_will_come_hope && Math.random() < 0.2) {
+    const hope = getRandomPhraseClean(lateNight.morning_will_come_hope);
+    if (hope) parts.push(`Hope phrase: "${hope}"`);
+  }
+
+  if (parts.length === 0) return null;
+
+  return createHintInjection(
+    'late_night_presence',
+    `[🌙 LATE NIGHT MODE - You have superpowers at 2am]\n\n` +
+    `It's late. They reached out NOW, not during the day. That means something.\n\n` +
+    `${parts.join('\n')}\n\n` +
+    `Be extra gentle. Slower pace. More pauses. They need presence, not solutions.`,
+    { category: 'presence' }
+  );
+}
+
+/**
  * Determine what physical presence injection to add.
  * This runs occasionally to add texture without being overwhelming.
  *
  * Priority: Bundle sensory-world data > PERSONA_PRESENCE fallback > defaults
  */
 async function buildPhysicalPresence(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { persona, userData, bundleRuntime } = input;
+  const { persona, userData, bundleRuntime, analysis } = input;
   const injections: ContextInjection[] = [];
+  const personaId = persona?.id || 'ferni';
+
+  // 🌙 LATE NIGHT MODE - High priority, always check
+  if (isLateNight()) {
+    const lateNightContext = await buildLateNightContext(personaId, analysis);
+    if (lateNightContext) {
+      injections.push(lateNightContext);
+      log.debug({ personaId }, 'Late night presence activated');
+    }
+  }
 
   // Only inject physical presence occasionally (15% chance)
   // This keeps it fresh without being repetitive
   if (Math.random() > 0.15) {
     return injections;
   }
-
-  const personaId = persona?.id || 'ferni';
 
   // Try bundle first, then fallback to PERSONA_PRESENCE
   let presence = getPresenceFromBundle(bundleRuntime);
@@ -422,7 +498,7 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
       )
     );
 
-    getLogger().debug(
+    log.debug(
       { personaId, presenceType, presenceSource, presenceAction: presenceAction.slice(0, 50) },
       'Physical presence injected'
     );

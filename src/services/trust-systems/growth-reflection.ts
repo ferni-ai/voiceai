@@ -538,6 +538,176 @@ export function getUnreflectedGrowth(userId: string): GrowthPattern[] {
 }
 
 /**
+ * Generate a growth reflection with lowered thresholds
+ * Use this for special moments like:
+ * - First returning session
+ * - Time-based milestones (1 month, 3 months, etc.)
+ * - When user is discussing a topic where they've grown
+ *
+ * Philosophy: Sometimes we want to notice growth earlier, especially
+ * for returning users who might not have hit the standard thresholds yet.
+ */
+export function generateEarlyGrowthReflection(
+  userId: string,
+  context: {
+    reason: 'returning_user' | 'time_milestone' | 'topic_relevant' | 'emotional_moment';
+    currentTopic?: string;
+    currentEmotion?: string;
+  }
+): GrowthReflection | null {
+  const profile = growthProfiles.get(userId);
+  if (!profile || profile.patterns.length === 0) return null;
+
+  // Lower thresholds for early detection
+  // - confidence >= 0.4 (vs 0.6)
+  // - timesObserved >= 1 (vs 2)
+  const eligiblePatterns = profile.patterns.filter(
+    (p) => !p.reflectedBack && p.confidence >= 0.4 && p.timesObserved >= 1
+  );
+
+  if (eligiblePatterns.length === 0) return null;
+
+  // Prefer patterns relevant to current context
+  let pattern = eligiblePatterns[0];
+
+  // For topic-relevant moments, prioritize matching topic
+  if (context.reason === 'topic_relevant' && context.currentTopic) {
+    const relevant = eligiblePatterns.find(
+      (p) =>
+        p.before.examples.some((e) =>
+          e.toLowerCase().includes(context.currentTopic!.toLowerCase())
+        ) ||
+        p.after.examples.some((e) => e.toLowerCase().includes(context.currentTopic!.toLowerCase()))
+    );
+    if (relevant) pattern = relevant;
+  }
+
+  // For emotional moments, prioritize emotional regulation patterns
+  if (context.reason === 'emotional_moment') {
+    const emotional = eligiblePatterns.find((p) => p.type === 'emotional_regulation');
+    if (emotional) pattern = emotional;
+  }
+
+  // For returning users or time milestones, prioritize transformative changes
+  if (context.reason === 'returning_user' || context.reason === 'time_milestone') {
+    const transformative = eligiblePatterns.find((p) => p.significance === 'transformative');
+    if (transformative) pattern = transformative;
+  }
+
+  const reflection = createReflection(pattern);
+
+  log.info(
+    { userId, reason: context.reason, patternType: pattern.type },
+    '🌱 Early growth reflection generated'
+  );
+
+  return {
+    pattern,
+    reflection: reflection.text,
+    timing: 'now', // Early reflections are meant to be shared
+    ssml: reflection.ssml,
+  };
+}
+
+/**
+ * Check if this is a good moment to surface growth
+ * Returns true if conditions are favorable for a growth reflection
+ */
+export function isGoodMomentForGrowth(
+  userId: string,
+  context: {
+    turnCount: number;
+    isReturningSession: boolean;
+    daysSinceFirstSession?: number;
+    currentTopic?: string;
+    currentEmotion?: string;
+    emotionIntensity?: number;
+  }
+): { shouldSurface: boolean; reason: string; useEarlyThreshold: boolean } {
+  const profile = growthProfiles.get(userId);
+
+  // No growth data = no growth to surface
+  if (!profile || profile.patterns.length === 0) {
+    return { shouldSurface: false, reason: 'no_growth_data', useEarlyThreshold: false };
+  }
+
+  // Check for standard milestone turns
+  const milestoneTurns = [10, 25, 50, 75, 100];
+  if (
+    milestoneTurns.includes(context.turnCount) ||
+    (context.turnCount > 100 && context.turnCount % 50 === 0)
+  ) {
+    return { shouldSurface: true, reason: 'milestone_turn', useEarlyThreshold: false };
+  }
+
+  // First returning session - great time for "I noticed something..."
+  if (context.isReturningSession && context.turnCount <= 5) {
+    return { shouldSurface: true, reason: 'returning_session', useEarlyThreshold: true };
+  }
+
+  // Time-based milestones (1 month, 3 months, 6 months, 1 year)
+  const timeMilestones = [30, 90, 180, 365];
+  if (context.daysSinceFirstSession && timeMilestones.includes(context.daysSinceFirstSession)) {
+    return { shouldSurface: true, reason: 'time_milestone', useEarlyThreshold: false };
+  }
+
+  // Topic-relevant growth - if discussing a topic where they've grown
+  if (context.currentTopic) {
+    const topicRelevant = profile.patterns.some(
+      (p) =>
+        !p.reflectedBack &&
+        (p.before.examples.some((e) =>
+          e.toLowerCase().includes(context.currentTopic!.toLowerCase())
+        ) ||
+          p.after.examples.some((e) =>
+            e.toLowerCase().includes(context.currentTopic!.toLowerCase())
+          ))
+    );
+    if (topicRelevant) {
+      return { shouldSurface: true, reason: 'topic_relevant', useEarlyThreshold: true };
+    }
+  }
+
+  // High emotional moment related to previous struggles
+  if (context.emotionIntensity && context.emotionIntensity > 0.7) {
+    const hasEmotionalGrowth = profile.patterns.some(
+      (p) => !p.reflectedBack && p.type === 'emotional_regulation'
+    );
+    if (hasEmotionalGrowth) {
+      return { shouldSurface: true, reason: 'emotional_moment', useEarlyThreshold: true };
+    }
+  }
+
+  return { shouldSurface: false, reason: 'no_trigger', useEarlyThreshold: false };
+}
+
+/**
+ * Get a count of unreflected growth patterns at any threshold
+ * Useful for session summaries and progress tracking
+ */
+export function getGrowthCount(userId: string): {
+  total: number;
+  unreflected: number;
+  byType: Record<string, number>;
+} {
+  const profile = growthProfiles.get(userId);
+  if (!profile) {
+    return { total: 0, unreflected: 0, byType: {} };
+  }
+
+  const byType: Record<string, number> = {};
+  for (const pattern of profile.patterns) {
+    byType[pattern.type] = (byType[pattern.type] || 0) + 1;
+  }
+
+  return {
+    total: profile.patterns.length,
+    unreflected: profile.patterns.filter((p) => !p.reflectedBack).length,
+    byType,
+  };
+}
+
+/**
  * Get all growth patterns for a user
  */
 export function getGrowthPatterns(userId: string): GrowthPattern[] {

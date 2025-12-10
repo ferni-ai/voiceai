@@ -383,7 +383,75 @@ async function searchFlights(params: {
   return searchFlightsReal(params);
 }
 
-async function searchHotels(params: {
+async function searchHotelsReal(params: {
+  destination: string;
+  checkIn: Date;
+  checkOut: Date;
+  guests: number;
+  rooms: number;
+}): Promise<HotelResult[]> {
+  // Use Booking.com Affiliate API if configured
+  if (BOOKING_AFFILIATE_ID) {
+    try {
+      // Note: Booking.com Affiliate API requires partner registration
+      // This is the basic structure - actual implementation depends on your affiliate tier
+      const searchParams = new URLSearchParams({
+        dest_type: 'city',
+        dest_id: params.destination,
+        checkin: params.checkIn.toISOString().split('T')[0],
+        checkout: params.checkOut.toISOString().split('T')[0],
+        adults: String(params.guests),
+        rooms: String(params.rooms),
+        affiliate_id: BOOKING_AFFILIATE_ID,
+      });
+
+      const response = await fetch(
+        `https://distribution-xml.booking.com/2.0/json/hotels?${searchParams}`,
+        {
+          headers: {
+            Authorization: `Bearer ${BOOKING_AFFILIATE_ID}`,
+            Accept: 'application/json',
+          },
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          result: Array<{
+            hotel_id: string;
+            hotel_name: string;
+            review_score: number;
+            min_total_price: number;
+            hotel_facilities: string;
+            url: string;
+          }>;
+        };
+
+        const nights = Math.ceil(
+          (params.checkOut.getTime() - params.checkIn.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        return (data.result || []).slice(0, 10).map((hotel) => ({
+          id: hotel.hotel_id,
+          name: hotel.hotel_name,
+          rating: hotel.review_score / 2, // Convert 0-10 to 0-5
+          pricePerNight: Math.round(hotel.min_total_price / nights),
+          totalPrice: hotel.min_total_price,
+          amenities: (hotel.hotel_facilities || '').split(',').slice(0, 4),
+          bookingUrl: hotel.url,
+        }));
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Booking.com API failed, falling back to mock');
+    }
+  }
+
+  // Fallback to mock
+  return searchHotelsMock(params);
+}
+
+async function searchHotelsMock(params: {
   destination: string;
   checkIn: Date;
   checkOut: Date;
@@ -395,7 +463,10 @@ async function searchHotels(params: {
     setTimeout(resolve, 800);
   });
 
-  getLogger().info({ destination: params.destination }, '🏨 Searching hotels (mock)');
+  getLogger().info(
+    { destination: params.destination },
+    '🏨 Searching hotels (mock - set BOOKING_AFFILIATE_ID for real results)'
+  );
 
   const nights = Math.ceil(
     (params.checkOut.getTime() - params.checkIn.getTime()) / (1000 * 60 * 60 * 24)
@@ -429,6 +500,17 @@ async function searchHotels(params: {
   }
 
   return results.sort((a, b) => a.pricePerNight - b.pricePerNight);
+}
+
+// Main hotel search function that tries real API first
+async function searchHotels(params: {
+  destination: string;
+  checkIn: Date;
+  checkOut: Date;
+  guests: number;
+  rooms: number;
+}): Promise<HotelResult[]> {
+  return searchHotelsReal(params);
 }
 
 // ============================================================================

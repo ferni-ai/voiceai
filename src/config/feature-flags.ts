@@ -498,11 +498,11 @@ export function isEvalOpsEnabled(): boolean {
 export function isEvalOpsFeatureEnabled(feature: keyof FeatureFlags['evalops']): boolean {
   const flags = getFeatureFlags();
   if (!flags.evalops.enabled) return false;
-  
+
   if (feature === 'sampleRate') {
     return flags.evalops.sampleRate > 0;
   }
-  
+
   return flags.evalops[feature] === true;
 }
 

@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: '.',
@@ -40,58 +40,100 @@ export default defineConfig({
       '/api/trust': 'http://localhost:3002',
       // Marketplace routes
       '/api/marketplace': 'http://localhost:3002',
+      // Subscription routes (Stripe checkout, billing portal, status)
+      '/subscription': 'http://localhost:3002',
+      '/api/subscription': 'http://localhost:3002',
+      // Admin API v1 routes
+      '/api/v1': 'http://localhost:3002',
+      // EvalOps routes
+      '/api/evalops': 'http://localhost:3002',
+      // Dashboard metrics routes
+      '/api/metrics': 'http://localhost:3002',
       // Other API routes to token server
       '/api': 'http://localhost:3001',
     },
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
     minify: 'esbuild',
     target: 'es2022',
+    // Drop console logs and debugger in production
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor libraries
-          'vendor-particles': ['@tsparticles/engine', '@tsparticles/slim'],
-          // Premium UI effects (celebrations, particles, etc.)
-          'ui-premium': [
-            './src/ui/celebrations.ui.ts',
-            './src/ui/easter-eggs.ui.ts',
-            './src/ui/stats.ui.ts',
-            './src/ui/agent-particles.ui.ts',
-            './src/ui/streak-celebrations.ui.ts',
-          ],
-          // Engagement UI (dashboards, analytics)
-          'ui-engagement': [
-            './src/ui/engagement.ui.ts',
-            './src/ui/predictions.ui.ts',
-            './src/ui/analytics-dashboard.ui.ts',
-            './src/ui/prediction-tracker.ui.ts',
-            './src/ui/team-huddle.ui.ts',
-          ],
-          // Secondary UI (modals, overlays)
-          'ui-secondary': [
-            './src/ui/onboarding.ui.ts',
-            './src/ui/conversation-history.ui.ts',
-            './src/ui/cognitive-insights.ui.ts',
-            './src/ui/ritual-builder.ui.ts',
-            './src/ui/data-export.ui.ts',
-          ],
-          // Animation orchestration
-          'ui-animations': [
-            './src/ui/animation-orchestrator.ui.ts',
-            './src/ui/micro-interactions.ui.ts',
-            './src/ui/kinetic-typography.ui.ts',
-            './src/ui/ambient-effects.ui.ts',
-            './src/ui/loading-states.ui.ts',
-            './src/ui/persona-transition.ui.ts',
-          ],
+        // Smart chunking strategy for optimal loading
+        manualChunks(id) {
+          // Vendor libraries - separate chunks for parallel loading
+          if (id.includes('node_modules')) {
+            if (id.includes('@tsparticles')) return 'vendor-particles';
+            if (id.includes('livekit-client')) return 'vendor-livekit';
+            if (id.includes('@capacitor')) return 'vendor-capacitor';
+            // Other node_modules go to vendor chunk
+            return 'vendor';
+          }
+
+          // Admin portal - lazy loaded, separate chunk
+          if (id.includes('/admin/')) return 'admin';
+
+          // Engagement features - heavy dashboards, lazy loaded
+          if (
+            id.includes('engagement') ||
+            id.includes('predictions') ||
+            id.includes('analytics-dashboard') ||
+            id.includes('prediction-tracker') ||
+            id.includes('team-huddle') ||
+            id.includes('cognitive-insights')
+          ) {
+            return 'ui-engagement';
+          }
+
+          // Premium effects - celebrations, particles, etc.
+          if (
+            id.includes('celebrations') ||
+            id.includes('easter-eggs') ||
+            id.includes('streak-celebrations') ||
+            id.includes('agent-particles') ||
+            id.includes('weather-effects')
+          ) {
+            return 'ui-premium';
+          }
+
+          // Secondary modals - lazy loaded
+          if (
+            id.includes('onboarding') ||
+            id.includes('conversation-history') ||
+            id.includes('ritual-builder') ||
+            id.includes('data-export') ||
+            id.includes('settings-menu') ||
+            id.includes('marketplace')
+          ) {
+            return 'ui-secondary';
+          }
+
+          // Animation systems
+          if (
+            id.includes('animation-orchestrator') ||
+            id.includes('micro-interactions') ||
+            id.includes('kinetic-typography') ||
+            id.includes('ambient-effects') ||
+            id.includes('loading-states') ||
+            id.includes('persona-transition')
+          ) {
+            return 'ui-animations';
+          }
+
+          // Services - split heavy from light
+          if (id.includes('/services/')) {
+            if (id.includes('spotify') || id.includes('music')) return 'services-music';
+            if (id.includes('engagement') || id.includes('ritual')) return 'services-engagement';
+          }
         },
       },
     },
     // Increase warning limit since we're chunking now
-    chunkSizeWarningLimit: 400,
+    chunkSizeWarningLimit: 500,
   },
 });
-

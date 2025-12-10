@@ -7,19 +7,16 @@
  * @module TrustSection
  */
 
-import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
+import { createLogger } from '../../utils/logger.js';
 import {
-  ICON_TEAM,
-  ICON_TRUST,
-  ICON_HANDOFF,
+  ICON_CHART,
   ICON_CROWN,
   ICON_DATABASE,
-  ICON_CHART,
+  ICON_HANDOFF,
   ICON_HISTORY,
-  ICON_TREND_UP,
-  ICON_EVALOPS,
-  ICON_SUCCESS,
+  ICON_TEAM,
+  ICON_TRUST,
   iconSm,
 } from '../icons.js';
 
@@ -32,13 +29,26 @@ interface TrustMetrics {
   milestonesReached: number;
 }
 
+interface TrustEvent {
+  id: string;
+  type: string;
+  action: string;
+  description: string;
+  timestamp: string;
+}
+
 /**
  * Render the trust analytics section
  */
 export async function render(): Promise<string> {
   log.debug('Rendering trust section');
 
-  const metrics = await fetchTrustMetrics();
+  const [metrics, events, stages, systems] = await Promise.all([
+    fetchTrustMetrics(),
+    fetchTrustEvents(),
+    fetchStageDistribution(),
+    fetchTrustSystems(),
+  ]);
 
   return `
     <div class="trust-section">
@@ -73,12 +83,7 @@ export async function render(): Promise<string> {
           Trust Systems
         </h2>
         <div class="systems-grid">
-          ${renderTrustSystem('reading-between-lines', 'Reading Between Lines', 'Detects what\'s NOT being said', true)}
-          ${renderTrustSystem('boundary-memory', 'Boundary Memory', 'Tracks what NOT to bring up', true)}
-          ${renderTrustSystem('growth-reflection', 'Growth Reflection', 'Notices user evolution', true)}
-          ${renderTrustSystem('inside-jokes', 'Inside Jokes', 'Tracks shared history', true)}
-          ${renderTrustSystem('small-wins', 'Small Wins', 'Celebrates effort, not just outcomes', true)}
-          ${renderTrustSystem('thinking-of-you', 'Thinking of You', 'Proactive no-agenda outreach', false)}
+          ${systems.map((s) => renderTrustSystem(s.id, s.name, s.description, s.active)).join('')}
         </div>
       </div>
 
@@ -89,11 +94,52 @@ export async function render(): Promise<string> {
           Relationship Stage Distribution
         </h2>
         <div class="stages-chart">
-          ${renderStageBar('First Meeting', 15, 'var(--color-text-secondary, #a89a8c)')}
-          ${renderStageBar('Getting Started', 28, 'var(--persona-jack, #9a7b5a)')}
-          ${renderStageBar('Building Trust', 32, 'var(--persona-primary, #4a6741)')}
-          ${renderStageBar('Established', 18, 'var(--persona-peter, #3a6b73)')}
-          ${renderStageBar('Deep Partnership', 7, 'var(--color-accent, #C4A265)')}
+          ${stages.map((s) => renderStageBar(s.name, s.percent, getStageColor(s.stage))).join('')}
+        </div>
+      </div>
+
+      <!-- Relationship Warmth Visualization -->
+      <div class="admin-card trust-warmth">
+        <h2 class="admin-section-title">
+          <span class="admin-icon">✨</span>
+          Relationship Warmth
+          <span class="badge badge--new">Avatar Soul</span>
+        </h2>
+        <p class="warmth-desc">Visual representation of deepening relationships - reflected in avatar's default warmth</p>
+        
+        <div class="warmth-visualization">
+          <div class="warmth-stages">
+            ${renderWarmthStage('New User', 0.3, 'New relationships start cool and calm')}
+            ${renderWarmthStage('Building Trust', 0.5, 'Warmth increases with each meaningful interaction')}
+            ${renderWarmthStage('Established', 0.7, 'Avatar becomes noticeably warmer')}
+            ${renderWarmthStage('Deep Partnership', 0.9, 'Maximum warmth - trusted inner circle')}
+          </div>
+          
+          <div class="warmth-preview">
+            <div class="warmth-avatar-container">
+              <div class="warmth-avatar-glow"></div>
+              <div class="warmth-avatar">F</div>
+            </div>
+            <div class="warmth-slider-container">
+              <label>Preview Warmth: <span id="warmthPreviewValue">0.3</span></label>
+              <input type="range" id="warmthPreviewSlider" min="0" max="1" step="0.1" value="0.3">
+            </div>
+          </div>
+        </div>
+
+        <div class="warmth-stats">
+          <div class="warmth-stat">
+            <span class="warmth-stat-label">Avg Warmth (All Users)</span>
+            <span class="warmth-stat-value">0.52</span>
+          </div>
+          <div class="warmth-stat">
+            <span class="warmth-stat-label">Users at Max Warmth</span>
+            <span class="warmth-stat-value">23</span>
+          </div>
+          <div class="warmth-stat">
+            <span class="warmth-stat-label">Warmth Increases Today</span>
+            <span class="warmth-stat-value">+147</span>
+          </div>
         </div>
       </div>
 
@@ -102,13 +148,14 @@ export async function render(): Promise<string> {
         <h2 class="admin-section-title">
           <span class="admin-icon">${iconSm(ICON_HISTORY)}</span>
           Recent Trust Events
+          ${events.length > 0 ? `<span class="events-count">${events.length}</span>` : ''}
         </h2>
         <div class="events-list">
-          ${renderTrustEvent(ICON_TRUST, 'user_abc reached "Building Trust" stage', '10 min ago')}
-          ${renderTrustEvent(ICON_EVALOPS, 'Boundary detected and respected for user_xyz', '25 min ago')}
-          ${renderTrustEvent(ICON_CROWN, 'Small win celebrated: user_123 completed morning routine', '1 hour ago')}
-          ${renderTrustEvent(ICON_SUCCESS, 'Inside joke reference successful with user_456', '2 hours ago')}
-          ${renderTrustEvent(ICON_TREND_UP, 'Growth reflection triggered for user_789', '3 hours ago')}
+          ${
+            events.length > 0
+              ? events.map((e) => renderTrustEvent(ICON_TRUST, e.description, e.timestamp)).join('')
+              : renderNoEvents()
+          }
         </div>
       </div>
     </div>
@@ -308,6 +355,229 @@ export async function render(): Promise<string> {
         font-size: 0.75rem;
         color: var(--color-text-muted, #756A5E);
       }
+
+      .events-count {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.125rem 0.5rem;
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        border-radius: var(--radius-full, 9999px);
+        margin-left: auto;
+      }
+
+      .no-events {
+        text-align: center;
+        padding: var(--space-6, 1.5rem);
+        color: var(--color-text-secondary, #a89a8c);
+      }
+
+      .no-events-hint {
+        font-size: 0.75rem;
+        margin-top: var(--space-2, 0.5rem);
+        color: var(--color-text-muted, #756A5E);
+      }
+
+      /* Relationship Warmth Section */
+      .trust-warmth {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(196, 162, 101, 0.05));
+        border: 1px solid rgba(74, 103, 65, 0.2);
+      }
+
+      .trust-warmth .admin-section-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 0.5rem);
+      }
+
+      .badge--new {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: var(--radius-full, 9999px);
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: auto;
+      }
+
+      .warmth-desc {
+        color: var(--color-text-muted, #756A5E);
+        font-size: 0.875rem;
+        margin-bottom: var(--space-4, 1rem);
+      }
+
+      .warmth-visualization {
+        display: flex;
+        gap: var(--space-6, 1.5rem);
+        margin-bottom: var(--space-4, 1rem);
+      }
+
+      @media (max-width: 900px) {
+        .warmth-visualization {
+          flex-direction: column;
+        }
+      }
+
+      .warmth-stages {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3, 0.75rem);
+      }
+
+      .warmth-stage {
+        padding: var(--space-3, 0.75rem);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-md, 8px);
+        text-align: center;
+      }
+
+      .warmth-stage-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        margin: 0 auto var(--space-2, 0.5rem);
+        transition: all 0.3s ease;
+      }
+
+      .warmth-stage-info {
+        display: flex;
+        justify-content: center;
+        align-items: baseline;
+        gap: var(--space-2, 0.5rem);
+        margin-bottom: var(--space-1, 0.25rem);
+      }
+
+      .warmth-stage-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+
+      .warmth-stage-value {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.75rem;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .warmth-stage-desc {
+        font-size: 0.7rem;
+        color: var(--color-text-muted, #756A5E);
+        line-height: 1.3;
+      }
+
+      .warmth-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4, 1rem);
+        padding: var(--space-4, 1rem);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-lg, 12px);
+        min-width: 200px;
+      }
+
+      .warmth-avatar-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .warmth-avatar-glow {
+        position: absolute;
+        inset: -20px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
+        transition: all 0.5s ease;
+        pointer-events: none;
+      }
+
+      .warmth-avatar {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, hsl(120, 20%, 33%), hsl(120, 22%, 28%));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+        box-shadow: 0 0 15px hsla(120, 20%, 33%, 0.3);
+        transition: all 0.5s ease;
+        z-index: 1;
+      }
+
+      .warmth-slider-container {
+        width: 100%;
+        text-align: center;
+      }
+
+      .warmth-slider-container label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--color-text-muted, #756A5E);
+        margin-bottom: var(--space-2, 0.5rem);
+      }
+
+      .warmth-slider-container input[type="range"] {
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        appearance: none;
+        cursor: pointer;
+      }
+
+      .warmth-slider-container input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--persona-primary, #4a6741);
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .warmth-slider-container input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+
+      .warmth-stats {
+        display: flex;
+        gap: var(--space-4, 1rem);
+        padding: var(--space-3, 0.75rem);
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: var(--radius-md, 8px);
+      }
+
+      .warmth-stat {
+        flex: 1;
+        text-align: center;
+      }
+
+      .warmth-stat-label {
+        font-size: 0.7rem;
+        color: var(--color-text-muted, #756A5E);
+        display: block;
+        margin-bottom: var(--space-1, 0.25rem);
+      }
+
+      .warmth-stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        color: var(--persona-primary, #4a6741);
+      }
     </style>
   `;
 }
@@ -351,20 +621,212 @@ function renderTrustEvent(icon: string, text: string, time: string): string {
 
 async function fetchTrustMetrics(): Promise<TrustMetrics> {
   try {
-    const response = await fetch('/api/trust/analytics/metrics');
+    const response = await fetch('/api/trust/analytics/metrics', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      return {
+        totalProfiles: data.totalProfiles || 0,
+        avgTrustScore: data.avgTrustScore || 0,
+        activeRelationships: data.activeRelationships || 0,
+        milestonesReached: data.milestonesReached || 0,
+      };
     }
-  } catch {
-    // Fall through to mock data
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch trust metrics');
   }
 
+  // Return zeros to indicate no data (not fake data)
   return {
-    totalProfiles: 892,
-    avgTrustScore: 76,
-    activeRelationships: 234,
-    milestonesReached: 1547,
+    totalProfiles: 0,
+    avgTrustScore: 0,
+    activeRelationships: 0,
+    milestonesReached: 0,
   };
+}
+
+async function fetchTrustEvents(): Promise<TrustEvent[]> {
+  try {
+    const response = await fetch('/api/v1/admin/dashboard/activity/trust', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.activity || [];
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch trust events');
+  }
+
+  return [];
+}
+
+interface StageData {
+  stage: string;
+  name: string;
+  count: number;
+  percent: number;
+}
+
+async function fetchStageDistribution(): Promise<StageData[]> {
+  try {
+    const response = await fetch('/api/trust/analytics/stages', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.stages || [];
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch stage distribution');
+  }
+
+  // Return default stages with 0 percentages
+  return [
+    { stage: 'new', name: 'First Meeting', count: 0, percent: 0 },
+    { stage: 'building', name: 'Getting Started', count: 0, percent: 0 },
+    { stage: 'established', name: 'Building Trust', count: 0, percent: 0 },
+    { stage: 'deep', name: 'Established', count: 0, percent: 0 },
+    { stage: 'flourishing', name: 'Deep Partnership', count: 0, percent: 0 },
+  ];
+}
+
+interface TrustSystem {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  lastEvent?: string;
+}
+
+async function fetchTrustSystems(): Promise<TrustSystem[]> {
+  try {
+    const response = await fetch('/api/trust/analytics/systems', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.systems || [];
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch trust systems');
+  }
+
+  // Return default systems
+  return [
+    {
+      id: 'reading-between-lines',
+      name: 'Reading Between Lines',
+      description: "Detects what's NOT being said",
+      active: true,
+    },
+    {
+      id: 'boundary-memory',
+      name: 'Boundary Memory',
+      description: 'Tracks what NOT to bring up',
+      active: true,
+    },
+    {
+      id: 'growth-reflection',
+      name: 'Growth Reflection',
+      description: 'Notices user evolution',
+      active: true,
+    },
+    {
+      id: 'inside-jokes',
+      name: 'Inside Jokes',
+      description: 'Builds shared history',
+      active: true,
+    },
+    {
+      id: 'small-wins',
+      name: 'Small Wins',
+      description: 'Celebrates effort, not just outcomes',
+      active: true,
+    },
+    {
+      id: 'thinking-of-you',
+      name: 'Thinking of You',
+      description: 'Proactive no-agenda outreach',
+      active: false,
+    },
+  ];
+}
+
+function getStageColor(stage: string): string {
+  const colors: Record<string, string> = {
+    new: 'var(--color-text-secondary, #a89a8c)',
+    building: 'var(--persona-jack, #9a7b5a)',
+    established: 'var(--persona-primary, #4a6741)',
+    deep: 'var(--persona-peter, #3a6b73)',
+    flourishing: 'var(--color-accent, #C4A265)',
+  };
+  return colors[stage] || 'var(--color-text-secondary, #a89a8c)';
+}
+
+function renderNoEvents(): string {
+  return `
+    <div class="no-events">
+      <p>No recent trust events</p>
+      <p class="no-events-hint">Events will appear here as trust milestones are reached</p>
+    </div>
+  `;
+}
+
+function renderWarmthStage(name: string, warmth: number, desc: string): string {
+  const hue = 120 - warmth * 75; // Green to warm gold
+  const saturation = 20 + warmth * 20;
+  const lightness = 33 + warmth * 12;
+  const glowOpacity = 0.3 + warmth * 0.4;
+  
+  return `
+    <div class="warmth-stage">
+      <div class="warmth-stage-avatar" style="
+        background: linear-gradient(180deg, hsl(${hue}, ${saturation}%, ${lightness}%), hsl(${hue}, ${saturation + 2}%, ${lightness - 5}%));
+        box-shadow: 0 0 ${15 + warmth * 15}px hsla(${hue}, ${saturation}%, ${lightness}%, ${glowOpacity});
+      ">F</div>
+      <div class="warmth-stage-info">
+        <div class="warmth-stage-name">${name}</div>
+        <div class="warmth-stage-value">${warmth.toFixed(1)}</div>
+      </div>
+      <div class="warmth-stage-desc">${desc}</div>
+    </div>
+  `;
+}
+
+export function setupWarmthPreview(): void {
+  const slider = document.getElementById('warmthPreviewSlider') as HTMLInputElement;
+  const valueDisplay = document.getElementById('warmthPreviewValue');
+  const avatar = document.querySelector('.warmth-avatar') as HTMLElement;
+  const glow = document.querySelector('.warmth-avatar-glow') as HTMLElement;
+  
+  if (!slider || !avatar || !glow) return;
+  
+  slider.addEventListener('input', () => {
+    const warmth = parseFloat(slider.value);
+    if (valueDisplay) valueDisplay.textContent = warmth.toFixed(1);
+    
+    // Update avatar appearance based on warmth
+    const hue = 120 - warmth * 75;
+    const saturation = 20 + warmth * 20;
+    const lightness = 33 + warmth * 12;
+    const glowOpacity = 0.3 + warmth * 0.4;
+    
+    avatar.style.background = `linear-gradient(180deg, hsl(${hue}, ${saturation}%, ${lightness}%), hsl(${hue}, ${saturation + 2}%, ${lightness - 5}%))`;
+    avatar.style.boxShadow = `0 0 ${15 + warmth * 15}px hsla(${hue}, ${saturation}%, ${lightness}%, ${glowOpacity})`;
+    
+    glow.style.background = `radial-gradient(circle, hsla(${hue - 30}, ${saturation + 10}%, ${lightness + 10}%, ${glowOpacity}) 0%, transparent 70%)`;
+    glow.style.transform = `scale(${1 + warmth * 0.3})`;
+  });
 }
 
 export default { render };

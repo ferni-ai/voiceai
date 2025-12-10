@@ -41,9 +41,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Push Notifications
   try {
-    const { getPushNotificationsService, shutdownPushNotificationsService } = await import(
-      '../push-notifications.js'
-    );
+    const { getPushNotificationsService, shutdownPushNotificationsService } =
+      await import('../push-notifications.js');
     services.push({
       name: 'push-notifications',
       initialize: async () => {
@@ -58,9 +57,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Outreach Intelligence
   try {
-    const { initializeOutreachPersistence, shutdownOutreachPersistence } = await import(
-      '../outreach-intelligence.js'
-    );
+    const { initializeOutreachPersistence, shutdownOutreachPersistence } =
+      await import('../outreach-intelligence.js');
     services.push({
       name: 'outreach-intelligence',
       initialize: initializeOutreachPersistence,
@@ -73,9 +71,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Team Engagement
   try {
-    const { getTeamEngagementService, shutdownTeamEngagementService } = await import(
-      '../team-engagement.js'
-    );
+    const { getTeamEngagementService, shutdownTeamEngagementService } =
+      await import('../team-engagement.js');
     services.push({
       name: 'team-engagement',
       initialize: async () => {
@@ -91,10 +88,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Spontaneous Sharing
   try {
-    const {
-      initializeSpontaneousSharingPersistence,
-      shutdownSpontaneousSharingPersistence,
-    } = await import('../spontaneous-sharing.js');
+    const { initializeSpontaneousSharingPersistence, shutdownSpontaneousSharingPersistence } =
+      await import('../spontaneous-sharing.js');
     services.push({
       name: 'spontaneous-sharing',
       initialize: initializeSpontaneousSharingPersistence,
@@ -123,9 +118,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Maya Notification Service
   try {
-    const { initializeMayaNotificationService, shutdownMayaNotificationService } = await import(
-      '../maya-notification-service.js'
-    );
+    const { initializeMayaNotificationService, shutdownMayaNotificationService } =
+      await import('../maya-notification-service.js');
     services.push({
       name: 'maya-notifications',
       initialize: async () => {
@@ -140,9 +134,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Productivity Store
   try {
-    const { initializeProductivityStore, shutdownProductivityStore } = await import(
-      '../productivity-store.js'
-    );
+    const { initializeProductivityStore, shutdownProductivityStore } =
+      await import('../productivity-store.js');
     services.push({
       name: 'productivity-store',
       initialize: async () => {
@@ -157,9 +150,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Maya Financial Store
   try {
-    const { initializeMayaFinancialStore, shutdownMayaFinancialStore } = await import(
-      '../maya-financial-store.js'
-    );
+    const { initializeMayaFinancialStore, shutdownMayaFinancialStore } =
+      await import('../maya-financial-store.js');
     services.push({
       name: 'maya-financial-store',
       initialize: async () => {
@@ -192,10 +184,8 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Agent Evolution
   try {
-    const {
-      initializeAgentEvolution,
-      saveAgentEvolutionToFirestore,
-    } = await import('../../intelligence/agent-evolution.js');
+    const { initializeAgentEvolution, saveAgentEvolutionToFirestore } =
+      await import('../../intelligence/agent-evolution.js');
     services.push({
       name: 'agent-evolution',
       initialize: async () => {
@@ -428,4 +418,3 @@ export default {
   installShutdownHandlers,
   getPersistenceStatus,
 };
-

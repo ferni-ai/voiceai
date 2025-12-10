@@ -60,7 +60,7 @@ async function buildTherapeuticFrameworksContext(
   }
 
   // Build therapeutic context
-  const result = buildTherapeuticContext(userId, userText, {
+  const result: TherapeuticContextResult = buildTherapeuticContext(userId, userText, {
     topic: analysis?.topics?.primary || undefined,
     emotion: analysis?.emotion?.primary,
     emotionIntensity: analysis?.emotion?.intensity,

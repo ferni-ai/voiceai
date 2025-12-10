@@ -24,8 +24,8 @@
  *   const status = rollout.getRolloutStatus('new-voice-model');
  */
 
-import { getFeatureFlags, type FeatureFlag } from './feature-flags.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { getFeatureFlags } from './feature-flags.js';
 import { notifyRollout } from './slack-notifications.js';
 
 const log = createLogger({ module: 'FeatureRollout' });
@@ -157,8 +157,11 @@ const BUILTIN_CHECKS: Record<string, ValidationCheck> = {
     timeoutMs: 5000,
     check: async (featureId: string, context: RolloutContext): Promise<ValidationResult> => {
       // Check if the feature's dependent services are healthy
+      // SECURITY: localhost fallback only in development
       try {
-        const healthUrl = process.env.HEALTH_CHECK_URL || 'http://localhost:3001/health';
+        const isDev = process.env.NODE_ENV !== 'production';
+        const healthUrl =
+          process.env.HEALTH_CHECK_URL || (isDev ? 'http://localhost:3001/health' : '');
         const response = await fetch(healthUrl, { signal: AbortSignal.timeout(5000) });
 
         if (!response.ok) {
@@ -572,31 +575,55 @@ export class FeatureRolloutService {
     const state = this.rollouts.get(featureId);
     if (!state) return;
 
-    // TODO: Integrate with your observability system
-    // For now, use simulated metrics or fetch from observability API
+    // Integrate with observability hub for real metrics
     try {
-      const metricsUrl = process.env.METRICS_URL || 'http://localhost:3002/api/observability/llm';
-      const response = await fetch(metricsUrl, { signal: AbortSignal.timeout(5000) });
+      const { observabilityHub } = await import('./observability/hub.js');
+      const snapshot = observabilityHub.getSnapshot(5); // Last 5 minutes
 
-      if (response.ok) {
-        const data = (await response.json()) as {
-          totalRequests?: number;
-          errorCount?: number;
-          avgLatency?: number;
-          p99Latency?: number;
-        };
+      // Use LLM and UX metrics for rollout decisions
+      const { llm, ux, errors } = snapshot;
 
-        state.metrics = {
-          requestCount: data.totalRequests || 0,
-          errorCount: data.errorCount || 0,
-          errorRate: data.totalRequests ? (data.errorCount || 0) / data.totalRequests : 0,
-          avgLatencyMs: data.avgLatency || 0,
-          p99LatencyMs: data.p99Latency || 0,
-        };
+      state.metrics = {
+        requestCount: llm.totalCalls || 0,
+        errorCount: Math.round(llm.totalCalls * (llm.errorRate / 100)),
+        errorRate: llm.errorRate / 100, // Convert from percentage
+        avgLatencyMs: llm.avgLatencyMs || 0,
+        p99LatencyMs: llm.p95LatencyMs || 0, // Use p95 as proxy for p99
+        satisfactionScore: ux.avgQualityScore / 100, // Normalize to 0-1
+      };
+
+      log.debug(
+        { featureId, errorRate: state.metrics.errorRate, latency: state.metrics.p99LatencyMs },
+        'Collected metrics from observability hub'
+      );
+    } catch (error) {
+      // Fallback to API fetch if observability hub not available
+      // SECURITY: localhost fallback only in development
+      try {
+        const isDev = process.env.NODE_ENV !== 'production';
+        const metricsUrl =
+          process.env.METRICS_URL || (isDev ? 'http://localhost:3002/api/observability/llm' : '');
+        const response = await fetch(metricsUrl, { signal: AbortSignal.timeout(5000) });
+
+        if (response.ok) {
+          const data = (await response.json()) as {
+            totalRequests?: number;
+            errorCount?: number;
+            avgLatency?: number;
+            p99Latency?: number;
+          };
+
+          state.metrics = {
+            requestCount: data.totalRequests || 0,
+            errorCount: data.errorCount || 0,
+            errorRate: data.totalRequests ? (data.errorCount || 0) / data.totalRequests : 0,
+            avgLatencyMs: data.avgLatency || 0,
+            p99LatencyMs: data.p99Latency || 0,
+          };
+        }
+      } catch {
+        log.debug({ featureId, error }, 'Failed to collect metrics, keeping existing');
       }
-    } catch {
-      // Keep existing metrics if fetch fails
-      log.debug({ featureId }, 'Failed to collect metrics, keeping existing');
     }
   }
 

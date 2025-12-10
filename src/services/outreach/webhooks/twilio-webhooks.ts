@@ -9,14 +9,14 @@
  */
 
 import { createHmac } from 'crypto';
-import { getLogger } from '../../../utils/safe-logger.js';
-import { handleSMSStatus } from '../delivery/sms-delivery.js';
-import { updateDeliveryStatus, markResponded } from '../delivery/delivery-tracker.js';
-import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
-import { recordResponseEvent } from '../analytics.js';
-import { getOutreachDecisionEngine } from '../decision-engine.js';
 import { getDefaultStore } from '../../../memory/in-memory-store.js';
 import type { UserProfile } from '../../../types/user-profile.js';
+import { getLogger } from '../../../utils/safe-logger.js';
+import { recordResponseEvent } from '../analytics.js';
+import { getOutreachDecisionEngine } from '../decision-engine.js';
+import { markResponded, updateDeliveryStatus } from '../delivery/delivery-tracker.js';
+import { handleSMSStatus } from '../delivery/sms-delivery.js';
+import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -224,9 +224,7 @@ export function validateTwilioSignature(
     }
 
     // Create HMAC-SHA1 signature
-    const expectedSignature = createHmac('sha1', twilioAuthToken)
-      .update(data)
-      .digest('base64');
+    const expectedSignature = createHmac('sha1', twilioAuthToken).update(data).digest('base64');
 
     return signature === expectedSignature;
   } catch (error) {
@@ -384,12 +382,24 @@ export async function handleInboundSMSWebhook(
   // Mark as responded in delivery tracker
   markResponded(userId, 'sms');
 
+  // Find the most recent outreach to this user to calculate response time and get outreach ID
+  const { getUserDeliveries } = await import('../delivery/delivery-tracker.js');
+  const recentDeliveries = getUserDeliveries(userId, 10);
+  const matchingDelivery = recentDeliveries.find(
+    (d) => d.channel === 'sms' && d.status !== 'failed' && d.status !== 'responded'
+  );
+
+  const outreachId = matchingDelivery?.outreachId || 'unknown';
+  const responseTime = matchingDelivery?.sentAt
+    ? Date.now() - matchingDelivery.sentAt.getTime()
+    : 0;
+
   // Record response event for analytics
   recordResponseEvent({
-    outreachId: 'unknown', // Would need to match to specific outreach
+    outreachId,
     userId,
     responseType: 'reply',
-    responseTime: 0, // Would calculate from original outreach
+    responseTime,
     sentiment: detectSentiment(Body),
     engagementScore:
       calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,

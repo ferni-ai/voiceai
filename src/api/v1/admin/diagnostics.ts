@@ -15,8 +15,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { sendJSON, sendError, handleCorsPreflightIfNeeded } from '../../helpers.js';
-import { requireAuth, rateLimit } from '../../auth-middleware.js';
+import { rateLimit, requireAuth } from '../../auth-middleware.js';
+import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
+import { recordActivity } from './dashboard.js';
 
 const log = createLogger({ module: 'AdminDiagnosticsAPI' });
 
@@ -48,7 +49,7 @@ interface ServiceHealth {
 }
 
 // Service health cache
-const serviceHealthCache: Map<string, ServiceHealth> = new Map();
+const serviceHealthCache = new Map<string, ServiceHealth>();
 let lastHealthCheck = 0;
 const HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
 
@@ -93,7 +94,7 @@ export async function handleAdminDiagnosticsRoutes(
     if ((subPath === '/' || subPath === '/health') && method === 'GET') {
       const services = await checkAllServices();
       const overallStatus = getOverallStatus(services);
-      
+
       sendJSON(res, {
         status: overallStatus,
         uptime: process.uptime(),
@@ -119,11 +120,11 @@ export async function handleAdminDiagnosticsRoutes(
       const recent = handoffEvents
         .slice(-20)
         .reverse()
-        .map(e => ({
+        .map((e) => ({
           ...e,
           timestamp: formatTimestamp(e.timestamp),
         }));
-      
+
       sendJSON(res, { events: recent });
       return true;
     }
@@ -155,14 +156,22 @@ export function recordHandoffEvent(event: Omit<HandoffEvent, 'id' | 'timestamp'>
     id: `hoff-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     timestamp: new Date(),
   };
-  
+
   handoffEvents.push(newEvent);
-  
+
   // Trim to max size
   if (handoffEvents.length > MAX_EVENTS) {
     handoffEvents.shift();
   }
-  
+
+  // Also record to activity log for dashboard
+  recordActivity({
+    type: 'handoff',
+    action: event.status === 'success' ? 'completed' : 'failed',
+    description: `Handoff from ${event.from} to ${event.to} (${event.trigger}) - ${event.status}`,
+    metadata: { from: event.from, to: event.to, trigger: event.trigger, duration: event.duration },
+  });
+
   log.debug({ event: newEvent }, 'Handoff event recorded');
 }
 
@@ -171,19 +180,19 @@ export function recordHandoffEvent(event: Omit<HandoffEvent, 'id' | 'timestamp'>
  */
 function calculateHandoffMetrics() {
   const now = Date.now();
-  const last24h = handoffEvents.filter(e => now - e.timestamp.getTime() < 24 * 60 * 60 * 1000);
-  
+  const last24h = handoffEvents.filter((e) => now - e.timestamp.getTime() < 24 * 60 * 60 * 1000);
+
   const totalHandoffs = handoffEvents.length;
-  const successfulHandoffs = handoffEvents.filter(e => e.status === 'success').length;
-  const failedHandoffs = last24h.filter(e => e.status === 'failed').length;
-  
-  const successRate = totalHandoffs > 0 
-    ? Math.round((successfulHandoffs / totalHandoffs) * 100) 
-    : 100;
-  
-  const avgDuration = totalHandoffs > 0
-    ? Math.round(handoffEvents.reduce((sum, e) => sum + e.duration, 0) / totalHandoffs)
-    : 0;
+  const successfulHandoffs = handoffEvents.filter((e) => e.status === 'success').length;
+  const failedHandoffs = last24h.filter((e) => e.status === 'failed').length;
+
+  const successRate =
+    totalHandoffs > 0 ? Math.round((successfulHandoffs / totalHandoffs) * 100) : 100;
+
+  const avgDuration =
+    totalHandoffs > 0
+      ? Math.round(handoffEvents.reduce((sum, e) => sum + e.duration, 0) / totalHandoffs)
+      : 0;
 
   return {
     totalHandoffs,
@@ -199,53 +208,60 @@ function calculateHandoffMetrics() {
  */
 async function checkAllServices(): Promise<ServiceHealth[]> {
   const now = Date.now();
-  
+
   // Use cache if recent
   if (now - lastHealthCheck < HEALTH_CHECK_INTERVAL && serviceHealthCache.size > 0) {
     return Array.from(serviceHealthCache.values());
   }
-  
+
   lastHealthCheck = now;
   const services: ServiceHealth[] = [];
 
   // Check LiveKit
   services.push(await checkLiveKitHealth());
-  
+
   // Check Gemini
   services.push(await checkGeminiHealth());
-  
+
   // Check Cartesia
   services.push(await checkCartesiaHealth());
-  
+
   // Check Firestore
   services.push(await checkFirestoreHealth());
-  
+
   // Check Redis (if configured)
   if (process.env.REDIS_URL) {
     services.push(await checkRedisHealth());
   }
 
   // Update cache
-  services.forEach(s => serviceHealthCache.set(s.name, s));
-  
+  services.forEach((s) => serviceHealthCache.set(s.name, s));
+
   return services;
 }
 
 async function checkLiveKitHealth(): Promise<ServiceHealth> {
-  const start = Date.now();
   try {
     const livekitUrl = process.env.LIVEKIT_URL;
     if (!livekitUrl) {
-      return { name: 'LiveKit', status: 'degraded', lastCheck: new Date(), details: 'Not configured' };
+      return {
+        name: 'LiveKit',
+        status: 'degraded',
+        lastCheck: new Date(),
+        details: 'Not configured',
+      };
     }
-    
-    // Simple connectivity check
+
+    // Get real latency from tracker
+    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const stats = getServiceStats('livekit');
+
     return {
       name: 'LiveKit',
-      status: 'healthy',
-      latency: Date.now() - start,
+      status: stats.successRate < 50 ? 'down' : stats.successRate < 90 ? 'degraded' : 'healthy',
+      latency: stats.lastLatencyMs ?? stats.avgLatencyMs ?? undefined,
       lastCheck: new Date(),
-      details: '99.9% uptime',
+      details: stats.totalCalls > 0 ? `${stats.totalCalls} calls tracked` : 'Configured',
     };
   } catch {
     return { name: 'LiveKit', status: 'down', lastCheck: new Date(), details: 'Connection failed' };
@@ -253,19 +269,30 @@ async function checkLiveKitHealth(): Promise<ServiceHealth> {
 }
 
 async function checkGeminiHealth(): Promise<ServiceHealth> {
-  const start = Date.now();
   try {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      return { name: 'Gemini', status: 'degraded', lastCheck: new Date(), details: 'Not configured' };
+      return {
+        name: 'Gemini',
+        status: 'degraded',
+        lastCheck: new Date(),
+        details: 'Not configured',
+      };
     }
-    
+
+    // Get real latency from tracker
+    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const stats = getServiceStats('gemini');
+
     return {
       name: 'Gemini',
-      status: 'healthy',
-      latency: Math.round(Math.random() * 30 + 30), // Simulated
+      status: stats.successRate < 50 ? 'down' : stats.successRate < 90 ? 'degraded' : 'healthy',
+      latency: stats.lastLatencyMs ?? stats.avgLatencyMs ?? undefined,
       lastCheck: new Date(),
-      details: 'Available',
+      details:
+        stats.totalCalls > 0
+          ? `${stats.totalCalls} calls, ${stats.avgLatencyMs}ms avg`
+          : 'Available',
     };
   } catch {
     return { name: 'Gemini', status: 'down', lastCheck: new Date(), details: 'Connection failed' };
@@ -276,18 +303,32 @@ async function checkCartesiaHealth(): Promise<ServiceHealth> {
   try {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
-      return { name: 'Cartesia', status: 'degraded', lastCheck: new Date(), details: 'Not configured' };
+      return {
+        name: 'Cartesia',
+        status: 'degraded',
+        lastCheck: new Date(),
+        details: 'Not configured',
+      };
     }
-    
+
+    // Get real latency from tracker
+    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const stats = getServiceStats('cartesia');
+
     return {
       name: 'Cartesia',
-      status: 'healthy',
-      latency: Math.round(Math.random() * 50 + 80), // Simulated
+      status: stats.successRate < 50 ? 'down' : stats.successRate < 90 ? 'degraded' : 'healthy',
+      latency: stats.lastLatencyMs ?? stats.avgLatencyMs ?? undefined,
       lastCheck: new Date(),
-      details: 'TTS available',
+      details: stats.totalCalls > 0 ? `${stats.totalCalls} TTS calls` : 'TTS available',
     };
   } catch {
-    return { name: 'Cartesia', status: 'down', lastCheck: new Date(), details: 'Connection failed' };
+    return {
+      name: 'Cartesia',
+      status: 'down',
+      lastCheck: new Date(),
+      details: 'Connection failed',
+    };
   }
 }
 
@@ -296,18 +337,32 @@ async function checkFirestoreHealth(): Promise<ServiceHealth> {
     // Check if Firebase Admin is initialized
     const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
     if (!projectId) {
-      return { name: 'Firestore', status: 'degraded', lastCheck: new Date(), details: 'Not configured' };
+      return {
+        name: 'Firestore',
+        status: 'degraded',
+        lastCheck: new Date(),
+        details: 'Not configured',
+      };
     }
-    
+
+    // Get real latency from tracker
+    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const stats = getServiceStats('firestore');
+
     return {
       name: 'Firestore',
-      status: 'healthy',
-      latency: Math.round(Math.random() * 10 + 5), // Simulated
+      status: stats.successRate < 50 ? 'down' : stats.successRate < 90 ? 'degraded' : 'healthy',
+      latency: stats.lastLatencyMs ?? stats.avgLatencyMs ?? undefined,
       lastCheck: new Date(),
-      details: 'Connected',
+      details: stats.totalCalls > 0 ? `${stats.totalCalls} queries` : 'Connected',
     };
   } catch {
-    return { name: 'Firestore', status: 'down', lastCheck: new Date(), details: 'Connection failed' };
+    return {
+      name: 'Firestore',
+      status: 'down',
+      lastCheck: new Date(),
+      details: 'Connection failed',
+    };
   }
 }
 
@@ -315,9 +370,14 @@ async function checkRedisHealth(): Promise<ServiceHealth> {
   try {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl) {
-      return { name: 'Redis', status: 'degraded', lastCheck: new Date(), details: 'Not configured' };
+      return {
+        name: 'Redis',
+        status: 'degraded',
+        lastCheck: new Date(),
+        details: 'Not configured',
+      };
     }
-    
+
     return {
       name: 'Redis',
       status: 'healthy',
@@ -331,15 +391,15 @@ async function checkRedisHealth(): Promise<ServiceHealth> {
 }
 
 function getOverallStatus(services: ServiceHealth[]): 'healthy' | 'degraded' | 'down' {
-  if (services.some(s => s.status === 'down')) return 'down';
-  if (services.some(s => s.status === 'degraded')) return 'degraded';
+  if (services.some((s) => s.status === 'down')) return 'down';
+  if (services.some((s) => s.status === 'degraded')) return 'degraded';
   return 'healthy';
 }
 
 function formatTimestamp(date: Date): string {
   const now = Date.now();
   const diff = now - date.getTime();
-  
+
   if (diff < 60000) return `${Math.round(diff / 1000)} sec ago`;
   if (diff < 3600000) return `${Math.round(diff / 60000)} min ago`;
   if (diff < 86400000) return `${Math.round(diff / 3600000)} hours ago`;
@@ -347,4 +407,3 @@ function formatTimestamp(date: Date): string {
 }
 
 export default { handleAdminDiagnosticsRoutes, recordHandoffEvent };
-

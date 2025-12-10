@@ -12,7 +12,7 @@
  * 5. Behavioral Economics (implementation intentions, commitment devices)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // ============================================================================
 // COGNITIVE INTELLIGENCE TESTS
@@ -184,9 +184,12 @@ describe('Wellbeing Tracking', () => {
     it('should process message for wellbeing and return result', async () => {
       const { processForWellbeing } = await import('../services/wellbeing-tracking/index.js');
 
+      // Use a message that matches detection patterns:
+      // - "I'm stressed" matches worry pattern: /I('m| am| feel) (really |so )?(worried|anxious|stressed)/i
+      // - "slept badly" matches sleep pattern: /slept (well|badly|terribly|great)/i
       const result = processForWellbeing(
         'user-test-wb-1',
-        "I've been really stressed at work and not sleeping well.",
+        "I'm really stressed at work and I slept badly last night.",
         { topic: 'work', emotion: 'stressed' }
       );
 

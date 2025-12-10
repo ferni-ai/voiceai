@@ -10,30 +10,30 @@
 
 // Emotion Detection
 export {
+  detectEmotion,
   EmotionDetector,
   getEmotionDetector,
-  detectEmotion,
+  type EmotionResult,
   type PrimaryEmotion,
   type Valence,
-  type EmotionResult,
 } from './emotion-detector.js';
 
 // Intent Classification
 export {
-  IntentClassifier,
-  getIntentClassifier,
   classifyIntent,
+  getIntentClassifier,
+  IntentClassifier,
   type Intent,
   type IntentResult,
 } from './intent-classifier.js';
 
 // Topic Tracking
 export {
-  TopicTracker,
-  getTopicTracker,
   extractTopics,
-  type TopicCategory,
+  getTopicTracker,
+  TopicTracker,
   type Topic,
+  type TopicCategory,
   type TopicExtractionResult,
 } from './topic-tracker.js';
 
@@ -49,61 +49,61 @@ export {
 
 // Human-Like Behaviors
 export {
-  HumanBehaviors,
   detectCulturalMoment,
   detectUserEngagement,
+  getPreferenceGuidance,
+  getProactiveGoalReference,
   getRunningJokeCallback,
   getSpontaneousThought,
-  inferUserPreferences,
-  getPreferenceGuidance,
   getVoiceProsodyResponse,
+  HumanBehaviors,
+  inferUserPreferences,
   shouldInjectBackchannel,
   verifyTopicThreading,
-  getProactiveGoalReference,
 } from './human-behaviors.js';
 
 // Conversation Quality & Advanced Features
 export {
+  calculatePacingScore,
   ConversationQuality,
-  generateFarewellSummary,
-  extractSmallDetails,
-  getDetailCallback,
+  createSessionRecoveryState,
   extractFollowUps,
+  extractSmallDetails,
+  generateFarewellSummary,
+  getDetailCallback,
   getFollowUpSuggestion,
+  getGracefulErrorResponse,
   getPersonaPhysicalState,
   getPhysicalStateInterjection,
-  calculatePacingScore,
-  createSessionRecoveryState,
   shouldAttemptRecovery,
-  getGracefulErrorResponse,
-  type FarewellSummary,
-  type SmallDetail,
-  type FollowUpItem,
-  type PersonaPhysicalState,
   type ConversationPacingScore,
-  type SessionRecoveryState,
+  type FarewellSummary,
+  type FollowUpItem,
   type GracefulError,
+  type PersonaPhysicalState,
+  type SessionRecoveryState,
+  type SmallDetail,
 } from './conversation-quality.js';
 
 // User Learning Engine - Makes Jack smarter over time
 export {
-  UserLearningEngine,
   getLearningEngine,
   resetLearningEngine,
-  type LearningInsight,
+  UserLearningEngine,
   type ConversationLearningData,
   type DynamicUserContext,
+  type LearningInsight,
 } from './user-learning-engine.js';
 
 // Response Quality Tracker - Learn what responses work
 export {
-  ResponseQualityTracker,
   getResponseQualityTracker,
   removeResponseQualityTracker,
+  ResponseQualityTracker,
+  type LearnedResponsePreferences,
+  type ResponseSignal,
   type ResponseType,
   type UserReaction,
-  type ResponseSignal,
-  type LearnedResponsePreferences,
   type UserResponseQuality,
 } from './response-quality-tracker.js';
 
@@ -112,24 +112,24 @@ export {
   ConversationPatternAnalyzer,
   getConversationPatternAnalyzer,
   removeConversationPatternAnalyzer,
-  type TimeOfDay,
+  type ConversationPrediction,
+  type ConversationSession,
   type DayOfWeek,
   type DurationBucket,
-  type OpeningStyle,
-  type ConversationSession,
   type LearnedConversationPatterns,
-  type ConversationPrediction,
+  type OpeningStyle,
+  type TimeOfDay,
 } from './conversation-pattern-analyzer.js';
 
 // Proactive Insight Engine - Generate suggestions
 export {
-  ProactiveInsightEngine,
   getProactiveInsightEngine,
+  ProactiveInsightEngine,
   removeProactiveInsightEngine,
-  type InsightType,
-  type InsightPriority,
-  type ProactiveInsight,
   type InsightGenerationResult,
+  type InsightPriority,
+  type InsightType,
+  type ProactiveInsight,
 } from './proactive-insight-engine.js';
 
 // Financial Journey Tracker - Track long-term progress
@@ -137,10 +137,10 @@ export {
   FinancialJourneyTracker,
   getFinancialJourneyTracker,
   removeFinancialJourneyTracker,
+  type FinancialJourney,
   type FinancialSnapshot,
   type JourneyMilestone,
   type ProgressTrend,
-  type FinancialJourney,
 } from './financial-journey-tracker.js';
 
 // Cross-Session Threader - Continue topics across sessions
@@ -148,24 +148,24 @@ export {
   CrossSessionThreader,
   getCrossSessionThreader,
   removeCrossSessionThreader,
-  type ThreadOpenReason,
-  type ThreadPriority,
   type OpenThread,
   type PromisedFollowUp,
   type SessionEndContext,
+  type ThreadOpenReason,
+  type ThreadPriority,
 } from './cross-session-threader.js';
 
 // Voice Pace Adapter - Match user's rhythm
 export {
-  VoicePaceAdapter,
   getVoicePaceAdapter,
   removeVoicePaceAdapter,
-  type PaceCategory,
-  type EnergyLevel,
+  VoicePaceAdapter,
   type ConversationTempo,
-  type PaceObservation,
-  type LearnedPacePreferences,
   type CurrentPaceState,
+  type EnergyLevel,
+  type LearnedPacePreferences,
+  type PaceCategory,
+  type PaceObservation,
 } from './voice-pace-adapter.js';
 
 // ============================================================================
@@ -177,13 +177,13 @@ export {
   CommunityInsightsEngine,
   getCommunityInsights,
   resetCommunityInsights,
-  type ResponseStrategySignal,
-  type CommunityResponsePattern,
-  type JourneyTransition,
   type CommunityJourneyPattern,
+  type CommunityResponsePattern,
   type EffectiveQuestion,
-  type StoryResonance,
+  type JourneyTransition,
   type PhraseEffectiveness,
+  type ResponseStrategySignal,
+  type StoryResonance,
 } from './community-insights.js';
 
 // Agent Evolution - Self-improvement from learnings
@@ -191,11 +191,11 @@ export {
   AgentEvolutionEngine,
   getAgentEvolution,
   resetAgentEvolution,
-  type PersonaAdjustment,
-  type PersonaExperiment,
   type EmergentPattern,
-  type StoryRanking,
+  type PersonaAdjustment,
   type PersonaEvolutionState,
+  type PersonaExperiment,
+  type StoryRanking,
 } from './agent-evolution.js';
 
 // ============================================================================
@@ -204,16 +204,16 @@ export {
 
 export {
   buildConversationContext,
-  formatContextForPrompt,
-  registerContextBuilder,
-  getRegisteredBuilders,
-  createInjection,
   createCriticalInjection,
-  createStandardInjection,
   createHintInjection,
+  createInjection,
+  createStandardInjection,
+  formatContextForPrompt,
+  getRegisteredBuilders,
+  registerContextBuilder,
+  type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-  type ContextBuilder,
   type ContextUserData,
 } from './context-builders/index.js';
 
@@ -223,29 +223,29 @@ export {
 
 // Humor Calibration - Learn what jokes land
 export {
-  HumorCalibrationEngine,
   getHumorCalibration,
+  HumorCalibrationEngine,
   removeHumorCalibration,
   resetAllHumorCalibration,
-  type HumorType,
-  type HumorReaction,
   type HumorAttempt,
-  type HumorPreferences,
   type HumorGuidance,
+  type HumorPreferences,
+  type HumorReaction,
+  type HumorType,
 } from './humor-calibration.js';
 
 // Story Preference - Track what resonates
 export {
-  StoryPreferenceEngine,
   getStoryPreference,
   removeStoryPreference,
-  type StoryType,
-  type StoryLength,
+  StoryPreferenceEngine,
   type EmotionalDepth,
   type StoryAttempt,
-  type UserEngagement as StoryUserEngagement,
-  type StoryPreferences,
   type StoryGuidance,
+  type StoryLength,
+  type StoryPreferences,
+  type StoryType,
+  type UserEngagement as StoryUserEngagement,
 } from './story-preference.js';
 
 // Communication Style Mirroring - Match their language
@@ -253,11 +253,11 @@ export {
   CommunicationMirroringEngine,
   getCommunicationMirroring,
   removeCommunicationMirroring,
+  type CommunicationStyle,
   type FormalityLevel,
   type EnergyLevel as MirroringEnergyLevel,
-  type VocabularyLevel,
-  type CommunicationStyle,
   type StyleGuidance,
+  type VocabularyLevel,
 } from './communication-mirroring.js';
 
 // Emotional Memory - Cross-session emotional continuity
@@ -265,10 +265,10 @@ export {
   EmotionalMemoryEngine,
   getEmotionalMemory,
   removeEmotionalMemory,
-  type EmotionalMoment,
-  type EmotionalPattern,
   type EmotionalCheckIn,
   type EmotionalContext,
+  type EmotionalMoment,
+  type EmotionalPattern,
 } from './emotional-memory.js';
 
 // ============================================================================
@@ -277,13 +277,13 @@ export {
 
 export {
   analyzeUserMessage,
-  detectBehavioralSignals,
-  combineEmotionAnalysis,
   buildResponseContext,
+  combineEmotionAnalysis,
+  detectBehavioralSignals,
   type AnalysisInput,
   type AnalysisResult,
-  type CombinedEmotionAnalysis,
   type BehavioralSignals,
+  type CombinedEmotionAnalysis,
   type ResponseContext,
 } from './analysis-pipeline.js';
 
@@ -292,14 +292,14 @@ export {
 // ============================================================================
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getEmotionDetector, type EmotionResult } from './emotion-detector.js';
-import { getIntentClassifier, type IntentResult } from './intent-classifier.js';
-import { getTopicTracker, type TopicExtractionResult } from './topic-tracker.js';
 import {
   getStateMachine,
   resetStateMachine,
   type ConversationState,
 } from './conversation-state.js';
+import { getEmotionDetector, type EmotionResult } from './emotion-detector.js';
+import { getIntentClassifier, type IntentResult } from './intent-classifier.js';
+import { getTopicTracker, type TopicExtractionResult } from './topic-tracker.js';
 
 /**
  * Combined analysis result
@@ -482,6 +482,49 @@ export function resetIntelligence(isReturningUser = false): void {
   resetStateMachine(isReturningUser);
   getLogger().info('Intelligence components reset');
 }
+
+// ============================================================================
+// COGNITIVE LOAD DETECTION
+// ============================================================================
+
+export {
+  CognitiveLoadDetector,
+  getCognitiveLoadDetector,
+  resetAllCognitiveLoadDetectors,
+  resetCognitiveLoadDetector,
+  type CognitiveLoadIndicators,
+  type CognitiveLoadLevel,
+  type CognitiveLoadObservation,
+  type CognitiveLoadState,
+} from './cognitive-load.js';
+
+// ============================================================================
+// HEDGING LANGUAGE DETECTION
+// ============================================================================
+
+export {
+  getHedgingDetector,
+  HedgingDetector,
+  resetAllHedgingDetectors,
+  resetHedgingDetector,
+  type HedgingAnalysisResult,
+  type HedgingCategory,
+  type HedgingInstance,
+} from './hedging-detection.js';
+
+// ============================================================================
+// SELF-SOOTHING DETECTION
+// ============================================================================
+
+export {
+  getSelfSoothingDetector,
+  resetAllSelfSoothingDetectors,
+  resetSelfSoothingDetector,
+  SelfSoothingDetector,
+  type SelfSoothingCategory,
+  type SelfSoothingInstance,
+  type SelfSoothingResult,
+} from './self-soothing-detection.js';
 
 export default {
   analyzeMessage,

@@ -14,19 +14,19 @@
  * @module OutreachRoutes
  */
 
+import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { UrlWithParsedQuery } from 'url';
-import { sendJsonResponse, parseRequestBody } from './utils.js';
 import {
-  processUserOutreach,
+  canSendOutreach,
   generateOutreachOpportunities,
-  queueThinkingOfYou,
-  queueCelebration,
-  queueGrowthReflection,
   getDueItems,
   getUserPreferences,
+  processUserOutreach,
+  queueCelebration,
+  queueGrowthReflection,
+  queueThinkingOfYou,
   setUserPreferences,
-  canSendOutreach,
   type OutreachPreferences,
 } from '../services/trust-systems/index.js';
 import {
@@ -34,8 +34,84 @@ import {
   type UserChannelConfig,
 } from '../services/trust-systems/notification-delivery.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { parseRequestBody, sendJsonResponse } from './utils.js';
 
 const log = createLogger({ module: 'OutreachRoutes' });
+
+// ============================================================================
+// FIRESTORE USER QUERIES
+// ============================================================================
+
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) return null;
+
+  firestoreInitAttempted = true;
+
+  try {
+    if (admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    return firestoreInstance;
+  } catch (error) {
+    log.warn({ error }, 'Firebase not available for outreach routes');
+    return null;
+  }
+}
+
+/**
+ * Get active users who have opted in to outreach
+ * Active = had a conversation in the last 30 days
+ */
+async function getActiveUsersForOutreach(limit = 100): Promise<string[]> {
+  const db = getFirestore();
+  if (!db) {
+    log.warn('Firestore unavailable - cannot fetch active users for outreach');
+    return [];
+  }
+
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Query users with recent activity who haven't disabled outreach
+    const snapshot = await db
+      .collection('profiles')
+      .where('lastContact', '>=', thirtyDaysAgo)
+      .orderBy('lastContact', 'desc')
+      .limit(limit)
+      .get();
+
+    const userIds: string[] = [];
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      // Check if outreach is not explicitly disabled
+      if (data.preferences?.outreachEnabled !== false) {
+        userIds.push(doc.id);
+      }
+    }
+
+    log.info({ count: userIds.length, limit }, 'Fetched active users for outreach');
+    return userIds;
+  } catch (error) {
+    log.error({ error }, 'Failed to fetch active users for outreach');
+    return [];
+  }
+}
 
 // ============================================================================
 // ROUTE HANDLER
@@ -233,8 +309,25 @@ export async function handleOutreachRoutes(
         limit?: number;
       };
 
-      // In production, you'd get active users from Firestore
-      const usersToProcess = userIds || [];
+      // Get users to process - either from request body or fetch active users from Firestore
+      const usersToProcess =
+        userIds && userIds.length > 0
+          ? userIds.slice(0, limit)
+          : await getActiveUsersForOutreach(limit);
+
+      if (usersToProcess.length === 0) {
+        log.info('No users to process for outreach');
+        sendJsonResponse(res, 200, {
+          success: true,
+          processed: 0,
+          sent: 0,
+          skipped: 0,
+          failed: 0,
+          message: 'No active users to process',
+        });
+        return true;
+      }
+
       const results = {
         processed: 0,
         sent: 0,
@@ -242,7 +335,7 @@ export async function handleOutreachRoutes(
         failed: 0,
       };
 
-      for (const userId of usersToProcess.slice(0, limit)) {
+      for (const userId of usersToProcess) {
         const result = await processUserOutreach(userId);
         results.processed++;
         results.sent += result.sent;

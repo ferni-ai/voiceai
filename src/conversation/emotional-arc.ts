@@ -11,9 +11,10 @@
  * - Empathy calibration (match intensity to user's emotional state)
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
+import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -79,6 +80,39 @@ export interface EmotionalResponse {
   suggestedBreaks: boolean;
 }
 
+/**
+ * Narrative arc phase - the dramatic structure of a conversation
+ * Based on classic storytelling: Setup → Rising → Climax → Falling → Resolution
+ */
+export type NarrativePhase = 'opening' | 'building' | 'peak' | 'release' | 'closing';
+
+/**
+ * Cross-session emotional arc summary
+ * Tracks patterns that persist across conversations
+ */
+export interface CrossSessionArcSummary {
+  /** How many sessions this tracks */
+  sessionCount: number;
+  /** Last session date */
+  lastSessionDate: number;
+  /** Average emotional baseline for this user */
+  emotionalBaseline: {
+    valence: number;
+    arousal: number;
+  };
+  /** Topics that consistently trigger emotions */
+  emotionalTriggers: Array<{
+    topic: string;
+    avgValence: number;
+    avgArousal: number;
+    occurrences: number;
+  }>;
+  /** Growth patterns - has user shown improvement over time? */
+  growthTrajectory: 'improving' | 'stable' | 'struggling';
+  /** Dominant emotions across sessions */
+  dominantEmotions: string[];
+}
+
 // ============================================================================
 // EMOTIONAL ARC TRACKER
 // ============================================================================
@@ -93,6 +127,15 @@ export class EmotionalArcTracker {
   // Smoothing parameters
   private readonly smoothingFactor = 0.3; // Higher = more responsive to changes
   private readonly trajectoryWindow = 5; // Turns to consider for trajectory
+
+  // 🎭 NARRATIVE ARC TRACKING
+  // Track the dramatic structure of the conversation
+  private currentPhase: NarrativePhase = 'opening';
+  private phaseStartTurn = 0;
+  private peakTurn = -1; // Turn number when emotional peak occurred
+  private peakIntensity = 0;
+  private hasReachedPeak = false;
+  private signalEmittedThisPhase = false;
 
   constructor() {
     getLogger().debug('EmotionalArcTracker initialized');
@@ -123,7 +166,136 @@ export class EmotionalArcTracker {
       this.distressCount++;
     }
 
-    return this.computeArc();
+    // 🎭 NARRATIVE PHASE TRACKING
+    this.updateNarrativePhase(snapshot);
+
+    const arc = this.computeArc();
+
+    // 🌉 Emit emotional arc signals to frontend every few turns
+    if (this.history.length > 0 && this.history.length % 3 === 0) {
+      void humanizationSignalEmitter.emitArc({
+        phase: this.currentPhase,
+        intensity: snapshot.combinedArousal,
+        dominantEmotion: snapshot.textEmotion,
+        turnsSincePeak: this.hasReachedPeak ? this.history.length - this.peakTurn : undefined,
+      });
+    }
+
+    return arc;
+  }
+
+  /**
+   * 🎭 Update the narrative phase based on emotional trajectory
+   */
+  private updateNarrativePhase(snapshot: EmotionalSnapshot): void {
+    const turnCount = this.history.length;
+    const emotionalIntensity = Math.abs(snapshot.combinedValence) + snapshot.combinedArousal;
+
+    // Track peak
+    if (emotionalIntensity > this.peakIntensity && turnCount > 3) {
+      this.peakIntensity = emotionalIntensity;
+      this.peakTurn = turnCount;
+      this.hasReachedPeak = true;
+    }
+
+    const previousPhase = this.currentPhase;
+
+    // Determine phase based on turn count and emotional pattern
+    if (turnCount <= 3) {
+      this.currentPhase = 'opening';
+    } else if (!this.hasReachedPeak) {
+      // Still building if we haven't hit peak
+      if (emotionalIntensity > 0.8) {
+        // High intensity = we're at peak
+        this.currentPhase = 'peak';
+        this.hasReachedPeak = true;
+      } else if (turnCount <= 8 || this.isEmotionRising()) {
+        this.currentPhase = 'building';
+      } else {
+        this.currentPhase = 'peak';
+        this.hasReachedPeak = true;
+      }
+    } else if (this.hasReachedPeak) {
+      const turnsSincePeak = turnCount - this.peakTurn;
+
+      if (turnsSincePeak <= 2) {
+        this.currentPhase = 'peak';
+      } else if (turnsSincePeak <= 5 || this.isEmotionFalling()) {
+        this.currentPhase = 'release';
+      } else {
+        this.currentPhase = 'closing';
+      }
+    }
+
+    // Emit signal on phase transition
+    if (previousPhase !== this.currentPhase) {
+      this.signalEmittedThisPhase = false;
+
+      getLogger().debug(
+        { from: previousPhase, to: this.currentPhase, turn: turnCount },
+        'Narrative phase transition'
+      );
+
+      // Emit specific signals for important transitions
+      if (this.currentPhase === 'peak' && !this.signalEmittedThisPhase) {
+        void humanizationSignalEmitter.emotionalArcPeak(emotionalIntensity);
+        this.signalEmittedThisPhase = true;
+      } else if (this.currentPhase === 'release' && !this.signalEmittedThisPhase) {
+        void humanizationSignalEmitter.emotionalArcRelease();
+        this.signalEmittedThisPhase = true;
+      }
+    }
+  }
+
+  /**
+   * Check if emotion is rising (building phase)
+   */
+  private isEmotionRising(): boolean {
+    if (this.history.length < 3) return true;
+
+    const recent = this.history.slice(-3);
+    let rising = 0;
+
+    for (let i = 1; i < recent.length; i++) {
+      const prevIntensity = Math.abs(recent[i - 1].combinedValence) + recent[i - 1].combinedArousal;
+      const currIntensity = Math.abs(recent[i].combinedValence) + recent[i].combinedArousal;
+      if (currIntensity > prevIntensity) rising++;
+    }
+
+    return rising >= 1;
+  }
+
+  /**
+   * Check if emotion is falling (release phase)
+   */
+  private isEmotionFalling(): boolean {
+    if (this.history.length < 3) return false;
+
+    const recent = this.history.slice(-3);
+    let falling = 0;
+
+    for (let i = 1; i < recent.length; i++) {
+      const prevIntensity = Math.abs(recent[i - 1].combinedValence) + recent[i - 1].combinedArousal;
+      const currIntensity = Math.abs(recent[i].combinedValence) + recent[i].combinedArousal;
+      if (currIntensity < prevIntensity) falling++;
+    }
+
+    return falling >= 1;
+  }
+
+  /**
+   * Get current narrative phase
+   */
+  getNarrativePhase(): NarrativePhase {
+    return this.currentPhase;
+  }
+
+  /**
+   * Get turns since emotional peak
+   */
+  getTurnsSincePeak(): number {
+    if (!this.hasReachedPeak) return -1;
+    return this.history.length - this.peakTurn;
   }
 
   /**
@@ -248,6 +420,15 @@ export class EmotionalArcTracker {
     this.lastSignificantEvent = 0;
     this.peakArousal = 0;
     this.distressCount = 0;
+
+    // Reset narrative phase tracking
+    this.currentPhase = 'opening';
+    this.phaseStartTurn = 0;
+    this.peakTurn = -1;
+    this.peakIntensity = 0;
+    this.hasReachedPeak = false;
+    this.signalEmittedThisPhase = false;
+
     getLogger().debug('EmotionalArcTracker reset');
   }
 

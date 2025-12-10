@@ -1131,6 +1131,127 @@ export function farewell(): void {
   });
 }
 
+/**
+ * 🌙 Settling animation - peaceful close after goodbye ceremony.
+ * 
+ * The avatar "settles" into a peaceful rest, like closing eyes to sleep.
+ * This creates the feeling of a meaningful ending, not an abrupt stop.
+ * 
+ * Called after the goodbye sound completes to create the full ceremony.
+ * 
+ * @returns Promise that resolves when the settling animation completes
+ */
+export function settling(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!avatarContainer || !avatarElement) {
+      resolve();
+      return;
+    }
+    
+    // Check for reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      avatarElement.animate([
+        { filter: 'brightness(1)', opacity: '1', offset: 0 },
+        { filter: 'brightness(0.95)', opacity: '0.9', offset: 1 },
+      ], {
+        duration: DURATION.DRAMATIC,
+        easing: EASING.GENTLE,
+        fill: 'forwards',
+      });
+      setTimeout(resolve, DURATION.DRAMATIC);
+      return;
+    }
+    
+    // Stop breathing animation gracefully
+    if (breathingAnimation) {
+      // Slow down breathing to a stop
+      breathingAnimation.playbackRate = 0.3;
+      setTimeout(() => {
+        if (breathingAnimation) {
+          breathingAnimation.pause();
+        }
+      }, DURATION.SLOW);
+    }
+    
+    // Stop the glow animation too
+    if (glowAnimation) {
+      glowAnimation.playbackRate = 0.3;
+      setTimeout(() => {
+        if (glowAnimation) {
+          glowAnimation.pause();
+        }
+      }, DURATION.SLOW);
+    }
+    
+    // Settling keyframes - like peacefully closing eyes
+    const settlingKeyframes: Keyframe[] = [
+      // Current position
+      { transform: 'translateY(0) scale(1)', opacity: '1', offset: 0 },
+      // Gentle exhale / settling down
+      { transform: 'translateY(2px) scale(0.98)', opacity: '0.95', offset: 0.4 },
+      // Final rest position - slightly smaller, peaceful
+      { transform: 'translateY(3px) scale(0.96)', opacity: '0.85', offset: 1 },
+    ];
+    
+    const settlingAnimation = avatarContainer.animate(settlingKeyframes, {
+      duration: DURATION.GLACIAL, // 1500ms - slow, peaceful
+      easing: EASING.GENTLE,
+      fill: 'forwards',
+    });
+    
+    // Warm glow that fades gently - like warmth leaving but kindly
+    avatarElement.animate([
+      { filter: 'brightness(1.05) saturate(1.05)', offset: 0 },
+      { filter: 'brightness(1.02) saturate(1.02)', offset: 0.5 },
+      { filter: 'brightness(0.95) saturate(0.9)', offset: 1 },
+    ], {
+      duration: DURATION.GLACIAL,
+      easing: EASING.GENTLE,
+      fill: 'forwards',
+    });
+    
+    settlingAnimation.onfinish = () => {
+      resolve();
+    };
+  });
+}
+
+/**
+ * Reset from settling state - used when reconnecting after goodbye.
+ */
+export function resetFromSettling(): void {
+  if (!avatarContainer || !avatarElement) return;
+  
+  // Quick reset to normal state
+  avatarContainer.animate([
+    { transform: 'translateY(3px) scale(0.96)', opacity: '0.85', offset: 0 },
+    { transform: 'translateY(0) scale(1)', opacity: '1', offset: 1 },
+  ], {
+    duration: DURATION.NORMAL,
+    easing: EASING.SPRING,
+    fill: 'forwards',
+  });
+  
+  avatarElement.animate([
+    { filter: 'brightness(0.95) saturate(0.9)', offset: 0 },
+    { filter: 'brightness(1) saturate(1)', offset: 1 },
+  ], {
+    duration: DURATION.NORMAL,
+    easing: EASING.SPRING,
+    fill: 'forwards',
+  });
+  
+  // Restart breathing animation
+  if (breathingAnimation) {
+    breathingAnimation.playbackRate = 1;
+    breathingAnimation.play();
+  }
+  if (glowAnimation) {
+    glowAnimation.playbackRate = 1;
+    glowAnimation.play();
+  }
+}
+
 // ============================================================================
 // CLEANUP
 // ============================================================================
@@ -1274,8 +1395,10 @@ export const presenceUI = {
   curiousTilt,
   joy,
   attentiveLean,
-  // 🌅 Farewell
+  // 🌅 Farewell & Goodbye Ceremony
   farewell,
+  settling,          // Peaceful close animation
+  resetFromSettling, // Reset after reconnecting
   // 🆕 Human-like behaviors
   blink,
   // 🚀 Ferni EQ: Breath sync

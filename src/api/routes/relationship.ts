@@ -2,11 +2,12 @@
  * Relationship Progress Routes
  *
  * GET /api/relationship/progress - Get relationship progress
+ * POST /api/relationship/progress - Sync relationship progress from frontend
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
+import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
 
 const log = createLogger({ module: 'RelationshipAPI' });
@@ -97,6 +98,81 @@ export async function handleGetRelationshipProgress(
 }
 
 /**
+ * POST /api/relationship/progress - Sync relationship progress from frontend
+ *
+ * Accepts relationship data from frontend for cross-device sync.
+ * Primary data store is frontend localStorage; this is supplementary persistence.
+ */
+interface RelationshipProgressPayload {
+  userId?: string;
+  stage?: string;
+  metrics?: {
+    totalConversations?: number;
+    daysSinceFirstMeeting?: number;
+    currentStreak?: number;
+    longestStreak?: number;
+    milestonesReached?: number;
+    insightsShared?: number;
+    lastConversation?: number | null;
+  };
+  firstMeetingDate?: string;
+  memoriesCount?: number;
+}
+
+export async function handlePostRelationshipProgress(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const body = await parseBody<RelationshipProgressPayload>(req);
+
+    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const store = await getEngagementStore();
+
+    // Get existing profile and merge with incoming data
+    const existingProfile = await store.getProfile(userId);
+    const existingData = existingProfile as unknown as AnyRecord;
+
+    // Create merged profile with relationship data as additional fields
+    // Firestore's saveProfile uses merge: true, so extra fields are preserved
+    const mergedProfile = {
+      ...existingProfile,
+      // Preserve relationship-specific fields (not in base EngagementProfile type)
+      relationshipStage: body.stage || existingData.relationshipStage,
+      firstMeetingDate: body.firstMeetingDate || existingData.firstMeetingDate,
+      relationshipMetrics: body.metrics || existingData.relationshipMetrics,
+      memoriesCount: body.memoriesCount ?? existingData.memoriesCount,
+      lastSyncedAt: new Date().toISOString(),
+    };
+
+    // saveProfile uses merge: true, so extra fields are preserved
+    await store.saveProfile(mergedProfile);
+
+    log.debug({ userId, stage: body.stage }, 'Relationship progress synced');
+
+    sendJSON(res, {
+      success: true,
+      synced: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to sync relationship progress');
+    sendJSON(
+      res,
+      {
+        error: 'Failed to sync progress',
+        success: false,
+      },
+      500
+    );
+  }
+}
+
+/**
  * Route handler for relationship endpoints
  */
 export async function handleRelationshipRoutes(
@@ -105,9 +181,15 @@ export async function handleRelationshipRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  if (pathname === '/api/relationship/progress' && req.method === 'GET') {
-    await handleGetRelationshipProgress(req, res, parsedUrl);
-    return true;
+  if (pathname === '/api/relationship/progress') {
+    if (req.method === 'GET') {
+      await handleGetRelationshipProgress(req, res, parsedUrl);
+      return true;
+    }
+    if (req.method === 'POST') {
+      await handlePostRelationshipProgress(req, res, parsedUrl);
+      return true;
+    }
   }
   return false;
 }

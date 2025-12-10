@@ -154,7 +154,7 @@ const coachParentingChallengeDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'parenting', 'coaching'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help parent navigate specific parenting challenges with age-appropriate guidance.',
@@ -234,7 +234,7 @@ const navigateDisciplineDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'parenting', 'discipline'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help parent navigate discipline situations with positive approaches.',
       parameters: z.object({
@@ -288,7 +288,7 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'activities', 'bonding'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Suggest age-appropriate activities for family bonding and child development.',
       parameters: z.object({
@@ -415,7 +415,7 @@ const trackChildMilestoneDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'milestones', 'celebration'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help parent record and celebrate child milestones.',
       parameters: z.object({
@@ -467,7 +467,7 @@ const celebrateFamilyMomentDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'celebration', 'moments'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help family celebrate and remember meaningful moments.',
       parameters: z.object({
@@ -507,7 +507,7 @@ const supportFamilyTransitionDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'transitions', 'support'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help family navigate major transitions like divorce, new siblings, or moving.',
       parameters: z.object({
@@ -603,7 +603,7 @@ const navigateFamilyConflictDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'conflict', 'resolution'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help navigate conflicts within the family.',
       parameters: z.object({
@@ -680,7 +680,7 @@ const planFamilyMeetingDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'communication', 'meetings'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help plan and facilitate a family meeting.',
       parameters: z.object({
@@ -755,7 +755,7 @@ const coordinateElderCareDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'elder-care', 'coordination'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help coordinate care for aging parents or family members.',
       parameters: z.object({
@@ -847,7 +847,7 @@ const createTraditionDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'traditions', 'connection'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help create meaningful family traditions.',
       parameters: z.object({
@@ -928,7 +928,7 @@ const discussValuesDef: ToolDefinition = {
   domain: 'family',
   tags: ['family', 'values', 'teaching'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help parents discuss and teach values to children.',
       parameters: z.object({

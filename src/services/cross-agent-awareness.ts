@@ -298,7 +298,7 @@ export async function addTeamNote(
 export async function acknowledgeTeamNote(
   userId: string,
   noteTimestamp: Date,
-  agentId: string
+  _agentId: string // Reserved for audit logging
 ): Promise<void> {
   // Update cache
   const notes = teamNotesCache.get(userId) || [];
@@ -351,7 +351,7 @@ const AGENT_NAMES: Record<string, string> = {
  */
 export function formatCrossAgentContextForPrompt(
   context: CrossAgentContext,
-  currentAgentId: string
+  _currentAgentId: string // Reserved for agent-specific filtering
 ): string {
   if (
     context.recentTeamInteractions.length === 0 &&
@@ -427,7 +427,7 @@ export function formatCrossAgentContextForPrompt(
  */
 export function generateTeamReferencePhrases(
   context: CrossAgentContext,
-  currentAgentId: string
+  _currentAgentId: string // Reserved for agent-specific phrase generation
 ): string[] {
   const phrases: string[] = [];
 

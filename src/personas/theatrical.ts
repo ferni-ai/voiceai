@@ -7,7 +7,6 @@
  * This is about creating MOMENTS - the kind of thing users remember.
  */
 
-import type { PersonaConfig } from './types.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -568,7 +567,7 @@ export function getTheatricalEntrance(personaId: string): string {
   const entrances = THEATRICAL_ENTRANCES[personaId as keyof typeof THEATRICAL_ENTRANCES];
   if (!entrances || entrances.length === 0) {
     log.debug({ personaId }, 'No theatrical entrances found (bundle or hardcoded)');
-    return `Hello, I'm ${personaId}. How can I help?`;
+    return `Hello, I'm ${personaId}. What's on your mind?`;
   }
   warnHardcodedFallback(personaId, 'entrances');
   return entrances[Math.floor(Math.random() * entrances.length)];

@@ -12,17 +12,17 @@
  * music, speech, and mood to create those Pixar-level magical moments.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { getMusicPlayer } from '../audio/index.js';
+import { getLogger } from '../utils/safe-logger.js';
 import {
+  getContextualMusicSuggestion,
+  getCrossSessionMusicCallback,
   getDJStyle,
-  getSpontaneousMusicOffer,
   getMusicConversationStarter,
   getMusicDiscoveryOffer,
-  getCrossSessionMusicCallback,
-  getContextualMusicSuggestion,
-  getReadTheRoomAction,
   getQueueTeaser,
+  getReadTheRoomAction,
+  getSpontaneousMusicOffer,
   type DJPersonaStyle,
 } from './dj-service.js';
 
@@ -96,7 +96,7 @@ const SESSION_INTROS = {
       '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni, <break time="100ms"/>your AI life coach.',
       '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m Ferni.',
     ],
-    followUp: ['What brings you here today?', "What's on your mind?", 'How can I help you today?'],
+    followUp: ['What brings you here today?', "What's on your mind?", "What's going on?"],
   },
 
   // Returning user - warm callback
@@ -258,14 +258,18 @@ const SESSION_OUTROS = {
 // ============================================================================
 
 const THINKING_MUSIC_CONFIG = {
-  /** How long to wait before starting thinking music */
-  delayBeforeStartMs: 2000,
+  /**
+   * How long to wait before starting thinking music
+   * TUNED: Reduced from 2000ms to 800ms to minimize dead air during LLM processing
+   * The goal is to fill silence quickly without interrupting fast responses
+   */
+  delayBeforeStartMs: 800,
   /** Volume for thinking music (very soft) */
   volume: 0.08,
   /** Maximum thinking music duration before fading */
-  maxDurationMs: 30000,
+  maxDurationMs: 15000, // Reduced from 30s - if we're thinking this long, something's wrong
   /** Fade out duration */
-  fadeOutDurationMs: 1500,
+  fadeOutDurationMs: 1000, // Slightly faster fade for snappier transitions
 };
 
 // ============================================================================

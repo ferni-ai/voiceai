@@ -10,11 +10,14 @@
  * People don't change because you tell them to. They change when they
  * hear themselves say why they want to change. MI helps them get there.
  *
+ * PERSISTENCE: Change talk history is persisted to Firestore.
+ *
  * @module TherapeuticFrameworks/MotivationalInterviewing
  */
 
-import type { ChangeTalk, ChangeTalkInstance, OARSSkills } from './types.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import type { ChangeTalk, ChangeTalkInstance } from './types.js';
 
 const log = createLogger({ module: 'MotivationalInterviewing' });
 
@@ -349,10 +352,96 @@ export interface OARSResponse {
 }
 
 // ============================================================================
-// CHANGE TALK TRACKING
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedChangeTalkInstance {
+  type: ChangeTalk;
+  statement: string;
+  strength: number;
+  topic?: string;
+  timestamp: string;
+}
+
+interface UserChangeTalkData {
+  history: PersistedChangeTalkInstance[];
+}
+
+function serializeInstance(instance: ChangeTalkInstance): PersistedChangeTalkInstance {
+  return {
+    ...instance,
+    timestamp: instance.timestamp.toISOString(),
+  };
+}
+
+function deserializeInstance(data: PersistedChangeTalkInstance): ChangeTalkInstance {
+  return {
+    ...data,
+    timestamp: new Date(data.timestamp),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const changeTalkHistory = new Map<string, ChangeTalkInstance[]>();
+const loadedUsers = new Set<string>();
+
+let persistence: PersistenceStore<UserChangeTalkData> | null = null;
+
+function getPersistence(): PersistenceStore<UserChangeTalkData> {
+  if (!persistence) {
+    persistence = createPersistenceStore<UserChangeTalkData>({
+      collection: 'motivational_interviewing',
+      documentId: 'change_talk',
+      syncIntervalMs: 5000,
+    });
+  }
+  return persistence;
+}
+
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data?.history) {
+      changeTalkHistory.set(userId, data.history.map(deserializeInstance));
+    }
+    loadedUsers.add(userId);
+    log.debug({ userId }, 'Loaded change talk history from persistence');
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to load change talk history');
+    loadedUsers.add(userId);
+  }
+}
+
+function persistHistory(userId: string): void {
+  const history = changeTalkHistory.get(userId) || [];
+  getPersistence().set(userId, {
+    history: history.map(serializeInstance),
+  });
+}
+
+/**
+ * Flush persistence
+ */
+export async function flushMotivationalInterviewingPersistence(): Promise<void> {
+  await getPersistence().flush();
+  log.info('Motivational interviewing persistence flushed');
+}
+
+/**
+ * Shutdown motivational interviewing service
+ */
+export async function shutdownMotivationalInterviewing(): Promise<void> {
+  await flushMotivationalInterviewingPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  changeTalkHistory.clear();
+  log.info('Motivational interviewing service shutdown complete');
+}
 
 /**
  * Record change talk for a user.
@@ -367,6 +456,7 @@ export function recordChangeTalk(userId: string, instances: ChangeTalkInstance[]
   }
 
   changeTalkHistory.set(userId, history);
+  persistHistory(userId);
 
   if (instances.length > 0) {
     log.debug({ userId, count: instances.length }, '💬 Change talk recorded');

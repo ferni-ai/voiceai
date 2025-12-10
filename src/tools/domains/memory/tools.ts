@@ -66,7 +66,7 @@ export const rememberAboutUserDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'storage', 'facts'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Store an important fact about the user for future recall. DO NOT read tool output verbatim - respond naturally.',
@@ -136,7 +136,7 @@ export const recallFromMemoryDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'recall', 'history'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Try to recall something from previous conversations with this user. Use when you want to show you remember them or connect to past discussions.',
@@ -195,7 +195,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'semantic-search', 'history'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Search your memory for relevant past conversations with this user based on a topic or theme.',
@@ -241,7 +241,7 @@ export const rememberImportantFactDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'storage', 'important', 'milestone'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Save a critically important fact that should be remembered forever. Use for life-changing information like major life events, key decisions, or breakthrough moments.',
@@ -348,7 +348,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'relationship', 'summary'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         "Get a summary of your relationship with this user - how long you've known them, key moments, what you've discussed.",
@@ -401,6 +401,128 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         return name
           ? `I just met ${name} today. We're still getting to know each other.`
           : `This is a new conversation. I'm still getting to know this person.`;
+      },
+    });
+  },
+};
+
+// ============================================================================
+// UPDATE MEMORY
+// ============================================================================
+
+export const updateMemoryDef: ToolDefinition = {
+  id: 'updateMemory',
+  name: 'Update Memory',
+  description: 'Update an existing memory with new information when the user corrects or adds to what you remember',
+  domain: 'memory',
+  tags: ['memory', 'update', 'modification'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description:
+        'Update an existing memory when the user provides corrections or new information. Use when they say things like "Actually, my goal is now $15,000" or "Update that - we moved to California".',
+      parameters: z.object({
+        originalFact: z.string().describe('What you currently remember that needs updating'),
+        updatedFact: z.string().describe('The corrected or updated information'),
+        reason: z.string().optional().describe('Why the update was needed (correction, change, addition)'),
+      }),
+      execute: async ({ originalFact, updatedFact, reason }, { ctx: toolCtx }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, originalFact, updatedFact, reason },
+          'Updating memory'
+        );
+
+        const userData = toolCtx.userData as UserData;
+        const { services } = userData;
+
+        // Update in session memory
+        if (userData.keyMoments) {
+          const index = userData.keyMoments.findIndex(
+            (m) => m.toLowerCase().includes(originalFact.toLowerCase())
+          );
+          if (index !== -1) {
+            userData.keyMoments[index] = `[updated] ${updatedFact}`;
+          } else {
+            userData.keyMoments.push(`[updated] ${updatedFact}`);
+          }
+        }
+
+        // Capture update as insight for persistence
+        if (services?.captureInsight) {
+          services.captureInsight(
+            'correction',
+            'memory_update',
+            `Updated: "${originalFact}" → "${updatedFact}"${reason ? ` (${reason})` : ''}`,
+            0.9
+          );
+        }
+
+        const responses = [
+          `Got it, I've updated my memory. ${updatedFact}`,
+          `Thanks for the update! I'll remember that now.`,
+          `Updated. I appreciate you keeping me in the loop.`,
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+      },
+    });
+  },
+};
+
+// ============================================================================
+// FORGET MEMORY
+// ============================================================================
+
+export const forgetMemoryDef: ToolDefinition = {
+  id: 'forgetMemory',
+  name: 'Forget Memory',
+  description: 'Remove something from memory when the user asks you to forget it',
+  domain: 'memory',
+  tags: ['memory', 'delete', 'forget', 'privacy'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description:
+        'Remove something from memory when the user explicitly asks you to forget it. Use when they say things like "Forget that", "Don\'t remember that", or "Delete that information".',
+      parameters: z.object({
+        whatToForget: z.string().describe('What the user wants you to forget'),
+        confirmDeletion: z.boolean().describe('Whether the user has confirmed they want this forgotten'),
+      }),
+      execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, whatToForget, confirmDeletion },
+          'Forgetting memory'
+        );
+
+        if (!confirmDeletion) {
+          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
+        }
+
+        const userData = toolCtx.userData as UserData;
+        const { services } = userData;
+
+        // Remove from session memory
+        if (userData.keyMoments) {
+          userData.keyMoments = userData.keyMoments.filter(
+            (m) => !m.toLowerCase().includes(whatToForget.toLowerCase())
+          );
+        }
+
+        // Log the deletion for audit purposes (but don't persist the deleted content)
+        if (services?.captureInsight) {
+          services.captureInsight(
+            'user_action',
+            'memory_deletion',
+            `User requested deletion of memory related to: [redacted]`,
+            1.0
+          );
+        }
+
+        const responses = [
+          `Done. I've forgotten about that. Your privacy matters.`,
+          `Removed. That information is no longer stored.`,
+          `I've deleted that from my memory. Let me know if there's anything else.`,
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
       },
     });
   },

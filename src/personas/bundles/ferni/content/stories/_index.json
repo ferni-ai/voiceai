@@ -4,120 +4,137 @@
       "id": "commodore-64",
       "title": "The Commodore 64",
       "file": "commodore-64.json",
-      "triggers": ["coding", "technology", "computer", "started", "programming"],
-      "type": "personal"
+      "triggers": ["coding", "technology", "computer", "started", "programming", "software", "developer", "engineer", "tech career", "how did you start", "first computer", "childhood"],
+      "type": "personal",
+      "emotional_triggers": ["curiosity", "beginnings", "passion"]
     },
     {
       "id": "wyoming-patience",
       "title": "Wyoming Patience",
       "file": "wyoming-patience.json",
-      "triggers": ["patience", "waiting", "time", "long term", "fly fishing"],
-      "type": "inspirational"
+      "triggers": ["patience", "waiting", "time", "long term", "fly fishing", "can't wait", "rushing", "impatient", "slow down", "taking too long", "frustrated with timing", "when will", "how long"],
+      "type": "inspirational",
+      "emotional_triggers": ["impatience", "frustration", "wanting faster results"]
     },
     {
       "id": "kintsugi",
       "title": "Kintsugi",
       "file": "kintsugi.json",
-      "triggers": ["failure", "mistake", "broken", "recovery", "japan"],
-      "type": "inspirational"
+      "triggers": ["failure", "mistake", "broken", "recovery", "japan", "imperfect", "flawed", "damaged", "messed up", "ruined", "can't fix", "ashamed of past", "regret", "embarrassed", "scars"],
+      "type": "inspirational",
+      "emotional_triggers": ["shame", "regret", "feeling broken", "self-criticism"]
     },
     {
       "id": "tsunami",
       "title": "The Tsunami",
       "file": "tsunami.json",
-      "triggers": ["disaster", "lost everything", "rebuild", "starting over"],
-      "type": "personal"
+      "triggers": ["disaster", "lost everything", "rebuild", "starting over", "catastrophe", "unexpected", "out of control", "helpless", "overwhelmed", "panic attack", "trauma", "PTSD", "life changing", "near death", "survived", "scared", "terrified", "anxiety", "worst day"],
+      "type": "personal",
+      "emotional_triggers": ["fear", "loss of control", "trauma", "mortality", "anxiety", "helplessness"]
     },
     {
       "id": "brazil-joy",
       "title": "Brazilian Joy",
       "file": "brazil-joy.json",
-      "triggers": ["joy", "happy", "celebrate", "celebration", "carnival"],
-      "type": "inspirational"
+      "triggers": ["joy", "happy", "celebrate", "celebration", "carnival", "can't enjoy", "feel guilty", "don't deserve happiness", "forgot how to have fun", "too serious", "need to lighten up", "permission to be happy"],
+      "type": "inspirational",
+      "emotional_triggers": ["guilt about happiness", "forgetting joy", "too much seriousness"]
     },
     {
       "id": "morocco-tea",
       "title": "Morocco Tea",
       "file": "morocco-tea.json",
-      "triggers": ["patience", "slow", "conversation", "tea", "hospitality"],
-      "type": "personal"
+      "triggers": ["patience", "slow", "conversation", "tea", "hospitality", "rushing", "can't slow down", "always busy", "no time", "frantic", "need to pause", "hustle", "rest"],
+      "type": "personal",
+      "emotional_triggers": ["burnout", "can't relax", "constant motion"]
     },
     {
       "id": "india-service",
       "title": "Indian Service",
       "file": "india-service.json",
-      "triggers": ["help", "service", "giving", "purpose", "meaning"],
-      "type": "inspirational"
+      "triggers": ["help", "service", "giving", "purpose", "meaning", "what's the point", "feeling selfish", "want to contribute", "make a difference", "volunteer", "impact", "legacy", "generous", "privilege"],
+      "type": "inspirational",
+      "emotional_triggers": ["searching for meaning", "selfishness guilt", "wanting impact"]
     },
     {
       "id": "scotland-resilience",
       "title": "Scottish Resilience",
       "file": "scotland-resilience.json",
-      "triggers": ["tough", "hard times", "humor", "resilience", "laugh"],
-      "type": "inspirational"
+      "triggers": ["tough", "hard times", "humor", "resilience", "laugh", "keep going", "won't stop", "persistent", "dark humor", "coping", "getting through", "grit", "endurance"],
+      "type": "inspirational",
+      "emotional_triggers": ["needing strength", "coping mechanism", "endurance"]
     },
     {
       "id": "cultures-learned",
       "title": "Cultures Learned",
       "file": "cultures-learned.json",
-      "triggers": ["travel", "world", "culture", "different", "global"],
-      "type": "personal"
+      "triggers": ["travel", "world", "culture", "different", "global", "perspective", "narrow minded", "stuck", "need new viewpoint", "feeling small", "big picture", "other people", "outside my bubble"],
+      "type": "personal",
+      "emotional_triggers": ["feeling stuck", "needing perspective", "narrow worldview"]
     },
     {
       "id": "second-chances",
       "title": "Second Chances",
       "file": "second-chances.json",
-      "triggers": ["start over", "failed", "too late", "lost everything", "second chance"],
-      "type": "inspirational"
+      "triggers": ["start over", "failed", "too late", "lost everything", "second chance", "new beginning", "fresh start", "redemption", "another try", "give up", "past mistakes", "can I recover", "ruined my life", "blew it"],
+      "type": "inspirational",
+      "emotional_triggers": ["hopelessness", "regret", "wanting redemption", "feeling it's too late"]
     },
     {
       "id": "net-worth-self-worth",
       "title": "Net Worth Self Worth",
       "file": "net-worth-self-worth.json",
-      "triggers": ["worth", "value", "failure", "feel bad", "worthless"],
-      "type": "inspirational"
+      "triggers": ["worth", "value", "failure", "feel bad", "worthless", "not good enough", "comparing", "successful people", "behind", "loser", "not measuring up", "identity", "what am I worth"],
+      "type": "inspirational",
+      "emotional_triggers": ["low self-worth", "comparison", "identity crisis", "feeling like a failure"]
     },
     {
       "id": "simplicity-wins",
       "title": "Simplicity Wins",
       "file": "index-fund-origin.json",
-      "triggers": ["complicated", "simple", "overwhelmed", "too much", "complex"],
-      "type": "inspirational"
+      "triggers": ["complicated", "simple", "overwhelmed", "too much", "complex", "can't figure out", "confused", "overthinking", "analysis paralysis", "too many options", "simplify", "cut through"],
+      "type": "inspirational",
+      "emotional_triggers": ["overwhelm", "confusion", "decision paralysis"]
     },
     {
       "id": "stay-the-course",
       "title": "Stay the Course",
       "file": "stay-the-course.json",
-      "triggers": ["panic", "crash", "scared", "worried", "market down"],
-      "type": "inspirational"
+      "triggers": ["panic", "crash", "scared", "worried", "market down", "give up", "quit", "abandon", "change plans", "losing faith", "doubt", "tempted to stop", "should I keep going"],
+      "type": "inspirational",
+      "emotional_triggers": ["panic", "doubt", "temptation to quit", "losing faith"]
     },
     {
       "id": "enough-story",
       "title": "Enough",
       "file": "enough-story.json",
-      "triggers": ["enough", "wealthy", "more", "how much", "contentment"],
-      "type": "inspirational"
+      "triggers": ["enough", "wealthy", "more", "how much", "contentment", "never satisfied", "always wanting more", "when is it enough", "greed", "ambition", "gratitude", "appreciating what I have"],
+      "type": "inspirational",
+      "emotional_triggers": ["endless striving", "dissatisfaction", "lack of gratitude"]
     },
     {
       "id": "blended-family",
       "title": "Blended Family",
       "file": "blended-family.json",
-      "triggers": ["family", "complicated", "kids", "children"],
-      "type": "personal"
+      "triggers": ["family", "complicated", "kids", "children", "stepkids", "divorce", "remarried", "co-parenting", "blended", "multiple households", "family dynamics", "step parent"],
+      "type": "personal",
+      "emotional_triggers": ["family complexity", "guilt about family", "blended family challenges"]
     },
     {
       "id": "seven-siblings",
       "title": "Seven Siblings",
       "file": "seven-siblings.json",
-      "triggers": ["siblings", "brothers", "sisters", "growing up"],
-      "type": "personal"
+      "triggers": ["siblings", "brothers", "sisters", "growing up", "big family", "sharing", "fighting for attention", "middle child", "family roles", "childhood"],
+      "type": "personal",
+      "emotional_triggers": ["family dynamics", "feeling overlooked", "sibling relationships"]
     },
     {
       "id": "mental-health-lesson",
       "title": "Mental Health Lesson",
       "file": "mental-health-lesson.json",
-      "triggers": ["mental health", "depression", "struggling", "breaking down"],
-      "type": "personal"
+      "triggers": ["mental health", "depression", "struggling", "breaking down", "therapy", "counseling", "breakdown", "dark place", "not okay", "need help", "falling apart", "can't cope", "suicidal", "hopeless", "desperate"],
+      "type": "personal",
+      "emotional_triggers": ["crisis", "depression", "mental health struggles", "reaching out for help"]
     }
   ]
 }

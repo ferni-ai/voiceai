@@ -654,7 +654,9 @@
     // ========================================
     async function fetchData() {
       try {
-        const response = await fetch('/api/observability?window=60');
+        const response = await fetch('/api/observability?window=60', {
+          headers: { 'x-admin-key': 'dev-mode' }
+        });
         if (!response.ok) throw new Error('Failed to fetch data');
         data = await response.json();
         lastUpdate = new Date();

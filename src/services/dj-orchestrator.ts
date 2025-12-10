@@ -14,10 +14,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  getDJSessionService,
-  type SessionContext,
-} from './dj-session.service.js';
+import { getDJSessionService, type SessionContext } from './dj-session.service.js';
 import {
   getDJStyle,
   getMusicAppreciationComment,
@@ -447,7 +444,10 @@ export class DJOrchestrator {
     soundType: 'session-start' | 'session-end' | 'handoff' | 'celebration' | 'acknowledgment'
   ): string | null {
     // Map to valid SessionSoundType
-    const soundTypeMap: Record<string, 'session-start' | 'session-end' | 'success' | 'notification' | 'handoff'> = {
+    const soundTypeMap: Record<
+      string,
+      'session-start' | 'session-end' | 'success' | 'notification' | 'handoff'
+    > = {
       'session-start': 'session-start',
       'session-end': 'session-end',
       handoff: 'handoff',

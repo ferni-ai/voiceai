@@ -29,7 +29,7 @@ const processGriefDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'processing', 'support'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Provide compassionate support for someone processing grief, meeting them where they are.',
@@ -108,7 +108,7 @@ const navigateGriefWaveDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'wave', 'immediate'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Provide immediate, gentle support when someone is in the midst of a grief wave.',
@@ -153,7 +153,7 @@ const anniversarySupportDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'anniversary', 'dates'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Provide support around anniversaries of losses, deaths, or difficult dates.',
       parameters: z.object({
@@ -200,7 +200,7 @@ const acknowledgeLossDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'acknowledgment', 'validation'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Validate and acknowledge losses that may not receive social recognition - disenfranchised grief.',
@@ -242,7 +242,7 @@ const rememberLovedDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'memory', 'celebration'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Create space to remember, honor, and share memories of someone who has died.',
       parameters: z.object({
@@ -305,7 +305,7 @@ const navigateTransitionDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'transition', 'change'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user navigate a major life transition with its inherent grief and possibility.',
@@ -375,7 +375,7 @@ const processEndingDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'ending', 'closure'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user process and honor an ending - a phase, role, relationship, or chapter of life.',
@@ -422,7 +422,7 @@ const embraceNewIdentityDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'identity', 'transformation'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user embrace and integrate a new identity emerging from loss or transition.',
@@ -474,7 +474,7 @@ const validateGriefDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'validation', 'support'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Validate grief against common dismissive messages the user may have received.',
       parameters: z.object({
@@ -527,7 +527,7 @@ const companionInGriefDef: ToolDefinition = {
   domain: 'grief',
   tags: ['grief', 'presence', 'companionship'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Offer simple, non-fixing presence to someone in grief.',
       parameters: z.object({

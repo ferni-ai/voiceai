@@ -14,23 +14,27 @@
 import { getLogger } from '../utils/safe-logger.js';
 
 // Import all conversation modules
-import { getSpeechNaturalizer, type NaturalizationContext } from './speech-naturalizer.js';
+import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { getActiveListeningEngine, type BackchannelContext } from './active-listening.js';
+import { applyDeliveryPacing, shouldApplyDeliveryPacing } from './content-delivery-pacing.js';
 import { getConversationalMemory } from './conversational-memory.js';
-import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
-import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
-import { getResponseDynamicsEngine } from './response-dynamics.js';
 import {
-  getDeepHumanizationEngine,
-  detectEvidence,
-  detectBreakthrough,
-  detectAdviceGiving,
-  detectDisengagement,
-  detectHighEngagement,
   classifyTopicWeight,
+  detectAdviceGiving,
+  detectBreakthrough,
+  detectDisengagement,
+  detectEvidence,
+  detectHighEngagement,
+  getDeepHumanizationEngine,
   type HumanizationContext as DeepContext,
   type SessionMemory,
 } from './deep-humanization.js';
+import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
+import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
+import { getResponseDynamicsEngine } from './response-dynamics.js';
+import { getSilencePresenceEngine } from './silence-presence.js';
+import { getSpeechNaturalizer, type NaturalizationContext } from './speech-naturalizer.js';
+import { detectUserEnergy, humanizeVocals, type VocalContext } from './vocal-humanization.js';
 
 // ============================================================================
 // TYPES
@@ -95,14 +99,34 @@ export class ConversationHumanizer {
   private emotional = getEmotionalArcTracker();
   private dynamics = getResponseDynamicsEngine();
   private deepHumanization = getDeepHumanizationEngine('ferni'); // Will be set by personaId
+  private silencePresence = getSilencePresenceEngine();
 
   // Track if last response included a memory callback
   private lastResponseHadCallback = false;
 
+  // Session time tracking
+  private sessionStartTime = Date.now();
+
   constructor(personaId: string) {
     this.personaId = personaId;
     this.deepHumanization = getDeepHumanizationEngine(personaId);
+    this.sessionStartTime = Date.now();
     getLogger().debug({ personaId }, 'ConversationHumanizer initialized');
+  }
+
+  /**
+   * Get session duration in minutes
+   */
+  getSessionMinutes(): number {
+    return Math.floor((Date.now() - this.sessionStartTime) / (1000 * 60));
+  }
+
+  /**
+   * Reset session start time (for new sessions)
+   */
+  resetSession(): void {
+    this.sessionStartTime = Date.now();
+    getLogger().debug({ personaId: this.personaId }, 'Session timer reset');
   }
 
   /**
@@ -466,7 +490,32 @@ export class ConversationHumanizer {
       appliedFeatures.push('uncertainty_hedge');
     }
 
-    // 7. Apply SSML enhancements based on emotional guidance
+    // 7. Apply content delivery pacing for longer content
+    // This makes reading web results, lists, and long material feel natural
+    if (shouldApplyDeliveryPacing(text)) {
+      text = applyDeliveryPacing(text, {
+        personaId: this.personaId,
+        isDirectResponse: context.userMessage.includes('?'),
+      });
+      appliedFeatures.push('content_delivery_pacing');
+    }
+
+    // 8. Apply vocal humanization - "Better Than Human" voice processing
+    // Energy matching, pitch variation, contractions, intake breath, emotion bleeding
+    const vocalContext: VocalContext = {
+      userEnergy: detectUserEnergy(context.userMessage),
+      emotion: context.userEmotion,
+      isQuestion: text.trim().endsWith('?'),
+      isHeavyContent: context.isSeriousContext,
+      turnNumber: context.turnNumber,
+      isMeaningfulMoment: context.wasPersonalSharing,
+      userMessage: context.userMessage,
+    };
+    const vocalResult = humanizeVocals(text, vocalContext);
+    text = vocalResult.ssml;
+    appliedFeatures.push(...vocalResult.appliedFeatures);
+
+    // 9. Apply SSML enhancements based on emotional guidance
     ssml = this.applySsmlEnhancements(text, emotionalGuidance);
 
     // Record agent message
@@ -499,7 +548,7 @@ export class ConversationHumanizer {
     const deepContext: DeepContext = {
       personaId: this.personaId,
       turnCount: context.turnNumber,
-      sessionMinutes: 0, // Would need to be tracked
+      sessionMinutes: this.getSessionMinutes(),
       currentHour: new Date().getHours(),
       userMessage: context.userMessage,
       lastAgentMessage: undefined,
@@ -517,26 +566,70 @@ export class ConversationHumanizer {
       isHighlyEngaged: detectHighEngagement(context.userMessage),
     };
 
+    // 🌉 Emit signals to frontend for immediate EQ response
+    // These fire BEFORE the text is processed, so frontend can anticipate
+    if (signals.userPresentedEvidence) {
+      void humanizationSignalEmitter.evidencePresented();
+    }
+    if (signals.isBreakthroughMoment) {
+      void humanizationSignalEmitter.breakthrough(0.8);
+    }
+    if (signals.isDisengaged) {
+      void humanizationSignalEmitter.disengagement();
+    }
+    if (signals.isHighlyEngaged) {
+      void humanizationSignalEmitter.highEngagement(0.8);
+    }
+
     // Get deep humanization injections
     const injections = await this.deepHumanization.getHumanizationInjections(deepContext, signals);
 
     // Apply injections to the text
+    let enhancedText = baseResult.text;
+    let enhancedSsml = baseResult.ssml;
+    const additionalFeatures: string[] = [];
+
     if (injections.length > 0) {
-      const enhancedText = this.deepHumanization.applyInjections(baseResult.text, injections);
-      const enhancedSsml = this.deepHumanization.applyInjections(baseResult.ssml, injections);
-
-      // Add injection types to applied features
-      const deepFeatures = injections.map((i) => `deep_${i.type}`);
-
-      return {
-        ...baseResult,
-        text: enhancedText,
-        ssml: enhancedSsml,
-        appliedFeatures: [...baseResult.appliedFeatures, ...deepFeatures],
-      };
+      enhancedText = this.deepHumanization.applyInjections(enhancedText, injections);
+      enhancedSsml = this.deepHumanization.applyInjections(enhancedSsml, injections);
+      additionalFeatures.push(...injections.map((i) => `deep_${i.type}`));
     }
 
-    return baseResult;
+    // 🤫 SILENCE AS PRESENCE
+    // Check if we should use intentional silence before responding
+    const topicWeight = classifyTopicWeight(context.userMessage, context.userEmotion);
+    const silenceDecision = this.silencePresence.decideSilence({
+      userMessage: context.userMessage,
+      userEmotion: context.userEmotion,
+      turnCount: context.turnNumber,
+      wasPersonalSharing: context.wasPersonalSharing,
+      conversationDepth:
+        context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
+      topicWeight,
+    });
+
+    if (silenceDecision.useSilence) {
+      // Apply silence to response
+      const { text: withSilence, ssml: ssmlWithSilence } = this.silencePresence.applyToResponse(
+        enhancedText,
+        silenceDecision
+      );
+      enhancedText = withSilence;
+      enhancedSsml = silenceDecision.ssml + ssmlWithSilence;
+      additionalFeatures.push(`silence_${silenceDecision.reason}`);
+
+      getLogger().debug(
+        { reason: silenceDecision.reason, duration: silenceDecision.duration },
+        'Applied silence presence to response'
+      );
+    }
+
+    return {
+      ...baseResult,
+      text: enhancedText,
+      ssml: enhancedSsml,
+      appliedFeatures: [...baseResult.appliedFeatures, ...additionalFeatures],
+    };
   }
 
   /**
@@ -616,6 +709,7 @@ export class ConversationHumanizer {
     this.listening.reset();
     this.memory.reset();
     this.questions.reset();
+    this.silencePresence.reset();
     getLogger().debug('ConversationHumanizer reset');
   }
 

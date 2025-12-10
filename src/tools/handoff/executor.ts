@@ -10,39 +10,41 @@
  *   await executeHandoff('peter-john', 'User wants stock research', { userId: '123' });
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import {
+  getLockedMemberTeaser,
+  isCoreTeamMember,
+  isTeamMemberUnlocked,
+} from '../../intelligence/context-builders/team-availability.js';
+import {
+  detectUserMoodFromContext,
+  getAliveEntranceForHandoff,
+} from '../../personas/alive-entrances.js';
+import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import {
   getCanonicalPersonaId,
   getPersonaDisplayName,
   getVoiceId,
 } from '../../personas/voice-registry.js';
-import { AgentRegistry } from '../../personas/registry/unified-registry.js';
-import { createHandoffEvent } from './types.js';
-import {
-  getAliveEntranceForHandoff,
-  detectUserMoodFromContext,
-} from '../../personas/alive-entrances.js';
 import type { AgentId } from '../../services/agent-bus.js';
+import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   buildCognitiveHandoffContext,
   formatCognitiveHandoffForPrompt,
   type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
-import {
-  isTeamMemberUnlocked,
-  getLockedMemberTeaser,
-} from '../../intelligence/context-builders/team-availability.js';
+import { createHandoffEvent } from './types.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
 // so we must emit on the SAME instance.
 import {
   getCurrentAgent,
-  setCurrentAgent,
-  isSameAgent,
+  handoffEvents,
   isHandoffAllowed,
-  handoffEvents, // Use the shared EventEmitter from state.ts
-  resetHandoffState as resetStateHandoffState, // Use state.js's reset function
+  isSameAgent, // Use the shared EventEmitter from state.ts
+  resetHandoffState as resetStateHandoffState,
+  setCurrentAgent,
 } from './state.js';
 
 // ============================================================================
@@ -196,7 +198,7 @@ export function getHandoffContext(): HandoffContext | null {
 // ============================================================================
 
 // Re-export state functions - they're imported above and exported here for backwards compatibility
-export { getCurrentAgent, setCurrentAgent, isSameAgent, isHandoffAllowed };
+export { getCurrentAgent, isHandoffAllowed, isSameAgent, setCurrentAgent };
 
 /**
  * Reset handoff state
@@ -307,27 +309,51 @@ export async function executeHandoff(
   // Skip check for Ferni (coordinator is always available) or if explicitly skipped
   if (!options.skipUnlockCheck && canonicalTargetId !== 'ferni' && canonicalTargetId !== 'jack-b') {
     const tier = options.subscriptionTier || 'free';
-    const isUnlocked = isTeamMemberUnlocked(canonicalTargetId, options.userProfile || null, tier);
+    const targetName = getPersonaDisplayName(canonicalTargetId);
 
-    if (!isUnlocked) {
-      const teaser = getLockedMemberTeaser(canonicalTargetId);
-      const targetName = getPersonaDisplayName(canonicalTargetId);
+    // Check if this is a core team member or a marketplace agent
+    if (isCoreTeamMember(canonicalTargetId)) {
+      // Core team member - check individual unlock status
+      const isUnlocked = isTeamMemberUnlocked(canonicalTargetId, options.userProfile || null, tier);
 
-      getLogger().info(
-        { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
-        `🔒 Handoff blocked - ${targetName} is not yet unlocked for this user`
-      );
+      if (!isUnlocked) {
+        const teaser = getLockedMemberTeaser(canonicalTargetId);
 
-      return {
-        success: false,
-        error:
-          teaser ||
-          `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
-        targetAgent: canonicalTargetId,
-        targetAgentName: targetName,
-        previousAgent,
-        greeting: '',
-      };
+        getLogger().info(
+          { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
+          `🔒 Handoff blocked - ${targetName} is not yet unlocked for this user`
+        );
+
+        return {
+          success: false,
+          error:
+            teaser ||
+            `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
+          targetAgent: canonicalTargetId,
+          targetAgentName: targetName,
+          previousAgent,
+          greeting: '',
+        };
+      }
+    } else {
+      // Marketplace agent - requires full team to be unlocked first
+      const fullTeamUnlocked = isFullTeamUnlocked(options.userProfile || null, tier);
+
+      if (!fullTeamUnlocked) {
+        getLogger().info(
+          { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
+          `🔒 Handoff blocked - marketplace agent ${targetName} requires full team to be unlocked`
+        );
+
+        return {
+          success: false,
+          error: `${targetName} is a marketplace advisor. Get to know your core team first - once everyone's unlocked, you can expand your circle!`,
+          targetAgent: canonicalTargetId,
+          targetAgentName: targetName,
+          previousAgent,
+          greeting: '',
+        };
+      }
     }
   }
 
@@ -552,7 +578,7 @@ function getReasonAcknowledgment(reason: string): string {
     return "Let's work on your plans!";
   }
 
-  return 'How can I help you?';
+  return "What's on your mind?";
 }
 
 // ============================================================================

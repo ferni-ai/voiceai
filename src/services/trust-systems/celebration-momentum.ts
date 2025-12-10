@@ -14,10 +14,13 @@
  * - Effort recognition (consistency over time)
  * - Comeback detection (recovery after struggles)
  *
+ * PERSISTENCE: Momentum profiles are persisted to Firestore.
+ *
  * @module CelebrationMomentum
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 
 const log = createLogger({ module: 'CelebrationMomentum' });
 
@@ -119,10 +122,116 @@ const MOMENTUM_WEIGHTS: Record<WinType, number> = {
 };
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedMomentumProfile {
+  userId: string;
+  wins: Array<Omit<TrackedWin, 'detectedAt'> & { detectedAt: string }>;
+  streaks: Array<
+    Omit<WinStreak, 'startDate' | 'lastWinDate'> & { startDate: string; lastWinDate: string }
+  >;
+  themes: Array<Omit<WinTheme, 'lastSeen'> & { lastSeen: string }>;
+  momentumScore: number;
+  momentumTrend: 'building' | 'stable' | 'declining';
+  consistencyScore: number;
+  totalWins: number;
+  winsThisWeek: number;
+  winsThisMonth: number;
+  comebackDetected: boolean;
+  breakthroughMoment: boolean;
+  lastUpdated: string;
+}
+
+function serializeProfile(profile: MomentumProfile): PersistedMomentumProfile {
+  return {
+    ...profile,
+    wins: profile.wins.map((w) => ({ ...w, detectedAt: w.detectedAt.toISOString() })),
+    streaks: profile.streaks.map((s) => ({
+      ...s,
+      startDate: s.startDate.toISOString(),
+      lastWinDate: s.lastWinDate.toISOString(),
+    })),
+    themes: profile.themes.map((t) => ({ ...t, lastSeen: t.lastSeen.toISOString() })),
+    lastUpdated: profile.lastUpdated.toISOString(),
+  };
+}
+
+function deserializeProfile(data: PersistedMomentumProfile): MomentumProfile {
+  return {
+    ...data,
+    wins: data.wins.map((w) => ({ ...w, detectedAt: new Date(w.detectedAt) })),
+    streaks: data.streaks.map((s) => ({
+      ...s,
+      startDate: new Date(s.startDate),
+      lastWinDate: new Date(s.lastWinDate),
+    })),
+    themes: data.themes.map((t) => ({ ...t, lastSeen: new Date(t.lastSeen) })),
+    lastUpdated: new Date(data.lastUpdated),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const momentumProfiles = new Map<string, MomentumProfile>();
+const loadedUsers = new Set<string>();
+
+let persistence: PersistenceStore<PersistedMomentumProfile> | null = null;
+
+function getPersistence(): PersistenceStore<PersistedMomentumProfile> {
+  if (!persistence) {
+    persistence = createPersistenceStore<PersistedMomentumProfile>({
+      collection: 'celebration_momentum',
+      documentId: 'profile',
+      syncIntervalMs: 3000,
+    });
+  }
+  return persistence;
+}
+
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data) {
+      momentumProfiles.set(userId, deserializeProfile(data));
+    }
+    loadedUsers.add(userId);
+    log.debug({ userId }, 'Loaded momentum profile from persistence');
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to load momentum profile');
+    loadedUsers.add(userId);
+  }
+}
+
+function persistProfile(userId: string): void {
+  const profile = momentumProfiles.get(userId);
+  if (profile) {
+    getPersistence().set(userId, serializeProfile(profile));
+  }
+}
+
+/**
+ * Flush persistence
+ */
+export async function flushCelebrationMomentumPersistence(): Promise<void> {
+  await getPersistence().flush();
+  log.info('Celebration momentum persistence flushed');
+}
+
+/**
+ * Shutdown celebration momentum service
+ */
+export async function shutdownCelebrationMomentum(): Promise<void> {
+  await flushCelebrationMomentumPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  momentumProfiles.clear();
+  log.info('Celebration momentum service shutdown complete');
+}
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -168,6 +277,7 @@ export function recordWin(
   detectSpecialStates(profile);
 
   profile.lastUpdated = new Date();
+  persistProfile(userId);
 
   log.info(
     {

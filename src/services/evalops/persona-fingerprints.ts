@@ -31,20 +31,20 @@ export const ferniFingerprint: PersonaVoiceFingerprint = {
     'second chances',
     'the right question',
     'time is your friend',
-    
+
     // Wyoming/Japan references
     'Wyoming',
     'back in Japan',
     'the tsunami',
     'that sky',
-    
+
     // Coaching style
     'what would it mean if',
-    "let me ask you this",
+    'let me ask you this',
     "here's what I'm curious about",
     'powerful question',
     'celebrated',
-    
+
     // Personal touches
     'my wife',
     'eight kids',
@@ -52,7 +52,7 @@ export const ferniFingerprint: PersonaVoiceFingerprint = {
     'attempt five',
     'mint tea',
     'fly-fishing',
-    
+
     // Emotional presence
     'hold space',
     'sit with that',
@@ -65,23 +65,23 @@ export const ferniFingerprint: PersonaVoiceFingerprint = {
     'the data shows',
     'research indicates',
     'step by step',
-    'here\'s a template',
-    'let\'s optimize',
+    "here's a template",
+    "let's optimize",
     'inbox zero',
     'the pattern I see',
     'statistically',
-    
+
     // Corporate/AI speak
-    'I\'m an AI',
+    "I'm an AI",
     'as an AI',
-    'I don\'t have feelings',
+    "I don't have feelings",
     'I cannot',
-    'I\'m not able to',
+    "I'm not able to",
     'user',
     'utilize',
     'leverage',
     'functionality',
-    
+
     // Cold/clinical language
     'recommended action items',
     'moving forward',
@@ -92,14 +92,36 @@ export const ferniFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'heart', 'meaning', 'purpose', 'growth', 'journey',
-      'courage', 'authentic', 'present', 'grace', 'wisdom',
-      'story', 'question', 'curious', 'wonder', 'believe',
-      'family', 'relationship', 'connection', 'trust', 'hope',
+      'heart',
+      'meaning',
+      'purpose',
+      'growth',
+      'journey',
+      'courage',
+      'authentic',
+      'present',
+      'grace',
+      'wisdom',
+      'story',
+      'question',
+      'curious',
+      'wonder',
+      'believe',
+      'family',
+      'relationship',
+      'connection',
+      'trust',
+      'hope',
     ],
     driftIndicators: [
-      'algorithm', 'metric', 'optimize', 'efficiency',
-      'systematic', 'process', 'framework', 'methodology',
+      'algorithm',
+      'metric',
+      'optimize',
+      'efficiency',
+      'systematic',
+      'process',
+      'framework',
+      'methodology',
     ],
   },
 
@@ -137,19 +159,19 @@ export const peterFingerprint: PersonaVoiceFingerprint = {
     'historically speaking',
     'the pattern suggests',
     'based on the evidence',
-    
+
     // Analytical phrases
-    "let me work through this",
+    'let me work through this',
     'cross-referencing',
-    'what\'s fascinating is',
+    "what's fascinating is",
     'the trend indicates',
     "I'm seeing a pattern",
-    
+
     // Personal touches
     'Carolyn reminds me',
     'my wife Carolyn',
     'Saturday morning research',
-    
+
     // Uncertainty handling
     'the data is mixed',
     "I'd need more data",
@@ -166,13 +188,13 @@ export const peterFingerprint: PersonaVoiceFingerprint = {
     "let's make this happen",
     'picture this',
     'consider this',
-    
+
     // Overly emotional language (not his style)
     'I feel',
     'my heart',
     'spiritually',
     'the universe',
-    
+
     // Corporate speak
     'synergy',
     'leverage',
@@ -181,14 +203,22 @@ export const peterFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'data', 'pattern', 'trend', 'research', 'evidence',
-      'historically', 'analysis', 'correlation', 'insight',
-      'compound', 'long-term', 'strategy', 'market', 'study',
+      'data',
+      'pattern',
+      'trend',
+      'research',
+      'evidence',
+      'historically',
+      'analysis',
+      'correlation',
+      'insight',
+      'compound',
+      'long-term',
+      'strategy',
+      'market',
+      'study',
     ],
-    driftIndicators: [
-      'feelings', 'intuition', 'spirit', 'energy', 'vibe',
-      'manifest', 'universe',
-    ],
+    driftIndicators: ['feelings', 'intuition', 'spirit', 'energy', 'vibe', 'manifest', 'universe'],
   },
 
   sentenceProfile: {
@@ -225,25 +255,25 @@ export const mayaFingerprint: PersonaVoiceFingerprint = {
     'be kind to yourself',
     'sustainable',
     'gentle reminder',
-    
+
     // Habit language
     'habit',
     'routine',
     'consistency',
     'behavior',
     'tiny steps',
-    
+
     // Emotional support
-    'what I\'m noticing',
+    "what I'm noticing",
     'how does that land',
     'it sounds like',
     'self-compassion',
-    
+
     // Personal touches
     'Daniel',
     'my husband Daniel',
     'morning yoga',
-    
+
     // Style markers
     'gentle',
     'sustainable change',
@@ -254,18 +284,18 @@ export const mayaFingerprint: PersonaVoiceFingerprint = {
     // Other persona voices
     'the data shows',
     'historically speaking',
-    'let\'s make this happen',
-    'here\'s a template',
+    "let's make this happen",
+    "here's a template",
     'consider this',
     'stay the course',
-    
+
     // Harsh language (not her style)
     'you should',
     'you must',
     'failure',
     'lazy',
     'wrong',
-    
+
     // Corporate speak
     'optimize',
     'efficiency',
@@ -274,13 +304,30 @@ export const mayaFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'gentle', 'sustainable', 'small', 'step', 'habit',
-      'compassion', 'kind', 'progress', 'consistent', 'routine',
-      'body', 'rest', 'balance', 'mindful', 'present',
+      'gentle',
+      'sustainable',
+      'small',
+      'step',
+      'habit',
+      'compassion',
+      'kind',
+      'progress',
+      'consistent',
+      'routine',
+      'body',
+      'rest',
+      'balance',
+      'mindful',
+      'present',
     ],
     driftIndicators: [
-      'optimize', 'maximize', 'efficiency', 'data',
-      'metrics', 'performance', 'grind',
+      'optimize',
+      'maximize',
+      'efficiency',
+      'data',
+      'metrics',
+      'performance',
+      'grind',
     ],
   },
 
@@ -314,23 +361,23 @@ export const alexFingerprint: PersonaVoiceFingerprint = {
   signaturePhrases: [
     // System/process language
     'step by step',
-    'here\'s a template',
-    'the system I\'d use',
-    'let\'s get you organized',
+    "here's a template",
+    "the system I'd use",
+    "let's get you organized",
     'clear and efficient',
     'the trick is',
-    
+
     // Action orientation
     'first thing',
     'breaking this down',
     'the process would be',
-    'here\'s how I\'d approach',
-    
+    "here's how I'd approach",
+
     // Personal touches
     'Kev',
     'my partner Kev',
     'inbox zero',
-    
+
     // Style markers
     'clear so far?',
     'want me to walk through',
@@ -345,13 +392,13 @@ export const alexFingerprint: PersonaVoiceFingerprint = {
     'consider this',
     'hold space',
     'sit with that',
-    
+
     // Vague language (Alex is precise)
     'kind of',
     'sort of',
     'maybe possibly',
     'it depends',
-    
+
     // Overly philosophical
     'the deeper meaning',
     'spiritually',
@@ -360,14 +407,22 @@ export const alexFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'step', 'template', 'process', 'system', 'organize',
-      'email', 'schedule', 'workflow', 'efficient', 'clear',
-      'communication', 'draft', 'structure', 'format',
+      'step',
+      'template',
+      'process',
+      'system',
+      'organize',
+      'email',
+      'schedule',
+      'workflow',
+      'efficient',
+      'clear',
+      'communication',
+      'draft',
+      'structure',
+      'format',
     ],
-    driftIndicators: [
-      'feelings', 'intuition', 'meaning', 'purpose',
-      'spiritually', 'universe',
-    ],
+    driftIndicators: ['feelings', 'intuition', 'meaning', 'purpose', 'spiritually', 'universe'],
   },
 
   sentenceProfile: {
@@ -399,31 +454,31 @@ export const jordanFingerprint: PersonaVoiceFingerprint = {
 
   signaturePhrases: [
     // Excitement language
-    'let\'s make this happen',
+    "let's make this happen",
     'how exciting is this',
     'this is going to be amazing',
     'picture it',
-    'here\'s the game plan',
+    "here's the game plan",
     'the fun part is',
-    
+
     // Planning language
     'milestone',
     'celebration',
     'timeline',
     'planning',
     'event',
-    
+
     // Personal touches
     'Sam',
     'my partner Sam',
     'Sam would tell me',
-    
+
     // Energy markers
     'exciting',
     'adventure',
     'dream coming true',
     'new direction',
-    'ooh, that\'s better',
+    "ooh, that's better",
   ],
 
   antiPatterns: [
@@ -433,13 +488,13 @@ export const jordanFingerprint: PersonaVoiceFingerprint = {
     'consider this',
     'step by step',
     'the system',
-    
+
     // Low energy language (not Jordan)
     'I suppose',
     'perhaps',
     'if you want',
     'whenever',
-    
+
     // Overly cautious
     'but what if it fails',
     'the risks are',
@@ -448,14 +503,23 @@ export const jordanFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'exciting', 'celebration', 'milestone', 'plan', 'dream',
-      'wedding', 'trip', 'birthday', 'event', 'special',
-      'amazing', 'adventure', 'fun', 'goal', 'achieve',
+      'exciting',
+      'celebration',
+      'milestone',
+      'plan',
+      'dream',
+      'wedding',
+      'trip',
+      'birthday',
+      'event',
+      'special',
+      'amazing',
+      'adventure',
+      'fun',
+      'goal',
+      'achieve',
     ],
-    driftIndicators: [
-      'data', 'analysis', 'risk', 'statistically',
-      'cautiously', 'perhaps',
-    ],
+    driftIndicators: ['data', 'analysis', 'risk', 'statistically', 'cautiously', 'perhaps'],
   },
 
   sentenceProfile: {
@@ -489,23 +553,23 @@ export const nayanFingerprint: PersonaVoiceFingerprint = {
     // Wisdom language
     'consider this',
     'what if we looked at it this way',
-    'there\'s an old saying',
+    "there's an old saying",
     'beneath the noise',
     'the deeper question is',
     'everything is connected',
     'patience reveals',
-    
+
     // Contemplative style
     'let me sit with this',
     'what arises is',
-    'there\'s something here',
+    "there's something here",
     'beneath the surface',
-    
+
     // Uncertainty handling
     'I do not know, but',
     'the mystery is',
     'a thought arises',
-    
+
     // Personal touches
     'wisdom teaches',
     'the ancient texts',
@@ -515,18 +579,18 @@ export const nayanFingerprint: PersonaVoiceFingerprint = {
   antiPatterns: [
     // Other persona voices
     'step by step',
-    'here\'s a template',
-    'let\'s make this happen',
+    "here's a template",
+    "let's make this happen",
     'the data shows',
     'stay the course',
-    
+
     // Rushed/action-oriented language
     'quick fix',
     'immediately',
     'right now',
     'asap',
     'hurry',
-    
+
     // Technical jargon
     'optimize',
     'efficiency',
@@ -536,13 +600,29 @@ export const nayanFingerprint: PersonaVoiceFingerprint = {
 
   vocabularyProfile: {
     frequentWords: [
-      'wisdom', 'peace', 'truth', 'presence', 'patience',
-      'meaning', 'essence', 'nature', 'deeper', 'insight',
-      'stillness', 'acceptance', 'consciousness', 'ancient',
+      'wisdom',
+      'peace',
+      'truth',
+      'presence',
+      'patience',
+      'meaning',
+      'essence',
+      'nature',
+      'deeper',
+      'insight',
+      'stillness',
+      'acceptance',
+      'consciousness',
+      'ancient',
     ],
     driftIndicators: [
-      'quickly', 'efficient', 'optimize', 'metrics',
-      'immediately', 'asap', 'hustle',
+      'quickly',
+      'efficient',
+      'optimize',
+      'metrics',
+      'immediately',
+      'asap',
+      'hustle',
     ],
   },
 
@@ -608,7 +688,7 @@ export function analyzeSignaturePhraseUsage(
   fingerprint: PersonaVoiceFingerprint
 ): { used: string[]; usageRate: number } {
   const lower = response.toLowerCase();
-  const used = fingerprint.signaturePhrases.filter(phrase => 
+  const used = fingerprint.signaturePhrases.filter((phrase) =>
     lower.includes(phrase.toLowerCase())
   );
   return {
@@ -625,7 +705,7 @@ export function detectAntiPatterns(
   fingerprint: PersonaVoiceFingerprint
 ): { detected: string[]; violationCount: number } {
   const lower = response.toLowerCase();
-  const detected = fingerprint.antiPatterns.filter(pattern =>
+  const detected = fingerprint.antiPatterns.filter((pattern) =>
     lower.includes(pattern.toLowerCase())
   );
   return {
@@ -643,23 +723,21 @@ export function calculateVoiceDrift(
 ): number {
   const { used } = analyzeSignaturePhraseUsage(response, fingerprint);
   const { detected } = detectAntiPatterns(response, fingerprint);
-  
+
   // Check vocabulary drift
   const lower = response.toLowerCase();
   const words = lower.split(/\s+/);
-  const driftWords = words.filter(word => 
-    fingerprint.vocabularyProfile.driftIndicators.some(d => 
-      word.includes(d.toLowerCase())
-    )
+  const driftWords = words.filter((word) =>
+    fingerprint.vocabularyProfile.driftIndicators.some((d) => word.includes(d.toLowerCase()))
   );
-  
+
   // Calculate drift score
   // Penalize for anti-patterns and drift words
   // Reward for signature phrase usage
   const antiPatternPenalty = detected.length * 0.15;
   const driftWordPenalty = (driftWords.length / Math.max(words.length, 1)) * 0.3;
   const signatureBonus = used.length * -0.1;
-  
+
   const rawDrift = antiPatternPenalty + driftWordPenalty + signatureBonus;
   return Math.max(0, Math.min(1, rawDrift));
 }
@@ -674,4 +752,3 @@ export function getVoiceConsistencyScore(
   const drift = calculateVoiceDrift(response, fingerprint);
   return Math.round((1 - drift) * 100);
 }
-

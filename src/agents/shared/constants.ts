@@ -33,6 +33,31 @@ export const SILENCE_THRESHOLDS = {
 
   /** Duration of silence before considering user inactive (seconds) */
   INACTIVE_THRESHOLD_SECONDS: 30,
+
+  /**
+   * Early silence threshold for quick acknowledgment (seconds)
+   * DEAD AIR FIX: If processing takes too long, acknowledge at this point
+   */
+  EARLY_ACKNOWLEDGMENT_SECONDS: 2.5,
+} as const;
+
+// ============================================================================
+// RESPONSE PROCESSING
+// ============================================================================
+
+export const PROCESSING_TIMEOUTS = {
+  /**
+   * Maximum time to wait for turn processing before speaking a filler (ms)
+   * DEAD AIR FIX: Prevents long silences during LLM processing
+   * After this timeout, we speak a thinking filler and continue processing
+   */
+  TURN_PROCESSING_SOFT_TIMEOUT: 2500,
+
+  /**
+   * Hard timeout for turn processing - if exceeded, skip context building (ms)
+   * This is the absolute maximum before we give up on rich context
+   */
+  TURN_PROCESSING_HARD_TIMEOUT: 5000,
 } as const;
 
 // ============================================================================

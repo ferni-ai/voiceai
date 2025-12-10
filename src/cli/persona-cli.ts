@@ -363,7 +363,7 @@ function commandCreate(personaId: string, displayName?: string): void {
 
   // Create default behavior files
   const defaultBehaviors = {
-    greetings: [{ text: "Hello! I'm {name}. How can I help you today?", context: 'first-meeting' }],
+    greetings: [{ text: "Hello! I'm {name}. What's on your mind?", context: 'first-meeting' }],
     goodbyes: [
       { text: 'Take care! Looking forward to our next conversation.', context: 'default' },
     ],
@@ -594,7 +594,7 @@ function bundleBehaviors(bundlePath: string): Record<string, unknown> {
       const name = path.basename(file, '.json');
       try {
         result[name] = JSON.parse(fs.readFileSync(path.join(behaviorsPath, file), 'utf-8'));
-      } catch (e) {
+      } catch (_e) {
         // Skip invalid files
       }
     }
@@ -613,7 +613,7 @@ function bundleStories(bundlePath: string): unknown[] {
       try {
         const story = JSON.parse(fs.readFileSync(path.join(storiesPath, file), 'utf-8'));
         result.push(story);
-      } catch (e) {
+      } catch (_e) {
         // Skip invalid files
       }
     }

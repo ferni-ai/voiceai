@@ -243,7 +243,11 @@ export type {
 // TASK FLOW BUILDERS
 // ============================================================================
 
-import { IntelligentTaskGroup, type IntelligentTask, type TaskContext } from './intelligent-task.js';
+import {
+  IntelligentTaskGroup,
+  type IntelligentTask,
+  type TaskContext,
+} from './intelligent-task.js';
 import { EmotionalSupportTask, CheckInTask } from './support-tasks.js';
 import { FollowUpTask, GoodbyeTask, DeepDiveTask } from './relationship-tasks.js';
 import { WisdomSharingTask, GoalSettingTask, FearAddressingTask } from './advice-tasks.js';

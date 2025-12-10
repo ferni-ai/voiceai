@@ -91,6 +91,10 @@ export interface DeliveryQueueItem {
     subject?: string;
     html?: string;
     mediaUrl?: string;
+    // Additional fields for push/voice channels
+    title?: string;
+    phone?: string;
+    data?: Record<string, string>;
   };
   retryCount: number;
   maxRetries: number;
@@ -254,11 +258,75 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
         }
         break;
 
-      case 'call':
       case 'push':
+        // Use FCM push notifications
+        try {
+          const { sendPushNotification, isPushNotificationsAvailable } = await import(
+            './push-notifications.js'
+          );
+
+          if (!isPushNotificationsAvailable()) {
+            result = { success: false, error: 'Push notifications not configured' };
+          } else {
+            const pushResult = await sendPushNotification({
+              userId: item.userId,
+              outreachId: item.outreachId,
+              personaId: item.personaId,
+              title: item.payload.title || 'Ferni',
+              body: item.payload.body,
+              priority: item.priority === 'high' ? 'high' : 'normal',
+              data: item.payload.data as Record<string, string> | undefined,
+            });
+            const success = pushResult.some((r) => r.success);
+            result = success
+              ? { success: true, messageId: pushResult.find((r) => r.messageId)?.messageId }
+              : { success: false, error: pushResult.map((r) => r.error).join('; ') };
+          }
+        } catch (error) {
+          result = { success: false, error: `Push error: ${error}` };
+        }
+        break;
+
       case 'voice_message':
-        // These are handled by their respective services
-        result = { success: false, error: `${item.channel} delivery not implemented in tracker` };
+        // Use Cartesia TTS + Twilio for voice messages
+        try {
+          const { sendVoiceMessage } = await import('../../reminder-scheduler.js');
+          const toPhone = item.payload.phone;
+
+          if (!toPhone) {
+            result = { success: false, error: 'No phone number for voice message' };
+          } else {
+            const callSid = await sendVoiceMessage(item.outreachId, toPhone);
+            result = callSid
+              ? { success: true, messageId: callSid }
+              : { success: false, error: 'Voice message failed' };
+          }
+        } catch (error) {
+          result = { success: false, error: `Voice message error: ${error}` };
+        }
+        break;
+
+      case 'call':
+        // Use Twilio for outbound calls (handled by voice-call service)
+        try {
+          const { callWithPersonaVoice } = await import('../../voice-call.js');
+          const toPhone = item.payload.phone;
+
+          if (!toPhone) {
+            result = { success: false, error: 'No phone number for call' };
+          } else {
+            const callResult = await callWithPersonaVoice(
+              toPhone,
+              item.payload.body,
+              item.personaId
+            );
+            result = callResult.success
+              ? { success: true, messageId: callResult.callSid }
+              : { success: false, error: callResult.message };
+          }
+        } catch (error) {
+          result = { success: false, error: `Call error: ${error}` };
+        }
         break;
 
       default:

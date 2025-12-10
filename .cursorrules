@@ -367,7 +367,7 @@ class MyUI {
 ### Core Philosophy
 Ferni implements **superhuman emotional intelligence** - the "Better than Human" brand promise. We don't just animate emotions—we **share** emotions with users through subconscious channels.
 
-Reference: `brand/BETTER-THAN-HUMAN.md` | Tokens: `design-system/tokens/motion.json` → `ferniEQ`
+Reference: `design-system/brand/BETTER-THAN-HUMAN.md` | Tokens: `design-system/tokens/motion.json` → `ferniEQ`
 
 ### Five Capabilities (ALL REQUIRED for Avatar/Expression Code)
 
@@ -453,10 +453,26 @@ Before submitting avatar/expression code, verify:
 
 ## 🎨 DESIGN SYSTEM - MANDATORY
 
-### Design System Files (Source of Truth)
-- `public/design-system/tokens.css` - CSS variables for all themes
-- `public/design-system/tokens.ts` - TypeScript constants and utilities
-- `src/config/animation-constants.ts` - Animation timing and easing
+### Source of Truth (JSON Tokens)
+All design tokens live in `design-system/tokens/*.json`. **NEVER edit generated files directly.**
+
+| Source | Generated | Used By |
+|--------|-----------|---------|
+| `tokens/colors.json` | `dist/tokens.css` | Frontend app |
+| `tokens/animation.json` | `animation-constants.generated.ts` | Frontend animations |
+| `tokens/colors.json` | `tailwind.config.generated.js` | Promo website |
+| `tokens/*.json` | `promo/css/design-tokens.css` | Landing page |
+
+### Quick Commands
+```bash
+npm run tokens:sync    # Build & sync all tokens (run after editing JSON)
+npm run tokens:check   # Validate no drift (runs in pre-commit & CI)
+```
+
+### Adding New Design Tokens
+1. Edit the JSON source in `design-system/tokens/`
+2. Run `npm run tokens:sync`
+3. Commit ALL generated files together with source changes
 
 ### REQUIRED Imports for UI Files
 Every file in `src/ui/*.ts` MUST import from the design system:
@@ -608,12 +624,14 @@ Before submitting UI code, verify:
 - [ ] Uses CSS variables for colors/spacing/shadows
 - [ ] Imports @design-system/tokens where needed
 - [ ] Respects `prefers-reduced-motion` media query
+- [ ] `*.generated.ts` files NOT edited directly (edit JSON source instead)
+- [ ] `npm run tokens:check` passes (no token drift)
 
 ## 🎨 BRAND COMPLIANCE - MANDATORY
 
 ### Reference Documents (MUST READ BEFORE UI WORK)
-- `brand/FERNI-BRAND-GUIDELINES.md` - Full brand identity guide
-- `brand/FERNI-SCREEN-GUIDELINES.md` - Digital design standards
+- `design-system/brand/FERNI-BRAND-GUIDELINES.md` - Full brand identity guide
+- `design-system/brand/FERNI-SCREEN-GUIDELINES.md` - Digital design standards
 - `brand/ferni-design-tokens.css` - CSS variable definitions
 
 ### 🚫 BRAND VIOLATIONS - NEVER DO THESE
@@ -1009,6 +1027,54 @@ Before submitting code, verify:
 - [ ] **NO console.log/warn/error** - use `createLogger()` from `utils/logger.js`
 - [ ] UI components have HMR cleanup (`cleanupOrphanedElements`)
 - [ ] Tests cover happy path and edge cases
+
+## 🤖 AI Agent Guardrails
+
+### Before EVERY Code Change
+```bash
+npm run typecheck     # MUST pass before editing more files
+npm run lint          # MUST pass before suggesting deploy
+npm run tokens:check  # MUST pass if touched design-system/
+```
+
+### Common AI Agent Mistakes (AVOID THESE)
+
+| Mistake | Why It Happens | Prevention |
+|---------|---------------|------------|
+| Editing `*.generated.ts` | Looks like normal code | CHECK filename for `.generated.` |
+| Hardcoded `#4a6741` | Faster than looking up var | ALWAYS use `var(--color-ferni)` |
+| Adding `console.log` | Quick debugging | ALWAYS use `createLogger()` |
+| Wrong deploy command | Similar names | CHECK deployment table in CLAUDE.md |
+| Breaking imports | Moving files | Run `npm run typecheck` IMMEDIATELY |
+| Duplicate DOM elements | HMR re-initialization | ADD `cleanupOrphanedElements()` |
+| Token drift | Edited JSON but not synced | Run `npm run tokens:sync` |
+
+### If Pre-commit Fails
+```bash
+# Fix lint errors
+npm run lint:fix
+
+# Fix formatting
+npm run format
+
+# Fix token drift
+npm run tokens:sync && git add -A
+
+# Then retry commit
+git commit -m "your message"
+```
+
+### Generated Files (NEVER EDIT DIRECTLY)
+These files are auto-generated. Edit the SOURCE instead:
+
+| Generated File | Edit This Instead |
+|----------------|-------------------|
+| `animation-constants.generated.ts` | `design-system/tokens/animation.json` |
+| `persona-colors.generated.ts` | `design-system/tokens/colors.json` |
+| `sounds.generated.ts` | `design-system/assets/sounds/` |
+| `tailwind.config.generated.js` | `design-system/tokens/colors.json` |
+| `promo/.../design-tokens.css` | `design-system/tokens/*.json` |
+| `brand/ferni-design-tokens.css` | `design-system/tokens/*.json` |
 
 ## Import Organization
 Imports should be ordered:

@@ -11,13 +11,16 @@
  * 1. Dependencies injected via constructor
  * 2. Returns Result types
  * 3. Registered with DI container
+ *
+ * PERSISTENCE: Milestones, goals, and retirement plans are persisted to Firestore.
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import { Tokens, type Factory, type Container } from './container.js';
-import { Result, success, failure, NotFoundError, type AsyncResult } from '../../types/result.js';
+import { failure, NotFoundError, success, type AsyncResult } from '../../types/result.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { Tokens, type Container, type Factory } from './container.js';
 
 // ============================================================================
 // TYPES (subset - full types in original file)
@@ -115,6 +118,85 @@ export interface LifeDataStoreDeps {
 }
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedMilestone extends Omit<LifeMilestone, 'targetDate' | 'createdAt' | 'updatedAt'> {
+  targetDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PersistedGoal extends Omit<LifeGoal, 'targetDate' | 'createdAt' | 'updatedAt'> {
+  targetDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PersistedRetirementPlan extends Omit<RetirementPlan, 'createdAt' | 'updatedAt'> {
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserLifeData {
+  milestones: PersistedMilestone[];
+  goals: PersistedGoal[];
+  retirementPlan?: PersistedRetirementPlan;
+}
+
+function serializeMilestone(m: LifeMilestone): PersistedMilestone {
+  return {
+    ...m,
+    targetDate: m.targetDate?.toISOString(),
+    createdAt: m.createdAt.toISOString(),
+    updatedAt: m.updatedAt.toISOString(),
+  };
+}
+
+function deserializeMilestone(data: PersistedMilestone): LifeMilestone {
+  return {
+    ...data,
+    targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
+}
+
+function serializeGoal(g: LifeGoal): PersistedGoal {
+  return {
+    ...g,
+    targetDate: g.targetDate?.toISOString(),
+    createdAt: g.createdAt.toISOString(),
+    updatedAt: g.updatedAt.toISOString(),
+  };
+}
+
+function deserializeGoal(data: PersistedGoal): LifeGoal {
+  return {
+    ...data,
+    targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
+}
+
+function serializeRetirementPlan(p: RetirementPlan): PersistedRetirementPlan {
+  return {
+    ...p,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}
+
+function deserializeRetirementPlan(data: PersistedRetirementPlan): RetirementPlan {
+  return {
+    ...data,
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
+}
+
+// ============================================================================
 // SERVICE
 // ============================================================================
 
@@ -123,16 +205,83 @@ export class LifeDataStoreService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly getLogger: () => any;
 
-  // In-memory caches (would be Firestore in production)
+  // In-memory caches backed by Firestore persistence
   private milestones = new Map<string, LifeMilestone[]>();
   private goals = new Map<string, LifeGoal[]>();
   private retirementPlans = new Map<string, RetirementPlan>();
+  private loadedUsers = new Set<string>();
+  private persistence: PersistenceStore<UserLifeData> | null = null;
 
   constructor(deps: LifeDataStoreDeps) {
     this.store = deps.store;
     const loggerDep = deps.logger;
     this.getLogger = typeof loggerDep === 'function' ? loggerDep : () => loggerDep ?? getLogger();
     this.getLogger().info('📋 Life Data Store Service initialized (DI)');
+  }
+
+  private getPersistence(): PersistenceStore<UserLifeData> {
+    if (!this.persistence) {
+      this.persistence = createPersistenceStore<UserLifeData>({
+        collection: 'life_data',
+        documentId: 'data',
+        syncIntervalMs: 3000,
+      });
+    }
+    return this.persistence;
+  }
+
+  private async ensureUserLoaded(userId: string): Promise<void> {
+    if (this.loadedUsers.has(userId)) return;
+
+    try {
+      const data = await this.getPersistence().load(userId);
+      if (data) {
+        if (data.milestones) {
+          this.milestones.set(userId, data.milestones.map(deserializeMilestone));
+        }
+        if (data.goals) {
+          this.goals.set(userId, data.goals.map(deserializeGoal));
+        }
+        if (data.retirementPlan) {
+          this.retirementPlans.set(userId, deserializeRetirementPlan(data.retirementPlan));
+        }
+      }
+      this.loadedUsers.add(userId);
+      this.getLogger().debug({ userId }, 'Loaded life data from persistence');
+    } catch (error) {
+      this.getLogger().warn({ error, userId }, 'Failed to load life data');
+      this.loadedUsers.add(userId);
+    }
+  }
+
+  private persistUserData(userId: string): void {
+    const userMilestones = this.milestones.get(userId) || [];
+    const userGoals = this.goals.get(userId) || [];
+    const retirementPlan = this.retirementPlans.get(userId);
+
+    this.getPersistence().set(userId, {
+      milestones: userMilestones.map(serializeMilestone),
+      goals: userGoals.map(serializeGoal),
+      retirementPlan: retirementPlan ? serializeRetirementPlan(retirementPlan) : undefined,
+    });
+  }
+
+  async flush(): Promise<void> {
+    await this.getPersistence().flush();
+    this.getLogger().info('Life data store persistence flushed');
+  }
+
+  /**
+   * Shutdown and clear all state
+   */
+  async shutdown(): Promise<void> {
+    await this.flush();
+    // Clear state for clean restart
+    this.loadedUsers.clear();
+    this.milestones.clear();
+    this.goals.clear();
+    this.retirementPlans.clear();
+    this.getLogger().info('Life data store service shutdown complete');
   }
 
   // ==========================================================================
@@ -144,6 +293,8 @@ export class LifeDataStoreService {
     data: Omit<LifeMilestone, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
   ): AsyncResult<LifeMilestone, Error> {
     try {
+      await this.ensureUserLoaded(userId);
+
       const milestone: LifeMilestone = {
         ...data,
         id: `milestone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -155,6 +306,7 @@ export class LifeDataStoreService {
       const userMilestones = this.milestones.get(userId) || [];
       userMilestones.push(milestone);
       this.milestones.set(userId, userMilestones);
+      this.persistUserData(userId);
 
       this.getLogger().info({ userId, milestoneId: milestone.id }, 'Milestone created');
       return success(milestone);
@@ -168,6 +320,7 @@ export class LifeDataStoreService {
     milestoneId: string
   ): AsyncResult<LifeMilestone, NotFoundError | Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const userMilestones = this.milestones.get(userId) || [];
       const milestone = userMilestones.find((m) => m.id === milestoneId);
 
@@ -183,6 +336,7 @@ export class LifeDataStoreService {
 
   async listMilestones(userId: string): AsyncResult<LifeMilestone[], Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const userMilestones = this.milestones.get(userId) || [];
       return success(userMilestones);
     } catch (error) {
@@ -196,6 +350,7 @@ export class LifeDataStoreService {
     updates: Partial<LifeMilestone>
   ): AsyncResult<LifeMilestone, NotFoundError | Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const userMilestones = this.milestones.get(userId) || [];
       const index = userMilestones.findIndex((m) => m.id === milestoneId);
 
@@ -213,6 +368,7 @@ export class LifeDataStoreService {
 
       userMilestones[index] = updated;
       this.milestones.set(userId, userMilestones);
+      this.persistUserData(userId);
 
       this.getLogger().debug({ userId, milestoneId }, 'Milestone updated');
       return success(updated);
@@ -226,6 +382,7 @@ export class LifeDataStoreService {
     milestoneId: string
   ): AsyncResult<void, NotFoundError | Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const userMilestones = this.milestones.get(userId) || [];
       const index = userMilestones.findIndex((m) => m.id === milestoneId);
 
@@ -235,6 +392,7 @@ export class LifeDataStoreService {
 
       userMilestones.splice(index, 1);
       this.milestones.set(userId, userMilestones);
+      this.persistUserData(userId);
 
       this.getLogger().debug({ userId, milestoneId }, 'Milestone deleted');
       return success(undefined);
@@ -252,6 +410,7 @@ export class LifeDataStoreService {
     data: Omit<LifeGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
   ): AsyncResult<LifeGoal, Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const goal: LifeGoal = {
         ...data,
         id: `goal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -263,6 +422,7 @@ export class LifeDataStoreService {
       const userGoals = this.goals.get(userId) || [];
       userGoals.push(goal);
       this.goals.set(userId, userGoals);
+      this.persistUserData(userId);
 
       this.getLogger().info({ userId, goalId: goal.id }, 'Goal created');
       return success(goal);
@@ -273,6 +433,7 @@ export class LifeDataStoreService {
 
   async listGoals(userId: string, category?: LifeGoalCategory): AsyncResult<LifeGoal[], Error> {
     try {
+      await this.ensureUserLoaded(userId);
       let userGoals = this.goals.get(userId) || [];
 
       if (category) {
@@ -291,6 +452,7 @@ export class LifeDataStoreService {
     progressPercent: number
   ): AsyncResult<LifeGoal, NotFoundError | Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const userGoals = this.goals.get(userId) || [];
       const index = userGoals.findIndex((g) => g.id === goalId);
 
@@ -308,6 +470,7 @@ export class LifeDataStoreService {
 
       userGoals[index] = updated;
       this.goals.set(userId, userGoals);
+      this.persistUserData(userId);
 
       return success(updated);
     } catch (error) {
@@ -321,6 +484,7 @@ export class LifeDataStoreService {
 
   async getRetirementPlan(userId: string): AsyncResult<RetirementPlan | null, Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const plan = this.retirementPlans.get(userId);
       return success(plan || null);
     } catch (error) {
@@ -333,6 +497,7 @@ export class LifeDataStoreService {
     data: Omit<RetirementPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
   ): AsyncResult<RetirementPlan, Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const existing = this.retirementPlans.get(userId);
 
       const plan: RetirementPlan = {
@@ -344,6 +509,7 @@ export class LifeDataStoreService {
       };
 
       this.retirementPlans.set(userId, plan);
+      this.persistUserData(userId);
       this.getLogger().info({ userId }, 'Retirement plan saved');
 
       return success(plan);
@@ -358,6 +524,7 @@ export class LifeDataStoreService {
 
   async getLifePortfolio(userId: string): AsyncResult<LifePortfolio, Error> {
     try {
+      await this.ensureUserLoaded(userId);
       const goals = this.goals.get(userId) || [];
 
       // Calculate satisfaction per category

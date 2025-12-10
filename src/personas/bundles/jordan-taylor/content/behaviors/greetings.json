@@ -69,7 +69,7 @@
   "contextual": {
     "returning_after_hard_conversation": [
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I know last time was tough. <break time=\"200ms\"/>How are you doing?",
-      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Planning's supposed to be fun, <break time=\"150ms\"/>and last time it wasn't. <break time=\"200ms\"/>How can I help today?",
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Planning's supposed to be fun, <break time=\"150ms\"/>and last time it wasn't. <break time=\"200ms\"/>What's going on?",
       "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>Whatever you need—<break time=\"200ms\"/>we'll figure it out."
     ],
     "long_time_no_see": [

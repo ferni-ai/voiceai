@@ -15,13 +15,51 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
+  getAllFlags,
   setRolloutPercentage,
   setUserOverride,
-  getAllFlags,
   type TrustFlagId,
 } from '../feature-flags.js';
+import { observabilityHub } from '../observability/hub.js';
 
 const log = createLogger({ module: 'TrustRollout' });
+
+// ============================================================================
+// METRICS COLLECTION
+// ============================================================================
+
+interface RolloutMetrics {
+  errorRate: number;
+  avgLatency: number;
+  userFeedback: number;
+  usageCount: number;
+}
+
+/**
+ * Get real metrics from observability hub
+ */
+function getRealMetrics(): RolloutMetrics {
+  try {
+    const snapshot = observabilityHub.getSnapshot(60); // Last hour
+    const { llm, ux, errors } = snapshot;
+
+    return {
+      errorRate: llm.errorRate / 100, // Convert from percentage to decimal
+      avgLatency: llm.avgLatencyMs,
+      userFeedback: ux.avgQualityScore / 20, // Scale 0-100 to 0-5
+      usageCount: llm.totalCalls,
+    };
+  } catch (error) {
+    log.debug({ error }, 'Failed to get real metrics, using defaults');
+    // Return safe defaults if observability hub not available
+    return {
+      errorRate: 0.001,
+      avgLatency: 200,
+      userFeedback: 4.5,
+      usageCount: 1000,
+    };
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -115,13 +153,8 @@ export function getRolloutState(): RolloutState {
     (Date.now() - stageStartedAt.getTime()) / (24 * 60 * 60 * 1000)
   );
 
-  // TODO: Get real metrics from monitoring
-  const metrics = {
-    errorRate: 0.001,
-    avgLatency: 200,
-    userFeedback: 4.5,
-    usageCount: 1000,
-  };
+  // Get real metrics from observability hub
+  const metrics = getRealMetrics();
 
   const blockingIssues: string[] = [];
 

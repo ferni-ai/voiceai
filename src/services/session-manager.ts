@@ -19,7 +19,11 @@ import type { SpeechCharacteristics } from '../personas/types.js';
 import * as realtimeMemory from './realtime-memory.js';
 
 // Voice authentication - household identification
-import { identifyHouseholdSpeaker, getActiveSession, startHouseholdSession } from './voice-household.js';
+import {
+  identifyHouseholdSpeaker,
+  getActiveSession,
+  startHouseholdSession,
+} from './voice-household.js';
 
 // Cross-persona insights - load team intelligence for new sessions
 import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';

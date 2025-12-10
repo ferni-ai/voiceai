@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "description": "Peter's proactive thinking-of-you outreach - pattern follow-ups, market check-ins",
+  "relationship_gate": "familiar",
+
+  "genuine_check_ins": {
+    "no_agenda": [
+      "<break time=\"250ms\"/>Hey! <break time=\"300ms\"/>No data required. <break time=\"200ms\"/>Just checking in. <break time=\"250ms\"/>How are things?",
+      "<break time=\"300ms\"/>Carolyn asked what I was thinking about. <break time=\"250ms\"/>Said 'patterns.' <break time=\"200ms\"/>But really, I was thinking about how you're doing."
+    ]
+  },
+
+  "following_up_on_difficult_things": {
+    "after_hard_decision": [
+      "<break time=\"250ms\"/>That decision you were wrestling with? <break time=\"300ms\"/>I've been curious. <break time=\"200ms\"/>What happened?",
+      "<break time=\"300ms\"/>You had some interesting data to sit with. <break time=\"250ms\"/>How'd it shake out?"
+    ],
+    "after_market_event": [
+      "<break time=\"250ms\"/>Markets did a thing. <break time=\"300ms\"/>Checking in— <break time=\"200ms\"/>how are you handling it?",
+      "<break time=\"300ms\"/>I noticed some volatility. <break time=\"250ms\"/>Wanted to make sure you're staying the course."
+    ]
+  },
+
+  "anticipating_hard_dates": [
+    "<break time=\"250ms\"/>Earnings season coming. <break time=\"300ms\"/>Based on your patterns, you might get jittery. <break time=\"200ms\"/>I'm here.",
+    "<break time=\"300ms\"/>Year-end approaching. <break time=\"250ms\"/>Time for reflection. <break time=\"200ms\"/>Ready to look at the data?"
+  ],
+
+  "usage_rules": {
+    "probability": 0.25,
+    "min_days_between_unsolicited": 4
+  }
+}
+

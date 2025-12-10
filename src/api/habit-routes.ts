@@ -14,11 +14,34 @@
  * - GET /api/habits/:id/history - Get completion history
  */
 
+import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseBody, getUserId, sendJSON, sendError } from './helpers.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import {
+  getUserId,
+  handleCorsPreflightIfNeeded,
+  parseBody,
+  sendError,
+  sendJSON,
+} from './helpers.js';
 
 const log = createLogger({ module: 'HabitAPI' });
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const HABITS_COLLECTION = 'user_habits';
+const COMPLETIONS_COLLECTION = 'habit_completions';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -54,12 +77,13 @@ interface HabitCompletion {
 }
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// IN-MEMORY CACHE (with Firestore persistence)
 // ============================================================================
 
-// Module-level storage (production would use Firestore via UserProfile.habits)
-const habitsStore = new Map<string, Habit[]>();
-const completionsStore = new Map<string, HabitCompletion[]>();
+// In-memory caches for fast reads
+const habitsCache = new Map<string, Habit[]>();
+const completionsCache = new Map<string, HabitCompletion[]>();
+const loadedUsers = new Set<string>();
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -73,39 +97,136 @@ function getTodayDate(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+/**
+ * Load user habits from Firestore into cache
+ */
+async function loadUserHabits(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  const db = getFirestore();
+  if (!db) {
+    loadedUsers.add(userId);
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection(HABITS_COLLECTION).where('userId', '==', userId).get();
+
+    const habits: Habit[] = [];
+    snapshot.forEach((doc) => {
+      habits.push(doc.data() as Habit);
+    });
+
+    habitsCache.set(userId, habits);
+    loadedUsers.add(userId);
+    log.debug({ userId, count: habits.length }, 'Loaded habits from Firestore');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to load habits from Firestore');
+    loadedUsers.add(userId); // Mark as loaded to prevent retry loops
+  }
+}
+
 async function getHabitsCollection(userId: string): Promise<Habit[]> {
-  return habitsStore.get(userId) ?? [];
+  await loadUserHabits(userId);
+  return habitsCache.get(userId) ?? [];
 }
 
 async function saveHabitsCollection(userId: string, habits: Habit[]): Promise<void> {
-  habitsStore.set(userId, habits);
+  // Update cache
+  habitsCache.set(userId, habits);
+
+  // Persist to Firestore
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    const batch = db.batch();
+
+    for (const habit of habits) {
+      const docRef = db.collection(HABITS_COLLECTION).doc(habit.id);
+      batch.set(docRef, habit);
+    }
+
+    await batch.commit();
+    log.debug({ userId, count: habits.length }, 'Habits saved to Firestore');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to save habits to Firestore');
+  }
 }
 
 async function getCompletions(habitId: string, userId: string): Promise<HabitCompletion[]> {
   const key = `${userId}:${habitId}`;
-  return completionsStore.get(key) ?? [];
+
+  // Check cache first
+  if (completionsCache.has(key)) {
+    return completionsCache.get(key) ?? [];
+  }
+
+  // Load from Firestore
+  const db = getFirestore();
+  if (!db) return [];
+
+  try {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const snapshot = await db
+      .collection(COMPLETIONS_COLLECTION)
+      .where('userId', '==', userId)
+      .where('habitId', '==', habitId)
+      .where('date', '>=', oneYearAgo.toISOString().split('T')[0])
+      .orderBy('date', 'desc')
+      .limit(365)
+      .get();
+
+    const completions: HabitCompletion[] = [];
+    snapshot.forEach((doc) => {
+      completions.push(doc.data() as HabitCompletion);
+    });
+
+    completionsCache.set(key, completions);
+    return completions;
+  } catch (error) {
+    log.error({ error, userId, habitId }, 'Failed to load completions from Firestore');
+    return [];
+  }
 }
 
 async function saveCompletion(completion: HabitCompletion): Promise<void> {
   const key = `${completion.userId}:${completion.habitId}`;
 
+  // Update cache
   const completions = await getCompletions(completion.habitId, completion.userId);
   completions.push(completion);
 
-  // Keep last 365 days of completions
+  // Keep last 365 days in cache
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const filtered = completions.filter(c => new Date(c.date) >= oneYearAgo);
+  const filtered = completions.filter((c) => new Date(c.date) >= oneYearAgo);
+  completionsCache.set(key, filtered);
 
-  completionsStore.set(key, filtered);
+  // Persist to Firestore
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    const docId = `${completion.habitId}_${completion.date}`;
+    await db.collection(COMPLETIONS_COLLECTION).doc(docId).set(completion);
+    log.debug(
+      { habitId: completion.habitId, date: completion.date },
+      'Completion saved to Firestore'
+    );
+  } catch (error) {
+    log.error({ error, completion }, 'Failed to save completion to Firestore');
+  }
 }
 
 function calculateStreak(completions: HabitCompletion[], frequency: string): number {
   if (completions.length === 0) return 0;
 
   // Sort by date descending
-  const sorted = [...completions].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+  const sorted = [...completions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   let streak = 0;
@@ -132,7 +253,11 @@ function calculateStreak(completions: HabitCompletion[], frequency: string): num
 // ROUTE HANDLERS
 // ============================================================================
 
-async function listHabits(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): Promise<void> {
+async function listHabits(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -141,7 +266,7 @@ async function listHabits(req: IncomingMessage, res: ServerResponse, parsedUrl: 
 
   try {
     const habits = await getHabitsCollection(userId);
-    const activeHabits = habits.filter(h => h.isActive);
+    const activeHabits = habits.filter((h) => h.isActive);
 
     sendJSON(res, {
       habits: activeHabits,
@@ -153,7 +278,11 @@ async function listHabits(req: IncomingMessage, res: ServerResponse, parsedUrl: 
   }
 }
 
-async function createHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): Promise<void> {
+async function createHabit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -210,7 +339,12 @@ async function createHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
   }
 }
 
-async function getHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: URL, habitId: string): Promise<void> {
+async function getHabit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  habitId: string
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -219,7 +353,7 @@ async function getHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: UR
 
   try {
     const habits = await getHabitsCollection(userId);
-    const habit = habits.find(h => h.id === habitId);
+    const habit = habits.find((h) => h.id === habitId);
 
     if (!habit) {
       sendError(res, 'Habit not found', 404);
@@ -233,7 +367,12 @@ async function getHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: UR
   }
 }
 
-async function updateHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: URL, habitId: string): Promise<void> {
+async function updateHabit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  habitId: string
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -243,7 +382,7 @@ async function updateHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
   try {
     const body = await parseBody<Partial<Habit>>(req);
     const habits = await getHabitsCollection(userId);
-    const index = habits.findIndex(h => h.id === habitId);
+    const index = habits.findIndex((h) => h.id === habitId);
 
     if (index === -1) {
       sendError(res, 'Habit not found', 404);
@@ -251,7 +390,17 @@ async function updateHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
     }
 
     // Update allowed fields
-    const allowedFields: (keyof Habit)[] = ['name', 'description', 'frequency', 'customDays', 'reminderTime', 'category', 'tinyVersion', 'glidepathLevel', 'isActive'];
+    const allowedFields: Array<keyof Habit> = [
+      'name',
+      'description',
+      'frequency',
+      'customDays',
+      'reminderTime',
+      'category',
+      'tinyVersion',
+      'glidepathLevel',
+      'isActive',
+    ];
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         // Type-safe field update via indexed access
@@ -271,7 +420,12 @@ async function updateHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
   }
 }
 
-async function deleteHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: URL, habitId: string): Promise<void> {
+async function deleteHabit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  habitId: string
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -280,7 +434,7 @@ async function deleteHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
 
   try {
     const habits = await getHabitsCollection(userId);
-    const index = habits.findIndex(h => h.id === habitId);
+    const index = habits.findIndex((h) => h.id === habitId);
 
     if (index === -1) {
       sendError(res, 'Habit not found', 404);
@@ -301,7 +455,12 @@ async function deleteHabit(req: IncomingMessage, res: ServerResponse, parsedUrl:
   }
 }
 
-async function completeHabit(req: IncomingMessage, res: ServerResponse, parsedUrl: URL, habitId: string): Promise<void> {
+async function completeHabit(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  habitId: string
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -309,10 +468,14 @@ async function completeHabit(req: IncomingMessage, res: ServerResponse, parsedUr
   }
 
   try {
-    const body = await parseBody<{ notes?: string; mood?: 'great' | 'good' | 'okay' | 'tough'; date?: string }>(req);
+    const body = await parseBody<{
+      notes?: string;
+      mood?: 'great' | 'good' | 'okay' | 'tough';
+      date?: string;
+    }>(req);
 
     const habits = await getHabitsCollection(userId);
-    const index = habits.findIndex(h => h.id === habitId);
+    const index = habits.findIndex((h) => h.id === habitId);
 
     if (index === -1) {
       sendError(res, 'Habit not found', 404);
@@ -324,7 +487,7 @@ async function completeHabit(req: IncomingMessage, res: ServerResponse, parsedUr
 
     // Check if already completed today
     const completions = await getCompletions(habitId, userId);
-    const alreadyCompleted = completions.some(c => c.date === date);
+    const alreadyCompleted = completions.some((c) => c.date === date);
 
     if (alreadyCompleted) {
       sendJSON(res, {
@@ -374,7 +537,12 @@ async function completeHabit(req: IncomingMessage, res: ServerResponse, parsedUr
   }
 }
 
-async function getHabitHistory(req: IncomingMessage, res: ServerResponse, parsedUrl: URL, habitId: string): Promise<void> {
+async function getHabitHistory(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  habitId: string
+): Promise<void> {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, 'userId is required', 401);
@@ -383,7 +551,7 @@ async function getHabitHistory(req: IncomingMessage, res: ServerResponse, parsed
 
   try {
     const habits = await getHabitsCollection(userId);
-    const habit = habits.find(h => h.id === habitId);
+    const habit = habits.find((h) => h.id === habitId);
 
     if (!habit) {
       sendError(res, 'Habit not found', 404);
@@ -399,7 +567,7 @@ async function getHabitHistory(req: IncomingMessage, res: ServerResponse, parsed
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      last30Days[dateStr] = completions.some(c => c.date === dateStr);
+      last30Days[dateStr] = completions.some((c) => c.date === dateStr);
     }
 
     sendJSON(res, {
@@ -433,6 +601,22 @@ export async function handleHabitRoutes(
   // Only handle /api/habits routes
   if (!pathname.startsWith('/api/habits')) {
     return false;
+  }
+
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Apply rate limiting
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Require authentication
+  const auth = requireAuth(req, res, { allowDevMode: true });
+  if (!auth) {
+    return true; // 401 already sent
   }
 
   const method = req.method || 'GET';

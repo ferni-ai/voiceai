@@ -508,7 +508,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       if (previewUrl) {
         getLogger().info('No device - falling back to preview stream');
         const musicPlayer = getMusicPlayer();
-        
+
         // 🚨 Check if music player is initialized
         if (!musicPlayer.isInitialized()) {
           getLogger().error('🎵 [Spotify] Music player not initialized for fallback preview!');

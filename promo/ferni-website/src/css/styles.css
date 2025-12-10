@@ -1,35 +1,35 @@
+/* Import design tokens - SINGLE SOURCE OF TRUTH */
+@import './_tokens.css';
+
+/* Ferni EQ - Superhuman Emotional Intelligence Animations */
+@import './ferni-eq.css';
+
+/* Better Than Human - Apple-Level Polish */
+@import './better-than-human-polish.css';
+
+/* Hero Story Experience - Cinematic Demo */
+@import './hero-story.css';
+
 :root {
-  --color-bg: #f5f1e8;
-  --color-bg-secondary: #e8e0d5;
+  /* Aliases that map to design tokens */
+  --color-bg: var(--color-bg-primary);
   --color-bg-tertiary: #ebe6df;
-  --color-bg-elevated: #fffdfb;
   --color-bg-glass: rgba(245, 241, 232, 0.85);
   --color-bg-overlay: rgba(245, 241, 232, 0.95);
-  --color-text: #2c2520;
-  --color-text-secondary: #5c544a;
-  --color-text-muted: #756a5e;
-  --color-text-dimmed: #a89d90;
-  --color-text-inverse: #f5f1e8;
-  --color-accent: #3d5a45;
-  --color-accent-hover: #4a6d52;
-  --color-accent-pressed: #325038;
+  --color-text: var(--color-text-primary);
+  --color-text-inverse: var(--color-bg-primary);
   --color-accent-glow: rgba(61, 90, 69, 0.15);
   --color-accent-subtle: rgba(61, 90, 69, 0.05);
-  --color-success: #3d7a52;
-  --color-error: #b5453a;
-  --color-warning: #a67c35;
   --color-info: #3a6b9c;
   --color-wood: #a8896c;
   --color-wood-light: #d4c4b0;
   --color-bamboo: #7a8f5a;
   --color-stone: #8a8075;
-  --color-sand: #e8e0d5;
+  --color-sand: var(--color-bg-secondary);
   --color-moss: #5a7a3d;
-  --color-paper: #faf8f5;
-  --color-ink: #2c2520;
+  --color-paper: var(--color-bg-primary);
+  --color-ink: var(--color-text-primary);
   --color-tea: #c4a77d;
-  --color-ferni: #4a6741;
-  --color-ferni-secondary: #3d5a35;
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
   --color-border: rgba(44, 37, 32, 0.08);
   --color-border-medium: rgba(44, 37, 32, 0.12);
@@ -37,7 +37,7 @@
   /* Dark section backgrounds */
   --color-dark-bg: #2c2520;
   --color-dark-bg-elevated: #3a332d;
-  --color-dark-text: #f5f1e8;
+  --color-dark-text: var(--color-bg-primary);
   --color-dark-text-secondary: #d4cec5;
   --color-dark-text-muted: #a89d90;
   --font-display:
@@ -3346,4 +3346,3 @@ button {
   height: 100%;
   display: block;
 }
-

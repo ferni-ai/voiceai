@@ -61,13 +61,15 @@ const tokensDir = path.join(__dirname, 'tokens');
 let rebuildTimeout = null;
 
 function rebuild() {
-  console.log('🔄 Token change detected, rebuilding...');
-  exec('node ' + path.join(__dirname, 'build.js'), (err, stdout, stderr) => {
+  console.log('🔄 Token change detected, running full sync...');
+  // Run tokens:sync which builds everything: CSS, animation constants, Tailwind config, promo
+  const rootDir = path.join(__dirname, '..');
+  exec('npm run tokens:sync', { cwd: rootDir }, (err, stdout, stderr) => {
     if (err) {
-      console.error('❌ Build error:', stderr);
+      console.error('❌ Sync error:', stderr);
     } else {
       console.log(stdout);
-      console.log('✨ Reload the browser to see changes');
+      console.log('✨ All tokens synced! Reload the browser to see changes');
     }
   });
 }
@@ -85,12 +87,13 @@ server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║   🎨  VoiceAI Design System                                   ║
+║   🎨  Ferni Design System                                     ║
 ║                                                               ║
 ║   Style Guide:  http://localhost:${PORT}                        ║
 ║   Tokens CSS:   http://localhost:${PORT}/dist/tokens.css        ║
 ║                                                               ║
-║   Watching tokens/*.json for changes...                       ║
+║   ⚡ Watching tokens/*.json for changes...                    ║
+║   Auto-syncs: CSS, Animation Constants, Tailwind, Promo       ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);

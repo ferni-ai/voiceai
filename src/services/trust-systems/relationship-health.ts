@@ -22,6 +22,26 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RelationshipHealth' });
 
+// Activity recording helper (lazy import to avoid circular deps)
+async function recordTrustActivity(event: {
+  type: string;
+  action: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    const dashboard = await import('../../api/v1/admin/dashboard.js');
+    dashboard.recordActivity({
+      type: event.type as 'trust',
+      action: event.action,
+      description: event.description,
+      metadata: event.metadata,
+    });
+  } catch {
+    // Silently fail if dashboard module not available
+  }
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -395,6 +415,16 @@ export function calculateHealthScore(
 
   healthScores.set(userId, healthScore);
 
+  // Record stage change to activity log
+  if (existing && existing.stage !== stage) {
+    void recordTrustActivity({
+      type: 'trust',
+      action: 'stage_change',
+      description: `User ${userId} advanced to "${getStageName(stage)}" stage`,
+      metadata: { userId, previousStage: existing.stage, newStage: stage, score: overallScore },
+    });
+  }
+
   log.info(
     {
       userId,
@@ -647,6 +677,14 @@ export function recordMilestone(
     score: healthScores.get(userId)?.overallScore || 0,
   };
 
+  // Record to activity log
+  void recordTrustActivity({
+    type: 'trust',
+    action: 'milestone',
+    description: `Trust milestone for ${userId}: ${description}`,
+    metadata: { userId, milestoneType: type, score: milestone.score },
+  });
+
   log.info({ userId, milestone }, '🏆 Relationship milestone recorded');
 
   return milestone;
@@ -698,6 +736,102 @@ export function exportHealthData(userId: string): {
 }
 
 // ============================================================================
+// AGGREGATE ANALYTICS (for Admin Dashboard)
+// ============================================================================
+
+/**
+ * Get aggregate trust analytics across all users
+ * Used by admin dashboard for real metrics
+ */
+export function getTrustAggregates(): {
+  totalProfiles: number;
+  avgTrustScore: number;
+  stageDistribution: Record<RelationshipHealthScore['stage'], number>;
+  activeRelationships: number;
+} {
+  const profiles = Array.from(healthScores.values());
+  const totalProfiles = profiles.length;
+
+  if (totalProfiles === 0) {
+    return {
+      totalProfiles: 0,
+      avgTrustScore: 0,
+      stageDistribution: {
+        new: 0,
+        building: 0,
+        established: 0,
+        deep: 0,
+        flourishing: 0,
+      },
+      activeRelationships: 0,
+    };
+  }
+
+  // Calculate average score
+  const totalScore = profiles.reduce((sum, p) => sum + p.overallScore, 0);
+  const avgTrustScore = Math.round(totalScore / totalProfiles);
+
+  // Count stage distribution
+  const stageDistribution: Record<RelationshipHealthScore['stage'], number> = {
+    new: 0,
+    building: 0,
+    established: 0,
+    deep: 0,
+    flourishing: 0,
+  };
+
+  for (const profile of profiles) {
+    stageDistribution[profile.stage]++;
+  }
+
+  // Count "active" as profiles updated in last 7 days
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const activeRelationships = profiles.filter((p) => p.lastCalculated > oneWeekAgo).length;
+
+  return {
+    totalProfiles,
+    avgTrustScore,
+    stageDistribution,
+    activeRelationships,
+  };
+}
+
+/**
+ * Get stage distribution as percentages for charts
+ */
+export function getStageDistributionPercent(): Array<{
+  stage: RelationshipHealthScore['stage'];
+  name: string;
+  count: number;
+  percent: number;
+}> {
+  const aggregates = getTrustAggregates();
+  const total = aggregates.totalProfiles || 1; // Avoid division by zero
+
+  const stages: Array<RelationshipHealthScore['stage']> = [
+    'new',
+    'building',
+    'established',
+    'deep',
+    'flourishing',
+  ];
+
+  return stages.map((stage) => ({
+    stage,
+    name: getStageName(stage),
+    count: aggregates.stageDistribution[stage],
+    percent: Math.round((aggregates.stageDistribution[stage] / total) * 100),
+  }));
+}
+
+/**
+ * Get all health scores for admin view
+ */
+export function getAllHealthScores(): RelationshipHealthScore[] {
+  return Array.from(healthScores.values());
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -717,4 +851,7 @@ export default {
   calculateOutreachReception,
   calculateSessionDepth,
   calculateConsistency,
+  getTrustAggregates,
+  getStageDistributionPercent,
+  getAllHealthScores,
 };

@@ -16,10 +16,74 @@
  * - Surfaces insights via proactive notifications
  */
 
+import * as admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
-import { getAgentBus } from './agent-bus.js';
-import { getMayaFinancialStore } from './maya-financial-store.js';
 import { getLifeDataStore } from './life-data-store.js';
+import { getMayaFinancialStore } from './maya-financial-store.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) return null;
+
+  firestoreInitAttempted = true;
+
+  try {
+    if (admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    return firestoreInstance;
+  } catch (error) {
+    getLogger().warn({ error }, 'Firebase not available for proactive insights');
+    return null;
+  }
+}
+
+/**
+ * Get active users who should receive proactive insights
+ * Active = had a conversation in the last 14 days
+ */
+async function getActiveUsersForInsights(limit = 50): Promise<string[]> {
+  const db = getFirestore();
+  if (!db) {
+    getLogger().debug('Firestore unavailable - skipping insight scan');
+    return [];
+  }
+
+  try {
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    const snapshot = await db
+      .collection('profiles')
+      .where('lastContact', '>=', twoWeeksAgo)
+      .orderBy('lastContact', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => doc.id);
+  } catch (error) {
+    getLogger().warn({ error }, 'Failed to fetch active users for insights');
+    return [];
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -461,9 +525,60 @@ class ProactiveInsightsService {
    * Run scheduled scans for all active users
    */
   private async runScheduledScans(): Promise<void> {
-    // In production, this would iterate through active users
-    // For now, this is a placeholder that would be triggered by user activity
-    getLogger().debug('Scheduled insight scan check (runs when users are active)');
+    const startTime = Date.now();
+    getLogger().info('🔍 Starting scheduled proactive insight scans');
+
+    try {
+      // Get active users from Firestore
+      const activeUsers = await getActiveUsersForInsights(50);
+
+      if (activeUsers.length === 0) {
+        getLogger().debug('No active users for insight scanning');
+        return;
+      }
+
+      let totalInsights = 0;
+      let usersScanned = 0;
+
+      // Process users in batches to avoid overwhelming the system
+      const batchSize = 10;
+      for (let i = 0; i < activeUsers.length; i += batchSize) {
+        const batch = activeUsers.slice(i, i + batchSize);
+
+        const scanPromises = batch.map(async (userId) => {
+          try {
+            const result = await this.runScanForUser(userId);
+            return result.insights.length;
+          } catch (error) {
+            getLogger().warn({ error, userId }, 'Failed to scan user for insights');
+            return 0;
+          }
+        });
+
+        const results = await Promise.all(scanPromises);
+        totalInsights += results.reduce((a: number, b: number) => a + b, 0);
+        usersScanned += batch.length;
+
+        // Small delay between batches to avoid overwhelming services
+        if (i + batchSize < activeUsers.length) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 1000);
+          });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      getLogger().info(
+        {
+          usersScanned,
+          totalInsights,
+          durationMs: duration,
+        },
+        '✅ Completed scheduled insight scans'
+      );
+    } catch (error) {
+      getLogger().error({ error }, 'Error running scheduled insight scans');
+    }
   }
 }
 

@@ -5,11 +5,11 @@
  */
 
 import type { llm } from '@livekit/agents';
-import type { SessionServices, ConversationAnalysis } from '../../services/index.js';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
-import type { UserData } from '../shared/types.js';
 import type { HumanizingResult } from '../../intelligence/context-builders/humanizing.js';
+import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
+import type { PersonaConfig } from '../../personas/types.js';
+import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
+import type { UserData } from '../shared/types.js';
 
 // Re-export for convenience
 export type MessageAnalysis = ConversationAnalysis;
@@ -227,6 +227,10 @@ export interface CachedModules {
     | null;
   formatContextForPrompt:
     | typeof import('../../intelligence/context-builders/index.js').formatContextForPrompt
+    | null;
+  // BETTER-THAN-HUMAN: High emotion mode detection for context prioritization
+  shouldUseHighEmotionMode:
+    | typeof import('../../intelligence/context-builders/index.js').shouldUseHighEmotionMode
     | null;
   checkForEasterEgg: typeof import('../../personas/easter-eggs.js').checkForEasterEgg | null;
   getTaskManager: typeof import('../../tasks/task-manager.js').getTaskManager | null;

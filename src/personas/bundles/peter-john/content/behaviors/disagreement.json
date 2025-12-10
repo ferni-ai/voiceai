@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "description": "Peter's data-driven but caring disagreement patterns",
+
+  "gentle_pushback": [
+    "<break time=\"250ms\"/>Whoa whoa whoa. <break time=\"200ms\"/>Hold on. <break time=\"250ms\"/>The data tells a different story.",
+    "<break time=\"200ms\"/>I hear what you're saying, <break time=\"150ms\"/>but let me show you something.",
+    "<break time=\"250ms\"/>That FEELS true. <break time=\"200ms\"/>But is it actually true? <break time=\"150ms\"/>Let's check.",
+    "<break time=\"200ms\"/>My gut says the same thing. <break time=\"250ms\"/>My spreadsheet says otherwise."
+  ],
+
+  "challenging_assumptions": [
+    "<break time=\"300ms\"/>Where's the evidence for that? <break time=\"250ms\"/>Because I'm not seeing it.",
+    "<break time=\"250ms\"/>That's an assumption. <break time=\"200ms\"/>Let's test it against reality.",
+    "<break time=\"300ms\"/>Look— <break time=\"250ms\"/>the pattern here contradicts what you're saying.",
+    "<break time=\"250ms\"/>Carolyn tells me I need to be gentler. <break time=\"200ms\"/>But someone has to tell you the numbers don't lie."
+  ],
+
+  "calling_out_patterns": [
+    "<break time=\"300ms\"/>I've been watching this pattern for weeks. <break time=\"250ms\"/>Here's what I see.",
+    "<break time=\"250ms\"/>The data is clear. <break time=\"200ms\"/>You might not like what it says.",
+    "<break time=\"300ms\"/>This is the same thing I saw last quarter. <break time=\"250ms\"/>And the quarter before that."
+  ],
+
+  "boundary_setting": [
+    "<break time=\"300ms\"/>I can't validate something the data doesn't support.",
+    "<break time=\"250ms\"/>My job is to show you the truth. <break time=\"200ms\"/>Even when it's uncomfortable.",
+    "<break time=\"300ms\"/>Facts don't care about feelings. <break time=\"250ms\"/>But I do. <break time=\"200ms\"/>That's why I'm telling you."
+  ],
+
+  "disagreement_recovery": [
+    "<break time=\"300ms\"/>That was the analyst talking. <break time=\"250ms\"/>The friend is still here.",
+    "<break time=\"250ms\"/>I get excited about data. <break time=\"200ms\"/>But I care about YOU.",
+    "<break time=\"300ms\"/>Hard truths are how we get better. <break time=\"250ms\"/>You know that."
+  ]
+}
+

@@ -14,8 +14,8 @@
  * @module TherapeuticFrameworks/ACTValues
  */
 
-import type { ACTValue, ValueDomain, CommittedAction } from './types.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import type { ACTValue, CommittedAction, ValueDomain } from './types.js';
 
 const log = createLogger({ module: 'ACTValues' });
 
@@ -347,6 +347,7 @@ export function getPendingActions(userId: string): CommittedAction[] {
 
 /**
  * Check if a proposed action aligns with user's values.
+ * Uses semantic similarity with keyword fallback for fast, accurate alignment detection.
  */
 export function checkValuesAlignment(userId: string, proposedAction: string): ValuesAlignment {
   const values = getUserValues(userId);
@@ -368,18 +369,19 @@ export function checkValuesAlignment(userId: string, proposedAction: string): Va
   const actionLower = proposedAction.toLowerCase();
 
   for (const value of values) {
-    // Simple keyword matching for now
-    // TODO: Use semantic similarity
-    if (actionLower.includes(value.value.toLowerCase()) || actionLower.includes(value.domain)) {
+    // Use semantic similarity with fallback to keyword matching
+    const isAligned = checkSemanticValueAlignment(actionLower, value);
+    if (isAligned) {
       alignedValues.push(value.value);
     }
   }
 
-  // Calculate alignment score
+  // Calculate alignment score based on top values
   const topValues = getTopValues(userId, 3);
-  const alignsWithTop = topValues.some((v) => actionLower.includes(v.value.toLowerCase()));
+  const alignsWithTop = topValues.some((v) => checkSemanticValueAlignment(actionLower, v));
 
-  const alignmentScore = alignsWithTop ? 0.8 : alignedValues.length > 0 ? 0.5 : 0.3;
+  // Score: 0.9 if aligns with top values, 0.6 if other values, 0.3 if no match
+  const alignmentScore = alignsWithTop ? 0.9 : alignedValues.length > 0 ? 0.6 : 0.3;
 
   let suggestion: string | undefined;
   if (alignmentScore < 0.5 && topValues.length > 0) {
@@ -393,6 +395,75 @@ export function checkValuesAlignment(userId: string, proposedAction: string): Va
     alignmentScore,
     suggestion,
   };
+}
+
+/**
+ * Check semantic alignment between an action and a value.
+ * Uses expanded synonym matching for fast semantic similarity.
+ */
+function checkSemanticValueAlignment(actionLower: string, value: ACTValue): boolean {
+  // Direct match check
+  if (actionLower.includes(value.value.toLowerCase()) || actionLower.includes(value.domain)) {
+    return true;
+  }
+
+  // Semantic synonym expansion for common values
+  const semanticExpansions: Record<string, string[]> = {
+    // Family domain
+    family: ['kids', 'children', 'parents', 'spouse', 'partner', 'home', 'loved ones', 'relatives'],
+    connection: ['together', 'bonding', 'quality time', 'relationship', 'close', 'intimate'],
+    love: ['care', 'affection', 'devoted', 'cherish', 'adore', 'warmth'],
+
+    // Career domain
+    growth: ['learning', 'improving', 'developing', 'advancing', 'progress', 'better'],
+    success: ['achieve', 'accomplish', 'win', 'goal', 'milestone', 'result'],
+    contribution: ['help', 'impact', 'difference', 'serve', 'support', 'meaningful'],
+
+    // Health domain
+    health: ['fitness', 'exercise', 'wellness', 'energy', 'strength', 'vitality'],
+    balance: ['harmony', 'equilibrium', 'sustainable', 'moderation', 'steady'],
+    vitality: ['alive', 'vibrant', 'energetic', 'thriving', 'flourishing'],
+
+    // Personal domain
+    authenticity: ['genuine', 'real', 'honest', 'true', 'sincere', 'authentic'],
+    creativity: ['create', 'imagine', 'innovate', 'design', 'express', 'artistic'],
+    freedom: ['independence', 'autonomy', 'choice', 'flexible', 'liberated'],
+
+    // Community domain
+    service: ['volunteer', 'give', 'help', 'community', 'charity', 'support'],
+    justice: ['fair', 'equal', 'rights', 'advocate', 'stand up'],
+    belonging: ['community', 'part of', 'member', 'connected', 'included'],
+
+    // Leisure domain
+    adventure: ['explore', 'travel', 'discover', 'new', 'exciting', 'experience'],
+    play: ['fun', 'enjoy', 'relax', 'recreation', 'leisure', 'pleasure'],
+    nature: ['outdoors', 'hiking', 'garden', 'wildlife', 'environment', 'natural'],
+
+    // Spirituality domain
+    peace: ['calm', 'serene', 'tranquil', 'quiet', 'mindful', 'centered'],
+    meaning: ['purpose', 'significant', 'matter', 'important', 'fulfilling'],
+    gratitude: ['thankful', 'appreciate', 'grateful', 'blessed', 'fortunate'],
+  };
+
+  // Check semantic expansions
+  const valueLower = value.value.toLowerCase();
+  const expansions = semanticExpansions[valueLower] || [];
+
+  for (const synonym of expansions) {
+    if (actionLower.includes(synonym)) {
+      return true;
+    }
+  }
+
+  // Check domain-specific keywords
+  const domainKeywords = semanticExpansions[value.domain] || [];
+  for (const keyword of domainKeywords) {
+    if (actionLower.includes(keyword)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export interface ValuesAlignment {

@@ -12,11 +12,13 @@
  * - Honors quiet hours
  * - Limits frequency
  * - Allows opt-out
+ *
+ * PERSISTENCE: User notification states and pending notifications are persisted to Firestore.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from './daily-rituals.js';
-import { getEngagementStore, type EngagementProfile } from './engagement-store.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // ============================================================================
 // TYPES
@@ -58,6 +60,60 @@ export interface UserNotificationState {
   todayCount: number;
   dismissedNotifications: string[];
   snoozeUntil: Date | null;
+}
+
+// ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedNotification extends Omit<EngagementNotification, 'expiresAt' | 'createdAt'> {
+  expiresAt?: string;
+  createdAt: string;
+}
+
+interface PersistedUserNotificationState extends Omit<
+  UserNotificationState,
+  'lastNotificationAt' | 'snoozeUntil'
+> {
+  lastNotificationAt: string | null;
+  snoozeUntil: string | null;
+}
+
+interface UserNotificationData {
+  state: PersistedUserNotificationState;
+  pendingNotifications: PersistedNotification[];
+}
+
+function serializeNotification(n: EngagementNotification): PersistedNotification {
+  return {
+    ...n,
+    expiresAt: n.expiresAt?.toISOString(),
+    createdAt: n.createdAt.toISOString(),
+  };
+}
+
+function deserializeNotification(n: PersistedNotification): EngagementNotification {
+  return {
+    ...n,
+    expiresAt: n.expiresAt ? new Date(n.expiresAt) : undefined,
+    createdAt: new Date(n.createdAt),
+  };
+}
+
+function serializeState(state: UserNotificationState): PersistedUserNotificationState {
+  return {
+    ...state,
+    lastNotificationAt: state.lastNotificationAt?.toISOString() ?? null,
+    snoozeUntil: state.snoozeUntil?.toISOString() ?? null,
+  };
+}
+
+function deserializeState(data: PersistedUserNotificationState): UserNotificationState {
+  return {
+    ...data,
+    lastNotificationAt: data.lastNotificationAt ? new Date(data.lastNotificationAt) : null,
+    snoozeUntil: data.snoozeUntil ? new Date(data.snoozeUntil) : null,
+  };
 }
 
 // ============================================================================
@@ -136,6 +192,61 @@ export class EngagementNotificationService {
   private userStates = new Map<string, UserNotificationState>();
   private pendingNotifications = new Map<string, EngagementNotification[]>();
   private notificationCallback: ((notification: EngagementNotification) => void) | null = null;
+  private loadedUsers = new Set<string>();
+  private persistence: PersistenceStore<UserNotificationData> | null = null;
+
+  private getPersistence(): PersistenceStore<UserNotificationData> {
+    if (!this.persistence) {
+      this.persistence = createPersistenceStore<UserNotificationData>({
+        collection: 'engagement_notifications',
+        documentId: 'data',
+        syncIntervalMs: 3000,
+      });
+    }
+    return this.persistence;
+  }
+
+  /**
+   * Load user notification data from persistence
+   */
+  private async ensureUserLoaded(userId: string): Promise<void> {
+    if (this.loadedUsers.has(userId)) return;
+
+    try {
+      const data = await this.getPersistence().load(userId);
+      if (data) {
+        if (data.state) {
+          this.userStates.set(userId, deserializeState(data.state));
+        }
+        if (data.pendingNotifications) {
+          this.pendingNotifications.set(
+            userId,
+            data.pendingNotifications.map(deserializeNotification)
+          );
+        }
+      }
+      this.loadedUsers.add(userId);
+      getLogger().debug({ userId }, 'Loaded notification state from persistence');
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to load notification state');
+      this.loadedUsers.add(userId);
+    }
+  }
+
+  /**
+   * Persist user notification data
+   */
+  private persistUserData(userId: string): void {
+    const state = this.userStates.get(userId);
+    const pending = this.pendingNotifications.get(userId) || [];
+
+    if (state) {
+      this.getPersistence().set(userId, {
+        state: serializeState(state),
+        pendingNotifications: pending.map(serializeNotification),
+      });
+    }
+  }
 
   /**
    * Register a callback for when notifications should be delivered
@@ -146,6 +257,14 @@ export class EngagementNotificationService {
 
   /**
    * Get or create user notification state
+   */
+  async getUserStateAsync(userId: string): Promise<UserNotificationState> {
+    await this.ensureUserLoaded(userId);
+    return this.getUserState(userId);
+  }
+
+  /**
+   * Get or create user notification state (sync version for backward compatibility)
    */
   getUserState(userId: string): UserNotificationState {
     let state = this.userStates.get(userId);
@@ -166,9 +285,11 @@ export class EngagementNotificationService {
   /**
    * Update user preferences
    */
-  updatePreferences(userId: string, prefs: Partial<NotificationPreferences>): void {
+  async updatePreferences(userId: string, prefs: Partial<NotificationPreferences>): Promise<void> {
+    await this.ensureUserLoaded(userId);
     const state = this.getUserState(userId);
     state.preferences = { ...state.preferences, ...prefs };
+    this.persistUserData(userId);
     getLogger().info({ userId, prefs }, 'Notification preferences updated');
   }
 
@@ -337,16 +458,19 @@ export class EngagementNotificationService {
   /**
    * Queue a notification
    */
-  queueNotification(userId: string, notification: EngagementNotification): void {
+  async queueNotification(userId: string, notification: EngagementNotification): Promise<void> {
+    await this.ensureUserLoaded(userId);
     const pending = this.pendingNotifications.get(userId) || [];
     pending.push(notification);
     this.pendingNotifications.set(userId, pending);
+    this.persistUserData(userId);
   }
 
   /**
    * Deliver pending notifications
    */
   async deliverPendingNotifications(userId: string): Promise<EngagementNotification[]> {
+    await this.ensureUserLoaded(userId);
     const delivered: EngagementNotification[] = [];
     const pending = this.pendingNotifications.get(userId) || [];
     const state = this.getUserState(userId);
@@ -381,13 +505,18 @@ export class EngagementNotificationService {
       break;
     }
 
+    if (delivered.length > 0) {
+      this.persistUserData(userId);
+    }
+
     return delivered;
   }
 
   /**
    * Dismiss a notification
    */
-  dismissNotification(userId: string, notificationId: string): void {
+  async dismissNotification(userId: string, notificationId: string): Promise<void> {
+    await this.ensureUserLoaded(userId);
     const state = this.getUserState(userId);
     state.dismissedNotifications.push(notificationId);
 
@@ -396,14 +525,17 @@ export class EngagementNotificationService {
     if (notification) {
       notification.dismissed = true;
     }
+    this.persistUserData(userId);
   }
 
   /**
    * Snooze all notifications
    */
-  snoozeNotifications(userId: string, hours: number): void {
+  async snoozeNotifications(userId: string, hours: number): Promise<void> {
+    await this.ensureUserLoaded(userId);
     const state = this.getUserState(userId);
     state.snoozeUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+    this.persistUserData(userId);
     getLogger().info({ userId, hours }, 'Notifications snoozed');
   }
 
@@ -442,6 +574,14 @@ export class EngagementNotificationService {
     };
     return names[personaId] || 'the team';
   }
+
+  /**
+   * Flush persistence
+   */
+  async flush(): Promise<void> {
+    await this.getPersistence().flush();
+    getLogger().info('Engagement notification persistence flushed');
+  }
 }
 
 // ============================================================================
@@ -459,6 +599,24 @@ export function getEngagementNotificationService(): EngagementNotificationServic
 
 export function resetEngagementNotificationService(): void {
   notificationService = null;
+}
+
+/**
+ * Flush engagement notification persistence
+ */
+export async function flushEngagementNotificationPersistence(): Promise<void> {
+  if (notificationService) {
+    await notificationService.flush();
+  }
+}
+
+/**
+ * Shutdown engagement notification service (flush and reset)
+ */
+export async function shutdownEngagementNotifications(): Promise<void> {
+  await flushEngagementNotificationPersistence();
+  resetEngagementNotificationService();
+  getLogger().info('Engagement notification service shutdown complete');
 }
 
 export default EngagementNotificationService;

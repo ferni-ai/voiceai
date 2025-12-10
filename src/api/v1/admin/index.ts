@@ -15,9 +15,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { handleAdminFlagsRoutes } from './flags.js';
 import { handleAdminAgentsRoutes } from './agents.js';
+import { handleAdminDashboardRoutes } from './dashboard.js';
 import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
+import { handleAdminFlagsRoutes } from './flags.js';
+import { handleHumanListeningRoutes } from './human-listening.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
@@ -42,6 +44,11 @@ export async function handleAdminRoutes(
   log.debug({ pathname, method: req.method }, 'Admin API request');
 
   // Route to specific admin handlers
+  // Dashboard aggregation
+  if (pathname.startsWith(`${BASE_PATH}/dashboard`)) {
+    return handleAdminDashboardRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Feature Flags
   if (pathname.startsWith(`${BASE_PATH}/flags`)) {
     return handleAdminFlagsRoutes(req, res, pathname, parsedUrl);
@@ -57,6 +64,11 @@ export async function handleAdminRoutes(
     return handleAdminDiagnosticsRoutes(req, res, pathname, parsedUrl);
   }
 
+  // Human Listening insights
+  if (pathname.startsWith(`${BASE_PATH}/human-listening`)) {
+    return handleHumanListeningRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Route not matched
   return false;
 }
@@ -64,7 +76,13 @@ export async function handleAdminRoutes(
 export default { handleAdminRoutes };
 
 // Re-export sub-routes for direct access if needed
-export { handleAdminFlagsRoutes } from './flags.js';
 export { handleAdminAgentsRoutes } from './agents.js';
+export { getRecentActivity, handleAdminDashboardRoutes, recordActivity } from './dashboard.js';
 export { handleAdminDiagnosticsRoutes, recordHandoffEvent } from './diagnostics.js';
-
+export { handleAdminFlagsRoutes } from './flags.js';
+export {
+  endLiveSession,
+  handleHumanListeningRoutes,
+  recordListeningEvent,
+  updateLiveSession,
+} from './human-listening.js';

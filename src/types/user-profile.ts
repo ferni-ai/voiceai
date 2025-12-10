@@ -322,8 +322,12 @@ export interface MusicMemory {
   preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
   /** Moods when they tend to want music */
   musicMoods?: string[];
+  /** Music preferences by mood (mood -> list of artists/genres) */
+  moodMusicPreferences?: Record<string, string[]>;
+  /** Special music moments shared with the user */
+  sharedMoments?: Array<{ description: string; artist: string; timestamp: number }>;
   /** Last updated */
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 // ============================================================================

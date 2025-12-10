@@ -14,10 +14,14 @@ const log = createLogger({ module: 'iTunes' });
 const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
 
 // Circuit breaker for iTunes API
+// 🎯 IMPROVED: More lenient thresholds to handle transient network issues
+// - 5 failures (up from 3) before opening
+// - 15 second reset (down from 30) to recover faster
+// - 1 success to close (down from 2) for quicker recovery
 const itunesCircuitBreaker = getCircuitBreaker('itunes-api', {
-  failureThreshold: 3,
-  resetTimeout: 30000, // 30 seconds
-  successThreshold: 2,
+  failureThreshold: 5,
+  resetTimeout: 15000, // 15 seconds - recover faster
+  successThreshold: 1,
 });
 
 // ============================================================================

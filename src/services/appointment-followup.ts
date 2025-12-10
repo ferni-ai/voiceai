@@ -8,12 +8,28 @@
  * - Coordinates with Jordan for life event appointments
  *
  * This ensures no appointment request falls through the cracks.
+ *
+ * PERSISTENCE: Appointments are persisted to Firestore to survive server restarts.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
+import * as admin from 'firebase-admin';
+import { getLogger } from '../utils/safe-logger.js';
 import { getAgentBus } from './agent-bus.js';
-import { createReminder } from './reminder-scheduler.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const APPOINTMENTS_COLLECTION = 'tracked_appointments';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -78,6 +94,7 @@ class AppointmentFollowUpService extends EventEmitter {
   private config: FollowUpConfig;
   private isRunning = false;
   private checkInterval: NodeJS.Timeout | null = null;
+  private initialized = false;
 
   constructor(config: Partial<FollowUpConfig> = {}) {
     super();
@@ -85,10 +102,95 @@ class AppointmentFollowUpService extends EventEmitter {
   }
 
   /**
+   * Initialize and load pending appointments from Firestore
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    const db = getFirestore();
+    if (db) {
+      try {
+        // Load all pending/calling appointments
+        const snapshot = await db
+          .collection(APPOINTMENTS_COLLECTION)
+          .where('status', 'in', ['pending', 'calling', 'awaiting_callback'])
+          .get();
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const appointment: TrackedAppointment = {
+            ...data,
+            requestedDateTime:
+              data.requestedDateTime?.toDate?.() || new Date(data.requestedDateTime),
+            confirmedDateTime:
+              data.confirmedDateTime?.toDate?.() ||
+              (data.confirmedDateTime ? new Date(data.confirmedDateTime) : undefined),
+            lastCallAt:
+              data.lastCallAt?.toDate?.() ||
+              (data.lastCallAt ? new Date(data.lastCallAt) : undefined),
+            nextFollowUpAt:
+              data.nextFollowUpAt?.toDate?.() ||
+              (data.nextFollowUpAt ? new Date(data.nextFollowUpAt) : undefined),
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
+            updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
+          } as TrackedAppointment;
+
+          this.appointments.set(appointment.id, appointment);
+
+          // Reschedule follow-ups for pending appointments
+          if (appointment.status === 'calling' || appointment.status === 'pending') {
+            this.scheduleFollowUp(appointment.id);
+          }
+        });
+
+        getLogger().info(
+          { count: this.appointments.size },
+          '📞 Loaded pending appointments from Firestore'
+        );
+      } catch (error) {
+        getLogger().error({ error }, 'Failed to load appointments from Firestore');
+      }
+    }
+
+    this.initialized = true;
+  }
+
+  /**
+   * Save appointment to Firestore
+   */
+  private async saveAppointment(appointment: TrackedAppointment): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db
+        .collection(APPOINTMENTS_COLLECTION)
+        .doc(appointment.id)
+        .set({
+          ...appointment,
+          requestedDateTime: appointment.requestedDateTime,
+          confirmedDateTime: appointment.confirmedDateTime || null,
+          lastCallAt: appointment.lastCallAt || null,
+          nextFollowUpAt: appointment.nextFollowUpAt || null,
+          createdAt: appointment.createdAt,
+          updatedAt: appointment.updatedAt,
+        });
+    } catch (error) {
+      getLogger().error(
+        { error, appointmentId: appointment.id },
+        'Failed to save appointment to Firestore'
+      );
+    }
+  }
+
+  /**
    * Start the follow-up service
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.isRunning) return;
+
+    // Initialize first
+    await this.initialize();
 
     this.isRunning = true;
 
@@ -141,6 +243,9 @@ class AppointmentFollowUpService extends EventEmitter {
 
     this.appointments.set(tracked.id, tracked);
 
+    // Persist to Firestore
+    void this.saveAppointment(tracked);
+
     getLogger().info(
       {
         id: tracked.id,
@@ -187,6 +292,9 @@ class AppointmentFollowUpService extends EventEmitter {
     }
 
     this.appointments.set(id, appointment);
+
+    // Persist to Firestore
+    void this.saveAppointment(appointment);
 
     // Cancel any pending follow-up if resolved
     if (['confirmed', 'failed', 'cancelled'].includes(status)) {
@@ -245,6 +353,9 @@ class AppointmentFollowUpService extends EventEmitter {
     }
 
     this.appointments.set(id, appointment);
+
+    // Persist to Firestore
+    void this.saveAppointment(appointment);
   }
 
   /**
@@ -460,7 +571,7 @@ export function getAppointmentFollowUpService(): AppointmentFollowUpService {
 }
 
 export function startAppointmentFollowUp(): void {
-  getAppointmentFollowUpService().start();
+  void getAppointmentFollowUpService().start();
 }
 
 export function stopAppointmentFollowUp(): void {

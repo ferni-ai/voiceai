@@ -14,8 +14,8 @@
  */
 
 import { llm } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+import { getLogger } from '../utils/safe-logger.js';
 import { IntelligentTask } from './intelligent-task.js';
 
 // ============================================================================
@@ -90,7 +90,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
       health_crisis: {
         empathy:
           "Health scares put everything in perspective, don't they? Everything else seems so unimportant when health is on the line.",
-        guidance: "Let's not worry about other stuff right now. What do you need? How can I help?",
+        guidance: "Let's not worry about other stuff right now. What do you need? I'm here.",
       },
       inheritance: {
         empathy:

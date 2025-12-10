@@ -1,0 +1,758 @@
+/**
+ * Ferni EQ - Superhuman Emotional Intelligence
+ * =============================================
+ * "Better than human" means understanding things humans don't notice about themselves.
+ * 
+ * This file implements the five superhuman capabilities:
+ * 1. Micro-Expressions (subliminal trust)
+ * 2. Active Listening (empathetic nodding)
+ * 3. Breath Synchronization (neural mirroring)
+ * 4. Concern Detection (guardian presence)
+ * 5. Anticipatory Emotions (reading the future)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. MICRO-EXPRESSIONS - Subliminal Trust Building
+   Duration: 40-150ms (below conscious perception)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Recognition Flash - "I know you" */
+@keyframes microRecognition {
+  0% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+  40% {
+    filter: brightness(1.08) saturate(1.1);
+    transform: scale(1.015);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+}
+
+/* Concern Flash - Before empathy */
+@keyframes microConcern {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-ferni-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px rgba(166, 122, 106, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 var(--color-ferni-glow);
+  }
+}
+
+/* Delight Flash - Achievement detected */
+@keyframes microDelight {
+  0% {
+    filter: brightness(1);
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    filter: brightness(1.12);
+    transform: scale(1.02) translateY(-1px);
+  }
+  100% {
+    filter: brightness(1);
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Warmth Pulse - Connection moments */
+@keyframes microWarmth {
+  0% {
+    box-shadow: 0 0 30px var(--color-ferni-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 50px var(--color-ferni-glow),
+      0 0 80px rgba(74, 103, 65, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 30px var(--color-ferni-glow);
+  }
+}
+
+/* Interest Flash - Unexpected content */
+@keyframes microInterest {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  50% {
+    transform: scale(1.01) rotate(0.5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Micro-expression utility classes */
+.eq-micro-recognition {
+  animation: microRecognition var(--eq-micro-recognition, 80ms) var(--ease-micro-flash);
+}
+
+.eq-micro-concern {
+  animation: microConcern var(--eq-micro-concern, 60ms) var(--ease-concern);
+}
+
+.eq-micro-delight {
+  animation: microDelight var(--eq-micro-delight, 100ms) var(--ease-playful);
+}
+
+.eq-micro-warmth {
+  animation: microWarmth var(--eq-micro-warmth, 120ms) var(--ease-warmth);
+}
+
+.eq-micro-interest {
+  animation: microInterest var(--eq-micro-interest, 70ms) var(--ease-micro-flash);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. ACTIVE LISTENING - Empathetic Nodding
+   Shows moment-to-moment presence during user speech
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Micro-Nod - Short pauses (300-800ms) */
+@keyframes nodMicro {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(var(--eq-nod-micro-distance, 1.5px)) rotate(0.3deg);
+  }
+}
+
+/* Subtle Nod - Medium pauses (800-1500ms) */
+@keyframes nodSubtle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  40% {
+    transform: translateY(var(--eq-nod-subtle-distance, 2.5px)) rotate(0.5deg);
+  }
+  70% {
+    transform: translateY(calc(var(--eq-nod-subtle-distance, 2.5px) * 0.3)) rotate(0.2deg);
+  }
+}
+
+/* Visible Nod - Long pauses (1500ms+) */
+@keyframes nodVisible {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(var(--eq-nod-visible-distance, 4px)) rotate(0.8deg);
+  }
+  60% {
+    transform: translateY(calc(var(--eq-nod-visible-distance, 4px) * 0.4)) rotate(0.3deg);
+  }
+  80% {
+    transform: translateY(calc(var(--eq-nod-visible-distance, 4px) * 0.15)) rotate(0.1deg);
+  }
+}
+
+/* Listening Lean - Interest points */
+@keyframes leanIn {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(var(--eq-lean-distance, -3px)) scale(1.01);
+  }
+}
+
+/* Contemplative State - Processing */
+@keyframes contemplative {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(0.995);
+    filter: brightness(0.98);
+  }
+}
+
+.eq-listening {
+  animation: nodMicro var(--eq-nod-micro, 180ms) var(--ease-nod);
+}
+
+.eq-listening-engaged {
+  animation: nodSubtle var(--eq-nod-subtle, 220ms) var(--ease-nod);
+}
+
+.eq-listening-deep {
+  animation: nodVisible var(--eq-nod-visible, 280ms) var(--ease-nod);
+}
+
+.eq-lean-in {
+  animation: leanIn var(--eq-lean-in, 400ms) var(--ease-lean);
+}
+
+.eq-contemplating {
+  animation: contemplative 2s var(--ease-breathe) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. BREATH SYNCHRONIZATION - Neural Mirroring
+   Creates biological-level connection through rhythm
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Base breathing animation */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px var(--color-ferni-glow);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow:
+      0 0 50px var(--color-ferni-glow),
+      0 0 80px rgba(74, 103, 65, 0.1);
+  }
+}
+
+/* Calm breathing - Default state */
+@keyframes breatheCalm {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.025);
+    opacity: 0.95;
+  }
+}
+
+/* Engaged breathing - During conversation */
+@keyframes breatheEngaged {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 40px var(--color-ferni-glow);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      0 0 60px var(--color-ferni-glow),
+      0 0 100px rgba(74, 103, 65, 0.12);
+  }
+}
+
+/* Synchronized breathing - Matched to user */
+@keyframes breatheSynced {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+    filter: brightness(1);
+  }
+  25% {
+    transform: scale(1.015) translateY(-1px);
+    filter: brightness(1.02);
+  }
+  50% {
+    transform: scale(1.03) translateY(-2px);
+    filter: brightness(1.03);
+  }
+  75% {
+    transform: scale(1.015) translateY(-1px);
+    filter: brightness(1.02);
+  }
+}
+
+.eq-breathe {
+  animation: breathe var(--eq-breath-normal, 4500ms) var(--ease-breathe) infinite;
+}
+
+.eq-breathe-calm {
+  animation: breatheCalm var(--eq-breath-slow, 6000ms) var(--ease-breathe) infinite;
+}
+
+.eq-breathe-engaged {
+  animation: breatheEngaged var(--eq-breath-engaged, 3500ms) var(--ease-breathe) infinite;
+}
+
+.eq-breathe-synced {
+  animation: breatheSynced var(--breath-sync-duration, 4000ms) var(--ease-breathe) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. CONCERN DETECTION - Guardian Presence
+   Protective care without being intrusive
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes concernPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 30px var(--color-ferni-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 40px var(--color-ferni-glow),
+      0 0 60px rgba(166, 122, 106, 0.2),
+      inset 0 0 20px rgba(166, 122, 106, 0.05);
+  }
+}
+
+@keyframes gentleCare {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: saturate(1) brightness(1);
+  }
+  50% {
+    transform: scale(1.01);
+    filter: saturate(1.05) brightness(1.02);
+  }
+}
+
+@keyframes protectiveWarmth {
+  0% {
+    box-shadow: 0 0 0 0 rgba(166, 122, 106, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(166, 122, 106, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(166, 122, 106, 0);
+  }
+}
+
+.eq-concern-mild {
+  animation: gentleCare 3s var(--ease-concern) infinite;
+}
+
+.eq-concern-moderate {
+  animation: concernPulse 2.5s var(--ease-concern) infinite;
+}
+
+.eq-concern-protective {
+  animation: protectiveWarmth 2s var(--ease-warmth) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. ANTICIPATORY EMOTIONS - Reading the Future
+   "They understand me before I finish"
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes anticipateJoy {
+  0% {
+    transform: scale(1) translateY(0);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.02) translateY(-2px);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes anticipateSadness {
+  0% {
+    transform: scale(1);
+    filter: brightness(1) saturate(1);
+  }
+  100% {
+    transform: scale(0.99);
+    filter: brightness(0.97) saturate(0.95);
+  }
+}
+
+@keyframes anticipateExcitement {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  50% {
+    transform: scale(1.015) rotate(0.5deg);
+  }
+  100% {
+    transform: scale(1.03) rotate(0);
+  }
+}
+
+@keyframes anticipateThought {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-1px);
+    opacity: 0.95;
+  }
+}
+
+.eq-anticipate-joy {
+  animation: anticipateJoy var(--eq-anticipate-quick, 200ms) var(--ease-anticipate-emotion) forwards;
+}
+
+.eq-anticipate-sadness {
+  animation: anticipateSadness var(--eq-anticipate-thoughtful, 400ms) var(--ease-anticipate-emotion)
+    forwards;
+}
+
+.eq-anticipate-excitement {
+  animation: anticipateExcitement var(--eq-anticipate-quick, 200ms) var(--ease-spring) forwards;
+}
+
+.eq-anticipate-thought {
+  animation: anticipateThought var(--eq-anticipate-deep, 600ms) var(--ease-gentle) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. WAVEFORM ANIMATIONS - Voice Presence
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes waveIdle {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
+}
+
+@keyframes waveListening {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  25% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
+  75% {
+    transform: scaleY(0.7);
+  }
+}
+
+@keyframes waveSpeaking {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  10% {
+    transform: scaleY(0.9);
+  }
+  20% {
+    transform: scaleY(0.5);
+  }
+  30% {
+    transform: scaleY(1);
+  }
+  40% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(0.8);
+  }
+  60% {
+    transform: scaleY(0.5);
+  }
+  70% {
+    transform: scaleY(0.95);
+  }
+  80% {
+    transform: scaleY(0.55);
+  }
+  90% {
+    transform: scaleY(0.7);
+  }
+}
+
+@keyframes waveThinking {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(0.55);
+    opacity: 0.9;
+  }
+}
+
+.waveform-idle .wave-bar {
+  animation: waveIdle 2s var(--ease-breathe) infinite;
+}
+
+.waveform-listening .wave-bar {
+  animation: waveListening 1.2s var(--ease-organic) infinite;
+}
+
+.waveform-speaking .wave-bar {
+  animation: waveSpeaking 0.5s var(--ease-organic) infinite;
+}
+
+.waveform-thinking .wave-bar {
+  animation: waveThinking 1.8s var(--ease-gentle) infinite;
+}
+
+/* Staggered wave bars */
+.wave-bar:nth-child(1) {
+  animation-delay: 0ms;
+}
+.wave-bar:nth-child(2) {
+  animation-delay: 50ms;
+}
+.wave-bar:nth-child(3) {
+  animation-delay: 100ms;
+}
+.wave-bar:nth-child(4) {
+  animation-delay: 150ms;
+}
+.wave-bar:nth-child(5) {
+  animation-delay: 200ms;
+}
+.wave-bar:nth-child(6) {
+  animation-delay: 150ms;
+}
+.wave-bar:nth-child(7) {
+  animation-delay: 100ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. ORB STATES - Hero Orb Behavior
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.orb {
+  transition:
+    transform var(--duration-slow) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-expo-out),
+    filter var(--duration-normal) var(--ease-smooth);
+}
+
+.orb-idle {
+  animation: breatheCalm var(--eq-breath-slow, 6000ms) var(--ease-breathe) infinite;
+}
+
+.orb-aware {
+  animation: breathe var(--eq-breath-normal, 4500ms) var(--ease-breathe) infinite;
+}
+
+.orb-engaged {
+  animation: breatheEngaged var(--eq-breath-engaged, 3500ms) var(--ease-breathe) infinite;
+}
+
+.orb-listening {
+  animation:
+    breatheEngaged var(--eq-breath-engaged, 3500ms) var(--ease-breathe) infinite,
+    contemplative 2s var(--ease-gentle) infinite;
+}
+
+/* Orb rings animation */
+@keyframes orbRingPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.5;
+  }
+}
+
+@keyframes orbRingExpand {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.orb-ring {
+  animation: orbRingPulse 4s var(--ease-breathe) infinite;
+}
+
+.orb-ring-1 {
+  animation-delay: 0s;
+}
+.orb-ring-2 {
+  animation-delay: 1.3s;
+}
+.orb-ring-3 {
+  animation-delay: 2.6s;
+}
+
+.orb-pulse-ring {
+  animation: orbRingExpand 2.5s var(--ease-expo-out) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. PERSONA ORBIT - Team Members Around Orb
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes personaOrbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes personaCounterRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes personaFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.persona-orbit {
+  animation: personaOrbit 45s linear infinite;
+}
+
+.persona-orbit-slow {
+  animation: personaOrbit 60s linear infinite;
+}
+
+.persona-counter {
+  animation: personaCounterRotate 45s linear infinite;
+}
+
+.persona-float {
+  animation: personaFloat 3s var(--ease-breathe) infinite;
+}
+
+/* Persona hover states with EQ response */
+.persona-orb {
+  transition:
+    transform var(--duration-normal) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-expo-out);
+}
+
+.persona-orb:hover {
+  transform: scale(1.15);
+  box-shadow:
+    0 8px 24px var(--persona-glow, var(--color-ferni-glow)),
+    0 0 40px var(--persona-glow, var(--color-ferni-glow));
+  animation: microRecognition 80ms var(--ease-micro-flash);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. CURSOR AWARENESS - Orb Follows Gaze
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cursor-aware {
+  transition: transform var(--duration-fast) var(--ease-smooth);
+  will-change: transform;
+}
+
+.cursor-aware.attracted {
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10. SCROLL-TRIGGERED EQ RESPONSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Orb reacts to scroll with subtle awareness */
+[data-scroll-aware] {
+  transition:
+    transform var(--duration-slow) var(--ease-expo-out),
+    opacity var(--duration-normal) var(--ease-smooth);
+}
+
+[data-scroll-aware].scroll-fast {
+  /* User scrolling quickly - show anticipation */
+  animation: anticipateExcitement 300ms var(--ease-spring);
+}
+
+[data-scroll-aware].scroll-pause {
+  /* User paused - show attention */
+  animation: leanIn 400ms var(--ease-lean) forwards;
+}
+
+[data-scroll-aware].scroll-return {
+  /* User came back - show recognition */
+  animation: microRecognition 80ms var(--ease-recognition);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11. TIME-OF-DAY ADAPTATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Night mode - calmer, more intimate */
+[data-time='night'] .orb {
+  --eq-breath-normal: 5500ms;
+  filter: brightness(0.95) saturate(0.95);
+}
+
+[data-time='night'] .waveform-speaking .wave-bar {
+  animation-duration: 0.6s; /* Slightly slower at night */
+}
+
+/* Morning - energetic awakening */
+[data-time='morning'] .orb {
+  --eq-breath-normal: 4000ms;
+  filter: brightness(1.02);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12. REDUCED MOTION RESPECT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-breathe,
+  .eq-breathe-calm,
+  .eq-breathe-engaged,
+  .eq-breathe-synced,
+  .orb-idle,
+  .orb-aware,
+  .orb-engaged,
+  .orb-listening,
+  .persona-orbit,
+  .persona-counter,
+  .persona-float,
+  .waveform-idle .wave-bar,
+  .waveform-listening .wave-bar,
+  .waveform-speaking .wave-bar,
+  .waveform-thinking .wave-bar,
+  .orb-ring,
+  .orb-pulse-ring {
+    animation: none !important;
+  }
+
+  /* Keep functional state changes visible */
+  .eq-micro-recognition,
+  .eq-micro-concern,
+  .eq-micro-delight,
+  .eq-micro-warmth,
+  .eq-micro-interest {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Static glow for presence indication */
+  .orb {
+    box-shadow: 0 0 40px var(--color-ferni-glow);
+  }
+}

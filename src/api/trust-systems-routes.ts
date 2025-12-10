@@ -18,64 +18,68 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 // Trust Systems imports
 import {
-  // Phase 12: Relationship Health
-  getHealthScore,
-  calculateHealthScore,
-  getStageName,
-  getStageDescription,
-  // Phase 13: Conversation Starters
-  generateStarters,
-  getBestStarter,
-  // Phase 14: Life Events
-  getUpcomingEvents,
-  getEventsNeedingReminders,
-  detectLifeEvents,
-  saveEvent,
-  recordEventOutcome,
-  generateReminderMessage,
-  generateFollowUpMessage,
-  // Phase 15: Response Tuning
-  generateTuningGuidance,
-  // Phase 16: Celebration Momentum
-  getMomentumProfile,
-  getActiveStreaks,
-  generateCelebrations,
-  getMomentumSummary,
-  // Phase 17: Sentiment Timeline
-  getTimeline,
-  getCurrentMoodContext,
-  getRecentPeaksValleys,
-  getInsightfulPatterns,
-  exportTimelineData,
-  // Phase 25: Journaling
-  generatePrompts,
-  getBestPrompt,
-  getJournalingPatterns,
-  generateSituationalPrompt,
+  addPersonalDate,
   // Phase 26: Seasonal
   buildSeasonalContext,
-  getSeasonalProfile,
-  addPersonalDate,
-  updateHolidayPreference,
-  // Phase 27: Learning Style
-  getLearningProfile,
+  calculateHealthScore,
+  detectLifeEvents,
+  exportTimelineData,
+  generateCelebrations,
   generateDeliveryGuidance,
-  getStyleSummary,
-  // Phase 28: Insights Reports
-  generateReport,
-  getReportHistory,
-  getLatestReport,
-  isReportDue,
+  generateFollowUpMessage,
   // Phase 29: Media Suggestions
   generateMediaSuggestions,
+  // Phase 25: Journaling
+  generatePrompts,
+  generateReminderMessage,
+  // Phase 28: Insights Reports
+  generateReport,
+  generateSituationalPrompt,
+  // Phase 13: Conversation Starters
+  generateStarters,
+  // Phase 15: Response Tuning
+  generateTuningGuidance,
+  getActiveStreaks,
+  // Analytics
+  getAggregateMetrics,
+  getHealthCheck as getAnalyticsHealthCheck,
+  getBestPrompt,
+  getBestStarter,
   getBestSuggestion,
-  getSuggestionsForMood,
-  recordSuggestionFeedback,
+  getCurrentMoodContext,
+  getEventsNeedingReminders,
+  // Phase 12: Relationship Health
+  getHealthScore,
+  getInsightfulPatterns,
+  getJournalingPatterns,
+  getLatestReport,
+  // Phase 27: Learning Style
+  getLearningProfile,
   getMediaPreferences,
+  // Phase 16: Celebration Momentum
+  getMomentumProfile,
+  getMomentumSummary,
+  getRecentPeaksValleys,
+  getReportHistory,
+  getSeasonalProfile,
+  getStageDescription,
+  getStageName,
+  getStyleSummary,
+  getSuggestionsForMood,
+  // Phase 17: Sentiment Timeline
+  getTimeline,
+  // Phase 14: Life Events
+  getUpcomingEvents,
+  isReportDue,
+  recordEventOutcome,
+  recordSuggestionFeedback,
+  saveEvent,
+  updateHolidayPreference,
 } from '../services/trust-systems/index.js';
 
 const log = createLogger({ module: 'TrustSystemsRoutes' });
@@ -123,28 +127,93 @@ export async function handleTrustSystemsRoutes(
     return false;
   }
 
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
   // Apply rate limiting (100 requests per minute)
   if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'trust-systems' })) {
     return true; // Rate limited
   }
 
-  const method = req.method || 'GET';
-  const query = parsedUrl.searchParams;
-  const userId = getUserId(req, query);
+  // Analytics routes require admin auth, others require user auth
+  const isAnalyticsRoute = pathname.startsWith('/api/trust/analytics');
 
-  // Require userId for all routes
-  if (!userId) {
-    sendJson(res, 400, { error: 'userId required' });
-    return true;
+  // Require authentication
+  const auth = requireAuth(req, res, { allowDevMode: true });
+  if (!auth) {
+    return true; // 401 already sent
   }
 
+  const method = req.method || 'GET';
+  const query = parsedUrl.searchParams;
+
+  // SECURITY: Use authenticated userId for non-analytics routes
+  const validUserId = auth.userId;
+
   try {
+    // ========================================================================
+    // ANALYTICS METRICS (Admin - no userId required)
+    // ========================================================================
+
+    if (pathname === '/api/trust/analytics/metrics' && method === 'GET') {
+      const period = (query.get('period') as 'day' | 'week' | 'month') || 'week';
+      // Convert period to date range
+      const now = new Date();
+      const periodDays = period === 'day' ? 1 : period === 'week' ? 7 : 30;
+      const startDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+      const aggregateMetrics = getAggregateMetrics(startDate, now);
+      const healthCheck = getAnalyticsHealthCheck();
+
+      // Get real aggregates from relationship health
+      const { getTrustAggregates } = await import('../services/trust-systems/index.js');
+      const trustAggregates = getTrustAggregates();
+
+      sendJson(res, 200, {
+        totalProfiles: trustAggregates.totalProfiles,
+        avgTrustScore: trustAggregates.avgTrustScore,
+        activeRelationships: trustAggregates.activeRelationships,
+        milestonesReached: aggregateMetrics.totalEvents,
+        systemStatus: healthCheck,
+        aggregateMetrics,
+        period,
+      });
+      return true;
+    }
+
+    // Stage distribution endpoint
+    if (pathname === '/api/trust/analytics/stages' && method === 'GET') {
+      const { getStageDistributionPercent } = await import('../services/trust-systems/index.js');
+      const stages = getStageDistributionPercent();
+
+      sendJson(res, 200, { stages });
+      return true;
+    }
+
+    // Trust systems status endpoint
+    if (pathname === '/api/trust/analytics/systems' && method === 'GET') {
+      const healthCheck = getAnalyticsHealthCheck();
+
+      // Map to frontend format
+      const systems = Object.entries(healthCheck.systems).map(([id, data]) => ({
+        id,
+        name: formatSystemName(id),
+        description: getSystemDescription(id),
+        active: data.active,
+        lastEvent: data.lastEvent?.toISOString(),
+      }));
+
+      sendJson(res, 200, { systems });
+      return true;
+    }
+
     // ========================================================================
     // RELATIONSHIP HEALTH (Phase 12)
     // ========================================================================
 
     if (pathname === '/api/trust/health' && method === 'GET') {
-      const health = getHealthScore(userId);
+      const health = getHealthScore(validUserId);
       if (!health) {
         sendJson(res, 200, { score: null, message: 'No health data yet' });
         return true;
@@ -166,20 +235,20 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/life-events' && method === 'GET') {
-      const events = getUpcomingEvents(userId);
+      const events = getUpcomingEvents(validUserId);
       sendJson(res, 200, events);
       return true;
     }
 
     if (pathname === '/api/trust/life-events' && method === 'POST') {
       const body = await parseBody(req);
-      const detections = detectLifeEvents(userId, body.text as string);
+      const detections = detectLifeEvents(validUserId, body.text as string);
 
       for (const detection of detections) {
         if (detection.detected && detection.event && detection.confidence > 0.5) {
           saveEvent({
             ...detection.event,
-            userId,
+            userId: validUserId,
             id: `event-${Date.now()}`,
             date: new Date(detection.event.date as Date),
             type: detection.event.type || 'event',
@@ -196,7 +265,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/life-events/reminders' && method === 'GET') {
-      const reminders = getEventsNeedingReminders(userId);
+      const reminders = getEventsNeedingReminders(validUserId);
       const withMessages = reminders.map((e) => ({
         ...e,
         reminderMessage: generateReminderMessage(e),
@@ -210,10 +279,10 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/momentum' && method === 'GET') {
-      const profile = getMomentumProfile(userId);
-      const streaks = getActiveStreaks(userId);
-      const celebrations = generateCelebrations(userId);
-      const summary = getMomentumSummary(userId);
+      const profile = getMomentumProfile(validUserId);
+      const streaks = getActiveStreaks(validUserId);
+      const celebrations = generateCelebrations(validUserId);
+      const summary = getMomentumSummary(validUserId);
 
       sendJson(res, 200, {
         profile,
@@ -230,11 +299,11 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/sentiment' && method === 'GET') {
       const period = (query.get('period') as 'week' | 'month' | 'quarter') || 'month';
-      const timeline = getTimeline(userId);
-      const exported = exportTimelineData(userId, period);
-      const currentMood = getCurrentMoodContext(userId);
-      const peaks = getRecentPeaksValleys(userId);
-      const patterns = getInsightfulPatterns(userId);
+      const timeline = getTimeline(validUserId);
+      const exported = exportTimelineData(validUserId, period);
+      const currentMood = getCurrentMoodContext(validUserId);
+      const peaks = getRecentPeaksValleys(validUserId);
+      const patterns = getInsightfulPatterns(validUserId);
 
       sendJson(res, 200, {
         currentMood,
@@ -258,12 +327,12 @@ export async function handleTrustSystemsRoutes(
         | null;
 
       if (situation) {
-        const prompt = generateSituationalPrompt(userId, situation);
+        const prompt = generateSituationalPrompt(validUserId, situation);
         sendJson(res, 200, { prompts: [prompt] });
       } else {
         const prompts = generatePrompts(
           {
-            userId,
+            userId: validUserId,
             timeOfDay: getTimeOfDay(),
           },
           3
@@ -274,7 +343,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/journaling/patterns' && method === 'GET') {
-      const patterns = getJournalingPatterns(userId);
+      const patterns = getJournalingPatterns(validUserId);
       sendJson(res, 200, patterns || { message: 'Not enough data yet' });
       return true;
     }
@@ -284,15 +353,15 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/seasonal' && method === 'GET') {
-      const profile = getSeasonalProfile(userId);
-      const context = buildSeasonalContext(userId);
+      const profile = getSeasonalProfile(validUserId);
+      const context = buildSeasonalContext(validUserId);
       sendJson(res, 200, { profile, context });
       return true;
     }
 
     if (pathname === '/api/trust/seasonal/personal-date' && method === 'POST') {
       const body = await parseBody(req);
-      const date = addPersonalDate(userId, {
+      const date = addPersonalDate(validUserId, {
         date: { month: body.month as number, day: body.day as number },
         name: body.name as string,
         type: (body.type as 'joyful' | 'difficult' | 'mixed' | 'milestone') || 'milestone',
@@ -305,7 +374,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/seasonal/holiday' && method === 'POST') {
       const body = await parseBody(req);
-      updateHolidayPreference(userId, body.holiday as string, {
+      updateHolidayPreference(validUserId, body.holiday as string, {
         sentiment: body.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
         avoidMentioning: body.avoidMentioning as boolean,
       });
@@ -318,9 +387,9 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/learning-style' && method === 'GET') {
-      const profile = getLearningProfile(userId);
-      const guidance = generateDeliveryGuidance(userId);
-      const summary = getStyleSummary(userId);
+      const profile = getLearningProfile(validUserId);
+      const guidance = generateDeliveryGuidance(validUserId);
+      const summary = getStyleSummary(validUserId);
       sendJson(res, 200, { profile, guidance, summary });
       return true;
     }
@@ -331,9 +400,9 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/insights' && method === 'GET') {
       const period = (query.get('period') as 'week' | 'month' | 'quarter' | 'year') || 'month';
-      const latest = getLatestReport(userId, period);
-      const history = getReportHistory(userId);
-      const isDue = isReportDue(userId, period);
+      const latest = getLatestReport(validUserId, period);
+      const history = getReportHistory(validUserId);
+      const isDue = isReportDue(validUserId, period);
 
       sendJson(res, 200, {
         latest,
@@ -346,7 +415,7 @@ export async function handleTrustSystemsRoutes(
     if (pathname === '/api/trust/insights/generate' && method === 'POST') {
       const body = await parseBody(req);
       const period = (body.period as 'week' | 'month' | 'quarter' | 'year') || 'month';
-      const report = generateReport(userId, period);
+      const report = generateReport(validUserId, period);
       sendJson(res, 201, report);
       return true;
     }
@@ -357,7 +426,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/media/suggestions' && method === 'GET') {
       const mood = query.get('mood') || 'neutral';
-      const suggestions = generateMediaSuggestions(userId, {
+      const suggestions = generateMediaSuggestions(validUserId, {
         currentMood: mood,
         moodIntensity: parseFloat(query.get('intensity') || '0.5'),
         timeOfDay: getTimeOfDay(),
@@ -368,7 +437,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/media/best' && method === 'GET') {
       const mood = query.get('mood') || 'neutral';
-      const suggestion = getBestSuggestion(userId, {
+      const suggestion = getBestSuggestion(validUserId, {
         currentMood: mood,
         moodIntensity: parseFloat(query.get('intensity') || '0.5'),
         timeOfDay: getTimeOfDay(),
@@ -379,7 +448,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/media/feedback' && method === 'POST') {
       const body = await parseBody(req);
-      recordSuggestionFeedback(userId, body.suggestionId as string, {
+      recordSuggestionFeedback(validUserId, body.suggestionId as string, {
         used: body.used as boolean,
         rating: body.rating as 1 | 2 | 3 | 4 | 5,
         helpedWith: body.helpedWith as string,
@@ -390,7 +459,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/media/preferences' && method === 'GET') {
-      const preferences = getMediaPreferences(userId);
+      const preferences = getMediaPreferences(validUserId);
       sendJson(res, 200, preferences || { message: 'No preferences set' });
       return true;
     }
@@ -400,8 +469,8 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/starters' && method === 'GET') {
-      const starters = generateStarters({ userId });
-      const best = getBestStarter({ userId });
+      const starters = generateStarters({ userId: validUserId });
+      const best = getBestStarter({ userId: validUserId });
       sendJson(res, 200, { starters: starters.slice(0, 5), recommended: best });
       return true;
     }
@@ -416,7 +485,7 @@ export async function handleTrustSystemsRoutes(
       const topic = query.get('topic') || undefined;
 
       const guidance = generateTuningGuidance({
-        userId,
+        userId: validUserId,
         relationshipStage: stage as 'new' | 'building' | 'established' | 'deep',
         currentEmotion: emotion,
         topic,
@@ -440,14 +509,14 @@ export async function handleTrustSystemsRoutes(
         return true;
       }
 
-      recordEventOutcome(userId, eventId, outcome);
-      
+      recordEventOutcome(validUserId, eventId, outcome);
+
       // Generate follow-up message based on outcome
-      const events = getUpcomingEvents(userId);
+      const events = getUpcomingEvents(validUserId);
       const event = [...events.today, ...events.thisWeek, ...events.thisMonth].find(
         (e) => e.id === eventId
       );
-      
+
       let followUpMessage = null;
       if (event) {
         followUpMessage = generateFollowUpMessage(event);
@@ -465,7 +534,7 @@ export async function handleTrustSystemsRoutes(
         return true;
       }
 
-      const events = getUpcomingEvents(userId);
+      const events = getUpcomingEvents(validUserId);
       const event = [...events.today, ...events.thisWeek, ...events.thisMonth].find(
         (e) => e.id === eventId
       );
@@ -489,15 +558,18 @@ export async function handleTrustSystemsRoutes(
       const metrics = body.metrics as Record<string, number> | undefined;
 
       // Calculate fresh health score with provided or default metrics
-      const health = calculateHealthScore(userId, metrics || {
-        boundaryRespect: 100,
-        emotionalAttunement: 50,
-        growthAcknowledgment: 50,
-        callbackSuccess: 50,
-        outreachReception: 50,
-        sessionDepth: 50,
-        consistency: 50,
-      });
+      const health = calculateHealthScore(
+        validUserId,
+        metrics || {
+          boundaryRespect: 100,
+          emotionalAttunement: 50,
+          growthAcknowledgment: 50,
+          callbackSuccess: 50,
+          outreachReception: 50,
+          sessionDepth: 50,
+          consistency: 50,
+        }
+      );
 
       sendJson(res, 200, {
         score: health.overallScore,
@@ -516,7 +588,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/journaling/best' && method === 'GET') {
       const context = {
-        userId,
+        userId: validUserId,
         timeOfDay: getTimeOfDay(),
         mood: query.get('mood') || undefined,
         topic: query.get('topic') || undefined,
@@ -533,7 +605,7 @@ export async function handleTrustSystemsRoutes(
 
     if (pathname === '/api/trust/media/mood' && method === 'GET') {
       const mood = query.get('mood') || 'neutral';
-      const suggestions = getSuggestionsForMood(userId, mood);
+      const suggestions = getSuggestionsForMood(validUserId, mood);
       sendJson(res, 200, { mood, suggestions });
       return true;
     }
@@ -557,6 +629,30 @@ function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
   if (hour < 17) return 'afternoon';
   if (hour < 21) return 'evening';
   return 'night';
+}
+
+function formatSystemName(id: string): string {
+  const names: Record<string, string> = {
+    reading_between_lines: 'Reading Between Lines',
+    boundary_memory: 'Boundary Memory',
+    growth_reflection: 'Growth Reflection',
+    inside_jokes: 'Inside Jokes',
+    small_wins: 'Small Wins',
+    thinking_of_you: 'Thinking of You',
+  };
+  return names[id] || id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getSystemDescription(id: string): string {
+  const descriptions: Record<string, string> = {
+    reading_between_lines: "Detects what's NOT being said",
+    boundary_memory: 'Tracks what NOT to bring up',
+    growth_reflection: 'Notices user evolution',
+    inside_jokes: 'Builds shared history',
+    small_wins: 'Celebrates effort, not just outcomes',
+    thinking_of_you: 'Proactive no-agenda outreach',
+  };
+  return descriptions[id] || '';
 }
 
 // ============================================================================

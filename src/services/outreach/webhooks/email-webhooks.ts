@@ -9,11 +9,11 @@
  * - Unsubscribes
  */
 
-import { getLogger } from '../../../utils/safe-logger.js';
 import crypto from 'crypto';
-import { handleEmailEvent } from '../delivery/email-delivery.js';
-import { updateDeliveryStatus } from '../delivery/delivery-tracker.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
+import { updateDeliveryStatus } from '../delivery/delivery-tracker.js';
+import { handleEmailEvent } from '../delivery/email-delivery.js';
 
 const log = getLogger().child({ module: 'email-webhooks' });
 
@@ -369,13 +369,20 @@ async function processEmailEvent(event: EmailTrackingEvent): Promise<void> {
     errorMessage: event.metadata?.bounceReason,
   });
 
-  // Record for analytics
+  // Record for analytics - look up user and outreach from delivery record
   if (event.event === 'opened' || event.event === 'clicked') {
+    const { getDeliveryByExternalId } = await import('../delivery/delivery-tracker.js');
+    const deliveryRecord = getDeliveryByExternalId(event.messageId);
+
+    const userId = deliveryRecord?.userId || 'unknown';
+    const outreachId = deliveryRecord?.outreachId || event.metadata?.outreachId || event.messageId;
+    const responseTime = deliveryRecord?.sentAt ? Date.now() - deliveryRecord.sentAt.getTime() : 0;
+
     recordResponseEvent({
-      outreachId: event.metadata?.outreachId || event.messageId,
-      userId: 'unknown', // Would need to look up from messageId
+      outreachId,
+      userId,
       responseType: event.event === 'clicked' ? 'click' : 'open',
-      responseTime: 0, // Would calculate from send time
+      responseTime,
       engagementScore: event.event === 'clicked' ? 8 : 5,
     });
   }

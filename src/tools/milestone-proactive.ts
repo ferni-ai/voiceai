@@ -11,9 +11,9 @@
  * when milestones are approaching and celebrates progress!
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { getLogger } from '../utils/safe-logger.js';
 import { getUserMilestones, type LifeMilestone } from './life-firsts-tracker.js';
 
 // ============================================================================
@@ -155,7 +155,7 @@ const PROGRESS_MESSAGES = {
     'Hey, <break time="200ms"/>we\'re at {percent}%. <break time="200ms"/>What\'s blocking progress?',
   ],
   behind: [
-    '{percent}%... <break time="300ms"/>We need to catch up! <break time="200ms"/>What can I help with?',
+    '{percent}%... <break time="300ms"/>We need to catch up! <break time="200ms"/>What\'s blocking us?',
     'We\'re behind at {percent}%. <break time="200ms"/>Let\'s figure out the priorities!',
     'Okay, {percent}%. <break time="200ms"/>No judgment! <break time="150ms"/>Let\'s make a plan to catch up!',
   ],

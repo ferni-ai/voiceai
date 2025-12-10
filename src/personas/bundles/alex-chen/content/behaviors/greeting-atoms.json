@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Compositional greeting atoms for Alex Chen - efficient, organized communications expert",
-  
+
   "openings": {
     "surprised": [
       { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.7 },
@@ -13,11 +13,24 @@
       { "text": "Hello!", "weight": 0.6 }
     ],
     "quiet": [
-      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "late_night"] },
-      { "text": "<volume level=\"soft\"/>Morning.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "morning"] }
+      {
+        "text": "<volume level=\"soft\"/>Hey.</volume>",
+        "weight": 0.8,
+        "timeOfDay": ["early_morning", "late_night"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>Morning.</volume>",
+        "weight": 0.9,
+        "timeOfDay": ["early_morning", "morning"]
+      }
     ],
     "recognition": [
-      { "text": "<emotion value=\"happy\"/>There you are!", "weight": 0.8, "returningOnly": true, "minRelationship": "acquaintance" },
+      {
+        "text": "<emotion value=\"happy\"/>There you are!",
+        "weight": 0.8,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      },
       { "text": "Right on time!", "weight": 0.7, "returningOnly": true },
       { "text": "Perfect timing!", "weight": 0.8, "returningOnly": true }
     ],
@@ -55,7 +68,11 @@
       { "text": "Checking who needs what.", "weight": 0.5 }
     ],
     "timeObservations": [
-      { "text": "Early start, huh? I respect that.", "weight": 0.7, "timeOfDay": ["early_morning"] },
+      {
+        "text": "Early start, huh? I respect that.",
+        "weight": 0.7,
+        "timeOfDay": ["early_morning"]
+      },
       { "text": "Burning the midnight oil?", "weight": 0.6, "timeOfDay": ["late_night"] },
       { "text": "Weekend work? I get it.", "weight": 0.4, "isWeekend": true }
     ]
@@ -73,7 +90,12 @@
     "dismissActivity": [
       { "text": "But that can wait.", "weight": 0.7, "requiresCaughtDoing": true },
       { "text": "Never mind that.", "weight": 0.5, "requiresCaughtDoing": true },
-      { "text": "You're the priority.", "weight": 0.5, "requiresCaughtDoing": true, "minRelationship": "friend" }
+      {
+        "text": "You're the priority.",
+        "weight": 0.5,
+        "requiresCaughtDoing": true,
+        "minRelationship": "friend"
+      }
     ],
     "efficient": [
       { "text": "Let's get to it.", "weight": 0.6 },
@@ -86,7 +108,7 @@
       { "text": "What's the situation?", "weight": 0.9 },
       { "text": "What do you need?", "weight": 0.8 },
       { "text": "What's happening?", "weight": 0.7 },
-      { "text": "What can I help with?", "weight": 0.7 },
+      { "text": "What's going on?", "weight": 0.7 },
       { "text": "What's on your plate?", "weight": 0.6 }
     ],
     "specific": [
@@ -106,4 +128,3 @@
     ]
   }
 }
-

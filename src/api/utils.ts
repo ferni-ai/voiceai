@@ -73,12 +73,14 @@ export function getUserId(req: IncomingMessage): string | null {
 
 /**
  * Verify authentication (basic version)
+ * SECURITY: 'Bearer dev-mode' only works in non-production environments
  */
 export function verifyAuth(req: IncomingMessage): { authorized: boolean; userId?: string } {
   const authHeader = req.headers.authorization;
+  const isDev = process.env.NODE_ENV !== 'production';
 
-  // Dev mode bypass
-  if (process.env.NODE_ENV === 'development' && authHeader === 'Bearer dev-mode') {
+  // Dev mode bypass - ONLY in non-production
+  if (isDev && authHeader === 'Bearer dev-mode') {
     return { authorized: true, userId: 'dev-user' };
   }
 

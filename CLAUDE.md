@@ -77,6 +77,48 @@ gcloud builds list --limit=1
 
 **Key files:** `cloudbuild-ui.yaml`, `cloudbuild.yaml`, `Dockerfile.ui`, `Dockerfile`, `scripts/deploy.ts`
 
+## 🎨 Design System (SINGLE SOURCE OF TRUTH)
+
+All design tokens live in `design-system/tokens/*.json`. **Never edit generated files directly.**
+
+### Quick Commands
+```bash
+npm run tokens:sync    # Build & sync all tokens (run after editing JSON)
+npm run tokens:check   # Validate no drift (runs in pre-commit & CI)
+```
+
+### What Gets Generated
+
+| Source | Generated | Used By |
+|--------|-----------|---------|
+| `tokens/colors.json` | `dist/tokens.css` | Frontend app |
+| `tokens/animation.json` | `animation-constants.generated.ts` | Frontend animations |
+| `tokens/colors.json` | `tailwind.config.generated.js` | Promo website |
+| `tokens/*.json` | `promo/css/design-tokens.css` | Landing page |
+
+### Adding a New Persona Color
+1. Edit `design-system/tokens/colors.json` → add to `personas` object
+2. Edit `design-system/tokens/personas.json` → add full persona profile
+3. Run `npm run tokens:sync`
+4. Commit all generated files
+
+### Adding a New Animation
+1. Edit `design-system/tokens/animation.json`
+2. Run `npm run build:animation-constants`
+3. Import from `animation-constants.generated.ts`
+
+### Pre-commit Hook
+Token drift is checked automatically. If you see drift warnings:
+```bash
+npm run tokens:sync
+git add -A
+```
+
+### CI/CD
+GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = failed build.
+
+**Key files:** `design-system/tokens/`, `design-system/*.js`, `.github/workflows/token-check.yml`
+
 ## Dev Mode (Testing Subscription & Team Unlocks)
 ```bash
 # Enable dev mode
@@ -91,12 +133,13 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 ```
 
 ## Read First
-- **Architecture**: `docs/CLEAN-ARCHITECTURE.md`
-- **Tool/Persona patterns**: `docs/AGENT-AGNOSTIC-ARCHITECTURE.md`
-- **Monetization & Team Unlocks**: `docs/MONETIZATION-SYSTEM.md`
+- **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
+- **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
+- **Monetization & Team Unlocks**: `docs/architecture/MONETIZATION-SYSTEM.md`
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
-- **Design tokens**: `brand/ferni-design-tokens.css`
-- **Emotional Intelligence**: `brand/BETTER-THAN-HUMAN.md`
+- **Design System**: `design-system/README.md` (tokens, animations, colors)
+- **Design System Audit**: `docs/audits/DESIGN-SYSTEM-AUDIT.md` (consolidation status)
+- **Emotional Intelligence**: `design-system/brand/BETTER-THAN-HUMAN.md`
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 
@@ -147,6 +190,89 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 
 **Reference:** `brand/BETTER-THAN-HUMAN.md` for full documentation.
 
+## 🦸 200% Persona System - Superhuman Capabilities
+
+Every persona has "200% capabilities" that go beyond normal conversation - superhuman insights that no human friend could consistently provide.
+
+### Architecture Overview
+
+```
+Persona Bundle (src/personas/bundles/{persona}/)
+├── identity/
+│   └── system-prompt.md         # Core identity
+├── content/
+│   └── behaviors/
+│       ├── superhuman-insights.json   # 200% pattern surfacing
+│       ├── trust-phrases.json         # Persona-voiced trust outputs  
+│       ├── i-notice-power.json        # "I notice" statements
+│       ├── late-night-presence.json   # 2am wisdom
+│       ├── emotional-intelligence.json # Emotion detection patterns
+│       ├── self-doubt.json            # Vulnerability moments
+│       ├── secret-fears.json          # Deeper vulnerabilities
+│       └── mortality-awareness.json   # Death/legacy reflections
+└── persona.manifest.json        # Config and capabilities
+```
+
+### Context Builders (src/intelligence/context-builders/)
+
+| Builder | JSON Source | What It Injects |
+|---------|-------------|-----------------|
+| `superhuman-insights.ts` | `superhuman-insights.json`, `i-notice-power.json` | Pattern surfacing, "The Mirror", anticipatory cues |
+| `trust-context.ts` | `trust-phrases.json` | Reading between lines, boundary awareness, growth reflection |
+| `physical-presence.ts` | `late-night-presence.json` | Late night wisdom, grounding exercises |
+| `persona-vulnerability.ts` | `self-doubt.json`, `secret-fears.json`, `mortality-awareness.json` | Vulnerability moments |
+| `emotional.ts` | `emotional-intelligence.json` | Persona-specific emotional responses |
+
+### Content Loading (src/services/persona-content-loader.ts)
+
+```typescript
+// ✅ ALWAYS load content for the active persona
+import { loadTrustPhrases, loadSuperhumanInsights } from '../services/persona-content-loader.js';
+
+// Load persona-specific content (NOT hardcoded to Ferni!)
+const trustPhrases = await loadTrustPhrases(persona.id);  // ✅ Persona-aware
+const insights = await loadSuperhumanInsights(persona.id); // ✅ Persona-aware
+
+// ❌ NEVER hardcode persona IDs
+const trustPhrases = await loadTrustPhrases('ferni'); // ❌ Wrong!
+```
+
+### Adding 200% Capabilities to a New Persona
+
+1. Create JSON behavior files in `src/personas/bundles/{persona}/content/behaviors/`:
+   - `superhuman-insights.json` - Domain-specific pattern surfacing
+   - `trust-phrases.json` - Persona-voiced trust outputs
+   - `i-notice-power.json` - "I notice" statements for their domain
+   - `late-night-presence.json` - Late night wisdom
+   - `self-doubt.json` - Vulnerability about their expertise
+   - `secret-fears.json` - Deeper fears
+   - `mortality-awareness.json` - Legacy reflections
+
+2. The bundle loader (`src/personas/bundles/loader.ts`) automatically loads these files.
+
+3. Context builders automatically use `persona.id` to load the correct content.
+
+### Testing 200% Capabilities
+
+```bash
+# Run all persona E2E tests
+npm test -- --run persona-e2e
+
+# Run context injection integration tests  
+npm test -- --run context-injection-integration
+```
+
+### Key Implementation Rules
+
+| Wrong | Right |
+|-------|-------|
+| Hardcode `'ferni'` in context builders | Use `persona.id` dynamically |
+| Load content once globally | Load per-persona with caching |
+| Generic trust phrases | Persona-voiced phrases from JSON |
+| Check `if (persona.id !== 'ferni')` return early | Support ALL personas |
+
+**Reference:** `docs/PERSONA-EXCELLENCE-PLAN.md` for the full implementation plan.
+
 ## Critical Rules
 
 ### Never Do
@@ -158,8 +284,10 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 | `as any` casts | Proper typing or `as unknown as T` with comment |
 | `.catch(() => {})` | `.catch((e) => log.error({ error: e }, 'context'))` |
 | Persona-specific tool names | Domain names: `habit-coaching.ts` not `maya-habits.ts` |
-| Hardcoded colors in UI | CSS variables: `var(--persona-primary)` |
-| Hardcoded durations in UI | Constants: `DURATION.SLOW`, `EASING.SPRING` |
+| Hardcoded colors `#4a6741` | CSS variables: `var(--color-ferni)` |
+| Hardcoded durations `300` | Constants: `DURATION.SLOW`, `EASING.SPRING` |
+| Edit `*.generated.ts` files | Edit source JSON in `design-system/tokens/` |
+| Edit `design-tokens.css` directly | Run `npm run tokens:sync` after editing JSON |
 
 ### Always Do
 - Await all promises OR handle with proper `.catch()` logging
@@ -168,6 +296,7 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 - Write tests for new features (`src/tests/`, Vitest)
 - Use `readonly` for data that shouldn't change
 - Validate at boundaries (user input, API responses)
+- Run `npm run tokens:sync` after editing `design-system/tokens/*.json`
 
 ## File Naming
 | Type | Pattern | Example |
@@ -279,6 +408,35 @@ Habit coaching uses evidence-based methodologies:
 | Four Tendencies | Upholder/Questioner/Obliger/Rebel strategies | Gretchen Rubin |
 
 Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `stacksWellWith`, `keystonePotential`
+
+## 🛡️ Agent Guardrails (PREVENT MISTAKES)
+
+**Before making changes, ALWAYS:**
+1. Run `npm run typecheck` - catches type errors immediately
+2. Run `npm run lint` - catches code style issues
+3. Run `npm run tokens:check` - catches design system drift
+
+**Before suggesting deployment:**
+1. Run `npm run quality` - full quality check
+2. Test the feature in browser if it's UI
+3. Verify no regressions in related functionality
+
+**Common Agent Mistakes to Avoid:**
+| Mistake | Prevention |
+|---------|------------|
+| Breaking types | Run `npm run typecheck` after EVERY edit |
+| Hardcoded colors | Use `var(--color-*)` ALWAYS |
+| console.log | Use `createLogger('Module')` |
+| Editing generated files | Check filename for `.generated.` |
+| Wrong deploy target | Check table in Deployment section |
+| Forgetting to sync tokens | Run `npm run tokens:sync` after token edits |
+
+**If pre-commit fails:**
+```bash
+npm run lint:fix      # Auto-fix lint issues
+npm run format        # Auto-fix formatting
+npm run tokens:sync   # Fix token drift
+```
 
 ## Subdirectory CLAUDE.md Files
 - `src/tools/CLAUDE.md` - How to create tools

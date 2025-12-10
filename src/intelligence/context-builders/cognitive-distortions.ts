@@ -31,10 +31,21 @@ import {
 
 import {
   buildCognitiveIntelligenceContext,
-  type CognitiveIntelligenceResult,
+  getGentleResponse,
+  getUserDistortionStats,
+  type DistortionDetection,
 } from '../../services/cognitive-intelligence/index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
+
+// Type for cognitive intelligence result
+interface CognitiveIntelligenceResult {
+  hasDistortion: boolean;
+  primary: DistortionDetection | null;
+  contextInjection: { llmContext: string } | null;
+  response?: { approach: string };
+  dialogue?: { question: string };
+}
 
 const log = createLogger({ module: 'CognitiveDistortionsBuilder' });
 
@@ -102,13 +113,10 @@ async function buildCognitiveDistortionsContext(
 
   // Build cognitive intelligence context
   const cognitiveResult = buildCognitiveIntelligenceContext(userId, userText, {
-    topic: analysis?.topics?.primary || undefined,
     emotion: analysis?.emotion?.primary,
     emotionIntensity: analysis?.emotion?.intensity,
     relationshipStage,
-    recentReframes: trackingState.reframeCount,
-    questionsAsked: trackingState.questionsAsked,
-  });
+  }) as CognitiveIntelligenceResult;
 
   // If no distortion detected, return empty
   if (!cognitiveResult.hasDistortion || !cognitiveResult.contextInjection) {
@@ -149,7 +157,7 @@ async function buildCognitiveDistortionsContext(
         distortionType: primary.type,
         confidence: primary.confidence,
         approach: cognitiveResult.response?.approach,
-        isRecurring: primary.isRecurring,
+        isRecurring: primary.patternCount > 1,
         patternCount: primary.patternCount,
       },
       '🧠 Cognitive distortion context injected'

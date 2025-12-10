@@ -25,10 +25,10 @@
  *   npx ts-node src/cli/agent-manager.ts install moxie-accountability --from github:sethdford/voiceai-agents
  */
 
-import { readdir, stat, readFile, writeFile, mkdir, copyFile, rm } from 'fs/promises';
-import { join, dirname, basename } from 'path';
-import { existsSync } from 'fs';
 import { exec } from 'child_process';
+import { existsSync } from 'fs';
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -771,7 +771,7 @@ async function createAgent(agentId: string, template = 'basic'): Promise<void> {
         ],
         handoff_phrases: {
           to_coordinator: [`Let me hand you back to Ferni for anything else.`],
-          receive: [`${displayName.split(' ')[0]} here. What can I help you with?`],
+          receive: [`${displayName.split(' ')[0]} here. What's going on?`],
         },
       },
 
@@ -853,7 +853,7 @@ async function createAgent(agentId: string, template = 'basic'): Promise<void> {
 
     // Create basic behavior files
     const greetings = {
-      new_user: [`Hi there! I'm ${displayName.split(' ')[0]}. How can I help you today?`],
+      new_user: [`Hi there! I'm ${displayName.split(' ')[0]}. What's on your mind?`],
       returning_user: [`Welcome back! ${displayName.split(' ')[0]} here. What's on your mind?`],
     };
     await writeFile(

@@ -12,8 +12,8 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-import type { PersonaConfig, GreetingStyle } from './types.js';
-import { getDayContext, getTimeContext, getSeasonalContext } from './behaviors.js';
+import { getDayContext } from './behaviors.js';
+import type { GreetingStyle, PersonaConfig } from './types.js';
 
 // ============================================================================
 // GREETING TEMPLATES BY STYLE
@@ -103,16 +103,16 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
       return {
         newUser: [
           `Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>It's good to meet you.`,
-          `Good to connect with you. <break time="200ms"/>I'm ${name}. <break time="150ms"/>How can I be helpful today?`,
+          `Good to connect with you. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's going on?`,
           `<break time="100ms"/>Hello there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you here?`,
         ],
         returningUser: [
           `{name}, <break time="200ms"/>good to see you again. <break time="150ms"/>How have you been?`,
           `Hello again, {name}. <break time="200ms"/>What's on your mind today?`,
-          `{name}! <break time="200ms"/>Welcome back. <break time="150ms"/>How can I help?`,
+          `{name}! <break time="200ms"/>Welcome back. <break time="150ms"/>What's on your mind?`,
         ],
         returningNoName: [
-          `Good to see you again. <break time="200ms"/>How can I help today?`,
+          `Good to see you again. <break time="200ms"/>What's on your mind?`,
           `Welcome back! <break time="200ms"/>What's on your mind?`,
         ],
         timeAware: {
@@ -689,22 +689,18 @@ function generateMemoryBasedGreeting(
 // MAIN GREETING FUNCTION
 // ============================================================================
 
+import { generateProactiveOpener, type OpenerContext } from '../conversation/proactive-starters.js';
 import { generateAliveGreeting } from './alive-greetings.js';
-import { generateCompositionalGreeting } from './compositional-greetings.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
-import {
-  generateProactiveOpener,
-  buildOpenerContext,
-  type OpenerContext,
-} from '../conversation/proactive-starters.js';
+import { generateCompositionalGreeting } from './compositional-greetings.js';
 
 // Shared utilities integration
 import {
-  type LifeEvent,
   findEventsToAcknowledge,
   generateEventAcknowledgment,
+  type LifeEvent,
 } from './shared/life-events.js';
-import { isMilestoneConversation, getMilestoneMessage } from './shared/welcome-back.js';
+import { getMilestoneMessage, isMilestoneConversation } from './shared/welcome-back.js';
 
 /**
  * Generate a greeting for the persona

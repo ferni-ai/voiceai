@@ -18,11 +18,14 @@
  * - cultural-celebrations.ts - Cultural milestone events
  * - first-time-planning.ts - First-time experience guidance
  * - milestone-proactive.ts - Proactive milestone suggestions
+ *
+ * PERSISTENCE: Events, purchases, vacations, and plans are persisted to Firestore.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { createPersistenceStore, type PersistenceStore } from '../services/persistence/index.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES - LIFE PLANNING
@@ -203,11 +206,223 @@ interface VenueOption {
   location: string;
 }
 
-// In-memory storage
+// ============================================================================
+// PERSISTENCE TYPES (serialized for Firestore)
+// ============================================================================
+
+interface PersistedEvent extends Omit<Event, 'date' | 'createdAt' | 'checklist'> {
+  date: string;
+  createdAt: string;
+  checklist: Array<Omit<ChecklistItem, 'dueDate'> & { dueDate?: string }>;
+}
+
+interface PersistedMajorPurchase extends Omit<MajorPurchase, 'targetDate' | 'createdAt'> {
+  targetDate?: string;
+  createdAt: string;
+}
+
+interface PersistedVacation extends Omit<
+  Vacation,
+  'startDate' | 'endDate' | 'createdAt' | 'itinerary' | 'bookings'
+> {
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  itinerary: Array<Omit<ItineraryDay, 'date'> & { date?: string }>;
+  bookings: Array<Omit<Booking, 'date'> & { date?: string }>;
+}
+
+interface PersistedAnnualPlan extends Omit<AnnualPlan, 'createdAt' | 'goals'> {
+  createdAt: string;
+  goals: Array<Omit<LifeGoal, 'deadline'> & { deadline?: string }>;
+}
+
+interface UserEventPlanningData {
+  events: PersistedEvent[];
+  majorPurchases: PersistedMajorPurchase[];
+  vacations: PersistedVacation[];
+  annualPlans: PersistedAnnualPlan[];
+}
+
+// ============================================================================
+// SERIALIZATION HELPERS
+// ============================================================================
+
+function serializeEvent(event: Event): PersistedEvent {
+  return {
+    ...event,
+    date: event.date.toISOString(),
+    createdAt: event.createdAt.toISOString(),
+    checklist: event.checklist.map((item) => ({
+      ...item,
+      dueDate: item.dueDate?.toISOString(),
+    })),
+  };
+}
+
+function deserializeEvent(data: PersistedEvent): Event {
+  return {
+    ...data,
+    date: new Date(data.date),
+    createdAt: new Date(data.createdAt),
+    checklist: data.checklist.map((item) => ({
+      ...item,
+      dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
+    })),
+  };
+}
+
+function serializePurchase(purchase: MajorPurchase): PersistedMajorPurchase {
+  return {
+    ...purchase,
+    targetDate: purchase.targetDate?.toISOString(),
+    createdAt: purchase.createdAt.toISOString(),
+  };
+}
+
+function deserializePurchase(data: PersistedMajorPurchase): MajorPurchase {
+  return {
+    ...data,
+    targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
+    createdAt: new Date(data.createdAt),
+  };
+}
+
+function serializeVacation(vacation: Vacation): PersistedVacation {
+  return {
+    ...vacation,
+    startDate: vacation.startDate?.toISOString(),
+    endDate: vacation.endDate?.toISOString(),
+    createdAt: vacation.createdAt.toISOString(),
+    itinerary: vacation.itinerary.map((day) => ({
+      ...day,
+      date: day.date?.toISOString(),
+    })),
+    bookings: vacation.bookings.map((booking) => ({
+      ...booking,
+      date: booking.date?.toISOString(),
+    })),
+  };
+}
+
+function deserializeVacation(data: PersistedVacation): Vacation {
+  return {
+    ...data,
+    startDate: data.startDate ? new Date(data.startDate) : undefined,
+    endDate: data.endDate ? new Date(data.endDate) : undefined,
+    createdAt: new Date(data.createdAt),
+    itinerary: data.itinerary.map((day) => ({
+      ...day,
+      date: day.date ? new Date(day.date) : undefined,
+    })),
+    bookings: data.bookings.map((booking) => ({
+      ...booking,
+      date: booking.date ? new Date(booking.date) : undefined,
+    })),
+  };
+}
+
+function serializeAnnualPlan(plan: AnnualPlan): PersistedAnnualPlan {
+  return {
+    ...plan,
+    createdAt: plan.createdAt.toISOString(),
+    goals: plan.goals.map((goal) => ({
+      ...goal,
+      deadline: goal.deadline?.toISOString(),
+    })),
+  };
+}
+
+function deserializeAnnualPlan(data: PersistedAnnualPlan): AnnualPlan {
+  return {
+    ...data,
+    createdAt: new Date(data.createdAt),
+    goals: data.goals.map((goal) => ({
+      ...goal,
+      deadline: goal.deadline ? new Date(goal.deadline) : undefined,
+    })),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
+// ============================================================================
+
 const events = new Map<string, Event>();
 const majorPurchases = new Map<string, MajorPurchase>();
 const vacations = new Map<string, Vacation>();
 const annualPlans = new Map<string, AnnualPlan>();
+const loadedUsers = new Set<string>();
+
+// Note: Event planning data is global (not user-scoped) for now
+// In a multi-user system, each event should have a userId field
+let persistence: PersistenceStore<UserEventPlanningData> | null = null;
+
+function getPersistence(): PersistenceStore<UserEventPlanningData> {
+  if (!persistence) {
+    persistence = createPersistenceStore<UserEventPlanningData>({
+      collection: 'event_planning',
+      documentId: 'data',
+      syncIntervalMs: 3000,
+    });
+  }
+  return persistence;
+}
+
+/**
+ * Load user's event planning data from persistence
+ */
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data) {
+      // Load events
+      for (const event of data.events || []) {
+        events.set(event.id, deserializeEvent(event));
+      }
+      // Load purchases
+      for (const purchase of data.majorPurchases || []) {
+        majorPurchases.set(purchase.id, deserializePurchase(purchase));
+      }
+      // Load vacations
+      for (const vacation of data.vacations || []) {
+        vacations.set(vacation.id, deserializeVacation(vacation));
+      }
+      // Load annual plans
+      for (const plan of data.annualPlans || []) {
+        annualPlans.set(plan.id, deserializeAnnualPlan(plan));
+      }
+    }
+    loadedUsers.add(userId);
+    getLogger().debug({ userId }, 'Loaded event planning data from persistence');
+  } catch (error) {
+    getLogger().warn({ error, userId }, 'Failed to load event planning data');
+    loadedUsers.add(userId);
+  }
+}
+
+/**
+ * Persist all event planning data for a user
+ */
+function persistEventPlanningData(userId: string): void {
+  const data: UserEventPlanningData = {
+    events: Array.from(events.values()).map(serializeEvent),
+    majorPurchases: Array.from(majorPurchases.values()).map(serializePurchase),
+    vacations: Array.from(vacations.values()).map(serializeVacation),
+    annualPlans: Array.from(annualPlans.values()).map(serializeAnnualPlan),
+  };
+  getPersistence().set(userId, data);
+}
+
+/**
+ * Flush event planning persistence
+ */
+export async function flushEventPlanningPersistence(): Promise<void> {
+  await getPersistence().flush();
+  getLogger().info('Event planning persistence flushed');
+}
 
 // Best times to buy database
 const BEST_TIMES_TO_BUY: Record<string, string[]> = {
@@ -351,14 +566,17 @@ const venueDatabase: VenueOption[] = [
 // EVENT MANAGEMENT
 // ============================================================================
 
-function createEvent(
+async function createEventWithPersistence(
+  userId: string,
   name: string,
   type: EventType,
   date: Date,
   guestCount: number,
   budget: number,
   theme?: string
-): Event {
+): Promise<Event> {
+  await ensureUserLoaded(userId);
+
   const id = `event_${Date.now()}`;
 
   const event: Event = {
@@ -379,6 +597,7 @@ function createEvent(
   };
 
   events.set(id, event);
+  persistEventPlanningData(userId);
   getLogger().info({ eventId: id, name, type, date }, '🎉 Event created');
 
   return event;
@@ -475,13 +694,23 @@ Use when the user wants to:
           .optional()
           .describe('Optional theme (e.g., "Tropical", "80s", "Elegant Black Tie")'),
       }),
-      execute: async ({ name, type, date, guestCount, budget, theme }) => {
+      execute: async ({ name, type, date, guestCount, budget, theme }, context) => {
         const eventDate = new Date(date);
         if (isNaN(eventDate.getTime())) {
           return `I couldn't understand that date. Can you try something like "March 15, 2025"?`;
         }
 
-        const event = createEvent(name, type, eventDate, guestCount, budget, theme);
+        // Get userId from context or use default
+        const userId = (context as { userId?: string })?.userId || 'default';
+        const event = await createEventWithPersistence(
+          userId,
+          name,
+          type,
+          eventDate,
+          guestCount,
+          budget,
+          theme
+        );
 
         const dateStr = eventDate.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -579,7 +808,10 @@ Use when the user wants to:
           )
           .describe('List of guests to add'),
       }),
-      execute: async ({ eventId, guests }) => {
+      execute: async ({ eventId, guests }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         // Get event (use most recent if not specified)
         let event: Event | undefined;
         if (eventId) {
@@ -608,6 +840,7 @@ Use when the user wants to:
 
         event.guestCount = event.guests.length + event.guests.filter((g) => g.plusOne).length;
         events.set(event.id, event);
+        persistEventPlanningData(userId);
 
         const plusOnes = guests.filter((g) => g.plusOne).length;
         let response = `✅ Added ${added} guest${added > 1 ? 's' : ''} to "${event.name}"`;
@@ -755,7 +988,10 @@ Use when the user has:
         eventId: z.string().optional().describe('Event ID'),
         notes: z.string().optional().describe('Any notes about completion'),
       }),
-      execute: async ({ taskName, eventId, notes }) => {
+      execute: async ({ taskName, eventId, notes }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         let event: Event | undefined;
         if (eventId) {
           event = events.get(eventId);
@@ -782,6 +1018,7 @@ Use when the user has:
         task.completed = true;
         if (notes) task.notes = notes;
         events.set(event.id, event);
+        persistEventPlanningData(userId);
 
         const remaining = event.checklist.filter((c) => !c.completed).length;
 
@@ -805,7 +1042,10 @@ Use when the user:
           .describe('Expense category'),
         eventId: z.string().optional().describe('Event ID'),
       }),
-      execute: async ({ description, amount, category, eventId }) => {
+      execute: async ({ description, amount, category, eventId }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         let event: Event | undefined;
         if (eventId) {
           event = events.get(eventId);
@@ -820,6 +1060,7 @@ Use when the user:
 
         event.spent += amount;
         events.set(event.id, event);
+        persistEventPlanningData(userId);
 
         const remaining = event.budget - event.spent;
         const percentUsed = Math.round((event.spent / event.budget) * 100);
@@ -921,7 +1162,10 @@ Use when the user wants to:
         budget: z.number().positive().describe('Maximum budget'),
         priorities: z.array(z.string()).optional().describe('Key priorities'),
       }),
-      execute: async ({ type, name, budget, priorities }) => {
+      execute: async ({ type, name, budget, priorities }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         const id = `purchase_${Date.now()}`;
 
         const purchase: MajorPurchase = {
@@ -937,6 +1181,7 @@ Use when the user wants to:
         };
 
         majorPurchases.set(id, purchase);
+        persistEventPlanningData(userId);
         getLogger().info({ purchaseId: id, type, name, budget }, '🛒 Major purchase plan created');
 
         const bestTimes = BEST_TIMES_TO_BUY[type] || BEST_TIMES_TO_BUY.appliances;
@@ -1011,7 +1256,10 @@ Use when the user wants to plan a vacation or travel.`,
         budget: z.number().describe('Total budget'),
         tripType: z.enum(['relaxation', 'adventure', 'cultural', 'family', 'romantic', 'other']),
       }),
-      execute: async ({ name, destination, travelers, budget, tripType }) => {
+      execute: async ({ name, destination, travelers, budget, tripType }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         const id = `vacation_${Date.now()}`;
 
         const vacation: Vacation = {
@@ -1029,6 +1277,7 @@ Use when the user wants to plan a vacation or travel.`,
         };
 
         vacations.set(id, vacation);
+        persistEventPlanningData(userId);
         getLogger().info({ vacationId: id, name, destination, budget }, '✈️ Vacation plan created');
 
         let response = `✈️ **Vacation Plan: ${name}**\n\n`;
@@ -1103,7 +1352,10 @@ Use when the user wants to plan their year.`,
           .optional(),
         experiences: z.array(z.string()).optional().describe('Experiences to have'),
       }),
-      execute: async ({ year, goals, experiences }) => {
+      execute: async ({ year, goals, experiences }, context) => {
+        const userId = (context as { userId?: string })?.userId || 'default';
+        await ensureUserLoaded(userId);
+
         const id = `plan_${year}`;
 
         const plan: AnnualPlan = {
@@ -1132,6 +1384,7 @@ Use when the user wants to plan their year.`,
         };
 
         annualPlans.set(id, plan);
+        persistEventPlanningData(userId);
         getLogger().info({ year, goalsCount: plan.goals.length }, '📆 Annual plan created');
 
         let response = `📆 **${year} Annual Plan**\n\n`;

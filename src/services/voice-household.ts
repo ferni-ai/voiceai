@@ -46,10 +46,10 @@ export interface Household {
   createdAt: Date;
   updatedAt: Date;
   settings: {
-    autoIdentify: boolean;          // Auto-identify speaker at start
+    autoIdentify: boolean; // Auto-identify speaker at start
     requireReIdentification: boolean; // Re-identify if speaker changes
-    guestMode: boolean;             // Allow unidentified users
-    childSafeMode: boolean;         // Enable parental controls
+    guestMode: boolean; // Allow unidentified users
+    childSafeMode: boolean; // Enable parental controls
   };
 }
 
@@ -73,23 +73,23 @@ let initAttempted = false;
 function getFirestore(): admin.firestore.Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
-  
+
   initAttempted = true;
-  
+
   try {
     if (admin.apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT;
-      
+
       if (projectId) {
         admin.initializeApp({ projectId });
       } else {
         admin.initializeApp();
       }
     }
-    
+
     firestoreInstance = admin.firestore();
     return firestoreInstance;
   } catch (error) {
@@ -128,9 +128,9 @@ export async function createHousehold(
       childSafeMode: false,
     },
   };
-  
+
   await saveHousehold(household);
-  
+
   log.info({ householdId: household.id, ownerId }, 'Household created');
   return household;
 }
@@ -140,19 +140,19 @@ export async function createHousehold(
  */
 export async function getHousehold(deviceId: string): Promise<Household | null> {
   const householdId = `household_${deviceId}`;
-  
+
   // Check cache first
   if (householdsCache.has(householdId)) {
     return householdsCache.get(householdId)!;
   }
-  
+
   const db = getFirestore();
   if (!db) return null;
-  
+
   try {
     const doc = await db.collection(COLLECTION_NAME).doc(householdId).get();
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     const household: Household = {
       id: doc.id,
@@ -169,7 +169,7 @@ export async function getHousehold(deviceId: string): Promise<Household | null> 
         childSafeMode: false,
       },
     };
-    
+
     householdsCache.set(householdId, household);
     return household;
   } catch (error) {
@@ -184,21 +184,24 @@ export async function getHousehold(deviceId: string): Promise<Household | null> 
 async function saveHousehold(household: Household): Promise<void> {
   household.updatedAt = new Date();
   householdsCache.set(household.id, household);
-  
+
   const db = getFirestore();
   if (!db) return;
-  
+
   try {
-    await db.collection(COLLECTION_NAME).doc(household.id).set({
-      ...household,
-      createdAt: admin.firestore.Timestamp.fromDate(household.createdAt),
-      updatedAt: admin.firestore.Timestamp.fromDate(household.updatedAt),
-      members: household.members.map(m => ({
-        ...m,
-        enrolledAt: admin.firestore.Timestamp.fromDate(m.enrolledAt),
-        lastSeen: m.lastSeen ? admin.firestore.Timestamp.fromDate(m.lastSeen) : null,
-      })),
-    });
+    await db
+      .collection(COLLECTION_NAME)
+      .doc(household.id)
+      .set({
+        ...household,
+        createdAt: admin.firestore.Timestamp.fromDate(household.createdAt),
+        updatedAt: admin.firestore.Timestamp.fromDate(household.updatedAt),
+        members: household.members.map((m) => ({
+          ...m,
+          enrolledAt: admin.firestore.Timestamp.fromDate(m.enrolledAt),
+          lastSeen: m.lastSeen ? admin.firestore.Timestamp.fromDate(m.lastSeen) : null,
+        })),
+      });
   } catch (error) {
     log.error({ error, householdId: household.id }, 'Failed to save household');
   }
@@ -223,31 +226,31 @@ export async function addHouseholdMember(
   if (!household) {
     household = await createHousehold(deviceId, userId);
   }
-  
+
   // Check if member already exists
-  const existing = household.members.find(m => m.userId === userId);
+  const existing = household.members.find((m) => m.userId === userId);
   if (existing) {
     log.info({ userId, householdId: household.id }, 'Member already in household');
     return existing;
   }
-  
+
   // Verify voice profile exists
   const profile = await loadVoiceProfile(userId);
   if (!profile) {
     log.warn({ userId }, 'Cannot add member - no voice profile');
     return null;
   }
-  
+
   const member: HouseholdMember = {
     userId,
     displayName,
     role,
     enrolledAt: new Date(),
   };
-  
+
   household.members.push(member);
   await saveHousehold(household);
-  
+
   log.info({ userId, householdId: household.id, role }, 'Member added to household');
   return member;
 }
@@ -255,25 +258,22 @@ export async function addHouseholdMember(
 /**
  * Remove a member from a household.
  */
-export async function removeHouseholdMember(
-  deviceId: string,
-  userId: string
-): Promise<boolean> {
+export async function removeHouseholdMember(deviceId: string, userId: string): Promise<boolean> {
   const household = await getHousehold(deviceId);
   if (!household) return false;
-  
-  const memberIndex = household.members.findIndex(m => m.userId === userId);
+
+  const memberIndex = household.members.findIndex((m) => m.userId === userId);
   if (memberIndex === -1) return false;
-  
+
   // Don't allow removing the owner
   if (household.ownerId === userId) {
     log.warn({ userId, householdId: household.id }, 'Cannot remove owner');
     return false;
   }
-  
+
   household.members.splice(memberIndex, 1);
   await saveHousehold(household);
-  
+
   log.info({ userId, householdId: household.id }, 'Member removed from household');
   return true;
 }
@@ -289,14 +289,11 @@ export async function getHouseholdMembers(deviceId: string): Promise<HouseholdMe
 /**
  * Update member's last seen timestamp.
  */
-export async function updateMemberLastSeen(
-  deviceId: string,
-  userId: string
-): Promise<void> {
+export async function updateMemberLastSeen(deviceId: string, userId: string): Promise<void> {
   const household = await getHousehold(deviceId);
   if (!household) return;
-  
-  const member = household.members.find(m => m.userId === userId);
+
+  const member = household.members.find((m) => m.userId === userId);
   if (member) {
     member.lastSeen = new Date();
     await saveHousehold(household);
@@ -315,7 +312,7 @@ export async function identifyHouseholdSpeaker(
   audio: Float32Array
 ): Promise<SpeakerIdentificationResult> {
   const household = await getHousehold(deviceId);
-  
+
   if (!household || household.members.length === 0) {
     return {
       identified: false,
@@ -324,7 +321,7 @@ export async function identifyHouseholdSpeaker(
       suggestedAction: 'enroll',
     };
   }
-  
+
   // Load voice profiles for all members
   const profiles: VoiceProfile[] = [];
   for (const member of household.members) {
@@ -333,7 +330,7 @@ export async function identifyHouseholdSpeaker(
       profiles.push(profile);
     }
   }
-  
+
   if (profiles.length === 0) {
     return {
       identified: false,
@@ -342,22 +339,25 @@ export async function identifyHouseholdSpeaker(
       suggestedAction: 'enroll',
     };
   }
-  
+
   // Run identification
   const result = await identifySpeaker(audio, profiles, { minThreshold: 0.6 });
-  
+
   if (result.identified && result.userId) {
-    const member = household.members.find(m => m.userId === result.userId);
-    
+    const member = household.members.find((m) => m.userId === result.userId);
+
     // Update last seen
     await updateMemberLastSeen(deviceId, result.userId);
-    
-    log.info({
-      householdId: household.id,
-      userId: result.userId,
-      confidence: result.confidence,
-    }, 'Speaker identified');
-    
+
+    log.info(
+      {
+        householdId: household.id,
+        userId: result.userId,
+        confidence: result.confidence,
+      },
+      'Speaker identified'
+    );
+
     return {
       identified: true,
       member,
@@ -366,7 +366,7 @@ export async function identifyHouseholdSpeaker(
       suggestedAction: 'none',
     };
   }
-  
+
   // Check if this might be a known member with low confidence
   if (result.candidates.length > 0 && result.candidates[0].similarity > 0.5) {
     return {
@@ -376,7 +376,7 @@ export async function identifyHouseholdSpeaker(
       suggestedAction: 'verify',
     };
   }
-  
+
   return {
     identified: false,
     confidence: result.confidence,
@@ -418,9 +418,9 @@ export function startHouseholdSession(
     lastActivity: new Date(),
     speakerChanges: [],
   };
-  
+
   activeSessions.set(deviceId, session);
-  
+
   log.info({ deviceId, userId: initialUserId }, 'Household session started');
   return session;
 }
@@ -442,13 +442,13 @@ export async function updateSessionSpeaker(
   confidence: number
 ): Promise<void> {
   let session = activeSessions.get(deviceId);
-  
+
   if (!session) {
     session = startHouseholdSession(deviceId, newUserId);
   }
-  
+
   const previousUserId = session.currentUserId;
-  
+
   if (previousUserId !== newUserId) {
     session.speakerChanges.push({
       fromUserId: previousUserId,
@@ -456,17 +456,20 @@ export async function updateSessionSpeaker(
       timestamp: new Date(),
       confidence,
     });
-    
+
     session.currentUserId = newUserId;
-    
-    log.info({
-      deviceId,
-      fromUserId: previousUserId,
-      toUserId: newUserId,
-      confidence,
-    }, 'Speaker changed');
+
+    log.info(
+      {
+        deviceId,
+        fromUserId: previousUserId,
+        toUserId: newUserId,
+        confidence,
+      },
+      'Speaker changed'
+    );
   }
-  
+
   session.lastActivity = new Date();
 }
 
@@ -476,16 +479,19 @@ export async function updateSessionSpeaker(
 export function endHouseholdSession(deviceId: string): ActiveSession | null {
   const session = activeSessions.get(deviceId);
   activeSessions.delete(deviceId);
-  
+
   if (session) {
-    log.info({
-      deviceId,
-      duration: Date.now() - session.startedAt.getTime(),
-      speakerChanges: session.speakerChanges.length,
-    }, 'Household session ended');
+    log.info(
+      {
+        deviceId,
+        duration: Date.now() - session.startedAt.getTime(),
+        speakerChanges: session.speakerChanges.length,
+      },
+      'Household session ended'
+    );
     return session;
   }
-  
+
   return null;
 }
 
@@ -505,4 +511,3 @@ export default {
   updateSessionSpeaker,
   endHouseholdSession,
 };
-

@@ -1,29 +1,35 @@
 /**
  * Games Domain Tools
  *
- * Interactive music games for engaging conversations.
- * Uses existing music playback - no refactoring needed!
+ * Interactive games for engaging conversations.
  *
  * DOMAIN: games
  * TOOLS:
- *   Game Management: startGame, submitAnswer, getHint, skipRound, endGame
+ *   Music Games: startGame, submitAnswer, getHint, skipRound, endGame
+ *   Text Games: startTextGame, makeTextGameMove, getTextGameBoard, endTextGame
  *   Game Info: getGameStatus, getGameHistory, suggestGame
  *
- * AVAILABLE GAMES:
+ * AVAILABLE MUSIC GAMES:
  *   - Name That Tune: Play a clip, guess the song
  *   - One Word Song: Say a word, find a song with it
  *   - Desert Island Discs: Pick 5 songs for an island
  *   - This or That: Choose between two songs
  *   - Mood DJ Challenge: Describe mood, agent picks song
+ *
+ * AVAILABLE TEXT GAMES:
+ *   - Tic-Tac-Toe: Classic 3x3 grid game
+ *   - (More coming: 20 Questions, Word Association, Would You Rather)
  */
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { createDomainExport } from '../../registry/loader.js';
-import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 import { getGameEngine } from '../../../services/games/game-engine.js';
+import { getTextGameEngine } from '../../../services/games/text-game-engine.js';
+import type { TextGameType } from '../../../services/games/text-game-types.js';
 import type { GameType } from '../../../services/games/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { createDomainExport } from '../../registry/loader.js';
+import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
 const log = getLogger();
 
@@ -55,7 +61,7 @@ Use when user says things like:
 - "Can we play a music game?"`,
       domain: 'games',
       tags: ['games', 'music', 'interactive', 'fun'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Start a music game',
           parameters: z.object({
@@ -105,7 +111,7 @@ Use when:
 - User rates your song pick (1-5)`,
       domain: 'games',
       tags: ['games', 'answer', 'interactive'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Submit answer in current game',
           parameters: z.object({
@@ -149,7 +155,7 @@ Use when:
 Use when user says "hint", "help", "I don't know", or seems stuck.`,
       domain: 'games',
       tags: ['games', 'hint', 'help'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Get a hint for the current game',
           parameters: z.object({}),
@@ -174,7 +180,7 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
 Use when user says "skip", "pass", "next", or wants to move on.`,
       domain: 'games',
       tags: ['games', 'skip', 'next'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Skip the current round',
           parameters: z.object({}),
@@ -204,7 +210,7 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
 Use when user says "stop", "quit", "end game", or wants to do something else.`,
       domain: 'games',
       tags: ['games', 'end', 'quit'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'End the current game',
           parameters: z.object({}),
@@ -232,7 +238,7 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
 Use when user asks "what's the score?", "what round?", "how am I doing?"`,
       domain: 'games',
       tags: ['games', 'status', 'score'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Get current game status',
           parameters: z.object({}),
@@ -262,7 +268,7 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
 Use when user asks "how many games have I played?", "what's my best score?"`,
       domain: 'games',
       tags: ['games', 'history', 'stats'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Get game history and stats',
           parameters: z.object({}),
@@ -294,7 +300,7 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
 Use proactively during lulls or when user seems like they want to do something fun.`,
       domain: 'games',
       tags: ['games', 'suggest', 'proactive'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: 'Suggest a game based on mood',
           parameters: z.object({
@@ -314,8 +320,8 @@ Use proactively during lulls or when user seems like they want to do something f
                 pitch: "Want to play Desert Island Discs? Pick 5 songs you'd bring to an island.",
               },
               competitive: {
-                game: 'name-that-tune',
-                pitch: "Feeling competitive? Let's do Name That Tune and see your high score!",
+                game: 'tic-tac-toe',
+                pitch: "Feeling competitive? Let's play tic-tac-toe! I'm pretty good.",
               },
               creative: {
                 game: 'mood-dj-challenge',
@@ -329,6 +335,148 @@ Use proactively during lulls or when user seems like they want to do something f
 
             const suggestion = suggestions[context || 'relaxed'] || suggestions.relaxed;
             return suggestion.pitch;
+          },
+        }),
+    },
+
+    // ========================================
+    // TEXT GAMES (Tic-Tac-Toe, etc.)
+    // ========================================
+    {
+      id: 'startTextGame',
+      name: 'Start Text Game',
+      description: `Start a text-based game like tic-tac-toe with the user!
+
+Available text games:
+- "tic-tac-toe" - Classic 3x3 grid game. User says positions like "center", "top left", or numbers 1-9.
+
+Use when user says things like:
+- "Let's play tic tac toe"
+- "Play tic-tac-toe with me"
+- "Can we play a game?" (then offer tic-tac-toe as an option)
+- "I want to play something"`,
+      domain: 'games',
+      tags: ['games', 'text-games', 'tic-tac-toe', 'interactive', 'fun'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Start a text-based game like tic-tac-toe',
+          parameters: z.object({
+            gameType: z.enum(['tic-tac-toe']).describe('Which text game to play'),
+            userGoesFirst: z
+              .boolean()
+              .optional()
+              .describe('Whether user goes first (default: true)'),
+            difficulty: z
+              .enum(['easy', 'medium', 'hard'])
+              .optional()
+              .describe('AI difficulty level (default: medium)'),
+          }),
+          execute: async ({ gameType, userGoesFirst, difficulty }) => {
+            try {
+              const personaId = ctx.agentId || 'ferni';
+              const textGameEngine = getTextGameEngine(personaId);
+
+              const config: Record<string, unknown> = {};
+              if (userGoesFirst !== undefined) config.userGoesFirst = userGoesFirst;
+              if (difficulty) config.difficulty = difficulty;
+
+              const result = await textGameEngine.startGame(gameType as TextGameType, config);
+
+              log.info({ gameType, personaId }, '🎲 Text game started');
+              return result.message;
+            } catch (error) {
+              log.error({ error, gameType }, '🎲 Failed to start text game');
+              return `I couldn't start that game right now. Want to try something else?`;
+            }
+          },
+        }),
+    },
+
+    {
+      id: 'makeTextGameMove',
+      name: 'Make Text Game Move',
+      description: `Submit the user's move in a text game like tic-tac-toe.
+
+For tic-tac-toe, the user can say:
+- Numbers 1-9 (top-left to bottom-right)
+- Positions like "center", "top left", "bottom right", "middle"
+- Descriptions like "the middle one", "upper right corner"
+
+Use when:
+- User says a position during tic-tac-toe
+- User makes any move in an active text game`,
+      domain: 'games',
+      tags: ['games', 'text-games', 'move', 'interactive'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Make a move in the current text game',
+          parameters: z.object({
+            move: z.string().describe("The user's move (e.g., 'center', 'top left', '5')"),
+          }),
+          execute: async ({ move }) => {
+            const personaId = ctx.agentId || 'ferni';
+            const textGameEngine = getTextGameEngine(personaId);
+
+            if (!textGameEngine.isGameActive()) {
+              return "We're not playing a game right now. Want to play tic-tac-toe?";
+            }
+
+            try {
+              const result = await textGameEngine.makeMove(move);
+              return result.message;
+            } catch (error) {
+              log.error({ error }, '🎲 Failed to make text game move');
+              return 'Something went wrong. Try your move again?';
+            }
+          },
+        }),
+    },
+
+    {
+      id: 'getTextGameBoard',
+      name: 'Get Text Game Board',
+      description: `Describe the current state of a text game board.
+Use when user asks "what does the board look like?", "where are the pieces?", "show me the board"`,
+      domain: 'games',
+      tags: ['games', 'text-games', 'status', 'board'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Get current text game board state',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const textGameEngine = getTextGameEngine(personaId);
+
+            if (!textGameEngine.isGameActive()) {
+              return "We're not playing a game right now. Want to start one?";
+            }
+
+            return textGameEngine.describeState();
+          },
+        }),
+    },
+
+    {
+      id: 'endTextGame',
+      name: 'End Text Game',
+      description: `End the current text game early.
+Use when user says "stop", "quit", "I give up", "end game", or wants to do something else.`,
+      domain: 'games',
+      tags: ['games', 'text-games', 'end', 'quit'],
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'End the current text game',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const textGameEngine = getTextGameEngine(personaId);
+
+            if (!textGameEngine.isGameActive()) {
+              return "We're not playing a text game right now!";
+            }
+
+            textGameEngine.endGame();
+            return 'Okay, game ended! Want to play again or do something else?';
           },
         }),
     },

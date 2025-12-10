@@ -237,3 +237,73 @@ describe('Music Player UX', () => {
     });
   });
 });
+
+describe('Music Player Health Checks', () => {
+  it('should properly report initialization state', () => {
+    const player = new CallMusicPlayer();
+
+    // Before initialize(), should report not initialized
+    expect(player.isInitialized()).toBe(false);
+    expect(player.getState().isInitialized).toBe(false);
+  });
+
+  it('should prevent playback when not initialized', async () => {
+    const player = new CallMusicPlayer();
+    const track: MusicTrack = {
+      name: 'Test',
+      artist: 'Test',
+      previewUrl: 'https://example.com/test.m4a',
+      duration: 30000,
+    };
+
+    // playFromUrl should return false when not initialized
+    // (actual implementation returns false and logs error)
+    const result = await player.playFromUrl(track.previewUrl, track);
+    expect(result).toBe(false);
+  });
+
+  it('should provide useful state for diagnostics', () => {
+    const player = new CallMusicPlayer();
+    const state = player.getState();
+
+    // State should contain all necessary fields for debugging
+    expect(state).toHaveProperty('isPlaying');
+    expect(state).toHaveProperty('currentTrack');
+    expect(state).toHaveProperty('volume');
+    expect(state).toHaveProperty('isDucked');
+    expect(state).toHaveProperty('queue');
+    expect(state).toHaveProperty('isInitialized');
+    expect(state).toHaveProperty('isAmbientMode');
+  });
+});
+
+describe('Crossfade Behavior', () => {
+  it('should track track-changing state during crossfade', () => {
+    const player = new CallMusicPlayer();
+    const state = player.getState();
+
+    // Should have isChangingTrack property
+    expect(state).toHaveProperty('isChangingTrack');
+    expect(state.isChangingTrack).toBe(false);
+  });
+});
+
+describe('Callback Registration', () => {
+  let player: CallMusicPlayer;
+
+  beforeEach(() => {
+    player = new CallMusicPlayer();
+  });
+
+  it('should accept music state change callback', () => {
+    const callback = vi.fn();
+    player.setOnMusicStateChangeCallback(callback);
+    expect(typeof callback).toBe('function');
+  });
+
+  it('should accept mid-song moment callback', () => {
+    const callback = vi.fn();
+    player.setOnMidSongMomentCallback(callback);
+    expect(typeof callback).toBe('function');
+  });
+});

@@ -23,6 +23,9 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
 import { handleAdminRoutes } from './admin/index.js';
+import { handleIntegrationsRoutes } from './integrations/handler.js';
+// Note: Voice auth routes (/api/voice/*) are handled directly in ui-server.js
+// They are NOT under /api/v1 namespace since they're a standalone auth system
 
 const log = createLogger({ module: 'APIv1' });
 
@@ -49,6 +52,11 @@ export async function handleV1Routes(
   // Admin routes
   if (pathname.startsWith(`${BASE_PATH}/admin`)) {
     return handleAdminRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Integrations routes (biometrics, calendar, etc.)
+  if (pathname.startsWith(`${BASE_PATH}/integrations`)) {
+    return handleIntegrationsRoutes(req, res, pathname, parsedUrl);
   }
 
   // User routes (to be migrated)
@@ -79,4 +87,4 @@ export default { handleV1Routes };
 
 // Re-export sub-routers
 export { handleAdminRoutes } from './admin/index.js';
-
+export { handleIntegrationsRoutes } from './integrations/handler.js';

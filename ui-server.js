@@ -6,9 +6,9 @@
 import 'dotenv/config';
 import fs from 'fs';
 import http from 'http';
-import zlib from 'zlib';
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
 import path from 'path';
+import zlib from 'zlib';
 
 // Engagement API routes (conversations, analytics, predictions, etc.)
 import { handleEngagementRoutes } from './dist/api/engagement-routes.js';
@@ -17,10 +17,10 @@ import { handleEngagementRoutes } from './dist/api/engagement-routes.js';
 import { handleDiagnosticsRoutes } from './dist/api/handoff-diagnostics.js';
 
 // DORA metrics, voice presence, observability routes
+import { handleDashboardMetricsRoutes } from './dist/api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from './dist/api/dora-routes.js';
 import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
 import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
-import { handleDashboardMetricsRoutes } from './dist/api/dashboard-metrics-routes.js';
 
 // Proactive Outreach API routes
 import { handleOutreachRoutes } from './dist/api/outreach-handler.js';
@@ -62,18 +62,26 @@ import { handleUserRoutes } from './dist/api/user-routes.js';
 // Habit persistence routes (CRUD, completions, streaks)
 import { handleHabitRoutes } from './dist/api/habit-routes.js';
 
+// Wellbeing Dashboard routes (dashboard, trends, insights, snapshots)
+import { handleWellbeingRoutes } from './dist/api/wellbeing-handler.js';
+
+// Scheduled Jobs routes (for Cloud Scheduler)
+import { handleScheduledJobsRoutes } from './dist/api/scheduled-jobs-handler.js';
+
 // EvalOps - Quality evaluation system (LLM-as-judge, voice fingerprints, test scenarios)
-// NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
-// import { handleEvalOpsRoutes } from './dist/api/evalops-handler.js';
+import { handleEvalOpsRoutes } from './dist/api/evalops-handler.js';
+
+// Household settings persistence
+import { handleHouseholdRoutes } from './dist/api/household-routes.js';
+
+// Story journey persistence
+import { handleStoryJourneyRoutes } from './dist/api/story-journey-routes.js';
 
 // Subscription routes (Stripe checkout, billing portal, usage tracking)
-import {
-  handleSubscriptionRequest,
-  isSubscriptionRoute,
-} from './dist/api/subscription-routes.js';
+import { handleSubscriptionRequest, isSubscriptionRoute } from './dist/api/subscription-routes.js';
 
 // Rate limiting and auth for sensitive endpoints
-import { rateLimit, requireAdmin, requireAuth } from './dist/api/auth-middleware.js';
+import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
 // API v1 Routes (new unified admin API)
 import { handleV1Routes } from './dist/api/v1/index.js';
@@ -371,37 +379,38 @@ function serveStaticFile(filePath, res, req) {
     }
 
     const mimeType = getMimeType(filePath);
-    
+
     // Cache strategy:
     // - Assets (in /assets/): Immutable, cache for 1 year
     // - Others (HTML, root files): Revalidate immediately
     const isAsset = filePath.includes('/assets/');
-    const cacheControl = isAsset 
-      ? 'public, max-age=31536000, immutable' 
+    const cacheControl = isAsset
+      ? 'public, max-age=31536000, immutable'
       : 'public, max-age=0, must-revalidate';
 
     // Check if client accepts gzip and content is compressible
     const acceptEncoding = req?.headers?.['accept-encoding'] || '';
-    const shouldCompress = acceptEncoding.includes('gzip') && 
-      (mimeType.startsWith('text/') || 
-       mimeType === 'application/javascript' || 
-       mimeType === 'application/json' ||
-       mimeType === 'image/svg+xml');
+    const shouldCompress =
+      acceptEncoding.includes('gzip') &&
+      (mimeType.startsWith('text/') ||
+        mimeType === 'application/javascript' ||
+        mimeType === 'application/json' ||
+        mimeType === 'image/svg+xml');
 
-    const headers = { 
+    const headers = {
       'Content-Type': mimeType,
       'Cache-Control': cacheControl,
-      'Vary': 'Accept-Encoding'
+      Vary: 'Accept-Encoding',
     };
 
     if (shouldCompress) {
       headers['Content-Encoding'] = 'gzip';
       res.writeHead(200, headers);
-      
+
       const stream = fs.createReadStream(fullPath);
       const gzip = zlib.createGzip({ level: 6 }); // Balance speed vs compression
       stream.pipe(gzip).pipe(res);
-      
+
       stream.on('error', (error) => {
         console.error(`❌ Stream error for ${filePath}:`, error);
         if (!res.headersSent) {
@@ -416,7 +425,7 @@ function serveStaticFile(filePath, res, req) {
 
       const stream = fs.createReadStream(fullPath);
       stream.pipe(res);
-      
+
       stream.on('error', (error) => {
         console.error(`❌ Stream error for ${filePath}:`, error);
         if (!res.headersSent) {
@@ -431,7 +440,12 @@ function serveStaticFile(filePath, res, req) {
 // Allowed origins for CORS (restrict in production)
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:3004', 'http://localhost:3002', 'https://ferni.ai', 'https://john-bogle-ui-1031920444452.us-central1.run.app'];
+  : [
+      'http://localhost:3004',
+      'http://localhost:3002',
+      'https://ferni.ai',
+      'https://john-bogle-ui-1031920444452.us-central1.run.app',
+    ];
 
 function getCorsOrigin(req) {
   const origin = req.headers.origin;
@@ -450,7 +464,10 @@ const server = http.createServer(async (req, res) => {
   const corsOrigin = getCorsOrigin(req);
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Id, Authorization, Stripe-Signature');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, X-User-Id, Authorization, Stripe-Signature'
+  );
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
@@ -606,30 +623,64 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Wellbeing Dashboard routes (dashboard, trends, insights, snapshots)
+    if (pathname.startsWith('/api/wellbeing')) {
+      const handled = await handleWellbeingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Scheduled Jobs routes (for Cloud Scheduler)
+    if (pathname.startsWith('/api/jobs')) {
+      const handled = await handleScheduledJobsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // EvalOps - Quality evaluation system
-    // NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
-    // if (pathname.startsWith('/api/evalops')) {
-    //   const handled = await handleEvalOpsRoutes(req, res, pathname, parsedUrl);
-    //   if (handled) return;
-    // }
+    if (pathname.startsWith('/api/evalops')) {
+      const handled = await handleEvalOpsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Household settings persistence
+    if (pathname.startsWith('/api/household')) {
+      const handled = await handleHouseholdRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Story journey persistence
+    if (pathname.startsWith('/api/story-journey')) {
+      const handled = await handleStoryJourneyRoutes(req, res, pathname);
+      if (handled) return;
+    }
 
     // Subscription routes (Stripe checkout, billing portal, usage tracking)
     if (isSubscriptionRoute(pathname)) {
       try {
         // Parse body for POST requests
         let body = undefined;
+        let rawBody = undefined;
+
         if (req.method === 'POST' || req.method === 'PUT') {
-          body = await new Promise((resolve) => {
-            let data = '';
-            req.on('data', (chunk) => (data += chunk));
-            req.on('end', () => {
-              try {
-                resolve(data ? JSON.parse(data) : {});
-              } catch {
-                resolve(data); // Keep raw for webhook signature verification
-              }
-            });
+          // Collect raw body first
+          const chunks = [];
+          await new Promise((resolve) => {
+            req.on('data', (chunk) => chunks.push(chunk));
+            req.on('end', resolve);
           });
+          rawBody = Buffer.concat(chunks).toString('utf8');
+
+          // For webhook routes, keep raw body for signature verification
+          // For other routes, parse as JSON
+          const isWebhook = pathname.endsWith('/webhook');
+          if (isWebhook) {
+            body = rawBody; // Keep raw for Stripe signature verification
+          } else {
+            try {
+              body = rawBody ? JSON.parse(rawBody) : {};
+            } catch {
+              body = rawBody; // Fallback to raw if not valid JSON
+            }
+          }
         }
 
         // Build request context
@@ -1118,13 +1169,15 @@ const server = http.createServer(async (req, res) => {
         const localRegistryPath = path.join(process.cwd(), 'marketplace-agents', 'registry.json');
         if (fs.existsSync(localRegistryPath)) {
           const localRegistry = JSON.parse(fs.readFileSync(localRegistryPath, 'utf-8'));
-          
+
           // Cache and return
           marketplaceRegistryCache = localRegistry;
           marketplaceRegistryCacheTime = now;
-          
-          console.log(`✅ Marketplace: Loaded local registry with ${localRegistry.agents?.length || 0} agents`);
-          
+
+          console.log(
+            `✅ Marketplace: Loaded local registry with ${localRegistry.agents?.length || 0} agents`
+          );
+
           res.writeHead(200, {
             'Content-Type': 'application/json',
             'Cache-Control': 'public, max-age=300',
@@ -1136,16 +1189,20 @@ const server = http.createServer(async (req, res) => {
       } catch (localErr) {
         console.warn('⚠️ Could not read local marketplace registry:', localErr.message);
       }
-      
+
       // No local file either - return empty registry
-      console.warn('⚠️ No GITHUB_MARKETPLACE_TOKEN and no local registry - returning empty marketplace');
+      console.warn(
+        '⚠️ No GITHUB_MARKETPLACE_TOKEN and no local registry - returning empty marketplace'
+      );
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        version: '0.0.0',
-        updated_at: new Date().toISOString(),
-        agents: [],
-        categories: [],
-      }));
+      res.end(
+        JSON.stringify({
+          version: '0.0.0',
+          updated_at: new Date().toISOString(),
+          agents: [],
+          categories: [],
+        })
+      );
       return;
     }
 
@@ -1202,12 +1259,18 @@ const server = http.createServer(async (req, res) => {
     // If no GitHub token, try to read from local marketplace-agents folder
     if (!GITHUB_MARKETPLACE_TOKEN) {
       try {
-        const localManifestPath = path.join(process.cwd(), 'marketplace-agents', 'agents', agentId, 'persona.manifest.json');
+        const localManifestPath = path.join(
+          process.cwd(),
+          'marketplace-agents',
+          'agents',
+          agentId,
+          'persona.manifest.json'
+        );
         if (fs.existsSync(localManifestPath)) {
           const localManifest = JSON.parse(fs.readFileSync(localManifestPath, 'utf-8'));
-          
+
           console.log(`✅ Marketplace: Loaded local manifest for ${agentId}`);
-          
+
           res.writeHead(200, {
             'Content-Type': 'application/json',
             'X-Source': 'local',
@@ -1215,7 +1278,7 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify(localManifest));
           return;
         }
-        
+
         // Not found locally
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: `Agent manifest not found: ${agentId}` }));
@@ -1223,7 +1286,9 @@ const server = http.createServer(async (req, res) => {
       } catch (localErr) {
         console.warn(`⚠️ Could not read local manifest for ${agentId}:`, localErr.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to read local manifest', message: localErr.message }));
+        res.end(
+          JSON.stringify({ error: 'Failed to read local manifest', message: localErr.message })
+        );
         return;
       }
     }
@@ -1281,7 +1346,7 @@ const server = http.createServer(async (req, res) => {
       // Dynamic import to use ES modules
       const { AgentRegistry } = await import('./dist/personas/registry/unified-registry.js');
       let agents = await AgentRegistry.getEnabledAgents();
-      
+
       // Load disabled agents from config
       const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
       let disabledAgents = [];
@@ -1293,10 +1358,10 @@ const server = http.createServer(async (req, res) => {
       } catch (configErr) {
         console.warn('Could not read agent config:', configErr.message);
       }
-      
+
       // Filter out disabled agents (but never disable the coordinator)
       if (disabledAgents.length > 0) {
-        agents = agents.filter(a => a.isCoordinator || !disabledAgents.includes(a.id));
+        agents = agents.filter((a) => a.isCoordinator || !disabledAgents.includes(a.id));
       }
 
       // Transform agents for UI consumption
@@ -1369,16 +1434,18 @@ const server = http.createServer(async (req, res) => {
     try {
       const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
       let config = { disabledAgents: [] };
-      
+
       if (fs.existsSync(configPath)) {
         config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       }
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        disabledAgents: config.disabledAgents || [],
-        timestamp: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          disabledAgents: config.disabledAgents || [],
+          timestamp: new Date().toISOString(),
+        })
+      );
     } catch (err) {
       console.error('❌ Failed to read agent config:', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1388,7 +1455,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Get a single agent by ID/alias (excludes special paths like /config, /validate)
-  if (pathname.startsWith('/api/agents/') && req.method === 'GET' && !pathname.includes('/config') && !pathname.includes('/validate')) {
+  if (
+    pathname.startsWith('/api/agents/') &&
+    req.method === 'GET' &&
+    !pathname.includes('/config') &&
+    !pathname.includes('/validate')
+  ) {
     const agentId = pathname.replace('/api/agents/', '');
 
     try {
@@ -1459,11 +1531,11 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const { enabled } = await parseJsonBody(req);
-      
+
       // Persist to config file
       const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
       let config = { disabledAgents: [] };
-      
+
       // Load existing config
       try {
         if (fs.existsSync(configPath)) {
@@ -1472,31 +1544,33 @@ const server = http.createServer(async (req, res) => {
       } catch (readErr) {
         console.warn('Could not read agent config, creating new one');
       }
-      
+
       // Ensure array exists
       if (!Array.isArray(config.disabledAgents)) {
         config.disabledAgents = [];
       }
-      
+
       // Update disabled agents list
       if (enabled) {
         // Remove from disabled list
-        config.disabledAgents = config.disabledAgents.filter(id => id !== agentId);
+        config.disabledAgents = config.disabledAgents.filter((id) => id !== agentId);
       } else {
         // Add to disabled list (if not already there)
         if (!config.disabledAgents.includes(agentId)) {
           config.disabledAgents.push(agentId);
         }
       }
-      
+
       // Save config
       const dataDir = path.join(process.cwd(), 'data');
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-      
-      console.log(`${enabled ? '✅ Enabling' : '❌ Disabling'} agent: ${agentId} (persisted to ${configPath})`);
+
+      console.log(
+        `${enabled ? '✅ Enabling' : '❌ Disabling'} agent: ${agentId} (persisted to ${configPath})`
+      );
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(

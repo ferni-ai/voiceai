@@ -97,6 +97,16 @@ import {
 // Services Bootstrap
 import { createSessionServices, initializeServices } from '../services/index.js';
 
+// First Taste Trial - "Better than Human" free trial experience
+import {
+  checkTrialStatus,
+  getTrialWelcomePrompt,
+  isEligibleForTrial,
+  recordTrialTime,
+  startTrial,
+  type TrialCheckResult,
+} from '../services/first-taste-trial.js';
+
 // Adaptive SSML
 import { applyPhasePersonality, tagGreeting } from '../speech/adaptive-ssml.js';
 
@@ -899,6 +909,23 @@ class VoiceAgent extends voice.Agent<UserData> {
 
           if (frame && frame.data && frame.data.length > 0) {
             prosodyAnalyzer.processAudioFrame(frame);
+
+            // Feed audio to speaker change detector for voice identity verification
+            const userData = agent.getUserDataFromContext();
+            const sessionId = userData?.services?.sessionId;
+            if (sessionId) {
+              try {
+                const detector = getSpeakerChangeDetector(sessionId);
+                // Convert Int16Array to Float32Array for the detector
+                const audioData = new Float32Array(frame.data.length);
+                for (let i = 0; i < frame.data.length; i++) {
+                  audioData[i] = frame.data[i] / 32768.0;
+                }
+                detector.feedAudio(audioData);
+              } catch {
+                // Detector not initialized yet - ignore
+              }
+            }
           }
         }
 
@@ -1511,12 +1538,12 @@ class VoiceAgent extends voice.Agent<UserData> {
       // Race with hard timeout to prevent infinite hangs
       const result = await Promise.race([
         processTurn(turnContext),
-        new Promise<never>((_, reject) =>
+        new Promise<never>((_, reject) => {
           setTimeout(
             () => reject(new Error('Turn processing hard timeout')),
             PROCESSING_TIMEOUTS.TURN_PROCESSING_HARD_TIMEOUT
-          )
-        ),
+          );
+        }),
       ]).finally(() => {
         // Clean up filler timeout
         if (fillerTimeout) {
@@ -2024,6 +2051,44 @@ export default defineAgent({
         services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
 
       // ===============================================
+      // FIRST TASTE TRIAL: Check trial eligibility for new users
+      // "Better than Human" - let them experience the magic first
+      // ===============================================
+      let isTrialUser = false;
+      let isFirstConversation = false;
+      let trialStatus: TrialCheckResult | null = null;
+
+      if (userId && !isReturningUser) {
+        try {
+          const eligible = await isEligibleForTrial(userId);
+          if (eligible) {
+            // Start trial for new user
+            await startTrial(userId);
+            isTrialUser = true;
+            isFirstConversation = true;
+            trialStatus = await checkTrialStatus(userId, 0);
+            diag.session('Started first taste trial for new user', { userId });
+          }
+        } catch (trialErr) {
+          diag.warn('Trial check failed (non-fatal)', { error: String(trialErr) });
+        }
+      } else if (userId) {
+        // Check if existing user is still in trial
+        try {
+          trialStatus = await checkTrialStatus(userId, 0);
+          if (trialStatus.inTrial) {
+            isTrialUser = true;
+            diag.session('User is in active trial', {
+              userId,
+              timeRemainingMs: trialStatus.timeRemainingMs,
+            });
+          }
+        } catch (trialErr) {
+          diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
+        }
+      }
+
+      // ===============================================
       // STEP 3: INITIALIZE USER DATA
       // ===============================================
 
@@ -2056,6 +2121,18 @@ export default defineAgent({
         },
         // Conversation state for tool orchestration
         conversationState,
+        // First Taste Trial state
+        isTrialUser,
+        isFirstConversation,
+        trialStatus: trialStatus
+          ? {
+              inTrial: trialStatus.inTrial,
+              timeRemainingMs: trialStatus.timeRemainingMs,
+              approachingEnd: trialStatus.approachingEnd,
+              trialEnded: trialStatus.trialEnded,
+            }
+          : undefined,
+        hasSpokenTrialEndPrompt: false,
       };
 
       diag.session('Conversation state initialized', {
@@ -2858,6 +2935,50 @@ export default defineAgent({
           // Record turn in voice humanization for rhythm learning
           if (voiceHumanization) {
             voiceHumanization.recordTurn();
+          }
+
+          // ===============================================
+          // FIRST TASTE TRIAL: Check trial status periodically
+          // Inject transition prompt when trial is ending
+          // ===============================================
+          if (userData.isTrialUser && userId && !userData.hasSpokenTrialEndPrompt) {
+            void (async () => {
+              try {
+                const sessionDurationMs = Date.now() - services.sessionStartTime;
+                const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
+
+                // Update userData with latest trial status
+                userData.trialStatus = {
+                  inTrial: trialStatus.inTrial,
+                  timeRemainingMs: trialStatus.timeRemainingMs,
+                  approachingEnd: trialStatus.approachingEnd,
+                  trialEnded: trialStatus.trialEnded,
+                };
+
+                // If trial is ending and we should show transition, inject it
+                if (trialStatus.showTransition && trialStatus.transitionPrompt) {
+                  userData.hasSpokenTrialEndPrompt = true;
+                  diag.session('Trial ending - speaking transition prompt', {
+                    timeRemainingMs: trialStatus.timeRemainingMs,
+                    trialEnded: trialStatus.trialEnded,
+                  });
+
+                  // Speak the transition prompt after the agent's next response
+                  // We'll queue it as a follow-up
+                  setTimeout(() => {
+                    try {
+                      if (session) {
+                        session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
+                      }
+                    } catch (sayErr) {
+                      diag.warn('Failed to speak trial transition', { error: String(sayErr) });
+                    }
+                  }, 2000); // Small delay to let current response finish
+                }
+              } catch (trialErr) {
+                diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
+              }
+            })();
           }
 
           // ===============================================
@@ -3729,11 +3850,23 @@ export default defineAgent({
       // ===============================================
       diag.session('Step 8: Generating greeting');
 
-      let greeting: string;
+      let greeting: string | undefined;
 
-      // Load persona-specific memories for memory-enhanced greetings
+      // ===============================================
+      // FIRST TASTE TRIAL: Use special welcome for first-time trial users
+      // This creates the "magic first impression" before any friction
+      // ===============================================
+      if (userData.isFirstConversation && userData.isTrialUser) {
+        greeting = getTrialWelcomePrompt();
+        diag.session('Using trial welcome prompt for first-time user', {
+          userId,
+          greeting: `${greeting.slice(0, 50)}...`,
+        });
+      }
+
+      // Load persona-specific memories for memory-enhanced greetings (skip for trial welcome)
       let personaMemories: PersonaMemoryForGreeting[] = [];
-      if (isReturningUser && services.userProfile?.id && sessionPersona?.id) {
+      if (!greeting && isReturningUser && services.userProfile?.id && sessionPersona?.id) {
         try {
           const normalizedId = normalizePersonaId(sessionPersona.id);
           if (normalizedId) {
@@ -3770,8 +3903,8 @@ export default defineAgent({
         }
       }
 
-      // Try bundle runtime for enhanced greeting first
-      if (bundleRuntime) {
+      // Try bundle runtime for enhanced greeting first (skip if trial welcome already set)
+      if (!greeting && bundleRuntime) {
         // Get time-of-day aware greeting from bundle
         const timeGreeting = bundleRuntime.getTimeOfDayGreeting();
         const relationshipStage = bundleRuntime.getCurrentRelationshipStage();
@@ -3861,8 +3994,9 @@ export default defineAgent({
         if (timeModifiers.volume === 'soft') {
           greeting = `<volume level="soft"/>${greeting}`;
         }
-      } else {
+      } else if (!greeting) {
         // Standard greeting without bundle - include persona memories and proactive context
+        // (Skip if trial welcome was already set)
 
         // Get open thread conversation starter for proactive greeting
         let threadStarter: string | undefined;
@@ -4478,6 +4612,23 @@ export default defineAgent({
               }
             } catch (cogError) {
               diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
+            }
+
+            // ================================================================
+            // FIRST TASTE TRIAL: Record session time for trial users
+            // ================================================================
+            if (userData.isTrialUser && userId) {
+              try {
+                const sessionDurationMs = Date.now() - services.sessionStartTime;
+                await recordTrialTime(userId, sessionDurationMs);
+                diag.session('Trial time recorded', {
+                  userId,
+                  sessionDurationMs,
+                  wasFirstConversation: userData.isFirstConversation,
+                });
+              } catch (trialErr) {
+                diag.warn('Trial time recording failed (non-fatal)', { error: String(trialErr) });
+              }
             }
 
             // 🎧 DJ Integration: Save session summary for cross-session callbacks

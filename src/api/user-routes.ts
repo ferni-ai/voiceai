@@ -12,11 +12,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { getDefaultStore } from '../memory/in-memory-store.js';
-import { getLogger } from '../utils/safe-logger.js';
 import {
-  updateTimingPreferences,
   getTimingProfile,
+  updateTimingPreferences,
 } from '../services/outreach/timing-intelligence.js';
+import { getLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = getLogger().child({ module: 'user-routes' });
 
@@ -128,7 +130,6 @@ export async function handleUserRoutes(
   pathname: string,
   _parsedUrl: URL
 ): Promise<boolean> {
-  const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
   const method = req.method?.toUpperCase();
 
   // Only handle /api/user/* routes
@@ -136,19 +137,33 @@ export async function handleUserRoutes(
     return false;
   }
 
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Apply rate limiting
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Require authentication
+  const auth = requireAuth(req, res, { allowDevMode: true });
+  if (!auth) {
+    return true; // 401 already sent
+  }
+
+  // Use authenticated userId (prevents user enumeration)
+  const authenticatedUserId = auth.userId;
+
   const route = pathname.replace('/api/user', '');
 
   // ============================================================================
   // POST /api/user/timezone - Quick timezone auto-detection update
   // ============================================================================
   if (route === '/timezone' && method === 'POST') {
-    const body = await parseBody<{ userId?: string; timezone: string }>(req);
-    const userId = body?.userId || getUserId(req, url);
-
-    if (!userId) {
-      sendJson(res, 400, { success: false, error: 'userId is required' });
-      return true;
-    }
+    const body = await parseBody<{ timezone: string }>(req);
+    const userId = authenticatedUserId;
 
     if (!body?.timezone) {
       sendJson(res, 400, { success: false, error: 'timezone is required' });
@@ -188,13 +203,9 @@ export async function handleUserRoutes(
   // POST /api/user/preferences - Update user preferences
   // ============================================================================
   if (route === '/preferences' && method === 'POST') {
-    const body = await parseBody<{ userId?: string } & UserPreferencesUpdate>(req);
-    const userId = body?.userId || getUserId(req, url);
-
-    if (!userId) {
-      sendJson(res, 400, { success: false, error: 'userId is required' });
-      return true;
-    }
+    const body = await parseBody<UserPreferencesUpdate>(req);
+    // Use authenticated userId
+    const userId = authenticatedUserId;
 
     try {
       const updates: Partial<{
@@ -273,12 +284,8 @@ export async function handleUserRoutes(
   // GET /api/user/preferences - Get current preferences
   // ============================================================================
   if (route === '/preferences' && method === 'GET') {
-    const userId = getUserId(req, url);
-
-    if (!userId) {
-      sendJson(res, 400, { success: false, error: 'userId is required' });
-      return true;
-    }
+    // Use authenticated userId
+    const userId = authenticatedUserId;
 
     try {
       const timingProfile = getTimingProfile(userId);
@@ -302,13 +309,9 @@ export async function handleUserRoutes(
   // POST /api/user/contact - Update contact info
   // ============================================================================
   if (route === '/contact' && method === 'POST') {
-    const body = await parseBody<{ userId?: string } & ContactInfoUpdate>(req);
-    const userId = body?.userId || getUserId(req, url);
-
-    if (!userId) {
-      sendJson(res, 400, { success: false, error: 'userId is required' });
-      return true;
-    }
+    const body = await parseBody<ContactInfoUpdate>(req);
+    // Use authenticated userId
+    const userId = authenticatedUserId;
 
     try {
       const store = getDefaultStore();
@@ -361,12 +364,8 @@ export async function handleUserRoutes(
   // GET /api/user/contact - Get contact info
   // ============================================================================
   if (route === '/contact' && method === 'GET') {
-    const userId = getUserId(req, url);
-
-    if (!userId) {
-      sendJson(res, 400, { success: false, error: 'userId is required' });
-      return true;
-    }
+    // Use authenticated userId
+    const userId = authenticatedUserId;
 
     try {
       const store = getDefaultStore();

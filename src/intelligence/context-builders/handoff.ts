@@ -27,7 +27,9 @@ import {
   getAgentContext,
   getLastHandoff,
   formatHandoffContextForAgent,
+  getHandoffContextNew as getHandoffContext, // Use executor version which includes cognitiveContext
 } from '../../tools/handoff/index.js';
+import { formatCognitiveHandoffForPrompt } from '../../tools/handoff/cognitive-handoff.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import { getAllHandoffTriggers } from '../../personas/team/team-config.js';
 import {
@@ -337,7 +339,7 @@ function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
   if (wakeWord.isWakeWord && wakeWord.targetAgent !== currentAgent) {
     // Check if target is unlocked
     const targetUnlocked = isTeamMemberUnlocked(wakeWord.targetAgent || '', userProfile, tier);
-    
+
     if (targetUnlocked) {
       if (DEBUG_HANDOFF)
         log.debug('Wake word detected', {
@@ -416,6 +418,16 @@ Acknowledge the transition naturally and continue the conversation.]`;
     if (preservedContext) {
       handoffMessage += `\n\n${preservedContext}`;
     }
+
+    // Include cognitive handoff context if available (user's thinking style, what worked, etc.)
+    const handoffContext = getHandoffContext();
+    if (handoffContext?.cognitiveContext) {
+      const cognitiveContext = formatCognitiveHandoffForPrompt(handoffContext.cognitiveContext);
+      if (cognitiveContext) {
+        handoffMessage += `\n\n${cognitiveContext}`;
+      }
+    }
+
     injections.push(createHintInjection('recent_handoff', handoffMessage));
   }
 

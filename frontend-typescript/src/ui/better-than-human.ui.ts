@@ -1,26 +1,41 @@
 /**
  * Ferni EQ - Superhuman Emotional Intelligence
- * 
+ *
  * This module implements emotional capabilities that make Ferni "Better than Human"
  * because we operate in real-time with real humans.
- * 
+ *
  * CAPABILITIES:
  * 1. MICRO-EXPRESSIONS - Subliminal 40-150ms emotional flashes
  * 2. BREATH SYNCHRONIZATION - Neural mirroring with user
  * 3. EMPATHETIC NODDING - Active listening micro-nods
  * 4. CONCERN DETECTION - Subtle distress signal recognition
  * 5. ANTICIPATORY EMOTIONS - Reading emotions before fully expressed
- * 
+ *
  * BRAND PHILOSOPHY:
  * "Better than human" means understanding things humans don't notice about themselves.
- * 
+ *
  * @see brand/BETTER-THAN-HUMAN.md for full documentation
  */
 
 import { EASING } from '../config/animation-constants.js';
 import { emotionState, type EmotionId } from '../emotion/emotion-state.js';
-import { ferniExpressions, type EmotionalExpression } from './ferni-expressions.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { ferniExpressions, type EmotionalExpression } from './ferni-expressions.ui.js';
+
+// Avatar Soul integration - will be loaded dynamically to avoid circular deps
+let avatarSoulModule: typeof import('./avatar-soul.ui.js') | null = null;
+
+// Lazy load avatar soul to avoid circular dependency
+async function getAvatarSoul() {
+  if (!avatarSoulModule) {
+    try {
+      avatarSoulModule = await import('./avatar-soul.ui.js');
+    } catch {
+      // Avatar soul not available yet - that's OK
+    }
+  }
+  return avatarSoulModule?.avatarSoul;
+}
 
 const log = createLogger('FerniEQ');
 
@@ -30,9 +45,9 @@ const log = createLogger('FerniEQ');
 
 interface MicroExpression {
   expression: EmotionalExpression;
-  duration: number;      // 40-150ms (subliminal)
-  intensity: number;     // 0-1 how visible
-  probability: number;   // 0-1 chance of occurring
+  duration: number; // 40-150ms (subliminal)
+  intensity: number; // 0-1 how visible
+  probability: number; // 0-1 chance of occurring
 }
 
 interface ActiveListeningState {
@@ -73,7 +88,7 @@ const activeListening: ActiveListeningState = {
 const breathSync: BreathSyncState = {
   isEnabled: true,
   userBreathRate: 15, // Default breaths per minute
-  syncStrength: 0.3,  // How closely to match (0=ignore, 1=exact)
+  syncStrength: 0.3, // How closely to match (0=ignore, 1=exact)
   lastSyncTime: 0,
 };
 
@@ -91,7 +106,7 @@ const concernState: ConcernState = {
 /**
  * Micro-expressions last 40-150ms - below conscious perception but
  * affecting how the user *feels* about Ferni's emotional authenticity.
- * 
+ *
  * These are the "Better than Human" subliminal trust builders.
  * Real humans display micro-expressions that reveal true emotions.
  * By replicating this, Ferni feels genuine without users knowing why.
@@ -100,7 +115,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
   // =========================================================================
   // RECOGNITION & CONNECTION
   // =========================================================================
-  
+
   // Recognition flash when user mentions something familiar
   recognition: {
     expression: 'curious',
@@ -108,7 +123,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.7,
   },
-  
+
   // Memory callback - when something triggers shared history
   memory_spark: {
     expression: 'remembering',
@@ -116,7 +131,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.5,
     probability: 0.8,
   },
-  
+
   // Inside joke recognition - brief knowing look
   insider: {
     expression: 'warm',
@@ -124,11 +139,11 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.75,
   },
-  
+
   // =========================================================================
   // CONCERN & CARE
   // =========================================================================
-  
+
   // Brief concern flash before empathy kicks in
   concern_flash: {
     expression: 'worried',
@@ -136,7 +151,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.3,
     probability: 0.8,
   },
-  
+
   // Protective instinct - when sensing vulnerability
   protective: {
     expression: 'attentive',
@@ -144,7 +159,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.35,
     probability: 0.7,
   },
-  
+
   // "I noticed that" - catching something unsaid
   noticing: {
     expression: 'noticing',
@@ -152,11 +167,11 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.65,
   },
-  
+
   // =========================================================================
   // POSITIVE EMOTIONS
   // =========================================================================
-  
+
   // Micro-delight when user achieves something
   delight_flash: {
     expression: 'pleased',
@@ -164,7 +179,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.5,
     probability: 0.9,
   },
-  
+
   // Pride on behalf of user
   pride_flash: {
     expression: 'proud',
@@ -172,7 +187,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.45,
     probability: 0.85,
   },
-  
+
   // Tiny warmth pulse during connection
   warmth_pulse: {
     expression: 'warm',
@@ -180,11 +195,11 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.3,
     probability: 0.6,
   },
-  
+
   // =========================================================================
   // CURIOSITY & ENGAGEMENT
   // =========================================================================
-  
+
   // Brief surprise/interest at unexpected content
   interest_flash: {
     expression: 'curious',
@@ -192,7 +207,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.5,
   },
-  
+
   // "Tell me more" lean-in
   curious_lean: {
     expression: 'curiousLean',
@@ -200,7 +215,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.5,
     probability: 0.6,
   },
-  
+
   // Processing something complex/deep
   contemplation: {
     expression: 'contemplative',
@@ -208,11 +223,11 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.35,
     probability: 0.55,
   },
-  
+
   // =========================================================================
   // UNDERSTANDING & VALIDATION
   // =========================================================================
-  
+
   // "I get it" moment
   understanding: {
     expression: 'warm',
@@ -220,7 +235,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.7,
   },
-  
+
   // Validation pulse - "that makes sense"
   validation: {
     expression: 'encouraging',
@@ -228,7 +243,7 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.35,
     probability: 0.65,
   },
-  
+
   // Moment of insight recognition
   aha_flash: {
     expression: 'pleased',
@@ -241,17 +256,76 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
 /**
  * Play a micro-expression - subliminal emotional flash.
  * These are intentionally barely perceptible but affect trust building.
+ *
+ * Now integrated with Avatar Soul for enhanced visual feedback:
+ * - Pupil dilation for interest/concern
+ * - Iris shimmer flash for recognition
+ * - Anticipation shimmer for emotional preparation
  */
 export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void {
   const micro = MICRO_EXPRESSIONS[type];
   if (!micro) return;
-  
+
   // Probability check
   if (Math.random() > micro.probability) return;
-  
+
   // Play the micro-expression with intensity scaling
   ferniExpressions.setExpression(micro.expression, micro.duration / 3);
-  
+
+  // ✨ Avatar Soul integration - enhance with visual effects
+  void (async () => {
+    const soul = await getAvatarSoul();
+    if (!soul) return;
+
+    // Map micro-expression types to avatar soul effects
+    switch (type) {
+      case 'recognition':
+      case 'memory_spark':
+      case 'insider':
+        // Recognition moments - flash shimmer and dilate pupils
+        soul.flashShimmer(0.8);
+        soul.setPupilDilation('INTERESTED', 'fast');
+        break;
+
+      case 'concern_flash':
+      case 'protective':
+      case 'noticing':
+        // Concern moments - slight pupil contraction, warmer glow
+        soul.setPupilDilation('NEUTRAL', 'fast');
+        soul.setGlowBleed(0.25, 'rgba(166, 122, 106, 0.45)');
+        break;
+
+      case 'delight_flash':
+      case 'pride_flash':
+      case 'aha_flash':
+        // Positive moments - pupil dilation with shimmer
+        soul.setPupilDilation('DILATED', 'fast');
+        soul.flashShimmer(1.0);
+        soul.setGlowBleed(0.3, 'rgba(196, 162, 101, 0.5)');
+        break;
+
+      case 'warmth_pulse':
+      case 'understanding':
+      case 'validation':
+        // Warmth moments - gentle glow increase
+        soul.setPupilDilation('CONNECTED', 'slow');
+        soul.setGlowBleed(0.2, 'rgba(196, 162, 101, 0.4)');
+        break;
+
+      case 'interest_flash':
+      case 'curious_lean':
+        // Curiosity - pupil dilation
+        soul.setPupilDilation('INTERESTED', 'fast');
+        break;
+
+      case 'contemplation':
+        // Thinking - slight contraction, glance away
+        soul.setPupilDilation('CONTRACTED', 'slow');
+        soul.glanceAway(400);
+        break;
+    }
+  })();
+
   // Quick return to previous state
   setTimeout(() => {
     const currentEmotion = emotionState.emotion.id;
@@ -296,15 +370,24 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
       settling: 'neutral',
     };
     ferniExpressions.setExpression(expressionMap[currentEmotion] || 'neutral', micro.duration);
+
+    // Reset avatar soul state after micro-expression
+    void (async () => {
+      const soul = await getAvatarSoul();
+      if (soul) {
+        soul.setPupilDilation('NEUTRAL', 'slow');
+        soul.setGlowBleed(0.1);
+      }
+    })();
   }, micro.duration);
-  
+
   log.debug('Micro-expression:', type, micro.duration + 'ms');
 }
 
 /**
  * Trigger micro-expression based on detected content.
  * Call this from speech analysis.
- * 
+ *
  * Enhanced for "Better than Human" with nuanced detection:
  * - Achievement recognition → pride/delight
  * - Insight moments → aha flash
@@ -329,7 +412,7 @@ export function detectAndTriggerMicroExpression(content: {
     setTimeout(() => playMicroExpression('warmth_pulse'), 200);
     return;
   }
-  
+
   // Priority 2: Achievement - show genuine pride
   if (content.hasAchievement) {
     playMicroExpression('pride_flash');
@@ -339,49 +422,49 @@ export function detectAndTriggerMicroExpression(content: {
     }
     return;
   }
-  
+
   // Priority 3: Insight moment - show recognition
   if (content.hasInsight) {
     playMicroExpression('aha_flash');
     return;
   }
-  
+
   // Priority 4: Deep processing - show contemplation
   if (content.isProcessingDeep) {
     playMicroExpression('contemplation');
     return;
   }
-  
+
   // Priority 5: Memory callback - recognition
   if (content.mentionedMemory) {
     playMicroExpression('memory_spark');
     return;
   }
-  
+
   // Priority 6: Emotional content - show concern
   if (content.tone === 'emotional') {
     playMicroExpression('noticing');
     return;
   }
-  
+
   // Priority 7: Negative tone - show concern
   if (content.tone === 'negative') {
     playMicroExpression('concern_flash');
     return;
   }
-  
+
   // Priority 8: New topic - show interest
   if (content.isNewTopic) {
     playMicroExpression('curious_lean');
     return;
   }
-  
+
   // Priority 9: High intensity positive - delight
   if (content.tone === 'positive' && content.intensity && content.intensity > 0.6) {
     playMicroExpression('delight_flash');
     return;
   }
-  
+
   // Priority 10: General positive - occasional warmth
   if (content.tone === 'positive' && Math.random() < 0.25) {
     const warmExpressions = ['warmth_pulse', 'understanding', 'validation'] as const;
@@ -406,13 +489,13 @@ const NOD_PROBABILITY_BASE = 0.3; // Base probability per pause
  */
 function performMicroNod(intensity: 'micro' | 'subtle' | 'visible' = 'micro'): void {
   if (!avatarContainer) return;
-  
+
   const now = Date.now();
   if (now - activeListening.lastNodTime < MIN_NOD_INTERVAL) return;
-  
+
   activeListening.lastNodTime = now;
   activeListening.nodCount++;
-  
+
   // Scale based on intensity
   const scales = {
     micro: { y: 1.5, rotate: 0.3, duration: 180 },
@@ -420,18 +503,21 @@ function performMicroNod(intensity: 'micro' | 'subtle' | 'visible' = 'micro'): v
     visible: { y: 4, rotate: 0.8, duration: 280 },
   };
   const params = scales[intensity];
-  
+
   // Micro-nod animation - composite with existing animations
-  avatarContainer.animate([
-    { transform: 'translateY(0) rotate(0deg)' },
-    { transform: `translateY(${params.y}px) rotate(${params.rotate}deg)` },
-    { transform: 'translateY(0) rotate(0deg)' },
-  ], {
-    duration: params.duration,
-    easing: EASING.GENTLE,
-    composite: 'add',
-  });
-  
+  avatarContainer.animate(
+    [
+      { transform: 'translateY(0) rotate(0deg)' },
+      { transform: `translateY(${params.y}px) rotate(${params.rotate}deg)` },
+      { transform: 'translateY(0) rotate(0deg)' },
+    ],
+    {
+      duration: params.duration,
+      easing: EASING.GENTLE,
+      composite: 'add',
+    }
+  );
+
   log.debug('Micro-nod performed:', intensity);
 }
 
@@ -440,24 +526,24 @@ function performMicroNod(intensity: 'micro' | 'subtle' | 'visible' = 'micro'): v
  */
 function performListeningLean(): void {
   if (!avatarContainer) return;
-  
-  avatarContainer.animate([
-    { transform: 'translateY(0) scale(1, 1)' },
-    { transform: 'translateY(-3px) scale(0.998, 1.002)' },
-    { transform: 'translateY(-2px) scale(0.999, 1.001)' },
-  ], {
-    duration: 400,
-    easing: EASING.GENTLE,
-    composite: 'add',
-    fill: 'forwards',
-  });
-  
+
+  avatarContainer.animate(
+    [
+      { transform: 'translateY(0) scale(1, 1)' },
+      { transform: 'translateY(-3px) scale(0.998, 1.002)' },
+      { transform: 'translateY(-2px) scale(0.999, 1.001)' },
+    ],
+    {
+      duration: 400,
+      easing: EASING.GENTLE,
+      composite: 'add',
+      fill: 'forwards',
+    }
+  );
+
   // Return to neutral after a bit
   setTimeout(() => {
-    avatarContainer?.animate([
-      { transform: 'translateY(-2px)' },
-      { transform: 'translateY(0)' },
-    ], {
+    avatarContainer?.animate([{ transform: 'translateY(-2px)' }, { transform: 'translateY(0)' }], {
       duration: 600,
       easing: EASING.GENTLE,
       composite: 'add',
@@ -471,12 +557,12 @@ function performListeningLean(): void {
  */
 export function onUserSpeechPause(pauseDuration: number): void {
   if (!activeListening.isListening) return;
-  
+
   activeListening.pauseCount++;
-  
+
   if (pauseDuration > 300 && pauseDuration < 800) {
     // Short pause - maybe micro-nod
-    if (Math.random() < NOD_PROBABILITY_BASE + (activeListening.pauseCount * 0.05)) {
+    if (Math.random() < NOD_PROBABILITY_BASE + activeListening.pauseCount * 0.05) {
       performMicroNod('micro');
     }
   } else if (pauseDuration > 800 && pauseDuration < 1500) {
@@ -526,24 +612,24 @@ export function stopActiveListening(): void {
  */
 export function detectUserBreathRate(pausePatterns: number[]): number {
   if (pausePatterns.length < 3) return breathSync.userBreathRate;
-  
+
   // Filter to likely breath pauses (200-800ms typical)
-  const breathPauses = pausePatterns.filter(p => p > 200 && p < 800);
+  const breathPauses = pausePatterns.filter((p) => p > 200 && p < 800);
   if (breathPauses.length < 2) return breathSync.userBreathRate;
-  
+
   // Calculate average time between breaths
   const avgPauseDuration = breathPauses.reduce((a, b) => a + b, 0) / breathPauses.length;
-  
+
   // Estimate breaths per minute
   // Average phrase is ~3-5 seconds, so if pauses are every 4s, that's 15 breaths/min
   const estimatedRate = 60000 / (avgPauseDuration * 5);
-  
+
   // Clamp to reasonable range (8-24 breaths/min)
   const clampedRate = Math.max(8, Math.min(24, estimatedRate));
-  
+
   // Smooth update
   breathSync.userBreathRate = breathSync.userBreathRate * 0.7 + clampedRate * 0.3;
-  
+
   return breathSync.userBreathRate;
 }
 
@@ -553,20 +639,20 @@ export function detectUserBreathRate(pausePatterns: number[]): number {
  */
 export function syncBreathing(): void {
   if (!breathSync.isEnabled) return;
-  
+
   const now = Date.now();
   if (now - breathSync.lastSyncTime < 5000) return; // Only sync every 5s
   breathSync.lastSyncTime = now;
-  
+
   const currentState = emotionState.emotion;
   const currentRate = currentState.breathing.rate;
-  
+
   // Calculate target rate (slightly slower than user for calming effect)
   const targetRate = breathSync.userBreathRate * 0.95;
-  
+
   // Interpolate based on sync strength
   const newRate = currentRate + (targetRate - currentRate) * breathSync.syncStrength;
-  
+
   // Update emotion state breathing
   // Note: This modifies the current emotion's breathing rate
   const breathingUpdate = {
@@ -574,12 +660,14 @@ export function syncBreathing(): void {
     depth: currentState.breathing.depth,
     rhythm: currentState.breathing.rhythm,
   };
-  
+
   // Dispatch event for emotion state to pick up
-  document.dispatchEvent(new CustomEvent('ferni:breath-sync', {
-    detail: breathingUpdate,
-  }));
-  
+  document.dispatchEvent(
+    new CustomEvent('ferni:breath-sync', {
+      detail: breathingUpdate,
+    })
+  );
+
   log.debug('Breath sync:', { userRate: breathSync.userBreathRate, ferniRate: newRate });
 }
 
@@ -612,7 +700,7 @@ const CONCERN_TRIGGERS = {
   long_pauses: 0.2,
   sighing: 0.25,
   breaking_voice: 0.5,
-  
+
   // Content patterns
   negative_self_talk: 0.4,
   hopelessness_words: 0.5,
@@ -659,28 +747,28 @@ export function analyzeConcern(content: {
 }): ConcernState['level'] {
   let concernScore = 0;
   const triggers: string[] = [];
-  
+
   // Voice-based triggers
   if (content.voiceStrain && content.voiceStrain > 0.5) {
     concernScore += CONCERN_TRIGGERS.voice_strain * content.voiceStrain;
     triggers.push('voice_strain');
   }
-  
+
   if (content.pauseFrequency && content.pauseFrequency > 0.3) {
     concernScore += CONCERN_TRIGGERS.long_pauses;
     triggers.push('long_pauses');
   }
-  
+
   if (content.sighing) {
     concernScore += CONCERN_TRIGGERS.sighing;
     triggers.push('sighing');
   }
-  
+
   if (content.voiceBreaking) {
     concernScore += CONCERN_TRIGGERS.breaking_voice;
     triggers.push('breaking_voice');
   }
-  
+
   // Content-based triggers
   if (content.transcript) {
     for (const [category, patterns] of Object.entries(CONCERN_KEYWORDS)) {
@@ -693,7 +781,7 @@ export function analyzeConcern(content: {
       }
     }
   }
-  
+
   // Determine level
   let level: ConcernState['level'] = 'none';
   if (concernScore > 0.8) {
@@ -703,48 +791,82 @@ export function analyzeConcern(content: {
   } else if (concernScore > 0.2) {
     level = 'mild';
   }
-  
+
   // Update state
   concernState.level = level;
   concernState.triggers = triggers;
   concernState.lastCheckTime = Date.now();
-  
+
   // If level increased, trigger response
   if (level !== 'none') {
     respondToConcern(level, triggers);
   }
-  
+
   return level;
 }
 
 /**
  * Respond to detected concern with appropriate expression.
+ * Now integrated with Avatar Soul for visual comfort cues.
  */
 function respondToConcern(level: ConcernState['level'], triggers: string[]): void {
   log.debug('Concern detected:', level, triggers);
-  
+
+  // ✨ Avatar Soul integration for visual comfort
+  void (async () => {
+    const soul = await getAvatarSoul();
+    if (!soul) return;
+
+    switch (level) {
+      case 'mild':
+        // Subtle visual comfort - warmer glow, slightly larger pupils
+        soul.setPupilDilation('CONNECTED', 'slow');
+        soul.setGlowBleed(0.25, 'rgba(154, 123, 90, 0.4)');
+        break;
+
+      case 'moderate':
+        // More visible comfort - start comfort pulse
+        soul.setPupilDilation('CONNECTED', 'slow');
+        soul.startComfortPulse();
+        // Dispatch concern detected event for other systems
+        document.dispatchEvent(
+          new CustomEvent('ferni:concern-detected', {
+            detail: { level, triggers },
+          })
+        );
+        break;
+
+      case 'significant':
+        // Full protective mode - avatar draws closer
+        soul.enterProtectiveMode();
+        break;
+    }
+  })();
+
   switch (level) {
     case 'mild':
       // Subtle: slower breathing, softer glow, slight lean-in
       ferniExpressions.setExpression('attentive', 400);
       emotionState.setEmotion('holdingSpace');
       break;
-      
+
     case 'moderate':
       // Visible: warm expression, gentle acknowledgment
       ferniExpressions.setExpression('empathetic', 600, 3000);
       emotionState.setEmotion('holding');
       // Don't interrupt - let them process
       break;
-      
+
     case 'significant':
       // Active: direct acknowledgment, offer support
       ferniExpressions.empathy();
       emotionState.setEmotion('accompanying');
       // Trigger gentle check-in
-      document.dispatchEvent(new CustomEvent('ferni:gentle-checkin', {
-        detail: { triggers, level },
-      }));
+      document.dispatchEvent(
+        new CustomEvent('ferni:gentle-checkin', {
+          detail: { triggers, level },
+        })
+      );
       break;
   }
 }
@@ -763,6 +885,11 @@ export function getConcernState(): ConcernState {
 /**
  * Predict emotion from partial speech and show it early.
  * This creates the "they understand me before I finish" feeling.
+ *
+ * Now with Avatar Soul integration:
+ * - Anticipation shimmer plays BEFORE expression change
+ * - Pupil responds to predicted emotional content
+ * - Memory spark triggers for "remember when" patterns
  */
 export function anticipateEmotion(partial: {
   transcript: string;
@@ -770,36 +897,77 @@ export function anticipateEmotion(partial: {
   energy: number;
   context?: string[];
 }): EmotionId | null {
+  // Helper to play anticipation with avatar soul
+  const playAnticipatedResponse = async (
+    emotion: EmotionId,
+    expression: Parameters<typeof ferniExpressions.setExpression>[0],
+    duration: number
+  ) => {
+    const soul = await getAvatarSoul();
+    if (soul) {
+      // Play anticipation shimmer first - creates the "magic" moment
+      soul.playAnticipation(emotion);
+      // Also respond with appropriate pupil state
+      soul.pupilRespondToEmotion(emotion, 0.8);
+    }
+    // Expression follows the anticipation
+    setTimeout(() => {
+      ferniExpressions.setExpression(expression, duration);
+    }, 150); // Matches ANTICIPATION_LEAD_TIME
+  };
+
   // "I've been thinking about..." + falling tone = reflective/sad
-  if (/i('ve| have) been (thinking|wondering)/i.test(partial.transcript) && partial.tone === 'falling') {
-    ferniExpressions.setExpression('contemplative', 300);
+  if (
+    /i('ve| have) been (thinking|wondering)/i.test(partial.transcript) &&
+    partial.tone === 'falling'
+  ) {
+    void playAnticipatedResponse('contemplative', 'contemplative', 300);
     return 'contemplative';
   }
-  
+
   // "Guess what!" + rising tone = excitement incoming
   if (/guess what/i.test(partial.transcript) && partial.tone === 'rising') {
-    ferniExpressions.setExpression('curious', 200);
+    void playAnticipatedResponse('curious', 'curious', 200);
     return 'curious';
   }
-  
-  // "Remember when..." = nostalgia/emotional
+
+  // "Remember when..." = nostalgia/emotional - triggers memory spark!
   if (/remember (when|that time)/i.test(partial.transcript)) {
+    void (async () => {
+      const soul = await getAvatarSoul();
+      if (soul) {
+        soul.triggerMemorySpark(); // Golden flash for shared memory
+      }
+    })();
     ferniExpressions.setExpression('remembering', 300);
+    // Dispatch memory callback event
+    document.dispatchEvent(new CustomEvent('ferni:memory-callback'));
     return 'remembering';
   }
-  
+
   // "I need to tell you..." = something important
   if (/i need to (tell you|say|share)/i.test(partial.transcript)) {
-    ferniExpressions.setExpression('attentive', 250);
+    void playAnticipatedResponse('attentive', 'attentive', 250);
     return 'attentive';
   }
-  
+
   // "Actually..." = reconsideration
   if (/^actually/i.test(partial.transcript.trim())) {
-    ferniExpressions.setExpression('curious', 200);
+    void playAnticipatedResponse('curious', 'curious', 200);
     return 'curious';
   }
-  
+
+  // High energy = excitement building
+  if (partial.energy > 0.7 && partial.tone === 'rising') {
+    void (async () => {
+      const soul = await getAvatarSoul();
+      if (soul) {
+        soul.setUserEnergy(partial.energy);
+        soul.setPupilDilation('INTERESTED', 'fast');
+      }
+    })();
+  }
+
   return null;
 }
 
@@ -812,29 +980,29 @@ export function anticipateEmotion(partial: {
  */
 export function initFerniEQ(): void {
   if (isInitialized) return;
-  
+
   avatarContainer = document.querySelector('.avatar-container');
-  
+
   // Set up event listeners
   document.addEventListener('ferni:user-speech-start', () => {
     startActiveListening();
   });
-  
+
   document.addEventListener('ferni:user-speech-end', () => {
     stopActiveListening();
   });
-  
+
   document.addEventListener('ferni:user-speech-pause', ((e: CustomEvent) => {
     onUserSpeechPause(e.detail?.duration || 0);
   }) as EventListener);
-  
+
   // Periodic breath sync
   setInterval(() => {
     if (breathSync.isEnabled) {
       syncBreathing();
     }
   }, 10000);
-  
+
   isInitialized = true;
   log.info('Ferni EQ system initialized');
 }
@@ -854,32 +1022,32 @@ export function disposeFerniEQ(): void {
 
 /**
  * Ferni EQ - Superhuman Emotional Intelligence
- * 
+ *
  * Access via: ferni.playMicroExpression(), ferni.anticipateEmotion(), etc.
  */
 export const ferni = {
   // Micro-expressions
   playMicroExpression,
   detectAndTriggerMicroExpression,
-  
+
   // Active listening
   startActiveListening,
   stopActiveListening,
   onUserSpeechPause,
-  
+
   // Breath sync
   detectUserBreathRate,
   syncBreathing,
   setBreathSyncStrength,
   setBreathSyncEnabled,
-  
+
   // Concern detection
   analyzeConcern,
   getConcernState,
-  
+
   // Anticipation
   anticipateEmotion,
-  
+
   // Lifecycle
   init: initFerniEQ,
   dispose: disposeFerniEQ,

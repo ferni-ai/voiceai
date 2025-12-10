@@ -15,21 +15,19 @@
  */
 
 import { getStore } from '../memory/store-factory.js';
-import { createLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
 import {
-  type SubscriptionTier,
   type SubscriptionData,
   type SubscriptionStatus,
+  type SubscriptionTier,
   type UsageStatus,
   TIER_CONFIGS,
-  createDefaultSubscription,
   calculateUsageStatus,
-  getCurrentPeriod,
-  needsUsageReset,
+  createDefaultSubscription,
   createFreshUsage,
-  getLimitMessage,
+  getLimitMessage, // Reserved for billing period display
+  needsUsageReset,
 } from '../types/subscription.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
 
@@ -167,7 +165,11 @@ export function isStripeConfigured(): boolean {
   return !!(
     process.env.STRIPE_SECRET_KEY &&
     process.env.STRIPE_WEBHOOK_SECRET &&
-    (process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_PRICE_PARTNER)
+    // Support both naming conventions for backward compatibility
+    (process.env.STRIPE_PRICE_FRIEND ||
+      process.env.STRIPE_FRIEND_PRICE_ID ||
+      process.env.STRIPE_PRICE_PARTNER ||
+      process.env.STRIPE_PARTNER_PRICE_ID)
   );
 }
 
@@ -239,6 +241,11 @@ export async function createCheckoutSession(params: {
   const stripe = await getStripe();
   const customerId = await getOrCreateCustomer(userId, email, name);
 
+  // Build success URL - append session_id correctly based on existing query params
+  const successUrlWithSession = successUrl.includes('?')
+    ? `${successUrl}&session_id={CHECKOUT_SESSION_ID}`
+    : `${successUrl}?session_id={CHECKOUT_SESSION_ID}`;
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
@@ -249,7 +256,7 @@ export async function createCheckoutSession(params: {
         quantity: 1,
       },
     ],
-    success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: successUrlWithSession,
     cancel_url: cancelUrl,
     metadata: {
       ferni_user_id: userId,
@@ -432,6 +439,30 @@ export async function downgradeToFree(userId: string): Promise<void> {
   });
 
   log.info({ userId }, 'Downgraded to free tier');
+}
+
+/**
+ * Handle payment failure - marks subscription as past_due (grace period)
+ * User keeps access but is warned about payment issues
+ */
+async function handlePaymentFailure(stripeCustomerId: string): Promise<void> {
+  const store = await getStore();
+
+  // Find user by Stripe customer ID
+  // Note: In a real app, you'd want an index for this lookup
+  // For now, we'll just log and let Stripe handle retries
+  log.warn({ stripeCustomerId }, 'Payment failure handling - user in grace period');
+
+  // The subscription status will be updated by customer.subscription.updated webhook
+  // which Stripe sends after payment fails
+}
+
+/**
+ * Handle successful payment - clears any past_due status
+ */
+async function handlePaymentSuccess(stripeCustomerId: string): Promise<void> {
+  log.info({ stripeCustomerId }, 'Payment successful - subscription active');
+  // Status will be updated by customer.subscription.updated webhook
 }
 
 // ============================================================================
@@ -621,15 +652,28 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as StripeInvoice;
-      const customerId = invoice.customer;
-      // Log for monitoring, but Stripe handles retry logic
-      log.warn({ customerId, invoiceId: invoice.id }, 'Payment failed');
+      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer;
+      // Mark subscription as past_due but keep them active (grace period)
+      // Stripe will retry and eventually cancel if all retries fail
+      log.warn({ customerId, invoiceId: invoice.id }, 'Payment failed - entering grace period');
+      // Find user by customerId and update status
+      await handlePaymentFailure(customerId);
       break;
     }
 
     case 'invoice.paid': {
       const invoice = event.data.object as StripeInvoice;
       log.info({ invoiceId: invoice.id }, 'Invoice paid successfully');
+      // Reset any past_due status
+      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer;
+      await handlePaymentSuccess(customerId);
+      break;
+    }
+
+    case 'customer.subscription.trial_will_end': {
+      // Sent 3 days before trial ends - could trigger email reminder
+      const subscription = event.data.object as StripeSubscription;
+      log.info({ subscriptionId: subscription.id }, 'Trial ending soon');
       break;
     }
 

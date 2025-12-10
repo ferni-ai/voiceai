@@ -219,9 +219,11 @@ interface ConversationContext {
 /**
  * Detect if the current moment is significant enough to mark a song
  */
-export function detectSignificantMoment(
-  context: ConversationContext
-): { isSignificant: boolean; type?: MomentType; emotion?: EmotionDuringMoment } {
+export function detectSignificantMoment(context: ConversationContext): {
+  isSignificant: boolean;
+  type?: MomentType;
+  emotion?: EmotionDuringMoment;
+} {
   const text = context.recentUserText.toLowerCase();
 
   // Check for breakthrough
@@ -281,7 +283,7 @@ function detectEmotion(text: string, providedEmotion?: string): EmotionDuringMom
 
   // Detect from text
   if (text.includes('happy') || text.includes('joy')) return 'happy';
-  if (text.includes('excited') || text.includes('can\'t wait')) return 'excited';
+  if (text.includes('excited') || text.includes("can't wait")) return 'excited';
   if (text.includes('grateful') || text.includes('thankful')) return 'grateful';
   if (text.includes('proud')) return 'proud';
   if (text.includes('peaceful') || text.includes('calm')) return 'peaceful';
@@ -330,7 +332,9 @@ export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory 
       '🎵 Song already in "our songs" - adding new moment context'
     );
     // Keep the most significant moment
-    if (getSignificanceWeight(params.momentType) > getSignificanceWeight(existingSong.moment.type)) {
+    if (
+      getSignificanceWeight(params.momentType) > getSignificanceWeight(existingSong.moment.type)
+    ) {
       existingSong.moment = {
         timestamp: new Date(),
         type: params.momentType,
@@ -777,4 +781,3 @@ export default {
   loadOurSongsProfile,
   getOurSongsProfileForPersistence,
 };
-

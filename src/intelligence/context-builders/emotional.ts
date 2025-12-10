@@ -10,7 +10,7 @@
  *
  * Extracted from jack-bogle.ts lines 647-666, 897-917, 1102-1118
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createCriticalInjection,
@@ -19,6 +19,9 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { loadEmotionalIntelligence, getRandomPhraseClean } from '../../services/persona-content-loader.js';
+
+const log = createLogger({ module: 'EmotionalContext' });
 
 // ============================================================================
 // VOICE EMOTION TYPES (extended for prosody analysis)
@@ -46,10 +49,15 @@ interface ExtendedUserData {
 
 /**
  * Build emotional awareness context
+ * Enhanced to load persona-specific emotional intelligence content
  */
-function buildEmotionalContext(input: ContextBuilderInput): ContextInjection[] {
-  const { userText, analysis, userData } = input;
+async function buildEmotionalContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+  const { userText, analysis, userData, persona } = input;
   const injections: ContextInjection[] = [];
+  
+  // Load persona-specific emotional intelligence (if available)
+  const emotionalIntelligence = await loadEmotionalIntelligence(persona.id);
+  
   // Merge voice emotion with text emotion if available
   const textDistress = analysis.emotion.distressLevel ?? 0;
   let mergedDistress = textDistress;
@@ -62,7 +70,7 @@ function buildEmotionalContext(input: ContextBuilderInput): ContextInjection[] {
     if (voiceEmotion.anxietyMarkers) {
       mergedDistress = Math.min(1, mergedDistress + 0.15);
     }
-    getLogger().debug(
+    log.debug(
       {
         textEmotion: analysis.emotion.primary,
         voiceEmotion: voiceEmotion.primary,
@@ -90,13 +98,30 @@ VOICE: Soft, slow, gentle. Long pauses are okay.
 If they need silence, give them silence.`
       )
     );
-    getLogger().warn(
+    log.warn(
       {
         distress: mergedDistress,
         emotion: analysis.emotion.primary,
       },
       'HIGH DISTRESS DETECTED'
     );
+    
+    // Add persona-specific distress response if available
+    if (emotionalIntelligence) {
+      const eiContent = emotionalIntelligence as Record<string, unknown>;
+      const distressResponses = (eiContent.detecting_distress as Record<string, unknown>)?.responses as Record<string, string[]>;
+      if (distressResponses?.immediate_validation) {
+        const phrase = getRandomPhraseClean(distressResponses.immediate_validation);
+        if (phrase) {
+          injections.push(
+            createHintInjection(
+              'persona_ei_distress',
+              `[PERSONA VOICE for distress]: "${phrase}"`
+            )
+          );
+        }
+      }
+    }
   } else if (mergedDistress > 0.5) {
     // MODERATE DISTRESS
     injections.push(
@@ -149,7 +174,7 @@ VALIDATE BEFORE any advice:
 DO NOT say "but..." after validating.`
       )
     );
-    getLogger().info({ feeling }, 'User needs validation');
+    log.info({ feeling }, 'User needs validation');
   }
   // -----------------------------------------------
   // EMOTIONAL MIRRORING

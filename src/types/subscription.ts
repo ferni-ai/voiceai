@@ -95,7 +95,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: false,
     betaFeatures: true,
     priceInCents: 999, // $9.99/month
-    stripePriceId: process.env.STRIPE_PRICE_FRIEND || null,
+    // Support both naming conventions for backward compatibility
+    stripePriceId: process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
   },
   partner: {
     name: 'Partner in Growth',
@@ -108,7 +109,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: true,
     betaFeatures: true,
     priceInCents: 1999, // $19.99/month
-    stripePriceId: process.env.STRIPE_PRICE_PARTNER || null,
+    // Support both naming conventions for backward compatibility
+    stripePriceId: process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
   },
 };
 

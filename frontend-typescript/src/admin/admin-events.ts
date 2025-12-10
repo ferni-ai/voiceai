@@ -173,6 +173,347 @@ export async function toggleAgent(agentId: string, enabled: boolean): Promise<bo
   }
 }
 
+export async function editAgent(agentId: string): Promise<void> {
+  log.debug({ agentId }, 'Opening agent editor');
+  
+  try {
+    // Fetch current agent data
+    const response = await adminFetch(`/api/v1/admin/agents/${agentId}`);
+    if (!response.ok) {
+      toast.error('Failed to load agent');
+      return;
+    }
+    
+    const { agent } = await response.json();
+    
+    // Create and show edit modal
+    const modal = document.createElement('div');
+    modal.className = 'admin-modal-overlay';
+    modal.innerHTML = `
+      <div class="admin-modal-backdrop"></div>
+      <div class="admin-modal-card">
+        <header class="admin-modal-header">
+          <span class="admin-eyebrow">EDIT AGENT</span>
+          <h2 class="admin-modal-title">${agent.name}</h2>
+          <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+        </header>
+        <div class="admin-modal-content">
+          <div class="admin-form-group">
+            <label class="admin-label">Subtitle</label>
+            <input type="text" class="admin-input" id="agentSubtitle" value="${agent.subtitle || ''}" placeholder="e.g. Life Coach">
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-label">Primary Color</label>
+            <input type="color" class="admin-color-input" id="agentPrimaryColor" value="${agent.colors?.primary || '#4a6741'}">
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-label">Secondary Color</label>
+            <input type="color" class="admin-color-input" id="agentSecondaryColor" value="${agent.colors?.secondary || '#3d5a35'}">
+          </div>
+        </div>
+        <footer class="admin-modal-footer">
+          <button class="admin-btn" data-action="close-modal">Cancel</button>
+          <button class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agentId}">Save Changes</button>
+        </footer>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Handle close
+    modal.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+        modal.remove();
+      }
+      if (target.matches('[data-action="save-agent"]')) {
+        const subtitle = (document.getElementById('agentSubtitle') as HTMLInputElement).value;
+        const primary = (document.getElementById('agentPrimaryColor') as HTMLInputElement).value;
+        const secondary = (document.getElementById('agentSecondaryColor') as HTMLInputElement).value;
+        
+        const saveResponse = await adminFetch(`/api/v1/admin/agents/${agentId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ subtitle, colors: { primary, secondary } }),
+        });
+        
+        if (saveResponse.ok) {
+          toast.success('Agent updated');
+          modal.remove();
+          window.location.reload();
+        } else {
+          toast.error('Failed to save changes');
+        }
+      }
+    });
+  } catch (error) {
+    log.error({ error, agentId }, 'Failed to edit agent');
+    toast.error('Failed to open editor');
+  }
+}
+
+export async function previewAgentVoice(agentId: string): Promise<void> {
+  log.debug({ agentId }, 'Previewing agent voice');
+  toast.info(`Playing ${agentId}'s voice...`);
+
+  try {
+    // Fetch voice sample from API
+    const response = await adminFetch(`/api/v1/admin/agents/${agentId}/voice-sample`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      // Fallback: Generate TTS sample
+      const ttsResponse = await adminFetch(`/api/v1/admin/agents/${agentId}/tts-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `Hi there! I'm ${agentId}. How can I help you today?`,
+        }),
+      });
+
+      if (!ttsResponse.ok) {
+        throw new Error('Voice preview not available');
+      }
+
+      const audioBlob = await ttsResponse.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        toast.success('Voice preview complete');
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        toast.error('Failed to play voice preview');
+      };
+
+      await audio.play();
+      return;
+    }
+
+    // Play existing voice sample
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      toast.success('Voice preview complete');
+    };
+
+    await audio.play();
+  } catch (error) {
+    log.error({ error, agentId }, 'Voice preview failed');
+    toast.error('Voice preview not available for this agent');
+  }
+}
+
+// ============================================================================
+// TEMPLATE AGENT CREATION
+// ============================================================================
+
+interface AgentTemplate {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  primaryColor: string;
+  secondaryColor: string;
+  voiceStyle: string;
+  personality: string;
+}
+
+const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
+  basic: {
+    id: 'basic',
+    name: 'New Agent',
+    subtitle: 'General Purpose',
+    description: 'A friendly, general-purpose assistant',
+    primaryColor: '#4a6741',
+    secondaryColor: '#3d5a35',
+    voiceStyle: 'neutral',
+    personality: 'helpful and friendly',
+  },
+  sage: {
+    id: 'sage',
+    name: 'Sage',
+    subtitle: 'Wise Advisor',
+    description: 'A thoughtful advisor with deep insights',
+    primaryColor: '#3a6b73',
+    secondaryColor: '#2d545a',
+    voiceStyle: 'calm',
+    personality: 'wise, patient, and insightful',
+  },
+  specialist: {
+    id: 'specialist',
+    name: 'Specialist',
+    subtitle: 'Domain Expert',
+    description: 'An expert in their specific domain',
+    primaryColor: '#7a5c4f',
+    secondaryColor: '#5d463c',
+    voiceStyle: 'professional',
+    personality: 'knowledgeable and precise',
+  },
+  coordinator: {
+    id: 'coordinator',
+    name: 'Coordinator',
+    subtitle: 'Team Lead',
+    description: 'Helps coordinate between team members',
+    primaryColor: '#5c4a7a',
+    secondaryColor: '#463c5d',
+    voiceStyle: 'organized',
+    personality: 'efficient and collaborative',
+  },
+  coach: {
+    id: 'coach',
+    name: 'Coach',
+    subtitle: 'Personal Coach',
+    description: 'A supportive personal development coach',
+    primaryColor: '#d4a84b',
+    secondaryColor: '#b8923f',
+    voiceStyle: 'encouraging',
+    personality: 'motivating and supportive',
+  },
+  creative: {
+    id: 'creative',
+    name: 'Creative',
+    subtitle: 'Creative Partner',
+    description: 'A creative collaborator for ideas and projects',
+    primaryColor: '#a67a6a',
+    secondaryColor: '#8a6458',
+    voiceStyle: 'expressive',
+    personality: 'imaginative and enthusiastic',
+  },
+};
+
+export async function createAgentFromTemplate(templateId: string): Promise<void> {
+  log.debug({ templateId }, 'Creating agent from template');
+
+  const template = AGENT_TEMPLATES[templateId];
+  if (!template) {
+    toast.error(`Unknown template: ${templateId}`);
+    return;
+  }
+
+  // Create modal with pre-filled template values
+  const modal = document.createElement('div');
+  modal.className = 'admin-modal-overlay';
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop"></div>
+    <div class="admin-modal-card">
+      <header class="admin-modal-header">
+        <span class="admin-eyebrow">CREATE FROM TEMPLATE</span>
+        <h2 class="admin-modal-title">${template.name} Template</h2>
+        <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+      </header>
+      <div class="admin-modal-content">
+        <p class="admin-template-description">${template.description}</p>
+
+        <div class="admin-form-group">
+          <label class="admin-label">Agent ID</label>
+          <input type="text" class="admin-input" id="templateAgentId" placeholder="e.g. my-${template.id}-agent" pattern="[a-z0-9-]+">
+          <p class="admin-hint">Lowercase letters, numbers, and hyphens only</p>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Display Name</label>
+          <input type="text" class="admin-input" id="templateAgentName" value="${template.name}" placeholder="e.g. ${template.name}">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Subtitle</label>
+          <input type="text" class="admin-input" id="templateAgentSubtitle" value="${template.subtitle}" placeholder="e.g. ${template.subtitle}">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Personality</label>
+          <input type="text" class="admin-input" id="templateAgentPersonality" value="${template.personality}">
+        </div>
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-label">Primary Color</label>
+            <input type="color" class="admin-color-input" id="templateAgentPrimaryColor" value="${template.primaryColor}">
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-label">Secondary Color</label>
+            <input type="color" class="admin-color-input" id="templateAgentSecondaryColor" value="${template.secondaryColor}">
+          </div>
+        </div>
+      </div>
+      <footer class="admin-modal-footer">
+        <button class="admin-btn" data-action="close-modal">Cancel</button>
+        <button class="admin-btn admin-btn--primary" data-action="create-from-template" data-template="${templateId}">Create Agent</button>
+      </footer>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+
+    if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+      modal.remove();
+    }
+
+    if (target.matches('[data-action="create-from-template"]')) {
+      const id = (document.getElementById('templateAgentId') as HTMLInputElement).value.trim();
+      const name = (document.getElementById('templateAgentName') as HTMLInputElement).value.trim();
+      const subtitle = (document.getElementById('templateAgentSubtitle') as HTMLInputElement).value.trim();
+      const personality = (document.getElementById('templateAgentPersonality') as HTMLInputElement).value.trim();
+      const primary = (document.getElementById('templateAgentPrimaryColor') as HTMLInputElement).value;
+      const secondary = (document.getElementById('templateAgentSecondaryColor') as HTMLInputElement).value;
+
+      if (!id || !name) {
+        toast.error('ID and Name are required');
+        return;
+      }
+
+      if (!/^[a-z0-9-]+$/.test(id)) {
+        toast.error('ID must be lowercase letters, numbers, and hyphens only');
+        return;
+      }
+
+      toast.info('Creating agent from template...');
+
+      try {
+        const response = await adminFetch('/api/v1/admin/agents/create-from-template', {
+          method: 'POST',
+          body: JSON.stringify({
+            id,
+            name,
+            subtitle,
+            template: templateId,
+            personality,
+            colors: { primary, secondary },
+            initials: name.slice(0, 2).toUpperCase(),
+            voiceStyle: template.voiceStyle,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          toast.success(`Agent "${name}" created successfully!`);
+
+          if (result.bundlePath) {
+            toast.info(`Bundle scaffolded at: ${result.bundlePath}`);
+          } else {
+            toast.info('Note: Configure full persona bundle in /personas directory');
+          }
+
+          modal.remove();
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Failed to create agent');
+        }
+      } catch (error) {
+        log.error({ error, templateId }, 'Failed to create agent from template');
+        toast.error('Failed to create agent');
+      }
+    }
+  });
+}
+
 export async function validateAgents(): Promise<{ success: boolean; output?: string; errors?: string }> {
   log.debug('Validating all agents');
   toast.info('Validating agents...');
@@ -189,6 +530,16 @@ export async function validateAgents(): Promise<{ success: boolean; output?: str
     } else {
       toast.warning('Validation found issues');
     }
+    
+    // Show detailed results in modal
+    showResultsModal(
+      result.success ? 'Validation Passed' : 'Validation Results',
+      {
+        success: result.success,
+        output: result.output || 'No output',
+        errors: result.errors || null,
+      }
+    );
     
     return result;
   } catch (error) {
@@ -267,32 +618,372 @@ export async function runQuickAction(action: string): Promise<void> {
       
     case 'enable-all-flags':
     case 'enable-all':
-      if (await enableAllFlags()) {
-        window.location.reload();
-      }
+      showConfirmDialog(
+        'Enable All Flags',
+        'This will enable ALL feature flags. Are you sure?',
+        'Enable All',
+        async () => {
+          if (await enableAllFlags()) {
+            window.location.reload();
+          }
+        }
+      );
       break;
       
     case 'disable-all-flags':
     case 'disable-all':
-      if (await disableAllFlags()) {
-        window.location.reload();
-      }
+      showConfirmDialog(
+        'Disable All Flags',
+        'This will disable ALL feature flags. This is a kill switch operation.',
+        'Disable All',
+        async () => {
+          if (await disableAllFlags()) {
+            window.location.reload();
+          }
+        },
+        true
+      );
       break;
       
     case 'reset-flags':
     case 'reset':
-      if (await resetFlags()) {
-        window.location.reload();
-      }
+      showConfirmDialog(
+        'Reset to Defaults',
+        'This will reset ALL flags to default values. Custom configurations will be lost.',
+        'Reset',
+        async () => {
+          if (await resetFlags()) {
+            window.location.reload();
+          }
+        },
+        true
+      );
       break;
       
     case 'clear-cache':
-      toast.info('Cache clearing is not yet implemented');
+      toast.info('Clearing caches...');
+      try {
+        // Clear browser caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        // Clear localStorage admin cache
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('admin_cache_')) {
+            localStorage.removeItem(key);
+          }
+        });
+        toast.success('Caches cleared');
+      } catch {
+        toast.error('Failed to clear caches');
+      }
+      break;
+      
+    case 'quick-check':
+    case 'quick-voice-check':
+      await runQuickVoiceCheck();
+      break;
+      
+    case 'export-report':
+      await exportEvalOpsReport();
+      break;
+      
+    case 'create-agent':
+      await openCreateAgentModal();
       break;
       
     default:
       log.warn({ action }, 'Unknown quick action');
   }
+}
+
+// ============================================================================
+// EVALOPS HANDLERS
+// ============================================================================
+
+export async function runQuickVoiceCheck(): Promise<void> {
+  toast.info('Running quick voice check...');
+  
+  try {
+    const response = await adminFetch('/api/evalops/quick-check', {
+      method: 'POST',
+      body: JSON.stringify({
+        personaId: 'ferni',
+        text: 'Hello, how are you today?',
+      }),
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.passed) {
+        toast.success(`Voice check passed (${result.score}% consistency)`);
+      } else {
+        toast.warning(`Voice check flagged: ${result.reason || 'Needs review'}`);
+      }
+      
+      // Show detailed results in modal
+      showResultsModal('Voice Check Results', result);
+    } else {
+      toast.error('Voice check failed');
+    }
+  } catch (error) {
+    log.error({ error }, 'Quick voice check failed');
+    toast.error('Failed to run voice check');
+  }
+}
+
+export async function exportEvalOpsReport(): Promise<void> {
+  toast.info('Generating report...');
+  
+  try {
+    // Fetch metrics and flagged responses
+    const [metricsRes, flaggedRes] = await Promise.all([
+      adminFetch('/api/evalops/metrics'),
+      adminFetch('/api/evalops/evaluations/flagged'),
+    ]);
+    
+    const metrics = metricsRes.ok ? await metricsRes.json() : {};
+    const flagged = flaggedRes.ok ? await flaggedRes.json() : { evaluations: [] };
+    
+    const report = {
+      generatedAt: new Date().toISOString(),
+      metrics,
+      flaggedResponses: flagged.evaluations || [],
+      summary: {
+        totalEvaluations: metrics.totalEvaluations || 0,
+        passRate: metrics.passRate || 0,
+        flaggedCount: flagged.evaluations?.length || 0,
+      },
+    };
+    
+    // Download as JSON
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `evalops-report-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Report downloaded');
+  } catch (error) {
+    log.error({ error }, 'Failed to export report');
+    toast.error('Failed to generate report');
+  }
+}
+
+export async function updateEvalOpsFlag(flagId: string, enabled: boolean): Promise<boolean> {
+  log.debug({ flagId, enabled }, 'Updating EvalOps flag');
+  
+  try {
+    const response = await adminFetch('/api/evalops/flags', {
+      method: 'PUT',
+      body: JSON.stringify({ [flagId]: enabled }),
+    });
+    
+    if (response.ok) {
+      toast.success(`${flagId} ${enabled ? 'enabled' : 'disabled'}`);
+      return true;
+    } else {
+      toast.error('Failed to update setting');
+      return false;
+    }
+  } catch (error) {
+    log.error({ error, flagId }, 'Failed to update EvalOps flag');
+    toast.error('Failed to update setting');
+    return false;
+  }
+}
+
+// ============================================================================
+// CREATE AGENT MODAL
+// ============================================================================
+
+export async function openCreateAgentModal(): Promise<void> {
+  const modal = document.createElement('div');
+  modal.className = 'admin-modal-overlay';
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop"></div>
+    <div class="admin-modal-card">
+      <header class="admin-modal-header">
+        <span class="admin-eyebrow">NEW AGENT</span>
+        <h2 class="admin-modal-title">Create Agent</h2>
+        <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+      </header>
+      <div class="admin-modal-content">
+        <div class="admin-form-group">
+          <label class="admin-label">Agent ID</label>
+          <input type="text" class="admin-input" id="newAgentId" placeholder="e.g. coach-sam" pattern="[a-z0-9-]+">
+          <p class="admin-hint">Lowercase letters, numbers, and hyphens only</p>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Display Name</label>
+          <input type="text" class="admin-input" id="newAgentName" placeholder="e.g. Sam">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Subtitle</label>
+          <input type="text" class="admin-input" id="newAgentSubtitle" placeholder="e.g. Fitness Coach">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-label">Template</label>
+          <select class="admin-input" id="newAgentTemplate">
+            <option value="basic">Basic - General purpose</option>
+            <option value="sage">Sage - Wise advisor</option>
+            <option value="specialist">Specialist - Domain expert</option>
+            <option value="coordinator">Coordinator - Team lead</option>
+          </select>
+        </div>
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-label">Primary Color</label>
+            <input type="color" class="admin-color-input" id="newAgentPrimaryColor" value="#4a6741">
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-label">Secondary Color</label>
+            <input type="color" class="admin-color-input" id="newAgentSecondaryColor" value="#3d5a35">
+          </div>
+        </div>
+      </div>
+      <footer class="admin-modal-footer">
+        <button class="admin-btn" data-action="close-modal">Cancel</button>
+        <button class="admin-btn admin-btn--primary" data-action="create-new-agent">Create Agent</button>
+      </footer>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    
+    if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+      modal.remove();
+    }
+    
+    if (target.matches('[data-action="create-new-agent"]')) {
+      const id = (document.getElementById('newAgentId') as HTMLInputElement).value.trim();
+      const name = (document.getElementById('newAgentName') as HTMLInputElement).value.trim();
+      const subtitle = (document.getElementById('newAgentSubtitle') as HTMLInputElement).value.trim();
+      const template = (document.getElementById('newAgentTemplate') as HTMLSelectElement).value;
+      const primary = (document.getElementById('newAgentPrimaryColor') as HTMLInputElement).value;
+      const secondary = (document.getElementById('newAgentSecondaryColor') as HTMLInputElement).value;
+      
+      if (!id || !name) {
+        toast.error('ID and Name are required');
+        return;
+      }
+      
+      if (!/^[a-z0-9-]+$/.test(id)) {
+        toast.error('ID must be lowercase letters, numbers, and hyphens only');
+        return;
+      }
+      
+      toast.info('Creating agent...');
+      
+      // Note: This creates config only - actual persona bundle needs to be created separately
+      try {
+        const response = await adminFetch(`/api/v1/admin/agents/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name,
+            subtitle,
+            template,
+            colors: { primary, secondary },
+            initials: name.slice(0, 2).toUpperCase(),
+          }),
+        });
+        
+        if (response.ok) {
+          toast.success('Agent configuration created');
+          toast.info('Note: Full persona bundle must be created in /personas directory');
+          modal.remove();
+          window.location.reload();
+        } else {
+          toast.error('Failed to create agent');
+        }
+      } catch (error) {
+        log.error({ error }, 'Failed to create agent');
+        toast.error('Failed to create agent');
+      }
+    }
+  });
+}
+
+// ============================================================================
+// RESULTS MODAL
+// ============================================================================
+
+function showResultsModal(title: string, data: unknown): void {
+  const modal = document.createElement('div');
+  modal.className = 'admin-modal-overlay';
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop"></div>
+    <div class="admin-modal-card admin-modal-card--wide">
+      <header class="admin-modal-header">
+        <h2 class="admin-modal-title">${title}</h2>
+        <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+      </header>
+      <div class="admin-modal-content">
+        <pre class="admin-code-block">${JSON.stringify(data, null, 2)}</pre>
+      </div>
+      <footer class="admin-modal-footer">
+        <button class="admin-btn admin-btn--primary" data-action="close-modal">Close</button>
+      </footer>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-action="close-modal"]') || target.matches('.admin-modal-backdrop')) {
+      modal.remove();
+    }
+  });
+}
+
+// ============================================================================
+// CONFIRMATION DIALOG
+// ============================================================================
+
+export function showConfirmDialog(
+  title: string,
+  message: string,
+  confirmText: string,
+  onConfirm: () => void,
+  isDangerous = false
+): void {
+  const modal = document.createElement('div');
+  modal.className = 'admin-modal-overlay';
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop"></div>
+    <div class="admin-modal-card admin-modal-card--small">
+      <header class="admin-modal-header">
+        <h2 class="admin-modal-title">${title}</h2>
+      </header>
+      <div class="admin-modal-content">
+        <p class="admin-confirm-message">${message}</p>
+      </div>
+      <footer class="admin-modal-footer">
+        <button class="admin-btn" data-action="cancel">Cancel</button>
+        <button class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
+      </footer>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-action="cancel"]') || target.matches('.admin-modal-backdrop')) {
+      modal.remove();
+    }
+    if (target.matches('[data-action="confirm"]')) {
+      modal.remove();
+      onConfirm();
+    }
+  });
 }
 
 // ============================================================================
@@ -351,8 +1042,14 @@ export function initAdminEvents(): void {
   portal.addEventListener('change', handleAdminChange);
   portal.addEventListener('input', handleAdminInput);
   
-  // Set up avatar demo handlers for design system section
-  setupAvatarDemoHandlers();
+  // Drag events for agent reordering
+  portal.addEventListener('dragstart', handleDragStart);
+  portal.addEventListener('dragover', handleDragOver);
+  portal.addEventListener('drop', handleDrop);
+  portal.addEventListener('dragend', handleDragEnd);
+  
+  // Design system handlers will be set up when that section loads
+  // See AdminPortal.ts loadSection()
   
   log.debug('Admin events initialized');
 }
@@ -374,11 +1071,44 @@ export function cleanupAdminEvents(): void {
 async function handleAdminClick(e: Event): Promise<void> {
   const target = e.target as HTMLElement;
   
+  // Agent edit button
+  const editBtn = target.closest('[data-action="edit"]');
+  if (editBtn) {
+    const agentId = editBtn.getAttribute('data-agent-id');
+    if (agentId) {
+      e.preventDefault();
+      await editAgent(agentId);
+      return;
+    }
+  }
+  
+  // Agent preview voice button
+  const previewBtn = target.closest('[data-action="preview-voice"]');
+  if (previewBtn) {
+    const agentId = previewBtn.getAttribute('data-agent-id');
+    if (agentId) {
+      e.preventDefault();
+      await previewAgentVoice(agentId);
+      return;
+    }
+  }
+  
+  // Template card click (create agent from template)
+  const templateCard = target.closest('.template-card');
+  if (templateCard) {
+    const templateId = templateCard.getAttribute('data-template');
+    if (templateId) {
+      e.preventDefault();
+      await createAgentFromTemplate(templateId);
+      return;
+    }
+  }
+  
   // Quick actions on dashboard
   const quickAction = target.closest('[data-action]');
   if (quickAction) {
     const action = quickAction.getAttribute('data-action');
-    if (action) {
+    if (action && !['edit', 'preview-voice', 'toggle'].includes(action)) {
       e.preventDefault();
       await runQuickAction(action);
       return;
@@ -446,6 +1176,18 @@ async function handleAdminChange(e: Event): Promise<void> {
         target.checked = !target.checked;
       }
     }
+    return;
+  }
+  
+  // EvalOps settings toggle
+  if (target.matches('[data-setting-id][data-action="toggle-evalops"]')) {
+    const settingId = target.getAttribute('data-setting-id');
+    if (settingId) {
+      const success = await updateEvalOpsFlag(settingId, target.checked);
+      if (!success) {
+        target.checked = !target.checked;
+      }
+    }
   }
 }
 
@@ -483,10 +1225,76 @@ async function handleAdminInput(e: Event): Promise<void> {
 }
 
 // ============================================================================
+// DRAG-TO-REORDER HANDLERS
+// ============================================================================
+
+let draggedElement: HTMLElement | null = null;
+
+function handleDragStart(e: DragEvent): void {
+  const target = e.target as HTMLElement;
+  const agentCard = target.closest('.agent-card') as HTMLElement;
+  
+  if (agentCard && agentCard.getAttribute('draggable') === 'true') {
+    draggedElement = agentCard;
+    agentCard.classList.add('dragging');
+    e.dataTransfer?.setData('text/plain', agentCard.getAttribute('data-agent-id') || '');
+    e.dataTransfer!.effectAllowed = 'move';
+  }
+}
+
+function handleDragOver(e: DragEvent): void {
+  e.preventDefault();
+  const target = e.target as HTMLElement;
+  const agentCard = target.closest('.agent-card') as HTMLElement;
+  const agentsList = target.closest('.agents-list') as HTMLElement;
+  
+  if (agentsList && draggedElement && agentCard && agentCard !== draggedElement) {
+    const rect = agentCard.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    
+    if (e.clientY < midY) {
+      agentsList.insertBefore(draggedElement, agentCard);
+    } else {
+      agentsList.insertBefore(draggedElement, agentCard.nextSibling);
+    }
+  }
+}
+
+async function handleDrop(e: DragEvent): Promise<void> {
+  e.preventDefault();
+  
+  if (draggedElement) {
+    draggedElement.classList.remove('dragging');
+    
+    // Get new order
+    const agentsList = document.getElementById('agentsList');
+    if (agentsList) {
+      const order = Array.from(agentsList.querySelectorAll('.agent-card'))
+        .map(card => card.getAttribute('data-agent-id'))
+        .filter(Boolean) as string[];
+      
+      // Save new order
+      const success = await updateAgentOrder(order);
+      if (!success) {
+        // Revert by reloading
+        window.location.reload();
+      }
+    }
+  }
+}
+
+function handleDragEnd(): void {
+  if (draggedElement) {
+    draggedElement.classList.remove('dragging');
+    draggedElement = null;
+  }
+}
+
+// ============================================================================
 // DESIGN SYSTEM AVATAR DEMO HANDLERS
 // ============================================================================
 
-function setupAvatarDemoHandlers(): void {
+export function setupDesignSystemHandlers(): void {
   const portal = document.getElementById('adminPortal');
   if (!portal) return;
   

@@ -28,7 +28,7 @@ const mapJoyDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'joy', 'mapping'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user create a map of what brings them joy.',
       parameters: z.object({
@@ -92,7 +92,7 @@ const noticeJoyDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'joy', 'mindfulness'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user notice and savor joy when it appears.',
       parameters: z.object({
@@ -146,7 +146,7 @@ const scheduleJoyDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'joy', 'intention'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user intentionally schedule joy into their life.',
       parameters: z.object({
@@ -204,7 +204,7 @@ const cultivatePlayfulnessDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'playfulness', 'cultivation'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user cultivate more playfulness in their life.',
       parameters: z.object({
@@ -270,7 +270,7 @@ const givePermissionToPlayDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'permission', 'lightness'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user give themselves permission to play and have fun.',
       parameters: z.object({
@@ -312,7 +312,7 @@ const embraceLightnessDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'lightness', 'balance'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user find lightness when life feels heavy.',
       parameters: z.object({
@@ -352,7 +352,7 @@ const noteThatWasFunDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'fun', 'capture'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user capture and appreciate a fun moment.',
       parameters: z.object({
@@ -386,7 +386,7 @@ const becomeSillyDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'silly', 'lightness'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Encourage and support silliness and lightheartedness.',
       parameters: z.object({
@@ -440,7 +440,7 @@ const spontaneityChallengeDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'spontaneity', 'challenge'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Offer spontaneity challenges to break routine.',
       parameters: z.object({
@@ -534,7 +534,7 @@ const playfulCreativityDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'creativity', 'expression'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide playful, low-stakes creative expression.',
       parameters: z.object({
@@ -599,7 +599,7 @@ const reclaimLostHobbyDef: ToolDefinition = {
   domain: 'play',
   tags: ['play', 'hobbies', 'rediscovery'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user reconnect with activities they used to love.',
       parameters: z.object({

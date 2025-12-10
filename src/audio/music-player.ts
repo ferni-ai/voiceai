@@ -34,11 +34,16 @@
  */
 
 import { voice } from '@livekit/agents';
+import type { Room } from '@livekit/rtc-node';
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { promisify } from 'util';
+import { createLogger, getLogger } from '../utils/safe-logger.js';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
-import { createLogger, getLogger } from '../utils/safe-logger.js';
-import type { Room } from '@livekit/rtc-node';
 
 const log = createLogger({ module: 'MusicPlayer' });
 const DEBUG_MUSIC = process.env.DEBUG_MUSIC === 'true';
@@ -46,11 +51,6 @@ const DEBUG_MUSIC = process.env.DEBUG_MUSIC === 'true';
 // Extract BackgroundAudioPlayer from the voice namespace
 const { BackgroundAudioPlayer } = voice;
 type PlayHandle = ReturnType<InstanceType<typeof BackgroundAudioPlayer>['play']>;
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
@@ -378,7 +378,8 @@ export class CallMusicPlayer {
     }
 
     // Don't do mid-song moments for very short tracks
-    const duration = track.duration || 30000;
+    // Use ?? instead of || so duration of 0 doesn't falsely default to 30s
+    const duration = track.duration ?? 30000;
     if (duration < 20000) {
       return;
     }
@@ -511,12 +512,22 @@ export class CallMusicPlayer {
 
       // 🎧 DJ-STYLE FADE OUT: Notify frontend to fade 5 seconds before track ends
       // This makes the ending feel human and intentional, not abrupt
-      const trackDuration = track.duration || 30000; // Default 30s for previews
-      const fadeOutTime = Math.max(trackDuration - 5000, 10000); // Start fade 5s before end, min 10s
+      // Use ?? for proper nullish coalescing (0 is valid duration)
+      const trackDuration = track.duration ?? 30000; // Default 30s for previews
+
+      // 🐛 FIX: For short tracks, use 70% of duration instead of fixed 10s minimum
+      // This ensures fade still triggers for tracks <15s
+      const minFadeTime = Math.min(10000, trackDuration * 0.7);
+      const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
       // Schedule the fade notification
       const fadeTimer = setTimeout(() => {
-        if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+        // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
+        if (
+          this.state.isPlaying &&
+          !this.state.isDucked &&
+          this.state.currentTrack?.name === track.name
+        ) {
           getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
           this.notifyStateChange('fading');
         }
@@ -690,11 +701,20 @@ export class CallMusicPlayer {
     this.scheduleMidSongMoment(track);
 
     // Set up the fade-out timer for this new track
-    const trackDuration = track.duration || 30000;
-    const fadeOutTime = Math.max(trackDuration - 5000, 10000);
+    // Use ?? for proper nullish coalescing (0 is valid duration)
+    const trackDuration = track.duration ?? 30000;
+
+    // 🐛 FIX: For short tracks, use 70% of duration instead of fixed 10s minimum
+    const minFadeTime = Math.min(10000, trackDuration * 0.7);
+    const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
     const fadeTimer = setTimeout(() => {
-      if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+      // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
+      if (
+        this.state.isPlaying &&
+        !this.state.isDucked &&
+        this.state.currentTrack?.name === track.name
+      ) {
         getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
         this.notifyStateChange('fading');
       }
@@ -1083,7 +1103,10 @@ export class CallMusicPlayer {
    */
   setVolume(volume: number): void {
     this.state.volume = Math.max(0, Math.min(1, volume));
-    getLogger().debug({ volume: Math.round(this.state.volume * 100) }, 'Volume set (applies to next track)');
+    getLogger().debug(
+      { volume: Math.round(this.state.volume * 100) },
+      'Volume set (applies to next track)'
+    );
   }
 
   /**

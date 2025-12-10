@@ -125,19 +125,25 @@ export async function handleEvalOpsRoutes(
 
     if (pathname === '/api/evalops/flags' && method === 'PUT') {
       const body = await parseBody<Partial<EvalOpsFeatureFlags>>(req);
-      
+
       const validKeys = [
-        'enabled', 'autoSampling', 'voiceChecks', 'llmEvaluation',
-        'scheduledSuites', 'alerting', 'sampleRateOverride', 'enabledPersonas'
+        'enabled',
+        'autoSampling',
+        'voiceChecks',
+        'llmEvaluation',
+        'scheduledSuites',
+        'alerting',
+        'sampleRateOverride',
+        'enabledPersonas',
       ];
-      
+
       for (const key of Object.keys(body)) {
         if (!validKeys.includes(key)) {
           sendError(res, `Invalid flag key: ${key}`, 400);
           return true;
         }
       }
-      
+
       setEvalOpsFlags(body);
       const newFlags = getEvalOpsFlags();
       log.info({ updates: body }, 'Feature flags updated via API');
@@ -175,11 +181,11 @@ export async function handleEvalOpsRoutes(
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '50');
       const personaId = parsedUrl.searchParams.get('persona_id') || undefined;
       const flaggedOnly = parsedUrl.searchParams.get('flagged') === 'true';
-      
-      const evaluations = flaggedOnly 
+
+      const evaluations = flaggedOnly
         ? getFlaggedEvaluations(limit)
         : getRecentEvaluations(limit, { personaId, flagged: flaggedOnly || undefined });
-      
+
       sendJSON(res, { success: true, count: evaluations.length, evaluations });
       return true;
     }
@@ -190,19 +196,19 @@ export async function handleEvalOpsRoutes(
     if (pathname.match(/^\/api\/evalops\/fingerprints\/[^/]+\/full$/) && method === 'GET') {
       const personaId = pathname.split('/')[4];
       const fingerprint = getPersonaFingerprint(personaId);
-      
+
       if (!fingerprint) {
         sendError(res, `Fingerprint not found for: ${personaId}`, 404);
         return true;
       }
-      
+
       sendJSON(res, { success: true, fingerprint });
       return true;
     }
 
     if (pathname === '/api/evalops/fingerprints' && method === 'GET') {
       const personaId = parsedUrl.searchParams.get('persona_id');
-      
+
       if (personaId) {
         const fingerprint = getPersonaFingerprint(personaId);
         if (!fingerprint) {
@@ -212,7 +218,7 @@ export async function handleEvalOpsRoutes(
         sendJSON(res, { success: true, fingerprint });
         return true;
       }
-      
+
       const summary = getPersonaFingerprintSummary();
       sendJSON(res, { success: true, fingerprints: summary });
       return true;
@@ -227,15 +233,19 @@ export async function handleEvalOpsRoutes(
       return true;
     }
 
-    if (pathname.match(/^\/api\/evalops\/scenarios\/[^/]+$/) && !pathname.includes('stats') && method === 'GET') {
+    if (
+      pathname.match(/^\/api\/evalops\/scenarios\/[^/]+$/) &&
+      !pathname.includes('stats') &&
+      method === 'GET'
+    ) {
       const scenarioId = pathname.split('/')[4];
-      const scenario = ALL_TEST_SCENARIOS.find(s => s.id === scenarioId);
-      
+      const scenario = ALL_TEST_SCENARIOS.find((s) => s.id === scenarioId);
+
       if (!scenario) {
         sendError(res, `Scenario not found: ${scenarioId}`, 404);
         return true;
       }
-      
+
       sendJSON(res, { success: true, scenario });
       return true;
     }
@@ -244,23 +254,23 @@ export async function handleEvalOpsRoutes(
       const personaId = parsedUrl.searchParams.get('persona_id');
       const category = parsedUrl.searchParams.get('category');
       const severity = parsedUrl.searchParams.get('severity');
-      
+
       let scenarios = ALL_TEST_SCENARIOS;
-      
+
       if (personaId) {
         scenarios = getScenariosForPersona(personaId);
       }
       if (category) {
-        scenarios = scenarios.filter(s => s.category === category);
+        scenarios = scenarios.filter((s) => s.category === category);
       }
       if (severity) {
-        scenarios = scenarios.filter(s => s.severity === severity);
+        scenarios = scenarios.filter((s) => s.severity === severity);
       }
-      
+
       sendJSON(res, {
         success: true,
         count: scenarios.length,
-        scenarios: scenarios.map(s => ({
+        scenarios: scenarios.map((s) => ({
           id: s.id,
           name: s.name,
           category: s.category,
@@ -286,18 +296,18 @@ export async function handleEvalOpsRoutes(
         emotional_context?: Record<string, unknown>;
         turn_number?: number;
       }>(req);
-      
+
       if (!body.user_message || !body.ai_response || !body.persona_id) {
         sendError(res, 'Missing required fields: user_message, ai_response, persona_id', 400);
         return true;
       }
-      
+
       const fingerprint = getPersonaFingerprint(body.persona_id);
       if (!fingerprint) {
         sendError(res, `Unknown persona: ${body.persona_id}`, 400);
         return true;
       }
-      
+
       const context = {
         personaId: body.persona_id,
         fingerprint,
@@ -307,9 +317,12 @@ export async function handleEvalOpsRoutes(
         emotionalContext: body.emotional_context,
         turnNumber: body.turn_number || 1,
       };
-      
-      log.info({ persona_id: body.persona_id, turn_number: body.turn_number }, 'Running full evaluation');
-      
+
+      log.info(
+        { persona_id: body.persona_id, turn_number: body.turn_number },
+        'Running full evaluation'
+      );
+
       const evaluation = await evaluateResponse(body.user_message, body.ai_response, context);
       sendJSON(res, { success: true, evaluation });
       return true;
@@ -317,12 +330,12 @@ export async function handleEvalOpsRoutes(
 
     if (pathname === '/api/evalops/quick-check' && method === 'POST') {
       const body = await parseBody<{ response: string; persona_id: string }>(req);
-      
+
       if (!body.response || !body.persona_id) {
         sendError(res, 'Missing required fields: response, persona_id', 400);
         return true;
       }
-      
+
       const result = quickHealthCheck(body.response, body.persona_id);
       sendJSON(res, { success: true, ...result });
       return true;
@@ -330,27 +343,29 @@ export async function handleEvalOpsRoutes(
 
     if (pathname === '/api/evalops/voice-analysis' && method === 'POST') {
       const body = await parseBody<{ response: string; persona_id: string }>(req);
-      
+
       if (!body.response || !body.persona_id) {
         sendError(res, 'Missing required fields: response, persona_id', 400);
         return true;
       }
-      
+
       const { score, issues } = evaluateVoiceConsistency(body.response, body.persona_id);
       const fingerprint = getPersonaFingerprint(body.persona_id);
-      
+
       sendJSON(res, {
         success: true,
         persona_id: body.persona_id,
         score,
         issues,
-        fingerprint_summary: fingerprint ? {
-          signature_phrases_count: fingerprint.signaturePhrases.length,
-          anti_patterns_count: fingerprint.antiPatterns.length,
-          warmth: fingerprint.emotionalTone.warmth,
-          energy: fingerprint.emotionalTone.energy,
-          reasoning_style: fingerprint.reasoningIndicators.style,
-        } : null,
+        fingerprint_summary: fingerprint
+          ? {
+              signature_phrases_count: fingerprint.signaturePhrases.length,
+              anti_patterns_count: fingerprint.antiPatterns.length,
+              warmth: fingerprint.emotionalTone.warmth,
+              energy: fingerprint.emotionalTone.energy,
+              reasoning_style: fingerprint.reasoningIndicators.style,
+            }
+          : null,
       });
       return true;
     }
@@ -364,18 +379,18 @@ export async function handleEvalOpsRoutes(
         persona_id: string;
         mock_response?: string;
       }>(req);
-      
+
       if (!body.scenario_id || !body.persona_id) {
         sendError(res, 'Missing required fields: scenario_id, persona_id', 400);
         return true;
       }
-      
-      const scenario = ALL_TEST_SCENARIOS.find(s => s.id === body.scenario_id);
+
+      const scenario = ALL_TEST_SCENARIOS.find((s) => s.id === body.scenario_id);
       if (!scenario) {
         sendError(res, `Scenario not found: ${body.scenario_id}`, 404);
         return true;
       }
-      
+
       if (body.mock_response) {
         const generateResponse = async () => body.mock_response!;
         const result = await runScenario(scenario, body.persona_id, generateResponse);
@@ -397,46 +412,50 @@ export async function handleEvalOpsRoutes(
         mock_responses?: Record<string, string>;
         critical_only?: boolean;
       }>(req);
-      
+
       if (!body.persona_id) {
         sendError(res, 'Missing required field: persona_id', 400);
         return true;
       }
-      
+
       if (!body.mock_responses || typeof body.mock_responses !== 'object') {
-        const scenarios = body.critical_only 
-          ? getCriticalScenarios().filter(s => 
-              s.applicablePersonas.length === 0 || s.applicablePersonas.includes(body.persona_id)
+        const scenarios = body.critical_only
+          ? getCriticalScenarios().filter(
+              (s) =>
+                s.applicablePersonas.length === 0 || s.applicablePersonas.includes(body.persona_id)
             )
           : getScenariosForPersona(body.persona_id);
-        
+
         sendJSON(res, {
           success: true,
           dry_run: true,
           persona_id: body.persona_id,
           scenario_count: scenarios.length,
-          scenarios: scenarios.map(s => ({ id: s.id, name: s.name, probe: s.probe })),
+          scenarios: scenarios.map((s) => ({ id: s.id, name: s.name, probe: s.probe })),
           message: 'Provide mock_responses object { scenario_id: response } to run suite',
         });
         return true;
       }
-      
+
       const mockResponses = body.mock_responses;
       const generateResponse = async (probe: string): Promise<string> => {
-        const scenario = ALL_TEST_SCENARIOS.find(s => s.probe === probe);
+        const scenario = ALL_TEST_SCENARIOS.find((s) => s.probe === probe);
         if (scenario && mockResponses[scenario.id]) {
           return mockResponses[scenario.id];
         }
         return mockResponses.default || 'No mock response provided';
       };
-      
-      const { results, summary } = await runAllScenariosForPersona(body.persona_id, generateResponse);
-      
+
+      const { results, summary } = await runAllScenariosForPersona(
+        body.persona_id,
+        generateResponse
+      );
+
       sendJSON(res, {
         success: true,
         persona_id: body.persona_id,
         summary,
-        results: results.map(r => ({
+        results: results.map((r) => ({
           scenario_id: r.scenarioId,
           passed: r.passed,
           scores: r.scores,
@@ -459,11 +478,9 @@ export async function handleEvalOpsRoutes(
     // Route not found within /api/evalops
     sendError(res, `Unknown EvalOps endpoint: ${pathname}`, 404);
     return true;
-
   } catch (error) {
     log.error({ error, pathname }, 'EvalOps route error');
     sendError(res, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
     return true;
   }
 }
-

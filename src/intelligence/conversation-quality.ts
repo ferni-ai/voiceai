@@ -621,7 +621,7 @@ const PERSONA_PHYSICAL_NOTES: Record<
     },
     morning: { engaged: 'Peak productivity hours! Great timing.' },
     postLunch: { note: 'Quick post-lunch check-in on the schedule.' },
-    afternoon: { long: 'Afternoon tasks getting done. How can I help?' },
+    afternoon: { long: 'Afternoon tasks getting done. What are we tackling?' },
     evening: { engaged: 'Still here, still organized. Evening check-in.' },
     lateNight: {
       short: 'Late night productivity session.',

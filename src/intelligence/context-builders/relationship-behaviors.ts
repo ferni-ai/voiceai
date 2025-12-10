@@ -18,8 +18,14 @@
 // ============================================================================
 
 // Re-export from shared types for backwards compatibility
-export type { RelationshipStage, UserProfileRelationshipStage } from '../../types/humanizing-types.js';
-import type { RelationshipStage, UserProfileRelationshipStage } from '../../types/humanizing-types.js';
+export type {
+  RelationshipStage,
+  UserProfileRelationshipStage,
+} from '../../types/humanizing-types.js';
+import type {
+  RelationshipStage,
+  UserProfileRelationshipStage,
+} from '../../types/humanizing-types.js';
 
 export interface RelationshipBehaviors {
   stage: RelationshipStage;
@@ -94,9 +100,9 @@ const RELATIONSHIP_BEHAVIORS: Record<
     ],
     unlockedQuestions: [
       "What's on your mind?",
-      'How can I help?',
+      "What's going on?",
       'What are you hoping to figure out?',
-      'What would be most helpful right now?',
+      'What are you thinking about?',
     ],
     styleGuidance:
       "Be warm but professional. Don't assume familiarity. Listen first, then respond. Keep personal shares general.",

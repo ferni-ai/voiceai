@@ -1,0 +1,532 @@
+/**
+ * Breath Pattern Detection
+ *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
+ * Detects breath patterns that reveal emotional state:
+ * - Sighs often precede disclosure or indicate resignation
+ * - Held breath = bracing for something difficult
+ * - Deep breath = gathering courage
+ * - Shaky breath = held-back tears or anxiety
+ * - Release breath = letting go, relief
+ *
+ * Humans unconsciously notice these patterns. This module gives Ferni
+ * that same subtle awareness.
+ *
+ * @module BreathDetection
+ */
+
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger().child({ module: 'BreathDetection' });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type BreathType = 'sigh' | 'held' | 'deep' | 'shaky' | 'release' | 'gasp' | 'normal';
+
+export interface BreathEvent {
+  /** Type of breath detected */
+  type: BreathType;
+
+  /** Duration of the breath event (ms) */
+  durationMs: number;
+
+  /** Position in audio (0-1) */
+  position: number;
+
+  /** Does this precede speech? */
+  precedesSpeech: boolean;
+
+  /** Confidence in detection (0-1) */
+  confidence: number;
+
+  /** What this might indicate emotionally */
+  emotionalIndicator: string;
+}
+
+export interface BreathPatternResult {
+  /** Breath events detected in this audio */
+  events: BreathEvent[];
+
+  /** Dominant breath pattern */
+  dominantPattern: BreathType;
+
+  /** Overall breathing quality */
+  breathingQuality: 'calm' | 'shallow' | 'labored' | 'irregular' | 'controlled';
+
+  /** Emotional interpretation */
+  emotionalState: string;
+
+  /** Should agent slow down/give space? */
+  needsSpace: boolean;
+
+  /** Agent guidance */
+  guidance: string;
+
+  /** Confidence in overall analysis (0-1) */
+  confidence: number;
+}
+
+export interface BreathCharacteristics {
+  /** Average breath-to-speech ratio */
+  breathSpeechRatio: number;
+
+  /** Frequency of breaths per minute */
+  breathsPerMinute: number;
+
+  /** Variability in breath timing */
+  variability: 'consistent' | 'variable' | 'erratic';
+}
+
+// ============================================================================
+// BREATH AUDIO SIGNATURES
+// ============================================================================
+
+/**
+ * Audio characteristics for different breath types
+ * These are heuristics based on typical audio signatures
+ */
+const BREATH_SIGNATURES = {
+  sigh: {
+    durationRange: [600, 2000], // 600ms - 2s
+    energyProfile: 'decreasing', // Energy drops through the sigh
+    frequencyRange: [200, 800], // Low frequency emphasis
+    description: 'Exhale with energy fade, often with vocalization',
+  },
+  deep: {
+    durationRange: [800, 2500],
+    energyProfile: 'bell', // Energy rises then falls (inhale + exhale)
+    frequencyRange: [100, 400],
+    description: 'Full inhale followed by exhale, deliberate',
+  },
+  shaky: {
+    durationRange: [400, 1500],
+    energyProfile: 'irregular', // Uneven energy pattern
+    frequencyRange: [200, 1000],
+    description: 'Trembling exhale, uneven energy',
+  },
+  held: {
+    durationRange: [500, 3000],
+    energyProfile: 'silence', // Gap in audio
+    frequencyRange: [0, 100],
+    description: 'Absence of breath sound, tension',
+  },
+  release: {
+    durationRange: [300, 1000],
+    energyProfile: 'sudden_drop', // Quick energy release
+    frequencyRange: [100, 600],
+    description: 'Quick exhale, often with slight vocalization',
+  },
+  gasp: {
+    durationRange: [100, 500],
+    energyProfile: 'spike', // Sudden energy spike
+    frequencyRange: [300, 1200],
+    description: 'Sudden sharp inhale',
+  },
+};
+
+// ============================================================================
+// BREATH DETECTOR
+// ============================================================================
+
+export class BreathDetector {
+  private history: BreathEvent[] = [];
+  private readonly maxHistory = 30;
+
+  constructor() {
+    log.debug('BreathDetector initialized');
+  }
+
+  /**
+   * Detect breath patterns from audio samples
+   */
+  analyzeAudio(samples: Float32Array, sampleRate: number): BreathPatternResult {
+    const events = this.detectBreathEvents(samples, sampleRate);
+
+    // Store events
+    this.history.push(...events);
+    if (this.history.length > this.maxHistory) {
+      this.history = this.history.slice(-this.maxHistory);
+    }
+
+    // Determine dominant pattern
+    const dominantPattern = this.getDominantPattern(events);
+
+    // Assess breathing quality
+    const breathingQuality = this.assessBreathingQuality(events);
+
+    // Interpret emotional state
+    const emotionalState = this.interpretEmotionalState(dominantPattern, breathingQuality, events);
+
+    // Determine if space is needed
+    const needsSpace = this.determineNeedsSpace(events, dominantPattern);
+
+    // Generate guidance
+    const guidance = this.generateGuidance(dominantPattern, emotionalState, needsSpace);
+
+    // Confidence based on event detection
+    const confidence =
+      events.length > 0 ? events.reduce((sum, e) => sum + e.confidence, 0) / events.length : 0.3;
+
+    const result: BreathPatternResult = {
+      events,
+      dominantPattern,
+      breathingQuality,
+      emotionalState,
+      needsSpace,
+      guidance,
+      confidence,
+    };
+
+    if (events.length > 0 && dominantPattern !== 'normal') {
+      log.debug(
+        { pattern: dominantPattern, quality: breathingQuality, eventCount: events.length },
+        '🫁 Breath pattern detected'
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Get breath characteristics over recent history
+   */
+  getBreathCharacteristics(): BreathCharacteristics {
+    if (this.history.length < 3) {
+      return {
+        breathSpeechRatio: 0.1,
+        breathsPerMinute: 15,
+        variability: 'consistent',
+      };
+    }
+
+    // Calculate breath-to-speech ratio (approximation)
+    const avgDuration =
+      this.history.reduce((sum, e) => sum + e.durationMs, 0) / this.history.length;
+    const breathSpeechRatio = Math.min(1, avgDuration / 1000);
+
+    // Estimate breaths per minute based on event frequency
+    const timeSpan =
+      this.history.length > 1
+        ? this.history[this.history.length - 1].position - this.history[0].position
+        : 1;
+    const breathsPerMinute = timeSpan > 0 ? (this.history.length / timeSpan) * 60 : 15;
+
+    // Assess variability
+    const durations = this.history.map((e) => e.durationMs);
+    const mean = durations.reduce((a, b) => a + b, 0) / durations.length;
+    const variance = durations.reduce((sum, d) => sum + (d - mean) ** 2, 0) / durations.length;
+    const cv = Math.sqrt(variance) / mean; // Coefficient of variation
+
+    let variability: 'consistent' | 'variable' | 'erratic';
+    if (cv < 0.3) variability = 'consistent';
+    else if (cv < 0.6) variability = 'variable';
+    else variability = 'erratic';
+
+    return { breathSpeechRatio, breathsPerMinute, variability };
+  }
+
+  /**
+   * Check if a significant breath preceded the current speech
+   */
+  checkPreSpeechBreath(): BreathEvent | null {
+    if (this.history.length === 0) return null;
+
+    const recent = this.history[this.history.length - 1];
+    if (recent.precedesSpeech && recent.type !== 'normal') {
+      return recent;
+    }
+    return null;
+  }
+
+  /**
+   * Reset detector
+   */
+  reset(): void {
+    this.history = [];
+    log.debug('BreathDetector reset');
+  }
+
+  // ==========================================================================
+  // PRIVATE HELPERS
+  // ==========================================================================
+
+  private detectBreathEvents(samples: Float32Array, sampleRate: number): BreathEvent[] {
+    const events: BreathEvent[] = [];
+    const windowSize = Math.floor(sampleRate * 0.05); // 50ms windows
+    const hopSize = Math.floor(windowSize / 2);
+
+    // Calculate energy and spectral features for each window
+    const features: Array<{
+      position: number;
+      energy: number;
+      spectralCentroid: number;
+      zeroCrossings: number;
+    }> = [];
+
+    for (let i = 0; i < samples.length - windowSize; i += hopSize) {
+      const window = samples.slice(i, i + windowSize);
+
+      // Energy (RMS)
+      let energy = 0;
+      for (const sample of window) {
+        energy += sample * sample;
+      }
+      energy = Math.sqrt(energy / window.length);
+
+      // Zero crossings (rough pitch estimate)
+      let zeroCrossings = 0;
+      for (let j = 1; j < window.length; j++) {
+        if (Math.sign(window[j]) !== Math.sign(window[j - 1])) {
+          zeroCrossings++;
+        }
+      }
+
+      // Spectral centroid approximation
+      const spectralCentroid = (zeroCrossings / window.length) * sampleRate;
+
+      features.push({
+        position: i / samples.length,
+        energy,
+        spectralCentroid,
+        zeroCrossings,
+      });
+    }
+
+    if (features.length < 5) return events;
+
+    // Look for breath patterns
+    // Sighs: low frequency, decreasing energy over 600ms+
+    // Deep breaths: bell curve energy pattern
+    // Gasps: sudden energy spike with high frequency
+    // Held breath: energy gap followed by release
+
+    // Simple heuristic detection
+    for (let i = 2; i < features.length - 2; i++) {
+      const curr = features[i];
+      const prev2 = features[i - 2];
+      const next2 = features[i + 2];
+
+      // Detect sigh (decreasing energy, low freq)
+      if (
+        curr.energy > prev2.energy * 0.8 &&
+        curr.energy > next2.energy * 1.5 &&
+        curr.spectralCentroid < 800
+      ) {
+        events.push({
+          type: 'sigh',
+          durationMs: ((hopSize * 4) / sampleRate) * 1000,
+          position: curr.position,
+          precedesSpeech: i < features.length - 5,
+          confidence: 0.6,
+          emotionalIndicator: 'Possible resignation, fatigue, or release',
+        });
+        i += 4; // Skip ahead
+        continue;
+      }
+
+      // Detect gasp (sudden spike)
+      if (
+        curr.energy > prev2.energy * 2 &&
+        curr.energy > next2.energy * 1.5 &&
+        curr.spectralCentroid > 500
+      ) {
+        events.push({
+          type: 'gasp',
+          durationMs: ((hopSize * 2) / sampleRate) * 1000,
+          position: curr.position,
+          precedesSpeech: i < features.length - 3,
+          confidence: 0.5,
+          emotionalIndicator: 'Surprise, shock, or sudden realization',
+        });
+        i += 2;
+        continue;
+      }
+
+      // Detect held breath (energy gap)
+      if (curr.energy < 0.01 && prev2.energy > 0.05 && next2.energy > 0.05) {
+        events.push({
+          type: 'held',
+          durationMs: ((hopSize * 4) / sampleRate) * 1000,
+          position: curr.position,
+          precedesSpeech: true,
+          confidence: 0.55,
+          emotionalIndicator: 'Bracing, anticipation, or tension',
+        });
+        i += 2;
+        continue;
+      }
+
+      // Detect deep breath (bell curve - energy rises then falls over longer period)
+      if (i > 3 && i < features.length - 4) {
+        const window = features.slice(i - 3, i + 4);
+        const energies = window.map((f) => f.energy);
+        const peak = Math.max(...energies);
+        const peakIdx = energies.indexOf(peak);
+
+        if (peakIdx > 0 && peakIdx < energies.length - 1 && peak > 0.1) {
+          const isBellCurve =
+            energies[0] < peak * 0.5 && energies[energies.length - 1] < peak * 0.5;
+
+          if (isBellCurve) {
+            events.push({
+              type: 'deep',
+              durationMs: ((hopSize * 7) / sampleRate) * 1000,
+              position: curr.position,
+              precedesSpeech: i < features.length - 5,
+              confidence: 0.5,
+              emotionalIndicator: 'Gathering courage, centering, or calming',
+            });
+            i += 6;
+            continue;
+          }
+        }
+      }
+    }
+
+    return events;
+  }
+
+  private getDominantPattern(events: BreathEvent[]): BreathType {
+    if (events.length === 0) return 'normal';
+
+    const counts = new Map<BreathType, number>();
+    for (const e of events) {
+      counts.set(e.type, (counts.get(e.type) || 0) + 1);
+    }
+
+    let max = 0;
+    let dominant: BreathType = 'normal';
+    counts.forEach((count, type) => {
+      if (count > max) {
+        max = count;
+        dominant = type;
+      }
+    });
+
+    return dominant;
+  }
+
+  private assessBreathingQuality(events: BreathEvent[]): BreathPatternResult['breathingQuality'] {
+    if (events.length === 0) return 'calm';
+
+    const types = events.map((e) => e.type);
+
+    // Shaky or multiple gasps = labored
+    if (types.includes('shaky') || types.filter((t) => t === 'gasp').length >= 2) {
+      return 'labored';
+    }
+
+    // Mix of different patterns = irregular
+    const uniqueTypes = new Set(types);
+    if (uniqueTypes.size >= 3) {
+      return 'irregular';
+    }
+
+    // Multiple held breaths = controlled (possibly tense)
+    if (types.filter((t) => t === 'held').length >= 2) {
+      return 'controlled';
+    }
+
+    // Multiple sighs or release = shallow
+    if (types.filter((t) => t === 'sigh' || t === 'release').length >= 2) {
+      return 'shallow';
+    }
+
+    return 'calm';
+  }
+
+  private interpretEmotionalState(
+    dominant: BreathType,
+    quality: BreathPatternResult['breathingQuality'],
+    events: BreathEvent[]
+  ): string {
+    const interpretations: Record<BreathType, string> = {
+      sigh: 'Possible fatigue, resignation, or emotional release',
+      held: 'Tension, bracing for something difficult, or trying to maintain control',
+      deep: 'Centering, gathering courage, or preparing for something important',
+      shaky: 'Strong emotion being held back, possibly anxiety or tears',
+      release: 'Letting go, relief, or moving past something',
+      gasp: 'Surprise, shock, or sudden emotional impact',
+      normal: 'Breathing appears relaxed and natural',
+    };
+
+    let state = interpretations[dominant];
+
+    if (quality === 'labored') {
+      state += '. Breathing seems effortful - may be under stress.';
+    } else if (quality === 'irregular') {
+      state += '. Breathing pattern is variable - emotional state may be shifting.';
+    }
+
+    return state;
+  }
+
+  private determineNeedsSpace(events: BreathEvent[], dominant: BreathType): boolean {
+    // These breath patterns suggest giving more space
+    const spacePrecedingTypes: BreathType[] = ['sigh', 'held', 'shaky', 'deep'];
+
+    if (spacePrecedingTypes.includes(dominant)) {
+      return true;
+    }
+
+    // Multiple significant breath events = give space
+    if (events.filter((e) => e.type !== 'normal').length >= 2) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private generateGuidance(
+    dominant: BreathType,
+    emotionalState: string,
+    needsSpace: boolean
+  ): string {
+    if (!needsSpace && dominant === 'normal') {
+      return 'Breathing is natural - conversation can flow normally.';
+    }
+
+    const guidance: Record<BreathType, string> = {
+      sigh: "User sighed - acknowledge what they said, don't rush past it.",
+      held: 'User held their breath - they may be preparing to share something difficult. Give them space.',
+      deep: "User took a deep breath - they're centering themselves. Be patient and present.",
+      shaky:
+        'Breathing seems unsteady - user may be holding back emotion. Be gentle and validating.',
+      release: 'User exhaled with relief - acknowledge the release and what led to it.',
+      gasp: 'User gasped - check in on what surprised or impacted them.',
+      normal: 'Continue conversing naturally.',
+    };
+
+    return guidance[dominant];
+  }
+}
+
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
+const instances = new Map<string, BreathDetector>();
+
+export function getBreathDetector(sessionId: string): BreathDetector {
+  if (!instances.has(sessionId)) {
+    instances.set(sessionId, new BreathDetector());
+  }
+  return instances.get(sessionId)!;
+}
+
+export function resetBreathDetector(sessionId: string): void {
+  const instance = instances.get(sessionId);
+  if (instance) {
+    instance.reset();
+    instances.delete(sessionId);
+  }
+}
+
+export function resetAllBreathDetectors(): void {
+  instances.clear();
+}
+
+export default BreathDetector;

@@ -22,12 +22,12 @@
 // ============================================================================
 
 export {
-  cleanupSpeechSession,
   cleanupAllSpeechSessions,
+  cleanupSpeechSession,
   emergencySpeechCleanup,
-  registerSpeechSession,
   getActiveSpeechSessionCount,
   getActiveSpeechSessions,
+  registerSpeechSession,
 } from './session-cleanup.js';
 
 // ============================================================================
@@ -35,19 +35,19 @@ export {
 // ============================================================================
 
 export {
-  buildSpeechContext,
-  detectEnergyLevel,
-  determineTopicWeight,
-  WPMTracker,
-  getWPMTracker,
-  getSessionWPMTracker,
-  removeSessionWPMTracker,
   // Persona speech characteristic defaults
   DEFAULT_SPEECH_CHARACTERISTICS,
+  WPMTracker,
+  buildSpeechContext,
   deriveSpeechCharacteristicsFromEnergy,
+  detectEnergyLevel,
+  determineTopicWeight,
+  getSessionWPMTracker,
+  getWPMTracker,
+  removeSessionWPMTracker,
   type EnergyLevel,
-  type TopicWeight,
   type SpeechContext,
+  type TopicWeight,
 } from './speech-context.js';
 
 // ============================================================================
@@ -55,48 +55,48 @@ export {
 // ============================================================================
 
 export {
-  tagTextWithSsmlAdaptive,
-  tagGreeting,
-  tagSupportResponse,
-  tagAdvice,
-  tagStory,
-  tagWrapUp,
   // Phase-specific personality tagging
   applyPhasePersonality,
-  tagGreetingWithPersonality,
-  tagSupportWithPersonality,
+  clearCognitiveSpeechState,
+  getCognitiveSpeechStats,
+  tagAdvice,
   tagAdviceWithPersonality,
-  tagWrapUpWithPersonality,
+  tagGreeting,
+  tagGreetingWithPersonality,
+  tagStory,
+  tagSupportResponse,
+  tagSupportWithPersonality,
   // Cognitive-aware SSML
   tagTextWithCognitiveSsml,
-  getCognitiveSpeechStats,
-  clearCognitiveSpeechState,
+  tagTextWithSsmlAdaptive,
+  tagWrapUp,
+  tagWrapUpWithPersonality,
   type CognitiveSsmlOptions,
 } from './adaptive-ssml.js';
 
 // Re-export SSML functions
-export { tagTextWithSsml, sanitizeSsml } from './ssml-tagger/index.js';
 export { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+export { sanitizeSsml, tagTextWithSsml } from './ssml-tagger/index.js';
 
 // ============================================================================
 // RESPONSE NATURALNESS
 // ============================================================================
 
 export {
+  ACKNOWLEDGMENT_PREFIXES,
+  CatchphraseTracker,
+  PERSONA_CATCHPHRASES,
+  THINKING_FILLERS,
+  determineAcknowledgmentMood,
   getAcknowledgmentPrefix,
-  getThinkingFiller,
   getCatchphraseWithSsml,
   getResponseEnhancements,
+  getThinkingFiller,
   resetCatchphraseTracking,
-  determineAcknowledgmentMood,
   shouldAddPrefix,
   shouldInjectCatchphrase,
-  CatchphraseTracker,
-  ACKNOWLEDGMENT_PREFIXES,
-  THINKING_FILLERS,
-  PERSONA_CATCHPHRASES,
-  type ResponseEnhancementOptions,
   type ResponseEnhancement,
+  type ResponseEnhancementOptions,
 } from './response-naturalness.js';
 
 // ============================================================================
@@ -105,17 +105,17 @@ export {
 
 export {
   AudioProsodyAnalyzer,
+  clearProsodyMetrics,
   getAudioProsodyAnalyzer,
-  getSessionAudioProsodyAnalyzer,
-  removeSessionAudioProsodyAnalyzer,
   // Prosody metrics
   getProsodyMetrics,
+  getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
-  clearProsodyMetrics,
+  removeSessionAudioProsodyAnalyzer,
   type ProsodyFeatures,
-  type VoiceEmotionResult,
-  type VoiceEmotion,
   type ProsodyMetrics,
+  type VoiceEmotion,
+  type VoiceEmotionResult,
 } from './audio-prosody.js';
 
 // ============================================================================
@@ -123,14 +123,14 @@ export {
 // ============================================================================
 
 export {
-  getEmotionModulation,
-  wrapWithEmotionProsody,
-  getEmotionGuidance,
+  EMOTION_RESPONSES,
   adjustTTSSpeed,
-  registerEmotionResponse,
+  getEmotionGuidance,
+  getEmotionModulation,
   getRegisteredEmotions,
   isEmotionRegistered,
-  EMOTION_RESPONSES,
+  registerEmotionResponse,
+  wrapWithEmotionProsody,
   type VoiceEmotionModulation,
 } from './emotion-matching.js';
 
@@ -152,15 +152,15 @@ export {
 // ============================================================================
 
 export {
-  LiveBackchannelingService,
   BreathPauseDetector,
-  getLiveBackchannelingService,
+  LiveBackchannelingService,
   getBreathPauseDetector,
+  getLiveBackchannelingService,
   resetLiveBackchanneling,
+  type AudioFrameData,
   type LiveBackchannelContext,
   type LiveBackchannelResult,
   type SimpleEmotion,
-  type AudioFrameData,
 } from './live-backchanneling.js';
 
 // ============================================================================
@@ -168,11 +168,11 @@ export {
 // ============================================================================
 
 export {
-  calculateCognitiveSpeechAdjustments,
   applyCognitiveAdjustments,
-  getPauseDuration,
   buildPauseSSML,
+  calculateCognitiveSpeechAdjustments,
   getCognitiveThinkingSound,
+  getPauseDuration,
   type CognitiveSpeechContext,
   type SpeechAdjustments,
 } from './cognitive-speech.js';
@@ -192,10 +192,10 @@ export {
 export {
   analyzeQuestionComplexity,
   calculateThinkingPause,
-  generateThinkingSSML,
-  wrapWithThinkingPause,
   createThinkingContext,
+  generateThinkingSSML,
   personaThinkingPhrases,
+  wrapWithThinkingPause,
   type ThinkingContext,
   type ThinkingPause,
 } from './authentic-thinking.js';
@@ -208,9 +208,9 @@ export {
   TtsContextService,
   getTtsContextService,
   resetTtsContextService,
+  type ProsodyGuidance,
   type TtsContextState,
   type TurnProsodyRecord,
-  type ProsodyGuidance,
 } from './tts-context.js';
 
 // ============================================================================
@@ -219,13 +219,13 @@ export {
 
 export {
   PronunciationMemoryService,
-  getPronunciationMemory,
-  resetPronunciationMemory,
-  resetAllPronunciationMemory,
   analyzePronunciationNeeds,
-  type PronunciationSource,
+  getPronunciationMemory,
+  resetAllPronunciationMemory,
+  resetPronunciationMemory,
   type PronunciationEntry,
   type PronunciationMemoryState,
+  type PronunciationSource,
 } from './pronunciation-memory.js';
 
 // ============================================================================
@@ -233,13 +233,13 @@ export {
 // ============================================================================
 
 export {
+  DynamicTTS,
+  PersonaAwareTTS,
+  VOICES,
+  createDynamicTTS,
+  createPersonaAwareTTS,
   getVoiceManager,
   resetVoiceManager,
-  DynamicTTS,
-  createDynamicTTS,
-  PersonaAwareTTS,
-  createPersonaAwareTTS,
-  VOICES,
   type VoiceAgentId,
   type VoiceConfig,
 } from './voice-manager.js';
@@ -249,13 +249,13 @@ export {
 // ============================================================================
 
 export {
-  mapPitchContourToIntonation,
-  getIntonationFromVoiceEmotion,
   createTurnPredictionContext,
+  getIntonationFromVoiceEmotion,
+  mapPitchContourToIntonation,
   predictTurnWithVoice,
   voiceSuggestsTurnComplete,
-  type Intonation,
   type EnhancedTurnPrediction,
+  type Intonation,
 } from './prosody-turn-bridge.js';
 
 // ============================================================================
@@ -263,17 +263,17 @@ export {
 // ============================================================================
 
 export {
-  getMusicReaction,
-  shouldReactToMusic,
-  getPlayfulMusicIntro,
-  getGenreReaction,
-  getMoodMusicReaction,
-  getPlayfulMusicComment,
+  getAirDJMoment,
+  getDancingComment,
+  getExcitedMusicReaction,
   // Fun DJ moments
   getFunDJMoment,
-  getAirDJMoment,
-  getExcitedMusicReaction,
-  getDancingComment,
+  getGenreReaction,
+  getMoodMusicReaction,
+  getMusicReaction,
+  getPlayfulMusicComment,
+  getPlayfulMusicIntro,
+  shouldReactToMusic,
 } from './music-reactions.js';
 
 // ============================================================================
@@ -281,20 +281,133 @@ export {
 // ============================================================================
 
 export {
-  // Context ID management
-  setSessionContextId,
-  getSessionContextId,
+  clearAllContexts,
   clearSessionContextId,
-  getOrCreateContextId,
   generateContextId,
-  // Cartesia TTS options helper
-  getCartesiaContextOptions,
+  getActiveContextCount,
   // Monitoring
   getAllSessionContexts,
-  getActiveContextCount,
-  clearAllContexts,
+  // Cartesia TTS options helper
+  getCartesiaContextOptions,
+  getOrCreateContextId,
+  getSessionContextId,
+  isCartesiaPatched,
   // Legacy (deprecated)
   patchCartesiaForPersistentContext,
-  isCartesiaPatched,
+  // Context ID management
+  setSessionContextId,
   type CartesiaContextOptions,
 } from './cartesia-context-patch.js';
+
+// ============================================================================
+// HUMAN LISTENING PIPELINE - "Better than Human" listening capabilities
+// ============================================================================
+
+export {
+  HumanListeningPipeline,
+  getHumanListeningPipeline,
+  resetAllHumanListeningPipelines,
+  resetHumanListeningPipeline,
+  type AudioAnalysis,
+  type ConversationAnalysis,
+  type EmotionalUndercurrent,
+  type HumanListeningContext,
+  type HumanListeningResult,
+  type TextAnalysis,
+} from './human-listening-pipeline.js';
+
+// ============================================================================
+// BREATH DETECTION
+// ============================================================================
+
+export {
+  BreathDetector,
+  getBreathDetector,
+  resetAllBreathDetectors,
+  resetBreathDetector,
+  type BreathCharacteristics,
+  type BreathEvent,
+  type BreathPatternResult,
+  type BreathType,
+} from './breath-detection.js';
+
+// ============================================================================
+// VOICE TREMOR / STRAIN DETECTION
+// ============================================================================
+
+export {
+  VoiceTremorDetector,
+  getVoiceTremorDetector,
+  resetAllVoiceTremorDetectors,
+  resetVoiceTremorDetector,
+  type TremorEvent,
+  type TremorIntensity,
+  type TremorType,
+  type VoiceStabilityProfile,
+  type VoiceTremorResult,
+} from './voice-tremor.js';
+
+// ============================================================================
+// VOLUME DYNAMICS
+// ============================================================================
+
+export {
+  VolumeDynamicsTracker,
+  getVolumeDynamicsTracker,
+  resetAllVolumeDynamicsTrackers,
+  resetVolumeDynamicsTracker,
+  type VolumeDynamicsState,
+  type VolumeLevel,
+  type VolumeObservation,
+  type VolumePattern,
+  type VolumeTrend,
+} from './volume-dynamics.js';
+
+// ============================================================================
+// ENERGY DYNAMICS (Voice Fade Detection)
+// ============================================================================
+
+export {
+  EnergyDynamicsTracker,
+  getEnergyDynamicsTracker,
+  resetAllEnergyDynamicsTrackers,
+  resetEnergyDynamicsTracker,
+  type EnergyDynamicsResult,
+  type EnergyFadeEvent,
+  type EnergyFadeReason,
+  type EnergySegment,
+  type EnergyTrajectory,
+} from './energy-dynamics.js';
+
+// ============================================================================
+// FLUENCY ANALYSIS
+// ============================================================================
+
+export {
+  FluencyAnalyzer,
+  getFluencyAnalyzer,
+  resetAllFluencyAnalyzers,
+  resetFluencyAnalyzer,
+  type Disfluency,
+  type DisfluencyCounts,
+  type DisfluencyType,
+  type FluencyAnalysisResult,
+  type FluencyPattern,
+} from './fluency-analysis.js';
+
+// ============================================================================
+// FILLER ANALYSIS (Um, Uh, Like patterns)
+// ============================================================================
+
+export {
+  FillerAnalyzer,
+  getFillerAnalyzer,
+  resetAllFillerAnalyzers,
+  resetFillerAnalyzer,
+  type FillerAnalysisResult,
+  type FillerInstance,
+  type FillerMeaning,
+  type FillerPattern,
+  type FillerPosition,
+  type FillerType,
+} from './filler-analysis.js';

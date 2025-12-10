@@ -11,6 +11,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = createLogger({ module: 'DashboardMetricsAPI' });
 
@@ -60,38 +62,36 @@ const metricsCache: MetricsCache = {
   lastUpdate: null,
 };
 
-// Demo data for when no agent is connected
-function getDemoMetrics(): MetricsSummary {
+// Empty data for when no agent is connected
+// NOTE: No longer returning fake demo data - dashboard should show zeros/empty
+function getEmptyMetrics(): MetricsSummary {
   return {
-    uptime: formatUptime(Date.now() - 86400000), // 1 day
-    activeSessions: 34,
-    totalSessions: 1247,
-    firestoreReads: 15234,
-    firestoreWrites: 4521,
-    errorRate: 0.02,
-    avgLatency: 145,
+    uptime: '00:00:00',
+    activeSessions: 0,
+    totalSessions: 0,
+    firestoreReads: 0,
+    firestoreWrites: 0,
+    errorRate: 0,
+    avgLatency: 0,
   };
 }
 
-function getDemoSessions(): SessionData[] {
-  return [
-    { id: 'demo-1', persona: 'ferni', startTime: new Date().toISOString(), duration: 300, messageCount: 12 },
-    { id: 'demo-2', persona: 'maya', startTime: new Date().toISOString(), duration: 180, messageCount: 8 },
-  ];
+function getEmptySessions(): SessionData[] {
+  return [];
 }
 
-function getDemoCognitive(): CognitiveState {
+function getEmptyCognitive(): CognitiveState {
   return {
-    currentMode: 'narrative',
-    modeDescription: 'Thinking in stories and meaning',
-    userStyle: 'analytical',
-    userStyleConfidence: 0.72,
-    voiceEmotion: 'neutral',
-    voiceEmotionConfidence: 0.85,
-    responseConfidence: 0.91,
-    activeQuirks: ['thoughtful_pause', 'gentle_callback'],
-    latencyBudget: 45,
-    adaptationLevel: 'Adapting to user',
+    currentMode: 'unknown',
+    modeDescription: 'No active session',
+    userStyle: 'unknown',
+    userStyleConfidence: 0,
+    voiceEmotion: 'unknown',
+    voiceEmotionConfidence: 0,
+    responseConfidence: 0,
+    activeQuirks: [],
+    latencyBudget: 0,
+    adaptationLevel: 'Not connected',
   };
 }
 
@@ -132,13 +132,7 @@ export async function handleDashboardMetricsRoutes(
   pathname: string
 ): Promise<boolean> {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    });
-    res.end();
+  if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
   }
 
@@ -147,15 +141,26 @@ export async function handleDashboardMetricsRoutes(
     return false;
   }
 
+  // Apply rate limiting
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Require authentication
+  const auth = requireAuth(req, res, { allowDevMode: true });
+  if (!auth) {
+    return true; // 401 already sent
+  }
+
   try {
     // /api/metrics/summary - Concise metrics summary
     if (pathname === '/api/metrics/summary') {
-      const summary = metricsCache.summary || getDemoMetrics();
-      const isDemo = !metricsCache.summary;
-      
+      const summary = metricsCache.summary || getEmptyMetrics();
+      const hasRealData = !!metricsCache.summary;
+
       sendJSON(res, {
         success: true,
-        demo: isDemo,
+        hasRealData,
         data: summary,
         lastUpdate: metricsCache.lastUpdate?.toISOString() || null,
       });
@@ -164,14 +169,13 @@ export async function handleDashboardMetricsRoutes(
 
     // /api/metrics/sessions - Active sessions
     if (pathname === '/api/metrics/sessions') {
-      const sessions = metricsCache.sessions.length > 0 
-        ? metricsCache.sessions 
-        : getDemoSessions();
-      const isDemo = metricsCache.sessions.length === 0;
-      
+      const sessions =
+        metricsCache.sessions.length > 0 ? metricsCache.sessions : getEmptySessions();
+      const hasRealData = metricsCache.sessions.length > 0;
+
       sendJSON(res, {
         success: true,
-        demo: isDemo,
+        hasRealData,
         data: sessions,
         count: sessions.length,
       });
@@ -180,15 +184,14 @@ export async function handleDashboardMetricsRoutes(
 
     // /api/metrics - Full metrics snapshot
     if (pathname === '/api/metrics') {
-      const summary = metricsCache.summary || getDemoMetrics();
-      const sessions = metricsCache.sessions.length > 0 
-        ? metricsCache.sessions 
-        : getDemoSessions();
-      const isDemo = !metricsCache.summary;
-      
+      const summary = metricsCache.summary || getEmptyMetrics();
+      const sessions =
+        metricsCache.sessions.length > 0 ? metricsCache.sessions : getEmptySessions();
+      const hasRealData = !!metricsCache.summary;
+
       sendJSON(res, {
         success: true,
-        demo: isDemo,
+        hasRealData,
         data: {
           summary,
           sessions,
@@ -201,12 +204,12 @@ export async function handleDashboardMetricsRoutes(
 
     // /api/cognitive/state or /api/cognitive - Current cognitive state
     if (pathname === '/api/cognitive' || pathname === '/api/cognitive/state') {
-      const cognitive = metricsCache.cognitive || getDemoCognitive();
-      const isDemo = !metricsCache.cognitive;
-      
+      const cognitive = metricsCache.cognitive || getEmptyCognitive();
+      const hasRealData = !!metricsCache.cognitive;
+
       sendJSON(res, {
         success: true,
-        demo: isDemo,
+        hasRealData,
         data: cognitive,
         timestamp: new Date().toISOString(),
       });
@@ -215,16 +218,13 @@ export async function handleDashboardMetricsRoutes(
 
     // /api/cognitive/history - Recent cognitive events
     if (pathname === '/api/cognitive/history') {
-      // In demo mode, return simulated history
-      const history = [
-        { type: 'mode_change', mode: 'narrative', timestamp: new Date().toISOString() },
-        { type: 'style_detected', style: 'analytical', confidence: 0.72, timestamp: new Date().toISOString() },
-        { type: 'quirk_activated', quirk: 'thoughtful_pause', timestamp: new Date().toISOString() },
-      ];
-      
+      // Return empty history when no real data
+      const hasRealData = !!metricsCache.cognitive;
+      const history: Array<{ type: string; timestamp: string; [key: string]: unknown }> = [];
+
       sendJSON(res, {
         success: true,
-        demo: !metricsCache.cognitive,
+        hasRealData,
         data: history,
         count: history.length,
       });
@@ -238,4 +238,3 @@ export async function handleDashboardMetricsRoutes(
     return true;
   }
 }
-

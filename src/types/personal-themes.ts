@@ -54,4 +54,3 @@ export function extractPersonalThemes(content: string): PersonalTheme[] {
 
   return foundThemes;
 }
-

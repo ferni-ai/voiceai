@@ -66,40 +66,38 @@ import {
   updateVoiceProfileIndex,
 } from '../services/voice-profile-store.js';
 // Security services
-import { checkRateLimit } from '../services/voice-rate-limit.js';
-import { checkLiveness } from '../services/voice-liveness.js';
 import { detectSpoofing } from '../services/voice-antispoofing.js';
 import {
-  logEnrollmentStart,
-  logEnrollmentSample,
+  checkSuspiciousActivity,
   logEnrollmentComplete,
   logEnrollmentFail,
-  logVerification,
+  logEnrollmentSample,
+  logEnrollmentStart,
   logIdentification,
   logLivenessFail,
-  logSpoofDetected,
   logProfileDelete,
-  checkSuspiciousActivity,
+  logSpoofDetected,
+  logVerification,
 } from '../services/voice-audit-log.js';
+import { checkLiveness } from '../services/voice-liveness.js';
+import { checkRateLimit } from '../services/voice-rate-limit.js';
 // Emotion correlation
 import { analyzeAuthEmotionContext } from '../services/voice-emotion-correlation.js';
 // Household management
 import {
-  getHousehold,
   addHouseholdMember,
-  removeHouseholdMember,
-  identifyHouseholdSpeaker,
-  getHouseholdMembers,
   createHousehold,
+  getHousehold,
+  identifyHouseholdSpeaker,
+  removeHouseholdMember,
 } from '../services/voice-household.js';
-// Conversation memory
+// Conversation memory (using realtime-memory for actual persistence)
+import { getRedisCache } from '../memory/redis-cache.js';
 import {
-  startConversation,
-  endConversation,
-  getUserMemory,
-  getConversationContext,
-  getRecentConversations,
-} from '../services/voice-conversation-memory.js';
+  getUserMemoryForAPI,
+  getConversationContextForAPI,
+  getConversationsWithTurnsForAPI,
+} from '../services/realtime-memory.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'VoiceAuthHandler' });
@@ -123,9 +121,167 @@ if (TEST_MODE) {
 // Default sample rate for audio analysis
 const DEFAULT_SAMPLE_RATE = 16000;
 
-// In-memory session storage (use Redis in production)
-const enrollmentSessions = new Map<string, EnrollmentSession>();
-const continuousAuthenticators = new Map<string, ContinuousAuthenticator>();
+// Session TTLs
+const ENROLLMENT_SESSION_TTL = 600; // 10 minutes
+const AUTH_SESSION_TTL = 3600; // 1 hour
+// NOTE: CONVERSATION_TTL removed - conversations now tracked in realtime-memory.ts
+
+// In-memory fallback storage (used when Redis unavailable)
+const enrollmentSessionsMemory = new Map<string, EnrollmentSession>();
+const continuousAuthenticatorsMemory = new Map<string, ContinuousAuthenticator>();
+
+// ============================================================================
+// Session Storage (Redis with in-memory fallback)
+// ============================================================================
+
+/**
+ * Get enrollment session from Redis or memory
+ */
+async function getEnrollmentSession(sessionId: string): Promise<EnrollmentSession | null> {
+  const redis = getRedisCache();
+
+  // Try Redis first
+  if (redis) {
+    try {
+      const data = await redis.get<EnrollmentSession>(`enrollment:${sessionId}`);
+      if (data) return data;
+    } catch (error) {
+      log.warn({ error, sessionId }, 'Redis enrollment session fetch failed, using memory');
+    }
+  }
+
+  // Fallback to memory
+  return enrollmentSessionsMemory.get(sessionId) ?? null;
+}
+
+/**
+ * Store enrollment session in Redis and memory
+ */
+async function setEnrollmentSession(sessionId: string, session: EnrollmentSession): Promise<void> {
+  // Always store in memory for immediate access
+  enrollmentSessionsMemory.set(sessionId, session);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.set(`enrollment:${sessionId}`, session, ENROLLMENT_SESSION_TTL);
+    } catch (error) {
+      log.warn({ error, sessionId }, 'Redis enrollment session store failed');
+    }
+  }
+}
+
+/**
+ * Delete enrollment session from Redis and memory
+ */
+async function deleteEnrollmentSession(sessionId: string): Promise<void> {
+  enrollmentSessionsMemory.delete(sessionId);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.delete(`enrollment:${sessionId}`);
+    } catch (error) {
+      log.warn({ error, sessionId }, 'Redis enrollment session delete failed');
+    }
+  }
+}
+
+/**
+ * Get continuous authenticator from Redis or memory
+ */
+async function getContinuousAuthenticator(userId: string): Promise<ContinuousAuthenticator | null> {
+  // Memory is the primary source since ContinuousAuthenticator holds runtime state
+  // that can't be fully serialized (embeddings, etc.)
+  const memoryAuth = continuousAuthenticatorsMemory.get(userId);
+  if (memoryAuth) {
+    return memoryAuth;
+  }
+
+  // Check Redis for session existence (doesn't reconstruct full authenticator)
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      const data = await redis.get<{ userId: string; startedAt: string }>(`auth:${userId}`);
+      if (data) {
+        // Session exists in Redis but not in memory - would need VoiceProfile to reconstruct
+        // Log this case and return null (caller should re-enroll)
+        log.debug({ userId }, 'Auth session exists in Redis but not in memory');
+      }
+    } catch (error) {
+      log.warn({ error, userId }, 'Redis auth session fetch failed');
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Store continuous authenticator in Redis and memory
+ */
+async function setContinuousAuthenticator(
+  userId: string,
+  authenticator: ContinuousAuthenticator
+): Promise<void> {
+  // Always store in memory for immediate access
+  continuousAuthenticatorsMemory.set(userId, authenticator);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.set(
+        `auth:${userId}`,
+        { userId, startedAt: new Date().toISOString() },
+        AUTH_SESSION_TTL
+      );
+    } catch (error) {
+      log.warn({ error, userId }, 'Redis auth session store failed');
+    }
+  }
+}
+
+/**
+ * Delete continuous authenticator from Redis and memory
+ */
+async function deleteContinuousAuthenticator(userId: string): Promise<void> {
+  continuousAuthenticatorsMemory.delete(userId);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.delete(`auth:${userId}`);
+    } catch (error) {
+      log.warn({ error, userId }, 'Redis auth session delete failed');
+    }
+  }
+}
+
+// Legacy compatibility aliases
+const enrollmentSessions = {
+  get: (id: string) => enrollmentSessionsMemory.get(id),
+  set: (id: string, session: EnrollmentSession) => {
+    void setEnrollmentSession(id, session);
+    enrollmentSessionsMemory.set(id, session);
+  },
+  delete: (id: string) => {
+    void deleteEnrollmentSession(id);
+    enrollmentSessionsMemory.delete(id);
+  },
+  has: (id: string) => enrollmentSessionsMemory.has(id),
+};
+
+const continuousAuthenticators = {
+  get: (id: string) => continuousAuthenticatorsMemory.get(id),
+  set: (id: string, auth: ContinuousAuthenticator) => {
+    void setContinuousAuthenticator(id, auth);
+    continuousAuthenticatorsMemory.set(id, auth);
+  },
+  delete: (id: string) => {
+    void deleteContinuousAuthenticator(id);
+    continuousAuthenticatorsMemory.delete(id);
+  },
+  has: (id: string) => continuousAuthenticatorsMemory.has(id),
+};
 
 // ============================================================================
 // Helper Functions
@@ -188,7 +344,11 @@ function getClientIP(req: IncomingMessage): string {
 /**
  * Get device info from request.
  */
-function getDeviceInfo(req: IncomingMessage): { userAgent?: string; platform?: string; deviceId?: string } {
+function getDeviceInfo(req: IncomingMessage): {
+  userAgent?: string;
+  platform?: string;
+  deviceId?: string;
+} {
   return {
     userAgent: req.headers['user-agent'] as string,
     platform: req.headers['x-platform'] as string,
@@ -239,7 +399,12 @@ async function runSecurityChecks(
 ): Promise<{ passed: boolean; warnings: string[]; livenessScore?: number; spoofScore?: number }> {
   // Bypass security checks in test mode (NEVER use in production)
   if (TEST_MODE) {
-    return { passed: true, warnings: ['TEST_MODE: Security checks bypassed'], livenessScore: 1.0, spoofScore: 1.0 };
+    return {
+      passed: true,
+      warnings: ['TEST_MODE: Security checks bypassed'],
+      livenessScore: 1.0,
+      spoofScore: 1.0,
+    };
   }
 
   const warnings: string[] = [];
@@ -251,11 +416,19 @@ async function runSecurityChecks(
     const livenessResult = await checkLiveness(audio, DEFAULT_SAMPLE_RATE);
     livenessScore = livenessResult.confidence;
 
-    if (!livenessResult.isLive || livenessResult.confidence < SECURITY_CONFIG.livenessMinConfidence) {
+    if (
+      !livenessResult.isLive ||
+      livenessResult.confidence < SECURITY_CONFIG.livenessMinConfidence
+    ) {
       warnings.push(...livenessResult.warnings);
 
       if (SECURITY_CONFIG.enableAuditLogging) {
-        await logLivenessFail(userId, livenessResult.confidence, livenessResult.warnings, deviceInfo);
+        await logLivenessFail(
+          userId,
+          livenessResult.confidence,
+          livenessResult.warnings,
+          deviceInfo
+        );
       }
 
       if (!livenessResult.isLive) {
@@ -269,7 +442,10 @@ async function runSecurityChecks(
     const spoofResult = detectSpoofing(audio, DEFAULT_SAMPLE_RATE);
     spoofScore = spoofResult.confidence;
 
-    if (!spoofResult.isAuthentic || spoofResult.confidence < SECURITY_CONFIG.antiSpoofMinConfidence) {
+    if (
+      !spoofResult.isAuthentic ||
+      spoofResult.confidence < SECURITY_CONFIG.antiSpoofMinConfidence
+    ) {
       warnings.push(...spoofResult.warnings);
 
       if (SECURITY_CONFIG.enableAuditLogging && spoofResult.spoofType) {
@@ -626,11 +802,7 @@ export async function handleVoiceAuthRoutes(
       const result = await verifyUser(audio, profile);
 
       // Analyze emotion correlation
-      const emotionContext = analyzeAuthEmotionContext(
-        audio,
-        profile.threshold,
-        result.confidence
-      );
+      const emotionContext = analyzeAuthEmotionContext(audio, profile.threshold, result.confidence);
 
       // Audit logging
       if (SECURITY_CONFIG.enableAuditLogging) {
@@ -662,11 +834,14 @@ export async function handleVoiceAuthRoutes(
           confidence: emotionContext.emotion.confidence,
           impact: emotionContext.shouldRetry ? 'may_affect_verification' : 'normal',
         },
-        suggestion: shouldSuggestRetry ? {
-          action: 'retry',
-          message: emotionContext.userMessage || 'Your voice sounds a bit different. Try again?',
-          adjustedThreshold: emotionContext.adjustedThreshold,
-        } : undefined,
+        suggestion: shouldSuggestRetry
+          ? {
+              action: 'retry',
+              message:
+                emotionContext.userMessage || 'Your voice sounds a bit different. Try again?',
+              adjustedThreshold: emotionContext.adjustedThreshold,
+            }
+          : undefined,
       });
       return true;
     }
@@ -826,7 +1001,7 @@ export async function handleVoiceAuthRoutes(
       }
 
       const status = await authenticator.processAudioChunk(audio);
-      
+
       // Include security scores in response
       sendJson(res, 200, {
         ...status,
@@ -938,7 +1113,7 @@ export async function handleVoiceAuthRoutes(
     if (route === '/household' && req.method === 'POST') {
       const userId = getUserId(req);
       const deviceId = req.headers['x-device-id'] as string;
-      
+
       if (!userId || !deviceId) {
         sendJson(res, 400, { error: 'User ID and Device ID required' });
         return true;
@@ -987,7 +1162,7 @@ export async function handleVoiceAuthRoutes(
     if (route.startsWith('/household/members/') && req.method === 'DELETE') {
       const deviceId = req.headers['x-device-id'] as string;
       const memberUserId = route.split('/household/members/')[1];
-      
+
       if (!deviceId || !memberUserId) {
         sendJson(res, 400, { error: 'Device ID and member user ID required' });
         return true;
@@ -1041,7 +1216,7 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
-      const memory = await getUserMemory(userId);
+      const memory = await getUserMemoryForAPI(userId);
       if (!memory) {
         sendJson(res, 200, {
           hasMemory: false,
@@ -1070,7 +1245,7 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
-      const context = await getConversationContext(userId);
+      const context = await getConversationContextForAPI(userId);
 
       sendJson(res, 200, {
         recentTopics: context.recentTopics,
@@ -1091,17 +1266,17 @@ export async function handleVoiceAuthRoutes(
 
       const url = new URL(req.url || '', 'http://localhost');
       const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-      
-      const conversations = await getRecentConversations(userId, limit);
+
+      const conversations = await getConversationsWithTurnsForAPI(userId, limit);
 
       sendJson(res, 200, {
-        conversations: conversations.map(c => ({
+        conversations: conversations.map((c) => ({
           id: c.id,
           startedAt: c.startedAt,
           endedAt: c.endedAt,
           summary: c.summary,
           topics: c.topics,
-          turnCount: c.turns.length,
+          turnCount: c.turnCount,
           voiceVerified: c.voiceVerified,
         })),
       });
@@ -1109,6 +1284,8 @@ export async function handleVoiceAuthRoutes(
     }
 
     // POST /api/voice/memory/conversations - Start recording a conversation
+    // NOTE: Conversations are now automatically tracked via the voice session.
+    // This endpoint is deprecated but returns a stub response for compatibility.
     if (route === '/memory/conversations' && req.method === 'POST') {
       const userId = getUserId(req);
       if (!userId) {
@@ -1116,42 +1293,22 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
-      const body = await parseBody(req);
-      const conversation = startConversation(
-        userId,
-        body.sessionId || `session_${Date.now()}`,
-        body.voiceVerified || false,
-        body.verificationConfidence
-      );
-
-      // Store in memory for later updates
-      activeConversations.set(conversation.id, conversation);
-
-      sendJson(res, 201, {
+      // Return a stub response - actual conversation tracking happens in session-manager
+      sendJson(res, 200, {
         success: true,
-        conversationId: conversation.id,
-        sessionId: conversation.sessionId,
+        message: 'Conversations are now automatically tracked during voice sessions',
+        conversationId: `auto_${Date.now()}`,
       });
       return true;
     }
 
     // PUT /api/voice/memory/conversations/:id/end - End a conversation
+    // NOTE: Conversations are now automatically ended when voice sessions disconnect.
+    // This endpoint is deprecated but returns success for compatibility.
     if (route.match(/^\/memory\/conversations\/[^/]+\/end$/) && req.method === 'PUT') {
-      const conversationId = route.split('/')[3];
-      const conversation = activeConversations.get(conversationId);
-
-      if (!conversation) {
-        sendJson(res, 404, { error: 'Conversation not found' });
-        return true;
-      }
-
-      await endConversation(conversation);
-      activeConversations.delete(conversationId);
-
       sendJson(res, 200, {
         success: true,
-        summary: conversation.summary,
-        topics: conversation.topics,
+        message: 'Conversations are now automatically saved when sessions end',
       });
       return true;
     }
@@ -1165,5 +1322,5 @@ export async function handleVoiceAuthRoutes(
   }
 }
 
-// Active conversations storage (in-memory, use Redis in production)
-const activeConversations = new Map<string, ReturnType<typeof startConversation>>();
+// NOTE: Active conversation tracking is now handled by session-manager.ts → realtime-memory.ts
+// The legacy activeConversations storage has been removed.

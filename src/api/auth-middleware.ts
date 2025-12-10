@@ -244,8 +244,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       };
     }
     // Invalid API key - track failure with error logging
-    void trackFailedAuth(`apikey:${apiKey.substring(0, 8)}`, ip, 'invalid_api_key')
-      .catch((e) => log.error({ error: String(e) }, 'Failed to track auth failure'));
+    void trackFailedAuth(`apikey:${apiKey.substring(0, 8)}`, ip, 'invalid_api_key').catch((e) =>
+      log.error({ error: String(e) }, 'Failed to track auth failure')
+    );
     void recordSecurityEvent({
       type: 'api_key_invalid',
       ip,
@@ -274,8 +275,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     const payload = decodeJWTPayload(token);
     const failureType =
       payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
-    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType)
-      .catch((e) => log.error({ error: String(e) }, 'Failed to track auth failure'));
+    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType).catch((e) =>
+      log.error({ error: String(e) }, 'Failed to track auth failure')
+    );
     void recordSecurityEvent({
       type: failureType,
       actorId: payload?.sub,

@@ -35,6 +35,21 @@ const log = createLogger({ module: 'TeamAvailability' });
 // ============================================================================
 
 /**
+ * Check if an agent ID is a core team member (not a marketplace agent).
+ */
+export function isCoreTeamMember(agentId: string): boolean {
+  const normalizedId = agentId.toLowerCase().replace(/_/g, '-');
+  return TEAM_MEMBERS.some((m) => {
+    const normalizedMemberId = m.memberId.toLowerCase().replace(/_/g, '-');
+    return (
+      normalizedMemberId === normalizedId ||
+      normalizedMemberId.includes(normalizedId) ||
+      normalizedId.includes(normalizedMemberId)
+    );
+  });
+}
+
+/**
  * Format team member name for display
  */
 function formatMemberName(memberId: TeamMemberId): string {

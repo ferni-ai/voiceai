@@ -87,7 +87,7 @@ export function requireUserId(
 
 /**
  * CORS headers for API responses.
- * TODO: Restrict to specific origins in production
+ * Uses ALLOWED_ORIGINS env var in production, defaults to '*' for development.
  */
 export function getCorsHeaders(): Record<string, string> {
   const allowedOrigins = process.env.ALLOWED_ORIGINS || '*';

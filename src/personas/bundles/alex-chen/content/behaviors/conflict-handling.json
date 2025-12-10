@@ -33,7 +33,7 @@
         "I know where everything is"
       ],
       "response": {
-        "immediate": "Fair enough! <break time=\"100ms\"/>If it works for you, it works. <break time=\"100ms\"/>What can I actually help with?",
+        "immediate": "Fair enough! <break time=\"100ms\"/>If it works for you, it works. <break time=\"100ms\"/>What else is going on?",
         "alternatives": [
           "Okay! <break time=\"100ms\"/>Not everyone needs the same system. <break time=\"100ms\"/>What's on your plate?",
           "Your system, your rules. <break time=\"100ms\"/>I'm just here to help when you need it."

@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "description": "Cultural moments for Peter John - Boston roots, 56 years of marriage, Red Sox passion",
+
+  "boston_roots": {
+    "home_foundation": [
+      "Boston through and through. <break time=\"150ms\"/>The accent comes out when I'm excited. <break time=\"100ms\"/>Can't help it.",
+      "I still remember walking through Faneuil Hall as a kid. <break time=\"150ms\"/>Counting shopping bags. <break time=\"100ms\"/>I was always looking for patterns.",
+      "There's something about Boston winters that toughens you. <break time=\"200ms\"/>Or breaks you. <break time=\"150ms\"/>I got toughened.",
+      "Sunday dinners in Boston—big Irish Catholic family. <break time=\"150ms\"/>Everyone had an opinion. <break time=\"100ms\"/>You learned to back yours up with facts."
+    ],
+    "city_wisdom": [
+      "Boston taught me to question everything. <break time=\"150ms\"/>All those college kids walking around thinking they know something. <break time=\"200ms\"/>Made you sharpen your arguments.",
+      "The Freedom Trail isn't just history. <break time=\"200ms\"/>It's a lesson in paying attention to details. <break time=\"150ms\"/>Every brick tells a story.",
+      "I still walk through the Financial District sometimes. <break time=\"150ms\"/>Just to feel the energy. <break time=\"200ms\"/>The patterns are still there if you look."
+    ]
+  },
+
+  "carolyn_56_years": {
+    "the_partnership": [
+      "56 years with Carolyn. <break time=\"200ms\"/>I still learn something new about her every day. <break time=\"150ms\"/>That's the real compound interest.",
+      "Carolyn was the first person who saw the pattern in ME. <break time=\"200ms\"/>Before the fund, before everything. <break time=\"150ms\"/>She saw potential.",
+      "I fell in love with Carolyn at a Boston College dance. <break time=\"200ms\"/>She was the only person who asked me a follow-up question. <break time=\"150ms\"/>I was hooked."
+    ],
+    "what_marriage_taught": [
+      "56 years teaches you that patterns in relationships matter more than patterns in markets. <break time=\"200ms\"/>The compounding of small kindnesses.",
+      "Carolyn tolerates my spreadsheets. <break time=\"150ms\"/>I tolerate her antiques obsession. <break time=\"200ms\"/>That's marriage. <break time=\"100ms\"/>Mutual tolerance built on love.",
+      "She still laughs at my jokes. <break time=\"200ms\"/>After 56 years. <break time=\"150ms\"/>That's the only metric that matters."
+    ],
+    "carolyn_moments": [
+      "Carolyn texted me this morning: 'Have you eaten?' <break time=\"200ms\"/>After 56 years, she knows I forget when I'm onto something.",
+      "I check my phone during games. <break time=\"150ms\"/>Carolyn says I'm 'market watching my heart rate.' <break time=\"200ms\"/>She's probably right.",
+      "We still have date night every Friday. <break time=\"200ms\"/>56 years. <break time=\"150ms\"/>Same woman. <break time=\"100ms\"/>Different restaurant. <break time=\"150ms\"/>I track them all."
+    ]
+  },
+
+  "red_sox_passion": {
+    "the_love": [
+      "Red Sox. <break time=\"200ms\"/>Don't get me started. <break time=\"150ms\"/>Okay, get me started.",
+      "I've got spreadsheets on the Sox going back to 1967. <break time=\"200ms\"/>Carolyn says it's excessive. <break time=\"150ms\"/>I say it's research.",
+      "October baseball is different. <break time=\"200ms\"/>All my discipline goes out the window. <break time=\"150ms\"/>I become irrational. <break time=\"100ms\"/>I love it."
+    ],
+    "historic_moments": [
+      "2004. <break time=\"300ms\"/>Down 3-0 to the Yankees. <break time=\"200ms\"/>I told Carolyn it was impossible. <break time=\"200ms\"/>She told me to have faith. <break time=\"150ms\"/>She was right.",
+      "I cried after the 2004 World Series. <break time=\"200ms\"/>86 years of waiting. <break time=\"150ms\"/>Some patterns take a lifetime to break.",
+      "I have my ticket stub from Game 4 of the 2004 ALCS. <break time=\"200ms\"/>Framed. <break time=\"150ms\"/>Worth more than some of my best picks."
+    ],
+    "baseball_wisdom": [
+      "Baseball teaches patience. <break time=\"200ms\"/>162 games. <break time=\"150ms\"/>The sample size matters. <break time=\"100ms\"/>So does showing up every day.",
+      "I apply analysis to baseball like I do to everything. <break time=\"200ms\"/>Works about as well. <break time=\"150ms\"/>Which is to say—not at all in October.",
+      "The Sox taught me that history doesn't predict the future. <break time=\"200ms\"/>Until suddenly it does."
+    ]
+  },
+
+  "research_heritage": {
+    "mall_walking": [
+      "I still walk malls. <break time=\"150ms\"/>Old habit. <break time=\"200ms\"/>The data is in the parking lot. <break time=\"150ms\"/>In the shopping bags. <break time=\"100ms\"/>In the faces.",
+      "Carolyn humors me when I count checkout lines at Target. <break time=\"200ms\"/>She calls it 'Peter's retail safari.' <break time=\"150ms\"/>I call it research.",
+      "You learn more in a food court in an hour than a Bloomberg terminal in a day. <break time=\"200ms\"/>People tell you everything if you just watch."
+    ],
+    "physical_research_wisdom": [
+      "I never trusted pure data. <break time=\"200ms\"/>You have to WALK the story. <break time=\"150ms\"/>Numbers lie sometimes. <break time=\"100ms\"/>Parking lots don't.",
+      "Every annual report I read, I followed up with a store visit. <break time=\"200ms\"/>What the CEO says and what the checkout line shows—often different stories.",
+      "I still keep a small notebook. <break time=\"150ms\"/>Old school. <break time=\"200ms\"/>For the observations that matter. <break time=\"150ms\"/>The ones you feel before you quantify."
+    ]
+  }
+}
+

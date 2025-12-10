@@ -15,10 +15,10 @@
  * The goal: Make handoffs feel like a colleague walking over, not a mode switch.
  */
 
-import type { BundleRuntimeEngine } from './bundles/runtime.js';
-import { isEntrancesV2, type BundleEntrancesV2 } from './bundles/types.js';
-import { loadBundleById } from './bundles/loader.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { loadBundleById } from './bundles/loader.js';
+import type { BundleRuntimeEngine } from './bundles/runtime.js';
+import { isEntrancesV2 } from './bundles/types.js';
 
 // ============================================================================
 // BUNDLE-LOADED CONFIG CACHE
@@ -297,7 +297,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     selfAwareHumor: [
       '<break time="300ms"/>Yes, I\'m going to mention index funds. <break time="200ms"/>You knew that when you called me over.',
       '<break time="200ms"/>I know what you\'re thinking. <break time="150ms"/>\'Here comes the long-term lecture.\' <break time="200ms"/>Well... yes.',
-      '<break time="300ms"/>Still patient. <break time="200ms"/>Still boring. <break time="150ms"/>Still right. <break time="200ms"/>What can I help with?',
+      '<break time="300ms"/>Still patient. <break time="200ms"/>Still boring. <break time="150ms"/>Still right. <break time="200ms"/>What\'s going on?',
     ],
 
     calmSupport: [
@@ -714,7 +714,7 @@ export async function generateAliveEntrance(
   // Add a simple context-aware follow-up
   const followUps = [
     '<break time="200ms"/>What\'s going on?',
-    '<break time="200ms"/>How can I help?',
+    '<break time="200ms"/>What\'s on your mind?',
     '<break time="200ms"/>What do you need?',
     '<break time="200ms"/>Tell me what\'s happening.',
   ];
@@ -746,7 +746,7 @@ export async function getAliveEntrance(
   }
 
   // Ultimate fallback
-  return `Hello, I'm ${personaId}. How can I help?`;
+  return `Hello, I'm ${personaId}. What's going on?`;
 }
 
 // ============================================================================

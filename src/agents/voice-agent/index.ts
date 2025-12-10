@@ -7,6 +7,9 @@
 // Types
 export type * from './types.js';
 
+// Cleanup handler
+export { handleSessionCleanup, type CleanupContext } from './cleanup-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 

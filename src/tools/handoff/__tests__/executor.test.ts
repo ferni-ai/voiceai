@@ -130,6 +130,20 @@ vi.mock('../../../config/handoff-timing.js', () => ({
 vi.mock('../../../intelligence/context-builders/team-availability.js', () => ({
   isTeamMemberUnlocked: () => true,
   getLockedMemberTeaser: () => null,
+  isCoreTeamMember: () => true, // Assume all test agents are core team members
+}));
+
+// Mock team unlocks for marketplace agent checks
+vi.mock('../../../services/team-unlocks.js', () => ({
+  isFullTeamUnlocked: () => true,
+  TEAM_MEMBERS: [
+    { memberId: 'ferni' },
+    { memberId: 'maya-santos' },
+    { memberId: 'peter-john' },
+    { memberId: 'alex-chen' },
+    { memberId: 'jordan-taylor' },
+    { memberId: 'nayan-patel' },
+  ],
 }));
 
 // Mock personas index module - provides getPersona used by types.ts

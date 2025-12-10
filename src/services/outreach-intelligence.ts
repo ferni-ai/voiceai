@@ -165,20 +165,26 @@ async function loadUserData(userId: string): Promise<void> {
 
     // Rehydrate commitments
     if (data.commitments?.length > 0) {
-      commitmentStore.set(userId, data.commitments.map(c => ({
-        ...c,
-        when: new Date(c.when),
-        checkInTime: new Date(c.checkInTime),
-      })));
+      commitmentStore.set(
+        userId,
+        data.commitments.map((c) => ({
+          ...c,
+          when: new Date(c.when),
+          checkInTime: new Date(c.checkInTime),
+        }))
+      );
     }
 
     // Rehydrate opportunities
     if (data.opportunities?.length > 0) {
-      opportunityStore.set(userId, data.opportunities.map(o => ({
-        ...o,
-        suggestedTime: new Date(o.suggestedTime),
-        expiresAt: o.expiresAt ? new Date(o.expiresAt) : undefined,
-      })));
+      opportunityStore.set(
+        userId,
+        data.opportunities.map((o) => ({
+          ...o,
+          suggestedTime: new Date(o.suggestedTime),
+          expiresAt: o.expiresAt ? new Date(o.expiresAt) : undefined,
+        }))
+      );
     }
 
     // Rehydrate preferences
@@ -196,10 +202,13 @@ async function loadUserData(userId: string): Promise<void> {
 
     // Rehydrate sent log
     if (data.sentLog?.length > 0) {
-      sentOutreachLog.set(userId, data.sentLog.map(l => ({
-        date: new Date(l.date),
-        trigger: l.trigger,
-      })));
+      sentOutreachLog.set(
+        userId,
+        data.sentLog.map((l) => ({
+          date: new Date(l.date),
+          trigger: l.trigger,
+        }))
+      );
     }
 
     getLogger().debug({ userId }, 'Loaded outreach data from persistence');
@@ -219,7 +228,7 @@ function persistUserData(userId: string): void {
     opportunities: opportunityStore.get(userId) || [],
     preferences: preferencesStore.get(userId) || DEFAULT_PREFERENCES,
     engagement: engagementStore.get(userId) || null,
-    sentLog: (sentOutreachLog.get(userId) || []).map(l => ({
+    sentLog: (sentOutreachLog.get(userId) || []).map((l) => ({
       date: l.date.toISOString(),
       trigger: l.trigger,
     })),

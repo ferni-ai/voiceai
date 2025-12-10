@@ -1422,12 +1422,12 @@ body {
   }
 }
 
-.persona-ferni .persona-avatar-large { background: linear-gradient(135deg, #5a7751, #4a6741, #3d5a35); }
-.persona-peter .persona-avatar-large { background: linear-gradient(135deg, #4a7b83, #3a6b73, #2d5359); }
-.persona-alex .persona-avatar-large { background: linear-gradient(135deg, #6a7b9a, #5a6b8a, #4a5a73); }
-.persona-maya .persona-avatar-large { background: linear-gradient(135deg, #b68a7a, #a67a6a, #8a635a); }
-.persona-jordan .persona-avatar-large { background: linear-gradient(135deg, #d4957a, #c4856a, #a86d55); }
-.persona-nayan .persona-avatar-large { background: linear-gradient(135deg, #9a8a7a, #8a7a6a, #6d5f52); }
+.persona-ferni .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 80%, white), var(--color-ferni), var(--color-ferni-secondary)); }
+.persona-peter .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 80%, white), var(--color-peter), var(--color-peter-secondary)); }
+.persona-alex .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-alex) 80%, white), var(--color-alex), var(--color-alex-secondary)); }
+.persona-maya .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 80%, white), var(--color-maya), var(--color-maya-secondary)); }
+.persona-jordan .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-jordan) 80%, white), var(--color-jordan), var(--color-jordan-secondary)); }
+.persona-nayan .persona-avatar-large { background: linear-gradient(135deg, color-mix(in srgb, var(--color-nayan) 80%, white), var(--color-nayan), var(--color-nayan-secondary)); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    41. PRINT STYLES

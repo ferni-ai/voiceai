@@ -66,7 +66,7 @@ const setLearningGoalDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'goals', 'planning'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user set clear, achievable learning goals.',
       parameters: z.object({
@@ -126,7 +126,7 @@ const trackLearningProgressDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'progress', 'tracking'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user track their learning progress.',
       parameters: z.object({
@@ -179,7 +179,7 @@ const reflectOnLearningDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'reflection', 'metacognition'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide user through reflection to consolidate learning.',
       parameters: z.object({
@@ -235,7 +235,7 @@ const planStudySessionDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'study', 'planning'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help plan an effective study session.',
       parameters: z.object({
@@ -311,7 +311,7 @@ const scheduleSpacedRepetitionDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'spaced-repetition', 'memory'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help set up spaced repetition schedule for better retention.',
       parameters: z.object({
@@ -373,7 +373,7 @@ const testKnowledgeDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'testing', 'recall'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user test their knowledge through active recall.',
       parameters: z.object({
@@ -440,7 +440,7 @@ const recommendResourceDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'resources', 'recommendations'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help find learning resources based on topic and preferences.',
       parameters: z.object({
@@ -519,7 +519,7 @@ const trackBooksReadDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'reading', 'books', 'tracking'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help track books read and capture key insights.',
       parameters: z.object({
@@ -585,7 +585,7 @@ const overcomeLearningBlockDef: ToolDefinition = {
   domain: 'learning',
   tags: ['learning', 'blocks', 'obstacles'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help overcome obstacles to learning.',
       parameters: z.object({

@@ -65,7 +65,7 @@ async function initializeSpeakerModule(): Promise<SpeakerModule | null> {
 
   try {
     // Dynamic import to avoid requiring ferni-speaker at startup
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const module = require('ferni-speaker') as SpeakerModule;
 
     // Initialize with model path

@@ -19,10 +19,99 @@
  * 5. Deep Partnership → +Nayan (the sage, earned through commitment)
  */
 
-import { createLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TeamUnlocks' });
+
+// ============================================================================
+// STREAK CALCULATION
+// ============================================================================
+
+/**
+ * Calculate conversation streaks from profile data.
+ * A streak is consecutive days with at least one conversation.
+ */
+export function calculateStreaks(profile: UserProfile | null): {
+  currentStreak: number;
+  longestStreak: number;
+} {
+  if (!profile || !profile.conversationSummaries || profile.conversationSummaries.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+
+  // Get all conversation dates (normalize to date strings)
+  const conversationDates = profile.conversationSummaries
+    .map((s) => {
+      const timestamp = s.timestamp instanceof Date ? s.timestamp : new Date(s.timestamp);
+      return timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+    })
+    .filter((d) => d && d !== 'Invalid Date')
+    .sort();
+
+  // Deduplicate dates (multiple conversations per day count as one day)
+  const uniqueDates = [...new Set(conversationDates)];
+
+  if (uniqueDates.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+
+  // Calculate streaks
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let tempStreak = 1;
+
+  // Check if most recent date is today or yesterday (for current streak)
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const mostRecentDate = uniqueDates[uniqueDates.length - 1];
+  const isCurrentlyActive = mostRecentDate === today || mostRecentDate === yesterday;
+
+  // Calculate longest streak and current streak
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const prevDate = new Date(uniqueDates[i - 1]);
+    const currDate = new Date(uniqueDates[i]);
+    const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      // Consecutive day
+      tempStreak++;
+    } else {
+      // Streak broken
+      longestStreak = Math.max(longestStreak, tempStreak);
+      tempStreak = 1;
+    }
+  }
+
+  // Final check for longest streak
+  longestStreak = Math.max(longestStreak, tempStreak);
+
+  // Calculate current streak (working backwards from today)
+  if (isCurrentlyActive) {
+    currentStreak = 1;
+    let checkDate = mostRecentDate;
+
+    for (let i = uniqueDates.length - 2; i >= 0; i--) {
+      const prevDate = new Date(checkDate);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const expectedPrevDateStr = prevDate.toISOString().split('T')[0];
+
+      if (uniqueDates[i] === expectedPrevDateStr) {
+        currentStreak++;
+        checkDate = expectedPrevDateStr;
+      } else {
+        break;
+      }
+    }
+  }
+
+  log.debug(
+    { currentStreak, longestStreak, totalDates: uniqueDates.length },
+    'Calculated conversation streaks'
+  );
+
+  return { currentStreak, longestStreak };
+}
 
 // ============================================================================
 // TYPES
@@ -337,6 +426,9 @@ export function getTeamUnlockState(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): TeamUnlockState {
+  // Calculate streaks from conversation history
+  const streaks = calculateStreaks(profile);
+
   const metrics = profile
     ? {
         totalConversations: profile.totalConversations ?? 0,
@@ -345,8 +437,8 @@ export function getTeamUnlockState(
               (Date.now() - new Date(profile.firstContact).getTime()) / (1000 * 60 * 60 * 24)
             )
           : 0,
-        currentStreak: 0, // Would need to calculate from session data
-        longestStreak: 0,
+        currentStreak: streaks.currentStreak,
+        longestStreak: streaks.longestStreak,
       }
     : { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 };
 
@@ -392,6 +484,25 @@ export function isTeamMemberAvailable(
 ): boolean {
   const state = getTeamUnlockState(profile, tier);
   return state.unlockedMembers.includes(memberId);
+}
+
+/**
+ * Check if all core team members are unlocked for a user.
+ * Marketplace agents require the full team to be unlocked first.
+ */
+export function isFullTeamUnlocked(
+  profile: UserProfile | null,
+  tier: 'free' | 'friend' | 'partner' = 'free'
+): boolean {
+  const state = getTeamUnlockState(profile, tier);
+
+  // Check that all team members are unlocked
+  for (const member of TEAM_MEMBERS) {
+    if (!state.unlockedMembers.includes(member.memberId)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

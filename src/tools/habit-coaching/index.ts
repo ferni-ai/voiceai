@@ -12,16 +12,16 @@
  *   import { LIFE_DOMAINS, type EnhancedHabit } from './habit-coaching/index.js';
  *
  * MIGRATION STATUS:
- *   - types.ts: Complete (all interfaces/types)
- *   - constants.ts: Complete (core constants, glidepath levels)
- *   - challenges.ts: Complete (30-day challenges)
- *   - templates.ts: Complete (habit templates)
- *   - bundles.ts: Complete (habit bundles)
- *   - transitions.ts: Complete (life transition support)
- *   - helpers.ts: Complete (utility functions)
- *   - storage.ts: Complete (persistence layer)
- *   - tendencies.ts: Complete (Four Tendencies)
- *   - tools.ts: TODO (createHabitCoachingTools - still in habit-coaching.ts)
+ *   - types.ts: ✓ Complete (all interfaces/types)
+ *   - constants.ts: ✓ Complete (core constants, glidepath levels)
+ *   - challenges.ts: ✓ Complete (30-day challenges)
+ *   - templates.ts: ✓ Complete (habit templates)
+ *   - bundles.ts: ✓ Complete (habit bundles)
+ *   - transitions.ts: ✓ Complete (life transition support)
+ *   - helpers.ts: ✓ Complete (utility functions)
+ *   - storage.ts: ✓ Complete (persistence layer)
+ *   - tendencies.ts: ✓ Complete (Four Tendencies)
+ *   - tools.ts: ✓ Complete (createHabitCoachingTools)
  */
 
 // ============================================================================
@@ -128,7 +128,25 @@ export {
 export { LIFE_TRANSITION_SUPPORT } from './transitions.js';
 
 // ============================================================================
-// TOOL CREATOR (still in monolithic file)
+// STORAGE EXPORTS
 // ============================================================================
 
-export { createHabitCoachingTools } from '../habit-coaching.js';
+export {
+  getUserCoachData,
+  saveUserCoachProfile,
+  saveEnhancedHabit,
+  saveHabitStack,
+  saveWeeklyReflection,
+  storedHabitToRuntime,
+  runtimeHabitToStored,
+  clearUserCache,
+  clearAllCache,
+  updateCachedData,
+  type UserHabitCoachData,
+} from './storage.js';
+
+// ============================================================================
+// TOOL CREATOR
+// ============================================================================
+
+export { createHabitCoachingTools, default as habitCoachingToolsDefault } from './tools.js';

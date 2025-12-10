@@ -1021,18 +1021,21 @@ function generateFeedbackMessage(params: {
   tone: Tone;
   format: MessageFormat;
 }): string {
-  // Use SBI framework
+  // Apply SBI framework for structured feedback
+  const sbiContent = applySBIFramework({
+    situation: params.context,
+    behavior: params.keyPoints,
+    impact: '[describe the specific impact on you, the team, or the project]',
+    isPositive: false, // Default to constructive feedback - can be overridden
+  });
+
   return `Hey ${params.recipient.split(' ')[0]},
 
 I wanted to share something with you.
 
-[Situation]: ${params.context}
+${sbiContent}
 
-[Behavior]: ${params.keyPoints}
-
-[Impact]: This affected [specific impact].
-
-I'm bringing this up because I value our working relationship and want us to be successful together. How do you see it?`;
+How do you see it?`;
 }
 
 function generateDecline(params: {
@@ -1058,11 +1061,14 @@ function generateBoundary(params: {
   tone: Tone;
   format: MessageFormat;
 }): string {
-  return `I understand ${params.context}—I can see why this matters.
+  // Apply Three-Part Assertion framework for boundary setting
+  const assertiveResponse = applyAssertionFramework({
+    acknowledgment: `I understand ${params.context}—I can see why this matters.`,
+    statement: `Here's where I'm at: ${params.keyPoints}`,
+    invitation: 'How can we work together to find a solution that works for both of us?',
+  });
 
-Here's where I'm at: ${params.keyPoints}
-
-How can we work together to find a solution that works for both of us?`;
+  return assertiveResponse;
 }
 
 function generateBadNews(params: {
@@ -1312,7 +1318,12 @@ function addressFear(fear: string): string {
 }
 
 function generateAssertiveScript(situation: string, whatUserWants: string): string {
-  return `I understand where you're coming from, and I want to find a solution. Here's what I need: ${whatUserWants}. How can we make this work for both of us?`;
+  // Apply Three-Part Assertion framework for assertive communication
+  return applyAssertionFramework({
+    acknowledgment: "I understand where you're coming from, and I want to find a solution.",
+    statement: `Here's what I need: ${whatUserWants}.`,
+    invitation: 'How can we make this work for both of us?',
+  });
 }
 
 function generateFollowUpStrategy(

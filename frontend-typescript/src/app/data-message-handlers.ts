@@ -6,41 +6,39 @@
  */
 
 import type {
-  DataMessage,
   CelebrationEvent,
+  DataMessage,
   EmotionEvent,
+  EngagementTriggerEvent,
   ExpressionEvent,
   MoodEvent,
   MusicEvent,
-  EngagementTriggerEvent,
   WrapUpEvent,
 } from '../types/events.js';
 import {
   isCelebrationMessage,
   isEmotionMessage,
+  isEngagementTriggerMessage,
   isExpressionMessage,
   isMoodMessage,
   isMusicMessage,
-  isEngagementTriggerMessage,
   isWrapUpMessage,
 } from '../types/events.js';
 
-import { createLogger } from '../utils/logger.js';
-import { waveformUI } from '../ui/waveform.ui.js';
-import { coachUI } from '../ui/coach.ui.js';
-import { presenceUI } from '../ui/presence.ui.js';
-import { celebrationsUI } from '../ui/celebrations.ui.js';
-import { soundUI } from '../ui/sound.ui.js';
-import { moodUI } from '../ui/mood.ui.js';
-import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
-import { messageUI } from '../ui/message.ui.js';
-import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
-import { delightService } from '../services/delight.service.js';
-import { moodService } from '../services/index.js';
-import { handoffService } from '../services/index.js';
-import { engagementService } from '../services/index.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
+import { delightService } from '../services/delight.service.js';
+import { engagementService, handoffService, moodService } from '../services/index.js';
 import { setWrappingUp } from '../state/app.state.js';
+import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
+import { celebrationsUI } from '../ui/celebrations.ui.js';
+import { coachUI } from '../ui/coach.ui.js';
+import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
+import { messageUI } from '../ui/message.ui.js';
+import { moodUI } from '../ui/mood.ui.js';
+import { presenceUI } from '../ui/presence.ui.js';
+import { soundUI } from '../ui/sound.ui.js';
+import { waveformUI } from '../ui/waveform.ui.js';
+import { createLogger } from '../utils/logger.js';
 // 🎬 Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 // 🎚️ Music Audio Controller - Real-time ducking
@@ -50,7 +48,13 @@ import { connectionService } from '../services/index.js';
 // 🚀 Ferni EQ - Superhuman emotional intelligence
 import { ferni } from '../ui/better-than-human.ui.js';
 // Tone detection for micro-expressions
-import { analyzeForMicroExpression, detectAnticipatedTone, estimateEnergyFromText } from '../utils/tone-detection.js';
+import {
+  analyzeForMicroExpression,
+  detectAnticipatedTone,
+  estimateEnergyFromText,
+} from '../utils/tone-detection.js';
+// 🌉 Humanization Bridge - Connects backend humanization to frontend EQ
+import { humanizationBridge } from '../services/humanization-bridge.service.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -71,6 +75,12 @@ export function setShowTeamHuddleCallback(callback: () => void): void {
 export function handleDataMessage(message: DataMessage): void {
   // Try to process as handoff (async - fire and forget)
   void handoffService.processDataMessage(message);
+
+  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.)
+  // This is the bridge that makes Ferni feel truly human
+  if (humanizationBridge.processMessage(message)) {
+    return;
+  }
 
   // Try to process as mood update (from humanizing system)
   if (moodService.isMoodUpdate(message)) {
@@ -142,7 +152,11 @@ export function handleDataMessage(message: DataMessage): void {
     case 'agent_transcript':
       // Track agent message for conversation history
       if (typeof message['text'] === 'string') {
-        conversationTracker.addMessage('agent', message['text'], message['personaId'] as string | undefined);
+        conversationTracker.addMessage(
+          'agent',
+          message['text'],
+          message['personaId'] as string | undefined
+        );
       }
       break;
 
@@ -150,12 +164,15 @@ export function handleDataMessage(message: DataMessage): void {
       // Track user message for conversation history
       if (typeof message['text'] === 'string') {
         conversationTracker.addMessage('user', message['text']);
-        
+
         // 🚀 Ferni EQ: Trigger micro-expressions based on user transcript content
         // This enables subliminal trust-building through authentic reactions
         const microParams = analyzeForMicroExpression(message['text']);
         ferni.detectAndTriggerMicroExpression(microParams);
-        log.debug('🚀 Micro-expression analysis', { tone: microParams.tone, intensity: microParams.intensity });
+        log.debug('🚀 Micro-expression analysis', {
+          tone: microParams.tone,
+          intensity: microParams.intensity,
+        });
       }
       break;
 
@@ -173,12 +190,12 @@ export function handleDataMessage(message: DataMessage): void {
         conversationTracker.addTopic(message['topic']);
       }
       break;
-    
+
     case 'voice_prosody':
       // 🚀 Ferni EQ: Voice prosody data for concern detection & breath sync
       handleVoiceProsody(message as VoiceProsodyEvent);
       break;
-    
+
     case 'partial_transcript':
       // 🚀 Ferni EQ: Partial transcript for anticipation - "reading the future"
       handlePartialTranscript(message as PartialTranscriptEvent);
@@ -203,27 +220,27 @@ interface PartialTranscriptEvent extends DataMessage {
 
 /**
  * Handle partial transcript for anticipation
- * 
+ *
  * This enables the "Better than Human" capability of anticipating
  * emotions before the user finishes speaking.
  */
 function handlePartialTranscript(event: PartialTranscriptEvent): void {
   const { text } = event;
-  
+
   // Skip very short partials
   if (text.length < 15) return;
-  
+
   // Detect anticipated tone from partial speech
   const tone = detectAnticipatedTone(text);
   const energy = estimateEnergyFromText(text);
-  
+
   // Trigger anticipation
   ferni.anticipateEmotion({
     transcript: text,
     tone,
     energy,
   });
-  
+
   log.debug('🔮 Anticipation from partial:', { tone, energy, textLength: text.length });
 }
 
@@ -250,7 +267,7 @@ interface VoiceProsodyEvent extends DataMessage {
 
 /**
  * Handle voice prosody data from backend for Ferni EQ concern detection
- * 
+ *
  * This enables "Better than Human" emotional intelligence by:
  * 1. Detecting voice strain/breaking for concern response
  * 2. Tracking pause patterns for breath synchronization
@@ -262,32 +279,34 @@ function handleVoiceProsody(event: VoiceProsodyEvent): void {
     anxietyMarkers: event.anxietyMarkers,
     valence: event.valence,
   });
-  
+
   // Map backend prosody to concern detection parameters
   const concernParams: Parameters<typeof ferni.analyzeConcern>[0] = {
     // Voice strain is indicated by high stress + low valence
     voiceStrain: event.stressLevel,
-    
+
     // Voice breaking is indicated by high stress + anxiety markers
     voiceBreaking: event.stressLevel > 0.7 && event.anxietyMarkers,
-    
+
     // Pause frequency indicates processing difficulty
-    pauseFrequency: event.pauseDuration !== undefined 
-      ? Math.min(1, event.pauseDuration / 1000) // Normalize to 0-1
-      : undefined,
-    
+    pauseFrequency:
+      event.pauseDuration !== undefined
+        ? Math.min(1, event.pauseDuration / 1000) // Normalize to 0-1
+        : undefined,
+
     // Sighing indicated by low speech rate + breathiness
-    sighing: (event.breathiness !== undefined && event.breathiness > 0.6) ||
-             (event.speechRate !== undefined && event.speechRate < 0.3),
+    sighing:
+      (event.breathiness !== undefined && event.breathiness > 0.6) ||
+      (event.speechRate !== undefined && event.speechRate < 0.3),
   };
-  
+
   // Run concern detection
   const concernLevel = ferni.analyzeConcern(concernParams);
-  
+
   if (concernLevel !== 'none') {
     log.info('🚀 Ferni EQ concern detected', { concernLevel, stressLevel: event.stressLevel });
   }
-  
+
   // Track pause duration for breath sync
   if (event.pauseDuration !== undefined && event.pauseDuration > 200) {
     ferni.detectUserBreathRate([event.pauseDuration]);
@@ -351,14 +370,25 @@ export function handleEmotion(event: EmotionEvent): void {
 
   // Update presence glow to reflect voice emotion (design system integration)
   // Map event emotions to design system voice emotions
-  const emotionMap: Record<string, 'neutral' | 'happy' | 'excited' | 'calm' | 'thoughtful' | 'empathetic' | 'serious' | 'anxious' | 'encouraging'> = {
-    'neutral': 'neutral',
-    'happy': 'happy',
-    'sad': 'empathetic',      // Sad → empathetic glow (supportive)
-    'anxious': 'anxious',
-    'excited': 'excited',
-    'frustrated': 'serious',   // Frustrated → serious glow (grounded)
-    'calm': 'calm',
+  const emotionMap: Record<
+    string,
+    | 'neutral'
+    | 'happy'
+    | 'excited'
+    | 'calm'
+    | 'thoughtful'
+    | 'empathetic'
+    | 'serious'
+    | 'anxious'
+    | 'encouraging'
+  > = {
+    neutral: 'neutral',
+    happy: 'happy',
+    sad: 'empathetic', // Sad → empathetic glow (supportive)
+    anxious: 'anxious',
+    excited: 'excited',
+    frustrated: 'serious', // Frustrated → serious glow (grounded)
+    calm: 'calm',
   };
   const voiceEmotion = emotionMap[event.emotion] || 'neutral';
   presenceUI.setVoiceEmotion(voiceEmotion);
@@ -390,7 +420,7 @@ function triggerPixarEmotionResponse(emotion: EmotionEvent['emotion'], intensity
   // When user is happy → avatar shows delight (mirroring)
   // When user is sad → avatar shows empathy (support)
   // When user is anxious → avatar shows calm (grounding)
-  
+
   switch (emotion) {
     case 'happy':
       // Mirror their joy
@@ -440,16 +470,16 @@ function triggerPixarEmotionResponse(emotion: EmotionEvent['emotion'], intensity
  * Handle expression events from agents.
  * 🎬 Re-enabled with Pixar eye lid expressions!
  * Agent can now request specific avatar expressions for emphasis.
- * 
+ *
  * The agent sends an emoji which we map to Pixar expressions.
  */
 export function handleExpression(event: ExpressionEvent): void {
   // Map agent emoji/expression requests to Pixar emotions
-  // Can be emoji like "😊" or text like "happy" 
+  // Can be emoji like "😊" or text like "happy"
   const expressionType = (event.emoji || '').toLowerCase();
-  
+
   log.debug('Expression event:', expressionType);
-  
+
   // Handle various expression types the agent might send
   // Supports both text keywords AND emoji characters
   switch (expressionType) {
@@ -462,22 +492,22 @@ export function handleExpression(event: ExpressionEvent): void {
     case '🙂':
       ferniExpressions.happy(800);
       break;
-      
+
     case 'excited':
     case 'enthusiasm':
     case '🎉':
     case '🥳':
       ferniExpressions.excited();
       break;
-      
+
     case 'delight':
     case 'delighted':
     case '✨':
     case '🌟':
       ferniExpressions.delight();
       break;
-      
-    // Thinking/curious expressions  
+
+    // Thinking/curious expressions
     case 'thinking':
     case 'pondering':
     case 'considering':
@@ -485,14 +515,14 @@ export function handleExpression(event: ExpressionEvent): void {
     case '💭':
       ferniExpressions.contemplation(2000);
       break;
-      
+
     case 'curious':
     case 'interested':
     case 'intrigued':
     case '🧐':
       ferniExpressions.curious();
       break;
-      
+
     // Surprise expressions
     case 'surprised':
     case 'wow':
@@ -502,13 +532,13 @@ export function handleExpression(event: ExpressionEvent): void {
     case '🤯':
       ferniExpressions.surprise();
       break;
-      
+
     case 'doubletake':
     case 'waitwhat':
     case '👀':
       ferniExpressions.realization();
       break;
-      
+
     // Empathetic expressions
     case 'empathy':
     case 'understanding':
@@ -517,21 +547,21 @@ export function handleExpression(event: ExpressionEvent): void {
     case '💙':
       ferniExpressions.empathy();
       break;
-      
+
     case 'sad':
     case 'concerned':
     case '😢':
     case '😔':
       ferniExpressions.sad();
       break;
-      
+
     case 'worried':
     case 'concern':
     case '😟':
     case '😰':
       ferniExpressions.worry();
       break;
-      
+
     // Skeptical/questioning
     case 'skeptical':
     case 'hmm':
@@ -539,7 +569,7 @@ export function handleExpression(event: ExpressionEvent): void {
     case '🤨':
       ferniExpressions.skeptical();
       break;
-      
+
     // Sleepy/tired
     case 'sleepy':
     case 'tired':
@@ -548,7 +578,7 @@ export function handleExpression(event: ExpressionEvent): void {
     case '🥱':
       ferniExpressions.sleepy();
       break;
-      
+
     // Love/appreciation
     case 'love':
     case 'heart':
@@ -556,14 +586,14 @@ export function handleExpression(event: ExpressionEvent): void {
     case '💕':
       ferniExpressions.delight();
       break;
-      
+
     // Lightbulb/idea moment
     case 'idea':
     case 'lightbulb':
     case '💡':
       ferniExpressions.realization(); // "Aha!" moment
       break;
-      
+
     default:
       // Unknown expression - log but don't error
       if (expressionType) {
@@ -605,118 +635,122 @@ export function handleMood(event: MoodEvent): void {
 export function handleMusic(event: MusicEvent): void {
   log.debug('Music event:', event.state, event.trackName);
 
+  // 🐛 FIX: Signal music track expectation IMMEDIATELY, before async import
+  // This reduces the race window where audio arrives before we're ready to identify it
+  if (event.state === 'playing') {
+    connectionService.expectMusicTrack();
+    getMusicAudioController().unduckFromBackend();
+  }
+
   // Import Now Playing UI dynamically to avoid circular deps
-  import('../ui/now-playing.ui.js').then(({ nowPlayingUI }) => {
-    if (event.state === 'playing') {
-      // 🎚️ Signal ConnectionService to expect a music track soon
-      // This helps identify the audio track as music for ducking
-      connectionService.expectMusicTrack();
-      
-      // 🎚️ Unduck music - it's playing normally now
-      getMusicAudioController().unduckFromBackend();
-      
-      // Avatar: Warm presence pulse - music is playing
-      avatarFeedback.musicPresence();
+  import('../ui/now-playing.ui.js')
+    .then(({ nowPlayingUI }) => {
+      if (event.state === 'playing') {
+        // (expectMusicTrack and unduck already called above, before async import)
 
-      // Waveform: Gentle, reflective visualization (NOT aggressive)
-      waveformUI.setMusicPlaying(true);
+        // Avatar: Warm presence pulse - music is playing
+        avatarFeedback.musicPresence();
 
-      // Subtle haptic for music start
-      delightService.haptic('light');
+        // Waveform: Gentle, reflective visualization (NOT aggressive)
+        waveformUI.setMusicPlaying(true);
 
-      // 🎬 Pixar: Show enjoyment when music starts
-      // Different expressions for ambient vs user-requested music
-      if (event.isAmbient) {
-        // Ambient: calm, present
-        ferniExpressions.setExpression('empathetic', 300, 3000);
-      } else {
-        // User-requested: show delight and engagement
-        ferniExpressions.delight();
-        // Follow up with sustained happy expression while music plays
-        setTimeout(() => {
-          // Show happy expression for the duration of the typical track intro
-          ferniExpressions.happy(5000);
-        }, 1000);
+        // Subtle haptic for music start
+        delightService.haptic('light');
+
+        // 🎬 Pixar: Show enjoyment when music starts
+        // Different expressions for ambient vs user-requested music
+        if (event.isAmbient) {
+          // Ambient: calm, present
+          ferniExpressions.setExpression('empathetic', 300, 3000);
+        } else {
+          // User-requested: show delight and engagement
+          ferniExpressions.delight();
+          // Follow up with sustained happy expression while music plays
+          setTimeout(() => {
+            // Show happy expression for the duration of the typical track intro
+            ferniExpressions.happy(5000);
+          }, 1000);
+        }
+
+        // Show Now Playing card with track info
+        if (event.trackName) {
+          nowPlayingUI.show({
+            name: event.trackName,
+            artist: event.artistName || 'Unknown Artist',
+            duration: event.duration,
+            isAmbient: event.isAmbient,
+            isOurSong: event.isOurSong,
+            ourSongContext: event.ourSongContext,
+          });
+        }
+
+        log.debug('Music playing:', event.trackName);
+      } else if (event.state === 'changing') {
+        // DJ Crossfade - switching tracks smoothly
+        avatarFeedback.fading();
+        nowPlayingUI.updateState('changing');
+
+        // 🎬 Pixar: Excited anticipation for new track
+        ferniExpressions.curious();
+
+        // Subtle haptic for track change
+        delightService.haptic('light');
+
+        log.debug('Music changing - DJ crossfade in progress');
+      } else if (event.state === 'ducking') {
+        // 🎚️ Duck music - agent is speaking over it
+        getMusicAudioController().duckFromBackend();
+
+        // Agent speaking over music - subtle the pulse
+        avatarFeedback.ducking();
+        nowPlayingUI.updateState('ducking');
+
+        // 🎬 Pixar: Return to neutral while speaking
+        // (Natural transition - avatar focuses on user)
+
+        // Waveform stays in music mode but is naturally calmer during speech
+        log.debug('Music ducking (agent speaking)');
+      } else if (event.state === 'fading') {
+        // DJ-style fade out - track ending soon
+        avatarFeedback.fading();
+        nowPlayingUI.updateState('fading');
+
+        // 🎬 Pixar: Appreciative expression as music fades
+        // Like savoring the last notes of a good song
+        ferniExpressions.setExpression('happy', 400, 3000);
+
+        log.debug('Music fading out...');
+      } else if (event.state === 'paused') {
+        avatarFeedback.stopDancing();
+        nowPlayingUI.updateState('paused');
+
+        // 🎬 Pixar: Curious expression - "paused? everything okay?"
+        ferniExpressions.curious();
+
+        log.debug('Music paused');
+      } else if (event.state === 'stopped' || event.state === 'idle') {
+        // Gracefully return to rest
+        avatarFeedback.stopDancing();
+
+        // Waveform: Return to normal behavior
+        waveformUI.setMusicPlaying(false);
+
+        // 🎬 Pixar: Warm, satisfied expression after music ends
+        // Not sad it's over, grateful it happened
+        if (!event.isAmbient) {
+          ferniExpressions.setExpression('empathetic', 300, 2000);
+        }
+
+        // Hide Now Playing card
+        nowPlayingUI.hide();
+
+        log.debug('Music stopped');
       }
-
-      // Show Now Playing card with track info
-      if (event.trackName) {
-        nowPlayingUI.show({
-          name: event.trackName,
-          artist: event.artistName || 'Unknown Artist',
-          duration: event.duration,
-          isAmbient: event.isAmbient,
-          isOurSong: event.isOurSong,
-          ourSongContext: event.ourSongContext,
-        });
-      }
-
-      log.debug('Music playing:', event.trackName);
-    } else if (event.state === 'changing') {
-      // DJ Crossfade - switching tracks smoothly
-      avatarFeedback.fading();
-      nowPlayingUI.updateState('changing');
-
-      // 🎬 Pixar: Excited anticipation for new track
-      ferniExpressions.curious();
-      
-      // Subtle haptic for track change
-      delightService.haptic('light');
-      
-      log.debug('Music changing - DJ crossfade in progress');
-    } else if (event.state === 'ducking') {
-      // 🎚️ Duck music - agent is speaking over it
-      getMusicAudioController().duckFromBackend();
-      
-      // Agent speaking over music - subtle the pulse
-      avatarFeedback.ducking();
-      nowPlayingUI.updateState('ducking');
-
-      // 🎬 Pixar: Return to neutral while speaking
-      // (Natural transition - avatar focuses on user)
-      
-      // Waveform stays in music mode but is naturally calmer during speech
-      log.debug('Music ducking (agent speaking)');
-    } else if (event.state === 'fading') {
-      // DJ-style fade out - track ending soon
-      avatarFeedback.fading();
-      nowPlayingUI.updateState('fading');
-
-      // 🎬 Pixar: Appreciative expression as music fades
-      // Like savoring the last notes of a good song
-      ferniExpressions.setExpression('happy', 400, 3000);
-
-      log.debug('Music fading out...');
-    } else if (event.state === 'paused') {
-      avatarFeedback.stopDancing();
-      nowPlayingUI.updateState('paused');
-
-      // 🎬 Pixar: Curious expression - "paused? everything okay?"
-      ferniExpressions.curious();
-
-      log.debug('Music paused');
-    } else if (event.state === 'stopped' || event.state === 'idle') {
-      // Gracefully return to rest
-      avatarFeedback.stopDancing();
-
-      // Waveform: Return to normal behavior
-      waveformUI.setMusicPlaying(false);
-
-      // 🎬 Pixar: Warm, satisfied expression after music ends
-      // Not sad it's over, grateful it happened
-      if (!event.isAmbient) {
-        ferniExpressions.setExpression('empathetic', 300, 2000);
-      }
-
-      // Hide Now Playing card
-      nowPlayingUI.hide();
-
-      log.debug('Music stopped');
-    }
-  }).catch(() => {
-    // Now Playing UI not available - continue without it
-    log.debug('Now Playing UI not available');
-  });
+    })
+    .catch(() => {
+      // Now Playing UI not available - continue without it
+      log.debug('Now Playing UI not available');
+    });
 }
 
 /**
@@ -759,24 +793,24 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
  * Handle wrap-up events from the agent.
  * This signals that the conversation is ending and UI should adapt.
  * 🎬 Enhanced with Pixar farewell expressions.
- * 
+ *
  * - Disconnect button becomes more prominent ("Goodbye" style)
  * - Avatar shows warm farewell animation with emotional expression
  * - Waveform softens
  */
 export function handleWrapUp(event: WrapUpEvent): void {
   log.info('Wrap-up signal received:', event.sentiment);
-  
+
   // Set state - this triggers UI updates across the app
   setWrappingUp(true);
-  
+
   // Play the farewell animation
   presenceUI.farewell();
-  
+
   // 🎬 Pixar: Show appropriate emotional expression for farewell
   // Warm farewell with soft, happy expression that lingers
   ferniExpressions.setExpression('happy', 400, 0); // Hold until conversation ends
-  
+
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
     case 'warm':
@@ -803,10 +837,10 @@ export function handleWrapUp(event: WrapUpEvent): void {
       ferniExpressions.empathy();
       break;
   }
-  
+
   // Gentle haptic for the goodbye moment
   delightService.haptic('light');
-  
+
   // If there's a custom message, show it briefly
   if (event.message) {
     messageUI.show(event.message, 'info', 3000);

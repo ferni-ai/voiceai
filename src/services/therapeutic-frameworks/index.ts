@@ -32,32 +32,28 @@
 // ============================================================================
 
 export type {
+  ActivityLogEntry,
   // ACT Types
   ACTProcess,
   ACTValue,
-  ValueDomain,
-  CommittedAction,
-  DefusionTechnique,
-
-  // DBT Types
-  DBTModule,
-  DBTSkill,
-
+  BehavioralActivation,
   // MI Types
   ChangeTalk,
   ChangeTalkInstance,
-  OARSSkills,
-
   // CBT Types
   CognitiveRestructuring,
-  BehavioralActivation,
-  PleasantActivity,
-  ActivityLogEntry,
+  CommittedAction,
+  // DBT Types
+  DBTModule,
+  DBTSkill,
+  DefusionTechnique,
   MoodEntry,
-
+  OARSSkills,
+  PleasantActivity,
+  TherapeuticFrameworksConfig,
   // Profiles
   TherapeuticProfile,
-  TherapeuticFrameworksConfig,
+  ValueDomain,
 } from './types.js';
 
 export { DEFAULT_CONFIG } from './types.js';
@@ -67,36 +63,36 @@ export { DEFAULT_CONFIG } from './types.js';
 // ============================================================================
 
 export {
+  buildValuesContext,
+  checkValuesAlignment,
+  completeAction,
   // Values
   detectValuesInSpeech,
-  recordValue,
-  getUserValues,
-  getValuesByDomain,
-  getTopValues,
-  checkValuesAlignment,
   generateValuesPrompt,
-  buildValuesContext,
-  getValuesQuestion,
-  getValueExamples,
-  recordCommittedAction,
-  completeAction,
   getPendingActions,
-  VALUES_QUESTIONS,
+  getTopValues,
+  getUserValues,
+  getValueExamples,
+  getValuesByDomain,
+  getValuesQuestion,
+  recordCommittedAction,
+  recordValue,
   VALUE_EXAMPLES,
+  VALUES_QUESTIONS,
   type DetectedValue,
   type ValuesAlignment,
 } from './act-values.js';
 
 export {
+  buildDefusionContext,
   // Defusion
   DEFUSION_TECHNIQUES,
-  selectDefusionTechnique,
   getAllDefusionTechniques,
   getDefusionTechnique,
-  recordDefusionUse,
   getMostEffectiveDefusion,
   getRecentDefusionTechniques,
-  buildDefusionContext,
+  recordDefusionUse,
+  selectDefusionTechnique,
 } from './act-defusion.js';
 
 // ============================================================================
@@ -104,19 +100,19 @@ export {
 // ============================================================================
 
 export {
+  ALL_DBT_SKILLS,
+  buildDBTContext,
   // Skills
   DISTRESS_TOLERANCE_SKILLS,
   EMOTION_REGULATION_SKILLS,
+  getDBTSkill,
+  getLearnedSkills,
+  getMostEffectiveSkills,
+  getSkillsByModule,
   INTERPERSONAL_SKILLS,
   MINDFULNESS_SKILLS,
-  ALL_DBT_SKILLS,
-  selectDBTSkill,
-  getSkillsByModule,
-  getDBTSkill,
   recordSkillUse,
-  getMostEffectiveSkills,
-  getLearnedSkills,
-  buildDBTContext,
+  selectDBTSkill,
 } from './dbt-skills.js';
 
 // ============================================================================
@@ -124,24 +120,22 @@ export {
 // ============================================================================
 
 export {
-  // Change talk
-  detectChangeTalk,
-  getStrongestChangeTalk,
-  detectSustainTalk,
-  recordChangeTalk,
-  getChangeTalkHistory,
-  getTopChangeTalkTopics,
-  analyzeAmbivalence,
-
-  // OARS
-  generateOARSResponse,
-  OPEN_QUESTIONS,
   AFFIRMATIONS,
-  REFLECTION_TEMPLATES,
-  CHANGE_TALK_PATTERNS,
-
+  analyzeAmbivalence,
   // Context
   buildMIContext,
+  CHANGE_TALK_PATTERNS,
+  // Change talk
+  detectChangeTalk,
+  detectSustainTalk,
+  // OARS
+  generateOARSResponse,
+  getChangeTalkHistory,
+  getStrongestChangeTalk,
+  getTopChangeTalkTopics,
+  OPEN_QUESTIONS,
+  recordChangeTalk,
+  REFLECTION_TEMPLATES,
   type OARSResponse,
   type Reflection,
 } from './motivational-interviewing.js';
@@ -150,15 +144,16 @@ export {
 // UNIFIED API
 // ============================================================================
 
-import { detectValuesInSpeech, buildValuesContext, getUserValues } from './act-values.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { buildDefusionContext, selectDefusionTechnique } from './act-defusion.js';
+import { buildValuesContext, detectValuesInSpeech, getUserValues } from './act-values.js';
 import { buildDBTContext, selectDBTSkill } from './dbt-skills.js';
 import {
   buildMIContext,
-  detectChangeTalk,
   detectSustainTalk,
+  getTopChangeTalkTopics,
 } from './motivational-interviewing.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import type { DBTSkill, DefusionTechnique } from './types.js';
 
 const log = createLogger({ module: 'TherapeuticFrameworks' });
 
@@ -196,12 +191,10 @@ export function buildTherapeuticContext(
     primaryRecommendation: null,
   };
 
-  // Only use frameworks for users we have relationship with
-  if (relationshipStage === 'new') {
-    return result;
-  }
+  // CRITICAL: DBT distress tolerance is available to ALL users, even new ones
+  // Crisis doesn't wait for relationship stage. Safety first.
 
-  // High distress → DBT first
+  // High distress → DBT first (available to everyone)
   if (enableDBT && emotionIntensity > 0.7) {
     const dbtContext = buildDBTContext(userId, {
       emotionIntensity,
@@ -211,11 +204,22 @@ export function buildTherapeuticContext(
       contextParts.push(dbtContext);
       result.frameworks.push('dbt');
       result.primaryRecommendation = 'dbt_skill';
+
+      // Select a specific DBT skill recommendation
+      const skill = selectDBTSkill({
+        emotionIntensity,
+        situation: topic,
+        keywords: userText.toLowerCase().split(' '),
+      });
+      if (skill) {
+        result.recommendedSkill = skill;
+      }
     }
   }
 
-  // Motivational Interviewing - detect change talk
-  if (enableMI) {
+  // Motivational Interviewing - detect change talk and sustain talk
+  // MI is gentle and relationship-building, available to all stages except brand new users
+  if (enableMI && relationshipStage !== 'new') {
     const miContext = buildMIContext(userId, userText, topic);
     if (miContext) {
       contextParts.push(miContext);
@@ -223,6 +227,13 @@ export function buildTherapeuticContext(
       if (!result.primaryRecommendation) {
         result.primaryRecommendation = 'reflect_change_talk';
       }
+    }
+
+    // Detect sustain talk (resistance) for MI strategy adjustment
+    const sustainTalk = detectSustainTalk(userText);
+    if (sustainTalk.detected) {
+      result.hasSustainTalk = true;
+      result.sustainTalkPatterns = sustainTalk.patterns;
     }
   }
 
@@ -237,10 +248,28 @@ export function buildTherapeuticContext(
         result.frameworks.push('act');
       }
     }
-  }
 
-  // ACT Defusion - for recurring negative thoughts (detected elsewhere)
-  // This would integrate with cognitive-intelligence
+    // ACT Defusion - for recurring negative thoughts
+    const defusionContext = buildDefusionContext(userId, userText);
+    if (defusionContext) {
+      contextParts.push(defusionContext);
+      if (!result.frameworks.includes('act')) {
+        result.frameworks.push('act');
+      }
+
+      // Select appropriate defusion technique
+      const technique = selectDefusionTechnique({
+        thought: userText,
+        emotionIntensity,
+      });
+      if (technique) {
+        result.recommendedDefusion = technique;
+        if (!result.primaryRecommendation) {
+          result.primaryRecommendation = 'defusion';
+        }
+      }
+    }
+  }
 
   result.hasContext = contextParts.length > 0;
   result.contextParts = contextParts;
@@ -269,6 +298,14 @@ export interface TherapeuticContextResult {
     | 'values_alignment'
     | 'defusion'
     | null;
+  /** Recommended DBT skill when high distress detected */
+  recommendedSkill?: DBTSkill;
+  /** Recommended ACT defusion technique */
+  recommendedDefusion?: DefusionTechnique;
+  /** Whether sustain talk (resistance) was detected */
+  hasSustainTalk?: boolean;
+  /** Detected sustain talk patterns */
+  sustainTalkPatterns?: string[];
 }
 
 /**
@@ -276,13 +313,13 @@ export interface TherapeuticContextResult {
  */
 export function getTherapeuticSummary(userId: string): TherapeuticSummary {
   const values = getUserValues(userId);
-  const changeTalkTopics = detectChangeTalk('', undefined); // Just for type
+  const changeTalkTopics = getTopChangeTalkTopics(userId, 3);
 
   return {
-    hasData: values.length > 0,
+    hasData: values.length > 0 || changeTalkTopics.length > 0,
     valuesIdentified: values.length,
     topValues: values.slice(0, 3).map((v) => v.value),
-    // Add more summary data as needed
+    changeTalkTopics,
   };
 }
 
@@ -290,4 +327,5 @@ export interface TherapeuticSummary {
   hasData: boolean;
   valuesIdentified: number;
   topValues: string[];
+  changeTalkTopics: string[];
 }

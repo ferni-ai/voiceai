@@ -951,7 +951,9 @@ class BackgroundTaskService extends EventEmitter {
       // Clean up old pending actions
       const actionsToKeep = userData.pendingActions.filter((action) => {
         const isFinished =
-          action.status === 'completed' || action.status === 'expired' || action.status === 'cancelled';
+          action.status === 'completed' ||
+          action.status === 'expired' ||
+          action.status === 'cancelled';
         const completedTime = action.completedAt?.getTime() ?? 0;
         const isOld = completedTime > 0 && completedTime < cutoffTime;
 

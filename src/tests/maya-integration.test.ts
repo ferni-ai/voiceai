@@ -9,13 +9,17 @@
  * - Data persistence flow
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  getProductivityStore,
-  initializeProductivityStore,
-} from '../services/productivity-store.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getProductivityStore } from '../services/productivity-store.js';
 
 // Mock LiveKit agents
+const createMockLogger = () => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(() => createMockLogger()),
+});
 vi.mock('@livekit/agents', () => ({
   llm: {
     tool: vi.fn((config) => ({
@@ -23,12 +27,7 @@ vi.mock('@livekit/agents', () => ({
       execute: config.execute,
     })),
   },
-  log: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
+  log: vi.fn(() => createMockLogger()),
   voice: {
     BackgroundAudioPlayer: vi.fn(),
   },

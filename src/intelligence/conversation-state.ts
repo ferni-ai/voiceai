@@ -129,7 +129,7 @@ const PHASE_GUIDANCE: Record<ConversationPhase, PhaseGuidance> = {
     voiceMode: 'warm_welcome',
     pacing: 'slow',
     focus: 'Leaving them feeling supported and empowered',
-    shouldAsk: ['Is there anything else?', 'Any other questions?'],
+    shouldAsk: ['Anything else on your mind?', 'What else is going on?'],
     shouldAvoid: ['Abrupt endings', 'Introducing new topics'],
     transitionCue: 'Natural conversation end',
   },

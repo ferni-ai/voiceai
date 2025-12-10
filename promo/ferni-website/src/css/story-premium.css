@@ -15,33 +15,26 @@
    CSS CUSTOM PROPERTIES - PREMIUM
    ============================================ */
 
+/* Import design tokens - SINGLE SOURCE OF TRUTH */
+@import './_tokens.css';
+
 :root {
-  /* Colors - Refined palette */
-  --color-bg: #FAF9F7;
-  --color-bg-warm: #F5F3EF;
-  --color-bg-elevated: #FFFFFF;
+  /* Page-specific overrides - extend tokens, don't duplicate */
+  --color-bg-warm: var(--color-bg-secondary);
   --color-bg-dark: #1A1A1A;
   --color-bg-darker: #0D0D0D;
-  
-  --color-text: #1A1A1A;
-  --color-text-secondary: #5C5C5C;
-  --color-text-muted: #8C8C8C;
   --color-text-light: #F5F5F5;
   
-  --color-border: #E8E5E1;
-  --color-border-subtle: #F0EDE9;
+  /* Brand Colors - Use design system values */
+  --color-ferni-light: #5a7751;
+  --color-ferni-dark: var(--color-ferni-secondary);
+  --color-ferni-glow: rgba(74, 103, 65, 0.15);
   
-  /* Brand Colors - More vibrant */
-  --color-ferni: #4A7C59;
-  --color-ferni-light: #5D9E72;
-  --color-ferni-dark: #3A6347;
-  --color-ferni-glow: rgba(74, 124, 89, 0.15);
-  
-  /* Gradients */
-  --gradient-hero: linear-gradient(180deg, #FAF9F7 0%, #F0EDE9 100%);
+  /* Gradients - Reference token variables */
+  --gradient-hero: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
   --gradient-dark: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%);
-  --gradient-ferni: linear-gradient(135deg, #4A7C59 0%, #3A6347 100%);
-  --gradient-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 124, 89, 0.15), transparent);
+  --gradient-ferni: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+  --gradient-glow: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-ferni-glow), transparent);
   --gradient-shine: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   
   /* Shadows - Layered */

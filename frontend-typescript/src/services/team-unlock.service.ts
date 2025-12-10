@@ -88,8 +88,9 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
     role: 'Habits Coach',
     description: 'Helps you build habits that stick. Start embarrassingly small.',
     unlocksAt: 'getting-started',
-    introductionMessage: 'I want you to meet Maya. She\'s incredible at habits.',
-    teaserMessage: 'I have a friend who\'s amazing at habits... once we talk more, I\'ll introduce you.',
+    introductionMessage: "I want you to meet Maya. She's incredible at habits.",
+    teaserMessage:
+      "I have a friend who's amazing at habits... once we talk more, I'll introduce you.",
   },
   {
     id: 'peter-john',
@@ -97,7 +98,7 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
     role: 'The Quant',
     description: 'Spots patterns nobody else sees. Turns data into insights.',
     unlocksAt: 'building-trust',
-    introductionMessage: 'You\'re ready for Peter. He sees patterns most people miss.',
+    introductionMessage: "You're ready for Peter. He sees patterns most people miss.",
     teaserMessage: 'Peter can show you incredible patterns, but I need to know you better first.',
   },
   {
@@ -107,7 +108,7 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
     description: 'Communication coach. Helps you say what you mean.',
     unlocksAt: 'established',
     introductionMessage: 'Alex is going to change how you communicate.',
-    teaserMessage: 'There\'s someone who can transform your communication... keep talking to me.',
+    teaserMessage: "There's someone who can transform your communication... keep talking to me.",
   },
   {
     id: 'jordan-taylor',
@@ -124,8 +125,8 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
     role: 'The Sage',
     description: 'Lifetime advisor. Small, consistent actions create extraordinary results.',
     unlocksAt: 'deep-partnership',
-    introductionMessage: 'Nayan is the wisest person I know. You\'ve earned this.',
-    teaserMessage: 'The sage only speaks to those who\'ve proven their commitment.',
+    introductionMessage: "Nayan is the wisest person I know. You've earned this.",
+    teaserMessage: "The sage only speaks to those who've proven their commitment.",
     premium: true,
   },
 ];
@@ -186,7 +187,7 @@ function getMemberUnlockStatus(
       return {
         unlocked: false,
         progress: calculateProgress(metrics, threshold),
-        lockReason: 'The sage speaks only to those who\'ve proven their commitment.',
+        lockReason: "The sage speaks only to those who've proven their commitment.",
         unlockHint: 'Reach deep partnership or upgrade to Partner tier.',
       };
     }
@@ -212,16 +213,18 @@ function calculateProgress(
   threshold: { minConversations: number; minDays: number }
 ): number {
   if (threshold.minConversations === 0) return 1;
-  
+
   const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress = threshold.minDays > 0 
-    ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays)
-    : 1;
-  
+  const daysProgress =
+    threshold.minDays > 0 ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays) : 1;
+
   return (convProgress + daysProgress) / 2;
 }
 
-function getUnlockHint(_stage: RelationshipStage, threshold: { minConversations: number; minDays: number }): string {
+function getUnlockHint(
+  _stage: RelationshipStage,
+  threshold: { minConversations: number; minDays: number }
+): string {
   if (threshold.minDays === 0) {
     return `${threshold.minConversations} conversations to unlock`;
   }
@@ -240,10 +243,10 @@ export function initTeamUnlockService(): void {
   relationshipStageService.onStageChange(() => {
     void updateUnlockState();
   });
-  
+
   // Initial state
   void updateUnlockState();
-  
+
   log.info('Team unlock service initialized');
 }
 
@@ -263,26 +266,26 @@ export function setSubscriptionTier(tier: 'free' | 'friend' | 'partner'): void {
 export function updateUnlockState(): TeamUnlockState {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
-  
+
   const previousUnlocked = currentState?.unlockedMembers ?? new Set<TeamMemberId>();
-  
+
   const unlockedMembers = new Set<TeamMemberId>();
   const memberStatuses = new Map<TeamMemberId, MemberUnlockStatus>();
   let nextUnlock: NextUnlockInfo | null = null;
   let newlyUnlocked: TeamMemberId | null = null;
-  
+
   const metricsData = {
     totalConversations: metrics.totalConversations,
     daysSinceFirstMeeting: metrics.daysSinceFirstMeeting,
   };
-  
+
   for (const member of TEAM_MEMBERS) {
     const status = getMemberUnlockStatus(member, stage, subscriptionTier, metricsData);
     memberStatuses.set(member.id, status);
-    
+
     if (status.unlocked) {
       unlockedMembers.add(member.id);
-      
+
       // Check if newly unlocked
       if (!previousUnlocked.has(member.id) && member.id !== 'ferni') {
         newlyUnlocked = member.id;
@@ -291,12 +294,15 @@ export function updateUnlockState(): TeamUnlockState {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
       nextUnlock = {
         member,
-        conversationsNeeded: Math.max(0, threshold.minConversations - metricsData.totalConversations),
+        conversationsNeeded: Math.max(
+          0,
+          threshold.minConversations - metricsData.totalConversations
+        ),
         daysNeeded: Math.max(0, threshold.minDays - metricsData.daysSinceFirstMeeting),
       };
     }
   }
-  
+
   currentState = {
     stage,
     tier: subscriptionTier,
@@ -305,19 +311,19 @@ export function updateUnlockState(): TeamUnlockState {
     newlyUnlocked,
     nextUnlock,
   };
-  
+
   // Notify listeners
-  unlockListeners.forEach(listener => listener(currentState!));
-  
+  unlockListeners.forEach((listener) => listener(currentState!));
+
   // Notify member unlock listeners if someone new was unlocked
   if (newlyUnlocked) {
-    const member = TEAM_MEMBERS.find(m => m.id === newlyUnlocked);
+    const member = TEAM_MEMBERS.find((m) => m.id === newlyUnlocked);
     if (member) {
       log.info({ memberId: newlyUnlocked }, '🎉 Team member unlocked!');
-      memberUnlockListeners.forEach(listener => listener(member));
+      memberUnlockListeners.forEach((listener) => listener(member));
     }
   }
-  
+
   return currentState;
 }
 
@@ -350,7 +356,7 @@ export function getMemberStatus(memberId: TeamMemberId): MemberUnlockStatus {
  * Get team member config by ID
  */
 export function getTeamMember(memberId: TeamMemberId): TeamMemberConfig | undefined {
-  return TEAM_MEMBERS.find(m => m.id === memberId);
+  return TEAM_MEMBERS.find((m) => m.id === memberId);
 }
 
 /** Alias for getTeamMember */
@@ -362,7 +368,7 @@ export function getTeamMemberConfig(memberId: TeamMemberId): TeamMemberConfig | 
  * Get introduction message for a newly unlocked member
  */
 export function getIntroductionMessage(memberId: TeamMemberId): string | null {
-  const member = TEAM_MEMBERS.find(m => m.id === memberId);
+  const member = TEAM_MEMBERS.find((m) => m.id === memberId);
   return member?.introductionMessage ?? null;
 }
 
@@ -391,12 +397,28 @@ export function onMemberUnlocked(listener: (member: TeamMemberConfig) => void): 
 // ============================================================================
 
 /**
+ * Check if all core team members are unlocked.
+ * Marketplace agents require the full team to be unlocked first.
+ */
+export function isFullTeamUnlocked(): boolean {
+  if (!currentState) return false;
+
+  // Check that all team members are unlocked
+  for (const member of TEAM_MEMBERS) {
+    if (!currentState.unlockedMembers.has(member.id)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Get CSS classes for a team member based on unlock status
  */
 export function getTeamMemberClasses(memberId: TeamMemberId): string[] {
   const classes: string[] = [];
   const status = getMemberStatus(memberId);
-  
+
   if (status.unlocked) {
     classes.push('team-member--unlocked');
   } else {
@@ -405,12 +427,12 @@ export function getTeamMemberClasses(memberId: TeamMemberId): string[] {
       classes.push('team-member--almost-unlocked');
     }
   }
-  
+
   const member = getTeamMember(memberId);
   if (member?.premium) {
     classes.push('team-member--premium');
   }
-  
+
   return classes;
 }
 
@@ -419,16 +441,16 @@ export function getTeamMemberClasses(memberId: TeamMemberId): string[] {
  */
 export function getProgressText(memberId: TeamMemberId): string {
   const status = getMemberStatus(memberId);
-  
+
   if (status.unlocked) return 'Unlocked';
-  
+
   const state = getUnlockState();
   if (!state?.nextUnlock || state.nextUnlock.member.id !== memberId) {
     return status.unlockHint ?? 'Keep talking to Ferni';
   }
-  
+
   const { conversationsNeeded, daysNeeded } = state.nextUnlock;
-  
+
   if (conversationsNeeded > 0 && daysNeeded > 0) {
     return `${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}, ${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
   }
@@ -438,7 +460,7 @@ export function getProgressText(memberId: TeamMemberId): string {
   if (daysNeeded > 0) {
     return `${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
   }
-  
+
   return 'Almost there!';
 }
 
@@ -452,6 +474,7 @@ export const teamUnlockService = {
   update: updateUnlockState,
   getState: getUnlockState,
   isUnlocked: isTeamMemberUnlocked,
+  isFullTeamUnlocked,
   getMemberStatus,
   getTeamMember,
   getIntroduction: getIntroductionMessage,
@@ -461,4 +484,3 @@ export const teamUnlockService = {
   getProgress: getProgressText,
   TEAM_MEMBERS,
 };
-

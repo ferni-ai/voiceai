@@ -91,8 +91,8 @@ export async function discoverBundles(): Promise<string[]> {
   return [...new Set(bundleIds)]; // Dedupe
 }
 
-/** Concurrency limit for parallel bundle loading */
-const BUNDLE_LOAD_CONCURRENCY = 5;
+/** Concurrency limit for parallel bundle loading - increased for faster startup */
+const BUNDLE_LOAD_CONCURRENCY = 10;
 
 /**
  * Load all discovered bundles and convert to PersonaConfig
@@ -172,4 +172,135 @@ export async function loadBundleAsPersona(bundleId: string): Promise<PersonaConf
   const bundle = await loadBundleById(bundleId);
   if (!bundle) return null;
   return bundleToPersonaConfig(bundle);
+}
+
+/**
+ * OPTIMIZATION: Load bundles with priority - active persona first, others in background
+ *
+ * This dramatically improves startup time by:
+ * 1. Loading only the required persona synchronously
+ * 2. Loading other personas in the background (non-blocking)
+ *
+ * @param priorityBundleId - The bundle to load first (typically from PERSONA_ID env var)
+ * @param loadOthersInBackground - Whether to load other bundles in background (default: true)
+ */
+export async function discoverAndLoadBundlesWithPriority(
+  priorityBundleId?: string,
+  loadOthersInBackground = true
+): Promise<{
+  personas: PersonaConfig[];
+  bundles: LoadedPersonaBundle[];
+  errors: string[];
+  backgroundLoadPromise?: Promise<void>;
+}> {
+  // Return cached result if already loaded
+  if (discoveryCache) {
+    getLogger().debug({ cached: true }, 'Returning cached bundle discovery result');
+    return discoveryCache;
+  }
+
+  const startTime = Date.now();
+  const bundleIds = await discoverBundles();
+  const personas: PersonaConfig[] = [];
+  const bundles: LoadedPersonaBundle[] = [];
+  const errors: string[] = [];
+
+  // Determine which bundle to load first
+  const effectivePriorityId = priorityBundleId || process.env.PERSONA_ID || 'ferni';
+  const priorityIndex = bundleIds.indexOf(effectivePriorityId);
+
+  // Reorder to put priority bundle first
+  const orderedBundleIds = priorityIndex >= 0
+    ? [effectivePriorityId, ...bundleIds.filter(id => id !== effectivePriorityId)]
+    : bundleIds;
+
+  // Load priority bundle first (synchronously)
+  if (orderedBundleIds.length > 0) {
+    const priorityId = orderedBundleIds[0];
+    try {
+      const bundle = await loadBundleById(priorityId);
+      if (bundle) {
+        const persona = await bundleToPersonaConfig(bundle);
+        bundles.push(bundle);
+        personas.push(persona);
+        getLogger().info(
+          { bundleId: priorityId, loadTimeMs: Date.now() - startTime },
+          'Priority bundle loaded (fast startup)'
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`Failed to load priority bundle ${priorityId}: ${message}`);
+      getLogger().error({ bundleId: priorityId, error: message }, 'Failed to load priority bundle');
+    }
+  }
+
+  // Load remaining bundles
+  const remainingBundleIds = orderedBundleIds.slice(1);
+
+  const loadRemainingBundles = async () => {
+    for (let i = 0; i < remainingBundleIds.length; i += BUNDLE_LOAD_CONCURRENCY) {
+      const batch = remainingBundleIds.slice(i, i + BUNDLE_LOAD_CONCURRENCY);
+
+      const batchResults = await Promise.all(
+        batch.map(async (bundleId) => {
+          try {
+            const bundle = await loadBundleById(bundleId);
+            if (bundle) {
+              const persona = await bundleToPersonaConfig(bundle);
+              return { success: true, bundleId, bundle, persona };
+            }
+            return { success: false, bundleId, error: 'Bundle not found' };
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            return { success: false, bundleId, error: message };
+          }
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.success && 'bundle' in result && 'persona' in result) {
+          bundles.push(result.bundle!);
+          personas.push(result.persona!);
+          getLogger().debug({ bundleId: result.bundleId }, 'Loaded bundle');
+        } else if ('error' in result) {
+          errors.push(`Failed to load bundle ${result.bundleId}: ${result.error}`);
+          getLogger().warn(
+            { bundleId: result.bundleId, error: result.error },
+            'Failed to load bundle'
+          );
+        }
+      }
+    }
+
+    const loadTime = Date.now() - startTime;
+    getLogger().info(
+      { loaded: personas.length, failed: errors.length, loadTimeMs: loadTime },
+      'All bundles loaded'
+    );
+  };
+
+  // Either load in background or synchronously
+  let backgroundLoadPromise: Promise<void> | undefined;
+
+  if (loadOthersInBackground && remainingBundleIds.length > 0) {
+    // Load remaining bundles in background (non-blocking)
+    backgroundLoadPromise = loadRemainingBundles().catch((err) => {
+      getLogger().error({ error: String(err) }, 'Background bundle loading failed');
+    });
+  } else {
+    // Load all synchronously
+    await loadRemainingBundles();
+  }
+
+  // Cache with at least the priority bundle
+  discoveryCache = { personas, bundles, errors };
+
+  const priorityLoadTime = Date.now() - startTime;
+  getLogger().info(
+    { priorityLoadTimeMs: priorityLoadTime, priorityBundle: effectivePriorityId },
+    'Priority bundle discovery complete'
+  );
+
+  return { ...discoveryCache, backgroundLoadPromise };
 }

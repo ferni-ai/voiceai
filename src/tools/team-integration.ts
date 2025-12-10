@@ -18,14 +18,14 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 import {
-  getAgentBus,
+  getAgentBus as _getAgentBus,
   jordanRequestMayaSavingsGoal,
-  jordanRequestMayaBudget,
+  jordanRequestMayaBudget as _jordanRequestMayaBudget,
   jordanRequestAlexSchedule,
   jordanRequestAlexReminders,
   jordanShareMilestoneWithMaya,
   jordanShareMilestoneWithAlex,
-  type AgentId,
+  type AgentId as _AgentId,
 } from '../services/agent-bus.js';
 import {
   getLifeDataStore,
@@ -80,7 +80,7 @@ function validateAmountField(
   return { valid: true, sanitized: parsed };
 }
 
-function validateNotes(notes: unknown): { valid: boolean; sanitized?: string; error?: string } {
+function _validateNotes(notes: unknown): { valid: boolean; sanitized?: string; error?: string } {
   if (!notes) {
     return { valid: true, sanitized: '' };
   }
@@ -383,7 +383,7 @@ Jordan leads planning, Maya handles financial aspects, Alex manages scheduling.`
         needsReminders,
         userId,
       }) => {
-        const goal = await createSharedGoal(userId, title, category, financialTarget, timeline);
+        const _goal = await createSharedGoal(userId, title, category, financialTarget, timeline);
 
         let response = `🤝 **Team Goal Created: "${title}"**\n\n`;
         response += `**Category:** ${category}\n`;
@@ -422,7 +422,7 @@ Jordan coordinates with Maya (financial), Alex (scheduling), or the investment a
       execute: async ({ teamMember, request, context, userId }) => {
         const memberInfo = TEAM_CAPABILITIES[teamMember];
 
-        const handoff = createTeamHandoff(userId, 'jordan', teamMember, request, {
+        const _handoff = createTeamHandoff(userId, 'jordan', teamMember, request, {
           request,
           additionalContext: context,
         });
@@ -539,7 +539,7 @@ This ACTUALLY creates entries in all team members' systems.`,
         const parsedDate = targetDate ? new Date(targetDate) : undefined;
         const finalMilestoneId = milestoneId || generateId('milestone');
 
-        const sharedMilestone = linkMilestoneToTeam(
+        const _sharedMilestone = linkMilestoneToTeam(
           userId,
           finalMilestoneId,
           milestoneName,
@@ -644,7 +644,7 @@ This ACTUALLY creates a savings goal in Maya's system via the Agent Bus.`,
         const remaining = targetAmount - currentAmount;
 
         // ACTUALLY request Maya to create a savings goal via Agent Bus
-        const mayaResult = await jordanRequestMayaSavingsGoal(
+        const _mayaResult = await jordanRequestMayaSavingsGoal(
           `${goalOrMilestone} Fund`,
           targetAmount,
           deadline,
@@ -721,7 +721,7 @@ This ACTUALLY creates calendar events and reminders via the Agent Bus.`,
         }
 
         // ACTUALLY request Alex to schedule the event via Agent Bus
-        const alexResult = await jordanRequestAlexSchedule(
+        const _alexResult = await jordanRequestAlexSchedule(
           eventName,
           date,
           reminderDays.length > 0 ? reminderDays : [7, 1],

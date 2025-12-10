@@ -12,8 +12,8 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { createLogger } from '../utils/logger.js';
 import type { MusicPlaybackState } from '../types/events.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('NowPlaying');
 
@@ -22,14 +22,20 @@ const log = createLogger('NowPlaying');
 // ============================================================================
 
 const ICONS = {
-  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
-  pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+  music:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  pause:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
-  skipForward: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>',
-  volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
-  volumeMuted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+  skipForward:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>',
+  volume:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
+  volumeMuted:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
   // 💚 "Our Song" heart - filled to indicate shared memory
-  ourSong: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  ourSong:
+    '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
 };
 
 // ============================================================================
@@ -65,6 +71,12 @@ class NowPlayingUI {
   private startTime: number | null = null;
   private _callbacks: NowPlayingCallbacks = {};
   private waveformBars: HTMLElement[] = [];
+  // 🎧 FIX: Track hide animation to prevent race conditions
+  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // 🎧 FIX: Safety timer to auto-hide if no state update received
+  private safetyHideTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // Default track duration fallback (45 seconds - slightly longer than typical 30s preview)
+  private static readonly SAFETY_HIDE_DELAY_MS = 45000;
 
   initialize(): void {
     if (this.container) return;
@@ -94,11 +106,21 @@ class NowPlayingUI {
     this.initialize();
     if (!this.container) return;
 
+    // 🎧 FIX: Cancel any pending hide operation (prevents race condition)
+    if (this.hideTimeoutId) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
+
     this.currentTrack = track;
     this.startTime = Date.now();
     this.updateTrackInfo();
     this.startWaveformAnimation();
     this.startProgressTracking();
+
+    // 🎧 FIX: Reset safety timer whenever card is shown
+    // This ensures the card auto-hides even if backend doesn't send 'stopped'
+    this.resetSafetyTimer(track.duration);
 
     if (!this.isVisible) {
       this.container.classList.add('now-playing--visible');
@@ -120,6 +142,9 @@ class NowPlayingUI {
       }
 
       log.debug('Now Playing shown', { track: track.name, artist: track.artist });
+    } else {
+      // Already visible - update was called for same/new track
+      log.debug('Now Playing updated', { track: track.name, artist: track.artist });
     }
   }
 
@@ -127,7 +152,22 @@ class NowPlayingUI {
    * Hide the Now Playing card
    */
   hide(): void {
-    if (!this.container || !this.isVisible) return;
+    if (!this.container || !this.isVisible) {
+      log.debug('Now Playing hide skipped (already hidden or no container)');
+      return;
+    }
+
+    // 🎧 FIX: Clear safety timer - we're hiding properly
+    if (this.safetyHideTimeoutId) {
+      clearTimeout(this.safetyHideTimeoutId);
+      this.safetyHideTimeoutId = null;
+    }
+
+    // 🎧 FIX: Clear any pending hide timeout to prevent double-hide
+    if (this.hideTimeoutId) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
 
     this.stopWaveformAnimation();
     this.stopProgressTracking();
@@ -147,14 +187,18 @@ class NowPlayingUI {
       );
     }
 
-    setTimeout(() => {
+    // 🎧 FIX: Track the timeout and clear state properly
+    this.hideTimeoutId = setTimeout(() => {
       this.container?.classList.remove('now-playing--visible');
       this.isVisible = false;
       this.currentTrack = null;
       this.startTime = null;
+      this._currentState = 'idle';
+      this.hideTimeoutId = null;
+      log.debug('Now Playing fully hidden');
     }, DURATION.NORMAL);
 
-    log.debug('Now Playing hidden');
+    log.debug('Now Playing hiding (animation started)');
   }
 
   /**
@@ -197,24 +241,33 @@ class NowPlayingUI {
       case 'ducking':
         this.container.classList.add('now-playing--ducking');
         this.slowWaveform();
+        // 🎧 FIX: Don't clear safety timer during ducking - track is still playing
         break;
       case 'fading':
         this.container.classList.add('now-playing--fading');
         this.fadeWaveform();
+        // 🎧 Track is about to end - safety timer will handle if 'stopped' never arrives
         break;
       case 'changing':
         // DJ crossfade in progress - show subtle transition animation
         this.container.classList.add('now-playing--changing');
         this.crossfadeWaveform();
+        // 🎧 Reset safety timer for the new track (will be updated when new track shows)
         break;
       case 'paused':
         this.container.classList.add('now-playing--paused');
         this.pauseWaveform();
+        // 🎧 FIX: Clear safety timer when paused (user intentionally paused)
+        this.clearSafetyTimer();
         break;
       case 'playing':
         // If coming back from 'changing', we might have a new track
         // Re-enable full waveform animation
         this.resumeWaveform();
+        // 🎧 FIX: Reset safety timer when playing resumes (from pause or new track)
+        if (previousState === 'paused') {
+          this.resetSafetyTimer(this.currentTrack?.duration);
+        }
         break;
       case 'stopped':
       case 'idle':
@@ -241,6 +294,53 @@ class NowPlayingUI {
    */
   getCurrentTrack(): NowPlayingTrack | null {
     return this.currentTrack;
+  }
+
+  // ==========================================================================
+  // SAFETY TIMER - Auto-hide fallback
+  // ==========================================================================
+
+  /**
+   * 🎧 Reset the safety timer.
+   * This is a fallback to auto-hide the card if the backend never sends 'stopped'.
+   *
+   * @param trackDuration - Track duration in ms (optional, uses default if not provided)
+   */
+  private resetSafetyTimer(trackDuration?: number): void {
+    // Clear existing safety timer
+    if (this.safetyHideTimeoutId) {
+      clearTimeout(this.safetyHideTimeoutId);
+      this.safetyHideTimeoutId = null;
+    }
+
+    // Calculate delay: track duration + 5s buffer, or default safety delay
+    const delay = trackDuration
+      ? trackDuration + 5000 // Track duration + 5 second buffer
+      : NowPlayingUI.SAFETY_HIDE_DELAY_MS;
+
+    log.debug('Safety timer set', { delay: Math.round(delay / 1000) + 's' });
+
+    this.safetyHideTimeoutId = setTimeout(() => {
+      if (this.isVisible) {
+        log.warn('Now Playing safety timer triggered - hiding stale card', {
+          track: this.currentTrack?.name,
+          wasShowingFor: this.startTime
+            ? Math.round((Date.now() - this.startTime) / 1000) + 's'
+            : 'unknown',
+        });
+        this.hide();
+      }
+    }, delay);
+  }
+
+  /**
+   * 🎧 Clear the safety timer (called when we receive a proper state update).
+   */
+  private clearSafetyTimer(): void {
+    if (this.safetyHideTimeoutId) {
+      clearTimeout(this.safetyHideTimeoutId);
+      this.safetyHideTimeoutId = null;
+    }
   }
 
   /**
@@ -714,9 +814,7 @@ class NowPlayingUI {
     const elapsed = Date.now() - this.startTime;
     const progress = Math.min((elapsed / this.currentTrack.duration) * 100, 100);
 
-    const progressFill = this.container.querySelector(
-      '.now-playing__progress-fill'
-    ) as HTMLElement;
+    const progressFill = this.container.querySelector('.now-playing__progress-fill') as HTMLElement;
     if (progressFill) {
       progressFill.style.width = `${progress}%`;
     }
@@ -728,11 +826,23 @@ class NowPlayingUI {
   destroy(): void {
     this.stopWaveformAnimation();
     this.stopProgressTracking();
+
+    // 🎧 FIX: Clear all timers on destroy
+    if (this.hideTimeoutId) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
+    if (this.safetyHideTimeoutId) {
+      clearTimeout(this.safetyHideTimeoutId);
+      this.safetyHideTimeoutId = null;
+    }
+
     this.container?.remove();
     this.styleElement?.remove();
     this.container = null;
     this.styleElement = null;
     this.isVisible = false;
+    this._currentState = 'idle';
   }
 }
 
@@ -768,4 +878,3 @@ export const nowPlayingUI = {
 };
 
 export default nowPlayingUI;
-

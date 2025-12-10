@@ -464,6 +464,189 @@ export async function summarizeConversationAsync(
 }
 
 // ============================================================================
+// API ADAPTERS (for Memory Browser UI compatibility)
+// ============================================================================
+
+/**
+ * Get user memory summary for API (/api/voice/memory)
+ * Aggregates data from all conversations
+ */
+export async function getUserMemoryForAPI(userId: string): Promise<{
+  totalConversations: number;
+  totalDuration: number;
+  firstConversation: Date | null;
+  lastConversation: Date | null;
+  topics: Array<{ topic: string; count: number; lastMentioned: Date }>;
+  relationshipMilestones: Array<{ type: string; date: Date; description: string }>;
+} | null> {
+  const conversations = await getRecentConversations(userId, 100); // Get more for stats
+
+  if (conversations.length === 0) {
+    return null;
+  }
+
+  // Sort by date for first/last
+  const sorted = [...conversations].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+
+  // Calculate total duration (rough estimate based on turn count)
+  // Assume average 30 seconds per turn
+  const totalDuration = conversations.reduce((sum, c) => sum + c.turnCount * 0.5, 0);
+
+  // Extract topics from summaries (simple word extraction)
+  const topicCounts = new Map<string, { count: number; lastMentioned: Date }>();
+  for (const conv of conversations) {
+    if (conv.summary) {
+      // Extract meaningful words from summary as topics
+      const words = conv.summary
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 4);
+      for (const word of words) {
+        const existing = topicCounts.get(word);
+        if (existing) {
+          existing.count++;
+          if (conv.startedAt > existing.lastMentioned) {
+            existing.lastMentioned = conv.startedAt;
+          }
+        } else {
+          topicCounts.set(word, { count: 1, lastMentioned: conv.startedAt });
+        }
+      }
+    }
+  }
+
+  // Convert to array and sort by count
+  const topics = Array.from(topicCounts.entries())
+    .map(([topic, data]) => ({
+      topic,
+      count: data.count,
+      lastMentioned: data.lastMentioned,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
+
+  return {
+    totalConversations: conversations.length,
+    totalDuration,
+    firstConversation: sorted[0]?.startedAt || null,
+    lastConversation: sorted[sorted.length - 1]?.startedAt || null,
+    topics,
+    relationshipMilestones: [], // TODO: Could derive from conversation patterns
+  };
+}
+
+/**
+ * Get conversation context for API (/api/voice/memory/context)
+ */
+export async function getConversationContextForAPI(userId: string): Promise<{
+  recentTopics: string[];
+  unfinishedThreads: Array<{ topic: string; lastDiscussed: Date; summary: string }>;
+  rememberedDetails: Array<{ detail: string; confidence: number; source: string }>;
+  suggestedFollowUps: string[];
+}> {
+  const context = await getLastConversationContext(userId);
+
+  if (!context) {
+    return {
+      recentTopics: [],
+      unfinishedThreads: [],
+      rememberedDetails: [],
+      suggestedFollowUps: [],
+    };
+  }
+
+  // Extract topics from summary
+  const recentTopics = context.summary
+    ? context.summary
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 4)
+        .slice(0, 5)
+    : [];
+
+  // Find potential follow-ups from unanswered questions
+  const unfinishedThreads: Array<{ topic: string; lastDiscussed: Date; summary: string }> = [];
+  for (const turn of context.turns) {
+    if (turn.role === 'user' && turn.content.includes('?')) {
+      unfinishedThreads.push({
+        topic: turn.content.split('?')[0].slice(-30) + '?',
+        lastDiscussed: turn.timestamp,
+        summary: turn.content.slice(0, 100),
+      });
+    }
+  }
+
+  // Extract remembered details from assistant responses
+  const rememberedDetails: Array<{ detail: string; confidence: number; source: string }> = [];
+  for (const turn of context.turns) {
+    if (turn.role === 'assistant' && turn.content.length > 50) {
+      rememberedDetails.push({
+        detail: turn.content.slice(0, 100),
+        confidence: 0.7,
+        source: 'conversation',
+      });
+    }
+  }
+
+  return {
+    recentTopics,
+    unfinishedThreads: unfinishedThreads.slice(-3),
+    rememberedDetails: rememberedDetails.slice(-5),
+    suggestedFollowUps: [], // Could be generated from topics
+  };
+}
+
+/**
+ * Get conversations with turns for API (/api/voice/memory/conversations)
+ */
+export async function getConversationsWithTurnsForAPI(
+  userId: string,
+  limit = 10
+): Promise<
+  Array<{
+    id: string;
+    startedAt: Date;
+    endedAt: Date | undefined;
+    summary: string | undefined;
+    topics: string[];
+    turns: ConversationTurn[];
+    turnCount: number;
+    voiceVerified: boolean;
+  }>
+> {
+  const conversations = await getRecentConversations(userId, limit);
+
+  // Fetch turns for each conversation
+  const withTurns = await Promise.all(
+    conversations.map(async (conv) => {
+      const turns = await getConversationTurns(userId, conv.id, 50);
+
+      // Extract topics from summary
+      const topics = conv.summary
+        ? conv.summary
+            .toLowerCase()
+            .split(/\W+/)
+            .filter((w) => w.length > 4)
+            .slice(0, 5)
+        : [];
+
+      return {
+        id: conv.id,
+        startedAt: conv.startedAt,
+        endedAt: conv.endedAt,
+        summary: conv.summary,
+        topics,
+        turns,
+        turnCount: turns.length,
+        voiceVerified: false, // Not tracked in realtime-memory yet
+      };
+    })
+  );
+
+  return withTurns;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -478,4 +661,8 @@ export default {
   getUnsummarizedConversations,
   markSummarized,
   summarizeConversationAsync,
+  // API adapters
+  getUserMemoryForAPI,
+  getConversationContextForAPI,
+  getConversationsWithTurnsForAPI,
 };

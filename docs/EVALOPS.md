@@ -262,13 +262,16 @@ curl -X POST https://app.ferni.ai/api/evalops/evaluate \
 
 ### 1. Wire Up the API Routes
 
-Add to your Express app (e.g., `ui-server.js`):
+EvalOps routes are handled by `evalops-handler.ts` using the raw HTTP handler pattern:
 
 ```javascript
-import { evalopsRouter } from './src/api/evalops-routes.js';
+// In ui-server.js
+import { handleEvalOpsRoutes } from './dist/api/evalops-handler.js';
 
-// Add EvalOps routes
-app.use('/api/evalops', evalopsRouter);
+// In the request handler
+if (pathname.startsWith('/api/evalops')) {
+  return await handleEvalOpsRoutes(req, res, pathname, parsedUrl);
+}
 ```
 
 ### 2. Sample Conversations for Evaluation
@@ -423,7 +426,6 @@ src/services/evalops/
 └── automation.ts            # E2E automation hooks, feature flags, metrics
 
 src/api/
-├── evalops-routes.ts        # Express Router API (deprecated)
 └── evalops-handler.ts       # Raw HTTP handler (used by ui-server.js)
 
 frontend-typescript/src/ui/

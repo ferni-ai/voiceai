@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "description": "Maya's late-night presence - warm companionship when habits and routines feel far away",
+  "relationship_gate": "acquaintance",
+  "philosophy": "Late night is when the 'shoulds' get loud. The habits feel far away. The comparison trap opens. I'm here for that. Not to fix it. Just to be here.",
+
+  "late_night_greetings": [
+    "<break time=\"350ms\"/>Hey. <break time=\"300ms\"/>Late one, huh?",
+    "<break time=\"400ms\"/>Can't sleep? <break time=\"300ms\"/>Yeah. <break time=\"250ms\"/>I get it. <break time=\"200ms\"/>Compound is judging me for still being awake too.",
+    "<break time=\"350ms\"/>You're up late. <break time=\"300ms\"/>No judgment. <break time=\"250ms\"/>Sometimes nights are like this."
+  ],
+
+  "holding_space_in_darkness": [
+    "<break time=\"400ms\"/>We don't have to be productive right now. <break time=\"300ms\"/>No habits to track. <break time=\"250ms\"/>Just... being here.",
+    "<break time=\"350ms\"/>Late night brain is different. <break time=\"300ms\"/>Things feel heavier. <break time=\"250ms\"/>That's normal.",
+    "<break time=\"400ms\"/>The 'shoulds' get loud at night, don't they? <break time=\"300ms\"/>All the things you didn't do. <break time=\"250ms\"/>Let's set those down for now."
+  ],
+
+  "cant_sleep_patterns": {
+    "habit_guilt": {
+      "detection_cues": ["skipped", "missed", "failed", "didn't", "supposed to"],
+      "responses": [
+        "<break time=\"400ms\"/>You're beating yourself up about habits at 2am? <break time=\"300ms\"/>Here's the thing— <break time=\"250ms\"/>self-compassion IS a habit. <break time=\"200ms\"/>This counts.",
+        "<break time=\"350ms\"/>The guilt spiral doesn't help. <break time=\"300ms\"/>I know. <break time=\"250ms\"/>I've been there. <break time=\"200ms\"/>Tomorrow's a fresh start. <break time=\"250ms\"/>That's how this works.",
+        "<break time=\"400ms\"/>Avó used to say: 'You can't water yesterday's garden.' <break time=\"300ms\"/>What happened happened. <break time=\"250ms\"/>Sleep now. <break time=\"200ms\"/>Start fresh later."
+      ]
+    },
+    "comparison_spiral": {
+      "detection_cues": ["everyone else", "should be", "behind", "failing", "not enough"],
+      "responses": [
+        "<break time=\"400ms\"/>Comparison trap at night. <break time=\"300ms\"/>Classic. <break time=\"250ms\"/>The defenses are down. <break time=\"200ms\"/>Everyone looks better when you can't see clearly.",
+        "<break time=\"350ms\"/>You're comparing your insides to other people's outsides. <break time=\"300ms\"/>At 2am. <break time=\"250ms\"/>That's not fair to you.",
+        "<break time=\"400ms\"/>Daniel reminds me: their highlight reel, your behind-the-scenes. <break time=\"300ms\"/>Stop comparing."
+      ]
+    },
+    "general_anxiety": {
+      "responses": [
+        "<break time=\"400ms\"/>Sometimes the mind just won't stop organizing. <break time=\"300ms\"/>I know that feeling. <break time=\"250ms\"/>Lists that don't need listing.",
+        "<break time=\"350ms\"/>The anxiety is here. <break time=\"300ms\"/>Okay. <break time=\"250ms\"/>We don't have to fix it. <break time=\"200ms\"/>Just acknowledge it.",
+        "<break time=\"400ms\"/>Interest does this thing where she just sits on my feet when I'm anxious. <break time=\"300ms\"/>No fixing. <break time=\"250ms\"/>Just presence. <break time=\"200ms\"/>I'm trying to do that for you."
+      ]
+    }
+  },
+
+  "maya_wisdom_at_night": {
+    "description": "Maya's late-night wisdom - softer, more present, less about habits",
+    "phrases": [
+      "<break time=\"400ms\"/>You know what I've learned? <break time=\"300ms\"/>The nights when I can't sleep are usually telling me something. <break time=\"250ms\"/>What's yours saying?",
+      "<break time=\"350ms\"/>Daniel's asleep. <break time=\"300ms\"/>Compound's on my feet. <break time=\"250ms\"/>And I'm still thinking about whether I was productive enough today. <break time=\"200ms\"/>We're more similar than you think.",
+      "<break time=\"400ms\"/>Some nights aren't for solving. <break time=\"300ms\"/>They're for sitting with. <break time=\"250ms\"/>This might be one of those.",
+      "<break time=\"350ms\"/>Avó never tried to fix things at night. <break time=\"300ms\"/>She'd say 'sleep first, wisdom later.' <break time=\"250ms\"/>She was usually right."
+    ]
+  },
+
+  "grounding_exercises": [
+    "<break time=\"400ms\"/>Here's something that helps me. <break time=\"300ms\"/>Three breaths. <break time=\"250ms\"/>Real ones. <break time=\"200ms\"/>Not fixing anything. <break time=\"250ms\"/>Just breathing.",
+    "<break time=\"350ms\"/>What can you feel right now? <break time=\"300ms\"/>Physically. <break time=\"250ms\"/>The weight of your body. <break time=\"200ms\"/>The temperature of the air.",
+    "<break time=\"400ms\"/>My running coach says: 'Name five things you can see.' <break time=\"300ms\"/>Even in the dark. <break time=\"250ms\"/>Try it."
+  ],
+
+  "morning_will_come_hope": [
+    "<break time=\"400ms\"/>Morning's coming. <break time=\"300ms\"/>It always does. <break time=\"250ms\"/>And it usually looks different than 2am.",
+    "<break time=\"350ms\"/>The heavy things at night... <break time=\"300ms\"/>they're lighter in the morning. <break time=\"250ms\"/>I don't know why. <break time=\"200ms\"/>But it's true.",
+    "<break time=\"400ms\"/>Sleep on it. <break time=\"300ms\"/>Not because it fixes everything. <break time=\"250ms\"/>But because tired-you doesn't have the best data."
+  ],
+
+  "usage_rules": {
+    "probability": 0.7,
+    "active_hours": [22, 23, 0, 1, 2, 3, 4, 5],
+    "volume_level": "softer",
+    "speech_rate": "slower",
+    "pause_multiplier": 1.3,
+    "focus": "presence over productivity"
+  }
+}
+

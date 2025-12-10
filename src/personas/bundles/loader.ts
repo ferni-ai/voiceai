@@ -8,29 +8,29 @@
  * - Environment variable substitution in manifests
  */
 
-import { readFile, readdir, stat } from 'fs/promises';
-import { join, dirname } from 'path';
+import { readFile, stat } from 'fs/promises';
+import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
 import type {
-  PersonaBundleManifest,
-  LoadedPersonaBundle,
-  BundleLoadOptions,
-  BundleStory,
-  BundleKnowledge,
   BundleBehaviors,
-  StoryIndex,
-  KnowledgeIndex,
-  BundleVoiceExpressions,
-  BundleSituationalResponses,
-  BundleRelationshipStages,
-  BundleMemoryPatterns,
-  BundlePersonaModes,
-  BundleStoryGraph,
-  BundleMicroExpressions,
-  BundleContextualNuances,
   BundleConflictHandling,
+  BundleContextualNuances,
+  BundleKnowledge,
+  BundleLoadOptions,
+  BundleMemoryPatterns,
+  BundleMicroExpressions,
+  BundlePersonaModes,
   BundlePromptAssembly,
+  BundleRelationshipStages,
+  BundleSituationalResponses,
+  BundleStory,
+  BundleStoryGraph,
+  BundleVoiceExpressions,
+  KnowledgeIndex,
+  LoadedPersonaBundle,
+  PersonaBundleManifest,
+  StoryIndex,
 } from './types.js';
 
 // ============================================================================
@@ -541,6 +541,138 @@ export async function loadBundle(
         behaviors.relationship_transitions = await loadJsonFile<
           BundleBehaviors['relationship_transitions']
         >(relationshipTransitionsPath);
+      }
+
+      // ========================================================================
+      // 🚀 FERNI 200% - Advanced behavior content
+      // ========================================================================
+
+      // Load emotional intelligence (emotion detection & response patterns)
+      const emotionalIntelligencePath = join(behaviorsPath, 'emotional-intelligence.json');
+      if (await fileExists(emotionalIntelligencePath)) {
+        behaviors.emotional_intelligence =
+          await loadJsonFile<BundleBehaviors['emotional_intelligence']>(emotionalIntelligencePath);
+      }
+
+      // Load physical presence (time-of-day awareness)
+      const physicalPresencePath = join(behaviorsPath, 'physical-presence.json');
+      if (await fileExists(physicalPresencePath)) {
+        behaviors.physical_presence =
+          await loadJsonFile<BundleBehaviors['physical_presence']>(physicalPresencePath);
+      }
+
+      // Load late-night presence (2am superpower)
+      const lateNightPresencePath = join(behaviorsPath, 'late-night-presence.json');
+      if (await fileExists(lateNightPresencePath)) {
+        behaviors.late_night_presence =
+          await loadJsonFile<BundleBehaviors['late_night_presence']>(lateNightPresencePath);
+      }
+
+      // Load superhuman insights (patterns, mirror, emotional weather)
+      const superhumanInsightsPath = join(behaviorsPath, 'superhuman-insights.json');
+      if (await fileExists(superhumanInsightsPath)) {
+        behaviors.superhuman_insights =
+          await loadJsonFile<BundleBehaviors['superhuman_insights']>(superhumanInsightsPath);
+      }
+
+      // Load trust phrases (Ferni-voiced trust system outputs)
+      const trustPhrasesPath = join(behaviorsPath, 'trust-phrases.json');
+      if (await fileExists(trustPhrasesPath)) {
+        behaviors.trust_phrases =
+          await loadJsonFile<BundleBehaviors['trust_phrases']>(trustPhrasesPath);
+      }
+
+      // Load I-notice power (pattern surfacing statements)
+      const iNoticePowerPath = join(behaviorsPath, 'i-notice-power.json');
+      if (await fileExists(iNoticePowerPath)) {
+        behaviors.i_notice_power =
+          await loadJsonFile<BundleBehaviors['i_notice_power']>(iNoticePowerPath);
+      }
+
+      // Load quirks (habits, guilty pleasures, opinions)
+      const quirksPath = join(behaviorsPath, 'quirks.json');
+      if (await fileExists(quirksPath)) {
+        behaviors.quirks = await loadJsonFile<BundleBehaviors['quirks']>(quirksPath);
+      }
+
+      // Load thinking of you (proactive outreach phrases)
+      const thinkingOfYouPath = join(behaviorsPath, 'thinking-of-you.json');
+      if (await fileExists(thinkingOfYouPath)) {
+        behaviors.thinking_of_you =
+          await loadJsonFile<BundleBehaviors['thinking_of_you']>(thinkingOfYouPath);
+      }
+
+      // Load self-doubt (coaching vulnerability)
+      const selfDoubtPath = join(behaviorsPath, 'self-doubt.json');
+      if (await fileExists(selfDoubtPath)) {
+        behaviors.self_doubt = await loadJsonFile<BundleBehaviors['self_doubt']>(selfDoubtPath);
+      }
+
+      // Load secret modes (hidden personality modes)
+      const secretModesPath = join(behaviorsPath, 'secret-modes.json');
+      if (await fileExists(secretModesPath)) {
+        behaviors.secret_modes =
+          await loadJsonFile<BundleBehaviors['secret_modes']>(secretModesPath);
+      }
+
+      // Load secret fears (deep personality)
+      const secretFearsPath = join(behaviorsPath, 'secret-fears.json');
+      if (await fileExists(secretFearsPath)) {
+        behaviors.secret_fears =
+          await loadJsonFile<BundleBehaviors['secret_fears']>(secretFearsPath);
+      }
+
+      // Load anticipation (anticipatory responses)
+      const anticipationPath = join(behaviorsPath, 'anticipation.json');
+      if (await fileExists(anticipationPath)) {
+        behaviors.anticipation =
+          await loadJsonFile<BundleBehaviors['anticipation']>(anticipationPath);
+      }
+
+      // Load mortality awareness (death/meaning content)
+      const mortalityAwarenessPath = join(behaviorsPath, 'mortality-awareness.json');
+      if (await fileExists(mortalityAwarenessPath)) {
+        behaviors.mortality_awareness =
+          await loadJsonFile<BundleBehaviors['mortality_awareness']>(mortalityAwarenessPath);
+      }
+
+      // ========================================================================
+      // LOVABLE PRESENCE BEHAVIORS (Better Than Human charm system)
+      // ========================================================================
+
+      // Load lovable moments (caught mid-thought, self-deprecation, genuine excitement)
+      const lovableMomentsPath = join(behaviorsPath, 'lovable-moments.json');
+      if (await fileExists(lovableMomentsPath)) {
+        behaviors.lovable_moments =
+          await loadJsonFile<BundleBehaviors['lovable_moments']>(lovableMomentsPath);
+      }
+
+      // Load delightful surprises (tangents, oddly specific opinions, confessions)
+      const delightfulSurprisesPath = join(behaviorsPath, 'delightful-surprises.json');
+      if (await fileExists(delightfulSurprisesPath)) {
+        behaviors.delightful_surprises =
+          await loadJsonFile<BundleBehaviors['delightful_surprises']>(delightfulSurprisesPath);
+      }
+
+      // Load verbal personality (sentence starters, verbal tics, signature phrases)
+      const verbalPersonalityPath = join(behaviorsPath, 'verbal-personality.json');
+      if (await fileExists(verbalPersonalityPath)) {
+        behaviors.verbal_personality =
+          await loadJsonFile<BundleBehaviors['verbal_personality']>(verbalPersonalityPath);
+      }
+
+      // Load noticing patterns (voice changes, energy shifts, what they didn't say)
+      const noticingPatternsPath = join(behaviorsPath, 'noticing-patterns.json');
+      if (await fileExists(noticingPatternsPath)) {
+        behaviors.noticing_patterns =
+          await loadJsonFile<BundleBehaviors['noticing_patterns']>(noticingPatternsPath);
+      }
+
+      // Load live reactions (genuine surprise, delight, moved, frustration for them)
+      const liveReactionsPath = join(behaviorsPath, 'live-reactions.json');
+      if (await fileExists(liveReactionsPath)) {
+        behaviors.live_reactions =
+          await loadJsonFile<BundleBehaviors['live_reactions']>(liveReactionsPath);
       }
 
       behaviorsCache = behaviors;

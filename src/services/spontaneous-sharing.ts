@@ -137,7 +137,7 @@ function getRandomItem<T>(arr: T[] | undefined): T | null {
  */
 async function ensureSharedContentLoaded(userId: string): Promise<void> {
   // Check if any content for this user is loaded
-  const hasAnyContent = Array.from(sharedContent.keys()).some(key => key.endsWith(`:${userId}`));
+  const hasAnyContent = Array.from(sharedContent.keys()).some((key) => key.endsWith(`:${userId}`));
   if (!hasAnyContent && persistenceStore) {
     await loadSharedContent(userId);
   }

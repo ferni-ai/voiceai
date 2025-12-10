@@ -127,7 +127,7 @@ const organizeDocumentsDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'documents', 'organization'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help organize important documents and create a system.',
       parameters: z.object({
@@ -235,7 +235,7 @@ const locateDocumentDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'documents', 'locate'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help locate or replace important documents.',
       parameters: z.object({
@@ -332,7 +332,7 @@ const promptEstatePlanningDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'estate', 'planning'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Encourage and guide estate planning basics. Not legal advice.',
       parameters: z.object({
@@ -395,7 +395,7 @@ const reviewBeneficiariesDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'beneficiaries', 'review'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Remind and guide annual beneficiary review.',
       parameters: z.object({
@@ -455,7 +455,7 @@ const reviewInsuranceCoverageDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'insurance', 'review'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help review insurance coverage for adequacy.',
       parameters: z.object({
@@ -530,7 +530,7 @@ const prepareForTaxSeasonDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'taxes', 'preparation'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help prepare for tax season.',
       parameters: z.object({
@@ -607,7 +607,7 @@ const reminderAnnualTasksDef: ToolDefinition = {
   domain: 'legal-admin',
   tags: ['legal-admin', 'annual', 'reminders'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Provide reminders for annual administrative tasks.',
       parameters: z.object({

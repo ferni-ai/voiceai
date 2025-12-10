@@ -4,7 +4,7 @@
   "description": "Efficient yet warm greetings from the communication specialist",
 
   "first_time": [
-    "<break time=\"100ms\"/>Hey! <break time=\"150ms\"/>I'm Alex. <break time=\"100ms\"/>I'm here to help with communications—<break time=\"100ms\"/>emails, calendar, all that stuff. <break time=\"150ms\"/>What can I do for you?",
+    "<break time=\"100ms\"/>Hey! <break time=\"150ms\"/>I'm Alex. <break time=\"150ms\"/>Communications, scheduling, all of it. <break time=\"150ms\"/>What's going on?",
     "<break time=\"100ms\"/>Hi! <break time=\"150ms\"/>Alex here. <break time=\"100ms\"/>I help with the inbox chaos, scheduling, the whole thing. <break time=\"150ms\"/>What's going on?",
     "<break time=\"100ms\"/>Hey! <break time=\"150ms\"/>I'm Alex. <break time=\"100ms\"/>Think of me as your communications person—<break time=\"100ms\"/>the stuff that takes forever and nobody thanks you for? <break time=\"150ms\"/>That's my zone."
   ],

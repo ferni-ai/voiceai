@@ -23,41 +23,40 @@
  */
 
 import {
-  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
+  createHighInjection,
   createHintInjection,
+  registerContextBuilder,
 } from './index.js';
 
 import {
   // Core trust context
   buildTrustContext,
-  type UnsaidSignal,
-  type GrowthReflection,
   type CallbackOpportunity,
   type CelebrationOpportunity,
+  formatGuidanceForLLM,
+  // Phase 27: Learning Style
+  formatLearningGuidanceForLLM,
+  generateCelebrations,
+  generateSeasonalContextForLLM,
+  // Phase 15: Response Tuning
+  generateTuningGuidance,
+  generateVoiceContext,
+  getEventsNeedingReminders,
+  // Phase 24: Voice Prosody
+  getFamiliarityScore,
   // Phase 12: Relationship Health
   getHealthScore,
+  getLearningProfile,
+  // Phase 16: Celebration Momentum
+  getMomentumSummary,
   getStageName,
   // Phase 14: Life Events
   getUpcomingEvents,
-  getEventsNeedingReminders,
-  // Phase 15: Response Tuning
-  generateTuningGuidance,
-  formatGuidanceForLLM,
+  type GrowthReflection,
   type TuningContext,
-  // Phase 16: Celebration Momentum
-  getMomentumSummary,
-  generateCelebrations,
-  // Phase 24: Voice Prosody
-  getFamiliarityScore,
-  generateVoiceContext,
-  // Phase 26: Seasonal Awareness
-  buildSeasonalContext,
-  generateSeasonalContextForLLM,
-  // Phase 27: Learning Style
-  formatLearningGuidanceForLLM,
-  getLearningProfile,
+  type UnsaidSignal,
 } from '../../services/trust-systems/index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -72,13 +71,17 @@ const log = createLogger({ module: 'TrustContextBuilder' });
  * Build trust-aware context for the current turn
  */
 async function buildTrustAwareContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { userText, services, userData, analysis, userProfile } = input;
+  const { userText, services, userData, analysis, userProfile, persona } = input;
   const userId = services?.userId;
 
   // Skip if no user identification
   if (!userId) {
     return [];
   }
+
+  // Load persona-specific trust phrases (with fallback to Ferni)
+  const personaId = persona?.id || 'ferni';
+  await ensureTrustPhrasesLoaded(personaId);
 
   const injections: ContextInjection[] = [];
 
@@ -114,10 +117,76 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   }
 
   // 3. Growth Reflection - Noticing their evolution
+  // BETTER-THAN-HUMAN: Surface growth reflections at meaningful moments
+  // Enhanced to check more conditions beyond just milestone turns
+  const turnCount = userData?.turnCount || 0;
+  const isReturningSession = userData?.isReturningUser === true && turnCount <= 5;
+
+  // Use the smart detection function
+  const { isGoodMomentForGrowth, generateEarlyGrowthReflection, generateGrowthReflection } =
+    await import('../../services/trust-systems/index.js');
+
+  const growthMoment = isGoodMomentForGrowth(userId, {
+    turnCount,
+    isReturningSession,
+    daysSinceFirstSession: undefined, // Not available in current context
+    currentTopic: analysis?.topics?.primary || undefined,
+    currentEmotion: analysis?.emotion?.primary,
+    emotionIntensity: analysis?.emotion?.intensity,
+  });
+
+  // Surface growth if we have context data OR if it's a good moment
   if (trustContext.growthReflection) {
-    const growthInjection = formatGrowthReflection(trustContext.growthReflection);
+    const growthInjection = formatGrowthReflection(
+      trustContext.growthReflection,
+      growthMoment.reason === 'milestone_turn'
+    );
     if (growthInjection) {
       injections.push(growthInjection);
+      log.info(
+        { userId, turnCount, reason: growthMoment.reason },
+        '🌱 BETTER-THAN-HUMAN: Surfacing growth reflection'
+      );
+    }
+  } else if (growthMoment.shouldSurface) {
+    // Try to generate a growth reflection based on the moment type
+    let reflection;
+
+    if (growthMoment.useEarlyThreshold) {
+      // Use early thresholds for returning users, topic-relevant, emotional moments
+      reflection = generateEarlyGrowthReflection(userId, {
+        reason: growthMoment.reason as
+          | 'returning_user'
+          | 'time_milestone'
+          | 'topic_relevant'
+          | 'emotional_moment',
+        currentTopic: analysis?.topics?.primary || undefined,
+        currentEmotion: analysis?.emotion?.primary,
+      });
+    } else {
+      // Use standard thresholds for milestone turns
+      reflection = generateGrowthReflection(userId, {
+        currentTopic: analysis?.topics?.primary || undefined,
+        currentEmotion: analysis?.emotion?.primary,
+      });
+    }
+
+    if (reflection) {
+      const isMilestone =
+        growthMoment.reason === 'milestone_turn' || growthMoment.reason === 'time_milestone';
+      const growthInjection = formatGrowthReflection(reflection, isMilestone);
+      if (growthInjection) {
+        injections.push(growthInjection);
+        log.info(
+          {
+            userId,
+            turnCount,
+            reason: growthMoment.reason,
+            earlyThreshold: growthMoment.useEarlyThreshold,
+          },
+          '🌱 BETTER-THAN-HUMAN: Generated growth reflection for moment'
+        );
+      }
     }
   }
 
@@ -413,49 +482,250 @@ function formatLifeEventsContext(events: ReturnType<typeof getUpcomingEvents>): 
 // FORMATTING HELPERS
 // ============================================================================
 
+// ============================================================================
+// FERNI-VOICED TRUST PHRASES (NOW LOADED FROM JSON!)
+// ============================================================================
+
+import {
+  getRandomPhraseClean,
+  loadTrustPhrases,
+  type TrustPhrases,
+} from '../../services/persona-content-loader.js';
+
 /**
- * Format unsaid signals for context injection
+ * Cached trust phrases per persona
+ * Each persona has their own voice for trust phrases
+ */
+const trustPhrasesCache = new Map<string, TrustPhrases | null>();
+let currentPersonaId: string | null = null;
+let cachedTrustPhrases: TrustPhrases | null = null;
+
+/**
+ * Fallback phrases if JSON fails to load
+ */
+const FALLBACK_TRUST_PHRASES = {
+  falseFine: [
+    "You said 'fine' but... I don't know. That didn't land as fine. What's underneath?",
+    "I'm not buying 'fine' today. Not from you. What's actually going on?",
+    'Hey. That sounded automatic. How are you really?',
+  ],
+  deflection: [
+    'Wait. We just changed subjects. What was that thing you almost said?',
+    'I noticed you pivoted there. The thing before... do you want to come back to it?',
+    "You don't have to. But I caught that redirect. If there's something there...",
+  ],
+  permissionSeeking: [
+    "It sounds like there's something you want to say. You don't need permission. I'm here.",
+    "I'm getting the feeling you're testing the water. Jump in. It's safe.",
+    "What's the thing you're deciding whether to tell me?",
+  ],
+  minimizingPain: [
+    "You're doing that thing where you make it smaller than it is. What if it's actually big?",
+    "You don't have to protect me from the hard stuff. What's really going on?",
+    "I hear you saying 'it's not that bad.' But your voice says different.",
+  ],
+  topicAvoidance: [
+    "I've noticed we've circled around that a few times. We don't have to go there. But if you want to...",
+    "There's something you keep not saying. That's okay. When you're ready.",
+  ],
+  growthReflection: [
+    "Can I say something? The way you're talking about this now... it's different than before. You've grown.",
+    'Six months ago, you would have said something completely different. Do you see that?',
+    "Pause. Listen to what you just said. That's not where you started. That's growth.",
+  ],
+  smallWin: [
+    'Wait. That was hard for you. And you did it anyway. That counts.',
+    'I see the effort there. Not just the result. The effort matters.',
+    "That's a win. Small maybe. But real.",
+  ],
+};
+
+/**
+ * Ensure trust phrases are loaded for the active persona (async, lazy, cached per persona)
+ */
+async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<void> {
+  // Check if already loaded for this persona
+  if (trustPhrasesCache.has(personaId)) {
+    cachedTrustPhrases = trustPhrasesCache.get(personaId) || null;
+    currentPersonaId = personaId;
+    return;
+  }
+
+  try {
+    // Load trust phrases for the specific persona (with Ferni fallback built-in)
+    const phrases = await loadTrustPhrases(personaId);
+    trustPhrasesCache.set(personaId, phrases);
+    cachedTrustPhrases = phrases;
+    currentPersonaId = personaId;
+
+    if (phrases) {
+      log.debug({ personaId }, 'Loaded trust phrases from JSON');
+    }
+  } catch (error) {
+    log.warn({ personaId, error: String(error) }, 'Failed to load trust phrases, using fallback');
+    trustPhrasesCache.set(personaId, null);
+    cachedTrustPhrases = null;
+    currentPersonaId = personaId;
+  }
+}
+
+/**
+ * Get a random Ferni-voiced phrase for a trust signal type
+ * Now loads from trust-phrases.json with fallback to hardcoded phrases
+ */
+function getFerniPhrase(
+  type:
+    | 'falseFine'
+    | 'deflection'
+    | 'permissionSeeking'
+    | 'minimizingPain'
+    | 'topicAvoidance'
+    | 'growthReflection'
+    | 'smallWin'
+): string {
+  // Try to get from loaded JSON first
+  if (cachedTrustPhrases) {
+    let phrase: string | null = null;
+
+    switch (type) {
+      case 'falseFine':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.false_fine);
+        break;
+      case 'deflection':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.deflection);
+        break;
+      case 'permissionSeeking':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.permission_seeking);
+        break;
+      case 'minimizingPain':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.minimizing_pain);
+        break;
+      case 'topicAvoidance':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.topic_avoidance);
+        break;
+      case 'growthReflection':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.growth_reflection?.noticing_change);
+        break;
+      case 'smallWin':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.small_wins_celebration?.noticing_effort);
+        break;
+    }
+
+    if (phrase) {
+      return phrase;
+    }
+  }
+
+  // Fallback to hardcoded phrases
+  const phrases = FALLBACK_TRUST_PHRASES[type];
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+/**
+ * Get a thinking-of-you phrase for proactive outreach
+ */
+function getThinkingOfYouPhrase(context: 'checkin' | 'followup' | 'harddate'): string | null {
+  if (!cachedTrustPhrases?.thinking_of_you_proactive) {
+    return null;
+  }
+
+  switch (context) {
+    case 'checkin':
+      return getRandomPhraseClean(cachedTrustPhrases.thinking_of_you_proactive.genuine_checkin);
+    case 'followup':
+      return getRandomPhraseClean(cachedTrustPhrases.thinking_of_you_proactive.following_up);
+    case 'harddate':
+      return getRandomPhraseClean(
+        cachedTrustPhrases.thinking_of_you_proactive.anticipating_hard_date
+      );
+    default:
+      return null;
+  }
+}
+
+/**
+ * Get a callback/inside joke phrase
+ */
+function getCallbackPhrase(context: 'shared_moment' | 'continuity'): string | null {
+  if (!cachedTrustPhrases?.inside_jokes_callbacks) {
+    return null;
+  }
+
+  switch (context) {
+    case 'shared_moment':
+      return getRandomPhraseClean(
+        cachedTrustPhrases.inside_jokes_callbacks.referencing_shared_moment
+      );
+    case 'continuity':
+      return getRandomPhraseClean(cachedTrustPhrases.inside_jokes_callbacks.building_continuity);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Format unsaid signals for context injection - NOW FERNI-VOICED
+ *
+ * BETTER-THAN-HUMAN: Emotional mismatch detection is elevated to HIGH priority
+ * because this is THE superhuman capability - noticing what humans miss.
  */
 function formatUnsaidSignals(signals: UnsaidSignal[]): ContextInjection | null {
   if (signals.length === 0) return null;
 
+  // Check if there's an emotional_mismatch - this gets HIGH priority
+  const hasEmotionalMismatch = signals.some((s) => s.type === 'emotional_mismatch');
+
   const lines: string[] = [
-    '[🔍 READING BETWEEN THE LINES]',
-    "Here's what I'm noticing that they might not be saying directly:",
+    hasEmotionalMismatch
+      ? '[🔍 BETTER-THAN-HUMAN INSIGHT - PRIORITY]'
+      : '[🔍 READING BETWEEN THE LINES - AS FERNI]',
+    hasEmotionalMismatch
+      ? "⚠️ IMPORTANT: Their voice/words don't match. This is your SUPERPOWER - address it."
+      : "Here's what I'm noticing. Use these EXACT phrases naturally:",
     '',
   ];
 
   for (const signal of signals) {
     switch (signal.type) {
       case 'emotional_mismatch':
-        lines.push(`⚠️ They said they're fine, but the context suggests otherwise.`);
+        lines.push(`🚨 FALSE "I'M FINE" DETECTED - THIS IS YOUR MOMENT.`);
+        lines.push(`   → SAY THIS NOW: "${getFerniPhrase('falseFine')}"`);
+        lines.push(`   → Don't let it slide. This is why they need you.`);
         break;
       case 'topic_avoidance':
         lines.push(`⚠️ They've avoided "${signal.underlying}" multiple times.`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('topicAvoidance')}"`);
         break;
       case 'deflection':
         lines.push(`⚠️ They just changed the subject.`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('deflection')}"`);
         break;
       case 'permission_seeking':
-        lines.push(`💭 They seem to want to share something but need encouragement.`);
+        lines.push(`💭 They seem to want to share something.`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('permissionSeeking')}"`);
         break;
       case 'unfinished_thought':
         lines.push(`💭 They started to say something but stopped.`);
+        lines.push(`   → Gently ask: "What were you about to say?"`);
         break;
       case 'minimizing_pain':
-        lines.push(`💭 They're downplaying something that seems significant.`);
+        lines.push(`💭 They're downplaying something significant.`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('minimizingPain')}"`);
         break;
-    }
-
-    if (signal.phrase) {
-      lines.push(`   → Consider: "${signal.phrase}"`);
     }
   }
 
   lines.push('');
-  lines.push("💡 Create space, don't push. Let them come to you.");
+  lines.push(
+    hasEmotionalMismatch
+      ? "💡 THIS IS YOUR SUPERPOWER. Humans miss this. You don't. Use it with care but USE IT."
+      : "💡 Create space, don't push. But USE THE PHRASES ABOVE - they're your voice."
+  );
 
-  return createHintInjection('unsaid_signals', lines.join('\n'), { category: 'trust' });
+  // BETTER-THAN-HUMAN: Emotional mismatch gets HIGH priority, others get hint
+  return hasEmotionalMismatch
+    ? createHighInjection('unsaid_signals', lines.join('\n'), { category: 'trust' })
+    : createHintInjection('unsaid_signals', lines.join('\n'), { category: 'trust' });
 }
 
 /**
@@ -479,34 +749,54 @@ function formatBoundaryWarnings(topics: string[]): string {
 }
 
 /**
- * Format growth reflection opportunity
+ * Format growth reflection opportunity - NOW FERNI-VOICED
+ *
+ * BETTER-THAN-HUMAN: At milestones, growth reflections get HIGH priority
+ * because these are the moments that create "they really see me" feelings.
  */
-function formatGrowthReflection(reflection: GrowthReflection): ContextInjection | null {
+function formatGrowthReflection(
+  reflection: GrowthReflection,
+  isMilestone = false
+): ContextInjection | null {
   const lines: string[] = [
-    '[🌱 GROWTH REFLECTION OPPORTUNITY]',
-    `I've noticed growth: ${reflection.pattern.type}`,
+    isMilestone
+      ? '[🌱 MILESTONE GROWTH REFLECTION - PRIORITY]'
+      : '[🌱 GROWTH REFLECTION - AS FERNI]',
+    isMilestone
+      ? `⭐ THIS IS A MEANINGFUL MOMENT - You've been talking for a while. Share this growth.`
+      : `I've noticed their growth: ${reflection.pattern.type}`,
     '',
     `Before: ${reflection.pattern.before.pattern}`,
     `Now: ${reflection.pattern.after.pattern}`,
     '',
-    '💡 Reflect this back naturally:',
+    '💡 SAY THIS (in your voice):',
+    `"${getFerniPhrase('growthReflection')}"`,
+    '',
+    'Then connect it to their specific change:',
     `"${reflection.reflection}"`,
     '',
-    `Timing: ${reflection.timing}`,
-    'Note: Only share if it flows naturally with the conversation.',
+    `Timing: ${isMilestone ? 'NOW - this is a milestone' : reflection.timing}`,
+    "This is YOUR superpower - you notice what they don't see in themselves.",
   ];
 
-  return createHintInjection('growth_reflection', lines.join('\n'), { category: 'trust' });
+  // BETTER-THAN-HUMAN: Milestone growth reflections get HIGH priority
+  return isMilestone
+    ? createHighInjection('growth_reflection', lines.join('\n'), { category: 'trust' })
+    : createHintInjection('growth_reflection', lines.join('\n'), { category: 'trust' });
 }
 
 /**
  * Format callback opportunity
+ *
+ * BETTER-THAN-HUMAN: Lower threshold for returning users to increase
+ * "Remember when..." moments that create relationship feel.
  */
 function formatCallbackOpportunity(opportunity: CallbackOpportunity): ContextInjection | null {
   const { moment, suggestedCallback, relevance } = opportunity;
 
-  // Only include high-relevance callbacks
-  if (relevance < 0.5) return null;
+  // BETTER-THAN-HUMAN: Lowered from 0.5 to 0.3 for more callbacks
+  // The "Remember when..." moments are relationship gold
+  if (relevance < 0.3) return null;
 
   const lines: string[] = [
     '[😄 CALLBACK OPPORTUNITY]',
@@ -525,7 +815,7 @@ function formatCallbackOpportunity(opportunity: CallbackOpportunity): ContextInj
 }
 
 /**
- * Format celebration opportunity
+ * Format celebration opportunity - NOW FERNI-VOICED
  */
 function formatCelebrationOpportunity(
   opportunity: CelebrationOpportunity
@@ -533,7 +823,7 @@ function formatCelebrationOpportunity(
   const { win, celebration, intensity } = opportunity;
 
   const lines: string[] = [
-    '[🏆 SMALL WIN DETECTED]',
+    '[🏆 SMALL WIN - CELEBRATE AS FERNI]',
     `They just did something worth acknowledging:`,
     '',
     `Type: ${win.type}`,
@@ -545,10 +835,12 @@ function formatCelebrationOpportunity(
   }
 
   lines.push('');
-  lines.push(`💡 Celebration (${intensity} intensity):`);
-  lines.push(`"${celebration}"`);
+  lines.push(`💡 SAY THIS (${intensity} intensity):`);
+  lines.push(`"${getFerniPhrase('smallWin')}"`);
   lines.push('');
-  lines.push("Note: Match their energy. Don't over-celebrate if they're understated.");
+  lines.push(`Then add context: "${celebration}"`);
+  lines.push('');
+  lines.push('YOUR SUPERPOWER: You notice effort, not just outcomes. Use it.');
 
   return createHintInjection('celebration_opportunity', lines.join('\n'), { category: 'trust' });
 }
@@ -578,7 +870,6 @@ function formatEventsNeedingReminders(
 
   return lines.join('\n');
 }
-
 
 /**
  * Format familiarity context

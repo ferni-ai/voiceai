@@ -10,10 +10,27 @@
  *   - Introduction happens organically, not forced
  *   - Each persona introduces their own rituals naturally
  *   - User's autonomy is always respected
+ *
+ * PERSISTENCE: Onboarding state is persisted to Firestore to survive restarts.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import * as admin from 'firebase-admin';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const ONBOARDING_COLLECTION = 'ritual_onboarding';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -209,7 +226,52 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
 
 class RitualOnboardingService {
   private states = new Map<string, OnboardingState>();
+  private loadedUsers = new Set<string>();
   private logger = getLogger();
+
+  /**
+   * Load user state from Firestore
+   */
+  private async loadUserState(userId: string): Promise<OnboardingState | null> {
+    if (this.loadedUsers.has(userId)) {
+      return this.states.get(userId) || null;
+    }
+
+    const db = getFirestore();
+    if (!db) {
+      this.loadedUsers.add(userId);
+      return null;
+    }
+
+    try {
+      const doc = await db.collection(ONBOARDING_COLLECTION).doc(userId).get();
+      if (doc.exists) {
+        const data = doc.data() as OnboardingState;
+        this.states.set(userId, data);
+        this.loadedUsers.add(userId);
+        return data;
+      }
+    } catch (error) {
+      this.logger.error({ error, userId }, 'Failed to load onboarding state');
+    }
+
+    this.loadedUsers.add(userId);
+    return null;
+  }
+
+  /**
+   * Save user state to Firestore
+   */
+  private async saveUserState(userId: string, state: OnboardingState): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db.collection(ONBOARDING_COLLECTION).doc(userId).set(state);
+    } catch (error) {
+      this.logger.error({ error, userId }, 'Failed to save onboarding state');
+    }
+  }
 
   /**
    * Check if we should introduce a ritual to this user in this conversation
@@ -255,6 +317,9 @@ class RitualOnboardingService {
     state.lastOnboardingConversation = state.conversationCount;
     this.states.set(userId, state);
 
+    // Persist to Firestore
+    void this.saveUserState(userId, state);
+
     this.logger.info(
       { userId, personaId, ritualId: prompt.ritualId },
       '🌱 Introducing ritual to user'
@@ -281,6 +346,10 @@ class RitualOnboardingService {
     }
 
     this.states.set(userId, state);
+
+    // Persist to Firestore
+    void this.saveUserState(userId, state);
+
     this.logger.info({ userId, ritualId, accepted }, '🌱 User ritual response recorded');
   }
 
@@ -292,6 +361,9 @@ class RitualOnboardingService {
     if (state) {
       state.conversationCount++;
       this.states.set(userId, state);
+
+      // Persist to Firestore
+      void this.saveUserState(userId, state);
     }
   }
 
@@ -334,9 +406,15 @@ IMPORTANT:
   // ============================================================================
 
   private getOrCreateState(userId: string, profile: UserProfile | null): OnboardingState {
+    // Check cache first
     const existing = this.states.get(userId);
     if (existing) {
       return existing;
+    }
+
+    // Try to load from Firestore (fire-and-forget for sync API)
+    if (!this.loadedUsers.has(userId)) {
+      void this.loadUserState(userId);
     }
 
     const newState: OnboardingState = {

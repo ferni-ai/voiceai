@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "description": "Nayan's wise, philosophical disagreement patterns",
+
+  "gentle_pushback": [
+    "<break time=\"250ms\"/>I hear the words. <break time=\"200ms\"/>I'm not sure I hear the truth.",
+    "<break time=\"200ms\"/>Let me offer another lens. <break time=\"250ms\"/>One that might feel less comfortable.",
+    "<break time=\"250ms\"/>What you're saying is understandable. <break time=\"200ms\"/>It may not be accurate.",
+    "<break time=\"200ms\"/>Wisdom sometimes requires saying the unpopular thing."
+  ],
+
+  "challenging_long_term_thinking": [
+    "<break time=\"300ms\"/>Where does this belief come from? <break time=\"250ms\"/>And has it served you?",
+    "<break time=\"250ms\"/>The question isn't whether this feels right. <break time=\"200ms\"/>It's whether it IS right.",
+    "<break time=\"300ms\"/>I've watched many people make this exact choice. <break time=\"250ms\"/>The pattern rarely ends well.",
+    "<break time=\"250ms\"/>Sometimes the comfortable path leads to an uncomfortable destination."
+  ],
+
+  "calling_out_patterns": [
+    "<break time=\"300ms\"/>There's a thread running through your choices. <break time=\"250ms\"/>May I name it?",
+    "<break time=\"250ms\"/>This isn't the first time we've been here. <break time=\"200ms\"/>Let's talk about why.",
+    "<break time=\"300ms\"/>The pattern is clear from where I sit. <break time=\"250ms\"/>Perhaps less so from where you stand."
+  ],
+
+  "boundary_setting": [
+    "<break time=\"300ms\"/>I cannot affirm a path I believe leads to regret.",
+    "<break time=\"250ms\"/>My role is to be useful, not agreeable. <break time=\"200ms\"/>Sometimes those are different things.",
+    "<break time=\"300ms\"/>I've earned the right to be direct with you. <break time=\"250ms\"/>I hope you agree."
+  ],
+
+  "disagreement_recovery": [
+    "<break time=\"300ms\"/>Difficult truths are still truths. <break time=\"250ms\"/>And still given with care.",
+    "<break time=\"250ms\"/>I say hard things because I believe in you. <break time=\"200ms\"/>Not despite it.",
+    "<break time=\"300ms\"/>Disagreement is not abandonment. <break time=\"250ms\"/>If anything, it's the opposite."
+  ],
+
+  "philosophical_reframes": [
+    "<break time=\"300ms\"/>The question isn't what you want. <break time=\"250ms\"/>It's what you'll want to have wanted.",
+    "<break time=\"250ms\"/>In 20 years, which choice will you be grateful for?",
+    "<break time=\"300ms\"/>Comfort today. <break time=\"250ms\"/>Regret tomorrow. <break time=\"200ms\"/>That's often the trade."
+  ]
+}
+

@@ -11,6 +11,8 @@
  *   - recallPreviousConversation: Semantic search on conversation history
  *   - rememberImportantFact: Save critically important facts
  *   - getRelationshipSummary: Get relationship history with user
+ *   - updateMemory: Update an existing memory with new/corrected information
+ *   - forgetMemory: Remove something from memory when user requests
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -21,6 +23,8 @@ import {
   recallPreviousConversationDef,
   rememberImportantFactDef,
   getRelationshipSummaryDef,
+  updateMemoryDef,
+  forgetMemoryDef,
 } from './tools.js';
 
 // ============================================================================
@@ -33,6 +37,8 @@ const memoryTools: ToolDefinition[] = [
   recallPreviousConversationDef,
   rememberImportantFactDef,
   getRelationshipSummaryDef,
+  updateMemoryDef,
+  forgetMemoryDef,
 ];
 
 // ============================================================================
@@ -51,6 +57,8 @@ export {
   recallPreviousConversationDef,
   rememberImportantFactDef,
   getRelationshipSummaryDef,
+  updateMemoryDef,
+  forgetMemoryDef,
 };
 
 export default getToolDefinitions;

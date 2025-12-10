@@ -97,7 +97,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
 
 const eventStore: OutreachEvent[] = [];
 const userAnalyticsCache = new Map<string, UserAnalytics>();
-const eventsLoaded = false;
+const _eventsLoaded = false; // Reserved for future lazy-loading optimization
 
 /**
  * Persist an outreach event to Firestore
@@ -275,7 +275,7 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics> {
 
   // Load events from Firestore if available, fall back to in-memory
   let userEvents = eventStore.filter((e) => e.userId === userId);
-  
+
   // If in-memory is empty, try loading from Firestore
   if (userEvents.length === 0) {
     const firestoreEvents = await loadUserEvents(userId);

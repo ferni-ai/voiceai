@@ -9,15 +9,17 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 import {
-  getHealthStatus,
-  getDashboardData,
-  getActiveAlerts,
   acknowledgeAlert,
-  getAllSystemMetrics,
-  getRecentMetrics,
   checkAlerts,
+  getActiveAlerts,
+  getAllSystemMetrics,
+  getDashboardData,
+  getHealthStatus,
+  getRecentMetrics,
 } from '../services/trust-systems/monitoring.js';
 
 const log = createLogger({ module: 'MonitoringRoutes' });
@@ -56,12 +58,17 @@ export async function handleMonitoringRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
   const method = req.method || 'GET';
   const query = parsedUrl.searchParams;
 
   try {
     // ========================================================================
-    // HEALTH CHECK
+    // HEALTH CHECK (public - for load balancers)
     // ========================================================================
 
     if (pathname === '/api/monitoring/health' && method === 'GET') {
@@ -69,6 +76,21 @@ export async function handleMonitoringRoutes(
       const status = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
       sendJson(res, status, health);
       return true;
+    }
+
+    // ========================================================================
+    // AUTH REQUIRED FOR ALL OTHER ROUTES
+    // ========================================================================
+
+    // Apply rate limiting
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+      return true;
+    }
+
+    // Require authentication for monitoring data
+    const auth = requireAuth(req, res, { allowDevMode: true });
+    if (!auth) {
+      return true; // 401 already sent
     }
 
     // ========================================================================

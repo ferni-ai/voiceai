@@ -7,36 +7,36 @@
  */
 
 import {
-  getOpinionAbout,
-  getHandoffWarmth,
-  getTeamSuggestion,
-  getCasualMention,
   generateHandoffSummary,
+  getCasualMention,
+  getHandoffWarmth,
+  getOpinionAbout,
+  getTeamSuggestion,
   type HandoffContext,
 } from './team-dynamics.js';
 
 import {
-  getDeepeningQuestion,
   getAcknowledgment,
+  getDeepeningQuestion,
   getNameUsage,
-  getStageGreeting,
   getStageClosing,
+  getStageGreeting,
   shouldSharePersonalStory,
 } from './relationship-building.js';
 
 import type { RelationshipStage } from '../../types/user-profile.js';
 
 import {
+  getMilestoneMessage,
   getTimeBasedGreeting,
   isMilestoneConversation,
-  getMilestoneMessage,
 } from './welcome-back.js';
 
 import {
-  type LifeEvent,
   findEventsToAcknowledge,
   generateEventAcknowledgment,
   getUpcomingEventMention,
+  type LifeEvent,
 } from './life-events.js';
 
 // ============================================================================
@@ -85,7 +85,7 @@ function simpleWelcomeBack(
   const name = userName ? `${userName}! ` : '';
 
   if (daysSinceLastContact === 0) {
-    return `${name}Back so soon! <break time=\"200ms\"/>What else can I help with?`;
+    return `${name}Back so soon! <break time=\"200ms\"/>What's going on?`;
   } else if (daysSinceLastContact === 1) {
     return `${name}Good to see you again! <break time=\"200ms\"/>How's it going?`;
   } else if (daysSinceLastContact <= 7) {

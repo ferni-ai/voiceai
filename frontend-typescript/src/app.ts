@@ -61,6 +61,8 @@ import { initSoundUI, soundUI } from './ui/sound.ui.js';
 import { initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Premium button & interactive effects
 import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
+// 📱 Mobile Delights - Magical mobile interactions (tilt, tap-to-look, haptics, etc.)
+import { initMobileDelights } from './ui/mobile-delights.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
@@ -89,23 +91,30 @@ import { initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Character expressions
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
 // Ferni Expressions - Character-level avatar expressions
-import { initFerniExpressions, ferniExpressions } from './ui/ferni-expressions.ui.js';
+import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
 import { enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
 // Logo Expressions - Animated logo that reacts to emotions
-import { initLogoExpressions, hookIntoAvatarFeedback as hookLogoFeedback } from './ui/logo-expressions.ui.js';
+import {
+  hookIntoAvatarFeedback as hookLogoFeedback,
+  initLogoExpressions,
+} from './ui/logo-expressions.ui.js';
 // Celebration Service - Triggers milestone celebrations
 import { initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
 import { initFerniEQ } from './ui/better-than-human.ui.js';
+// Avatar Soul - Pixar-quality "Better Than Human" visual animation system
+import { avatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
+// Avatar Lamp - Luxo Jr. level body language animation
+import { avatarLamp, initAvatarLamp } from './ui/avatar-lamp.ui.js';
 // Speech Event Dispatcher - Critical foundation for Ferni EQ
 import {
-  initSpeechEventDispatcher,
-  dispatchUserSpeechStart,
-  dispatchUserSpeechEnd,
-  dispatchAgentSpeechStart,
   dispatchAgentSpeechEnd,
+  dispatchAgentSpeechStart,
   dispatchThinking,
+  dispatchUserSpeechEnd,
+  dispatchUserSpeechStart,
+  initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { initMoodContext } from './services/mood-context.service.js';
@@ -141,13 +150,10 @@ import {
   showProgressPanel as showRelationshipProgress,
 } from './ui/relationship-progress.ui.js';
 // Trust Journey UI - "Better Than Human" relationship visualization
-import {
-  initTrustJourneyUI,
-  showTrustJourney,
-} from './ui/trust-journey.ui.js';
+import { initTrustJourneyUI, showTrustJourney } from './ui/trust-journey.ui.js';
 // Music Dashboard UI - "Musical You" insights
-import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { showGamePicker } from './ui/game-picker.ui.js';
+import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
@@ -162,16 +168,31 @@ import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Settings UI
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
 // Voice Enrollment UI
-import {
-  initVoiceEnrollmentUI,
-  showVoiceEnrollmentModal,
-} from './ui/voice-enrollment.ui.js';
+import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
+// Speaker Change Indicator - Gentle verification when voice changes
+import { initSpeakerChangeIndicator } from './ui/speaker-change-indicator.ui.js';
+// Household Manager - Multi-user voice household management
+import { initHouseholdManager, showHouseholdManager } from './ui/household-manager.ui.js';
+// Conversation Memory Browser - Browse past conversations and memories
+import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
+// Wellbeing Dashboard - "State of Me" visualization
+import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications
 import { toast } from './ui/toast.ui.js';
+// Subscription UI - human-centered monetization
+import {
+  initSubscriptionUI,
+  loadStatus as loadSubscriptionStatus,
+  showLimitReachedModal,
+  showUpgradeModal,
+  showUsageIndicator,
+} from './ui/subscription.ui.js';
+// Subscription Badge - subtle status indicator in header
+import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -208,7 +229,10 @@ if (import.meta.env.DEV) {
 import { initDevPanel } from './ui/dev-panel.ui.js';
 
 // 🎚️ Music Audio Controller - Real-time ducking via Web Audio API
-import { getMusicAudioController, resetMusicAudioController } from './services/music-audio.controller.js';
+import {
+  getMusicAudioController,
+  resetMusicAudioController,
+} from './services/music-audio.controller.js';
 
 // 🌟 Living Favicon - Ferni's presence in the browser tab
 import { initFaviconManager } from './ui/favicon-manager.ui.js';
@@ -326,9 +350,36 @@ class VoiceAIApp {
 
   /**
    * Connect to the AI advisor with timeout handling.
+   *
+   * Philosophy: Gating should feel like natural breaks, not walls.
+   * We check subscription limits but present them warmly.
    */
   async connect(): Promise<void> {
     const persona = appState.get('selectedPersona');
+
+    // Check subscription limits FIRST (before any audio context setup)
+    // This ensures we don't waste user's permission tap if they're at limit
+    const subscriptionCheck = await this.checkSubscriptionBeforeConnect();
+    if (!subscriptionCheck.allowed) {
+      return; // Modal already shown by checkSubscriptionBeforeConnect
+    }
+
+    // Show gentle reminder if approaching limit (but still allow)
+    if (subscriptionCheck.approaching && subscriptionCheck.remaining !== null) {
+      // Don't block - just show a subtle indicator after connecting
+      setTimeout(() => {
+        showUsageIndicator();
+        // Also show a warm toast message
+        const remaining = subscriptionCheck.remaining;
+        if (remaining !== null) {
+          if (remaining <= 1) {
+            toast.info("This is your last conversation this month. Let's make it count! 💚");
+          } else if (remaining <= 2) {
+            toast.info(`${remaining} conversations left. I'm here whenever you need me.`);
+          }
+        }
+      }, 3000);
+    }
 
     // Show immediate feedback - user tapped the button
     messageUI.show('Getting ready...', 'info', 30000);
@@ -506,8 +557,74 @@ class VoiceAIApp {
 
   /**
    * Disconnect from the AI advisor.
+   *
+   * If we're in wrap-up mode (agent said goodbye), performs a warm ceremony:
+   * 1. Play warm goodbye sound
+   * 2. Avatar settling animation
+   * 3. Brief pause to appreciate the moment
+   * 4. Then graceful disconnect
+   *
+   * Otherwise, performs immediate disconnect with standard sound.
    */
   async disconnect(): Promise<void> {
+    const isWrappingUp = appState.get('isWrappingUp');
+
+    // 🌅 GOODBYE CEREMONY - When agent has said goodbye, make it magical
+    if (isWrappingUp) {
+      await this.performGoodbyeCeremony();
+    } else {
+      // Standard disconnect (abrupt end - user didn't say goodbye)
+      await this.performStandardDisconnect();
+    }
+  }
+
+  /**
+   * 🌅 Perform the magical goodbye ceremony.
+   *
+   * This is the "Better than Human" moment - making goodbye feel meaningful.
+   * Per sonic identity: "That was meaningful" feeling.
+   */
+  private async performGoodbyeCeremony(): Promise<void> {
+    log.info('🌅 Beginning goodbye ceremony');
+
+    // Step 1: Update button to show ceremony is happening
+    controlsUI.showClosingState();
+
+    // Step 2: Play warm goodbye sound (resolving chord progression)
+    // This sound is 2s and sets the emotional tone
+    soundUI.play('goodbye');
+
+    // Step 3: Gentle haptic for the farewell moment
+    delightService.haptic('medium');
+
+    // Step 4: Avatar settling animation - peaceful close
+    // This runs alongside the sound for 1.5s
+    const settlingPromise = presenceUI.settling();
+
+    // Step 5: Wait for both sound and animation
+    // Sound is ~2s, settling is ~1.5s - we wait for settling then add a pause
+    await settlingPromise;
+
+    // Step 6: Brief pause to appreciate the moment (the goodbye "hangs")
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    // Step 7: Satisfying phone "click" at the moment of disconnect
+    // Like gently placing down a receiver - tactile finality
+    soundUI.play('hangup');
+    delightService.haptic('light'); // Subtle haptic for the click
+
+    // Step 8: Now perform the actual disconnect (gracefully)
+    await this.performStandardDisconnect(true); // true = skip disconnect sound
+
+    log.info('🌅 Goodbye ceremony complete');
+  }
+
+  /**
+   * Standard disconnect sequence.
+   *
+   * @param skipSound - If true, doesn't play disconnect sound (ceremony already played goodbye)
+   */
+  private async performStandardDisconnect(skipSound = false): Promise<void> {
     // Stop waveform visualization
     waveformUI.stop();
 
@@ -532,6 +649,9 @@ class VoiceAIApp {
     // 📝 End conversation tracking and persist
     await conversationTracker.endSession();
 
+    // 💰 Record conversation usage for subscription tracking
+    await this.recordConversationUsage();
+
     // Pause Spotify if playing
     await spotifyService.pause();
 
@@ -541,8 +661,10 @@ class VoiceAIApp {
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
 
-    // Play disconnect sound (soundUI only - has debouncing for mobile)
-    soundUI.play('disconnect');
+    // Play disconnect sound (unless ceremony already played goodbye sound)
+    if (!skipSound) {
+      soundUI.play('disconnect');
+    }
 
     // Reset audio state
     setAudioState('idle');
@@ -587,13 +709,16 @@ class VoiceAIApp {
 
     // Check for legacy admin route (backwards compatibility)
     const useLegacyAdmin = window.location.search.includes('legacy');
-    
+
     if (useLegacyAdmin) {
       // Legacy admin dashboard (for backward compatibility)
       const appContent = document.getElementById('app') || document.body;
+      // Set body to allow scrolling for admin dashboard
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
       appContent.innerHTML = `
-        <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem;">
+        <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff; overflow-y: auto; padding-bottom: 2rem;"></div>
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem; z-index: 1000;">
           ← Back to App
         </a>
       `;
@@ -766,6 +891,24 @@ class VoiceAIApp {
     this.safeInit('EasterEggsUI', () => initEasterEggsUI());
     this.safeInit('MoodUI', () => initMoodUI());
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
+    // 📱 Mobile Delights - Tilt parallax, tap-to-look, haptics, pull-to-connect, immersive mode
+    this.safeInit('MobileDelights', () =>
+      initMobileDelights({
+        onConnectRequest: () => {
+          // Trigger connection when user pulls down on avatar
+          if (appState.get('connection') === 'disconnected') {
+            void this.connect();
+          }
+        },
+        onPersonaSwipe: (direction) => {
+          // Integrated with gestures - persona switching handled there
+          const persona =
+            direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
+          this.selectPersona(persona);
+          soundUI.play('switch');
+        },
+      })
+    );
     // Disabled: Eye peek-throughs removed - keeping just the zen blink
     // this.safeInit('FerniEye', () => initFerniEye());
     // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
@@ -784,45 +927,45 @@ class VoiceAIApp {
       initFerniExpressions();
       // Creates lid overlay for eye expressions, sparkles, dramatic morphs
     });
-    
+
     // 🔗 Emotion ↔ Expression Bridge - Auto-triggers expressions on emotion changes
     this.safeInit('EmotionExpressionBridge', () => {
       enableEmotionExpressionBridge();
       // Automatically maps emotion state changes to ferni expressions
     });
-    
+
     // 🎨 Logo Expressions - Animated logo that reacts to emotions
     this.safeInit('LogoExpressions', () => {
       initLogoExpressions();
       hookLogoFeedback();
       // Logo will react to avatar emotion events
     });
-    
+
     // 🎉 Celebration Service - Triggers milestone celebrations
     this.safeInit('CelebrationService', () => {
       initCelebrationService();
       // Now you can call: celebrationService.smallWin(), .bigWin(), etc.
     });
-    
+
     // 🎤 Speech Event Dispatcher - Foundation for Ferni EQ (MUST be before FerniEQ)
     this.safeInit('SpeechEventDispatcher', () => {
       initSpeechEventDispatcher();
       // Dispatches: ferni:user-speech-start/end/pause, ferni:agent-speech-start/end
     });
-    
+
     // 🚀 Ferni EQ - Superhuman emotional intelligence ("Better than Human")
     this.safeInit('FerniEQ', () => {
       initFerniEQ();
       // Micro-expressions, breath sync, active listening, concern detection
-      
+
       // Set up gentle check-in handler for significant concern detection
       document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
         const { level, triggers } = e.detail || {};
         log.info('🚀 Ferni EQ gentle check-in triggered', { level, triggers });
-        
+
         // Show visual acknowledgment that Ferni noticed
         avatarFeedback.react('empathy');
-        
+
         // Optional: Show a subtle message to indicate Ferni cares
         // We don't want to be intrusive, just present
         if (level === 'significant') {
@@ -830,7 +973,31 @@ class VoiceAIApp {
         }
       }) as EventListener);
     });
-    
+
+    // ✨ Avatar Soul - Pixar-quality "Better Than Human" visual animations
+    this.safeInit('AvatarSoul', () => {
+      initAvatarSoul();
+      // Glow bleeding, anticipation shimmer, memory spark, comfort pulse
+      // Energy matching, relationship warmth, growth celebration, protective mode
+
+      // Wire up to track conversation interactions for relationship warmth
+      document.addEventListener('ferni:conversation-turn', () => {
+        avatarSoul.recordInteraction(0.5);
+      });
+    });
+
+    // 🎬 Avatar Lamp - Luxo Jr. level body language (bounce, tilt, nod, etc.)
+    this.safeInit('AvatarLamp', () => {
+      initAvatarLamp();
+      // Breathing idle animation, bouncing, tilting, nodding
+      // Perk up, shrink, shake - pure body language expression
+
+      // Expose to window for dev panel testing
+      if (typeof window !== 'undefined') {
+        (window as unknown as Record<string, unknown>).__avatarLamp = avatarLamp;
+      }
+    });
+
     // 🌅 Mood Context - Time-based persona mood
     this.safeInit('MoodContext', () => {
       initMoodContext();
@@ -838,7 +1005,7 @@ class VoiceAIApp {
       // Sets energy modifier for animations
       // Handles special dates like tsunami anniversary
     });
-    
+
     // 🎬 Animation Orchestrator - Character-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
 
@@ -968,11 +1135,30 @@ class VoiceAIApp {
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     this.safeInit('TrustJourneyUI', () => initTrustJourneyUI());
 
+    // 💰 Subscription UI - Human-centered monetization
+    // Philosophy: "Limits feel like natural breaks, not walls."
+    this.safeInit('SubscriptionUI', () => initSubscriptionUI());
+
+    // 💰 Subscription Badge - Subtle status indicator in header
+    this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
+
     // 🔊 Voice Enrollment UI - Learn user's voice
     this.safeInit('VoiceEnrollmentUI', () => initVoiceEnrollmentUI());
 
     // 🎤 Voice ID Badge - Show enrollment status on avatar
     this.safeInit('VoiceIdBadge', () => initVoiceIdBadge());
+
+    // 👥 Speaker Change Indicator - Gentle verification when voice changes
+    this.safeInit('SpeakerChangeIndicator', () => initSpeakerChangeIndicator());
+
+    // 🏠 Household Manager - Multi-user voice household management
+    this.safeInit('HouseholdManager', () => initHouseholdManager());
+
+    // 💭 Conversation Memory - Browse past conversations and memories
+    this.safeInit('ConversationMemory', () => initConversationMemory());
+
+    // 🌈 Wellbeing Dashboard - "State of Me" visualization
+    this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
 
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {
@@ -996,6 +1182,11 @@ class VoiceAIApp {
         onContactSettingsClick: () => void openContactSettings(),
         onCalendarSettingsClick: () => void openCalendarSettings(),
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
+        onSubscriptionClick: () => showUpgradeModal(),
+        onBillingPortalClick: () => void this.openBillingPortal(),
+        onHouseholdClick: () => void showHouseholdManager(),
+        onConversationMemoryClick: () => void showConversationMemory(),
+        onWellbeingClick: () => void showWellbeingDashboard(),
       });
 
       // Wire up Spotify state changes to menu
@@ -1124,15 +1315,18 @@ class VoiceAIApp {
         // Show subtle feedback
         messageUI.show('Refreshing...', 'info');
         // Try to sync with backend
-        void relationshipStageService.loadFromBackend().then((synced) => {
-          if (synced) {
-            messageUI.show('Synced with cloud', 'success');
-          } else {
-            messageUI.show('You\'re up to date', 'success');
-          }
-        }).catch(() => {
-          messageUI.show('Couldn\'t sync', 'info');
-        });
+        void relationshipStageService
+          .loadFromBackend()
+          .then((synced) => {
+            if (synced) {
+              messageUI.show('Synced with cloud', 'success');
+            } else {
+              messageUI.show("You're up to date", 'success');
+            }
+          })
+          .catch(() => {
+            messageUI.show("Couldn't sync", 'info');
+          });
       },
       onMenuClose: () => {
         // Swipe-to-close settings menu
@@ -1238,22 +1432,22 @@ class VoiceAIApp {
    */
   private async loadEngagementData(): Promise<void> {
     const userId = localStorage.getItem('ferni_user_id');
-    
+
     // Try API first
     if (userId) {
       try {
         const data = await engagementService.fetchEngagementData(userId);
         if (data && (data.ritualStreaks.length > 0 || data.weatherHistory.length > 0)) {
-          log.info('Loaded engagement data from API', { 
+          log.info('Loaded engagement data from API', {
             streaks: data.ritualStreaks.length,
             weather: data.weatherHistory.length,
           });
           getEngagementUI().update(data);
-          
+
           // Update badges from real data
           const dueCount = data.ritualStreaks.filter((s) => s.dueToday).length;
           engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
-          
+
           disableDemoData();
           return;
         }
@@ -1261,12 +1455,12 @@ class VoiceAIApp {
         log.warn('Failed to load engagement data from API', err);
       }
     }
-    
+
     // Fall back to demo data in development only
     if (shouldUseDemoData()) {
       log.debug('No API data available - loading demo data (development mode)');
       enableDemoData();
-      
+
       const demoData = getDemoEngagementData();
       getEngagementUI().update(demoData);
 
@@ -1337,6 +1531,135 @@ class VoiceAIApp {
     setTimeout(() => {
       badge.classList.add('visible');
     }, 1000);
+  }
+
+  /**
+   * Open the Stripe billing portal for managing subscription.
+   * Allows users to update payment method, view invoices, cancel, etc.
+   */
+  private async openBillingPortal(): Promise<void> {
+    const deviceId = appState.get('deviceId');
+    if (!deviceId) {
+      toast.error('Please connect first to manage your subscription.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/subscription/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: deviceId,
+          returnUrl: window.location.href,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.url) {
+        // Redirect to Stripe billing portal
+        window.location.href = result.url;
+      } else if (result.error === 'Stripe is not configured') {
+        // Dev mode - show friendly message
+        toast.info('Billing portal is available in production.');
+      } else if (result.error === 'User does not have a Stripe customer ID') {
+        // User hasn't subscribed yet
+        showUpgradeModal('Upgrade to access billing management.');
+      } else {
+        toast.error('Unable to open billing portal. Please try again.');
+      }
+    } catch (error) {
+      log.error('Billing portal failed:', error);
+      toast.error('Something went wrong. Please try again.');
+    }
+  }
+
+  /**
+   * Record conversation usage for subscription tracking.
+   * Called after each conversation ends.
+   */
+  private async recordConversationUsage(): Promise<void> {
+    const deviceId = appState.get('deviceId');
+    if (!deviceId) return;
+
+    // Calculate session duration from stats
+    const stats = statsUI.getStats();
+    const startTime = stats?.startTime;
+    const durationMs = startTime ? Date.now() - startTime : 0;
+    const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
+
+    try {
+      const response = await fetch('/subscription/record-conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: deviceId,
+          minutesTalked,
+        }),
+      });
+
+      if (response.ok) {
+        log.debug('Conversation usage recorded');
+        // Refresh subscription badge to show updated count
+        void subscriptionBadgeUI.refresh();
+      }
+    } catch (error) {
+      // Silent fail - don't interrupt user experience for tracking
+      log.warn('Failed to record conversation usage:', error);
+    }
+  }
+
+  /**
+   * Check subscription status before connecting.
+   *
+   * Philosophy: "Limits feel like natural breaks, not walls."
+   * - At limit → Show warm modal, block connection
+   * - Approaching limit → Allow, but track for subtle reminder
+   * - OK → Proceed normally
+   */
+  private async checkSubscriptionBeforeConnect(): Promise<{
+    allowed: boolean;
+    approaching: boolean;
+    remaining: number | null;
+  }> {
+    try {
+      // Load fresh status
+      const status = await loadSubscriptionStatus();
+
+      if (!status) {
+        // No status = assume OK (new user or Stripe not configured)
+        return { allowed: true, approaching: false, remaining: null };
+      }
+
+      // Check if at limit - canStartConversation is nested in usage
+      const canStart = status.usage?.canStartConversation ?? status.canStartConversation ?? true;
+      if (!canStart) {
+        // Show the warm limit modal
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        nextMonth.setDate(1);
+
+        showLimitReachedModal(
+          status.usage?.statusMessage ||
+            status.upgradePrompt ||
+            "We've reached our monthly limit. I'd love to keep talking...",
+          nextMonth.toISOString()
+        );
+
+        return { allowed: false, approaching: false, remaining: 0 };
+      }
+
+      // Check if approaching limit (80%+ used) - check nested structure
+      const approaching = status.usage?.approachingLimit ?? status.approaching ?? false;
+      const remaining =
+        status.usage?.conversationsRemaining ?? status.conversationsRemaining ?? null;
+
+      return { allowed: true, approaching, remaining };
+    } catch (error) {
+      log.warn('Could not check subscription status:', error);
+      // On error, allow connection (fail open for better UX)
+      return { allowed: true, approaching: false, remaining: null };
+    }
   }
 
   /**
@@ -1418,7 +1741,7 @@ class VoiceAIApp {
         // Avatar reaction
         presenceUI.bounce();
         soundUI.play('success');
-        
+
         // 🎬 Expression: Excited greeting expression
         ferniExpressions.heldPose('happy', 400);
       },
@@ -1426,7 +1749,7 @@ class VoiceAIApp {
       onAgentDisconnected: () => {
         messageUI.show('See you next time!', 'info', 2000);
         presenceUI.setSpeaking(false);
-        
+
         // 🎬 Expression: Warm farewell expression (soft, lingering)
         ferniExpressions.setExpression('empathetic', 400, 2000);
       },
@@ -1446,10 +1769,10 @@ class VoiceAIApp {
         presenceUI.setSpeaking(true);
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
-        
+
         // 🎚️ Duck music when agent is speaking
         getMusicAudioController().duckForAgent();
-        
+
         // 🚀 Ferni EQ: Dispatch agent speech start
         dispatchAgentSpeechStart();
       },
@@ -1461,14 +1784,14 @@ class VoiceAIApp {
         setAudioState('listening');
         // Now we're listening for user input
         waveformUI.setListening(true);
-        
+
         // 🎚️ Unduck music when agent stops speaking
         getMusicAudioController().unduckForAgent();
-        
+
         // 🚀 Ferni EQ: Dispatch agent speech end
         dispatchAgentSpeechEnd();
       },
-      
+
       // 🎚️ Music track detected - attach for ducking control
       onMusicTrack: (audioElement, trackId) => {
         log.info('🎚️ Music track detected, attaching for ducking', { trackId });
@@ -1482,7 +1805,7 @@ class VoiceAIApp {
           }
         })();
       },
-      
+
       // 🎚️ Music track ended
       onMusicTrackEnd: (trackId) => {
         log.debug('🎚️ Music track ended', { trackId });
@@ -1493,7 +1816,7 @@ class VoiceAIApp {
         // When user's mic is active, show listening state
         waveformUI.setListening(isActive);
         presenceUI.setListening(isActive);
-        
+
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();
         if (isActive) {
@@ -1530,7 +1853,7 @@ class VoiceAIApp {
       log.debug('onHandoffStart:', { toPersona });
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
-      
+
       // 🎬 Expression: Curious "thinking" expression during handoff
       ferniExpressions.contemplation(1500);
 
@@ -1568,7 +1891,7 @@ class VoiceAIApp {
 
       // End shimmer, return to normal
       waveformUI.setTransitioning(false);
-      
+
       // 🎬 Expression: New persona arrives with excited greeting
       ferniExpressions.heldPose('happy', 500);
 
@@ -1806,7 +2129,7 @@ class VoiceAIApp {
     // Dispose services
     audioService.dispose();
     spotifyService.dispose();
-    
+
     // 🎚️ Clean up music audio controller
     resetMusicAudioController();
 

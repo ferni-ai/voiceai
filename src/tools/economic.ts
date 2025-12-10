@@ -8,12 +8,14 @@
  * - FRED (Federal Reserve Economic Data) - free, no key required for basic access
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { getLogger } from '../utils/safe-logger.js';
 
 // FRED API key - get a free key at https://fred.stlouisfed.org/docs/api/api_key.html
-const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO';
+// SECURITY: 'DEMO' key only in development - production requires real API key
+const FRED_API_KEY =
+  process.env.FRED_API_KEY || (process.env.NODE_ENV !== 'production' ? 'DEMO' : '');
 
 // ============================================================================
 // FRED API HELPERS

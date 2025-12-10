@@ -350,7 +350,7 @@ export interface ToolDefinition {
   category?: ToolCategory;
 
   /** Factory function to create the tool instance */
-  create: (ctx: ToolContext) => Tool;
+  create: (_ctx: ToolContext) => Tool;
 
   /** External services required by this tool */
   requiredServices?: ExternalService[];

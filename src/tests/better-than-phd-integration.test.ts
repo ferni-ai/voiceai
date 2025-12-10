@@ -11,7 +11,7 @@
  * 4. Performance meets requirements
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('Better-Than-PhD Integration', () => {
   describe('Context Builder Pipeline', () => {
@@ -47,8 +47,9 @@ describe('Better-Than-PhD Integration', () => {
       expect(builders.length).toBeGreaterThan(0);
 
       // Check that key builders exist
+      // Note: 'cognitive-distortions' was renamed to 'cognitive-insights'
       const builderNames = builders.map((b) => b.name);
-      expect(builderNames).toContain('cognitive-distortions');
+      expect(builderNames).toContain('cognitive-insights');
       expect(builderNames).toContain('somatic-context');
       expect(builderNames).toContain('wellbeing-context');
       expect(builderNames).toContain('therapeutic-frameworks');

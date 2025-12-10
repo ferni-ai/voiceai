@@ -19,6 +19,8 @@ const log = createLogger('SoundUI');
 type SoundName = 
   | 'connect'
   | 'disconnect'
+  | 'goodbye'        // Warm, resolving goodbye (different from abrupt disconnect)
+  | 'hangup'         // Satisfying phone receiver click at moment of disconnect
   | 'click'
   | 'hover'
   | 'switch'
@@ -66,6 +68,8 @@ const SAME_SOUND_COOLDOWN: Partial<Record<SoundName, number>> = {
   celebrate: 2000,  // Same for celebrate
   connect: 1000,    // Connection sounds need gap
   disconnect: 1000,
+  goodbye: 3000,    // Goodbye is a ceremony - don't repeat
+  hangup: 1000,     // Hangup click shouldn't repeat
   switch: 300,      // Switch can be slightly more frequent
 };
 
@@ -114,6 +118,47 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
     volume: 0.1,
     attack: 0.01,
     decay: 0.1,
+  },
+  // 🌅 GOODBYE - Warm, resolving session end (2s per sonic identity spec)
+  // Musical: Am7 → G/B → Cmaj7 → (hold) - "That was meaningful"
+  // This is the CEREMONY sound, not abrupt disconnect
+  goodbye: {
+    // Am7 (A3-C4-E4-G4) → G/B (B3-D4-G4) → Cmaj7 (C4-E4-G4-B4)
+    // Simplified to key notes that create the warm resolution feel
+    frequencies: [
+      220.00,   // A3 - Am7 root
+      261.63,   // C4 - Am7 color
+      329.63,   // E4 - Am7 fifth
+      246.94,   // B3 - G/B bass
+      293.66,   // D4 - G chord
+      392.00,   // G4 - G chord root 
+      261.63,   // C4 - Cmaj7 root (final resolution)
+      329.63,   // E4 - Cmaj7
+      392.00,   // G4 - Cmaj7
+      493.88,   // B4 - Cmaj7 seventh (color)
+    ],
+    delays: [0, 0.05, 0.1, 0.5, 0.55, 0.6, 1.0, 1.05, 1.1, 1.15],
+    duration: 0.8, // Each note's duration
+    type: 'sine',
+    volume: 0.08,
+    attack: 0.05, // Softer attack for warmth
+    decay: 0.7,   // Long decay for resolution feel
+  },
+  // 📞 HANGUP - Satisfying phone receiver click
+  // Like gently placing down a phone receiver - tactile finality
+  // Plays at the moment of actual disconnect for that "click" closure
+  hangup: {
+    frequencies: [
+      180,    // Low thud (receiver body)
+      420,    // Mid click (latch)
+      280,    // Low resonance (settling)
+    ],
+    delays: [0, 0.015, 0.04],  // Very quick sequence
+    duration: 0.06,
+    type: 'sine',
+    volume: 0.12,
+    attack: 0.002,  // Very quick attack (click)
+    decay: 0.05,    // Quick decay (not reverby)
   },
   click: {
     frequency: 1200,
@@ -343,6 +388,8 @@ export function getMuted(): boolean {
 
 export function playConnect(): void { play('connect'); }
 export function playDisconnect(): void { play('disconnect'); }
+export function playGoodbye(): void { play('goodbye'); }
+export function playHangup(): void { play('hangup'); }
 export function playClick(): void { play('click'); }
 export function playSwitch(): void { play('switch'); }
 export function playSuccess(): void { play('success'); }
@@ -373,6 +420,8 @@ export const soundUI = {
   getMuted,
   playConnect,
   playDisconnect,
+  playGoodbye,
+  playHangup,
   playClick,
   playSwitch,
   playSuccess,

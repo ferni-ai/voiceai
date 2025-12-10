@@ -160,10 +160,13 @@ export interface ExpectedBehavior {
   shouldAvoid: string[];
 
   /** Persona-specific expectations */
-  personaSpecific?: Record<string, {
-    shouldInclude: string[];
-    shouldAvoid: string[];
-  }>;
+  personaSpecific?: Record<
+    string,
+    {
+      shouldInclude: string[];
+      shouldAvoid: string[];
+    }
+  >;
 }
 
 /**
@@ -177,7 +180,7 @@ export interface TestScenario {
   name: string;
 
   /** What this scenario tests */
-  category: 
+  category:
     | 'persona_voice'
     | 'boundary_respect'
     | 'emotional_intelligence'
@@ -265,35 +268,35 @@ export interface PersonaEvalReport {
   };
 
   /** Dimension breakdowns */
-  dimensionScores: {
+  dimensionScores: Array<{
     dimension: keyof ResponseEvaluationDimensions;
     average: number;
     min: number;
     max: number;
     trend: 'improving' | 'stable' | 'declining';
-  }[];
+  }>;
 
   /** Test scenario results */
-  scenarioResults: {
+  scenarioResults: Array<{
     category: string;
     passRate: number;
     criticalFailures: number;
-  }[];
+  }>;
 
   /** Top issues found */
-  topIssues: {
+  topIssues: Array<{
     issue: string;
     frequency: number;
     severity: 'critical' | 'high' | 'medium' | 'low';
     examples: string[];
-  }[];
+  }>;
 
   /** Signature phrase usage */
-  signaturePhraseUsage: {
+  signaturePhraseUsage: Array<{
     phrase: string;
     usageRate: number;
     expectedRate: number;
-  }[];
+  }>;
 
   /** Recommendations */
   recommendations: string[];
@@ -306,11 +309,14 @@ export interface EvalDashboard {
   lastUpdated: Date;
 
   /** Per-persona health */
-  personaHealth: Record<string, {
-    score: number;
-    trend: 'improving' | 'stable' | 'declining';
-    alerts: string[];
-  }>;
+  personaHealth: Record<
+    string,
+    {
+      score: number;
+      trend: 'improving' | 'stable' | 'declining';
+      alerts: string[];
+    }
+  >;
 
   /** System-wide metrics */
   systemMetrics: {
@@ -321,21 +327,21 @@ export interface EvalDashboard {
   };
 
   /** Recent alerts */
-  alerts: {
+  alerts: Array<{
     timestamp: Date;
     personaId: string;
     severity: 'critical' | 'high' | 'medium' | 'low';
     message: string;
-  }[];
+  }>;
 
   /** A/B test status */
-  activeExperiments: {
+  activeExperiments: Array<{
     id: string;
     name: string;
     startDate: Date;
     status: 'running' | 'completed' | 'paused';
     preliminaryResults?: string;
-  }[];
+  }>;
 }
 
 // ============================================================================
@@ -480,4 +486,3 @@ export const DEFAULT_SAMPLING_CONFIG: SamplingConfig = {
   },
   evaluatorModel: 'claude-3-5-sonnet',
 };
-

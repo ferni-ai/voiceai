@@ -204,9 +204,8 @@ describe('Service Persistence Integration', () => {
 
   describe('Push Notifications', () => {
     it('should persist subscriptions', async () => {
-      const { getPushNotificationsService, resetPushNotificationsService } = await import(
-        '../services/push-notifications.js'
-      );
+      const { getPushNotificationsService, resetPushNotificationsService } =
+        await import('../services/push-notifications.js');
 
       const service = getPushNotificationsService();
       await service.registerSubscription({
@@ -259,9 +258,8 @@ describe('Service Persistence Integration', () => {
 
   describe('Team Engagement', () => {
     it('should generate and persist team huddles', async () => {
-      const { getTeamEngagementService, shutdownTeamEngagementService } = await import(
-        '../services/team-engagement.js'
-      );
+      const { getTeamEngagementService, shutdownTeamEngagementService } =
+        await import('../services/team-engagement.js');
 
       const service = getTeamEngagementService();
       await service.initialize();
@@ -392,4 +390,3 @@ describe('Data Integrity', () => {
     await store.shutdown();
   });
 });
-

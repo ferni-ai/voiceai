@@ -2,27 +2,32 @@
  * Information Domain Tools
  *
  * Tools for accessing information: news, weather, sports scores, web search.
- * This domain wraps existing legacy tools in registry-compatible definitions.
+ * This domain provides properly-routed consolidated tools for the LLM.
  *
  * DOMAIN: information
  * TOOLS:
- *   News: getGeneralNews, getFinancialNews, getStockNews, getTechNews
- *   Weather: getWeather, getWeatherForecast
- *   Sports: getTeamScore, getSportScores, getPhilliesScore, getEaglesScore
- *   Search: searchWeb, searchWikipedia, defineTerm
+ *   News: getNews (routes to general/finance/tech/stock based on category)
+ *   Weather: getWeather (current), getWeatherForecast (multi-day)
+ *   Sports: getSports (routes to team or league scores)
+ *   Search: searchWeb, lookupInfo (Wikipedia/dictionary)
  */
 
+import { llm } from '@livekit/agents';
+import { z } from 'zod';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
-import type { ToolDefinition, ToolContext } from '../../registry/types.js';
+import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
-// Import legacy tool creators
-import { createNewsTools } from '../../news.js';
-import { createWeatherTools } from '../../weather.js';
-import { createSportsTools } from '../../sports.js';
+// Import underlying functions directly for routing
+import { getFinancialNews, getGeneralNews, getStockNews, getTechNews } from '../../news.js';
+import { getSportScores, getTeamScore } from '../../sports.js';
+
+// Import legacy tool creators for simple wrapping
 import { createSearchTools } from '../../search.js';
+import { createWeatherTools } from '../../weather.js';
 
 // ============================================================================
-// LEGACY TOOL WRAPPER
+// LEGACY TOOL WRAPPER (for tools that don't need routing)
 // ============================================================================
 
 function wrapLegacyTool(
@@ -43,20 +48,67 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// NEWS TOOLS (Consolidated: 4 → 1 tool with categories)
+// NEWS TOOLS (Properly routes to correct underlying function)
 // ============================================================================
 
 function getNewsToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createNewsTools();
+  const log = getLogger();
 
   return [
-    wrapLegacyTool(
-      'getNews',
-      'Get News',
-      'Get current news headlines. Categories: "general" (top headlines), "finance" (market news, economy), "tech" (technology, AI, startups), or "stock" (news about a specific stock ticker). For stock news, include the ticker symbol like "AAPL" or "TSLA".',
-      legacyTools.getGeneralNews,
-      ['news', 'headlines', 'finance', 'tech', 'stocks']
-    ),
+    {
+      id: 'getNews',
+      name: 'Get News',
+      description:
+        'Get current news headlines. Categories: "general" (top headlines), "finance" (market news, economy), "tech" (technology, AI, startups), or "stock" (news about a specific stock ticker). For stock news, include the ticker symbol.',
+      domain: 'information',
+      tags: ['information', 'news', 'headlines', 'finance', 'tech', 'stocks'],
+      create: (_ctx: ToolContext) =>
+        llm.tool({
+          description:
+            'Get current news headlines. Categories: "general", "finance", "tech", or "stock" (requires ticker symbol).',
+          parameters: z.object({
+            category: z
+              .enum(['general', 'finance', 'tech', 'stock'])
+              .optional()
+              .describe('News category (defaults to general)'),
+            ticker: z
+              .string()
+              .optional()
+              .describe('Stock ticker symbol (required for stock category, e.g., "AAPL")'),
+          }),
+          execute: async ({ category = 'general', ticker }) => {
+            log.info({ category, ticker }, '📰 News tool called');
+
+            try {
+              let result: string;
+
+              switch (category) {
+                case 'finance':
+                  result = await getFinancialNews('general');
+                  break;
+                case 'tech':
+                  result = await getTechNews();
+                  break;
+                case 'stock':
+                  if (!ticker) {
+                    return 'Please specify a stock ticker symbol (e.g., AAPL, TSLA)';
+                  }
+                  result = await getStockNews(ticker.toUpperCase());
+                  break;
+                case 'general':
+                default:
+                  result = await getGeneralNews();
+              }
+
+              log.info({ category, resultLength: result.length }, '📰 News result returned');
+              return result;
+            } catch (error) {
+              log.error({ category, ticker, error: String(error) }, '📰 News tool error');
+              return `I couldn't get ${category} news right now. Try again in a moment?`;
+            }
+          },
+        }),
+    },
   ];
 }
 
@@ -71,28 +123,83 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getWeather',
       'Get Weather',
-      'Get weather for any location: current conditions (temperature, humidity, wind) or forecast (next 7 days). Modes: "current" or "forecast". Default is current. Location can be city name, zip code, or "here" for user\'s location.',
+      'Get current weather for a city or location. Returns temperature, humidity, wind, and conditions. Use when user asks about the weather anywhere.',
       legacyTools.getWeather,
-      ['weather', 'current', 'forecast', 'temperature']
+      ['weather', 'temperature', 'conditions']
+    ),
+    wrapLegacyTool(
+      'getWeatherForecast',
+      'Get Weather Forecast',
+      'Get weather forecast for upcoming days. Use when user asks about weekend weather or future conditions.',
+      legacyTools.getWeatherForecast,
+      ['weather', 'forecast', 'weekend']
     ),
   ];
 }
 
 // ============================================================================
-// SPORTS TOOLS (Consolidated: 4 → 1 tool)
+// SPORTS TOOLS (Properly routes between team and league queries)
 // ============================================================================
 
 function getSportsToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createSportsTools();
+  const log = getLogger();
 
   return [
-    wrapLegacyTool(
-      'getSports',
-      'Get Sports',
-      'Get sports scores, standings, and schedules. Query by team name (e.g., "Eagles", "Phillies", "Lakers") or league (NFL, MLB, NBA, NHL). Returns most recent game results, next scheduled game, and current standings. Works for any major professional sports team.',
-      legacyTools.getTeamScore,
-      ['sports', 'scores', 'standings', 'schedule', 'nfl', 'mlb', 'nba', 'nhl']
-    ),
+    {
+      id: 'getSports',
+      name: 'Get Sports',
+      description:
+        'Get sports scores, standings, and schedules. Query by team name (e.g., "Eagles", "Phillies", "Lakers") or league (NFL, MLB, NBA, NHL). Returns most recent game results, next scheduled game, and current standings.',
+      domain: 'information',
+      tags: [
+        'information',
+        'sports',
+        'scores',
+        'standings',
+        'schedule',
+        'nfl',
+        'mlb',
+        'nba',
+        'nhl',
+      ],
+      create: (_ctx: ToolContext) =>
+        llm.tool({
+          description: 'Get sports scores. Provide either a team name OR a league, not both.',
+          parameters: z.object({
+            team: z
+              .string()
+              .optional()
+              .describe('Team name (e.g., "Eagles", "Phillies", "Lakers", "Yankees")'),
+            league: z
+              .enum(['mlb', 'nfl', 'nba', 'nhl', 'mls', 'epl', 'ncaaf', 'ncaab'])
+              .optional()
+              .describe('League for all scores (mlb, nfl, nba, nhl, mls, epl, ncaaf, ncaab)'),
+          }),
+          execute: async ({ team, league }) => {
+            log.info({ team, league }, '⚽ Sports tool called');
+
+            try {
+              let result: string;
+
+              if (team) {
+                // Query by team name
+                result = await getTeamScore(team);
+              } else if (league) {
+                // Query by league for all scores
+                result = await getSportScores(league);
+              } else {
+                return 'Please specify a team name (e.g., "Eagles") or a league (e.g., "nfl", "mlb").';
+              }
+
+              log.info({ team, league, resultLength: result.length }, '⚽ Sports result returned');
+              return result;
+            } catch (error) {
+              log.error({ team, league, error: String(error) }, '⚽ Sports tool error');
+              return `I couldn't get sports info right now. Try again in a moment?`;
+            }
+          },
+        }),
+    },
   ];
 }
 
@@ -143,9 +250,9 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 export {
   getNewsToolDefinitions,
-  getWeatherToolDefinitions,
-  getSportsToolDefinitions,
   getSearchToolDefinitions,
+  getSportsToolDefinitions,
+  getWeatherToolDefinitions,
 };
 
 export default getToolDefinitions;

@@ -3,11 +3,52 @@
  *
  * Tracks game usage, engagement, and feature adoption.
  * Data can be exported to analytics services or stored for insights.
+ *
+ * PERSISTENCE: Uses Firestore for event storage and analytics aggregation.
  */
 
+import * as admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const EVENTS_COLLECTION = 'game_analytics_events';
+const COUNTERS_COLLECTION = 'game_analytics_counters';
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) return null;
+
+  firestoreInitAttempted = true;
+
+  try {
+    if (admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    log.info('✅ Firestore initialized for game analytics');
+    return firestoreInstance;
+  } catch (error) {
+    log.warn({ error }, 'Firebase not available for game analytics, using in-memory only');
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -51,13 +92,13 @@ export interface GameAnalyticsSummary {
 }
 
 // ============================================================================
-// IN-MEMORY STORAGE (would be replaced by proper analytics service)
+// IN-MEMORY CACHE (with Firestore persistence)
 // ============================================================================
 
 const events: GameEvent[] = [];
 const MAX_EVENTS = 10000; // Keep last 10k events in memory
 
-// Aggregated counters (survive restart if persisted)
+// Aggregated counters (persist to Firestore for cross-restart survival)
 const counters = {
   gamesStarted: 0,
   gamesCompleted: 0,
@@ -75,6 +116,124 @@ const counters = {
 };
 
 const uniquePlayers = new Set<string>();
+let countersLoaded = false;
+
+// ============================================================================
+// PERSISTENCE FUNCTIONS
+// ============================================================================
+
+/**
+ * Save event to Firestore
+ */
+async function saveEventToFirestore(event: GameEvent): Promise<void> {
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    await db.collection(EVENTS_COLLECTION).add({
+      ...event,
+      timestamp: event.timestamp,
+    });
+  } catch (error) {
+    log.warn({ error, eventType: event.type }, 'Failed to save game event to Firestore');
+  }
+}
+
+/**
+ * Update counters in Firestore (using increment for atomic updates)
+ */
+async function incrementCounter(field: string, amount = 1): Promise<void> {
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    const counterRef = db.collection(COUNTERS_COLLECTION).doc('global');
+    await counterRef.set(
+      { [field]: admin.firestore.FieldValue.increment(amount) },
+      { merge: true }
+    );
+  } catch (error) {
+    log.warn({ error, field }, 'Failed to increment game counter in Firestore');
+  }
+}
+
+/**
+ * Load counters from Firestore on startup
+ */
+export async function loadCountersFromFirestore(): Promise<void> {
+  if (countersLoaded) return;
+
+  const db = getFirestore();
+  if (!db) {
+    countersLoaded = true;
+    return;
+  }
+
+  try {
+    const doc = await db.collection(COUNTERS_COLLECTION).doc('global').get();
+    if (doc.exists) {
+      const data = doc.data() || {};
+      Object.assign(counters, {
+        gamesStarted: data.gamesStarted || 0,
+        gamesCompleted: data.gamesCompleted || 0,
+        gamesAbandoned: data.gamesAbandoned || 0,
+        correctAnswers: data.correctAnswers || 0,
+        incorrectAnswers: data.incorrectAnswers || 0,
+        roundsPlayed: data.roundsPlayed || 0,
+        dashboardOpens: data.dashboardOpens || 0,
+        gamePickerOpens: data.gamePickerOpens || 0,
+        proactiveOffersShown: data.proactiveOffersShown || 0,
+        proactiveOffersAccepted: data.proactiveOffersAccepted || 0,
+        proactiveOffersDeclined: data.proactiveOffersDeclined || 0,
+        gameTypeCounts: data.gameTypeCounts || {},
+        scoreSums: data.scoreSums || {},
+      });
+      log.info({ counters }, 'Loaded game analytics counters from Firestore');
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to load game counters from Firestore');
+  }
+
+  countersLoaded = true;
+}
+
+/**
+ * Query events from Firestore
+ */
+export async function queryEventsFromFirestore(
+  filter: { userId?: string; gameType?: string; type?: GameEventType },
+  limit = 100
+): Promise<GameEvent[]> {
+  const db = getFirestore();
+  if (!db) return events.slice(-limit);
+
+  try {
+    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+
+    if (filter.userId) {
+      query = query.where('userId', '==', filter.userId);
+    }
+    if (filter.gameType) {
+      query = query.where('gameType', '==', filter.gameType);
+    }
+    if (filter.type) {
+      query = query.where('type', '==', filter.type);
+    }
+
+    const snapshot = await query.orderBy('timestamp', 'desc').limit(limit).get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp),
+      } as GameEvent;
+    });
+  } catch (error) {
+    log.warn({ error }, 'Failed to query game events from Firestore');
+    return events.slice(-limit);
+  }
+}
 
 // ============================================================================
 // TRACKING FUNCTIONS
@@ -89,7 +248,7 @@ export function trackGameEvent(event: Omit<GameEvent, 'timestamp'>): void {
     timestamp: new Date(),
   };
 
-  // Store event (circular buffer)
+  // Store event in memory (circular buffer)
   if (events.length >= MAX_EVENTS) {
     events.shift();
   }
@@ -98,6 +257,9 @@ export function trackGameEvent(event: Omit<GameEvent, 'timestamp'>): void {
   // Update counters
   uniquePlayers.add(event.userId);
   updateCounters(fullEvent);
+
+  // Persist to Firestore (fire-and-forget)
+  void saveEventToFirestore(fullEvent);
 
   log.debug({ eventType: event.type, gameType: event.gameType }, '🎮 Game event tracked');
 }

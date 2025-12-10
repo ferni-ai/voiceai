@@ -95,26 +95,26 @@ const DEFAULT_FLAGS: Record<TrustFlagId, FlagConfig> = {
   'trust.small-wins': { enabled: true, percentage: 100 },
   'trust.thinking-of-you': { enabled: true, percentage: 100 },
 
-  // Phase 12-17 - Gradual rollout
-  'trust.relationship-health': { enabled: true, percentage: 50 },
-  'trust.conversation-starters': { enabled: true, percentage: 50 },
-  'trust.life-events': { enabled: true, percentage: 50 },
-  'trust.response-tuning': { enabled: true, percentage: 25 },
-  'trust.celebration-momentum': { enabled: true, percentage: 50 },
-  'trust.sentiment-timeline': { enabled: true, percentage: 50 },
+  // Phase 12-17 - Full rollout (stable, well-tested)
+  'trust.relationship-health': { enabled: true, percentage: 100 },
+  'trust.conversation-starters': { enabled: true, percentage: 100 },
+  'trust.life-events': { enabled: true, percentage: 100 },
+  'trust.response-tuning': { enabled: true, percentage: 100 },
+  'trust.celebration-momentum': { enabled: true, percentage: 100 },
+  'trust.sentiment-timeline': { enabled: true, percentage: 100 },
 
-  // Phase 24-29 - Limited rollout
-  'trust.voice-prosody': { enabled: true, percentage: 10 },
-  'trust.journaling-prompts': { enabled: true, percentage: 25 },
-  'trust.seasonal-awareness': { enabled: true, percentage: 25 },
-  'trust.learning-style': { enabled: true, percentage: 10 },
-  'trust.insights-reports': { enabled: true, percentage: 25 },
-  'trust.media-suggestions': { enabled: true, percentage: 10 },
+  // Phase 24-29 - Increased rollout (maturing features)
+  'trust.voice-prosody': { enabled: true, percentage: 75 },
+  'trust.journaling-prompts': { enabled: true, percentage: 100 },
+  'trust.seasonal-awareness': { enabled: true, percentage: 100 },
+  'trust.learning-style': { enabled: true, percentage: 75 },
+  'trust.insights-reports': { enabled: true, percentage: 100 },
+  'trust.media-suggestions': { enabled: true, percentage: 75 },
 
   // Infrastructure - 100% rollout
   'trust.persistence': { enabled: true, percentage: 100 },
-  'trust.cross-device-sync': { enabled: true, percentage: 50 },
-  'trust.notifications': { enabled: true, percentage: 25 },
+  'trust.cross-device-sync': { enabled: true, percentage: 100 },
+  'trust.notifications': { enabled: true, percentage: 100 },
 };
 
 // ============================================================================

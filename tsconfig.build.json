@@ -9,7 +9,8 @@
     "noImplicitReturns": false,
     "skipLibCheck": true,
     // Ignore errors - allow build to succeed
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "removeComments": true
   },
   "exclude": [
     "node_modules",

@@ -162,7 +162,7 @@ export class CommunicationMirroringEngine {
     try {
       const data = await this.persistenceStore.load(this.userId);
       if (data) {
-        this.samples = data.samples.map(s => ({
+        this.samples = data.samples.map((s) => ({
           ...s,
           timestamp: new Date(s.timestamp),
         }));
@@ -610,7 +610,10 @@ export async function shutdownCommunicationMirroringPersistence(): Promise<void>
 
 export function getCommunicationMirroring(userId: string): CommunicationMirroringEngine {
   if (!engines.has(userId)) {
-    engines.set(userId, new CommunicationMirroringEngine(userId, globalPersistenceStore || undefined));
+    engines.set(
+      userId,
+      new CommunicationMirroringEngine(userId, globalPersistenceStore || undefined)
+    );
   }
   return engines.get(userId)!;
 }

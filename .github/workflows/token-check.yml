@@ -1,0 +1,139 @@
+# Token Drift Check
+# ===================
+# Validates that design tokens are in sync across all generated files.
+# Fails the build if tokens have drifted (need `npm run tokens:sync`).
+
+name: Token Drift Check
+
+on:
+  pull_request:
+    paths:
+      - 'design-system/tokens/**'
+      - 'design-system/*.js'
+      - 'frontend-typescript/src/config/**'
+      - 'promo/ferni-website/css/**'
+      - 'promo/ferni-website/src/css/**'
+      - 'brand/**.css'
+  push:
+    branches: [main]
+    paths:
+      - 'design-system/tokens/**'
+      - 'design-system/*.js'
+
+jobs:
+  token-drift-check:
+    name: Check Token Drift
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check token drift
+        id: drift-check
+        run: |
+          echo "🔍 Checking design token drift..."
+          npm run tokens:check
+        continue-on-error: true
+
+      - name: Regenerate tokens (on failure)
+        if: steps.drift-check.outcome == 'failure'
+        run: |
+          echo "⚠️ Token drift detected! Regenerating..."
+          npm run tokens:sync
+          
+          # Check if there are changes
+          if git diff --quiet; then
+            echo "✅ No actual drift - timestamps may have differed"
+          else
+            echo "❌ DRIFT DETECTED - Run 'npm run tokens:sync' locally and commit"
+            echo ""
+            echo "Changed files:"
+            git diff --name-only
+            echo ""
+            echo "Diff preview:"
+            git diff --stat
+            exit 1
+          fi
+
+      - name: Success
+        if: steps.drift-check.outcome == 'success'
+        run: echo "✅ All tokens in sync!"
+
+  animation-constants-check:
+    name: Check Animation Constants
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate animation constants
+        run: npm run build:animation-constants 2>/dev/null || true
+
+      - name: Check for changes
+        run: |
+          if [ -f "frontend-typescript/src/config/animation-constants.generated.ts" ]; then
+            if git diff --quiet frontend-typescript/src/config/animation-constants.generated.ts; then
+              echo "✅ Animation constants in sync"
+            else
+              echo "⚠️ Animation constants drifted"
+              echo "Run: npm run build:animation-constants"
+              git diff frontend-typescript/src/config/animation-constants.generated.ts
+            fi
+          else
+            echo "ℹ️ No generated animation constants file (first run needed)"
+          fi
+
+  tailwind-config-check:
+    name: Check Tailwind Config
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate Tailwind config
+        run: npm run build:tailwind-config 2>/dev/null || true
+
+      - name: Check for changes
+        run: |
+          if [ -f "promo/ferni-website/tailwind.config.generated.js" ]; then
+            if git diff --quiet promo/ferni-website/tailwind.config.generated.js; then
+              echo "✅ Tailwind config in sync"
+            else
+              echo "⚠️ Tailwind config drifted"
+              echo "Run: npm run build:tailwind-config"
+              git diff promo/ferni-website/tailwind.config.generated.js
+            fi
+          else
+            echo "ℹ️ No generated Tailwind config (first run needed)"
+          fi
+

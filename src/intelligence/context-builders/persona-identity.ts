@@ -29,12 +29,12 @@ const log = getLogger();
 
 // Mapping from display names to member IDs for unlock checking
 const DISPLAY_NAME_TO_ID: Record<string, string> = {
-  'Peter': 'peter-john',
-  'Nayan': 'nayan-patel',
-  'Maya': 'maya-santos',
-  'Alex': 'alex-chen',
-  'Jordan': 'jordan-taylor',
-  'Ferni': 'ferni',
+  Peter: 'peter-john',
+  Nayan: 'nayan-patel',
+  Maya: 'maya-santos',
+  Alex: 'alex-chen',
+  Jordan: 'jordan-taylor',
+  Ferni: 'ferni',
 };
 
 // ============================================================================
@@ -376,17 +376,17 @@ function buildBoundaryReminder(
   const filteredHandoffs = Object.entries(identity.handoffTriggers)
     .map(([topic, personaNames]) => {
       // Handle "Peter or Nayan" style values
-      const names = personaNames.split(' or ').map(n => n.trim());
-      const unlockedNames = names.filter(name => {
+      const names = personaNames.split(' or ').map((n) => n.trim());
+      const unlockedNames = names.filter((name) => {
         const memberId = DISPLAY_NAME_TO_ID[name];
         if (!memberId) return true; // Unknown names pass through (shouldn't happen)
         return isTeamMemberUnlocked(memberId, userProfile, tier);
       });
-      
+
       if (unlockedNames.length === 0) {
         return null; // No unlocked personas for this topic
       }
-      
+
       return { topic, personas: unlockedNames.join(' or ') };
     })
     .filter((entry): entry is { topic: string; personas: string } => entry !== null)

@@ -956,10 +956,13 @@ export class TeamEngagementService {
 
       // Rehydrate huddles
       if (data.huddles?.length > 0) {
-        this.huddles.set(userId, data.huddles.map(h => ({
-          ...h,
-          scheduledAt: new Date(h.scheduledAt),
-        })));
+        this.huddles.set(
+          userId,
+          data.huddles.map((h) => ({
+            ...h,
+            scheduledAt: new Date(h.scheduledAt),
+          }))
+        );
       }
 
       // Rehydrate shared evolutions
@@ -969,10 +972,13 @@ export class TeamEngagementService {
 
       // Rehydrate anniversaries
       if (data.anniversaries?.length > 0) {
-        this.userAnniversaries.set(userId, data.anniversaries.map(a => ({
-          ...a,
-          date: new Date(a.date),
-        })));
+        this.userAnniversaries.set(
+          userId,
+          data.anniversaries.map((a) => ({
+            ...a,
+            date: new Date(a.date),
+          }))
+        );
       }
 
       getLogger().debug({ userId }, 'Loaded team engagement data from persistence');

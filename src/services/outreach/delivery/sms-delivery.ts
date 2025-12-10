@@ -339,7 +339,9 @@ export async function sendBulkSMS(messages: SMSMessage[]): Promise<Map<string, S
 
     // Rate limiting - wait between batches
     if (i + batchSize < messages.length) {
-      await new Promise<void>((resolve) => { setTimeout(resolve, 1000); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 1000);
+      });
     }
   }
 

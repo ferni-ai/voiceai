@@ -39,8 +39,12 @@ import type {
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,
+  getConversationRhythmTracker,
   getEmotionalArcTracker,
+  getEngagementScorer,
+  getNarrativeArcTracker,
   getResponseDynamicsEngine,
+  getSilencePresenceEngine,
   getStoryTimingEngine,
 } from '../../conversation/index.js';
 
@@ -79,6 +83,12 @@ import {
   type MismatchResult,
 } from '../../intelligence/voice-text-mismatch.js';
 
+// Scientific Coaching Context (cognitive distortion detection, wellbeing, nudges, wisdom)
+import {
+  buildScientificCoachingContext,
+  type ScientificCoachingResult,
+} from '../../intelligence/context-builders/scientific-coaching.js';
+
 // Cross-persona insight sharing
 import {
   acknowledgeInsight,
@@ -96,6 +106,7 @@ import { extractPersonalThemes } from '../session/session-state.js';
 const cachedModules: CachedModules = {
   buildConversationContext: null,
   formatContextForPrompt: null,
+  shouldUseHighEmotionMode: null,
   checkForEasterEgg: null,
   getTaskManager: null,
 };
@@ -105,10 +116,13 @@ async function getContextBuilders() {
     const mod = await import('../../intelligence/context-builders/index.js');
     cachedModules.buildConversationContext = mod.buildConversationContext;
     cachedModules.formatContextForPrompt = mod.formatContextForPrompt;
+    // BETTER-THAN-HUMAN: Import high emotion mode detection
+    cachedModules.shouldUseHighEmotionMode = mod.shouldUseHighEmotionMode;
   }
   return {
     buildConversationContext: cachedModules.buildConversationContext!,
     formatContextForPrompt: cachedModules.formatContextForPrompt!,
+    shouldUseHighEmotionMode: cachedModules.shouldUseHighEmotionMode!,
   };
 }
 
@@ -245,6 +259,178 @@ function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisR
     convState.markUserWantsToLeave();
     diag.state('User wants to leave detected', { userText: userText.slice(0, 50) });
   }
+}
+
+// ============================================================================
+// CONVERSATION DYNAMICS PROCESSING
+// ============================================================================
+
+/**
+ * Process advanced conversation dynamics:
+ * - Narrative arc tracking (is user building to a point?)
+ * - Engagement scoring (is user losing interest?)
+ * - Conversation rhythm (match user's pacing)
+ * - Silence decisions (when to use meaningful pauses)
+ */
+interface ConversationDynamicsResult {
+  narrativeArc?: {
+    structure: string;
+    climaxApproaching: boolean;
+    hasReachedCore: boolean;
+    suggestedIntervention: string;
+    interventionGuidance: string;
+  };
+  engagement?: {
+    level: string;
+    score: number;
+    declining: boolean;
+    suggestedAction: string;
+    actionGuidance: string;
+  };
+  rhythm?: {
+    lengthMultiplier: number;
+    rateMultiplier: number;
+    energyLevel: string;
+    guidance: string;
+  };
+  silence?: {
+    useSilence: boolean;
+    reason: string;
+    duration: number;
+    ssml: string;
+  };
+}
+
+function processConversationDynamics(
+  ctx: TurnContext,
+  analysisResult: TurnAnalysisResult,
+  emotionalState: { primary: string; intensity: number; distressLevel: number }
+): ConversationDynamicsResult {
+  const { userText, userData, services } = ctx;
+  const { analysis, currentTopic } = analysisResult;
+  const result: ConversationDynamicsResult = {};
+
+  // 1. NARRATIVE ARC TRACKING
+  // Detect if user is building to a point, meandering, or has reached their core message
+  try {
+    const narrativeTracker = getNarrativeArcTracker(services.sessionId);
+    const narrativeResult = narrativeTracker.analyzeUtterance({
+      text: userText,
+      turn: userData.turnCount || 0,
+      emotion: emotionalState.primary,
+      emotionalIntensity: emotionalState.intensity,
+    });
+
+    result.narrativeArc = {
+      structure: narrativeResult.structure,
+      climaxApproaching: narrativeResult.climaxApproaching,
+      hasReachedCore: narrativeResult.hasReachedCore,
+      suggestedIntervention: narrativeResult.suggestedIntervention,
+      interventionGuidance: narrativeResult.interventionGuidance,
+    };
+
+    if (narrativeResult.climaxApproaching || narrativeResult.hasReachedCore) {
+      ctx.logger.debug(
+        { structure: narrativeResult.structure, climax: narrativeResult.climaxApproaching },
+        '📖 Narrative moment detected'
+      );
+    }
+  } catch (err) {
+    ctx.logger.warn({ error: String(err) }, 'Narrative arc tracking failed (non-fatal)');
+  }
+
+  // 2. ENGAGEMENT SCORING
+  // Track if user is engaged or losing interest
+  try {
+    const engagementScorer = getEngagementScorer(services.sessionId);
+    const engagementResult = engagementScorer.recordResponse(userText, {
+      currentTopic,
+    });
+
+    result.engagement = {
+      level: engagementResult.level,
+      score: engagementResult.score,
+      declining: engagementResult.declining,
+      suggestedAction: engagementResult.suggestedAction,
+      actionGuidance: engagementResult.actionGuidance,
+    };
+
+    if (engagementResult.level === 'low' || engagementResult.level === 'distracted') {
+      ctx.logger.debug(
+        { level: engagementResult.level, action: engagementResult.suggestedAction },
+        '👀 Low engagement detected'
+      );
+    }
+  } catch (err) {
+    ctx.logger.warn({ error: String(err) }, 'Engagement scoring failed (non-fatal)');
+  }
+
+  // 3. CONVERSATION RHYTHM TRACKING
+  // Match user's pacing and energy
+  try {
+    const rhythmTracker = getConversationRhythmTracker();
+    rhythmTracker.recordUserTurn({
+      text: userText,
+      emotionIntensity: emotionalState.intensity,
+    });
+
+    const rhythmGuidance = rhythmTracker.getRhythmGuidance();
+
+    result.rhythm = {
+      lengthMultiplier: rhythmGuidance.lengthMultiplier,
+      rateMultiplier: rhythmGuidance.rateMultiplier,
+      energyLevel: rhythmGuidance.energyLevel,
+      guidance: rhythmGuidance.guidance,
+    };
+  } catch (err) {
+    ctx.logger.warn({ error: String(err) }, 'Rhythm tracking failed (non-fatal)');
+  }
+
+  // 4. SILENCE DECISION
+  // Determine if a meaningful silence is appropriate
+  try {
+    const silenceEngine = getSilencePresenceEngine();
+    const conversationDepth =
+      emotionalState.distressLevel > 0.6
+        ? ('deep' as const)
+        : emotionalState.intensity > 0.5
+          ? ('medium' as const)
+          : ('surface' as const);
+
+    const topicWeight =
+      emotionalState.distressLevel > 0.6
+        ? ('heavy' as const)
+        : emotionalState.distressLevel > 0.3
+          ? ('medium' as const)
+          : ('light' as const);
+
+    const silenceDecision = silenceEngine.decideSilence({
+      userMessage: userText,
+      userEmotion: emotionalState.primary,
+      turnCount: userData.turnCount || 0,
+      wasPersonalSharing: analysis.state.userNeedsSupport || false,
+      conversationDepth,
+      topicWeight,
+    });
+
+    if (silenceDecision.useSilence) {
+      result.silence = {
+        useSilence: silenceDecision.useSilence,
+        reason: silenceDecision.reason,
+        duration: silenceDecision.duration,
+        ssml: silenceDecision.ssml,
+      };
+
+      ctx.logger.debug(
+        { reason: silenceDecision.reason, duration: silenceDecision.duration },
+        '🤫 Meaningful silence decided'
+      );
+    }
+  } catch (err) {
+    ctx.logger.warn({ error: String(err) }, 'Silence decision failed (non-fatal)');
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -805,7 +991,8 @@ async function buildContextInjections(
   responseGuidance: ResponseGuidance,
   identityContext: IdentityContext,
   humanizingResult: HumanizingResult | null,
-  bundleRuntimeContext: BundleRuntimeContext | undefined
+  bundleRuntimeContext: BundleRuntimeContext | undefined,
+  conversationDynamics: ConversationDynamicsResult
 ): Promise<ContextInjection[]> {
   const { services, userData, persona, bundleRuntime, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
@@ -822,7 +1009,8 @@ async function buildContextInjections(
   }
 
   // 2. Modular context builders
-  const { buildConversationContext, formatContextForPrompt } = await getContextBuilders();
+  const { buildConversationContext, formatContextForPrompt, shouldUseHighEmotionMode } =
+    await getContextBuilders();
 
   const contextUserData: ContextUserData = {
     ...(userData || {}),
@@ -842,14 +1030,256 @@ async function buildContextInjections(
     bundleRuntime,
   };
 
+  // 2a. SAFETY FIRST: Crisis Detection
+  // User safety is non-negotiable. Check for crisis signals before anything else.
+  try {
+    const { performSafetyCheck } = await import('../../services/safety/index.js');
+
+    // Map relationship stage to safety module's expected values
+    const relationshipMap: Record<string, 'new' | 'building' | 'established' | 'deep'> = {
+      stranger: 'new',
+      acquaintance: 'building',
+      friend: 'established',
+      trusted_advisor: 'deep',
+      building: 'building',
+    };
+    const safetyRelationship =
+      relationshipMap[userData.relationshipStage || 'building'] || 'building';
+
+    const safetyResult = performSafetyCheck(userText, {
+      userId: services.userId || 'unknown',
+      personaId: persona.id,
+      relationshipStage: safetyRelationship,
+      userName: services.userProfile?.name,
+    });
+
+    if (safetyResult.crisisDetected) {
+      diag.warn('🛡️ Crisis signal detected', {
+        type: safetyResult.detection.primary?.type,
+        severity: safetyResult.detection.primary?.severity,
+        requiresAction: safetyResult.shouldInterrupt,
+      });
+
+      // Add crisis context at highest priority
+      if (safetyResult.contextInjection) {
+        injections.push({
+          category: 'safety',
+          content: safetyResult.contextInjection,
+          priority: 99, // Highest priority - safety first
+        });
+      }
+
+      // If crisis response is generated, add it
+      if (safetyResult.response) {
+        const resourceName = safetyResult.response.primaryResource?.name || 'professional support';
+        injections.push({
+          category: 'crisis_response',
+          content: `[CRISIS SUPPORT]\nValidate first: "${safetyResult.response.validation}"\nResource if appropriate: ${resourceName}`,
+          priority: 98,
+        });
+      }
+    }
+  } catch (safetyError) {
+    diag.error('Safety check failed (CRITICAL)', { error: String(safetyError) });
+    // Continue anyway - don't break the conversation, but log this
+  }
+
   const contextInjections = await buildConversationContext(contextInput);
   if (contextInjections.length > 0) {
-    const contextStr = formatContextForPrompt(contextInjections);
+    // BETTER-THAN-HUMAN: Reduce context noise in high-emotion moments
+    // When the user is distressed, we want the AI to focus on what matters
+    const highEmotionMode = shouldUseHighEmotionMode(analysis);
+    if (highEmotionMode) {
+      diag.info('🎯 High emotion mode: Reducing context noise for focused support');
+    }
+
+    const contextStr = formatContextForPrompt(contextInjections, {
+      highEmotionMode,
+    });
     injections.push({
       category: 'context',
       content: contextStr,
       priority: 80,
     });
+  }
+
+  // 2b. Scientific Coaching Context (cognitive distortions, wellbeing, nudges, wisdom)
+  let scientificCoachingResult: ScientificCoachingResult | undefined;
+  try {
+    scientificCoachingResult = await buildScientificCoachingContext({
+      userId: services.userId || 'unknown',
+      userMessage: userText,
+      personaId: persona.id,
+      topic: currentTopic,
+      emotionalState: emotionalState.primary,
+      emotionalIntensity: emotionalState.intensity,
+      conversationPhase:
+        userData.turnCount && userData.turnCount < 3
+          ? 'opening'
+          : userData.turnCount && userData.turnCount > 10
+            ? 'closing'
+            : 'exploring',
+      turnNumber: userData.turnCount || 1,
+    });
+
+    // Add scientific coaching injections
+    for (const injection of scientificCoachingResult.injections) {
+      const priorityMap: Record<string, number> = {
+        critical: 95,
+        high: 85,
+        standard: 75,
+        hint: 65,
+      };
+      injections.push({
+        category: `scientific_${injection.source}`,
+        content: injection.content,
+        priority: priorityMap[injection.priority] || 70,
+      });
+    }
+
+    // Log detections for debugging
+    if (scientificCoachingResult.detectedDistortions.length > 0) {
+      diag.info('🧠 Cognitive distortions detected', {
+        distortions: scientificCoachingResult.detectedDistortions,
+      });
+    }
+    if (scientificCoachingResult.warnings.length > 0) {
+      diag.warn('⚠️ Early warnings detected', {
+        warnings: scientificCoachingResult.warnings,
+      });
+    }
+
+    // Store adaptive endpointing recommendation in userData for potential use
+    // The voice agent session can use this to adjust pause detection
+    if (scientificCoachingResult.endpointingRecommendation) {
+      (userData as Record<string, unknown>).adaptiveEndpointing =
+        scientificCoachingResult.endpointingRecommendation;
+      diag.debug('Adaptive endpointing updated', {
+        minDelay: scientificCoachingResult.endpointingRecommendation.minDelay,
+        maxDelay: scientificCoachingResult.endpointingRecommendation.maxDelay,
+      });
+    }
+  } catch (sciError) {
+    diag.warn('Scientific coaching context failed (non-fatal)', { error: String(sciError) });
+  }
+
+  // 2c. Life Coaching Context (goals, actions, obstacles, values, style)
+  try {
+    const { getCoachingContextForLLM, analyzeForCoaching } =
+      await import('../../services/coaching/index.js');
+
+    // Map full persona IDs to short names for coaching module
+    const coachingPersonaMap: Record<
+      string,
+      'ferni' | 'maya' | 'alex' | 'peter' | 'jack' | 'jordan'
+    > = {
+      ferni: 'ferni',
+      'jack-b': 'jack',
+      'jack-bogle': 'jack',
+      'maya-santos': 'maya',
+      'alex-chen': 'alex',
+      'peter-john': 'peter',
+      'jordan-taylor': 'jordan',
+    };
+    const coachingPersona = coachingPersonaMap[persona.id] || 'ferni';
+
+    // Analyze user message for coaching opportunities
+    const coachingAnalysis = analyzeForCoaching(services.userId || 'unknown', userText, {
+      currentPersona: coachingPersona,
+    });
+
+    // Log coaching opportunities for debugging
+    if (coachingAnalysis.hasGoalStatement) {
+      diag.info('🎯 Goal statement detected', {
+        goal: coachingAnalysis.goalText,
+        domain: coachingAnalysis.domain,
+      });
+    }
+    if (coachingAnalysis.hasObstacle) {
+      diag.debug('🚧 Obstacle detected', { type: coachingAnalysis.obstacleType });
+    }
+    if (coachingAnalysis.suggestedHandoff) {
+      diag.debug('🤝 Handoff suggested', { target: coachingAnalysis.handoffTarget });
+    }
+
+    // Get comprehensive coaching context for LLM
+    const coachingContext = getCoachingContextForLLM(services.userId || 'unknown', {
+      currentPersona: coachingPersona,
+      userMessage: userText,
+    });
+
+    if (coachingContext) {
+      injections.push({
+        category: 'coaching',
+        content: coachingContext,
+        priority: 72, // Between scientific coaching (75) and tasks (70)
+      });
+    }
+
+    // If user has vague emotions, add granularity expansion prompt
+    if (coachingAnalysis.hasVagueEmotion && coachingAnalysis.emotionExpansion) {
+      injections.push({
+        category: 'emotional_granularity',
+        content: `[EMOTIONAL DEPTH] User used vague emotion language. Consider gently expanding: "${coachingAnalysis.emotionExpansion}"`,
+        priority: 68,
+      });
+    }
+  } catch (coachingError) {
+    diag.warn('Coaching context failed (non-fatal)', { error: String(coachingError) });
+  }
+
+  // 2d. Trust Systems Context (small wins, intentions, growth reflections, callbacks)
+  try {
+    const { buildTrustContext } = await import('../../services/trust-systems/index.js');
+
+    const trustContext = buildTrustContext(services.userId || 'unknown', userText, {
+      currentTopic,
+      detectedEmotion: emotionalState.primary,
+      emotionIntensity: emotionalState.intensity,
+    });
+
+    // Add celebration opportunity if detected
+    if (trustContext.celebrationOpportunity) {
+      diag.info('🎉 Small win celebration opportunity', {
+        type: trustContext.celebrationOpportunity.win.type,
+        description: trustContext.celebrationOpportunity.win.description,
+      });
+      injections.push({
+        category: 'celebration',
+        content: `[🎉 CELEBRATION OPPORTUNITY]\nUser showed ${trustContext.celebrationOpportunity.win.type}: "${trustContext.celebrationOpportunity.win.description}"\nCelebrate this! "${trustContext.celebrationOpportunity.celebration}"`,
+        priority: 71,
+      });
+    }
+
+    // Add growth reflection if appropriate
+    if (trustContext.growthReflection) {
+      injections.push({
+        category: 'growth',
+        content: `[🌱 GROWTH REFLECTION]\n"${trustContext.growthReflection}"`,
+        priority: 66,
+      });
+    }
+
+    // Add callback opportunity (remembering something from the past)
+    if (trustContext.callbackOpportunity) {
+      const momentContent = trustContext.callbackOpportunity.moment?.content || 'a past moment';
+      injections.push({
+        category: 'callback',
+        content: `[💭 CALLBACK OPPORTUNITY]\nRelated to "${momentContent}" - could reference: "${trustContext.callbackOpportunity.suggestedCallback}"`,
+        priority: 64,
+      });
+    }
+
+    // Add topics to avoid
+    if (trustContext.topicsToAvoid?.length > 0) {
+      injections.push({
+        category: 'boundaries',
+        content: `[⚠️ TOPICS TO AVOID]\n${trustContext.topicsToAvoid.join(', ')}`,
+        priority: 90, // High priority - respect boundaries
+      });
+    }
+  } catch (trustError) {
+    diag.warn('Trust context failed (non-fatal)', { error: String(trustError) });
   }
 
   // 3. Task wisdom
@@ -1178,6 +1608,80 @@ async function buildContextInjections(
     }
   }
 
+  // 15. Conversation dynamics (narrative arc, engagement, rhythm)
+  // 15a. Narrative arc - when user is building to a point
+  if (conversationDynamics.narrativeArc) {
+    const {
+      structure,
+      climaxApproaching,
+      hasReachedCore,
+      suggestedIntervention,
+      interventionGuidance,
+    } = conversationDynamics.narrativeArc;
+
+    if (structure !== 'direct' || climaxApproaching || hasReachedCore) {
+      const narrativeContent = hasReachedCore
+        ? `[NARRATIVE: USER REACHED CORE] ${interventionGuidance}`
+        : climaxApproaching
+          ? `[NARRATIVE: CLIMAX APPROACHING] User is building to something important. ${interventionGuidance}`
+          : structure === 'circular'
+            ? `[NARRATIVE: CIRCULAR] User keeps returning to the same concern. ${interventionGuidance}`
+            : structure === 'meandering'
+              ? `[NARRATIVE: MEANDERING] ${interventionGuidance}`
+              : `[NARRATIVE: ${structure.toUpperCase()}] Action: ${suggestedIntervention}. ${interventionGuidance}`;
+
+      injections.push({
+        category: 'narrative_arc',
+        content: narrativeContent,
+        priority: 48,
+      });
+    }
+  }
+
+  // 15b. Engagement tracking - when user seems disengaged
+  if (conversationDynamics.engagement) {
+    const { level, declining, suggestedAction, actionGuidance } = conversationDynamics.engagement;
+
+    if (level === 'low' || level === 'distracted' || declining) {
+      const engagementContent =
+        level === 'distracted'
+          ? `[⚠️ USER DISTRACTED] ${actionGuidance}`
+          : level === 'low'
+            ? `[ENGAGEMENT: LOW] ${actionGuidance}`
+            : `[ENGAGEMENT: DECLINING] Consider: ${suggestedAction}. ${actionGuidance}`;
+
+      injections.push({
+        category: 'engagement',
+        content: engagementContent,
+        priority: declining ? 52 : 42,
+      });
+    }
+  }
+
+  // 15c. Rhythm guidance - match user's pacing
+  if (conversationDynamics.rhythm && conversationDynamics.rhythm.guidance) {
+    const { lengthMultiplier, energyLevel, guidance } = conversationDynamics.rhythm;
+
+    // Only inject if there's meaningful deviation from default
+    if (lengthMultiplier < 0.8 || lengthMultiplier > 1.2 || energyLevel !== 'medium') {
+      injections.push({
+        category: 'rhythm',
+        content: `[RHYTHM MATCH] ${guidance}${energyLevel !== 'medium' ? ` Energy: ${energyLevel}.` : ''}`,
+        priority: 38,
+      });
+    }
+  }
+
+  // 15d. Silence decision - meaningful pauses
+  if (conversationDynamics.silence?.useSilence) {
+    const { reason, duration } = conversationDynamics.silence;
+    injections.push({
+      category: 'silence',
+      content: `[MEANINGFUL SILENCE: ${reason.toUpperCase()}] Before responding, take ${Math.round(duration / 1000)}s pause. This communicates presence and care.`,
+      priority: 46,
+    });
+  }
+
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
 
@@ -1242,6 +1746,13 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     });
   }
 
+  // 4c. Process conversation dynamics (narrative arc, engagement, rhythm, silence)
+  const conversationDynamics = processConversationDynamics(ctx, analysisResult, {
+    primary: emotionalState.primary,
+    intensity: emotionalState.intensity,
+    distressLevel: emotionalState.distressLevel,
+  });
+
   // 5. Build response guidance
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
 
@@ -1301,7 +1812,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     responseGuidance,
     identityContext,
     humanizingResult,
-    bundleRuntimeContext
+    bundleRuntimeContext,
+    conversationDynamics
   );
 
   // 9b. Add identity-related context injections (verification results, contact detection)

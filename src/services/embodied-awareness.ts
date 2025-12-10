@@ -23,6 +23,9 @@ export interface PhysicalState {
   lastStretchTime: number;
   energyLevel: 'high' | 'medium' | 'low';
   notebookMentioned: boolean;
+  weatherMentioned: boolean;
+  musicMentioned: boolean;
+  lastPhysicalType: string | null;
 }
 
 export interface MetacognitiveState {
@@ -55,12 +58,15 @@ function getOrCreateSession(sessionId: string): SessionAwareness {
       sessionStartTime: Date.now(),
       turnCount: 0,
       physicalState: {
-        coffeeStatus: Math.random() < 0.7 ? 'hot' : 'none', // 70% chance they have coffee
+        coffeeStatus: Math.random() < 0.5 ? 'hot' : 'none', // 50% chance they have coffee (reduced)
         coffeeRefillCount: 0,
         posture: 'sitting',
         lastStretchTime: Date.now(),
         energyLevel: 'high',
         notebookMentioned: false,
+        weatherMentioned: false,
+        musicMentioned: false,
+        lastPhysicalType: null,
       },
       metacognitive: {
         adviceGivenCount: 0,
@@ -154,30 +160,63 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
 
   const sessionMinutes = (now - session.sessionStartTime) / (1000 * 60);
   const comments: string[] = [];
+  const lastType = session.physicalState.lastPhysicalType;
 
-  // Coffee-related comments (persona-specific)
+  // VARIED physical state comments for Ferni - avoid repeating the same type
   if (personaId === 'ferni') {
-    if (session.physicalState.coffeeStatus === 'cold') {
+    // Weather awareness (Wyoming habit) - only if we haven't mentioned it recently
+    if (!session.physicalState.weatherMentioned && lastType !== 'weather' && Math.random() < 0.25) {
+      session.physicalState.weatherMentioned = true;
+      comments.push(
+        '<break time="200ms"/>Just checked the weather. <break time="150ms"/>Wyoming habit. <break time="200ms"/>Can\'t shake it.'
+      );
+      comments.push(
+        '<break time="200ms"/>Looking outside for a second... <break time="150ms"/>weather\'s changing. <break time="200ms"/>Anyway—'
+      );
+    }
+
+    // Music awareness - only if we haven't mentioned it recently
+    if (!session.physicalState.musicMentioned && lastType !== 'music' && Math.random() < 0.2) {
+      session.physicalState.musicMentioned = true;
+      comments.push(
+        '<break time="200ms"/>*puts something on* <break time="150ms"/>Bon Iver. <break time="200ms"/>Helps me think. <break time="150ms"/>Go on.'
+      );
+      comments.push(
+        '<break time="200ms"/>Let me put some music on... <break time="150ms"/>there. <break time="200ms"/>Better.'
+      );
+    }
+
+    // Coffee-related comments - ONLY if coffee status is relevant AND we haven't done coffee recently
+    if (
+      session.physicalState.coffeeStatus === 'cold' &&
+      lastType !== 'coffee' &&
+      Math.random() < 0.3
+    ) {
       comments.push(
         "Hold on, my coffee's gone cold. <break time=\"300ms\"/>That's what happens when the conversation's good."
       );
-      comments.push('I should get a fresh cup... <break time="200ms"/>this one went cold. Anyway—');
+      session.physicalState.lastPhysicalType = 'coffee';
     }
-    if (session.physicalState.coffeeStatus === 'warm' && Math.random() < 0.3) {
-      comments.push(
-        '<break time="200ms"/>*takes a sip* <break time="150ms"/>Good coffee. Good conversation. Continue.'
-      );
-    }
+
+    // Notebook mention (less frequent)
     if (
-      session.physicalState.coffeeRefillCount === 0 &&
-      sessionMinutes > 20 &&
-      session.physicalState.coffeeStatus === 'cold'
+      !session.physicalState.notebookMentioned &&
+      session.turnCount > 10 &&
+      lastType !== 'notebook' &&
+      Math.random() < 0.15
     ) {
-      session.physicalState.coffeeStatus = 'refilling';
-      session.physicalState.coffeeRefillCount++;
+      session.physicalState.notebookMentioned = true;
       comments.push(
-        'Let me just... <break time="300ms"/>refilling my coffee. <break time="200ms"/>Don\'t go anywhere.'
+        '*jots something in notebook* <break time="200ms"/>Just making a note. <break time="150ms"/>Go on.'
       );
+    }
+
+    // Thoughtful pause / presence
+    if (lastType !== 'presence' && Math.random() < 0.15) {
+      comments.push(
+        '<break time="300ms"/>*takes a breath* <break time="200ms"/>I\'m listening. <break time="150ms"/>Really listening.'
+      );
+      comments.push('<break time="200ms"/>Present. <break time="150ms"/>Go ahead.');
     }
   }
 

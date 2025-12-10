@@ -4,10 +4,7 @@
 # Mirrors .gcloudignore for local Docker builds
 # ============================================================================
 
-# Work in progress (not ready for production)
-src/services/evalops/
-src/api/evalops-routes.ts
-src/api/evalops-handler.ts
+# Note: evalops is now production-ready and included in the build
 
 # Large directories
 apps/

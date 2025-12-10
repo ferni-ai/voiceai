@@ -6,7 +6,7 @@
  * feel recognized and valued.
  */
 
-import type { UserProfile, RelationshipStage } from '../../types/user-profile.js';
+import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
 // TIME-BASED WELCOME BACK MESSAGES
@@ -17,7 +17,7 @@ export const WELCOME_BACK_BY_TIME = {
   sameDay: {
     generic: [
       'Hey, you\'re back! <break time="200ms"/>What\'s up?',
-      'Oh hey! <break time="200ms"/>Back so soon! <break time="150ms"/>What can I help with?',
+      'Oh hey! <break time="200ms"/>Back so soon! <break time="150ms"/>What\'s going on?',
       'You\'re back! <break time="200ms"/>What else is on your mind?',
     ],
     withName: [
@@ -31,7 +31,7 @@ export const WELCOME_BACK_BY_TIME = {
     generic: [
       'Hey! <break time="200ms"/>Good to hear from you again!',
       'Welcome back! <break time="200ms"/>How are you today?',
-      'Hey there! <break time="200ms"/>Back for more? <break time="150ms"/>What can I help with?',
+      'Hey there! <break time="200ms"/>Back for more? <break time="150ms"/>What\'s on your mind?',
     ],
     withName: [
       'Hey {name}! <break time="200ms"/>Good to see you today!',

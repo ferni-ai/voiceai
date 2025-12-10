@@ -172,7 +172,9 @@ describe('Background Task Utilities', () => {
     it('should log warning on failure regardless of timeout', async () => {
       vi.useFakeTimers();
 
-      const promise = new Promise((_, reject) => { setTimeout(() => reject(new Error('error')), 100); });
+      const promise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('error')), 100);
+      });
 
       runBackgroundWithTimeout(promise, 5000, { task: 'failTask' });
 

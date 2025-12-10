@@ -13,16 +13,16 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import type { AgentId } from '../agent-bus.js';
 import {
   generateOutreach,
   selectPersonaForOutreach,
+  type GeneratedOutreach,
   type OutreachChannel,
   type OutreachContext,
-  type RelationshipStage,
   type OutreachTone,
-  type GeneratedOutreach,
+  type RelationshipStage,
 } from './persona-voice-generator.js';
-import type { AgentId } from '../agent-bus.js';
 
 // ============================================================================
 // TYPES
@@ -790,9 +790,12 @@ class OutreachDecisionEngine extends EventEmitter {
     trigger: OutreachTrigger,
     state: UserOutreachState
   ): OutreachContext {
+    // Get username from context aggregator's personal info
+    const userName = this.getUserNameFromContext(trigger.userId, state);
+
     return {
       userId: trigger.userId,
-      userName: state.context.recentTopics?.[0] || 'there', // TODO: Get from profile
+      userName,
       relationshipStage: state.relationshipStage,
 
       trigger: {
@@ -814,6 +817,43 @@ class OutreachDecisionEngine extends EventEmitter {
       goal: trigger.goal,
       event: trigger.event,
     };
+  }
+
+  /**
+   * Get user's name from context aggregator or profile
+   */
+  private getUserNameFromContext(userId: string, state: UserOutreachState): string {
+    // Try context aggregator first (has personal info from conversations)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getUserContext } = require('./context-aggregator.js');
+      const context = getUserContext(userId);
+      if (context?.personal?.preferredName) {
+        return context.personal.preferredName;
+      }
+      if (context?.personal?.firstName) {
+        return context.personal.firstName;
+      }
+    } catch {
+      // Context aggregator not available, fall through
+    }
+
+    // Fallback: Try user identification service
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getGreeting } = require('../user-identification.js');
+      const greeting = getGreeting(userId);
+      // Parse name from greeting if it contains one
+      const nameMatch = greeting.match(/(?:Welcome back|Hey|Hi),?\s+(\w+)/i);
+      if (nameMatch?.[1] && nameMatch[1] !== 'there') {
+        return nameMatch[1];
+      }
+    } catch {
+      // User identification not available, fall through
+    }
+
+    // Default friendly fallback
+    return 'there';
   }
 
   private determineTone(trigger: OutreachTrigger): OutreachTone {

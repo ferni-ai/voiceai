@@ -4,6 +4,8 @@
  * Tracks tool usage for monitoring, debugging, and optimization.
  * Designed to be lightweight and non-blocking.
  *
+ * PERSISTENCE: Uses Firestore for analytics storage with in-memory caching.
+ *
  * USAGE:
  *   import { trackToolUsage, getToolMetrics } from '../shared/analytics.js';
  *
@@ -19,7 +21,82 @@
  *   }
  */
 
+import * as admin from 'firebase-admin';
 import { getLogger } from '../../../utils/safe-logger.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const EVENTS_COLLECTION = 'tool_analytics_events';
+const METRICS_COLLECTION = 'tool_analytics_metrics';
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) return null;
+
+  firestoreInitAttempted = true;
+
+  try {
+    if (admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    return firestoreInstance;
+  } catch {
+    // Firebase not available - that's okay, we'll use in-memory only
+    return null;
+  }
+}
+
+/**
+ * Send event to analytics service (Firestore)
+ * Non-blocking - fires and forgets
+ */
+async function sendToAnalyticsService(event: ToolUsageEvent): Promise<void> {
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    await db.collection(EVENTS_COLLECTION).add({
+      ...event,
+      timestamp: event.timestamp,
+    });
+
+    // Update aggregated metrics
+    const metricsRef = db.collection(METRICS_COLLECTION).doc(`${event.domain}:${event.toolId}`);
+    await metricsRef.set(
+      {
+        toolId: event.toolId,
+        domain: event.domain,
+        totalCalls: admin.firestore.FieldValue.increment(1),
+        successCount: admin.firestore.FieldValue.increment(event.success ? 1 : 0),
+        errorCount: admin.firestore.FieldValue.increment(event.success ? 0 : 1),
+        totalDurationMs: admin.firestore.FieldValue.increment(event.durationMs),
+        lastCalled: event.timestamp,
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    // Non-critical - log but don't throw
+    getLogger().debug(
+      { error, toolId: event.toolId },
+      'Failed to send tool analytics (non-critical)'
+    );
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -119,8 +196,8 @@ export function trackToolUsage(
       );
     }
 
-    // In production, send to analytics service
-    // sendToAnalyticsService(event);
+    // Send to analytics service (non-blocking)
+    void sendToAnalyticsService(event);
   };
 
   return {
@@ -337,6 +414,82 @@ export function exportEvents(since?: Date): ToolUsageEvent[] {
 }
 
 // ============================================================================
+// FIRESTORE QUERIES
+// ============================================================================
+
+/**
+ * Load metrics from Firestore (for dashboard/admin)
+ */
+export async function loadMetricsFromFirestore(): Promise<ToolMetrics[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  try {
+    const snapshot = await db.collection(METRICS_COLLECTION).get();
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const totalCalls = data.totalCalls || 0;
+      return {
+        toolId: data.toolId,
+        domain: data.domain,
+        totalCalls,
+        successCount: data.successCount || 0,
+        errorCount: data.errorCount || 0,
+        avgDurationMs: totalCalls > 0 ? Math.round((data.totalDurationMs || 0) / totalCalls) : 0,
+        lastCalled: data.lastCalled?.toDate() || null,
+        errorRate: totalCalls > 0 ? (data.errorCount || 0) / totalCalls : 0,
+      } as ToolMetrics;
+    });
+  } catch (error) {
+    getLogger().warn({ error }, 'Failed to load tool metrics from Firestore');
+    return [];
+  }
+}
+
+/**
+ * Query recent events from Firestore
+ */
+export async function queryEventsFromFirestore(options: {
+  toolId?: string;
+  domain?: string;
+  limit?: number;
+  since?: Date;
+}): Promise<ToolUsageEvent[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  try {
+    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+
+    if (options.toolId) {
+      query = query.where('toolId', '==', options.toolId);
+    }
+    if (options.domain) {
+      query = query.where('domain', '==', options.domain);
+    }
+    if (options.since) {
+      query = query.where('timestamp', '>=', options.since);
+    }
+
+    const snapshot = await query
+      .orderBy('timestamp', 'desc')
+      .limit(options.limit || 100)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp?.toDate() || new Date(data.timestamp),
+      } as ToolUsageEvent;
+    });
+  } catch (error) {
+    getLogger().warn({ error }, 'Failed to query tool events from Firestore');
+    return [];
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -356,4 +509,6 @@ export default {
   clearAnalytics,
   getEventCount,
   exportEvents,
+  loadMetricsFromFirestore,
+  queryEventsFromFirestore,
 };

@@ -316,7 +316,7 @@ function fillTemplate(template: string, values: Record<string, string>): string 
 
 /**
  * Generate perspectives from multiple personas on a situation
- * 
+ *
  * @param situation - The situation being analyzed
  * @param topic - The topic under discussion
  * @param personaIds - Optional list of persona IDs to include. Defaults to just Ferni
@@ -520,7 +520,7 @@ function recommendCognitiveHandoff(
 
 /**
  * Generate natural language commentary about what team members might say
- * 
+ *
  * @param personaId - The current persona generating commentary
  * @param topic - The topic being discussed
  * @param context - The context type (handoff, reflection, collaboration)
@@ -541,7 +541,7 @@ export function generateTeamCommentary(
 
   // Generate commentary about other team members' perspectives
   let otherPersonas = Object.keys(cognitiveProfiles).filter((id) => id !== personaId);
-  
+
   // Filter to only unlocked members if provided
   if (unlockedMemberIds && unlockedMemberIds.length > 0) {
     otherPersonas = otherPersonas.filter((id) => {
@@ -549,9 +549,11 @@ export function generateTeamCommentary(
       const normalizedId = id.toLowerCase().replace(/_/g, '-');
       return unlockedMemberIds.some((unlocked) => {
         const normalizedUnlocked = unlocked.toLowerCase().replace(/_/g, '-');
-        return normalizedUnlocked === normalizedId ||
-               normalizedUnlocked.includes(normalizedId) ||
-               normalizedId.includes(normalizedUnlocked);
+        return (
+          normalizedUnlocked === normalizedId ||
+          normalizedUnlocked.includes(normalizedId) ||
+          normalizedId.includes(normalizedUnlocked)
+        );
       });
     });
   }

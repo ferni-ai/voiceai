@@ -98,23 +98,23 @@ let initAttempted = false;
 function getFirestore(): admin.firestore.Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
-  
+
   initAttempted = true;
-  
+
   try {
     if (admin.apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT;
-      
+
       if (projectId) {
         admin.initializeApp({ projectId });
       } else {
         admin.initializeApp();
       }
     }
-    
+
     firestoreInstance = admin.firestore();
     return firestoreInstance;
   } catch (error) {
@@ -150,13 +150,16 @@ export function startConversation(
     voiceVerified,
     verificationConfidence,
   };
-  
-  log.info({
-    conversationId: conversation.id,
-    userId,
-    voiceVerified,
-  }, 'Conversation started');
-  
+
+  log.info(
+    {
+      conversationId: conversation.id,
+      userId,
+      voiceVerified,
+    },
+    'Conversation started'
+  );
+
   return conversation;
 }
 
@@ -175,9 +178,9 @@ export function addConversationTurn(
     timestamp: new Date(),
     metadata,
   };
-  
+
   conversation.turns.push(turn);
-  
+
   // Extract topics from content
   const newTopics = extractTopics(content);
   for (const topic of newTopics) {
@@ -185,32 +188,33 @@ export function addConversationTurn(
       conversation.topics.push(topic);
     }
   }
-  
+
   return conversation;
 }
 
 /**
  * End and save a conversation.
  */
-export async function endConversation(
-  conversation: ConversationRecord
-): Promise<void> {
+export async function endConversation(conversation: ConversationRecord): Promise<void> {
   conversation.endedAt = new Date();
-  
+
   // Generate summary
   conversation.summary = generateConversationSummary(conversation);
-  
+
   // Save to Firestore
   await saveConversation(conversation);
-  
+
   // Update user memory
   await updateUserMemory(conversation.userId, conversation);
-  
-  log.info({
-    conversationId: conversation.id,
-    turns: conversation.turns.length,
-    topics: conversation.topics,
-  }, 'Conversation ended');
+
+  log.info(
+    {
+      conversationId: conversation.id,
+      turns: conversation.turns.length,
+      topics: conversation.topics,
+    },
+    'Conversation ended'
+  );
 }
 
 /**
@@ -221,22 +225,25 @@ async function saveConversation(conversation: ConversationRecord): Promise<void>
   const userConversations = conversationsCache.get(conversation.userId) || [];
   userConversations.push(conversation);
   conversationsCache.set(conversation.userId, userConversations);
-  
+
   const db = getFirestore();
   if (!db) return;
-  
+
   try {
-    await db.collection(CONVERSATIONS_COLLECTION).doc(conversation.id).set({
-      ...conversation,
-      startedAt: admin.firestore.Timestamp.fromDate(conversation.startedAt),
-      endedAt: conversation.endedAt 
-        ? admin.firestore.Timestamp.fromDate(conversation.endedAt) 
-        : null,
-      turns: conversation.turns.map(t => ({
-        ...t,
-        timestamp: admin.firestore.Timestamp.fromDate(t.timestamp),
-      })),
-    });
+    await db
+      .collection(CONVERSATIONS_COLLECTION)
+      .doc(conversation.id)
+      .set({
+        ...conversation,
+        startedAt: admin.firestore.Timestamp.fromDate(conversation.startedAt),
+        endedAt: conversation.endedAt
+          ? admin.firestore.Timestamp.fromDate(conversation.endedAt)
+          : null,
+        turns: conversation.turns.map((t) => ({
+          ...t,
+          timestamp: admin.firestore.Timestamp.fromDate(t.timestamp),
+        })),
+      });
   } catch (error) {
     log.error({ error, conversationId: conversation.id }, 'Failed to save conversation');
   }
@@ -249,12 +256,9 @@ async function saveConversation(conversation: ConversationRecord): Promise<void>
 /**
  * Update user's conversation memory after a conversation.
  */
-async function updateUserMemory(
-  userId: string,
-  conversation: ConversationRecord
-): Promise<void> {
+async function updateUserMemory(userId: string, conversation: ConversationRecord): Promise<void> {
   let memory = await getUserMemory(userId);
-  
+
   if (!memory) {
     memory = {
       userId,
@@ -267,19 +271,19 @@ async function updateUserMemory(
       relationshipMilestones: [],
     };
   }
-  
+
   // Update stats
   memory.totalConversations++;
   memory.lastConversation = conversation.endedAt || new Date();
-  
+
   if (conversation.endedAt) {
     const durationMs = conversation.endedAt.getTime() - conversation.startedAt.getTime();
     memory.totalDuration += durationMs / 60000; // Convert to minutes
   }
-  
+
   // Update topics
   for (const topic of conversation.topics) {
-    const existing = memory.topics.find(t => t.topic === topic);
+    const existing = memory.topics.find((t) => t.topic === topic);
     if (existing) {
       existing.count++;
       existing.lastMentioned = conversation.endedAt || new Date();
@@ -291,30 +295,30 @@ async function updateUserMemory(
       });
     }
   }
-  
+
   // Sort topics by count
   memory.topics.sort((a, b) => b.count - a.count);
-  
+
   // Keep only top 50 topics
   memory.topics = memory.topics.slice(0, 50);
-  
+
   // Check for important moments
   const importantMoment = detectImportantMoment(conversation);
   if (importantMoment) {
     memory.importantMoments.push(importantMoment);
-    
+
     // Keep only last 20 important moments
     if (memory.importantMoments.length > 20) {
       memory.importantMoments = memory.importantMoments.slice(-20);
     }
   }
-  
+
   // Check for relationship milestones
   const milestone = detectRelationshipMilestone(memory, conversation);
   if (milestone) {
     memory.relationshipMilestones.push(milestone);
   }
-  
+
   await saveUserMemory(memory);
 }
 
@@ -326,14 +330,14 @@ export async function getUserMemory(userId: string): Promise<ConversationMemory 
   if (memoriesCache.has(userId)) {
     return memoriesCache.get(userId)!;
   }
-  
+
   const db = getFirestore();
   if (!db) return null;
-  
+
   try {
     const doc = await db.collection(MEMORIES_COLLECTION).doc(userId).get();
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     const memory: ConversationMemory = {
       userId: data.userId,
@@ -341,20 +345,23 @@ export async function getUserMemory(userId: string): Promise<ConversationMemory 
       totalDuration: data.totalDuration,
       firstConversation: data.firstConversation?.toDate(),
       lastConversation: data.lastConversation?.toDate(),
-      topics: data.topics?.map((t: any) => ({
-        ...t,
-        lastMentioned: t.lastMentioned?.toDate(),
-      })) || [],
-      importantMoments: data.importantMoments?.map((m: any) => ({
-        ...m,
-        date: m.date?.toDate(),
-      })) || [],
-      relationshipMilestones: data.relationshipMilestones?.map((m: any) => ({
-        ...m,
-        date: m.date?.toDate(),
-      })) || [],
+      topics:
+        data.topics?.map((t: any) => ({
+          ...t,
+          lastMentioned: t.lastMentioned?.toDate(),
+        })) || [],
+      importantMoments:
+        data.importantMoments?.map((m: any) => ({
+          ...m,
+          date: m.date?.toDate(),
+        })) || [],
+      relationshipMilestones:
+        data.relationshipMilestones?.map((m: any) => ({
+          ...m,
+          date: m.date?.toDate(),
+        })) || [],
     };
-    
+
     memoriesCache.set(userId, memory);
     return memory;
   } catch (error) {
@@ -368,28 +375,31 @@ export async function getUserMemory(userId: string): Promise<ConversationMemory 
  */
 async function saveUserMemory(memory: ConversationMemory): Promise<void> {
   memoriesCache.set(memory.userId, memory);
-  
+
   const db = getFirestore();
   if (!db) return;
-  
+
   try {
-    await db.collection(MEMORIES_COLLECTION).doc(memory.userId).set({
-      ...memory,
-      firstConversation: admin.firestore.Timestamp.fromDate(memory.firstConversation),
-      lastConversation: admin.firestore.Timestamp.fromDate(memory.lastConversation),
-      topics: memory.topics.map(t => ({
-        ...t,
-        lastMentioned: admin.firestore.Timestamp.fromDate(t.lastMentioned),
-      })),
-      importantMoments: memory.importantMoments.map(m => ({
-        ...m,
-        date: admin.firestore.Timestamp.fromDate(m.date),
-      })),
-      relationshipMilestones: memory.relationshipMilestones.map(m => ({
-        ...m,
-        date: admin.firestore.Timestamp.fromDate(m.date),
-      })),
-    });
+    await db
+      .collection(MEMORIES_COLLECTION)
+      .doc(memory.userId)
+      .set({
+        ...memory,
+        firstConversation: admin.firestore.Timestamp.fromDate(memory.firstConversation),
+        lastConversation: admin.firestore.Timestamp.fromDate(memory.lastConversation),
+        topics: memory.topics.map((t) => ({
+          ...t,
+          lastMentioned: admin.firestore.Timestamp.fromDate(t.lastMentioned),
+        })),
+        importantMoments: memory.importantMoments.map((m) => ({
+          ...m,
+          date: admin.firestore.Timestamp.fromDate(m.date),
+        })),
+        relationshipMilestones: memory.relationshipMilestones.map((m) => ({
+          ...m,
+          date: admin.firestore.Timestamp.fromDate(m.date),
+        })),
+      });
   } catch (error) {
     log.error({ error, userId: memory.userId }, 'Failed to save user memory');
   }
@@ -402,28 +412,26 @@ async function saveUserMemory(memory: ConversationMemory): Promise<void> {
 /**
  * Get context for a new conversation with a user.
  */
-export async function getConversationContext(
-  userId: string
-): Promise<ConversationContext> {
+export async function getConversationContext(userId: string): Promise<ConversationContext> {
   const memory = await getUserMemory(userId);
   const recentConversations = await getRecentConversations(userId, 5);
-  
+
   const context: ConversationContext = {
     recentTopics: [],
     unfinishedThreads: [],
     rememberedDetails: [],
     suggestedFollowUps: [],
   };
-  
+
   if (!memory) return context;
-  
+
   // Get recent topics (last 30 days)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   context.recentTopics = memory.topics
-    .filter(t => t.lastMentioned > thirtyDaysAgo)
+    .filter((t) => t.lastMentioned > thirtyDaysAgo)
     .slice(0, 10)
-    .map(t => t.topic);
-  
+    .map((t) => t.topic);
+
   // Find unfinished threads (topics mentioned but not resolved)
   for (const conv of recentConversations) {
     // Look for open questions or unfinished discussions
@@ -436,7 +444,7 @@ export async function getConversationContext(
       });
     }
   }
-  
+
   // Extract remembered details
   for (const moment of memory.importantMoments.slice(-5)) {
     context.rememberedDetails.push({
@@ -445,10 +453,10 @@ export async function getConversationContext(
       source: 'important_moment',
     });
   }
-  
+
   // Generate follow-up suggestions
   context.suggestedFollowUps = generateFollowUpSuggestions(memory, recentConversations);
-  
+
   return context;
 }
 
@@ -464,27 +472,29 @@ export async function getRecentConversations(
   if (cached && cached.length >= limit) {
     return cached.slice(-limit).reverse();
   }
-  
+
   const db = getFirestore();
   if (!db) return cached?.slice(-limit).reverse() || [];
-  
+
   try {
-    const snapshot = await db.collection(CONVERSATIONS_COLLECTION)
+    const snapshot = await db
+      .collection(CONVERSATIONS_COLLECTION)
       .where('userId', '==', userId)
       .orderBy('startedAt', 'desc')
       .limit(limit)
       .get();
-    
-    return snapshot.docs.map(doc => {
+
+    return snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
         userId: data.userId,
         sessionId: data.sessionId,
-        turns: data.turns?.map((t: any) => ({
-          ...t,
-          timestamp: t.timestamp?.toDate(),
-        })) || [],
+        turns:
+          data.turns?.map((t: any) => ({
+            ...t,
+            timestamp: t.timestamp?.toDate(),
+          })) || [],
         startedAt: data.startedAt?.toDate(),
         endedAt: data.endedAt?.toDate(),
         summary: data.summary,
@@ -509,16 +519,17 @@ export async function searchConversationsByTopic(
 ): Promise<ConversationRecord[]> {
   const db = getFirestore();
   if (!db) return [];
-  
+
   try {
-    const snapshot = await db.collection(CONVERSATIONS_COLLECTION)
+    const snapshot = await db
+      .collection(CONVERSATIONS_COLLECTION)
       .where('userId', '==', userId)
       .where('topics', 'array-contains', topic.toLowerCase())
       .orderBy('startedAt', 'desc')
       .limit(limit)
       .get();
-    
-    return snapshot.docs.map(doc => {
+
+    return snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -549,14 +560,14 @@ export async function searchConversationsByTopic(
 function extractTopics(content: string): string[] {
   // Simple keyword extraction (in production, use NLP)
   const topics: string[] = [];
-  
+
   // Common topic indicators
   const topicPatterns = [
     /(?:about|regarding|concerning|discussing)\s+(\w+(?:\s+\w+)?)/gi,
     /(?:my|the)\s+(job|work|family|health|relationship|career|hobby|goal|dream)/gi,
     /(?:feeling|felt|feel)\s+(\w+)/gi,
   ];
-  
+
   for (const pattern of topicPatterns) {
     const matches = content.matchAll(pattern);
     for (const match of matches) {
@@ -566,7 +577,7 @@ function extractTopics(content: string): string[] {
       }
     }
   }
-  
+
   return topics;
 }
 
@@ -576,10 +587,10 @@ function extractTopics(content: string): string[] {
 function generateConversationSummary(conversation: ConversationRecord): string {
   const turnCount = conversation.turns.length;
   const topicsStr = conversation.topics.slice(0, 3).join(', ');
-  
+
   if (turnCount === 0) return 'Empty conversation';
   if (turnCount <= 2) return 'Brief exchange';
-  
+
   return `Discussed ${topicsStr || 'various topics'} over ${turnCount} turns.`;
 }
 
@@ -592,7 +603,7 @@ function detectImportantMoment(
   // Look for emotional moments or significant disclosures
   for (const turn of conversation.turns) {
     const content = turn.content.toLowerCase();
-    
+
     // Check for significant emotional content
     if (
       content.includes('breakthrough') ||
@@ -608,7 +619,7 @@ function detectImportantMoment(
       };
     }
   }
-  
+
   return null;
 }
 
@@ -626,7 +637,7 @@ function detectRelationshipMilestone(
       date: new Date(),
     };
   }
-  
+
   // Conversation count milestones
   const milestoneConversations = [10, 25, 50, 100, 250, 500];
   if (milestoneConversations.includes(memory.totalConversations)) {
@@ -635,7 +646,7 @@ function detectRelationshipMilestone(
       date: new Date(),
     };
   }
-  
+
   // Weekly streak (simplified)
   const daysSinceFirst = (Date.now() - memory.firstConversation.getTime()) / (24 * 60 * 60 * 1000);
   if (daysSinceFirst >= 7 && memory.totalConversations >= 7) {
@@ -644,7 +655,7 @@ function detectRelationshipMilestone(
       date: new Date(),
     };
   }
-  
+
   return null;
 }
 
@@ -656,13 +667,13 @@ function generateFollowUpSuggestions(
   recentConversations: ConversationRecord[]
 ): string[] {
   const suggestions: string[] = [];
-  
+
   // Recent topic to revisit
   if (memory.topics.length > 0) {
     const recentTopic = memory.topics[0];
     suggestions.push(`How are things going with ${recentTopic.topic}?`);
   }
-  
+
   // Follow up on important moment
   if (memory.importantMoments.length > 0) {
     const recentMoment = memory.importantMoments[memory.importantMoments.length - 1];
@@ -671,7 +682,7 @@ function generateFollowUpSuggestions(
       suggestions.push(`Remember when you mentioned "${truncate(recentMoment.summary, 50)}"?`);
     }
   }
-  
+
   // Check for open threads
   if (recentConversations.length > 0) {
     const lastConv = recentConversations[0];
@@ -679,7 +690,7 @@ function generateFollowUpSuggestions(
       suggestions.push(`Last time we talked about ${lastConv.topics[0]}...`);
     }
   }
-  
+
   return suggestions.slice(0, 3);
 }
 
@@ -688,7 +699,7 @@ function generateFollowUpSuggestions(
  */
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 // ============================================================================
@@ -704,4 +715,3 @@ export default {
   getRecentConversations,
   searchConversationsByTopic,
 };
-

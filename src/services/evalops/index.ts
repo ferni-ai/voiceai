@@ -39,22 +39,22 @@ export type {
   ResponseEvaluation,
   ResponseEvaluationDimensions,
   EvaluationContext,
-  
+
   // Fingerprint types
   PersonaVoiceFingerprint,
-  
+
   // Test scenario types
   TestScenario,
   TestScenarioResult,
   ExpectedBehavior,
-  
+
   // Report types
   PersonaEvalReport,
   EvalDashboard,
-  
+
   // Experiment types
   EvalExperiment,
-  
+
   // Config types
   SamplingConfig,
 } from './types.js';
@@ -86,12 +86,12 @@ export {
   alexFingerprint,
   jordanFingerprint,
   nayanFingerprint,
-  
+
   // Registry
   personaFingerprints,
   getPersonaFingerprint,
   getFingerprrintedPersonas,
-  
+
   // Analysis utilities
   analyzeSignaturePhraseUsage,
   detectAntiPatterns,
@@ -112,12 +112,12 @@ export {
   trustBuildingScenarios,
   safetyScenarios,
   helpfulnessScenarios,
-  
+
   // Scenario utilities
   getScenariosByCategory,
   getScenariosForPersona,
   getCriticalScenarios,
-  
+
   // Scenario runners
   runScenario,
   runAllScenariosForPersona,
@@ -134,23 +134,23 @@ export {
   setEvalOpsFlags,
   isEvalOpsEnabledForPersona,
   type EvalOpsFeatureFlags,
-  
+
   // Metrics
   getEvalMetrics,
   resetEvalMetrics,
-  
+
   // Evaluation storage
   getRecentEvaluations,
   getFlaggedEvaluations,
-  
+
   // Alerting
   onFlaggedResponse,
-  
+
   // Conversation hooks
   afterTurn,
   quickVoiceCheck,
   evalopsHook,
-  
+
   // Scheduled suites
   runScheduledSuite,
   getSuiteResults,
@@ -192,11 +192,11 @@ export function quickHealthCheck(
   issues: string[];
 } {
   const { score, issues } = evaluateVoiceConsistency(response, personaId);
-  
+
   let status: 'healthy' | 'warning' | 'critical' = 'healthy';
   if (score < 70) status = 'warning';
   if (score < 50) status = 'critical';
-  
+
   return { score, status, issues };
 }
 
@@ -206,13 +206,13 @@ export function quickHealthCheck(
 export function buildMinimalContext(
   personaId: string,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [],
-  turnNumber: number = 1
+  turnNumber = 1
 ): EvaluationContext {
   const fingerprint = getPersonaFingerprint(personaId);
   if (!fingerprint) {
     throw new Error(`No fingerprint found for persona: ${personaId}`);
   }
-  
+
   return {
     personaId,
     fingerprint,
@@ -224,22 +224,35 @@ export function buildMinimalContext(
 /**
  * Get a summary of all personas' fingerprints for documentation
  */
-export function getPersonaFingerprintSummary(): Record<string, {
-  signaturePhrases: number;
-  antiPatterns: number;
-  warmth: number;
-  energy: number;
-  reasoningStyle: string;
-}> {
-  const personas = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
-  const summary: Record<string, {
+export function getPersonaFingerprintSummary(): Record<
+  string,
+  {
     signaturePhrases: number;
     antiPatterns: number;
     warmth: number;
     energy: number;
     reasoningStyle: string;
-  }> = {};
-  
+  }
+> {
+  const personas = [
+    'ferni',
+    'peter-john',
+    'maya-santos',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
+  const summary: Record<
+    string,
+    {
+      signaturePhrases: number;
+      antiPatterns: number;
+      warmth: number;
+      energy: number;
+      reasoningStyle: string;
+    }
+  > = {};
+
   for (const personaId of personas) {
     const fp = getPersonaFingerprint(personaId);
     if (fp) {
@@ -252,7 +265,7 @@ export function getPersonaFingerprintSummary(): Record<string, {
       };
     }
   }
-  
+
   return summary;
 }
 
@@ -268,18 +281,18 @@ export function getScenarioStats(): {
   const byCategory: Record<string, number> = {};
   const bySeverity: Record<string, number> = {};
   const personaSpecific: Record<string, number> = {};
-  
+
   for (const scenario of ALL_TEST_SCENARIOS) {
     byCategory[scenario.category] = (byCategory[scenario.category] || 0) + 1;
     bySeverity[scenario.severity] = (bySeverity[scenario.severity] || 0) + 1;
-    
+
     if (scenario.applicablePersonas.length > 0) {
       for (const persona of scenario.applicablePersonas) {
         personaSpecific[persona] = (personaSpecific[persona] || 0) + 1;
       }
     }
   }
-  
+
   return {
     total: ALL_TEST_SCENARIOS.length,
     byCategory,
@@ -287,4 +300,3 @@ export function getScenarioStats(): {
     personaSpecific,
   };
 }
-

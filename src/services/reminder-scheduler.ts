@@ -13,7 +13,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { getFirestoreStore, type FirestoreStore } from '../memory/firestore-store.js';
 import { InMemoryStore } from '../memory/in-memory-store.js';
 import type { MemoryStore } from '../memory/store.js';
-import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from './communication-service.js';
+import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from './communication-service.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -296,24 +296,108 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         const audioBuffer = await generatePersonaVoice(reminder.message, personaId);
 
         if (audioBuffer) {
-          // Try to send via MMS with audio
-          const audioBase64 = audioBuffer.toString('base64');
-          const audioDataUrl = `data:audio/mpeg;base64,${audioBase64}`;
+          // Try to upload to GCS and send via MMS
+          const GCS_BUCKET =
+            process.env.GCS_VOICE_BUCKET ||
+            (process.env.GOOGLE_CLOUD_PROJECT
+              ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio`
+              : '');
 
-          // For MMS, we need a publicly accessible URL
-          // For now, send SMS with the message content
-          // In production, upload to GCS and send MMS with mediaUrl
+          let audioUrl: string | null = null;
+
+          if (GCS_BUCKET) {
+            try {
+              const gcs = await import('@google-cloud/storage');
+              interface GcsModule {
+                Storage?: new () => {
+                  bucket: (name: string) => {
+                    file: (path: string) => { save: (data: Buffer, opts: object) => Promise<void> };
+                  };
+                };
+                default?: {
+                  Storage?: new () => {
+                    bucket: (name: string) => {
+                      file: (path: string) => {
+                        save: (data: Buffer, opts: object) => Promise<void>;
+                      };
+                    };
+                  };
+                };
+              }
+              const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
+              if (Storage) {
+                const storage = new Storage();
+                const bucket = storage.bucket(GCS_BUCKET);
+                const filename = `voice-reminders/${reminder.id}.mp3`;
+                const file = bucket.file(filename);
+
+                await file.save(audioBuffer, {
+                  metadata: { contentType: 'audio/mpeg' },
+                  public: true,
+                });
+
+                audioUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${filename}`;
+                logger.info(
+                  { reminderId: reminder.id, audioUrl },
+                  '🎤 Voice audio uploaded to GCS'
+                );
+              }
+            } catch (gcsError) {
+              logger.warn({ error: String(gcsError) }, 'GCS upload failed, falling back to SMS');
+            }
+          }
+
+          // If we have an audio URL, send via MMS
+          if (audioUrl) {
+            const accountSid = process.env.TWILIO_ACCOUNT_SID;
+            const authToken = process.env.TWILIO_AUTH_TOKEN;
+            const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+            if (accountSid && authToken && fromNumber) {
+              const cleanPhone = reminder.deliveryAddress.replace(/\D/g, '');
+              const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+
+              const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+              const response = await fetch(
+                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Basic ${auth}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                  body: new URLSearchParams({
+                    To: e164Phone,
+                    From: fromNumber,
+                    Body: `🎤 Voice message from ${firstName}`,
+                    MediaUrl: audioUrl,
+                  }),
+                }
+              );
+
+              if (response.ok) {
+                logger.info({ personaId, audioUrl }, '🎤 Voice message sent via MMS');
+                break;
+              } else {
+                const errorText = await response.text();
+                logger.warn({ error: errorText }, 'MMS send failed, falling back to SMS');
+              }
+            }
+          }
+
+          // Fallback to SMS with text if MMS failed
           await sendSMS(
             reminder.deliveryAddress,
             `🎤 Voice message from ${firstName}: "${reminder.message}"`
           );
-          logger.info({ personaId }, '🎤 Voice message sent (TTS generated, sent as text)');
+          logger.info({ personaId }, '🎤 Voice message sent as SMS (MMS unavailable)');
         } else {
           // Fallback if TTS fails
           await sendSMS(
             reminder.deliveryAddress,
             `🎤 Voice message from ${firstName}: "${reminder.message}"`
           );
+          logger.info({ personaId }, '🎤 Voice message sent as SMS (TTS unavailable)');
         }
         break;
       }

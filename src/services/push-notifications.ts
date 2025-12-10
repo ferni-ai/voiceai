@@ -400,9 +400,10 @@ class PushNotificationsBackendService {
     for (const [id, notification] of this.scheduledNotifications.entries()) {
       notifications[id] = {
         ...notification,
-        scheduledFor: notification.scheduledFor instanceof Date
-          ? notification.scheduledFor
-          : new Date(notification.scheduledFor),
+        scheduledFor:
+          notification.scheduledFor instanceof Date
+            ? notification.scheduledFor
+            : new Date(notification.scheduledFor),
       };
     }
     this.scheduledStore?.set('global', { notifications });
@@ -431,9 +432,10 @@ class PushNotificationsBackendService {
     for (const [id, notification] of this.scheduledNotifications) {
       if (notification.status !== 'pending') continue;
 
-      const scheduledFor = notification.scheduledFor instanceof Date
-        ? notification.scheduledFor
-        : new Date(notification.scheduledFor);
+      const scheduledFor =
+        notification.scheduledFor instanceof Date
+          ? notification.scheduledFor
+          : new Date(notification.scheduledFor);
 
       if (scheduledFor <= now) {
         try {
@@ -564,13 +566,46 @@ class PushNotificationsBackendService {
     subscription: PushSubscription,
     payload: PushNotificationPayload
   ): Promise<void> {
-    // This would integrate with Firebase Cloud Messaging (FCM) for Android
-    // and Apple Push Notification Service (APNs) for iOS
-    // For now, log it as a placeholder
-    getLogger().debug(
-      { platform: subscription.platform, payload },
-      'Native push would be sent here'
-    );
+    // Use the FCM push notification service from outreach/delivery
+    try {
+      const { sendPushNotification, isPushNotificationsAvailable, registerPushToken } =
+        await import('./outreach/delivery/push-notifications.js');
+
+      if (!isPushNotificationsAvailable()) {
+        getLogger().warn('FCM not initialized - skipping native push');
+        return;
+      }
+
+      // The outreach push service uses its own token registry, so we need to ensure
+      // the token is registered there as well
+      registerPushToken(subscription.userId, subscription.endpoint, subscription.platform);
+
+      // Send via FCM
+      const result = await sendPushNotification({
+        userId: subscription.userId,
+        outreachId: `push-${Date.now()}`,
+        personaId: payload.personaId || 'ferni',
+        title: payload.title,
+        body: payload.body,
+        priority: 'high',
+        data: payload.data as Record<string, string> | undefined,
+      });
+
+      const success = result.some((r) => r.success);
+      if (!success) {
+        getLogger().warn(
+          { userId: subscription.userId, errors: result.map((r) => r.error) },
+          'Native push delivery failed'
+        );
+      } else {
+        getLogger().info(
+          { userId: subscription.userId, platform: subscription.platform },
+          '📱 Native push notification sent via FCM'
+        );
+      }
+    } catch (error) {
+      getLogger().error({ error, userId: subscription.userId }, 'Failed to send native push');
+    }
   }
 
   private isSubscriptionExpired(error: unknown): boolean {

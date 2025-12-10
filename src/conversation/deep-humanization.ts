@@ -16,6 +16,7 @@
  * This is what makes Ferni feel ALIVE, not just knowledgeable.
  */
 
+import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'DeepHumanization' });
@@ -182,6 +183,20 @@ export class DeepHumanizationEngine {
       context.userEmotion === 'vulnerable';
 
     logger.debug({ mood: this.mood, turn: context.turnCount }, 'Mood updated');
+
+    // 🌉 Emit mood drift signal to frontend every few turns or on significant changes
+    if (context.turnCount % 5 === 0 || this.mood.inEmotionalMoment) {
+      void humanizationSignalEmitter.moodDrift({
+        energy: this.mood.energy,
+        engagement: this.mood.engagement,
+        emotionalLoad: this.mood.emotionalLoad,
+      });
+    }
+
+    // 🌉 Emit vulnerability signal if in emotional moment
+    if (this.mood.inEmotionalMoment && context.userEmotion === 'vulnerable') {
+      void humanizationSignalEmitter.vulnerability(0.8);
+    }
   }
 
   getMood(): ConversationMood {
@@ -266,6 +281,10 @@ export class DeepHumanizationEngine {
     if (phrases.length === 0) return null;
 
     this.recordInjection('spontaneous_thought');
+
+    // 🌉 Emit signal to frontend for EQ response
+    void humanizationSignalEmitter.spontaneousThought();
+
     return {
       type: 'spontaneous_thought',
       content: phrases[Math.floor(Math.random() * phrases.length)],
@@ -316,6 +335,10 @@ export class DeepHumanizationEngine {
     if (phrases.length === 0 || Math.random() > probability) return null;
 
     this.recordInjection('physical_presence');
+
+    // 🌉 Emit signal to frontend for EQ response
+    void humanizationSignalEmitter.physicalPresence();
+
     return {
       type: 'physical_presence',
       content: phrases[Math.floor(Math.random() * phrases.length)],
@@ -348,6 +371,10 @@ export class DeepHumanizationEngine {
     if (phrases.length === 0) return null;
 
     this.recordInjection('mind_change');
+
+    // 🌉 Emit signal to frontend for EQ response
+    void humanizationSignalEmitter.mindChange();
+
     return {
       type: 'mind_change',
       content: phrases[Math.floor(Math.random() * phrases.length)],
@@ -380,6 +407,10 @@ export class DeepHumanizationEngine {
     if (phrases.length === 0) return null;
 
     this.recordInjection('excitement_interruption');
+
+    // 🌉 Emit breakthrough signal to frontend - this is a BIG moment!
+    void humanizationSignalEmitter.breakthrough(probability);
+
     return {
       type: 'excitement_interruption',
       content: phrases[Math.floor(Math.random() * phrases.length)],
@@ -553,6 +584,10 @@ export class DeepHumanizationEngine {
     chosen = chosen.replace('{topic}', eligiblePattern.trait);
 
     this.recordInjection('running_joke');
+
+    // 🌉 Emit signal to frontend for EQ response
+    void humanizationSignalEmitter.runningJoke(chosen);
+
     return {
       type: 'running_joke',
       content: chosen,
@@ -608,6 +643,14 @@ export class DeepHumanizationEngine {
     if (phrases.length === 0 || Math.random() > probability) return null;
 
     this.recordInjection('engagement_signal');
+
+    // 🌉 Emit signal to frontend for EQ response
+    if (isDisengaged) {
+      void humanizationSignalEmitter.disengagement();
+    } else if (isHighlyEngaged) {
+      void humanizationSignalEmitter.highEngagement(probability);
+    }
+
     return {
       type: 'engagement_signal',
       content: phrases[Math.floor(Math.random() * phrases.length)],

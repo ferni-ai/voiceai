@@ -231,6 +231,7 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     // Reset to normal disconnect state
     removeClass(elements.disconnectBtn, 'btn-wrap-up');
     removeClass(elements.disconnectBtn, 'btn-attention');
+    removeClass(elements.disconnectBtn, 'btn-closing'); // Clear closing state too
     
     // Reset button text
     const textSpan = elements.disconnectBtn.querySelector('.btn-text');
@@ -240,6 +241,27 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', 'End conversation');
   }
+}
+
+/**
+ * Show the "closing ceremony" state on the goodbye button.
+ * Called when user clicks Goodbye to show the ceremony is in progress.
+ */
+export function showClosingState(): void {
+  if (!elements?.disconnectBtn) return;
+  
+  // Remove attention pulse, add closing state
+  removeClass(elements.disconnectBtn, 'btn-attention');
+  addClass(elements.disconnectBtn, 'btn-closing');
+  
+  // Change text to show it's happening
+  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  if (textSpan) {
+    textSpan.textContent = 'Until next time...';
+  }
+  
+  // Disable the button during ceremony
+  elements.disconnectBtn.disabled = true;
 }
 
 /**
@@ -283,6 +305,7 @@ export function dispose(): void {
 export const controlsUI = {
   init: initControlsUI,
   setConnecting,
+  showClosingState, // 🌅 For goodbye ceremony
   dispose,
 };
 

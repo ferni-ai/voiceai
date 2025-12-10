@@ -12,26 +12,25 @@
  * NOTE: For new code, use `tools/domains/communication/index.ts` instead.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import {
-  validateEmail,
-  validatePhone,
-  sanitizePlainText,
-  sanitizeEmailForLog,
-  sanitizePhoneForLog,
-} from './validation.js';
 import { sendEmail, sendSMS } from '../services/communication-service.js';
 import {
-  createReminder,
-  getPendingReminders,
   cancelReminder,
+  createReminder,
   createVoiceMessage,
-  sendVoiceMessage,
+  getPendingReminders,
   parseNaturalTime,
+  sendVoiceMessage,
   type ReminderDeliveryMethod,
 } from '../services/reminder-scheduler.js';
+import { getLogger } from '../utils/safe-logger.js';
+import {
+  sanitizeEmailForLog,
+  sanitizePhoneForLog,
+  validateEmail,
+  validatePhone,
+} from './validation.js';
 
 // Twilio for phone calls
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
@@ -801,7 +800,7 @@ Use when the user asks about:
           pendingReminders.length === 0
         ) {
           summary =
-            '✨ All clear! No pending communications or reminders.\n\nWhat can I help you set up?';
+            '✨ All clear! No pending communications or reminders.\n\nAnything you want to set up?';
         }
 
         return summary;

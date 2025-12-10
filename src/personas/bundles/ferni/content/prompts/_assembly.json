@@ -1,6 +1,7 @@
 {
   "prompt_modules": {
     "core_identity": "identity/system-prompt.md",
+    "directors_notes": "identity/directors-notes.md",
     "biography": "identity/biography.md",
     "behaviors_base": "behaviors/base-behaviors.md",
     "voice_guidance": "voice/voice-guidance.md"

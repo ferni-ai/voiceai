@@ -165,6 +165,245 @@ export interface BundleGoodbyes {
 }
 
 // ============================================================================
+// LOVABLE PRESENCE TYPES (Better Than Human charm system)
+// ============================================================================
+
+export interface BundleLovableMoments {
+  schema_version?: number;
+  description?: string;
+  caught_mid_thought?: {
+    description?: string;
+    examples?: string[];
+    with_specifics?: string[];
+  };
+  self_deprecating_humor?: {
+    about_himself?: string[];
+    recovery_humor?: string[];
+  };
+  genuine_excitement?: {
+    about_their_wins?: string[];
+    about_random_things?: string[];
+  };
+  tiny_specific_details?: {
+    what_ferni_shares_unprompted?: string[];
+    about_them?: string[];
+  };
+  playful_moments?: {
+    gentle_teasing?: string[];
+    shared_bits?: string[];
+  };
+  comfortable_imperfection?: {
+    mid_sentence_changes?: string[];
+    honest_admissions?: string[];
+  };
+  warmth_overflow?: {
+    when_they_need_it?: string[];
+    unexpected_tenderness?: string[];
+  };
+  usage_rules?: {
+    spontaneity_is_key?: string;
+    frequency?: Record<string, string>;
+    avoid_when?: string[];
+    increase_when?: string[];
+  };
+}
+
+export interface BundleDelightfulSurprises {
+  schema_version?: number;
+  description?: string;
+  random_tangents?: {
+    description?: string;
+    tangents?: string[];
+    recovery?: string[];
+  };
+  oddly_specific_opinions?: {
+    description?: string;
+    opinions?: string[];
+  };
+  accidental_reveals?: {
+    description?: string;
+    reveals?: string[];
+  };
+  why_am_i_telling_you_this?: {
+    description?: string;
+    shares?: string[];
+  };
+  genuine_confusion?: {
+    description?: string;
+    confusions?: string[];
+  };
+  specific_phrase_callbacks?: {
+    description?: string;
+    callbacks?: string[];
+  };
+  mild_frustration_at_self?: {
+    description?: string;
+    frustrations?: string[];
+  };
+  unsolicited_compliment_drop?: {
+    description?: string;
+    compliments?: string[];
+  };
+  the_pause_before_honesty?: {
+    description?: string;
+    pauses?: string[];
+  };
+  delighted_discovery?: {
+    description?: string;
+    discoveries?: string[];
+  };
+  usage_rules?: {
+    frequency?: string;
+    timing?: string;
+    key_principle?: string;
+    avoid_when?: string[];
+    increase_when?: string[];
+  };
+}
+
+export interface BundleVerbalPersonality {
+  schema_version?: number;
+  description?: string;
+  sentence_starters?: {
+    patterns?: string[];
+  };
+  verbal_tics?: {
+    thinking_sounds?: string[];
+    agreement_sounds?: string[];
+    processing_sounds?: string[];
+  };
+  sentence_enders?: {
+    trailing_off?: string[];
+    invitations?: string[];
+  };
+  emphatic_patterns?: {
+    emphasis?: string[];
+  };
+  recovery_phrases?: {
+    self_correction?: string[];
+  };
+  signature_phrases?: {
+    phrases?: string[];
+  };
+  affectionate_names?: {
+    general?: string[];
+    after_rapport?: string[];
+  };
+  laughter_patterns?: {
+    types?: string[];
+    contexts?: Record<string, string>;
+  };
+  response_to_compliments?: {
+    deflections?: string[];
+  };
+  response_to_thanks?: {
+    responses?: string[];
+  };
+  the_pivot?: {
+    after_sharing?: string[];
+  };
+  word_choices?: {
+    prefers?: Record<string, string>;
+    avoids?: string[];
+  };
+}
+
+export interface BundleNoticingPatterns {
+  schema_version?: number;
+  description?: string;
+  voice_changes?: {
+    description?: string;
+    observations?: string[];
+  };
+  energy_shifts?: {
+    description?: string;
+    observations?: string[];
+  };
+  what_they_didnt_say?: {
+    description?: string;
+    observations?: string[];
+  };
+  pattern_recognition?: {
+    description?: string;
+    observations?: string[];
+  };
+  timing_awareness?: {
+    description?: string;
+    observations?: string[];
+  };
+  body_language_voice_cues?: {
+    description?: string;
+    observations?: string[];
+  };
+  remembering_the_small_things?: {
+    description?: string;
+    callbacks?: string[];
+  };
+  noticing_growth?: {
+    description?: string;
+    observations?: string[];
+  };
+  permission_to_be_seen?: {
+    description?: string;
+    phrases?: string[];
+  };
+  usage_rules?: {
+    frequency?: string;
+    key_principle?: string;
+    avoid_when?: string[];
+    increase_when?: string[];
+  };
+}
+
+export interface BundleLiveReactions {
+  schema_version?: number;
+  description?: string;
+  genuine_surprise?: {
+    positive_surprise?: string[];
+    confused_surprise?: string[];
+    concerned_surprise?: string[];
+  };
+  delight?: {
+    at_them?: string[];
+    at_insight?: string[];
+  };
+  moved?: {
+    reactions?: string[];
+  };
+  frustration_for_them?: {
+    reactions?: string[];
+  };
+  recognition?: {
+    of_courage?: string[];
+    of_pain?: string[];
+    of_growth?: string[];
+  };
+  curiosity_spikes?: {
+    reactions?: string[];
+  };
+  thinking_reactions?: {
+    processing?: string[];
+  };
+  humor_reactions?: {
+    to_their_joke?: string[];
+    shared_amusement?: string[];
+  };
+  connection_moment?: {
+    reactions?: string[];
+  };
+  protective_instinct?: {
+    reactions?: string[];
+  };
+  usage_rules?: {
+    key_principle?: string;
+    timing?: string;
+    authenticity?: string;
+    avoid_when?: string[];
+    increase_when?: string[];
+  };
+}
+
+// ============================================================================
 // BEHAVIORS CONTAINER
 // ============================================================================
 
@@ -180,10 +419,18 @@ export interface BundleBehaviors {
   backchannels?: BundleBackchannels;
   thinking_sounds?: string[] | BundleThinkingSounds;
   silence_fillers?: BundleSilenceFillers;
-  entrances?: string[];
+  entrances?:
+    | string[]
+    | { schema_version: 2; static_fallback: string[]; contextual?: Record<string, string[]> };
   celebrations?: BundleCelebrations;
   goodbyes?: string[] | BundleGoodbyes;
   storytelling?: BundleStorytelling;
+  // Lovable Presence behaviors (Better Than Human charm system)
+  lovable_moments?: BundleLovableMoments;
+  delightful_surprises?: BundleDelightfulSurprises;
+  verbal_personality?: BundleVerbalPersonality;
+  noticing_patterns?: BundleNoticingPatterns;
+  live_reactions?: BundleLiveReactions;
   // Extended fields defined in extensions.ts
   [key: string]: unknown;
 }

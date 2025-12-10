@@ -42,40 +42,40 @@ export interface PersistenceConfig {
 
 export interface PersistenceStore<T> {
   /** Get data for a user */
-  get(userId: string): Promise<T | null>;
+  get: (userId: string) => Promise<T | null>;
 
   /** Set data for a user (queued for batch write) */
-  set(userId: string, data: T): void;
+  set: (userId: string, data: T) => void;
 
   /** Set data and write immediately */
-  setImmediate(userId: string, data: T): Promise<void>;
+  setImmediate: (userId: string, data: T) => Promise<void>;
 
   /** Delete data for a user */
-  delete(userId: string): Promise<void>;
+  delete: (userId: string) => Promise<void>;
 
   /** Mark data as dirty (needs sync) */
-  markDirty(userId: string): void;
+  markDirty: (userId: string) => void;
 
   /** Flush all pending changes */
-  flush(): Promise<void>;
+  flush: () => Promise<void>;
 
   /** Flush changes for a specific user */
-  flushUser(userId: string): Promise<void>;
+  flushUser: (userId: string) => Promise<void>;
 
   /** Load data from Firestore into memory */
-  load(userId: string): Promise<T | null>;
+  load: (userId: string) => Promise<T | null>;
 
   /** Clear memory cache for user */
-  clearCache(userId: string): void;
+  clearCache: (userId: string) => void;
 
   /** Clear all memory caches */
-  clearAllCaches(): void;
+  clearAllCaches: () => void;
 
   /** Get stats about memory usage */
-  getStats(): { cached: number; dirty: number };
+  getStats: () => { cached: number; dirty: number };
 
   /** Shutdown (flush and cleanup) */
-  shutdown(): Promise<void>;
+  shutdown: () => Promise<void>;
 }
 
 // ============================================================================
@@ -166,11 +166,15 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
           ? firestore.collection(collection).doc(userId)
           : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
-        batch.set(docRef, {
-          ...data,
-          _updatedAt: new Date().toISOString(),
-          _userId: userId,
-        }, { merge: true });
+        batch.set(
+          docRef,
+          {
+            ...data,
+            _updatedAt: new Date().toISOString(),
+            _userId: userId,
+          },
+          { merge: true }
+        );
 
         batchCount++;
 
@@ -187,7 +191,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     } catch (error) {
       // Re-add failed users to dirty set
-      toFlush.forEach(userId => dirty.add(userId));
+      toFlush.forEach((userId) => dirty.add(userId));
       log.error({ error, collection }, 'Failed to flush persistence batch');
     }
   };
@@ -210,11 +214,14 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         ? firestore.collection(collection).doc(userId)
         : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
-      await docRef.set({
-        ...data,
-        _updatedAt: new Date().toISOString(),
-        _userId: userId,
-      }, { merge: true });
+      await docRef.set(
+        {
+          ...data,
+          _updatedAt: new Date().toISOString(),
+          _userId: userId,
+        },
+        { merge: true }
+      );
 
       dirty.delete(userId);
       log.debug({ collection, userId }, 'User data persisted');
@@ -384,9 +391,7 @@ export async function shutdownPersistence(): Promise<void> {
  * Flush all pending changes across all stores
  */
 export async function flushAllStores(): Promise<void> {
-  await Promise.all(
-    activeStores.map(({ store }) => store.flush())
-  );
+  await Promise.all(activeStores.map(async ({ store }) => store.flush()));
 }
 
 /**
@@ -411,4 +416,3 @@ export default {
   flushAllStores,
   getAllStats,
 };
-

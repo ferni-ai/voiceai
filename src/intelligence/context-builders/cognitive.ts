@@ -408,7 +408,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     const tier: 'free' | 'friend' | 'partner' =
       (input.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
     const unlockedMemberIds = getUnlockedTeamMemberIds(input.userProfile, tier);
-    
+
     const teamCommentary = generateTeamCommentary(
       personaId,
       cognitiveContext.currentTopic,

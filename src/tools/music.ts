@@ -153,20 +153,31 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
 
     if (!result.found || !result.track) {
       log.warn({ query, error: result.error }, '🎵 [iTunes] Track not found');
-      return result.error || `Couldn't find "${query}". Try a different song?`;
+      // 🎯 IMPROVED: More helpful suggestions
+      const suggestions = [
+        `Couldn't find "${query}". Try the artist name, or a different spelling?`,
+        `No results for "${query}". Maybe try just the song title or artist?`,
+        `"${query}" isn't in my catalog. Want to try something else?`,
+      ];
+      return result.error || suggestions[Math.floor(Math.random() * suggestions.length)];
     }
 
     const { track } = result;
-    
+
     // 🚨 CRITICAL: Check if preview URL exists
     if (!track.previewUrl) {
       log.warn(
         { track: track.name, artist: track.artist },
         '🎵 [iTunes] Track found but no preview URL available!'
       );
-      return `I found "${track.name}" by ${track.artist}, but I can't play a preview of this one. Try a different song?`;
+      // 🎯 IMPROVED: Offer alternatives instead of just failing
+      if (result.alternatives && result.alternatives.length > 0) {
+        const alt = result.alternatives[0];
+        return `I found "${track.name}" by ${track.artist}, but that one doesn't have a preview. Want me to try "${alt.name}" by ${alt.artist} instead?`;
+      }
+      return `I found "${track.name}" by ${track.artist}, but I can't play a preview of this one. Try a different song by them, or another artist?`;
     }
-    
+
     log.debug('Track found', {
       name: track.name,
       artist: track.artist,
@@ -184,13 +195,21 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     // Step 2: Get music player and check initialization
     log.debug('Step 2: Getting music player...');
     const musicPlayer = getMusicPlayer();
-    
-    // 🚨 CRITICAL: Check if music player is initialized
+
+    // 🚨 CRITICAL: Check if music player is initialized with helpful diagnostics
     if (!musicPlayer.isInitialized()) {
-      log.error('🎵 [iTunes] Music player not initialized! Cannot play audio.');
-      return "I can't play music right now - something went wrong with the audio setup. Try asking again in a moment.";
+      log.error(
+        {
+          query,
+          trackName: track.name,
+          playerState: musicPlayer.getState(),
+        },
+        '🎵 [iTunes] Music player not initialized! Cannot play audio.'
+      );
+      // 🎯 IMPROVED: More specific error message and recovery suggestion
+      return `I found "${track.name}" by ${track.artist}, but the audio system isn't ready yet. Give me a second and ask again - it should work shortly!`;
     }
-    
+
     const wasPlaying = musicPlayer.isCurrentlyPlaying();
     const previousTrack = musicPlayer.getCurrentPlayingTrack();
 
@@ -236,8 +255,23 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
         { track: track.name, artist: track.artist, previewUrl: track.previewUrl?.slice(0, 50) },
         '🎵 [iTunes] playFromUrl returned false! Music will NOT play.'
       );
-      // Be honest - don't say "Let me try again" if it didn't work
-      return `I found "${track.name}" by ${track.artist}, but had trouble playing it. The audio might not be available. Try another song?`;
+      // 🎯 IMPROVED: Diagnose the failure and give helpful suggestions
+      const playerState = musicPlayer.getState();
+      log.error(
+        {
+          isInitialized: musicPlayer.isInitialized(),
+          isPlaying: playerState.isPlaying,
+          hasCurrentTrack: !!playerState.currentTrack,
+        },
+        '🎵 [iTunes] Player state at failure'
+      );
+
+      // Try to offer alternatives if we have them
+      if (result.alternatives && result.alternatives.length > 0) {
+        const alt = result.alternatives[0];
+        return `I had trouble playing "${track.name}". Let me try "${alt.name}" by ${alt.artist} instead - say yes if you want me to!`;
+      }
+      return `I found "${track.name}" by ${track.artist}, but couldn't play it. This sometimes happens with certain tracks. Try a different song?`;
     }
 
     log.info(

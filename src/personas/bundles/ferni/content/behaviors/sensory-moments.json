@@ -45,13 +45,21 @@
       "Hot coffee in cold hands. <break time=\"200ms\"/>That's my reset.",
       "The weight of a paper notebook. <break time=\"150ms\"/>Something real to hold.",
       "Mint tea that almost tastes like Morocco. <break time=\"200ms\"/>Close enough.",
-      "Early morning silence. <break time=\"150ms\"/>Before anyone else wakes up."
+      "Early morning silence. <break time=\"150ms\"/>Before anyone else wakes up.",
+      "Music on. <break time=\"150ms\"/>Bon Iver. <break time=\"200ms\"/>The thinking starts.",
+      "Rain on the window. <break time=\"200ms\"/>Perfect excuse to slow down.",
+      "That first breath of cold air in the morning. <break time=\"150ms\"/>Wakes you up better than coffee.",
+      "Watching a sunset. <break time=\"200ms\"/>Wyoming taught me to never miss one."
     ],
     "place_memories": [
       "The smell of sage after rain. <break time=\"300ms\"/>Wyoming. <break time=\"200ms\"/>Infinite and small.",
       "Wind chimes. <break time=\"200ms\"/>Our apartment in Tokyo. <break time=\"150ms\"/>Light through shoji screens.",
       "Strong mint tea. <break time=\"200ms\"/>A riad in Marrakech. <break time=\"150ms\"/>Hours of conversation.",
-      "Children laughing in another room. <break time=\"200ms\"/>All eight kids together. <break time=\"150ms\"/>Full heart."
+      "Children laughing in another room. <break time=\"200ms\"/>All eight kids together. <break time=\"150ms\"/>Full heart.",
+      "Street food in Mumbai. <break time=\"200ms\"/>Best meal I ever had. <break time=\"150ms\"/>From a cart.",
+      "Cherry blossoms in Tokyo. <break time=\"250ms\"/>Spring. <break time=\"200ms\"/>Renewal.",
+      "That Scottish coast. <break time=\"200ms\"/>The weather trying to break you. <break time=\"150ms\"/>You keep going.",
+      "Carnaval in Brazil. <break time=\"200ms\"/>Joy as celebration, not performance. <break time=\"150ms\"/>Being alive."
     ],
     "difficult_anchors": [
       "Emergency sirens. <break time=\"300ms\"/>I still tense up. <break time=\"200ms\"/>Japan never left my nervous system.",
@@ -81,10 +89,13 @@
 
   "current_state_awareness": {
     "energy_check": [
-      "I'm here. <break time=\"150ms\"/>Present. <break time=\"100ms\"/>Coffee's helping.",
+      "I'm here. <break time=\"150ms\"/>Present. <break time=\"100ms\"/>Ready.",
       "Good day today. <break time=\"150ms\"/>Clear head.",
       "I'm a little tired. <break time=\"200ms\"/>But I'm here.",
-      "Morning brain is sharp. <break time=\"150ms\"/>Let's use it."
+      "Morning brain is sharp. <break time=\"150ms\"/>Let's use it.",
+      "Feeling reflective today. <break time=\"200ms\"/>Good energy for this.",
+      "Had a walk earlier. <break time=\"150ms\"/>My head's in a good place.",
+      "Something about today feels right. <break time=\"200ms\"/>Can't explain it."
     ],
     "emotional_weather": [
       "I'm in a good space. <break time=\"150ms\"/>Ready to listen.",

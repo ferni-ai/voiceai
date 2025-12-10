@@ -17,13 +17,15 @@
  *   openMarketplace();
  */
 
+import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
 import {
-  marketplaceService,
-  type MarketplaceAgent,
-} from '../services/marketplace.service.js';
+  getMemberStatus,
+  isFullTeamUnlocked,
+  TEAM_MEMBERS,
+} from '../services/team-unlock.service.js';
+import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
-import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Marketplace');
 
@@ -175,10 +177,17 @@ function ensureModalExists(): HTMLElement {
   marketplaceModal.addEventListener('click', handleModalClick);
   marketplaceModal.addEventListener('keydown', handleModalKeydown);
 
-  const searchInput = marketplaceModal.querySelector('.marketplace-search-input') as HTMLInputElement;
-  searchInput?.addEventListener('input', debounce((e: unknown) => handleSearch(e as Event), 300));
+  const searchInput = marketplaceModal.querySelector(
+    '.marketplace-search-input'
+  ) as HTMLInputElement;
+  searchInput?.addEventListener(
+    'input',
+    debounce((e: unknown) => handleSearch(e as Event), 300)
+  );
 
-  const categorySelect = marketplaceModal.querySelector('.marketplace-category-select') as HTMLSelectElement;
+  const categorySelect = marketplaceModal.querySelector(
+    '.marketplace-category-select'
+  ) as HTMLSelectElement;
   categorySelect?.addEventListener('change', handleCategoryChange);
 
   // Add styles if not already present
@@ -275,8 +284,15 @@ async function refreshContent(): Promise<void> {
 /**
  * Render the browse tab content
  * Only shows agents NOT in the core team and NOT already installed
+ * Marketplace agents are locked until the full team is unlocked
  */
 async function renderBrowseTab(): Promise<void> {
+  // Check if full team is unlocked - marketplace requires this
+  if (!isFullTeamUnlocked()) {
+    renderTeamLockedMessage();
+    return;
+  }
+
   let agents: MarketplaceAgent[];
 
   if (searchQuery) {
@@ -297,10 +313,70 @@ async function renderBrowseTab(): Promise<void> {
     return;
   }
 
-  renderAgentGrid(agents.map(agent => ({
-    ...agent,
-    isInstalled: installedIds.has(agent.id),
-  })));
+  renderAgentGrid(
+    agents.map((agent) => ({
+      ...agent,
+      isInstalled: installedIds.has(agent.id),
+    }))
+  );
+}
+
+/**
+ * Render a message explaining the marketplace is locked until team is unlocked
+ */
+function renderTeamLockedMessage(): void {
+  const grid = marketplaceModal?.querySelector('.marketplace-grid');
+  const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
+
+  if (!grid) return;
+  if (empty) empty.style.display = 'none';
+
+  // Build progress indicators for each team member
+  const memberProgressHtml = TEAM_MEMBERS.map((member) => {
+    const status = getMemberStatus(member.id);
+    const isUnlocked = status.unlocked;
+    const progressPercent = Math.round(status.progress * 100);
+
+    return `
+      <div class="team-progress-member ${isUnlocked ? 'unlocked' : 'locked'}">
+        <div class="team-progress-avatar" data-persona="${member.id}">
+          ${member.displayName.slice(0, 2).toUpperCase()}
+        </div>
+        <span class="team-progress-name">${member.displayName}</span>
+        ${
+          isUnlocked
+            ? '<svg class="team-progress-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+            : `<span class="team-progress-percent">${progressPercent}%</span>`
+        }
+      </div>
+    `;
+  }).join('');
+
+  grid.innerHTML = `
+    <section class="marketplace-locked-section">
+      <div class="marketplace-locked-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h3 class="marketplace-locked-title">Get to know your team first</h3>
+      <p class="marketplace-locked-subtitle">
+        The marketplace unlocks once you've met everyone on your core team. 
+        Keep talking to Ferni – each conversation brings you closer.
+      </p>
+      
+      <div class="team-progress-grid">
+        ${memberProgressHtml}
+      </div>
+      
+      <p class="marketplace-locked-hint">
+        New advisors become available after all team members are unlocked.
+      </p>
+    </section>
+  `;
+
+  grid.setAttribute('style', 'display: block;');
 }
 
 /**
@@ -309,35 +385,52 @@ async function renderBrowseTab(): Promise<void> {
 async function renderInstalledTab(): Promise<void> {
   const installed = marketplaceService.getInstalledAgents();
   const registry = await marketplaceService.fetchRegistry();
-  
+  const teamUnlocked = isFullTeamUnlocked();
+
   const grid = marketplaceModal?.querySelector('.marketplace-grid');
   const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
-  
+
   if (!grid) return;
   if (empty) empty.style.display = 'none';
-  
+
   // Always show the team narrative first
   let html = renderTeamNarrative();
-  
-  // Then show installed marketplace agents if any
+
+  // Show installed marketplace agents only if full team is unlocked
   if (installed.length > 0) {
     const agents = installed
-      .map(installedAgent => {
-        const marketplaceAgent = registry.agents.find(a => a.id === installedAgent.id);
-        return marketplaceAgent ? {
-          ...marketplaceAgent,
-          isInstalled: true,
-          installedAt: installedAgent.installed_at,
-        } : null;
+      .map((installedAgent) => {
+        const marketplaceAgent = registry.agents.find((a) => a.id === installedAgent.id);
+        return marketplaceAgent
+          ? {
+              ...marketplaceAgent,
+              isInstalled: true,
+              installedAt: installedAgent.installed_at,
+            }
+          : null;
       })
       .filter(Boolean) as (MarketplaceAgent & { isInstalled: boolean; installedAt: string })[];
-    
+
     if (agents.length > 0) {
-      html += `<div class="team-section-divider"><span>Your Installed Advisors</span></div>`;
-      html += renderAgentCards(agents);
+      if (teamUnlocked) {
+        // Full team unlocked - show installed marketplace agents
+        html += `<div class="team-section-divider"><span>Your Installed Advisors</span></div>`;
+        html += renderAgentCards(agents);
+      } else {
+        // Team not fully unlocked - show message about installed agents being locked
+        html += `
+          <div class="team-section-divider"><span>Installed Advisors</span></div>
+          <div class="installed-agents-locked">
+            <p class="installed-agents-locked-message">
+              You have <strong>${agents.length} advisor${agents.length > 1 ? 's' : ''}</strong> installed. 
+              They'll be ready to chat once you've met your whole core team!
+            </p>
+          </div>
+        `;
+      }
     }
   }
-  
+
   grid.innerHTML = html;
   grid.setAttribute('style', 'display: block;');
 }
@@ -447,25 +540,31 @@ function renderTeamNarrative(): string {
 /**
  * Render agent cards HTML (without the grid wrapper)
  * Shows install/uninstall buttons based on installation status
- * 
+ *
  * Uses CSS custom properties for colors - allows design system to control appearance
  */
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
-  return agents.map(agent => {
-    const initials = agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-    // Use CSS variables via data-persona attribute - gradient comes from design system
-    const gradient = getPersonaGradient(agent.id);
-    
-    // Determine state classes and button
-    const stateClass = agent.isInstalled ? 'installed' : '';
-    const badgeHtml = agent.isInstalled 
-      ? '<span class="agent-badge installed">Installed</span>' 
-      : '';
-    const buttonHtml = agent.isInstalled
-      ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-      : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+  return agents
+    .map((agent) => {
+      const initials = agent.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+      // Use CSS variables via data-persona attribute - gradient comes from design system
+      const gradient = getPersonaGradient(agent.id);
 
-    return `
+      // Determine state classes and button
+      const stateClass = agent.isInstalled ? 'installed' : '';
+      const badgeHtml = agent.isInstalled
+        ? '<span class="agent-badge installed">Installed</span>'
+        : '';
+      const buttonHtml = agent.isInstalled
+        ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
+        : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+
+      return `
     <article class="marketplace-agent ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
       <div class="agent-header">
         <div class="agent-avatar" style="background: ${gradient};">
@@ -479,7 +578,10 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </div>
       <p class="agent-description">${agent.short_description}</p>
       <div class="agent-tags">
-        ${agent.tags.slice(0, 3).map(tag => `<span class="agent-tag">${tag}</span>`).join('')}
+        ${agent.tags
+          .slice(0, 3)
+          .map((tag) => `<span class="agent-tag">${tag}</span>`)
+          .join('')}
       </div>
       <footer class="agent-footer">
         <span class="agent-author">by ${agent.author}</span>
@@ -487,7 +589,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </footer>
     </article>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 /**
@@ -517,16 +620,16 @@ function showEmpty(message: string): void {
     // Update title with friendly message
     const title = empty.querySelector('.empty-title');
     const hint = empty.querySelector('.empty-hint');
-    
+
     if (title) {
-      title.textContent = message === 'No agents installed yet' 
-        ? 'Your team awaits.'
-        : 'No matches yet.';
+      title.textContent =
+        message === 'No agents installed yet' ? 'Your team awaits.' : 'No matches yet.';
     }
     if (hint) {
-      hint.textContent = message === 'No agents installed yet'
-        ? 'Discover advisors who can help with what matters to you.'
-        : 'Try a different search or explore all advisors.';
+      hint.textContent =
+        message === 'No agents installed yet'
+          ? 'Discover advisors who can help with what matters to you.'
+          : 'Try a different search or explore all advisors.';
     }
     empty.style.display = 'flex';
   }
@@ -617,7 +720,7 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
     // Refresh both marketplace content and team roster
     await refreshContent();
     await refreshMarketplaceAgents();
-    
+
     log.info(`✅ ${isUninstall ? 'Uninstalled' : 'Installed'} agent: ${agentId}`);
   } catch (err) {
     log.error(`❌ Marketplace: Failed to ${isUninstall ? 'uninstall' : 'install'} agent:`, err);
@@ -626,7 +729,7 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
 
 function updateTabs(): void {
   const tabs = marketplaceModal?.querySelectorAll('.marketplace-tab');
-  tabs?.forEach(tab => {
+  tabs?.forEach((tab) => {
     tab.classList.toggle('active', tab.getAttribute('data-tab') === currentTab);
   });
 
@@ -1740,6 +1843,196 @@ function getMarketplaceStyles(): string {
       color: rgba(44, 37, 32, 0.4);
     }
 
+    /* ========================================
+       MARKETPLACE LOCKED - Team unlock required
+       ======================================== */
+    .marketplace-locked-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--space-2xl, 48px) var(--space-lg, 24px);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .marketplace-locked-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-lg, 24px);
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    .marketplace-locked-title {
+      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text, #fff);
+      margin: 0 0 var(--space-sm, 12px);
+      letter-spacing: -0.02em;
+    }
+
+    .marketplace-locked-subtitle {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.95rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      line-height: 1.6;
+      margin: 0 0 var(--space-xl, 32px);
+    }
+
+    .team-progress-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-md, 16px);
+      margin-bottom: var(--space-xl, 32px);
+    }
+
+    .team-progress-member {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs, 8px);
+      padding: var(--space-sm, 12px);
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
+      border-radius: var(--radius-lg, 12px);
+      min-width: 80px;
+      transition: all 0.2s ease;
+    }
+
+    .team-progress-member.unlocked {
+      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      border: 1px solid var(--persona-primary, rgba(74, 103, 65, 0.3));
+    }
+
+    .team-progress-member.locked {
+      opacity: 0.7;
+    }
+
+    .team-progress-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--persona-primary, #4a6741);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .team-progress-member.locked .team-progress-avatar {
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.1));
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    }
+
+    .team-progress-name {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--color-text, #fff);
+    }
+
+    .team-progress-check {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .team-progress-percent {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    .marketplace-locked-hint {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.8rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+      margin: 0;
+      font-style: italic;
+    }
+
+    /* Installed agents locked message (when team not fully unlocked) */
+    .installed-agents-locked {
+      padding: var(--space-md, 16px) var(--space-lg, 24px);
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
+      border-radius: var(--radius-lg, 12px);
+      border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.15));
+      text-align: center;
+    }
+
+    .installed-agents-locked-message {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.9rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .installed-agents-locked-message strong {
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    [data-theme="zen"] .installed-agents-locked {
+      background: rgba(44, 37, 32, 0.03);
+      border-color: rgba(44, 37, 32, 0.15);
+    }
+
+    [data-theme="zen"] .installed-agents-locked-message {
+      color: rgba(44, 37, 32, 0.65);
+    }
+
+    [data-theme="zen"] .installed-agents-locked-message strong {
+      color: rgba(139, 115, 65, 0.9);
+    }
+
+    /* Zen theme - Marketplace Locked */
+    [data-theme="zen"] .marketplace-locked-icon {
+      background: rgba(44, 37, 32, 0.06);
+      color: rgba(139, 115, 65, 0.9);
+    }
+
+    [data-theme="zen"] .marketplace-locked-title {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .marketplace-locked-subtitle {
+      color: rgba(44, 37, 32, 0.7);
+    }
+
+    [data-theme="zen"] .team-progress-member {
+      background: rgba(44, 37, 32, 0.04);
+    }
+
+    [data-theme="zen"] .team-progress-member.unlocked {
+      background: rgba(74, 103, 65, 0.08);
+      border-color: rgba(74, 103, 65, 0.25);
+    }
+
+    [data-theme="zen"] .team-progress-member.locked .team-progress-avatar {
+      background: rgba(44, 37, 32, 0.08);
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .team-progress-name {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .team-progress-percent {
+      color: rgba(139, 115, 65, 0.9);
+    }
+
+    [data-theme="zen"] .marketplace-locked-hint {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
     /* Responsive */
     @media (max-width: 640px) {
       .marketplace-container {
@@ -1779,4 +2072,3 @@ export const marketplaceUI = {
 };
 
 export default marketplaceUI;
-

@@ -10,22 +10,39 @@
  * 3. Encrypt at rest - Sensitive fields are encrypted
  * 4. Audit access - All sensitive data access is logged
  *
+ * PERSISTENCE: Token vault is persisted to Firestore for durability.
+ *
  * @module PrivacyCrypto
  */
 
 import {
-  createHmac,
   createCipheriv,
   createDecipheriv,
+  createHmac,
   randomBytes,
   scrypt,
   timingSafeEqual,
 } from 'crypto';
+import * as admin from 'firebase-admin';
 import { promisify } from 'util';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
 const scryptAsync = promisify(scrypt);
+
+// ============================================================================
+// FIRESTORE SETUP FOR TOKEN VAULT
+// ============================================================================
+
+const TOKEN_VAULT_COLLECTION = 'token_vault';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -324,9 +341,71 @@ export async function decryptVoiceSketch(encryptedSketch: string): Promise<{
 
 /**
  * Token vault for mapping tokens to values
- * In production, this would be a secure database/service
+ * Uses Firestore for persistence with in-memory cache
  */
-const tokenVault = new Map<string, string>();
+const tokenVaultCache = new Map<string, string>();
+const reverseTokenCache = new Map<string, string>(); // value -> token for dedup
+
+/**
+ * Save token to Firestore
+ */
+async function saveTokenToFirestore(token: string, value: string, category: string): Promise<void> {
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    await db.collection(TOKEN_VAULT_COLLECTION).doc(token).set({
+      value,
+      category,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    log.error({ error, token }, 'Failed to save token to Firestore');
+  }
+}
+
+/**
+ * Load token from Firestore
+ */
+async function loadTokenFromFirestore(token: string): Promise<string | null> {
+  const db = getFirestore();
+  if (!db) return null;
+
+  try {
+    const doc = await db.collection(TOKEN_VAULT_COLLECTION).doc(token).get();
+    if (doc.exists) {
+      const data = doc.data();
+      return data?.value || null;
+    }
+  } catch (error) {
+    log.error({ error, token }, 'Failed to load token from Firestore');
+  }
+  return null;
+}
+
+/**
+ * Check if value already has a token in Firestore
+ */
+async function findExistingToken(value: string, category: string): Promise<string | null> {
+  const db = getFirestore();
+  if (!db) return null;
+
+  try {
+    const snapshot = await db
+      .collection(TOKEN_VAULT_COLLECTION)
+      .where('value', '==', value)
+      .where('category', '==', category)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id;
+    }
+  } catch (error) {
+    log.error({ error }, 'Failed to find existing token');
+  }
+  return null;
+}
 
 /**
  * Tokenize a sensitive value
@@ -337,25 +416,85 @@ const tokenVault = new Map<string, string>();
  * @returns Token that maps to the value
  */
 export function tokenize(value: string, category: string): string {
-  // Check if already tokenized
-  for (const [token, stored] of tokenVault) {
-    if (stored === value) {
-      return token;
-    }
+  // Check cache first
+  const cacheKey = `${category}:${value}`;
+  if (reverseTokenCache.has(cacheKey)) {
+    return reverseTokenCache.get(cacheKey)!;
   }
 
   // Create new token
   const token = `tok_${category}_${randomBytes(16).toString('hex')}`;
-  tokenVault.set(token, value);
+  tokenVaultCache.set(token, value);
+  reverseTokenCache.set(cacheKey, token);
+
+  // Persist to Firestore (fire-and-forget, check for existing)
+  void (async () => {
+    const existingToken = await findExistingToken(value, category);
+    if (existingToken) {
+      // Use existing token instead
+      tokenVaultCache.set(existingToken, value);
+      reverseTokenCache.set(cacheKey, existingToken);
+    } else {
+      await saveTokenToFirestore(token, value, category);
+    }
+  })();
 
   return token;
 }
 
 /**
- * Detokenize to get original value
+ * Tokenize a sensitive value (async version that checks Firestore first)
+ */
+export async function tokenizeAsync(value: string, category: string): Promise<string> {
+  // Check cache first
+  const cacheKey = `${category}:${value}`;
+  if (reverseTokenCache.has(cacheKey)) {
+    return reverseTokenCache.get(cacheKey)!;
+  }
+
+  // Check Firestore for existing token
+  const existingToken = await findExistingToken(value, category);
+  if (existingToken) {
+    tokenVaultCache.set(existingToken, value);
+    reverseTokenCache.set(cacheKey, existingToken);
+    return existingToken;
+  }
+
+  // Create new token
+  const token = `tok_${category}_${randomBytes(16).toString('hex')}`;
+  tokenVaultCache.set(token, value);
+  reverseTokenCache.set(cacheKey, token);
+
+  // Persist to Firestore
+  await saveTokenToFirestore(token, value, category);
+
+  return token;
+}
+
+/**
+ * Detokenize to get original value (sync - from cache)
  */
 export function detokenize(token: string): string | null {
-  return tokenVault.get(token) || null;
+  return tokenVaultCache.get(token) || null;
+}
+
+/**
+ * Detokenize to get original value (async - checks Firestore)
+ */
+export async function detokenizeAsync(token: string): Promise<string | null> {
+  // Check cache first
+  if (tokenVaultCache.has(token)) {
+    return tokenVaultCache.get(token)!;
+  }
+
+  // Load from Firestore
+  const value = await loadTokenFromFirestore(token);
+  if (value) {
+    tokenVaultCache.set(token, value);
+    return value;
+  }
+
+  return null;
 }
 
 // ============================================================================

@@ -262,10 +262,7 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
       if (formatted) {
         injections.push(createHintInjection('persona_quirk_spontaneous', formatted));
-        log.debug(
-          { personaId: persona.id, quirkType: selectedType },
-          'Spontaneous quirk reveal'
-        );
+        log.debug({ personaId: persona.id, quirkType: selectedType }, 'Spontaneous quirk reveal');
       }
     }
   }

@@ -272,7 +272,7 @@ const provideCrisisResourcesDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'safety', 'resources', 'support'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Surface appropriate crisis resources. Use when user expresses distress, mentions self-harm, abuse, or severe mental health struggles. ALWAYS provide these when safety is a concern.',
@@ -372,7 +372,7 @@ const guideGroundingExerciseDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'grounding', 'anxiety', 'present-moment'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Guide user through a grounding exercise when they are feeling overwhelmed, dissociated, or experiencing anxiety or panic.',
@@ -449,7 +449,7 @@ const deEscalateAnxietyDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'anxiety', 'panic', 'calming'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help de-escalate acute anxiety or panic. Use when user is experiencing intense anxiety symptoms.',
@@ -529,7 +529,7 @@ const createSafetyPlanDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'safety', 'planning', 'prevention'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help user create a personal safety plan. Important: This is a supportive tool, not a replacement for professional safety planning.',
@@ -642,7 +642,7 @@ const findSafeResourcesDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'safety', 'resources', 'local'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help user find local safety resources. Always recommend calling 211 for localized services.',
@@ -747,7 +747,7 @@ const supportRecoveryJourneyDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'recovery', 'addiction', 'support'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Provide supportive check-ins for someone in addiction recovery. Not a replacement for sponsor/professional support.',
@@ -830,7 +830,7 @@ const trackSobrietyMilestoneDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'recovery', 'milestones', 'celebration'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Celebrate and acknowledge recovery milestones.',
       parameters: z.object({
@@ -899,7 +899,7 @@ const findFinancialAssistanceDef: ToolDefinition = {
   domain: 'crisis',
   tags: ['crisis', 'financial', 'emergency', 'assistance'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help find emergency financial assistance resources for rent, utilities, food, etc.',

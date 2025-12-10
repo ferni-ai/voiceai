@@ -50,16 +50,20 @@ npx tsx scripts/code-quality-check.ts 2>/dev/null || {
 }
 
 # =============================================================================
-# DESIGN SYSTEM VALIDATION
+# DESIGN SYSTEM VALIDATION (BLOCKING)
 # =============================================================================
 echo ""
 echo "🎨 Design system checks..."
 
-# Check for token drift (warns but doesn't block)
-node design-system/check-drift.js 2>/dev/null || {
+# Check for token drift - BLOCKS commit if drift detected
+node design-system/check-drift.js || {
   echo ""
-  echo "  ⚠ Token drift detected (non-blocking)"
-  echo "  Run 'npm run tokens:sync' to fix"
+  echo "  ❌ TOKEN DRIFT DETECTED - COMMIT BLOCKED"
+  echo ""
+  echo "  Fix with: npm run tokens:sync"
+  echo "  Then: git add -A"
+  echo ""
+  exit 1
 }
 
 echo "  ✓ Design system checks passed"

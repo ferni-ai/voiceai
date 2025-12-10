@@ -112,4 +112,3 @@ export interface Recommendation {
   createdAt: Date;
   status: 'pending' | 'approved' | 'rejected' | 'implemented';
 }
-

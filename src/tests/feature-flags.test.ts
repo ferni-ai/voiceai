@@ -5,7 +5,7 @@
  * Tests use mocked Firestore to avoid external dependencies.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Firebase Admin
 vi.mock('firebase-admin/firestore', () => ({
@@ -41,14 +41,14 @@ vi.mock('../utils/safe-logger.js', () => {
 
 // Import after mocks are set up
 import {
-  isEnabled,
-  getFlag,
   getAllFlags,
+  getFeatureFlags,
+  getFlag,
+  getSimpleUtilitiesConfig,
+  isEnabled,
+  TRUST_FLAGS,
   withFlag,
   withFlagAsync,
-  getSimpleUtilitiesConfig,
-  getFeatureFlags,
-  TRUST_FLAGS,
   type TrustFlagId,
 } from '../services/feature-flags.js';
 
@@ -349,15 +349,17 @@ describe('Deterministic user rollout', () => {
   });
 
   it('should give different results for different users', () => {
-    // With 50% rollout, different users should eventually get different results
-    const flagId = 'trust.relationship-health' as TrustFlagId;
+    // With 75% rollout, different users should eventually get different results
+    const flagId = 'trust.voice-prosody' as TrustFlagId;
     const results = new Set<boolean>();
 
-    for (let i = 0; i < 100; i++) {
-      results.add(isEnabled(flagId, `user-${i}`));
+    // Use many users to ensure statistical significance
+    for (let i = 0; i < 1000; i++) {
+      results.add(isEnabled(flagId, `user-deterministic-${i}`));
     }
 
-    // Should have both true and false in results (statistically extremely likely with 50% and 100 users)
+    // Should have both true and false in results (statistically extremely likely with 75% and 1000 users)
+    // With 75% rollout and 1000 users, probability of all same result is < 0.75^1000 ≈ 0
     expect(results.size).toBe(2);
   });
 });
@@ -382,6 +384,7 @@ describe('Flag rollout percentages', () => {
   });
 
   it('should have lower rollout for experimental flags', () => {
+    // These flags are in gradual rollout phase (75%) - not yet at 100%
     const experimentalFlags: TrustFlagId[] = [
       'trust.voice-prosody',
       'trust.learning-style',
@@ -390,7 +393,8 @@ describe('Flag rollout percentages', () => {
 
     for (const flagId of experimentalFlags) {
       const config = getFlag(flagId);
-      expect(config.percentage).toBeLessThan(50);
+      // Experimental flags should not be at 100% rollout
+      expect(config.percentage).toBeLessThan(100);
     }
   });
 

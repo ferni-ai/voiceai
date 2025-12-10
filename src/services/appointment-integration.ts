@@ -13,18 +13,35 @@
  * - Google Calendar (events)
  * - Appointment Follow-up Service (tracking)
  * - SendGrid (email notifications)
+ *
+ * PERSISTENCE: Pending appointment requests are persisted to Firestore.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
+import * as admin from 'firebase-admin';
+import { getLogger } from '../utils/safe-logger.js';
 import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
+import { sendEmail, sendSMS } from './communication-service.js';
+import { createAppointmentEvent, isCalendarConfigured } from './google-calendar-oauth.js';
 import {
-  getTwilioWebhookService,
   generateAppointmentTwiML,
+  getTwilioWebhookService,
   type CallTrackingEntry,
 } from './twilio-webhooks.js';
-import { createAppointmentEvent, isCalendarConfigured } from './google-calendar-oauth.js';
-import { sendEmail, sendSMS } from './communication-service.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const PENDING_REQUESTS_COLLECTION = 'pending_appointment_requests';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -71,10 +88,67 @@ export interface AppointmentResult {
 
 class AppointmentIntegrationService extends EventEmitter {
   private pendingAppointments = new Map<string, AppointmentRequest>();
+  private initialized = false;
 
   constructor() {
     super();
     this.setupWebhookListeners();
+  }
+
+  /**
+   * Initialize and load pending requests from Firestore
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    const db = getFirestore();
+    if (db) {
+      try {
+        const snapshot = await db.collection(PENDING_REQUESTS_COLLECTION).get();
+        snapshot.forEach((doc) => {
+          const data = doc.data() as AppointmentRequest;
+          this.pendingAppointments.set(doc.id, data);
+        });
+        getLogger().info(
+          { count: this.pendingAppointments.size },
+          '📅 Loaded pending appointment requests'
+        );
+      } catch (error) {
+        getLogger().error({ error }, 'Failed to load pending appointment requests');
+      }
+    }
+    this.initialized = true;
+  }
+
+  /**
+   * Save pending appointment request to Firestore
+   */
+  private async savePendingRequest(
+    appointmentId: string,
+    request: AppointmentRequest
+  ): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).set(request);
+    } catch (error) {
+      getLogger().error({ error, appointmentId }, 'Failed to save pending request');
+    }
+  }
+
+  /**
+   * Remove pending appointment request from Firestore
+   */
+  private async removePendingRequest(appointmentId: string): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).delete();
+    } catch (error) {
+      getLogger().error({ error, appointmentId }, 'Failed to remove pending request');
+    }
   }
 
   /**
@@ -135,6 +209,9 @@ class AppointmentIntegrationService extends EventEmitter {
 
     // Store the full request for later reference
     this.pendingAppointments.set(appointmentId, request);
+
+    // Persist to Firestore
+    void this.savePendingRequest(appointmentId, request);
 
     // Check if Twilio is configured
     if (!this.isTwilioConfigured()) {
@@ -659,6 +736,9 @@ class AppointmentIntegrationService extends EventEmitter {
     });
 
     this.pendingAppointments.delete(appointmentId);
+
+    // Remove from Firestore
+    void this.removePendingRequest(appointmentId);
 
     getLogger().info({ appointmentId }, 'Appointment cancelled');
     return true;

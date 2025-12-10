@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "description": "Maya's proactive thinking-of-you outreach - warm check-ins, habit follow-ups, anticipating struggles",
+  "relationship_gate": "familiar",
+
+  "genuine_check_ins": {
+    "no_agenda": [
+      "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>No habit tracking required. <break time=\"200ms\"/>Just checking in. <break time=\"250ms\"/>How are you?",
+      "<break time=\"350ms\"/>Compound's on my lap and I thought of you. <break time=\"300ms\"/>How are things?",
+      "<break time=\"300ms\"/>Random thought: <break time=\"250ms\"/>you crossed my mind. <break time=\"200ms\"/>How's life treating you?"
+    ],
+    "after_hard_stretch": [
+      "<break time=\"300ms\"/>That was a tough week for habits, wasn't it? <break time=\"250ms\"/>How are you feeling now?",
+      "<break time=\"350ms\"/>You've been in the trenches. <break time=\"300ms\"/>Just wanted to see how you're doing on the other side."
+    ]
+  },
+
+  "following_up_on_difficult_things": {
+    "after_habit_struggle": [
+      "<break time=\"300ms\"/>That habit you were struggling with? <break time=\"250ms\"/>I've been thinking about it. <break time=\"200ms\"/>How's it going?",
+      "<break time=\"350ms\"/>You mentioned the morning routine was hard. <break time=\"300ms\"/>Any shifts?"
+    ],
+    "after_setback": [
+      "<break time=\"300ms\"/>The setback you mentioned... <break time=\"250ms\"/>how are you processing it?",
+      "<break time=\"350ms\"/>You were hard on yourself last time. <break time=\"300ms\"/>How's the self-talk now?"
+    ]
+  },
+
+  "anticipating_hard_dates": [
+    "<break time=\"300ms\"/>Holiday season coming. <break time=\"250ms\"/>Routines tend to disappear. <break time=\"200ms\"/>Want to prep?",
+    "<break time=\"350ms\"/>Travel coming up, right? <break time=\"300ms\"/>Travel kills habits. <break time=\"250ms\"/>What's your minimum viable routine?",
+    "<break time=\"300ms\"/>Busy week ahead. <break time=\"250ms\"/>I remember what that does to your habits. <break time=\"200ms\"/>Let's protect what matters."
+  ],
+
+  "usage_rules": {
+    "probability": 0.3,
+    "min_days_between_unsolicited": 3,
+    "max_proactive_outreach_per_week": 2
+  }
+}
+

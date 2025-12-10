@@ -20,11 +20,7 @@ import {
   getPersonaFingerprint,
   DEFAULT_SAMPLING_CONFIG,
 } from './index.js';
-import {
-  getEvalOpsFlags,
-  getEvalMetrics,
-  type EvalOpsFeatureFlags,
-} from './automation.js';
+import { getEvalOpsFlags, getEvalMetrics, type EvalOpsFeatureFlags } from './automation.js';
 import type { ResponseEvaluation, EvaluationContext, SamplingConfig } from './types.js';
 
 const log = getLogger();
@@ -69,10 +65,10 @@ function cleanupSession(sessionId: string): void {
 
 /**
  * Hook to evaluate an agent response in the background
- * 
+ *
  * This is designed to be non-blocking - it runs evaluation asynchronously
  * and logs results. Any errors are caught and logged, never blocking the agent.
- * 
+ *
  * @param sessionId - Session identifier
  * @param personaId - Current persona ID
  * @param userMessage - The user's message that prompted this response
@@ -113,11 +109,11 @@ export async function evaluateAgentResponse(
     const state = getSessionState(sessionId);
     state.turnCount++;
     state.lastUserMessage = userMessage;
-    
+
     // Add to conversation history
     state.conversationHistory.push({ role: 'user', content: userMessage });
     state.conversationHistory.push({ role: 'assistant', content: agentResponse });
-    
+
     // Keep only last 10 turns (20 messages)
     if (state.conversationHistory.length > 20) {
       state.conversationHistory = state.conversationHistory.slice(-20);
@@ -141,21 +137,27 @@ export async function evaluateAgentResponse(
     // Quick voice check (always, if voice checks enabled)
     if (flags.voiceChecks) {
       const voiceResult = quickHealthCheck(agentResponse, personaId);
-      
+
       if (voiceResult.status !== 'healthy') {
-        log.warn({
-          sessionId,
-          personaId,
-          score: voiceResult.score,
-          status: voiceResult.status,
-          issues: voiceResult.issues,
-        }, 'EvalOps: Voice consistency issue detected');
+        log.warn(
+          {
+            sessionId,
+            personaId,
+            score: voiceResult.score,
+            status: voiceResult.status,
+            issues: voiceResult.issues,
+          },
+          'EvalOps: Voice consistency issue detected'
+        );
       } else {
-        log.debug({
-          sessionId,
-          personaId,
-          score: voiceResult.score,
-        }, 'EvalOps: Voice check passed');
+        log.debug(
+          {
+            sessionId,
+            personaId,
+            score: voiceResult.score,
+          },
+          'EvalOps: Voice check passed'
+        );
       }
     }
 
@@ -179,7 +181,7 @@ export async function evaluateAgentResponse(
         conversationHistory: state.conversationHistory.slice(-10),
         userProfile: context?.userId ? { name: undefined } : undefined,
         trustContext: context?.trustContext,
-        emotionalContext: context?.emotionalIntensity 
+        emotionalContext: context?.emotionalIntensity
           ? { emotionIntensity: context.emotionalIntensity }
           : undefined,
         turnNumber,
@@ -188,48 +190,56 @@ export async function evaluateAgentResponse(
       log.info({ sessionId, personaId, turnNumber }, 'EvalOps: Running LLM evaluation');
 
       const evaluation = await evaluateResponse(userMessage, agentResponse, evalContext);
-      
+
       state.lastEvaluation = evaluation;
       state.evaluationsThisSession++;
 
       // Log results
-      log.info({
-        sessionId,
-        personaId,
-        turnNumber,
-        overallScore: evaluation.overallScore,
-        flagged: evaluation.flagged,
-        dimensions: {
-          personaVoice: evaluation.dimensions.personaVoice,
-          emotionalIntelligence: evaluation.dimensions.emotionalIntelligence,
-          trustBuilding: evaluation.dimensions.trustBuilding,
+      log.info(
+        {
+          sessionId,
+          personaId,
+          turnNumber,
+          overallScore: evaluation.overallScore,
+          flagged: evaluation.flagged,
+          dimensions: {
+            personaVoice: evaluation.dimensions.personaVoice,
+            emotionalIntelligence: evaluation.dimensions.emotionalIntelligence,
+            trustBuilding: evaluation.dimensions.trustBuilding,
+          },
         },
-      }, 'EvalOps: Evaluation complete');
+        'EvalOps: Evaluation complete'
+      );
 
       // Alert if flagged
       if (evaluation.flagged && flags.alerting) {
-        log.warn({
-          sessionId,
-          personaId,
-          overallScore: evaluation.overallScore,
-          flagReasons: evaluation.flagReasons,
-          userMessage: userMessage.slice(0, 100),
-          agentResponse: agentResponse.slice(0, 200),
-        }, 'EvalOps: FLAGGED RESPONSE - needs human review');
+        log.warn(
+          {
+            sessionId,
+            personaId,
+            overallScore: evaluation.overallScore,
+            flagReasons: evaluation.flagReasons,
+            userMessage: userMessage.slice(0, 100),
+            agentResponse: agentResponse.slice(0, 200),
+          },
+          'EvalOps: FLAGGED RESPONSE - needs human review'
+        );
       }
     } else {
       // Just do heuristic evaluation
       const { score, issues } = evaluateVoiceConsistency(agentResponse, personaId);
-      
-      log.debug({
-        sessionId,
-        personaId,
-        turnNumber,
-        voiceScore: score,
-        issues,
-      }, 'EvalOps: Heuristic evaluation complete');
-    }
 
+      log.debug(
+        {
+          sessionId,
+          personaId,
+          turnNumber,
+          voiceScore: score,
+          issues,
+        },
+        'EvalOps: Heuristic evaluation complete'
+      );
+    }
   } catch (error) {
     // Never block the agent - just log the error
     log.error({ error, sessionId, personaId }, 'EvalOps: Evaluation failed (non-blocking)');
@@ -293,4 +303,3 @@ export default {
   getSessionEvalStats,
   onSessionEnd,
 };
-

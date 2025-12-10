@@ -26,6 +26,7 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded } from './helpers.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
 import { parseRequestBody, sendJsonResponse } from './utils.js';
@@ -85,18 +86,32 @@ export async function handleOutreachRoutes(
   const route = pathname.replace(OUTREACH_PREFIX, '');
 
   try {
-    // Handle webhook routes first
+    // Handle webhook routes first (webhooks have their own auth via signatures)
     if (route.startsWith('/webhooks')) {
       return handleOutreachWebhookRoutes(req, res, pathname);
     }
+
+    // Apply rate limiting
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+      return true;
+    }
+
+    // Require authentication for all non-webhook routes
+    const auth = requireAuth(req, res, { allowDevMode: true });
+    if (!auth) {
+      return true; // 401 already sent
+    }
+
+    // Use authenticated userId (ignore query param to prevent user enumeration)
+    const authenticatedUserId = auth.userId;
+
     // ========================================================================
     // PREFERENCES
     // ========================================================================
 
     // GET /api/outreach/preferences
     if (route === '/preferences' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      const userId = authenticatedUserId;
 
       const engine = getOutreachDecisionEngine();
       const state = engine.getUserState(userId);
@@ -115,8 +130,7 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, preferences } = body as {
-        userId: string;
+      const { preferences } = body as {
         preferences: {
           preferredChannel?: 'sms' | 'email' | 'call';
           disabledChannels?: Array<'sms' | 'email' | 'call'>;
@@ -127,12 +141,8 @@ export async function handleOutreachRoutes(
         };
       };
 
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
-
-      updateOutreachPreferences(userId, preferences);
+      // Use authenticated userId (ignore body.userId to prevent tampering)
+      updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
     }
@@ -140,12 +150,10 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/pause
     if (route === '/pause' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, durationDays } = body as { userId: string; durationDays?: number };
+      const { durationDays } = body as { durationDays?: number };
 
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: false });
@@ -162,13 +170,8 @@ export async function handleOutreachRoutes(
 
     // POST /api/outreach/resume
     if (route === '/resume' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { userId } = body as { userId: string };
-
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: true });
@@ -186,7 +189,6 @@ export async function handleOutreachRoutes(
     if (route === '/trigger' && method === 'POST') {
       const body = await parseRequestBody(req);
       const {
-        userId,
         type,
         priority = 'medium',
         reason,
@@ -196,7 +198,6 @@ export async function handleOutreachRoutes(
         event,
         suggestedTime,
       } = body as {
-        userId: string;
         type: OutreachTriggerType;
         priority?: OutreachPriority;
         reason: string;
@@ -207,10 +208,13 @@ export async function handleOutreachRoutes(
         suggestedTime?: string;
       };
 
-      if (!userId || !type || !reason) {
+      // Use authenticated userId
+      const userId = authenticatedUserId;
+
+      if (!type || !reason) {
         sendJsonResponse(res, 400, {
           success: false,
-          error: 'userId, type, and reason are required',
+          error: 'type and reason are required',
         });
         return true;
       }
@@ -239,16 +243,13 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/thinking-of-you
     if (route === '/thinking-of-you' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, trigger, reason } = body as {
-        userId: string;
+      const { trigger, reason } = body as {
         trigger?: string;
         reason?: string;
       };
 
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       await triggerThinkingOfYou(userId, trigger as ThinkingOfYouTrigger | undefined, reason);
       sendJsonResponse(res, 200, {
@@ -264,8 +265,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/pending
     if (route === '/pending' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const pending = getPendingOutreach(userId);
       sendJsonResponse(res, 200, {
@@ -278,8 +279,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/upcoming - formatted for UI
     if (route === '/upcoming' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const pending = getPendingOutreach(userId);
 
@@ -359,7 +360,8 @@ export async function handleOutreachRoutes(
     // GET /api/outreach/history
     if (route === '/history' && method === 'GET') {
       const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
       const limit = parseInt(url.searchParams.get('limit') || '20');
 
       const history = getOutreachHistory(userId, limit);
@@ -377,8 +379,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/analytics
     if (route === '/analytics' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const engine = getOutreachDecisionEngine();
       const analytics = engine.getAnalytics(userId);
@@ -392,8 +394,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/timing
     if (route === '/timing' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const profile = getTimingProfile(userId);
       const nextOptimal = calculateOptimalTime(userId, {
@@ -417,8 +419,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/channel-stats
     if (route === '/channel-stats' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const profile = getChannelProfile(userId);
 
@@ -439,8 +441,8 @@ export async function handleOutreachRoutes(
 
     // GET /api/outreach/context
     if (route === '/context' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'default';
+      // Use authenticated userId
+      const userId = authenticatedUserId;
 
       const context = getUserContext(userId);
 

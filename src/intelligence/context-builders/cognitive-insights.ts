@@ -13,7 +13,12 @@
  * This creates transparency and builds trust.
  */
 
-import { registerContextBuilder, createHintInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createHintInjection,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 import { getCognitiveProfile } from '../../personas/cognitive-profiles.js';
 import {
   detectUserCognitiveStyle,

@@ -19,9 +19,9 @@
  *   npm run deploy all
  */
 
-import { execSync, spawn, ChildProcess } from 'child_process';
-import { existsSync, mkdirSync, createWriteStream, WriteStream } from 'fs';
-import { join, dirname } from 'path';
+import { ChildProcess, execSync, spawn } from 'child_process';
+import { createWriteStream, existsSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 // ============================================================================
@@ -70,7 +70,8 @@ const log = {
   success: (msg: string) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
   warn: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
   error: (msg: string) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  step: (msg: string) => console.log(`\n${colors.bold}${colors.cyan}━━━ ${msg} ━━━${colors.reset}\n`),
+  step: (msg: string) =>
+    console.log(`\n${colors.bold}${colors.cyan}━━━ ${msg} ━━━${colors.reset}\n`),
 };
 
 // ============================================================================
@@ -143,22 +144,22 @@ function ensureLogsDir(): void {
 function spawnAsync(cmd: string, logFile: string): ChildProcess {
   ensureLogsDir();
   const logStream = createWriteStream(logFile, { flags: 'a' });
-  
+
   // Write header
   logStream.write(`\n${'='.repeat(60)}\n`);
   logStream.write(`Deployment started: ${new Date().toISOString()}\n`);
   logStream.write(`Command: ${cmd}\n`);
   logStream.write(`${'='.repeat(60)}\n\n`);
-  
+
   const child = spawn('bash', ['-c', cmd], {
     cwd: PROJECT_ROOT,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  
+
   child.stdout?.pipe(logStream);
   child.stderr?.pipe(logStream);
-  
+
   child.on('exit', (code) => {
     logStream.write(`\n${'='.repeat(60)}\n`);
     logStream.write(`Deployment finished: ${new Date().toISOString()}\n`);
@@ -166,7 +167,7 @@ function spawnAsync(cmd: string, logFile: string): ChildProcess {
     logStream.write(`${'='.repeat(60)}\n`);
     logStream.end();
   });
-  
+
   child.unref();
   return child;
 }
@@ -187,6 +188,10 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     'LIVEKIT_URL=livekit-url:latest',
     'LIVEKIT_API_KEY=livekit-api-key:latest',
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
+    // Security secrets (required in production)
+    'ADMIN_KEY=admin-api-key:latest',
+    'LOG_HASH_SECRET=log-hash-secret:latest',
+    'EVALOPS_ADMIN_KEY=evalops-admin-key:latest',
   ];
 
   // Check for optional secrets (only in sync mode - async skips this)
@@ -195,6 +200,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
       ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
       ['finnhub-api-key', 'FINNHUB_API_KEY'],
       ['sendgrid-api-key', 'SENDGRID_API_KEY'],
+      ['fred-api-key', 'FRED_API_KEY'],
     ];
 
     for (const [secretName, envVar] of optionalSecrets) {
@@ -214,11 +220,12 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',
-    '--memory 2Gi',
-    '--cpu 2',
+    '--memory 4Gi', // Increased for faster startup and better performance
+    '--cpu 4', // Increased for faster startup
+    '--cpu-boost', // Extra CPU during container startup
     '--timeout 3600',
     '--concurrency 1',
-    '--min-instances 0',
+    '--min-instances 0', // Set to 1 for warm starts (costs ~$30/month)
     '--max-instances 20',
     `--set-env-vars "NODE_ENV=production,PERSONA_ID=${CONFIG.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
     `--set-secrets "${secrets.join(',')}"`,
@@ -228,10 +235,10 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
   if (options.async) {
     const logFile = getLogFilePath('agent');
     const fullCmd = `${buildCmd} && ${deployCmd}`;
-    
+
     log.info('Starting async deployment...');
     spawnAsync(fullCmd, logFile);
-    
+
     console.log(`
 ${colors.green}✓${colors.reset} Agent deployment started in background!
 
@@ -282,17 +289,17 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--set-env-vars "NODE_ENV=production"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest"',
     '--quiet',
   ].join(' ');
 
   if (options.async) {
     const logFile = getLogFilePath('ui');
     const fullCmd = `${buildCmd} && ${deployCmd}`;
-    
+
     log.info('Starting async deployment...');
     spawnAsync(fullCmd, logFile);
-    
+
     console.log(`
 ${colors.green}✓${colors.reset} UI deployment started in background!
 
@@ -351,7 +358,9 @@ async function deployBrand(options: DeployOptions): Promise<boolean> {
   exec(`gsutil -m cp design-system/dist/tokens.css gs://${bucketName}/`);
   exec(`gsutil -m cp -r design-system/assets/* gs://${bucketName}/assets/`);
 
-  log.success(`Brand assets deployed to: https://storage.googleapis.com/${bucketName}/brand-book.html`);
+  log.success(
+    `Brand assets deployed to: https://storage.googleapis.com/${bucketName}/brand-book.html`
+  );
   return true;
 }
 
@@ -378,8 +387,10 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 
   // Deploy to BOTH Firebase Hosting sites
   log.info('Deploying to Firebase Hosting (ferni-prod + johnb-app)...');
-  exec(`cd ${frontendDir} && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project ${CONFIG.projectId}`);
-  
+  exec(
+    `cd ${frontendDir} && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project ${CONFIG.projectId}`
+  );
+
   log.success('Frontend deployed to:');
   log.success('  - https://ferni-prod.web.app');
   log.success('  - https://app.ferni.ai (johnb-2025)');
@@ -421,7 +432,9 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
 
     log.info('Uploading files...');
     exec(`gsutil -m cp -r ${landingDir}/* gs://${bucketName}/`);
-    log.success(`Landing page deployed to: https://storage.googleapis.com/${bucketName}/index.html`);
+    log.success(
+      `Landing page deployed to: https://storage.googleapis.com/${bucketName}/index.html`
+    );
   }
 
   return true;
@@ -444,7 +457,9 @@ async function deployJoel(options: DeployOptions): Promise<boolean> {
 
   // Build agent
   log.info('Building Joel agent container...');
-  exec(`gcloud builds submit --tag gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest . --quiet`);
+  exec(
+    `gcloud builds submit --tag gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest . --quiet`
+  );
 
   // Deploy agent
   log.info('Deploying Joel agent...');
@@ -456,22 +471,24 @@ async function deployJoel(options: DeployOptions): Promise<boolean> {
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
   ];
 
-  exec([
-    `gcloud run deploy ${joelConfig.agentService}`,
-    `--image gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest`,
-    `--region ${CONFIG.region}`,
-    '--platform managed',
-    '--allow-unauthenticated',
-    '--memory 2Gi',
-    '--cpu 2',
-    '--timeout 3600',
-    '--concurrency 1',
-    '--min-instances 0',
-    '--max-instances 20',
-    `--set-env-vars "NODE_ENV=production,PERSONA_ID=${joelConfig.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId},MUSIC_ENABLED=true"`,
-    `--set-secrets "${agentSecrets.join(',')}"`,
-    '--quiet',
-  ].join(' \\\n  '));
+  exec(
+    [
+      `gcloud run deploy ${joelConfig.agentService}`,
+      `--image gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest`,
+      `--region ${CONFIG.region}`,
+      '--platform managed',
+      '--allow-unauthenticated',
+      '--memory 2Gi',
+      '--cpu 2',
+      '--timeout 3600',
+      '--concurrency 1',
+      '--min-instances 0',
+      '--max-instances 20',
+      `--set-env-vars "NODE_ENV=production,PERSONA_ID=${joelConfig.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId},MUSIC_ENABLED=true"`,
+      `--set-secrets "${agentSecrets.join(',')}"`,
+      '--quiet',
+    ].join(' \\\n  ')
+  );
 
   const agentUrl = getServiceUrl(joelConfig.agentService);
   log.success(`Joel agent deployed: ${agentUrl}`);
@@ -488,21 +505,23 @@ async function deployJoel(options: DeployOptions): Promise<boolean> {
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
   ];
 
-  exec([
-    `gcloud run deploy ${joelConfig.uiService}`,
-    `--image gcr.io/${CONFIG.projectId}/${joelConfig.uiService}:latest`,
-    `--region ${CONFIG.region}`,
-    '--platform managed',
-    '--allow-unauthenticated',
-    '--memory 512Mi',
-    '--cpu 1',
-    '--timeout 300',
-    '--min-instances 0',
-    '--max-instances 10',
-    '--set-env-vars "NODE_ENV=production,AGENT_NAME=voice-agent,TOKEN_SERVER_PORT=8080"',
-    `--set-secrets "${uiSecrets.join(',')}"`,
-    '--quiet',
-  ].join(' \\\n  '));
+  exec(
+    [
+      `gcloud run deploy ${joelConfig.uiService}`,
+      `--image gcr.io/${CONFIG.projectId}/${joelConfig.uiService}:latest`,
+      `--region ${CONFIG.region}`,
+      '--platform managed',
+      '--allow-unauthenticated',
+      '--memory 512Mi',
+      '--cpu 1',
+      '--timeout 300',
+      '--min-instances 0',
+      '--max-instances 10',
+      '--set-env-vars "NODE_ENV=production,AGENT_NAME=voice-agent,TOKEN_SERVER_PORT=8080"',
+      `--set-secrets "${uiSecrets.join(',')}"`,
+      '--quiet',
+    ].join(' \\\n  ')
+  );
 
   const uiUrl = getServiceUrl(joelConfig.uiService);
   log.success(`Joel UI deployed: ${uiUrl}`);
@@ -519,7 +538,7 @@ async function deployEvolution(options: DeployOptions): Promise<boolean> {
   }
 
   const functionsDir = join(PROJECT_ROOT, 'functions');
-  
+
   if (!existsSync(functionsDir)) {
     log.error('Functions directory not found');
     return false;
@@ -528,57 +547,71 @@ async function deployEvolution(options: DeployOptions): Promise<boolean> {
   // Install and build
   log.info('Installing dependencies...');
   exec('npm install', { cwd: functionsDir });
-  
+
   log.info('Building TypeScript...');
   exec('npm run build', { cwd: functionsDir });
 
   // Create Pub/Sub topic
   log.info('Creating Pub/Sub topic...');
-  exec(`gcloud pubsub topics create evolution-trigger --project=${CONFIG.projectId} 2>/dev/null || true`, { silent: true });
+  exec(
+    `gcloud pubsub topics create evolution-trigger --project=${CONFIG.projectId} 2>/dev/null || true`,
+    { silent: true }
+  );
 
   // Deploy Pub/Sub triggered function
   log.info('Deploying Cloud Function (Pub/Sub trigger)...');
-  exec([
-    'gcloud functions deploy evolutionScheduler',
-    '--runtime=nodejs20',
-    '--trigger-topic=evolution-trigger',
-    '--entry-point=evolutionScheduler',
-    '--timeout=540s',
-    '--memory=1GB',
-    `--region=${CONFIG.region}`,
-    `--project=${CONFIG.projectId}`,
-    `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
-    '--quiet',
-  ].join(' \\\n  '), { cwd: functionsDir });
+  exec(
+    [
+      'gcloud functions deploy evolutionScheduler',
+      '--runtime=nodejs20',
+      '--trigger-topic=evolution-trigger',
+      '--entry-point=evolutionScheduler',
+      '--timeout=540s',
+      '--memory=1GB',
+      `--region=${CONFIG.region}`,
+      `--project=${CONFIG.projectId}`,
+      `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+      '--quiet',
+    ].join(' \\\n  '),
+    { cwd: functionsDir }
+  );
 
   // Deploy HTTP triggered function
   log.info('Deploying Cloud Function (HTTP trigger)...');
-  exec([
-    'gcloud functions deploy evolutionSchedulerHttp',
-    '--runtime=nodejs20',
-    '--trigger-http',
-    '--entry-point=evolutionSchedulerHttp',
-    '--timeout=540s',
-    '--memory=1GB',
-    `--region=${CONFIG.region}`,
-    `--project=${CONFIG.projectId}`,
-    '--allow-unauthenticated',
-    `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
-    '--quiet',
-  ].join(' \\\n  '), { cwd: functionsDir });
+  exec(
+    [
+      'gcloud functions deploy evolutionSchedulerHttp',
+      '--runtime=nodejs20',
+      '--trigger-http',
+      '--entry-point=evolutionSchedulerHttp',
+      '--timeout=540s',
+      '--memory=1GB',
+      `--region=${CONFIG.region}`,
+      `--project=${CONFIG.projectId}`,
+      '--allow-unauthenticated',
+      `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+      '--quiet',
+    ].join(' \\\n  '),
+    { cwd: functionsDir }
+  );
 
   // Create Cloud Scheduler job
   log.info('Creating Cloud Scheduler job...');
-  exec(`gcloud scheduler jobs delete daily-evolution --location=${CONFIG.region} --quiet 2>/dev/null || true`, { silent: true });
-  exec([
-    'gcloud scheduler jobs create pubsub daily-evolution',
-    '--schedule="0 3 * * *"',
-    '--topic=evolution-trigger',
-    '--message-body="{}"',
-    '--time-zone="America/New_York"',
-    `--location=${CONFIG.region}`,
-    `--project=${CONFIG.projectId}`,
-  ].join(' \\\n  '));
+  exec(
+    `gcloud scheduler jobs delete daily-evolution --location=${CONFIG.region} --quiet 2>/dev/null || true`,
+    { silent: true }
+  );
+  exec(
+    [
+      'gcloud scheduler jobs create pubsub daily-evolution',
+      '--schedule="0 3 * * *"',
+      '--topic=evolution-trigger',
+      '--message-body="{}"',
+      '--time-zone="America/New_York"',
+      `--location=${CONFIG.region}`,
+      `--project=${CONFIG.projectId}`,
+    ].join(' \\\n  ')
+  );
 
   log.success('Evolution scheduler deployed');
   console.log(`
@@ -610,7 +643,9 @@ function preflightChecks(): boolean {
 
   // Check authentication
   try {
-    const account = exec('gcloud auth list --filter=status:ACTIVE --format="value(account)"', { silent: true }).trim();
+    const account = exec('gcloud auth list --filter=status:ACTIVE --format="value(account)"', {
+      silent: true,
+    }).trim();
     if (!account) {
       log.error('Not authenticated. Run: gcloud auth login');
       return false;
@@ -626,7 +661,13 @@ function preflightChecks(): boolean {
   log.success(`Project: ${CONFIG.projectId}`);
 
   // Check required secrets
-  const requiredSecrets = ['google-api-key', 'cartesia-api-key', 'livekit-url', 'livekit-api-key', 'livekit-api-secret'];
+  const requiredSecrets = [
+    'google-api-key',
+    'cartesia-api-key',
+    'livekit-url',
+    'livekit-api-key',
+    'livekit-api-secret',
+  ];
   let allSecretsPresent = true;
 
   log.info('Checking required secrets...');
@@ -703,7 +744,7 @@ async function main() {
   };
 
   // Get target (non-option argument)
-  const targets = args.filter(arg => !arg.startsWith('--') && !arg.startsWith('-'));
+  const targets = args.filter((arg) => !arg.startsWith('--') && !arg.startsWith('-'));
 
   if (targets.length === 0 || args.includes('--help') || args.includes('-h')) {
     printHelp();
@@ -771,7 +812,11 @@ ${colors.cyan}╚═════════════════════
         log.info('All deployments started in background');
         success = true;
       } else {
-        success = (await deployAgent(options)) && (await deployUi(options)) && (await deployFrontend(options)) && (await deployLanding(options));
+        success =
+          (await deployAgent(options)) &&
+          (await deployUi(options)) &&
+          (await deployFrontend(options)) &&
+          (await deployLanding(options));
       }
       break;
 
@@ -805,4 +850,3 @@ main().catch((error) => {
   log.error(`Deployment failed: ${error.message}`);
   process.exit(1);
 });
-

@@ -12,19 +12,19 @@ import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 
 import {
-  isEnabled,
-  getFlag,
-  getAllFlags,
-  setFlag,
-  setUserOverride,
-  removeUserOverride,
-  enableFlag,
-  disableFlag,
-  setRolloutPercentage,
-  enableAllTrustFlags,
   disableAllTrustFlags,
-  resetToDefaults,
+  disableFlag,
+  enableAllTrustFlags,
+  enableFlag,
+  getAllFlags,
+  getFlag,
+  isEnabled,
   refreshFlags,
+  removeUserOverride,
+  resetToDefaults,
+  setFlag,
+  setRolloutPercentage,
+  setUserOverride,
   TRUST_FLAGS,
   type TrustFlagId,
 } from '../services/feature-flags.js';
@@ -56,9 +56,18 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 }
 
 function isAdmin(req: IncomingMessage): boolean {
-  // Check for admin key or dev mode
+  // SECURITY: 'dev-mode' key only works in development environment
   const adminKey = req.headers['x-admin-key'] as string;
-  return adminKey === process.env.ADMIN_KEY || adminKey === 'dev-mode';
+  const isDev = process.env.NODE_ENV !== 'production';
+  const configuredAdminKey = process.env.ADMIN_KEY;
+
+  // In production, require ADMIN_KEY
+  if (!isDev) {
+    return !!configuredAdminKey && adminKey === configuredAdminKey;
+  }
+
+  // In development, allow 'dev-mode' or configured admin key
+  return adminKey === 'dev-mode' || adminKey === configuredAdminKey;
 }
 
 // ============================================================================

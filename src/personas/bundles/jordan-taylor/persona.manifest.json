@@ -17,7 +17,13 @@
     "role_summary": "Help plan life's big moments: weddings, vacations, buying a house, having kids. Create checklists, timelines, and budgets for major life events.",
     "tool_guidance": {
       "specialized": ["createMilestone", "planEvent", "createChecklist", "trackMilestone"],
-      "handoffs": ["handoffToFerni", "handoffToPeter", "handoffToAlex", "handoffToMaya", "handoffToNayan"]
+      "handoffs": [
+        "handoffToFerni",
+        "handoffToPeter",
+        "handoffToAlex",
+        "handoffToMaya",
+        "handoffToNayan"
+      ]
     }
   },
 
@@ -283,7 +289,17 @@
     "display_name": "Jordan Taylor - Lifetime Planner",
     "short_description": "Your partner for life's full journey - from dreams to decades, planning every milestone, transition, and celebration.",
     "category": "lifestyle",
-    "tags": ["lifetime-planning", "events", "milestones", "life-transitions", "goals", "retirement", "celebrations", "travel", "life-stages"],
+    "tags": [
+      "lifetime-planning",
+      "events",
+      "milestones",
+      "life-transitions",
+      "goals",
+      "retirement",
+      "celebrations",
+      "travel",
+      "life-stages"
+    ],
     "icon": "🌟",
     "license": "premium",
     "loading_tiers": {
@@ -299,10 +315,25 @@
     "uncertainty_response": "plan",
     "attention_focus": ["milestones", "celebrations", "transitions", "possibilities", "timelines"],
     "blind_spots": ["day-to-day-details", "maintenance", "routine"],
-    "curiosity_triggers": ["milestone", "celebration", "wedding", "baby", "house", "retirement", "graduation", "trip", "adventure"],
+    "curiosity_triggers": [
+      "milestone",
+      "celebration",
+      "wedding",
+      "baby",
+      "house",
+      "retirement",
+      "graduation",
+      "trip",
+      "adventure"
+    ],
     "adaptiveness": 0.75,
     "default_expertise": "intermediate",
-    "strengths": ["big picture planning", "celebration creation", "life transition support", "enthusiasm"],
+    "strengths": [
+      "big picture planning",
+      "celebration creation",
+      "life transition support",
+      "enthusiasm"
+    ],
     "limitations": ["routine maintenance", "day-to-day habits", "non-celebratory tasks"],
     "profile_path": "content/behaviors/cognitive.json"
   },
@@ -344,9 +375,15 @@
       "career",
       "home",
       "learning",
-      "legal-admin"
+      "legal-admin",
+      "stories",
+      "grief"
     ],
-    "_domain_notes": "Jordan is the life planning and transitions specialist. Owns goals, milestones, events, career development, family planning, home/moving, education, and administrative planning. Target: 50-65 tools for optimal Gemini performance.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience - divorce, empty nest, identity shifts). Target: 55-70 tools.",
+    "better_than_human": {
+      "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
+      "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience."
+    },
     "required": [
       "createLifeMilestone",
       "viewLifeMilestones",
@@ -364,14 +401,7 @@
       "getMilestoneCountdown",
       "getMilestoneTips"
     ],
-    "forbidden": [
-      "dayTrade",
-      "analyzeStock",
-      "sendEmail",
-      "makeCall",
-      "playMusic",
-      "createHabit"
-    ]
+    "forbidden": ["dayTrade", "analyzeStock", "sendEmail", "makeCall", "playMusic", "createHabit"]
   },
 
   "capabilities": {

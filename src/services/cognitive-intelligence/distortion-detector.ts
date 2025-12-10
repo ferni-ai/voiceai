@@ -1,1206 +1,781 @@
 /**
- * Cognitive Distortion Detector
+ * Cognitive Distortion Detection Engine
  *
- * > "We believe in making AI human, and the decisions we make will reflect that."
+ * Phase 18: Detect cognitive distortions in real-time and guide users
+ * toward clearer thinking—like having a CBT therapist in your pocket.
  *
- * Real-time detection of cognitive distortions in user messages.
- * Based on CBT (Cognitive Behavioral Therapy) frameworks.
+ * Detects 15 common cognitive distortions:
+ * - Catastrophizing, Mind-Reading, All-or-Nothing
+ * - Fortune-Telling, Personalization, Overgeneralization
+ * - Mental Filtering, Disqualifying Positive, Should Statements
+ * - Emotional Reasoning, Labeling, Magnification
+ * - Minimization, Jumping to Conclusions, Blame
  *
- * PHILOSOPHY:
- * A great coach notices when someone is stuck in a thinking trap.
- * Not to lecture, but to gently invite curiosity about the thought.
- * The goal is never to dismiss feelings—it's to question thoughts
- * that may not be serving them.
- *
- * This detector identifies 15 common cognitive distortions and provides:
- * - Detection with confidence scoring
- * - Gentle Socratic challenges
- * - Alternative reframes
- * - Validation of underlying feelings
- *
- * @module CognitiveIntelligence/DistortionDetector
+ * @module CognitiveDistortionDetector
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  CognitiveDistortion,
-  DistortionDetection,
-  DistortionMetadata,
-  DistortionResponse,
-  ResponseApproach,
-  ANTProfile,
-} from './types.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'DistortionDetector' });
+const log = getLogger().child({ module: 'distortion-detector' });
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// TYPES
 // ============================================================================
 
-/** User ANT profiles for tracking patterns */
-const userProfiles = new Map<string, ANTProfile>();
+export type CognitiveDistortion =
+  | 'catastrophizing'
+  | 'mind_reading'
+  | 'all_or_nothing'
+  | 'fortune_telling'
+  | 'personalization'
+  | 'overgeneralization'
+  | 'mental_filtering'
+  | 'disqualifying_positive'
+  | 'should_statements'
+  | 'emotional_reasoning'
+  | 'labeling'
+  | 'magnification'
+  | 'minimization'
+  | 'jumping_to_conclusions'
+  | 'blame';
 
-/** Recent detections per user (for deduplication) */
-const recentDetections = new Map<string, Array<{ type: CognitiveDistortion; timestamp: Date }>>();
+export interface DistortionDetection {
+  type: CognitiveDistortion;
+  confidence: number; // 0-1
+  triggerPhrase: string;
+  userMessage: string;
+
+  // Therapeutic response options
+  gentleChallenge: string; // Socratic question
+  reframe: string; // Alternative perspective
+  validation: string; // Acknowledge the feeling
+
+  // Learning
+  patternCount: number; // How often this user does this
+  relatedDistortions: CognitiveDistortion[];
+}
+
+export interface ConversationContext {
+  recentTopics?: string[];
+  emotionalState?: string;
+  relationshipStage?: string;
+  previousDistortions?: DistortionDetection[];
+}
+
+export interface DistortionPattern {
+  patterns: RegExp[];
+  keywords: string[];
+  contextClues: string[];
+  gentleChallenges: string[];
+  reframes: string[];
+  validations: string[];
+  relatedDistortions: CognitiveDistortion[];
+}
 
 // ============================================================================
-// DISTORTION PATTERNS DATABASE
+// DISTORTION PATTERNS
 // ============================================================================
 
-/**
- * Comprehensive patterns for detecting each cognitive distortion.
- * Based on CBT literature and clinical observation.
- */
-export const DISTORTION_PATTERNS: Record<CognitiveDistortion, DistortionMetadata> = {
-  // -------------------------------------------------------------------------
-  // CATASTROPHIZING
-  // -------------------------------------------------------------------------
+const DISTORTION_PATTERNS: Record<CognitiveDistortion, DistortionPattern> = {
   catastrophizing: {
-    type: 'catastrophizing',
-    name: 'Catastrophizing',
-    description: 'Expecting the worst possible outcome',
-    gentleLabel: 'jumping to the worst case',
-
-    indicatorPhrases: [
-      'end of the world',
-      'my life is over',
-      'ruined everything',
-      'disaster',
-      'catastrophe',
-      'worst thing ever',
-      'never recover',
-      'completely destroyed',
-      'absolute worst',
-      'everything is ruined',
-      'total failure',
-      "can't survive",
-      'everything will fall apart',
-    ],
-
     patterns: [
-      /\b(this is|it's|that's) the end\b/i,
-      /\bif .*? (then|,) .*(everything|my life|career|relationship).*(over|ruined|destroyed|done)/i,
-      /\bwhat if .*(worst|terrible|horrible|disaster)/i,
-      /\b(never|won't|can't) (recover|bounce back|be the same)/i,
-      /\b(going to|will) (ruin|destroy|end) (everything|my life|career)/i,
-      /\bi('ll| will) (die|lose everything|be alone forever)/i,
+      /\b(disaster|catastrophe|end of|ruined|destroyed|worst thing|life is over)\b/i,
+      /\b(everything is|nothing will ever|always going to be)\b.*\b(terrible|awful|horrible)\b/i,
+      /\b(can't survive|can't handle|can't cope|can't bear)\b/i,
+      /\bwhat if.*(terrible|horrible|awful|disaster)/i,
     ],
-
-    contextTriggers: ['work', 'relationship', 'health', 'money', 'future'],
-    associatedEmotions: ['fear', 'anxiety', 'panic', 'dread'],
-  },
-
-  // -------------------------------------------------------------------------
-  // MIND READING
-  // -------------------------------------------------------------------------
-  mind_reading: {
-    type: 'mind_reading',
-    name: 'Mind Reading',
-    description: 'Assuming you know what others think without evidence',
-    gentleLabel: 'assuming what others are thinking',
-
-    indicatorPhrases: [
-      'they think i',
-      'everyone thinks',
-      'they must think',
-      'they probably think',
-      'they all think',
-      'people think i',
-      'i know they think',
-      'they see me as',
-      'they must see me',
-      'judging me',
-      'looking at me like',
-    ],
-
-    patterns: [
-      /\b(they|everyone|people|she|he) (think|thinks|thought|must think|probably think)(s)? (i'm|i am|that i)/i,
-      /\b(they|everyone) (see|sees|saw) me as\b/i,
-      /\bi know (they|everyone|she|he) (think|thinks|thought)/i,
-      /\b(they're|everyone's) (judging|laughing at|looking down on) me\b/i,
-      /\bi can tell (they|everyone|she|he) (think|thinks|doesn't like|hates)/i,
-      /\b(they|she|he) must (hate|despise|be annoyed|be angry)/i,
-    ],
-
-    contextTriggers: ['social', 'work', 'relationship', 'family', 'presentation'],
-    associatedEmotions: ['anxiety', 'shame', 'embarrassment', 'insecurity'],
-  },
-
-  // -------------------------------------------------------------------------
-  // ALL-OR-NOTHING THINKING
-  // -------------------------------------------------------------------------
-  all_or_nothing: {
-    type: 'all_or_nothing',
-    name: 'All-or-Nothing Thinking',
-    description: 'Seeing things in black and white, with no middle ground',
-    gentleLabel: 'all-or-nothing thinking',
-
-    indicatorPhrases: [
-      'complete failure',
-      'total disaster',
-      'completely worthless',
-      'absolutely perfect',
-      'entirely my fault',
-      'nothing ever works',
-      'always mess up',
-      'never do anything right',
-      'either perfect or',
-      'all or nothing',
-    ],
-
-    patterns: [
-      /\bi('m| am) (a )?(complete|total|utter|absolute) (failure|disaster|mess|idiot|loser)/i,
-      /\b(everything|nothing) (is|was|will be) (perfect|terrible|ruined|great)/i,
-      /\bi (always|never) (succeed|fail|mess up|do well|get it right)/i,
-      /\bif (it's|i'm) not perfect,? (it's|i'm) (worthless|a failure|garbage|trash)/i,
-      /\bthere's no (middle ground|in between|gray area)/i,
-      /\b(either|must be) .* or .* (nothing|worthless|complete failure)/i,
-    ],
-
-    contextTriggers: ['achievement', 'work', 'performance', 'self-worth'],
-    associatedEmotions: ['frustration', 'shame', 'disappointment', 'anger'],
-  },
-
-  // -------------------------------------------------------------------------
-  // FORTUNE TELLING
-  // -------------------------------------------------------------------------
-  fortune_telling: {
-    type: 'fortune_telling',
-    name: 'Fortune Telling',
-    description: 'Predicting negative outcomes with certainty',
-    gentleLabel: 'predicting the future',
-
-    indicatorPhrases: [
-      "it's going to fail",
-      "it won't work",
-      "they won't like",
-      "i'll never",
-      "it's definitely going to",
-      "there's no way it'll",
-      'guaranteed to fail',
-      'bound to go wrong',
-      "i know it'll be",
-    ],
-
-    patterns: [
-      /\b(it's|this is) (definitely|certainly|absolutely|100%) going to (fail|go wrong|be terrible)/i,
-      /\bi (know|just know|already know) (it|this|that) (will|won't|is going to) (fail|work out|go well)/i,
-      /\bthere's no (way|chance|possibility) (it|this|that) (will|could) (work|succeed|go well)/i,
-      /\bi('ll| will) (definitely|never|always) (fail|succeed|mess up|get rejected)/i,
-      /\b(guaranteed|bound|destined|fated) to (fail|go wrong|be bad)/i,
-    ],
-
-    contextTriggers: ['future', 'plans', 'decisions', 'opportunities', 'change'],
-    associatedEmotions: ['anxiety', 'fear', 'hopelessness', 'dread'],
-  },
-
-  // -------------------------------------------------------------------------
-  // PERSONALIZATION
-  // -------------------------------------------------------------------------
-  personalization: {
-    type: 'personalization',
-    name: 'Personalization',
-    description: 'Taking responsibility for things outside your control',
-    gentleLabel: 'taking on too much responsibility',
-
-    indicatorPhrases: [
-      "it's all my fault",
-      'i made this happen',
-      'because of me',
-      'i caused this',
-      "if i hadn't",
-      'i should have prevented',
-      'i ruined',
-      'i drove them to',
-      'my fault they',
-    ],
-
-    patterns: [
-      /\b(it's|this is) (all|entirely|completely) my fault\b/i,
-      /\bif (i|i'd|i had) (just|only|hadn't) .*(this wouldn't|none of this)/i,
-      /\bi (caused|created|made|forced) (this|them|everyone|it)/i,
-      /\b(because of|thanks to) me,? .*(ruined|failed|happened)/i,
-      /\bi should have (stopped|prevented|seen|known|done something)/i,
-      /\bthey .* because (i|of me|of what i)/i,
-    ],
-
-    contextTriggers: ['conflict', 'failure', 'others emotions', 'family', 'relationship'],
-    associatedEmotions: ['guilt', 'shame', 'responsibility', 'regret'],
-  },
-
-  // -------------------------------------------------------------------------
-  // OVERGENERALIZATION
-  // -------------------------------------------------------------------------
-  overgeneralization: {
-    type: 'overgeneralization',
-    name: 'Overgeneralization',
-    description: 'Drawing broad conclusions from a single event',
-    gentleLabel: 'generalizing from one experience',
-
-    indicatorPhrases: [
-      'this always happens',
-      'it never works',
-      'everyone always',
-      'nobody ever',
-      'i always fail',
-      'things never go',
-      'every time i try',
-      'nothing ever changes',
-    ],
-
-    patterns: [
-      /\bthis (always|never) happens( to me)?\b/i,
-      /\bi (always|never) (fail|succeed|mess up|get it right|do well)/i,
-      /\b(everyone|nobody|no one) (always|ever|never) (likes|helps|supports|understands)/i,
-      /\b(everything|nothing) (always|ever|never) (works|goes right|changes)/i,
-      /\bevery (time|single time) (i|this) .*(fail|wrong|bad|mess)/i,
-      /\bi('ll| will) (always|never) be .*(alone|failure|rejected|good enough)/i,
-    ],
-
-    contextTriggers: ['setback', 'rejection', 'failure', 'disappointment'],
-    associatedEmotions: ['hopelessness', 'frustration', 'sadness', 'resignation'],
-  },
-
-  // -------------------------------------------------------------------------
-  // MENTAL FILTERING
-  // -------------------------------------------------------------------------
-  mental_filtering: {
-    type: 'mental_filtering',
-    name: 'Mental Filtering',
-    description: 'Focusing only on negatives while ignoring positives',
-    gentleLabel: 'filtering out the positive',
-
-    indicatorPhrases: [
-      'but the bad part',
-      'but then they said',
-      "doesn't matter because",
-      'yeah but',
-      'the only thing that matters is',
-      'all i can think about',
-      "i can't stop thinking about",
-      'even though .* but',
-    ],
-
-    patterns: [
-      /\b(yeah|yes|okay|sure|it was good) but .*(then|also|except|however|the problem)/i,
-      /\b(doesn't|didn't|won't) matter (because|since|that) .*(said|happened|did)/i,
-      /\bi (can't|cannot) (stop|quit|help) (thinking|focusing|dwelling) (about|on) (the|that|this) (one|bad|negative)/i,
-      /\bthe only thing (that|i can) (matters|see|think about) is .*(bad|wrong|negative|mistake)/i,
-      /\beven though .*(good|positive|well).* but .*(one|that|this) (thing|part|moment)/i,
-    ],
-
-    contextTriggers: ['feedback', 'evaluation', 'reflection', 'achievement'],
-    associatedEmotions: ['disappointment', 'sadness', 'dissatisfaction', 'negativity'],
-  },
-
-  // -------------------------------------------------------------------------
-  // DISQUALIFYING THE POSITIVE
-  // -------------------------------------------------------------------------
-  disqualifying_positive: {
-    type: 'disqualifying_positive',
-    name: 'Disqualifying the Positive',
-    description: 'Dismissing positive experiences as not counting',
-    gentleLabel: 'dismissing the positive',
-
-    indicatorPhrases: [
-      "that doesn't count",
-      'it was just luck',
-      'anyone could do that',
-      'they were just being nice',
-      "they didn't mean it",
-      "it's not a big deal",
-      'they have to say that',
-      "doesn't really mean anything",
-      'they were just being polite',
-    ],
-
-    patterns: [
-      /\bthat (doesn't|didn't|won't) (count|mean anything|matter)/i,
-      /\b(it was|that was) (just|only) (luck|fluke|coincidence|chance)/i,
-      /\b(anyone|everybody) could (do|have done) that\b/i,
-      /\bthey (were|are|was) (just|only) being (nice|polite|kind)/i,
-      /\bthey (have|had|has) to say that\b/i,
-      /\b(it's|that's) not (really|actually) (a big deal|important|special|an achievement)/i,
-    ],
-
-    contextTriggers: ['compliment', 'achievement', 'success', 'praise', 'recognition'],
-    associatedEmotions: ['low self-worth', 'insecurity', 'imposter syndrome', 'embarrassment'],
-  },
-
-  // -------------------------------------------------------------------------
-  // SHOULD STATEMENTS
-  // -------------------------------------------------------------------------
-  should_statements: {
-    type: 'should_statements',
-    name: 'Should Statements',
-    description: 'Rigid rules about how things should be',
-    gentleLabel: 'shoulding on yourself',
-
-    indicatorPhrases: [
-      'i should have',
-      'i should be',
-      'i must be',
-      'i ought to',
-      'i have to be',
-      'they should have',
-      "shouldn't have",
-      "shouldn't feel",
-      'must not',
-      'have to be perfect',
-    ],
-
-    patterns: [
-      /\bi (should|must|ought to|have to) (be|have|do|feel|know) .*(better|more|less|perfect)/i,
-      /\bi (shouldn't|should not|mustn't) (feel|be|have|want)/i,
-      /\b(they|he|she|people) (should|shouldn't|must|mustn't) (have|be|do)/i,
-      /\bi (should|must) have (known|done|seen|been|said)/i,
-      /\bwhy (can't|couldn't|didn't) i (just|be|do|have)/i,
-    ],
-
-    contextTriggers: ['expectations', 'self-criticism', 'comparison', 'performance'],
-    associatedEmotions: ['guilt', 'shame', 'frustration', 'anger', 'inadequacy'],
-  },
-
-  // -------------------------------------------------------------------------
-  // EMOTIONAL REASONING
-  // -------------------------------------------------------------------------
-  emotional_reasoning: {
-    type: 'emotional_reasoning',
-    name: 'Emotional Reasoning',
-    description: 'Believing feelings are facts',
-    gentleLabel: 'letting feelings become facts',
-
-    indicatorPhrases: [
-      'i feel like a failure so i am',
-      'i feel stupid so i must be',
-      'i feel worthless',
-      'i feel like a burden',
-      "i feel like they don't like me",
-      'i feel like a loser',
-      'i feel incompetent',
-      'i feel unwanted',
-    ],
-
-    patterns: [
-      /\bi feel (like )?(a )?(failure|loser|burden|idiot|worthless|stupid|incompetent)/i,
-      /\bi feel .* so (i must be|i am|it must be true)/i,
-      /\bi feel like (they|everyone|nobody|people) (don't|doesn't|hate|dislike)/i,
-      /\bif i feel .* then (it|i) must be\b/i,
-      /\bi feel (unwanted|unloved|rejected) so (i am|i must be|they must)/i,
-    ],
-
-    contextTriggers: ['self-worth', 'relationships', 'performance', 'social'],
-    associatedEmotions: ['sadness', 'shame', 'insecurity', 'fear'],
-  },
-
-  // -------------------------------------------------------------------------
-  // LABELING
-  // -------------------------------------------------------------------------
-  labeling: {
-    type: 'labeling',
-    name: 'Labeling',
-    description: 'Attaching global negative labels based on specific events',
-    gentleLabel: 'labeling yourself',
-
-    indicatorPhrases: [
-      "i'm a failure",
-      "i'm an idiot",
-      "i'm a loser",
-      "i'm worthless",
-      "i'm pathetic",
-      "i'm stupid",
-      "i'm unlovable",
-      "they're a jerk",
-      "she's a terrible person",
-    ],
-
-    patterns: [
-      /\bi('m| am) (a )?(complete |total |such a )?(failure|loser|idiot|moron|disaster|mess|screw-?up|worthless|pathetic|stupid)/i,
-      /\bi('m| am) (just )?(so )?(dumb|stupid|incompetent|useless|hopeless)/i,
-      /\bi('m| am) (un)?lov(e)?able\b/i,
-      /\b(they|she|he) (is|are) (a )?(jerk|idiot|terrible person|monster|narcissist)/i,
-      /\bi('m| am) (the|such a) worst\b/i,
-    ],
-
-    contextTriggers: ['mistake', 'failure', 'conflict', 'rejection'],
-    associatedEmotions: ['shame', 'self-loathing', 'anger', 'despair'],
-  },
-
-  // -------------------------------------------------------------------------
-  // MAGNIFICATION
-  // -------------------------------------------------------------------------
-  magnification: {
-    type: 'magnification',
-    name: 'Magnification',
-    description: 'Blowing things out of proportion',
-    gentleLabel: 'making things bigger than they are',
-
-    indicatorPhrases: [
-      'this is huge',
-      'this is massive',
-      'the biggest mistake',
-      'the worst thing',
-      'absolutely terrible',
-      'completely unbearable',
-      'totally unacceptable',
-      'the most embarrassing',
-    ],
-
-    patterns: [
-      /\bthis is (the )?(biggest|worst|most terrible|most embarrassing|most horrible)/i,
-      /\b(absolutely|completely|totally|utterly) (terrible|unbearable|unacceptable|devastating|catastrophic)/i,
-      /\bthe (absolute )?(worst|biggest|most) (thing|mistake|failure|embarrassment)/i,
-      /\b(so|extremely|incredibly) (bad|terrible|horrible|embarrassing) that\b/i,
-    ],
-
-    contextTriggers: ['mistake', 'problem', 'setback', 'conflict'],
-    associatedEmotions: ['anxiety', 'shame', 'fear', 'overwhelm'],
-  },
-
-  // -------------------------------------------------------------------------
-  // MINIMIZATION
-  // -------------------------------------------------------------------------
-  minimization: {
-    type: 'minimization',
-    name: 'Minimization',
-    description: 'Downplaying achievements or positive traits',
-    gentleLabel: 'minimizing your achievements',
-
-    indicatorPhrases: [
-      "it's nothing",
-      "it's no big deal",
-      'anyone could have',
-      'it was easy',
-      "doesn't really matter",
-      "i didn't do much",
-      'it was nothing special',
-      'barely anything',
-    ],
-
-    patterns: [
-      /\b(it's|that's|this is) (nothing|no big deal|not a big deal|not important)/i,
-      /\b(anyone|everybody|most people) could (have )?(done|do) (that|this|it)/i,
-      /\bi (didn't|don't) (really )?(do|did) (much|anything special|anything important)/i,
-      /\b(it|that) (was|is) (just|only|barely) (luck|coincidence|easy|nothing)/i,
-      /\b(doesn't|didn't|won't) (really |actually )?(matter|mean anything|count)/i,
-    ],
-
-    contextTriggers: ['achievement', 'success', 'compliment', 'recognition'],
-    associatedEmotions: ['insecurity', 'imposter syndrome', 'low self-worth'],
-  },
-
-  // -------------------------------------------------------------------------
-  // JUMPING TO CONCLUSIONS
-  // -------------------------------------------------------------------------
-  jumping_to_conclusions: {
-    type: 'jumping_to_conclusions',
-    name: 'Jumping to Conclusions',
-    description: 'Reaching conclusions without sufficient evidence',
-    gentleLabel: 'jumping to conclusions',
-
-    indicatorPhrases: [
-      'i just know',
-      'obviously they',
-      "it's clear that",
-      'they definitely',
-      'they must have',
-      'obviously means',
-      'clearly they',
-    ],
-
-    patterns: [
-      /\bi (just )?(know|knew) (that )?(they|it|this|she|he) (will|won't|did|didn't|is|isn't)/i,
-      /\b(obviously|clearly|definitely) (they|it|this|she|he|means|shows)/i,
-      /\bit('s| is) (obvious|clear) that\b/i,
-      /\bthey (must have|definitely|obviously|clearly) (did|said|think|thought|meant)/i,
-      /\bthat (must|obviously|clearly) mean(s)?\b/i,
-    ],
-
-    contextTriggers: ['social', 'communication', 'relationship', 'interpretation'],
-    associatedEmotions: ['anxiety', 'suspicion', 'fear', 'insecurity'],
-  },
-
-  // -------------------------------------------------------------------------
-  // BLAME
-  // -------------------------------------------------------------------------
-  blame: {
-    type: 'blame',
-    name: 'Blame',
-    description: 'Holding others entirely responsible for problems',
-    gentleLabel: 'placing all the blame elsewhere',
-
-    indicatorPhrases: [
-      "it's their fault",
-      "it's all because of them",
-      'they made me',
-      'they caused this',
-      "if they hadn't",
-      'they ruined',
-      'they did this to me',
-      'because of them',
-    ],
-
-    patterns: [
-      /\b(it's|this is) (all )?(their|his|her|your) fault\b/i,
-      /\b(they|he|she) (made|forced|caused) me (to )?\b/i,
-      /\bif (they|he|she) (hadn't|didn't|wouldn't),? .*(this wouldn't|none of this)/i,
-      /\b(they|he|she) (ruined|destroyed|messed up) (everything|my life|this)/i,
-      /\b(because of|thanks to) (them|him|her),? .*(ruined|failed|happened)/i,
-    ],
-
-    contextTriggers: ['conflict', 'failure', 'disappointment', 'relationship'],
-    associatedEmotions: ['anger', 'resentment', 'frustration', 'victimization'],
-  },
-};
-
-// ============================================================================
-// RESPONSE TEMPLATES
-// ============================================================================
-
-/**
- * Gentle challenges and reframes for each distortion type.
- * These are designed to invite curiosity, not lecture.
- */
-const RESPONSE_TEMPLATES: Record<
-  CognitiveDistortion,
-  {
-    gentleChallenges: string[];
-    reframes: string[];
-    validations: string[];
-  }
-> = {
-  catastrophizing: {
+    keywords: ['disaster', 'catastrophe', 'ruined', 'destroyed', 'unbearable', 'worst'],
+    contextClues: ['extreme outcome', 'worst case', 'end of'],
     gentleChallenges: [
-      "What's the evidence that the absolute worst will happen?",
-      "What's the most likely outcome, if you had to bet on it?",
-      'If the worst happened, what would you actually do? Could you cope?',
-      "When you've worried like this before, how often did the worst case actually happen?",
+      "I hear the fear in that. Can I ask - what's the evidence this will definitely happen?",
+      'That sounds really scary. What would you tell a friend who was thinking this?',
+      "I'm curious - when you've worried like this before, how often did the worst actually happen?",
+      "Let's slow down. What's the most likely outcome, if you had to bet on it?",
     ],
     reframes: [
-      'The worst case is possible, but probable is different from possible.',
-      'Even difficult outcomes are usually survivable—and you have more resources than you think.',
-      "Your mind is trying to protect you by preparing for the worst, but that's not the only future.",
+      'Even if something goes wrong, it might not be the end - what could you do then?',
+      "This feels huge right now. What's one small thing that could go okay?",
+      "You've gotten through hard things before. What helped you then?",
     ],
     validations: [
-      'I hear how scary this feels.',
-      "It makes sense you're worried—this matters to you.",
-      'The fear is real, even if the prediction might not be.',
+      "It makes sense that you're worried - this matters to you.",
+      "The fear feels very real right now, and that's okay.",
+      'Your mind is trying to protect you by preparing for the worst.',
     ],
+    relatedDistortions: ['fortune_telling', 'magnification', 'all_or_nothing'],
   },
 
   mind_reading: {
+    patterns: [
+      /\b(they think|everyone thinks|people think|she thinks|he thinks)\b.*\b(I'm|I am)\b/i,
+      /\b(they must|they probably|they definitely)\b.*\b(think|believe|feel)\b/i,
+      /\bI know (they|she|he|everyone)\b.*\b(thinks|feels|believes)\b/i,
+      /\b(judging me|looking at me|talking about me)\b/i,
+    ],
+    keywords: ['they think', 'everyone knows', 'they must', 'judging', 'looking at me'],
+    contextClues: ['assumed thoughts', "others' opinions", 'judgment'],
     gentleChallenges: [
-      "What's the actual evidence they think that?",
-      'Have they said that directly, or are you interpreting?',
-      'Is there another explanation for their behavior?',
-      'What would you need to see to change your mind about what they think?',
+      "How do you actually know what they're thinking?",
+      'What evidence do you have for that versus against it?',
+      'Have you ever been wrong about what someone was thinking?',
+      'If you asked them directly, what might they actually say?',
     ],
     reframes: [
-      "People's reactions are often about their own stuff, not about you.",
-      "We're usually much harder on ourselves than others are.",
-      'Most people are too focused on their own worries to judge us as harshly as we fear.',
+      'People are often more focused on themselves than we realize.',
+      'There might be other explanations for their behavior.',
+      "You can't know for sure without asking - and that's okay.",
     ],
     validations: [
-      "It's natural to wonder what people think.",
-      'Social anxiety can make us hyper-attuned to perceived judgment.',
-      'I understand wanting to know where you stand with people.',
+      "It's natural to wonder what others think of us.",
+      "Social situations can feel uncertain and that's uncomfortable.",
+      'Your brain is trying to predict social outcomes to keep you safe.',
     ],
+    relatedDistortions: ['jumping_to_conclusions', 'personalization', 'fortune_telling'],
   },
 
   all_or_nothing: {
+    patterns: [
+      /\b(either|or)\b.*\b(completely|totally|entirely|perfectly)\b/i,
+      /\b(always|never|everyone|no one|nothing|everything)\b/i,
+      /\b(perfect|failure|worthless|completely|totally)\b/i,
+      /\bif.*(not perfect|not 100%|don't|can't).*then.*(worthless|failure|pointless)\b/i,
+    ],
+    keywords: ['always', 'never', 'everyone', 'no one', 'perfect', 'failure', 'worthless'],
+    contextClues: ['extremes', 'binary thinking', 'absolutes'],
     gentleChallenges: [
-      'Is there a middle ground between perfect and failure?',
+      'Is it really always or never? Can you think of any exceptions?',
       "What would 'good enough' look like here?",
-      'If a friend did this, would you call it a total failure?',
-      'On a scale of 1-10, where does this actually fall?',
+      "What's in between perfect and failure?",
+      'Are there any shades of gray we might be missing?',
     ],
     reframes: [
-      'Most of life happens in the gray area between perfect and terrible.',
-      "Progress isn't linear—small steps still count.",
-      "Being human means being imperfect. That's not failure, that's normal.",
+      'Most things exist on a spectrum, not at extremes.',
+      "Progress isn't perfect - and that's still progress.",
+      'Partial success is still success.',
     ],
     validations: [
-      "I hear how frustrating it is when things aren't how you wanted.",
-      'High standards can be a gift, but they can also be heavy.',
-      "It's hard when reality doesn't match the vision.",
+      "It's tempting to see things in black and white - it feels simpler.",
+      'You have high standards, which shows you care.',
+      "All-or-nothing thinking is really common when we're stressed.",
     ],
+    relatedDistortions: ['catastrophizing', 'labeling', 'should_statements'],
   },
 
   fortune_telling: {
+    patterns: [
+      /\b(definitely|certainly|for sure)\b.*\b(will|going to|won't)\b/i,
+      /\bit's (going to|gonna)\b.*\b(fail|go wrong|be bad)\b/i,
+      /\bI know\b.*\b(will|won't)\b.*\b(work|happen|succeed)\b/i,
+      /\bthere's no (way|chance|point)\b/i,
+    ],
+    keywords: ['definitely will', 'going to fail', 'no point', 'know it will'],
+    contextClues: ['certain future', 'negative prediction', 'predetermined outcome'],
     gentleChallenges: [
-      'What makes you certain it will go that way?',
-      'Have you been wrong about predictions like this before?',
-      "What if it doesn't go the way you're predicting?",
-      'What evidence would change your prediction?',
+      'How certain are you, really? What might surprise you?',
+      'Can you predict the future with 100% accuracy? Has that worked before?',
+      'What would need to happen for a different outcome?',
+      'What evidence supports this prediction versus contradicts it?',
     ],
     reframes: [
-      "The future isn't written yet—uncertainty goes both ways.",
-      'Our brains are better at generating worry than at predicting outcomes.',
-      'Not knowing is uncomfortable, but it also means good outcomes are possible.',
+      "The future is uncertain - that's scary but also means things could go better.",
+      "You can influence outcomes even if you can't control them.",
+      "Past patterns don't always predict future results.",
     ],
     validations: [
-      'Uncertainty is genuinely uncomfortable.',
-      "It's natural to try to prepare for what might come.",
-      "I understand wanting to know what's ahead.",
+      "Wanting to know what's coming is natural - uncertainty is hard.",
+      "Your brain is trying to prepare you, even if it's being a bit pessimistic.",
+      'It feels safer to expect the worst sometimes.',
     ],
+    relatedDistortions: ['catastrophizing', 'mind_reading', 'jumping_to_conclusions'],
   },
 
   personalization: {
+    patterns: [
+      /\b(my fault|because of me|I caused|I made)\b/i,
+      /\bif (only )?I (had|hadn't|didn't)\b/i,
+      /\b(blame myself|blaming myself|it's on me)\b/i,
+      /\bthey.*(because|since).*(I|me)\b/i,
+    ],
+    keywords: ['my fault', 'because of me', 'I caused', 'blame myself'],
+    contextClues: ['self-blame', 'taking responsibility', 'causation'],
     gentleChallenges: [
-      'What other factors contributed to this outcome?',
-      'How much control did you actually have?',
-      'If a friend was in this situation, would you blame them entirely?',
-      'What part of this was actually in your power?',
+      'How much of this was actually in your control?',
+      'What other factors might have contributed?',
+      'Would you blame someone else this much if they were in your situation?',
+      "Are you taking on responsibility that isn't yours?",
     ],
     reframes: [
-      "Other people's choices are their responsibility, not yours.",
-      'You can only control your own actions, not outcomes.',
-      "Taking responsibility is healthy; taking all the blame usually isn't accurate.",
+      "You're one factor among many - not the only one.",
+      "Taking responsibility is good; taking all the blame isn't fair to yourself.",
+      "Others have agency too - their choices aren't your fault.",
     ],
     validations: [
-      'Caring about others can make us feel responsible for their feelings.',
-      "It shows you care that you're thinking about your impact.",
-      "It's hard when we wish we could have changed something.",
+      "Caring about your impact shows you're conscientious.",
+      "It's hard when things go wrong and we want to understand why.",
+      "Looking for what you could have done differently isn't bad - just be gentle.",
     ],
+    relatedDistortions: ['should_statements', 'blame', 'all_or_nothing'],
   },
 
   overgeneralization: {
+    patterns: [
+      /\bthis always happens\b/i,
+      /\bnothing (ever )?goes right\b/i,
+      /\beveryone (always )?treats me\b/i,
+      /\b(every time|each time)\b.*\b(same|always|never)\b/i,
+    ],
+    keywords: ['always happens', 'every time', 'nothing ever', 'everyone always'],
+    contextClues: ['pattern assumption', 'sweeping conclusion', 'single event to all'],
     gentleChallenges: [
-      "Is 'always' or 'never' literally true, or does it feel that way?",
-      'Can you think of any exceptions?',
-      "What's different about this time versus other times?",
-      'If you looked at the data, what would the pattern actually show?',
+      'Does it really happen every single time? Any exceptions?',
+      'What about the times it went differently?',
+      'Is this a pattern, or is this one event feeling really big right now?',
+      "How would you describe this if you couldn't use 'always' or 'never'?",
     ],
     reframes: [
-      "One experience—even a few—doesn't define a pattern forever.",
-      "The past can inform, but it doesn't have to dictate.",
-      'Each situation is at least a little different.',
+      "This happened once (or a few times) - it's not a universal law.",
+      'Each situation is actually a bit different.',
+      "Past patterns can change - the future isn't written yet.",
     ],
     validations: [
-      "When something keeps happening, it's natural to see a pattern.",
-      'Repeated disappointments are genuinely hard.',
-      'I understand why it feels like this always happens.',
+      "When something bad happens, it's natural to look for patterns.",
+      "It feels like a pattern even if it isn't - that's how our brains work.",
+      "You're trying to make sense of something frustrating.",
     ],
+    relatedDistortions: ['all_or_nothing', 'fortune_telling', 'mental_filtering'],
   },
 
   mental_filtering: {
+    patterns: [
+      /\b(but|however|except)\b.*\b(one thing|that part|the negative)\b/i,
+      /\bthe only thing.*(that matters|I remember|I see)\b/i,
+      /\bI can't stop thinking about\b/i,
+      /\beverything was (good|fine|okay)\b.*\b(but|except|until)\b/i,
+    ],
+    keywords: ['but', 'except', 'only thing', "can't stop thinking"],
+    contextClues: ['dismissing positives', 'focus on negative', 'filtering out good'],
     gentleChallenges: [
-      'What were the positive parts that your mind is skipping over?',
-      'If you had to name three things that went well, what would they be?',
+      'What else happened that you might be overlooking?',
+      'If you had to name three good things about this, what would they be?',
+      'Is this one thing the whole picture, or just part of it?',
       'What would someone who loves you notice about this situation?',
-      'Is the negative part getting more attention than it deserves?',
     ],
     reframes: [
-      'The negative parts are real, but so are the positive ones.',
-      'Our brains are wired to focus on threats—sometimes we have to consciously notice the good.',
-      'A balanced view includes both what went wrong and what went right.',
+      "The negative stands out, but it's not the whole story.",
+      "Your brain is designed to notice threats - but threats aren't everything.",
+      'Both the good and the bad can be true at the same time.',
     ],
     validations: [
-      "It's natural to focus on what needs fixing.",
-      "The negative part clearly affected you, and that's valid.",
-      'I hear that this one thing is weighing on you.',
+      'It makes sense that this part feels biggest right now.',
+      "Problems demand attention - that's why they're hard to ignore.",
+      'Focusing on what went wrong can help us learn, but not if it crowds out everything else.',
     ],
+    relatedDistortions: ['disqualifying_positive', 'magnification', 'overgeneralization'],
   },
 
   disqualifying_positive: {
+    patterns: [
+      /\b(doesn't count|doesn't matter|anyone could)\b/i,
+      /\b(just luck|pure luck|only because)\b/i,
+      /\byes,? but\b/i,
+      /\b(that's not|it's not)\b.*\b(impressive|special|good|real)\b/i,
+    ],
+    keywords: ["doesn't count", 'just luck', 'anyone could', 'yes but'],
+    contextClues: ['dismissing compliments', 'rejecting positives', 'minimizing success'],
     gentleChallenges: [
-      'What if the compliment/success was actually true?',
-      "Why doesn't this count, but negative things do?",
-      'What would it mean if you let this positive thing count?',
-      'Would you dismiss this if it happened to someone you respect?',
+      "Why doesn't this count? What would have to be different for it to count?",
+      "If a friend did the same thing, would you say it doesn't matter?",
+      "What if it's not 'just luck' - what if you actually earned it?",
+      "I noticed you said 'but' - what would happen if you left that out?",
     ],
     reframes: [
-      'You deserve to take in the good things, not just the hard ones.',
-      "Accepting a compliment isn't arrogant - it's accurate.",
-      'Success is still success, even if it felt easier than expected.',
+      "You did something - that's real, even if it felt easy.",
+      'Luck might have helped, but you still showed up.',
+      "Accepting a win doesn't mean you're arrogant.",
     ],
     validations: [
-      'It can be uncomfortable to accept praise.',
-      'I hear that this feels different to you than it looks from outside.',
-      'Imposter feelings are really common, especially for capable people.',
+      'It can feel uncomfortable to accept praise.',
+      "You have high standards for yourself, which is why this feels like 'not enough.'",
+      'Deflecting compliments is really common - but you deserve to hear them.',
     ],
+    relatedDistortions: ['mental_filtering', 'minimization', 'should_statements'],
   },
 
   should_statements: {
+    patterns: [
+      /\bI (should|shouldn't|must|have to|ought to|need to)\b/i,
+      /\b(should've|shouldn't have|must have|had to)\b/i,
+      /\bI'm supposed to\b/i,
+      /\b(they should|you should|people should)\b/i,
+    ],
+    keywords: ['should', "shouldn't", 'must', 'have to', 'ought to', 'supposed to'],
+    contextClues: ['obligation', 'rules', 'expectations', 'demands'],
     gentleChallenges: [
-      "Where does this 'should' come from?",
-      "Is this standard one you'd hold a friend to?",
-      "What would happen if you replaced 'should' with 'could' or 'would like to'?",
-      'Who decided this was the rule?',
+      "Says who? Where does this 'should' come from?",
+      "What would happen if you didn't? Would it really be that bad?",
+      "Is this a 'should' or a 'want'? Is there a difference for you?",
+      "What if you replaced 'should' with 'would like to'?",
     ],
     reframes: [
-      "'Should' often comes from old rules that may not fit anymore.",
-      "There's a difference between preferences and requirements.",
-      'You can have high standards without making them demands.',
+      "'Should' can become 'I'd prefer' - same goal, less pressure.",
+      'Rules are guides, not laws. You can question them.',
+      "Being human means sometimes not meeting expectations - and that's okay.",
     ],
     validations: [
-      'High expectations of yourself show you care about doing well.',
-      "It's hard when you're not meeting your own standards.",
-      "I hear the self-criticism in that 'should.'",
+      "You care about doing things right, and that's admirable.",
+      'Shoulds come from wanting to be good - but they can be heavy.',
+      "External expectations feel real even when they're not serving you.",
     ],
+    relatedDistortions: ['all_or_nothing', 'personalization', 'labeling'],
   },
 
   emotional_reasoning: {
+    patterns: [
+      /\bI feel.*(so|like).*(must be|it's|that's|I am)\b/i,
+      /\b(feel|feels) (stupid|worthless|like a failure|like I'm)\b/i,
+      /\bbecause I feel.*(means|so)\b/i,
+      /\bif I feel.*(then|so|must)\b/i,
+    ],
+    keywords: ['feel like I am', 'feels like', 'because I feel', 'I feel so'],
+    contextClues: ['emotion as evidence', 'feeling as fact', 'mood determines reality'],
     gentleChallenges: [
-      'Is feeling something the same as it being true?',
-      "What's the evidence outside of how you feel?",
-      'Have you felt this way before when it turned out not to be true?',
-      'If you felt differently tomorrow, would the facts change?',
+      "Feeling something and it being true are different things. What's the evidence outside your feelings?",
+      'Have you ever felt this way before and it turned out to not be true?',
+      'If your feelings changed tomorrow, would the facts change too?',
+      'What would you think about this on a day when you felt differently?',
     ],
     reframes: [
-      "Feelings are real and valid, but they're not always accurate reporters of reality.",
-      'You can feel like a failure and still have succeeded.',
-      'Emotions are weather - they pass, even when they feel permanent.',
+      "Feelings are real, but they're not always accurate reporters of reality.",
+      "Emotions give us information, but they're not the whole picture.",
+      "You can feel something strongly and still question if it's the full truth.",
     ],
     validations: [
-      'That feeling sounds really strong right now.',
-      "It makes sense you'd feel that way given what happened.",
-      'I hear how painful this feels.',
+      "Your feelings are valid - they're just not the only source of truth.",
+      "When emotions are intense, they can feel like facts. That's normal.",
+      'Trusting our gut is usually good, but sometimes our gut needs a reality check.',
     ],
+    relatedDistortions: ['labeling', 'catastrophizing', 'mind_reading'],
   },
 
   labeling: {
+    patterns: [
+      /\bI('m| am) (a |an )?(failure|loser|idiot|stupid|worthless|bad person)\b/i,
+      /\b(they are|she's|he's) (a |an )?(jerk|narcissist|terrible|awful)\b/i,
+      /\b(this makes me|that makes me) (a |an )?\w+\b/i,
+      /\bI('m| am) (just|always|nothing but) (a |an )?\w+\b/i,
+    ],
+    keywords: ['I am a', 'failure', 'loser', 'idiot', 'worthless', 'bad person'],
+    contextClues: ['identity statement', 'defining self by behavior', 'global label'],
     gentleChallenges: [
-      'Is one event enough to define who you are?',
-      'What would you call a friend who did the same thing?',
-      'Does this label capture all of who you are?',
-      'Would the people who know you best agree with that label?',
+      "Is that a label you'd put on someone else for the same thing?",
+      'Does one action define who you are as a person?',
+      'What would you say to a friend who called themselves that?',
+      "If you're a '[label]', what does that make all the good things you've done?",
     ],
     reframes: [
-      'You are more than any single moment or mistake.',
-      'Behavior is something you do, not something you are.',
-      'Labels are shortcuts that miss the complexity of who you actually are.',
+      "You did a thing - that's different from being a thing.",
+      "One action doesn't erase everything else about you.",
+      'People are complex - no single label captures anyone.',
     ],
     validations: [
-      "I hear how hard you're being on yourself.",
-      "It sounds like you're really disappointed in yourself right now.",
-      'Self-criticism this strong usually comes from caring a lot.',
+      "It's easier to slap a label on than to sit with complexity.",
+      "When we're hurting, harsh words feel deserved. They're usually not.",
+      'Self-criticism comes from a place of wanting to be better. But there are gentler ways.',
     ],
+    relatedDistortions: ['all_or_nothing', 'overgeneralization', 'emotional_reasoning'],
   },
 
   magnification: {
+    patterns: [
+      /\b(huge|enormous|massive|terrible|devastating|crushing)\b/i,
+      /\b(worst|biggest|most embarrassing|most terrible)\b/i,
+      /\b(can never|will never|completely|totally|utterly)\b/i,
+      /\b(everyone saw|the whole world|entire|absolutely)\b/i,
+    ],
+    keywords: ['huge', 'devastating', 'worst', 'absolutely', 'completely'],
+    contextClues: ['exaggeration', 'extreme language', 'inflated importance'],
     gentleChallenges: [
-      'How big will this feel in a week? A month? A year?',
-      "Is this the worst thing that's ever happened, or does it feel that way?",
-      'What would someone less invested say about the size of this?',
-      'On a scale of life problems, where does this actually rank?',
+      'On a scale of 1-10, where does this really sit?',
+      'Will this matter in a week? A month? A year?',
+      'Is this the biggest thing, or does it just feel that way right now?',
+      'What would someone outside the situation say about its size?',
     ],
     reframes: [
-      'This is hard, but it may not be as big as it feels right now.',
-      'Strong emotions can make things seem larger than they are.',
-      "Just because something feels huge doesn't mean it is.",
+      'This feels big right now. It might look smaller from a distance.',
+      'Problems often shrink when we step back.',
+      'Real but not as huge as it seems.',
     ],
     validations: [
-      'It clearly feels really big to you right now.',
-      'In the moment, this is weighing heavily.',
-      'I hear how overwhelming this feels.',
+      "When something matters, it feels enormous. That's human.",
+      'Your feelings are amplifying this because you care.',
+      "It's hard to have perspective when you're in the middle of it.",
     ],
+    relatedDistortions: ['catastrophizing', 'all_or_nothing', 'mental_filtering'],
   },
 
   minimization: {
+    patterns: [
+      /\b(no big deal|doesn't matter|not important|not a big)\b/i,
+      /\b(it's (just|only|nothing)|that's (just|only|nothing))\b/i,
+      /\b(anyone could|it's easy|not that hard)\b/i,
+      /\b(whatever|doesn't even|not really)\b/i,
+    ],
+    keywords: ['no big deal', "doesn't matter", 'just', 'only', 'whatever'],
+    contextClues: ['downplaying', 'dismissing', 'shrinking importance'],
     gentleChallenges: [
-      'If your best friend did this, would you minimize it?',
-      'What does it say about you that you achieved this?',
-      'Why are you more comfortable dismissing this than accepting it?',
-      'What would change if you let yourself feel good about this?',
+      'What if it does matter? What would be different?',
+      "If someone else did this, would you say it's 'no big deal'?",
+      'What are you protecting yourself from by making it smaller?',
+      'Is minimizing this helping or hurting you?',
     ],
     reframes: [
-      'Your achievements count, even if they felt easy.',
-      "Dismissing your wins doesn't make you humble—it makes you inaccurate.",
-      "You're allowed to feel good about things you've done.",
+      'Something can be manageable and still matter.',
+      "Acknowledging difficulty isn't the same as complaining.",
+      'Your efforts and experiences deserve recognition.',
     ],
     validations: [
-      'I hear you not wanting to make a big deal of it.',
-      'It can feel uncomfortable to acknowledge success.',
-      'Modesty is one thing, but you did do this.',
+      "Minimizing can feel protective - it's a coping strategy.",
+      "It's okay to let things be what they are, without shrinking them.",
+      "You might be used to not taking up space. That's okay to notice.",
     ],
+    relatedDistortions: ['disqualifying_positive', 'should_statements', 'mental_filtering'],
   },
 
   jumping_to_conclusions: {
+    patterns: [
+      /\b(obviously|clearly|must be|has to be)\b.*\b(because|since|means)\b/i,
+      /\bthat (means|proves|shows) that\b/i,
+      /\bI (just )?know that\b/i,
+      /\b(without|before).*(evidence|proof|asking)\b/i,
+    ],
+    keywords: ['obviously', 'clearly', 'must be', 'that means', 'I just know'],
+    contextClues: ['assumption', 'inference without evidence', 'certainty without facts'],
     gentleChallenges: [
-      "What's the actual evidence for that conclusion?",
-      'Is there another way to interpret this?',
+      "What's the evidence for that conclusion?",
+      'Are there other possible explanations?',
+      'How would you test if this is actually true?',
       'What would you need to know to be sure?',
-      'Have you jumped to conclusions before that turned out wrong?',
     ],
     reframes: [
       "There might be information you don't have yet.",
-      'Uncertainty is uncomfortable, but filling gaps with assumptions can mislead.',
-      "Your first interpretation isn't always the right one.",
+      'Multiple explanations can fit the same facts.',
+      'Being uncertain is uncomfortable but more accurate.',
     ],
     validations: [
-      "It's natural to try to make sense of things.",
-      'Ambiguity is genuinely uncomfortable.',
-      "I understand wanting to know what's going on.",
+      "Our brains love to fill in gaps - it's how we make sense of things.",
+      "Making assumptions saves mental energy, even if they're sometimes wrong.",
+      'Wanting answers quickly is natural.',
     ],
+    relatedDistortions: ['mind_reading', 'fortune_telling', 'personalization'],
   },
 
   blame: {
+    patterns: [
+      /\b(all (their|his|her|your) fault|entirely (their|his|her|your))\b/i,
+      /\b(because (they|he|she|you)|they made me)\b/i,
+      /\b(wouldn't have|never would have).*(if (they|he|she|you))\b/i,
+      /\b(their|his|her) (problem|fault|responsibility)\b/i,
+    ],
+    keywords: ['their fault', 'made me', 'because they', 'their problem'],
+    contextClues: ['external attribution', 'no personal responsibility', 'other-directed'],
     gentleChallenges: [
       'What part of this, if any, was in your control?',
-      'Is it possible both people contributed something?',
-      "Even if they're partly responsible, what can you do from here?",
-      'Does blaming change anything about the situation?',
+      'Even if they contributed, is it entirely on them?',
+      'What would change if you took back some agency here?',
+      'Is blaming helping you move forward or keeping you stuck?',
     ],
     reframes: [
-      'Understanding what others did wrong is different from being stuck there.',
-      'You can acknowledge their role while still focusing on what you can control.',
-      "Blame explains the past but doesn't fix the future.",
+      'They may have contributed, but you still have choices.',
+      'Shared responsibility is usually more accurate than full blame.',
+      "Understanding others' faults doesn't mean ignoring your own power.",
     ],
     validations: [
-      'It sounds like you feel really wronged.',
-      'Being hurt by others is genuinely painful.',
-      'I hear how frustrated you are with them.',
+      "When we're hurt, it's natural to look for who did this.",
+      "Other people do affect our lives - that's real.",
+      "Anger at others can be protective. Just make sure it's not a trap.",
     ],
+    relatedDistortions: ['personalization', 'all_or_nothing', 'jumping_to_conclusions'],
   },
 };
 
 // ============================================================================
-// CORE DETECTION FUNCTIONS
+// USER PATTERN STORAGE
+// ============================================================================
+
+interface UserDistortionHistory {
+  distortionCounts: Map<CognitiveDistortion, number>;
+  recentDetections: DistortionDetection[];
+  lastUpdated: Date;
+}
+
+const userHistories = new Map<string, UserDistortionHistory>();
+
+function getUserHistory(userId: string): UserDistortionHistory {
+  if (!userHistories.has(userId)) {
+    userHistories.set(userId, {
+      distortionCounts: new Map(),
+      recentDetections: [],
+      lastUpdated: new Date(),
+    });
+  }
+  return userHistories.get(userId)!;
+}
+
+function updateUserHistory(userId: string, detection: DistortionDetection): void {
+  const history = getUserHistory(userId);
+  const currentCount = history.distortionCounts.get(detection.type) || 0;
+  history.distortionCounts.set(detection.type, currentCount + 1);
+  history.recentDetections.push(detection);
+
+  // Keep only last 100 detections
+  if (history.recentDetections.length > 100) {
+    history.recentDetections = history.recentDetections.slice(-100);
+  }
+
+  history.lastUpdated = new Date();
+}
+
+// ============================================================================
+// DETECTION ENGINE
 // ============================================================================
 
 /**
- * Get or create an ANT profile for a user.
- */
-function getOrCreateProfile(userId: string): ANTProfile {
-  let profile = userProfiles.get(userId);
-  if (!profile) {
-    profile = {
-      userId,
-      totalDetected: 0,
-      byDistortion: new Map(),
-      topDistortions: [],
-      byTimeOfDay: new Map(),
-      byDayOfWeek: new Map(),
-      topicTriggers: new Map(),
-      emotionCorrelations: new Map(),
-      trend: 'stable',
-      reframeSuccessRate: 0,
-      lastUpdated: new Date(),
-    };
-    userProfiles.set(userId, profile);
-  }
-  return profile;
-}
-
-/**
- * Check if we've recently detected the same distortion to avoid repetition.
- */
-function isDuplicateDetection(
-  userId: string,
-  type: CognitiveDistortion,
-  windowMs: number = 5 * 60 * 1000 // 5 minutes
-): boolean {
-  const recent = recentDetections.get(userId) || [];
-  const now = new Date();
-
-  // Clean old entries
-  const filtered = recent.filter((d) => now.getTime() - d.timestamp.getTime() < windowMs);
-  recentDetections.set(userId, filtered);
-
-  // Check for duplicate
-  return filtered.some((d) => d.type === type);
-}
-
-/**
- * Record a detection to prevent duplicate alerts.
- */
-function recordDetection(userId: string, type: CognitiveDistortion): void {
-  const recent = recentDetections.get(userId) || [];
-  recent.push({ type, timestamp: new Date() });
-  recentDetections.set(userId, recent);
-}
-
-/**
  * Detect cognitive distortions in a user message.
- *
- * @param userId - User identifier
- * @param message - The user's message to analyze
- * @param context - Additional context about the conversation
- * @returns Array of detected distortions with confidence scores
  */
 export function detectDistortions(
   userId: string,
   message: string,
-  context?: {
-    topic?: string;
-    emotion?: string;
-    emotionIntensity?: number;
-    recentTopics?: string[];
-  }
+  context?: ConversationContext
 ): DistortionDetection[] {
   const detections: DistortionDetection[] = [];
-  const lowerMessage = message.toLowerCase();
-  const profile = getOrCreateProfile(userId);
+  const history = getUserHistory(userId);
 
-  // Check each distortion pattern
-  for (const [type, metadata] of Object.entries(DISTORTION_PATTERNS)) {
-    const distortionType = type as CognitiveDistortion;
-
-    // Skip if we just detected this one
-    if (isDuplicateDetection(userId, distortionType)) {
-      continue;
-    }
-
-    let confidence = 0;
-    let triggerPhrase = '';
-
-    // Check indicator phrases
-    for (const phrase of metadata.indicatorPhrases) {
-      if (lowerMessage.includes(phrase.toLowerCase())) {
-        confidence = Math.max(confidence, 0.7);
-        triggerPhrase = phrase;
-      }
-    }
+  for (const [distortionType, pattern] of Object.entries(DISTORTION_PATTERNS)) {
+    const type = distortionType as CognitiveDistortion;
 
     // Check regex patterns
-    for (const pattern of metadata.patterns) {
-      const match = message.match(pattern);
+    for (const regex of pattern.patterns) {
+      const match = message.match(regex);
       if (match) {
-        confidence = Math.max(confidence, 0.8);
-        triggerPhrase = match[0];
+        const confidence = calculateConfidence(message, pattern, context);
+
+        if (confidence >= 0.5) {
+          // Only report if reasonably confident
+          const patternCount = history.distortionCounts.get(type) || 0;
+
+          const detection: DistortionDetection = {
+            type,
+            confidence,
+            triggerPhrase: match[0],
+            userMessage: message,
+            gentleChallenge: selectRandom(pattern.gentleChallenges),
+            reframe: selectRandom(pattern.reframes),
+            validation: selectRandom(pattern.validations),
+            patternCount: patternCount + 1,
+            relatedDistortions: pattern.relatedDistortions,
+          };
+
+          detections.push(detection);
+          updateUserHistory(userId, detection);
+
+          log.debug(
+            { userId, type, confidence, trigger: match[0] },
+            'Cognitive distortion detected'
+          );
+
+          break; // Only one detection per distortion type
+        }
       }
     }
 
-    // Boost confidence if context matches
-    if (context?.topic && metadata.contextTriggers.includes(context.topic.toLowerCase())) {
-      confidence += 0.1;
-    }
-    if (context?.emotion && metadata.associatedEmotions.includes(context.emotion.toLowerCase())) {
-      confidence += 0.1;
-    }
+    // Also check keywords if no regex matched
+    if (!detections.find((d) => d.type === type)) {
+      const keywordMatch = checkKeywords(message, pattern.keywords);
+      if (keywordMatch) {
+        const confidence = calculateConfidence(message, pattern, context) * 0.8; // Lower confidence for keyword-only
 
-    // If confident enough, create detection
-    if (confidence >= 0.6) {
-      const templates = RESPONSE_TEMPLATES[distortionType];
-      const patternCount = (profile.byDistortion.get(distortionType) || 0) + 1;
+        if (confidence >= 0.5) {
+          const patternCount = history.distortionCounts.get(type) || 0;
 
-      const detection: DistortionDetection = {
-        type: distortionType,
-        confidence: Math.min(confidence, 1.0),
-        triggerPhrase,
-        userMessage: message,
-        detectedAt: new Date(),
+          const detection: DistortionDetection = {
+            type,
+            confidence,
+            triggerPhrase: keywordMatch,
+            userMessage: message,
+            gentleChallenge: selectRandom(pattern.gentleChallenges),
+            reframe: selectRandom(pattern.reframes),
+            validation: selectRandom(pattern.validations),
+            patternCount: patternCount + 1,
+            relatedDistortions: pattern.relatedDistortions,
+          };
 
-        // Therapeutic response
-        gentleChallenge:
-          templates.gentleChallenges[Math.floor(Math.random() * templates.gentleChallenges.length)],
-        reframe: templates.reframes[Math.floor(Math.random() * templates.reframes.length)],
-        validation: templates.validations[Math.floor(Math.random() * templates.validations.length)],
-
-        // Context
-        topic: context?.topic,
-        emotion: context?.emotion,
-        emotionIntensity: context?.emotionIntensity,
-
-        // Learning
-        patternCount,
-        relatedDistortions: findRelatedDistortions(distortionType),
-        isRecurring: patternCount >= 3,
-      };
-
-      detections.push(detection);
-
-      // Update profile
-      profile.byDistortion.set(distortionType, patternCount);
-      profile.totalDetected++;
-      profile.lastUpdated = new Date();
-
-      // Record to prevent duplicates
-      recordDetection(userId, distortionType);
-
-      log.debug(
-        {
-          userId,
-          type: distortionType,
-          confidence: detection.confidence,
-          triggerPhrase,
-          patternCount,
-        },
-        '🧠 Cognitive distortion detected'
-      );
+          detections.push(detection);
+          updateUserHistory(userId, detection);
+        }
+      }
     }
   }
 
-  // Sort by confidence (highest first)
+  // Sort by confidence descending
   detections.sort((a, b) => b.confidence - a.confidence);
 
-  return detections;
+  // Return top 3 most confident detections
+  return detections.slice(0, 3);
 }
 
 /**
- * Find distortions that commonly occur together.
+ * Get a gentle response for a detected distortion.
  */
-function findRelatedDistortions(type: CognitiveDistortion): CognitiveDistortion[] {
-  const relationships: Record<CognitiveDistortion, CognitiveDistortion[]> = {
-    catastrophizing: ['fortune_telling', 'magnification', 'all_or_nothing'],
-    mind_reading: ['jumping_to_conclusions', 'personalization', 'emotional_reasoning'],
-    all_or_nothing: ['labeling', 'should_statements', 'overgeneralization'],
-    fortune_telling: ['catastrophizing', 'mind_reading', 'jumping_to_conclusions'],
-    personalization: ['blame', 'should_statements', 'emotional_reasoning'],
-    overgeneralization: ['all_or_nothing', 'labeling', 'mental_filtering'],
-    mental_filtering: ['disqualifying_positive', 'magnification', 'overgeneralization'],
-    disqualifying_positive: ['mental_filtering', 'minimization', 'emotional_reasoning'],
-    should_statements: ['all_or_nothing', 'personalization', 'labeling'],
-    emotional_reasoning: ['mind_reading', 'labeling', 'fortune_telling'],
-    labeling: ['all_or_nothing', 'overgeneralization', 'should_statements'],
-    magnification: ['catastrophizing', 'mental_filtering', 'emotional_reasoning'],
-    minimization: ['disqualifying_positive', 'should_statements', 'emotional_reasoning'],
-    jumping_to_conclusions: ['mind_reading', 'fortune_telling', 'blame'],
-    blame: ['personalization', 'jumping_to_conclusions', 'all_or_nothing'],
-  };
-
-  return relationships[type] || [];
-}
-
-// ============================================================================
-// RESPONSE RECOMMENDATION
-// ============================================================================
-
-/**
- * Determine how to respond to a detected distortion.
- */
-export function getDistortionResponse(
-  detection: DistortionDetection,
-  context: {
-    relationshipStage?: 'new' | 'building' | 'established' | 'deep';
-    emotionalIntensity?: number;
-    recentReframes?: number;
-    userReceptivity?: 'high' | 'medium' | 'low' | 'unknown';
-  }
-): DistortionResponse {
-  const {
-    relationshipStage = 'new',
-    emotionalIntensity = 0.5,
-    recentReframes = 0,
-    userReceptivity = 'unknown',
-  } = context;
-
-  // If emotional intensity is very high, just validate
-  if (emotionalIntensity > 0.8) {
-    return {
-      approach: 'validate',
-      reason: 'User is in high emotional distress—validate first',
-      suggestion: detection.validation,
-      injectIntoContext: true,
-      priority: 90,
-    };
-  }
-
-  // If we've done many reframes recently, wait
-  if (recentReframes >= 2) {
-    return {
-      approach: 'wait',
-      reason: "We've challenged several thoughts recently—give them space",
-      injectIntoContext: false,
-      priority: 0,
-    };
-  }
-
-  // If low receptivity, be gentler
-  if (userReceptivity === 'low') {
-    return {
-      approach: 'validate',
-      reason: 'User seems less receptive—lead with validation',
-      suggestion: detection.validation,
-      injectIntoContext: true,
-      priority: 70,
-    };
-  }
-
-  // For established relationships, can be more direct
-  if (relationshipStage === 'established' || relationshipStage === 'deep') {
-    return {
-      approach: 'gentle_name',
-      reason: 'Strong relationship allows gentle naming of pattern',
-      suggestion: `${detection.validation} Can I gently push back on something? ${detection.gentleChallenge}`,
-      injectIntoContext: true,
-      priority: 80,
-    };
-  }
-
-  // Default: Socratic questioning
-  return {
-    approach: 'socratic',
-    reason: 'Guide them to discover the pattern themselves',
-    suggestion: `${detection.validation} ${detection.gentleChallenge}`,
-    injectIntoContext: true,
-    priority: 75,
-  };
-}
-
-// ============================================================================
-// PROFILE MANAGEMENT
-// ============================================================================
-
-/**
- * Get the ANT profile for a user.
- */
-export function getANTProfile(userId: string): ANTProfile | null {
-  return userProfiles.get(userId) || null;
+export function getGentleResponse(detection: DistortionDetection): string {
+  // Structure: Validation + Gentle Challenge
+  return `${detection.validation} ${detection.gentleChallenge}`;
 }
 
 /**
- * Get the top distortions for a user.
+ * Get distortion statistics for a user.
  */
-export function getTopDistortions(userId: string, limit = 3): CognitiveDistortion[] {
-  const profile = userProfiles.get(userId);
-  if (!profile) return [];
+export function getUserDistortionStats(userId: string): {
+  topDistortions: Array<{ type: CognitiveDistortion; count: number }>;
+  totalDetections: number;
+  recentTrend: 'increasing' | 'stable' | 'decreasing';
+} {
+  const history = getUserHistory(userId);
 
-  const sorted = [...profile.byDistortion.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([type]) => type);
+  const topDistortions = Array.from(history.distortionCounts.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
-  return sorted;
-}
-
-/**
- * Record whether a reframe attempt was successful.
- */
-export function recordReframeOutcome(
-  userId: string,
-  distortionType: CognitiveDistortion,
-  outcome: 'receptive' | 'resistant' | 'neutral' | 'breakthrough'
-): void {
-  const profile = getOrCreateProfile(userId);
-
-  // Update reframe success rate
-  const isSuccess = outcome === 'receptive' || outcome === 'breakthrough';
-  const currentRate = profile.reframeSuccessRate;
-  const totalAttempts = profile.totalDetected;
-
-  // Exponential moving average
-  profile.reframeSuccessRate = currentRate * 0.9 + (isSuccess ? 0.1 : 0);
-  profile.lastUpdated = new Date();
-
-  log.debug(
-    {
-      userId,
-      distortionType,
-      outcome,
-      newSuccessRate: profile.reframeSuccessRate,
-    },
-    '📊 Reframe outcome recorded'
+  const totalDetections = Array.from(history.distortionCounts.values()).reduce(
+    (sum, count) => sum + count,
+    0
   );
+
+  // Calculate trend from recent detections
+  const recent = history.recentDetections;
+  let recentTrend: 'increasing' | 'stable' | 'decreasing' = 'stable';
+
+  if (recent.length >= 10) {
+    const firstHalf = recent.slice(0, Math.floor(recent.length / 2)).length;
+    const secondHalf = recent.slice(Math.floor(recent.length / 2)).length;
+
+    if (secondHalf > firstHalf * 1.2) recentTrend = 'increasing';
+    else if (secondHalf < firstHalf * 0.8) recentTrend = 'decreasing';
+  }
+
+  return { topDistortions, totalDetections, recentTrend };
 }
 
 /**
- * Get distortion metadata for display/explanation.
+ * Get ANT (Automatic Negative Thoughts) profile for a user.
+ * Alias for getUserDistortionStats with legacy-compatible return type.
  */
-export function getDistortionMetadata(type: CognitiveDistortion): DistortionMetadata {
-  return DISTORTION_PATTERNS[type];
+export function getANTProfile(userId: string): {
+  totalDetected: number;
+  topDistortions: Array<{ type: CognitiveDistortion; count: number }>;
+  recentTrend: 'increasing' | 'stable' | 'decreasing';
+} {
+  const stats = getUserDistortionStats(userId);
+  return {
+    totalDetected: stats.totalDetections,
+    topDistortions: stats.topDistortions,
+    recentTrend: stats.recentTrend,
+  };
 }
 
 /**
- * Get all distortion types.
+ * Check if a specific distortion type is common for this user.
  */
-export function getAllDistortionTypes(): CognitiveDistortion[] {
-  return Object.keys(DISTORTION_PATTERNS) as CognitiveDistortion[];
+export function isCommonDistortion(userId: string, type: CognitiveDistortion): boolean {
+  const history = getUserHistory(userId);
+  const count = history.distortionCounts.get(type) || 0;
+  return count >= 3;
+}
+
+/**
+ * Get context injection for LLM.
+ */
+export function getDistortionContextInjection(detections: DistortionDetection[]): string {
+  if (detections.length === 0) return '';
+
+  const primary = detections[0];
+
+  return `[🧠 COGNITIVE PATTERN DETECTED]
+Distortion: ${formatDistortionName(primary.type)}
+Phrase: "${primary.triggerPhrase}"
+This is pattern #${primary.patternCount} for this user.
+
+Gentle challenge: "${primary.gentleChallenge}"
+
+DO: Validate the feeling, then gently explore the thought
+DON'T: Dismiss, lecture, or jump to reframes too fast
+
+Remember: They need to discover the reframe, not be told it.`;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function calculateConfidence(
+  message: string,
+  pattern: DistortionPattern,
+  context?: ConversationContext
+): number {
+  let confidence = 0.6; // Base confidence for regex match
+
+  // Boost for keywords present
+  const keywordsFound = pattern.keywords.filter((kw) =>
+    message.toLowerCase().includes(kw.toLowerCase())
+  ).length;
+  confidence += keywordsFound * 0.1;
+
+  // Boost for emotional context
+  if (context?.emotionalState) {
+    const emotionalStates = ['sad', 'anxious', 'angry', 'frustrated', 'overwhelmed'];
+    if (emotionalStates.some((e) => context.emotionalState?.toLowerCase().includes(e))) {
+      confidence += 0.1;
+    }
+  }
+
+  // Boost for message length (longer = more context = more confident)
+  if (message.length > 100) confidence += 0.05;
+
+  // Cap at 0.95
+  return Math.min(confidence, 0.95);
+}
+
+function checkKeywords(message: string, keywords: string[]): string | null {
+  const lowerMessage = message.toLowerCase();
+  for (const keyword of keywords) {
+    if (lowerMessage.includes(keyword.toLowerCase())) {
+      return keyword;
+    }
+  }
+  return null;
+}
+
+function selectRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function formatDistortionName(type: CognitiveDistortion): string {
+  return type
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export { RESPONSE_TEMPLATES };
+export const distortionDetector = {
+  detect: detectDistortions,
+  getResponse: getGentleResponse,
+  getStats: getUserDistortionStats,
+  isCommon: isCommonDistortion,
+  getContextInjection: getDistortionContextInjection,
+};
+
+export default distortionDetector;

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Compositional greeting atoms for Maya Santos - warm habits coach, supportive and relatable",
-  
+
   "openings": {
     "surprised": [
       { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.8 },
@@ -15,17 +15,33 @@
       { "text": "Hello!", "weight": 0.6 }
     ],
     "quiet": [
-      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "late_night"] },
-      { "text": "<volume level=\"soft\"/>Morning, friend.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "morning"] }
+      {
+        "text": "<volume level=\"soft\"/>Hey.</volume>",
+        "weight": 0.9,
+        "timeOfDay": ["early_morning", "late_night"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>Morning, friend.</volume>",
+        "weight": 0.8,
+        "timeOfDay": ["early_morning", "morning"]
+      }
     ],
     "recognition": [
-      { "text": "<emotion value=\"happy\"/>There you are!", "weight": 0.9, "returningOnly": true, "minRelationship": "acquaintance" },
-      { "text": "<emotion value=\"affectionate\"/>Look who's back!", "weight": 0.7, "returningOnly": true, "minRelationship": "friend" },
+      {
+        "text": "<emotion value=\"happy\"/>There you are!",
+        "weight": 0.9,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      },
+      {
+        "text": "<emotion value=\"affectionate\"/>Look who's back!",
+        "weight": 0.7,
+        "returningOnly": true,
+        "minRelationship": "friend"
+      },
       { "text": "<emotion value=\"happy\"/>You came back!", "weight": 0.8, "returningOnly": true }
     ],
-    "cozy": [
-      { "text": "Aww!", "weight": 0.5, "minRelationship": "friend" }
-    ]
+    "cozy": [{ "text": "Aww!", "weight": 0.5, "minRelationship": "friend" }]
   },
 
   "recognitions": {
@@ -59,11 +75,19 @@
     ],
     "timeObservations": [
       { "text": "Early bird! I love it.", "weight": 0.7, "timeOfDay": ["early_morning"] },
-      { "text": "Late night thoughts? I get those too.", "weight": 0.6, "timeOfDay": ["late_night"] },
+      {
+        "text": "Late night thoughts? I get those too.",
+        "weight": 0.6,
+        "timeOfDay": ["late_night"]
+      },
       { "text": "Weekend mode! Nice.", "weight": 0.5, "isWeekend": true }
     ],
     "relatable": [
-      { "text": "Compound and Interest say hi. The cats, not the financial concepts.", "weight": 0.3, "minRelationship": "acquaintance" }
+      {
+        "text": "Compound and Interest say hi. The cats, not the financial concepts.",
+        "weight": 0.3,
+        "minRelationship": "acquaintance"
+      }
     ]
   },
 
@@ -105,14 +129,17 @@
     ],
     "timeAware": [
       { "text": "Trouble sleeping?", "weight": 0.6, "timeOfDay": ["late_night"] },
-      { "text": "Morning check-in time?", "weight": 0.5, "timeOfDay": ["early_morning", "morning"] },
+      {
+        "text": "Morning check-in time?",
+        "weight": 0.5,
+        "timeOfDay": ["early_morning", "morning"]
+      },
       { "text": "How's your day going?", "weight": 0.6, "timeOfDay": ["afternoon", "evening"] }
     ],
     "supportive": [
       { "text": "What do you need?", "weight": 0.6, "minRelationship": "acquaintance" },
-      { "text": "How can I help?", "weight": 0.5 },
+      { "text": "What's going on?", "weight": 0.5 },
       { "text": "What's weighing on you?", "weight": 0.5, "minRelationship": "friend" }
     ]
   }
 }
-

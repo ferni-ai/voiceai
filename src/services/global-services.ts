@@ -5,16 +5,16 @@
  * These services are shared across all sessions.
  */
 
+import { getDefaultStore, getVectorStore, initializeMemorySystem } from '../memory/index.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { initializeMemorySystem, getDefaultStore, getVectorStore } from '../memory/index.js';
-import { setGlobalStore } from './user-identification.js';
-import type { GlobalServices } from './types.js';
-import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
 import { stopAllAutoSaves } from './intelligence-persistence.js';
+import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
 import {
   initializeUnifiedPersistence,
   shutdownUnifiedPersistence,
 } from './trust-systems/unified-persistence.js';
+import type { GlobalServices } from './types.js';
+import { setGlobalStore } from './user-identification.js';
 // NOTE: session-manager imports are done dynamically to avoid circular dependency
 // (session-manager.ts imports getGlobalServices from this file)
 
@@ -165,7 +165,10 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       const { startSessionCleanup } = await import('./session-manager.js');
       startSessionCleanup();
     } catch (cleanupErr) {
-      getLogger().warn({ error: String(cleanupErr) }, 'Session cleanup init skipped (non-critical)');
+      getLogger().warn(
+        { error: String(cleanupErr) },
+        'Session cleanup init skipped (non-critical)'
+      );
     }
 
     getLogger().info('Voice AI services initialized successfully');
@@ -281,6 +284,80 @@ export async function resetGlobalServices(): Promise<void> {
   // Flush and shutdown unified trust persistence
   try {
     await shutdownUnifiedPersistence();
+  } catch {
+    // Non-critical
+  }
+
+  // Flush all new persistence stores
+  try {
+    const { shutdownGoalOutreach } = await import('./goal-outreach-integration.js');
+    await shutdownGoalOutreach();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownCalendarReminders } = await import('./calendar-reminders.js');
+    await shutdownCalendarReminders();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownEngagementNotifications } = await import('./engagement-notifications.js');
+    await shutdownEngagementNotifications();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownReadingBetweenLines } =
+      await import('./trust-systems/reading-between-lines.js');
+    await shutdownReadingBetweenLines();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownCelebrationMomentum } = await import('./trust-systems/celebration-momentum.js');
+    await shutdownCelebrationMomentum();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownMotivationalInterviewing } =
+      await import('./therapeutic-frameworks/motivational-interviewing.js');
+    await shutdownMotivationalInterviewing();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownVoiceProsody } = await import('./trust-systems/voice-prosody-learning.js');
+    await shutdownVoiceProsody();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownCommunicationMirroringPersistence } =
+      await import('../intelligence/communication-mirroring.js');
+    await shutdownCommunicationMirroringPersistence();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { shutdownTeamEngagementService } = await import('./team-engagement.js');
+    await shutdownTeamEngagementService();
+  } catch {
+    // Non-critical
+  }
+
+  try {
+    const { flushEventPlanningPersistence } = await import('../tools/event-planning.js');
+    await flushEventPlanningPersistence();
   } catch {
     // Non-critical
   }

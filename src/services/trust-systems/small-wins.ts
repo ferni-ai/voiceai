@@ -626,6 +626,166 @@ export function getPendingIntentions(userId: string): PendingIntention[] {
 }
 
 /**
+ * Get overdue intentions that need follow-up
+ * Returns intentions where target time has passed or it's been a while since stated
+ */
+export function getOverdueIntentions(
+  userId: string,
+  options?: {
+    maxDaysOld?: number; // Default 7 days
+    includeNoTarget?: boolean; // Include intentions without target time
+  }
+): PendingIntention[] {
+  const profile = profiles.get(userId);
+  if (!profile) return [];
+
+  const maxDays = options?.maxDaysOld ?? 7;
+  const includeNoTarget = options?.includeNoTarget ?? true;
+  const now = new Date();
+
+  return profile.pendingIntentions.filter((intention) => {
+    if (intention.status !== 'pending') return false;
+
+    // Check if target time has passed
+    if (intention.targetTime) {
+      return intention.targetTime < now;
+    }
+
+    // For intentions without target, check if they're old enough to warrant follow-up
+    if (includeNoTarget) {
+      const daysSinceStated =
+        (now.getTime() - intention.statedAt.getTime()) / (1000 * 60 * 60 * 24);
+      return daysSinceStated >= 2 && daysSinceStated <= maxDays;
+    }
+
+    return false;
+  });
+}
+
+/**
+ * Generate a follow-up question for an intention
+ * These are warm, non-judgmental check-ins
+ */
+export function generateIntentionFollowUp(intention: PendingIntention): {
+  question: string;
+  ssml: string;
+  tone: 'curious' | 'supportive' | 'celebratory';
+} {
+  const templates = {
+    curious: [
+      `Hey, I remembered you mentioned wanting to ${intention.intention}. How'd that go?`,
+      `I've been thinking about that thing you said about ${intention.intention}. Did you get a chance to?`,
+      `Last time we talked, you mentioned ${intention.intention}. What happened with that?`,
+    ],
+    supportive: [
+      `No pressure, but I remembered you were going to ${intention.intention}. How are you feeling about it?`,
+      `I know you mentioned ${intention.intention}. Just curious how it went, or if it's still on your radar.`,
+      `That ${intention.intention} thing - still working on it? No judgment either way.`,
+    ],
+    celebratory: [
+      `Wait - did you end up doing that ${intention.intention} thing? I want to hear about it!`,
+      `Tell me about ${intention.intention}! Did it happen?`,
+    ],
+  };
+
+  // Choose tone based on intention type and target time
+  let tone: 'curious' | 'supportive' | 'celebratory' = 'curious';
+
+  // If they had a deadline and missed it, be supportive not pushy
+  if (intention.targetTime && intention.targetTime < new Date()) {
+    tone = 'supportive';
+  }
+
+  // If it seems like a challenging thing, be supportive
+  const hardKeywords = ['talk to', 'confront', 'tell', 'ask', 'finally'];
+  if (hardKeywords.some((kw) => intention.intention.toLowerCase().includes(kw))) {
+    tone = 'supportive';
+  }
+
+  const options = templates[tone];
+  const question = options[Math.floor(Math.random() * options.length)];
+
+  const ssml = question
+    .replace(/\. /g, ". <break time='200ms'/> ")
+    .replace(/\?/g, "? <break time='300ms'/>");
+
+  return { question, ssml, tone };
+}
+
+/**
+ * Check if we should follow up on intentions at session start
+ * Returns the highest priority intention to follow up on
+ */
+export function getIntentionToFollowUp(userId: string): {
+  intention: PendingIntention;
+  followUp: ReturnType<typeof generateIntentionFollowUp>;
+} | null {
+  const overdue = getOverdueIntentions(userId);
+
+  if (overdue.length === 0) return null;
+
+  // Sort by target time (if exists) or stated time
+  const sorted = overdue.sort((a, b) => {
+    const aTime = a.targetTime?.getTime() || a.statedAt.getTime();
+    const bTime = b.targetTime?.getTime() || b.statedAt.getTime();
+    return aTime - bTime; // Oldest first
+  });
+
+  // Get the oldest one
+  const intention = sorted[0];
+  const followUp = generateIntentionFollowUp(intention);
+
+  return { intention, followUp };
+}
+
+/**
+ * Mark an intention as abandoned (user decided not to do it)
+ */
+export function markIntentionAbandoned(userId: string, intentionId: string): void {
+  const profile = profiles.get(userId);
+  if (!profile) return;
+
+  const intention = profile.pendingIntentions.find((i) => i.id === intentionId);
+  if (intention) {
+    intention.status = 'abandoned';
+    log.debug({ userId, intentionId }, 'Intention marked as abandoned');
+  }
+}
+
+/**
+ * Mark an intention as struggled (they tried but it didn't work out)
+ * This is still worth celebrating the effort
+ */
+export function markIntentionStruggled(userId: string, intentionId: string): SmallWin | null {
+  const profile = profiles.get(userId);
+  if (!profile) return null;
+
+  const intention = profile.pendingIntentions.find((i) => i.id === intentionId);
+  if (intention) {
+    intention.status = 'struggled';
+
+    // Create an effort_made win - trying is worth celebrating
+    const win: SmallWin = {
+      id: `win_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      type: 'effort_made',
+      description: `Tried to ${intention.intention}`,
+      whatMadeItHard: 'Making the attempt when outcome was uncertain',
+      timestamp: new Date(),
+      celebrated: false,
+    };
+
+    profile.wins.push(win);
+    intention.linkedWinId = win.id;
+
+    log.info({ userId, intentionId }, '💪 Intention struggled but effort celebrated');
+
+    return win;
+  }
+
+  return null;
+}
+
+/**
  * Get uncelebrated wins
  */
 export function getUncelebratedWins(userId: string): SmallWin[] {
@@ -670,9 +830,14 @@ export default {
   detectSmallWin,
   detectIntention,
   generateCelebration,
-  recordCelebrationResponse,
+  generateIntentionFollowUp,
+  getIntentionToFollowUp,
+  getOverdueIntentions,
   getPendingIntentions,
   getUncelebratedWins,
+  markIntentionAbandoned,
+  markIntentionStruggled,
+  recordCelebrationResponse,
   recordKnownDifficulty,
   exportSmallWinsProfile,
   importSmallWinsProfile,

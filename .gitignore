@@ -53,11 +53,20 @@ Thumbs.db
 .spotify-tokens.json
 .spotify-device.json
 
-# Generated design system files
+# Generated design system files (rebuild with: npm run tokens:sync)
 frontend-typescript/src/config/sounds.generated.ts
 frontend-typescript/src/config/persona-colors.generated.ts
+frontend-typescript/src/config/animation-constants.generated.ts
 frontend-typescript/public/design-system/manifest.json
 design-system/dist/
+
+# Generated Tailwind config for promo site
+promo/ferni-website/tailwind.config.generated.js
+
+# Generated design tokens for promo site (rebuild with: npm run sync:promo)
+promo/ferni-website/css/design-tokens.css
+promo/ferni-website/src/css/_tokens.css
+brand/ferni-design-tokens.css
 
 # Test artifacts
 playwright-report/

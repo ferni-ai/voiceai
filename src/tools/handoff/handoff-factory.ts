@@ -376,6 +376,24 @@ export async function buildHandoffTools(
   const tools: Record<string, unknown> = {};
   const agentIds: string[] = [];
 
+  // Track which tools are created vs filtered for debugging
+  const createdTools: string[] = [];
+  const filteredTools: string[] = [];
+
+  // Log the unlock state for debugging
+  const { getTeamUnlockState } = await import('../../services/team-unlocks.js');
+  const unlockState = getTeamUnlockState(userProfile ?? null, subscriptionTier);
+  getLogger().info(
+    {
+      stage: unlockState.stage,
+      tier: unlockState.tier,
+      unlockedMembers: unlockState.unlockedMembers,
+      hasUserProfile: !!userProfile,
+      subscriptionTier,
+    },
+    'Team unlock state for handoff tool filtering'
+  );
+
   for (const def of toolSet.tools) {
     // FILTER AT BUILD TIME: Always filter locked members from tool list
     // This prevents the LLM from even seeing tools for locked team members.
@@ -389,6 +407,7 @@ export async function buildHandoffTools(
       !isTargetCoordinator &&
       !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
     ) {
+      filteredTools.push(def.name);
       getLogger().debug(
         {
           toolName: def.name,
@@ -400,6 +419,7 @@ export async function buildHandoffTools(
       );
       continue; // Don't create this tool
     }
+    createdTools.push(def.name);
 
     // Create the actual LLM tool
     const tool = llm.tool({
@@ -612,9 +632,17 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
     },
   });
 
+  // Log summary of tool filtering for debugging unlock issues
   getLogger().info(
-    { toolCount: Object.keys(tools).length, agentIds },
-    'Built handoff tools (unlock validation happens at runtime)'
+    {
+      totalTools: Object.keys(tools).length,
+      createdTools,
+      filteredTools,
+      agentIds,
+      hasUserProfile: !!userProfile,
+      subscriptionTier,
+    },
+    `Built handoff tools: ${createdTools.length} created, ${filteredTools.length} filtered out (locked)`
   );
 
   return {

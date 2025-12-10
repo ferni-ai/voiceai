@@ -17,10 +17,7 @@ const log = getLogger().child({ module: 'FrontendSignal' });
 // TYPES
 // ============================================================================
 
-export type SignalSender = (
-  type: string,
-  data?: Record<string, unknown>
-) => Promise<void>;
+export type SignalSender = (type: string, data?: Record<string, unknown>) => Promise<void>;
 
 // ============================================================================
 // STATE
@@ -82,4 +79,3 @@ export async function sendFrontendSignal(
 export function isFrontendSignalAvailable(): boolean {
   return signalSender !== null;
 }
-

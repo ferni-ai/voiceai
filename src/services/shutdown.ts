@@ -147,7 +147,7 @@ export async function shutdownServices(): Promise<void> {
   // Shutdown Maya notification service
   try {
     const { shutdownMayaNotificationService } = await import('./maya-notification-service.js');
-    shutdownMayaNotificationService();
+    void shutdownMayaNotificationService();
     getLogger().info('🔔 Maya notification service shutdown');
   } catch (error) {
     getLogger().warn({ error }, 'Error shutting down Maya notifications');

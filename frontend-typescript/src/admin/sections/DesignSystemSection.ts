@@ -118,17 +118,45 @@ export async function render(): Promise<string> {
             <span class="preset-timing">${ANIMATION_PRESET.BUTTON_PRESS.duration}ms</span>
           </button>
           <button class="preset-demo" data-preset="celebration">
-            <span class="preset-name">Celebration</span>
-            <span class="preset-timing">${ANIMATION_PRESET.CELEBRATION.duration}ms</span>
+            <span class="preset-name">Reaction Dramatic</span>
+            <span class="preset-timing">${ANIMATION_PRESET.REACTION_DRAMATIC.duration}ms</span>
           </button>
           <button class="preset-demo" data-preset="fadeIn">
-            <span class="preset-name">Fade In</span>
-            <span class="preset-timing">${ANIMATION_PRESET.FADE_IN.duration}ms</span>
+            <span class="preset-name">Fade</span>
+            <span class="preset-timing">${ANIMATION_PRESET.FADE.duration}ms</span>
           </button>
           <button class="preset-demo" data-preset="slideUp">
-            <span class="preset-name">Slide Up</span>
-            <span class="preset-timing">${ANIMATION_PRESET.SLIDE_UP.duration}ms</span>
+            <span class="preset-name">Slide</span>
+            <span class="preset-timing">${ANIMATION_PRESET.SLIDE.duration}ms</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Avatar Soul Quick Access -->
+      <div class="admin-card design-soul">
+        <h2 class="admin-section-title">
+          <span class="admin-icon">✨</span>
+          Avatar Soul
+          <span class="badge badge--new">Better Than Human</span>
+        </h2>
+        <p class="soul-desc">Superhuman emotional intelligence through visual animation</p>
+        
+        <div class="soul-features-grid">
+          ${renderSoulFeature('Pupil Dilation', '40-150ms', 'Interest & connection through eye behavior')}
+          ${renderSoulFeature('Active Listening', '180-400ms', 'Nods and leans during user speech')}
+          ${renderSoulFeature('Breath Sync', 'Continuous', 'Neural mirroring for connection')}
+          ${renderSoulFeature('Micro-Expressions', '60-120ms', 'Subliminal trust building')}
+          ${renderSoulFeature('Protective Mode', '2-6s', 'Draws closer during distress')}
+          ${renderSoulFeature('Memory Spark', '800ms', 'Acknowledges shared history')}
+        </div>
+
+        <div class="soul-actions">
+          <a href="#avatar-soul" class="soul-action-btn" data-navigate="avatar-soul">
+            Open Avatar Soul Lab →
+          </a>
+          <a href="/design-system/preview/index.html#avatar-soul" target="_blank" class="soul-action-link">
+            View Full Preview
+          </a>
         </div>
       </div>
     </div>
@@ -372,6 +400,61 @@ export async function render(): Promise<string> {
         min-width: 150px;
       }
 
+      .easing-preview {
+        flex: 1;
+        height: 20px;
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+      }
+
+      .easing-ball {
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--persona-primary, #4a6741);
+      }
+
+      .easing-item:hover .easing-ball {
+        animation: easingPreview 1s forwards;
+      }
+
+      @keyframes easingPreview {
+        to { left: calc(100% - 16px); }
+      }
+
+      .easing-item[data-easing*="0.34, 1.56"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .easing-item[data-easing*="0.25, 0.46"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+      .easing-item[data-easing*="0.19, 1"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+      }
+      .easing-item[data-easing*="0.4, 0"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .easing-item[data-easing*="0.65, 0"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .easing-item[data-easing*="0.68, -0.55"]:hover .easing-ball {
+        animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .easing-item:hover .easing-ball {
+          animation: none;
+          left: calc(100% - 16px);
+        }
+      }
+
       .colors-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -474,6 +557,124 @@ export async function render(): Promise<string> {
         font-size: 0.75rem;
         color: var(--color-text-secondary, #a89a8c);
       }
+
+      /* Avatar Soul Section */
+      .design-soul {
+        grid-column: span 2;
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(196, 162, 101, 0.08));
+        border: 1px solid rgba(74, 103, 65, 0.3);
+      }
+
+      @media (max-width: 1024px) {
+        .design-soul {
+          grid-column: span 1;
+        }
+      }
+
+      .design-soul .admin-section-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 0.5rem);
+      }
+
+      .badge--new {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: var(--radius-full, 9999px);
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: auto;
+      }
+
+      .soul-desc {
+        color: var(--color-text-muted, #756A5E);
+        font-size: 0.875rem;
+        margin-bottom: var(--space-4, 1rem);
+      }
+
+      .soul-features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-3, 0.75rem);
+        margin-bottom: var(--space-4, 1rem);
+      }
+
+      @media (max-width: 900px) {
+        .soul-features-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .soul-feature {
+        padding: var(--space-3, 0.75rem);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-md, 8px);
+        border-left: 3px solid var(--persona-primary, #4a6741);
+      }
+
+      .soul-feature-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: var(--space-1, 0.25rem);
+      }
+
+      .soul-feature-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+
+      .soul-feature-timing {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.7rem;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .soul-feature-desc {
+        font-size: 0.75rem;
+        color: var(--color-text-muted, #756A5E);
+        line-height: 1.3;
+      }
+
+      .soul-actions {
+        display: flex;
+        gap: var(--space-4, 1rem);
+        align-items: center;
+        padding-top: var(--space-3, 0.75rem);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .soul-action-btn {
+        padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+        background: var(--persona-primary, #4a6741);
+        border: none;
+        border-radius: var(--radius-md, 8px);
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      .soul-action-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .soul-action-link {
+        color: var(--persona-primary, #4a6741);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: opacity 0.2s;
+      }
+
+      .soul-action-link:hover {
+        opacity: 0.8;
+      }
     </style>
   `;
 }
@@ -496,9 +697,11 @@ function renderTimingItem(label: string, value: number, desc: string): string {
 
 function renderEasingItem(label: string, value: string, desc: string): string {
   return `
-    <div class="easing-item">
+    <div class="easing-item" data-easing="${value}">
       <span class="easing-label">${label}</span>
-      <span class="easing-value" title="${value}">cubic-bezier(...)</span>
+      <div class="easing-preview">
+        <div class="easing-ball"></div>
+      </div>
       <span class="easing-desc">${desc}</span>
     </div>
   `;
@@ -513,6 +716,18 @@ function renderColorSwatch(name: string, primary: string, secondary: string): st
       </div>
       <span class="swatch-name">${name}</span>
       <span class="swatch-values">${primary.includes('var(') ? 'CSS var' : primary}</span>
+    </div>
+  `;
+}
+
+function renderSoulFeature(name: string, timing: string, desc: string): string {
+  return `
+    <div class="soul-feature">
+      <div class="soul-feature-header">
+        <span class="soul-feature-name">${name}</span>
+        <span class="soul-feature-timing">${timing}</span>
+      </div>
+      <div class="soul-feature-desc">${desc}</div>
     </div>
   `;
 }

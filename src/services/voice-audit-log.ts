@@ -45,27 +45,27 @@ export interface VoiceAuthAuditEntry {
   timestamp: Date;
   action: VoiceAuthAction;
   userId: string;
-  
+
   // Result
   success: boolean;
   confidence?: number;
-  
+
   // Context
   deviceInfo: {
     userAgent?: string;
     platform?: string;
     deviceId?: string;
   };
-  
+
   // Request metadata
   requestId?: string;
   sessionId?: string;
   ipAddress?: string;
-  
+
   // Security flags
   anomalies?: string[];
   riskScore?: number;
-  
+
   // Additional details
   details?: Record<string, unknown>;
 }
@@ -103,23 +103,23 @@ let initAttempted = false;
 function getFirestore(): admin.firestore.Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
-  
+
   initAttempted = true;
-  
+
   try {
     if (admin.apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT;
-        
+
       if (projectId) {
         admin.initializeApp({ projectId });
       } else {
         admin.initializeApp();
       }
     }
-    
+
     firestoreInstance = admin.firestore();
     return firestoreInstance;
   } catch (error) {
@@ -146,24 +146,27 @@ export async function logVoiceAuthEvent(
     ...entry,
     timestamp: new Date(),
   };
-  
+
   // Calculate risk score
   fullEntry.riskScore = calculateRiskScore(fullEntry);
-  
+
   // Log to pino for immediate visibility
   const logLevel = entry.success ? 'info' : 'warn';
-  log[logLevel]({
-    action: entry.action,
-    userId: entry.userId,
-    success: entry.success,
-    confidence: entry.confidence,
-    riskScore: fullEntry.riskScore,
-    anomalies: entry.anomalies,
-  }, 'Voice auth event');
-  
+  log[logLevel](
+    {
+      action: entry.action,
+      userId: entry.userId,
+      success: entry.success,
+      confidence: entry.confidence,
+      riskScore: fullEntry.riskScore,
+      anomalies: entry.anomalies,
+    },
+    'Voice auth event'
+  );
+
   // Try to persist to Firestore
   const db = getFirestore();
-  
+
   if (db) {
     try {
       const docRef = await db.collection(COLLECTION_NAME).add({
@@ -175,18 +178,18 @@ export async function logVoiceAuthEvent(
       log.error({ error }, 'Failed to persist audit log to Firestore');
     }
   }
-  
+
   // Fallback to in-memory storage
   const id = `audit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   fullEntry.id = id;
-  
+
   inMemoryAuditLog.push(fullEntry);
-  
+
   // Trim in-memory log if too large
   while (inMemoryAuditLog.length > MAX_IN_MEMORY_ENTRIES) {
     inMemoryAuditLog.shift();
   }
-  
+
   return id;
 }
 
@@ -367,19 +370,17 @@ export async function logProfileDelete(
 /**
  * Query audit logs.
  */
-export async function queryAuditLogs(
-  options: AuditQueryOptions
-): Promise<VoiceAuthAuditEntry[]> {
+export async function queryAuditLogs(options: AuditQueryOptions): Promise<VoiceAuthAuditEntry[]> {
   const db = getFirestore();
-  
+
   if (db) {
     try {
       let query: admin.firestore.Query = db.collection(COLLECTION_NAME);
-      
+
       if (options.userId) {
         query = query.where('userId', '==', options.userId);
       }
-      
+
       if (options.action) {
         if (Array.isArray(options.action)) {
           query = query.where('action', 'in', options.action);
@@ -387,27 +388,31 @@ export async function queryAuditLogs(
           query = query.where('action', '==', options.action);
         }
       }
-      
+
       if (options.success !== undefined) {
         query = query.where('success', '==', options.success);
       }
-      
+
       if (options.startDate) {
-        query = query.where('timestamp', '>=', admin.firestore.Timestamp.fromDate(options.startDate));
+        query = query.where(
+          'timestamp',
+          '>=',
+          admin.firestore.Timestamp.fromDate(options.startDate)
+        );
       }
-      
+
       if (options.endDate) {
         query = query.where('timestamp', '<=', admin.firestore.Timestamp.fromDate(options.endDate));
       }
-      
+
       query = query.orderBy('timestamp', 'desc');
-      
+
       if (options.limit) {
         query = query.limit(options.limit);
       }
-      
+
       const snapshot = await query.get();
-      
+
       return snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
@@ -420,76 +425,73 @@ export async function queryAuditLogs(
       log.error({ error }, 'Failed to query audit logs from Firestore');
     }
   }
-  
+
   // Fallback to in-memory
   let results = [...inMemoryAuditLog];
-  
+
   if (options.userId) {
     results = results.filter((e) => e.userId === options.userId);
   }
-  
+
   if (options.action) {
     const actions = Array.isArray(options.action) ? options.action : [options.action];
     results = results.filter((e) => actions.includes(e.action));
   }
-  
+
   if (options.success !== undefined) {
     results = results.filter((e) => e.success === options.success);
   }
-  
+
   if (options.startDate) {
     results = results.filter((e) => e.timestamp >= options.startDate!);
   }
-  
+
   if (options.endDate) {
     results = results.filter((e) => e.timestamp <= options.endDate!);
   }
-  
+
   // Sort by timestamp descending
   results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  
+
   if (options.limit) {
     results = results.slice(0, options.limit);
   }
-  
+
   return results;
 }
 
 /**
  * Get audit statistics.
  */
-export async function getAuditStats(
-  startDate?: Date,
-  endDate?: Date
-): Promise<AuditStats> {
+export async function getAuditStats(startDate?: Date, endDate?: Date): Promise<AuditStats> {
   const logs = await queryAuditLogs({
     startDate,
     endDate,
     limit: 10000, // Get a large sample
   });
-  
+
   const totalEvents = logs.length;
   const successfulEvents = logs.filter((e) => e.success).length;
   const successRate = totalEvents > 0 ? successfulEvents / totalEvents : 0;
   const failedAttempts = totalEvents - successfulEvents;
-  
+
   const uniqueUsers = new Set(logs.map((e) => e.userId)).size;
   const anomalyCount = logs.filter((e) => e.anomalies && e.anomalies.length > 0).length;
-  
+
   // Count actions
   const actionCounts = new Map<VoiceAuthAction, number>();
   for (const entry of logs) {
     const count = actionCounts.get(entry.action) || 0;
     actionCounts.set(entry.action, count + 1);
   }
-  
+
   const topActions = Array.from(actionCounts.entries())
     .map(([action, count]) => ({ action, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
-  
+
   const recentActivity = logs.slice(0, 10);
-  
+
   return {
     totalEvents,
     successRate,
@@ -517,9 +519,7 @@ export async function getUserAuthHistory(
 /**
  * Check for suspicious activity patterns.
  */
-export async function checkSuspiciousActivity(
-  userId: string
-): Promise<{
+export async function checkSuspiciousActivity(userId: string): Promise<{
   isSuspicious: boolean;
   reasons: string[];
   recentFailures: number;
@@ -527,39 +527,39 @@ export async function checkSuspiciousActivity(
 }> {
   const reasons: string[] = [];
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  
+
   const recentLogs = await queryAuditLogs({
     userId,
     startDate: oneHourAgo,
   });
-  
+
   // Count recent failures
   const recentFailures = recentLogs.filter((e) => !e.success).length;
-  
+
   // Check for rapid failures
   if (recentFailures >= 5) {
     reasons.push(`${recentFailures} failed attempts in last hour`);
   }
-  
+
   // Check for liveness failures
   const livenessFailures = recentLogs.filter((e) => e.action === 'liveness_fail').length;
   if (livenessFailures >= 2) {
     reasons.push(`${livenessFailures} liveness check failures`);
   }
-  
+
   // Check for spoof detections
   const spoofDetections = recentLogs.filter((e) => e.action === 'spoof_detected').length;
   if (spoofDetections >= 1) {
     reasons.push(`${spoofDetections} spoof detection(s)`);
   }
-  
+
   // Calculate risk score
   let riskScore = 0;
   riskScore += recentFailures * 0.1;
   riskScore += livenessFailures * 0.3;
   riskScore += spoofDetections * 0.5;
   riskScore = Math.min(1, riskScore);
-  
+
   return {
     isSuspicious: reasons.length > 0,
     reasons,
@@ -577,37 +577,38 @@ export async function checkSuspiciousActivity(
  */
 export async function cleanupOldAuditLogs(): Promise<number> {
   const cutoffDate = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  
+
   const db = getFirestore();
-  
+
   if (db) {
     try {
-      const oldLogs = await db.collection(COLLECTION_NAME)
+      const oldLogs = await db
+        .collection(COLLECTION_NAME)
         .where('timestamp', '<', admin.firestore.Timestamp.fromDate(cutoffDate))
         .limit(500)
         .get();
-      
+
       if (oldLogs.empty) return 0;
-      
+
       const batch = db.batch();
       oldLogs.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
-      
+
       log.info({ deleted: oldLogs.size }, 'Cleaned up old audit logs');
       return oldLogs.size;
     } catch (error) {
       log.error({ error }, 'Failed to cleanup audit logs');
     }
   }
-  
+
   // Cleanup in-memory
   const cutoffTime = cutoffDate.getTime();
   const beforeCount = inMemoryAuditLog.length;
-  
+
   while (inMemoryAuditLog.length > 0 && inMemoryAuditLog[0].timestamp.getTime() < cutoffTime) {
     inMemoryAuditLog.shift();
   }
-  
+
   return beforeCount - inMemoryAuditLog.length;
 }
 
@@ -620,27 +621,27 @@ export async function cleanupOldAuditLogs(): Promise<number> {
  */
 function calculateRiskScore(entry: VoiceAuthAuditEntry): number {
   let score = 0;
-  
+
   // Failed events increase risk
   if (!entry.success) {
     score += 0.2;
   }
-  
+
   // Low confidence increases risk
   if (entry.confidence !== undefined && entry.confidence < 0.7) {
     score += 0.2 * (0.7 - entry.confidence);
   }
-  
+
   // Anomalies increase risk
   if (entry.anomalies && entry.anomalies.length > 0) {
     score += 0.1 * entry.anomalies.length;
   }
-  
+
   // Security-related actions have higher base risk
   if (['liveness_fail', 'spoof_detected'].includes(entry.action)) {
     score += 0.4;
   }
-  
+
   return Math.min(1, score);
 }
 
@@ -665,4 +666,3 @@ export default {
   checkSuspiciousActivity,
   cleanupOldAuditLogs,
 };
-

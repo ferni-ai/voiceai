@@ -7,19 +7,19 @@
  * @module EvalOpsSection
  */
 
-import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
+import { createLogger } from '../../utils/logger.js';
 import {
   ICON_CHART,
-  ICON_SUCCESS,
-  ICON_FLAGS,
-  ICON_TEAM,
-  ICON_ZAP,
   ICON_EVALOPS,
-  ICON_SEARCH,
   ICON_EXTERNAL,
+  ICON_FLAGS,
+  ICON_SEARCH,
   ICON_SETTINGS,
+  ICON_SUCCESS,
+  ICON_TEAM,
   ICON_WARNING,
+  ICON_ZAP,
   iconSm,
 } from '../icons.js';
 
@@ -127,9 +127,10 @@ export async function render(): Promise<string> {
           <span class="section-badge">${flagged.length}</span>
         </h2>
         <div class="flagged-list">
-          ${flagged.length > 0 
-            ? flagged.map(f => renderFlaggedItem(f)).join('')
-            : '<p class="flagged-empty">No flagged responses. All clear!</p>'
+          ${
+            flagged.length > 0
+              ? flagged.map((f) => renderFlaggedItem(f)).join('')
+              : '<p class="flagged-empty">No flagged responses. All clear!</p>'
           }
         </div>
       </div>
@@ -387,11 +388,12 @@ export async function render(): Promise<string> {
 
 function renderDimension(name: string, score: number, desc: string): string {
   const scoreClass = score >= 90 ? 'high' : score >= 70 ? 'medium' : 'low';
-  const barColor = score >= 90 
-    ? 'var(--color-semantic-success, #4a6741)' 
-    : score >= 70 
-    ? 'var(--color-semantic-warning, #d4a84b)' 
-    : 'var(--color-semantic-error, #c44536)';
+  const barColor =
+    score >= 90
+      ? 'var(--color-semantic-success, #4a6741)'
+      : score >= 70
+        ? 'var(--color-semantic-warning, #d4a84b)'
+        : 'var(--color-semantic-error, #c44536)';
 
   return `
     <div class="dimension-item">
@@ -431,7 +433,7 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
         <div class="flag-desc">${desc}</div>
       </div>
       <label class="admin-toggle">
-        <input type="checkbox" ${enabled ? 'checked' : ''} data-flag-id="${id}" data-action="toggle">
+        <input type="checkbox" ${enabled ? 'checked' : ''} data-setting-id="${id}" data-action="toggle-evalops">
         <span class="admin-toggle-slider"></span>
       </label>
     </div>
@@ -440,52 +442,73 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
 
 async function fetchEvalMetrics(): Promise<EvalMetrics> {
   try {
-    const response = await fetch('/api/evalops/metrics');
+    const response = await fetch('/api/evalops/metrics', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      const metrics = data.metrics || data;
+      return {
+        totalEvaluations: metrics.totalEvaluations || 0,
+        passRate: Math.round(metrics.averageScore || 0),
+        flaggedResponses: metrics.flaggedResponses || 0,
+        avgVoiceConsistency: Math.round(metrics.averageScore || 0),
+        lastRunTime: metrics.lastEvaluationTime
+          ? formatTimeAgo(new Date(metrics.lastEvaluationTime))
+          : 'Never run',
+      };
     }
-  } catch {
-    // Fall through to mock data
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch eval metrics');
   }
 
+  // Return zeros to indicate no data (not fake data)
   return {
-    totalEvaluations: 1247,
-    passRate: 98,
-    flaggedResponses: 3,
-    avgVoiceConsistency: 94,
-    lastRunTime: '2 hours ago',
+    totalEvaluations: 0,
+    passRate: 0,
+    flaggedResponses: 0,
+    avgVoiceConsistency: 0,
+    lastRunTime: 'Never run',
   };
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.round(diff / 60000)} min ago`;
+  if (diff < 86400000) return `${Math.round(diff / 3600000)} hours ago`;
+  return `${Math.round(diff / 86400000)} days ago`;
 }
 
 async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
   try {
-    const response = await fetch('/api/evalops/evaluations/flagged');
+    const response = await fetch('/api/evalops/evaluations/flagged', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       const data = await response.json();
-      return data.evaluations || [];
+      const evaluations = data.evaluations || [];
+      return evaluations.map((e: Record<string, unknown>) => ({
+        id: e.id || `eval-${Math.random().toString(36).slice(2)}`,
+        personaId: e.personaId || 'unknown',
+        dimension: e.lowestDimension || 'Quality',
+        score: e.lowestScore || e.overallScore || 0,
+        reason: e.details || 'Flagged for review',
+        timestamp: e.timestamp ? formatTimeAgo(new Date(e.timestamp as string)) : 'recently',
+      }));
     }
-  } catch {
-    // Fall through to mock data
+  } catch (error) {
+    log.warn({ error }, 'Failed to fetch flagged evaluations');
   }
 
-  return [
-    {
-      id: 'eval-001',
-      personaId: 'ferni',
-      dimension: 'Persona Voice',
-      score: 65,
-      reason: 'Response lacked signature warmth patterns',
-      timestamp: '1 hour ago',
-    },
-    {
-      id: 'eval-002',
-      personaId: 'peter',
-      dimension: 'Context Use',
-      score: 58,
-      reason: 'Did not reference previous conversation context',
-      timestamp: '3 hours ago',
-    },
-  ];
+  // Return empty array to indicate no data (not fake data)
+  return [];
 }
 
 export default { render };

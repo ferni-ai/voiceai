@@ -11,8 +11,6 @@
  * These "imperfections" are what make human speech feel authentic.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -395,6 +393,220 @@ export function generateFragment(context: 'trailing' | 'interrupted' | 'rethinki
 
   const options = fragments[context];
   return options[Math.floor(Math.random() * options.length)];
+}
+
+// ============================================================================
+// 🎭 ENHANCED IMPERFECTION THEATRE
+// These patterns create authentic human-like thinking processes
+// ============================================================================
+
+/**
+ * Mid-thought course correction patterns
+ * "Actually, scratch that—what I really mean is..."
+ */
+export const MID_THOUGHT_CORRECTIONS: string[] = [
+  'Actually, scratch that—what I really mean is',
+  "Wait, no, that's not quite right—let me try again:",
+  "Hmm, that didn't come out right. What I'm trying to say is",
+  "Actually—no, forget that. Here's what I actually think:",
+  "Let me back up. That's not what I meant. I meant",
+  "No, wait. That's not it. It's more like",
+  'Okay, that sounded better in my head. Let me rephrase:',
+];
+
+/**
+ * Self-doubt to conviction transitions
+ * "I'm not sure if—no, actually, I am sure"
+ */
+export const DOUBT_TO_CONVICTION: Array<{ doubt: string; conviction: string }> = [
+  {
+    doubt: "I'm not sure if this is right, but—",
+    conviction: 'actually, no, I am sure:',
+  },
+  {
+    doubt: 'This might be wrong, but I think—',
+    conviction: "wait, no, I'm confident about this:",
+  },
+  {
+    doubt: "I don't know if I should say this, but—",
+    conviction: 'you know what, yes, I should:',
+  },
+  {
+    doubt: "Maybe this doesn't make sense, but—",
+    conviction: 'actually, it makes total sense:',
+  },
+  {
+    doubt: 'I could be way off here, but—',
+    conviction: "no, wait, I think I'm onto something:",
+  },
+];
+
+/**
+ * Thinking out loud patterns
+ * These show the visible process of arriving at a thought
+ */
+export const THINKING_OUT_LOUD: string[] = [
+  'Let me think about this out loud for a second...',
+  'Okay, so if I follow this through...',
+  'Walking through this in my head...',
+  'So the thing I keep coming back to is...',
+  "I'm just going to say what I'm thinking here...",
+  'Let me work through this with you...',
+  "Okay, so I'm hearing... and that makes me wonder...",
+  "I'm thinking... no, wait... okay, yes:",
+];
+
+/**
+ * Graceful uncertainty expressions
+ * "I might be wrong about this, but..."
+ */
+export const GRACEFUL_UNCERTAINTY: string[] = [
+  'I might be wrong about this, but',
+  'I could be totally off base, but',
+  'This is just my read on it, but',
+  "I don't have the full picture, but from what I can see,",
+  'Take this with a grain of salt, but',
+  "I'm no expert, but it seems to me that",
+  'I could be missing something, but',
+  "Based on what you've shared—and I could be wrong—",
+];
+
+/**
+ * Self-interruption patterns
+ * When we catch ourselves mid-sentence
+ */
+export const SELF_INTERRUPTIONS: Array<{ start: string; interrupt: string; resume: string }> = [
+  {
+    start: "So what you're saying is—",
+    interrupt: 'wait, let me make sure I understand—',
+    resume: 'okay, so',
+  },
+  {
+    start: 'The thing is—',
+    interrupt: 'actually, hold on—',
+    resume: 'the REAL thing is',
+  },
+  {
+    start: 'I think—',
+    interrupt: "no, 'think' is too weak—",
+    resume: 'I feel pretty strongly that',
+  },
+  {
+    start: 'You should—',
+    interrupt: "wait, I don't want to tell you what to do—",
+    resume: 'what if you tried',
+  },
+];
+
+/**
+ * Generate a mid-thought course correction
+ */
+export function generateCourseCorrection(
+  originalThought: string,
+  correctedThought: string
+): string {
+  const correction =
+    MID_THOUGHT_CORRECTIONS[Math.floor(Math.random() * MID_THOUGHT_CORRECTIONS.length)];
+  return `${originalThought}<break time="300ms"/> ${correction} ${correctedThought}`;
+}
+
+/**
+ * Generate a doubt-to-conviction transition
+ */
+export function generateDoubtToConviction(statement: string): string {
+  const pattern = DOUBT_TO_CONVICTION[Math.floor(Math.random() * DOUBT_TO_CONVICTION.length)];
+  return `${pattern.doubt}<break time="200ms"/> ${pattern.conviction} ${statement}`;
+}
+
+/**
+ * Generate a thinking-out-loud prefix
+ */
+export function generateThinkingOutLoud(): string {
+  const phrase = THINKING_OUT_LOUD[Math.floor(Math.random() * THINKING_OUT_LOUD.length)];
+  return `<break time="150ms"/>${phrase}<break time="300ms"/>`;
+}
+
+/**
+ * Generate a graceful uncertainty prefix
+ */
+export function generateGracefulUncertainty(statement: string): string {
+  const uncertainty = GRACEFUL_UNCERTAINTY[Math.floor(Math.random() * GRACEFUL_UNCERTAINTY.length)];
+  return `${uncertainty} ${statement.charAt(0).toLowerCase()}${statement.slice(1)}`;
+}
+
+/**
+ * Generate a self-interruption
+ */
+export function generateSelfInterruption(statement: string): string {
+  const pattern = SELF_INTERRUPTIONS[Math.floor(Math.random() * SELF_INTERRUPTIONS.length)];
+  return `${pattern.start}<break time="200ms"/> ${pattern.interrupt}<break time="300ms"/> ${pattern.resume} ${statement}`;
+}
+
+/**
+ * Determine if imperfection should be applied
+ * Based on context - don't use during serious/emotional moments
+ */
+export function shouldApplyImperfection(context: {
+  isSeriousContext?: boolean;
+  emotion?: string;
+  turnNumber?: number;
+}): boolean {
+  // Don't add imperfections in serious contexts
+  if (context.isSeriousContext) return false;
+
+  // Don't add when user is distressed
+  if (
+    context.emotion === 'sad' ||
+    context.emotion === 'anxious' ||
+    context.emotion === 'vulnerable'
+  ) {
+    return false;
+  }
+
+  // More likely in later turns when rapport is built
+  const turnModifier = Math.min(1, (context.turnNumber || 5) / 5);
+
+  return Math.random() < 0.15 * turnModifier;
+}
+
+/**
+ * Apply random imperfection to response
+ */
+export function applyRandomImperfection(
+  text: string,
+  context: {
+    isSeriousContext?: boolean;
+    emotion?: string;
+    turnNumber?: number;
+  }
+): string {
+  if (!shouldApplyImperfection(context)) return text;
+
+  const roll = Math.random();
+
+  if (roll < 0.25) {
+    // Thinking out loud
+    return `${generateThinkingOutLoud()}${text}`;
+  } else if (roll < 0.45) {
+    // Graceful uncertainty
+    return generateGracefulUncertainty(text);
+  } else if (roll < 0.65) {
+    // Self-doubt to conviction (for advice/suggestions)
+    if (
+      text.toLowerCase().includes('think') ||
+      text.toLowerCase().includes('should') ||
+      text.toLowerCase().includes('try')
+    ) {
+      return generateDoubtToConviction(text);
+    }
+  } else if (roll < 0.85) {
+    // Sentence fragment
+    const fragment = generateFragment('trailing');
+    return `${fragment}<break time="200ms"/> ${text}`;
+  }
+
+  // No imperfection applied
+  return text;
 }
 
 // ============================================================================

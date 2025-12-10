@@ -297,7 +297,9 @@ describe('Twilio SMS Integration', () => {
     expect(sendData.sid).toBeDefined();
 
     // Wait a moment then check status
-    await new Promise<void>((resolve) => { setTimeout(resolve, 2000); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 2000);
+    });
 
     const statusResponse = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${config.twilio.accountSid}/Messages/${sendData.sid}.json`,

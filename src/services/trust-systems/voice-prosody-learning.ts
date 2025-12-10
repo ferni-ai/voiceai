@@ -15,10 +15,13 @@
  * - Voice evolution tracking
  * - Micro-expression detection
  *
+ * PERSISTENCE: Voice baselines and samples are persisted to Firestore.
+ *
  * @module VoiceProsodyLearning
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 
 const log = createLogger({ module: 'VoiceProsodyLearning' });
 
@@ -115,11 +118,118 @@ const DEVIATION_THRESHOLD = 1.5; // standard deviations
 const EMOTIONAL_PROFILE_MIN_SAMPLES = 3;
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedBaseline extends Omit<PersonalBaseline, 'establishedAt' | 'lastUpdated'> {
+  establishedAt: string;
+  lastUpdated: string;
+}
+
+interface PersistedSample extends Omit<VoiceSample, 'timestamp'> {
+  timestamp: string;
+}
+
+interface UserVoiceProsodyData {
+  baseline?: PersistedBaseline;
+  samples: PersistedSample[];
+}
+
+function serializeBaseline(b: PersonalBaseline): PersistedBaseline {
+  return {
+    ...b,
+    establishedAt: b.establishedAt.toISOString(),
+    lastUpdated: b.lastUpdated.toISOString(),
+  };
+}
+
+function deserializeBaseline(b: PersistedBaseline): PersonalBaseline {
+  return {
+    ...b,
+    establishedAt: new Date(b.establishedAt),
+    lastUpdated: new Date(b.lastUpdated),
+  };
+}
+
+function serializeSample(s: VoiceSample): PersistedSample {
+  return { ...s, timestamp: s.timestamp.toISOString() };
+}
+
+function deserializeSample(s: PersistedSample): VoiceSample {
+  return { ...s, timestamp: new Date(s.timestamp) };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const userBaselines = new Map<string, PersonalBaseline>();
 const voiceSamples = new Map<string, VoiceSample[]>();
+const loadedUsers = new Set<string>();
+
+let persistence: PersistenceStore<UserVoiceProsodyData> | null = null;
+
+function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
+  if (!persistence) {
+    persistence = createPersistenceStore<UserVoiceProsodyData>({
+      collection: 'voice_prosody',
+      documentId: 'data',
+      syncIntervalMs: 10000, // Less frequent for voice data
+    });
+  }
+  return persistence;
+}
+
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data) {
+      if (data.baseline) {
+        userBaselines.set(userId, deserializeBaseline(data.baseline));
+      }
+      if (data.samples) {
+        voiceSamples.set(userId, data.samples.map(deserializeSample));
+      }
+    }
+    loadedUsers.add(userId);
+    log.debug({ userId }, 'Loaded voice prosody data from persistence');
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to load voice prosody data');
+    loadedUsers.add(userId);
+  }
+}
+
+function persistUserData(userId: string): void {
+  const baseline = userBaselines.get(userId);
+  const samples = voiceSamples.get(userId) || [];
+
+  getPersistence().set(userId, {
+    baseline: baseline ? serializeBaseline(baseline) : undefined,
+    samples: samples.map(serializeSample),
+  });
+}
+
+/**
+ * Flush persistence
+ */
+export async function flushVoiceProsodyPersistence(): Promise<void> {
+  await getPersistence().flush();
+  log.info('Voice prosody persistence flushed');
+}
+
+/**
+ * Shutdown voice prosody service
+ */
+export async function shutdownVoiceProsody(): Promise<void> {
+  await flushVoiceProsodyPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  userBaselines.clear();
+  voiceSamples.clear();
+  log.info('Voice prosody service shutdown complete');
+}
 
 // ============================================================================
 // BASELINE MANAGEMENT
@@ -164,6 +274,9 @@ export function recordVoiceSample(
       characteristics
     );
   }
+
+  // Persist (debounced by persistence store)
+  persistUserData(userId);
 
   log.debug({ userId, sampleCount: samples.length }, '🎤 Voice sample recorded');
 }

@@ -95,6 +95,7 @@ export interface UserData {
   // Conversation context for humanization
   lastUserMessage?: string;
   lastAgentResponse?: string; // For response quality tracking
+  lastAgentResponseTime?: number; // For engagement scoring
   lastEmotionAnalysis?: {
     primary: string;
     intensity: number;
@@ -167,6 +168,28 @@ export interface UserData {
 
   /** Personal themes already mentioned this session (prevents "always talks about Wyoming") */
   mentionedPersonalThemes?: Set<string>;
+
+  // ============================================================
+  // FIRST TASTE TRIAL STATE
+  // "Better than Human" free trial experience tracking
+  // ============================================================
+
+  /** Whether this is a trial user */
+  isTrialUser?: boolean;
+
+  /** Whether this is their first conversation (trial welcome) */
+  isFirstConversation?: boolean;
+
+  /** Trial status check result (updated periodically) */
+  trialStatus?: {
+    inTrial: boolean;
+    timeRemainingMs: number | null;
+    approachingEnd: boolean;
+    trialEnded: boolean;
+  };
+
+  /** Whether we've already spoken the trial end prompt this session */
+  hasSpokenTrialEndPrompt?: boolean;
 }
 
 // ============================================================================

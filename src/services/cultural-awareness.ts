@@ -8,7 +8,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { loadPersonaBehaviors } from './persona-behavior-manager.js';
 
-const logger = getLogger().child({ service: 'CulturalAwareness' });
+const _logger = getLogger().child({ service: 'CulturalAwareness' }); // Reserved for future debug logging
 
 // ============================================================================
 // Types
@@ -115,7 +115,8 @@ function getSeason(): Season {
   return 'winter';
 }
 
-function getSeasonalContext(season: Season): string {
+function _getSeasonalContext(season: Season): string {
+  // Reserved for future seasonal messaging
   const contexts: Record<Season, string[]> = {
     spring: ['fresh start energy', 'spring cleaning vibes', 'renewal'],
     summer: ['summer mode', 'vacation energy', 'long days'],

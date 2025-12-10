@@ -7,11 +7,14 @@
  * - Smart contextual reminders ("Your interview is tomorrow - get rest!")
  *
  * Integrates with Google Calendar OAuth and proactive outreach.
+ *
+ * PERSISTENCE: Calendar events and reminder logs are persisted to Firestore.
  */
 
 import { canReachUser, scheduleText } from '../tools/proactive-outreach.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // ============================================================================
 // TYPES
@@ -48,11 +51,121 @@ export interface CalendarDigest {
 }
 
 // ============================================================================
-// STORAGE
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface PersistedEvent extends Omit<CalendarEvent, 'startTime' | 'endTime' | 'reminders'> {
+  startTime: string;
+  endTime: string;
+  reminders: Array<Omit<EventReminder, 'sentAt'> & { sentAt?: string }>;
+}
+
+interface UserCalendarData {
+  events: PersistedEvent[];
+  remindersSent: string[]; // Array of reminder IDs that have been sent
+}
+
+function serializeEvent(event: CalendarEvent): PersistedEvent {
+  return {
+    ...event,
+    startTime: event.startTime.toISOString(),
+    endTime: event.endTime.toISOString(),
+    reminders: event.reminders.map((r) => ({
+      ...r,
+      sentAt: r.sentAt?.toISOString(),
+    })),
+  };
+}
+
+function deserializeEvent(data: PersistedEvent): CalendarEvent {
+  return {
+    ...data,
+    startTime: new Date(data.startTime),
+    endTime: new Date(data.endTime),
+    reminders: data.reminders.map((r) => ({
+      ...r,
+      sentAt: r.sentAt ? new Date(r.sentAt) : undefined,
+    })),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const eventStore = new Map<string, CalendarEvent[]>();
-const reminderSentLog = new Map<string, Set<string>>(); // eventId -> Set of reminderIds
+const reminderSentLog = new Map<string, Set<string>>(); // userId -> Set of reminderIds
+const loadedUsers = new Set<string>();
+
+let persistence: PersistenceStore<UserCalendarData> | null = null;
+
+function getPersistence(): PersistenceStore<UserCalendarData> {
+  if (!persistence) {
+    persistence = createPersistenceStore<UserCalendarData>({
+      collection: 'calendar_reminders',
+      documentId: 'data',
+      syncIntervalMs: 5000,
+    });
+  }
+  return persistence;
+}
+
+/**
+ * Load user calendar data from persistence
+ */
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    const data = await getPersistence().load(userId);
+    if (data) {
+      if (data.events) {
+        eventStore.set(userId, data.events.map(deserializeEvent));
+      }
+      if (data.remindersSent) {
+        reminderSentLog.set(userId, new Set(data.remindersSent));
+      }
+    }
+    loadedUsers.add(userId);
+    getLogger().debug({ userId }, 'Loaded calendar data from persistence');
+  } catch (error) {
+    getLogger().warn({ error, userId }, 'Failed to load calendar data');
+    loadedUsers.add(userId);
+  }
+}
+
+/**
+ * Persist user calendar data
+ */
+function persistUserData(userId: string): void {
+  const events = eventStore.get(userId) || [];
+  const sentLog = reminderSentLog.get(userId) || new Set();
+
+  getPersistence().set(userId, {
+    events: events.map(serializeEvent),
+    remindersSent: Array.from(sentLog),
+  });
+}
+
+/**
+ * Flush calendar reminder persistence
+ */
+export async function flushCalendarPersistence(): Promise<void> {
+  await getPersistence().flush();
+  getLogger().info('Calendar reminder persistence flushed');
+}
+
+/**
+ * Shutdown calendar reminders service
+ */
+export async function shutdownCalendarReminders(): Promise<void> {
+  await flushCalendarPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  eventStore.clear();
+  reminderSentLog.clear();
+  getLogger().info('Calendar reminders service shutdown complete');
+}
 
 // ============================================================================
 // EVENT MANAGEMENT
@@ -61,7 +174,9 @@ const reminderSentLog = new Map<string, Set<string>>(); // eventId -> Set of rem
 /**
  * Add or update a calendar event
  */
-export function upsertEvent(event: CalendarEvent): CalendarEvent {
+export async function upsertEvent(event: CalendarEvent): Promise<CalendarEvent> {
+  await ensureUserLoaded(event.userId);
+
   const events = eventStore.get(event.userId) || [];
   const existingIndex = events.findIndex((e) => e.id === event.id);
 
@@ -77,6 +192,7 @@ export function upsertEvent(event: CalendarEvent): CalendarEvent {
   }
 
   eventStore.set(event.userId, events);
+  persistUserData(event.userId);
 
   getLogger().info(
     { userId: event.userId, eventId: event.id, title: event.title, startTime: event.startTime },
@@ -346,9 +462,8 @@ export async function checkAndSendReminders(): Promise<{
     }
 
     reminderSentLog.set(userId, sentLog);
+    persistUserData(userId);
   }
-
-  eventStore.forEach((events, userId) => eventStore.set(userId, events));
 
   return { digestsSent, remindersSent };
 }
@@ -596,4 +711,7 @@ export default {
   clearAll: clearAllCalendarData,
   getMemoryStats: getCalendarMemoryStats,
   pruneOld: pruneOldCalendarData,
+
+  // Persistence
+  flushCalendarPersistence,
 };

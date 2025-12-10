@@ -12,8 +12,15 @@
  * The DJ (agent) talks, the music responds.
  */
 
+import { getFrontendPublisher } from '../agents/realtime/index.js';
+import { getMusicAppreciationComment, getReadTheRoomAction } from '../services/dj-service.js';
+import {
+  checkForOurSong,
+  detectSignificantMoment,
+  recordOurSong,
+  type MomentType,
+} from '../services/trust-systems/our-songs.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { getMusicPlayer, type MusicTrack, type MusicState } from './music-player.js';
 import {
   getDJOutroPhrase,
   getDJTrackChangePhrase,
@@ -21,20 +28,13 @@ import {
   getMusicStoppedPhrase,
 } from './ambient-music.js';
 import {
-  initializeDJEnhancements,
   getDJEnhancements,
+  initializeDJEnhancements,
   resetDJEnhancements,
-  type MusicPreferences,
   type DJEnhancementController,
+  type MusicPreferences,
 } from './dj-enhancements.js';
-import { getMusicAppreciationComment, getReadTheRoomAction } from '../services/dj-service.js';
-import {
-  detectSignificantMoment,
-  recordOurSong,
-  checkForOurSong,
-  type MomentType,
-} from '../services/trust-systems/our-songs.js';
-import { getFrontendPublisher } from '../agents/realtime/index.js';
+import { getMusicPlayer, type MusicState, type MusicTrack } from './music-player.js';
 
 const log = getLogger();
 
@@ -72,6 +72,8 @@ export interface DJBoothState {
   musicStartTime: number | null;
   /** Scheduled DJ moments */
   scheduledMoments: ScheduledMoment[];
+  /** Is a game currently active? */
+  gameActive?: boolean;
 }
 
 export interface ScheduledMoment {
@@ -225,11 +227,7 @@ export class DJBooth {
    * @param emotion - Detected emotion (if available)
    * @param topic - Current conversation topic (if available)
    */
-  processUserSpeechDuringMusic(
-    userText: string,
-    emotion?: string,
-    topic?: string
-  ): void {
+  processUserSpeechDuringMusic(userText: string, emotion?: string, topic?: string): void {
     if (!this.userId || !this.state.currentTrack || this.state.musicState !== 'playing') {
       return;
     }
@@ -302,13 +300,10 @@ export class DJBooth {
 
       this.scheduleTimer(() => {
         // Only speak if music is still playing this track
-        if (
-          this.state.musicState === 'playing' &&
-          this.state.currentTrack?.name === track.name
-        ) {
+        if (this.state.musicState === 'playing' && this.state.currentTrack?.name === track.name) {
           log.info('🎵 Speaking "Our Song" callback', {
             song: track.name,
-            phrase: callback.phrase.slice(0, 50) + '...',
+            phrase: `${callback.phrase.slice(0, 50)}...`,
           });
           this.speakOverMusic(callback.phrase);
         }
@@ -363,7 +358,11 @@ export class DJBooth {
     }
 
     if (momentType === 'celebration') {
-      const patterns = [/i got (.+?)(?:\.|,|$)/, /they said (.+?)(?:\.|,|$)/, /i did (.+?)(?:\.|,|$)/];
+      const patterns = [
+        /i got (.+?)(?:\.|,|$)/,
+        /they said (.+?)(?:\.|,|$)/,
+        /i did (.+?)(?:\.|,|$)/,
+      ];
       for (const pattern of patterns) {
         const match = text.match(pattern);
         if (match) return match[1].slice(0, 100);
@@ -385,10 +384,7 @@ export class DJBooth {
     }
 
     // Otherwise look for a memorable phrase within
-    const phrases = [
-      /["'](.+?)["']/,
-      /i said ["'](.+?)["']/,
-    ];
+    const phrases = [/["'](.+?)["']/, /i said ["'](.+?)["']/];
     for (const pattern of phrases) {
       const match = userText.match(pattern);
       if (match && match[1].length < 80) {
@@ -459,6 +455,25 @@ export class DJBooth {
    */
   trackGame(gameType: string): void {
     this.djEnhancements?.sessionFlow.trackGame(gameType);
+  }
+
+  /**
+   * Set game active state (for GameMusicController integration)
+   * When game is active, DJ Booth adjusts its behavior (less commentary, etc.)
+   */
+  setGameActive(isActive: boolean, gameType?: string): void {
+    if (isActive && gameType) {
+      this.trackGame(gameType);
+    }
+    // Store game state for behavior adjustments
+    this.state.gameActive = isActive;
+  }
+
+  /**
+   * Check if a game is currently active
+   */
+  isGameActive(): boolean {
+    return this.state.gameActive ?? false;
   }
 
   /**
@@ -613,7 +628,8 @@ export class DJBooth {
     // 💚 Check if this is "our song" - shared musical memory
     this.checkForOurSongCallback(track);
 
-    const duration = track.duration || 30000;
+    // Use ?? for proper nullish coalescing (0 is valid duration)
+    const duration = track.duration ?? 30000;
 
     log.info('🎧 Music started - scheduling DJ moments', {
       track: track.name,

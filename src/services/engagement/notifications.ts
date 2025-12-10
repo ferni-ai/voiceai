@@ -12,11 +12,27 @@
  * - Honors quiet hours
  * - Limits frequency
  * - Allows opt-out
+ *
+ * PERSISTENCE: User notification state is persisted to Firestore.
  */
 
+import * as admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../daily-rituals.js';
-import { getEngagementStore, type EngagementProfile } from './store.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const NOTIFICATION_STATE_COLLECTION = 'engagement_notification_states';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -136,6 +152,7 @@ export class EngagementNotificationService {
   private userStates = new Map<string, UserNotificationState>();
   private pendingNotifications = new Map<string, EngagementNotification[]>();
   private notificationCallback: ((notification: EngagementNotification) => void) | null = null;
+  private loadedUsers = new Set<string>();
 
   /**
    * Register a callback for when notifications should be delivered
@@ -145,11 +162,93 @@ export class EngagementNotificationService {
   }
 
   /**
+   * Load user state from Firestore
+   */
+  private async loadUserState(userId: string): Promise<UserNotificationState | null> {
+    if (this.loadedUsers.has(userId)) {
+      return this.userStates.get(userId) || null;
+    }
+
+    const db = getFirestore();
+    if (!db) {
+      this.loadedUsers.add(userId);
+      return null;
+    }
+
+    try {
+      const doc = await db.collection(NOTIFICATION_STATE_COLLECTION).doc(userId).get();
+      if (doc.exists) {
+        const data = doc.data();
+        const state: UserNotificationState = {
+          ...data,
+          lastNotificationAt: data?.lastNotificationAt?.toDate?.() || null,
+          snoozeUntil: data?.snoozeUntil?.toDate?.() || null,
+        } as UserNotificationState;
+        this.userStates.set(userId, state);
+        this.loadedUsers.add(userId);
+        return state;
+      }
+    } catch (error) {
+      getLogger().error({ error, userId }, 'Failed to load notification state');
+    }
+
+    this.loadedUsers.add(userId);
+    return null;
+  }
+
+  /**
+   * Save user state to Firestore
+   */
+  private async saveUserState(userId: string, state: UserNotificationState): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db
+        .collection(NOTIFICATION_STATE_COLLECTION)
+        .doc(userId)
+        .set({
+          ...state,
+          lastNotificationAt: state.lastNotificationAt || null,
+          snoozeUntil: state.snoozeUntil || null,
+        });
+    } catch (error) {
+      getLogger().error({ error, userId }, 'Failed to save notification state');
+    }
+  }
+
+  /**
    * Get or create user notification state
+   */
+  async getUserStateAsync(userId: string): Promise<UserNotificationState> {
+    // Try to load from cache or Firestore
+    const loaded = await this.loadUserState(userId);
+    if (loaded) return loaded;
+
+    // Create new state
+    const state: UserNotificationState = {
+      userId,
+      preferences: { ...DEFAULT_PREFERENCES },
+      lastNotificationAt: null,
+      todayCount: 0,
+      dismissedNotifications: [],
+      snoozeUntil: null,
+    };
+    this.userStates.set(userId, state);
+    return state;
+  }
+
+  /**
+   * Get or create user notification state (sync version)
    */
   getUserState(userId: string): UserNotificationState {
     let state = this.userStates.get(userId);
     if (!state) {
+      // Fire-and-forget load
+      if (!this.loadedUsers.has(userId)) {
+        void this.loadUserState(userId);
+      }
+
       state = {
         userId,
         preferences: { ...DEFAULT_PREFERENCES },
@@ -169,6 +268,10 @@ export class EngagementNotificationService {
   updatePreferences(userId: string, prefs: Partial<NotificationPreferences>): void {
     const state = this.getUserState(userId);
     state.preferences = { ...state.preferences, ...prefs };
+
+    // Persist to Firestore
+    void this.saveUserState(userId, state);
+
     getLogger().info({ userId, prefs }, 'Notification preferences updated');
   }
 
@@ -367,6 +470,9 @@ export class EngagementNotificationService {
       state.todayCount++;
       delivered.push(notification);
 
+      // Persist state changes
+      void this.saveUserState(userId, state);
+
       // Call callback if registered
       if (this.notificationCallback) {
         this.notificationCallback(notification);
@@ -391,6 +497,9 @@ export class EngagementNotificationService {
     const state = this.getUserState(userId);
     state.dismissedNotifications.push(notificationId);
 
+    // Persist state changes
+    void this.saveUserState(userId, state);
+
     const pending = this.pendingNotifications.get(userId) || [];
     const notification = pending.find((n) => n.id === notificationId);
     if (notification) {
@@ -404,6 +513,10 @@ export class EngagementNotificationService {
   snoozeNotifications(userId: string, hours: number): void {
     const state = this.getUserState(userId);
     state.snoozeUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+
+    // Persist state changes
+    void this.saveUserState(userId, state);
+
     getLogger().info({ userId, hours }, 'Notifications snoozed');
   }
 

@@ -7,23 +7,26 @@
  * @module AdminPortal
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { initAdminEvents, cleanupAdminEvents } from './admin-events.js';
+import { createLogger } from '../utils/logger.js';
+import { cleanupAdminEvents, initAdminEvents, setupDesignSystemHandlers } from './admin-events.js';
 import {
-  ICON_DASHBOARD,
   ICON_AGENTS,
-  ICON_EVALOPS,
-  ICON_TRUST,
-  ICON_FLAGS,
-  ICON_DIAGNOSTICS,
   ICON_API_DOCS,
+  ICON_BACK,
+  ICON_DASHBOARD,
   ICON_DESIGN_SYSTEM,
+  ICON_DIAGNOSTICS,
+  ICON_EVALOPS,
+  ICON_FLAGS,
+  ICON_LAYOUT_GRID,
+  ICON_LEAF,
+  ICON_MENU,
   ICON_REFRESH,
   ICON_SETTINGS,
-  ICON_MENU,
-  ICON_BACK,
-  ICON_LEAF,
+  ICON_SPARKLES,
+  ICON_SPEAKER,
+  ICON_TRUST,
   ICON_WARNING,
   iconSm,
 } from './icons.js';
@@ -96,6 +99,14 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/TrustSection.js')).render(),
   },
   {
+    id: 'human-listening',
+    name: 'Human Listening',
+    icon: ICON_SPEAKER,
+    description: 'Better-than-human listening insights',
+    badge: 'NEW',
+    component: async () => (await import('./sections/HumanListeningSection.js')).render(),
+  },
+  {
     id: 'flags',
     name: 'Feature Flags',
     icon: ICON_FLAGS,
@@ -117,11 +128,32 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/ApiDocsSection.js')).render(),
   },
   {
+    id: 'avatar-soul',
+    name: 'Avatar Soul',
+    icon: ICON_SPARKLES,
+    description: 'Better Than Human animations',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/AvatarSoulSection.js');
+      const html = await section.render();
+      // Schedule event setup after render
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'design-system',
     name: 'Design System',
     icon: ICON_DESIGN_SYSTEM,
     description: 'Animations and visual tokens',
     component: async () => (await import('./sections/DesignSystemSection.js')).render(),
+  },
+  {
+    id: 'more-dashboards',
+    name: 'More Dashboards',
+    icon: ICON_LAYOUT_GRID,
+    description: 'All standalone dashboards',
+    component: async () => (await import('./sections/MoreDashboardsSection.js')).render(),
   },
 ];
 
@@ -131,8 +163,8 @@ const ADMIN_SECTIONS: AdminSection[] = [
 
 function cleanupOrphanedElements(): void {
   // Remove any existing admin portal instances (from HMR)
-  document.querySelectorAll('#adminPortal').forEach(el => el.remove());
-  document.querySelectorAll('#admin-portal-styles').forEach(el => el.remove());
+  document.querySelectorAll('#adminPortal').forEach((el) => el.remove());
+  document.querySelectorAll('#admin-portal-styles').forEach((el) => el.remove());
 }
 
 // ============================================================================
@@ -149,10 +181,10 @@ export async function initAdminPortal(): Promise<void> {
   }
 
   log.info('Initializing admin portal');
-  
+
   // HMR cleanup - remove orphaned elements
   cleanupOrphanedElements();
-  
+
   state.sections = ADMIN_SECTIONS;
 
   // Inject styles
@@ -181,10 +213,10 @@ export async function initAdminPortal(): Promise<void> {
 export function destroyAdminPortal(): void {
   // Cleanup event handlers first
   cleanupAdminEvents();
-  
+
   // Remove DOM elements
   cleanupOrphanedElements();
-  
+
   state.initialized = false;
   log.info('Admin portal destroyed');
 }
@@ -195,7 +227,7 @@ export function destroyAdminPortal(): void {
 
 function renderPortal(): string {
   return `
-    <div id="adminPortal" class="admin-portal">
+    <div id="adminPortal" class="admin-portal" data-theme="admin">
       ${renderSidebar()}
       <main class="admin-main">
         <header class="admin-header">
@@ -243,7 +275,7 @@ function renderSidebar(): string {
       
       <nav class="admin-nav" aria-label="Admin navigation">
         <ul class="admin-nav-list" role="list">
-          ${state.sections.map(section => renderNavItem(section)).join('')}
+          ${state.sections.map((section) => renderNavItem(section)).join('')}
         </ul>
       </nav>
       
@@ -264,7 +296,7 @@ function renderSidebar(): string {
 
 function renderNavItem(section: AdminSection): string {
   const isActive = state.activeSection === section.id;
-  
+
   return `
     <li class="admin-nav-item" role="listitem">
       <button 
@@ -285,7 +317,7 @@ function renderNavItem(section: AdminSection): string {
 // ============================================================================
 
 async function loadSection(sectionId: string): Promise<void> {
-  const section = state.sections.find(s => s.id === sectionId);
+  const section = state.sections.find((s) => s.id === sectionId);
   if (!section) {
     log.warn({ sectionId }, 'Section not found');
     return;
@@ -301,7 +333,7 @@ async function loadSection(sectionId: string): Promise<void> {
   if (desc) desc.textContent = section.description;
 
   // Update nav active state
-  document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+  document.querySelectorAll('.admin-nav-btn').forEach((btn) => {
     const btnSection = btn.getAttribute('data-section');
     btn.classList.toggle('active', btnSection === sectionId);
     btn.setAttribute('aria-current', btnSection === sectionId ? 'page' : 'false');
@@ -321,17 +353,22 @@ async function loadSection(sectionId: string): Promise<void> {
   try {
     // Load section content
     const html = await section.component();
-    
+
     // Fade out loading
     content.style.opacity = '0';
-    await new Promise(resolve => setTimeout(resolve, DURATION.FAST));
-    
+    await new Promise((resolve) => setTimeout(resolve, DURATION.FAST));
+
     // Render content
     content.innerHTML = html;
-    
+
     // Fade in content
     content.style.opacity = '1';
-    
+
+    // Setup section-specific handlers
+    if (sectionId === 'design-system') {
+      setupDesignSystemHandlers();
+    }
+
     log.debug({ sectionId }, 'Section loaded');
   } catch (error) {
     log.error({ error, sectionId }, 'Failed to load section');
@@ -397,9 +434,10 @@ function handleKeydown(e: KeyboardEvent): void {
   // Cmd/Ctrl + number to switch sections
   if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
     const num = parseInt(e.key, 10);
-    if (num >= 1 && num <= state.sections.length) {
+    const section = state.sections[num - 1];
+    if (num >= 1 && num <= state.sections.length && section) {
       e.preventDefault();
-      void loadSection(state.sections[num - 1].id);
+      void loadSection(section.id);
     }
   }
 
@@ -439,9 +477,11 @@ function toggleSidebar(): void {
 // ============================================================================
 
 function isDevEnvironment(): boolean {
-  return window.location.hostname === 'localhost' ||
-         window.location.hostname === '127.0.0.1' ||
-         window.location.search.includes('dev');
+  return (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.search.includes('dev')
+  );
 }
 
 // ============================================================================
@@ -456,33 +496,59 @@ function injectAdminPortalStyles(): void {
   styles.textContent = `
     /* ========================================================================
        ADMIN PORTAL STYLES
-       Ferni Design System Compliant
+       Ferni Design System Compliant - Dark Theme with WCAG AA Contrast
        ======================================================================== */
 
-    /* CSS Custom Properties for Admin */
-    .admin-portal {
-      --admin-surface-subtle: rgba(255, 255, 255, 0.03);
-      --admin-surface-hover: rgba(255, 255, 255, 0.06);
-      --admin-surface-active: rgba(255, 255, 255, 0.08);
-      --admin-border-subtle: rgba(255, 255, 255, 0.05);
-      --admin-border-default: rgba(255, 255, 255, 0.1);
-      --admin-border-hover: rgba(255, 255, 255, 0.15);
+    /* Override ALL theme variables for admin portal */
+    [data-theme="admin"],
+    [data-theme="admin"] *,
+    #adminPortal,
+    #adminPortal * {
+      /* Force dark theme colors */
+      --color-background: #1a1612 !important;
+      --color-background-elevated: #2c2520 !important;
+      --color-text-primary: #faf6f0 !important;
+      --color-text-secondary: #d4ccc4 !important;
+      --color-text-muted: #a89a8c !important;
+      
+      /* Admin-specific variables */
+      --admin-bg: #1a1612;
+      --admin-bg-elevated: #2c2520;
+      --admin-bg-card: #352e28;
+      --admin-text-primary: #faf6f0;
+      --admin-text-secondary: #d4ccc4;
+      --admin-text-muted: #a89a8c;
+      --admin-border: rgba(250, 246, 240, 0.12);
+      --admin-border-hover: rgba(250, 246, 240, 0.2);
+      --admin-surface-subtle: rgba(250, 246, 240, 0.04);
+      --admin-surface-hover: rgba(250, 246, 240, 0.08);
+      --admin-surface-active: rgba(250, 246, 240, 0.12);
+      --admin-accent: #4a6741;
+      --admin-accent-hover: #5a7a50;
+    }
+    
+    /* Hide the landing page when admin is active */
+    body:has(#adminPortal) > *:not(#app):not(script):not(style):not(link) {
+      display: none !important;
     }
 
     .admin-portal {
       display: flex;
       min-height: 100vh;
-      background: var(--color-background, #1a1612);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--admin-bg) !important;
+      color: var(--admin-text-primary) !important;
       font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
+      /* Ensure admin portal is on top */
+      position: relative;
+      z-index: 100;
     }
 
     /* Sidebar */
     .admin-sidebar {
       width: 260px;
       min-width: 260px;
-      background: var(--color-background-elevated, #2c2520);
-      border-right: 1px solid var(--admin-border-subtle);
+      background: var(--admin-bg-elevated) !important;
+      border-right: 1px solid var(--admin-border);
       display: flex;
       flex-direction: column;
       transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD}),
@@ -504,7 +570,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-sidebar-header {
       padding: var(--space-4, 1rem);
-      border-bottom: 1px solid var(--admin-border-subtle);
+      border-bottom: 1px solid var(--admin-border);
     }
 
     .admin-logo {
@@ -517,7 +583,7 @@ function injectAdminPortalStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-primary, #4a6741);
+      color: var(--admin-accent);
     }
 
     .admin-logo-icon svg {
@@ -530,6 +596,7 @@ function injectAdminPortalStyles(): void {
       font-weight: 700;
       font-size: 1.125rem;
       white-space: nowrap;
+      color: var(--admin-text-primary);
     }
 
     /* Navigation */
@@ -557,7 +624,7 @@ function injectAdminPortalStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-muted);
       font-size: 0.9375rem;
       font-family: inherit;
       cursor: pointer;
@@ -567,17 +634,17 @@ function injectAdminPortalStyles(): void {
 
     .admin-nav-btn:hover {
       background: var(--admin-surface-hover);
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--admin-text-primary);
     }
 
     .admin-nav-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--admin-accent);
       outline-offset: 2px;
     }
 
     .admin-nav-btn.active {
-      background: var(--persona-primary, #4a6741);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--admin-accent);
+      color: #ffffff;
     }
 
     .admin-nav-icon {
@@ -610,7 +677,7 @@ function injectAdminPortalStyles(): void {
     /* Sidebar Footer */
     .admin-sidebar-footer {
       padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-      border-top: 1px solid var(--admin-border-subtle);
+      border-top: 1px solid var(--admin-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -618,7 +685,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-version-label {
       font-size: 0.6875rem;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--admin-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -626,7 +693,7 @@ function injectAdminPortalStyles(): void {
     .admin-version-value {
       font-family: var(--font-mono, 'JetBrains Mono', monospace);
       font-size: 0.75rem;
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-secondary);
     }
 
     .admin-env-badge {
@@ -637,13 +704,13 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-env-badge--dev {
-      background: var(--color-semantic-warning, #d4a84b);
-      color: var(--color-background, #1a1612);
+      background: #d4a84b;
+      color: #1a1612;
     }
 
     .admin-env-badge--prod {
-      background: var(--persona-primary, #4a6741);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--admin-accent);
+      color: #ffffff;
     }
 
     /* Main Content */
@@ -652,6 +719,7 @@ function injectAdminPortalStyles(): void {
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--admin-bg) !important;
     }
 
     .admin-header {
@@ -659,15 +727,15 @@ function injectAdminPortalStyles(): void {
       align-items: center;
       gap: var(--space-4, 1rem);
       padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-      background: var(--color-background-elevated, #2c2520);
-      border-bottom: 1px solid var(--admin-border-subtle);
+      background: var(--admin-bg-elevated) !important;
+      border-bottom: 1px solid var(--admin-border);
     }
 
     .admin-sidebar-toggle {
       display: none;
       background: transparent;
       border: none;
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--admin-text-primary);
       cursor: pointer;
       padding: var(--space-2, 0.5rem);
       border-radius: var(--radius-md, 8px);
@@ -679,7 +747,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-sidebar-toggle:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--admin-accent);
       outline-offset: 2px;
     }
 
@@ -713,7 +781,7 @@ function injectAdminPortalStyles(): void {
     .admin-eyebrow {
       font-size: 0.625rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--admin-accent);
       text-transform: uppercase;
       letter-spacing: 0.1em;
       margin: 0 0 var(--space-1, 0.25rem);
@@ -724,12 +792,12 @@ function injectAdminPortalStyles(): void {
       font-size: 1.25rem;
       font-weight: 600;
       margin: 0;
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--admin-text-primary) !important;
     }
 
     .admin-tagline {
       font-size: 0.8125rem;
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-secondary);
       margin: var(--space-1, 0.25rem) 0 0;
     }
 
@@ -744,6 +812,7 @@ function injectAdminPortalStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
+      color: var(--admin-text-primary);
     }
 
     .admin-icon svg {
@@ -754,8 +823,10 @@ function injectAdminPortalStyles(): void {
     /* Content Area */
     .admin-content {
       flex: 1;
+      min-height: 0; /* Required for flex child to scroll */
       padding: var(--space-6, 1.5rem);
       overflow-y: auto;
+      background: var(--admin-bg) !important;
       transition: opacity var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
     }
 
@@ -767,9 +838,9 @@ function injectAdminPortalStyles(): void {
       gap: var(--space-2, 0.5rem);
       padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
       background: var(--admin-surface-subtle);
-      border: 1px solid var(--admin-border-default);
+      border: 1px solid var(--admin-border);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--admin-text-primary) !important;
       font-size: 0.875rem;
       font-weight: 500;
       font-family: inherit;
@@ -784,17 +855,18 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--admin-accent);
       outline-offset: 2px;
     }
 
     .admin-btn--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--admin-accent) !important;
       border-color: transparent;
+      color: #ffffff !important;
     }
 
     .admin-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--admin-accent-hover) !important;
     }
 
     .admin-btn--secondary {
@@ -820,8 +892,8 @@ function injectAdminPortalStyles(): void {
     .admin-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid var(--admin-border-default);
-      border-top-color: var(--persona-primary, #4a6741);
+      border: 3px solid var(--admin-border);
+      border-top-color: var(--admin-accent);
       border-radius: 50%;
       animation: admin-spin 1s linear infinite;
     }
@@ -831,7 +903,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-loading p {
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-secondary);
       font-size: 0.875rem;
     }
 
@@ -847,7 +919,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-error-icon {
-      color: var(--color-semantic-warning, #d4a84b);
+      color: #d4a84b;
     }
 
     .admin-error-icon svg {
@@ -857,22 +929,202 @@ function injectAdminPortalStyles(): void {
 
     .admin-error h2 {
       font-size: 1.25rem;
-      color: var(--color-semantic-error, #c44536);
+      color: #c44536;
       margin: 0;
     }
 
     .admin-error-details {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-secondary);
       max-width: 400px;
     }
 
     /* Utility Classes */
-    .admin-card {
-      background: var(--color-background-elevated, #2c2520);
-      border: 1px solid var(--admin-border-subtle);
+    .admin-card,
+    [data-theme="admin"] .admin-card,
+    #adminPortal .admin-card {
+      background: #352e28 !important;
+      border: 1px solid rgba(250, 246, 240, 0.12) !important;
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-5, 1.25rem);
+      color: #faf6f0 !important;
+    }
+
+    /* Modal Styles */
+    .admin-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .admin-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 22, 18, 0.8);
+      backdrop-filter: blur(8px);
+    }
+
+    .admin-modal-card {
+      position: relative;
+      width: 90%;
+      max-width: 480px;
+      background: #352e28;
+      border: 1px solid rgba(250, 246, 240, 0.12);
+      border-radius: var(--radius-xl, 16px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .admin-modal-header {
+      padding: var(--space-5, 1.25rem);
+      border-bottom: 1px solid rgba(250, 246, 240, 0.08);
+      position: relative;
+    }
+
+    .admin-modal-title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: #faf6f0;
+    }
+
+    .admin-modal-close {
+      position: absolute;
+      top: var(--space-4, 1rem);
+      right: var(--space-4, 1rem);
+      background: transparent;
+      border: none;
+      color: #a89a8c;
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: var(--space-1, 0.25rem);
+    }
+
+    .admin-modal-close:hover {
+      color: #faf6f0;
+    }
+
+    .admin-modal-content {
+      padding: var(--space-5, 1.25rem);
+    }
+
+    .admin-modal-footer {
+      padding: var(--space-4, 1rem) var(--space-5, 1.25rem);
+      border-top: 1px solid rgba(250, 246, 240, 0.08);
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3, 0.75rem);
+    }
+
+    .admin-form-group {
+      margin-bottom: var(--space-4, 1rem);
+    }
+
+    .admin-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a89a8c;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-2, 0.5rem);
+    }
+
+    .admin-input {
+      width: 100%;
+      padding: var(--space-3, 0.75rem);
+      background: #2c2520;
+      border: 1px solid rgba(250, 246, 240, 0.12);
+      border-radius: var(--radius-md, 8px);
+      color: #faf6f0;
+      font-size: 0.9375rem;
+      font-family: inherit;
+    }
+
+    .admin-input:focus {
+      outline: none;
+      border-color: #4a6741;
+    }
+
+    .admin-color-input {
+      width: 100%;
+      height: 44px;
+      padding: var(--space-1, 0.25rem);
+      background: #2c2520;
+      border: 1px solid rgba(250, 246, 240, 0.12);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+    }
+
+    .admin-color-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .admin-color-input::-webkit-color-swatch {
+      border: none;
+      border-radius: var(--radius-sm, 4px);
+    }
+
+    .admin-modal-card--small {
+      max-width: 400px;
+    }
+
+    .admin-modal-card--wide {
+      max-width: 800px;
+    }
+
+    .admin-confirm-message {
+      color: #d4ccc4;
+      line-height: 1.6;
+    }
+
+    .admin-code-block {
+      background: #2c2520;
+      padding: var(--space-4, 1rem);
+      border-radius: var(--radius-md, 8px);
+      overflow-x: auto;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 0.75rem;
+      max-height: 400px;
+      overflow-y: auto;
+      color: #d4ccc4;
+    }
+
+    .admin-btn--danger {
+      background: #c44536;
+      border-color: #c44536;
+      color: white;
+    }
+
+    .admin-btn--danger:hover {
+      background: #a83a2e;
+      border-color: #a83a2e;
+    }
+
+    .admin-eyebrow {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4a6741;
+      display: block;
+      margin-bottom: var(--space-1, 0.25rem);
+    }
+
+    .admin-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4, 1rem);
+    }
+
+    .admin-hint {
+      font-size: 0.75rem;
+      color: #a89a8c;
+      margin-top: var(--space-1, 0.25rem);
     }
 
     .admin-grid {
@@ -889,7 +1141,7 @@ function injectAdminPortalStyles(): void {
       font-size: 2.5rem;
       font-weight: 700;
       font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--color-accent, #C4A265));
+      background: linear-gradient(135deg, var(--admin-accent), #C4A265);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -897,14 +1149,16 @@ function injectAdminPortalStyles(): void {
 
     .admin-stat-label {
       font-size: 0.75rem;
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-top: var(--space-1, 0.25rem);
     }
 
     /* Section Title (Eyebrow pattern) */
-    .admin-section-title {
+    .admin-section-title,
+    [data-theme="admin"] .admin-section-title,
+    #adminPortal .admin-section-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1rem;
       font-weight: 600;
@@ -912,11 +1166,12 @@ function injectAdminPortalStyles(): void {
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
-      color: var(--color-text-primary, #faf6f0);
+      color: #faf6f0 !important;
     }
 
-    .admin-section-title .admin-icon {
-      color: var(--persona-primary, #4a6741);
+    .admin-section-title .admin-icon,
+    [data-theme="admin"] .admin-section-title .admin-icon {
+      color: #4a6741 !important;
     }
 
     /* Tables */
@@ -924,21 +1179,26 @@ function injectAdminPortalStyles(): void {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.875rem;
+      color: var(--admin-text-primary);
     }
 
     .admin-table th,
     .admin-table td {
       padding: var(--space-3, 0.75rem);
       text-align: left;
-      border-bottom: 1px solid var(--admin-border-subtle);
+      border-bottom: 1px solid var(--admin-border);
     }
 
     .admin-table th {
       font-weight: 600;
-      color: var(--color-text-secondary, #a89a8c);
+      color: var(--admin-text-muted);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .admin-table td {
+      color: var(--admin-text-primary);
     }
 
     .admin-table tr:hover td {
@@ -974,13 +1234,13 @@ function injectAdminPortalStyles(): void {
       height: 20px;
       left: 2px;
       bottom: 2px;
-      background: var(--color-text-primary, #faf6f0);
+      background: var(--admin-text-primary);
       border-radius: 50%;
       transition: transform var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
     }
 
     .admin-toggle input:checked + .admin-toggle-slider {
-      background: var(--persona-primary, #4a6741);
+      background: var(--admin-accent);
     }
 
     .admin-toggle input:checked + .admin-toggle-slider::before {
@@ -988,7 +1248,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-toggle input:focus-visible + .admin-toggle-slider {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--admin-accent);
       outline-offset: 2px;
     }
 
@@ -1017,4 +1277,4 @@ function injectAdminPortalStyles(): void {
 // EXPORTS
 // ============================================================================
 
-export { state as adminPortalState, ADMIN_SECTIONS };
+export { ADMIN_SECTIONS, state as adminPortalState };

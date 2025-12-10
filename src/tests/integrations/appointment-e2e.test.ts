@@ -425,7 +425,9 @@ describe('Appointment Integration Service', () => {
       const result = await integrationService.scheduleAppointment(request);
 
       // Wait for simulation to complete
-      await new Promise<void>((resolve) => { setTimeout(resolve, 3000); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 3000);
+      });
 
       const status = integrationService.getAppointmentStatus(result.appointmentId);
 
@@ -473,7 +475,9 @@ describe('Full Appointment Flow Integration', () => {
 
     // Step 2: Wait for simulation
     console.log('\n2️⃣ Waiting for call simulation...');
-    await new Promise<void>((resolve) => { setTimeout(resolve, 3000); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 3000);
+    });
 
     // Step 3: Check confirmation
     console.log('\n3️⃣ Checking confirmation...');

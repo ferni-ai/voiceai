@@ -9,10 +9,9 @@
  * - Open-Meteo Geocoding (free, no key required)
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { withRateLimit } from './rate-limiter.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -221,6 +220,8 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 // ============================================================================
 
 export function createWeatherTools() {
+  const logger = getLogger();
+
   return {
     getWeather: llm.tool({
       description:
@@ -231,8 +232,21 @@ export function createWeatherTools() {
           .describe('City name (e.g., "Philadelphia", "New York", "Denver", "London")'),
       }),
       execute: async ({ location }) => {
-        getLogger().info(`Getting weather for: ${location}`);
-        return getCurrentWeather(location);
+        const startTime = Date.now();
+        logger.info({ location }, '🌤️ Weather tool called');
+
+        try {
+          const result = await getCurrentWeather(location);
+          const elapsed = Date.now() - startTime;
+          logger.info(
+            { location, elapsed, resultLength: result.length },
+            '🌤️ Weather result returned'
+          );
+          return result;
+        } catch (error) {
+          logger.error({ location, error: String(error) }, '🌤️ Weather tool error');
+          return `I couldn't get weather for ${location}. Try a different city name?`;
+        }
       },
     }),
 
@@ -244,8 +258,21 @@ export function createWeatherTools() {
         days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
       }),
       execute: async ({ location, days = 5 }) => {
-        getLogger().info(`Getting ${days}-day forecast for: ${location}`);
-        return getWeatherForecast(location, Math.min(days, 7));
+        const startTime = Date.now();
+        logger.info({ location, days }, '📅 Weather forecast tool called');
+
+        try {
+          const result = await getWeatherForecast(location, Math.min(days, 7));
+          const elapsed = Date.now() - startTime;
+          logger.info(
+            { location, days, elapsed, resultLength: result.length },
+            '📅 Weather forecast returned'
+          );
+          return result;
+        } catch (error) {
+          logger.error({ location, days, error: String(error) }, '📅 Weather forecast tool error');
+          return `I couldn't get the forecast for ${location}. Try a different city name?`;
+        }
       },
     }),
   };

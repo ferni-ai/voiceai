@@ -21,38 +21,41 @@
 
 export {
   detectUnsaidSignals,
-  getUnsaidProfile,
   getAvoidedTopics,
-  shouldAvoidTopic,
+  getUnsaidProfile,
   recordDidShare,
+  shouldAvoidTopic,
   type UnsaidSignal,
   type UserUnsaidProfile,
 } from './reading-between-lines.js';
 
 export {
-  detectNewBoundary,
   checkBoundary,
-  isTopicOffLimits,
-  getActiveBoundaries,
-  recordUserReopened,
-  recordBoundaryRespect,
-  updateProbingTolerance,
-  getProbingDepth,
+  detectNewBoundary,
   exportBoundaries,
+  getActiveBoundaries,
+  getProbingDepth,
   importBoundaries,
+  isTopicOffLimits,
+  recordBoundaryRespect,
+  recordUserReopened,
+  updateProbingTolerance,
   type Boundary,
-  type BoundaryProfile,
   type BoundaryCheckResult,
+  type BoundaryProfile,
 } from './boundary-memory.js';
 
 export {
-  recordResponse,
-  generateGrowthReflection,
-  recordReflectionResponse,
-  getUnreflectedGrowth,
-  getGrowthPatterns,
   exportGrowthProfile,
+  generateEarlyGrowthReflection,
+  generateGrowthReflection,
+  getGrowthCount,
+  getGrowthPatterns,
+  getUnreflectedGrowth,
   importGrowthProfile,
+  isGoodMomentForGrowth,
+  recordReflectionResponse,
+  recordResponse,
   type GrowthPattern,
   type GrowthProfile,
   type GrowthReflection,
@@ -60,64 +63,69 @@ export {
 
 export {
   detectCallbackMoment,
-  findCallbackOpportunity,
-  recordCallbackUsed,
   detectRunningGag,
-  recordCharacterTrait,
+  exportInsideJokesProfile,
+  findCallbackOpportunity,
   getCallbackTraits,
   getSharedMoments,
-  exportInsideJokesProfile,
   importInsideJokesProfile,
-  type SharedMoment,
-  type InsideJokesProfile,
+  recordCallbackUsed,
+  recordCharacterTrait,
   type CallbackOpportunity,
+  type InsideJokesProfile,
+  type SharedMoment,
 } from './inside-jokes.js';
 
 export {
-  detectSmallWin,
   detectIntention,
+  detectSmallWin,
+  exportSmallWinsProfile,
   generateCelebration,
-  recordCelebrationResponse,
+  generateIntentionFollowUp,
+  getIntentionToFollowUp,
+  getOverdueIntentions,
   getPendingIntentions,
   getUncelebratedWins,
-  recordKnownDifficulty,
-  exportSmallWinsProfile,
   importSmallWinsProfile,
-  type SmallWin,
-  type PendingIntention,
-  type SmallWinsProfile,
+  markIntentionAbandoned,
+  markIntentionStruggled,
+  recordCelebrationResponse,
+  recordKnownDifficulty,
   type CelebrationOpportunity,
+  type PendingIntention,
+  type SmallWin,
+  type SmallWinsProfile,
 } from './small-wins.js';
 
 export {
   detectSignificantShare,
-  generateThinkingOfYouMoments,
+  exportThinkingOfYouProfile,
   generateRandomWarmth,
+  generateThinkingOfYouMoments,
   getDueMoments,
+  importThinkingOfYouProfile,
   markMomentSent,
   recordOutreachResponse,
   updatePreferences,
-  exportThinkingOfYouProfile,
-  importThinkingOfYouProfile,
-  type ThinkingOfYouMoment,
   type SignificantShare,
+  type ThinkingOfYouMoment,
   type ThinkingOfYouProfile,
 } from './thinking-of-you.js';
 
 // 💚 "Our Songs" - Shared Musical Memories
 export {
-  detectSignificantMoment,
-  recordOurSong,
   checkForOurSong,
-  getProactiveRememberWhen,
-  getOurSongsStats,
+  detectSignificantMoment,
   getAllOurSongs,
-  loadOurSongsProfile,
   getOurSongsProfileForPersistence,
-  type SharedSongMemory,
-  type OurSongsProfile,
-  type MomentType,
+  getOurSongsStats,
+  getProactiveRememberWhen,
+  loadOurSongsProfile,
+  recordOurSong,
   type EmotionDuringMoment,
+  type MomentType,
+  type OurSongsProfile,
+  type SharedSongMemory,
   type SongCallback,
 } from './our-songs.js';
 
@@ -131,12 +139,7 @@ import {
   type UnsaidSignal,
 } from './reading-between-lines.js';
 
-import {
-  checkBoundary,
-  isTopicOffLimits,
-  detectNewBoundary,
-  type BoundaryCheckResult,
-} from './boundary-memory.js';
+import { checkBoundary, detectNewBoundary, type BoundaryCheckResult } from './boundary-memory.js';
 
 import {
   generateGrowthReflection,
@@ -145,15 +148,15 @@ import {
 } from './growth-reflection.js';
 
 import {
-  findCallbackOpportunity,
   detectCallbackMoment,
+  findCallbackOpportunity,
   type CallbackOpportunity,
 } from './inside-jokes.js';
 
 import {
+  detectIntention,
   detectSmallWin,
   generateCelebration,
-  detectIntention,
   type CelebrationOpportunity,
 } from './small-wins.js';
 
@@ -346,75 +349,75 @@ export function checkResponseSafety(
 
 // Persistence
 export {
-  saveTrustProfiles,
-  loadTrustProfiles,
-  onSessionStart,
-  onSessionEnd,
-  periodicSync,
+  deleteTrustProfiles,
   exportTrustBundle,
   importTrustBundle,
-  deleteTrustProfiles,
+  loadTrustProfiles,
+  onSessionEnd,
+  onSessionStart,
+  periodicSync,
+  saveTrustProfiles,
   type TrustProfileBundle,
 } from './persistence.js';
 
 // Voice Emotion Integration
 export {
   detectEmotionMismatch,
+  detectVoiceDeviation,
   enhanceWithVoiceEmotion,
   updateVoiceBaseline,
-  detectVoiceDeviation,
-  type VoiceEmotionSignal,
-  type EnhancedUnsaidSignal,
   type EmotionMismatch,
+  type EnhancedUnsaidSignal,
+  type VoiceEmotionSignal,
 } from './voice-emotion-integration.js';
 
 // Outreach Integration
 export {
-  queueThinkingOfYou,
-  queueCelebration,
-  queueGrowthReflection,
-  getDueItems,
   canSendOutreach,
-  executeOutreach,
-  generateOutreachOpportunities,
-  processUserOutreach,
-  setUserPreferences,
-  getUserPreferences,
   disableOutreach,
   enableOutreach,
+  executeOutreach,
+  generateOutreachOpportunities,
+  getDueItems,
+  getUserPreferences,
+  processUserOutreach,
+  queueCelebration,
+  queueGrowthReflection,
+  queueThinkingOfYou,
+  setUserPreferences,
   type OutreachItem,
-  type OutreachResult,
   type OutreachPreferences,
+  type OutreachResult,
 } from './outreach-integration.js';
 
 // Handoff Context
 export {
   buildHandoffContext,
-  getHandoffWarnings,
-  formatHandoffForLLM,
   createHandoffNote,
+  formatHandoffForLLM,
+  getHandoffWarnings,
   type HandoffTrustContext,
   type PersonaSpecificContext,
 } from './handoff-context.js';
 
 // Analytics
 export {
-  trackEvent,
-  trackDetection,
-  trackSurfaced,
-  trackActedOn,
-  trackUserResponse,
   calculateUserMetrics,
-  getAggregateMetrics,
   createABTest,
-  getTestAssignment,
-  isFeatureEnabled,
+  exportAnalytics,
+  getAggregateMetrics,
   getDailySummary,
   getHealthCheck,
-  exportAnalytics,
+  getTestAssignment,
+  isFeatureEnabled,
+  trackActedOn,
+  trackDetection,
+  trackEvent,
+  trackSurfaced,
+  trackUserResponse,
+  type ABTestConfig,
   type TrustEvent,
   type TrustMetrics,
-  type ABTestConfig,
 } from './analytics.js';
 
 // ============================================================================
@@ -422,18 +425,18 @@ export {
 // ============================================================================
 
 export {
+  cleanup as cleanupSync,
+  detectSessionContinuity,
   getSyncState,
   onSyncEvent,
+  setNetworkStatus,
   startRealTimeSync,
   stopRealTimeSync,
   syncWrite,
-  setNetworkStatus,
-  detectSessionContinuity,
   updateSessionState,
-  cleanup as cleanupSync,
-  type SyncState,
-  type SyncEvent,
   type SessionContinuity,
+  type SyncEvent,
+  type SyncState,
 } from './cross-device-sync.js';
 
 // ============================================================================
@@ -441,17 +444,17 @@ export {
 // ============================================================================
 
 export {
-  recordTimingSignal,
-  predictOptimalTiming,
-  shouldReachOutNow,
-  recordOutreachGap,
+  exportProfile as exportTimingProfile,
   getRecommendedGap,
   getTimingProfile,
-  exportProfile as exportTimingProfile,
   importProfile as importTimingProfile,
   outreachTimingML,
-  type TimingSignal,
+  predictOptimalTiming,
+  recordOutreachGap,
+  recordTimingSignal,
+  shouldReachOutNow,
   type TimingPrediction,
+  type TimingSignal,
   type UserTimingProfile,
 } from './outreach-timing-ml.js';
 
@@ -460,23 +463,23 @@ export {
 // ============================================================================
 
 export {
-  recordPersonaInteraction,
-  learnDomainKnowledge,
+  buildPersonaContext,
+  exportPersonaMemories,
+  getAllPersonaMemories,
+  getPersonaCommunicationStyle,
   getPersonaDomainKnowledge,
-  recordPersonaObservation,
+  getPersonaMemory,
   getPersonaObservations,
   getSharedInsights,
-  updatePersonaRapport,
-  getPersonaCommunicationStyle,
-  buildPersonaContext,
-  getPersonaMemory,
-  getAllPersonaMemories,
-  exportPersonaMemories,
   importPersonaMemories,
+  learnDomainKnowledge,
   personaLearning,
+  recordPersonaInteraction,
+  recordPersonaObservation,
+  updatePersonaRapport,
+  type DomainKnowledge,
   type PersonaId,
   type PersonaMemory,
-  type DomainKnowledge,
   type PersonaObservation,
   type ShareableInsight,
 } from './persona-specific-learning.js';
@@ -486,8 +489,8 @@ export {
 // ============================================================================
 
 export {
-  deliverPush,
   deliverEmail,
+  deliverPush,
   deliverSms,
   deliverToUser,
   type DeliveryChannel,
@@ -502,14 +505,14 @@ export {
 export {
   consolidateTrustProfiles,
   getConsolidatedProfile,
-  getThemesForContext,
   getMilestones,
-  searchArchive,
+  getThemesForContext,
   runScheduledConsolidation,
-  type ConsolidationConfig,
-  type ConsolidationResult,
+  searchArchive,
   type ArchivedMemory,
   type ConsolidatedProfile,
+  type ConsolidationConfig,
+  type ConsolidationResult,
 } from './memory-consolidation.js';
 
 // ============================================================================
@@ -517,25 +520,28 @@ export {
 // ============================================================================
 
 export {
-  calculateHealthScore,
-  getHealthScore,
-  getHealthTrend,
   acknowledgeAlert,
-  recordMilestone,
-  getStageName,
-  getStageDescription,
-  exportHealthData,
   calculateBoundaryRespect,
+  calculateCallbackSuccess,
+  calculateConsistency,
   calculateEmotionalAttunement,
   calculateGrowthAcknowledgment,
-  calculateCallbackSuccess,
+  calculateHealthScore,
   calculateOutreachReception,
   calculateSessionDepth,
-  calculateConsistency,
-  type RelationshipHealthScore,
-  type HealthFactor,
+  exportHealthData,
+  getAllHealthScores,
+  getHealthScore,
+  getHealthTrend,
+  getStageDescription,
+  getStageDistributionPercent,
+  getStageName,
+  getTrustAggregates,
+  recordMilestone,
   type HealthAlert,
+  type HealthFactor,
   type HealthTrend,
+  type RelationshipHealthScore,
   type RelationshipMilestone,
 } from './relationship-health.js';
 
@@ -544,14 +550,14 @@ export {
 // ============================================================================
 
 export {
+  generateGreeting,
   generateStarters,
   getBestStarter,
   markStarterUsed,
-  generateGreeting,
   type ConversationStarter,
+  type PendingFollowUp,
   type StarterType,
   type UserContext as StarterUserContext,
-  type PendingFollowUp,
   type UpcomingEvent,
 } from './conversation-starters.js';
 
@@ -561,19 +567,19 @@ export {
 
 export {
   detectLifeEvents,
-  saveEvent,
-  getUpcomingEvents,
-  getEventsNeedingReminders,
-  getEventsNeedingFollowUp,
-  recordEventOutcome,
-  markReminderSent,
-  markCheckInSent,
-  generateReminderMessage,
   generateFollowUpMessage,
-  type LifeEvent,
-  type EventType,
-  type EventSentiment,
+  generateReminderMessage,
+  getEventsNeedingFollowUp,
+  getEventsNeedingReminders,
+  getUpcomingEvents,
+  markCheckInSent,
+  markReminderSent,
+  recordEventOutcome,
+  saveEvent,
   type EventDetectionResult,
+  type EventSentiment,
+  type EventType,
+  type LifeEvent,
   type UpcomingEventSummary,
 } from './life-events.js';
 
@@ -583,13 +589,13 @@ export {
 
 export {
   calculateResponseStyle,
-  generateTuningGuidance,
-  formatGuidanceForLLM,
   checkResponseAlignment,
-  type ResponseStyle,
-  type TuningContext,
-  type TunedGuidance,
+  formatGuidanceForLLM,
+  generateTuningGuidance,
   type RelationshipStage,
+  type ResponseStyle,
+  type TunedGuidance,
+  type TuningContext,
 } from './response-tuning.js';
 
 // ============================================================================
@@ -597,18 +603,18 @@ export {
 // ============================================================================
 
 export {
-  recordWin,
-  getMomentumProfile,
-  getActiveStreaks,
   generateCelebrations,
+  getActiveStreaks,
+  getMomentumProfile,
   getMomentumSummary,
   markCelebrationShown,
-  type WinType,
+  recordWin,
+  type CelebrationSuggestion,
+  type MomentumProfile,
   type TrackedWin,
   type WinStreak,
   type WinTheme,
-  type MomentumProfile,
-  type CelebrationSuggestion,
+  type WinType,
 } from './celebration-momentum.js';
 
 // ============================================================================
@@ -616,20 +622,20 @@ export {
 // ============================================================================
 
 export {
-  recordEmotionalSnapshot,
-  getTimeline,
-  getCurrentMoodContext,
-  getRecentPeaksValleys,
-  getInsightfulPatterns,
   exportTimelineData,
   generateTimelineSummary,
-  type EmotionCategory,
-  type EmotionalSnapshot,
+  getCurrentMoodContext,
+  getInsightfulPatterns,
+  getRecentPeaksValleys,
+  getTimeline,
+  recordEmotionalSnapshot,
   type DailyMoodSummary,
-  type TimelineTrend,
-  type EmotionalPeak,
-  type SentimentTimeline,
   type EmotionalPattern,
+  type EmotionalPeak,
+  type EmotionalSnapshot,
+  type EmotionCategory,
+  type SentimentTimeline,
+  type TimelineTrend,
 } from './sentiment-timeline.js';
 
 // ============================================================================
@@ -637,17 +643,17 @@ export {
 // ============================================================================
 
 export {
-  recordVoiceSample,
   analyzeDeviation,
-  getVoiceEvolution,
-  getFamiliarityScore,
-  getEmotionDetectionBoost,
-  getBaseline,
   detectVoiceMention,
   generateVoiceContext,
-  type VoiceCharacteristics,
-  type PersonalBaseline,
+  getBaseline,
+  getEmotionDetectionBoost,
+  getFamiliarityScore,
+  getVoiceEvolution,
+  recordVoiceSample,
   type DeviationAnalysis,
+  type PersonalBaseline,
+  type VoiceCharacteristics,
   type VoiceEvolution,
 } from './voice-prosody-learning.js';
 
@@ -656,18 +662,18 @@ export {
 // ============================================================================
 
 export {
+  formatPromptForVoice,
   generatePrompts,
+  generateSituationalPrompt,
   getBestPrompt,
+  getJournalingPatterns,
   getPromptsForCategory,
   recordResponse as recordJournalingResponse,
-  getJournalingPatterns,
-  generateSituationalPrompt,
-  formatPromptForVoice,
+  type JournalingPattern,
   type JournalingPrompt,
   type PromptCategory,
   type PromptContext,
   type PromptResponse,
-  type JournalingPattern,
 } from './journaling-prompts.js';
 
 // ============================================================================
@@ -675,19 +681,19 @@ export {
 // ============================================================================
 
 export {
-  getCurrentSeason,
-  recordSeasonalData,
   addPersonalDate,
-  updateHolidayPreference,
   buildSeasonalContext,
   detectSADPatterns,
-  getSeasonalProfile,
   generateSeasonalContextForLLM,
-  type Season,
-  type SeasonalProfile,
-  type PersonalDate,
-  type SeasonalContext,
+  getCurrentSeason,
+  getSeasonalProfile,
+  recordSeasonalData,
+  updateHolidayPreference,
   type HolidayPreference,
+  type PersonalDate,
+  type Season,
+  type SeasonalContext,
+  type SeasonalProfile,
 } from './seasonal-awareness.js';
 
 // ============================================================================
@@ -696,16 +702,16 @@ export {
 
 export {
   detectStyleSignals,
-  recordLearningSignals,
-  generateDeliveryGuidance,
   formatGuidanceForLLM as formatLearningGuidanceForLLM,
-  recordAdaptationReception,
+  generateDeliveryGuidance,
   getLearningProfile,
   getStyleSummary,
-  type LearningProfile,
-  type ProcessingStyle,
-  type PacingStyle,
+  recordAdaptationReception,
+  recordLearningSignals,
   type DeliveryGuidance,
+  type LearningProfile,
+  type PacingStyle,
+  type ProcessingStyle,
   type StyleSignal,
 } from './learning-style.js';
 
@@ -714,20 +720,20 @@ export {
 // ============================================================================
 
 export {
-  recordSessionData,
+  generateReport,
+  getLatestReport,
+  getReportHistory,
+  isReportDue,
   recordEmotionData,
+  recordGrowthData,
+  recordSessionData,
   recordTopicData,
   recordWinData,
-  recordGrowthData,
-  generateReport,
-  getReportHistory,
-  getLatestReport,
-  isReportDue,
+  type ConversationInsights,
+  type GrowthInsights,
   type InsightsReport,
   type ReportPeriod,
   type ReportSummary,
-  type ConversationInsights,
-  type GrowthInsights,
   type WinsInsights,
 } from './relationship-insights.js';
 
@@ -736,17 +742,17 @@ export {
 // ============================================================================
 
 export {
+  formatSuggestionForVoice,
   generateSuggestions as generateMediaSuggestions,
   getBestSuggestion,
+  getMediaPreferences,
   getSuggestionsForMood,
   recordSuggestionFeedback,
   updateMusicPreferences,
-  formatSuggestionForVoice,
-  getMediaPreferences,
+  type MediaPreferences,
   type MediaSuggestion,
   type MediaType,
   type MoodIntent,
-  type MediaPreferences,
   type SuggestionContext,
 } from './media-suggestions.js';
 
@@ -756,13 +762,13 @@ export {
 
 export {
   recordConversationTurn,
-  recordUnifiedWin,
-  recordSessionEnd,
   recordJournalEntryUnified,
   recordMediaInteractionUnified,
+  recordSessionEnd,
+  recordUnifiedWin,
   type ConversationTurnData,
-  type SessionEndData,
   type MediaInteraction,
+  type SessionEndData,
 } from './unified-recorder.js';
 
 // ============================================================================

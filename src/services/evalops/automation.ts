@@ -24,18 +24,38 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  DEFAULT_SAMPLING_CONFIG,
   evaluateResponse,
   evaluateVoiceConsistency,
   shouldSampleConversation,
   type EvaluationContext,
   type ResponseEvaluation,
   type SamplingConfig,
-  DEFAULT_SAMPLING_CONFIG,
 } from './index.js';
 import { getPersonaFingerprint } from './persona-fingerprints.js';
-import { runCriticalScenarios, runAllScenariosForPersona } from './test-scenarios.js';
+import { runAllScenariosForPersona, runCriticalScenarios } from './test-scenarios.js';
 
 const log = getLogger();
+
+// Activity recording helper (lazy import to avoid circular deps)
+async function recordEvalActivity(event: {
+  type: string;
+  action: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    const dashboard = await import('../../api/v1/admin/dashboard.js');
+    dashboard.recordActivity({
+      type: event.type as 'evalops',
+      action: event.action,
+      description: event.description,
+      metadata: event.metadata,
+    });
+  } catch {
+    // Silently fail if dashboard module not available
+  }
+}
 
 // ============================================================================
 // FEATURE FLAGS
@@ -44,25 +64,25 @@ const log = getLogger();
 export interface EvalOpsFeatureFlags {
   /** Master switch for all EvalOps features */
   enabled: boolean;
-  
+
   /** Enable automatic sampling of conversations */
   autoSampling: boolean;
-  
+
   /** Enable real-time voice consistency checks */
   voiceChecks: boolean;
-  
+
   /** Enable full LLM evaluation (vs just heuristic) */
   llmEvaluation: boolean;
-  
+
   /** Enable scheduled test suite runs */
   scheduledSuites: boolean;
-  
+
   /** Enable alerting for flagged responses */
   alerting: boolean;
-  
+
   /** Sample rate override (0-100) */
   sampleRateOverride: number | null;
-  
+
   /** Personas to evaluate (empty = all) */
   enabledPersonas: string[];
 }
@@ -155,19 +175,18 @@ function updateMetrics(evaluation: ResponseEvaluation): void {
   metrics.totalEvaluations++;
   metrics.totalSampled++;
   metrics.lastEvaluationTime = new Date();
-  
+
   if (evaluation.flagged) {
     metrics.flaggedResponses++;
   }
-  
+
   // Update running average
-  metrics.averageScore = (
+  metrics.averageScore =
     (metrics.averageScore * (metrics.totalEvaluations - 1) + evaluation.overallScore) /
-    metrics.totalEvaluations
-  );
-  
+    metrics.totalEvaluations;
+
   // Update per-persona scores
-  const personaId = evaluation.personaId;
+  const { personaId } = evaluation;
   if (!metrics.scoresByPersona[personaId]) {
     metrics.scoresByPersona[personaId] = { count: 0, total: 0 };
   }
@@ -191,10 +210,31 @@ const MAX_STORED_EVALUATIONS = 1000;
  */
 function storeEvaluation(sessionId: string, evaluation: ResponseEvaluation): void {
   evaluationStore.push({ ...evaluation, sessionId });
-  
+
   // Keep only recent evaluations
   if (evaluationStore.length > MAX_STORED_EVALUATIONS) {
     evaluationStore.shift();
+  }
+
+  // Record to activity log
+  if (evaluation.flagged) {
+    // Find the lowest scoring dimension
+    const dimensions = evaluation.dimensions;
+    const lowestDimension = Object.entries(dimensions).reduce(
+      (lowest, [name, score]) => (score < lowest.score ? { name, score } : lowest),
+      { name: 'quality', score: 100 }
+    );
+
+    void recordEvalActivity({
+      type: 'evalops',
+      action: 'flagged',
+      description: `Response flagged for ${evaluation.personaId}: ${lowestDimension.name} (${evaluation.overallScore}%)`,
+      metadata: {
+        personaId: evaluation.personaId,
+        score: evaluation.overallScore,
+        lowestDimension: lowestDimension.name,
+      },
+    });
   }
 }
 
@@ -202,25 +242,25 @@ function storeEvaluation(sessionId: string, evaluation: ResponseEvaluation): voi
  * Get recent evaluations
  */
 export function getRecentEvaluations(
-  limit: number = 50,
+  limit = 50,
   filters?: { personaId?: string; flagged?: boolean }
 ): StoredEvaluation[] {
   let results = [...evaluationStore];
-  
+
   if (filters?.personaId) {
-    results = results.filter(e => e.personaId === filters.personaId);
+    results = results.filter((e) => e.personaId === filters.personaId);
   }
   if (filters?.flagged !== undefined) {
-    results = results.filter(e => e.flagged === filters.flagged);
+    results = results.filter((e) => e.flagged === filters.flagged);
   }
-  
+
   return results.slice(-limit).reverse();
 }
 
 /**
  * Get flagged evaluations
  */
-export function getFlaggedEvaluations(limit: number = 20): StoredEvaluation[] {
+export function getFlaggedEvaluations(limit = 20): StoredEvaluation[] {
   return getRecentEvaluations(limit, { flagged: true });
 }
 
@@ -246,7 +286,7 @@ export function onFlaggedResponse(handler: AlertHandler): () => void {
 async function sendAlerts(evaluation: ResponseEvaluation): Promise<void> {
   if (!featureFlags.alerting) return;
   if (!evaluation.flagged) return;
-  
+
   for (const handler of alertHandlers) {
     try {
       await handler(evaluation);
@@ -297,20 +337,20 @@ export async function afterTurn(
     metrics.totalSkipped++;
     return null;
   }
-  
+
   // Check if persona is enabled
   if (!isEvalOpsEnabledForPersona(personaId)) {
     metrics.totalSkipped++;
     return null;
   }
-  
+
   // Determine sample rate
   const sampleRate = featureFlags.sampleRateOverride ?? DEFAULT_SAMPLING_CONFIG.sampleRate;
   const config: SamplingConfig = {
     ...DEFAULT_SAMPLING_CONFIG,
     sampleRate,
   };
-  
+
   // Determine if we should sample this turn
   const shouldSample = shouldSampleConversation(context.turnNumber, config, {
     userReportedIssue: context.hasUserReportedIssue,
@@ -318,12 +358,12 @@ export async function afterTurn(
     emotionalIntensity: context.emotionalContext?.emotionIntensity,
     isNewUser: context.isNewUser,
   });
-  
+
   if (!shouldSample) {
     metrics.totalSkipped++;
     return null;
   }
-  
+
   try {
     // Always do quick voice check (cheap)
     if (featureFlags.voiceChecks) {
@@ -332,14 +372,14 @@ export async function afterTurn(
         log.warn({ personaId, score, issues }, 'Voice consistency issue detected');
       }
     }
-    
+
     // Build evaluation context
     const fingerprint = getPersonaFingerprint(personaId);
     if (!fingerprint) {
       log.warn({ personaId }, 'No fingerprint for persona');
       return null;
     }
-    
+
     const evalContext: EvaluationContext = {
       personaId,
       fingerprint,
@@ -349,27 +389,30 @@ export async function afterTurn(
       emotionalContext: context.emotionalContext,
       turnNumber: context.turnNumber,
     };
-    
+
     // Run evaluation
     const evaluation = await evaluateResponse(userMessage, aiResponse, evalContext, {
       // Only use LLM if enabled (otherwise it falls back to heuristic)
       apiKey: featureFlags.llmEvaluation ? undefined : '', // Empty string triggers heuristic
     });
-    
+
     // Store and track metrics
     storeEvaluation(sessionId, evaluation);
     updateMetrics(evaluation);
-    
+
     // Send alerts for flagged responses
     await sendAlerts(evaluation);
-    
-    log.debug({
-      sessionId,
-      personaId,
-      score: evaluation.overallScore,
-      flagged: evaluation.flagged,
-    }, 'Turn evaluated');
-    
+
+    log.debug(
+      {
+        sessionId,
+        personaId,
+        score: evaluation.overallScore,
+        flagged: evaluation.flagged,
+      },
+      'Turn evaluated'
+    );
+
     return evaluation;
   } catch (error) {
     metrics.errors++;
@@ -388,13 +431,13 @@ export function quickVoiceCheck(
   if (!featureFlags.enabled || !featureFlags.voiceChecks) {
     return { score: 100, status: 'healthy', issues: [] };
   }
-  
+
   const { score, issues } = evaluateVoiceConsistency(response, personaId);
-  
+
   let status: 'healthy' | 'warning' | 'critical' = 'healthy';
   if (score < 70) status = 'warning';
   if (score < 50) status = 'critical';
-  
+
   return { score, status, issues };
 }
 
@@ -420,22 +463,22 @@ const suiteResults: ScheduledSuiteResult[] = [];
 export async function runScheduledSuite(
   personaId: string,
   generateResponse: (probe: string, context?: unknown) => Promise<string>,
-  criticalOnly: boolean = false
+  criticalOnly = false
 ): Promise<ScheduledSuiteResult> {
   if (!featureFlags.enabled || !featureFlags.scheduledSuites) {
     throw new Error('Scheduled suites are disabled');
   }
-  
+
   log.info({ personaId, criticalOnly }, 'Starting scheduled test suite');
-  
+
   const results = criticalOnly
     ? await runCriticalScenarios(personaId, generateResponse)
     : (await runAllScenariosForPersona(personaId, generateResponse)).results;
-  
-  const passed = results.filter(r => r.passed).length;
+
+  const passed = results.filter((r) => r.passed).length;
   const failed = results.length - passed;
-  const criticalFailures = results.filter(r => !r.passed).length; // All critical in criticalOnly mode
-  
+  const criticalFailures = results.filter((r) => !r.passed).length; // All critical in criticalOnly mode
+
   const result: ScheduledSuiteResult = {
     personaId,
     timestamp: new Date(),
@@ -444,17 +487,28 @@ export async function runScheduledSuite(
     criticalFailures,
     passRate: (passed / results.length) * 100,
   };
-  
+
   suiteResults.push(result);
   if (suiteResults.length > 100) suiteResults.shift();
-  
-  log.info({
-    personaId,
-    passed,
-    failed,
-    passRate: result.passRate,
-  }, 'Scheduled test suite complete');
-  
+
+  // Record to activity log
+  void recordEvalActivity({
+    type: 'evalops',
+    action: 'suite_completed',
+    description: `EvalOps suite completed for ${personaId}: ${result.passRate.toFixed(0)}% pass rate (${passed}/${results.length})`,
+    metadata: { personaId, passed, failed, passRate: result.passRate },
+  });
+
+  log.info(
+    {
+      personaId,
+      passed,
+      failed,
+      passRate: result.passRate,
+    },
+    'Scheduled test suite complete'
+  );
+
   return result;
 }
 
@@ -463,7 +517,7 @@ export async function runScheduledSuite(
  */
 export function getSuiteResults(personaId?: string): ScheduledSuiteResult[] {
   if (personaId) {
-    return suiteResults.filter(r => r.personaId === personaId);
+    return suiteResults.filter((r) => r.personaId === personaId);
   }
   return [...suiteResults];
 }
@@ -492,23 +546,24 @@ export function startScheduledEvaluation(config: ScheduleConfig): void {
   if (scheduledInterval) {
     clearInterval(scheduledInterval);
   }
-  
-  const intervalMs = typeof config.schedule === 'number' 
-    ? config.schedule 
-    : 24 * 60 * 60 * 1000; // Default: daily
-  
-  scheduledInterval = setInterval(async () => {
+
+  const intervalMs = typeof config.schedule === 'number' ? config.schedule : 24 * 60 * 60 * 1000; // Default: daily
+
+  scheduledInterval = setInterval(() => {
     if (!featureFlags.enabled || !featureFlags.scheduledSuites) return;
-    
-    for (const personaId of config.personas) {
-      try {
-        await runScheduledSuite(personaId, config.generateResponse, config.criticalOnly);
-      } catch (error) {
-        log.error({ error, personaId }, 'Scheduled suite failed');
+
+    // Run async operations without blocking setInterval
+    void (async () => {
+      for (const personaId of config.personas) {
+        try {
+          await runScheduledSuite(personaId, config.generateResponse, config.criticalOnly);
+        } catch (error) {
+          log.error({ error, personaId }, 'Scheduled suite failed');
+        }
       }
-    }
+    })();
   }, intervalMs);
-  
+
   log.info({ intervalMs, personas: config.personas }, 'Scheduled evaluation started');
 }
 
@@ -535,32 +590,32 @@ export const evalopsHook = {
    * Call after each AI response is generated
    */
   afterTurn,
-  
+
   /**
    * Quick voice check (synchronous, cheap)
    */
   quickVoiceCheck,
-  
+
   /**
    * Check if evaluation is enabled for a persona
    */
   isEnabled: isEvalOpsEnabledForPersona,
-  
+
   /**
    * Get current metrics
    */
   getMetrics: getEvalMetrics,
-  
+
   /**
    * Get recent evaluations
    */
   getRecent: getRecentEvaluations,
-  
+
   /**
    * Get flagged responses
    */
   getFlagged: getFlaggedEvaluations,
-  
+
   /**
    * Register alert handler
    */
@@ -572,4 +627,3 @@ export const evalopsHook = {
 // ============================================================================
 
 export default evalopsHook;
-

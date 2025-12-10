@@ -342,7 +342,7 @@ What did we learn?
 
 ## Related Documents
 
-- [SDLC Audit](./SDLC-AUDIT.md)
+- [SDLC Audit](../audits/SDLC-AUDIT.md)
 - [Architecture Overview](./architecture/architecture.md)
 - [DORA Metrics API](./guides/api-reference.md#dora-metrics)
 

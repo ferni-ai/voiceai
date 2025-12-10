@@ -1,39 +1,47 @@
 /**
  * 🎮 Games Service
  *
- * Interactive music games for engaging conversations and building trust.
+ * Interactive games for engaging conversations and building trust.
  *
- * ## Available Games
+ * ## Available Music Games
  * - **Name That Tune**: Guess the song from a clip
  * - **One Word Song**: Say a word, find a song with that word
  * - **Desert Island Discs**: Pick 5 songs for a desert island
  * - **This or That**: Choose between two songs
  * - **Mood DJ Challenge**: Describe a mood, pick a matching song
  *
+ * ## Available Text Games
+ * - **Tic-Tac-Toe**: Classic 3x3 grid game with voice-friendly positions
+ * - (Coming soon: 20 Questions, Word Association, Would You Rather)
+ *
  * ## Architecture
  * ```
- * GameEngine (lifecycle) → Music Games (implementations)
- *                       → Game Music (iTunes/playback)
- *                       → Game Store (Firestore persistence)
- *                       → Game Intelligence (DNA, milestones)
- *                       → Game Analytics (usage tracking)
+ * GameEngine (music) → Music Games (implementations)
+ *                    → Game Music (iTunes/playback)
+ *                    → Game Store (Firestore persistence)
+ *                    → Game Intelligence (DNA, milestones)
+ *                    → Game Analytics (usage tracking)
+ *
+ * TextGameEngine → Tic-Tac-Toe (board game logic)
+ *               → (Future: 20 Questions, Word Association, etc.)
  * ```
  *
- * ## Quick Start
+ * ## Quick Start - Music Games
  * ```typescript
  * import { getGameEngine, trackGameStart } from './services/games';
  *
- * // Get engine
  * const engine = getGameEngine('ferni');
- *
- * // Initialize for user (loads persisted data)
  * await engine.initializeForUser(userId);
- *
- * // Start a game
  * const result = await engine.startGame('name-that-tune');
+ * ```
  *
- * // Track analytics
- * trackGameStart(userId, 'name-that-tune', 'ferni');
+ * ## Quick Start - Text Games
+ * ```typescript
+ * import { getTextGameEngine } from './services/games';
+ *
+ * const engine = getTextGameEngine('ferni');
+ * const result = await engine.startGame('tic-tac-toe');
+ * const moveResult = await engine.makeMove('center');
  * ```
  *
  * ## Documentation
@@ -44,31 +52,48 @@
  */
 
 // Types
+export type { IGameImplementation } from './game-engine.js';
+export type * from './text-game-types.js';
 export type * from './types.js';
+export { GameEngine, getGameEngine, resetGameEngine };
 
 // Game Engine - import first so we can use it locally
 import { GameEngine, getGameEngine, resetGameEngine } from './game-engine.js';
-export { GameEngine, getGameEngine, resetGameEngine };
-export type { IGameImplementation } from './game-engine.js';
+
+// Text Game Engine
+import { TextGameEngine, getTextGameEngine, resetTextGameEngine } from './text-game-engine.js';
+export { TextGameEngine, getTextGameEngine, resetTextGameEngine };
 
 // Music Games
 export { getMusicGameImplementation, setGameMemoryForGames } from './music-games.js';
 
+// Text Games - Tic-Tac-Toe
+export {
+  checkWinner as checkTicTacToeWinner,
+  createInitialState as createTicTacToeState,
+  describeBoardForVoice as describeTicTacToeBoard,
+  getAIMove as getTicTacToeAIMove,
+  isValidMove as isTicTacToeMoveValid,
+  makeMove as makeTicTacToeMove,
+  parsePosition as parseTicTacToePosition,
+  processUserMove as processTicTacToeMove,
+} from './tic-tac-toe.js';
+
 // Game Music Helper (for playing music during games)
 export {
-  searchSong,
-  searchSongWithWord,
-  searchSongForMood,
-  getRandomGameSongs,
-  playGameTrack,
-  stopGameTrack,
-  fadeOutGameTrack,
-  isMusicAvailable,
-  isPlaying as isGameMusicPlaying,
   duckForUserGuess,
+  fadeOutGameTrack,
+  getRandomGameSongs,
+  isPlaying as isGameMusicPlaying,
+  isMusicAvailable,
+  playGameTrack,
+  searchSong,
+  searchSongForMood,
+  searchSongWithWord,
+  stopGameTrack,
   unduckAfterGuess,
-  type GameTrack,
   type SearchResult as GameSearchResult,
+  type GameTrack,
 } from './game-music.js';
 
 // ============================================================================
@@ -76,7 +101,7 @@ export {
 // ============================================================================
 
 /**
- * Check if a game is currently active
+ * Check if a music game is currently active
  * Used by silence handler to avoid interrupting games
  */
 export function isGameCurrentlyActive(): boolean {
@@ -86,6 +111,25 @@ export function isGameCurrentlyActive(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Check if a text game is currently active
+ */
+export function isTextGameCurrentlyActive(): boolean {
+  try {
+    const engine = getTextGameEngine();
+    return engine.isGameActive();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if ANY game (music or text) is currently active
+ */
+export function isAnyGameActive(): boolean {
+  return isGameCurrentlyActive() || isTextGameCurrentlyActive();
 }
 
 /**
@@ -101,15 +145,30 @@ export function getCurrentGameType(): string | null {
 }
 
 /**
+ * Get current text game type (if active)
+ */
+export function getCurrentTextGameType(): string | null {
+  try {
+    const engine = getTextGameEngine();
+    return engine.getCurrentGameType();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get game context for silence handler
  */
 export function getGameContextForSilence(): {
   isGameActive: boolean;
   activeGameType: string | null;
 } {
+  const musicGame = isGameCurrentlyActive();
+  const textGame = isTextGameCurrentlyActive();
+
   return {
-    isGameActive: isGameCurrentlyActive(),
-    activeGameType: getCurrentGameType(),
+    isGameActive: musicGame || textGame,
+    activeGameType: musicGame ? getCurrentGameType() : textGame ? getCurrentTextGameType() : null,
   };
 }
 
@@ -119,16 +178,16 @@ export function getGameContextForSilence(): {
 
 export {
   createEmptyGameMemory,
+  detectTopicChange,
+  getGameHistoryIntro,
   getGameMemory,
+  getSuggestedGame,
+  resetGameActivity,
+  saveDesertIslandPicks,
   saveGameSession,
   saveSongGuessed,
-  saveDesertIslandPicks,
-  getGameHistoryIntro,
-  getSuggestedGame,
-  updateGameActivity,
   shouldAutoEndGame,
-  resetGameActivity,
-  detectTopicChange,
+  updateGameActivity,
 } from './game-persistence.js';
 
 // ============================================================================
@@ -136,11 +195,11 @@ export {
 // ============================================================================
 
 export {
-  getVerbalSoundEffect,
-  playGameSound,
   getGameFeedback,
-  playGameStartSound,
+  getVerbalSoundEffect,
   playGameEndSound,
+  playGameSound,
+  playGameStartSound,
 } from './game-sounds.js';
 
 // ============================================================================
@@ -148,29 +207,23 @@ export {
 // ============================================================================
 
 export {
-  // Musical DNA tracking
-  recordGuess,
-  getTopAffinities,
-  getWeakAreas,
-
   // Adaptive difficulty
   analyzeDifficulty,
-
-  // Milestone detection
-  checkMilestones,
-
   // Musical personality
   analyzeMusicalPersonality,
-  getPersonalityComment,
-
-  // Conversation callbacks
-  storeConversationHint,
+  // Milestone detection
+  checkMilestones,
   getConversationCallback,
-
+  getMusicalDNAMessage,
+  getPersonalityComment,
   // Song selection intelligence
   getSongSelectionContext,
-  getMusicalDNAMessage,
-
+  getTopAffinities,
+  getWeakAreas,
+  // Musical DNA tracking
+  recordGuess,
+  // Conversation callbacks
+  storeConversationHint,
   // Types
   type DifficultyRecommendation,
   type MilestoneEvent,
@@ -187,15 +240,14 @@ export {
   generateMusicInsights,
   getConversationalInsight,
   getGameSuggestion,
-
+  type AffinityDisplay,
+  type JourneyStats,
+  type MemorableMoment,
+  type MilestoneDisplay,
   // Types
   type MusicInsights,
-  type PersonalitySummary,
-  type AffinityDisplay,
-  type MilestoneDisplay,
-  type MemorableMoment,
-  type JourneyStats,
   type PersonaPlayStats,
+  type PersonalitySummary,
 } from './game-insights.js';
 
 // ============================================================================
@@ -203,26 +255,23 @@ export {
 // ============================================================================
 
 export {
-  // Loading
-  loadGameMemory,
-  loadMusicMemory,
-
-  // Saving
-  saveGameMemory,
-  saveMusicMemory,
+  clearCache,
   forceSaveGameMemory,
 
   // Quick access
   getCachedGameMemory,
-  updateCachedGameMemory,
-  clearCache,
-
+  // Loading
+  loadGameMemory,
+  loadMusicMemory,
   // Convenience
   recordGameCompletion,
-  updateMusicalDNA,
-
+  // Saving
+  saveGameMemory,
+  saveMusicMemory,
   // Shutdown
   shutdown as shutdownGameStore,
+  updateCachedGameMemory,
+  updateMusicalDNA,
 } from './game-store.js';
 
 // ============================================================================
@@ -230,25 +279,23 @@ export {
 // ============================================================================
 
 export {
+  // Getters
+  getAnalyticsSummary,
+  getGameTypeBreakdown,
+  getUserEvents,
+  resetAnalytics,
+  trackAnswer,
+  trackDashboardOpen,
+  trackGameAbandoned,
+  trackGameComplete,
   // Tracking
   trackGameEvent,
   trackGameStart,
-  trackGameComplete,
-  trackGameAbandoned,
-  trackAnswer,
-  trackDashboardOpen,
   trackProactiveOffer,
-
-  // Getters
-  getAnalyticsSummary,
-  getUserEvents,
-  getGameTypeBreakdown,
-  resetAnalytics,
-
+  type GameAnalyticsSummary,
   // Types
   type GameEvent,
   type GameEventType,
-  type GameAnalyticsSummary,
 } from './game-analytics.js';
 
 // ============================================================================
@@ -256,8 +303,21 @@ export {
 // ============================================================================
 
 export {
-  preloadNextRoundSongs,
-  getPreloadedOrSearch,
   clearPreloadQueue,
   getPreloadQueueSize,
+  getPreloadedOrSearch,
+  preloadNextRoundSongs,
 } from './game-music.js';
+
+// ============================================================================
+// 🎮🎵 GAME MUSIC CONTROLLER (Phase 1.5)
+// ============================================================================
+
+export {
+  getGameMusicController,
+  getGameMusicIntensity,
+  isGameMusicActive,
+  resetGameMusicController,
+  type GameMusicEventResult,
+  type GameMusicState,
+} from './game-music-controller.js';

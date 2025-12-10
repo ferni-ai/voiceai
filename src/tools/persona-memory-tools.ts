@@ -15,7 +15,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   getUserId,
@@ -697,7 +697,7 @@ Alex tracks when people are available and their scheduling quirks.`,
 // SHARED MEMORY MANAGEMENT TOOLS
 // ============================================================================
 
-const logger = getLogger().child({ module: 'MemoryTools' });
+const logger = createLogger({ module: 'MemoryTools' });
 
 /**
  * Create universal memory management tools available to all personas.
@@ -711,8 +711,17 @@ Examples: "Forget that I like Target", "Delete my savings goal", "Remove that fr
       parameters: z.object({
         searchTerm: z.string().describe('What to search for and forget'),
         persona: z
-          .enum(['jack-b', 'nayan-patel', 'peter-john', 'spend-save', 'event-planner', 'comm-specialist'])
-          .describe('Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'),
+          .enum([
+            'jack-b',
+            'nayan-patel',
+            'peter-john',
+            'spend-save',
+            'event-planner',
+            'comm-specialist',
+          ])
+          .describe(
+            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
+          ),
       }),
       execute: async ({ searchTerm, persona }, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -724,7 +733,10 @@ Examples: "Forget that I like Target", "Delete my savings goal", "Remove that fr
 
         const success = await forget(memory.id);
         if (success) {
-          logger.info({ userId, memoryId: memory.id, name: memory.name }, 'Memory deleted by user request');
+          logger.info(
+            { userId, memoryId: memory.id, name: memory.name },
+            'Memory deleted by user request'
+          );
           return `Done! I've forgotten about "${memory.name}". Your data, your choice. 🗑️`;
         } else {
           return `I had trouble forgetting that. Please try again or let me know if this keeps happening.`;
@@ -738,8 +750,17 @@ Examples: "Update my savings goal to $10,000", "Change Netflix to $15.99/month"`
       parameters: z.object({
         searchTerm: z.string().describe('What memory to update'),
         persona: z
-          .enum(['jack-b', 'nayan-patel', 'peter-john', 'spend-save', 'event-planner', 'comm-specialist'])
-          .describe('Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'),
+          .enum([
+            'jack-b',
+            'nayan-patel',
+            'peter-john',
+            'spend-save',
+            'event-planner',
+            'comm-specialist',
+          ])
+          .describe(
+            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
+          ),
         updates: z.object({
           name: z.string().optional().describe('New name'),
           details: z.string().optional().describe('New details'),
@@ -792,14 +813,20 @@ Use when user asks about their full stock/company knowledge base.`,
         }
 
         if (watchlist.length > 0) {
-          response += `👀 **Watchlist (${watchlist.length}):**\n${watchlist.slice(0, 10).map((m) => `• ${m.ticker ? `${m.ticker}` : m.name}${m.reason ? ` - ${m.reason}` : ''}`).join('\n')}\n\n`;
+          response += `👀 **Watchlist (${watchlist.length}):**\n${watchlist
+            .slice(0, 10)
+            .map((m) => `• ${m.ticker ? `${m.ticker}` : m.name}${m.reason ? ` - ${m.reason}` : ''}`)
+            .join('\n')}\n\n`;
         }
 
         if (companies.length > 0) {
-          response += `🏢 **Companies You Know (${companies.length}):**\n${companies.slice(0, 10).map((m) => `• ${m.name}${m.reason ? ` - ${m.reason}` : ''}`).join('\n')}\n\n`;
+          response += `🏢 **Companies You Know (${companies.length}):**\n${companies
+            .slice(0, 10)
+            .map((m) => `• ${m.name}${m.reason ? ` - ${m.reason}` : ''}`)
+            .join('\n')}\n\n`;
         }
 
-        return response + `_Remember: The best investments come from knowing what you own!_`;
+        return `${response}_Remember: The best investments come from knowing what you own!_`;
       },
     }),
   };

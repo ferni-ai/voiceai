@@ -253,9 +253,53 @@ async function createDoorDashDelivery(order: {
 }
 
 async function createDoorDashJWT(): Promise<string> {
-  // In production, use proper JWT signing
-  // This is a placeholder - implement with jsonwebtoken or similar
-  return DOORDASH_API_KEY;
+  // DoorDash Drive API requires JWT signed with RS256
+  // See: https://developer.doordash.com/en-US/docs/drive/reference/authentication
+  if (!DOORDASH_DEVELOPER_ID || !DOORDASH_KEY_ID || !DOORDASH_SIGNING_SECRET) {
+    throw new Error('DoorDash credentials not configured');
+  }
+
+  const crypto = await import('crypto');
+
+  // JWT Header
+  const header = {
+    alg: 'HS256',
+    typ: 'JWT',
+    'dd-ver': 'DD-JWT-V1',
+  };
+
+  // JWT Payload
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    aud: 'doordash',
+    iss: DOORDASH_DEVELOPER_ID,
+    kid: DOORDASH_KEY_ID,
+    iat: now,
+    exp: now + 300, // 5 minutes expiry
+  };
+
+  // Base64URL encode
+  const base64url = (data: object | string): string => {
+    const str = typeof data === 'string' ? data : JSON.stringify(data);
+    return Buffer.from(str)
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  };
+
+  const encodedHeader = base64url(header);
+  const encodedPayload = base64url(payload);
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+  // Sign with HMAC-SHA256 using the signing secret
+  // DoorDash signing secret is base64-encoded, so decode it first
+  const decodedSecret = Buffer.from(DOORDASH_SIGNING_SECRET, 'base64');
+  const hmac = crypto.createHmac('sha256', decodedSecret);
+  hmac.update(signingInput);
+  const signature = hmac.digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  return `${signingInput}.${signature}`;
 }
 
 // ============================================================================

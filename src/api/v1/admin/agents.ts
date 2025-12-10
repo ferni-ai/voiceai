@@ -50,11 +50,11 @@ function readAgentConfig(): { disabledAgents: string[]; teamOrder?: string[] } {
 function writeAgentConfig(config: { disabledAgents: string[]; teamOrder?: string[] }): void {
   const configPath = getConfigPath();
   const dataDir = path.dirname(configPath);
-  
+
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  
+
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
@@ -106,12 +106,11 @@ export async function handleAdminAgentsRoutes(
     // ========================================================================
     if (subPath === '/' && method === 'GET') {
       const registryAgents = await AgentRegistry.getEnabledAgents();
-      
+
       // If no agents, return hardcoded fallback (simplified agent list for UI)
-      const agents = (registryAgents && registryAgents.length > 0)
-        ? registryAgents
-        : getFallbackAgents();
-      
+      const agents =
+        registryAgents && registryAgents.length > 0 ? registryAgents : getFallbackAgents();
+
       sendJSON(res, {
         agents,
         count: agents.length,
@@ -162,8 +161,8 @@ export async function handleAdminAgentsRoutes(
     // UPDATE TEAM ORDER
     // ========================================================================
     if (subPath === '/order' && method === 'POST') {
-      const body = await parseBody(req) as { order?: string[] };
-      
+      const body = (await parseBody(req)) as { order?: string[] };
+
       if (!body.order || !Array.isArray(body.order)) {
         sendError(res, 'order array is required', 400);
         return true;
@@ -179,6 +178,165 @@ export async function handleAdminAgentsRoutes(
     }
 
     // ========================================================================
+    // CREATE AGENT FROM TEMPLATE
+    // ========================================================================
+    if (subPath === '/create-from-template' && method === 'POST') {
+      const body = (await parseBody(req)) as {
+        id: string;
+        name: string;
+        subtitle?: string;
+        template: string;
+        personality?: string;
+        colors?: { primary: string; secondary: string };
+        initials?: string;
+        voiceStyle?: string;
+      };
+
+      if (!body.id || !body.name || !body.template) {
+        sendError(res, 'id, name, and template are required', 400);
+        return true;
+      }
+
+      // Validate agent ID format
+      if (!/^[a-z0-9-]+$/.test(body.id)) {
+        sendError(res, 'Agent ID must be lowercase letters, numbers, and hyphens only', 400);
+        return true;
+      }
+
+      // Check if agent already exists
+      const existingAgent = await AgentRegistry.getAgentOrNull(body.id);
+      if (existingAgent) {
+        sendError(res, `Agent "${body.id}" already exists`, 409);
+        return true;
+      }
+
+      // Store agent configuration
+      const configPath = path.join(process.cwd(), 'data', 'agent-customizations.json');
+      let customizations: Record<string, unknown> = {};
+
+      try {
+        if (fs.existsSync(configPath)) {
+          customizations = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        }
+      } catch {
+        // Start fresh
+      }
+
+      const agentConfig = {
+        id: body.id,
+        name: body.name,
+        subtitle: body.subtitle || '',
+        template: body.template,
+        personality: body.personality || '',
+        colors: body.colors || { primary: '#4a6741', secondary: '#3d5a35' },
+        initials: body.initials || body.name.slice(0, 2).toUpperCase(),
+        voiceStyle: body.voiceStyle || 'neutral',
+        createdAt: new Date().toISOString(),
+        createdFromTemplate: true,
+      };
+
+      customizations[body.id] = agentConfig;
+
+      const dataDir = path.dirname(configPath);
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(configPath, JSON.stringify(customizations, null, 2));
+
+      // Optionally scaffold a persona bundle directory
+      let bundlePath: string | null = null;
+      const bundleDir = path.join(process.cwd(), 'src', 'personas', 'bundles', body.id);
+
+      if (!fs.existsSync(bundleDir)) {
+        try {
+          // Create basic bundle structure
+          fs.mkdirSync(bundleDir, { recursive: true });
+          fs.mkdirSync(path.join(bundleDir, 'identity'), { recursive: true });
+          fs.mkdirSync(path.join(bundleDir, 'content', 'behaviors'), { recursive: true });
+
+          // Create manifest
+          const manifest = {
+            id: body.id,
+            version: '1.0.0',
+            name: body.name,
+            subtitle: body.subtitle || '',
+            template: body.template,
+            enabled: true,
+            colors: body.colors,
+            voice: {
+              provider: 'elevenlabs',
+              style: body.voiceStyle || 'neutral',
+            },
+          };
+          fs.writeFileSync(
+            path.join(bundleDir, 'persona.manifest.json'),
+            JSON.stringify(manifest, null, 2)
+          );
+
+          // Create basic system prompt
+          const systemPrompt = `# ${body.name}
+
+## Role
+${body.subtitle || 'AI Assistant'}
+
+## Personality
+${body.personality || 'Friendly and helpful'}
+
+## Communication Style
+- Warm and conversational
+- Clear and concise
+- Supportive and encouraging
+
+## Template
+Created from the "${body.template}" template.
+`;
+          fs.writeFileSync(path.join(bundleDir, 'identity', 'system-prompt.md'), systemPrompt);
+
+          // Create basic greetings behavior
+          const greetings = {
+            greetings: [
+              {
+                context: 'first_meeting',
+                phrases: [
+                  `Hi! I'm ${body.name}. It's great to meet you!`,
+                  `Hello there! I'm ${body.name}, nice to connect with you.`,
+                ],
+              },
+              {
+                context: 'returning_user',
+                phrases: [
+                  `Welcome back! Great to see you again.`,
+                  `Hey there! How have you been?`,
+                ],
+              },
+            ],
+          };
+          fs.writeFileSync(
+            path.join(bundleDir, 'content', 'behaviors', 'greetings.json'),
+            JSON.stringify(greetings, null, 2)
+          );
+
+          bundlePath = bundleDir;
+          log.info({ agentId: body.id, bundlePath }, 'Persona bundle scaffolded');
+        } catch (e) {
+          log.warn({ error: e, agentId: body.id }, 'Failed to scaffold persona bundle');
+          // Continue - config was saved even if bundle scaffolding failed
+        }
+      }
+
+      log.info({ agentId: body.id, template: body.template }, 'Agent created from template');
+      sendJSON(res, {
+        success: true,
+        agent: agentConfig,
+        bundlePath,
+        message: bundlePath
+          ? `Agent "${body.name}" created with persona bundle at ${bundlePath}`
+          : `Agent "${body.name}" configuration saved. Create persona bundle manually.`,
+      });
+      return true;
+    }
+
+    // ========================================================================
     // SINGLE AGENT OPERATIONS
     // ========================================================================
     const agentIdMatch = subPath.match(/^\/([^/]+)$/);
@@ -187,19 +345,19 @@ export async function handleAdminAgentsRoutes(
     // POST /api/v1/admin/agents/:id/enable - Enable/disable agent
     if (enableMatch && method === 'POST') {
       const agentId = decodeURIComponent(enableMatch[1]);
-      const body = await parseBody(req) as { enabled?: boolean };
+      const body = (await parseBody(req)) as { enabled?: boolean };
       const enabled = body.enabled !== false;
 
       const config = readAgentConfig();
-      
+
       if (enabled) {
-        config.disabledAgents = config.disabledAgents.filter(id => id !== agentId);
+        config.disabledAgents = config.disabledAgents.filter((id) => id !== agentId);
       } else {
         if (!config.disabledAgents.includes(agentId)) {
           config.disabledAgents.push(agentId);
         }
       }
-      
+
       writeAgentConfig(config);
 
       log.info({ agentId, enabled }, 'Agent enable/disable via API');
@@ -229,7 +387,7 @@ export async function handleAdminAgentsRoutes(
     // PUT /api/v1/admin/agents/:id - Update agent settings
     if (agentIdMatch && method === 'PUT') {
       const agentId = decodeURIComponent(agentIdMatch[1]);
-      const body = await parseBody(req) as {
+      const body = (await parseBody(req)) as {
         colors?: { primary: string; secondary: string };
         subtitle?: string;
       };
@@ -244,7 +402,7 @@ export async function handleAdminAgentsRoutes(
       // Store customizations in config file
       const configPath = path.join(process.cwd(), 'data', 'agent-customizations.json');
       let customizations: Record<string, unknown> = {};
-      
+
       try {
         if (fs.existsSync(configPath)) {
           customizations = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -254,7 +412,7 @@ export async function handleAdminAgentsRoutes(
       }
 
       customizations[agentId] = {
-        ...(customizations[agentId] as Record<string, unknown> || {}),
+        ...((customizations[agentId] as Record<string, unknown>) || {}),
         ...body,
         updatedAt: new Date().toISOString(),
       };
@@ -341,4 +499,3 @@ function getFallbackAgents() {
 }
 
 export default { handleAdminAgentsRoutes };
-

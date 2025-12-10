@@ -5,8 +5,8 @@
  * These are the primary exports used throughout the application.
  */
 
-import { FINANCIAL_PRONUNCIATIONS, FINANCIAL_START, FINANCIAL_END } from './constants.js';
-import { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
+import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
+import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
 
 // =============================================================================
@@ -255,22 +255,54 @@ export function tagTextWithSsmlPersonaAware(
 }
 
 /**
- * Add basic pauses at natural break points
+ * Add natural pauses at break points
+ * Enhanced for longer content delivery - "Better than human" pacing
  */
 function addBasicPauses(text: string): string {
   let result = text;
 
-  // Pause after sentences
-  result = result.replace(/\.(\s+)([A-Z])/g, '.<break time="200ms"/>$1$2');
+  // Count sentences for adaptive pacing
+  const sentenceCount = (text.match(/[.!?]+/g) || []).length;
+  const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
+  const isLongContent = wordCount > 60 || sentenceCount > 4;
 
-  // Pause after questions
-  result = result.replace(/\?(\s+)([A-Z])/g, '?<break time="250ms"/>$1$2');
+  // Longer pauses for longer content - gives breathing room
+  const sentencePause = isLongContent ? '300ms' : '200ms';
+  const questionPause = isLongContent ? '350ms' : '250ms';
+  const listItemPause = isLongContent ? '400ms' : '250ms';
+
+  // Pause after sentences - longer for complex content
+  result = result.replace(/\.(\s+)([A-Z])/g, `.<break time="${sentencePause}"/>$1$2`);
+
+  // Pause after questions - thinking room
+  result = result.replace(/\?(\s+)([A-Z])/g, `?<break time="${questionPause}"/>$1$2`);
 
   // Pause after exclamations
   result = result.replace(/!(\s+)([A-Z])/g, '!<break time="200ms"/>$1$2');
 
   // Brief pause at commas in longer clauses
   result = result.replace(/,(\s+)(\w{20,})/g, ',<break time="100ms"/>$1$2');
+
+  // Pause after colons (often precede lists or explanations)
+  result = result.replace(/:(\s+)([A-Z])/g, `:<break time="${listItemPause}"/>$1$2`);
+
+  // Pause after semicolons (related but distinct thoughts)
+  result = result.replace(/;(\s+)/g, `;<break time="250ms"/>$1`);
+
+  // Pause before list indicators (first, second, also, another, etc.)
+  result = result.replace(
+    /(\.\s+)(First|Second|Third|Also|Another|Additionally|Furthermore|Moreover|Finally)\b/gi,
+    `$1<break time="${listItemPause}"/>$2`
+  );
+
+  // Slow down slightly before important words
+  result = result.replace(
+    /\b(importantly|crucially|key|essential|main|critical)\b/gi,
+    '<break time="150ms"/>$1'
+  );
+
+  // Add breathing room after parentheticals
+  result = result.replace(/\)(\s+)([A-Z])/g, ')$1<break time="200ms"/>$2');
 
   return result;
 }

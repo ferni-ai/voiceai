@@ -28,7 +28,7 @@ const captureQuestionDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'questions', 'capture'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user capture and save a question they want to explore.',
       parameters: z.object({
@@ -69,7 +69,7 @@ const exploreQuestionDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'exploration', 'depth'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide deep exploration of a question without rushing to answers.',
       parameters: z.object({
@@ -128,7 +128,7 @@ const experienceWonderDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'wonder', 'awe'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user cultivate and capture experiences of wonder and awe.',
       parameters: z.object({
@@ -180,7 +180,7 @@ const cultivateBeginnersMindDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'beginners-mind', 'freshness'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user practice seeing something familiar with fresh, beginner eyes.',
       parameters: z.object({
@@ -217,7 +217,7 @@ const intellectualExplorationDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'intellectual', 'learning'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user follow a thread of intellectual curiosity.',
       parameters: z.object({
@@ -268,7 +268,7 @@ const embraceMysteryDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'mystery', 'not-knowing'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user embrace mystery and find comfort in not-knowing.',
       parameters: z.object({
@@ -317,7 +317,7 @@ const whatIfDef: ToolDefinition = {
   domain: 'curiosity',
   tags: ['curiosity', 'imagination', 'what-if'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Explore imaginative "what if" questions playfully.',
       parameters: z.object({

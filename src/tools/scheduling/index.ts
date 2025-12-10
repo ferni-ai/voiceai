@@ -1,21 +1,33 @@
 /**
- * Scheduling Tools Module
+ * Scheduling Module
  *
- * Tools for appointment scheduling, food delivery, places lookup, and contact management.
+ * Tools for appointment scheduling, delivery tracking, places lookup, and contact management.
  *
  * Module structure:
  * - types.ts: Shared types and interfaces
- * - appointment-core.ts: Core appointment functions (createAppointment, makeCall, etc.)
- * - ../scheduling.ts: Tool definitions (to be migrated here incrementally)
+ * - appointment-core.ts: Core appointment functions
+ * - appointments-tools.ts: Appointment & reservation LLM tools
+ * - delivery-tools.ts: Delivery tracking LLM tools
+ * - places-tools.ts: Places/location LLM tools
+ * - contacts-tools.ts: Contact management LLM tools
  *
- * Usage:
- *   import { createAppointmentTools, AppointmentType } from './scheduling/index.js';
+ * @module scheduling
  */
 
-// Export types
-export type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
+// ============================================================================
+// TYPES
+// ============================================================================
 
-// Export core appointment functions
+export type {
+  AppointmentType,
+  AppointmentStatus,
+  ScheduledAppointment,
+} from './types.js';
+
+// ============================================================================
+// CORE FUNCTIONS
+// ============================================================================
+
 export {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -24,3 +36,18 @@ export {
   getAppointment,
   getUserAppointments,
 } from './appointment-core.js';
+
+// ============================================================================
+// TOOL CREATORS
+// ============================================================================
+
+export { createAppointmentTools } from './appointments-tools.js';
+export { createDeliveryTools } from './delivery-tools.js';
+export { createPlacesTools } from './places-tools.js';
+export { createContactsTools } from './contacts-tools.js';
+
+// ============================================================================
+// DEFAULT EXPORT
+// ============================================================================
+
+export { createAppointmentTools as default } from './appointments-tools.js';

@@ -9,15 +9,14 @@
  *
  * Works with the outreach intelligence system to send timely,
  * contextual messages that support user goals.
+ *
+ * PERSISTENCE: Goals and streaks are persisted to Firestore.
  */
 
+import { canReachUser, scheduleEmail, scheduleText } from '../tools/proactive-outreach.js';
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  scheduleText,
-  scheduleEmail,
-  canReachUser,
-} from '../tools/proactive-outreach.js';
-import { getPreferences, canSendOutreach } from './outreach-intelligence.js';
+import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // ============================================================================
 // TYPES
@@ -66,11 +65,173 @@ export interface HabitCheckIn {
 }
 
 // ============================================================================
-// STORAGE
+// PERSISTENCE TYPES (serialized for Firestore)
+// ============================================================================
+
+interface PersistedGoal {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  targetDate?: string; // ISO string
+  progress: number;
+  status: 'active' | 'completed' | 'paused' | 'abandoned';
+  milestones: Array<{
+    id: string;
+    title: string;
+    targetProgress: number;
+    reached: boolean;
+    reachedAt?: string; // ISO string
+    celebrationSent: boolean;
+  }>;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+}
+
+interface PersistedStreak {
+  id: string;
+  userId: string;
+  habitName: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastCheckIn: string; // ISO string
+  checkInFrequency: 'daily' | 'weekly';
+  atRisk: boolean;
+  riskAlertSent: boolean;
+}
+
+interface UserGoalsData {
+  goals: PersistedGoal[];
+}
+
+interface UserStreaksData {
+  streaks: PersistedStreak[];
+}
+
+// ============================================================================
+// SERIALIZATION HELPERS
+// ============================================================================
+
+function serializeGoal(goal: Goal): PersistedGoal {
+  return {
+    ...goal,
+    targetDate: goal.targetDate?.toISOString(),
+    milestones: goal.milestones.map((m) => ({
+      ...m,
+      reachedAt: m.reachedAt?.toISOString(),
+    })),
+    createdAt: goal.createdAt.toISOString(),
+    updatedAt: goal.updatedAt.toISOString(),
+  };
+}
+
+function deserializeGoal(data: PersistedGoal): Goal {
+  return {
+    ...data,
+    targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
+    milestones: data.milestones.map((m) => ({
+      ...m,
+      reachedAt: m.reachedAt ? new Date(m.reachedAt) : undefined,
+    })),
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
+}
+
+function serializeStreak(streak: Streak): PersistedStreak {
+  return {
+    ...streak,
+    lastCheckIn: streak.lastCheckIn.toISOString(),
+  };
+}
+
+function deserializeStreak(data: PersistedStreak): Streak {
+  return {
+    ...data,
+    lastCheckIn: new Date(data.lastCheckIn),
+  };
+}
+
+// ============================================================================
+// STORAGE (in-memory cache backed by Firestore)
 // ============================================================================
 
 const goalStore = new Map<string, Goal[]>();
 const streakStore = new Map<string, Streak[]>();
+const loadedUsers = new Set<string>();
+
+// Persistence stores
+let goalPersistence: PersistenceStore<UserGoalsData> | null = null;
+let streakPersistence: PersistenceStore<UserStreaksData> | null = null;
+
+function getGoalPersistence(): PersistenceStore<UserGoalsData> {
+  if (!goalPersistence) {
+    goalPersistence = createPersistenceStore<UserGoalsData>({
+      collection: 'goals_outreach',
+      documentId: 'goals',
+      syncIntervalMs: 3000,
+    });
+  }
+  return goalPersistence;
+}
+
+function getStreakPersistence(): PersistenceStore<UserStreaksData> {
+  if (!streakPersistence) {
+    streakPersistence = createPersistenceStore<UserStreaksData>({
+      collection: 'goals_outreach',
+      documentId: 'streaks',
+      syncIntervalMs: 3000,
+    });
+  }
+  return streakPersistence;
+}
+
+/**
+ * Load user's goals and streaks from persistence
+ */
+async function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  try {
+    // Load goals
+    const goalsData = await getGoalPersistence().load(userId);
+    if (goalsData?.goals) {
+      goalStore.set(userId, goalsData.goals.map(deserializeGoal));
+    }
+
+    // Load streaks
+    const streaksData = await getStreakPersistence().load(userId);
+    if (streaksData?.streaks) {
+      streakStore.set(userId, streaksData.streaks.map(deserializeStreak));
+    }
+
+    loadedUsers.add(userId);
+    getLogger().debug({ userId }, 'Loaded goals and streaks from persistence');
+  } catch (error) {
+    getLogger().warn({ error, userId }, 'Failed to load goals/streaks from persistence');
+    loadedUsers.add(userId); // Mark as loaded to avoid repeated failures
+  }
+}
+
+/**
+ * Persist goals for a user
+ */
+function persistGoals(userId: string): void {
+  const goals = goalStore.get(userId) || [];
+  getGoalPersistence().set(userId, {
+    goals: goals.map(serializeGoal),
+  });
+}
+
+/**
+ * Persist streaks for a user
+ */
+function persistStreaks(userId: string): void {
+  const streaks = streakStore.get(userId) || [];
+  getStreakPersistence().set(userId, {
+    streaks: streaks.map(serializeStreak),
+  });
+}
 
 // ============================================================================
 // STREAK MANAGEMENT
@@ -84,6 +245,9 @@ export async function recordCheckIn(checkIn: HabitCheckIn): Promise<{
   celebration?: string;
 }> {
   const { userId, habitName, completed, timestamp } = checkIn;
+
+  // Ensure user data is loaded from persistence
+  await ensureUserLoaded(userId);
 
   const streaks = streakStore.get(userId) || [];
   let streak = streaks.find((s) => s.habitName === habitName);
@@ -134,6 +298,7 @@ export async function recordCheckIn(checkIn: HabitCheckIn): Promise<{
 
   streak.lastCheckIn = timestamp;
   streakStore.set(userId, streaks);
+  persistStreaks(userId);
 
   getLogger().info(
     { userId, habitName, streak: streak.currentStreak, completed },
@@ -158,7 +323,7 @@ async function checkStreakMilestone(userId: string, streak: Streak): Promise<str
     return undefined;
   }
 
-  const _prefs = getPreferences(userId); // TODO: Use prefs to customize message timing
+  const prefs = getPreferences(userId);
   const messages: Record<number, string> = {
     3: `🔥 3-day streak on ${streak.habitName}! You're building momentum!`,
     7: `🎉 ONE WEEK! You've been crushing ${streak.habitName} for 7 days straight!`,
@@ -175,18 +340,74 @@ async function checkStreakMilestone(userId: string, streak: Streak): Promise<str
   const message = messages[streak.currentStreak];
   if (!message) return undefined;
 
-  // Schedule celebration message
+  // Use preferences to determine optimal delivery time
   const now = new Date();
-  const result = await scheduleText(userId, message, now, 'Maya');
+  const sendTime = getOptimalSendTime(now, prefs);
+
+  const result = await scheduleText(userId, message, sendTime, 'Maya');
 
   if (result.success) {
     getLogger().info(
-      { userId, habitName: streak.habitName, streak: streak.currentStreak },
-      '🎉 Streak celebration sent'
+      {
+        userId,
+        habitName: streak.habitName,
+        streak: streak.currentStreak,
+        sendTime: sendTime.toISOString(),
+      },
+      '🎉 Streak celebration scheduled'
     );
   }
 
   return message;
+}
+
+/**
+ * Get optimal send time based on user preferences
+ */
+function getOptimalSendTime(baseTime: Date, prefs: ReturnType<typeof getPreferences>): Date {
+  const time = new Date(baseTime);
+  const hour = time.getHours();
+
+  // Check if current time is within preferred time windows
+  const isPreferredTime =
+    (prefs.preferredTimes.morning && hour >= 7 && hour < 11) ||
+    (prefs.preferredTimes.afternoon && hour >= 11 && hour < 17) ||
+    (prefs.preferredTimes.evening && hour >= 17 && hour < 21) ||
+    (prefs.preferredTimes.night && (hour >= 21 || hour < 7));
+
+  if (isPreferredTime) {
+    return time;
+  }
+
+  // Check quiet hours
+  if (prefs.quietHoursStart && prefs.quietHoursEnd) {
+    const quietStart = parseInt(prefs.quietHoursStart.split(':')[0]);
+    const quietEnd = parseInt(prefs.quietHoursEnd.split(':')[0]);
+
+    if (hour >= quietStart || hour < quietEnd) {
+      // Move to after quiet hours
+      time.setHours(quietEnd, 0, 0, 0);
+      if (time <= baseTime) {
+        time.setDate(time.getDate() + 1);
+      }
+      return time;
+    }
+  }
+
+  // Find next preferred window
+  if (prefs.preferredTimes.morning && hour < 7) {
+    time.setHours(8, 0, 0, 0); // Send at 8am
+  } else if (prefs.preferredTimes.afternoon && hour < 11) {
+    time.setHours(12, 0, 0, 0); // Send at noon
+  } else if (prefs.preferredTimes.evening && hour < 17) {
+    time.setHours(18, 0, 0, 0); // Send at 6pm
+  } else {
+    // Default to next morning
+    time.setDate(time.getDate() + 1);
+    time.setHours(9, 0, 0, 0);
+  }
+
+  return time;
 }
 
 /**
@@ -232,6 +453,7 @@ export async function checkAtRiskStreaks(): Promise<number> {
     }
 
     streakStore.set(userId, streaks);
+    persistStreaks(userId);
   }
 
   return alertsSent;
@@ -258,13 +480,16 @@ function getStreakRiskMessage(streak: Streak): string {
 /**
  * Create a new goal
  */
-export function createGoal(params: {
+export async function createGoal(params: {
   userId: string;
   title: string;
   description?: string;
   targetDate?: Date;
   milestones?: Array<{ title: string; targetProgress: number }>;
-}): Goal {
+}): Promise<Goal> {
+  // Ensure user data is loaded from persistence
+  await ensureUserLoaded(params.userId);
+
   const goal: Goal = {
     id: `goal_${Date.now()}`,
     userId: params.userId,
@@ -287,6 +512,7 @@ export function createGoal(params: {
   const goals = goalStore.get(params.userId) || [];
   goals.push(goal);
   goalStore.set(params.userId, goals);
+  persistGoals(params.userId);
 
   getLogger().info(
     { userId: params.userId, goalId: goal.id, title: goal.title },
@@ -308,6 +534,9 @@ export async function updateGoalProgress(
   milestonesReached: GoalMilestone[];
   celebration?: string;
 }> {
+  // Ensure user data is loaded from persistence
+  await ensureUserLoaded(userId);
+
   const goals = goalStore.get(userId) || [];
   const goal = goals.find((g) => g.id === goalId);
 
@@ -373,6 +602,7 @@ export async function updateGoalProgress(
   }
 
   goalStore.set(userId, goals);
+  persistGoals(userId);
 
   return { goal, milestonesReached, celebration };
 }
@@ -380,7 +610,9 @@ export async function updateGoalProgress(
 /**
  * Get user's active goals
  */
-export function getActiveGoals(userId: string): Goal[] {
+export async function getActiveGoals(userId: string): Promise<Goal[]> {
+  // Ensure user data is loaded from persistence
+  await ensureUserLoaded(userId);
   const goals = goalStore.get(userId) || [];
   return goals.filter((g) => g.status === 'active');
 }
@@ -444,10 +676,107 @@ function getDeadlineMessage(goal: Goal, daysLeft: number): string {
 /**
  * Check for users who haven't engaged and send nudges
  */
-export async function sendMissedCheckInNudges(_maxDaysSinceContact = 3): Promise<number> {
-  // TODO: Integrate with engagement tracking to find users who haven't interacted
-  // For now, returns 0 as it needs lastInteraction data
-  return 0;
+export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<number> {
+  let nudgesSent = 0;
+
+  try {
+    // Get engagement store to find users who haven't interacted recently
+    const { getEngagementStore } = await import('./engagement-store.js');
+    const store = await getEngagementStore();
+
+    if (!store) {
+      getLogger().warn('Engagement store not available for missed check-in detection');
+      return 0;
+    }
+
+    // Get all engagement profiles (in production, this should be paginated/batched)
+    // Note: This feature requires direct Firestore access - skip if not available
+    const { getFirestoreStore } = await import('../memory/firestore-store.js');
+    const firestoreStore = getFirestoreStore();
+
+    if (!firestoreStore) {
+      getLogger().warn('Firestore not available for missed check-in detection');
+      return 0;
+    }
+
+    // Get Firestore instance from the store
+    const { db } = firestoreStore as unknown as { db?: FirebaseFirestore.Firestore };
+    if (!db) {
+      getLogger().warn('Firestore DB not accessible for missed check-in detection');
+      return 0;
+    }
+
+    const now = new Date();
+    const cutoffDate = new Date(now.getTime() - maxDaysSinceContact * 24 * 60 * 60 * 1000);
+
+    // Query users who haven't engaged recently
+    const profilesRef = db.collection('engagement_profiles');
+    const snapshot = await profilesRef
+      .where('lastEngagementAt', '<', cutoffDate.toISOString())
+      .limit(100) // Process in batches
+      .get();
+
+    for (const doc of snapshot.docs) {
+      const profile = doc.data();
+      const userId = doc.id;
+      const lastEngagement = new Date(profile.lastEngagementAt);
+      const daysSinceContact = Math.floor(
+        (now.getTime() - lastEngagement.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Skip if they've been contacted very recently via outreach
+      const activeGoals = goalStore.get(userId);
+      if (!activeGoals || activeGoals.length === 0) {
+        continue; // No goals to nudge about
+      }
+
+      // Send a gentle re-engagement nudge
+      try {
+        const { triggerOutreach } = await import('./outreach/index.js');
+        const preferredPersona = (profile.preferences?.favoritePersona ||
+          'ferni') as import('./agent-bus.js').AgentId;
+
+        const nudgeMessage = generateMissedCheckInMessage(daysSinceContact, activeGoals[0]);
+
+        // Use triggerOutreach instead of non-existent sendOutreachMessage
+        triggerOutreach({
+          type: 'thinking_of_you', // Best fit for re-engagement
+          userId,
+          priority: 'low',
+          reason: nudgeMessage,
+          suggestedPersona: preferredPersona,
+        } as import('./outreach/decision-engine.js').OutreachTrigger);
+
+        nudgesSent++;
+        getLogger().info(
+          { userId, daysSinceContact, goalCount: activeGoals.length },
+          '📬 Sent missed check-in nudge'
+        );
+      } catch (error) {
+        getLogger().warn({ error, userId }, 'Failed to send missed check-in nudge');
+      }
+    }
+  } catch (error) {
+    getLogger().error({ error }, 'Error in sendMissedCheckInNudges');
+  }
+
+  return nudgesSent;
+}
+
+/**
+ * Generate a warm, non-pushy re-engagement message
+ */
+function generateMissedCheckInMessage(daysSinceContact: number, goal: Goal): string {
+  const messages = [
+    `Hey! Just thinking about you and your "${goal.title}" goal. No pressure - just wanted you to know I'm here if you want to chat! 💚`,
+    `It's been a few days! How's everything going with "${goal.title}"? Would love to hear how you're doing.`,
+    `Miss our chats! Whenever you're ready to catch up on "${goal.title}" or anything else, I'm here. 🌱`,
+    `Hope you're doing well! Your "${goal.title}" goal crossed my mind. Drop in when you have a moment?`,
+  ];
+
+  // Pick based on days since contact (more gentle as time increases)
+  const index = Math.min(daysSinceContact - 1, messages.length - 1);
+  return messages[Math.max(0, index)];
 }
 
 // ============================================================================
@@ -495,6 +824,31 @@ export function stopGoalMonitoring(): void {
 }
 
 // ============================================================================
+// LIFECYCLE
+// ============================================================================
+
+/**
+ * Flush all pending persistence writes
+ */
+export async function flushGoalOutreachPersistence(): Promise<void> {
+  await Promise.all([getGoalPersistence().flush(), getStreakPersistence().flush()]);
+  getLogger().info('Goal outreach persistence flushed');
+}
+
+/**
+ * Shutdown the goal outreach service
+ */
+export async function shutdownGoalOutreach(): Promise<void> {
+  stopGoalMonitoring();
+  await flushGoalOutreachPersistence();
+  // Clear state for clean restart
+  loadedUsers.clear();
+  goalStore.clear();
+  streakStore.clear();
+  getLogger().info('Goal outreach service shutdown complete');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -512,4 +866,8 @@ export default {
   // Background jobs
   startGoalMonitoring,
   stopGoalMonitoring,
+
+  // Lifecycle
+  flushGoalOutreachPersistence,
+  shutdownGoalOutreach,
 };

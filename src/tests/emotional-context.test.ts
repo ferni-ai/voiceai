@@ -10,7 +10,7 @@
  * - Voice prosody response
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Use vi.hoisted to define mocks available when vi.mock is hoisted
 const {
@@ -120,7 +120,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('high distress detection', () => {
-    it('should create critical injection for high distress (>0.7)', () => {
+    it('should create critical injection for high distress (>0.7)', async () => {
       const input = createInput({
         userText: 'I feel so overwhelmed, I can not take this anymore',
         analysis: {
@@ -136,7 +136,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const crisisInjection = result.find((i) => i.source === 'emotional_crisis');
       expect(crisisInjection).toBeDefined();
@@ -146,7 +146,7 @@ describe('buildEmotionalContext', () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it('should include guidance for crisis response', () => {
+    it('should include guidance for crisis response', async () => {
       const input = createInput({
         userText: 'Everything is falling apart',
         analysis: {
@@ -162,7 +162,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const crisisInjection = result.find((i) => i.source === 'emotional_crisis');
       expect(crisisInjection?.content).toContain('PRESENT');
@@ -172,7 +172,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('moderate distress detection', () => {
-    it('should create standard injection for moderate distress (0.5-0.7)', () => {
+    it('should create standard injection for moderate distress (0.5-0.7)', async () => {
       const input = createInput({
         userText: 'I have been stressed about work lately',
         analysis: {
@@ -188,7 +188,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const alertInjection = result.find((i) => i.source === 'emotional_alert');
       expect(alertInjection).toBeDefined();
@@ -197,7 +197,7 @@ describe('buildEmotionalContext', () => {
       expect(alertInjection?.content).toContain('55%');
     });
 
-    it('should recommend empathy-first approach for moderate distress', () => {
+    it('should recommend empathy-first approach for moderate distress', async () => {
       const input = createInput({
         userText: 'I do not know what to do anymore',
         analysis: {
@@ -213,7 +213,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const alertInjection = result.find((i) => i.source === 'emotional_alert');
       expect(alertInjection?.content).toContain('Empathy FIRST');
@@ -221,7 +221,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('negative emotion context', () => {
-    it('should create context injection for negative emotion with low distress', () => {
+    it('should create context injection for negative emotion with low distress', async () => {
       const input = createInput({
         userText: 'I am a bit frustrated with this',
         analysis: {
@@ -237,7 +237,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const contextInjection = result.find((i) => i.source === 'emotional_context');
       expect(contextInjection).toBeDefined();
@@ -247,7 +247,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('positive emotion context', () => {
-    it('should create hint injection for positive emotion', () => {
+    it('should create hint injection for positive emotion', async () => {
       const input = createInput({
         userText: 'I am so excited about this opportunity!',
         analysis: {
@@ -263,7 +263,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const positiveInjection = result.find((i) => i.source === 'emotional_positive');
       expect(positiveInjection).toBeDefined();
@@ -273,7 +273,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('validation needs detection', () => {
-    it('should detect "am i crazy" validation pattern', () => {
+    it('should detect "am i crazy" validation pattern', async () => {
       const input = createInput({
         userText: 'Am I crazy for wanting to quit my job?',
         analysis: {
@@ -289,7 +289,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
@@ -297,7 +297,7 @@ describe('buildEmotionalContext', () => {
       expect(validationInjection?.content).toContain('makes complete sense');
     });
 
-    it('should detect "is it wrong" validation pattern', () => {
+    it('should detect "is it wrong" validation pattern', async () => {
       const input = createInput({
         userText: 'Is it wrong to feel jealous of my friends success?',
         analysis: {
@@ -313,13 +313,13 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
     });
 
-    it('should detect "normal to" validation pattern', () => {
+    it('should detect "normal to" validation pattern', async () => {
       const input = createInput({
         userText: 'Is it normal to feel anxious before big decisions?',
         analysis: {
@@ -335,13 +335,13 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
     });
 
-    it('should detect "stupid for" validation pattern', () => {
+    it('should detect "stupid for" validation pattern', async () => {
       const input = createInput({
         userText: 'Am I stupid for trusting them?',
         analysis: {
@@ -357,13 +357,13 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
     });
 
-    it('should trigger validation for fear emotion with moderate distress', () => {
+    it('should trigger validation for fear emotion with moderate distress', async () => {
       const input = createInput({
         userText: 'I am scared about making this change',
         analysis: {
@@ -379,13 +379,13 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
     });
 
-    it('should trigger validation for confiding intent with negative valence', () => {
+    it('should trigger validation for confiding intent with negative valence', async () => {
       const input = createInput({
         userText: 'I have been feeling really down lately',
         analysis: {
@@ -401,13 +401,13 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection).toBeDefined();
     });
 
-    it('should include validation phrases', () => {
+    it('should include validation phrases', async () => {
       const input = createInput({
         userText: 'Am I crazy to think this way?',
         analysis: {
@@ -423,7 +423,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const validationInjection = result.find((i) => i.source === 'validation_needed');
       expect(validationInjection?.content).toContain('Anyone would feel that way');
@@ -432,7 +432,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('emotional mirroring', () => {
-    it('should suggest matching high energy (>0.7)', () => {
+    it('should suggest matching high energy (>0.7)', async () => {
       const input = createInput({
         userText: 'This is amazing! I am so pumped!',
         analysis: {
@@ -448,7 +448,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const mirroringInjection = result.find((i) => i.source === 'emotional_mirroring');
       expect(mirroringInjection).toBeDefined();
@@ -457,7 +457,7 @@ describe('buildEmotionalContext', () => {
       expect(mirroringInjection?.content).toContain('enthusiasm');
     });
 
-    it('should suggest being gentle for low energy (<0.3)', () => {
+    it('should suggest being gentle for low energy (<0.3)', async () => {
       const input = createInput({
         userText: 'yeah... I guess so',
         analysis: {
@@ -473,7 +473,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const mirroringInjection = result.find((i) => i.source === 'emotional_mirroring');
       expect(mirroringInjection).toBeDefined();
@@ -482,7 +482,7 @@ describe('buildEmotionalContext', () => {
       expect(mirroringInjection?.content).toContain('Give space');
     });
 
-    it('should suggest celebration for positive + high energy', () => {
+    it('should suggest celebration for positive + high energy', async () => {
       const input = createInput({
         userText: 'I got the promotion! I can not believe it!',
         analysis: {
@@ -498,7 +498,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const celebrationInjection = result.find((i) => i.source === 'emotional_celebration');
       expect(celebrationInjection).toBeDefined();
@@ -506,7 +506,7 @@ describe('buildEmotionalContext', () => {
       expect(celebrationInjection?.content).toContain('Celebrate');
     });
 
-    it('should not suggest mirroring for medium energy (0.3-0.7)', () => {
+    it('should not suggest mirroring for medium energy (0.3-0.7)', async () => {
       const input = createInput({
         userText: 'That sounds reasonable',
         analysis: {
@@ -522,7 +522,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const mirroringInjection = result.find((i) => i.source === 'emotional_mirroring');
       expect(mirroringInjection).toBeUndefined();
@@ -530,7 +530,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('voice emotion merging', () => {
-    it('should merge voice and text emotions with 60/40 weighting', () => {
+    it('should merge voice and text emotions with 60/40 weighting', async () => {
       const input = createInput({
         userText: 'I am fine',
         analysis: {
@@ -555,7 +555,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       // Merged: 0.35 * 0.6 + 0.9 * 0.4 = 0.21 + 0.36 = 0.57
       // Should trigger moderate distress alert (>0.5)
@@ -564,7 +564,7 @@ describe('buildEmotionalContext', () => {
       expect(mockLogger.debug).toHaveBeenCalled();
     });
 
-    it('should boost distress for anxiety markers', () => {
+    it('should boost distress for anxiety markers', async () => {
       const input = createInput({
         userText: 'I am doing okay',
         analysis: {
@@ -590,7 +590,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       // Base merged: 0.4 * 0.6 + 0.6 * 0.4 = 0.24 + 0.24 = 0.48
       // With anxiety boost: 0.48 + 0.15 = 0.63
@@ -600,7 +600,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('voice prosody guidance', () => {
-    it('should create prosody guidance for high voice stress', () => {
+    it('should create prosody guidance for high voice stress', async () => {
       const input = createInput({
         userText: 'I need help with something',
         analysis: {
@@ -625,7 +625,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection).toBeDefined();
@@ -633,7 +633,7 @@ describe('buildEmotionalContext', () => {
       expect(prosodyInjection?.content).toContain('stress');
     });
 
-    it('should detect anxiety markers in voice', () => {
+    it('should detect anxiety markers in voice', async () => {
       const input = createInput({
         userText: 'Well, um, I was thinking about...',
         analysis: {
@@ -659,14 +659,14 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection?.content).toContain('anxiety markers');
       expect(prosodyInjection?.content).toContain('calm presence');
     });
 
-    it('should detect agitated and negative voice', () => {
+    it('should detect agitated and negative voice', async () => {
       const input = createInput({
         userText: 'This is so frustrating!',
         analysis: {
@@ -691,14 +691,14 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection?.content).toContain('agitated');
       expect(prosodyInjection?.content).toContain('upset');
     });
 
-    it('should detect sad voice even when text does not say it', () => {
+    it('should detect sad voice even when text does not say it', async () => {
       const input = createInput({
         userText: 'Yeah, everything is fine',
         analysis: {
@@ -723,7 +723,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection).toBeDefined();
@@ -731,7 +731,7 @@ describe('buildEmotionalContext', () => {
       expect(prosodyInjection?.content).toContain('emotional undertones');
     });
 
-    it('should detect positive/happy voice', () => {
+    it('should detect positive/happy voice', async () => {
       const input = createInput({
         userText: 'Thank you so much!',
         analysis: {
@@ -756,7 +756,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection).toBeDefined();
@@ -764,7 +764,7 @@ describe('buildEmotionalContext', () => {
       expect(prosodyInjection?.content).toContain('positive energy');
     });
 
-    it('should not create prosody guidance for low stress voice', () => {
+    it('should not create prosody guidance for low stress voice', async () => {
       const input = createInput({
         userText: 'Can you tell me about investing?',
         analysis: {
@@ -789,7 +789,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection).toBeUndefined();
@@ -797,7 +797,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('multiple injections', () => {
-    it('should return multiple injections when appropriate', () => {
+    it('should return multiple injections when appropriate', async () => {
       const input = createInput({
         userText: 'Am I crazy for feeling so happy about this?',
         analysis: {
@@ -813,7 +813,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       // Should have: positive emotion, high energy mirroring, celebration, validation (due to "am i crazy")
       expect(result.length).toBeGreaterThanOrEqual(3);
@@ -821,7 +821,7 @@ describe('buildEmotionalContext', () => {
   });
 
   describe('edge cases', () => {
-    it('should return empty array for neutral conversation', () => {
+    it('should return empty array for neutral conversation', async () => {
       const input = createInput({
         userText: 'What is the weather like today?',
         analysis: {
@@ -837,7 +837,7 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
 
       // No emotional injections for neutral query
       const emotionalInjections = result.filter(
@@ -849,7 +849,7 @@ describe('buildEmotionalContext', () => {
       expect(emotionalInjections).toHaveLength(0);
     });
 
-    it('should handle missing emotion fields gracefully', () => {
+    it('should handle missing emotion fields gracefully', async () => {
       const input = createInput({
         userText: 'Hello',
         analysis: {
@@ -862,10 +862,10 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      expect(() => buildEmotionalContext(input)).not.toThrow();
+      await expect(buildEmotionalContext(input)).resolves.not.toThrow();
     });
 
-    it('should handle undefined voice emotion', () => {
+    it('should handle undefined voice emotion', async () => {
       const input = createInput({
         userText: 'Test message',
         analysis: {
@@ -884,9 +884,9 @@ describe('buildEmotionalContext', () => {
         },
       });
 
-      expect(() => buildEmotionalContext(input)).not.toThrow();
+      await expect(buildEmotionalContext(input)).resolves.not.toThrow();
 
-      const result = buildEmotionalContext(input);
+      const result = await buildEmotionalContext(input);
       const prosodyInjection = result.find((i) => i.source === 'voice_prosody');
       expect(prosodyInjection).toBeUndefined();
     });

@@ -196,6 +196,9 @@ export async function onUserMessage(
   identityContext: IdentityContext;
   contactDetected: boolean;
   shouldAskForPhone: boolean;
+  shouldAskForContact?: boolean;
+  contactAskReason?: string;
+  requiresVerification?: boolean;
   phoneAskScript?: string;
   magicMoment?: MagicMomentAnalysis;
   verificationResult?: { verified: boolean; message: string };

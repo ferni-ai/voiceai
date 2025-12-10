@@ -11,11 +11,11 @@
  * - POST /api/subscription/webhook
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   handleSubscriptionRequest,
-  routeSubscriptionRequest,
   isSubscriptionRoute,
+  routeSubscriptionRequest,
 } from '../api/subscription-routes.js';
 
 // Mock the stripe-subscription service
@@ -32,14 +32,14 @@ vi.mock('../services/stripe-subscription.js', () => ({
 
 // Import mocked functions for test manipulation
 import {
-  isStripeConfigured,
+  canStartConversation,
   createCheckoutSession,
   createPortalSession,
   getSubscriptionInfo,
-  canStartConversation,
+  handleWebhookEvent,
+  isStripeConfigured,
   recordConversation,
   verifyWebhook,
-  handleWebhookEvent,
 } from '../services/stripe-subscription.js';
 
 const mockedIsStripeConfigured = vi.mocked(isStripeConfigured);
@@ -399,6 +399,31 @@ describe('Subscription Routes', () => {
       );
     });
 
+    it('should handle success URLs with existing query params', async () => {
+      mockedCreateCheckoutSession.mockResolvedValue({ url: 'https://stripe.com' });
+
+      await handleSubscriptionRequest({
+        method: 'POST',
+        pathname: '/api/subscription/checkout',
+        query: {},
+        headers: {},
+        body: {
+          userId: 'user-123',
+          tier: 'friend',
+          successUrl: 'https://app.ferni.ai?upgrade=success&tier=friend',
+          cancelUrl: 'https://app.ferni.ai?upgrade=cancel',
+        },
+      });
+
+      // Verify the URL with query params is passed correctly
+      expect(mockedCreateCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          successUrl: 'https://app.ferni.ai?upgrade=success&tier=friend',
+          cancelUrl: 'https://app.ferni.ai?upgrade=cancel',
+        })
+      );
+    });
+
     it('should return 500 on Stripe error', async () => {
       mockedCreateCheckoutSession.mockRejectedValue(new Error('Stripe API error'));
 
@@ -652,6 +677,90 @@ describe('Subscription Routes', () => {
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({ error: 'Webhook verification failed' });
+    });
+  });
+
+  // ============================================================================
+  // GET /api/subscription/verify-session
+  // ============================================================================
+
+  describe('GET /api/subscription/verify-session', () => {
+    it('should return 400 if session_id is missing', async () => {
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/verify-session',
+        query: { userId: 'user-123' },
+        headers: {},
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'session_id is required' });
+    });
+
+    it('should return 400 if userId is missing', async () => {
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/verify-session',
+        query: { session_id: 'cs_test_123' },
+        headers: {},
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'userId is required' });
+    });
+
+    it('should return verified=true if user is on paid tier', async () => {
+      mockedGetSubscriptionInfo.mockResolvedValue({
+        tier: 'friend',
+        status: 'active',
+        usage: { conversationsRemaining: null, canStartConversation: true },
+      } as Awaited<ReturnType<typeof getSubscriptionInfo>>);
+
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/verify-session',
+        query: { session_id: 'cs_test_123', userId: 'user-123' },
+        headers: {},
+      });
+
+      expect(response.status).toBe(200);
+      const body = response.body as { verified: boolean; tier: string };
+      expect(body.verified).toBe(true);
+      expect(body.tier).toBe('friend');
+    });
+
+    it('should return verified=false if user is still on free tier', async () => {
+      mockedGetSubscriptionInfo.mockResolvedValue({
+        tier: 'free',
+        status: 'active',
+        usage: { conversationsRemaining: 5, canStartConversation: true },
+      } as Awaited<ReturnType<typeof getSubscriptionInfo>>);
+
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/verify-session',
+        query: { session_id: 'cs_test_123', userId: 'user-123' },
+        headers: {},
+      });
+
+      expect(response.status).toBe(200);
+      const body = response.body as { verified: boolean; tier: string };
+      expect(body.verified).toBe(false);
+      expect(body.tier).toBe('free');
+    });
+
+    it('should return 500 on service error', async () => {
+      mockedGetSubscriptionInfo.mockRejectedValue(new Error('Database error'));
+
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/verify-session',
+        query: { session_id: 'cs_test_123', userId: 'user-123' },
+        headers: {},
+      });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Failed to verify session' });
     });
   });
 

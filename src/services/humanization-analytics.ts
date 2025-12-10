@@ -9,9 +9,27 @@
  *
  * This data feeds into the agent evolution system to
  * automatically improve humanization over time.
+ *
+ * PERSISTENCE: Aggregated metrics are persisted to Firestore.
  */
 
+import * as admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
+
+// ============================================================================
+// FIRESTORE SETUP
+// ============================================================================
+
+const METRICS_COLLECTION = 'humanization_metrics';
+const SESSION_ANALYTICS_COLLECTION = 'humanization_session_analytics';
+
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -103,6 +121,7 @@ class HumanizationAnalyticsService {
   private sessions = new Map<string, SessionAnalytics>();
   private aggregatedMetrics = new Map<string, HumanizationMetrics>();
   private initialized = false;
+  private loadedPersonas = new Set<string>();
 
   /**
    * Initialize the analytics service
@@ -112,6 +131,75 @@ class HumanizationAnalyticsService {
 
     this.initialized = true;
     getLogger().info('📊 Humanization analytics service initialized');
+  }
+
+  /**
+   * Load metrics for a persona from Firestore
+   */
+  private async loadMetrics(personaId: string): Promise<HumanizationMetrics | null> {
+    if (this.loadedPersonas.has(personaId)) {
+      return this.aggregatedMetrics.get(personaId) || null;
+    }
+
+    const db = getFirestore();
+    if (!db) {
+      this.loadedPersonas.add(personaId);
+      return null;
+    }
+
+    try {
+      const doc = await db.collection(METRICS_COLLECTION).doc(personaId).get();
+      if (doc.exists) {
+        const data = doc.data() as HumanizationMetrics;
+        this.aggregatedMetrics.set(personaId, data);
+        this.loadedPersonas.add(personaId);
+        return data;
+      }
+    } catch (error) {
+      getLogger().error({ error, personaId }, 'Failed to load humanization metrics');
+    }
+
+    this.loadedPersonas.add(personaId);
+    return null;
+  }
+
+  /**
+   * Save metrics for a persona to Firestore
+   */
+  private async saveMetrics(personaId: string, metrics: HumanizationMetrics): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db.collection(METRICS_COLLECTION).doc(personaId).set(metrics);
+    } catch (error) {
+      getLogger().error({ error, personaId }, 'Failed to save humanization metrics');
+    }
+  }
+
+  /**
+   * Save session analytics to Firestore
+   */
+  private async saveSessionAnalytics(session: SessionAnalytics): Promise<void> {
+    const db = getFirestore();
+    if (!db) return;
+
+    try {
+      await db
+        .collection(SESSION_ANALYTICS_COLLECTION)
+        .doc(session.sessionId)
+        .set({
+          ...session,
+          // Only save summary and key stats, not raw events (too much data)
+          events: session.events.slice(-50), // Keep last 50 events
+          signals: session.signals.slice(-50),
+        });
+    } catch (error) {
+      getLogger().error(
+        { error, sessionId: session.sessionId },
+        'Failed to save session analytics'
+      );
+    }
   }
 
   /**
@@ -201,6 +289,9 @@ class HumanizationAnalyticsService {
 
     // Update aggregated metrics
     this.updateAggregatedMetrics(session);
+
+    // Persist session analytics to Firestore
+    void this.saveSessionAnalytics(session);
 
     getLogger().info(
       {
@@ -403,13 +494,30 @@ class HumanizationAnalyticsService {
 
     metrics.lastUpdated = Date.now();
     this.aggregatedMetrics.set(session.personaId, metrics);
+
+    // Persist to Firestore
+    void this.saveMetrics(session.personaId, metrics);
   }
 
   /**
-   * Get metrics for a specific persona
+   * Get metrics for a specific persona (sync - from cache)
    */
   getPersonaMetrics(personaId: string): HumanizationMetrics | undefined {
+    // Fire-and-forget load if not already loaded
+    if (!this.loadedPersonas.has(personaId)) {
+      void this.loadMetrics(personaId);
+    }
     return this.aggregatedMetrics.get(personaId);
+  }
+
+  /**
+   * Get metrics for a specific persona (async - loads from Firestore)
+   */
+  async getPersonaMetricsAsync(personaId: string): Promise<HumanizationMetrics | null> {
+    const cached = this.aggregatedMetrics.get(personaId);
+    if (cached) return cached;
+
+    return this.loadMetrics(personaId);
   }
 
   /**

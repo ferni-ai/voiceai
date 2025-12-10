@@ -7,17 +7,25 @@
  * Philosophy: Keep it simple. Let Stripe handle complexity.
  */
 
-import { createLogger } from '../utils/safe-logger.js';
 import {
-  isStripeConfigured,
+  checkTrialStatus,
+  getTrialState,
+  isEligibleForTrial,
+  recordTrialTime,
+  startTrial,
+  TRIAL_DURATION_MS,
+} from '../services/first-taste-trial.js';
+import {
+  canStartConversation,
   createCheckoutSession,
   createPortalSession,
   getSubscriptionInfo,
-  canStartConversation,
+  handleWebhookEvent,
+  isStripeConfigured,
   recordConversation,
   verifyWebhook,
-  handleWebhookEvent,
 } from '../services/stripe-subscription.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SubscriptionAPI' });
 
@@ -266,16 +274,35 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     admin_key?: string;
   };
 
-  // Allow 'dev-mode' key in development, or check ADMIN_KEY in production
-  const adminKey = process.env.ADMIN_KEY || 'dev-mode';
-  const isDev = process.env.NODE_ENV !== 'production' || body.admin_key === 'dev-mode';
-  
-  if (!isDev && body.admin_key !== adminKey) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Unauthorized' },
-    };
+  // SECURITY: Only allow admin upgrades in development OR with valid ADMIN_KEY
+  const isDev = process.env.NODE_ENV !== 'production';
+  const adminKey = process.env.ADMIN_KEY;
+
+  // In production, REQUIRE ADMIN_KEY env var (no fallback!)
+  if (!isDev) {
+    if (!adminKey) {
+      return {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'ADMIN_KEY not configured' },
+      };
+    }
+    if (body.admin_key !== adminKey) {
+      return {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Unauthorized' },
+      };
+    }
+  } else {
+    // In development, allow 'dev-mode' key
+    if (body.admin_key !== 'dev-mode' && body.admin_key !== adminKey) {
+      return {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Unauthorized - use admin_key: dev-mode in development' },
+      };
+    }
   }
 
   const userId = body.userId || body.device_id;
@@ -291,10 +318,10 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     // Import and use the store to update subscription
     const { getStore } = await import('../memory/store-factory.js');
     const { createDefaultSubscription } = await import('../types/subscription.js');
-    
+
     const store = await getStore();
     let profile = await store.getProfile(userId);
-    
+
     if (!profile) {
       // Create a minimal profile for new users using proper interface
       const { createUserProfile } = await import('../types/user-profile.js');
@@ -307,7 +334,7 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     subscription.tier = body.tier;
     subscription.status = 'active';
     subscription.lastSyncedAt = new Date();
-    
+
     // Reset usage for upgrades
     if (body.tier !== 'free') {
       subscription.monthlyUsage = {
@@ -329,8 +356,8 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     return {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: { 
-        success: true, 
+      body: {
+        success: true,
         message: `Upgraded to ${body.tier}`,
         tier: body.tier,
       },
@@ -348,6 +375,9 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
 /**
  * POST /api/subscription/webhook
  * Handle Stripe webhook events
+ *
+ * IMPORTANT: The body MUST be the raw string for signature verification.
+ * Stripe's webhook verification requires the exact bytes that were signed.
  */
 async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext> {
   if (!isStripeConfigured()) {
@@ -367,10 +397,21 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
     };
   }
 
+  // Body must be raw string - if it's an object, signature verification will fail
+  if (typeof ctx.body !== 'string') {
+    log.error(
+      { bodyType: typeof ctx.body },
+      'Webhook body must be raw string, got parsed object. Check body parsing in ui-server.js'
+    );
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Invalid webhook payload format' },
+    };
+  }
+
   try {
-    // The body should be the raw string/buffer for webhook verification
-    const payload = typeof ctx.body === 'string' ? ctx.body : JSON.stringify(ctx.body);
-    const event = await verifyWebhook(payload, signature);
+    const event = await verifyWebhook(ctx.body, signature);
     await handleWebhookEvent(event);
 
     return {
@@ -384,6 +425,203 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
       status: 400,
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'Webhook verification failed' },
+    };
+  }
+}
+
+// ============================================================================
+// FIRST TASTE TRIAL ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/subscription/trial
+ * Get trial status for a user.
+ * Returns whether they're in trial, time remaining, etc.
+ */
+async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
+  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+  const currentSessionTimeMs = parseInt(ctx.query.sessionTime as string) || 0;
+
+  if (!userId) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'userId is required' },
+    };
+  }
+
+  try {
+    const status = await checkTrialStatus(userId, currentSessionTimeMs);
+    const state = await getTrialState(userId);
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        ...status,
+        trialDurationMs: TRIAL_DURATION_MS,
+        trialTimeUsedMs: state.trialTimeUsedMs,
+        isEligible: await isEligibleForTrial(userId),
+      },
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to get trial status');
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to get trial status' },
+    };
+  }
+}
+
+/**
+ * POST /api/subscription/trial/start
+ * Start trial for a new user.
+ */
+async function startTrialEndpoint(ctx: RequestContext): Promise<ResponseContext> {
+  const { userId } = ctx.body as { userId?: string };
+
+  if (!userId) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'userId is required' },
+    };
+  }
+
+  try {
+    // Check if already started
+    const isEligible = await isEligibleForTrial(userId);
+    if (!isEligible) {
+      const state = await getTrialState(userId);
+      return {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          success: false,
+          reason: 'Trial already started',
+          state,
+        },
+      };
+    }
+
+    const state = await startTrial(userId);
+    log.info({ userId }, 'Trial started via API');
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        success: true,
+        state,
+        message: 'Welcome! Your first 7 minutes are on us.',
+      },
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to start trial');
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to start trial' },
+    };
+  }
+}
+
+/**
+ * POST /api/subscription/trial/record-time
+ * Record time spent in current session.
+ */
+async function recordTrialTimeEndpoint(ctx: RequestContext): Promise<ResponseContext> {
+  const { userId, sessionTimeMs } = ctx.body as { userId?: string; sessionTimeMs?: number };
+
+  if (!userId) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'userId is required' },
+    };
+  }
+
+  if (typeof sessionTimeMs !== 'number' || sessionTimeMs < 0) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'sessionTimeMs must be a positive number' },
+    };
+  }
+
+  try {
+    const state = await recordTrialTime(userId, sessionTimeMs);
+    const status = await checkTrialStatus(userId, 0); // Pass 0 since we just recorded time
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        state,
+        ...status,
+      },
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to record trial time');
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to record trial time' },
+    };
+  }
+}
+
+/**
+ * GET /api/subscription/verify-session
+ * Verify a checkout session completed successfully
+ * Called by frontend after returning from Stripe to confirm payment
+ */
+async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseContext> {
+  const sessionId = ctx.query.session_id;
+  const userId = ctx.query.userId || (ctx.headers['x-user-id'] as string);
+
+  if (!sessionId) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'session_id is required' },
+    };
+  }
+
+  if (!userId) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'userId is required' },
+    };
+  }
+
+  try {
+    // Get subscription info to check if it's been updated
+    const info = await getSubscriptionInfo(userId);
+
+    // If user is now on a paid tier, the webhook has processed
+    const isPaid = info.tier !== 'free';
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        verified: isPaid,
+        tier: info.tier,
+        status: info.status,
+        message: isPaid
+          ? 'Payment confirmed! Welcome to your new plan.'
+          : 'Payment processing. This may take a moment.',
+      },
+    };
+  } catch (error) {
+    log.error({ error: String(error), sessionId }, 'Failed to verify checkout session');
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to verify session' },
     };
   }
 }
@@ -455,10 +693,14 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     '/api/subscription/status': getStatus,
     '/api/subscription/can-start': checkCanStart,
     '/api/subscription/config': getConfig,
+    '/api/subscription/verify-session': verifyCheckoutSession,
+    '/api/subscription/trial': getTrialStatus,
     // Without /api prefix (frontend calls these directly)
     '/subscription/status': getStatus,
     '/subscription/can-start': checkCanStart,
     '/subscription/config': getConfig,
+    '/subscription/verify-session': verifyCheckoutSession,
+    '/subscription/trial': getTrialStatus,
   },
   POST: {
     // With /api prefix
@@ -467,10 +709,14 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     '/api/subscription/record-conversation': recordConversationUsage,
     '/api/subscription/webhook': handleStripeWebhook,
     '/api/subscription/upgrade': createAdminUpgrade,
+    '/api/subscription/trial/start': startTrialEndpoint,
+    '/api/subscription/trial/record-time': recordTrialTimeEndpoint,
     // Without /api prefix (frontend calls these directly)
     '/subscription/checkout': createCheckout,
     '/subscription/portal': createBillingPortal,
     '/subscription/record-conversation': recordConversationUsage,
+    '/subscription/trial/start': startTrialEndpoint,
+    '/subscription/trial/record-time': recordTrialTimeEndpoint,
     '/subscription/webhook': handleStripeWebhook,
     '/subscription/upgrade': createAdminUpgrade,
   },

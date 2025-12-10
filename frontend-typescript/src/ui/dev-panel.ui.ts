@@ -51,10 +51,13 @@ import {
 
 // Ferni expressions system - character-level animations
 import {
-  initFerniExpressions,
   ferniExpressions,
+  initFerniExpressions,
   type EmotionalExpression,
 } from './ferni-expressions.ui.js';
+
+// Avatar Lamp - Pixar Luxo Jr. level body language
+import { avatarLamp, type LampEmotion } from './avatar-lamp.ui.js';
 
 // Ferni EQ - superhuman emotional intelligence ("Better than Human")
 import { ferni } from './better-than-human.ui.js';
@@ -74,13 +77,13 @@ import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 
 // Real Ambient Effects - Canvas-based particles and aurora
 import {
-  initAmbientEffects,
-  startParticles,
-  stopParticles,
-  startAurora,
-  stopAurora,
   addVignette,
+  initAmbientEffects,
   removeVignette,
+  startAurora,
+  startParticles,
+  stopAurora,
+  stopParticles,
 } from './ambient-effects.ui.js';
 
 // Narrative System - Story beats and arcs
@@ -208,6 +211,14 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
   barChart:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+  creditCard:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
+  userPlus:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+  userMinus:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+  trash:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
 };
 
 // ============================================================================
@@ -487,6 +498,55 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
+      <!-- 💳 Subscription Controls -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.creditCard} Subscription Controls</h3>
+        <p class="dev-section__desc">Admin controls for subscription gating</p>
+        
+        <div class="dev-toggle-row">
+          <label class="dev-toggle">
+            <input type="checkbox" id="dev-subscription-bypass" ${getSubscriptionBypass() ? 'checked' : ''}>
+            <span class="dev-toggle__slider"></span>
+          </label>
+          <span class="dev-toggle__label">Bypass All Limits (Admin Mode)</span>
+        </div>
+        
+        <div class="dev-toggle-row">
+          <label class="dev-toggle">
+            <input type="checkbox" id="dev-subscription-enabled" ${getSubscriptionEnabled() ? 'checked' : ''}>
+            <span class="dev-toggle__slider"></span>
+          </label>
+          <span class="dev-toggle__label">Subscription Gating Enabled</span>
+        </div>
+        
+        <div class="dev-input-row">
+          <label class="dev-input__label">Whitelist User IDs (comma-separated)</label>
+          <input type="text" id="dev-whitelist-ids" class="dev-input" 
+            placeholder="user123, user456" 
+            value="${getWhitelistIds().join(', ')}">
+          <button class="dev-action-btn dev-action-btn--small" data-action="save-whitelist">
+            ${ICONS.check} Save
+          </button>
+        </div>
+        
+        <div class="dev-actions">
+          <button class="dev-action-btn" data-action="add-to-whitelist">
+            ${ICONS.userPlus} Whitelist Current User
+          </button>
+          <button class="dev-action-btn" data-action="remove-from-whitelist">
+            ${ICONS.userMinus} Remove Current User
+          </button>
+          <button class="dev-action-btn" data-action="clear-whitelist">
+            ${ICONS.trash} Clear Whitelist
+          </button>
+        </div>
+        
+        <div class="dev-status-row" id="dev-subscription-status">
+          <span class="dev-status__label">Current Status:</span>
+          <span class="dev-status__value" id="dev-sub-status-text">Loading...</span>
+        </div>
+      </section>
+      
       <!-- 🎮 Music Games -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.gamepad} Music Games</h3>
@@ -509,6 +569,26 @@ function createPanel(): HTMLElement {
           </button>
           <button class="dev-action-btn" data-game="mood-dj">
             ${ICONS.headphones} Mood DJ Challenge
+          </button>
+        </div>
+      </section>
+      
+      <!-- 🎵 Music Player Status -->
+      <section class="dev-section" id="dev-music-status-section">
+        <h3 class="dev-section__title">${ICONS.music} Music Player Status</h3>
+        <p class="dev-section__desc">Real-time music player diagnostics</p>
+        <div id="dev-music-status" class="dev-music-status">
+          <div class="dev-music-status__loading">Loading music status...</div>
+        </div>
+        <div class="dev-actions" style="margin-top: 8px;">
+          <button class="dev-action-btn" data-music-action="refresh-status">
+            ${ICONS.refresh} Refresh Status
+          </button>
+          <button class="dev-action-btn" data-music-action="test-itunes">
+            ${ICONS.music} Test iTunes API
+          </button>
+          <button class="dev-action-btn" data-music-action="test-spotify">
+            ${ICONS.headphones} Check Spotify
           </button>
         </div>
       </section>
@@ -577,6 +657,103 @@ function createPanel(): HTMLElement {
             <span>Heartbeat Glow</span>
             <span>Confetti Burst</span>
             <span>Attentive Lean</span>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🎬 Avatar Lamp - Pixar Body Language -->
+      <section class="dev-section dev-section--lamp">
+        <h3 class="dev-section__title">🎬 Avatar Lamp (Luxo Jr.)</h3>
+        <p class="dev-section__desc">Pixar-quality body language - no face, pure emotion</p>
+        
+        <!-- Core Movements -->
+        <div class="dev-subsection">
+          <span class="dev-label">🦘 Core Movements</span>
+          <div class="dev-lamp-buttons">
+            <button class="dev-lamp-btn dev-lamp-btn--primary" data-lamp="bounce" title="Excitement bounce">
+              ⬆️ Bounce
+            </button>
+            <button class="dev-lamp-btn" data-lamp="bounce-big" title="Big celebration bounce">
+              🎉 Big Bounce
+            </button>
+            <button class="dev-lamp-btn" data-lamp="tilt-right" title="Curious tilt">
+              ↗️ Tilt Right
+            </button>
+            <button class="dev-lamp-btn" data-lamp="tilt-left" title="Confused tilt">
+              ↖️ Tilt Left
+            </button>
+            <button class="dev-lamp-btn" data-lamp="tilt-forward" title="Listening lean">
+              ⬆️ Lean In
+            </button>
+          </div>
+        </div>
+        
+        <!-- Reactions -->
+        <div class="dev-subsection">
+          <span class="dev-label">💡 Reactions</span>
+          <div class="dev-lamp-buttons">
+            <button class="dev-lamp-btn" data-lamp="perk-up" title="Aha! moment">
+              ⚡ Perk Up
+            </button>
+            <button class="dev-lamp-btn" data-lamp="nod" title="Understanding nod">
+              👍 Nod
+            </button>
+            <button class="dev-lamp-btn" data-lamp="nod-slow" title="Thoughtful nod">
+              🤔 Slow Nod
+            </button>
+            <button class="dev-lamp-btn" data-lamp="shake" title="Playful shake">
+              😆 Shake
+            </button>
+            <button class="dev-lamp-btn" data-lamp="shrink" title="Empathy/sadness">
+              😢 Shrink
+            </button>
+          </div>
+        </div>
+        
+        <!-- Emotion Presets -->
+        <div class="dev-subsection">
+          <span class="dev-label">🎭 Emotion Presets</span>
+          <div class="dev-lamp-buttons">
+            <button class="dev-lamp-btn" data-lamp-emotion="happy" title="Happy">
+              😊 Happy
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="excited" title="Excited">
+              🤩 Excited
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="curious" title="Curious">
+              🤔 Curious
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="listening" title="Listening">
+              👂 Listening
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="thinking" title="Thinking">
+              💭 Thinking
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="empathetic" title="Empathetic">
+              💙 Empathetic
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="proud" title="Proud">
+              🏆 Proud
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="celebrating" title="Celebrating">
+              🎊 Celebrating
+            </button>
+            <button class="dev-lamp-btn" data-lamp-emotion="neutral" title="Reset to neutral">
+              ⚪ Neutral
+            </button>
+          </div>
+        </div>
+        
+        <!-- Breathing Control -->
+        <div class="dev-subsection">
+          <span class="dev-label">🫁 Breathing</span>
+          <div class="dev-lamp-buttons">
+            <button class="dev-lamp-btn" data-lamp="breathing-start" title="Start breathing">
+              ▶️ Start
+            </button>
+            <button class="dev-lamp-btn" data-lamp="breathing-stop" title="Stop breathing">
+              ⏹️ Stop
+            </button>
           </div>
         </div>
       </section>
@@ -1568,6 +1745,9 @@ function createPanel(): HTMLElement {
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-cache" title="Clear cache">
               🧹 Clear Cache
             </button>
+            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-marketplace" title="Clear installed marketplace agents">
+              🏪 Clear Marketplace
+            </button>
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-all" title="Clear ALL data (careful!)">
               ⚠️ Clear ALL
             </button>
@@ -1991,6 +2171,25 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // Avatar Lamp buttons - movements
+  container.querySelectorAll('.dev-lamp-btn[data-lamp]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.lamp;
+      if (action) triggerLampAction(action);
+    });
+  });
+
+  // Avatar Lamp buttons - emotions
+  container.querySelectorAll('.dev-lamp-btn[data-lamp-emotion]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const emotion = (btn as HTMLElement).dataset.lampEmotion as LampEmotion;
+      if (emotion) {
+        avatarLamp.express(emotion);
+        log.info('Avatar Lamp emotion:', emotion);
+      }
+    });
+  });
+
   // Handoff buttons
   container.querySelectorAll('.dev-handoff-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2111,6 +2310,20 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // Music status action buttons
+  container.querySelectorAll('[data-music-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.musicAction;
+      void handleMusicStatusAction(action!);
+    });
+  });
+
+  // Initialize music status
+  void updateMusicStatusDisplay();
+
+  // Initialize subscription controls
+  setupSubscriptionControlListeners();
+
   // Voice mode buttons (listening/speaking)
   container.querySelectorAll('[data-mode]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2178,7 +2391,9 @@ function createPanel(): HTMLElement {
   // 🚀 Ferni EQ - Micro-expression buttons
   container.querySelectorAll('[data-micro]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const micro = (btn as HTMLElement).dataset.micro as Parameters<typeof ferni.playMicroExpression>[0];
+      const micro = (btn as HTMLElement).dataset.micro as Parameters<
+        typeof ferni.playMicroExpression
+      >[0];
       ferni.playMicroExpression(micro);
       log.debug('Micro-expression triggered:', micro);
     });
@@ -2216,8 +2431,12 @@ function createPanel(): HTMLElement {
       // Simulate concern detection
       const mockTriggers = {
         mild: { voiceStrain: 0.6 },
-        moderate: { voiceStrain: 0.7, transcript: 'I can\'t handle this' },
-        significant: { voiceStrain: 0.8, transcript: 'Nothing ever works, what\'s the point', voiceBreaking: true },
+        moderate: { voiceStrain: 0.7, transcript: "I can't handle this" },
+        significant: {
+          voiceStrain: 0.8,
+          transcript: "Nothing ever works, what's the point",
+          voiceBreaking: true,
+        },
       };
       ferni.analyzeConcern(mockTriggers[concern]);
       log.debug('Concern response triggered:', concern);
@@ -2510,6 +2729,19 @@ function handleAction(action: string): void {
     case 'trigger-upgrade':
       triggerUpgradeModal();
       break;
+    case 'save-whitelist':
+      saveWhitelistFromInput();
+      break;
+    case 'add-to-whitelist':
+      addCurrentUserToWhitelist();
+      break;
+    case 'remove-from-whitelist':
+      removeCurrentUserFromWhitelist();
+      break;
+    case 'clear-whitelist':
+      clearWhitelist();
+      updateWhitelistInput();
+      break;
     case 'open-evalops':
       openEvalOpsDashboard();
       break;
@@ -2680,6 +2912,178 @@ function triggerUpgradeModal(): void {
   import('./subscription.ui.js').then(({ showUpgradeModal }) => {
     showUpgradeModal("Let's go deeper together.");
   });
+}
+
+// ============================================================================
+// SUBSCRIPTION CONTROLS
+// ============================================================================
+
+const SUBSCRIPTION_BYPASS_KEY = 'ferni_subscription_bypass';
+const SUBSCRIPTION_ENABLED_KEY = 'ferni_subscription_enabled';
+const SUBSCRIPTION_WHITELIST_KEY = 'ferni_subscription_whitelist';
+
+function getSubscriptionBypass(): boolean {
+  return localStorage.getItem(SUBSCRIPTION_BYPASS_KEY) === 'true';
+}
+
+function setSubscriptionBypass(bypass: boolean): void {
+  localStorage.setItem(SUBSCRIPTION_BYPASS_KEY, String(bypass));
+  log.info({ bypass }, 'Subscription bypass updated');
+  updateSubscriptionStatusDisplay();
+}
+
+function getSubscriptionEnabled(): boolean {
+  const stored = localStorage.getItem(SUBSCRIPTION_ENABLED_KEY);
+  return stored === null ? true : stored === 'true'; // Default to enabled
+}
+
+function setSubscriptionEnabled(enabled: boolean): void {
+  localStorage.setItem(SUBSCRIPTION_ENABLED_KEY, String(enabled));
+  log.info({ enabled }, 'Subscription gating updated');
+  updateSubscriptionStatusDisplay();
+}
+
+function getWhitelistIds(): string[] {
+  const stored = localStorage.getItem(SUBSCRIPTION_WHITELIST_KEY);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
+}
+
+function setWhitelistIds(ids: string[]): void {
+  localStorage.setItem(SUBSCRIPTION_WHITELIST_KEY, JSON.stringify(ids));
+  log.info({ count: ids.length }, 'Whitelist updated');
+  updateSubscriptionStatusDisplay();
+}
+
+function isUserWhitelisted(userId: string): boolean {
+  return getWhitelistIds().includes(userId);
+}
+
+function addToWhitelist(userId: string): void {
+  const ids = getWhitelistIds();
+  if (!ids.includes(userId)) {
+    ids.push(userId);
+    setWhitelistIds(ids);
+  }
+}
+
+function removeFromWhitelist(userId: string): void {
+  const ids = getWhitelistIds().filter((id) => id !== userId);
+  setWhitelistIds(ids);
+}
+
+function clearWhitelist(): void {
+  setWhitelistIds([]);
+}
+
+function updateSubscriptionStatusDisplay(): void {
+  const statusEl = document.getElementById('dev-sub-status-text');
+  if (!statusEl) return;
+
+  const bypass = getSubscriptionBypass();
+  const enabled = getSubscriptionEnabled();
+  const whitelist = getWhitelistIds();
+
+  let status = '';
+  if (bypass) {
+    status = '🔓 BYPASSED (Admin Mode)';
+  } else if (!enabled) {
+    status = '⏸️ Gating Disabled';
+  } else if (whitelist.length > 0) {
+    status = `✅ Active (${whitelist.length} whitelisted)`;
+  } else {
+    status = '✅ Active';
+  }
+
+  statusEl.textContent = status;
+}
+
+/**
+ * Check if subscription gating should be bypassed for the current user.
+ * This is called from subscription.ui.ts to determine if limits apply.
+ */
+export function shouldBypassSubscription(userId?: string): boolean {
+  // Admin bypass takes precedence
+  if (getSubscriptionBypass()) return true;
+
+  // If gating is disabled, bypass
+  if (!getSubscriptionEnabled()) return true;
+
+  // Check whitelist
+  if (userId && isUserWhitelisted(userId)) return true;
+
+  return false;
+}
+
+// Export for use in subscription UI
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).ferniSubscriptionBypass = shouldBypassSubscription;
+}
+
+function saveWhitelistFromInput(): void {
+  const input = document.getElementById('dev-whitelist-ids') as HTMLInputElement;
+  if (!input) return;
+
+  const ids = input.value
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  setWhitelistIds(ids);
+  log.info({ ids }, 'Whitelist saved');
+}
+
+function updateWhitelistInput(): void {
+  const input = document.getElementById('dev-whitelist-ids') as HTMLInputElement;
+  if (!input) return;
+  input.value = getWhitelistIds().join(', ');
+}
+
+function addCurrentUserToWhitelist(): void {
+  const { appState } = require('../state/app.state.js');
+  const userId = appState.getState().deviceId;
+  if (userId) {
+    addToWhitelist(userId);
+    updateWhitelistInput();
+    log.info({ userId }, 'Added current user to whitelist');
+  } else {
+    log.warn('No device ID available to whitelist');
+  }
+}
+
+function removeCurrentUserFromWhitelist(): void {
+  const { appState } = require('../state/app.state.js');
+  const userId = appState.getState().deviceId;
+  if (userId) {
+    removeFromWhitelist(userId);
+    updateWhitelistInput();
+    log.info({ userId }, 'Removed current user from whitelist');
+  }
+}
+
+function setupSubscriptionControlListeners(): void {
+  // Bypass toggle
+  const bypassToggle = document.getElementById('dev-subscription-bypass') as HTMLInputElement;
+  if (bypassToggle) {
+    bypassToggle.addEventListener('change', () => {
+      setSubscriptionBypass(bypassToggle.checked);
+    });
+  }
+
+  // Enabled toggle
+  const enabledToggle = document.getElementById('dev-subscription-enabled') as HTMLInputElement;
+  if (enabledToggle) {
+    enabledToggle.addEventListener('change', () => {
+      setSubscriptionEnabled(enabledToggle.checked);
+    });
+  }
+
+  // Update status display
+  updateSubscriptionStatusDisplay();
 }
 
 function triggerHandoff(personaId: string): void {
@@ -3011,6 +3415,78 @@ function triggerSoulAction(action: string): void {
 
     default:
       log.warn({ action }, 'Unknown soul action');
+  }
+}
+
+// ============================================================================
+// AVATAR LAMP ACTIONS - Pixar Luxo Jr. Body Language
+// ============================================================================
+
+function triggerLampAction(action: string): void {
+  switch (action) {
+    case 'bounce':
+      avatarLamp.bounce(0.5, 1);
+      log.info('Avatar Lamp: bounce');
+      break;
+
+    case 'bounce-big':
+      avatarLamp.bounce(0.9, 3);
+      log.info('Avatar Lamp: big bounce');
+      break;
+
+    case 'tilt-right':
+      avatarLamp.tilt('right', 0.6);
+      log.info('Avatar Lamp: tilt right');
+      break;
+
+    case 'tilt-left':
+      avatarLamp.tilt('left', 0.5);
+      log.info('Avatar Lamp: tilt left');
+      break;
+
+    case 'tilt-forward':
+      avatarLamp.tilt('forward', 0.5);
+      log.info('Avatar Lamp: lean forward');
+      break;
+
+    case 'perk-up':
+      avatarLamp.perkUp();
+      log.info('Avatar Lamp: perk up');
+      break;
+
+    case 'nod':
+      avatarLamp.nod(2, 'normal');
+      log.info('Avatar Lamp: nod');
+      break;
+
+    case 'nod-slow':
+      avatarLamp.nod(1, 'slow');
+      log.info('Avatar Lamp: slow nod');
+      break;
+
+    case 'shake':
+      avatarLamp.shake(0.6);
+      log.info('Avatar Lamp: shake');
+      break;
+
+    case 'shrink':
+      avatarLamp.shrink(0.5);
+      setTimeout(() => avatarLamp.unshrink(), 1500);
+      log.info('Avatar Lamp: shrink');
+      break;
+
+    case 'breathing-start':
+      avatarLamp.startBreathing();
+      log.info('Avatar Lamp: breathing started');
+      break;
+
+    case 'breathing-stop':
+      avatarLamp.stopBreathing();
+      log.info('Avatar Lamp: breathing stopped');
+      break;
+
+    default:
+      log.warn({ action }, 'Unknown lamp action');
   }
 }
 
@@ -3354,6 +3830,172 @@ async function testOurSong(): Promise<void> {
   waveformUI.setMusicPlaying(true);
 
   log.info('💚 Testing "Our Song" feature - showing shared memory indicator');
+}
+
+// ============================================================================
+// MUSIC PLAYER STATUS - Real-time diagnostics
+// ============================================================================
+
+interface MusicStatus {
+  initialized: boolean;
+  isPlaying: boolean;
+  currentTrack?: { name: string; artist: string };
+  volume: number;
+  isDucked: boolean;
+  isAmbient: boolean;
+  queueLength: number;
+  itunesAvailable: boolean;
+  spotifyStatus?: {
+    configured: boolean;
+    linked: boolean;
+    accessToken: boolean;
+    deviceConnected: boolean;
+  };
+}
+
+async function fetchMusicStatus(): Promise<MusicStatus | null> {
+  try {
+    // Use the API endpoint to get music status
+    const response = await fetch('/api/music/status', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+
+    // If API not available, return null (we'll show "Not Connected")
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function updateMusicStatusDisplay(): Promise<void> {
+  const statusContainer = document.getElementById('dev-music-status');
+  if (!statusContainer) return;
+
+  const status = await fetchMusicStatus();
+
+  if (!status) {
+    statusContainer.innerHTML = `
+      <div class="dev-music-status__grid">
+        <div class="dev-music-status__item dev-music-status__item--warning">
+          <span class="dev-music-status__label">Status</span>
+          <span class="dev-music-status__value">Not Connected</span>
+        </div>
+        <div class="dev-music-status__item">
+          <span class="dev-music-status__label">Note</span>
+          <span class="dev-music-status__value">Music player runs in voice agent</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const statusClass = status.initialized
+    ? 'dev-music-status__item--success'
+    : 'dev-music-status__item--error';
+  const playingClass = status.isPlaying ? 'dev-music-status__item--success' : '';
+  const itunesClass = status.itunesAvailable
+    ? 'dev-music-status__item--success'
+    : 'dev-music-status__item--error';
+
+  let spotifyHtml = '';
+  if (status.spotifyStatus) {
+    const spotifyClass = status.spotifyStatus.linked
+      ? 'dev-music-status__item--success'
+      : 'dev-music-status__item--warning';
+    spotifyHtml = `
+      <div class="dev-music-status__item ${spotifyClass}">
+        <span class="dev-music-status__label">Spotify</span>
+        <span class="dev-music-status__value">${
+          status.spotifyStatus.linked
+            ? '✓ Linked' + (status.spotifyStatus.deviceConnected ? ' + Device' : ' (No Device)')
+            : 'Not Linked'
+        }</span>
+      </div>
+    `;
+  }
+
+  statusContainer.innerHTML = `
+    <div class="dev-music-status__grid">
+      <div class="dev-music-status__item ${statusClass}">
+        <span class="dev-music-status__label">Player</span>
+        <span class="dev-music-status__value">${status.initialized ? '✓ Ready' : '✗ Not Init'}</span>
+      </div>
+      <div class="dev-music-status__item ${playingClass}">
+        <span class="dev-music-status__label">Playing</span>
+        <span class="dev-music-status__value">${status.isPlaying ? '▶ Yes' : '◼ No'}</span>
+      </div>
+      <div class="dev-music-status__item">
+        <span class="dev-music-status__label">Volume</span>
+        <span class="dev-music-status__value">${Math.round(status.volume * 100)}%${status.isDucked ? ' (ducked)' : ''}</span>
+      </div>
+      <div class="dev-music-status__item ${itunesClass}">
+        <span class="dev-music-status__label">iTunes</span>
+        <span class="dev-music-status__value">${status.itunesAvailable ? '✓ Available' : '✗ Down'}</span>
+      </div>
+      ${spotifyHtml}
+      ${
+        status.currentTrack
+          ? `
+        <div class="dev-music-status__item dev-music-status__item--full">
+          <span class="dev-music-status__label">Now Playing</span>
+          <span class="dev-music-status__value">${status.currentTrack.name} - ${status.currentTrack.artist}</span>
+        </div>
+      `
+          : ''
+      }
+    </div>
+  `;
+}
+
+async function handleMusicStatusAction(action: string): Promise<void> {
+  switch (action) {
+    case 'refresh-status':
+      await updateMusicStatusDisplay();
+      log.info('Refreshed music status');
+      break;
+
+    case 'test-itunes':
+      try {
+        const response = await fetch('/api/music/test-itunes', { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+          log.info({ track: result.track }, '✓ iTunes API working');
+          alert(`✓ iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
+        } else {
+          log.warn({ error: result.error }, '✗ iTunes API failed');
+          alert(`✗ iTunes API failed\n\n${result.error}`);
+        }
+      } catch (e) {
+        log.error({ error: e }, 'iTunes test failed');
+        alert('iTunes test failed - check console');
+      }
+      break;
+
+    case 'test-spotify':
+      try {
+        const response = await fetch('/spotify/status');
+        const result = await response.json();
+        const statusLines = [
+          `Configured: ${result.configured ? '✓' : '✗'}`,
+          `Linked: ${result.linked ? '✓' : '✗'}`,
+          `Device Connected: ${result.deviceConnected ? '✓' : '✗'}`,
+        ];
+        alert(`Spotify Status:\n\n${statusLines.join('\n')}`);
+        log.info({ status: result }, 'Spotify status check');
+      } catch (e) {
+        log.error({ error: e }, 'Spotify check failed');
+        alert('Spotify check failed - check console');
+      }
+      break;
+
+    default:
+      log.warn({ action }, 'Unknown music status action');
+  }
 }
 
 // ============================================================================
@@ -4545,9 +5187,9 @@ function setNetworkSimulation(network: string): void {
   // Set packet loss simulation based on network quality
   const packetLossMap: Record<string, number> = {
     excellent: 0,
-    good: 0.01,    // 1% packet loss
-    poor: 0.1,     // 10% packet loss
-    offline: 1,    // 100% packet loss (offline)
+    good: 0.01, // 1% packet loss
+    poor: 0.1, // 10% packet loss
+    offline: 1, // 100% packet loss (offline)
   };
   window.__devNetwork.packetLoss = packetLossMap[network] || 0;
 
@@ -4624,7 +5266,7 @@ function installDevFetchWrapper(): void {
 
     // Add latency delay
     if (latency > 0) {
-      await new Promise(resolve => setTimeout(resolve, latency));
+      await new Promise((resolve) => setTimeout(resolve, latency));
     }
 
     // Call original fetch
@@ -4677,6 +5319,9 @@ function handleStorageAction(action: string): void {
     case 'clear-cache':
       clearCache();
       break;
+    case 'clear-marketplace':
+      clearMarketplaceAgents();
+      break;
     case 'clear-all':
       clearAllStorage();
       break;
@@ -4727,6 +5372,35 @@ function clearCache(): void {
   avatarFeedback.success(`Cleared ${cacheKeys.length} cache items`);
   updateStorageCount();
   log.info({ count: cacheKeys.length }, 'Cleared cache');
+}
+
+function clearMarketplaceAgents(): void {
+  // Clear marketplace installed agents - fixes "Moxie showing by default" issue
+  const marketplaceKey = 'voiceai-marketplace-installed';
+  const existing = localStorage.getItem(marketplaceKey);
+
+  if (existing) {
+    try {
+      const agents = JSON.parse(existing);
+      const count = Object.keys(agents).length;
+      localStorage.removeItem(marketplaceKey);
+      avatarFeedback.success(`Cleared ${count} marketplace agent(s)`);
+      updateStorageCount();
+      log.info({ count }, 'Cleared marketplace agents');
+
+      // Reload to update UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch {
+      localStorage.removeItem(marketplaceKey);
+      avatarFeedback.success('Cleared marketplace data');
+      log.info('Cleared marketplace data (corrupted format)');
+    }
+  } else {
+    avatarFeedback.info('No marketplace agents installed');
+    log.info('No marketplace agents to clear');
+  }
 }
 
 function clearAllStorage(): void {
@@ -4807,7 +5481,7 @@ function ensureAmbientEffectsInitialized(): void {
 
 function toggleAmbientEffect(effect: string): void {
   ensureAmbientEffectsInitialized();
-  
+
   switch (effect) {
     case 'particles':
       ambientStates.particles = !ambientStates.particles;
@@ -5310,6 +5984,122 @@ function injectStyles(): void {
       color: var(--dev-accent);
     }
     
+    .dev-action-btn--small {
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      font-size: 0.75rem;
+    }
+    
+    /* Toggle Switches */
+    .dev-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      margin-bottom: var(--space-2, 8px);
+    }
+    
+    .dev-toggle {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    
+    .dev-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .dev-toggle__slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 11px;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-toggle__slider::before {
+      position: absolute;
+      content: '';
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-toggle input:checked + .dev-toggle__slider {
+      background: var(--dev-accent);
+    }
+    
+    .dev-toggle input:checked + .dev-toggle__slider::before {
+      transform: translateX(18px);
+      background: white;
+    }
+    
+    .dev-toggle__label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.8rem;
+    }
+    
+    /* Input Rows */
+    .dev-input-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1, 4px);
+      margin-bottom: var(--space-3, 12px);
+    }
+    
+    .dev-input__label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.75rem;
+    }
+    
+    .dev-input {
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md, 8px);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.8rem;
+      font-family: var(--font-mono, monospace);
+    }
+    
+    .dev-input:focus {
+      outline: none;
+      border-color: var(--dev-accent);
+    }
+    
+    .dev-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Status Row */
+    .dev-status-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-2, 8px);
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: var(--radius-sm, 4px);
+      margin-top: var(--space-2, 8px);
+    }
+    
+    .dev-status__label {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.75rem;
+    }
+    
+    .dev-status__value {
+      color: var(--dev-accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
     /* Roster Controls */
     .dev-roster-controls {
       display: flex;
@@ -5410,6 +6200,56 @@ function injectStyles(): void {
       font-size: 0.65rem;
       color: rgba(255, 255, 255, 0.4);
       font-style: italic;
+    }
+    
+    /* Avatar Lamp Buttons - Pixar Luxo Jr. */
+    .dev-section--lamp {
+      background: linear-gradient(135deg, rgba(255, 180, 50, 0.1), rgba(255, 220, 100, 0.05));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px);
+      margin: 0 calc(var(--space-4, 16px) * -1);
+      margin-bottom: var(--space-5, 20px);
+    }
+    
+    .dev-lamp-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2, 8px);
+    }
+    
+    .dev-lamp-btn {
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: rgba(255, 180, 50, 0.2);
+      border: 1px solid rgba(255, 180, 50, 0.35);
+      border-radius: var(--radius-md, 8px);
+      color: #ffcc66;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-lamp-btn:hover {
+      background: rgba(255, 180, 50, 0.35);
+      border-color: #ffb432;
+      transform: scale(1.02);
+      box-shadow: 0 0 12px rgba(255, 180, 50, 0.3);
+    }
+    
+    .dev-lamp-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .dev-lamp-btn--primary {
+      background: linear-gradient(135deg, rgba(255, 180, 50, 0.35), rgba(255, 220, 100, 0.35));
+      border-color: #ffb432;
+      color: #ffe066;
+      font-weight: 600;
+    }
+    
+    .dev-lamp-btn--primary:hover {
+      background: linear-gradient(135deg, rgba(255, 180, 50, 0.5), rgba(255, 220, 100, 0.5));
+      box-shadow: 0 0 20px rgba(255, 180, 50, 0.4);
     }
     
     /* Handoff Buttons */
@@ -5683,6 +6523,66 @@ function injectStyles(): void {
     
     .dev-music-btn:active {
       transform: scale(0.98);
+    }
+    
+    /* 🎵 Music Status Display */
+    .dev-music-status {
+      margin-top: 8px;
+    }
+    
+    .dev-music-status__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    
+    .dev-music-status__item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm, 6px);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .dev-music-status__item--full {
+      grid-column: span 2;
+    }
+    
+    .dev-music-status__item--success {
+      border-color: rgba(74, 103, 65, 0.5);
+      background: rgba(74, 103, 65, 0.15);
+    }
+    
+    .dev-music-status__item--warning {
+      border-color: rgba(196, 162, 101, 0.5);
+      background: rgba(196, 162, 101, 0.15);
+    }
+    
+    .dev-music-status__item--error {
+      border-color: rgba(196, 100, 100, 0.5);
+      background: rgba(196, 100, 100, 0.15);
+    }
+    
+    .dev-music-status__label {
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .dev-music-status__value {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+    
+    .dev-music-status__loading {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 12px;
     }
     
     /* 🆕 Emotion System Buttons */

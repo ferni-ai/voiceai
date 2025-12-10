@@ -200,15 +200,30 @@ function extractImports(content: string): Array<{ line: number; path: string }> 
   const imports: Array<{ line: number; path: string }> = [];
   const lines = content.split('\n');
 
+  // Track if we're inside a function body (where dynamic imports are intentional)
+  let braceDepth = 0;
+  let inTopLevel = true;
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Track brace depth to detect if we're in a function body
+    // This is a simple heuristic - not perfect but catches most cases
+    braceDepth += (line.match(/\{/g) || []).length;
+    braceDepth -= (line.match(/\}/g) || []).length;
+
+    // Top-level is roughly when we're at brace depth 0-1 (class bodies count as 1)
+    inTopLevel = braceDepth <= 1;
 
     // Match: import ... from '...'
     // Match: import '...'
     // Match: export ... from '...'
     const importMatch = line.match(/(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]/);
     const sideEffectMatch = line.match(/import\s+['"]([^'"]+)['"]/);
-    const dynamicMatch = line.match(/import\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+
+    // Only detect dynamic imports at top level (module-level eager evaluation)
+    // Dynamic imports inside function bodies are intentionally lazy
+    const dynamicMatch = inTopLevel ? line.match(/import\s*\(\s*['"]([^'"]+)['"]\s*\)/) : null;
 
     const path = importMatch?.[1] || sideEffectMatch?.[1] || dynamicMatch?.[1];
 

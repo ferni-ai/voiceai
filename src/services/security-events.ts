@@ -13,10 +13,14 @@
  * - Audit trail for sensitive operations
  * - Privacy-preserving logging (no PII in logs)
  *
+ * PERSISTENCE: Uses Redis for rate limiting, Firestore for event audit log.
+ *
  * @module SecurityEvents
  */
 
 import { createHmac, randomBytes } from 'crypto';
+import * as admin from 'firebase-admin';
+import { getRedisCache } from '../memory/redis-cache.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -129,18 +133,184 @@ const DEFAULT_CONFIG: AnomalyConfig = {
 };
 
 // ============================================================================
-// IN-MEMORY STORES (Production would use Redis/Firestore)
+// STORAGE (Redis for rate limiting, Firestore for audit log)
 // ============================================================================
 
-const failedAttempts = new Map<string, FailedAttemptEntry>();
+// In-memory fallback stores
+const failedAttemptsMemory = new Map<string, FailedAttemptEntry>();
 const recentEvents: SecurityEvent[] = [];
 const MAX_RECENT_EVENTS = 1000;
+
+// Firestore setup
+const EVENTS_COLLECTION = 'security_events';
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) return null;
+
+  firestoreInitAttempted = true;
+
+  try {
+    if (admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    log.info('✅ Firestore initialized for security events');
+    return firestoreInstance;
+  } catch (error) {
+    log.warn({ error }, 'Firebase not available for security events, using in-memory only');
+    return null;
+  }
+}
+
+// Rate limiting TTLs
+const FAILED_ATTEMPTS_TTL = 1800; // 30 minutes
+
+/**
+ * Get failed attempts from Redis or memory
+ */
+async function getFailedAttempts(key: string): Promise<FailedAttemptEntry | null> {
+  const redis = getRedisCache();
+
+  if (redis) {
+    try {
+      const data = await redis.get<FailedAttemptEntry>(`security:failed:${key}`);
+      if (data) return data;
+    } catch (error) {
+      log.warn({ error, key }, 'Redis failed attempts fetch failed, using memory');
+    }
+  }
+
+  return failedAttemptsMemory.get(key) ?? null;
+}
+
+/**
+ * Set failed attempts in Redis and memory
+ */
+async function setFailedAttempts(key: string, entry: FailedAttemptEntry): Promise<void> {
+  failedAttemptsMemory.set(key, entry);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.set(`security:failed:${key}`, entry, FAILED_ATTEMPTS_TTL);
+    } catch (error) {
+      log.warn({ error, key }, 'Redis failed attempts store failed');
+    }
+  }
+}
+
+/**
+ * Delete failed attempts from Redis and memory
+ */
+async function deleteFailedAttempts(key: string): Promise<void> {
+  failedAttemptsMemory.delete(key);
+
+  const redis = getRedisCache();
+  if (redis) {
+    try {
+      await redis.delete(`security:failed:${key}`);
+    } catch (error) {
+      log.warn({ error, key }, 'Redis failed attempts delete failed');
+    }
+  }
+}
+
+/**
+ * Save security event to Firestore
+ */
+async function saveEventToFirestore(event: SecurityEvent): Promise<void> {
+  const db = getFirestore();
+  if (!db) return;
+
+  try {
+    await db
+      .collection(EVENTS_COLLECTION)
+      .doc(event.id)
+      .set({
+        ...event,
+        timestamp: event.timestamp,
+      });
+  } catch (error) {
+    log.error({ error, eventId: event.id }, 'Failed to save security event to Firestore');
+  }
+}
+
+/**
+ * Query security events from Firestore
+ */
+async function queryEventsFromFirestore(
+  filter: Partial<SecurityEvent>,
+  limit = 100
+): Promise<SecurityEvent[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  try {
+    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+
+    if (filter.type) {
+      query = query.where('type', '==', filter.type);
+    }
+    if (filter.severity) {
+      query = query.where('severity', '==', filter.severity);
+    }
+    if (filter.actorId) {
+      query = query.where('actorId', '==', filter.actorId);
+    }
+    if (filter.outcome) {
+      query = query.where('outcome', '==', filter.outcome);
+    }
+
+    const snapshot = await query.orderBy('timestamp', 'desc').limit(limit).get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp),
+      } as SecurityEvent;
+    });
+  } catch (error) {
+    log.error({ error }, 'Failed to query security events from Firestore');
+    return [];
+  }
+}
+
+// Legacy compatibility wrapper
+const failedAttempts = {
+  get: (key: string) => failedAttemptsMemory.get(key),
+  set: (key: string, entry: FailedAttemptEntry) => {
+    void setFailedAttempts(key, entry);
+    failedAttemptsMemory.set(key, entry);
+  },
+  delete: (key: string) => {
+    void deleteFailedAttempts(key);
+    failedAttemptsMemory.delete(key);
+  },
+  has: (key: string) => failedAttemptsMemory.has(key),
+};
 
 // Persistent store reference (set by initialize)
 let persistentStore: {
   saveEvent: (event: SecurityEvent) => Promise<void>;
   getEvents: (filter: Partial<SecurityEvent>, limit?: number) => Promise<SecurityEvent[]>;
-} | null = null;
+} | null = {
+  saveEvent: saveEventToFirestore,
+  getEvents: queryEventsFromFirestore,
+};
 
 // ============================================================================
 // PRIVACY-PRESERVING HELPERS
@@ -148,9 +318,25 @@ let persistentStore: {
 
 /**
  * Hash sensitive data for logging (one-way, privacy-preserving)
+ * SECURITY: In production, LOG_HASH_SECRET MUST be set to prevent predictable hashes
  */
 function hashForLogging(value: string): string {
-  const secret = process.env.LOG_HASH_SECRET || 'ferni-security-log-salt-v1';
+  const secret = process.env.LOG_HASH_SECRET;
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  if (!secret) {
+    if (!isDev) {
+      // In production, log a warning but use a random per-instance salt
+      // This prevents predictable hashes while not breaking the system
+      console.warn('SECURITY WARNING: LOG_HASH_SECRET not set in production');
+    }
+    // Use a fallback only in development
+    return createHmac('sha256', isDev ? 'dev-only-salt' : randomBytes(32).toString('hex'))
+      .update(value)
+      .digest('hex')
+      .substring(0, 16);
+  }
+
   return createHmac('sha256', secret).update(value).digest('hex').substring(0, 16);
 }
 
@@ -634,7 +820,7 @@ export function getSecurityMetrics(): {
 
   // Count active lockouts
   let activeLockedAccounts = 0;
-  for (const [, entry] of failedAttempts) {
+  for (const [, entry] of failedAttemptsMemory) {
     if (entry.lockedUntil && entry.lockedUntil > now) {
       activeLockedAccounts++;
     }
@@ -704,9 +890,9 @@ export function cleanupSecurityData(): void {
   const now = Date.now();
 
   // Cleanup expired lockouts
-  for (const [key, entry] of failedAttempts) {
+  for (const [key, entry] of failedAttemptsMemory) {
     if (entry.lockedUntil && entry.lockedUntil < now - DEFAULT_CONFIG.lockoutDurationMs) {
-      failedAttempts.delete(key);
+      void deleteFailedAttempts(key);
     }
   }
 

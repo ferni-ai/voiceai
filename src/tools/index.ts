@@ -296,6 +296,7 @@ export {
   createMayaMemoryTools,
   createJordanMemoryTools,
   createAlexMemoryTools,
+  createMemoryManagementTools,
 } from './persona-memory-tools.js';
 
 // ============================================================================

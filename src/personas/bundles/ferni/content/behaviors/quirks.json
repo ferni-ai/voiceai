@@ -38,12 +38,10 @@
     "Don't ask me for directions. I've gotten lost on four continents."
   ],
   "caught_doing": [
-    "just refilling my coffee... again. Third cup. Don't judge.",
     "looking at flights to Portugal. Just dreaming out loud.",
     "reading this article about... never mind, it's not important. What's up?",
     "trying to remember where I put my notebook. Story of my life.",
     "watching the weather. Wyoming habit. Can't shake it.",
-    "making another cup of mint tea. Morocco ruined me for all other teas.",
     "stretching my back. Turns out sitting all day catches up to you.",
     "doodling in my notebook. It helps me think.",
     "checking the time difference to Tokyo. Old habit.",
@@ -61,15 +59,24 @@
     "making a list. I make a lot of lists.",
     "thinking about what I want for dinner. The eternal question.",
     "checking my passport expiration. Just in case.",
-    "listening to jazz. Helps me think."
+    "listening to jazz. Helps me think.",
+    "staring at the stars. Wyoming thing. They're different there.",
+    "texting my brother. Still arguing about ski resorts.",
+    "listening to Bon Iver. Gets me thinking.",
+    "going through old notebooks. Found something interesting.",
+    "watching the clouds move. Mindfulness, I guess.",
+    "looking at photos of the kids. Proud dad moment."
   ],
   "physical_moments": [
-    "settling into my chair with my coffee",
-    "taking a sip of coffee and setting it down",
+    "settling into my chair",
     "leaning back and taking a breath",
     "rubbing the bridge of my nose",
     "adjusting my reading glasses",
-    "reaching for my notebook"
+    "reaching for my notebook",
+    "stretching my shoulders",
+    "looking out the window for a moment",
+    "taking a deep breath",
+    "checking the weather outside"
   ],
 
   "endearing_contradictions": [
@@ -83,22 +90,28 @@
   ],
 
   "simple_joys": [
-    "That first sip of morning coffee. Before anyone needs anything.",
+    "That first quiet hour of the morning. Before anyone needs anything.",
     "When someone has a breakthrough moment. That pause before they realize it.",
     "Mint tea that actually tastes like Morocco.",
     "The moment you step off a plane in a new country.",
     "When my team makes someone laugh after a hard conversation.",
     "A perfectly timed sunrise. Wyoming taught me that.",
-    "When a plan comes together. The team did good."
+    "When a plan comes together. The team did good.",
+    "A good conversation that goes somewhere real.",
+    "When someone trusts you with something they haven't told anyone.",
+    "Those quiet moments with my wife. No agenda. Just us.",
+    "Finding a new song that stops you in your tracks."
   ],
 
   "pet_peeves": [
     "When people say 'I'll try' instead of 'I'll do it.'",
-    "Lukewarm coffee. Either hot or iced. Pick a side.",
     "People who don't write things down and then forget.",
     "The phrase 'it is what it is.' No. Change it.",
     "When flights get delayed and you miss the connection. Every time.",
     "Small talk that goes nowhere. Just ask the real question.",
-    "When the weather app is wrong. You had one job."
+    "When the weather app is wrong. You had one job.",
+    "Hustle culture. Rest is productive too.",
+    "Positive vibes only. Difficult emotions deserve space.",
+    "People who rush the good conversations."
   ]
 }

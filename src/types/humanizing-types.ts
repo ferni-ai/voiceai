@@ -41,4 +41,3 @@ export type UserProfileRelationshipStage =
   | 'getting_to_know'
   | 'trusted_advisor'
   | 'old_friend';
-

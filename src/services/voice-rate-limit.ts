@@ -22,8 +22,8 @@ const log = pino({ name: 'voice-rate-limit' });
 // ============================================================================
 
 export interface RateLimitConfig {
-  windowMs: number;      // Time window in milliseconds
-  maxRequests: number;   // Max requests per window
+  windowMs: number; // Time window in milliseconds
+  maxRequests: number; // Max requests per window
   blockDurationMs?: number; // Duration to block after limit exceeded
 }
 
@@ -43,29 +43,29 @@ type EndpointType = 'verify' | 'identify' | 'enroll' | 'profile' | 'status';
 
 const DEFAULT_RATE_LIMITS: Record<EndpointType, RateLimitConfig> = {
   verify: {
-    windowMs: 60000,      // 1 minute
+    windowMs: 60000, // 1 minute
     maxRequests: 10,
     blockDurationMs: 300000, // 5 minute block after exceeded
   },
   identify: {
-    windowMs: 60000,      // 1 minute
+    windowMs: 60000, // 1 minute
     maxRequests: 5,
     blockDurationMs: 300000, // 5 minute block
   },
   enroll: {
-    windowMs: 60000,      // 1 minute
-    maxRequests: 20,      // More lenient for enrollment
+    windowMs: 60000, // 1 minute
+    maxRequests: 20, // More lenient for enrollment
     blockDurationMs: 60000, // 1 minute block
   },
   profile: {
-    windowMs: 60000,      // 1 minute
+    windowMs: 60000, // 1 minute
     maxRequests: 5,
     blockDurationMs: 60000,
   },
   status: {
-    windowMs: 60000,      // 1 minute
-    maxRequests: 30,      // Status checks are lightweight
-    blockDurationMs: 0,   // No blocking
+    windowMs: 60000, // 1 minute
+    maxRequests: 30, // Status checks are lightweight
+    blockDurationMs: 0, // No blocking
   },
 };
 
@@ -107,7 +107,7 @@ export function checkRateLimit(
 ): RateLimitResult {
   const limits = { ...DEFAULT_RATE_LIMITS[endpoint], ...config };
   const now = Date.now();
-  
+
   // Check IP-level rate limit first (DDoS protection)
   if (ipAddress) {
     const ipResult = checkIPRateLimit(ipAddress, now);
@@ -116,18 +116,18 @@ export function checkRateLimit(
       return ipResult;
     }
   }
-  
+
   // Get or create user's request records
   if (!userRequests.has(userId)) {
     userRequests.set(userId, new Map());
   }
   const userEndpoints = userRequests.get(userId)!;
-  
+
   if (!userEndpoints.has(endpoint)) {
     userEndpoints.set(endpoint, { timestamps: [] });
   }
   const record = userEndpoints.get(endpoint)!;
-  
+
   // Check if user is blocked
   if (record.blockedUntil && now < record.blockedUntil) {
     const retryAfterMs = record.blockedUntil - now;
@@ -139,27 +139,30 @@ export function checkRateLimit(
       blocked: true,
     };
   }
-  
+
   // Clear block if expired
   if (record.blockedUntil && now >= record.blockedUntil) {
     record.blockedUntil = undefined;
   }
-  
+
   // Remove old timestamps outside the window
   const windowStart = now - limits.windowMs;
   record.timestamps = record.timestamps.filter((t) => t > windowStart);
-  
+
   // Check if limit exceeded
   if (record.timestamps.length >= limits.maxRequests) {
     // Apply block if configured
     if (limits.blockDurationMs && limits.blockDurationMs > 0) {
       record.blockedUntil = now + limits.blockDurationMs;
-      log.warn({ userId, endpoint, blockUntil: record.blockedUntil }, 'User blocked for rate limit');
+      log.warn(
+        { userId, endpoint, blockUntil: record.blockedUntil },
+        'User blocked for rate limit'
+      );
     }
-    
+
     const oldestInWindow = Math.min(...record.timestamps);
     const resetAt = new Date(oldestInWindow + limits.windowMs);
-    
+
     return {
       allowed: false,
       remaining: 0,
@@ -168,15 +171,16 @@ export function checkRateLimit(
       blocked: Boolean(record.blockedUntil),
     };
   }
-  
+
   // Allow request and record timestamp
   record.timestamps.push(now);
-  
+
   const remaining = limits.maxRequests - record.timestamps.length;
-  const resetAt = record.timestamps.length > 0
-    ? new Date(record.timestamps[0] + limits.windowMs)
-    : new Date(now + limits.windowMs);
-  
+  const resetAt =
+    record.timestamps.length > 0
+      ? new Date(record.timestamps[0] + limits.windowMs)
+      : new Date(now + limits.windowMs);
+
   return {
     allowed: true,
     remaining,
@@ -192,7 +196,7 @@ function checkIPRateLimit(ipAddress: string, now: number): RateLimitResult {
     ipRequests.set(ipAddress, { timestamps: [] });
   }
   const record = ipRequests.get(ipAddress)!;
-  
+
   // Check if blocked
   if (record.blockedUntil && now < record.blockedUntil) {
     return {
@@ -203,22 +207,22 @@ function checkIPRateLimit(ipAddress: string, now: number): RateLimitResult {
       blocked: true,
     };
   }
-  
+
   // Clear expired block
   if (record.blockedUntil && now >= record.blockedUntil) {
     record.blockedUntil = undefined;
   }
-  
+
   // Remove old timestamps
   const windowStart = now - GLOBAL_LIMITS.windowMs;
   record.timestamps = record.timestamps.filter((t) => t > windowStart);
-  
+
   // Check limit
   if (record.timestamps.length >= GLOBAL_LIMITS.maxRequests) {
     if (GLOBAL_LIMITS.blockDurationMs) {
       record.blockedUntil = now + GLOBAL_LIMITS.blockDurationMs;
     }
-    
+
     const oldestInWindow = Math.min(...record.timestamps);
     return {
       allowed: false,
@@ -228,7 +232,7 @@ function checkIPRateLimit(ipAddress: string, now: number): RateLimitResult {
       blocked: Boolean(record.blockedUntil),
     };
   }
-  
+
   // Allow
   record.timestamps.push(now);
   return {
@@ -252,18 +256,21 @@ export function createRateLimitMiddleware(
 ) {
   return (
     req: { headers: Record<string, string | string[] | undefined>; userId?: string },
-    res: { setHeader: (name: string, value: string) => void; status: (code: number) => { json: (body: unknown) => void } }
+    res: {
+      setHeader: (name: string, value: string) => void;
+      status: (code: number) => { json: (body: unknown) => void };
+    }
   ): boolean => {
     const userId = req.userId || 'anonymous';
     const ipAddress = getClientIP(req.headers);
-    
+
     const result = checkRateLimit(userId, endpoint, ipAddress, config);
-    
+
     // Set rate limit headers
     res.setHeader('X-RateLimit-Limit', String(DEFAULT_RATE_LIMITS[endpoint].maxRequests));
     res.setHeader('X-RateLimit-Remaining', String(result.remaining));
     res.setHeader('X-RateLimit-Reset', String(Math.floor(result.resetAt.getTime() / 1000)));
-    
+
     if (!result.allowed) {
       res.setHeader('Retry-After', String(Math.ceil((result.retryAfterMs || 0) / 1000)));
       res.status(429).json({
@@ -276,7 +283,7 @@ export function createRateLimitMiddleware(
       });
       return false;
     }
-    
+
     return true;
   };
 }
@@ -291,13 +298,13 @@ function getClientIP(headers: Record<string, string | string[] | undefined>): st
     const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
     return ips[0].trim();
   }
-  
+
   // Check X-Real-IP
   const realIP = headers['x-real-ip'];
   if (realIP) {
     return typeof realIP === 'string' ? realIP : realIP[0];
   }
-  
+
   // Fallback
   return 'unknown';
 }
@@ -311,13 +318,13 @@ function getClientIP(headers: Record<string, string | string[] | undefined>): st
  */
 export function resetUserRateLimit(userId: string, endpoint?: EndpointType): void {
   if (!userRequests.has(userId)) return;
-  
+
   if (endpoint) {
     userRequests.get(userId)?.delete(endpoint);
   } else {
     userRequests.delete(userId);
   }
-  
+
   log.info({ userId, endpoint }, 'Rate limit reset');
 }
 
@@ -332,32 +339,41 @@ export function resetIPRateLimit(ipAddress: string): void {
 /**
  * Get current rate limit status for a user.
  */
-export function getUserRateLimitStatus(userId: string): Record<EndpointType, {
-  requestsInWindow: number;
-  maxRequests: number;
-  blocked: boolean;
-  blockedUntil?: Date;
-}> {
-  const status: Record<EndpointType, {
+export function getUserRateLimitStatus(userId: string): Record<
+  EndpointType,
+  {
     requestsInWindow: number;
     maxRequests: number;
     blocked: boolean;
     blockedUntil?: Date;
-  }> = {} as Record<EndpointType, {
-    requestsInWindow: number;
-    maxRequests: number;
-    blocked: boolean;
-    blockedUntil?: Date;
-  }>;
-  
+  }
+> {
+  const status: Record<
+    EndpointType,
+    {
+      requestsInWindow: number;
+      maxRequests: number;
+      blocked: boolean;
+      blockedUntil?: Date;
+    }
+  > = {} as Record<
+    EndpointType,
+    {
+      requestsInWindow: number;
+      maxRequests: number;
+      blocked: boolean;
+      blockedUntil?: Date;
+    }
+  >;
+
   const now = Date.now();
   const userEndpoints = userRequests.get(userId);
-  
+
   for (const [endpoint, config] of Object.entries(DEFAULT_RATE_LIMITS)) {
     const record = userEndpoints?.get(endpoint as EndpointType);
     const windowStart = now - config.windowMs;
     const recentRequests = record?.timestamps.filter((t) => t > windowStart) || [];
-    
+
     status[endpoint as EndpointType] = {
       requestsInWindow: recentRequests.length,
       maxRequests: config.maxRequests,
@@ -365,7 +381,7 @@ export function getUserRateLimitStatus(userId: string): Record<EndpointType, {
       blockedUntil: record?.blockedUntil ? new Date(record.blockedUntil) : undefined,
     };
   }
-  
+
   return status;
 }
 
@@ -382,7 +398,7 @@ export function getRateLimitStats(): {
   let blockedUsers = 0;
   let totalRequests = 0;
   let blockedIPs = 0;
-  
+
   for (const userEndpoints of userRequests.values()) {
     for (const record of userEndpoints.values()) {
       totalRequests += record.timestamps.length;
@@ -391,13 +407,13 @@ export function getRateLimitStats(): {
       }
     }
   }
-  
+
   for (const record of ipRequests.values()) {
     if (record.blockedUntil && now < record.blockedUntil) {
       blockedIPs++;
     }
   }
-  
+
   return {
     activeUsers: userRequests.size,
     blockedUsers,
@@ -416,38 +432,38 @@ export function getRateLimitStats(): {
 function cleanup(): void {
   const now = Date.now();
   const oneHourAgo = now - 3600000;
-  
+
   // Clean user records
   for (const [userId, endpoints] of userRequests) {
     for (const [endpoint, record] of endpoints) {
       // Remove old timestamps
       record.timestamps = record.timestamps.filter((t) => t > oneHourAgo);
-      
+
       // Clear expired blocks
       if (record.blockedUntil && now >= record.blockedUntil) {
         record.blockedUntil = undefined;
       }
-      
+
       // Remove empty records
       if (record.timestamps.length === 0 && !record.blockedUntil) {
         endpoints.delete(endpoint);
       }
     }
-    
+
     // Remove empty user entries
     if (endpoints.size === 0) {
       userRequests.delete(userId);
     }
   }
-  
+
   // Clean IP records
   for (const [ip, record] of ipRequests) {
     record.timestamps = record.timestamps.filter((t) => t > oneHourAgo);
-    
+
     if (record.blockedUntil && now >= record.blockedUntil) {
       record.blockedUntil = undefined;
     }
-    
+
     if (record.timestamps.length === 0 && !record.blockedUntil) {
       ipRequests.delete(ip);
     }
@@ -486,4 +502,3 @@ export default {
   startCleanup,
   stopCleanup,
 };
-

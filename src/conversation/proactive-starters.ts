@@ -12,9 +12,8 @@
  * - Calendar context (upcoming events)
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
 import type { PersonaConfig } from '../personas/types.js';
+import type { UserProfile } from '../types/user-profile.js';
 
 // ============================================================================
 // TYPES
@@ -37,7 +36,8 @@ export type OpenerType =
   | 'memory_callback'
   | 'thread_continuity'
   | 'seasonal'
-  | 'calendar_aware';
+  | 'calendar_aware'
+  | 'intention_followup'; // BETTER-THAN-HUMAN: Follow up on stated intentions
 
 export interface OpenerContext {
   isReturningUser: boolean;
@@ -49,6 +49,8 @@ export interface OpenerContext {
   primaryConcerns?: string[];
   upcomingEvents?: string[];
   currentMood?: string;
+  /** BETTER-THAN-HUMAN: Pending intentions to follow up on */
+  pendingIntentions?: Array<{ intention: string; statedAt: Date; targetTime?: Date }>;
 }
 
 // ============================================================================
@@ -102,6 +104,8 @@ export function generateProactiveOpener(
 
   // Generate appropriate opener
   switch (openerType) {
+    case 'intention_followup':
+      return generateIntentionFollowupOpener(persona, context);
     case 'returning_recent':
       return generateReturningRecentOpener(persona, context);
     case 'returning_familiar':
@@ -128,6 +132,29 @@ function determineOpenerType(context: OpenerContext): OpenerType {
   // Not returning - first meeting
   if (!context.isReturningUser) {
     return 'first_meeting';
+  }
+
+  // =========================================================================
+  // BETTER-THAN-HUMAN: Intention follow-up takes HIGH priority
+  // This is the "How did that interview go?" moment that humans forget
+  // =========================================================================
+  if (context.pendingIntentions && context.pendingIntentions.length > 0) {
+    // Check if any intentions are due or past due
+    const now = new Date();
+    const dueIntention = context.pendingIntentions.find((i) => {
+      if (!i.targetTime) {
+        // No target time - check if stated more than 12 hours ago
+        const hoursSinceStated =
+          (now.getTime() - new Date(i.statedAt).getTime()) / (1000 * 60 * 60);
+        return hoursSinceStated > 12;
+      }
+      // Has target time - is it past?
+      return new Date(i.targetTime) <= now;
+    });
+
+    if (dueIntention) {
+      return 'intention_followup';
+    }
   }
 
   // Has open questions from last time
@@ -228,7 +255,7 @@ function generateReturningRecentOpener(
   const greetings = [
     `<emotion value="happy"/><break time="200ms"/>${nameStr}Back already? <break time="150ms"/>Good to see you again.`,
     `<break time="200ms"/>Hey ${nameStr}again! <break time="150ms"/>What's up?`,
-    `<emotion value="happy"/><break time="200ms"/>${nameStr}You're back! <break time="150ms"/>What can I help with?`,
+    `<emotion value="happy"/><break time="200ms"/>${nameStr}You're back! <break time="150ms"/>What's going on?`,
     `<break time="200ms"/>Oh! <break time="150ms"/>${nameStr}<break time="100ms"/>Good to see you again so soon.`,
   ];
 
@@ -487,6 +514,69 @@ function generateCalendarAwareOpener(
     greeting,
     reason: `Calendar-aware: ${event}`,
     type: 'calendar_aware',
+    ssmlTagged: true,
+  };
+}
+
+/**
+ * BETTER-THAN-HUMAN: Follow up on stated intentions
+ *
+ * This is the "How did your interview go?" or "Did you end up sending that email?"
+ * moment that creates the "they actually remember" feeling.
+ */
+function generateIntentionFollowupOpener(
+  persona: PersonaConfig,
+  context: OpenerContext
+): ConversationOpener {
+  const userName = context.userName || '';
+  const nameStr = userName ? `${userName}` : '';
+
+  // Find the most relevant intention to follow up on
+  const intention = context.pendingIntentions?.[0];
+  if (!intention) {
+    // Fallback to regular greeting
+    return generateReturningFamiliarOpener(persona, context);
+  }
+
+  // Clean up the intention text for natural speech
+  const intentionText = intention.intention
+    .replace(/^(call|email|text|talk to|ask|send|finish|start)\s+/i, '')
+    .slice(0, 60);
+
+  // Different phrasings based on how much time has passed
+  const now = new Date();
+  const hoursSince = (now.getTime() - new Date(intention.statedAt).getTime()) / (1000 * 60 * 60);
+
+  let greetings: string[];
+
+  if (hoursSince < 24) {
+    // Recent intention - casual follow-up
+    greetings = [
+      `<emotion value="curious"/><break time="200ms"/>Hey ${nameStr}! <break time="150ms"/>How did it go with ${intentionText}?`,
+      `<break time="200ms"/>${nameStr}! <break time="150ms"/>Did you end up ${intention.intention.startsWith('call') ? 'calling' : 'doing that thing with'} ${intentionText}?`,
+      `<emotion value="happy"/><break time="200ms"/>Hey! <break time="150ms"/>I was thinking about you—<break time="100ms"/>how'd ${intentionText} go?`,
+    ];
+  } else if (hoursSince < 72) {
+    // Few days - more direct follow-up
+    greetings = [
+      `<emotion value="curious"/><break time="200ms"/>Hey ${nameStr}! <break time="150ms"/>I've been curious—<break time="100ms"/>what happened with ${intentionText}?`,
+      `<break time="200ms"/>${nameStr}! <break time="150ms"/>Remember when you mentioned ${intentionText}? <break time="100ms"/>How'd that turn out?`,
+      `<emotion value="affectionate"/><break time="200ms"/>Hey! <break time="150ms"/>I keep thinking about ${intentionText}. <break time="100ms"/>Any update?`,
+    ];
+  } else {
+    // Longer time - gentle check-in
+    greetings = [
+      `<break time="200ms"/>Hey ${nameStr}! <break time="150ms"/>You mentioned ${intentionText} a while back. <break time="100ms"/>How's that going?`,
+      `<emotion value="affectionate"/><break time="200ms"/>${nameStr}! <break time="150ms"/>I was thinking about that thing with ${intentionText}. <break time="100ms"/>Did it work out?`,
+    ];
+  }
+
+  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+  return {
+    greeting,
+    reason: `BETTER-THAN-HUMAN: Following up on intention "${intention.intention.slice(0, 30)}..."`,
+    type: 'intention_followup',
     ssmlTagged: true,
   };
 }

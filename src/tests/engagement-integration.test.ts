@@ -8,24 +8,24 @@
  * - Cross-persona banter during handoffs
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Services under test
+import { PERSONA_RITUALS } from '../services/daily-rituals.js';
+import {
+  buildEngagementContextPrompt,
+  generateConversationTriggers,
+  type TriggerContext,
+} from '../services/engagement-conversation-triggers.js';
 import {
   getRitualOnboardingService,
   resetRitualOnboardingService,
 } from '../services/ritual-onboarding.js';
 import {
-  generateConversationTriggers,
-  buildEngagementContextPrompt,
-  type TriggerContext,
-} from '../services/engagement-conversation-triggers.js';
-import {
+  getHandoffBanter,
   getTeamEngagementService,
   resetTeamEngagementService,
-  getHandoffBanter,
 } from '../services/team-engagement.js';
-import { DailyRitualsService, PERSONA_RITUALS } from '../services/daily-rituals.js';
 
 // Types
 import type { UserProfile } from '../types/user-profile.js';
@@ -231,10 +231,10 @@ describe('Engagement System Integration Tests', () => {
   // ============================================================================
 
   describe('TeamEngagementService', () => {
-    it('should generate team huddle with multiple personas', () => {
+    it('should generate team huddle with multiple personas', async () => {
       const service = getTeamEngagementService();
 
-      const huddle = service.generateTeamHuddle('test-user', mockUserProfile, 'weekly');
+      const huddle = await service.generateTeamHuddle('test-user', mockUserProfile, 'weekly');
 
       expect(huddle).toBeDefined();
       expect(huddle.intro).toBeDefined();
@@ -243,10 +243,10 @@ describe('Engagement System Integration Tests', () => {
       expect(huddle.outro).toBeDefined();
     });
 
-    it('should include Ferni in team huddles', () => {
+    it('should include Ferni in team huddles', async () => {
       const service = getTeamEngagementService();
 
-      const huddle = service.generateTeamHuddle('test-user', mockUserProfile, 'weekly');
+      const huddle = await service.generateTeamHuddle('test-user', mockUserProfile, 'weekly');
 
       const ferniComment = huddle.comments.find((c) => c.personaId === 'ferni');
       expect(ferniComment).toBeDefined();
@@ -347,7 +347,7 @@ describe('Engagement System Integration Tests', () => {
 
       // 6. Team huddle
       const teamService = getTeamEngagementService();
-      const huddle = teamService.generateTeamHuddle('journey-user-2', activeUser, 'weekly');
+      const huddle = await teamService.generateTeamHuddle('journey-user-2', activeUser, 'weekly');
       expect(huddle.comments.length).toBeGreaterThan(0);
     });
   });

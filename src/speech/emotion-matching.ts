@@ -255,6 +255,66 @@ export function wrapWithEmotionProsody(text: string, modulation: VoiceEmotionMod
   return result;
 }
 
+// ============================================================================
+// HUMAN LISTENING SSML ADJUSTMENTS
+// ============================================================================
+
+export interface HumanListeningSsmlSuggestions {
+  speedMultiplier: number;
+  pauseMultiplier: number;
+  volumeLevel: 'softer' | 'normal' | 'match';
+}
+
+/**
+ * Apply human listening SSML adjustments to text.
+ * Called after emotion prosody to layer in cognitive/emotional state awareness.
+ *
+ * This responds to:
+ * - Cognitive overload → Slower, more pauses
+ * - Distress signals → Softer, gentler delivery
+ * - Disengagement → Normal pace (don't slow down boring content)
+ */
+export function applyHumanListeningAdjustments(
+  text: string,
+  suggestions: HumanListeningSsmlSuggestions
+): string {
+  // Skip if no meaningful adjustments
+  const hasSpeedChange = suggestions.speedMultiplier < 0.98 || suggestions.speedMultiplier > 1.02;
+  const hasVolumeChange = suggestions.volumeLevel !== 'normal';
+
+  if (!hasSpeedChange && !hasVolumeChange) {
+    return text;
+  }
+
+  let result = text;
+
+  // Apply volume adjustment
+  if (suggestions.volumeLevel === 'softer') {
+    // Cartesia volume ratio: 0.7 for softer delivery
+    result = `<volume ratio="0.85">${result}</volume>`;
+  }
+
+  // Apply speed adjustment
+  if (hasSpeedChange) {
+    // Cartesia speed ratio: typically 0.8-1.2
+    const speedRatio = Math.max(0.8, Math.min(1.15, suggestions.speedMultiplier)).toFixed(2);
+    result = `<speed ratio="${speedRatio}">${result}</speed>`;
+  }
+
+  // Log the adjustment
+  if (result !== text) {
+    getLogger().debug(
+      {
+        speedMultiplier: suggestions.speedMultiplier,
+        volumeLevel: suggestions.volumeLevel,
+      },
+      '🎧 Applying human listening SSML adjustments'
+    );
+  }
+
+  return result;
+}
+
 /**
  * Get contextual suggestion for response tone based on emotion
  * This can be injected into the LLM prompt to influence word choice

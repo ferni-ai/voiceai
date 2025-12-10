@@ -34,11 +34,11 @@ Unlike traditional SaaS paywalls, Ferni's monetization feels like a natural part
 
 ## Subscription Tiers
 
-| Tier | Price | Conversation Limit | Team Members |
-|------|-------|-------------------|--------------|
-| **Free** | $0 | 5/month | Ferni only (+ earned unlocks) |
-| **Friend** | $9.99/mo | Unlimited | All core team |
-| **Partner** | $19.99/mo | Unlimited | All team + premium |
+| Tier        | Price     | Conversation Limit | Team Members                  |
+| ----------- | --------- | ------------------ | ----------------------------- |
+| **Free**    | $0        | 5/month            | Ferni only (+ earned unlocks) |
+| **Friend**  | $9.99/mo  | Unlimited          | All core team                 |
+| **Partner** | $19.99/mo | Unlimited          | All team + premium            |
 
 ## Team Member Unlock System
 
@@ -50,13 +50,13 @@ Unlike traditional SaaS paywalls, Ferni's monetization feels like a natural part
 
 ### Relationship Stages & Unlocks
 
-| Stage | Requirements | Unlocks |
-|-------|-------------|---------|
-| **First Meeting** | New user | Ferni |
-| **Getting Started** | 2 conversations | Maya Santos (Habits Coach) |
-| **Building Trust** | 7 convos, 3 days | Peter John (Research) |
-| **Established** | 20 convos, 7 days | Alex Chen (Communications), Jordan Taylor (Events) |
-| **Deep Partnership** | 50 convos, 30 days | Nayan Patel (Premium - Partner tier only) |
+| Stage                | Requirements       | Unlocks                                            |
+| -------------------- | ------------------ | -------------------------------------------------- |
+| **First Meeting**    | New user           | Ferni                                              |
+| **Getting Started**  | 2 conversations    | Maya Santos (Habits Coach)                         |
+| **Building Trust**   | 7 convos, 3 days   | Peter John (Research)                              |
+| **Established**      | 20 convos, 7 days  | Alex Chen (Communications), Jordan Taylor (Events) |
+| **Deep Partnership** | 50 convos, 30 days | Nayan Patel (Premium - Partner tier only)          |
 
 ### Key Files
 
@@ -80,10 +80,10 @@ src/services/team-unlocks.ts (Backend)
 
 ```javascript
 // Via URL parameter
-http://localhost:3004/?dev
+//localhost:3004/?dev
 
 // Via localStorage
-localStorage.setItem('ferni_dev_mode', 'true')
+http: localStorage.setItem('ferni_dev_mode', 'true');
 
 // Via environment
 // Automatically enabled when import.meta.env.DEV === true
@@ -91,11 +91,11 @@ localStorage.setItem('ferni_dev_mode', 'true')
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd/Ctrl + Shift + D` | Toggle dev panel |
+| Shortcut               | Action                        |
+| ---------------------- | ----------------------------- |
+| `Cmd/Ctrl + Shift + D` | Toggle dev panel              |
 | `Cmd/Ctrl + Shift + U` | Quick unlock all team members |
-| `Cmd/Ctrl + Shift + R` | Reset to free tier |
+| `Cmd/Ctrl + Shift + R` | Reset to free tier            |
 
 ### Dev Panel Features
 
@@ -134,6 +134,7 @@ element.className = `team-member ${isLocked ? 'team-member--locked' : ''}`;
 ```
 
 CSS classes:
+
 - `.team-member--locked` - Grayed out, 65% opacity
 - `.team-avatar--locked` - Grayscale filter
 - `.team-avatar-lock-badge` - Small lock icon overlay
@@ -141,6 +142,7 @@ CSS classes:
 ### Upgrade Modal
 
 Triggered when:
+
 - User clicks a locked team member
 - User reaches conversation limit
 - Programmatically via `showUpgradeModal()`
@@ -149,7 +151,7 @@ Triggered when:
 import { showUpgradeModal } from './subscription.ui.js';
 
 // Show upgrade prompt
-showUpgradeModal("Peter is excited to meet you!");
+showUpgradeModal('Peter is excited to meet you!');
 ```
 
 ### Unlock Celebration
@@ -190,8 +192,8 @@ npm install stripe
 ```bash
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID_FRIEND=price_...
-STRIPE_PRICE_ID_PARTNER=price_...
+STRIPE_PRICE_FRIEND=price_...
+STRIPE_PRICE_PARTNER=price_...
 ```
 
 ### Webhook Events Handled
@@ -205,6 +207,7 @@ STRIPE_PRICE_ID_PARTNER=price_...
 ## Testing Checklist
 
 ### Free Tier Flow
+
 - [ ] Only Ferni available initially
 - [ ] Lock badges show on other team members
 - [ ] Clicking locked member shows upgrade modal
@@ -212,12 +215,14 @@ STRIPE_PRICE_ID_PARTNER=price_...
 - [ ] Celebration modal appears for Maya
 
 ### Subscriber Flow
+
 - [ ] Upgrade to Friend tier via dev panel
 - [ ] All core team members unlock immediately
 - [ ] No lock badges visible
 - [ ] Handoffs work to all personas
 
 ### Edge Cases
+
 - [ ] Downgrade removes access to premium members
 - [ ] Usage resets when upgrading
 - [ ] Backend blocks handoff to locked personas
@@ -229,42 +234,42 @@ The system includes human-centered messaging:
 
 ```typescript
 // Approaching limit
-"We've had some wonderful conversations this month..."
+"We've had some wonderful conversations this month...";
 
-// Limit reached  
-"We've reached our monthly limit. I'd love to keep talking..."
+// Limit reached
+"We've reached our monthly limit. I'd love to keep talking...";
 
 // Team member teaser
-"Maya is looking forward to helping you with habits..."
+'Maya is looking forward to helping you with habits...';
 
 // Unlock celebration
-"I'd love for you to meet someone special..."
+"I'd love for you to meet someone special...";
 ```
 
 ## File Reference
 
-| File | Purpose |
-|------|---------|
-| `frontend-typescript/src/ui/dev-panel.ui.ts` | Dev testing panel |
-| `frontend-typescript/src/services/team-unlock.service.ts` | Frontend unlock logic |
-| `frontend-typescript/src/ui/subscription.ui.ts` | Upgrade/limit modals |
-| `frontend-typescript/src/ui/team-unlock-celebration.ui.ts` | Celebration UI |
-| `frontend-typescript/src/ui/team.ui.ts` | Lock state on roster |
-| `frontend-typescript/public/design-system/app-components.css` | Lock badge styles |
-| `src/services/team-unlocks.ts` | Backend unlock logic |
-| `src/services/stripe-subscription.ts` | Stripe integration |
-| `src/tools/handoff/executor.ts` | Handoff blocking |
-| `src/api/subscription-routes.ts` | API endpoints |
-| `src/types/subscription.ts` | Type definitions |
-| `token-server.js` | Token generation + sub checks |
+| File                                                          | Purpose                       |
+| ------------------------------------------------------------- | ----------------------------- |
+| `frontend-typescript/src/ui/dev-panel.ui.ts`                  | Dev testing panel             |
+| `frontend-typescript/src/services/team-unlock.service.ts`     | Frontend unlock logic         |
+| `frontend-typescript/src/ui/subscription.ui.ts`               | Upgrade/limit modals          |
+| `frontend-typescript/src/ui/team-unlock-celebration.ui.ts`    | Celebration UI                |
+| `frontend-typescript/src/ui/team.ui.ts`                       | Lock state on roster          |
+| `frontend-typescript/public/design-system/app-components.css` | Lock badge styles             |
+| `src/services/team-unlocks.ts`                                | Backend unlock logic          |
+| `src/services/stripe-subscription.ts`                         | Stripe integration            |
+| `src/tools/handoff/executor.ts`                               | Handoff blocking              |
+| `src/api/subscription-routes.ts`                              | API endpoints                 |
+| `src/types/subscription.ts`                                   | Type definitions              |
+| `token-server.js`                                             | Token generation + sub checks |
 
 ## Brand Compliance
 
 All monetization UI follows Ferni brand guidelines:
+
 - ✅ Warm, human language (not corporate)
 - ✅ Lucide SVG icons (no emoji)
 - ✅ Earthy color palette (sage green, warm browns)
 - ✅ Centered modals with backdrop blur
 - ✅ Pixar-inspired animations
 - ✅ Typography hierarchy (eyebrow → title → body)
-

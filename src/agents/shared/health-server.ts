@@ -198,36 +198,36 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     void (async () => {
-    const url = req.url || '/';
+      const url = req.url || '/';
 
-    // Health check endpoint for Cloud Run
-    if (url === '/' || url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          status: 'ok',
-          service: serviceName,
-          timestamp: new Date().toISOString(),
-        })
-      );
-      return;
-    }
+      // Health check endpoint for Cloud Run
+      if (url === '/' || url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            status: 'ok',
+            service: serviceName,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        return;
+      }
 
-    // Cognitive API endpoints
-    if (url.startsWith('/api/cognitive')) {
-      await handleCognitiveAPI(url, res);
-      return;
-    }
+      // Cognitive API endpoints
+      if (url.startsWith('/api/cognitive')) {
+        await handleCognitiveAPI(url, res);
+        return;
+      }
 
-    // Persistence metrics API endpoints
-    if (url.startsWith('/api/metrics')) {
-      await handleMetricsAPI(url, res);
-      return;
-    }
+      // Persistence metrics API endpoints
+      if (url.startsWith('/api/metrics')) {
+        await handleMetricsAPI(url, res);
+        return;
+      }
 
-    // 404 for other routes (LiveKit agent will handle /worker)
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found' }));
+      // 404 for other routes (LiveKit agent will handle /worker)
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
     })();
   });
 

@@ -9,20 +9,22 @@
  * @module VoiceHumanizationRoutes
  */
 
-import type { IncomingMessage, ServerResponse } from 'http';
 import type { Request, Response, Router } from 'express';
-import {
-  getMetricsJson,
-  getDashboardData,
-  resetMetrics,
-} from '../services/voice-humanization-metrics.js';
+import type { IncomingMessage, ServerResponse } from 'http';
 import {
   getFlags,
-  updateFlags,
   resetFlags,
+  updateFlags,
   type VoiceHumanizationFlags,
 } from '../config/voice-humanization-flags.js';
+import {
+  getDashboardData,
+  getMetricsJson,
+  resetMetrics,
+} from '../services/voice-humanization-metrics.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = getLogger().child({ module: 'VoiceHumanizationRoutes' });
 
@@ -38,6 +40,22 @@ export async function handleVoiceHumanizationRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Apply rate limiting
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Require authentication
+  const auth = requireAuth(req, res, { allowDevMode: true });
+  if (!auth) {
+    return true; // 401 already sent
+  }
+
   const method = req.method || 'GET';
 
   // Helper to send JSON response

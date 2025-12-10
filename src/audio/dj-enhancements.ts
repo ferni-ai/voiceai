@@ -124,7 +124,8 @@ export function scheduleTrackTimingCallbacks(
   callbacks: TrackTimingCallbacks
 ): () => void {
   const timers: NodeJS.Timeout[] = [];
-  const duration = track.duration || 30000;
+  // Use ?? for proper nullish coalescing (0 is valid duration)
+  const duration = track.duration ?? 30000;
 
   // 30 seconds left
   if (duration > 35000 && callbacks.on30SecondsLeft) {
@@ -1154,7 +1155,8 @@ export class DJEnhancementController {
     const style = getPersonaDJStyle(this.personaId);
 
     // Schedule timing callbacks (only if track is long enough)
-    if ((track.duration || 30000) > 40000 && this.speakCallback) {
+    // Use ?? for proper nullish coalescing (0 is valid duration)
+    if ((track.duration ?? 30000) > 40000 && this.speakCallback) {
       this.trackTimingCleanup = scheduleTrackTimingCallbacks(track, {
         on30SecondsLeft: (_track) => {
           if (Math.random() < style.commentFrequency) {

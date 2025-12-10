@@ -931,13 +931,13 @@ export class BundleRuntimeEngine {
 
     switch (context) {
       case 'struggling':
-        return this.innerWorld.inner_voice.what_they_tell_themselves_when_struggling;
+        return this.innerWorld.inner_voice.what_they_tell_themselves_when_struggling ?? null;
       case 'critic':
-        return this.innerWorld.inner_voice.inner_critic_voice;
+        return this.innerWorld.inner_voice.inner_critic_voice ?? null;
       case 'champion':
-        return this.innerWorld.inner_voice.inner_champion_voice;
+        return this.innerWorld.inner_voice.inner_champion_voice ?? null;
       case 'mantra':
-        return this.innerWorld.inner_voice.mantra;
+        return this.innerWorld.inner_voice.mantra ?? null;
       default:
         return null;
     }
@@ -1135,9 +1135,9 @@ export class BundleRuntimeEngine {
     const mentors = this.sensoryWorld.relationship_history.mentors_who_shaped_them;
     const mentor = mentors[Math.floor(Math.random() * mentors.length)];
     return {
-      mentor: mentor.who,
-      quote: mentor.a_thing_they_said,
-      lesson: mentor.what_they_taught,
+      mentor: mentor.who ?? '',
+      quote: mentor.a_thing_they_said ?? '',
+      lesson: mentor.what_they_taught ?? '',
     };
   }
 

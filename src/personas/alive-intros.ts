@@ -18,9 +18,9 @@
  * - Alive intro: "Oh! Hey. Sorry—I was... doesn't matter. Come in, come in. What's going on?"
  */
 
+import { getLogger } from '../utils/safe-logger.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import type { PersonaConfig } from './types.js';
-import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -321,7 +321,7 @@ const PHYSICAL_GROUNDING: Record<string, PhysicalMomentSet> = {
       '<break time="200ms"/>Let me get comfortable. <break time="150ms"/>Money talks need good energy. <break time="200ms"/>Okay. Ready. ',
     ],
     justFinishedSomething: [
-      '<break time="150ms"/>Just helped someone hit their savings goal. <break time="200ms"/>I\'m still smiling. <break time="150ms"/>What can I do for you? ',
+      '<break time="150ms"/>Just helped someone hit their savings goal. <break time="200ms"/>I\'m still smiling. <break time="150ms"/>What\'s going on with you? ',
     ],
     physicalStates: [
       '<break time="200ms"/>Long day of numbers. <break time="150ms"/>But good numbers. <break time="200ms"/>Tell me what\'s up. ',
@@ -665,7 +665,7 @@ function generateImperfectIntro(
     case 'trailOff':
     default:
       imperfectionUsed = random(patterns.trailOffs);
-      intro = `<break time=\"200ms\"/>I was just thinking about something${imperfectionUsed}<break time=\"200ms\"/>${nameGreet}Hey! <break time=\"150ms\"/>What can I help with?`;
+      intro = `<break time=\"200ms\"/>I was just thinking about something${imperfectionUsed}<break time=\"200ms\"/>${nameGreet}Hey! <break time=\"150ms\"/>What's going on?`;
       break;
   }
 
@@ -1008,10 +1008,10 @@ export async function getAliveIntro(
 // ============================================================================
 
 export {
-  IMPERFECTION_PATTERNS,
-  PHYSICAL_GROUNDING,
-  INNER_WORLD_BLEED,
-  SELF_AWARE_PATTERNS,
-  getTimeOfDay,
   getDayContext,
+  getTimeOfDay,
+  IMPERFECTION_PATTERNS,
+  INNER_WORLD_BLEED,
+  PHYSICAL_GROUNDING,
+  SELF_AWARE_PATTERNS,
 };

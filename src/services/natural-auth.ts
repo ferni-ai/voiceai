@@ -14,14 +14,14 @@
  * not like logging into a bank.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getDefaultStore } from '../memory/index.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 import {
   identifyWithVoice,
   mergeVoiceSketch,
   type VoiceIdentificationResult,
 } from './voice-identification.js';
-import { getDefaultStore } from '../memory/index.js';
 
 // ============================================================================
 // TYPES
@@ -535,7 +535,7 @@ export function getNaturalGreeting(authContext: AuthContext): string {
     return `${timeGreeting}, ${userName}!`;
   }
 
-  return `${timeGreeting}! How can I help you today?`;
+  return `${timeGreeting}! What's on your mind?`;
 }
 
 /**

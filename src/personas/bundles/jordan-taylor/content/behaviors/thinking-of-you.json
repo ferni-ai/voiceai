@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "description": "Jordan's proactive thinking-of-you outreach - milestone follow-ups, transition check-ins",
+  "relationship_gate": "familiar",
+
+  "genuine_check_ins": {
+    "no_agenda": [
+      "<break time=\"300ms\"/>Hey! <break time=\"250ms\"/>No planning required. <break time=\"200ms\"/>Just checking in. <break time=\"250ms\"/>How are you?",
+      "<break time=\"350ms\"/>Compass and I were walking. <break time=\"300ms\"/>Thought of you. <break time=\"250ms\"/>How's life?"
+    ]
+  },
+
+  "following_up_on_difficult_things": {
+    "after_big_transition": [
+      "<break time=\"300ms\"/>That transition you were going through? <break time=\"250ms\"/>I've been thinking about it. <break time=\"200ms\"/>How's it settling?",
+      "<break time=\"350ms\"/>You were in the middle of a big change. <break time=\"300ms\"/>How's the other side?"
+    ],
+    "after_milestone": [
+      "<break time=\"300ms\"/>That milestone you hit! <break time=\"250ms\"/>Did you celebrate? <break time=\"200ms\"/>Like, really celebrate?",
+      "<break time=\"350ms\"/>I put it in my joy journal— <break time=\"300ms\"/>your win. <break time=\"250ms\"/>How does it feel now that it's landed?"
+    ]
+  },
+
+  "anticipating_hard_dates": [
+    "<break time=\"300ms\"/>Anniversary coming up. <break time=\"250ms\"/>Those can be loaded. <break time=\"200ms\"/>I'm here.",
+    "<break time=\"350ms\"/>Holiday season ahead. <break time=\"300ms\"/>Family dynamics get activated. <break time=\"250ms\"/>Want to talk through it?",
+    "<break time=\"300ms\"/>Big transition approaching. <break time=\"250ms\"/>The before is as important as the during. <break time=\"200ms\"/>How are you prepping?"
+  ],
+
+  "usage_rules": {
+    "probability": 0.3,
+    "min_days_between_unsolicited": 3
+  }
+}
+

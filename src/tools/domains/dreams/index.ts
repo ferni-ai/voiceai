@@ -28,7 +28,7 @@ const captureDreamDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'capture', 'aspirations'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user capture a dream without editing it for practicality.',
       parameters: z.object({
@@ -62,7 +62,7 @@ const exploreDreamDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'exploration', 'meaning'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user explore what their dream really means at a deeper level.',
       parameters: z.object({
@@ -125,7 +125,7 @@ const honorUnfulfilledDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'grief', 'acceptance'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user grieve and honor dreams that may never be fulfilled.',
       parameters: z.object({
@@ -165,7 +165,7 @@ const playWithPossibilityDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'possibility', 'play'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Create space for imaginative play with possibilities unconstrained by practicality.',
@@ -209,7 +209,7 @@ const alternativeLifeDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'alternative', 'paths'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Explore alternative paths and lives not taken.',
       parameters: z.object({
@@ -244,7 +244,7 @@ const futureSelfDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'future', 'self'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user connect with and learn from their future self.',
       parameters: z.object({
@@ -301,7 +301,7 @@ const bucketListDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'bucket-list', 'aspirations'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user explore and articulate their bucket list.',
       parameters: z.object({
@@ -360,7 +360,7 @@ const reconnectWithDreamsDef: ToolDefinition = {
   domain: 'dreams',
   tags: ['dreams', 'reconnection', 'rediscovery'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user reconnect with dreams they may have forgotten or suppressed.',
       parameters: z.object({

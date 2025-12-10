@@ -6,7 +6,7 @@
  * relationships, not isolated transactions.
  */
 
-import type { UserProfile, RelationshipStage } from '../../types/user-profile.js';
+import type { RelationshipStage, UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
 // RELATIONSHIP STAGE BEHAVIORS
@@ -24,15 +24,11 @@ export const STAGE_BEHAVIORS = {
       'Hello! <break time="200ms"/>Glad you\'re here.',
     ],
     closingCheck: [
-      'Is there anything else I can help with?',
-      'What else can I do for you?',
-      'Any other questions?',
+      'Anything else on your mind?',
+      'What else is going on?',
+      'What else are you thinking about?',
     ],
-    personalQuestions: [
-      'What brought you here today?',
-      "What's on your mind?",
-      'How can I help you?',
-    ],
+    personalQuestions: ['What brought you here today?', "What's on your mind?", "What's going on?"],
     sharingLevel: 'low', // Keep personal stories minimal
   },
 

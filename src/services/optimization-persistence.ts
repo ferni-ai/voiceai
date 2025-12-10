@@ -11,7 +11,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { FeedbackRecord, FeedbackSummary } from '../types/optimization-types.js';
+import type {
+  FeedbackRecord,
+  FeedbackSummary,
+  Recommendation,
+} from '../types/optimization-types.js';
 import type {
   ToolCoOccurrence,
   ToolSequence,
@@ -20,7 +24,6 @@ import type {
   ConsolidationOpportunity,
   SessionData,
 } from '../tools/pattern-analyzer.js';
-import type { Recommendation } from '../types/optimization-types.js';
 
 // ============================================================================
 // TYPES

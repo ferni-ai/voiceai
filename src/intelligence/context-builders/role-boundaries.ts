@@ -239,7 +239,7 @@ const roleBoundaryBuilder: ContextBuilder = {
     // CRITICAL: Strong guidance to hand off (or defer if locked)
     // =========================================================================
     let boundaryGuidance: string;
-    
+
     if (ownerUnlocked) {
       // The correct persona is unlocked - suggest handoff
       boundaryGuidance = `[DOMAIN BOUNDARY VIOLATION DETECTED]

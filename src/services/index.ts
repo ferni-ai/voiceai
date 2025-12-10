@@ -16,18 +16,18 @@
 // ============================================================================
 
 export type {
-  SessionServices,
-  GlobalServices,
-  CreateSessionOptions,
-  UserProfile,
   ConversationAnalysis,
-  EmotionResult,
-  IntentResult,
   ConversationState,
-  PromptContext,
-  SpeechContext,
+  CreateSessionOptions,
   DynamicUserContext,
+  EmotionResult,
+  GlobalServices,
   HumanizingStateUpdate,
+  IntentResult,
+  PromptContext,
+  SessionServices,
+  SpeechContext,
+  UserProfile,
 } from './types.js';
 
 // ============================================================================
@@ -35,13 +35,13 @@ export type {
 // ============================================================================
 
 export {
-  initializeServices,
   getGlobalServices,
   getGlobalServicesSync,
-  resetGlobalServices,
-  markPersonaIndexed,
-  isPersonaIndexed,
   getStartupCapabilities,
+  initializeServices,
+  isPersonaIndexed,
+  markPersonaIndexed,
+  resetGlobalServices,
 } from './global-services.js';
 
 // ============================================================================
@@ -49,14 +49,14 @@ export {
 // ============================================================================
 
 export {
-  validateStartup,
-  validateAndLog,
-  hasFullCapabilities,
-  getCapabilitySummary,
   checkEmbeddingConsistency,
-  type ValidationResult,
+  getCapabilitySummary,
+  hasFullCapabilities,
+  validateAndLog,
+  validateStartup,
   type StartupCapabilities,
   type ValidationConfig,
+  type ValidationResult,
 } from './startup-validation.js';
 
 // ============================================================================
@@ -64,15 +64,15 @@ export {
 // ============================================================================
 
 export {
-  exportIntelligenceState,
-  importIntelligenceState,
   applyIntelligenceToProfile,
-  loadIntelligenceFromProfile,
   cleanupIntelligenceEngines,
-  startAutoSave,
-  stopAutoSave,
-  stopAllAutoSaves,
+  exportIntelligenceState,
   getAutoSaveStatus,
+  importIntelligenceState,
+  loadIntelligenceFromProfile,
+  startAutoSave,
+  stopAllAutoSaves,
+  stopAutoSave,
   type IntelligenceState,
   type PersistenceConfig,
 } from './intelligence-persistence.js';
@@ -94,43 +94,46 @@ export {
 
 export {
   errorTracking,
-  withErrorTracking,
-  trackVoiceSession,
-  trackHandoff,
   trackApiCall,
+  trackHandoff,
+  trackVoiceSession,
+  withErrorTracking,
 } from './error-tracking.js';
 
 // ============================================================================
 // PERFORMANCE PROFILING
 // ============================================================================
 
-export { performanceProfiler, withTiming, Timed } from './performance-profiler.js';
+export { performanceProfiler, Timed, withTiming } from './performance-profiler.js';
 
 // ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
 
 export {
-  createSessionServices,
-  getSessionServices,
-  getActiveSessionIds,
-  getActiveSessionCount,
   clearAllSessions,
+  createSessionServices,
+  getActiveSessionCount,
+  getActiveSessionIds,
+  getSessionServices,
 } from './session-manager.js';
 
 // ============================================================================
-// SESSION CONTEXT TYPES (Unified session state management)
-// NOTE: The createSessionContext function exists but is not yet integrated.
-// See src/services/session-context.ts for the planned architecture.
+// SESSION CONTEXT (Unified session state management)
+// Provides a single source of truth for session state, replacing fragmented singletons.
+// See src/services/session-context.ts for full architecture documentation.
 // ============================================================================
 
 export {
+  // Factory function
+  createSessionContext,
+  type EnhancedAnalysis,
+  type SessionCleanupResult,
+  // Types
   type SessionContext,
   type SessionContextConfig,
-  type EnhancedAnalysis,
-  type ThreadWithStarter,
   type SessionStats,
-  type SessionCleanupResult,
+  type ThreadWithStarter,
 } from './session-context.js';
 
 // ============================================================================
@@ -144,18 +147,18 @@ export { shutdownServices } from './shutdown.js';
 // ============================================================================
 
 export {
-  getConversationState,
-  hasConversationState,
-  endConversation,
-  getActiveSessionIds as getActiveConversationIds,
   cleanupStaleConversations,
   ConversationStateManager,
-  type EmotionalContext,
-  type TopicContext,
-  type FlowContext,
-  type UserContext,
-  type ToolExecutionData,
+  endConversation,
+  getActiveSessionIds as getActiveConversationIds,
+  getConversationState,
+  hasConversationState,
   type ConversationState as ConversationStateType,
+  type EmotionalContext,
+  type FlowContext,
+  type ToolExecutionData,
+  type TopicContext,
+  type UserContext,
 } from './conversation-state.js';
 
 // ============================================================================
@@ -163,20 +166,20 @@ export {
 // ============================================================================
 
 export {
-  normalizePhoneNumber,
-  isValidPhoneNumber,
   formatPhoneForDisplay,
+  getGreeting,
+  getLLMAuthContext,
   identifyByPhone,
   identifyByWebAuth,
   identifyFromMetadata,
   identifyWithNaturalAuth,
+  isValidPhoneNumber,
   linkPhoneToProfile,
   linkWebAuthToPhone,
-  getGreeting,
-  getLLMAuthContext,
+  normalizePhoneNumber,
+  type AuthAction as UserAuthAction,
   type AuthContext as UserAuthContext,
   type ConfidenceLevel as UserConfidenceLevel,
-  type AuthAction as UserAuthAction,
 } from './user-identification.js';
 
 // ============================================================================
@@ -184,13 +187,13 @@ export {
 // ============================================================================
 
 export {
-  getVoiceMemory,
-  VoiceSketchBuilder,
-  VoiceMemoryService,
   compareVoiceSketches,
-  type VoiceSketch,
+  getVoiceMemory,
+  VoiceMemoryService,
+  VoiceSketchBuilder,
   type VoiceSearchResult,
   type VoiceSimilarityResult,
+  type VoiceSketch,
 } from './voice-memory.js';
 
 export {
@@ -206,15 +209,15 @@ export {
 
 export {
   authenticateNaturally,
-  verifyIdentity,
   enrollVoice,
-  updateVoiceSignature,
-  linkIdentifier,
-  getNaturalGreeting,
   generateContextForLLM,
+  getNaturalGreeting,
+  linkIdentifier,
+  updateVoiceSignature,
+  verifyIdentity,
+  type AuthAction,
   type AuthContext,
   type ConfidenceLevel,
-  type AuthAction,
 } from './natural-auth.js';
 
 // ============================================================================
@@ -225,13 +228,13 @@ export {
   getProductivityStore,
   initializeProductivityStore,
   shutdownProductivityStore,
-  type ProductivityData,
-  type TaskData,
   type BillData,
   type HabitData,
   type MedicationData,
   type NoteData,
+  type ProductivityData,
   type RoutineData,
+  type TaskData,
 } from './productivity-store.js';
 
 // ============================================================================
@@ -249,10 +252,10 @@ export {
 // ============================================================================
 
 export {
-  TeamManager,
   getTeamManager,
   initializeTeamManager,
   resetTeamManager,
+  TeamManager,
 } from './team-manager.js';
 
 // ============================================================================
@@ -262,13 +265,13 @@ export {
 export {
   getMayaGamificationStore,
   initializeMayaGamificationStore,
-  type GamificationProfile,
-  type EarnedBadge,
-  type ChallengeProgress,
   type BehaviorToolUsage,
-  type MoodLog,
-  type LeaderboardEntry,
+  type ChallengeProgress,
+  type EarnedBadge,
   type GamificationExport,
+  type GamificationProfile,
+  type LeaderboardEntry,
+  type MoodLog,
 } from './maya-gamification-store.js';
 
 // ============================================================================
@@ -279,9 +282,9 @@ export {
   getMayaNotificationService,
   initializeMayaNotificationService,
   shutdownMayaNotificationService,
-  type MayaNotificationType,
-  type MayaNotificationRequest,
   type MayaNotificationPreferences,
+  type MayaNotificationRequest,
+  type MayaNotificationType,
 } from './maya-notification-service.js';
 
 // ============================================================================
@@ -289,23 +292,23 @@ export {
 // ============================================================================
 
 export {
-  loadPhoneCache,
-  savePhoneMapping,
-  getCachedPhoneMapping,
+  consolidateProfiles,
   deletePhoneMapping,
   findDuplicateProfiles,
-  consolidateProfiles,
   findProfilesByVoice,
   generateVoiceRecognitionGreeting,
+  getCachedPhoneMapping,
   getProactiveMemories,
-  shouldSurfaceMemory,
-  pruneMemorySystem,
   initializeMemoryManagement,
+  loadPhoneCache,
+  pruneMemorySystem,
+  savePhoneMapping,
+  shouldSurfaceMemory,
   shutdownMemoryManagement,
-  type ProactiveMemory,
   type ConsolidationResult,
-  type PruningResult,
+  type ProactiveMemory,
   type PruningConfig,
+  type PruningResult,
 } from './memory-management.js';
 
 // ============================================================================
@@ -315,17 +318,17 @@ export {
 export {
   getBackgroundTaskService,
   initializeBackgroundTasks,
-  shutdownBackgroundTasks,
   registerTaskHandler,
+  shutdownBackgroundTasks,
+  type BackgroundData,
   type BackgroundTask,
-  type Workflow,
-  type WorkflowStep,
+  type Delegation,
   type PendingAction,
   type ScheduledJob,
-  type Delegation,
-  type BackgroundData,
   type TaskPriority,
   type TaskStatus,
+  type Workflow,
+  type WorkflowStep,
 } from './background-tasks.js';
 
 // ============================================================================
@@ -333,16 +336,16 @@ export {
 // ============================================================================
 
 export {
-  createReminder,
-  getPendingReminders,
-  getDueReminders,
   cancelReminder,
-  deliverReminder,
+  createReminder,
   createVoiceMessage,
+  deliverReminder,
+  getDueReminders,
+  getPendingReminders,
+  parseNaturalTime,
   sendVoiceMessage,
   startReminderScheduler,
   stopReminderScheduler,
-  parseNaturalTime,
   type ReminderDeliveryMethod,
   type ScheduledReminder,
   type VoiceMessage,
@@ -352,14 +355,14 @@ export {
 // AGENT BUS & LIFE DATA
 // ============================================================================
 
-export { getAgentBus, type AgentMessage, type AgentId } from './agent-bus.js';
+export { getAgentBus, type AgentId, type AgentMessage } from './agent-bus.js';
 
 export {
   getLifeDataStore,
-  type LifeMilestone,
   type LifeGoal,
-  type RetirementPlan,
+  type LifeMilestone,
   type LifePortfolio,
+  type RetirementPlan,
 } from './life-data-store.js';
 
 // ============================================================================
@@ -367,29 +370,29 @@ export {
 // ============================================================================
 
 export {
+  DJOrchestrator,
   getDJOrchestrator,
   resetDJOrchestrator,
-  DJOrchestrator,
+  type DJPersonaStyle,
   type SessionContext as DJSessionContext,
   type SessionIntro,
   type SessionOutro,
-  type DJPersonaStyle,
 } from './dj-orchestrator.js';
 
 export { getDJSessionService, resetDJSessionService } from './dj-session.service.js';
 
 export {
-  getDJStyle,
-  getSpontaneousMusicOffer,
-  getQueueTeaser,
-  getMusicAppreciationComment,
-  getMusicElementAppreciation,
-  getMusicConversationStarter,
-  getReadTheRoomAction,
-  getContextualMusicSuggestion,
-  getMusicDiscoveryOffer,
-  getCrossSessionMusicCallback,
   DJ_PERSONA_STYLES,
+  getContextualMusicSuggestion,
+  getCrossSessionMusicCallback,
+  getDJStyle,
+  getMusicAppreciationComment,
+  getMusicConversationStarter,
+  getMusicDiscoveryOffer,
+  getMusicElementAppreciation,
+  getQueueTeaser,
+  getReadTheRoomAction,
+  getSpontaneousMusicOffer,
 } from './dj-service.js';
 
 export {
@@ -407,11 +410,11 @@ export {
 export {
   analyzeMessage,
   type ConversationLearningData,
-  type ResponseQualityTracker,
   type ConversationPatternAnalyzer,
-  type ProactiveInsightEngine,
-  type FinancialJourneyTracker,
   type CrossSessionThreader,
+  type FinancialJourneyTracker,
+  type ProactiveInsightEngine,
+  type ResponseQualityTracker,
   type VoicePaceAdapter,
 } from '../intelligence/index.js';
 
@@ -419,20 +422,40 @@ export {
 export { ragLookup as semanticRagLookup, type ConversationTurn } from '../memory/index.js';
 
 // Speech re-exports
-export { tagTextWithSsmlAdaptive, buildSpeechContext } from '../speech/index.js';
+export { buildSpeechContext, tagTextWithSsmlAdaptive } from '../speech/index.js';
+
+// ============================================================================
+// HEALTH CHECKS
+// ============================================================================
+
+export {
+  checkCognitiveIntelligenceHealth,
+  checkFeatureFlagsHealth,
+  checkObservabilityHealth,
+  checkOutreachHealth,
+  checkPersistenceHealth,
+  checkSessionManagementHealth,
+  checkTherapeuticFrameworksHealth,
+  checkTrustSystemsHealth,
+  checkWellbeingTrackingHealth,
+  runAllHealthChecks,
+  runCriticalHealthChecks,
+  type HealthCheckResult,
+  type SystemHealthReport,
+} from './health-checks.js';
 
 // ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 
 import {
-  initializeServices as _initializeServices,
   getGlobalServices as _getGlobalServices,
+  initializeServices as _initializeServices,
 } from './global-services.js';
 import {
   createSessionServices as _createSessionServices,
-  getSessionServices as _getSessionServices,
   getActiveSessionIds as _getActiveSessionIds,
+  getSessionServices as _getSessionServices,
 } from './session-manager.js';
 import { shutdownServices as _shutdownServices } from './shutdown.js';
 
