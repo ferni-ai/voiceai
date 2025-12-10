@@ -1,13 +1,13 @@
 ---
-title: "Introducing Ferni: Your AI Life Coach That Actually Listens"
+title: 'Introducing Ferni: Your AI Life Coach That Actually Listens'
 excerpt: "Today we're launching Ferni—six AI specialists who work together to help you grow. No app downloads, no complicated interfaces. Just talk."
-author: "The Ferni Team"
-authorInitials: "FN"
-authorColor: "#4a6741"
+author: 'The Ferni Team'
+authorInitials: 'FE'
+authorColor: '#4a6741'
 date: 2025-01-15
-category: "Announcements"
-image: "introducing-ferni.jpg"
-imageAlt: "Ferni AI coaching interface"
+category: 'Announcements'
+image: 'introducing-ferni.jpg'
+imageAlt: 'Ferni AI coaching interface'
 readTime: 4
 ---
 
@@ -17,7 +17,7 @@ That's why we built Ferni.
 
 ## What Makes Ferni Different
 
-Ferni is six brilliant minds that remember your whole story. A team who shows up at 2am with the same presence as noon:
+Ferni is someone who remembers your whole story. Someone who shows up at 2am with the same presence as noon. As you go deeper, you'll discover specialists who each bring their own perspective:
 
 - **Ferni** coordinates everything—asking questions that unlock insight
 - **Nayan** brings decades of wisdom for the long game
@@ -58,5 +58,4 @@ Now it's a conversation away.
 
 ---
 
-*Welcome to Ferni. We're excited to grow with you.*
-
+_Welcome to Ferni. We're excited to grow with you._

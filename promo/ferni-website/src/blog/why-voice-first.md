@@ -1,13 +1,13 @@
 ---
-title: "Why Voice-First Changes Everything About AI Coaching"
+title: 'Why Voice-First Changes Everything About AI Coaching'
 excerpt: "Typing is for tasks. Talking is for thinking. Here's why we built Ferni around your voice, not your keyboard."
-author: "The Ferni Team"
-authorInitials: "FN"
-authorColor: "#4a6741"
+author: 'The Ferni Team'
+authorInitials: 'FE'
+authorColor: '#4a6741'
 date: 2025-01-10
-category: "Product"
-image: "voice-first.jpg"
-imageAlt: "Person talking naturally"
+category: 'Product'
+image: 'voice-first.jpg'
+imageAlt: 'Person talking naturally'
 readTime: 3
 ---
 
@@ -53,5 +53,4 @@ Voice wins. Every time.
 
 ---
 
-*Ready to try it? [Start talking to Ferni](https://app.ferni.ai) or call 1 (484) 481-3081.*
-
+_Ready to try it? [Start talking to Ferni](https://app.ferni.ai) or call 1 (484) 481-3081._
