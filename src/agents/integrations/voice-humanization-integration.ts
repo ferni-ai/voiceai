@@ -20,6 +20,15 @@ import {
   type LaughterDetectionResult,
 } from '../../speech/voice-humanization.js';
 import type { VoiceEmotionResult, ProsodyFeatures } from '../../speech/audio-prosody.js';
+import {
+  calculateVoiceParameters,
+  applyVoiceParametersToSSML,
+  getVoiceParameterSummary,
+  type VoiceContext,
+} from '../../services/dynamic-voice-parameters.js';
+
+// Re-export VoiceContext for external use
+export type { VoiceContext };
 import type { EmotionalArcTracker, EmotionalArc } from '../../conversation/emotional-arc.js';
 import type { EnhancedTurnPrediction } from '../../speech/prosody-turn-bridge.js';
 
@@ -89,6 +98,9 @@ export interface IntegrationResult {
   /** Get current TTS adjustments */
   getTtsAdjustments: () => EmotionalTtsAdjustments;
 
+  /** Update voice context with session info (relationship stage, duration, etc.) */
+  updateVoiceContext: (update: Partial<VoiceContext>) => void;
+
   /** Cleanup */
   cleanup: () => void;
 }
@@ -138,6 +150,16 @@ export function initializeVoiceHumanization(context: IntegrationContext): Integr
     addBreaths: false,
     warmth: 'medium',
     reason: 'Default',
+  };
+
+  // Track voice context for dynamic parameters
+  let voiceContext: VoiceContext = {
+    currentHour: new Date().getHours(),
+    isHeavyTopic: false,
+    isCelebration: false,
+    relationshipStage: 'acquaintance',
+    sessionMinutes: 0,
+    turnCount: 0,
   };
 
   // ==========================================================================
@@ -236,6 +258,33 @@ export function initializeVoiceHumanization(context: IntegrationContext): Integr
     // Apply adjustments to SSML
     let enhanced = service.applyEmotionalSsml(text, lastTtsAdjustments);
 
+    // DYNAMIC VOICE PARAMETERS - Apply emotion-responsive TTS adjustments
+    // Update voice context from emotional arc
+    voiceContext.currentHour = new Date().getHours();
+    voiceContext.turnCount = service.getState().turnCount;
+    if (lastEmotionalArc) {
+      voiceContext.isHeavyTopic = lastEmotionalArc.needsEmotionalSupport ?? false;
+      voiceContext.isCelebration = (lastEmotionalArc.currentValence ?? 0.5) > 0.75;
+      voiceContext.userEmotion = {
+        primary: lastEmotionalArc.currentEmotion ?? 'neutral',
+        intensity: lastEmotionalArc.conversationTemperature ?? 0.5,
+        needsSupport: lastEmotionalArc.needsEmotionalSupport,
+      };
+    }
+
+    // Calculate and apply dynamic voice parameters
+    const dynamicParams = calculateVoiceParameters(voiceContext);
+    enhanced = applyVoiceParametersToSSML(enhanced, dynamicParams);
+
+    log.debug(
+      {
+        voiceParams: getVoiceParameterSummary(dynamicParams),
+        emotion: voiceContext.userEmotion?.primary,
+        isHeavy: voiceContext.isHeavyTopic,
+      },
+      '🎙️ Dynamic voice parameters applied'
+    );
+
     // Call custom handler if provided
     if (handlers.beforeTts) {
       enhanced = handlers.beforeTts(enhanced, lastTtsAdjustments);
@@ -277,6 +326,15 @@ export function initializeVoiceHumanization(context: IntegrationContext): Integr
     return lastTtsAdjustments;
   };
 
+  /**
+   * Update voice context with session information
+   * Call this when relationship stage or session duration changes
+   */
+  const updateVoiceContext = (update: Partial<VoiceContext>): void => {
+    voiceContext = { ...voiceContext, ...update };
+    log.debug({ voiceContext: update }, '🎙️ Voice context updated');
+  };
+
   const cleanup = () => {
     resetVoiceHumanization(sessionId);
     log.info({ sessionId }, '🧹 Voice humanization integration cleaned up');
@@ -293,6 +351,7 @@ export function initializeVoiceHumanization(context: IntegrationContext): Integr
     recordTurn,
     processAudioFrame,
     getTtsAdjustments,
+    updateVoiceContext,
     cleanup,
   };
 }
