@@ -23,12 +23,12 @@ import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
 import {
   EmptyServiceRegistry,
-  type ToolContext,
-  type ToolDomain,
-  type ToolSetSpec,
-  type ToolSetResult,
   type ServiceRegistry,
   type Tool,
+  type ToolContext,
+  type ToolDomain,
+  type ToolSetResult,
+  type ToolSetSpec,
 } from './registry/types.js';
 
 // ============================================================================
@@ -154,54 +154,85 @@ function getDefaultDomainsForRole(roleId?: string): ToolDomain[] {
 // ============================================================================
 
 /**
- * Build handoff tools based on manifest configuration
+ * Build handoff tools based on manifest configuration.
+ *
+ * FIX: Now uses buildHandoffTools from handoff-factory which:
+ * 1. Creates proper llm.tool() wrapped tools with execute functions
+ * 2. Filters tools based on user unlock status at runtime
+ * 3. Returns proper LLM-compatible tools, not raw definitions
+ *
+ * Previously this used createHandoffTools() which returned raw definitions
+ * that didn't have execute functions or unlock validation.
  */
-async function buildHandoffTools(
+async function buildHandoffToolsForAgent(
   manifest: AgentManifest,
   ctx: ToolContext
 ): Promise<Record<string, Tool>> {
-  const tools: Record<string, Tool> = {};
-
   if (!manifest.role?.can_handoff) {
-    return tools;
+    return {};
   }
 
-  // Get handoff targets
+  // Get handoff targets from manifest
   const targets = manifest.role.handoff_targets || [];
   const allTargets = targets.includes('*');
 
-  // Import handoff tool creator from new modular system
   try {
-    const { createHandoffTools } = await import('./handoff/index.js');
-    const handoffToolSet = await createHandoffTools();
+    // Use the FILTERED buildHandoffTools from handoff-factory
+    // This creates proper llm.tool() wrapped tools with:
+    // - Runtime unlock validation
+    // - User profile context extraction
+    // - Proper execute functions
+    const { buildHandoffTools: buildFilteredHandoffTools } =
+      await import('./handoff/handoff-factory.js');
 
-    // Include all handoff tools if '*' or filter by targets
-    for (const toolDef of handoffToolSet.tools) {
-      if (allTargets) {
-        tools[toolDef.name] = toolDef as unknown as Tool;
-      } else {
-        // Match tool name to target (e.g., handoffToMayaSantos -> maya-santos)
-        const targetMatch = toolDef.name.match(/handoffTo(\w+)/i);
+    const { tools: handoffTools, agentIds } = await buildFilteredHandoffTools({
+      currentAgentId: ctx.agentId,
+      // Note: userProfile is not available at build time, so filtering happens at RUNTIME
+      // when the tool's execute function is called. The handoff-factory.ts already handles this.
+    });
+
+    // Filter by manifest targets if not '*'
+    if (!allTargets && targets.length > 0) {
+      const filteredTools: Record<string, Tool> = {};
+
+      for (const [name, tool] of Object.entries(handoffTools)) {
+        // Always include utility tools
+        if (name === 'meetTheTeam' || name === 'softTeamIntro') {
+          filteredTools[name] = tool as Tool;
+          continue;
+        }
+
+        // Match tool name to target (e.g., handoffToMaya -> maya-santos)
+        const targetMatch = name.match(/handoffTo(\w+)/i);
         if (targetMatch) {
           const targetName = targetMatch[1].toLowerCase();
-          if (
-            targets.some((t: string) =>
-              t.toLowerCase().replace('-', '').includes(targetName.replace('-', ''))
-            )
-          ) {
-            tools[toolDef.name] = toolDef as unknown as Tool;
+          const isAllowed = targets.some((t: string) =>
+            t.toLowerCase().replace(/-/g, '').includes(targetName.replace(/-/g, ''))
+          );
+          if (isAllowed) {
+            filteredTools[name] = tool as Tool;
           }
-        } else if (toolDef.name === 'meetTheTeam') {
-          // Always include meetTheTeam
-          tools[toolDef.name] = toolDef as unknown as Tool;
         }
       }
+
+      getLogger().debug(
+        { agentId: ctx.agentId, targets, filteredCount: Object.keys(filteredTools).length },
+        'Filtered handoff tools by manifest targets'
+      );
+
+      return filteredTools;
     }
+
+    getLogger().debug(
+      { agentId: ctx.agentId, toolCount: Object.keys(handoffTools).length, agentIds },
+      'Built handoff tools for agent'
+    );
+
+    return handoffTools as Record<string, Tool>;
   } catch (error) {
     getLogger().warn({ error }, 'Could not load handoff tools');
+    return {};
   }
-
-  return tools;
 }
 
 // ============================================================================
@@ -279,7 +310,7 @@ export async function buildAgentTools(
   const result: ToolSetResult = toolRegistry.buildToolSet(finalSpec, ctx);
 
   // Add handoff tools if enabled
-  const handoffTools = await buildHandoffTools(manifest, ctx);
+  const handoffTools = await buildHandoffToolsForAgent(manifest, ctx);
 
   // Merge tools
   const allTools = {
@@ -493,6 +524,12 @@ export async function buildAllTeamTools(
  *
  * Keep this focused! Most LLMs work best with 20-60 tools max.
  * Google Gemini Realtime struggles with 100+ tools.
+ *
+ * IMPORTANT: 'handoff' domain is NOT included here because:
+ * 1. The registry's handoff domain returns raw definitions without unlock filtering
+ * 2. Proper handoff tools are added via buildHandoffToolsForAgent() which uses
+ *    buildHandoffTools from handoff-factory.ts with runtime unlock validation
+ * 3. This prevents locked team members from appearing in the LLM's tool list
  */
 export async function buildEssentialTools(
   options: {
@@ -505,9 +542,10 @@ export async function buildEssentialTools(
     await initializeToolRegistry();
   }
 
-  // Essential tools: memory, handoff, entertainment (music), information (weather/search)
+  // Essential tools: memory, entertainment (music), information (weather/search)
+  // NOTE: 'handoff' is intentionally excluded - see buildHandoffToolsForAgent()
   // This gives agents core capabilities while keeping tool count manageable
-  return toolRegistry.buildSimple(['memory', 'handoff', 'entertainment', 'information'], {
+  return toolRegistry.buildSimple(['memory', 'entertainment', 'information'], {
     userId: options.userId || 'default',
     agentId: 'essential',
     agentDisplayName: 'Essential',
@@ -519,7 +557,7 @@ export async function buildEssentialTools(
 // EXPORTS
 // ============================================================================
 
-export type { AgentManifest, AgentManifestTools };
 export { getDefaultDomainsForRole };
+export type { AgentManifest, AgentManifestTools };
 
 export default buildAgentTools;

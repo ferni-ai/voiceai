@@ -6,19 +6,18 @@
  * Run with: npx vitest run src/tools/handoff/__tests__/executor.test.ts
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  captureHandoffContext,
+  clearHandoffHistory,
   executeHandoff,
   getCurrentAgent,
-  setCurrentAgent,
-  isSameAgent,
-  isHandoffAllowed,
-  resetHandoffState,
-  captureHandoffContext,
   getHandoffContext,
   getHandoffHistory,
-  clearHandoffHistory,
-  type HandoffResult,
+  isHandoffAllowed,
+  isSameAgent,
+  resetHandoffState,
+  setCurrentAgent,
 } from '../executor.js';
 
 // Import handoffEvents dynamically to avoid module resolution issues with mocks
@@ -442,5 +441,129 @@ describe('Handoff Factory', () => {
     // This test verifies the factory doesn't throw
     // Full integration testing requires the actual registry
     expect(buildHandoffTools).toBeDefined();
+  });
+});
+
+// ============================================================================
+// UNLOCK VALIDATION TESTS
+// ============================================================================
+
+describe('Unlock Validation', () => {
+  /**
+   * These tests verify that handoffs are blocked to locked team members.
+   * The team unlock system ("Get to Know Ferni First") prevents users from
+   * handoffs to team members they haven't unlocked yet.
+   */
+
+  beforeEach(() => {
+    resetHandoffState();
+    vi.clearAllMocks();
+  });
+
+  it('should block handoffs to locked members', async () => {
+    // Mock isTeamMemberUnlocked to return false for this test
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
+    vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(
+      "I have a friend who's amazing at that... once we talk more, I'll introduce you."
+    );
+
+    const result = await executeHandoff('maya-santos', 'User wants habits help', {
+      userProfile: {
+        totalConversations: 0,
+      } as import('../../../types/user-profile.js').UserProfile,
+      subscriptionTier: 'free',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('introduce you');
+  });
+
+  it('should allow handoffs to unlocked members', async () => {
+    // Mock isTeamMemberUnlocked to return true
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(true);
+
+    const result = await executeHandoff('peter-john', 'User wants stock research', {
+      userProfile: {
+        totalConversations: 10,
+      } as import('../../../types/user-profile.js').UserProfile,
+      subscriptionTier: 'free',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.targetAgent).toBe('peter-john');
+  });
+
+  it('should always allow handoffs to coordinator (Ferni)', async () => {
+    // First switch to a different agent so we can test returning to Ferni
+    setCurrentAgent('peter-john');
+
+    // Mock isTeamMemberUnlocked to return false (shouldn't matter for Ferni)
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
+
+    const result = await executeHandoff('ferni', 'Return to main coach', {
+      userProfile: {
+        totalConversations: 0,
+      } as import('../../../types/user-profile.js').UserProfile,
+      subscriptionTier: 'free',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.targetAgent).toBe('ferni');
+  });
+
+  it('should skip unlock check when skipUnlockCheck option is true', async () => {
+    // Mock isTeamMemberUnlocked to return false
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
+
+    const result = await executeHandoff('maya-santos', 'Test bypass', {
+      skipUnlockCheck: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.targetAgent).toBe('maya-santos');
+  });
+
+  it('should use teaser message as error for locked members', async () => {
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
+    vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(
+      'Peter can show you incredible patterns, but I need to know you better first.'
+    );
+
+    const result = await executeHandoff('peter-john', 'Data patterns', {
+      userProfile: {
+        totalConversations: 1,
+      } as import('../../../types/user-profile.js').UserProfile,
+      subscriptionTier: 'free',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      'Peter can show you incredible patterns, but I need to know you better first.'
+    );
+  });
+
+  it('should provide fallback error message when no teaser available', async () => {
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
+    vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(null);
+
+    const result = await executeHandoff('nayan-patel', 'Wisdom', {
+      userProfile: null,
+      subscriptionTier: 'free',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('unlock');
   });
 });

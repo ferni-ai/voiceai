@@ -22,11 +22,11 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
-import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
-import { executeHandoff, getCurrentAgent, isSameAgent } from './executor.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
+import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { executeHandoff } from './executor.js';
 
 // Safe logger that doesn't throw if not initialized
 const getLogger = () => {
@@ -377,9 +377,29 @@ export async function buildHandoffTools(
   const agentIds: string[] = [];
 
   for (const def of toolSet.tools) {
-    // NOTE: We don't filter tools at build time because user context may not be available yet.
-    // Instead, we validate at RUNTIME in the execute function using ctx.userData.services.userProfile.
-    // The context injection tells the LLM which tools to use, and executor validates as safety net.
+    // FILTER AT BUILD TIME: Always filter locked members from tool list
+    // This prevents the LLM from even seeing tools for locked team members.
+    // The context injection tells the LLM who's available, and this enforces it at the tool level.
+    //
+    // FIX: Previously the condition was `if (userProfile || subscriptionTier !== 'free')`
+    // which SKIPPED filtering for free users without a profile. This caused Ferni to
+    // try handoffs to locked members. Now we ALWAYS filter.
+    const isTargetCoordinator = def.agentId === 'ferni' || def.agentId === 'jack-b';
+    if (
+      !isTargetCoordinator &&
+      !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
+    ) {
+      getLogger().debug(
+        {
+          toolName: def.name,
+          agentId: def.agentId,
+          tier: subscriptionTier,
+          hasProfile: !!userProfile,
+        },
+        'Skipping handoff tool for locked member'
+      );
+      continue; // Don't create this tool
+    }
 
     // Create the actual LLM tool
     const tool = llm.tool({
@@ -427,6 +447,105 @@ export async function buildHandoffTools(
     tools[def.name] = tool;
     agentIds.push(def.agentId);
   }
+
+  // Add softIntro tool - allows locked teammates to "say hi" without full transfer
+  // This is the "soft intro" mechanism: locked members can briefly speak, but conversation stays with current agent
+  tools.softTeamIntro = llm.tool({
+    description: `Let a teammate briefly introduce themselves without transferring the conversation.
+Use when: you want to give a taste of a teammate the user hasn't fully unlocked yet, or when a topic comes up
+that a locked teammate specializes in. The teammate will say one thing, then you continue the conversation.
+This is NOT a full handoff - you remain the active speaker.`,
+    parameters: z.object({
+      teammate_specialty: z
+        .string()
+        .describe(
+          'What specialty area to introduce (e.g., "habits", "research", "planning", "communication")'
+        ),
+      context: z.string().describe('Brief context about why this teammate would be helpful'),
+    }),
+    execute: async ({ teammate_specialty, context }, runContext) => {
+      // Get user profile from runtime context
+      const runtimeUserProfile =
+        (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
+          ?.ctx?.userData?.services?.userProfile ||
+        userProfile ||
+        null;
+      const runtimeTier =
+        (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
+        subscriptionTier;
+
+      // Find a locked teammate who matches the specialty
+      const lockedTeammates = TEAM_MEMBERS.filter(
+        (m) =>
+          m.memberId !== 'ferni' &&
+          !isTeamMemberUnlocked(m.memberId, runtimeUserProfile, runtimeTier)
+      );
+
+      // Try to match specialty to a locked teammate
+      const specialtyLower = teammate_specialty.toLowerCase();
+      let matchedTeammate = lockedTeammates.find((m) => {
+        const roleLower = m.role.toLowerCase();
+        const descLower = m.description.toLowerCase();
+        return (
+          roleLower.includes(specialtyLower) ||
+          descLower.includes(specialtyLower) ||
+          specialtyLower.includes(roleLower.split(' ')[0])
+        );
+      });
+
+      // If no match, use the next teammate to unlock
+      if (!matchedTeammate && lockedTeammates.length > 0) {
+        matchedTeammate = lockedTeammates[0];
+      }
+
+      if (!matchedTeammate) {
+        return {
+          success: false,
+          message: 'All teammates are already unlocked! You can do a full handoff instead.',
+        };
+      }
+
+      // Generate a soft intro message from the teammate
+      const softIntros: Record<string, string[]> = {
+        'maya-santos': [
+          "Hey! I'm Maya - I help with habits and routines. Ferni tells me you're working on building something new. That's exciting! I specialize in making changes actually stick. Looking forward to working together when you're ready!",
+          "Hi there! Maya here. I heard you're thinking about habits. My whole thing is making change feel natural, not forced. Can't wait to dive deeper with you soon!",
+        ],
+        'peter-john': [
+          "Hello! Peter here - I'm the numbers person. I love finding patterns that others miss. Ferni's been telling me about you. When we connect properly, I'll show you some insights that might surprise you.",
+          "Hi! I'm Peter. I see you're curious about data and patterns. That's my world. Looking forward to showing you what the numbers are really saying when we meet properly.",
+        ],
+        'alex-chen': [
+          "Hey! Alex here - communications is my thing. Whether it's emails, calendar chaos, or tough conversations, I've got you. Can't wait to help you communicate with more confidence!",
+          "Hi! I'm Alex. I heard you might need help organizing things or navigating a conversation. That's exactly what I do. See you soon!",
+        ],
+        'jordan-taylor': [
+          "Hi! Jordan here - I'm all about turning dreams into plans. Vacations, life milestones, big changes - I love making them happen. Excited to help you design something amazing!",
+          "Hey there! I'm Jordan. Planning is my passion - from weekend trips to life-changing decisions. Can't wait to dream big with you!",
+        ],
+        'nayan-patel': [
+          "Hello, friend. I'm Nayan. I don't rush to give advice - I prefer to listen first. When the time is right, we'll talk. Until then, trust the process.",
+          "Greetings. I'm Nayan. Wisdom isn't about having all the answers - it's about asking the right questions. I look forward to our conversation when you're ready.",
+        ],
+      };
+
+      const intros = softIntros[matchedTeammate.memberId] || [
+        `Hi! I'm ${matchedTeammate.displayName}. ${matchedTeammate.description} Looking forward to working together soon!`,
+      ];
+
+      const intro = intros[Math.floor(Math.random() * intros.length)];
+
+      return {
+        success: true,
+        teammate_name: matchedTeammate.displayName,
+        teammate_role: matchedTeammate.role,
+        intro_message: intro,
+        instructions: `The teammate has said hello. Now YOU (the current agent) should continue the conversation.
+Say something like "That was ${matchedTeammate.displayName}! They're great. As we get to know each other better, you'll unlock full conversations with them. For now, how can I help you with [topic]?"
+Do NOT try to transfer to them. This was just a quick hello.`,
+      };
+    },
+  });
 
   // Add meetTheTeam tool with unlock awareness
   tools.meetTheTeam = llm.tool({

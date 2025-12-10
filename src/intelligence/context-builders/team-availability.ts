@@ -12,21 +12,21 @@
  * @see src/services/team-unlocks.ts for unlock logic
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
-  createHintInjection,
-  type ContextBuilderInput,
-  type ContextInjection,
-} from './index.js';
-import {
+  getContextualUnlockTeaser,
   getTeamUnlockState,
   TEAM_MEMBERS,
-  getContextualUnlockTeaser,
   type TeamMemberId,
   type TeamUnlockState,
 } from '../../services/team-unlocks.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import {
+  createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 
 const log = createLogger({ module: 'TeamAvailability' });
 
@@ -60,18 +60,27 @@ function buildAvailableTeamSection(state: TeamUnlockState): string {
     .join('\n');
 
   if (!available) {
-    return '[TEAM STATUS: You are the only team member this user has access to right now. They need to talk with you more to unlock teammates. When topics come up that a teammate could help with, mention you have friends who specialize in that, but you need to get to know them better first.]';
+    return `[TEAM STATUS: You are the ONLY team member this user has access to right now.
+
+They need to talk with you more to unlock teammates. When topics come up that a teammate could help with:
+- Say "I have a friend who's incredible at that"
+- Mention you'll introduce them as you get to know each other better
+- Handle the topic yourself the best you can for now
+
+NO handoff tools are available yet - do not try to transfer to anyone.]`;
   }
 
-  return `[AVAILABLE TEAM MEMBERS - You can hand off to these people:]
+  return `[✅ AVAILABLE TEAM MEMBERS - ONLY these people can receive handoffs:]
 ${available}
 
-When the user needs help in one of their areas, feel free to offer to connect them.`;
+You have handoff tools ONLY for the members listed above.
+When the user needs help in one of their areas, feel free to offer to connect them.
+For topics outside their expertise, handle it yourself or mention you have other friends they'll meet later.`;
 }
 
 /**
  * Build the locked team section - WITHOUT listing names
- * 
+ *
  * IMPORTANT: We don't list locked member names because the LLM will mention them.
  * Instead, we give vague hints about unlockable teammates.
  */
@@ -90,11 +99,20 @@ function buildLockedTeamSection(state: TeamUnlockState): string {
     .filter(Boolean)
     .slice(0, 3);
 
-  const expertiseHint = lockedExpertise.length > 0
-    ? ` (like ${lockedExpertise.join(', ')})`
-    : '';
+  const expertiseHint = lockedExpertise.length > 0 ? ` (like ${lockedExpertise.join(', ')})` : '';
 
-  return `[LOCKED TEAMMATES: You have ${lockedMembers.length} more teammate(s) the user hasn't met yet${expertiseHint}. When topics come up that they could help with, say something like "I know someone who's great at that - we'll meet them as we get to know each other better." Do NOT name specific people they haven't met. Do NOT try to hand off to them - the tools won't work.]`;
+  return `[LOCKED TEAMMATES:
+You have ${lockedMembers.length} more teammate(s) the user hasn't met yet${expertiseHint}.
+Handoff tools for these members are not available yet.
+
+WHEN THESE TOPICS COME UP:
+✅ Say "I know someone great at that - we'll meet them as we get to know each other better"
+✅ Handle the topic yourself the best you can
+✅ (Optional) Use 'softTeamIntro' tool to let them say a quick hello without transferring
+
+⛔ Don't try to transfer to them - those tools aren't available
+⛔ Don't name specific locked teammates
+⛔ Don't offer to "connect them" for a full conversation]`;
 }
 
 /**

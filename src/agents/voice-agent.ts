@@ -19,7 +19,7 @@
 // EARLY STARTUP LOGGING
 // Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
-import { earlyLog, DEBUG_STARTUP } from './shared/early-logger.js';
+import { DEBUG_STARTUP, earlyLog } from './shared/early-logger.js';
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   nodeVersion: process.version,
@@ -52,8 +52,8 @@ import {
 } from '../services/voice-speaker-change.js';
 
 // Shared Agent Utilities (used by ALL agents)
-import { SILENCE_THRESHOLDS } from './shared/constants.js';
-import { startHealthCheckServer, hasSsmlTags, type UserData } from './shared/index.js';
+import { PROCESSING_TIMEOUTS, SILENCE_THRESHOLDS } from './shared/constants.js';
+import { hasSsmlTags, startHealthCheckServer, type UserData } from './shared/index.js';
 
 // Persona System
 import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
@@ -79,7 +79,10 @@ import {
 } from '../services/humanizing-state.js';
 
 // Response naturalness - acknowledgments, thinking fillers, catchphrases
-import { resetCatchphraseTracking } from '../speech/response-naturalness.js';
+import { getThinkingFiller, resetCatchphraseTracking } from '../speech/response-naturalness.js';
+
+// Graceful error handling for dead air prevention
+import { getGracefulErrorResponse } from '../intelligence/conversation-quality.js';
 
 // Meaningful Silence System - transforms quiet moments into connection
 import {
@@ -92,11 +95,7 @@ import {
 } from '../personas/meaningful-silence.js';
 
 // Services Bootstrap
-import {
-  createSessionServices,
-  initializeServices,
-  type SessionServices as _SessionServices, // Used for type context
-} from '../services/index.js';
+import { createSessionServices, initializeServices } from '../services/index.js';
 
 // Adaptive SSML
 import { applyPhasePersonality, tagGreeting } from '../speech/adaptive-ssml.js';
@@ -115,6 +114,8 @@ import {
   // Phase 27: Learning Style
   recordLearningSignals,
   recordTopicData,
+  // Phase 24: Voice Prosody Learning - BETTER-THAN-HUMAN baseline building
+  recordVoiceSample,
   saveEvent,
   onSessionEnd as saveTrustProfiles,
 } from '../services/trust-systems/index.js';
@@ -174,7 +175,11 @@ import { diag } from '../services/diagnostic-logger.js';
 import { getAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
 // Emotion matching - connect prosody to voice response
-import { getEmotionModulation, wrapWithEmotionProsody } from '../speech/emotion-matching.js';
+import {
+  applyHumanListeningAdjustments,
+  getEmotionModulation,
+  wrapWithEmotionProsody,
+} from '../speech/emotion-matching.js';
 
 // Conversation dynamics - emotional arc, response length, story timing
 import {
@@ -197,6 +202,10 @@ import { getAmbientAwarenessService } from '../speech/ambient-awareness.js';
 
 // Emotional Contagion - prosody continuity across utterances
 import { getEmotionalContagionService } from '../speech/emotional-contagion.js';
+
+// Human Listening Pipeline - "better than human" listening capabilities
+import { setHumanListeningResult } from '../intelligence/context-builders/human-listening.js';
+import { getHumanListeningPipeline } from '../speech/human-listening-pipeline.js';
 
 // ============================================================================
 // ADVANCED VOICE HUMANIZATION (Phase 7+)
@@ -612,43 +621,42 @@ class VoiceAgent extends voice.Agent<UserData> {
                 // Store for response quality tracking when user responds
                 if (userData) {
                   userData.lastAgentResponse = accumulatedText;
+                  userData.lastAgentResponseTime = Date.now(); // For engagement scoring
 
                   // ============================================================
                   // EVALOPS: Evaluate agent response for quality assurance
-                  // TODO: Re-enable when evalops is production-ready
                   // Non-blocking - runs in background, errors are caught
                   // ============================================================
-                  // NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
-                  // try {
-                  //   const sessionId = userData.services?.sessionId;
-                  //   const lastUserMsg = userData.lastUserMessage || '';
-                  //
-                  //   if (sessionId && lastUserMsg) {
-                  //     // Import dynamically to avoid startup cost
-                  //     import('../services/evalops/voice-agent-integration.js')
-                  //       .then(({ evaluateAgentResponse }) => {
-                  //         evaluateAgentResponse(
-                  //           sessionId,
-                  //           agent.persona.id,
-                  //           lastUserMsg,
-                  //           accumulatedText,
-                  //           {
-                  //             userId: userData.services?.userId,
-                  //             turnNumber: userData.turnCount || 1,
-                  //             emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
-                  //             isNewUser: userData.turnCount === 1,
-                  //           }
-                  //         ).catch(() => {
-                  //           // Non-blocking - silently ignore errors
-                  //         });
-                  //       })
-                  //       .catch(() => {
-                  //         // Non-blocking - module import failed, skip evaluation
-                  //       });
-                  //   }
-                  // } catch {
-                  //   // Non-blocking - EvalOps hook should never crash the agent
-                  // }
+                  try {
+                    const sessionId = userData.services?.sessionId;
+                    const lastUserMsg = userData.lastUserMessage || '';
+
+                    if (sessionId && lastUserMsg) {
+                      // Import dynamically to avoid startup cost
+                      import('../services/evalops/voice-agent-integration.js')
+                        .then(({ evaluateAgentResponse }) => {
+                          evaluateAgentResponse(
+                            sessionId,
+                            agent.persona.id,
+                            lastUserMsg,
+                            accumulatedText,
+                            {
+                              userId: userData.services?.userId,
+                              turnNumber: userData.turnCount || 1,
+                              emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+                              isNewUser: userData.turnCount === 1,
+                            }
+                          ).catch(() => {
+                            // Non-blocking - silently ignore errors
+                          });
+                        })
+                        .catch(() => {
+                          // Non-blocking - module import failed, skip evaluation
+                        });
+                    }
+                  } catch {
+                    // Non-blocking - EvalOps hook should never crash the agent
+                  }
 
                   // Track if this response contained humor or story for calibration
                   const lowerText = accumulatedText.toLowerCase();
@@ -695,6 +703,34 @@ class VoiceAgent extends voice.Agent<UserData> {
             const emotionModulation = userData?.emotionModulation;
             if (emotionModulation && emotionModulation.confidence > 0.4) {
               taggedText = wrapWithEmotionProsody(taggedText, emotionModulation);
+            }
+
+            // ============================================================
+            // HUMAN LISTENING: Apply SSML adjustments based on cognitive/emotional state
+            // This layers on top of emotion mirroring to respond to:
+            // - Cognitive overload → slower speech
+            // - Distress signals → softer delivery
+            // - Self-soothing → gentle pace
+            // ============================================================
+            try {
+              const sessionIdForListening = userData?.services?.sessionId;
+              if (sessionIdForListening) {
+                const { getHumanListeningResult } =
+                  await import('../intelligence/context-builders/human-listening.js');
+                const listeningResult = getHumanListeningResult(sessionIdForListening);
+
+                if (listeningResult?.ssmlSuggestions) {
+                  taggedText = applyHumanListeningAdjustments(
+                    taggedText,
+                    listeningResult.ssmlSuggestions
+                  );
+                }
+              }
+            } catch (listeningAdjustErr) {
+              // Non-critical - don't block audio
+              diag.debug('Human listening SSML adjustment skipped', {
+                error: String(listeningAdjustErr),
+              });
             }
 
             // Apply emotional arc adjustments for smooth transitions
@@ -1040,9 +1076,55 @@ class VoiceAgent extends voice.Agent<UserData> {
             userData.emotionModulation = modulation;
           }
 
+          // ===============================================
+          // BETTER-THAN-HUMAN: Voice Prosody Baseline Building
+          // Record voice samples to build personal baselines.
+          // This enables detecting "this sounds different from normal" signals.
+          // ===============================================
+          const services = userData?.services;
+          const userId = services?.userId;
+          if (userId && voiceEmotion.prosody && voiceEmotion.confidence > 0.3) {
+            try {
+              // Convert prosody data to voice characteristics format
+              // Using actual properties from ProsodyFeatures interface
+              const characteristics = {
+                pitchMean: voiceEmotion.prosody.pitchMean || 150,
+                pitchRange: voiceEmotion.prosody.pitchRange || 30,
+                pitchVariability: voiceEmotion.prosody.pitchVariance
+                  ? voiceEmotion.prosody.pitchVariance / 100
+                  : 0.3,
+                energyMean: voiceEmotion.prosody.energyMean || 0.5,
+                energyRange: voiceEmotion.prosody.energyVariance || 0.2,
+                energyVariability: voiceEmotion.prosody.energyVariance
+                  ? voiceEmotion.prosody.energyVariance / 100
+                  : 0.3,
+                speakingRate: voiceEmotion.prosody.speechRate || 150,
+                pauseFrequency: voiceEmotion.prosody.pauseFrequency || 3,
+                pauseDuration: voiceEmotion.prosody.pauseDuration || 300,
+                breathiness: voiceEmotion.prosody.breathiness || 0.3,
+                tension: voiceEmotion.stressLevel || 0.3,
+                clarity: voiceEmotion.confidence || 0.7,
+              };
+
+              recordVoiceSample(userId, characteristics, {
+                detectedEmotion: voiceEmotion.primary,
+                conversationContext: userData?.lastTopic || undefined,
+              });
+
+              log().debug(
+                { userId, emotion: voiceEmotion.primary, confidence: voiceEmotion.confidence },
+                '🎤 BETTER-THAN-HUMAN: Recorded voice sample for baseline building'
+              );
+            } catch (e) {
+              log().debug(
+                { error: String(e) },
+                'Voice prosody baseline recording failed (non-blocking)'
+              );
+            }
+          }
+
           // Feed to learning engine if session services available
           // This helps the agent learn emotional patterns over time
-          const services = userData?.services;
           if (services && voiceEmotion.confidence > 0.4) {
             try {
               // Map voice emotion to standard emotion type
@@ -1402,8 +1484,48 @@ class VoiceAgent extends voice.Agent<UserData> {
         logger: this.logger,
       };
 
+      // ================================================================
+      // DEAD AIR FIX: Timeout wrapper for turn processing
+      // If processing takes too long, speak a thinking filler to fill silence
+      // ================================================================
+      let spokeFiller = false;
+      let fillerTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      // Schedule filler if processing takes too long
+      const fillerPromise = new Promise<void>((resolve) => {
+        fillerTimeout = setTimeout(() => {
+          if (!spokeFiller && this._currentSession) {
+            spokeFiller = true;
+            const filler = getThinkingFiller(this.persona.id);
+            this._currentSession.say(filler, { allowInterruptions: true });
+            diag.state('🎤 Spoke thinking filler (processing slow)', {
+              personaId: this.persona.id,
+              timeoutMs: PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT,
+            });
+          }
+          resolve();
+        }, PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT);
+      });
+
       // Process the turn (all analysis, context building, emotional tracking)
-      const result = await processTurn(turnContext);
+      // Race with hard timeout to prevent infinite hangs
+      const result = await Promise.race([
+        processTurn(turnContext),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Turn processing hard timeout')),
+            PROCESSING_TIMEOUTS.TURN_PROCESSING_HARD_TIMEOUT
+          )
+        ),
+      ]).finally(() => {
+        // Clean up filler timeout
+        if (fillerTimeout) {
+          clearTimeout(fillerTimeout);
+        }
+      });
+
+      // Cancel the filler promise (it may have already fired)
+      void fillerPromise;
 
       // Inject context into LLM
       injectTurnContext(turnCtx, result);
@@ -1481,9 +1603,30 @@ IMPORTANT:
       );
     } catch (error) {
       this.logger.error({ error: String(error) }, 'TurnProcessor V2 failed');
-      // Note: No fallback to V1 here - if USE_TURN_PROCESSOR is true,
-      // the user wants the new path, so we should surface errors
-      throw error;
+
+      // ================================================================
+      // DEAD AIR FIX: Graceful error recovery
+      // Don't throw - instead speak a human-like error response
+      // This prevents silent failures that leave users in dead air
+      // ================================================================
+      const isTimeout = String(error).includes('timeout');
+      const errorType = isTimeout ? 'api_timeout' : 'general';
+      const gracefulError = getGracefulErrorResponse(errorType, String(error));
+
+      if (this._currentSession) {
+        try {
+          this._currentSession.say(gracefulError.userMessage, { allowInterruptions: true });
+          diag.state('🎤 Spoke graceful error recovery', {
+            errorType,
+            recoverable: gracefulError.recoverable,
+          });
+        } catch (sayError) {
+          this.logger.error({ error: String(sayError) }, 'Failed to speak error recovery');
+        }
+      }
+
+      // Don't throw - we've handled it gracefully
+      // The LLM will still generate a response (without our context injections)
     }
   }
 
@@ -1759,7 +1902,8 @@ export default defineAgent({
                 confidence: event.confidence,
                 isNewSpeaker: event.isNewSpeaker,
               });
-              // Notify frontend of speaker change
+
+              // Notify frontend of speaker change (for UI indicator)
               ctx.room.localParticipant
                 ?.publishData(
                   new TextEncoder().encode(
@@ -1777,6 +1921,32 @@ export default defineAgent({
                 .catch(() => {
                   /* ignore */
                 });
+
+              // 🔐 Trigger identity re-evaluation on speaker change
+              void (async () => {
+                try {
+                  const { onUserMessage } =
+                    await import('../services/trust-and-identity/voice-agent-integration.js');
+                  // Process as a "speaker change" event - the message indicates a verification need
+                  const identityUpdate = await onUserMessage(
+                    sessionId,
+                    `[SPEAKER_CHANGE: ${event.previousSpeakerId} -> ${event.currentSpeakerId}]`,
+                    0 // No emotional intensity for system messages
+                  );
+
+                  if (identityUpdate.requiresVerification ?? false) {
+                    diag.session('🔐 Speaker change requires verification', {
+                      newSpeaker: event.currentSpeakerId,
+                      confidence: event.confidence,
+                    });
+                    // Frontend will handle the verification prompt via speaker_changed data message
+                  }
+                } catch (identityErr) {
+                  diag.warn('Speaker change identity update failed', {
+                    error: String(identityErr),
+                  });
+                }
+              })();
             });
             speakerChangeDetector.start(userId);
             diag.session('🎤 Speaker change detection initialized');
@@ -2367,6 +2537,58 @@ export default defineAgent({
             diag.state('🎵 User stopped speaking - thinking music scheduled');
           }
 
+          // ================================================================
+          // DEAD AIR FIX: Early silence detection
+          // If agent hasn't started responding after EARLY_ACKNOWLEDGMENT_SECONDS,
+          // speak a quick acknowledgment to fill the silence
+          // ================================================================
+          const userStoppedAt = Date.now();
+          let earlyAckTimer: ReturnType<typeof setTimeout> | null = null;
+
+          earlyAckTimer = setTimeout(() => {
+            // Check if agent is still not speaking
+            if (!conversationManager.isAgentSpeaking()) {
+              // Only fire if we haven't spoken anything else
+              const timeSinceStop = Date.now() - userStoppedAt;
+              if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
+                const filler = getThinkingFiller(sessionPersona.id);
+                try {
+                  session.say(filler, { allowInterruptions: true });
+                  diag.state('🎤 Early acknowledgment (agent processing)', {
+                    waitedMs: timeSinceStop,
+                    personaId: sessionPersona.id,
+                  });
+                } catch (e) {
+                  logger.debug({ error: e }, 'Failed to say early acknowledgment');
+                }
+              }
+            }
+            earlyAckTimer = null;
+          }, SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000);
+
+          // Clean up timer if agent starts speaking (via state change listener)
+          const cleanupEarlyAck = () => {
+            if (earlyAckTimer) {
+              clearTimeout(earlyAckTimer);
+              earlyAckTimer = null;
+            }
+          };
+
+          // Listen for agent starting to speak to cancel the early ack
+          const agentStateHandler = (agentEvent: { newState: string }) => {
+            if (agentEvent.newState === 'speaking') {
+              cleanupEarlyAck();
+              session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+            }
+          };
+          session.on(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+
+          // Also clean up after 10 seconds regardless (prevents memory leaks)
+          setTimeout(() => {
+            cleanupEarlyAck();
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+          }, 10000);
+
           // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
           void (async () => {
             try {
@@ -2638,6 +2860,65 @@ export default defineAgent({
             voiceHumanization.recordTurn();
           }
 
+          // ===============================================
+          // 🎧 HUMAN LISTENING PIPELINE - "Better than Human" Analysis
+          // ===============================================
+          // Analyzes voice tremor, breath patterns, cognitive load,
+          // hedging, self-soothing, and more for superhuman emotional awareness
+          void (async () => {
+            try {
+              const pipeline = getHumanListeningPipeline(sessionId);
+
+              // Get prosody features from voice emotion if available
+              // This enables audio-based analysis without raw samples
+              const prosodyFeatures = userData.voiceEmotion?.prosody
+                ? {
+                    pitchVariance: userData.voiceEmotion.prosody.pitchVariance,
+                    jitter: userData.voiceEmotion.prosody.jitter,
+                    shimmer: userData.voiceEmotion.prosody.shimmer,
+                    breathiness: userData.voiceEmotion.prosody.breathiness,
+                    energyMean: userData.voiceEmotion.prosody.energyMean,
+                    energyVariance: userData.voiceEmotion.prosody.energyVariance,
+                    speechRate: userData.voiceEmotion.prosody.speechRate,
+                    pauseDuration: userData.voiceEmotion.prosody.pauseDuration,
+                    pauseFrequency: userData.voiceEmotion.prosody.pauseFrequency,
+                    utteranceDuration: userData.voiceEmotion.prosody.utteranceDuration,
+                    voiceQuality: userData.voiceEmotion.prosody.voiceQuality,
+                  }
+                : undefined;
+
+              const listeningResult = await pipeline.analyze({
+                sessionId,
+                text: event.transcript,
+                turnNumber: userData.turnCount || 1,
+                currentTopic: userData.lastTopic,
+                emotion: userData.lastEmotionAnalysis?.primary,
+                emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+                durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
+                prosodyFeatures,
+                timeSinceAgentMessage: userData.lastAgentResponseTime
+                  ? Date.now() - userData.lastAgentResponseTime
+                  : undefined,
+              });
+
+              // Store for context builder access
+              setHumanListeningResult(sessionId, listeningResult);
+
+              if (listeningResult.possibleDistress) {
+                diag.warn('🎧 Human listening: Distress signals detected', {
+                  signals: listeningResult.prioritySignals,
+                  guidance: listeningResult.agentGuidance,
+                });
+              } else if (listeningResult.shouldSlowDown) {
+                diag.state('🎧 Human listening: User needs slower pace', {
+                  assessment: listeningResult.overallAssessment.slice(0, 100),
+                });
+              }
+            } catch (listeningErr) {
+              diag.warn('Human listening pipeline error', { error: String(listeningErr) });
+            }
+          })();
+
           // Extract memorable moments from what the user shared
           // This powers the meaningful silence system - so we can reference
           // things like "your daughter" or "the move" later
@@ -2714,6 +2995,40 @@ export default defineAgent({
             .catch((error) => {
               logger.warn({ error }, 'Failed to process message for dynamic tool loading');
             });
+
+          // ===============================================
+          // 🔐 VOICE IDENTITY: Process user message for trust/identity context
+          // ===============================================
+          // This enables phone collection prompts, verification triggers,
+          // and trust-level updates based on conversation content
+          void (async () => {
+            try {
+              const { onUserMessage } =
+                await import('../services/trust-and-identity/voice-agent-integration.js');
+              const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
+              const identityUpdate = await onUserMessage(
+                sessionId,
+                event.transcript,
+                emotionalIntensity
+              );
+
+              if (identityUpdate.shouldAskForContact ?? false) {
+                // Store the phone ask script for injection
+                diag.state('🔐 Identity: Should ask for contact', {
+                  reason: identityUpdate.contactAskReason ?? 'unknown',
+                });
+              }
+
+              if (identityUpdate.requiresVerification ?? false) {
+                diag.state('🔐 Identity: Verification required', {
+                  reason: 'Speaker or content change detected',
+                });
+              }
+            } catch (identityErr) {
+              // Non-critical - identity processing shouldn't block conversation
+              diag.warn('Identity message processing failed', { error: String(identityErr) });
+            }
+          })();
 
           // ===============================================
           // 🎧 DJ SESSION FLOW TRACKING & "OUR SONGS"
@@ -2874,8 +3189,25 @@ export default defineAgent({
       // Assign to reference for use in async event handlers (handoffs)
       voiceAgentRef = voiceAgent;
 
-      // Initialize bundle runtime for rich persona content
-      await voiceAgent.initializeBundleRuntime();
+      // ===============================================
+      // STEP 7: PARALLEL INITIALIZATION (PERF OPTIMIZATION)
+      // ===============================================
+      // Bundle runtime init and room connection are independent - run in parallel
+      // This saves ~200-500ms during session startup
+      diag.entry('Step 7: Parallel init (bundle + connect)');
+      const parallelStartTime = Date.now();
+
+      await Promise.all([
+        // Task 1: Initialize bundle runtime for rich persona content
+        voiceAgent.initializeBundleRuntime(),
+        // Task 2: Connect to LiveKit room
+        ctx.connect(),
+      ]);
+
+      const parallelDuration = Date.now() - parallelStartTime;
+      diag.entry(`Parallel init complete in ${parallelDuration}ms`);
+
+      // Now that bundle is initialized, get the runtime and sync state
       const bundleRuntime = voiceAgent.getBundleRuntime();
 
       // If bundle runtime is available, sync relationship state from user profile
@@ -2902,11 +3234,6 @@ export default defineAgent({
       });
 
       diag.entry(`${sessionPersona.name} agent ready`);
-
-      // ===============================================
-      // STEP 7: CONNECT AND START
-      // ===============================================
-      await ctx.connect();
       const participant = await ctx.waitForParticipant();
       // NOTE: Removed artificial 500ms delay - was causing unnecessary latency!
 
@@ -3304,6 +3631,21 @@ export default defineAgent({
           await publisher.sendData(type, data ?? {});
         }
       });
+
+      // ===============================================
+      // 🌉 HUMANIZATION SIGNAL EMITTER
+      // Bridges backend humanization to frontend EQ
+      // Enables avatar to respond BEFORE words arrive
+      // ===============================================
+      const { initHumanizationSignalEmitter } =
+        await import('../services/humanization/humanization-signal-emitter.js');
+      initHumanizationSignalEmitter(async (type, payload) => {
+        const publisher = getFrontendPublisher();
+        if (publisher.isConnected()) {
+          await publisher.sendData(type, payload);
+        }
+      });
+      diag.state('Humanization signal emitter initialized');
 
       // ===============================================
       // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
@@ -3944,7 +4286,13 @@ export default defineAgent({
 
               try {
                 // Use the new executeHandoff function
-                const result = await executeHandoff(canonicalId, 'User requested via UI tap');
+                // FIX: Pass user profile for unlock validation
+                const result = await executeHandoff(canonicalId, 'User requested via UI tap', {
+                  userProfile: services.userProfile,
+                  subscriptionTier:
+                    (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
+                    'free',
+                });
 
                 logger.info({ result: JSON.stringify(result).slice(0, 500) }, '📦 Handoff result');
 
@@ -4282,6 +4630,41 @@ export default defineAgent({
               });
             }
 
+            // ================================================================
+            // HUMAN LISTENING PIPELINE: Cleanup
+            // Clear stored listening results for this session
+            // ================================================================
+            try {
+              const { clearHumanListeningResult } =
+                await import('../intelligence/context-builders/human-listening.js');
+              clearHumanListeningResult(sessionId);
+
+              // Also reset the pipeline itself
+              const { resetHumanListeningPipeline } =
+                await import('../speech/human-listening-pipeline.js');
+              resetHumanListeningPipeline(sessionId);
+              diag.session('🎧 Human listening session cleaned up');
+            } catch (listeningCleanupErr) {
+              diag.warn('Human listening cleanup failed (non-fatal)', {
+                error: String(listeningCleanupErr),
+              });
+            }
+
+            // ================================================================
+            // DEEP HUMANIZATION: Cleanup
+            // Clear session state for arc awareness, monologue, story tracking
+            // ================================================================
+            try {
+              const { cleanupDeepHumanization } =
+                await import('../intelligence/context-builders/deep-humanization.js');
+              cleanupDeepHumanization(sessionId);
+              diag.session('🎭 Deep humanization session cleaned up');
+            } catch (deepHumanCleanupErr) {
+              diag.warn('Deep humanization cleanup failed (non-fatal)', {
+                error: String(deepHumanCleanupErr),
+              });
+            }
+
             diag.session('Session cleanup complete');
           } catch (error) {
             diag.error('Session cleanup error', { error: String(error) });
@@ -4346,6 +4729,8 @@ cli.runApp(
   new WorkerOptions({
     agent: fileURLToPath(import.meta.url),
     agentName,
+    // Increase timeout for bundle loading (default is 10s, our bundles take ~40s to load)
+    initializeProcessTimeout: 60 * 1000, // 60 seconds
   })
 );
 
