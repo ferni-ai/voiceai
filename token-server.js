@@ -42,13 +42,109 @@ const SPOTIFY_USERS_FILE = path.join(process.cwd(), '.spotify-users.json');
 const oauthStates = new Map();
 
 // ============================================================================
+// DEMO SESSION RATE LIMITING
+// ============================================================================
+
+// Track demo sessions per IP (in-memory, resets on server restart)
+const demoRateLimits = new Map();
+
+// Demo session configuration
+const DEMO_CONFIG = {
+  maxSessionsPerDay: 3,        // Max demo sessions per IP per day
+  sessionDurationMinutes: 3,   // How long each demo session can last
+  cooldownMinutes: 5,          // Cooldown between sessions from same IP
+};
+
+// Clean up old rate limit entries every hour
+setInterval(() => {
+  const now = Date.now();
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+  for (const [ip, data] of demoRateLimits.entries()) {
+    if (data.lastSession < dayAgo) {
+      demoRateLimits.delete(ip);
+    }
+  }
+}, 60 * 60 * 1000);
+
+function getDemoRateLimit(ip) {
+  const now = Date.now();
+  const dayStart = new Date().setHours(0, 0, 0, 0);
+  
+  let data = demoRateLimits.get(ip);
+  
+  // Reset if new day
+  if (!data || data.dayStart !== dayStart) {
+    data = { 
+      dayStart, 
+      sessionCount: 0, 
+      lastSession: 0,
+      sessions: [] 
+    };
+    demoRateLimits.set(ip, data);
+  }
+  
+  return data;
+}
+
+function checkDemoAllowed(ip) {
+  const data = getDemoRateLimit(ip);
+  const now = Date.now();
+  
+  // Check daily limit
+  if (data.sessionCount >= DEMO_CONFIG.maxSessionsPerDay) {
+    return { 
+      allowed: false, 
+      reason: 'daily_limit',
+      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`,
+      retryAfter: new Date(data.dayStart + 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+  
+  // Check cooldown
+  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
+  if (data.lastSession && (now - data.lastSession) < cooldownMs) {
+    const retryIn = Math.ceil((cooldownMs - (now - data.lastSession)) / 1000);
+    return {
+      allowed: false,
+      reason: 'cooldown',
+      message: `Please wait ${retryIn} seconds before starting another demo.`,
+      retryAfter: new Date(data.lastSession + cooldownMs).toISOString()
+    };
+  }
+  
+  return { 
+    allowed: true,
+    sessionsRemaining: DEMO_CONFIG.maxSessionsPerDay - data.sessionCount
+  };
+}
+
+function recordDemoSession(ip) {
+  const data = getDemoRateLimit(ip);
+  data.sessionCount++;
+  data.lastSession = Date.now();
+  data.sessions.push({
+    started: Date.now(),
+    sessionId: crypto.randomBytes(8).toString('hex')
+  });
+}
+
+// ============================================================================
 // CORS CONFIGURATION
 // ============================================================================
 
 // Allowed origins for CORS (restrict in production)
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:3004', 'http://localhost:3002', 'https://ferni.ai', 'https://john-bogle-ui-1031920444452.us-central1.run.app'];
+  : [
+      'http://localhost:3004', 
+      'http://localhost:3002', 
+      'http://localhost:8080',  // Local landing page dev
+      'https://ferni.ai',
+      'https://www.ferni.ai',
+      'https://app.ferni.ai',
+      'https://ferni-landing.web.app',
+      'https://john-bogle-ui-1031920444452.us-central1.run.app'
+    ];
 
 function getCorsOrigin(req) {
   const origin = req.headers.origin;
@@ -380,7 +476,115 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Token generation endpoint
+  // ============================================================================
+  // DEMO TOKEN ENDPOINT - For landing page try-before-signup
+  // ============================================================================
+  if (pathname === '/demo-token') {
+    // Get IP for rate limiting
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+               req.headers['x-real-ip'] || 
+               req.socket.remoteAddress || 
+               'unknown';
+    
+    // Check rate limits
+    const rateCheck = checkDemoAllowed(ip);
+    if (!rateCheck.allowed) {
+      res.writeHead(429, { 
+        'Content-Type': 'application/json',
+        'Retry-After': rateCheck.retryAfter
+      });
+      res.end(JSON.stringify({
+        error: rateCheck.reason,
+        message: rateCheck.message,
+        retryAfter: rateCheck.retryAfter
+      }));
+      return;
+    }
+
+    try {
+      // Generate anonymous demo session ID
+      const demoId = `demo-${crypto.randomBytes(8).toString('hex')}`;
+      const roomName = `demo-${crypto.randomBytes(12).toString('hex')}`;
+      const username = 'Visitor';
+      
+      // Create room with demo metadata
+      const roomMetadata = {
+        persona_id: 'ferni',
+        device_id: demoId,
+        user_name: username,
+        is_demo: true,
+        demo_started: Date.now(),
+        demo_expires: Date.now() + (DEMO_CONFIG.sessionDurationMinutes * 60 * 1000),
+        source: 'landing_page'
+      };
+
+      await roomService.createRoom({
+        name: roomName,
+        emptyTimeout: DEMO_CONFIG.sessionDurationMinutes * 60 + 30, // Session duration + buffer
+        maxParticipants: 2, // Just visitor + agent
+        metadata: JSON.stringify(roomMetadata),
+      });
+      console.log(`🎯 Demo room created: ${roomName} (IP: ${ip.substring(0, 10)}...)`);
+
+      // Dispatch agent
+      if (agentDispatch) {
+        try {
+          await agentDispatch.createDispatch(roomName, AGENT_NAME, {
+            metadata: JSON.stringify(roomMetadata),
+          });
+          console.log(`🤖 Agent dispatched to demo room`);
+        } catch (dispatchError) {
+          console.log(`⚠️  Demo agent dispatch: ${dispatchError.message}`);
+        }
+      }
+
+      // Create short-lived token
+      const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+        identity: username,
+        ttl: `${DEMO_CONFIG.sessionDurationMinutes}m`,
+        metadata: JSON.stringify({
+          device_id: demoId,
+          persona_id: 'ferni',
+          is_demo: true
+        }),
+      });
+
+      token.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: true,
+        canSubscribe: true,
+        canPublishData: true,
+      });
+
+      const jwt = await token.toJwt();
+      
+      // Record this demo session for rate limiting
+      recordDemoSession(ip);
+      
+      console.log(`✅ Demo token generated (${rateCheck.sessionsRemaining - 1} sessions remaining for this IP today)`);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        token: jwt,
+        url: LIVEKIT_URL,
+        room: roomName,
+        username,
+        persona_id: 'ferni',
+        is_demo: true,
+        session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
+        sessions_remaining: rateCheck.sessionsRemaining - 1,
+        upgrade_url: 'https://app.ferni.ai'
+      }));
+    } catch (error) {
+      console.error('❌ Demo token error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to create demo session' }));
+    }
+    return;
+  }
+
+  // Token generation endpoint (authenticated users)
   if (pathname === '/token') {
     const { room, username, device_id, persona_id } = parsedUrl.query;
 
@@ -890,6 +1094,10 @@ server.listen(PORT, () => {
   console.log(`  GET /token?room=ROOM&username=NAME&device_id=ID&persona_id=ferni`);
   console.log(`  GET /token-url`);
   console.log(`  GET /health`);
+  console.log('');
+  console.log('🎯 Demo Endpoint (Landing Page):');
+  console.log(`  GET /demo-token  - Get anonymous demo session (rate limited)`);
+  console.log(`      Rate Limit: ${DEMO_CONFIG.maxSessionsPerDay} sessions/day, ${DEMO_CONFIG.sessionDurationMinutes}min each`);
   console.log('');
   console.log('Spotify OAuth Endpoints:');
   console.log(`  GET /spotify/login?device_id=ID   - Start OAuth flow`);
