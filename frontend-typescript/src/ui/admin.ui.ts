@@ -154,7 +154,7 @@ function renderDashboard(): string {
         <h2>Available Templates</h2>
         <div class="admin-templates">
           ${renderTemplateCard('basic', 'Basic', 'General-purpose agent')}
-          ${renderTemplateCard('sage', 'Sage/Mentor', 'Wise, thoughtful advisor')}
+          ${renderTemplateCard('sage', 'Sage/Mentor', 'Wise, thoughtful coach')}
           ${renderTemplateCard('specialist', 'Specialist', 'Domain expert')}
           ${renderTemplateCard('coordinator', 'Coordinator', 'Team coordinator')}
         </div>

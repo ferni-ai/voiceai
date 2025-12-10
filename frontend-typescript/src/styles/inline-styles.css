@@ -390,37 +390,42 @@ body {
        Earthy, warm aesthetic with clear visual feedback
        ======================================================================== */
 
+/* Zen theme team members - borderless, minimal design
+   Uses background opacity and subtle effects instead of borders */
 [data-theme='zen'] .team-member {
-  background: rgba(255, 255, 255, 0.65);
-  border: 1.5px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: transparent;
+  border: none;
   border-radius: var(--radius-xl, 16px);
   transition: all 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 [data-theme='zen'] .team-member:hover {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: var(--color-border-medium, rgba(44, 37, 32, 0.12));
-  box-shadow:
-    0 4px 16px rgba(44, 37, 32, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  background: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px) scale(1.02);
 }
 
 [data-theme='zen'] .team-member.active {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: var(--persona-primary);
-  box-shadow:
-    0 6px 20px rgba(44, 37, 32, 0.1),
-    0 0 0 3px var(--persona-glow),
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 /* Enhanced selection ring animation for active state */
 [data-theme='zen'] .team-member.active .team-avatar-ring {
   border-color: var(--persona-primary);
-  opacity: 1;
+  opacity: 0.6;
   transform: scale(1);
-  box-shadow: 0 0 12px var(--persona-glow);
+}
+
+/* Zen theme avatar shadows - softer, minimal */
+[data-theme='zen'] .team-avatar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='zen'] .team-member:hover .team-avatar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='zen'] .team-member.active .team-avatar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Persona-specific member colors for enhanced feedback */
@@ -454,12 +459,12 @@ body {
   --member-color: var(--color-jordan, #c4856a);
 }
 
-/* Zen cards and elevated surfaces */
+/* Zen cards and elevated surfaces - borderless, clean design */
 [data-theme='zen'] .card,
 [data-theme='zen'] .message-container {
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: var(--shadow-card);
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(12px);
 }
 
@@ -2412,54 +2417,61 @@ body {
   }
 }
 
-/* Outer glow ring - subtle, elegant */
+/* Outer presence ring - warm, human-like halo (not tech ring) */
 #avatarRing {
   position: absolute;
-  inset: -12px;
+  inset: -8px;
   border-radius: var(--radius-full);
-  background: transparent; /* Explicitly transparent - no fill */
-  border: 1.5px solid var(--persona-primary);
-  opacity: 0.2;
+  background: transparent;
+  border: 1px solid var(--persona-primary);
+  opacity: 0.15;
   transition: all var(--transition-slow);
-  /* Safari fix: transparent outline forces correct repainting during animations */
   outline: 1px solid transparent;
 }
 
-/* Connected: ring becomes visible */
+/* Connected: subtle warm glow, not tech ring */
 #coach.is-connected #avatarRing {
-  opacity: 0.4;
-  border-color: var(--color-success);
+  opacity: 0.25;
+  border-color: var(--persona-primary);
+  box-shadow: 0 0 20px -5px var(--persona-glow);
 }
 
-/* Idle breathing animation - subtle life when not speaking/thinking/listening
-       Apple-style: barely perceptible but makes avatar feel alive */
+/* Human-like breathing - natural rhythm, not mechanical pulse
+       The avatar breathes like a real person - gentle, organic, alive */
 #coach.is-connected:not(.is-speaking):not(.is-thinking):not(.is-listening) #coachAvatar {
-  animation: idleBreathing 4s ease-in-out infinite;
+  animation: humanBreathing 4.5s ease-in-out infinite;
 }
 
 #coach.is-connected:not(.is-speaking):not(.is-thinking):not(.is-listening) #avatarRing {
-  animation: idleRingBreathing 4s ease-in-out infinite;
+  animation: humanBreathingRing 4.5s ease-in-out infinite;
 }
 
-@keyframes idleBreathing {
+@keyframes humanBreathing {
   0%,
   100% {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
-  50% {
-    transform: scale(1.015);
+  40% {
+    transform: scale(1.02) translateY(-1px);
+  }
+  60% {
+    transform: scale(1.02) translateY(-1px);
   }
 }
 
-@keyframes idleRingBreathing {
+@keyframes humanBreathingRing {
   0%,
   100% {
-    opacity: 0.35;
+    opacity: 0.2;
     transform: scale(1);
   }
-  50% {
-    opacity: 0.45;
-    transform: scale(1.02);
+  40% {
+    opacity: 0.3;
+    transform: scale(1.01);
+  }
+  60% {
+    opacity: 0.3;
+    transform: scale(1.01);
   }
 }
 
@@ -3318,9 +3330,21 @@ body {
 
 #statusIndicator.status-connected {
   background: var(--color-success);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 12px rgba(16, 185, 129, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: presenceHeartbeat 3s ease-in-out infinite;
+}
+
+/* Human-like presence indicator - subtle heartbeat, not tech beacon */
+@keyframes presenceHeartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.95;
+  }
 }
 
 #statusIndicator.status-connecting {

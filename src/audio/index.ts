@@ -12,49 +12,49 @@
 export {
   CallMusicPlayer,
   getMusicPlayer,
-  resetMusicPlayer,
   initializeMusicPlayer,
-  type MusicTrack,
+  resetMusicPlayer,
   type MusicPlayerState,
   type MusicState,
-  type SessionMusicEntry,
-  type OnTrackEndedCallback,
-  type OnMusicStateChangeCallback,
+  type MusicTrack,
   type OnMidSongMomentCallback,
+  type OnMusicStateChangeCallback,
+  type OnTrackEndedCallback,
+  type SessionMusicEntry,
 } from './music-player.js';
 
 // Ambient music for silences
 export {
-  playAmbientMusic,
-  stopAmbientMusic,
-  isAmbientMusicEnabled,
-  getAmbientTracks,
-  getRandomAmbientTrack,
   getAmbientMusicEndedPhrase,
+  getAmbientTracks,
+  getDJDropPhrase,
   getDJOutroPhrase,
   getDJTrackChangePhrase,
-  getDJDropPhrase,
   getMidSongMomentPhrase,
   getMoodAwareMusicOffer,
-  getSessionCallbackPhrase,
   getMusicStoppedPhrase,
+  getRandomAmbientTrack,
+  getSessionCallbackPhrase,
+  isAmbientMusicEnabled,
+  playAmbientMusic,
+  stopAmbientMusic,
 } from './ambient-music.js';
 
 // Session sounds (stingers, game sounds, etc.)
 export {
-  getSessionSounds,
-  resetSessionSounds,
-  playSessionSound,
-  getVerbalSound,
   VERBAL_SOUNDS,
+  getSessionSounds,
+  getVerbalSound,
+  playSessionSound,
+  resetSessionSounds,
   type SessionSoundType,
 } from './session-sounds.js';
 
 // DJ Booth - Full audio orchestration (ducking, timing, talk-over)
 export {
   DJBooth,
-  initializeDJBooth,
   getDJBooth,
+  initializeDJBooth,
   resetDJBooth,
   type DJBoothConfig,
   type DJBoothState,
@@ -64,31 +64,65 @@ export {
 export {
   // Controllers
   DJEnhancementController,
-  ThinkingMusicController,
-  SessionFlowManager,
   MusicMemoryManager,
-  // Singleton management
-  initializeDJEnhancements,
-  getDJEnhancements,
-  resetDJEnhancements,
-  // Phase 2: Predictive timing
-  scheduleTrackTimingCallbacks,
-  getCountdownPhrase,
-  // Phase 3: Persona DJ styles
-  getPersonaDJStyle,
-  getPersonaMusicIntro,
   PERSONA_DJ_STYLES,
+  SessionFlowManager,
+  ThinkingMusicController,
+  getCountdownPhrase,
+  getDJEnhancements,
+  getEmotionMusicOffer,
   // Phase 5: Emotion-reactive
   getEmotionMusicSuggestion,
-  getEmotionMusicOffer,
   // Phase 6: Game music
   getGameMusicConfig,
   getGameMusicPhrase,
-  // Types
-  type PersonaDJStyle,
-  type MusicPreferences,
-  type TrackTimingCallbacks,
+  // Phase 3: Persona DJ styles
+  getPersonaDJStyle,
+  getPersonaMusicIntro,
+  // Singleton management
+  initializeDJEnhancements,
+  resetDJEnhancements,
+  // Phase 2: Predictive timing
+  scheduleTrackTimingCallbacks,
   type EmotionMusicMapping,
   type GameMusicConfig,
+  type MusicPreferences,
+  // Types
+  type PersonaDJStyle,
   type SessionFlowState,
+  type TrackTimingCallbacks,
 } from './dj-enhancements.js';
+
+// Music Humanization - Natural, fun, engaging music interactions
+export {
+  // Main controller
+  MusicHumanizationController,
+  // Engagement detection
+  analyzeVibingBehavior,
+  // Spontaneous moments
+  checkSpontaneousMusicMoment,
+  // Conversation bridges
+  getConversationBridge,
+  // Emotional mirror
+  getEmotionalMirrorOffer,
+  // Fun personality
+  getFunInterjection,
+  getMusicConversationStarter,
+  // Music discovery
+  getMusicDiscoveryQuestion,
+  getMusicHumanization,
+  getPersonaFunMoment,
+  // Post-music check-ins
+  getPostMusicCheckIn,
+  getTimeAwareMusicSuggestion,
+  // Time awareness
+  getTimeOfDay,
+  resetMusicHumanization,
+  shouldInterruptMusic,
+  type MusicHumanizationConfig,
+  // Types
+  type MusicHumanizationState,
+  type MusicMoment,
+  type SpontaneousTrigger,
+  type TimeOfDay,
+} from './music-humanization.js';

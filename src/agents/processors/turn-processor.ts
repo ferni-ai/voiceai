@@ -111,6 +111,36 @@ const cachedModules: CachedModules = {
   getTaskManager: null,
 };
 
+// ============================================================================
+// PERFORMANCE: Module-level constants (avoid recreating every turn)
+// ============================================================================
+
+/** Emotions indicating positive sentiment */
+const POSITIVE_EMOTIONS = new Set(['happy', 'excited', 'grateful', 'content']);
+
+/** Emotions indicating negative sentiment */
+const NEGATIVE_EMOTIONS = new Set(['sad', 'frustrated', 'angry', 'anxious']);
+
+/** Phrases that signal user wants to end conversation */
+const WRAP_UP_PHRASES = [
+  'gotta go',
+  'have to go',
+  'need to go',
+  'i should go',
+  'bye',
+  'goodbye',
+  'see you',
+  'talk later',
+  'later',
+  "that's all",
+  "that's it",
+  "i'm done",
+  'thanks for',
+] as const;
+
+/** Pre-compiled regex for faster wrap-up detection */
+const WRAP_UP_PATTERN = new RegExp(WRAP_UP_PHRASES.join('|'), 'i');
+
 async function getContextBuilders() {
   if (!cachedModules.buildConversationContext) {
     const mod = await import('../../intelligence/context-builders/index.js');
@@ -213,15 +243,14 @@ function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisR
     convState.detectEmotion(mappedEmotion);
   }
 
-  // Update sentiment
+  // Update sentiment (using module-level constants for O(1) lookup)
   const intensity = analysis.emotion.intensity || 0.5;
   let sentiment: 'positive' | 'neutral' | 'negative' | 'mixed' = 'neutral';
-  const posEmotions = ['happy', 'excited', 'grateful', 'content'];
-  const negEmotions = ['sad', 'frustrated', 'angry', 'anxious'];
+  const emotionLower = analysis.emotion.primary.toLowerCase();
 
-  if (posEmotions.includes(analysis.emotion.primary.toLowerCase())) {
+  if (POSITIVE_EMOTIONS.has(emotionLower)) {
     sentiment = 'positive';
-  } else if (negEmotions.includes(analysis.emotion.primary.toLowerCase())) {
+  } else if (NEGATIVE_EMOTIONS.has(emotionLower)) {
     sentiment = 'negative';
   } else if (intensity > 0.7) {
     sentiment = 'mixed';
@@ -238,24 +267,8 @@ function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisR
     `User said: ${userText.slice(0, 100)}${userText.length > 100 ? '...' : ''}`
   );
 
-  // Check for wrap-up signals
-  const wrapUpPhrases = [
-    'gotta go',
-    'have to go',
-    'need to go',
-    'i should go',
-    'bye',
-    'goodbye',
-    'see you',
-    'talk later',
-    'later',
-    "that's all",
-    "that's it",
-    "i'm done",
-    'thanks for',
-  ];
-
-  if (wrapUpPhrases.some((phrase) => userText.toLowerCase().includes(phrase))) {
+  // Check for wrap-up signals (using pre-compiled regex for performance)
+  if (WRAP_UP_PATTERN.test(userText)) {
     convState.markUserWantsToLeave();
     diag.state('User wants to leave detected', { userText: userText.slice(0, 50) });
   }
@@ -1752,6 +1765,25 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     intensity: emotionalState.intensity,
     distressLevel: emotionalState.distressLevel,
   });
+
+  // 4d. ADVANCED HUMANIZATION: Process user message for deep humanization
+  // This feeds the humanization orchestrator for response enhancement
+  try {
+    const { processUserMessage } =
+      await import('../../conversation/humanization/voice-agent-integration.js');
+    processUserMessage(services.sessionId, userText, {
+      voiceEmotion: userData?.voiceEmotion
+        ? {
+            primary: userData.voiceEmotion.primary,
+            confidence: userData.voiceEmotion.confidence,
+          }
+        : undefined,
+      topic: analysisResult.currentTopic,
+    });
+  } catch (humanizationErr) {
+    // Non-fatal - don't block turn processing
+    diag.debug('Advanced humanization processing skipped', { error: String(humanizationErr) });
+  }
 
   // 5. Build response guidance
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);

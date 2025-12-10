@@ -339,8 +339,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
   sage: {
     id: 'sage',
     name: 'Sage',
-    subtitle: 'Wise Advisor',
-    description: 'A thoughtful advisor with deep insights',
+    subtitle: 'Wise Coach',
+    description: 'A thoughtful coach with deep insights',
     primaryColor: '#3a6b73',
     secondaryColor: '#2d545a',
     voiceStyle: 'calm',
@@ -829,7 +829,7 @@ export async function openCreateAgentModal(): Promise<void> {
           <label class="admin-label">Template</label>
           <select class="admin-input" id="newAgentTemplate">
             <option value="basic">Basic - General purpose</option>
-            <option value="sage">Sage - Wise advisor</option>
+            <option value="sage">Sage - Wise coach</option>
             <option value="specialist">Specialist - Domain expert</option>
             <option value="coordinator">Coordinator - Team lead</option>
           </select>

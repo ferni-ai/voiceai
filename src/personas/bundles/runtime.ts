@@ -68,6 +68,9 @@ export class BundleRuntimeEngine {
   private sensoryWorld: BundleSensoryWorld | null = null;
   private quirks: BundleQuirks | null = null;
 
+  // Performance: Cached sorted stages (invalidated when relationshipStages changes)
+  private cachedSortedStages: Array<[string, RelationshipStage]> | null = null;
+
   constructor(bundle: LoadedPersonaBundle, initialState?: Partial<BundleRuntimeState>) {
     this.bundle = bundle;
     this.state = {
@@ -207,12 +210,28 @@ export class BundleRuntimeEngine {
   // RELATIONSHIP STAGE
   // ============================================================================
 
+  /**
+   * Get sorted stages with caching for performance.
+   * Stages are sorted by turn_threshold descending (highest first).
+   */
+  private getSortedStages(): Array<[string, RelationshipStage]> {
+    if (!this.relationshipStages) return [];
+
+    // Use cached version if available
+    if (this.cachedSortedStages) return this.cachedSortedStages;
+
+    // Sort once and cache
+    this.cachedSortedStages = Object.entries(this.relationshipStages.stages).sort(
+      ([, a], [, b]) => b.turn_threshold - a.turn_threshold
+    );
+
+    return this.cachedSortedStages;
+  }
+
   getCurrentRelationshipStage(): RelationshipStage | null {
     if (!this.relationshipStages) return null;
 
-    const stages = Object.entries(this.relationshipStages.stages).sort(
-      ([, a], [, b]) => b.turn_threshold - a.turn_threshold
-    );
+    const stages = this.getSortedStages();
 
     for (const [, stage] of stages) {
       if (this.state.relationshipTurns >= stage.turn_threshold) {
@@ -229,9 +248,7 @@ export class BundleRuntimeEngine {
   getRelationshipStageName(): string {
     if (!this.relationshipStages) return 'unknown';
 
-    const stages = Object.entries(this.relationshipStages.stages).sort(
-      ([, a], [, b]) => b.turn_threshold - a.turn_threshold
-    );
+    const stages = this.getSortedStages();
 
     for (const [name, stage] of stages) {
       if (this.state.relationshipTurns >= stage.turn_threshold) {

@@ -1,5 +1,5 @@
 ---
-title: Ferni - Your AI Life Coach
+title: Ferni - Life Coach
 description: Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.
 ---
 <!DOCTYPE html>
@@ -133,41 +133,109 @@ description: Six brilliant minds that remember your whole story, hear what you'r
       transition-duration: 50ms;
     }
     
-    /* Persona orbit counter-rotation */
+    /* ═══════════════════════════════════════════════════════════════
+       FERNI COMES ALIVE - Pixar-quality character animation
+       Every frame intentional. Every movement meaningful.
+       ═══════════════════════════════════════════════════════════════ */
+    
+    /* The breath of life - organic, human rhythm */
+    .ferni-breathe {
+      animation: ferniBreath 4s ease-in-out infinite;
+    }
+    @keyframes ferniBreath {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(1.015) translateY(-3px); }
+    }
+    
+    /* Ferni notices you - the moment of recognition */
+    .ferni-notice {
+      animation: ferniBreath 4s ease-in-out infinite, ferniNotice 12s ease-in-out infinite;
+    }
+    @keyframes ferniNotice {
+      0%, 85%, 100% { transform: scale(1) translateY(0) rotate(0deg); }
+      88% { transform: scale(1.04) translateY(-4px) rotate(-1.5deg); }
+      91% { transform: scale(0.99) translateY(1px) rotate(0.5deg); }
+      94% { transform: scale(1.01) translateY(-1px) rotate(0deg); }
+    }
+    
+    /* Hover response - Ferni leans in with interest */
+    .ferni-avatar {
+      cursor: pointer;
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .ferni-avatar:hover {
+      transform: scale(1.06) translateY(-6px) !important;
+      box-shadow: 0 24px 48px rgba(74, 103, 65, 0.25), 0 0 0 1px rgba(74, 103, 65, 0.1);
+    }
+    .ferni-avatar:hover .ferni-initials {
+      transform: scale(1.05);
+      transition: transform 0.3s ease;
+    }
+    
+    /* Warm glow - presence indicator */
+    .ferni-glow {
+      animation: glowPulse 6s ease-in-out infinite;
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(1.1); }
+    }
+    
+    /* Presence dot - subtle heartbeat */
+    .ferni-presence {
+      animation: presenceHeartbeat 3s ease-in-out infinite;
+    }
+    @keyframes presenceHeartbeat {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+    }
+    
+    /* Ring pulse - awareness */
+    .ferni-ring {
+      animation: ringPulse 4s ease-in-out infinite;
+    }
+    @keyframes ringPulse {
+      0%, 100% { opacity: 0.12; transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(1.02); }
+    }
+    
+    /* Text reveal - cinematic timing */
+    .hero-reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      animation: heroReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .hero-reveal-1 { animation-delay: 0.6s; }
+    .hero-reveal-2 { animation-delay: 1s; }
+    .hero-reveal-3 { animation-delay: 1.4s; }
+    @keyframes heroReveal {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Scroll hint */
+    .scroll-hint {
+      opacity: 0;
+      animation: scrollFade 0.6s ease forwards 2s, scrollFloat 2.5s ease-in-out infinite 2s;
+    }
+    @keyframes scrollFade { to { opacity: 0.4; } }
+    @keyframes scrollFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+    
+    /* Legacy support */
     .persona-orbit { animation: orbit 45s linear infinite; }
     .persona-counter { animation: counterOrbit 45s linear infinite; }
     @keyframes orbit { to { transform: rotate(360deg); } }
     @keyframes counterOrbit { to { transform: rotate(-360deg); } }
-    
-    /* Hero orb breathing */
-    [data-breathe] {
-      animation: orbBreathe 4.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-    }
-    @keyframes orbBreathe {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 10px 40px rgba(74, 103, 65, 0.35);
-      }
-      50% {
-        transform: scale(1.03);
-        box-shadow: 0 15px 60px rgba(74, 103, 65, 0.45), 0 0 80px rgba(74, 103, 65, 0.15);
-      }
-    }
+    [data-breathe] { animation: ferniBreath 4s ease-in-out infinite; }
     
     /* Reduced motion respect */
     @media (prefers-reduced-motion: reduce) {
-      .reveal {
-        opacity: 1;
-        transform: none;
-        filter: none;
-        transition: none;
-      }
-      .persona-orbit,
-      .persona-counter,
-      [data-breathe],
-      .text-gradient-alive {
-        animation: none !important;
-      }
+      .reveal { opacity: 1; transform: none; filter: none; transition: none; }
+      .ferni-breathe, .ferni-notice, .ferni-glow, .ferni-ring, .ferni-presence,
+      .persona-orbit, .persona-counter, [data-breathe], .text-gradient-alive,
+      .hero-reveal, .scroll-hint { animation: none !important; opacity: 1; transform: none; }
     }
   </style>
 </head>
@@ -251,109 +319,72 @@ description: Six brilliant minds that remember your whole story, hear what you'r
   <main id="main-content">
     
     <!-- ═══════════════════════════════════════════════════════════════════════════
-         HERO SECTION
-         Bold, cinematic, emotional
+         HERO SECTION - Apple simplicity meets Pixar soul
+         Ferni is the star. Space to breathe. Movement speaks.
          ═══════════════════════════════════════════════════════════════════════════ -->
-    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20" data-hero-section>
-      <!-- Background -->
-      <div class="absolute inset-0 bg-gradient-to-b from-paper-sand via-paper to-paper-cream"></div>
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden" data-hero-section>
       
-      <!-- Floating orbs (background decoration) -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-3xl animate-float-slow"></div>
-        <div class="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-gradient-radial from-maya/10 to-transparent rounded-full blur-3xl animate-float-slow" style="animation-delay: -5s"></div>
-        <div class="absolute top-[40%] left-[30%] w-[200px] h-[200px] bg-gradient-radial from-peter/8 to-transparent rounded-full blur-2xl animate-float" style="animation-delay: -8s"></div>
-      </div>
+      <!-- Clean gradient background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-paper via-paper to-paper-cream"></div>
       
-      <!-- Content -->
-      <div class="relative z-10 max-w-5xl mx-auto px-6 text-center py-20 lg:py-32 hero-content">
+      <!-- Content - Apple-level whitespace -->
+      <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
         
-        <!-- The Orb with personas orbiting -->
-        <div class="relative w-40 h-40 lg:w-52 lg:h-52 mx-auto mb-12 lg:mb-16" data-orb-aware data-hero-orb data-particles>
+        <!-- ═══════════════════════════════════════════════════════════
+             FERNI - The living presence
+             Pixar principle: Character first, everything else second
+             ═══════════════════════════════════════════════════════════ -->
+        <div class="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mx-auto mb-16 lg:mb-20">
           
-          <!-- Glow effect -->
-          <div class="absolute inset-[-40%] bg-ferni/20 rounded-full blur-3xl orb-glow"></div>
+          <!-- Warm glow - Ferni's presence fills the space -->
+          <div class="absolute inset-[-60%] bg-gradient-radial from-ferni/20 via-ferni/5 to-transparent rounded-full ferni-glow"></div>
           
-          <!-- Outer rings -->
-          <div class="absolute inset-[-30%] rounded-full border border-ferni/10"></div>
-          <div class="absolute inset-[-20%] rounded-full border border-ferni/15"></div>
-          <div class="absolute inset-[-10%] rounded-full border border-ferni/20"></div>
+          <!-- Subtle awareness ring -->
+          <div class="absolute inset-[-15%] rounded-full border border-ferni/15 ferni-ring"></div>
           
-          <!-- Pulse ring -->
-          <div class="absolute inset-0 rounded-full border-2 border-ferni/30 avatar-pulse-ring"></div>
-          
-          <!-- Main Orb -->
-          <div class="absolute inset-0 rounded-full bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark shadow-[0_10px_40px_rgba(74,103,65,0.35)] group cursor-pointer" data-breathe>
-            <!-- FE Initials (visible by default) -->
-            <span class="absolute inset-0 flex items-center justify-center font-display font-bold text-white text-4xl lg:text-5xl group-hover:opacity-0 transition-opacity duration-300" style="text-shadow: 0 2px 4px rgba(0,0,0,0.15);" data-fe-initials>FE</span>
-            <!-- Waveform (visible on hover and during awakening) -->
-            <div class="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 waveform-container waveform-idle" data-waveform>
-              <span class="w-1 h-4 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-7 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-10 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-12 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-10 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-7 bg-white/90 rounded-full wave-bar"></span>
-              <span class="w-1 h-4 bg-white/90 rounded-full wave-bar"></span>
-            </div>
+          <!-- FERNI - alive, breathing, present -->
+          <div class="ferni-avatar ferni-notice absolute inset-0 rounded-full bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark shadow-[0_12px_40px_rgba(74,103,65,0.3)]">
+            <span class="ferni-initials absolute inset-0 flex items-center justify-center font-display font-bold text-white text-4xl sm:text-5xl lg:text-6xl tracking-tight" style="text-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+              FN
+            </span>
           </div>
           
-          <!-- Orbiting personas -->
-          <div class="absolute inset-[-50%] persona-orbit">
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-peter text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="peter">PJ</div>
-            <div class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-maya text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="maya">MS</div>
-            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-alex text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="alex">AC</div>
-            <div class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-jordan text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="jordan">JT</div>
+          <!-- Presence indicator - Ferni is here, aware, ready -->
+          <div class="absolute -bottom-1 -right-1 w-4 h-4 lg:w-5 lg:h-5">
+            <div class="absolute inset-0 bg-ferni rounded-full ferni-presence"></div>
+            <div class="absolute inset-[3px] bg-white rounded-full"></div>
+            <div class="absolute inset-[5px] bg-ferni rounded-full"></div>
           </div>
         </div>
         
-        <!-- Eyebrow -->
-        <p class="text-eyebrow uppercase tracking-widest text-ferni mb-6" data-hero-eyebrow>
-          Better than human.
-        </p>
+        <!-- ═══════════════════════════════════════════════════════════
+             COPY - Minimal, warm, human
+             Apple principle: Say less, mean more
+             ═══════════════════════════════════════════════════════════ -->
         
-        <!-- Headline -->
-        <h1 class="font-display text-display-2xl text-ink mb-8" data-hero-headline>
-          Finally, someone<br class="hidden sm:block"> who <span class="text-gradient-alive">gets it.</span>
+        <!-- Headline - the invitation -->
+        <h1 class="hero-reveal hero-reveal-1 font-display text-display-2xl text-ink mb-6 lg:mb-8">
+          Finally.
         </h1>
         
-        <!-- Subheadline -->
-        <p class="text-body-xl text-ink-muted max-w-2xl mx-auto mb-12" data-hero-subhead>
-          Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.
+        <!-- Subheadline - the promise -->
+        <p class="hero-reveal hero-reveal-2 font-display text-display-md text-ink-muted mb-12 lg:mb-16">
+          Someone who gets it.
         </p>
         
-        <!-- CTAs -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16" data-hero-ctas>
-          <a href="https://app.ferni.ai" class="btn-magnetic group inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
-            Start Free
+        <!-- CTA - simple, clear, warm -->
+        <div class="hero-reveal hero-reveal-3">
+          <a href="https://app.ferni.ai" class="btn-magnetic group inline-flex items-center gap-3 px-10 py-5 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/20 hover:shadow-2xl hover:shadow-ferni/30 transition-all duration-300">
+            Say hi
             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
-          <a href="tel:+14844813081" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-white hover:bg-paper-cream text-ink font-semibold text-lg rounded-full border border-ink/10 hover:border-ferni/30 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <svg class="w-5 h-5 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
-            Call Now
-          </a>
-        </div>
-        
-        <!-- Trust badges -->
-        <div class="flex flex-wrap items-center justify-center gap-4 lg:gap-6 animate-fade-in-up opacity-0 stagger-5">
-          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
-            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            End-to-End Encrypted
-          </span>
-          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
-            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            Available 24/7
-          </span>
-          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full text-sm text-ink-muted border border-ink/5">
-            <svg class="w-4 h-4 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            Voice-First
-          </span>
         </div>
       </div>
       
-      <!-- Scroll indicator -->
-      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in opacity-0" style="animation-delay: 1.5s">
-        <div class="w-px h-16 bg-gradient-to-b from-ferni to-transparent opacity-40"></div>
+      <!-- Scroll hint - gentle invitation to explore -->
+      <div class="scroll-hint absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <span class="text-xs text-ink-muted/60 uppercase tracking-widest">Scroll</span>
+        <div class="w-px h-8 bg-gradient-to-b from-ink/20 to-transparent"></div>
       </div>
     </section>
     

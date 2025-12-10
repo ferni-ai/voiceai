@@ -23,6 +23,7 @@ import {
   isMoodMessage,
   isMusicMessage,
   isWrapUpMessage,
+  normalizeMusicMessage,
 } from '../types/events.js';
 
 import { conversationTracker } from '../services/conversation-tracker.service.js';
@@ -47,6 +48,8 @@ import { getMusicAudioController } from '../services/music-audio.controller.js';
 import { connectionService } from '../services/index.js';
 // 🚀 Ferni EQ - Superhuman emotional intelligence
 import { ferni } from '../ui/better-than-human.ui.js';
+// 🎧 Now Playing UI - music state visualization
+import { nowPlayingUI } from '../ui/now-playing.ui.js';
 // Tone detection for micro-expressions
 import {
   analyzeForMicroExpression,
@@ -113,9 +116,13 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   // Try to process as music event (for avatar dancing)
+  // Backend sends 'music_state', we normalize to MusicEvent
   if (isMusicMessage(message)) {
-    handleMusic(message);
-    return;
+    const normalizedMusic = normalizeMusicMessage(message);
+    if (normalizedMusic) {
+      handleMusic(normalizedMusic);
+      return;
+    }
   }
 
   // Try to process as engagement update
@@ -631,126 +638,131 @@ export function handleMood(event: MoodEvent): void {
  * - Playing: Delighted, grooving expression
  * - Fading: Appreciative, content expression
  * - Stopped: Warm acknowledgment
+ *
+ * 🎧 IMPORTANT: This function uses a synchronous import of nowPlayingUI
+ * to ensure the UI is ALWAYS hidden when music stops. The previous
+ * dynamic import could fail silently.
  */
 export function handleMusic(event: MusicEvent): void {
-  log.debug('Music event:', event.state, event.trackName);
+  log.info('🎧 Music event received:', { state: event.state, track: event.trackName });
 
-  // 🐛 FIX: Signal music track expectation IMMEDIATELY, before async import
+  // 🐛 FIX: Signal music track expectation IMMEDIATELY
   // This reduces the race window where audio arrives before we're ready to identify it
   if (event.state === 'playing') {
     connectionService.expectMusicTrack();
     getMusicAudioController().unduckFromBackend();
   }
 
-  // Import Now Playing UI dynamically to avoid circular deps
-  import('../ui/now-playing.ui.js')
-    .then(({ nowPlayingUI }) => {
-      if (event.state === 'playing') {
-        // (expectMusicTrack and unduck already called above, before async import)
+  // Handle each state with direct UI calls (no async import - more reliable)
+  if (event.state === 'playing') {
+    // Avatar: Warm presence pulse - music is playing
+    avatarFeedback.musicPresence();
 
-        // Avatar: Warm presence pulse - music is playing
-        avatarFeedback.musicPresence();
+    // Waveform: Gentle, reflective visualization (NOT aggressive)
+    waveformUI.setMusicPlaying(true);
 
-        // Waveform: Gentle, reflective visualization (NOT aggressive)
-        waveformUI.setMusicPlaying(true);
+    // Subtle haptic for music start
+    delightService.haptic('light');
 
-        // Subtle haptic for music start
-        delightService.haptic('light');
+    // 🎬 Pixar: Show enjoyment when music starts
+    // Different expressions for ambient vs user-requested music
+    if (event.isAmbient) {
+      // Ambient: calm, present
+      ferniExpressions.setExpression('empathetic', 300, 3000);
+    } else {
+      // User-requested: show delight and engagement
+      ferniExpressions.delight();
+      // Follow up with sustained happy expression while music plays
+      setTimeout(() => {
+        // Show happy expression for the duration of the typical track intro
+        ferniExpressions.happy(5000);
+      }, 1000);
+    }
 
-        // 🎬 Pixar: Show enjoyment when music starts
-        // Different expressions for ambient vs user-requested music
-        if (event.isAmbient) {
-          // Ambient: calm, present
-          ferniExpressions.setExpression('empathetic', 300, 3000);
-        } else {
-          // User-requested: show delight and engagement
-          ferniExpressions.delight();
-          // Follow up with sustained happy expression while music plays
-          setTimeout(() => {
-            // Show happy expression for the duration of the typical track intro
-            ferniExpressions.happy(5000);
-          }, 1000);
-        }
+    // Show Now Playing card with track info
+    if (event.trackName) {
+      nowPlayingUI.show({
+        name: event.trackName,
+        artist: event.artistName || 'Unknown Artist',
+        duration: event.duration,
+        isAmbient: event.isAmbient,
+        isOurSong: event.isOurSong,
+        ourSongContext: event.ourSongContext,
+      });
+    }
 
-        // Show Now Playing card with track info
-        if (event.trackName) {
-          nowPlayingUI.show({
-            name: event.trackName,
-            artist: event.artistName || 'Unknown Artist',
-            duration: event.duration,
-            isAmbient: event.isAmbient,
-            isOurSong: event.isOurSong,
-            ourSongContext: event.ourSongContext,
-          });
-        }
+    log.info('🎧 Music playing:', { track: event.trackName, isAmbient: event.isAmbient });
+  } else if (event.state === 'changing') {
+    // DJ Crossfade - switching tracks smoothly
+    avatarFeedback.fading();
+    nowPlayingUI.updateState('changing');
 
-        log.debug('Music playing:', event.trackName);
-      } else if (event.state === 'changing') {
-        // DJ Crossfade - switching tracks smoothly
-        avatarFeedback.fading();
-        nowPlayingUI.updateState('changing');
+    // 🎬 Pixar: Excited anticipation for new track
+    ferniExpressions.curious();
 
-        // 🎬 Pixar: Excited anticipation for new track
-        ferniExpressions.curious();
+    // Subtle haptic for track change
+    delightService.haptic('light');
 
-        // Subtle haptic for track change
-        delightService.haptic('light');
+    log.info('🎧 Music changing - DJ crossfade in progress');
+  } else if (event.state === 'ducking') {
+    // 🎚️ Duck music - agent is speaking over it
+    getMusicAudioController().duckFromBackend();
 
-        log.debug('Music changing - DJ crossfade in progress');
-      } else if (event.state === 'ducking') {
-        // 🎚️ Duck music - agent is speaking over it
-        getMusicAudioController().duckFromBackend();
+    // Agent speaking over music - subtle the pulse
+    avatarFeedback.ducking();
+    nowPlayingUI.updateState('ducking');
 
-        // Agent speaking over music - subtle the pulse
-        avatarFeedback.ducking();
-        nowPlayingUI.updateState('ducking');
+    // 🎬 Pixar: Return to neutral while speaking
+    // (Natural transition - avatar focuses on user)
 
-        // 🎬 Pixar: Return to neutral while speaking
-        // (Natural transition - avatar focuses on user)
+    // Waveform stays in music mode but is naturally calmer during speech
+    log.debug('🎧 Music ducking (agent speaking)');
+  } else if (event.state === 'fading') {
+    // DJ-style fade out - track ending soon
+    avatarFeedback.fading();
+    nowPlayingUI.updateState('fading');
 
-        // Waveform stays in music mode but is naturally calmer during speech
-        log.debug('Music ducking (agent speaking)');
-      } else if (event.state === 'fading') {
-        // DJ-style fade out - track ending soon
-        avatarFeedback.fading();
-        nowPlayingUI.updateState('fading');
+    // 🎬 Pixar: Appreciative expression as music fades
+    // Like savoring the last notes of a good song
+    ferniExpressions.setExpression('happy', 400, 3000);
 
-        // 🎬 Pixar: Appreciative expression as music fades
-        // Like savoring the last notes of a good song
-        ferniExpressions.setExpression('happy', 400, 3000);
+    log.info('🎧 Music fading out - DJ outro starting');
+  } else if (event.state === 'paused') {
+    avatarFeedback.stopDancing();
+    nowPlayingUI.updateState('paused');
 
-        log.debug('Music fading out...');
-      } else if (event.state === 'paused') {
-        avatarFeedback.stopDancing();
-        nowPlayingUI.updateState('paused');
+    // 🎬 Pixar: Curious expression - "paused? everything okay?"
+    ferniExpressions.curious();
 
-        // 🎬 Pixar: Curious expression - "paused? everything okay?"
-        ferniExpressions.curious();
-
-        log.debug('Music paused');
-      } else if (event.state === 'stopped' || event.state === 'idle') {
-        // Gracefully return to rest
-        avatarFeedback.stopDancing();
-
-        // Waveform: Return to normal behavior
-        waveformUI.setMusicPlaying(false);
-
-        // 🎬 Pixar: Warm, satisfied expression after music ends
-        // Not sad it's over, grateful it happened
-        if (!event.isAmbient) {
-          ferniExpressions.setExpression('empathetic', 300, 2000);
-        }
-
-        // Hide Now Playing card
-        nowPlayingUI.hide();
-
-        log.debug('Music stopped');
-      }
-    })
-    .catch(() => {
-      // Now Playing UI not available - continue without it
-      log.debug('Now Playing UI not available');
+    log.info('🎧 Music paused');
+  } else if (event.state === 'stopped' || event.state === 'idle') {
+    // 🎧 CRITICAL: Always hide the Now Playing UI when music stops
+    log.info('🎧 Music stopped/idle - hiding Now Playing UI', {
+      state: event.state,
+      wasAmbient: event.isAmbient,
     });
+
+    // Gracefully return to rest
+    avatarFeedback.stopDancing();
+
+    // Waveform: Return to normal behavior
+    waveformUI.setMusicPlaying(false);
+
+    // 🎬 Pixar: Warm, satisfied expression after music ends
+    // Not sad it's over, grateful it happened
+    if (!event.isAmbient) {
+      ferniExpressions.setExpression('empathetic', 300, 2000);
+    }
+
+    // Hide Now Playing card - this MUST happen
+    nowPlayingUI.hide();
+
+    log.info('🎧 Now Playing UI hidden');
+  } else {
+    // Unknown state - log and hide for safety
+    log.warn('🎧 Unknown music state received:', { state: event.state });
+    nowPlayingUI.updateState(event.state as 'idle'); // Will trigger hide
+  }
 }
 
 /**

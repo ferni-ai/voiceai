@@ -216,6 +216,14 @@ export const parseRequestBody = parseBody;
 export const sendSuccess = sendJSON;
 
 /**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ * New code should use sendJSON(res, data, status) instead.
+ */
+export function sendJsonResponse(res: ServerResponse, status: number, data: unknown): void {
+  sendJSON(res, data, status);
+}
+
+/**
  * Validate auth and return userId - returns userId or null (sends 401 if missing)
  * Note: This takes raw req/res without parsedUrl - parses URL internally
  */

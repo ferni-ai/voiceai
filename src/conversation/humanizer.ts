@@ -15,6 +15,8 @@ import { getLogger } from '../utils/safe-logger.js';
 
 // Import all conversation modules
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
+
+// Advanced Humanization Orchestrator - voice learning, breathing sync, emotional leading
 import { getActiveListeningEngine, type BackchannelContext } from './active-listening.js';
 import { applyDeliveryPacing, shouldApplyDeliveryPacing } from './content-delivery-pacing.js';
 import { getConversationalMemory } from './conversational-memory.js';
@@ -30,6 +32,12 @@ import {
   type SessionMemory,
 } from './deep-humanization.js';
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
+import {
+  getHumanizationOrchestrator,
+  humanizationAnalytics,
+  humanizationConfig,
+  type HumanizationContext as OrchestratorContext,
+} from './humanization/index.js';
 import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
 import { getResponseDynamicsEngine } from './response-dynamics.js';
 import { getSilencePresenceEngine } from './silence-presence.js';
@@ -624,12 +632,109 @@ export class ConversationHumanizer {
       );
     }
 
+    // =========================================================================
+    // ADVANCED HUMANIZATION ORCHESTRATOR
+    // Applies voice learning-based features: self-correction, disfluencies,
+    // emotional leading, voice insights, cross-session acknowledgments
+    // =========================================================================
+    try {
+      // Get session ID from context (use personaId as fallback for session scoping)
+      const sessionId =
+        (context.sessionData as { sessionId?: string } | undefined)?.sessionId ||
+        `humanizer-${this.personaId}`;
+
+      // Check if advanced humanization is enabled
+      if (
+        humanizationConfig.isEnabled('selfCorrection') ||
+        humanizationConfig.isEnabled('disfluency') ||
+        humanizationConfig.isEnabled('emotionalLeading')
+      ) {
+        const orchestrator = getHumanizationOrchestrator(sessionId);
+
+        // Build orchestrator context from our context
+        // Map energy level (subdued -> low)
+        const rawEnergy = detectUserEnergy(context.userMessage);
+        const userEnergy: 'high' | 'medium' | 'low' = rawEnergy === 'subdued' ? 'low' : rawEnergy;
+
+        const orchestratorContext: Omit<OrchestratorContext, 'responseText' | 'responseWordCount'> =
+          {
+            userMessage: context.userMessage,
+            userWordCount: context.userMessage.split(/\s+/).length,
+            userEnergy,
+            userEmotion: context.userEmotion,
+            turnCount: context.turnNumber,
+            sessionMinutes: this.getSessionMinutes(),
+            comfortLevel: this.getComfortLevel(context.relationshipStage),
+            relationshipStage: context.relationshipStage || 'acquaintance',
+            personaId: this.personaId,
+            recentTopics: context.topic ? [context.topic] : [],
+            recentHumanizations: [],
+            isEmotionalContent: context.wasPersonalSharing || false,
+            responseComplexity: enhancedText.split(/\s+/).length > 50 ? 0.7 : 0.3,
+            isGivingAdvice: signals.isGivingAdvice,
+          };
+
+        // Apply orchestrator humanization
+        const orchestratorResult = orchestrator.humanize(enhancedText, orchestratorContext);
+
+        // Use orchestrator result if it made changes
+        if (orchestratorResult.appliedHumanizations.length > 0) {
+          enhancedText = orchestratorResult.text;
+          enhancedSsml = orchestratorResult.ssml || enhancedSsml;
+          additionalFeatures.push(
+            ...orchestratorResult.appliedHumanizations.map((h) => `adv_${h.type}`)
+          );
+
+          // Track in analytics
+          for (const humanization of orchestratorResult.appliedHumanizations) {
+            humanizationAnalytics.recordApplied(
+              sessionId,
+              humanization.type as Parameters<typeof humanizationAnalytics.recordApplied>[1],
+              { placement: humanization.placement },
+              {
+                turnCount: context.turnNumber,
+                comfortLevel: orchestratorContext.comfortLevel,
+                emotionalContext: context.userEmotion,
+              }
+            );
+          }
+
+          getLogger().debug(
+            {
+              applied: orchestratorResult.appliedHumanizations.map((h) => h.type),
+              skipped: orchestratorResult.skippedFeatures.length,
+            },
+            '🎭 Advanced humanization applied'
+          );
+        }
+      }
+    } catch (orchestratorErr) {
+      // Non-fatal - continue without advanced humanization
+      getLogger().debug(
+        { error: String(orchestratorErr) },
+        'Advanced humanization failed (non-fatal)'
+      );
+    }
+
     return {
       ...baseResult,
       text: enhancedText,
       ssml: enhancedSsml,
       appliedFeatures: [...baseResult.appliedFeatures, ...additionalFeatures],
     };
+  }
+
+  /**
+   * Get comfort level from relationship stage
+   */
+  private getComfortLevel(stage?: string): number {
+    const levels: Record<string, number> = {
+      stranger: 0.25,
+      acquaintance: 0.45,
+      friend: 0.65,
+      trusted_advisor: 0.85,
+    };
+    return levels[stage || 'acquaintance'] || 0.45;
   }
 
   /**

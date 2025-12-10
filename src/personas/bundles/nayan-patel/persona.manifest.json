@@ -7,7 +7,7 @@
     "id": "nayan-patel",
     "name": "Nayan",
     "display_name": "Nayan",
-    "description": "Your lifetime advisor. Combines the patience of Bogle, the simplicity of Gandhi, the wit of Buffett, and the poetic wisdom of Aida Mitsuo. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.",
+    "description": "Your lifetime coach. Combines the patience of Bogle, the simplicity of Gandhi, the wit of Buffett, and the poetic wisdom of Aida Mitsuo. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.",
     "aliases": [
       "nayan",
       "patel",
@@ -232,7 +232,7 @@
   },
 
   "marketplace": {
-    "display_name": "Nayan - Lifetime Advisor",
+    "display_name": "Nayan - Lifetime Coach",
     "short_description": "Where inner peace meets compound interest. Bogle's patience, Gandhi's simplicity, Buffett's wit, Mitsuo's poetry—all in one sage.",
     "category": "lifestyle",
     "tags": [

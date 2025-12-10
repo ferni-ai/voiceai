@@ -103,7 +103,7 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </button>
         </div>
-        <p class="marketplace-subtitle">Find advisors who understand what you need.</p>
+        <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
         
         <div class="marketplace-tabs">
           <button class="marketplace-tab active" data-tab="browse">
@@ -124,7 +124,7 @@ function ensureModalExists(): HTMLElement {
               type="search" 
               class="marketplace-search-input" 
               placeholder="Who are you looking for?" 
-              aria-label="Search for advisors"
+              aria-label="Search for coaches"
             >
           </div>
           <select class="marketplace-category-select" aria-label="Filter by specialty">
@@ -143,9 +143,9 @@ function ensureModalExists(): HTMLElement {
       <main class="marketplace-content">
         <div class="marketplace-loading">
           <div class="marketplace-spinner"></div>
-          <span>Finding advisors...</span>
+          <span>Finding coaches...</span>
         </div>
-        <div class="marketplace-grid" role="list" aria-label="Available advisors"></div>
+        <div class="marketplace-grid" role="list" aria-label="Available coaches"></div>
         <div class="marketplace-empty">
           <div class="empty-illustration">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
@@ -155,7 +155,7 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </div>
           <p class="empty-title">No matches yet</p>
-          <p class="empty-hint">Try a different search or explore all advisors.</p>
+          <p class="empty-hint">Try a different search or explore all coaches.</p>
         </div>
       </main>
       
@@ -371,7 +371,7 @@ function renderTeamLockedMessage(): void {
       </div>
       
       <p class="marketplace-locked-hint">
-        New advisors become available after all team members are unlocked.
+        New coaches become available after all team members are unlocked.
       </p>
     </section>
   `;
@@ -414,15 +414,15 @@ async function renderInstalledTab(): Promise<void> {
     if (agents.length > 0) {
       if (teamUnlocked) {
         // Full team unlocked - show installed marketplace agents
-        html += `<div class="team-section-divider"><span>Your Installed Advisors</span></div>`;
+        html += `<div class="team-section-divider"><span>Your Installed Coaches</span></div>`;
         html += renderAgentCards(agents);
       } else {
         // Team not fully unlocked - show message about installed agents being locked
         html += `
-          <div class="team-section-divider"><span>Installed Advisors</span></div>
+          <div class="team-section-divider"><span>Installed Coaches</span></div>
           <div class="installed-agents-locked">
             <p class="installed-agents-locked-message">
-              You have <strong>${agents.length} advisor${agents.length > 1 ? 's' : ''}</strong> installed. 
+              You have <strong>${agents.length} coach${agents.length > 1 ? 'es' : ''}</strong> installed. 
               They'll be ready to chat once you've met your whole core team!
             </p>
           </div>
@@ -628,8 +628,8 @@ function showEmpty(message: string): void {
     if (hint) {
       hint.textContent =
         message === 'No agents installed yet'
-          ? 'Discover advisors who can help with what matters to you.'
-          : 'Try a different search or explore all advisors.';
+          ? 'Discover coaches who can help with what matters to you.'
+          : 'Try a different search or explore all coaches.';
     }
     empty.style.display = 'flex';
   }

@@ -34,6 +34,16 @@ import {
   type DJEnhancementController,
   type MusicPreferences,
 } from './dj-enhancements.js';
+import {
+  checkSpontaneousMusicMoment,
+  getConversationBridge,
+  getEmotionalMirrorOffer,
+  getFunInterjection,
+  getMusicHumanization,
+  getPostMusicCheckIn,
+  getTimeAwareMusicSuggestion,
+  type MusicHumanizationController,
+} from './music-humanization.js';
 import { getMusicPlayer, type MusicState, type MusicTrack } from './music-player.js';
 
 const log = getLogger();
@@ -134,6 +144,12 @@ export class DJBooth {
   private recentUserText = '';
   private lastOurSongCallback = 0;
 
+  // 🎵 Music Humanization - makes interactions feel natural and fun
+  private humanization: MusicHumanizationController;
+  private conversationStartTime: number = Date.now();
+  private recentTopics: string[] = [];
+  private lastSpontaneousCheck = 0;
+
   constructor(config: DJBoothConfig, existingMusicPreferences?: Partial<MusicPreferences>) {
     this.config = config;
     this.state = {
@@ -157,7 +173,14 @@ export class DJBooth {
       }
     });
 
-    log.info('🎧 DJ Booth initialized with enhancements', { persona: config.personaId });
+    // 🎵 Initialize Music Humanization
+    this.humanization = getMusicHumanization();
+    this.humanization.setPersona(config.personaId);
+    this.conversationStartTime = Date.now();
+
+    log.info('🎧 DJ Booth initialized with enhancements + humanization', {
+      persona: config.personaId,
+    });
   }
 
   /**
@@ -497,6 +520,133 @@ export class DJBooth {
     return this.djEnhancements?.getMusicPreferences() ?? null;
   }
 
+  // ==========================================================================
+  // 🎵 MUSIC HUMANIZATION - Natural, fun, engaging interactions
+  // ==========================================================================
+
+  /**
+   * Check if we should make a spontaneous music offer
+   * Call this periodically (e.g., every 30 seconds) during conversation
+   */
+  checkSpontaneousMusicOffer(params: {
+    emotionalIntensity?: number;
+    isAwkwardSilence?: boolean;
+    recentAchievement?: boolean;
+  }): { shouldOffer: boolean; offer?: string; searchQuery?: string } {
+    // Don't check too frequently
+    const now = Date.now();
+    if (now - this.lastSpontaneousCheck < 30000) {
+      return { shouldOffer: false };
+    }
+    this.lastSpontaneousCheck = now;
+
+    // Don't offer if music is already playing
+    if (this.state.musicState === 'playing') {
+      return { shouldOffer: false };
+    }
+
+    const trigger = checkSpontaneousMusicMoment({
+      conversationDurationMs: now - this.conversationStartTime,
+      timeSinceLastMusicMs: this.state.musicStartTime ? now - this.state.musicStartTime : Infinity,
+      recentTopics: this.recentTopics,
+      emotionalIntensity: params.emotionalIntensity ?? 0.3,
+      isAwkwardSilence: params.isAwkwardSilence ?? false,
+      recentAchievement: params.recentAchievement ?? false,
+    });
+
+    if (trigger) {
+      log.info('🎵 Spontaneous music offer triggered', { type: trigger.type });
+      return {
+        shouldOffer: true,
+        offer: trigger.offer,
+        searchQuery: trigger.searchQuery,
+      };
+    }
+
+    return { shouldOffer: false };
+  }
+
+  /**
+   * Get a time-aware music suggestion
+   * Uses time of day to suggest appropriate music
+   */
+  getTimeAwareMusicOffer(): { offer: string; searchQuery: string; mood: string } {
+    return getTimeAwareMusicSuggestion();
+  }
+
+  /**
+   * Get an emotional mirror music offer
+   * Offers music that matches/acknowledges user's emotional state
+   */
+  getEmotionalMusicOffer(emotion: string): string | null {
+    return getEmotionalMirrorOffer(emotion);
+  }
+
+  /**
+   * Get a post-music check-in phrase
+   * Called after music ends to ask how user liked it
+   */
+  getPostMusicCheckIn(wasRequested = true): string {
+    return getPostMusicCheckIn(this.config.personaId, wasRequested);
+  }
+
+  /**
+   * Get a fun DJ interjection (15% chance by default)
+   * Makes the DJ feel more human and playful
+   */
+  getFunInterjection(
+    moment: 'track_start' | 'mid_song' | 'track_end' | 'user_liked' | 'user_skipped'
+  ): string | null {
+    return getFunInterjection(moment);
+  }
+
+  /**
+   * Get a conversation bridge phrase
+   * Use music to transition between heavy/light topics
+   */
+  getConversationBridge(
+    bridgeType: 'heavy_to_light' | 'light_to_deep' | 'closure' | 'opening'
+  ): string {
+    return getConversationBridge(bridgeType);
+  }
+
+  /**
+   * Track a conversation topic (for spontaneous music offers)
+   * Call this when significant topics come up
+   */
+  trackConversationTopic(topic: string): void {
+    this.recentTopics.push(topic);
+    // Keep only last 10 topics
+    if (this.recentTopics.length > 10) {
+      this.recentTopics.shift();
+    }
+    // Also track in session flow
+    this.djEnhancements?.sessionFlow.trackTopic(topic);
+  }
+
+  /**
+   * Check if user is vibing to music (enjoying quietly)
+   * If true, avoid interrupting them
+   */
+  isUserVibing(): boolean {
+    return this.humanization.isUserVibing();
+  }
+
+  /**
+   * Update silence duration during music
+   * Call this to help detect if user is vibing
+   */
+  updateSilenceDuringMusic(durationMs: number): void {
+    this.humanization.updateSilenceDuringMusic(durationMs);
+  }
+
+  /**
+   * Get the music humanization controller for advanced use
+   */
+  getHumanization(): MusicHumanizationController {
+    return this.humanization;
+  }
+
   /**
    * Handle a persona handoff - stops music for clean transition
    * Call this BEFORE the voice switch happens
@@ -589,9 +739,30 @@ export class DJBooth {
           const wasSkipped = prevState === 'playing';
           this.djEnhancements?.onTrackEnd(track, wasSkipped);
 
+          // 🎵 Notify Music Humanization
+          this.humanization.onMusicStopped(track.name, track.artist);
+
           if (wasSkipped) {
             // Unexpected stop while playing - speak a phrase
             this.onMusicUnexpectedStop(false);
+
+            // 🎵 Fun interjection when user skips
+            const skipComment = this.getFunInterjection('user_skipped');
+            if (skipComment) {
+              this.config.speakCallback(skipComment, { allowInterruptions: true });
+            }
+          } else {
+            // Natural ending - do a post-music check-in (60% chance)
+            // But only if we didn't already speak an outro during 'fading'
+            if (prevState !== 'fading' || Math.random() < 0.3) {
+              const checkIn = this.getPostMusicCheckIn(true);
+              // Small delay so the silence settles
+              this.scheduleTimer(() => {
+                if (this.state.musicState === 'stopped' || this.state.musicState === 'idle') {
+                  this.config.speakCallback(checkIn, { allowInterruptions: true });
+                }
+              }, 1500);
+            }
           }
         }
 
@@ -638,6 +809,20 @@ export class DJBooth {
 
     // Notify DJ Enhancements (Phase 2 predictive timing)
     this.djEnhancements?.onTrackStart(track);
+
+    // 🎵 Notify Music Humanization
+    this.humanization.onMusicStarted(track.name, track.artist);
+
+    // 🎵 Fun interjection on track start (15% chance)
+    const funIntro = this.getFunInterjection('track_start');
+    if (funIntro && !this.state.agentSpeaking) {
+      // Delay slightly so the music starts first
+      this.scheduleTimer(() => {
+        if (this.state.musicState === 'playing' && !this.state.userSpeaking) {
+          this.speakOverMusic(funIntro);
+        }
+      }, 3000);
+    }
 
     // Schedule moments based on track duration
     this.scheduleMoments(track, duration);
@@ -811,6 +996,14 @@ export class DJBooth {
    */
   private onMusicFading(track: MusicTrack): void {
     log.info('🎧 Music fading - speaking DJ outro', { track: track.name });
+
+    // 🎵 Check for fun interjection (15% chance)
+    const funOutro = this.getFunInterjection('track_end');
+    if (funOutro) {
+      // Use fun outro instead of standard
+      this.speakOverMusic(funOutro);
+      return;
+    }
 
     const outro = getDJOutroPhrase(track.name, track.artist, this.config.personaId);
 

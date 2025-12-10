@@ -72,7 +72,7 @@ function createStatsOverlay(): void {
         
         <div class="stat-item">
           <div class="stat-value" id="statPersona">Ferni</div>
-          <div class="stat-label">Advisor</div>
+          <div class="stat-label">Coach</div>
         </div>
         
         <div class="stat-item">

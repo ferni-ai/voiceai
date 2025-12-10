@@ -412,10 +412,24 @@ export class CallMusicPlayer {
 
   /**
    * Notify listeners of state change
+   *
+   * 🎧 CRITICAL: This is how the frontend learns about music state changes.
+   * The frontend uses this to show/hide the Now Playing UI and animate the avatar.
    */
   private notifyStateChange(state: MusicState): void {
     if (this.onMusicStateChangeCallback) {
+      getLogger().debug(
+        {
+          state,
+          track: this.state.currentTrack?.name,
+          isAmbient: this.state.isAmbientMode,
+        },
+        '🎧 Notifying music state change'
+      );
       this.onMusicStateChangeCallback(state, this.state.currentTrack, this.state.isAmbientMode);
+    } else {
+      // This should only happen during initialization
+      getLogger().debug({ state }, '🎧 No state change callback registered (expected during init)');
     }
   }
 
@@ -912,10 +926,11 @@ export class CallMusicPlayer {
 
   /**
    * Called when current track ends
+   *
+   * 🎧 CRITICAL: This method MUST notify 'stopped' state when no more tracks in queue.
+   * The frontend relies on this to hide the Now Playing UI.
    */
   private onTrackEnded(): void {
-    getLogger().debug('Track ended');
-
     // 🎤 Clear mid-song moment timer
     if (this.midSongMomentTimer) {
       clearTimeout(this.midSongMomentTimer);
@@ -925,6 +940,14 @@ export class CallMusicPlayer {
     if (this.state.queue.length > 0) {
       // Play next in queue
       const nextTrack = this.state.queue.shift()!;
+      getLogger().info(
+        {
+          nextTrack: nextTrack.name,
+          remainingInQueue: this.state.queue.length,
+        },
+        '🎧 Track ended - playing next in queue'
+      );
+
       if (nextTrack.previewUrl) {
         void this.playFromUrl(nextTrack.previewUrl, nextTrack);
       }
@@ -934,17 +957,37 @@ export class CallMusicPlayer {
       const endedTrack = this.state.currentTrack;
       const wasAmbient = this.state.isAmbientMode;
 
+      getLogger().info(
+        {
+          track: endedTrack?.name,
+          wasAmbient,
+        },
+        '🎧 Track ended - queue empty, notifying stopped'
+      );
+
       // No more tracks - clear state
       this.state.isPlaying = false;
       this.state.currentTrack = null;
       this.state.isAmbientMode = false;
       this.currentPlayHandle = null;
       this.currentAudioPath = null;
-      getLogger().debug('Queue empty - playback complete');
 
-      // ✨ Notify with preserved track info so DJ Booth can speak proper outros
+      // ✨ CRITICAL: Notify 'stopped' state so frontend hides the Now Playing UI
+      // This MUST happen even if endedTrack is null (defensive)
       if (this.onMusicStateChangeCallback) {
+        getLogger().debug(
+          {
+            hasCallback: true,
+            track: endedTrack?.name,
+          },
+          '🎧 Calling onMusicStateChangeCallback with stopped'
+        );
         this.onMusicStateChangeCallback('stopped', endedTrack, wasAmbient);
+      } else {
+        // This should never happen in normal operation
+        getLogger().warn(
+          '🎧 No onMusicStateChangeCallback set - frontend will not be notified of track end!'
+        );
       }
     }
   }
@@ -953,6 +996,8 @@ export class CallMusicPlayer {
    * Pause playback
    */
   pause(): void {
+    const pausedTrack = this.state.currentTrack;
+
     // 🎤 Clear mid-song moment timer
     if (this.midSongMomentTimer) {
       clearTimeout(this.midSongMomentTimer);
@@ -963,9 +1008,10 @@ export class CallMusicPlayer {
       this.currentPlayHandle.stop();
     }
     this.state.isPlaying = false;
-    getLogger().debug('Music paused');
 
-    // ✨ Notify frontend - stop dancing
+    getLogger().info({ track: pausedTrack?.name }, '🎧 Music paused');
+
+    // ✨ Notify frontend - pause state
     this.notifyStateChange('paused');
   }
 
@@ -988,8 +1034,16 @@ export class CallMusicPlayer {
 
   /**
    * Stop playback completely
+   *
+   * 🎧 This is called when:
+   * - User explicitly stops music
+   * - A new track is about to play (stop current first)
+   * - Session is ending
    */
   stop(): void {
+    const wasPlaying = this.state.isPlaying;
+    const stoppedTrack = this.state.currentTrack;
+
     // 🎤 Clear mid-song moment timer
     if (this.midSongMomentTimer) {
       clearTimeout(this.midSongMomentTimer);
@@ -1006,9 +1060,15 @@ export class CallMusicPlayer {
     this.currentPlayHandle = null;
     this.currentAudioPath = null;
 
-    getLogger().debug('Music stopped');
+    getLogger().info(
+      {
+        wasPlaying,
+        stoppedTrack: stoppedTrack?.name,
+      },
+      '🎧 Music stopped (explicit stop call)'
+    );
 
-    // ✨ Notify frontend - stop dancing
+    // ✨ Notify frontend - stop dancing and hide Now Playing UI
     this.notifyStateChange('stopped');
   }
 

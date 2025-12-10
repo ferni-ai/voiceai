@@ -143,17 +143,18 @@ export async function loadHandlersFromManifests(): Promise<{
       const agentId = manifest.identity.id as AgentId;
 
       // Check if manifest has team handler configuration
-      const teamConfig = (manifest as any).team_handlers;
+      const teamConfig = manifest.team_handlers;
       if (!teamConfig) {
         // Skip agents without team handler config
         continue;
       }
 
       // Configure agent
+      // Note: capabilities from JSON manifest are strings, cast to HandlerCapability
       teamHandlerRegistry.configureAgent({
         agentId,
         displayName: manifest.identity.display_name,
-        capabilities: teamConfig.capabilities || [],
+        capabilities: (teamConfig.capabilities || []) as HandlerCapability[],
         handlers: teamConfig.handlers || [],
         excludedHandlers: teamConfig.excluded || [],
         active: true,

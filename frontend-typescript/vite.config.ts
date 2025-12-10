@@ -69,7 +69,7 @@ export default defineConfig({
           // Vendor libraries - separate chunks for parallel loading
           if (id.includes('node_modules')) {
             if (id.includes('@tsparticles')) return 'vendor-particles';
-            if (id.includes('livekit-client')) return 'vendor-livekit';
+            if (id.includes('livekit-client')) return 'vendor-rtc';
             if (id.includes('@capacitor')) return 'vendor-capacitor';
             // Other node_modules go to vendor chunk
             return 'vendor';
@@ -77,6 +77,9 @@ export default defineConfig({
 
           // Admin portal - lazy loaded, separate chunk
           if (id.includes('/admin/')) return 'admin';
+
+          // Dev panel - lazy loaded for 17KB gzipped savings
+          if (id.includes('dev-panel')) return 'dev-panel';
 
           // Engagement features - heavy dashboards, lazy loaded
           if (

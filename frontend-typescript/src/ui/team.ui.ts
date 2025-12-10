@@ -942,7 +942,7 @@ function showLockedMemberFeedback(
  * Show a toast notification for locked team member.
  * Simple, warm messaging aligned with Ferni brand voice.
  */
-function showLockedMemberToast(name: string, message: string, progress: number): void {
+function showLockedMemberToast(_name: string, message: string, progress: number): void {
   // Try to use existing toast system
   const existingToast = document.querySelector('.ferni-toast');
   if (existingToast) {

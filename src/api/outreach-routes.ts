@@ -34,7 +34,7 @@ import {
   type UserChannelConfig,
 } from '../services/trust-systems/notification-delivery.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseRequestBody, sendJsonResponse } from './utils.js';
+import { parseRequestBody, sendJsonResponse } from './helpers.js';
 
 const log = createLogger({ module: 'OutreachRoutes' });
 

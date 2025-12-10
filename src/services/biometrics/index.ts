@@ -13,8 +13,8 @@
  * @module services/biometrics
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import { getStore } from '../../memory/store-factory.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Biometrics' });
 
@@ -218,7 +218,9 @@ async function clearPersistedTokens(userId: string): Promise<void> {
 
     if (profile) {
       // Remove biometricTokens field
-      const updatedProfile = { ...profile } as typeof profile & { biometricTokens?: PersistedBiometricTokens };
+      const updatedProfile = { ...profile } as typeof profile & {
+        biometricTokens?: PersistedBiometricTokens;
+      };
       delete updatedProfile.biometricTokens;
       await store.saveProfile(updatedProfile);
       log.debug({ userId }, 'Biometric tokens cleared from storage');
@@ -343,16 +345,266 @@ export function getAuthorizationUrl(
       // Terra uses a widget-based authentication flow
       // The widget handles connection to 300+ wearables including Apple Health
       // See: https://docs.tryterra.co/docs/authenticate-widget
-      if (!config.terra.devId) {
+      if (!config.terra.devId || !config.terra.apiKey) {
         throw new Error('Terra API not configured. Set TERRA_DEV_ID and TERRA_API_KEY env vars.');
       }
-      // Generate a session via Terra API first, then redirect to widget
-      // For now, return a placeholder - full implementation requires server-side session generation
-      return `https://widget.tryterra.co/session/${config.terra.devId}?state=${state}&reference_id=${userId}`;
+      // For sync URL generation, we return a placeholder that the caller should replace
+      // with the actual session URL from generateTerraSession()
+      // This is because session generation is async and getAuthorizationUrl is sync
+      return `TERRA_SESSION_REQUIRED:${state}:${userId}`;
 
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
+}
+
+// ============================================================================
+// TERRA SESSION GENERATION
+// ============================================================================
+
+/**
+ * Terra session response from their API
+ */
+interface TerraSessionResponse {
+  status: string;
+  session_id: string;
+  url: string;
+  expires_at: string;
+}
+
+/**
+ * Generate a Terra authentication session.
+ * This creates a widget session URL that allows users to connect 300+ wearables
+ * including Apple Health, Fitbit, Garmin, Samsung Health, and more.
+ *
+ * @see https://docs.tryterra.co/reference/generate-authentication-url
+ */
+export async function generateTerraSession(
+  userId: string,
+  options?: {
+    /** Specific providers to show (e.g., ['APPLE', 'FITBIT', 'GARMIN']) */
+    providers?: string[];
+    /** Language for widget (e.g., 'en', 'es', 'fr') */
+    language?: string;
+    /** Custom redirect URL after authentication */
+    redirectUrl?: string;
+  }
+): Promise<
+  | { success: true; url: string; sessionId: string; expiresAt: Date }
+  | { success: false; error: string }
+> {
+  if (!config.terra.devId || !config.terra.apiKey) {
+    return {
+      success: false,
+      error: 'Terra API not configured. Set TERRA_DEV_ID and TERRA_API_KEY env vars.',
+    };
+  }
+
+  try {
+    const redirectUrl =
+      options?.redirectUrl ||
+      `${process.env.APP_URL || 'https://app.ferni.ai'}/api/v1/integrations/biometrics/callback/terra`;
+
+    const response = await fetch('https://api.tryterra.co/v2/auth/generateWidgetSession', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'dev-id': config.terra.devId,
+        'x-api-key': config.terra.apiKey,
+      },
+      body: JSON.stringify({
+        reference_id: userId,
+        providers: options?.providers?.join(',') || undefined,
+        language: options?.language || 'en',
+        auth_success_redirect_url: redirectUrl,
+        auth_failure_redirect_url: `${redirectUrl}?error=auth_failed`,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'Terra session generation failed');
+      return { success: false, error: `Terra API error: ${response.status}` };
+    }
+
+    const data = (await response.json()) as TerraSessionResponse;
+
+    if (data.status !== 'success' || !data.url) {
+      log.error({ data }, 'Terra session generation returned unexpected response');
+      return { success: false, error: 'Invalid Terra response' };
+    }
+
+    log.info({ userId, sessionId: data.session_id }, 'Terra session generated');
+
+    return {
+      success: true,
+      url: data.url,
+      sessionId: data.session_id,
+      expiresAt: new Date(data.expires_at),
+    };
+  } catch (error) {
+    log.error({ error: String(error) }, 'Terra session generation error');
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Handle Terra webhook callback.
+ * Terra sends user data via webhooks after successful authentication.
+ *
+ * @see https://docs.tryterra.co/reference/webhooks
+ */
+export async function handleTerraWebhook(
+  webhookBody: unknown,
+  signature?: string
+): Promise<{ success: boolean; userId?: string; error?: string }> {
+  // Verify webhook signature if secret is configured
+  if (config.terra.webhookSecret && signature) {
+    // Terra uses HMAC-SHA256 for webhook verification
+    const crypto = await import('crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', config.terra.webhookSecret)
+      .update(JSON.stringify(webhookBody))
+      .digest('hex');
+
+    if (signature !== expectedSignature) {
+      log.warn('Terra webhook signature mismatch');
+      return { success: false, error: 'Invalid webhook signature' };
+    }
+  }
+
+  const body = webhookBody as {
+    type?: string;
+    user?: { reference_id?: string; user_id?: string };
+    data?: unknown[];
+  };
+
+  if (!body.type || !body.user?.reference_id) {
+    log.warn({ body }, 'Invalid Terra webhook payload');
+    return { success: false, error: 'Invalid webhook payload' };
+  }
+
+  const userId = body.user.reference_id;
+  const terraUserId = body.user.user_id;
+
+  log.info({ userId, terraUserId, type: body.type }, 'Terra webhook received');
+
+  switch (body.type) {
+    case 'auth':
+      // User authenticated - store their Terra user ID
+      if (terraUserId) {
+        const userBio: UserBiometrics = {
+          platform: 'terra',
+          accessToken: terraUserId, // Terra uses user_id instead of OAuth tokens
+          refreshToken: '',
+          tokenExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+          lastSync: new Date(0),
+          snapshot: null,
+          history: [],
+          eventCallbacks: new Set(),
+        };
+        userBiometrics.set(userId, userBio);
+        await persistTokens(userId, userBio);
+        log.info({ userId }, 'Terra user authenticated and stored');
+      }
+      break;
+
+    case 'body':
+    case 'activity':
+    case 'daily':
+    case 'sleep':
+    case 'nutrition':
+      // Data webhook - process and store
+      if (body.data && Array.isArray(body.data)) {
+        await processTerraDataWebhook(userId, body.type, body.data);
+      }
+      break;
+
+    case 'deauth':
+      // User disconnected
+      userBiometrics.delete(userId);
+      log.info({ userId }, 'Terra user deauthenticated');
+      break;
+  }
+
+  return { success: true, userId };
+}
+
+/**
+ * Process incoming Terra data webhook
+ */
+async function processTerraDataWebhook(
+  userId: string,
+  dataType: string,
+  data: unknown[]
+): Promise<void> {
+  const user = await ensureUserBiometrics(userId);
+  if (!user || user.platform !== 'terra') {
+    log.warn({ userId, dataType }, 'Terra data webhook for unknown user');
+    return;
+  }
+
+  // Convert Terra data format to our BiometricSnapshot
+  // This is a simplified conversion - Terra has very rich data
+  // Initialize snapshot if it doesn't exist
+  if (!user.snapshot) {
+    user.snapshot = createMockSnapshot(userId, 'terra');
+  }
+
+  const snapshot = user.snapshot;
+
+  for (const entry of data) {
+    const terraData = entry as Record<string, unknown>;
+
+    if (dataType === 'sleep' && terraData.sleep_durations_data) {
+      const sleepData = terraData.sleep_durations_data as Record<string, unknown>;
+      const asleepData = sleepData.asleep as { duration_asleep_state_seconds?: number } | undefined;
+      const durationHours = (asleepData?.duration_asleep_state_seconds || 0) / 3600;
+      const qualityScore = (sleepData.sleep_efficiency as number) || 70;
+
+      const existingSleep = snapshot.sleep;
+      snapshot.sleep = {
+        duration: durationHours,
+        deepSleepPercent: existingSleep?.deepSleepPercent ?? 20,
+        remSleepPercent: existingSleep?.remSleepPercent ?? 22,
+        disturbances: existingSleep?.disturbances ?? 2,
+        qualityScore,
+        bedtime: existingSleep?.bedtime ?? new Date(),
+        wakeTime: existingSleep?.wakeTime ?? new Date(),
+      };
+    }
+
+    if (dataType === 'activity' && terraData.active_durations_data) {
+      const activityData = terraData.active_durations_data as Record<string, number>;
+      const existingActivity = snapshot.activity;
+      snapshot.activity = {
+        steps: activityData.steps || existingActivity?.steps || 0,
+        activeMinutes:
+          (activityData.activity_seconds || 0) / 60 || existingActivity?.activeMinutes || 0,
+        caloriesBurned: activityData.calories || existingActivity?.caloriesBurned || 0,
+        hoursSinceActivity: existingActivity?.hoursSinceActivity ?? 1,
+        standingHours: existingActivity?.standingHours ?? 8,
+      };
+    }
+
+    if (dataType === 'body' && terraData.heart_rate_data) {
+      const hrvData = terraData.heart_rate_data as { hrv_samples_sdnn?: Array<{ hrv: number }> };
+      if (hrvData.hrv_samples_sdnn?.[0]) {
+        const currentHrv = hrvData.hrv_samples_sdnn[0].hrv;
+        const baseline = snapshot.hrv?.baseline ?? 50;
+        snapshot.hrv = {
+          current: currentHrv,
+          baseline,
+          deviationPercent: ((currentHrv - baseline) / baseline) * 100,
+          timestamp: new Date(),
+        };
+      }
+    }
+  }
+
+  user.lastSync = new Date();
+  log.debug({ userId, dataType, entriesCount: data.length }, 'Terra data processed');
 }
 
 /**
@@ -419,8 +671,19 @@ export async function exchangeCodeForTokens(
         // We'll set headers differently below
         break;
 
+      case 'terra':
+        // Terra uses webhook-based authentication - no code exchange needed
+        // The handleTerraWebhook function processes auth callbacks
+        log.info({ userId }, 'Terra authentication handled via webhooks');
+        return true;
+
+      case 'healthkit':
+        // HealthKit requires native iOS app - cannot exchange tokens server-side
+        log.warn({ platform }, 'HealthKit requires native iOS app integration');
+        return false;
+
       default:
-        log.warn({ platform }, 'Token exchange not implemented');
+        log.warn({ platform }, 'Unknown platform for token exchange');
         return false;
     }
 
@@ -898,8 +1161,14 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
         sleepData = {
           duration: d.sleep_data.sleep_duration_in_hours || 0,
           qualityScore: d.sleep_data.sleep_score || 50,
-          deepSleepPercent: ((d.sleep_data.deep_sleep_duration_hours || 0) / (d.sleep_data.sleep_duration_in_hours || 1)) * 100,
-          remSleepPercent: ((d.sleep_data.rem_sleep_duration_hours || 0) / (d.sleep_data.sleep_duration_in_hours || 1)) * 100,
+          deepSleepPercent:
+            ((d.sleep_data.deep_sleep_duration_hours || 0) /
+              (d.sleep_data.sleep_duration_in_hours || 1)) *
+            100,
+          remSleepPercent:
+            ((d.sleep_data.rem_sleep_duration_hours || 0) /
+              (d.sleep_data.sleep_duration_in_hours || 1)) *
+            100,
           disturbances: 0,
           bedtime: new Date(),
           wakeTime: new Date(),
@@ -909,7 +1178,9 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
       if (d.activity_data) {
         activityData = {
           steps: d.activity_data.steps || 0,
-          activeMinutes: Math.round((d.activity_data.active_durations_data?.activity_seconds || 0) / 60),
+          activeMinutes: Math.round(
+            (d.activity_data.active_durations_data?.activity_seconds || 0) / 60
+          ),
           caloriesBurned: d.activity_data.calories_data?.total_burned_calories || 0,
           hoursSinceActivity: 0,
           standingHours: 0,

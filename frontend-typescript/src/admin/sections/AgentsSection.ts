@@ -100,7 +100,7 @@ export async function render(): Promise<string> {
         </h2>
         <div class="templates-grid">
           ${renderTemplate('basic', ICON_USER, 'Basic', 'General-purpose agent')}
-          ${renderTemplate('sage', ICON_CROWN, 'Sage', 'Wise, thoughtful advisor')}
+          ${renderTemplate('sage', ICON_CROWN, 'Sage', 'Wise, thoughtful coach')}
           ${renderTemplate('specialist', ICON_SEARCH, 'Specialist', 'Domain expert')}
           ${renderTemplate('coordinator', ICON_TEAM, 'Coordinator', 'Team coordinator')}
         </div>

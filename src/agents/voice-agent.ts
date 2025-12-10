@@ -200,6 +200,17 @@ import {
   resetAllConversationState,
 } from '../conversation/index.js';
 
+// Advanced Humanization Integration - voice print learning, breathing sync, cross-session memory
+import {
+  cleanupProsodyBridge,
+  onSessionEnd as endHumanizationSession,
+  initializeFromPersistence as initHumanizationPersistence,
+  initProsodyBridge,
+  processProsodyForHumanization,
+  persistOnSessionEnd as saveHumanizationState,
+  onSessionStart as startHumanizationSession,
+} from '../conversation/humanization/index.js';
+
 // Voice Humanization - prosody-aware turn prediction, micro-interruptions, emotional arc TTS
 import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
 import {
@@ -861,6 +872,90 @@ class VoiceAgent extends voice.Agent<UserData> {
                     // Word timing is non-critical
                   }
                 }
+
+                // ============================================================
+                // 5. BREATHING SYNC - Align pauses with user's breathing rhythm
+                // This creates subconscious rapport through synchronized breathing
+                // ============================================================
+                try {
+                  const { getBreathingSyncEngine } =
+                    await import('../conversation/humanization/breathing-sync.js');
+                  const { humanizationAnalytics } =
+                    await import('../conversation/humanization/analytics.js');
+
+                  const breathingSync = getBreathingSyncEngine(sessionId);
+                  const breathState = breathingSync.getState();
+
+                  // Only apply if sync is enabled and we have a pattern
+                  if (breathState.enabled && breathState.userPattern) {
+                    // Determine emotional context for breathing adjustments
+                    const voiceEmotionNow = userData?.voiceEmotion;
+                    const emotionalContext = {
+                      isEmotional: voiceEmotionNow
+                        ? voiceEmotionNow.stressLevel > 0.4 ||
+                          Math.abs(voiceEmotionNow.valence) > 0.3
+                        : false,
+                      isHeavy: voiceEmotionNow ? voiceEmotionNow.stressLevel > 0.6 : false,
+                      isExcited: voiceEmotionNow
+                        ? voiceEmotionNow.arousal > 0.6 && voiceEmotionNow.valence > 0.2
+                        : false,
+                    };
+
+                    // Calculate breathing-aware adjustments
+                    const breathAdjustments = breathingSync.calculateAdjustments(
+                      taggedText,
+                      emotionalContext
+                    );
+
+                    // Apply if we have meaningful adjustments
+                    if (
+                      breathAdjustments.adjustedBreaks.length > 0 ||
+                      breathAdjustments.breathMarkers.length > 0 ||
+                      Math.abs(breathAdjustments.overallPacing - 1.0) > 0.05
+                    ) {
+                      taggedText = breathingSync.applyToSsml(taggedText, breathAdjustments);
+
+                      // Track analytics
+                      humanizationAnalytics.recordApplied(
+                        sessionId,
+                        'breathing_sync',
+                        {
+                          breaks: breathAdjustments.adjustedBreaks.length,
+                          pacing: breathAdjustments.overallPacing,
+                          syncQuality: breathAdjustments.syncQuality,
+                        },
+                        {
+                          turnCount: userData?.turnCount,
+                          emotionalContext: emotionalContext.isHeavy
+                            ? 'heavy'
+                            : emotionalContext.isExcited
+                              ? 'excited'
+                              : emotionalContext.isEmotional
+                                ? 'emotional'
+                                : 'neutral',
+                        }
+                      );
+
+                      agent.logger.debug(
+                        {
+                          breaks: breathAdjustments.adjustedBreaks.length,
+                          pacing: breathAdjustments.overallPacing.toFixed(2),
+                          syncQuality: breathAdjustments.syncQuality.toFixed(2),
+                        },
+                        '🫁 Applied breathing sync to TTS'
+                      );
+                    } else {
+                      // Track skipped
+                      humanizationAnalytics.recordSkipped(
+                        sessionId,
+                        'breathing_sync',
+                        'No meaningful adjustments'
+                      );
+                    }
+                  }
+                } catch (_breathErr) {
+                  // Breathing sync is non-critical
+                }
               } catch (humanErr) {
                 // Voice humanization is non-blocking
                 agent.logger.debug(
@@ -1142,6 +1237,80 @@ class VoiceAgent extends voice.Agent<UserData> {
                 { userId, emotion: voiceEmotion.primary, confidence: voiceEmotion.confidence },
                 '🎤 BETTER-THAN-HUMAN: Recorded voice sample for baseline building'
               );
+
+              // ===============================================
+              // ADVANCED HUMANIZATION: Feed prosody to humanization system
+              // This enables:
+              // - Voice print learning (unique vocal characteristics)
+              // - Breathing sync (align agent pauses with user breathing)
+              // - Cross-session voice memory (detect changes across sessions)
+              // ===============================================
+              try {
+                const humanizationSessionId = services?.sessionId || sessionId;
+                if (humanizationSessionId) {
+                  processProsodyForHumanization(humanizationSessionId, userId, voiceEmotion);
+
+                  // Check for voice state insights ("you sound tired today")
+                  // Only check occasionally to avoid overwhelming
+                  if (
+                    (userData?.turnCount || 0) >= 2 &&
+                    Math.random() < 0.3 &&
+                    voiceEmotion.prosody
+                  ) {
+                    const { detectVoiceState } =
+                      await import('../conversation/humanization/voice-agent-integration.js');
+                    const { humanizationAnalytics, prosodyToVoiceSnapshot } =
+                      await import('../conversation/humanization/index.js');
+
+                    // Convert current prosody to voice snapshot
+                    const currentSnapshot = prosodyToVoiceSnapshot(
+                      voiceEmotion.prosody,
+                      voiceEmotion
+                    );
+
+                    const voiceState = detectVoiceState(humanizationSessionId, currentSnapshot);
+                    if (
+                      voiceState &&
+                      voiceState.currentState.deviationFromBaseline > 0.15 &&
+                      voiceState.suggestedAcknowledgments.length > 0 &&
+                      !userData?.pendingVoiceInsight
+                    ) {
+                      // Store for delivery at appropriate moment
+                      if (userData) {
+                        const ack = voiceState.suggestedAcknowledgments[0];
+                        userData.pendingVoiceInsight = {
+                          text: ack,
+                          ssml: ack,
+                          emotion: voiceState.currentState.emotion,
+                          confidence: voiceState.currentState.confidence,
+                        };
+                      }
+
+                      log().debug(
+                        {
+                          emotion: voiceState.currentState.emotion,
+                          confidence: voiceState.currentState.confidence,
+                          deviation: voiceState.currentState.deviationFromBaseline,
+                        },
+                        '🎤 Voice state insight detected, pending delivery'
+                      );
+
+                      // Track in analytics
+                      humanizationAnalytics.recordTriggered(
+                        humanizationSessionId,
+                        'voice_print_detection',
+                        { emotion: voiceState.currentState.emotion }
+                      );
+                    }
+                  }
+                }
+              } catch (humanizationErr) {
+                // Non-critical - humanization bridge not initialized
+                log().debug(
+                  { error: String(humanizationErr) },
+                  'Humanization prosody bridge not ready (non-blocking)'
+                );
+              }
             } catch (e) {
               log().debug(
                 { error: String(e) },
@@ -2735,6 +2904,48 @@ export default defineAgent({
                   logger.debug({ error: e }, 'Failed to say silence backchannel');
                 }
               }
+
+              // ============================================================
+              // VOICE INSIGHT DELIVERY: "You sound tired today"
+              // After silence backchannel, this is a good moment to deliver
+              // voice-based observations in a natural way
+              // ============================================================
+              if (
+                userData?.pendingVoiceInsight &&
+                !userData.deliveredVoiceInsight &&
+                silenceDurationSec >= 4 // Wait for meaningful pause
+              ) {
+                try {
+                  const insight = userData.pendingVoiceInsight;
+
+                  // Only deliver if confidence is high enough
+                  if (insight.confidence > 0.6) {
+                    session.say(`<break time="300ms"/>${insight.ssml}`, {
+                      allowInterruptions: true,
+                    });
+
+                    userData.deliveredVoiceInsight = true;
+                    userData.pendingVoiceInsight = undefined;
+
+                    diag.state('🎤 Delivered voice state insight', {
+                      emotion: insight.emotion,
+                      confidence: insight.confidence,
+                    });
+
+                    // Track in analytics (async wrapper to avoid await in sync context)
+                    void (async () => {
+                      const { humanizationAnalytics } =
+                        await import('../conversation/humanization/analytics.js');
+                      humanizationAnalytics.recordApplied(sessionId, 'voice_print_detection', {
+                        emotion: insight.emotion,
+                        confidence: insight.confidence,
+                      });
+                    })();
+                  }
+                } catch (insightErr) {
+                  logger.debug({ error: insightErr }, 'Failed to deliver voice insight');
+                }
+              }
             }
           }
 
@@ -3736,6 +3947,44 @@ export default defineAgent({
       diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
 
       // ===============================================
+      // STEP 7a2: INITIALIZE ADVANCED HUMANIZATION
+      // Voice print learning, cross-session memory, breathing sync
+      // ===============================================
+      try {
+        const userId = services.userId || 'anonymous';
+
+        // Initialize prosody bridge for this session
+        initProsodyBridge(sessionId, userId);
+
+        // Start humanization session (voice agent integration)
+        startHumanizationSession(sessionId, userId, sessionPersona.id, {
+          relationshipStage: services.userProfile?.relationshipStage as
+            | 'stranger'
+            | 'acquaintance'
+            | 'friend'
+            | 'trusted_advisor'
+            | undefined,
+        });
+
+        // Start analytics tracking for this session
+        const { humanizationAnalytics } = await import('../conversation/humanization/analytics.js');
+        humanizationAnalytics.startSession(sessionId, userId);
+
+        // Load persisted humanization data (voice print, cross-session memory)
+        const restored = await initHumanizationPersistence(userId, sessionId);
+        if (restored.loaded) {
+          diag.state('🎭 Humanization state restored', {
+            voicePrint: restored.voicePrintRestored,
+            crossSession: restored.crossSessionRestored,
+            comfort: restored.comfortRestored,
+          });
+        }
+      } catch (humanizationInitErr) {
+        // Non-critical - humanization will work without persistence
+        diag.debug('Humanization init (non-critical)', { error: String(humanizationInitErr) });
+      }
+
+      // ===============================================
       // STEP 7b: INITIALIZE FRONTEND PUBLISHER
       // ===============================================
       // Centralized real-time communication with the frontend
@@ -4140,6 +4389,14 @@ export default defineAgent({
         greeting: greeting.substring(0, 100) + (greeting.length > 100 ? '...' : ''),
         length: greeting.length,
       });
+
+      // ===============================================
+      // STEP 8d: CROSS-SESSION VOICE ACKNOWLEDGMENT
+      // Note: This happens AFTER voice data is available (turn 2+)
+      // The acknowledgment is stored in userData.pendingCrossSessionAck
+      // and delivered after we have voice prosody to compare
+      // ===============================================
+      // Cross-session ack is now handled in sttNode after voice analysis
 
       // ===============================================
       // 🎧 DJ INTEGRATION: "Open the Show" moment
@@ -4778,6 +5035,42 @@ export default defineAgent({
             } catch (identityEndErr) {
               diag.warn('Identity session end failed (non-fatal)', {
                 error: String(identityEndErr),
+              });
+            }
+
+            // ================================================================
+            // ADVANCED HUMANIZATION: Persist state for next session
+            // Saves voice print, cross-session memory, comfort progression
+            // ================================================================
+            try {
+              const userId = services?.userId || 'anonymous';
+
+              // End humanization session
+              endHumanizationSession(sessionId);
+
+              // End analytics session and get stats
+              const { humanizationAnalytics } =
+                await import('../conversation/humanization/analytics.js');
+              const analyticsStats = humanizationAnalytics.endSession(sessionId);
+              if (analyticsStats) {
+                diag.session('📊 Humanization analytics', {
+                  totalHumanizations: analyticsStats.totalHumanizations,
+                  uniqueFeatures: analyticsStats.uniqueFeaturesUsed,
+                  avgBreathingSync: analyticsStats.avgBreathingSyncQuality.toFixed(2),
+                });
+              }
+
+              // Persist humanization data to Firestore
+              const saveResult = await saveHumanizationState(userId, sessionId);
+              if (saveResult.saved) {
+                diag.session('🎭 Humanization state persisted', { items: saveResult.items });
+              }
+
+              // Cleanup prosody bridge
+              cleanupProsodyBridge(sessionId);
+            } catch (humanizationEndErr) {
+              diag.warn('Humanization persistence failed (non-fatal)', {
+                error: String(humanizationEndErr),
               });
             }
 

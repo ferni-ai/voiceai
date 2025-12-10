@@ -13,7 +13,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { getUserId, handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = getLogger().child({ module: 'wellbeing-handler' });
 
@@ -68,17 +68,7 @@ interface SnapshotRequest {
 // HELPERS
 // ============================================================================
 
-function getUserId(req: IncomingMessage, url: URL): string | null {
-  const headerUserId = req.headers['x-user-id'];
-  if (headerUserId && typeof headerUserId === 'string') {
-    return headerUserId;
-  }
-  const queryUserId = url.searchParams.get('userId');
-  if (queryUserId) {
-    return queryUserId;
-  }
-  return null;
-}
+// getUserId imported from ./helpers.js
 
 async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
   return new Promise((resolve) => {

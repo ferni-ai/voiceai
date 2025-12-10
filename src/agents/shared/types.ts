@@ -190,6 +190,22 @@ export interface UserData {
 
   /** Whether we've already spoken the trial end prompt this session */
   hasSpokenTrialEndPrompt?: boolean;
+
+  // ============================================================
+  // ADVANCED HUMANIZATION: Voice State Insights
+  // Tracks pending voice-based observations ("you sound tired")
+  // ============================================================
+
+  /** Pending voice state insight to deliver at appropriate moment */
+  pendingVoiceInsight?: {
+    text: string;
+    ssml: string;
+    emotion: string;
+    confidence: number;
+  };
+
+  /** Whether voice insight was delivered this session */
+  deliveredVoiceInsight?: boolean;
 }
 
 // ============================================================================

@@ -108,9 +108,7 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-function getUserId(req: IncomingMessage, query: URLSearchParams): string | null {
-  return query.get('userId') || (req.headers['x-user-id'] as string) || null;
-}
+// getUserId available from ./helpers.js if needed
 
 // ============================================================================
 // ROUTE HANDLER

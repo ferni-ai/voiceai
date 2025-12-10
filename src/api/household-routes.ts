@@ -209,9 +209,16 @@ export async function handleHouseholdRoutes(
     const userId = addMemberMatch[1];
     try {
       const body = await getBody(req);
-      const member = parseJson(body) as HouseholdMember | null;
+      const parsed = parseJson(body);
 
-      if (!member || !member.name) {
+      if (!parsed || typeof parsed.name !== 'string') {
+        sendJson(res, 400, { error: 'Invalid member data' });
+        return true;
+      }
+
+      const member = parsed as unknown as HouseholdMember;
+
+      if (!member.name) {
         sendJson(res, 400, { error: 'Invalid member data' });
         return true;
       }

@@ -27,9 +27,8 @@ import {
 } from '../services/outreach/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
-import { parseRequestBody, sendJsonResponse } from './utils.js';
 
 const log = getLogger().child({ module: 'outreach-handler' });
 

@@ -94,9 +94,9 @@ import {
 // Conversation memory (using realtime-memory for actual persistence)
 import { getRedisCache } from '../memory/redis-cache.js';
 import {
-  getUserMemoryForAPI,
   getConversationContextForAPI,
   getConversationsWithTurnsForAPI,
+  getUserMemoryForAPI,
 } from '../services/realtime-memory.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -319,7 +319,9 @@ function sendJson(res: ServerResponse, status: number, data: any): void {
 }
 
 /**
- * Get user ID from request headers.
+ * Get user ID from request headers only.
+ * NOTE: Intentionally only checks headers (not query params) for security.
+ * For general use, import getUserId from ./helpers.js instead.
  */
 function getUserId(req: IncomingMessage): string | null {
   return (req.headers['x-user-id'] as string) || null;

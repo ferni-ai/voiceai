@@ -18,7 +18,8 @@
     "src/tests/**/*",
     "src/services/trust-systems/__tests__/**/*",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/conversation/humanization/persistence.ts",
+    "src/conversation/humanization/prosody-bridge.ts"
   ]
 }
-

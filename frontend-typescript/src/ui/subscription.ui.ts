@@ -224,7 +224,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
   const deviceId = appState.getState().deviceId;
 
   // Show loading state
-  toast.info('Confirming your upgrade...', 5000);
+  toast.info('Confirming your upgrade...');
 
   // Try to verify payment (with polling for webhook processing)
   const maxAttempts = 10;

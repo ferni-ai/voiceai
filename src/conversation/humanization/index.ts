@@ -63,17 +63,132 @@ import {
   resetComfortProgressionEngine,
 } from './comfort-progression.js';
 
+// Phase 3: Advanced Listening
+import { VoicePrintEngine, getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
+
+import {
+  AmbientAwarenessEngine,
+  getAmbientAwarenessEngine,
+  resetAmbientAwarenessEngine,
+} from './ambient-awareness.js';
+
+// Phase 4: Emotional Leadership
+import {
+  EmotionalLeadingEngine,
+  getEmotionalLeadingEngine,
+  resetEmotionalLeadingEngine,
+} from './emotional-leading.js';
+
+import {
+  BreathingSyncEngine,
+  getBreathingSyncEngine,
+  resetBreathingSyncEngine,
+} from './breathing-sync.js';
+
+// Phase 5: Cross-Session Intelligence
+import { CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
+
 // Types
 import type { HumanizationConfig, HumanizationContext, HumanizedResponseResult } from './types.js';
 
+// Analytics & Config (for orchestrator use)
+import { getHumanizationAnalytics } from './analytics.js';
+import { getHumanizationConfig } from './config.js';
+
+// Re-export all modules
+export * from './ambient-awareness.js';
+export * from './breathing-sync.js';
 export * from './catching-yourself.js';
 export * from './comfort-progression.js';
+export * from './cross-session-voice.js';
 export * from './disfluency-injection.js';
+export * from './emotional-leading.js';
 export * from './phonetic-mirroring.js';
 export * from './self-correction.js';
 export * from './session-dynamics.js';
 export * from './types.js';
 export * from './vocal-fatigue.js';
+export * from './voice-print.js';
+
+// Prosody bridge - connects voice agent audio to humanization
+export {
+  cleanupProsodyBridge,
+  getBridgeState,
+  getCrossSessionInsight,
+  getVoiceStateInsight,
+  inferAmbientFromProsody,
+  initProsodyBridge,
+  processProsodyForHumanization,
+  prosodyToBreathPattern,
+  prosodyToVoiceSnapshot,
+  type BridgeState,
+} from './prosody-bridge.js';
+
+// Persistence - save/load humanization state
+export {
+  clearHumanizationData,
+  initializeFromPersistence,
+  loadAllHumanizationData,
+  loadComfortState,
+  loadCrossSessionMemory,
+  loadVoicePrint,
+  persistOnSessionEnd,
+  saveAllHumanizationData,
+  saveComfortState,
+  saveCrossSessionMemory,
+  saveVoicePrint,
+  type HumanizationPersistenceBundle,
+} from './persistence.js';
+
+// Analytics - track humanization performance
+export {
+  getHumanizationAnalytics,
+  humanizationAnalytics,
+  resetHumanizationAnalytics,
+  type FeatureStats,
+  type GlobalAnalytics,
+  type HumanizationEvent,
+  type HumanizationEventType,
+  type HumanizationFeature,
+  type SessionAnalytics,
+} from './analytics.js';
+
+// Configuration - tunable thresholds and probabilities
+export {
+  CONSERVATIVE_CONFIG,
+  DEFAULT_HUMANIZATION_CONFIG,
+  EXPRESSIVE_CONFIG,
+  MINIMAL_CONFIG,
+  getHumanizationConfig,
+  humanizationConfig,
+  resetHumanizationConfig,
+  type HumanizationConfig,
+} from './config.js';
+
+// Voice agent integration - import specific exports to avoid conflicts
+export {
+  applyBreathingSync,
+  createVoiceSnapshot,
+  detectVoiceState,
+  getAmbientAcknowledgment,
+  getAmbientContext,
+  getBreathingSyncAdjustments,
+  getConversationPhase,
+  getCrossSessionAcknowledgment,
+  getEmotionalLeadingGuidance,
+  getEngineStates,
+  getPhaseBehavior,
+  getSessionState,
+  humanizeResponse,
+  isBehaviorUnlocked,
+  markCrossSessionAcknowledged,
+  onSessionEnd,
+  onSessionStart,
+  processUserMessage,
+  recordComfortEvent,
+  simulateBreathFromEmotion,
+  type HumanizationSessionState,
+} from './voice-agent-integration.js';
 
 const logger = createLogger({ module: 'Humanization' });
 
@@ -91,6 +206,14 @@ export interface HumanizationEngines {
   vocalFatigue: VocalFatigueEngine;
   sessionDynamics: SessionDynamicsEngine;
   comfortProgression: ComfortProgressionEngine;
+  // Phase 3: Advanced Listening
+  voicePrint: VoicePrintEngine;
+  ambientAwareness: AmbientAwarenessEngine;
+  // Phase 4: Emotional Leadership
+  emotionalLeading: EmotionalLeadingEngine;
+  breathingSync: BreathingSyncEngine;
+  // Phase 5: Cross-Session Intelligence
+  crossSessionVoice: CrossSessionVoiceEngine;
 }
 
 export interface HumanizationOrchestratorConfig {
@@ -124,13 +247,19 @@ const DEFAULT_ORCHESTRATOR_CONFIG: HumanizationOrchestratorConfig = {
 
 export class HumanizationOrchestrator {
   private sessionId: string;
+  private userId: string;
   private engines: HumanizationEngines;
   private config: HumanizationOrchestratorConfig;
   private sessionHumanizationCount = 0;
   private currentTurn = 0;
 
-  constructor(sessionId: string, config: Partial<HumanizationOrchestratorConfig> = {}) {
+  constructor(
+    sessionId: string,
+    config: Partial<HumanizationOrchestratorConfig> = {},
+    userId?: string
+  ) {
     this.sessionId = sessionId;
+    this.userId = userId || sessionId; // Fallback to sessionId if no userId
     this.config = { ...DEFAULT_ORCHESTRATOR_CONFIG, ...config };
     this.engines = {
       // Phase 1: Natural Imperfection
@@ -142,9 +271,17 @@ export class HumanizationOrchestrator {
       vocalFatigue: getVocalFatigueEngine(sessionId),
       sessionDynamics: getSessionDynamicsEngine(sessionId),
       comfortProgression: getComfortProgressionEngine(sessionId),
+      // Phase 3: Advanced Listening
+      voicePrint: getVoicePrintEngine(this.userId),
+      ambientAwareness: getAmbientAwarenessEngine(sessionId),
+      // Phase 4: Emotional Leadership
+      emotionalLeading: getEmotionalLeadingEngine(sessionId),
+      breathingSync: getBreathingSyncEngine(sessionId),
+      // Phase 5: Cross-Session Intelligence
+      crossSessionVoice: getCrossSessionVoiceEngine(this.userId),
     };
 
-    logger.debug({ sessionId }, '🎭 HumanizationOrchestrator initialized');
+    logger.debug({ sessionId, userId: this.userId }, '🎭 HumanizationOrchestrator initialized');
   }
 
   /**
@@ -170,6 +307,20 @@ export class HumanizationOrchestrator {
     context: Omit<HumanizationContext, 'responseText' | 'responseWordCount'>
   ): HumanizedResponseResult {
     this.currentTurn = context.turnCount;
+
+    // Get global config for probability thresholds
+    const globalConfig = getHumanizationConfig().getConfig();
+
+    // Check if humanization is globally enabled
+    if (!globalConfig.enabled) {
+      return {
+        original: response,
+        text: response,
+        ssml: response,
+        appliedHumanizations: [],
+        skippedFeatures: [{ feature: 'all', reason: 'Humanization disabled' }],
+      };
+    }
 
     // Build full context
     const fullContext: HumanizationContext = {
@@ -198,6 +349,9 @@ export class HumanizationOrchestrator {
       return result;
     }
 
+    // Check comfort threshold for advanced features
+    const comfortLevel = context.comfortLevel || 0.25;
+
     // Track how many humanizations we apply this response
     let appliedThisResponse = 0;
 
@@ -223,24 +377,51 @@ export class HumanizationOrchestrator {
     // ========================================================================
     // 2. SELF-CORRECTION (opening)
     // ========================================================================
-    if (appliedThisResponse < this.config.maxPerResponse) {
-      const selfCorrection = this.engines.selfCorrection.generate(fullContext);
-      if (selfCorrection) {
-        const applied = this.engines.selfCorrection.apply(result.text, selfCorrection);
-        result.text = applied.text;
-        result.ssml = applied.ssml;
-        result.appliedHumanizations.push(selfCorrection);
-        appliedThisResponse++;
-        this.sessionHumanizationCount++;
+    if (
+      appliedThisResponse < this.config.maxPerResponse &&
+      globalConfig.features.selfCorrection &&
+      comfortLevel >= globalConfig.comfortThresholds.allowSelfCorrection
+    ) {
+      // Apply config-based probability boost
+      const baseProbability = globalConfig.probabilities.selfCorrection;
+      const shouldTry = Math.random() < baseProbability + 0.5; // Engine handles final probability
+
+      if (shouldTry) {
+        const selfCorrection = this.engines.selfCorrection.generate(fullContext);
+        if (selfCorrection) {
+          const applied = this.engines.selfCorrection.apply(result.text, selfCorrection);
+          result.text = applied.text;
+          result.ssml = applied.ssml;
+          result.appliedHumanizations.push(selfCorrection);
+          appliedThisResponse++;
+          this.sessionHumanizationCount++;
+
+          // Track in analytics
+          getHumanizationAnalytics().recordApplied(this.sessionId, 'self_correction', {
+            correctionType: selfCorrection.correctionType,
+            turnCount: context.turnCount,
+          });
+        } else {
+          result.skippedFeatures.push({
+            feature: 'self_correction',
+            reason:
+              this.engines.selfCorrection.getState().usageCount >= 4
+                ? 'Max per session'
+                : 'Did not trigger',
+          });
+          getHumanizationAnalytics().recordSkipped(this.sessionId, 'self_correction');
+        }
       } else {
         result.skippedFeatures.push({
           feature: 'self_correction',
-          reason:
-            this.engines.selfCorrection.getState().usageCount >= 4
-              ? 'Max per session'
-              : 'Did not trigger',
+          reason: 'Below comfort threshold or config probability',
         });
       }
+    } else if (appliedThisResponse >= this.config.maxPerResponse) {
+      result.skippedFeatures.push({
+        feature: 'self_correction',
+        reason: 'Max per response reached',
+      });
     }
 
     // ========================================================================
@@ -248,20 +429,39 @@ export class HumanizationOrchestrator {
     // ========================================================================
     if (
       appliedThisResponse < this.config.maxPerResponse &&
-      !result.appliedHumanizations.some((h) => h.type === 'self_correction')
+      !result.appliedHumanizations.some((h) => h.type === 'self_correction') &&
+      globalConfig.features.disfluency &&
+      comfortLevel >= globalConfig.comfortThresholds.allowDisfluency
     ) {
-      const disfluency = this.engines.disfluency.generate(fullContext);
-      if (disfluency) {
-        const applied = this.engines.disfluency.apply(result.text, disfluency);
-        result.text = applied.text;
-        result.ssml = applied.ssml;
-        result.appliedHumanizations.push(disfluency);
-        appliedThisResponse++;
-        this.sessionHumanizationCount++;
+      const baseProbability = globalConfig.probabilities.disfluency;
+      const shouldTry = Math.random() < baseProbability + 0.5;
+
+      if (shouldTry) {
+        const disfluency = this.engines.disfluency.generate(fullContext);
+        if (disfluency) {
+          const applied = this.engines.disfluency.apply(result.text, disfluency);
+          result.text = applied.text;
+          result.ssml = applied.ssml;
+          result.appliedHumanizations.push(disfluency);
+          appliedThisResponse++;
+          this.sessionHumanizationCount++;
+
+          // Track in analytics
+          getHumanizationAnalytics().recordApplied(this.sessionId, 'disfluency', {
+            disfluencyType: disfluency.disfluencyType,
+            turnCount: context.turnCount,
+          });
+        } else {
+          result.skippedFeatures.push({
+            feature: 'disfluency',
+            reason: 'Did not trigger',
+          });
+          getHumanizationAnalytics().recordSkipped(this.sessionId, 'disfluency');
+        }
       } else {
         result.skippedFeatures.push({
           feature: 'disfluency',
-          reason: 'Did not trigger',
+          reason: 'Below comfort threshold or config probability',
         });
       }
     }
@@ -269,27 +469,41 @@ export class HumanizationOrchestrator {
     // ========================================================================
     // 4. CATCHING YOURSELF (closing)
     // ========================================================================
-    if (appliedThisResponse < this.config.maxPerResponse) {
-      // Update catching yourself state
-      this.engines.catchingYourself.setCurrentTurn(context.turnCount);
-      this.engines.catchingYourself.recordAgentResponse(
-        fullContext.responseWordCount,
-        context.recentTopics
-      );
+    if (
+      appliedThisResponse < this.config.maxPerResponse &&
+      globalConfig.features.catchingYourself
+    ) {
+      const baseProbability = globalConfig.probabilities.catchingYourself;
+      const shouldTry = Math.random() < baseProbability + 0.5;
 
-      const catching = this.engines.catchingYourself.generate(fullContext);
-      if (catching) {
-        const applied = this.engines.catchingYourself.apply(result.text, catching);
-        result.text = applied.text;
-        result.ssml = applied.ssml;
-        result.appliedHumanizations.push(catching);
-        appliedThisResponse++;
-        this.sessionHumanizationCount++;
-      } else {
-        result.skippedFeatures.push({
-          feature: 'catching_yourself',
-          reason: 'Did not trigger',
-        });
+      if (shouldTry) {
+        // Update catching yourself state
+        this.engines.catchingYourself.setCurrentTurn(context.turnCount);
+        this.engines.catchingYourself.recordAgentResponse(
+          fullContext.responseWordCount,
+          context.recentTopics
+        );
+
+        const catching = this.engines.catchingYourself.generate(fullContext);
+        if (catching) {
+          const applied = this.engines.catchingYourself.apply(result.text, catching);
+          result.text = applied.text;
+          result.ssml = applied.ssml;
+          result.appliedHumanizations.push(catching);
+          appliedThisResponse++;
+          this.sessionHumanizationCount++;
+
+          // Track in analytics
+          getHumanizationAnalytics().recordApplied(this.sessionId, 'catching_yourself', {
+            turnCount: context.turnCount,
+          });
+        } else {
+          result.skippedFeatures.push({
+            feature: 'catching_yourself',
+            reason: 'Did not trigger',
+          });
+          getHumanizationAnalytics().recordSkipped(this.sessionId, 'catching_yourself');
+        }
       }
     }
 
@@ -391,10 +605,76 @@ export class HumanizationOrchestrator {
       vocalFatigue: this.engines.vocalFatigue.getState(),
       sessionDynamics: this.engines.sessionDynamics.getState(),
       comfortProgression: this.engines.comfortProgression.getState(),
+      // Phase 3
+      voicePrint: {
+        calibrated: this.engines.voicePrint.isCalibrated(),
+        progress: this.engines.voicePrint.getCalibrationProgress(),
+      },
+      ambientAwareness: this.engines.ambientAwareness.getCurrentContext(),
+      // Phase 4
+      emotionalLeading: this.engines.emotionalLeading.getState(),
+      breathingSync: this.engines.breathingSync.getState(),
+      // Phase 5
+      crossSessionVoice: this.engines.crossSessionVoice.getHistorySummary(),
       // Orchestrator
       sessionTotal: this.sessionHumanizationCount,
       currentTurn: this.currentTurn,
     };
+  }
+
+  /**
+   * Get emotional leading decision
+   */
+  getEmotionalLeadingDecision(
+    userState: {
+      valence: number;
+      arousal: number;
+      emotion: string;
+      distressLevel: number;
+      energy: 'high' | 'medium' | 'low';
+      inCrisis: boolean;
+    },
+    userMessage: string
+  ) {
+    return this.engines.emotionalLeading.decideLeading(
+      { ...userState, negativeSpiralIndicators: 0 },
+      userMessage,
+      {
+        turnCount: this.currentTurn,
+        comfortLevel: this.engines.comfortProgression.getComfortLevel(),
+        recentTopics: [],
+      }
+    );
+  }
+
+  /**
+   * Get ambient awareness context
+   */
+  getAmbientContext() {
+    return this.engines.ambientAwareness.getCurrentContext();
+  }
+
+  /**
+   * Get cross-session acknowledgment if available
+   */
+  getCrossSessionAcknowledgment(currentVoice: {
+    pitchMean: number;
+    pitchMin: number;
+    pitchMax: number;
+    pitchVariance: number;
+    speechRate: number;
+    pauseRate: number;
+    avgPauseDuration: number;
+    energyMean: number;
+    energyVariance: number;
+    breathiness: number;
+    roughness: number;
+    strain: number;
+    valence: number;
+    arousal: number;
+    timestamp: Date;
+  }) {
+    return this.engines.crossSessionVoice.generateAcknowledgment(currentVoice);
   }
 
   /**
@@ -410,6 +690,13 @@ export class HumanizationOrchestrator {
     this.engines.vocalFatigue.reset();
     this.engines.sessionDynamics.reset();
     this.engines.comfortProgression.reset();
+    // Phase 3 (session-based only)
+    this.engines.voicePrint.resetSession();
+    this.engines.ambientAwareness.reset();
+    // Phase 4
+    this.engines.emotionalLeading.reset();
+    this.engines.breathingSync.reset();
+    // Phase 5 - don't reset cross-session memory
     // Orchestrator
     this.sessionHumanizationCount = 0;
     this.currentTurn = 0;
@@ -499,10 +786,11 @@ const orchestrators = new Map<string, HumanizationOrchestrator>();
  */
 export function getHumanizationOrchestrator(
   sessionId: string,
-  config?: Partial<HumanizationOrchestratorConfig>
+  config?: Partial<HumanizationOrchestratorConfig>,
+  userId?: string
 ): HumanizationOrchestrator {
   if (!orchestrators.has(sessionId)) {
-    orchestrators.set(sessionId, new HumanizationOrchestrator(sessionId, config));
+    orchestrators.set(sessionId, new HumanizationOrchestrator(sessionId, config, userId));
   }
   return orchestrators.get(sessionId)!;
 }
@@ -510,7 +798,7 @@ export function getHumanizationOrchestrator(
 /**
  * Reset humanization for a session
  */
-export function resetHumanization(sessionId: string): void {
+export function resetHumanization(sessionId: string, userId?: string): void {
   const orchestrator = orchestrators.get(sessionId);
   if (orchestrator) {
     orchestrator.reset();
@@ -527,6 +815,15 @@ export function resetHumanization(sessionId: string): void {
   resetVocalFatigueEngine(sessionId);
   resetSessionDynamicsEngine(sessionId);
   resetComfortProgressionEngine(sessionId);
+  // Phase 3
+  if (userId) {
+    resetVoicePrintEngine(userId);
+  }
+  resetAmbientAwarenessEngine(sessionId);
+  // Phase 4
+  resetEmotionalLeadingEngine(sessionId);
+  resetBreathingSyncEngine(sessionId);
+  // Phase 5 - don't reset cross-session by default
 }
 
 /**

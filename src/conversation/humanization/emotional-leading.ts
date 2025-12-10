@@ -153,12 +153,12 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
       "You know what I'm curious about...",
       'Something just came to mind...',
       "I'm noticing something interesting here...",
-      "What if we looked at this differently...",
+      'What if we looked at this differently...',
     ],
     questionTypes: [
       "What's something you're looking forward to?",
-      "When do you feel most alive?",
-      "What would make today even a little better?",
+      'When do you feel most alive?',
+      'What would make today even a little better?',
       "What's one thing that's working well right now?",
     ],
     vocalTargets: {
@@ -178,10 +178,10 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
       "Hold on—let's just be here for a moment...",
     ],
     questionTypes: [
-      "What do you need right now?",
-      "Where do you feel this in your body?",
+      'What do you need right now?',
+      'Where do you feel this in your body?',
       "What's one thing you know for sure?",
-      "What would help you feel more grounded?",
+      'What would help you feel more grounded?',
     ],
     vocalTargets: {
       pitchShift: '-3%',
@@ -195,13 +195,13 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
   ground: {
     bridgePhrases: [
       "Let's get concrete for a moment...",
-      "Let me ask you something specific...",
+      'Let me ask you something specific...',
       'Can we zoom in on one thing?',
       "What's the most immediate thing here?",
     ],
     questionTypes: [
       "What's the next small step?",
-      "What do you have control over right now?",
+      'What do you have control over right now?',
       "What's one thing you can do today?",
       "Who's one person who could help?",
     ],
@@ -219,13 +219,13 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
       "I hear how hard this is. And I'm also curious...",
       "That's really tough. Can I share something I notice?",
       "I don't want to dismiss any of this. And...",
-      "This is heavy. Let me offer another angle...",
+      'This is heavy. Let me offer another angle...',
     ],
     questionTypes: [
-      "What has helped you through hard times before?",
-      "What would you tell a friend in this situation?",
+      'What has helped you through hard times before?',
+      'What would you tell a friend in this situation?',
       "What's one thing you're proud of handling?",
-      "What might you look back and see differently?",
+      'What might you look back and see differently?',
     ],
     vocalTargets: {
       pitchShift: '+2%',
@@ -238,16 +238,16 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
 
   validate: {
     bridgePhrases: [
-      "That makes complete sense...",
-      "Of course you feel that way...",
-      "Anyone would feel like that...",
+      'That makes complete sense...',
+      'Of course you feel that way...',
+      'Anyone would feel like that...',
       "That's a really human response...",
     ],
     questionTypes: [
-      "What else is coming up for you?",
-      "Is there more to this?",
+      'What else is coming up for you?',
+      'Is there more to this?',
       "What's underneath that feeling?",
-      "What would help you feel heard?",
+      'What would help you feel heard?',
     ],
     vocalTargets: {
       pitchShift: '-2%',
@@ -259,13 +259,8 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
   },
 
   hold_space: {
-    bridgePhrases: [
-      "I'm here...",
-      "Take your time...",
-      "I'm with you...",
-      "*present silence*",
-    ],
-    questionTypes: ["What do you need right now?", "I'm here. What feels right?"],
+    bridgePhrases: ["I'm here...", 'Take your time...', "I'm with you...", '*present silence*'],
+    questionTypes: ['What do you need right now?', "I'm here. What feels right?"],
     vocalTargets: {
       pitchShift: '0%',
       tempoMultiplier: 0.9,
@@ -484,9 +479,7 @@ export class EmotionalLeadingEngine {
     }
 
     // Don't lead if recent attempts failed
-    const recentFailures = this.state.recentAttempts
-      .slice(-3)
-      .filter((a) => !a.success).length;
+    const recentFailures = this.state.recentAttempts.slice(-3).filter((a) => !a.success).length;
     if (recentFailures >= 2) {
       return 'Recent leading attempts unsuccessful';
     }

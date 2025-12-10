@@ -123,7 +123,7 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
     id: 'nayan-patel',
     displayName: 'Nayan',
     role: 'The Sage',
-    description: 'Lifetime advisor. Small, consistent actions create extraordinary results.',
+    description: 'Lifetime coach. Small, consistent actions create extraordinary results.',
     unlocksAt: 'deep-partnership',
     introductionMessage: "Nayan is the wisest person I know. You've earned this.",
     teaserMessage: "The sage only speaks to those who've proven their commitment.",

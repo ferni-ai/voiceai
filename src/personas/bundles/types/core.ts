@@ -32,6 +32,19 @@ export interface PersonaBundleManifest {
   handoff?: BundleHandoffTransition;
   /** Cognitive profile - how this persona thinks */
   cognitive?: BundleCognitive;
+  /** Team handler configuration for multi-agent coordination */
+  team_handlers?: BundleTeamHandlers;
+}
+
+/**
+ * Team handler configuration for multi-agent coordination
+ */
+export interface BundleTeamHandlers {
+  capabilities: string[];
+  handlers: string[];
+  excluded?: string[];
+  can_receive_from?: string[];
+  can_send_to?: string[];
 }
 
 export interface BundleIdentity {

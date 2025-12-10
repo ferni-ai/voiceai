@@ -230,22 +230,22 @@ const EMOTION_DEVIATION_TEMPLATES: Record<string, Partial<VoiceDeviation>> = {
 const VOICE_ACKNOWLEDGMENTS: Record<string, string[]> = {
   tired: [
     'You sound a bit tired today. Want to keep this light?',
-    "Your voice is softer than usual. Long day?",
+    'Your voice is softer than usual. Long day?',
     "I'm picking up some tiredness in your voice. Everything okay?",
   ],
   excited: [
     "There's something in your voice—you sound energized!",
-    'I can hear you\'re excited about this.',
+    "I can hear you're excited about this.",
     "Your energy is coming through! What's got you so animated?",
   ],
   anxious: [
-    'I notice you\'re speaking a bit faster. Everything okay?',
-    'Take a breath if you need. I\'m here.',
+    "I notice you're speaking a bit faster. Everything okay?",
+    "Take a breath if you need. I'm here.",
     "There's some tension I'm picking up. Want to talk about it?",
   ],
   stressed: [
     "There's some tension in your voice. Want to talk about it?",
-    'You sound like you\'re carrying something heavy.',
+    "You sound like you're carrying something heavy.",
     "I can hear the stress. What's weighing on you?",
   ],
   sad: [
@@ -253,10 +253,7 @@ const VOICE_ACKNOWLEDGMENTS: Record<string, string[]> = {
     "I'm hearing something different in your voice. How are you really doing?",
     "There's a quietness to you today. Want to share what's on your mind?",
   ],
-  happy: [
-    "There's a lightness in your voice today!",
-    'You sound good! Something nice happening?',
-  ],
+  happy: ["There's a lightness in your voice today!", 'You sound good! Something nice happening?'],
   more_relaxed: [
     'You sound more relaxed than last time we talked.',
     "There's a calmness in your voice today.",
@@ -324,8 +321,7 @@ export class VoicePrintEngine {
     const baseline = this.voicePrint.baseline;
 
     // Calculate deviations
-    const pitchDeviation =
-      (currentSnapshot.pitchMean - baseline.avgPitchHz) / baseline.avgPitchHz;
+    const pitchDeviation = (currentSnapshot.pitchMean - baseline.avgPitchHz) / baseline.avgPitchHz;
     const tempoDeviation =
       (currentSnapshot.speechRate - baseline.avgWordsPerMinute) / baseline.avgWordsPerMinute;
     const energyDeviation = (currentSnapshot.energyMean - baseline.avgEnergy) / baseline.avgEnergy;
@@ -393,9 +389,9 @@ export class VoicePrintEngine {
     }
 
     if (moodChange > 0.2) {
-      insight = "Your voice has lightened up since we started talking.";
+      insight = 'Your voice has lightened up since we started talking.';
     } else if (moodChange < -0.2) {
-      insight = "Something shifted since we started. Want to talk about it?";
+      insight = 'Something shifted since we started. Want to talk about it?';
     }
 
     return { energyChange, moodChange, insight };

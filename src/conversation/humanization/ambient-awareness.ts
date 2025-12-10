@@ -144,7 +144,7 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
     },
     acknowledgments: [
       "Sounds like you're driving. Want me to keep this brief?",
-      "I hear road sounds—safe to talk?",
+      'I hear road sounds—safe to talk?',
       "On the road? I'll keep it simple.",
     ],
     ssmlAcknowledgments: [
@@ -181,7 +181,7 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
     },
     acknowledgments: [
       "Sounds like you're somewhere busy. Good time to talk?",
-      "I hear people around—let me know if you need to go.",
+      'I hear people around—let me know if you need to go.',
       'Seems public there. Want to chat later instead?',
     ],
     ssmlAcknowledgments: [
@@ -216,7 +216,7 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
       attentionMayBeDivided: true,
     },
     acknowledgments: [
-      "I hear something in the background. Want me to wait while you turn it down?",
+      'I hear something in the background. Want me to wait while you turn it down?',
     ],
     ssmlAcknowledgments: [],
     volumeAdjust: 1.05,
@@ -234,7 +234,7 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
     },
     acknowledgments: [
       "Sounds like you've got a little one there! No rush.",
-      "I hear a kiddo—want me to pause if you need to step away?",
+      'I hear a kiddo—want me to pause if you need to step away?',
       'Little ears around? Just let me know if you need a moment.',
     ],
     ssmlAcknowledgments: [
@@ -253,7 +253,10 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
       mayBeInterrupted: true,
       attentionMayBeDivided: false,
     },
-    acknowledgments: ['I hear a furry friend! Need to attend to them?', 'Sounds like someone wants attention!'],
+    acknowledgments: [
+      'I hear a furry friend! Need to attend to them?',
+      'Sounds like someone wants attention!',
+    ],
     ssmlAcknowledgments: [],
     volumeAdjust: 1.0,
     paceAdjust: 1.0,
@@ -378,7 +381,7 @@ const AMBIENT_ADAPTATIONS: Record<AmbientSound, AmbientAdaptation> = {
       mayBeInterrupted: true,
       attentionMayBeDivided: true,
     },
-    acknowledgments: ['Phone ringing! Need to grab that?', "Go ahead if you need to get that."],
+    acknowledgments: ['Phone ringing! Need to grab that?', 'Go ahead if you need to get that.'],
     ssmlAcknowledgments: [],
     volumeAdjust: 1.0,
     paceAdjust: 1.0,
@@ -464,11 +467,7 @@ function inferPrivacyLevel(sounds: AmbientSound[], location: LocationType): Priv
   if (sounds.includes('crowd') || location === 'public') {
     return 'public';
   }
-  if (
-    sounds.includes('office') ||
-    sounds.includes('baby_child') ||
-    sounds.includes('gym')
-  ) {
+  if (sounds.includes('office') || sounds.includes('baby_child') || sounds.includes('gym')) {
     return 'semi_private';
   }
   if (location === 'home' || location === 'car' || sounds.includes('quiet')) {
@@ -506,7 +505,9 @@ export class AmbientAwarenessEngine {
       .map((s) => s.sound);
 
     // Get all detected sounds for inference
-    const allSounds = [primarySound, ...secondarySounds].filter((s): s is AmbientSound => s !== null);
+    const allSounds = [primarySound, ...secondarySounds].filter(
+      (s): s is AmbientSound => s !== null
+    );
 
     // Infer location and privacy
     const likelyLocation = inferLocation(allSounds);
@@ -679,7 +680,8 @@ export class AmbientAwarenessEngine {
         if (adaptation.implications.shouldAvoidSensitiveTopics)
           implications.shouldAvoidSensitiveTopics = true;
         if (adaptation.implications.mayBeInterrupted) implications.mayBeInterrupted = true;
-        if (adaptation.implications.attentionMayBeDivided) implications.attentionMayBeDivided = true;
+        if (adaptation.implications.attentionMayBeDivided)
+          implications.attentionMayBeDivided = true;
       }
     }
 

@@ -1,12 +1,12 @@
 /**
  * Event Type Definitions
- * 
+ *
  * Defines all custom events used in the Voice AI application.
  * Provides type-safe event handling with strong typing.
  */
 
-import type { PersonaId } from './persona.js';
 import { createLogger } from '../utils/logger.js';
+import type { PersonaId } from './persona.js';
 
 const log = createLogger('Events');
 
@@ -17,7 +17,7 @@ const log = createLogger('Events');
 /**
  * Connection state for the LiveKit room.
  */
-export type ConnectionState = 
+export type ConnectionState =
   | 'disconnected'
   | 'connecting'
   | 'connected'
@@ -41,7 +41,7 @@ export interface ConnectionStateEvent {
 /**
  * Direction of an agent handoff.
  */
-export type HandoffDirection = 
+export type HandoffDirection =
   | 'jack-to-peter'
   | 'peter-to-jack'
   | 'coach-to-team'
@@ -56,11 +56,17 @@ export type HandoffDirection =
  * 4. handoff_failed - (Optional) Recovery when something goes wrong
  * 5. handoff_cancelled - (Optional) User or system cancelled the handoff (FIX BUG #32)
  */
-export type HandoffEventType = 'handoff' | 'handoff_acknowledged' | 'handoff_started' | 'handoff_complete' | 'handoff_failed' | 'handoff_cancelled';
+export type HandoffEventType =
+  | 'handoff'
+  | 'handoff_acknowledged'
+  | 'handoff_started'
+  | 'handoff_complete'
+  | 'handoff_failed'
+  | 'handoff_cancelled';
 
 /**
  * Event fired when agents hand off to each other.
- * 
+ *
  * Backend may send various agent ID formats:
  * - Full IDs: 'jack-bogle', 'peter-lynch', 'comm-specialist', 'spend-save', 'event-planner'
  * - Short aliases: 'jack', 'peter', 'alex', 'maya', 'jordan'
@@ -123,7 +129,7 @@ export interface AudioStateEvent {
 /**
  * Spotify player state.
  */
-export type SpotifyState = 
+export type SpotifyState =
   | 'uninitialized'
   | 'initializing'
   | 'ready'
@@ -150,7 +156,7 @@ export interface SpotifyStateEvent {
 
 /**
  * Music playback state from the agent.
- * 
+ *
  * - 'playing' = Music actively playing
  * - 'ducking' = Agent speaking over music (DJ fade-down)
  * - 'fading'  = Track ending soon (~5 seconds left)
@@ -159,7 +165,7 @@ export interface SpotifyStateEvent {
  * - 'stopped' = Playback stopped
  * - 'idle'    = No music loaded
  */
-export type MusicPlaybackState = 
+export type MusicPlaybackState =
   | 'idle'
   | 'playing'
   | 'ducking'
@@ -171,6 +177,9 @@ export type MusicPlaybackState =
 /**
  * Event fired when music playback state changes (from agent backend).
  * This is separate from Spotify which is for web SDK.
+ *
+ * Backend sends `type: 'music_state'` with `track: { name, artist }` structure.
+ * We normalize to MusicEvent interface for the frontend handlers.
  */
 export interface MusicEvent {
   readonly type: 'music';
@@ -189,15 +198,62 @@ export interface MusicEvent {
 }
 
 /**
+ * Raw music state message from backend (before normalization).
+ */
+interface RawMusicStateMessage {
+  readonly type: 'music_state';
+  readonly state: MusicPlaybackState;
+  readonly track?: {
+    readonly name: string;
+    readonly artist?: string;
+  };
+  readonly isAmbient?: boolean;
+  readonly isOurSong?: boolean;
+  readonly ourSongContext?: string;
+}
+
+/**
  * Type guard for music messages.
+ * Backend sends `type: 'music_state'` - we check for that and normalize.
  */
 export function isMusicMessage(data: unknown): data is MusicEvent {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    (data as Record<string, unknown>)['type'] === 'music'
-  );
+  if (typeof data !== 'object' || data === null || !('type' in data)) {
+    return false;
+  }
+
+  const type = (data as Record<string, unknown>)['type'];
+  // Accept both 'music' (legacy) and 'music_state' (from backend)
+  return type === 'music' || type === 'music_state';
+}
+
+/**
+ * Normalize raw backend music message to frontend MusicEvent format.
+ */
+export function normalizeMusicMessage(data: unknown): MusicEvent | null {
+  if (!isMusicMessage(data)) {
+    return null;
+  }
+
+  // Type assertion is needed because isMusicMessage can't narrow to the union
+  const raw = data as RawMusicStateMessage | MusicEvent;
+
+  // If already normalized (type: 'music'), return as-is
+  if (raw.type === 'music') {
+    // After the type check, raw is narrowed to MusicEvent
+    return raw;
+  }
+
+  // After the type check, raw is narrowed to RawMusicStateMessage
+  return {
+    type: 'music',
+    state: raw.state,
+    trackName: raw.track?.name,
+    artistName: raw.track?.artist,
+    isAmbient: raw.isAmbient,
+    isOurSong: raw.isOurSong,
+    ourSongContext: raw.ourSongContext,
+    timestamp: Date.now(),
+  };
 }
 
 // ============================================================================
@@ -236,37 +292,49 @@ export interface DataMessage {
  * Type guard for handoff messages.
  * Validates that the message has the required structure for a handoff event.
  * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
- * 
+ *
  * FIX BUG: More lenient validation - accepts 'target' OR 'newAgent' for all types
  */
 export function isHandoffMessage(data: unknown): data is HandoffEvent {
   if (typeof data !== 'object' || data === null) return false;
-  
+
   const msg = data as Record<string, unknown>;
-  
+
   // Must have type: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', or 'handoff_cancelled'
-  const validTypes = ['handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'];
+  const validTypes = [
+    'handoff',
+    'handoff_acknowledged',
+    'handoff_started',
+    'handoff_complete',
+    'handoff_failed',
+    'handoff_cancelled',
+  ];
   if (!validTypes.includes(msg['type'] as string)) return false;
-  
+
   // DEBUG: Log handoff messages to help diagnose issues
-  log.debug(`Checking handoff message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`);
-  
+  log.debug(
+    `Checking handoff message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`
+  );
+
   // Accept either 'target' OR 'newAgent' for all handoff types (backend may use either)
-  const hasAgent = (typeof msg['target'] === 'string' && msg['target'] !== '') ||
-                   (typeof msg['newAgent'] === 'string' && msg['newAgent'] !== '');
-  
+  const hasAgent =
+    (typeof msg['target'] === 'string' && msg['target'] !== '') ||
+    (typeof msg['newAgent'] === 'string' && msg['newAgent'] !== '');
+
   // For failed events, agent field is optional (might just have error)
   if (msg['type'] === 'handoff_failed') {
     return true; // Always accept failed messages
   }
-  
+
   return hasAgent;
 }
 
 /**
  * Check if a handoff was acknowledged (request received).
  */
-export function isHandoffAcknowledged(data: unknown): data is HandoffEvent & { type: 'handoff_acknowledged' } {
+export function isHandoffAcknowledged(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_acknowledged' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_acknowledged';
 }
@@ -274,7 +342,9 @@ export function isHandoffAcknowledged(data: unknown): data is HandoffEvent & { t
 /**
  * Check if a handoff is just starting (for loading state).
  */
-export function isHandoffStarted(data: unknown): data is HandoffEvent & { type: 'handoff_started' } {
+export function isHandoffStarted(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_started' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_started';
 }
@@ -282,7 +352,9 @@ export function isHandoffStarted(data: unknown): data is HandoffEvent & { type: 
 /**
  * Check if a handoff has completed (agent ready).
  */
-export function isHandoffComplete(data: unknown): data is HandoffEvent & { type: 'handoff_complete' } {
+export function isHandoffComplete(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_complete' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_complete';
 }
@@ -298,7 +370,9 @@ export function isHandoffFailed(data: unknown): data is HandoffEvent & { type: '
 /**
  * FIX BUG #32: Check if a handoff was cancelled.
  */
-export function isHandoffCancelled(data: unknown): data is HandoffEvent & { type: 'handoff_cancelled' } {
+export function isHandoffCancelled(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_cancelled' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_cancelled';
 }
@@ -332,7 +406,14 @@ export function isStateReset(data: unknown): data is StateResetEvent {
 /**
  * Detected voice emotion from user's speech.
  */
-export type VoiceEmotion = 'neutral' | 'happy' | 'sad' | 'anxious' | 'excited' | 'frustrated' | 'calm';
+export type VoiceEmotion =
+  | 'neutral'
+  | 'happy'
+  | 'sad'
+  | 'anxious'
+  | 'excited'
+  | 'frustrated'
+  | 'calm';
 
 /**
  * Emotion event fired when voice analysis detects emotion changes.
@@ -340,10 +421,10 @@ export type VoiceEmotion = 'neutral' | 'happy' | 'sad' | 'anxious' | 'excited' |
 export interface EmotionEvent {
   readonly type: 'emotion';
   readonly emotion: VoiceEmotion;
-  readonly confidence: number;  // 0-1
-  readonly intensity: number;   // 0-1
+  readonly confidence: number; // 0-1
+  readonly intensity: number; // 0-1
   readonly timestamp: number;
-  readonly message?: string;    // Optional message from agent
+  readonly message?: string; // Optional message from agent
 }
 
 /**
@@ -367,22 +448,18 @@ export function isEmotionMessage(data: unknown): data is EmotionEvent {
  * This enables subtle UI changes that reflect the persona's current state.
  */
 export type PersonaMood =
-  | 'energized'     // High energy, animated
-  | 'reflective'    // Thoughtful, story-heavy
-  | 'playful'       // Light-hearted, joking
-  | 'grounded'      // Calm, centered
-  | 'tired_but_present'  // Low energy but engaged
+  | 'energized' // High energy, animated
+  | 'reflective' // Thoughtful, story-heavy
+  | 'playful' // Light-hearted, joking
+  | 'grounded' // Calm, centered
+  | 'tired_but_present' // Low energy but engaged
   | 'philosophical' // Deep, big-picture
-  | 'nostalgic';    // Memory-heavy, wistful
+  | 'nostalgic'; // Memory-heavy, wistful
 
 /**
  * Relationship stage with the user.
  */
-export type RelationshipStage =
-  | 'stranger'
-  | 'acquaintance'
-  | 'friend'
-  | 'trusted_advisor';
+export type RelationshipStage = 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 
 /**
  * Mood event from the agent's humanizing system.
@@ -390,9 +467,9 @@ export type RelationshipStage =
 export interface MoodEvent {
   readonly type: 'mood';
   readonly state: PersonaMood;
-  readonly energyLevel: number;  // 0-1
+  readonly energyLevel: number; // 0-1
   readonly relationshipStage: RelationshipStage;
-  readonly hasTransition?: boolean;  // True if relationship just deepened
+  readonly hasTransition?: boolean; // True if relationship just deepened
   readonly timestamp: number;
 }
 
@@ -449,9 +526,9 @@ export function isCelebrationMessage(data: unknown): data is CelebrationEvent {
  */
 export interface ExpressionEvent {
   readonly type: 'expression';
-  readonly emoji: string;           // The emoji to morph into
-  readonly meaning?: string;        // Optional explanation
-  readonly duration?: number;       // How long to hold (ms)
+  readonly emoji: string; // The emoji to morph into
+  readonly meaning?: string; // Optional explanation
+  readonly duration?: number; // How long to hold (ms)
   readonly timestamp: number;
 }
 
@@ -532,7 +609,13 @@ export function isEngagementMessage(data: unknown): data is EngagementEvent {
  */
 export interface EngagementTriggerEvent {
   readonly type: 'engagement_trigger';
-  readonly triggerType: 'streak_due' | 'streak_milestone' | 'prediction_result' | 'team_suggestion' | 'ritual_reminder' | 'weather_check';
+  readonly triggerType:
+    | 'streak_due'
+    | 'streak_milestone'
+    | 'prediction_result'
+    | 'team_suggestion'
+    | 'ritual_reminder'
+    | 'weather_check';
   readonly personaId: string;
   readonly message: string;
   readonly priority: 'low' | 'medium' | 'high';
@@ -630,4 +713,3 @@ export type EventListener<T extends AppEvent> = (event: T) => void;
 export type EventListenerMap = {
   [K in AppEventType]?: Set<EventListener<ExtractEvent<K>>>;
 };
-

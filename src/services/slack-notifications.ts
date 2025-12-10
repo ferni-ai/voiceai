@@ -79,7 +79,8 @@ export type NotificationType =
   | 'incident_opened'
   | 'incident_resolved'
   | 'health_degraded'
-  | 'health_recovered';
+  | 'health_recovered'
+  | 'crisis_alert';
 
 export interface NotificationContext {
   type: NotificationType;
@@ -99,6 +100,7 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 const SLACK_DEPLOYMENTS_WEBHOOK = process.env.SLACK_DEPLOYMENTS_WEBHOOK || SLACK_WEBHOOK_URL;
 const SLACK_ALERTS_WEBHOOK = process.env.SLACK_ALERTS_WEBHOOK || SLACK_WEBHOOK_URL;
 const SLACK_ROLLOUTS_WEBHOOK = process.env.SLACK_ROLLOUTS_WEBHOOK || SLACK_WEBHOOK_URL;
+const SLACK_SAFETY_WEBHOOK = process.env.SLACK_SAFETY_WEBHOOK || SLACK_ALERTS_WEBHOOK;
 
 const WEBHOOK_TIMEOUT_MS = 10000;
 
@@ -124,6 +126,7 @@ const TYPE_EMOJIS: Record<NotificationType, string> = {
   incident_resolved: '✅',
   health_degraded: '⚠️',
   health_recovered: '💚',
+  crisis_alert: '🛡️',
 };
 
 // ============================================================================
@@ -140,6 +143,7 @@ export class SlackNotificationService {
       deployments: SLACK_DEPLOYMENTS_WEBHOOK,
       alerts: SLACK_ALERTS_WEBHOOK,
       rollouts: SLACK_ROLLOUTS_WEBHOOK,
+      safety: SLACK_SAFETY_WEBHOOK,
     };
 
     if (!this.defaultWebhook) {
@@ -293,6 +297,61 @@ export class SlackNotificationService {
     });
   }
 
+  /**
+   * Send a crisis alert notification for user safety events.
+   *
+   * This is used when critical/emergency crisis events are detected.
+   * Alerts go to a dedicated safety channel for immediate attention.
+   */
+  async notifyCrisisAlert(details: {
+    userId: string;
+    crisisType: string;
+    severity: 'critical' | 'emergency';
+    timestamp: string;
+    resourcesProvided: boolean;
+    userAcceptedHelp?: boolean;
+    metadata?: {
+      sessionId?: string;
+      personaId?: string;
+      conversationTurnCount?: number;
+    };
+  }): Promise<boolean> {
+    const title =
+      details.severity === 'emergency'
+        ? `EMERGENCY: ${details.crisisType} detected`
+        : `Critical Crisis: ${details.crisisType} detected`;
+
+    const message = [
+      `User ${details.userId.slice(0, 8)}... triggered a ${details.severity} crisis event.`,
+      `Resources provided: ${details.resourcesProvided ? 'Yes' : 'No'}`,
+      details.userAcceptedHelp !== undefined
+        ? `User accepted help: ${details.userAcceptedHelp ? 'Yes' : 'No'}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return this.notify({
+      type: 'crisis_alert',
+      title,
+      message,
+      severity: 'error',
+      metadata: {
+        userId: details.userId.slice(0, 8) + '...', // Privacy: truncated
+        crisisType: details.crisisType,
+        severity: details.severity,
+        resourcesProvided: details.resourcesProvided,
+        personaId: details.metadata?.personaId,
+        sessionId: details.metadata?.sessionId?.slice(0, 8),
+        timestamp: details.timestamp,
+      },
+      actionUrl: process.env.DASHBOARD_URL
+        ? `${process.env.DASHBOARD_URL}/safety/events`
+        : undefined,
+      actionText: 'View Safety Dashboard',
+    });
+  }
+
   // ============================================================================
   // INTERNAL METHODS
   // ============================================================================
@@ -372,6 +431,7 @@ export class SlackNotificationService {
     if (type.startsWith('rollout_')) return this.webhooks.rollouts;
     if (type.startsWith('deployment_')) return this.webhooks.deployments;
     if (type.startsWith('incident_') || type.startsWith('health_')) return this.webhooks.alerts;
+    if (type === 'crisis_alert') return this.webhooks.safety;
     return this.defaultWebhook;
   }
 
@@ -461,4 +521,10 @@ export async function notifyIncident(
   details: Parameters<SlackNotificationService['notifyIncident']>[2]
 ): Promise<boolean> {
   return getSlackNotifications().notifyIncident(title, status, details);
+}
+
+export async function notifyCrisisAlert(
+  details: Parameters<SlackNotificationService['notifyCrisisAlert']>[0]
+): Promise<boolean> {
+  return getSlackNotifications().notifyCrisisAlert(details);
 }

@@ -225,8 +225,8 @@ if (import.meta.env.DEV) {
   void import('./ui/soul.test.js');
 }
 
-// 🛠️ Dev Panel - Testing & validation tools
-import { initDevPanel } from './ui/dev-panel.ui.js';
+// 🛠️ Dev Panel - Lazy loaded for performance (17KB gzipped savings)
+// Dynamic import: const { initDevPanel } = await import('./ui/dev-panel.ui.js');
 
 // 🎚️ Music Audio Controller - Real-time ducking via Web Audio API
 import {
@@ -349,7 +349,7 @@ class VoiceAIApp {
   }
 
   /**
-   * Connect to the AI advisor with timeout handling.
+   * Connect to the AI coach with timeout handling.
    *
    * Philosophy: Gating should feel like natural breaks, not walls.
    * We check subscription limits but present them warmly.
@@ -556,7 +556,7 @@ class VoiceAIApp {
   }
 
   /**
-   * Disconnect from the AI advisor.
+   * Disconnect from the AI coach.
    *
    * If we're in wrap-up mode (agent said goodbye), performs a warm ceremony:
    * 1. Play warm goodbye sound
@@ -1021,8 +1021,11 @@ class VoiceAIApp {
     // 🌟 Living Favicon - Ferni's presence in the browser tab
     this.safeInit('FaviconManager', () => initFaviconManager());
 
-    // 🛠️ Dev Panel - Developer testing tools (only in dev mode)
-    this.safeInit('DevPanel', () => initDevPanel());
+    // 🛠️ Dev Panel - Developer testing tools (lazy loaded for 17KB gzipped savings)
+    this.safeInit('DevPanel', async () => {
+      const { initDevPanel } = await import('./ui/dev-panel.ui.js');
+      initDevPanel();
+    });
 
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());

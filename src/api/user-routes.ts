@@ -18,7 +18,7 @@ import {
 } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { getUserId, handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 
 const log = getLogger().child({ module: 'user-routes' });
 
@@ -43,44 +43,7 @@ interface ContactInfoUpdate {
 // HELPERS
 // ============================================================================
 
-/**
- * Extract user ID from request headers or query params
- */
-function getUserId(req: IncomingMessage, url: URL): string | null {
-  // Try X-User-Id header first
-  const headerUserId = req.headers['x-user-id'];
-  if (headerUserId && typeof headerUserId === 'string') {
-    return headerUserId;
-  }
-
-  // Try query param
-  const queryUserId = url.searchParams.get('userId');
-  if (queryUserId) {
-    return queryUserId;
-  }
-
-  return null;
-}
-
-/**
- * Parse request body as JSON
- */
-async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(data) as T);
-      } catch {
-        resolve(null);
-      }
-    });
-    req.on('error', () => resolve(null));
-  });
-}
+// getUserId and parseBody imported from ./helpers.js
 
 /**
  * Send JSON response

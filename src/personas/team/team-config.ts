@@ -74,7 +74,7 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
     characterId: 'nayan-patel',
     displayName: 'Nayan',
     roleDescription:
-      'Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.',
+      'Your lifetime coach. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.',
     active: true,
   },
 ];
@@ -249,7 +249,7 @@ export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
     {
       roleId: 'lifetime-advisor',
       informalReference: 'Nayan',
-      formalReference: 'our lifetime advisor and sage',
+      formalReference: 'our lifetime coach and sage',
     },
   ],
   taskRouting: [

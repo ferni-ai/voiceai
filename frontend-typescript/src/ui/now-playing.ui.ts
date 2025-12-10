@@ -1,14 +1,15 @@
 /**
- * Now Playing UI - Live Music Visualization
+ * Now Playing UI - Compact Music Indicator
  *
- * A warm, minimal card that appears when music is playing.
- * Shows track info, artist, and a subtle waveform visualization.
+ * A minimal floating pill that appears near the avatar when music plays.
+ * Designed to be unobtrusive and out of the way of conversation.
  *
  * DESIGN PRINCIPLES:
- *   - Warm and human (not a flashy music player)
- *   - Minimal distraction from conversation
- *   - Subtle animations that match Ferni's personality
- *   - On-brand earthy colors, no emojis
+ *   - Minimal footprint - doesn't block conversation
+ *   - Starts expanded (shows track info), auto-collapses to icon only
+ *   - Hover/tap to see full info
+ *   - Shorter timers - matches 30s Spotify preview duration
+ *   - Warm, human animation
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
@@ -65,6 +66,7 @@ class NowPlayingUI {
   private container: HTMLElement | null = null;
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
+  private isCollapsed = false;
   private currentTrack: NowPlayingTrack | null = null;
   private _currentState: MusicPlaybackState = 'idle';
   private progressInterval: ReturnType<typeof setInterval> | null = null;
@@ -75,8 +77,17 @@ class NowPlayingUI {
   private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
   // 🎧 FIX: Safety timer to auto-hide if no state update received
   private safetyHideTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // Default track duration fallback (45 seconds - slightly longer than typical 30s preview)
-  private static readonly SAFETY_HIDE_DELAY_MS = 45000;
+  // 🎧 Absolute maximum timer - card can never stay visible longer than this
+  private absoluteMaxTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // 🎧 Auto-collapse timer - collapses to compact mode after showing full info
+  private autoCollapseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // Default track duration fallback (32 seconds - just longer than typical 30s preview)
+  // Tighter timing so card hides promptly when 'stopped' message is missed
+  private static readonly SAFETY_HIDE_DELAY_MS = 32000;
+  // 🎧 Maximum time the card can stay visible (1 minute absolute max)
+  private static readonly ABSOLUTE_MAX_VISIBLE_MS = 60000;
+  // 🎧 Auto-collapse delay - show full info for 4 seconds, then collapse
+  private static readonly AUTO_COLLAPSE_DELAY_MS = 4000;
 
   initialize(): void {
     if (this.container) return;
@@ -122,16 +133,23 @@ class NowPlayingUI {
     // This ensures the card auto-hides even if backend doesn't send 'stopped'
     this.resetSafetyTimer(track.duration);
 
+    // 🎧 Set absolute max timer (1 minute) - card can never stay visible longer
+    this.resetAbsoluteMaxTimer();
+
+    // 🎧 Start expanded, auto-collapse after 4 seconds to minimize distraction
+    this.expand();
+    this.startAutoCollapseTimer();
+
     if (!this.isVisible) {
       this.container.classList.add('now-playing--visible');
       this.isVisible = true;
 
-      // Animate in
+      // Animate in from the right side (near avatar)
       if (!prefersReducedMotion()) {
         this.container.animate(
           [
-            { opacity: 0, transform: 'translateY(20px) scale(0.95)' },
-            { opacity: 1, transform: 'translateY(0) scale(1)' },
+            { opacity: 0, transform: 'translateX(20px) scale(0.9)' },
+            { opacity: 1, transform: 'translateX(0) scale(1)' },
           ],
           {
             duration: DURATION.MODERATE,
@@ -143,7 +161,9 @@ class NowPlayingUI {
 
       log.debug('Now Playing shown', { track: track.name, artist: track.artist });
     } else {
-      // Already visible - update was called for same/new track
+      // Already visible - update was called for same/new track, re-expand to show new info
+      this.expand();
+      this.startAutoCollapseTimer();
       log.debug('Now Playing updated', { track: track.name, artist: track.artist });
     }
   }
@@ -153,15 +173,21 @@ class NowPlayingUI {
    */
   hide(): void {
     if (!this.container || !this.isVisible) {
-      log.debug('Now Playing hide skipped (already hidden or no container)');
+      log.debug('🎧 Now Playing hide skipped (already hidden or no container)');
       return;
     }
 
-    // 🎧 FIX: Clear safety timer - we're hiding properly
-    if (this.safetyHideTimeoutId) {
-      clearTimeout(this.safetyHideTimeoutId);
-      this.safetyHideTimeoutId = null;
-    }
+    log.info('🎧 Now Playing hiding', {
+      track: this.currentTrack?.name,
+      showDuration: this.startTime
+        ? Math.round((Date.now() - this.startTime) / 1000) + 's'
+        : 'unknown',
+    });
+
+    // 🎧 FIX: Clear all timers - we're hiding properly
+    this.clearSafetyTimer();
+    this.clearAbsoluteMaxTimer();
+    this.clearAutoCollapseTimer();
 
     // 🎧 FIX: Clear any pending hide timeout to prevent double-hide
     if (this.hideTimeoutId) {
@@ -172,12 +198,12 @@ class NowPlayingUI {
     this.stopWaveformAnimation();
     this.stopProgressTracking();
 
-    // Animate out
+    // Animate out (slide to right)
     if (!prefersReducedMotion()) {
       this.container.animate(
         [
-          { opacity: 1, transform: 'translateY(0) scale(1)' },
-          { opacity: 0, transform: 'translateY(20px) scale(0.95)' },
+          { opacity: 1, transform: 'translateX(0) scale(1)' },
+          { opacity: 0, transform: 'translateX(20px) scale(0.9)' },
         ],
         {
           duration: DURATION.NORMAL,
@@ -189,8 +215,9 @@ class NowPlayingUI {
 
     // 🎧 FIX: Track the timeout and clear state properly
     this.hideTimeoutId = setTimeout(() => {
-      this.container?.classList.remove('now-playing--visible');
+      this.container?.classList.remove('now-playing--visible', 'now-playing--collapsed');
       this.isVisible = false;
+      this.isCollapsed = false;
       this.currentTrack = null;
       this.startTime = null;
       this._currentState = 'idle';
@@ -344,6 +371,40 @@ class NowPlayingUI {
   }
 
   /**
+   * 🎧 Reset the absolute max timer.
+   * This is a hard limit - the card will NEVER stay visible longer than 2 minutes.
+   */
+  private resetAbsoluteMaxTimer(): void {
+    // Clear existing timer
+    if (this.absoluteMaxTimeoutId) {
+      clearTimeout(this.absoluteMaxTimeoutId);
+      this.absoluteMaxTimeoutId = null;
+    }
+
+    this.absoluteMaxTimeoutId = setTimeout(() => {
+      if (this.isVisible) {
+        log.warn('🎧 Now Playing absolute max timer triggered - force hiding', {
+          track: this.currentTrack?.name,
+          wasShowingFor: this.startTime
+            ? Math.round((Date.now() - this.startTime) / 1000) + 's'
+            : 'unknown',
+        });
+        this.hide();
+      }
+    }, NowPlayingUI.ABSOLUTE_MAX_VISIBLE_MS);
+  }
+
+  /**
+   * 🎧 Clear the absolute max timer.
+   */
+  private clearAbsoluteMaxTimer(): void {
+    if (this.absoluteMaxTimeoutId) {
+      clearTimeout(this.absoluteMaxTimeoutId);
+      this.absoluteMaxTimeoutId = null;
+    }
+  }
+
+  /**
    * 💚 Mark the current track as "our song" - a shared musical memory.
    * Shows a heart icon and updates the tooltip with context.
    *
@@ -365,6 +426,76 @@ class NowPlayingUI {
   }
 
   // ==========================================================================
+  // COLLAPSE / EXPAND METHODS
+  // ==========================================================================
+
+  /**
+   * 🎧 Collapse to compact mode (just icon + mini waveform)
+   * Reduces visual footprint during conversation
+   */
+  private collapse(): void {
+    if (!this.container || this.isCollapsed) return;
+
+    this.isCollapsed = true;
+    this.container.classList.add('now-playing--collapsed');
+
+    if (!prefersReducedMotion()) {
+      this.container.animate([{ width: this.container.offsetWidth + 'px' }, { width: '52px' }], {
+        duration: DURATION.NORMAL,
+        easing: EASING.STANDARD,
+        fill: 'forwards',
+      });
+    }
+
+    log.debug('Now Playing collapsed');
+  }
+
+  /**
+   * 🎧 Expand to show full track info
+   * Called on hover/tap or when new track starts
+   */
+  private expand(): void {
+    if (!this.container) return;
+
+    // Always remove collapsed class when expanding, even if not currently collapsed
+    // This handles the case where we're showing a new track
+    if (this.isCollapsed) {
+      log.debug('Now Playing expanded');
+    }
+
+    this.isCollapsed = false;
+    this.container.classList.remove('now-playing--collapsed');
+  }
+
+  /**
+   * 🎧 Start the auto-collapse timer
+   * After showing full info for a few seconds, collapse to minimize distraction
+   */
+  private startAutoCollapseTimer(): void {
+    // Clear existing timer
+    if (this.autoCollapseTimeoutId) {
+      clearTimeout(this.autoCollapseTimeoutId);
+      this.autoCollapseTimeoutId = null;
+    }
+
+    this.autoCollapseTimeoutId = setTimeout(() => {
+      if (this.isVisible && !this.isCollapsed) {
+        this.collapse();
+      }
+    }, NowPlayingUI.AUTO_COLLAPSE_DELAY_MS);
+  }
+
+  /**
+   * 🎧 Clear auto-collapse timer (called when hovering or hiding)
+   */
+  private clearAutoCollapseTimer(): void {
+    if (this.autoCollapseTimeoutId) {
+      clearTimeout(this.autoCollapseTimeoutId);
+      this.autoCollapseTimeoutId = null;
+    }
+  }
+
+  // ==========================================================================
   // PRIVATE METHODS
   // ==========================================================================
 
@@ -374,22 +505,22 @@ class NowPlayingUI {
     const styles = document.createElement('style');
     styles.id = 'now-playing-styles';
     styles.textContent = `
+      /* 🎧 Compact Now Playing - positioned near avatar, minimal footprint */
       .now-playing {
         position: fixed;
-        top: calc(var(--space-6) + 60px);
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 100;
+        top: 280px;
+        right: var(--space-4);
+        z-index: 90;
         
         display: none;
         align-items: center;
-        gap: var(--space-4);
+        gap: var(--space-3);
         
-        padding: var(--space-3) var(--space-4);
+        padding: var(--space-2) var(--space-3);
         background: var(--color-background-elevated);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
+        border: none;
+        border-radius: var(--radius-full);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
         
         opacity: 0;
         pointer-events: none;
@@ -397,8 +528,11 @@ class NowPlayingUI {
         font-family: var(--font-body);
         color: var(--color-text-primary);
         
-        max-width: 320px;
-        min-width: 200px;
+        max-width: 240px;
+        overflow: hidden;
+        transition: width var(--duration-normal, 200ms) var(--ease-standard, ease-out),
+                    max-width var(--duration-normal, 200ms) var(--ease-standard, ease-out);
+        cursor: pointer;
       }
       
       .now-playing--visible {
@@ -406,11 +540,42 @@ class NowPlayingUI {
         pointer-events: auto;
       }
       
+      /* 🎧 Collapsed state - just icon + mini waveform */
+      .now-playing--collapsed {
+        max-width: 52px;
+        padding: var(--space-2);
+        gap: var(--space-2);
+      }
+      
+      .now-playing--collapsed .now-playing__info,
+      .now-playing--collapsed .now-playing__our-song,
+      .now-playing--collapsed .now-playing__progress {
+        display: none;
+      }
+      
+      .now-playing--collapsed .now-playing__icon {
+        width: 28px;
+        height: 28px;
+      }
+      
+      .now-playing--collapsed .now-playing__icon svg {
+        width: 14px;
+        height: 14px;
+      }
+      
+      .now-playing--collapsed .now-playing__waveform {
+        height: 16px;
+      }
+      
+      .now-playing--collapsed .now-playing__bar {
+        width: 2px;
+      }
+      
       /* Icon container */
       .now-playing__icon {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -418,11 +583,13 @@ class NowPlayingUI {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-lg);
         color: var(--color-text-secondary);
+        transition: width var(--duration-fast, 100ms), height var(--duration-fast, 100ms);
       }
       
       .now-playing__icon svg {
-        width: 20px;
-        height: 20px;
+        width: 16px;
+        height: 16px;
+        transition: width var(--duration-fast, 100ms), height var(--duration-fast, 100ms);
       }
       
       /* Track info */
@@ -433,41 +600,44 @@ class NowPlayingUI {
       }
       
       .now-playing__track {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         font-weight: 500;
         color: var(--color-text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
+        line-height: 1.2;
       }
       
       .now-playing__artist {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         color: var(--color-text-secondary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
+        line-height: 1.2;
       }
       
-      /* Waveform visualization */
+      /* Waveform visualization - more compact */
       .now-playing__waveform {
         display: flex;
         align-items: center;
         gap: 2px;
-        height: 24px;
+        height: 20px;
         flex-shrink: 0;
+        transition: height var(--duration-fast, 100ms);
       }
       
       .now-playing__bar {
-        width: 3px;
+        width: 2.5px;
         background: var(--persona-primary, #4a6741);
-        border-radius: 1.5px;
-        transition: height 0.15s ease;
+        border-radius: 1.25px;
+        transition: height 0.15s ease, width var(--duration-fast, 100ms);
       }
       
-      /* Progress bar */
+      /* Progress bar - thin line at bottom */
       .now-playing__progress {
         position: absolute;
         bottom: 0;
@@ -475,7 +645,7 @@ class NowPlayingUI {
         right: 0;
         height: 2px;
         background: var(--color-border);
-        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        border-radius: 0 0 var(--radius-full) var(--radius-full);
         overflow: hidden;
       }
       
@@ -488,45 +658,45 @@ class NowPlayingUI {
       
       /* State: Ducking (agent speaking) */
       .now-playing--ducking {
-        opacity: 0.7;
+        opacity: 0.6;
       }
       
       .now-playing--ducking .now-playing__bar {
-        opacity: 0.5;
+        opacity: 0.4;
       }
       
       /* State: Fading (track ending) */
       .now-playing--fading {
-        animation: now-playing-pulse 1.5s ease-in-out infinite;
+        animation: now-playing-pulse 1.2s ease-in-out infinite;
       }
       
       @keyframes now-playing-pulse {
-        0%, 100% { opacity: 0.9; }
-        50% { opacity: 0.6; }
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 0.5; }
       }
       
       /* State: Paused */
       .now-playing--paused .now-playing__bar {
-        height: 4px !important;
+        height: 3px !important;
       }
       
       /* State: Changing (DJ crossfade) */
       .now-playing--changing {
-        animation: now-playing-crossfade 1.5s ease-in-out;
+        animation: now-playing-crossfade 1.2s ease-in-out;
       }
       
       .now-playing--changing .now-playing__bar {
-        animation: now-playing-bar-crossfade 0.4s ease-in-out infinite alternate;
+        animation: now-playing-bar-crossfade 0.3s ease-in-out infinite alternate;
       }
       
       @keyframes now-playing-crossfade {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+        50% { opacity: 0.6; }
       }
       
       @keyframes now-playing-bar-crossfade {
         0% { transform: scaleY(1); }
-        100% { transform: scaleY(0.6); }
+        100% { transform: scaleY(0.5); }
       }
       
       /* Ambient music indicator */
@@ -537,14 +707,14 @@ class NowPlayingUI {
       
       .now-playing--ambient .now-playing__bar {
         background: var(--color-text-muted);
-        opacity: 0.5;
+        opacity: 0.4;
       }
       
       /* 💚 "Our Song" heart indicator - shared musical memory */
       .now-playing__our-song {
         display: none;
-        width: 20px;
-        height: 20px;
+        width: 16px;
+        height: 16px;
         color: var(--color-text-secondary);
         opacity: 0;
         transition: opacity var(--duration-normal) ease-out;
@@ -573,6 +743,11 @@ class NowPlayingUI {
         filter: drop-shadow(0 0 4px var(--persona-primary, #a67a6a));
       }
       
+      /* Hover: expand if collapsed */
+      .now-playing:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      }
+      
       /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         .now-playing,
@@ -582,15 +757,25 @@ class NowPlayingUI {
         }
       }
       
-      /* Mobile adjustments */
+      /* Mobile adjustments - position below avatar area */
       @media (max-width: 480px) {
         .now-playing {
-          top: calc(var(--space-4) + 48px);
-          left: var(--space-4);
-          right: var(--space-4);
-          transform: none;
-          max-width: none;
+          top: auto;
+          bottom: 160px;
+          right: var(--space-3);
+          left: auto;
+          max-width: 200px;
         }
+        
+        .now-playing--collapsed {
+          max-width: 48px;
+        }
+      }
+      
+      /* Dark theme adjustments */
+      [data-theme="midnight"] .now-playing {
+        background: var(--color-background-elevated, #3d3530);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
       }
     `;
     document.head.appendChild(styles);
@@ -616,7 +801,7 @@ class NowPlayingUI {
         ${ICONS.ourSong}
       </div>
       <div class="now-playing__waveform">
-        ${Array(5)
+        ${Array(4)
           .fill(0)
           .map(() => '<div class="now-playing__bar"></div>')
           .join('')}
@@ -628,8 +813,31 @@ class NowPlayingUI {
 
     // Cache waveform bars
     this.waveformBars = Array.from(
-      this.container.querySelectorAll('.now-playing__bar')
-    ) as HTMLElement[];
+      this.container.querySelectorAll<HTMLElement>('.now-playing__bar')
+    );
+
+    // 🎧 Hover/tap to expand when collapsed
+    this.container.addEventListener('mouseenter', () => {
+      if (this.isCollapsed) {
+        this.expand();
+        this.clearAutoCollapseTimer();
+      }
+    });
+
+    this.container.addEventListener('mouseleave', () => {
+      if (!this.isCollapsed && this.isVisible) {
+        this.startAutoCollapseTimer();
+      }
+    });
+
+    // Touch support
+    this.container.addEventListener('click', () => {
+      if (this.isCollapsed) {
+        this.expand();
+        // Re-start collapse timer after showing info
+        this.startAutoCollapseTimer();
+      }
+    });
 
     document.body.appendChild(this.container);
   }
@@ -639,7 +847,7 @@ class NowPlayingUI {
 
     const trackEl = this.container.querySelector('.now-playing__track');
     const artistEl = this.container.querySelector('.now-playing__artist');
-    const ourSongEl = this.container.querySelector('.now-playing__our-song') as HTMLElement | null;
+    const ourSongEl = this.container.querySelector<HTMLElement>('.now-playing__our-song');
 
     if (trackEl) {
       trackEl.textContent = this.currentTrack.name;
@@ -652,7 +860,7 @@ class NowPlayingUI {
     if (ourSongEl) {
       if (this.currentTrack.isOurSong) {
         this.container.classList.add('now-playing--our-song');
-        ourSongEl.title = this.currentTrack.ourSongContext || 'A song we share';
+        ourSongEl.title = this.currentTrack.ourSongContext ?? 'A song we share';
 
         // Animate heart appearance
         if (!prefersReducedMotion()) {
@@ -824,6 +1032,7 @@ class NowPlayingUI {
    * Cleanup on destroy
    */
   destroy(): void {
+    log.debug('🎧 Now Playing UI destroying');
     this.stopWaveformAnimation();
     this.stopProgressTracking();
 
@@ -832,16 +1041,16 @@ class NowPlayingUI {
       clearTimeout(this.hideTimeoutId);
       this.hideTimeoutId = null;
     }
-    if (this.safetyHideTimeoutId) {
-      clearTimeout(this.safetyHideTimeoutId);
-      this.safetyHideTimeoutId = null;
-    }
+    this.clearSafetyTimer();
+    this.clearAbsoluteMaxTimer();
+    this.clearAutoCollapseTimer();
 
     this.container?.remove();
     this.styleElement?.remove();
     this.container = null;
     this.styleElement = null;
     this.isVisible = false;
+    this.isCollapsed = false;
     this._currentState = 'idle';
   }
 }

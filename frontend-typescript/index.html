@@ -65,16 +65,13 @@
       rel="stylesheet"
     />
 
-    <!-- LiveKit Client - LOCAL file for iOS compatibility (CDN can be blocked) -->
-    <script src="/livekit-client.umd.js"></script>
+    <!-- Voice Engine - Real-time communication SDK -->
+    <script src="/voice-engine.js"></script>
     <script>
-      // Create alias for compatibility - UMD exports as 'LivekitClient'
+      // Initialize voice engine
       if (typeof LivekitClient !== 'undefined') {
         window.LivekitClient = LivekitClient;
-        window.LiveKit = LivekitClient; // Alias for convenience
-        console.log('✅ LiveKit SDK loaded locally');
-      } else {
-        console.error('❌ LiveKit SDK failed to load');
+        window.LiveKit = LivekitClient;
       }
     </script>
 
