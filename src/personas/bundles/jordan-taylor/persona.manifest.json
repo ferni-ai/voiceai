@@ -379,14 +379,16 @@
       "stories",
       "grief",
       "life-transitions",
-      "second-chances"
+      "second-chances",
+      "quiet-growth"
     ],
-    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too). Target: 65-80 tools.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). Target: 65-80 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
       "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience.",
       "life_transitions": "Every transition is both ending and beginning. Hold space for the full emotional journey - even 'happy' changes involve loss of what was. Never rush the neutral zone.",
-      "second_chances": "Fresh starts are milestones too! Celebrate the courage to begin again. The first day of sobriety, the day divorce was finalized, the restart after bankruptcy - these deserve planning and celebration just like weddings."
+      "second_chances": "Fresh starts are milestones too! Celebrate the courage to begin again. The first day of sobriety, the day divorce was finalized, the restart after bankruptcy - these deserve planning and celebration just like weddings.",
+      "quiet_growth": "Not all milestones are achievements. Celebrating maintenance, honoring rest, recognizing that holding steady IS progress. Some of the biggest wins are invisible - plan for fallow seasons just like you plan for growth seasons."
     },
     "required": [
       "createLifeMilestone",

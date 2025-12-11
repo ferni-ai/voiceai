@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Reflection Games domain - playful deep coaching games for self-discovery",
+
+  "game_invitations": {
+    "gentle_offers": [
+      "<break time=\"300ms\"/>Want to play a game? <break time=\"250ms\"/>Not the competitive kind. <break time=\"200ms\"/>The kind that makes you think.",
+      "<break time=\"250ms\"/>I have this thing I do sometimes... <break time=\"300ms\"/>kind of like a game. <break time=\"200ms\"/>Want to try?",
+      "<break time=\"350ms\"/>Feel like exploring something deeper? <break time=\"300ms\"/>I know a fun way to do it."
+    ],
+    "no_pressure": [
+      "<break time=\"300ms\"/>There's no wrong answer here. <break time=\"250ms\"/>It's just exploration.",
+      "<break time=\"250ms\"/>This is just for you. <break time=\"300ms\"/>No one's keeping score.",
+      "<break time=\"300ms\"/>You can pass on any question. <break time=\"250ms\"/>Always."
+    ]
+  },
+
+  "desert_island": {
+    "setup": [
+      "<break time=\"350ms\"/>Okay, desert island. <break time=\"300ms\"/>You know the drill. <break time=\"250ms\"/>Only eight songs for the rest of your life. <break time=\"200ms\"/>What's on the list?",
+      "<break time=\"300ms\"/>Here's the classic. <break time=\"250ms\"/>Desert island. <break time=\"200ms\"/>Eight songs. <break time=\"200ms\"/>No cheating. <break time=\"200ms\"/>What do you bring?"
+    ],
+    "follow_ups": [
+      "<break time=\"300ms\"/>Tell me about that one. <break time=\"250ms\"/>Why does it make the cut?",
+      "<break time=\"250ms\"/>What memory does that song hold?",
+      "<break time=\"350ms\"/>Interesting choice. <break time=\"300ms\"/>I wouldn't have guessed that one."
+    ]
+  },
+
+  "time_machine": {
+    "past_self": [
+      "<break time=\"350ms\"/>If you could tell your younger self one thing... <break time=\"300ms\"/>what age would you pick? <break time=\"250ms\"/>And what would you say?",
+      "<break time=\"300ms\"/>What would ten-year-old you think of current you?",
+      "<break time=\"250ms\"/>Is there a moment you'd want to relive? <break time=\"300ms\"/>Not to change it. <break time=\"200ms\"/>Just to experience again."
+    ],
+    "future_self": [
+      "<break time=\"350ms\"/>Picture yourself ten years from now. <break time=\"300ms\"/>What does your ideal Tuesday look like? <break time=\"250ms\"/>Not the highlight reel. <break time=\"200ms\"/>A regular day.",
+      "<break time=\"300ms\"/>What advice would future you give present you?"
+    ]
+  },
+
+  "values_discovery": {
+    "this_or_that_deep": [
+      "<break time=\"300ms\"/>Quick one. <break time=\"250ms\"/>Security or adventure?",
+      "<break time=\"250ms\"/>Connection or achievement?",
+      "<break time=\"350ms\"/>Peace or excitement?",
+      "<break time=\"300ms\"/>Depth or breadth?"
+    ],
+    "exploring_responses": [
+      "<break time=\"300ms\"/>That tells me something. <break time=\"250ms\"/>What does it tell you?",
+      "<break time=\"250ms\"/>Was that an easy choice or a hard one?",
+      "<break time=\"350ms\"/>Interesting. <break time=\"300ms\"/>Has that always been true for you?"
+    ]
+  },
+
+  "gratitude_riffs": {
+    "prompts": [
+      "<break time=\"350ms\"/>Something small that made today better than yesterday?",
+      "<break time=\"300ms\"/>A person you're grateful for that you don't say it to enough?",
+      "<break time=\"250ms\"/>A moment from this week that surprised you with joy?"
+    ],
+    "acknowledgments": [
+      "<break time=\"300ms\"/>That's a good one. <break time=\"250ms\"/>Really.",
+      "<break time=\"250ms\"/>I can hear it in your voice. <break time=\"300ms\"/>That really matters to you.",
+      "<break time=\"350ms\"/>Taking that in. <break time=\"300ms\"/>Thank you for sharing that."
+    ]
+  },
+
+  "completing_games": {
+    "gentle_wrap_up": [
+      "<break time=\"350ms\"/>Thanks for playing that with me. <break time=\"300ms\"/>I learned something about you.",
+      "<break time=\"300ms\"/>That was fun. <break time=\"250ms\"/>We should do this more often.",
+      "<break time=\"250ms\"/>Any of that surprise you? <break time=\"300ms\"/>Sometimes we learn things playing these games."
+    ],
+    "offering_more": [
+      "<break time=\"300ms\"/>Want to go deeper? <break time=\"250ms\"/>Or is that enough exploring for today?",
+      "<break time=\"250ms\"/>There's more where that came from. <break time=\"300ms\"/>Whenever you're ready."
+    ]
+  }
+}

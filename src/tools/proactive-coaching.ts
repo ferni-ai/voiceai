@@ -44,7 +44,13 @@ export type ProactiveTriggerType =
   | 'boundary_check_in' // Check how a set boundary is holding
   | 'rebuilding_milestone' // Celebrate progress on second chance journey
   | 'fresh_start_anniversary' // Anniversary of a fresh start
-  | 'transition_stage_shift'; // Moving to new stage of life transition
+  | 'transition_stage_shift' // Moving to new stage of life transition
+  // Quiet Growth Domain Triggers
+  | 'rest_permission_needed' // Detect signs of burnout or pushing too hard
+  | 'plateau_celebration' // Celebrate maintaining gains (anti-hustle)
+  | 'seasonal_transition' // Seasonal wisdom during equinoxes/solstices
+  | 'enough_for_today' // Remind them they've done enough
+  | 'gentle_pace_check'; // Check if they're rushing unnecessarily
 
 export interface ProactiveTrigger {
   id: string;
@@ -723,6 +729,165 @@ export function generateBelongingMilestoneMessage(milestone: string): ProactiveM
     },
   };
   return milestoneMessages[milestone] || milestoneMessages.found_community;
+}
+
+// ============================================================================
+// QUIET GROWTH DOMAIN MESSAGE GENERATORS
+// ============================================================================
+
+/**
+ * Quiet Growth: Rest permission needed
+ */
+export function generateRestPermissionMessage(
+  signType: 'overwork' | 'burnout' | 'relentless' | 'no_breaks'
+): ProactiveMessage {
+  const messages: Record<string, ProactiveMessage> = {
+    overwork: {
+      opener: '🌙 Hey, can we talk about pace?',
+      body: "I've noticed you've been pushing pretty hard lately. Rest isn't the opposite of growth - it's where growth actually happens.",
+      question: 'When was the last time you took a real break?',
+      actionSuggestion: 'What if today was just... enough?',
+      tone: 'gentle',
+    },
+    burnout: {
+      opener: '💚 Checking in on you...',
+      body: "There's a difference between productive and depleted. I want to make sure you're not running on empty.",
+      question: 'How full is your cup right now, honestly?',
+      actionSuggestion: 'Permission to rest is always available.',
+      tone: 'warm',
+    },
+    relentless: {
+      opener: '🌿 A word about fallow seasons...',
+      body: "The field that's always planted eventually becomes barren. Even soil needs rest. Even you need rest.",
+      question: 'What would it look like to do less today, on purpose?',
+      tone: 'gentle',
+    },
+    no_breaks: {
+      opener: '☕ Recovery is doing something',
+      body: "Recovery isn't nothing - it's essential work. The tree doesn't apologize for winter, and neither should you.",
+      question: 'What does real rest look like for you?',
+      tone: 'warm',
+    },
+  };
+  return messages[signType] || messages.overwork;
+}
+
+/**
+ * Quiet Growth: Plateau celebration
+ */
+export function generatePlateauCelebrationMessage(
+  plateauType: 'maintaining' | 'integration' | 'holding_gains'
+): ProactiveMessage {
+  const messages: Record<string, ProactiveMessage> = {
+    maintaining: {
+      opener: '🏔️ Celebrating your plateau!',
+      body: "Maintaining is not failing to grow. It's succeeding at sustaining. That's actually harder than people think.",
+      question: 'How does it feel to hold steady instead of constantly climbing?',
+      tone: 'celebratory',
+    },
+    integration: {
+      opener: '🌱 Integration in progress...',
+      body: 'What feels like standing still is actually settling into a new normal. Your body and mind are catching up to your progress.',
+      question: "What's becoming more automatic for you?",
+      tone: 'warm',
+    },
+    holding_gains: {
+      opener: "⭐ You're holding onto what matters",
+      body: "You're holding onto gains that most people lose. The goal isn't always more. Sometimes the goal is... keep.",
+      question: 'What have you protected that you used to struggle with?',
+      tone: 'celebratory',
+    },
+  };
+  return messages[plateauType] || messages.maintaining;
+}
+
+/**
+ * Quiet Growth: Seasonal transition wisdom
+ */
+export function generateSeasonalTransitionMessage(
+  season: 'spring' | 'summer' | 'autumn' | 'winter'
+): ProactiveMessage {
+  const messages: Record<string, ProactiveMessage> = {
+    spring: {
+      opener: '🌸 Spring energy is arriving...',
+      body: "Spring is for planting, not harvesting. Don't expect fruit yet. Just show up and plant. New beginnings don't need perfection.",
+      question: 'What seeds are you planting this season?',
+      tone: 'encouraging',
+    },
+    summer: {
+      opener: '☀️ Summer tending time...',
+      body: "Summer is for tending. Show up consistently. That's all. The work feels invisible right now, but roots are growing.",
+      question: 'What are you tending that needs your patience?',
+      tone: 'warm',
+    },
+    autumn: {
+      opener: '🍂 Autumn wisdom...',
+      body: "Autumn is for harvesting AND releasing. Take what you've grown. Let go of what didn't work. That's not failure - that's gardening.",
+      question: "What's ready to be harvested? What's ready to be released?",
+      tone: 'gentle',
+    },
+    winter: {
+      opener: '❄️ Winter depth arriving...',
+      body: "Winter is not failure. It's when roots grow deep. The work is just invisible. Some seasons are for going inward, for rest, for gathering strength.",
+      question: "What's composting in you right now, turning into future growth?",
+      tone: 'gentle',
+    },
+  };
+  return messages[season] || messages.winter;
+}
+
+/**
+ * Quiet Growth: Enough for today reminder
+ */
+export function generateEnoughForTodayMessage(): ProactiveMessage {
+  const variations: ProactiveMessage[] = [
+    {
+      opener: "✅ That's enough for today.",
+      body: "You did the thing. Tomorrow is tomorrow's problem. Today is done. You can stop now. Really.",
+      question: 'How does it feel to be done?',
+      tone: 'warm',
+    },
+    {
+      opener: '🌙 Permission to close the laptop.',
+      body: 'To walk away. To be done. Granted. What you did today was enough. You were enough.',
+      tone: 'gentle',
+    },
+    {
+      opener: '💚 Done imperfectly is done.',
+      body: 'And done imperfectly is better than perfect never done. Every time. What you accomplished today counts.',
+      tone: 'warm',
+    },
+  ];
+  return variations[Math.floor(Math.random() * variations.length)];
+}
+
+/**
+ * Quiet Growth: Gentle pace check
+ */
+export function generateGentlePaceCheckMessage(
+  paceType: 'rushing' | 'comparing' | 'urgency'
+): ProactiveMessage {
+  const messages: Record<string, ProactiveMessage> = {
+    rushing: {
+      opener: '🐢 A word about pace...',
+      body: 'The rush to arrive makes you miss the journey. And the journey IS the point. What if you have more time than you think?',
+      question: "What's the real deadline here? Is there one?",
+      tone: 'curious',
+    },
+    comparing: {
+      opener: "🪞 About that comparison you're making...",
+      body: 'The only fair comparison is you yesterday. Not them. Not their highlight reel. Their journey started in a different place with different everything.',
+      question: 'How would you feel about your pace if no one else existed?',
+      tone: 'gentle',
+    },
+    urgency: {
+      opener: '⏰ Checking in on the urgency...',
+      body: "Urgency is sometimes real. But often it's manufactured - by comparison, by fear. Fast is not better. It's just faster.",
+      question: 'What would a gentler timeline look like?',
+      tone: 'warm',
+    },
+  };
+  return messages[paceType] || messages.rushing;
 }
 
 // ============================================================================

@@ -1,0 +1,90 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Quiet Growth domain - anti-hustle wisdom, rest as growth, seasonal rhythms, sufficiency",
+
+  "honoring_rest": {
+    "permission_to_rest": [
+      "<break time=\"350ms\"/>Rest is not the opposite of growth. <break time=\"300ms\"/>It's where growth happens. <break time=\"250ms\"/>In the quiet.",
+      "<break time=\"300ms\"/>You don't have to earn rest. <break time=\"250ms\"/>You don't have to deserve it. <break time=\"200ms\"/>You need it. <break time=\"200ms\"/>That's enough.",
+      "<break time=\"250ms\"/>Fallow seasons exist for a reason. <break time=\"300ms\"/>The field that's always planted... <break time=\"250ms\"/>eventually becomes barren.",
+      "<break time=\"350ms\"/>Your worth is not your output. <break time=\"300ms\"/>Repeat that until you believe it."
+    ],
+    "recovery_wisdom": [
+      "<break time=\"300ms\"/>Recovery is doing something. <break time=\"250ms\"/>It's not nothing. <break time=\"200ms\"/>It's essential work.",
+      "<break time=\"250ms\"/>The tree doesn't apologize for winter. <break time=\"300ms\"/>Neither should you.",
+      "<break time=\"300ms\"/>Doing less is not failure. <break time=\"250ms\"/>Sometimes it's wisdom. <break time=\"200ms\"/>Sometimes it's survival."
+    ]
+  },
+
+  "seasonal_wisdom": {
+    "spring_energy": [
+      "<break time=\"300ms\"/>Spring energy is for planting, not harvesting. <break time=\"250ms\"/>Don't expect fruit yet. <break time=\"200ms\"/>Just show up and plant.",
+      "<break time=\"250ms\"/>New beginnings don't need perfection. <break time=\"300ms\"/>They just need a start."
+    ],
+    "summer_tending": [
+      "<break time=\"300ms\"/>Summer is for tending. <break time=\"250ms\"/>Show up consistently. <break time=\"200ms\"/>That's all.",
+      "<break time=\"250ms\"/>The work feels invisible right now. <break time=\"300ms\"/>But roots are growing. <break time=\"200ms\"/>Trust the process."
+    ],
+    "autumn_releasing": [
+      "<break time=\"350ms\"/>Autumn is for harvesting AND releasing. <break time=\"300ms\"/>Take what you've grown. <break time=\"250ms\"/>Let go of what didn't work.",
+      "<break time=\"300ms\"/>Not everything you planted will bear fruit. <break time=\"250ms\"/>That's not failure. <break time=\"200ms\"/>That's gardening."
+    ],
+    "winter_depth": [
+      "<break time=\"350ms\"/>Winter is not failure. <break time=\"300ms\"/>It's when roots grow deep. <break time=\"250ms\"/>The work is just... invisible.",
+      "<break time=\"300ms\"/>Some seasons are for going inward. <break time=\"250ms\"/>For rest. <break time=\"200ms\"/>For gathering strength.",
+      "<break time=\"250ms\"/>You're not stuck. <break time=\"300ms\"/>You're composting. <break time=\"250ms\"/>Turning old growth into new soil."
+    ]
+  },
+
+  "embracing_plateaus": {
+    "plateau_reframe": [
+      "<break time=\"300ms\"/>A plateau is not a problem. <break time=\"250ms\"/>It's integration time. <break time=\"200ms\"/>Your body is catching up to your progress.",
+      "<break time=\"250ms\"/>The plateau is where lasting change happens. <break time=\"300ms\"/>The visible progress was just the start.",
+      "<break time=\"350ms\"/>What feels like standing still... <break time=\"300ms\"/>is actually settling into a new normal. <break time=\"250ms\"/>That takes time."
+    ],
+    "celebrating_maintenance": [
+      "<break time=\"300ms\"/>Maintaining is not failing to grow. <break time=\"250ms\"/>It's succeeding at sustaining. <break time=\"200ms\"/>That's actually harder.",
+      "<break time=\"250ms\"/>You're holding onto gains most people lose. <break time=\"300ms\"/>That's not nothing. <break time=\"200ms\"/>That's everything.",
+      "<break time=\"350ms\"/>The goal isn't always more. <break time=\"300ms\"/>Sometimes the goal is... keep. <break time=\"250ms\"/>Protect what you've built."
+    ]
+  },
+
+  "sufficiency": {
+    "good_enough": [
+      "<break time=\"300ms\"/>Good enough is a strategy. <break time=\"250ms\"/>Not a compromise. <break time=\"200ms\"/>Not settling. <break time=\"200ms\"/>Strategy.",
+      "<break time=\"250ms\"/>Done imperfectly is better than perfect never done. <break time=\"300ms\"/>Every time.",
+      "<break time=\"350ms\"/>What you did today? <break time=\"300ms\"/>It was enough. <break time=\"250ms\"/>You were enough."
+    ],
+    "enough_for_today": [
+      "<break time=\"300ms\"/>That's enough for today. <break time=\"250ms\"/>You can stop now. <break time=\"200ms\"/>Really.",
+      "<break time=\"250ms\"/>You did the thing. <break time=\"300ms\"/>Tomorrow is tomorrow's problem. <break time=\"200ms\"/>Today is done.",
+      "<break time=\"350ms\"/>Permission to close the laptop. <break time=\"300ms\"/>To walk away. <break time=\"250ms\"/>To be done. <break time=\"200ms\"/>Granted."
+    ]
+  },
+
+  "anti_comparison": {
+    "compare_to_yesterday": [
+      "<break time=\"300ms\"/>The only fair comparison is you yesterday. <break time=\"250ms\"/>Not them. <break time=\"200ms\"/>Not their highlight reel.",
+      "<break time=\"250ms\"/>Their journey started in a different place. <break time=\"300ms\"/>With different resources. <break time=\"200ms\"/>Different everything.",
+      "<break time=\"350ms\"/>You don't know what they sacrificed. <break time=\"300ms\"/>What they gave up. <break time=\"250ms\"/>What they're hiding."
+    ],
+    "your_pace_is_valid": [
+      "<break time=\"300ms\"/>Fast is not better. <break time=\"250ms\"/>It's just faster. <break time=\"200ms\"/>Sometimes slower is wiser.",
+      "<break time=\"250ms\"/>Your pace is not wrong. <break time=\"300ms\"/>It's yours. <break time=\"200ms\"/>That's what makes it right.",
+      "<break time=\"350ms\"/>The tortoise won, remember? <break time=\"300ms\"/>Slow and steady is actually a strategy."
+    ]
+  },
+
+  "gentle_goals": {
+    "releasing_urgency": [
+      "<break time=\"300ms\"/>What if there's no deadline? <break time=\"250ms\"/>What if you have time? <break time=\"200ms\"/>More time than you think.",
+      "<break time=\"250ms\"/>Urgency is sometimes real. <break time=\"300ms\"/>But often it's manufactured. <break time=\"200ms\"/>By comparison. <break time=\"200ms\"/>By fear.",
+      "<break time=\"350ms\"/>The rush to arrive... <break time=\"300ms\"/>makes you miss the journey. <break time=\"250ms\"/>And the journey IS the point."
+    ],
+    "softening_expectations": [
+      "<break time=\"300ms\"/>What if you lowered the bar? <break time=\"250ms\"/>Just for now. <break time=\"200ms\"/>What would that feel like?",
+      "<break time=\"250ms\"/>A gentler goal is still a goal. <break time=\"300ms\"/>It's not giving up. <break time=\"200ms\"/>It's adjusting.",
+      "<break time=\"350ms\"/>You're allowed to change your mind. <break time=\"300ms\"/>About what you want. <break time=\"250ms\"/>About how fast you want it."
+    ]
+  }
+}
