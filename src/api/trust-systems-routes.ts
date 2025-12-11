@@ -139,7 +139,7 @@ export async function handleTrustSystemsRoutes(
   const isAnalyticsRoute = pathname.startsWith('/api/trust/analytics');
 
   // Require authentication
-  const auth = requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // 401 already sent
   }
@@ -186,6 +186,15 @@ export async function handleTrustSystemsRoutes(
       const stages = getStageDistributionPercent();
 
       sendJson(res, 200, { stages });
+      return true;
+    }
+
+    // Warmth statistics endpoint
+    if (pathname === '/api/trust/analytics/warmth' && method === 'GET') {
+      const { getWarmthStatistics } = await import('../services/trust-systems/index.js');
+      const warmthStats = getWarmthStatistics();
+
+      sendJson(res, 200, warmthStats);
       return true;
     }
 

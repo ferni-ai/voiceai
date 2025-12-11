@@ -72,7 +72,7 @@ export async function handleRolloutRoutes(
   }
 
   // All rollout operations require admin access
-  const auth = requireAdmin(req, res);
+  const auth = await requireAdmin(req, res);
   if (!auth) return true;
 
   const rollout = getFeatureRollout();

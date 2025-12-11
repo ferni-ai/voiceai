@@ -18,7 +18,7 @@ import {
 } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { getUserId, handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
+import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 
 const log = getLogger().child({ module: 'user-routes' });
 
@@ -37,6 +37,23 @@ interface ContactInfoUpdate {
   email?: string;
   preferredName?: string;
   timezone?: string;
+}
+
+interface AccentPreferenceUpdate {
+  accent: 'american' | 'british' | 'australian' | 'indian';
+  /** Whether this was auto-detected (true) or manually set by user (false) */
+  autoDetected?: boolean;
+}
+
+type EnglishAccent = 'american' | 'british' | 'australian' | 'indian';
+
+const VALID_ACCENTS: EnglishAccent[] = ['american', 'british', 'australian', 'indian'];
+
+/**
+ * Validate accent string
+ */
+function isValidAccent(accent: unknown): accent is EnglishAccent {
+  return typeof accent === 'string' && VALID_ACCENTS.includes(accent as EnglishAccent);
 }
 
 // ============================================================================
@@ -86,6 +103,8 @@ function isValidTimeString(time: string): boolean {
  * - POST /api/user/contact - Update contact info
  * - GET /api/user/contact - Get contact info
  * - POST /api/user/timezone - Quick timezone update (for auto-detection)
+ * - POST /api/user/accent - Update voice accent preference (american, british, australian, indian)
+ * - GET /api/user/accent - Get voice accent preference
  */
 export async function handleUserRoutes(
   req: IncomingMessage,
@@ -111,7 +130,7 @@ export async function handleUserRoutes(
   }
 
   // Require authentication
-  const auth = requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // 401 already sent
   }
@@ -355,6 +374,93 @@ export async function handleUserRoutes(
     } catch (error) {
       log.error({ error, userId }, 'Failed to get contact info');
       sendJson(res, 500, { success: false, error: 'Failed to get contact info' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/user/accent - Update voice accent preference
+  // ============================================================================
+  if (route === '/accent' && method === 'POST') {
+    const body = await parseBody<AccentPreferenceUpdate>(req);
+    const userId = authenticatedUserId;
+
+    if (!body?.accent) {
+      sendJson(res, 400, { success: false, error: 'accent is required' });
+      return true;
+    }
+
+    if (!isValidAccent(body.accent)) {
+      sendJson(res, 400, {
+        success: false,
+        error: `Invalid accent. Must be one of: ${VALID_ACCENTS.join(', ')}`,
+      });
+      return true;
+    }
+
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+      }
+
+      // Update accent preference
+      profile.preferences = {
+        ...profile.preferences,
+        preferredAccent: body.accent,
+        accentAutoDetected: body.autoDetected ?? false,
+      };
+
+      await store.saveProfile(profile);
+
+      log.info(
+        { userId, accent: body.accent, autoDetected: body.autoDetected },
+        '🌍 User accent preference updated'
+      );
+      sendJson(res, 200, {
+        success: true,
+        accent: body.accent,
+        autoDetected: body.autoDetected ?? false,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to update accent preference');
+      sendJson(res, 500, { success: false, error: 'Failed to update accent preference' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // GET /api/user/accent - Get voice accent preference
+  // ============================================================================
+  if (route === '/accent' && method === 'GET') {
+    const userId = authenticatedUserId;
+
+    try {
+      const store = getDefaultStore();
+      const profile = await store.getProfile(userId);
+
+      if (!profile) {
+        // No profile yet - return default
+        sendJson(res, 200, {
+          success: true,
+          accent: 'american',
+          autoDetected: true,
+          locale: null,
+        });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        accent: profile.preferences?.preferredAccent || 'american',
+        autoDetected: profile.preferences?.accentAutoDetected ?? true,
+        locale: profile.preferences?.locale,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get accent preference');
+      sendJson(res, 500, { success: false, error: 'Failed to get accent preference' });
     }
     return true;
   }

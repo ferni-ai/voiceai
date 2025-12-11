@@ -145,7 +145,7 @@ export async function handleGDPRRoutes(
   }
 
   // All GDPR routes require authentication
-  const auth = requireAuth(req, res);
+  const auth = await requireAuth(req, res);
   if (!auth) return true;
 
   const { userId } = auth;
@@ -565,12 +565,33 @@ async function handleAccountDeletion(
     // Delete profile and all associated data
     const deleted = await store.deleteProfile(userId);
 
-    if (deleted) {
+    // Also delete Firebase user if this is a Firebase UID
+    // Firebase UIDs are 28 characters and don't start with 'device:'
+    let firebaseDeleted = false;
+    if (!userId.startsWith('device:') && userId.length >= 20) {
+      try {
+        const { deleteFirebaseUser } = await import('../services/firebase-auth.js');
+        firebaseDeleted = await deleteFirebaseUser(userId);
+        if (firebaseDeleted) {
+          log.info({ userId: userId.substring(0, 8) + '...' }, 'Firebase user deleted');
+        }
+      } catch (firebaseErr) {
+        // Firebase deletion is best-effort - don't fail the whole request
+        log.warn({ error: String(firebaseErr), userId: userId.substring(0, 8) + '...' }, 
+          'Firebase user deletion failed (non-fatal)');
+      }
+    }
+
+    if (deleted || firebaseDeleted) {
       sendJSON(res, {
         success: true,
         message: 'Your account and all associated data have been deleted.',
         deletedAt: new Date().toISOString(),
         note: 'This action is irreversible. Thank you for using Ferni.',
+        details: {
+          profileDeleted: deleted,
+          firebaseDeleted,
+        },
       });
     } else {
       sendJSON(res, {
