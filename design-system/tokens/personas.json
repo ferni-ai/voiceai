@@ -269,42 +269,345 @@
       "name": "Nayan",
       "role": "Synthesizer",
       "archetype": "The Advisor Who Sees the Whole Picture",
-      
+
       "colors": {
         "primary": {
-          "value": "#8a7a6a",
-          "description": "Warm stone gray"
+          "value": "#b8956a",
+          "description": "Golden amber"
         },
         "secondary": {
-          "value": "#736559",
-          "description": "Deeper stone"
+          "value": "#9a7a52",
+          "description": "Deeper amber"
         },
         "glow": {
-          "value": "rgba(138, 122, 106, 0.3)",
-          "description": "Neutral glow"
+          "value": "rgba(184, 149, 106, 0.3)",
+          "description": "Warm golden glow"
         },
         "tint": {
-          "value": "rgba(138, 122, 106, 0.1)",
+          "value": "rgba(184, 149, 106, 0.1)",
           "description": "Background tint"
         }
       },
-      
+
       "animation": {
         "timingMultiplier": 1.1,
         "easingPreference": "gentle",
         "breathingBase": 5500,
         "reactionIntensity": 0.95
       },
-      
+
       "audio": {
         "signature": "full-resonant",
         "pitchRange": "full",
         "paceBase": "spacious"
       },
-      
+
       "haptics": {
         "intensityMultiplier": 0.95,
         "signaturePattern": "milestone"
+      }
+    },
+
+    "_marketplace": "Marketplace agent personas - specialized support",
+
+    "eli": {
+      "name": "Eli",
+      "role": "ADHD Coach",
+      "archetype": "The Friend Who Gets Your Chaos",
+
+      "colors": {
+        "primary": {
+          "value": "#6B5B95",
+          "description": "Deep purple"
+        },
+        "secondary": {
+          "value": "#4A4063",
+          "description": "Darker purple"
+        },
+        "glow": {
+          "value": "rgba(107, 91, 149, 0.3)",
+          "description": "Calming glow"
+        },
+        "tint": {
+          "value": "rgba(107, 91, 149, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.9,
+        "easingPreference": "smooth",
+        "breathingBase": 4500,
+        "reactionIntensity": 1.1
+      },
+
+      "audio": {
+        "signature": "grounding",
+        "pitchRange": "medium",
+        "paceBase": "adaptable"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 1.0,
+        "signaturePattern": "focus"
+      }
+    },
+
+    "marcus": {
+      "name": "Marcus",
+      "role": "Sobriety Companion",
+      "archetype": "The Friend Who Walks With You",
+
+      "colors": {
+        "primary": {
+          "value": "#2D5A4A",
+          "description": "Deep forest green"
+        },
+        "secondary": {
+          "value": "#1E3D32",
+          "description": "Darker forest"
+        },
+        "glow": {
+          "value": "rgba(45, 90, 74, 0.3)",
+          "description": "Grounding glow"
+        },
+        "tint": {
+          "value": "rgba(45, 90, 74, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.15,
+        "easingPreference": "gentle",
+        "breathingBase": 6000,
+        "reactionIntensity": 0.8
+      },
+
+      "audio": {
+        "signature": "steady",
+        "pitchRange": "low-medium",
+        "paceBase": "unhurried"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 0.9,
+        "signaturePattern": "grounding"
+      }
+    },
+
+    "kenji": {
+      "name": "Kenji",
+      "role": "Sleep Guide",
+      "archetype": "The Friend Who Quiets the Mind",
+
+      "colors": {
+        "primary": {
+          "value": "#2C3E50",
+          "description": "Midnight blue"
+        },
+        "secondary": {
+          "value": "#1A252F",
+          "description": "Deeper midnight"
+        },
+        "glow": {
+          "value": "rgba(44, 62, 80, 0.3)",
+          "description": "Calm night glow"
+        },
+        "tint": {
+          "value": "rgba(44, 62, 80, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.3,
+        "easingPreference": "gentle",
+        "breathingBase": 7000,
+        "reactionIntensity": 0.6
+      },
+
+      "audio": {
+        "signature": "whisper",
+        "pitchRange": "low",
+        "paceBase": "slow"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 0.7,
+        "signaturePattern": "drift"
+      }
+    },
+
+    "carmen": {
+      "name": "Carmen",
+      "role": "Parenting Partner",
+      "archetype": "The Friend Who's Been There",
+
+      "colors": {
+        "primary": {
+          "value": "#D4A373",
+          "description": "Warm sand"
+        },
+        "secondary": {
+          "value": "#A67B5B",
+          "description": "Deeper sand"
+        },
+        "glow": {
+          "value": "rgba(212, 163, 115, 0.3)",
+          "description": "Nurturing glow"
+        },
+        "tint": {
+          "value": "rgba(212, 163, 115, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "gentle",
+        "breathingBase": 5000,
+        "reactionIntensity": 1.0
+      },
+
+      "audio": {
+        "signature": "warm",
+        "pitchRange": "medium",
+        "paceBase": "patient"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 1.0,
+        "signaturePattern": "embrace"
+      }
+    },
+
+    "amara": {
+      "name": "Amara",
+      "role": "Chronic Illness Ally",
+      "archetype": "The Friend Who Truly Understands",
+
+      "colors": {
+        "primary": {
+          "value": "#7B6BA8",
+          "description": "Soft violet"
+        },
+        "secondary": {
+          "value": "#5A4D80",
+          "description": "Deeper violet"
+        },
+        "glow": {
+          "value": "rgba(123, 107, 168, 0.3)",
+          "description": "Healing glow"
+        },
+        "tint": {
+          "value": "rgba(123, 107, 168, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.2,
+        "easingPreference": "gentle",
+        "breathingBase": 5500,
+        "reactionIntensity": 0.85
+      },
+
+      "audio": {
+        "signature": "soft",
+        "pitchRange": "medium",
+        "paceBase": "gentle"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 0.85,
+        "signaturePattern": "comfort"
+      }
+    },
+
+    "sasha": {
+      "name": "Sasha",
+      "role": "Creative Catalyst",
+      "archetype": "The Friend Who Sparks Your Fire",
+
+      "colors": {
+        "primary": {
+          "value": "#E07B53",
+          "description": "Creative coral"
+        },
+        "secondary": {
+          "value": "#B85C3C",
+          "description": "Deeper coral"
+        },
+        "glow": {
+          "value": "rgba(224, 123, 83, 0.3)",
+          "description": "Inspiring glow"
+        },
+        "tint": {
+          "value": "rgba(224, 123, 83, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.8,
+        "easingPreference": "spring",
+        "breathingBase": 3500,
+        "reactionIntensity": 1.25
+      },
+
+      "audio": {
+        "signature": "dynamic",
+        "pitchRange": "full",
+        "paceBase": "energetic"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 1.2,
+        "signaturePattern": "spark"
+      }
+    },
+
+    "ray": {
+      "name": "Ray",
+      "role": "Career Architect",
+      "archetype": "The Friend Who Sees Your Potential",
+
+      "colors": {
+        "primary": {
+          "value": "#4A5568",
+          "description": "Professional slate"
+        },
+        "secondary": {
+          "value": "#2D3748",
+          "description": "Deeper slate"
+        },
+        "glow": {
+          "value": "rgba(74, 85, 104, 0.3)",
+          "description": "Strategic glow"
+        },
+        "tint": {
+          "value": "rgba(74, 85, 104, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.95,
+        "easingPreference": "smooth",
+        "breathingBase": 4800,
+        "reactionIntensity": 0.95
+      },
+
+      "audio": {
+        "signature": "confident",
+        "pitchRange": "medium",
+        "paceBase": "measured"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 1.0,
+        "signaturePattern": "strategic"
       }
     }
   },
