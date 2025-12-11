@@ -522,6 +522,7 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./tasks.js'),
       import('./team-availability.js'), // Which team members are unlocked for this user
       import('./team-dynamics.js'), // Cross-persona team awareness
+      import('./cameo-opportunities.js'), // Team member "pop-in" cameo suggestions
       import('./topics.js'),
       import('./engagement-context.js'), // Daily rituals, games, team engagement
       import('./voice-emotion.js'), // Voice emotion → cognitive state integration

@@ -146,10 +146,12 @@ export class PersonaAwareTTS extends tts.TTS {
   }
 
   /**
-   * Switch accent without changing the voice.
-   * Useful for letting users change accent preference mid-session.
+   * Switch accent without changing the persona.
+   * This is a simple version that just updates internal state.
+   * For proper accent changes, use switchToLocalizedAccent() instead.
    *
    * @param newAccent - The new accent to use
+   * @deprecated Use switchToLocalizedAccent() for proper accent changes
    */
   switchAccent(newAccent: EnglishAccent): void {
     if (this.accent === newAccent) {
@@ -163,10 +165,61 @@ export class PersonaAwareTTS extends tts.TTS {
         to: newAccent,
         persona: this.personaName,
       },
-      '🌍 Accent switch requested'
+      '🌍 Accent switch requested (simple)'
     );
 
     this.switchVoice(this.personaName, this.voiceId, newAccent);
+  }
+
+  /**
+   * Switch to a localized accent by getting the proper voice ID from Cartesia.
+   * This is the correct way to change accents mid-session.
+   *
+   * @param newAccent - The new accent to use
+   * @param personaId - The persona ID (canonical, e.g., 'ferni', 'peter-john')
+   * @returns Promise resolving to true if switch was successful
+   */
+  async switchToLocalizedAccent(newAccent: EnglishAccent, personaId: string): Promise<boolean> {
+    if (this.accent === newAccent) {
+      getLogger().debug({ accent: newAccent }, 'Already using this accent');
+      return true;
+    }
+
+    getLogger().info(
+      {
+        from: this.accent,
+        to: newAccent,
+        persona: personaId,
+      },
+      '🌍 Localized accent switch requested'
+    );
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { getLocalizedVoiceId } = await import('../../services/cartesia-voice-localization.js');
+      const result = await getLocalizedVoiceId(personaId, newAccent);
+
+      // Switch to the localized voice
+      this.switchVoice(this.personaName, result.voiceId, newAccent);
+
+      getLogger().info(
+        {
+          from: this.accent,
+          to: newAccent,
+          voiceId: result.voiceId,
+          isLocalized: result.isLocalized,
+        },
+        '✅ Switched to localized accent'
+      );
+
+      return true;
+    } catch (error) {
+      getLogger().error(
+        { error: String(error), accent: newAccent, persona: personaId },
+        '❌ Failed to switch to localized accent'
+      );
+      return false;
+    }
   }
 
   /**

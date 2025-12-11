@@ -35,8 +35,8 @@ vi.mock('../../config/voice-ids.js', () => ({
 vi.stubEnv('CARTESIA_API_KEY', 'test-api-key-12345');
 
 describe('Cartesia Voice Localization Service', () => {
-  beforeEach(() => {
-    clearLocalizationCache();
+  beforeEach(async () => {
+    await clearLocalizationCache();
     mockFetch.mockReset();
   });
 
@@ -139,7 +139,7 @@ describe('Cartesia Voice Localization Service', () => {
       ] as const;
 
       for (const { accent, dialect } of accentsToDialects) {
-        clearLocalizationCache();
+        await clearLocalizationCache();
         mockFetch.mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -236,7 +236,7 @@ describe('Cartesia Voice Localization Service', () => {
       await getLocalizedVoiceId('ferni', 'british');
       expect(isVoiceCached('ferni', 'british')).toBe(true);
 
-      clearLocalizationCache();
+      await clearLocalizationCache();
 
       expect(isVoiceCached('ferni', 'british')).toBe(false);
     });

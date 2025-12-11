@@ -628,8 +628,16 @@ describe('Subscription Routes', () => {
     });
 
     it('should process valid webhook event', async () => {
-      const mockEvent = { type: 'customer.subscription.created', data: {} };
-      mockedVerifyWebhook.mockReturnValue(mockEvent);
+      const mockEvent = {
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_test123',
+            metadata: { ferni_user_id: 'user-123', tier: 'plus' },
+          },
+        },
+      };
+      mockedVerifyWebhook.mockResolvedValue(mockEvent);
       mockedHandleWebhookEvent.mockResolvedValue(undefined);
 
       const response = await handleSubscriptionRequest({
@@ -664,7 +672,10 @@ describe('Subscription Routes', () => {
     });
 
     it('should return 400 on event handling failure', async () => {
-      mockedVerifyWebhook.mockReturnValue({ type: 'test' });
+      mockedVerifyWebhook.mockResolvedValue({
+        type: 'test',
+        data: { object: { id: 'sub_test', metadata: {} } },
+      });
       mockedHandleWebhookEvent.mockRejectedValue(new Error('Handler error'));
 
       const response = await handleSubscriptionRequest({

@@ -1,9 +1,9 @@
 /**
  * Audio Service
- * 
+ *
  * Manages audio playback, sound effects, and audio visualization.
  * Provides a type-safe API for audio operations.
- * 
+ *
  * REFACTOR TODO #90: Consider extracting handoff-specific audio logic into
  * a dedicated HandoffSoundManager class that:
  * - Pre-loads all handoff sounds on init
@@ -20,7 +20,8 @@ const log = createLogger('Audio');
 
 // Safari compatibility: get AudioContext with webkit fallback
 const getAudioContext = (): AudioContext => {
-  const AudioContextClass = window.AudioContext || 
+  const AudioContextClass =
+    window.AudioContext ||
     (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   return new AudioContextClass();
 };
@@ -36,7 +37,7 @@ const getAudioContext = (): AudioContext => {
  * FIX BUG #23 & #98: Sound effects type derived from constants.
  * Add new sounds to SOUND_EFFECTS in config/index.ts.
  */
-export type SoundEffect = 
+export type SoundEffect =
   | 'connect'
   | 'disconnect'
   | 'handoff-to-peter'
@@ -45,7 +46,10 @@ export type SoundEffect =
   | 'handoff-to-maya'
   | 'handoff-to-jordan'
   | 'handoff-to-nayan'
-  | 'dramatic-entrance';
+  | 'dramatic-entrance'
+  // Cameo sounds - team member pop-in transitions
+  | 'cameo-arrive'
+  | 'cameo-return';
 
 /**
  * Audio visualization callback.
@@ -91,7 +95,7 @@ class AudioService {
    */
   async playSound(effect: SoundEffect): Promise<void> {
     let audio = this.sounds.get(effect);
-    
+
     // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
       log.warn(`Sound effect not loaded: ${effect}, trying fallback`);
@@ -130,7 +134,7 @@ class AudioService {
 
   async playSoundAndWait(effect: SoundEffect): Promise<void> {
     let audio = this.sounds.get(effect);
-    
+
     // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
       log.warn(`Sound effect not loaded: ${effect}, trying fallback`);
@@ -145,7 +149,7 @@ class AudioService {
       audio.currentTime = 0;
       // FIX BUG #60: Use normalized volume
       audio.volume = this.getNormalizedVolume(effect);
-      
+
       return new Promise<void>((resolve) => {
         const onEnded = () => {
           audio.removeEventListener('ended', onEnded);
@@ -157,10 +161,10 @@ class AudioService {
           audio.removeEventListener('error', onError);
           resolve();
         };
-        
+
         audio.addEventListener('ended', onEnded, { once: true });
         audio.addEventListener('error', onError, { once: true });
-        
+
         audio.play().catch(() => {
           // Autoplay policy may block this - resolve anyway
           resolve();
@@ -195,26 +199,26 @@ class AudioService {
           log.debug('Failed to resume audio context, continuing anyway:', resumeError);
         }
       }
-      
+
       // FIX BUG #59: Track the sound we're about to play
       const audio = this.sounds.get(effect) ?? this.sounds.get(this.FALLBACK_SOUND);
       if (audio) {
         this.currentHandoffSound = audio;
       }
-      
+
       await this.playSoundAndWait(effect);
-      
+
       // Clear reference after sound completes
       this.currentHandoffSound = null;
-      
+
       // Add a pause after the sound before the voice starts
-      await new Promise(resolve => setTimeout(resolve, pauseMs));
+      await new Promise((resolve) => setTimeout(resolve, pauseMs));
     } catch (error) {
       // FIX BUG #62: Don't let audio errors block the handoff
       log.warn(`Handoff sound failed (${effect}), continuing with transition:`, error);
       this.currentHandoffSound = null;
       // Still pause briefly to maintain timing feel, even without sound
-      await new Promise(resolve => setTimeout(resolve, Math.min(pauseMs, 150)));
+      await new Promise((resolve) => setTimeout(resolve, Math.min(pauseMs, 150)));
     }
   }
 
@@ -257,10 +261,11 @@ class AudioService {
 
       // Return cleanup function
       return () => this.stopVisualization();
-
     } catch (error) {
       log.error('Failed to attach visualization:', error);
-      return () => { /* noop */ };
+      return () => {
+        /* noop */
+      };
     }
   }
 
@@ -280,7 +285,7 @@ class AudioService {
 
     // Clean up any previous attachment
     this.stopVisualization();
-    
+
     this.visualizationCallback = callback;
     this.attachedElement = audioElement;
 
@@ -303,23 +308,23 @@ class AudioService {
       // Create media element source - this routes audio through Web Audio API
       // Note: Can only call this once per audio element!
       this.mediaSource = this.audioContext.createMediaElementSource(audioElement);
-      
+
       // Connect: source -> analyser -> destination
       // We MUST connect to destination, otherwise audio won't play!
       this.mediaSource.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
-      
 
       // Start visualization loop
       this.startVisualizationLoop();
 
       // Return cleanup function
       return () => this.stopVisualization();
-
     } catch (error) {
       log.error('Failed to attach audio element visualization:', error);
       // Still try to play audio even if visualization fails
-      return () => { /* noop */ };
+      return () => {
+        /* noop */
+      };
     }
   }
 
@@ -355,14 +360,14 @@ class AudioService {
       if (val > max) max = val;
       sum += val;
     }
-    
+
     // Use combination of max and average for robust volume
     const avg = sum / dataArray.length;
     const combined = (max * 0.6 + avg * 0.4) / 255;
-    
+
     // Amplify - voice often has low values
     const amplified = Math.min(1, combined * 3);
-    
+
     return amplified;
   }
 
@@ -380,10 +385,12 @@ class AudioService {
    */
   dispose(): void {
     this.stopVisualization();
-    
+
     // Close audio context
     if (this.audioContext) {
-      this.audioContext.close().catch(() => { /* ignore */ });
+      this.audioContext.close().catch(() => {
+        /* ignore */
+      });
       this.audioContext = null;
       this.analyser = null;
     }
@@ -403,8 +410,8 @@ class AudioService {
    */
   private async preloadSounds(): Promise<void> {
     const soundMap: Record<SoundEffect, string> = {
-      'connect': AUDIO.SOUNDS.CONNECT,
-      'disconnect': AUDIO.SOUNDS.DISCONNECT,
+      connect: AUDIO.SOUNDS.CONNECT,
+      disconnect: AUDIO.SOUNDS.DISCONNECT,
       'handoff-to-peter': AUDIO.SOUNDS.HANDOFF_TO_PETER,
       'handoff-to-jack': AUDIO.SOUNDS.HANDOFF_TO_JACK,
       'handoff-to-alex': AUDIO.SOUNDS.HANDOFF_TO_ALEX,
@@ -419,17 +426,17 @@ class AudioService {
     const loadPromises = Object.entries(soundMap).map(async ([effect, path]) => {
       const audio = new Audio();
       audio.preload = 'auto';
-      
+
       // Store immediately so it's available even if not fully loaded
       this.sounds.set(effect as SoundEffect, audio);
-      
+
       return new Promise<void>((resolve) => {
         // Timeout to prevent hanging on iOS Safari
         const timeout = setTimeout(() => {
           log.debug(`Sound load timeout: ${path}`);
           resolve();
         }, LOAD_TIMEOUT_MS);
-        
+
         audio.oncanplaythrough = () => {
           clearTimeout(timeout);
           resolve();
@@ -452,7 +459,7 @@ class AudioService {
   private startVisualizationLoop(): void {
     let frameCount = 0;
     let loggedZero = false;
-    
+
     const update = () => {
       if (!this.analyser || !this.visualizationCallback) {
         return;
@@ -460,7 +467,7 @@ class AudioService {
 
       const volume = this.getCurrentVolume();
       this.visualizationCallback(volume);
-      
+
       // Debug: Log volume status
       frameCount++;
       if (frameCount % 120 === 0) {
@@ -486,4 +493,3 @@ class AudioService {
  * Singleton audio service instance.
  */
 export const audioService = new AudioService();
-

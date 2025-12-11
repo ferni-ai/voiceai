@@ -810,11 +810,17 @@ export function setGlowBleed(amount: number, color?: string): void {
     });
   }
 
+  // Use a more diffuse gradient to avoid needing filter: blur() (causes Safari artifacts)
+  const colorWithHalfOpacity = state.glow.color.replace(/[\d.]+\)$/, (match) => {
+    const opacity = parseFloat(match) * 0.5;
+    return `${opacity})`;
+  });
+
   glTl.to(glowBleedElement, {
     width: radius * 2 + '%',
     height: radius * 2 + '%',
     opacity: opacity,
-    background: `radial-gradient(circle, ${state.glow.color} 0%, transparent 70%)`,
+    background: `radial-gradient(circle, ${state.glow.color} 0%, ${colorWithHalfOpacity} 30%, transparent 60%)`,
     scale: 1,
     duration: SOUL_TIMING.GLOW_BLEED_TRANSITION / 1000,
     ease: EASING.SPRING_GENTLE,
@@ -1368,6 +1374,85 @@ function animateGrain(): void {
 }
 
 // ============================================================================
+// CAMEO EFFECTS - Team Member Pop-In Transitions
+// ============================================================================
+
+/**
+ * Cameo arrival effect - when a team member pops in.
+ * Creates a welcoming visual moment that says "someone new is here!"
+ *
+ * @param personaColor - The color of the arriving persona
+ * @param isFirstCameo - Whether this is the first cameo from this persona
+ */
+export function triggerCameoArrival(personaColor: string, isFirstCameo: boolean = false): void {
+  if (state.reducedMotion) return;
+
+  log.debug('Cameo arrival triggered', { personaColor, isFirstCameo });
+
+  // 1. Anticipation shimmer - something is about to happen
+  playAnticipation('curious');
+
+  // 2. Warmth bloom in the persona's color
+  triggerWarmthBloom(0.9, personaColor);
+
+  // 3. Pupil dilation - interest/curiosity
+  setPupilDilation('INTERESTED', 'fast');
+
+  // 4. Set welcoming expression
+  setExpressionWithAnticipation('curious');
+
+  // 5. Extra sparkle for first-time cameos
+  if (isFirstCameo) {
+    // Delayed memory spark for "oh, someone new!" feeling
+    setTimeout(() => {
+      triggerMemorySpark();
+    }, 300);
+  }
+}
+
+/**
+ * Cameo return effect - when returning to the host persona.
+ * Creates a warm "welcome back" feeling.
+ */
+export function triggerCameoReturn(): void {
+  if (state.reducedMotion) return;
+
+  log.debug('Cameo return triggered');
+
+  // 1. Memory spark - recognition of return
+  triggerMemorySpark();
+
+  // 2. Warmth bloom in host color
+  triggerWarmthBloom(0.7, GLOW_COLORS.WARM);
+
+  // 3. Return to warm, present state
+  setTimeout(() => {
+    setExpressionWithAnticipation('warm');
+    setPupilDilation('NEUTRAL', 'slow');
+  }, 200);
+}
+
+/**
+ * Set up listeners for cameo events from the cameo service.
+ * Call this during avatar soul initialization.
+ */
+export function setupCameoListeners(): void {
+  // Listen for custom cameo events dispatched by cameo service
+  document.addEventListener('ferni:cameo-arrival', ((e: CustomEvent) => {
+    const { personaColor, isFirstCameo } = e.detail || {};
+    if (personaColor) {
+      triggerCameoArrival(personaColor, isFirstCameo);
+    }
+  }) as EventListener);
+
+  document.addEventListener('ferni:cameo-return', () => {
+    triggerCameoReturn();
+  });
+
+  log.debug('Cameo listeners set up');
+}
+
+// ============================================================================
 // ANIMATION LOOPS
 // ============================================================================
 
@@ -1598,23 +1683,25 @@ function injectSoulStyles(): void {
     }
     
     /* Glow Bleed Layer */
+    /* NOTE: Do NOT use filter: blur() here - causes visible box artifacts in Safari */
     .soul-glow-bleed {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 100%;
-      height: 100%;
+      width: 140%;
+      height: 140%;
       transform: translate(-50%, -50%) scale(var(--pulse-scale, 1));
       border-radius: 50%;
+      /* Use a more diffuse gradient instead of filter: blur() to avoid Safari compositing artifacts */
       background: radial-gradient(
         circle,
-        var(--persona-glow, rgba(74, 103, 65, 0.4)) 0%,
-        transparent 70%
+        var(--persona-glow, rgba(74, 103, 65, 0.3)) 0%,
+        var(--persona-glow, rgba(74, 103, 65, 0.15)) 30%,
+        transparent 60%
       );
-      opacity: 0.3;
+      opacity: 0.4;
       pointer-events: none;
       z-index: -1;
-      filter: blur(10px);
       transition: background 600ms var(--ease-gentle);
     }
     
@@ -1991,6 +2078,11 @@ export const avatarSoul = {
 
   // Warmth
   triggerWarmthBloom,
+
+  // Cameo - Team member pop-in effects
+  triggerCameoArrival,
+  triggerCameoReturn,
+  setupCameoListeners,
 
   // State access
   getState: () => ({ ...state }),

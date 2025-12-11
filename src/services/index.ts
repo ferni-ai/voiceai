@@ -451,10 +451,45 @@ export {
   getLocalizedVoiceIdSync,
   initializeLocalizationService,
   isVoiceCached,
+  loadCacheFromFirestore,
   preWarmLocalizedVoices,
   type LocalizationResult,
   type LocalizedVoice,
 } from './cartesia-voice-localization.js';
+
+// ============================================================================
+// TEAM CAMEO SYSTEM (Team member "pop-in" feature)
+// ============================================================================
+
+export {
+  buildCameoSpeech,
+  CAMEO_CONFIG,
+  // Timing
+  CAMEO_TIMING,
+  cameoEvents,
+  cancelCameo,
+  // Detection
+  detectCameoOpportunity,
+  endCameo,
+  // Orchestrator
+  executeCameo,
+  getCooldownStatus as getCameoCooldownStatus,
+  // Content
+  getCameoGreeting,
+  getCameoHandback,
+  getCameoSessionState,
+  getCameoStats,
+  getCurrentCameoPersona,
+  hasPersonaCameoed,
+  isInCameo,
+  resetSessionState as resetCameoSessionState,
+  type CameoEvent,
+  // Types
+  type CameoPersonaId,
+  type CameoRequest,
+  type CameoResult,
+  type CameoSessionState,
+} from './cameo/index.js';
 
 // ============================================================================
 // HEALTH CHECKS

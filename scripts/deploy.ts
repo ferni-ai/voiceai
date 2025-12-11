@@ -216,7 +216,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
   const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`;
   const deployCmd = [
     `gcloud run deploy ${CONFIG.services.agent}`,
-    `--image gcr.io/${CONFIG.projectId}/bogle-voice-agent:latest`,
+    `--image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest`,
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',

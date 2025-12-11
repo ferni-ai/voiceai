@@ -542,7 +542,7 @@ Premium users see personalization button in settings:
 
 ## Stripe Integration
 
-Same as before - see `stripe-subscription.ts` for details.
+See `stripe-subscription.ts` for details.
 
 ### Price IDs
 
@@ -550,6 +550,191 @@ Same as before - see `stripe-subscription.ts` for details.
 STRIPE_PRICE_FRIEND=price_...   # $9.99/month
 STRIPE_PRICE_PARTNER=price_...  # $19.99/month
 ```
+
+---
+
+## Subscription Cancellation Flow
+
+Users can cancel their subscription at any time. The flow differs by payment provider.
+
+### Stripe Cancellation (Web)
+
+1. User clicks "Manage Billing" in Settings
+2. App calls `POST /subscription/portal` to create a Stripe billing portal session
+3. User is redirected to Stripe's hosted portal
+4. User clicks "Cancel Subscription"
+5. Stripe sends `customer.subscription.deleted` webhook
+6. Backend updates user status to `canceled`
+7. User keeps access until current period ends
+
+**API Endpoint:**
+
+```typescript
+POST /api/subscription/portal
+Body: { userId: string, returnUrl: string }
+Response: { url: string } // Stripe portal URL
+```
+
+**Webhook Handler:**
+
+```typescript
+// src/services/stripe-subscription.ts
+case 'customer.subscription.deleted':
+  await handleCancellation(userId);
+  // User tier stays same until period ends
+  // Status changes to 'canceled'
+```
+
+### Apple Cancellation (iOS)
+
+Apple doesn't allow in-app cancellation. Users must cancel through iOS Settings.
+
+**How Users Cancel:**
+
+1. Open **Settings** on iPhone/iPad
+2. Tap your **name** at the top
+3. Tap **Subscriptions**
+4. Find and tap **Ferni**
+5. Tap **Cancel Subscription**
+6. Confirm cancellation
+
+**What Happens:**
+
+1. Apple sends `EXPIRED` notification to our webhook
+2. Backend updates user to free tier
+3. User keeps access until period ends
+
+**API Endpoint for Instructions:**
+
+```typescript
+GET /api/apple/cancel-instructions
+Response: {
+  title: "Cancel Your Subscription",
+  steps: ["Open Settings...", ...],
+  note: "You'll keep access until..."
+}
+```
+
+**Webhook Handler:**
+
+```typescript
+// src/api/apple-iap-routes.ts
+case 'EXPIRED':
+case 'DID_CHANGE_RENEWAL_STATUS':
+  // User canceled or subscription expired
+  await handleExpiration(userId, transactionInfo);
+```
+
+### Unified Management UI
+
+The `Manage Subscription` modal (`manage-subscription.ui.ts`) handles both providers:
+
+```typescript
+// Frontend - opens appropriate management flow
+import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
+
+// Opens modal that detects provider and shows appropriate action
+await manageSubscriptionUI.open(userId, {
+  onUpgrade: () => showUpgradeModal(),
+});
+```
+
+**Modal Behavior:**
+| Provider | Action Button | Result |
+|----------|--------------|--------|
+| Stripe | "Manage Billing" | Redirects to Stripe portal |
+| Apple | "Manage in Settings" | Opens iOS subscription URL |
+| None (Free) | "Upgrade" | Shows upgrade modal |
+
+### Grace Periods
+
+Both providers offer grace periods for failed payments:
+
+| Provider | Grace Period                  | User Experience                              |
+| -------- | ----------------------------- | -------------------------------------------- |
+| Stripe   | Configurable (default 7 days) | Status: `past_due`, access continues         |
+| Apple    | Up to 60 days (billing retry) | Status: `in_billing_retry`, access continues |
+
+During grace period:
+
+- User keeps full access
+- App shows gentle reminder to update payment
+- No immediate downgrade
+
+### Cancellation Messaging
+
+**Philosophy:** Never make cancellation difficult. Be warm and leave the door open.
+
+```typescript
+// Example cancellation confirmation messages
+const CANCELLATION_MESSAGES = [
+  "I understand. I'll be here if you ever want to talk again.",
+  "No hard feelings. You're always welcome back.",
+  'Take care of yourself. The door is always open.',
+];
+
+// Post-cancellation (still active until period ends)
+('Your access continues until {end_date}. Thank you for being part of this.');
+```
+
+### Testing Cancellation
+
+**Stripe:**
+
+1. Use test mode cards
+2. Subscribe → Go to portal → Cancel
+3. Verify webhook received
+4. Check user status updated
+
+**Apple:**
+
+1. Use Sandbox tester account
+2. Subscribe in sandbox
+3. Go to Settings → Sandbox Account → Manage Subscriptions
+4. Cancel and verify webhook
+
+---
+
+## Apple In-App Purchases
+
+Ferni supports iOS subscriptions via StoreKit 2.
+
+### Product IDs
+
+| Product ID                  | Tier    | Duration |
+| --------------------------- | ------- | -------- |
+| `com.ferni.friend.monthly`  | Friend  | Monthly  |
+| `com.ferni.friend.annual`   | Friend  | Annual   |
+| `com.ferni.partner.monthly` | Partner | Monthly  |
+| `com.ferni.partner.annual`  | Partner | Annual   |
+
+### Setup Requirements
+
+See `apps/ios/README.md` for full setup instructions:
+
+1. Configure products in App Store Connect
+2. Set up App Store Server Notifications
+3. Add environment variables
+4. Enable StoreKit capability in Xcode
+
+### API Endpoints
+
+| Endpoint                         | Method | Purpose                 |
+| -------------------------------- | ------ | ----------------------- |
+| `/api/apple/verify`              | POST   | Verify receipt from iOS |
+| `/api/apple/status`              | GET    | Get subscription status |
+| `/api/apple/webhook`             | POST   | App Store notifications |
+| `/api/apple/products`            | GET    | Get available products  |
+| `/api/apple/cancel-instructions` | GET    | Cancellation steps      |
+
+### Files
+
+| File                                                    | Purpose                      |
+| ------------------------------------------------------- | ---------------------------- |
+| `src/services/apple-iap.ts`                             | Backend verification service |
+| `src/api/apple-iap-routes.ts`                           | API route handlers           |
+| `frontend-typescript/src/services/apple-iap.service.ts` | Frontend client              |
+| `frontend-typescript/src/ui/manage-subscription.ui.ts`  | Management modal             |
 
 ## Testing Checklist
 

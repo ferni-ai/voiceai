@@ -1,0 +1,128 @@
+name: Generate Changelog
+
+# Automatically generates release notes from commits
+# Creates GitHub Release with changelog on version tags
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.2.3)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          echo "Previous tag: $PREV_TAG"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREV_TAG="${{ steps.prev_tag.outputs.tag }}"
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="$PREV_TAG..HEAD"
+          fi
+
+          echo "Generating changelog for $RANGE"
+
+          # Create changelog file
+          cat > /tmp/changelog.md << 'HEADER'
+          ## What's Changed
+
+          HEADER
+
+          # Features
+          FEATURES=$(git log $RANGE --pretty=format:"- %s" --grep="^feat" 2>/dev/null || echo "")
+          if [ -n "$FEATURES" ]; then
+            echo "### ✨ Features" >> /tmp/changelog.md
+            echo "$FEATURES" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+
+          # Fixes
+          FIXES=$(git log $RANGE --pretty=format:"- %s" --grep="^fix" 2>/dev/null || echo "")
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> /tmp/changelog.md
+            echo "$FIXES" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+
+          # Performance
+          PERF=$(git log $RANGE --pretty=format:"- %s" --grep="^perf" 2>/dev/null || echo "")
+          if [ -n "$PERF" ]; then
+            echo "### ⚡ Performance" >> /tmp/changelog.md
+            echo "$PERF" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+
+          # Other changes
+          OTHER=$(git log $RANGE --pretty=format:"- %s" --grep="^chore\|^refactor\|^docs\|^style\|^test" 2>/dev/null | head -10 || echo "")
+          if [ -n "$OTHER" ]; then
+            echo "### 🔧 Other Changes" >> /tmp/changelog.md
+            echo "$OTHER" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+
+          # Contributors
+          echo "### 👥 Contributors" >> /tmp/changelog.md
+          git log $RANGE --pretty=format:"- @%an" 2>/dev/null | sort -u >> /tmp/changelog.md
+
+          echo "" >> /tmp/changelog.md
+          echo "---" >> /tmp/changelog.md
+          echo "_Full changelog: [$PREV_TAG...$VERSION](https://github.com/${{ github.repository }}/compare/$PREV_TAG...$VERSION)_" >> /tmp/changelog.md
+
+          cat /tmp/changelog.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: /tmp/changelog.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data '{
+              "text": "🚀 *Release ${{ steps.version.outputs.version }}* published!\n\n<https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}|View Release Notes>"
+            }'
+        continue-on-error: true

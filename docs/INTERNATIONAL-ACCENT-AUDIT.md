@@ -15,7 +15,7 @@ All critical and high-priority items have been implemented and tested.
 | Component                               | Status  | Notes                                                     |
 | --------------------------------------- | ------- | --------------------------------------------------------- |
 | **Cartesia Voice Localization Service** | ✅ DONE | Calls `/voices/localize` API with correct `dialect` param |
-| Voice localization caching              | ✅ DONE | In-memory cache with `preWarmLocalizedVoices()`           |
+| Voice localization caching              | ✅ DONE | In-memory + Firestore persistence                         |
 | Accent configuration types              | ✅ DONE | 4 accents: american, british, australian, indian          |
 | Locale auto-detection                   | ✅ DONE | Accept-Language parsing with country mapping              |
 | Geo detection service                   | ✅ DONE | HTTP headers + IP geolocation                             |
@@ -23,11 +23,13 @@ All critical and high-priority items have been implemented and tested.
 | IP geolocation lookup                   | ✅ DONE | ip-api.com with 2s timeout, enabled in endpoints          |
 | Token endpoint integration              | ✅ DONE | Sends accent in metadata, returns to frontend             |
 | Voice agent accent handling             | ✅ DONE | Gets localized voice before creating TTS                  |
-| PersonaAwareTTS accent support          | ✅ DONE | Constructor accepts localized voiceId                     |
+| PersonaAwareTTS accent support          | ✅ DONE | Constructor + `switchToLocalizedAccent()` method          |
 | UserData stores accent                  | ✅ DONE | `preferredAccent` field                                   |
 | User profile schema                     | ✅ DONE | `preferences.preferredAccent` added                       |
 | Accent preference API                   | ✅ DONE | `GET/POST /api/user/accent`                               |
 | **Frontend UI**                         | ✅ DONE | Settings → Customize → Voice Accent modal                 |
+| **Mid-Session Accent Change**           | ✅ DONE | `POST /api/session/accent` + voice agent integration      |
+| **Firestore Persistence**               | ✅ DONE | Localized voice IDs cached across server restarts         |
 | TTS accent unit tests                   | ✅ DONE | 8 tests in voice-manager.test.ts                          |
 | Integration tests                       | ✅ DONE | 18 tests in international-accent-integration.test.ts      |
 | Localization service tests              | ✅ DONE | 13 tests                                                  |
@@ -41,10 +43,11 @@ All critical and high-priority items have been implemented and tested.
 
 ### New Files
 
-- `src/services/cartesia-voice-localization.ts` - Voice localization API wrapper with caching
+- `src/services/cartesia-voice-localization.ts` - Voice localization API with Firestore caching
 - `src/services/__tests__/cartesia-voice-localization.test.ts` - 13 unit tests
 - `src/tests/international-accent-integration.test.ts` - 18 E2E integration tests
 - `frontend-typescript/src/ui/accent-settings.ui.ts` - Frontend accent selection modal
+- `src/api/session-accent-routes.ts` - Mid-session accent change API
 
 ### Modified Files
 
@@ -141,15 +144,20 @@ npm test -- --run \
 - ✅ Allow manual override with toggle
 - ✅ Added to Settings Menu → Customize → "Voice Accent"
 
-### P3: Mid-Session Accent Change
+### ~~P3: Mid-Session Accent Change~~ ✅ DONE
 
-- Currently requires new session to change accent
-- Could add `/api/session/accent` for live switching
+- ✅ `POST /api/session/accent` endpoint for live switching (`src/api/session-accent-routes.ts`)
+- ✅ `GET /api/session/accent` to get current session accent
+- ✅ TTS registry for applying changes to active sessions
+- ✅ Voice agent checks for accent changes before each response
+- ✅ `switchToLocalizedAccent()` method on PersonaAwareTTS
 
-### P4: Persist Localized Voice IDs to Firestore
+### ~~P4: Persist Localized Voice IDs to Firestore~~ ✅ DONE
 
-- Currently in-memory cache only
-- Could persist to avoid API calls on server restart
+- ✅ Firestore collection `cartesia_localized_voices`
+- ✅ `saveToFirestore()` called after each localization
+- ✅ `loadCacheFromFirestore()` on startup
+- ✅ Falls back gracefully to in-memory if Firestore unavailable
 
 ---
 

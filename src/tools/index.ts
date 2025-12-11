@@ -32,35 +32,34 @@
 // ============================================================================
 
 export {
+  ALL_TOOL_DOMAINS,
+  buildToolSet,
+  DOMAIN_TO_CATEGORY,
+  EmptyServiceRegistry,
+  getTool,
+  registerTool,
+  registerTools,
   // Registry
   toolRegistry,
   ToolRegistry,
-  registerTool,
-  registerTools,
-  getTool,
-  buildToolSet,
-
+  type Tool,
+  type ToolCategory,
+  type ToolContext,
   // Types
   type ToolDefinition,
   type ToolDomain,
-  type ToolCategory,
-  type ToolContext,
-  type ToolSetSpec,
-  type ToolSetResult,
   type ToolMetadata,
-  type Tool,
-  ALL_TOOL_DOMAINS,
-  DOMAIN_TO_CATEGORY,
-  EmptyServiceRegistry,
+  type ToolSetResult,
+  type ToolSetSpec,
 } from './registry/index.js';
 
 export {
+  convertLegacyTools,
+  createDomainExport,
   initializeToolRegistry,
   loadToolDomain,
   registerDomainLoader,
-  convertLegacyTools,
   registerLegacyTools,
-  createDomainExport,
 } from './registry/loader.js';
 
 // ============================================================================
@@ -68,11 +67,11 @@ export {
 // ============================================================================
 
 export {
+  agentHasTool,
   buildAgentTools,
-  buildToolsForDomains,
   buildAllTeamTools,
   buildEssentialTools,
-  agentHasTool,
+  buildToolsForDomains,
   getAvailableToolsForAgent,
   getDefaultDomainsForRole,
   type BuildToolsOptions,
@@ -83,10 +82,10 @@ export {
 // ============================================================================
 
 export {
-  initializeTools,
   initializeTeamHandlers,
-  isToolRegistryInitialized,
+  initializeTools,
   isTeamHandlerRegistryInitialized,
+  isToolRegistryInitialized,
   shutdownTools,
 } from './lifecycle.js';
 
@@ -95,23 +94,23 @@ export {
 // ============================================================================
 
 export {
-  teamHandlerRegistry,
-  TeamHandlerRegistry,
+  ALL_HANDLER_CAPABILITIES,
   registerTeamHandler,
   routeTeamRequest,
+  teamHandlerRegistry,
+  TeamHandlerRegistry,
+  type AgentHandlerConfig,
+  type AgentNotification,
+  type HandlerCapability,
+  type SharedContext,
   type TeamHandlerDefinition,
   type TeamHandlerFunction,
-  type HandlerCapability,
-  type AgentHandlerConfig,
-  type SharedContext,
-  type AgentNotification,
-  ALL_HANDLER_CAPABILITIES,
 } from '../services/team-handler-registry/index.js';
 
 export {
   initializeTeamHandlerRegistry,
-  loadLegacyHandlers,
   loadHandlersFromManifests,
+  loadLegacyHandlers,
   wrapLegacyHandler,
 } from '../services/team-handler-registry/loader.js';
 
@@ -130,9 +129,9 @@ export { getToolCategories, getToolDocumentation } from './categories.js';
 // FINANCIAL DOMAIN
 // ============================================================================
 
-export { createMarketDataTools } from './market-data.js';
-export { createEconomicTools } from './economic.js';
 export { createCalculatorTools } from './calculators.js';
+export { createEconomicTools } from './economic.js';
+export { createMarketDataTools } from './market-data.js';
 export { createPersonalFinanceTools } from './personal-finance.js';
 
 // ============================================================================
@@ -140,9 +139,9 @@ export { createPersonalFinanceTools } from './personal-finance.js';
 // ============================================================================
 
 export { createNewsTools } from './news.js';
+export { createSearchTools } from './search.js';
 export { createSportsTools } from './sports.js';
 export { createWeatherTools } from './weather.js';
-export { createSearchTools } from './search.js';
 export { createWisdomTools } from './wisdom.js';
 
 // ============================================================================
@@ -150,63 +149,56 @@ export { createWisdomTools } from './wisdom.js';
 // ============================================================================
 
 export { createLifeEventsTools } from './life-events.js';
-export { createWellnessTools } from './wellness.js';
 export { createSmallTalkTools } from './small-talk.js';
+export { createWellnessTools } from './wellness.js';
 
 // ============================================================================
 // CONVERSATION DOMAIN
 // ============================================================================
 
+export { createAwarenessTools } from './awareness.js';
+export { createBackgroundTools } from './background-tools.js';
 export { createConversationTools } from './conversation.js';
 export { createMemoryTools } from './memory-tools.js';
 export { createProactiveTools } from './proactive.js';
-export { createAwarenessTools } from './awareness.js';
-export { createBackgroundTools } from './background-tools.js';
 
 // ============================================================================
 // SHARED UTILITIES
 // ============================================================================
 
 export {
-  // User context
-  getUserId,
-  getUserName,
-  getUserData,
-  type ToolExecutionContext,
-
+  bulletList,
+  // Progress
+  calculateProgress,
+  camelToTitle,
+  // Response
+  createResponse,
+  // Formatting
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  formatRelativeTime,
+  formatWithEmoji,
   // ID generation
   generateId,
   generateUUID,
-
-  // Formatting
-  formatCurrency,
-  formatPercent,
-  ordinal,
-  formatDate,
-  formatRelativeTime,
-
-  // Progress
-  calculateProgress,
-  progressBar,
-
-  // Response
-  createResponse,
-  formatWithEmoji,
-  bulletList,
-  numberedList,
-  type ToolResponse,
-
-  // Strings
-  truncate,
-  titleCase,
-  camelToTitle,
-
+  // Logger
+  getLogger,
+  getUserData,
+  // User context
+  getUserId,
+  getUserName,
   // Validation
   isNonEmptyString,
   isPositiveNumber,
-
-  // Logger
-  getLogger,
+  numberedList,
+  ordinal,
+  progressBar,
+  titleCase,
+  // Strings
+  truncate,
+  type ToolExecutionContext,
+  type ToolResponse,
 } from './utils/index.js';
 
 // ============================================================================
@@ -214,29 +206,35 @@ export {
 // ============================================================================
 
 // Low-level email/SMS functions
-export { sendEmail, sendSMS, sendReminder } from '../services/communication-service.js';
+export { sendEmail, sendReminder, sendSMS } from '../services/communication-service.js';
 
 // ============================================================================
 // BANKING DOMAIN (PLAID)
 // ============================================================================
 
-export { createPlaidTools } from './plaid.js';
 export {
-  storeAccessToken,
   getStoredAccessToken,
-  hasLinkedAccounts,
   getTokenData,
+  hasLinkedAccounts,
   removeAccessToken,
+  storeAccessToken,
 } from './plaid-store.js';
+export { createPlaidTools } from './plaid.js';
 
 // ============================================================================
 // AGENT DOMAIN
 // ============================================================================
 
+export {
+  cameoTools,
+  clearCameoSessionContext,
+  createCameoTools,
+  setCameoSessionContext,
+} from './cameo.js';
 export { createHandoffTools } from './handoff/index.js';
-export { createTelephonyTools } from './telephony.js';
-export { createResearchTools } from './research-tools.js';
 export { createInsightsAnalysisTools } from './insights-analysis.js';
+export { createResearchTools } from './research-tools.js';
+export { createTelephonyTools } from './telephony.js';
 
 // ============================================================================
 // ENTERTAINMENT DOMAIN
@@ -250,25 +248,25 @@ export { createSpotifyTools } from './spotify.js';
 
 // Communication tools (full-featured with coaching)
 export {
-  createCommunicationTools,
   createCommunicationCoachingTools,
+  createCommunicationTools,
 } from './communication-tools.js';
 
 // Scheduling tools
 export {
   createAppointmentTools,
+  createContactsTools,
   createDeliveryTools,
   createPlacesTools,
-  createContactsTools,
 } from './scheduling.js';
 
 // Financial & Habit tools
 export { createFinancialHabitsTools } from './financial-habits.js';
 export {
   createHabitCoachingTools,
+  HABIT_TEMPLATES,
   LIFE_DOMAINS,
   LIFE_STAGES,
-  HABIT_TEMPLATES,
 } from './habit-coaching.js';
 export { createProactiveCoachingTools } from './proactive-coaching.js';
 
@@ -290,13 +288,13 @@ export { createEventPlanningTools } from './event-planning.js';
 
 // Persona memory tools
 export {
-  createFerniMemoryTools,
-  createBogleMemoryTools,
-  createPeterMemoryTools,
-  createMayaMemoryTools,
-  createJordanMemoryTools,
   createAlexMemoryTools,
+  createBogleMemoryTools,
+  createFerniMemoryTools,
+  createJordanMemoryTools,
+  createMayaMemoryTools,
   createMemoryManagementTools,
+  createPeterMemoryTools,
 } from './persona-memory-tools.js';
 
 // ============================================================================
@@ -323,28 +321,28 @@ export {
 // JORDAN'S LIFE'S FIRSTS ENHANCEMENT
 // ============================================================================
 
-export { createLifeFirstsTools } from './life-firsts-tracker.js';
 export { createCulturalCelebrationTools } from './cultural-celebrations.js';
 export { createFirstTimePlanningTools } from './first-time-planning.js';
 export { createGiftRegistryTools } from './gift-registry.js';
+export { createGoalManagementTools } from './goal-management.js';
+export { createLifeFirstsTools } from './life-firsts-tracker.js';
 export { createMilestoneProactiveTools } from './milestone-proactive.js';
 export { createRetirementPlanningTools } from './retirement-planning.js';
-export { createGoalManagementTools } from './goal-management.js';
 export { createTeamIntegrationTools } from './team-integration.js';
 
 // ============================================================================
 // DAILY PRODUCTIVITY DOMAIN
 // ============================================================================
 
-export { createTaskTools } from './tasks.js';
 export { createBillTools } from './bills.js';
-export { createRoutineTools } from './routines.js';
-export { createNotesTools } from './notes.js';
-export { createHabitTools } from './habits.js';
-export { createShoppingTools } from './shopping.js';
-export { createMedicationTools } from './medications.js';
 export { createDailyBriefingTools } from './daily-briefing.js';
+export { createHabitTools } from './habits.js';
+export { createMedicationTools } from './medications.js';
+export { createNotesTools } from './notes.js';
 export { createPackageTools } from './packages.js';
+export { createRoutineTools } from './routines.js';
+export { createShoppingTools } from './shopping.js';
+export { createTaskTools } from './tasks.js';
 export { createTravelTools } from './travel.js';
 
 // ============================================================================
@@ -352,33 +350,30 @@ export { createTravelTools } from './travel.js';
 // ============================================================================
 
 export {
-  // Composer
-  ToolComposer,
-  createToolComposer,
+  checkShouldWrapUp,
+  cleanupStaleConversations,
   composeToolResult,
-  TOOL_CHAINS,
-
-  // Conversation state
-  getConversationState,
-  hasConversationState,
+  ConversationStateManager,
+  createToolComposer,
   endConversation,
   getActiveSessionIds,
-  cleanupStaleConversations,
-  ConversationStateManager,
-
+  // Conversation state
+  getConversationState,
   // Quick helpers
   getNextToolSuggestions,
-  checkShouldWrapUp,
   getSessionEmotionalContext,
-
+  hasConversationState,
+  TOOL_CHAINS,
+  // Composer
+  ToolComposer,
   // Types
   type ComposedResult,
-  type ToolChain,
   type ComposeOptions,
   type ConversationState,
   type EmotionalContext,
-  type TopicContext,
   type FlowContext,
+  type ToolChain,
+  type TopicContext,
   type UserContext,
 } from './orchestration/index.js';
 
@@ -386,22 +381,22 @@ export {
 // DEFAULT EXPORT
 // ============================================================================
 
-import { getToolCategories, getToolDocumentation } from './categories.js';
-import { initializeTeamHandlers, shutdownTools } from './lifecycle.js';
-import { toolRegistry } from './registry/index.js';
-import { initializeToolRegistry } from './registry/loader.js';
 import {
   buildAgentTools,
-  buildToolsForDomains,
-  buildEssentialTools,
   buildAllTeamTools,
+  buildEssentialTools,
+  buildToolsForDomains,
 } from './builder.js';
+import { getToolCategories, getToolDocumentation } from './categories.js';
+import { initializeTeamHandlers, shutdownTools } from './lifecycle.js';
 import {
-  createToolComposer,
-  composeToolResult,
-  getConversationState,
   cleanupStaleConversations,
+  composeToolResult,
+  createToolComposer,
+  getConversationState,
 } from './orchestration/index.js';
+import { toolRegistry } from './registry/index.js';
+import { initializeToolRegistry } from './registry/loader.js';
 
 export default {
   // Registry-based system

@@ -183,6 +183,7 @@ import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-d
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { growthJourneyUI } from './ui/growth-journey.ui.js';
+import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
 import { personalizeUI } from './ui/personalize.ui.js';
 import { tipJarUI } from './ui/tip-jar.ui.js';
 // Growth Journey - Celebrates relationship milestones
@@ -1574,8 +1575,10 @@ class VoiceAIApp {
   }
 
   /**
-   * Open the Stripe billing portal for managing subscription.
-   * Allows users to update payment method, view invoices, cancel, etc.
+   * Open the subscription management modal.
+   * Handles both Stripe and Apple subscriptions with appropriate actions:
+   * - Stripe: Opens billing portal for payment/cancellation
+   * - Apple: Shows instructions (must cancel through iOS Settings)
    */
   private async openBillingPortal(): Promise<void> {
     const deviceId = appState.get('deviceId');
@@ -1584,34 +1587,11 @@ class VoiceAIApp {
       return;
     }
 
-    try {
-      const response = await fetch('/subscription/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: deviceId,
-          returnUrl: window.location.href,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.url) {
-        // Redirect to Stripe billing portal
-        window.location.href = result.url;
-      } else if (result.error === 'Stripe is not configured') {
-        // Dev mode - show friendly message
-        toast.info('Billing portal is available in production.');
-      } else if (result.error === 'User does not have a Stripe customer ID') {
-        // User hasn't subscribed yet
-        showUpgradeModal('Upgrade to access billing management.');
-      } else {
-        toast.error('Unable to open billing portal. Please try again.');
-      }
-    } catch (error) {
-      log.error('Billing portal failed:', error);
-      toast.error('Something went wrong. Please try again.');
-    }
+    // Open the unified subscription management modal
+    await manageSubscriptionUI.open(deviceId, {
+      onUpgrade: () => showUpgradeModal(),
+      onClose: () => log.debug('Subscription management closed'),
+    });
   }
 
   /**

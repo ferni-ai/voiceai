@@ -56,8 +56,8 @@ function createMockRequest(
 }
 
 describe('International Accent Integration', () => {
-  beforeEach(() => {
-    clearLocalizationCache();
+  beforeEach(async () => {
+    await clearLocalizationCache();
     mockFetch.mockReset();
   });
 

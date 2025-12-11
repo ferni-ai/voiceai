@@ -83,3 +83,17 @@ promo/ferni-website/.cache/
 apps/android/android/app/build/
 apps/ios/ios/App/Pods/
 apps/electron/dist/
+
+# WIP: Cameo feature (Apple IAP integration)
+src/services/cameo/
+src/tools/cameo.ts
+src/agents/shared/cameo-handler.ts
+src/api/apple-iap-routes.ts
+src/intelligence/context-builders/cameo-opportunities.ts
+src/services/apple-iap.ts
+src/tests/cameo-system.test.ts
+frontend-typescript/src/config/cameo-config.ts
+frontend-typescript/src/services/apple-iap.service.ts
+frontend-typescript/src/services/cameo.service.ts
+frontend-typescript/src/ui/cameo-transition.ui.ts
+frontend-typescript/src/ui/manage-subscription.ui.ts

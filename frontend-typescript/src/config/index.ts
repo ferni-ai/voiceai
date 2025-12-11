@@ -75,6 +75,9 @@ export const SOUND_EFFECTS = {
   HANDOFF_TO_JORDAN: 'handoff-to-jordan',
   HANDOFF_TO_NAYAN: 'handoff-to-nayan',
   DRAMATIC_ENTRANCE: 'dramatic-entrance',
+  // Cameo sounds - team member pop-in transitions
+  CAMEO_ARRIVE: 'cameo-arrive',
+  CAMEO_RETURN: 'cameo-return',
 } as const;
 
 export const AUDIO = {
@@ -90,6 +93,9 @@ export const AUDIO = {
     HANDOFF_TO_JORDAN: '/sounds/handoff-to-jordan.mp3',
     HANDOFF_TO_NAYAN: '/sounds/handoff-to-nayan.mp3',
     DRAMATIC_ENTRANCE: '/sounds/dramatic-entrance.mp3',
+    // Cameo sounds - lighter than full handoffs
+    CAMEO_ARRIVE: '/sounds/cameo-arrive.mp3',
+    CAMEO_RETURN: '/sounds/cameo-return.mp3',
   },
   /** Default volumes */
   VOLUMES: {

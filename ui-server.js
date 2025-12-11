@@ -87,6 +87,9 @@ import { handleAnalyticsRoutes } from './dist/api/user-analytics-routes.js';
 // Monetization routes (tip jar, value capture, ferni fund, B2B, partnerships)
 import { handleMonetizationRequest, isMonetizationRoute } from './dist/api/monetization-routes.js';
 
+// Apple In-App Purchase routes (iOS subscriptions)
+import { handleAppleRoutes, isAppleRoute } from './dist/api/apple-iap-routes.js';
+
 // Rate limiting and auth for sensitive endpoints
 import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
@@ -885,6 +888,19 @@ const server = http.createServer(async (req, res) => {
         return;
       } catch (err) {
         console.error('❌ Monetization route error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+        return;
+      }
+    }
+
+    // Apple In-App Purchase routes (iOS subscriptions)
+    if (isAppleRoute(pathname)) {
+      try {
+        const handled = await handleAppleRoutes(req, res);
+        if (handled) return;
+      } catch (err) {
+        console.error('❌ Apple IAP route error:', err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
         return;

@@ -5,27 +5,27 @@
  * Initializes storage, cache, and services based on detected config.
  */
 
-import { getLogger } from './utils/safe-logger.js';
-import { getConfig, validateConfig, printConfigSummary, type AppConfig } from './config/index.js';
+import { getConfig, printConfigSummary, validateConfig, type AppConfig } from './config/index.js';
 import {
   initializeMemorySystem,
   shutdownMemorySystem,
   type MemorySystemResult,
 } from './memory/index.js';
+import { initializeFromBundles, listPersonas } from './personas/index.js';
 import {
   initializeServices,
   shutdownServices,
-  startReminderScheduler,
-  stopReminderScheduler,
   startProactiveScheduler,
+  startReminderScheduler,
   stopProactiveScheduler,
+  stopReminderScheduler,
 } from './services/index.js';
-import { initializeFromBundles, listPersonas } from './personas/index.js';
-import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
 import {
   initializeAllPersistence,
   shutdownAllPersistence,
 } from './services/persistence/lifecycle.js';
+import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
+import { getLogger } from './utils/safe-logger.js';
 
 // ============================================================================
 // STATE
@@ -49,6 +49,7 @@ export async function startup(): Promise<AppConfig> {
   }
 
   const logger = getLogger();
+  const startupStart = Date.now();
   logger.info('🚀 Starting Voice AI...');
 
   // Load and validate configuration
@@ -70,90 +71,99 @@ export async function startup(): Promise<AppConfig> {
 
   // Initialize memory system (storage + cache)
   logger.info('Initializing memory system...');
+  const memStart = Date.now();
   memorySystem = await initializeMemorySystem({
     storeType: config.storage.type,
     enableRedis: config.cache.enabled,
     indexPersona: true,
   });
-
-  logger.info(`✓ Memory: ${config.storage.type}${config.cache.enabled ? ' + Redis cache' : ''}`);
+  logger.info(
+    `✓ Memory: ${config.storage.type}${config.cache.enabled ? ' + Redis cache' : ''} (${Date.now() - memStart}ms)`
+  );
 
   // Initialize services (prewarm)
   logger.info('Initializing services...');
+  const svcStart = Date.now();
   await initializeServices(true);
-  logger.info('✓ Services ready');
+  logger.info(`✓ Services ready (${Date.now() - svcStart}ms)`);
 
   // Initialize persona bundles
   logger.info('Loading persona bundles...');
+  const bundleStart = Date.now();
   const bundleResult = await initializeFromBundles();
   if (bundleResult.errors.length > 0) {
     for (const error of bundleResult.errors) {
       logger.warn(`Bundle error: ${error}`);
     }
   }
-  logger.info(`✓ Personas: ${bundleResult.loaded} bundles loaded`);
+  logger.info(`✓ Personas: ${bundleResult.loaded} bundles loaded (${Date.now() - bundleStart}ms)`);
 
   const allPersonas = listPersonas();
   logger.info(`  Available: ${allPersonas.join(', ')}`);
 
-  // Start reminder scheduler (for Alex's communication features)
-  logger.info('Starting reminder scheduler...');
+  // Start schedulers (synchronous, just sets up intervals)
+  logger.info('Starting schedulers...');
   startReminderScheduler(60000); // Check every minute
-  logger.info('✓ Reminder scheduler running');
+  startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
+  logger.info('✓ Schedulers running');
 
-  // Start proactive scheduler (for proactive insights and check-ins)
-  logger.info('Starting proactive scheduler...');
-  startProactiveScheduler({
-    checkIntervalMs: 300000, // Check every 5 minutes
-  });
-  logger.info('✓ Proactive scheduler running');
+  // PARALLELIZED INITIALIZATION - Run independent operations concurrently
+  // This significantly reduces cold start time
+  logger.info('Initializing services in parallel...');
+  const parallelStart = Date.now();
 
-  // Initialize team handlers for cross-agent communication
-  logger.info('Initializing team handlers...');
-  await initializeTeamHandlers();
-  logger.info('✓ Team handlers ready (Ferni, Jack, Peter, Alex, Maya, Jordan)');
+  const parallelInits = await Promise.allSettled([
+    // Team handlers for cross-agent communication
+    initializeTeamHandlers().then(() => {
+      logger.info('✓ Team handlers ready');
+      return 'team_handlers';
+    }),
 
-  // Initialize community insights (collective learning across users)
-  logger.info('Loading community insights...');
-  try {
-    const { initializeCommunityInsights } = await import('./intelligence/community-insights.js');
-    await initializeCommunityInsights();
-    logger.info('✓ Community insights loaded');
-  } catch (error) {
-    logger.warn(`Community insights load failed (non-fatal): ${error}`);
-  }
+    // Community insights (collective learning)
+    import('./intelligence/community-insights.js')
+      .then(({ initializeCommunityInsights }) => initializeCommunityInsights())
+      .then(() => {
+        logger.info('✓ Community insights loaded');
+        return 'community_insights';
+      }),
 
-  // Initialize agent evolution (persona self-improvement)
-  logger.info('Loading agent evolution states...');
-  try {
-    const { initializeAgentEvolution } = await import('./intelligence/agent-evolution.js');
-    await initializeAgentEvolution();
-    logger.info('✓ Agent evolution loaded');
-  } catch (error) {
-    logger.warn(`Agent evolution load failed (non-fatal): ${error}`);
-  }
+    // Agent evolution (persona self-improvement)
+    import('./intelligence/agent-evolution.js')
+      .then(({ initializeAgentEvolution }) => initializeAgentEvolution())
+      .then(() => {
+        logger.info('✓ Agent evolution loaded');
+        return 'agent_evolution';
+      }),
 
-  // Initialize tool usage analytics (for optimization)
-  logger.info('Initializing tool usage analytics...');
-  try {
-    const { toolUsageAnalytics } = await import('./services/tool-usage-analytics.js');
-    await toolUsageAnalytics.initialize();
-    logger.info('✓ Tool usage analytics ready');
-  } catch (error) {
-    logger.warn(`Tool usage analytics init failed (non-fatal): ${error}`);
-  }
+    // Tool usage analytics
+    import('./services/tool-usage-analytics.js')
+      .then(({ toolUsageAnalytics }) => toolUsageAnalytics.initialize())
+      .then(() => {
+        logger.info('✓ Tool usage analytics ready');
+        return 'tool_analytics';
+      }),
 
-  // Initialize all persistence services (unified persistence layer)
-  logger.info('Initializing persistence services...');
-  try {
-    await initializeAllPersistence();
-    logger.info('✓ Persistence services ready');
-  } catch (error) {
-    logger.warn(`Persistence initialization failed (non-fatal): ${error}`);
+    // Persistence services
+    initializeAllPersistence().then(() => {
+      logger.info('✓ Persistence services ready');
+      return 'persistence';
+    }),
+  ]);
+
+  logger.info(`Parallel init complete (${Date.now() - parallelStart}ms)`);
+
+  // Log any failures (all are non-fatal)
+  const failures = parallelInits.filter((r) => r.status === 'rejected');
+  if (failures.length > 0) {
+    for (const failure of failures) {
+      if (failure.status === 'rejected') {
+        logger.warn(`Non-fatal init failure: ${failure.reason}`);
+      }
+    }
   }
 
   initialized = true;
-  logger.info('✅ Voice AI ready!');
+  logger.info(`✅ Voice AI ready! (total startup: ${Date.now() - startupStart}ms)`);
 
   return config;
 }

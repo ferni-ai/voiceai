@@ -7,6 +7,9 @@
  * CRITICAL: The `language` parameter in Cartesia TTS does NOT change accents.
  * You must use the Localization API to create accent-specific voice IDs.
  *
+ * PERSISTENCE: Localized voice IDs are cached in Firestore to avoid
+ * repeated API calls across server restarts.
+ *
  * @see https://docs.cartesia.ai/api-reference/voices/localize
  */
 
@@ -15,6 +18,22 @@ import { getVoiceIdForPersona } from '../config/voice-ids.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CartesiaLocalization' });
+
+// Firestore import (lazy loaded to avoid circular deps)
+let firestoreDb: FirebaseFirestore.Firestore | null = null;
+
+async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
+  if (firestoreDb) return firestoreDb;
+
+  try {
+    const { getFirestore: getFs } = await import('firebase-admin/firestore');
+    firestoreDb = getFs();
+    return firestoreDb;
+  } catch (err) {
+    log.warn({ error: String(err) }, 'Firestore not available, using in-memory cache only');
+    return null;
+  }
+}
 
 // =============================================================================
 // TYPES
@@ -84,9 +103,102 @@ const PERSONA_VOICE_META: Record<string, { name: string; gender: 'male' | 'femal
 const localizedVoiceCache = new Map<string, LocalizedVoice>();
 
 /**
- * Persistent storage key for Firestore (future implementation).
+ * Firestore collection for persistent storage.
  */
 const FIRESTORE_COLLECTION = 'cartesia_localized_voices';
+
+/**
+ * Whether the cache has been loaded from Firestore.
+ */
+let cacheLoadedFromFirestore = false;
+
+// =============================================================================
+// FIRESTORE PERSISTENCE
+// =============================================================================
+
+/**
+ * Save a localized voice to Firestore for persistence across restarts.
+ */
+async function saveToFirestore(cacheKey: string, voice: LocalizedVoice): Promise<void> {
+  try {
+    const db = await getFirestore();
+    if (!db) return;
+
+    await db
+      .collection(FIRESTORE_COLLECTION)
+      .doc(cacheKey)
+      .set({
+        ...voice,
+        cacheKey,
+        updatedAt: new Date().toISOString(),
+      });
+
+    log.debug({ cacheKey, voiceId: voice.id }, '💾 Saved localized voice to Firestore');
+  } catch (err) {
+    log.warn({ cacheKey, error: String(err) }, 'Failed to save to Firestore');
+  }
+}
+
+/**
+ * Load all cached localized voices from Firestore into memory.
+ * Call this at startup to hydrate the in-memory cache.
+ */
+export async function loadCacheFromFirestore(): Promise<number> {
+  if (cacheLoadedFromFirestore) {
+    log.debug('Cache already loaded from Firestore');
+    return localizedVoiceCache.size;
+  }
+
+  try {
+    const db = await getFirestore();
+    if (!db) {
+      cacheLoadedFromFirestore = true;
+      return 0;
+    }
+
+    const snapshot = await db.collection(FIRESTORE_COLLECTION).get();
+
+    let loaded = 0;
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const voice: LocalizedVoice = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        language: data.language,
+        dialect: data.dialect,
+        originalVoiceId: data.originalVoiceId,
+        createdAt: data.createdAt,
+      };
+
+      localizedVoiceCache.set(doc.id, voice);
+      loaded++;
+    }
+
+    cacheLoadedFromFirestore = true;
+    log.info({ loaded, total: snapshot.size }, '📥 Loaded localized voices from Firestore');
+    return loaded;
+  } catch (err) {
+    log.warn({ error: String(err) }, 'Failed to load cache from Firestore');
+    cacheLoadedFromFirestore = true;
+    return 0;
+  }
+}
+
+/**
+ * Delete a cached voice from Firestore.
+ */
+async function deleteFromFirestore(cacheKey: string): Promise<void> {
+  try {
+    const db = await getFirestore();
+    if (!db) return;
+
+    await db.collection(FIRESTORE_COLLECTION).doc(cacheKey).delete();
+    log.debug({ cacheKey }, '🗑️ Deleted localized voice from Firestore');
+  } catch (err) {
+    log.warn({ cacheKey, error: String(err) }, 'Failed to delete from Firestore');
+  }
+}
 
 // =============================================================================
 // CARTESIA API
@@ -199,6 +311,9 @@ export async function getLocalizedVoiceId(
     };
 
     localizedVoiceCache.set(cacheKey, localizedVoice);
+
+    // Persist to Firestore for future restarts
+    void saveToFirestore(cacheKey, localizedVoice);
 
     log.info(
       {
@@ -317,10 +432,21 @@ export function getLocalizationCacheStats(): {
 
 /**
  * Clear the cache (for testing).
+ * @param clearFirestore - Also clear Firestore (default: false for tests)
  */
-export function clearLocalizationCache(): void {
+export async function clearLocalizationCache(clearFirestore = false): Promise<void> {
+  const keys = Array.from(localizedVoiceCache.keys());
   localizedVoiceCache.clear();
-  log.info('🗑️ Localization cache cleared');
+  cacheLoadedFromFirestore = false;
+
+  if (clearFirestore) {
+    for (const key of keys) {
+      await deleteFromFirestore(key);
+    }
+    log.info({ count: keys.length }, '🗑️ Localization cache cleared (including Firestore)');
+  } else {
+    log.info('🗑️ Localization cache cleared');
+  }
 }
 
 // =============================================================================
@@ -331,14 +457,30 @@ export function clearLocalizationCache(): void {
  * Initialize the localization service.
  * Call this at application startup.
  *
- * @param preWarm - Whether to pre-warm the cache (default: false in dev, true in prod)
+ * @param options.loadFromFirestore - Load cached voices from Firestore (default: true)
+ * @param options.preWarm - Pre-warm cache by calling Cartesia API (default: false)
  */
-export async function initializeLocalizationService(preWarm = false): Promise<void> {
-  log.info('🌍 Cartesia voice localization service initialized');
+export async function initializeLocalizationService(
+  options: { loadFromFirestore?: boolean; preWarm?: boolean } = {}
+): Promise<void> {
+  const { loadFromFirestore = true, preWarm = false } = options;
 
+  log.info('🌍 Cartesia voice localization service initializing...');
+
+  // Load existing localized voices from Firestore
+  if (loadFromFirestore) {
+    const loaded = await loadCacheFromFirestore();
+    if (loaded > 0) {
+      log.info({ loaded }, '✅ Loaded localized voices from Firestore cache');
+    }
+  }
+
+  // Pre-warm by calling Cartesia API for any missing voices
   if (preWarm) {
     // Only pre-warm Ferni initially (most used)
     // Other personas will be localized on-demand
     await preWarmLocalizedVoices(['ferni'], ['british', 'australian', 'indian']);
   }
+
+  log.info({ cacheSize: localizedVoiceCache.size }, '🌍 Cartesia voice localization service ready');
 }
