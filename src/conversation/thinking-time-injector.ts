@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { recordThinkingTime } from './awareness-metrics.js';
 import { getMomentumTracker, type MomentumState } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'thinking-time' });
@@ -382,6 +383,16 @@ export function calculateThinkingTime(
       speechRate: speechRateMultiplier,
     },
     'Calculated thinking time'
+  );
+
+  // Record thinking time for metrics
+  recordThinkingTime(
+    ctx.sessionId,
+    ctx.personaId || 'default',
+    openingPauseMs,
+    speechRateMultiplier,
+    thinkingSound,
+    midPauses.length
   );
 
   return {

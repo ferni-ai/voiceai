@@ -25,6 +25,10 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import {
+  recordSelfAwarenessAssessment,
+  recordSelfAwarePrompt,
+} from './awareness-metrics.js';
 import { getMomentumTracker, type MomentumState } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'self-awareness' });
@@ -413,6 +417,15 @@ export class SelfAwarenessTracker {
     const assessment = assessLanding(attempt, reaction, momentum.current);
     this.state.assessments.push(assessment);
 
+    // Record for awareness metrics
+    recordSelfAwarenessAssessment(
+      this.sessionId,
+      this.personaId,
+      assessment.result,
+      attempt.responseType,
+      this.state.recentMisses
+    );
+
     // Update tracking
     if (assessment.result === 'landed') {
       this.state.recentLandings++;
@@ -474,6 +487,7 @@ export class SelfAwarenessTracker {
     if (state.needsCheckIn) {
       this.state.needsCheckIn = false;
       this.state.lastCheckInTurn = this.state.reactions.length;
+      recordSelfAwarePrompt(this.sessionId, this.personaId);
       return '[SELF-AWARENESS: Recent responses may not have landed. Consider a gentle check-in: "Am I being helpful?" or "Is this what you need right now?"]';
     }
 
@@ -481,6 +495,7 @@ export class SelfAwarenessTracker {
     if (!lastAssessment) return null;
 
     if (lastAssessment.suggestion && lastAssessment.suggestion.urgency === 'high') {
+      recordSelfAwarePrompt(this.sessionId, this.personaId);
       return `[SELF-AWARENESS: ${lastAssessment.suggestion.prompt}]`;
     }
 

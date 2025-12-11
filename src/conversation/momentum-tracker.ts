@@ -16,6 +16,10 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import {
+  recordMomentumTransition,
+  recordMomentumVelocity,
+} from './awareness-metrics.js';
 
 const log = createLogger({ module: 'momentum-tracker' });
 
@@ -485,9 +489,11 @@ export class ConversationMomentumTracker {
   private currentTopic?: string;
   private profile: MomentumProfile;
   private personaId: string;
+  private sessionId: string;
 
-  constructor(personaId = 'default') {
+  constructor(personaId = 'default', sessionId = 'default') {
     this.personaId = personaId;
+    this.sessionId = sessionId;
     this.profile = PERSONA_PROFILES[personaId] || DEFAULT_PROFILE;
     log.debug(
       { personaId, profileType: personaId in PERSONA_PROFILES ? 'custom' : 'default' },
@@ -529,12 +535,25 @@ export class ConversationMomentumTracker {
         { oldState, newState: this.currentState, turn: fullSignal.turn },
         'Momentum state changed'
       );
+
+      // Record transition for metrics
+      recordMomentumTransition(
+        this.sessionId,
+        this.personaId,
+        oldState,
+        this.currentState,
+        fullSignal.turn
+      );
     }
 
     // Track peaks
     if (this.currentState === 'peaking') {
       this.lastPeakTurn = fullSignal.turn;
     }
+
+    // Record velocity for metrics
+    const velocity = calculateVelocity(this.signals);
+    recordMomentumVelocity(this.sessionId, this.personaId, velocity, this.topicDepth);
   }
 
   /**
@@ -629,7 +648,7 @@ export function getMomentumTracker(
   personaId?: string
 ): ConversationMomentumTracker {
   if (!trackers.has(sessionId)) {
-    trackers.set(sessionId, new ConversationMomentumTracker(personaId));
+    trackers.set(sessionId, new ConversationMomentumTracker(personaId, sessionId));
   }
   return trackers.get(sessionId)!;
 }

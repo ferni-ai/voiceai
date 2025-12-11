@@ -25,6 +25,7 @@ import {
   type ThemeCategory,
 } from '../services/session-variety-tracker.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { recordTangentDecision } from './awareness-metrics.js';
 import { getMomentumTracker } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'tangents' });
@@ -272,6 +273,7 @@ export function decideTangent(
   // Check cooldown
   const turnsSinceLastTangent = turnCount - state.lastTangentTurn;
   if (turnsSinceLastTangent < profile.cooldownTurns) {
+    recordTangentDecision(sessionId, personaId, false, undefined, 'cooldown');
     return {
       shouldTangent: false,
       reason: `Cooldown: ${profile.cooldownTurns - turnsSinceLastTangent} turns remaining`,
@@ -280,6 +282,7 @@ export function decideTangent(
 
   // Don't tangent during intimate moments or peaks
   if (momentum.current === 'intimate' || momentum.current === 'peaking') {
+    recordTangentDecision(sessionId, personaId, false, undefined, 'momentum');
     return {
       shouldTangent: false,
       reason: `Momentum state ${momentum.current} - focus on user`,
@@ -288,6 +291,7 @@ export function decideTangent(
 
   // Don't tangent when stalled (might make it worse)
   if (momentum.current === 'stalled') {
+    recordTangentDecision(sessionId, personaId, false, undefined, 'momentum');
     return {
       shouldTangent: false,
       reason: 'Stalled momentum - pivot, not tangent',
@@ -296,6 +300,7 @@ export function decideTangent(
 
   // Don't tangent in opening phase
   if (momentum.phase === 'opening') {
+    recordTangentDecision(sessionId, personaId, false, undefined, 'relationship');
     return {
       shouldTangent: false,
       reason: 'Opening phase - establish connection first',
@@ -305,6 +310,7 @@ export function decideTangent(
   // Find matching trigger
   const trigger = findMatchingTrigger(userText, profile, relationshipDepth, sessionId);
   if (!trigger) {
+    recordTangentDecision(sessionId, personaId, false, undefined, 'none');
     return {
       shouldTangent: false,
       reason: 'No matching trigger found',
@@ -313,6 +319,7 @@ export function decideTangent(
 
   // Probability check
   if (Math.random() > profile.tangentProbability) {
+    recordTangentDecision(sessionId, personaId, false, trigger.theme, 'none');
     return {
       shouldTangent: false,
       reason: 'Probability check failed',
@@ -327,6 +334,9 @@ export function decideTangent(
   // Record in variety tracker
   const varietyTracker = getSessionVarietyTracker();
   varietyTracker.recordUsage(sessionId, trigger.theme, `tangent-${trigger.keywords[0]}`);
+
+  // Record tangent decision for metrics
+  recordTangentDecision(sessionId, personaId, true, trigger.theme, 'none');
 
   log.debug(
     {
