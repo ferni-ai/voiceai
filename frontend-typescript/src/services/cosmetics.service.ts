@@ -28,8 +28,8 @@ export interface CosmeticItem {
   type: CosmeticType;
   rarity: CosmeticRarity;
   previewUrl?: string;
-  /** Price in Ferni Coins (null = earned/default) */
-  priceInCoins: number | null;
+  /** Price in Seeds (null = earned/default) */
+  priceInSeeds: number | null;
   /** Minimum tier to purchase */
   requiredTier: SubscriptionTier;
   /** Is this limited time? */
@@ -47,7 +47,7 @@ export interface UserCosmetics {
     'sound-pack': string | null;
     emote: string | null;
   };
-  coinBalance: number;
+  seedBalance: number;
 }
 
 // ============================================================================
@@ -61,7 +61,7 @@ const DEFAULT_AVATAR_SKINS: CosmeticItem[] = [
     description: 'The original sage green Ferni you know and love',
     type: 'avatar-skin',
     rarity: 'common',
-    priceInCoins: null,
+    priceInSeeds: null,
     requiredTier: 'free',
     isLimited: false,
     config: {
@@ -78,7 +78,7 @@ const DEFAULT_UI_THEMES: CosmeticItem[] = [
     description: 'Warm cream background with natural ink text',
     type: 'ui-theme',
     rarity: 'common',
-    priceInCoins: null,
+    priceInSeeds: null,
     requiredTier: 'free',
     isLimited: false,
     config: {
@@ -99,7 +99,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     description: 'Deep space purple with stardust particles',
     type: 'avatar-skin',
     rarity: 'epic',
-    priceInCoins: 500,
+    priceInSeeds: 500,
     requiredTier: 'friend',
     isLimited: false,
     config: {
@@ -114,7 +114,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     description: 'Warm sunset gradient that glows',
     type: 'avatar-skin',
     rarity: 'rare',
-    priceInCoins: 300,
+    priceInSeeds: 300,
     requiredTier: 'friend',
     isLimited: false,
     config: {
@@ -128,7 +128,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     description: 'Calming ocean blue with wave shimmer',
     type: 'avatar-skin',
     rarity: 'rare',
-    priceInCoins: 300,
+    priceInSeeds: 300,
     requiredTier: 'friend',
     isLimited: false,
     config: {
@@ -142,7 +142,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     description: 'Shifting aurora borealis effect',
     type: 'avatar-skin',
     rarity: 'legendary',
-    priceInCoins: 1000,
+    priceInSeeds: 1000,
     requiredTier: 'partner',
     isLimited: true,
     config: {
@@ -160,7 +160,7 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
     description: 'Rich forest greens for a grounding experience',
     type: 'ui-theme',
     rarity: 'uncommon',
-    priceInCoins: 200,
+    priceInSeeds: 200,
     requiredTier: 'friend',
     isLimited: false,
   },
@@ -170,7 +170,7 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
     description: 'True dark mode with soft blue accents',
     type: 'ui-theme',
     rarity: 'rare',
-    priceInCoins: 300,
+    priceInSeeds: 300,
     requiredTier: 'friend',
     isLimited: false,
   },
@@ -180,7 +180,7 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
     description: 'Warm amber tones like firelight',
     type: 'ui-theme',
     rarity: 'epic',
-    priceInCoins: 500,
+    priceInSeeds: 500,
     requiredTier: 'partner',
     isLimited: false,
   },
@@ -193,7 +193,7 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
     description: 'Soft rainfall ambient sounds',
     type: 'sound-pack',
     rarity: 'uncommon',
-    priceInCoins: 150,
+    priceInSeeds: 150,
     requiredTier: 'friend',
     isLimited: false,
   },
@@ -203,7 +203,7 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
     description: 'Cozy fireplace ambience',
     type: 'sound-pack',
     rarity: 'uncommon',
-    priceInCoins: 150,
+    priceInSeeds: 150,
     requiredTier: 'friend',
     isLimited: false,
   },
@@ -213,7 +213,7 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
     description: 'Birds and gentle wind through trees',
     type: 'sound-pack',
     rarity: 'rare',
-    priceInCoins: 250,
+    priceInSeeds: 250,
     requiredTier: 'friend',
     isLimited: false,
   },
@@ -249,7 +249,7 @@ function createDefaultCosmetics(): UserCosmetics {
       'sound-pack': null,
       emote: null,
     },
-    coinBalance: 0,
+    seedBalance: 0,
   };
 }
 
@@ -336,7 +336,7 @@ export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: str
     return { canBuy: false, reason: 'Already owned' };
   }
 
-  if (cosmetic.priceInCoins === null) {
+  if (cosmetic.priceInSeeds === null) {
     return { canBuy: false, reason: 'Not for sale (default item)' };
   }
 
@@ -349,9 +349,9 @@ export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: str
     return { canBuy: false, reason: `Requires ${cosmetic.requiredTier} tier` };
   }
 
-  // Check coin balance
-  if (userCosmetics.coinBalance < cosmetic.priceInCoins) {
-    return { canBuy: false, reason: 'Not enough Ferni Coins' };
+  // Check seed balance
+  if (userCosmetics.seedBalance < cosmetic.priceInSeeds) {
+    return { canBuy: false, reason: 'Need more Seeds' };
   }
 
   return { canBuy: true };
@@ -369,17 +369,17 @@ export function purchaseCosmetic(cosmeticId: string): boolean {
   }
 
   const cosmetic = COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
-  if (!cosmetic || cosmetic.priceInCoins === null) return false;
+  if (!cosmetic || cosmetic.priceInSeeds === null) return false;
 
-  // Deduct coins and add to owned
-  userCosmetics.coinBalance -= cosmetic.priceInCoins;
+  // Deduct seeds and add to owned
+  userCosmetics.seedBalance -= cosmetic.priceInSeeds;
   userCosmetics.ownedItems.push(cosmeticId);
 
   // Save and notify
   saveCosmetics();
   notifyListeners();
 
-  log.info({ cosmeticId, newBalance: userCosmetics.coinBalance }, 'Cosmetic purchased');
+  log.info({ cosmeticId, newBalance: userCosmetics.seedBalance }, 'Cosmetic purchased');
   return true;
 }
 
@@ -412,7 +412,7 @@ export function equipCosmetic(cosmeticId: string): boolean {
 export function unequipCosmetic(type: CosmeticType): void {
   // Find default for this type
   const defaultItem = COSMETICS_CATALOG.find(
-    (c) => c.type === type && c.priceInCoins === null && c.requiredTier === 'free'
+    (c) => c.type === type && c.priceInSeeds === null && c.requiredTier === 'free'
   );
 
   userCosmetics.equipped[type] = defaultItem?.id ?? null;
@@ -425,20 +425,20 @@ export function unequipCosmetic(type: CosmeticType): void {
 }
 
 /**
- * Get coin balance
+ * Get seed balance
  */
-export function getCoinBalance(): number {
-  return userCosmetics.coinBalance;
+export function getSeedBalance(): number {
+  return userCosmetics.seedBalance;
 }
 
 /**
- * Add coins (for purchases, rewards, etc.)
+ * Add seeds (for purchases, rewards, etc.)
  */
-export function addCoins(amount: number): void {
-  userCosmetics.coinBalance += amount;
+export function addSeeds(amount: number): void {
+  userCosmetics.seedBalance += amount;
   saveCosmetics();
   notifyListeners();
-  log.info({ amount, newBalance: userCosmetics.coinBalance }, 'Coins added');
+  log.info({ amount, newBalance: userCosmetics.seedBalance }, 'Seeds added');
 }
 
 /**
@@ -515,7 +515,7 @@ function notifyListeners(): void {
  */
 export function devUnlockAllCosmetics(): void {
   userCosmetics.ownedItems = COSMETICS_CATALOG.map((c) => c.id);
-  userCosmetics.coinBalance = 10000;
+  userCosmetics.seedBalance = 10000;
   saveCosmetics();
   notifyListeners();
   log.info('Dev: All cosmetics unlocked');
@@ -548,8 +548,8 @@ export const cosmeticsService = {
   purchase: purchaseCosmetic,
   equip: equipCosmetic,
   unequip: unequipCosmetic,
-  getCoinBalance,
-  addCoins,
+  getSeedBalance,
+  addSeeds,
   onChange: onCosmeticsChange,
   // Dev helpers
   devUnlockAll: devUnlockAllCosmetics,

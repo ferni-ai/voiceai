@@ -471,10 +471,10 @@ function renderItemStatus(item: CosmeticItem, isOwned: boolean, isEquipped: bool
   if (isOwned) {
     return `<div class="personalize-item-status owned">Yours</div>`;
   }
-  if (item.priceInCoins === null) {
+  if (item.priceInSeeds === null) {
     return `<div class="personalize-item-status available">Default</div>`;
   }
-  return `<div class="personalize-item-status available">${item.priceInCoins} coins</div>`;
+  return `<div class="personalize-item-status available">${item.priceInSeeds} Seeds</div>`;
 }
 
 function renderItemAction(
@@ -483,12 +483,9 @@ function renderItemAction(
   isEquipped: boolean,
   canBuy: boolean
 ): string {
+  // No button needed for already-active items - status badge is enough
   if (isEquipped) {
-    return `
-      <button class="personalize-item-action equipped" disabled>
-        Active
-      </button>
-    `;
+    return '';
   }
 
   if (isOwned) {
@@ -499,7 +496,7 @@ function renderItemAction(
     `;
   }
 
-  if (item.priceInCoins === null) {
+  if (item.priceInSeeds === null) {
     return `
       <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
@@ -510,7 +507,7 @@ function renderItemAction(
   if (!canBuy) {
     return `
       <button class="personalize-item-action" disabled>
-        Not enough coins
+        Need more Seeds
       </button>
     `;
   }

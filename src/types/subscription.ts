@@ -263,8 +263,8 @@ export interface CosmeticItem {
   /** Preview image URL */
   previewUrl?: string;
 
-  /** Price in Ferni Coins (null = earned through progression) */
-  priceInCoins: number | null;
+  /** Price in Seeds (null = earned through progression) */
+  priceInSeeds: number | null;
 
   /** Minimum tier required to purchase */
   requiredTier: SubscriptionTier;
@@ -292,8 +292,8 @@ export interface UserCosmetics {
     emote: string | null;
   };
 
-  /** Ferni Coins balance */
-  coinBalance: number;
+  /** Seeds balance */
+  seedBalance: number;
 
   /** Growth journey progress */
   journey?: {
@@ -319,7 +319,7 @@ export function createDefaultCosmetics(): UserCosmetics {
       'sound-pack': null,
       emote: null,
     },
-    coinBalance: 0,
+    seedBalance: 0,
   };
 }
 
