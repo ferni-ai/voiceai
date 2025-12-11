@@ -215,19 +215,47 @@ const DAY_PATTERN_PHRASES: Array<{
   sentiment: 'positive' | 'negative';
 }> = [
   // Negative day patterns
-  { pattern: /mondays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 1, sentiment: 'negative' },
+  {
+    pattern: /mondays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 1,
+    sentiment: 'negative',
+  },
   { pattern: /(?:hate|dread|struggle with)\s+mondays?/i, day: 1, sentiment: 'negative' },
-  { pattern: /tuesdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 2, sentiment: 'negative' },
-  { pattern: /wednesdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 3, sentiment: 'negative' },
-  { pattern: /thursdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 4, sentiment: 'negative' },
-  { pattern: /fridays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 5, sentiment: 'negative' },
-  { pattern: /sundays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i, day: 0, sentiment: 'negative' },
+  {
+    pattern: /tuesdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 2,
+    sentiment: 'negative',
+  },
+  {
+    pattern: /wednesdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 3,
+    sentiment: 'negative',
+  },
+  {
+    pattern: /thursdays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 4,
+    sentiment: 'negative',
+  },
+  {
+    pattern: /fridays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 5,
+    sentiment: 'negative',
+  },
+  {
+    pattern: /sundays?\s+(?:are|is)\s+(?:always |usually )?(?:hard|tough|difficult)/i,
+    day: 0,
+    sentiment: 'negative',
+  },
   // Sunday scaries
   { pattern: /sunday\s+scaries/i, day: 0, sentiment: 'negative' },
 
   // Positive day patterns
   { pattern: /(?:love|enjoy)\s+(?:my )?\s*fridays?/i, day: 5, sentiment: 'positive' },
-  { pattern: /fridays?\s+(?:are|is)\s+(?:always |usually )?(?:great|good|my favorite)/i, day: 5, sentiment: 'positive' },
+  {
+    pattern: /fridays?\s+(?:are|is)\s+(?:always |usually )?(?:great|good|my favorite)/i,
+    day: 5,
+    sentiment: 'positive',
+  },
 ];
 
 // Recurring pattern mentions
@@ -247,8 +275,15 @@ const MILESTONE_PATTERNS: Array<{
   // Streak mentions
   { pattern: /(\d+)\s+days?\s+(?:straight|in a row|streak)/i, type: 'streak' },
   { pattern: /(?:on a |my )\s*(\d+)\s*(?:day|week)\s+streak/i, type: 'streak' },
-  { pattern: /(?:kept|maintained|hit)\s+(?:my |a )\s*(\d+)\s*(?:day|week)\s+streak/i, type: 'streak' },
-  { pattern: /(\d+)\s+(?:days?|weeks?)\s+of\s+(?:meditation|exercise|working out|journaling|reading)/i, type: 'streak' },
+  {
+    pattern: /(?:kept|maintained|hit)\s+(?:my |a )\s*(\d+)\s*(?:day|week)\s+streak/i,
+    type: 'streak',
+  },
+  {
+    pattern:
+      /(\d+)\s+(?:days?|weeks?)\s+of\s+(?:meditation|exercise|working out|journaling|reading)/i,
+    type: 'streak',
+  },
 
   // Goal progress
   { pattern: /(\d+)%\s+(?:done|complete|finished|there)/i, type: 'goal_progress' },
@@ -256,8 +291,15 @@ const MILESTONE_PATTERNS: Array<{
   { pattern: /(\d+)\s+(?:out of|\/)\s*(\d+)/i, type: 'goal_progress' },
 
   // Counts/milestones
-  { pattern: /(?:this is|that's)\s+(?:my |the )\s*(\d+)(?:st|nd|rd|th)\s+(?:time|day|week|session)/i, type: 'count' },
-  { pattern: /(\d+)\s+(?:conversations?|sessions?|times?)\s+(?:with you|together|now)/i, type: 'anniversary' },
+  {
+    pattern:
+      /(?:this is|that's)\s+(?:my |the )\s*(\d+)(?:st|nd|rd|th)\s+(?:time|day|week|session)/i,
+    type: 'count',
+  },
+  {
+    pattern: /(\d+)\s+(?:conversations?|sessions?|times?)\s+(?:with you|together|now)/i,
+    type: 'anniversary',
+  },
 
   // Anniversary mentions
   { pattern: /(?:it's been|been)\s+(\d+)\s+(?:days?|weeks?|months?)/i, type: 'anniversary' },
@@ -375,12 +417,21 @@ export function extractFromMessage(message: string): Partial<ExtractionResult> {
   // Day-of-week patterns (e.g., "Mondays are hard")
   for (const { pattern, day, sentiment } of DAY_PATTERN_PHRASES) {
     if (pattern.test(message)) {
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNames = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
       result.patterns!.push({
         type: 'day_of_week',
-        pattern: sentiment === 'negative'
-          ? `${dayNames[day]}s tend to be hard`
-          : `${dayNames[day]}s are a highlight`,
+        pattern:
+          sentiment === 'negative'
+            ? `${dayNames[day]}s tend to be hard`
+            : `${dayNames[day]}s are a highlight`,
         dayOfWeek: day,
         confidence: 0.8,
       });
@@ -621,7 +672,15 @@ export async function processExtractionResults(
         // Create a pattern acknowledgment trigger
         // This fires preemptively (e.g., Sunday night before a hard Monday)
         if (pattern.type === 'day_of_week' && pattern.dayOfWeek !== undefined) {
-          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayNames = [
+            'Sunday',
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+          ];
           const today = new Date();
           const currentDay = today.getDay();
 
@@ -672,7 +731,10 @@ export async function processExtractionResults(
                 suggestedTime: addHours(new Date(), 1), // Celebrate soon!
               });
               triggersCreated.push(triggerId);
-              log.info({ userId, milestone: milestone.description }, '🔥 Streak milestone detected!');
+              log.info(
+                { userId, milestone: milestone.description },
+                '🔥 Streak milestone detected!'
+              );
             }
             break;
 

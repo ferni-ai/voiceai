@@ -13,6 +13,7 @@
  */
 
 import { getMusicPlayer } from '../audio/index.js';
+import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   getContextualMusicSuggestion,
@@ -611,16 +612,16 @@ class DJSessionService {
    * Get the "let me get my friend" banter when handing off
    */
   getHandoffBanter(fromPersonaId: string, toPersonaId: string): string | null {
-    // From Ferni to specialist
-    if (fromPersonaId === 'ferni' || fromPersonaId === 'jack-b') {
+    // From coach to specialist
+    if (isCoach(fromPersonaId)) {
       const banterSet = HANDOFF_BANTER.ferniTo[toPersonaId as keyof typeof HANDOFF_BANTER.ferniTo];
       if (banterSet) {
         return this.randomFrom(banterSet);
       }
     }
 
-    // From specialist back to Ferni
-    if (toPersonaId === 'ferni' || toPersonaId === 'jack-b') {
+    // From specialist back to coach
+    if (isCoach(toPersonaId)) {
       const banterSet =
         HANDOFF_BANTER.toFerni[fromPersonaId as keyof typeof HANDOFF_BANTER.toFerni];
       if (banterSet) {
@@ -639,16 +640,16 @@ class DJSessionService {
     const entrances = GUEST_DJ_ENTRANCES[arrivingPersonaId as keyof typeof GUEST_DJ_ENTRANCES];
     if (!entrances) return null;
 
-    // Special case: Ferni returning
+    // Special case: Coach returning (check literal key for data lookup)
     if (arrivingPersonaId === 'ferni' && 'returning' in entrances) {
       return this.randomFrom(entrances.returning as string[]);
     }
 
-    // Check if coming from Ferni vs other
-    const isFromFerni = fromPersonaId === 'ferni' || fromPersonaId === 'jack-b';
+    // Check if coming from coach vs other
+    const isFromCoach = isCoach(fromPersonaId);
 
     if ('fromFerni' in entrances && 'fromOther' in entrances) {
-      const phraseSet = isFromFerni
+      const phraseSet = isFromCoach
         ? (entrances.fromFerni as string[])
         : (entrances.fromOther as string[]);
       return this.randomFrom(phraseSet);

@@ -43,7 +43,7 @@ values, or memories in a playful way. Choose from activities like:
           two_truths_dream:
             "Let's play Two Truths and a Dream! Tell me two things that have actually happened in your life, and one thing you dream of doing. I'll try to guess which is the dream!",
           values_auction:
-            "Imagine you have $100 to bid on different life values - things like adventure, security, creativity, connection, achievement. What would you spend the most on?",
+            'Imagine you have $100 to bid on different life values - things like adventure, security, creativity, connection, achievement. What would you spend the most on?',
           rose_thorn_bud:
             "Let's do a Rose, Thorn, Bud reflection. Share something positive (rose), something challenging (thorn), and something you're looking forward to (bud).",
           gratitude_chain:

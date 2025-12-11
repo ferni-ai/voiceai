@@ -5,8 +5,8 @@
  * creating delightful visual moments during conversation.
  */
 
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -14,7 +14,7 @@ import { getLogger } from '../utils/safe-logger.js';
 // ============================================================================
 
 export const PERSONA_EXPRESSIONS = {
-  'ferni': {
+  ferni: {
     signature: '🌱',
     available: ['🌱', '💚', '🌿', '☀️', '🌸', '✨', '💫', '🤗'],
     descriptions: {

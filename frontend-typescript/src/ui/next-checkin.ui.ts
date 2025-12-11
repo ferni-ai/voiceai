@@ -228,9 +228,12 @@ class NextCheckinWidget {
     this.fetchNextOutreach();
 
     // Refresh every 5 minutes
-    this.refreshInterval = setInterval(() => {
-      this.fetchNextOutreach();
-    }, 5 * 60 * 1000);
+    this.refreshInterval = setInterval(
+      () => {
+        this.fetchNextOutreach();
+      },
+      5 * 60 * 1000
+    );
 
     log.debug('Next check-in widget mounted');
     return this.element;
@@ -327,11 +330,15 @@ class NextCheckinWidget {
             ${ICONS.clock}
             ${timeStr}
           </div>
-          ${this.options.showPersona !== false ? `
+          ${
+            this.options.showPersona !== false
+              ? `
             <div class="next-checkin-persona">
               from ${this.nextOutreach.personaName}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         <div class="next-checkin-arrow">
           ${ICONS.chevronRight}
