@@ -62,11 +62,11 @@ const contextCacheStats = {
  */
 function generateContextCacheKey(input: ContextBuilderInput): string {
   const keyParts = [
-    input.services.sessionId,
-    input.userData.turnCount?.toString() || '0',
-    input.analysis.emotion.primary,
-    Math.round(input.analysis.emotion.intensity * 10).toString(),
-    input.persona.identity.id,
+    input.services?.sessionId || 'no-session',
+    input.userData?.turnCount?.toString() || '0',
+    input.analysis?.emotion?.primary || 'neutral',
+    Math.round((input.analysis?.emotion?.intensity ?? 0) * 10).toString(),
+    input.persona?.identity?.id || 'unknown',
   ];
   return keyParts.join(':');
 }
@@ -76,10 +76,10 @@ function generateContextCacheKey(input: ContextBuilderInput): string {
  */
 function generateInputHash(input: ContextBuilderInput): string {
   const hashData = {
-    text: input.userText.slice(0, 200), // First 200 chars
-    emotion: input.analysis.emotion,
-    intent: input.analysis.intent.primary,
-    topics: input.analysis.topics.detected.slice(0, 3),
+    text: (input.userText || '').slice(0, 200), // First 200 chars
+    emotion: input.analysis?.emotion || { primary: 'neutral', intensity: 0 },
+    intent: input.analysis?.intent?.primary || 'unknown',
+    topics: input.analysis?.topics?.detected?.slice(0, 3) || [],
   };
   return createHash('md5').update(JSON.stringify(hashData)).digest('hex').slice(0, 16);
 }
@@ -812,8 +812,8 @@ export async function buildConversationContext(
   });
 
   // Record turn-level metrics
-  const sessionId = input.services.sessionId || 'unknown';
-  const turnNumber = input.userData.turnCount || 0;
+  const sessionId = input.services?.sessionId || 'unknown';
+  const turnNumber = input.userData?.turnCount || 0;
   recordTurnMetrics(sessionId, turnNumber, builderResults);
 
   // Cache the result for future lookups
