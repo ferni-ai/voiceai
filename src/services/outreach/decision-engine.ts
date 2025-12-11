@@ -15,6 +15,16 @@ import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 import {
+  deleteTrigger,
+  loadHistory,
+  loadOutreachProfile,
+  loadPendingTriggers,
+  saveOutreachProfile,
+  saveToHistory,
+  saveTrigger,
+  updateTriggerStatus,
+} from './firestore-persistence.js';
+import {
   generateOutreach,
   selectPersonaForOutreach,
   type GeneratedOutreach,
@@ -296,6 +306,11 @@ class OutreachDecisionEngine extends EventEmitter {
     userTriggers.push(fullTrigger);
     pendingTriggers.set(trigger.userId, userTriggers);
 
+    // Persist to Firestore (fire and forget for speed)
+    saveTrigger(fullTrigger, trigger.suggestedTime).catch((err) => {
+      log.debug({ err, triggerId: id }, 'Failed to persist trigger (non-fatal)');
+    });
+
     log.info(
       {
         triggerId: id,
@@ -355,15 +370,37 @@ class OutreachDecisionEngine extends EventEmitter {
   // ============================================================================
 
   /**
-   * Get or create user outreach state
+   * Get or create user outreach state (sync - uses cache or creates default)
+   * For hydrated data from Firestore, call loadUserStateFromFirestore first
    */
   getUserState(userId: string): UserOutreachState {
     let state = userStateStore.get(userId);
     if (!state) {
       state = this.createDefaultUserState(userId);
       userStateStore.set(userId, state);
+
+      // Async load from Firestore to hydrate (fire and forget)
+      this.loadUserStateFromFirestore(userId).catch(() => {
+        // Silent - will use defaults until loaded
+      });
     }
     return state;
+  }
+
+  /**
+   * Load user state from Firestore (async - call for full hydration)
+   */
+  async loadUserStateFromFirestore(userId: string): Promise<UserOutreachState> {
+    const profile = await loadOutreachProfile(userId);
+    if (profile?.state) {
+      // Merge with any existing in-memory state
+      const existing = userStateStore.get(userId) || this.createDefaultUserState(userId);
+      const merged = { ...existing, ...profile.state };
+      userStateStore.set(userId, merged);
+      log.debug({ userId }, 'Loaded user state from Firestore');
+      return merged;
+    }
+    return this.getUserState(userId);
   }
 
   /**
@@ -373,6 +410,10 @@ class OutreachDecisionEngine extends EventEmitter {
     const state = this.getUserState(userId);
     const updated = { ...state, ...updates };
     userStateStore.set(userId, updated);
+
+    // Persist to Firestore
+    this.persistUserState(userId, updated);
+
     log.debug({ userId, updates }, 'User outreach state updated');
   }
 
@@ -386,6 +427,10 @@ class OutreachDecisionEngine extends EventEmitter {
     const state = this.getUserState(userId);
     state.preferences = { ...state.preferences, ...preferences };
     userStateStore.set(userId, state);
+
+    // Persist to Firestore
+    this.persistUserState(userId, state);
+
     log.info({ userId, preferences }, '⚙️ User outreach preferences updated');
   }
 
@@ -396,6 +441,9 @@ class OutreachDecisionEngine extends EventEmitter {
     const state = this.getUserState(userId);
     state.context = { ...state.context, ...context };
     userStateStore.set(userId, state);
+
+    // Persist to Firestore (debounced - context updates frequently)
+    this.persistUserState(userId, state);
   }
 
   /**
@@ -418,6 +466,18 @@ class OutreachDecisionEngine extends EventEmitter {
     state.counters.lastOutreachDate = now;
 
     userStateStore.set(userId, state);
+
+    // Persist to Firestore
+    this.persistUserState(userId, state);
+  }
+
+  /**
+   * Persist user state to Firestore (fire and forget)
+   */
+  private persistUserState(userId: string, state: UserOutreachState): void {
+    saveOutreachProfile(userId, { state }).catch((err) => {
+      log.debug({ err, userId }, 'Failed to persist user state (non-fatal)');
+    });
   }
 
   private createDefaultUserState(userId: string): UserOutreachState {
@@ -627,6 +687,22 @@ class OutreachDecisionEngine extends EventEmitter {
     }
 
     outreachHistory.set(userId, history);
+
+    // Persist to Firestore
+    saveToHistory(userId, decision).catch((err) => {
+      log.debug({ err, userId }, 'Failed to persist decision to history (non-fatal)');
+    });
+
+    // Remove processed trigger from Firestore
+    if (decision.decision === 'send' || decision.decision === 'skip') {
+      deleteTrigger(decision.trigger.id).catch((err) => {
+        log.debug({ err, triggerId: decision.trigger.id }, 'Failed to delete trigger (non-fatal)');
+      });
+    } else if (decision.decision === 'defer') {
+      updateTriggerStatus(decision.trigger.id, 'pending', decision.deferUntil).catch((err) => {
+        log.debug({ err, triggerId: decision.trigger.id }, 'Failed to update trigger (non-fatal)');
+      });
+    }
   }
 
   // ============================================================================
@@ -886,11 +962,22 @@ class OutreachDecisionEngine extends EventEmitter {
   // ============================================================================
 
   /**
-   * Get outreach history for a user
+   * Get outreach history for a user (sync - uses cache)
    */
   getOutreachHistory(userId: string, limit = 20): OutreachDecision[] {
     const history = outreachHistory.get(userId) || [];
     return history.slice(-limit);
+  }
+
+  /**
+   * Load outreach history from Firestore (async)
+   */
+  async loadOutreachHistoryFromFirestore(userId: string, limit = 50): Promise<OutreachDecision[]> {
+    const history = await loadHistory(userId, limit);
+    if (history.length > 0) {
+      outreachHistory.set(userId, history);
+    }
+    return history;
   }
 
   /**
@@ -943,7 +1030,26 @@ class OutreachDecisionEngine extends EventEmitter {
     userStateStore.delete(userId);
     pendingTriggers.delete(userId);
     outreachHistory.delete(userId);
+
+    // Also clear from Firestore
+    import('./firestore-persistence.js')
+      .then(({ deleteAllUserOutreachData }) => {
+        deleteAllUserOutreachData(userId).catch(() => {});
+      })
+      .catch(() => {});
+
     log.info({ userId }, 'Cleared all outreach data for user');
+  }
+
+  /**
+   * Load pending triggers for a user from Firestore
+   */
+  async loadUserTriggersFromFirestore(userId: string): Promise<OutreachTrigger[]> {
+    const triggers = await loadPendingTriggers(userId);
+    if (triggers.length > 0) {
+      pendingTriggers.set(userId, triggers);
+    }
+    return triggers;
   }
 
   /**

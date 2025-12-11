@@ -178,6 +178,64 @@
       "glow": "rgba(184, 149, 106, 0.28)",
       "tint": "rgba(184, 149, 106, 0.06)",
       "_note": "Golden Amber - wisdom, warmth, guidance"
+    },
+
+    "_marketplace_description": "Marketplace agent colors - specialized support personas",
+    "eli": {
+      "primary": "#6B5B95",
+      "secondary": "#4A4063",
+      "text": "#ffffff",
+      "glow": "rgba(107, 91, 149, 0.28)",
+      "tint": "rgba(107, 91, 149, 0.06)",
+      "_note": "Deep purple - focus, calm amidst chaos, ADHD coach"
+    },
+    "marcus": {
+      "primary": "#2D5A4A",
+      "secondary": "#1E3D32",
+      "text": "#ffffff",
+      "glow": "rgba(45, 90, 74, 0.28)",
+      "tint": "rgba(45, 90, 74, 0.06)",
+      "_note": "Deep forest green - grounding, stability, sobriety companion"
+    },
+    "kenji": {
+      "primary": "#2C3E50",
+      "secondary": "#1A252F",
+      "text": "#ffffff",
+      "glow": "rgba(44, 62, 80, 0.28)",
+      "tint": "rgba(44, 62, 80, 0.06)",
+      "_note": "Midnight blue - calm, sleep, peaceful nights"
+    },
+    "carmen": {
+      "primary": "#D4A373",
+      "secondary": "#A67B5B",
+      "text": "#ffffff",
+      "glow": "rgba(212, 163, 115, 0.28)",
+      "tint": "rgba(212, 163, 115, 0.06)",
+      "_note": "Warm sand - nurturing, earthy, parenting partner"
+    },
+    "amara": {
+      "primary": "#7B6BA8",
+      "secondary": "#5A4D80",
+      "text": "#ffffff",
+      "glow": "rgba(123, 107, 168, 0.28)",
+      "tint": "rgba(123, 107, 168, 0.06)",
+      "_note": "Soft violet - healing, understanding, chronic illness ally"
+    },
+    "sasha": {
+      "primary": "#E07B53",
+      "secondary": "#B85C3C",
+      "text": "#ffffff",
+      "glow": "rgba(224, 123, 83, 0.28)",
+      "tint": "rgba(224, 123, 83, 0.06)",
+      "_note": "Creative coral - inspiration, energy, creative catalyst"
+    },
+    "ray": {
+      "primary": "#4A5568",
+      "secondary": "#2D3748",
+      "text": "#ffffff",
+      "glow": "rgba(74, 85, 104, 0.28)",
+      "tint": "rgba(74, 85, 104, 0.06)",
+      "_note": "Professional slate - strategic, grounded, career architect"
     }
   }
 }

@@ -17,6 +17,7 @@
 import { getDefaultStore } from '../../memory/in-memory-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
+import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
 
 // ============================================================================
@@ -336,10 +337,91 @@ export function getTimingProfile(userId: string): TimingProfile {
     };
     timingProfileStore.set(userId, profile);
 
-    // Async load timezone from user profile (non-blocking)
+    // Async load from Firestore and user profile (non-blocking)
+    void loadTimingProfileFromFirestore(userId);
     void loadTimezoneFromUserProfile(userId);
   }
   return profile;
+}
+
+/**
+ * Load timing profile from Firestore
+ */
+async function loadTimingProfileFromFirestore(userId: string): Promise<void> {
+  try {
+    const outreachProfile = await loadOutreachProfile(userId);
+    if (outreachProfile?.timing) {
+      const existing = timingProfileStore.get(userId);
+      if (existing) {
+        // Merge serialized timing data with existing profile
+        const merged = { ...existing, ...deserializeTimingProfile(outreachProfile.timing) };
+        timingProfileStore.set(userId, merged);
+        log.debug({ userId }, 'Loaded timing profile from Firestore');
+      }
+    }
+  } catch (err) {
+    log.debug({ err, userId }, 'Failed to load timing profile from Firestore');
+  }
+}
+
+/**
+ * Persist timing profile to Firestore (fire and forget)
+ */
+function persistTimingProfile(userId: string, profile: TimingProfile): void {
+  const serialized = serializeTimingProfile(profile);
+  saveOutreachProfile(userId, { timing: serialized }).catch((err) => {
+    log.debug({ err, userId }, 'Failed to persist timing profile (non-fatal)');
+  });
+}
+
+/**
+ * Serialize Maps to objects for Firestore storage
+ */
+function serializeTimingProfile(profile: TimingProfile): Partial<TimingProfile> {
+  return {
+    ...profile,
+    engagementPatterns: {
+      ...profile.engagementPatterns,
+      responseRateByHour: Object.fromEntries(
+        profile.engagementPatterns.responseRateByHour
+      ) as unknown as Map<number, number>,
+      responseRateByDay: Object.fromEntries(
+        profile.engagementPatterns.responseRateByDay
+      ) as unknown as Map<number, number>,
+    },
+  };
+}
+
+/**
+ * Deserialize objects back to Maps
+ */
+function deserializeTimingProfile(data: Partial<TimingProfile>): Partial<TimingProfile> {
+  if (!data.engagementPatterns) return data;
+
+  return {
+    ...data,
+    engagementPatterns: {
+      ...data.engagementPatterns,
+      responseRateByHour:
+        data.engagementPatterns.responseRateByHour instanceof Map
+          ? data.engagementPatterns.responseRateByHour
+          : new Map(
+              Object.entries(data.engagementPatterns.responseRateByHour || {}).map(([k, v]) => [
+                parseInt(k),
+                v as number,
+              ])
+            ),
+      responseRateByDay:
+        data.engagementPatterns.responseRateByDay instanceof Map
+          ? data.engagementPatterns.responseRateByDay
+          : new Map(
+              Object.entries(data.engagementPatterns.responseRateByDay || {}).map(([k, v]) => [
+                parseInt(k),
+                v as number,
+              ])
+            ),
+    },
+  };
 }
 
 /**
@@ -377,6 +459,7 @@ export function updateTimingPreferences(
   const profile = getTimingProfile(userId);
   profile.preferences = { ...profile.preferences, ...preferences };
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.debug({ userId, preferences }, 'Timing preferences updated');
 }
 
@@ -387,6 +470,7 @@ export function addNeverDuringRule(userId: string, rule: NeverDuringRule): void 
   const profile = getTimingProfile(userId);
   profile.preferences.neverDuring.push(rule);
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.info({ userId, rule: rule.description }, 'Added never-during rule');
 }
 
@@ -397,6 +481,7 @@ export function addBusyPeriod(userId: string, period: BusyPeriod): void {
   const profile = getTimingProfile(userId);
   profile.lifeContext.busyPeriods.push(period);
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.info({ userId, period: period.description }, 'Added busy period');
 }
 
@@ -407,6 +492,7 @@ export function addRecurringEvent(userId: string, event: RecurringEvent): void {
   const profile = getTimingProfile(userId);
   profile.lifeContext.recurringEvents.push(event);
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.info({ userId, event: event.description }, 'Added recurring event');
 }
 
@@ -417,6 +503,7 @@ export function setWorkSchedule(userId: string, schedule: WorkSchedule): void {
   const profile = getTimingProfile(userId);
   profile.lifeContext.workSchedule = schedule;
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.info({ userId, schedule }, 'Work schedule updated');
 }
 
@@ -427,6 +514,7 @@ export function setSleepPattern(userId: string, pattern: SleepPattern): void {
   const profile = getTimingProfile(userId);
   profile.lifeContext.sleepPattern = pattern;
   timingProfileStore.set(userId, profile);
+  persistTimingProfile(userId, profile);
   log.info({ userId, pattern }, 'Sleep pattern updated');
 }
 
@@ -540,6 +628,13 @@ function updateProfileFromInteraction(userId: string, record: InteractionRecord)
   }
 
   timingProfileStore.set(userId, profile);
+
+  // Persist learned data periodically (not on every interaction to avoid spam)
+  // Persist every 10th interaction
+  const records = interactionLog.get(userId) || [];
+  if (records.length % 10 === 0) {
+    persistTimingProfile(userId, profile);
+  }
 }
 
 function getTopHours(rateMap: Map<number, number>, count = 8): number[] {

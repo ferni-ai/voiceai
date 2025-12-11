@@ -8,7 +8,8 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "pending-voice-selection"
+    "voice_id": "2ee87190-8f84-4925-97da-e52547f9462c",
+    "_voice_note": "Warm female - practical, no-nonsense warmth"
   },
   "personality": {
     "warmth": 0.9,

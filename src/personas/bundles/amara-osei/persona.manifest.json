@@ -8,7 +8,8 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "pending-voice-selection"
+    "voice_id": "d82ac70c-7a96-4a78-9d82-6a18c9e6b91c",
+    "_voice_note": "Caring female - warm, validating, knowledgeable"
   },
   "personality": {
     "warmth": 0.9,

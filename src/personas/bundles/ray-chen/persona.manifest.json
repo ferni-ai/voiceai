@@ -8,7 +8,8 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "pending-voice-selection"
+    "voice_id": "a167e0f3-df7e-4d52-a9c3-f949145efdab",
+    "_voice_note": "Professional male - strategic, warm but direct"
   },
   "personality": {
     "warmth": 0.8,

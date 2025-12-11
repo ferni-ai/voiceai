@@ -12,11 +12,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { OutreachTrigger, OutreachDecision, UserOutreachState } from './decision-engine.js';
-import type { UserLifeContext } from './context-aggregator.js';
-import type { TimingProfile } from './timing-intelligence.js';
 import type { ChannelProfile } from './channel-selector.js';
+import type { UserLifeContext } from './context-aggregator.js';
+import type { OutreachDecision, OutreachTrigger, UserOutreachState } from './decision-engine.js';
 import type { RelationshipProfile } from './relationship-adapter.js';
+import type { TimingProfile } from './timing-intelligence.js';
 
 const log = getLogger().child({ module: 'outreach-firestore' });
 
@@ -225,20 +225,24 @@ export async function saveTrigger(trigger: OutreachTrigger, scheduledFor?: Date)
  */
 export async function updateTriggerStatus(
   triggerId: string,
-  status: OutreachTriggerDocument['status']
+  status: OutreachTriggerDocument['status'],
+  scheduledFor?: Date
 ): Promise<void> {
   if (!isFirestoreAvailable()) {
     return;
   }
 
   try {
-    await firestoreClient!
-      .collection(TRIGGERS_COLLECTION)
-      .doc(triggerId)
-      .update({
-        status,
-        processedAt: status === 'sent' || status === 'failed' ? new Date() : null,
-      });
+    const updateData: Record<string, unknown> = {
+      status,
+      processedAt: status === 'sent' || status === 'failed' ? new Date() : null,
+    };
+
+    if (scheduledFor) {
+      updateData.scheduledFor = scheduledFor;
+    }
+
+    await firestoreClient!.collection(TRIGGERS_COLLECTION).doc(triggerId).update(updateData);
   } catch (error) {
     log.error({ error, triggerId }, 'Failed to update trigger status');
   }

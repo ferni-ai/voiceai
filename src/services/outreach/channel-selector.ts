@@ -13,8 +13,9 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js';
+import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
-import type { OutreachTriggerType, OutreachPriority } from './decision-engine.js';
 import { getTimingProfile } from './timing-intelligence.js';
 
 // ============================================================================
@@ -176,8 +177,39 @@ export function getChannelProfile(userId: string): ChannelProfile {
       userId,
     };
     channelProfileStore.set(userId, profile);
+
+    // Async load from Firestore (fire and forget)
+    loadChannelProfileFromFirestore(userId).catch(() => {});
   }
   return profile;
+}
+
+/**
+ * Load channel profile from Firestore
+ */
+async function loadChannelProfileFromFirestore(userId: string): Promise<void> {
+  try {
+    const outreachProfile = await loadOutreachProfile(userId);
+    if (outreachProfile?.channel) {
+      const existing = channelProfileStore.get(userId);
+      if (existing) {
+        const merged = { ...existing, ...outreachProfile.channel };
+        channelProfileStore.set(userId, merged);
+        log.debug({ userId }, 'Loaded channel profile from Firestore');
+      }
+    }
+  } catch (err) {
+    log.debug({ err, userId }, 'Failed to load channel profile from Firestore');
+  }
+}
+
+/**
+ * Persist channel profile to Firestore
+ */
+function persistChannelProfile(userId: string, profile: ChannelProfile): void {
+  saveOutreachProfile(userId, { channel: profile }).catch((err) => {
+    log.debug({ err, userId }, 'Failed to persist channel profile (non-fatal)');
+  });
 }
 
 /**
@@ -190,6 +222,7 @@ export function updateChannelPreferences(
   const profile = getChannelProfile(userId);
   profile.preferences = { ...profile.preferences, ...preferences };
   channelProfileStore.set(userId, profile);
+  persistChannelProfile(userId, profile);
   log.debug({ userId, preferences }, 'Channel preferences updated');
 }
 
@@ -208,6 +241,7 @@ export function updateContactAvailability(
     profile.hasEmail = availability.hasEmail;
   }
   channelProfileStore.set(userId, profile);
+  persistChannelProfile(userId, profile);
 }
 
 /**
@@ -221,6 +255,7 @@ export function updateRelationshipStage(
   profile.relationshipStage = stage;
   profile.allowedChannels = RELATIONSHIP_PERMISSIONS[stage];
   channelProfileStore.set(userId, profile);
+  persistChannelProfile(userId, profile);
   log.debug(
     { userId, stage, allowedChannels: profile.allowedChannels },
     'Relationship stage updated'

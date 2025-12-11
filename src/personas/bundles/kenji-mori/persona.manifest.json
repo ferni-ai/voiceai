@@ -8,7 +8,8 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "pending-voice-selection"
+    "voice_id": "ee82a0c0-d684-4a48-80f3-2e946c5f0e65",
+    "_voice_note": "Calm measured male - soothing, unhurried"
   },
   "personality": {
     "warmth": 0.85,

@@ -8,7 +8,8 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "pending-voice-selection"
+    "voice_id": "f41ffa0a-2e97-4d4c-9a67-b82f67e9b231",
+    "_voice_note": "Creative female - warm, encouraging, fellow-creative"
   },
   "personality": {
     "warmth": 0.85,

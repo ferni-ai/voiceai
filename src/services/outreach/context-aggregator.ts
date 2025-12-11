@@ -17,6 +17,11 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
+import {
+  deleteUserContext,
+  loadContext as loadContextFromFirestore,
+  saveContext as saveContextToFirestore,
+} from './firestore-persistence.js';
 
 // ============================================================================
 // TYPES
@@ -223,15 +228,58 @@ const contextStore = new Map<string, UserLifeContext>();
 const log = getLogger().child({ service: 'context-aggregator' });
 
 /**
- * Get or create user context
+ * Get or create user context (sync - uses cache or creates default)
+ * For hydrated data from Firestore, call loadUserContextFromFirestore first
  */
 export function getUserContext(userId: string): UserLifeContext {
   let context = contextStore.get(userId);
   if (!context) {
     context = createEmptyContext(userId);
     contextStore.set(userId, context);
+
+    // Async load from Firestore to hydrate (fire and forget)
+    loadUserContextFromFirestore(userId).catch(() => {
+      // Silent - will use defaults until loaded
+    });
   }
   return context;
+}
+
+/**
+ * Load user context from Firestore (async)
+ */
+export async function loadUserContextFromFirestore(userId: string): Promise<UserLifeContext> {
+  const firestoreContext = await loadContextFromFirestore(userId);
+  if (firestoreContext) {
+    // Merge with any existing in-memory context
+    const existing = contextStore.get(userId) || createEmptyContext(userId);
+    const merged = mergeContexts(existing, firestoreContext);
+    contextStore.set(userId, merged);
+    log.debug({ userId }, 'Loaded user context from Firestore');
+    return merged;
+  }
+  return getUserContext(userId);
+}
+
+/**
+ * Merge two contexts (in-memory + Firestore)
+ */
+function mergeContexts(inMemory: UserLifeContext, fromDb: UserLifeContext): UserLifeContext {
+  // Use the more recent data, but don't lose in-memory updates
+  return {
+    ...fromDb,
+    ...inMemory,
+    updatedAt: new Date(),
+  };
+}
+
+/**
+ * Persist context to Firestore (fire and forget)
+ */
+function persistContext(userId: string, context: UserLifeContext): void {
+  saveContextToFirestore(userId, context).catch((err) => {
+    log.debug({ err, userId }, 'Failed to persist context (non-fatal)');
+  });
 }
 
 function createEmptyContext(userId: string): UserLifeContext {
@@ -346,6 +394,9 @@ export function recordConversation(
   context.updatedAt = new Date();
   contextStore.set(userId, context);
 
+  // Persist to Firestore
+  persistContext(userId, context);
+
   log.debug(
     {
       userId,
@@ -372,6 +423,9 @@ export function addCommitment(userId: string, commitment: Omit<Commitment, 'id'>
   context.commitments.active.push(fullCommitment);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 
   log.debug({ userId, commitmentId: id, what: commitment.what }, 'Added commitment');
 
@@ -412,6 +466,9 @@ export function updateCommitmentStatus(
 
     context.updatedAt = new Date();
     contextStore.set(userId, context);
+
+    // Persist to Firestore
+    persistContext(userId, context);
   }
 }
 
@@ -431,6 +488,9 @@ export function addOpenLoop(userId: string, loop: Omit<OpenLoop, 'id'>): string 
   context.updatedAt = new Date();
   contextStore.set(userId, context);
 
+  // Persist to Firestore
+  persistContext(userId, context);
+
   return id;
 }
 
@@ -442,6 +502,9 @@ export function resolveOpenLoop(userId: string, loopId: string): void {
   context.conversations.openLoops = context.conversations.openLoops.filter((l) => l.id !== loopId);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 }
 
 /**
@@ -488,6 +551,9 @@ export function updateEmotionalState(
 
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 
   log.debug({ userId, state, trigger }, 'Updated emotional state');
 }
@@ -546,6 +612,9 @@ export function addLifeEvent(userId: string, event: Omit<LifeEvent, 'id'>): stri
   context.updatedAt = new Date();
   contextStore.set(userId, context);
 
+  // Persist to Firestore
+  persistContext(userId, context);
+
   return id;
 }
 
@@ -564,6 +633,9 @@ export function addOngoingEvent(userId: string, event: Omit<LifeEvent, 'id'>): s
   context.lifeEvents.ongoing.push(fullEvent);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 
   return id;
 }
@@ -588,6 +660,9 @@ export function addWin(userId: string, win: Omit<Win, 'id'>): string {
   context.updatedAt = new Date();
   contextStore.set(userId, context);
 
+  // Persist to Firestore
+  persistContext(userId, context);
+
   log.debug({ userId, winId: id, description: win.description }, 'Added win');
 
   return id;
@@ -608,6 +683,9 @@ export function addStruggle(userId: string, struggle: Omit<Struggle, 'id'>): str
   context.progress.currentStruggles.push(fullStruggle);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 
   log.debug({ userId, struggleId: id, description: struggle.description }, 'Added struggle');
 
@@ -639,6 +717,9 @@ export function resolveStruggle(userId: string, struggleId: string): void {
 
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 }
 
 /**
@@ -659,6 +740,9 @@ export function addSignificantMoment(
   context.relationship.significantMoments.push(fullMoment);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
+
+  // Persist to Firestore
+  persistContext(userId, context);
 
   return id;
 }
@@ -866,6 +950,10 @@ export function getFollowUpItems(userId: string): Array<{
 
 export function clearUserContext(userId: string): void {
   contextStore.delete(userId);
+
+  // Also clear from Firestore
+  deleteUserContext(userId).catch(() => {});
+
   log.debug({ userId }, 'Cleared user context');
 }
 

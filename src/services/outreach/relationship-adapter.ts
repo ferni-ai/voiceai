@@ -15,6 +15,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
+import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 
 // ============================================================================
 // TYPES
@@ -170,8 +171,39 @@ export function getRelationshipProfile(userId: string): RelationshipProfile {
   if (!profile) {
     profile = createNewProfile(userId);
     relationshipStore.set(userId, profile);
+
+    // Async load from Firestore (fire and forget)
+    loadRelationshipProfileFromFirestore(userId).catch(() => {});
   }
   return profile;
+}
+
+/**
+ * Load relationship profile from Firestore
+ */
+async function loadRelationshipProfileFromFirestore(userId: string): Promise<void> {
+  try {
+    const outreachProfile = await loadOutreachProfile(userId);
+    if (outreachProfile?.relationship) {
+      const existing = relationshipStore.get(userId);
+      if (existing) {
+        const merged = { ...existing, ...outreachProfile.relationship };
+        relationshipStore.set(userId, merged);
+        log.debug({ userId }, 'Loaded relationship profile from Firestore');
+      }
+    }
+  } catch (err) {
+    log.debug({ err, userId }, 'Failed to load relationship profile from Firestore');
+  }
+}
+
+/**
+ * Persist relationship profile to Firestore
+ */
+function persistRelationshipProfile(userId: string, profile: RelationshipProfile): void {
+  saveOutreachProfile(userId, { relationship: profile }).catch((err) => {
+    log.debug({ err, userId }, 'Failed to persist relationship profile (non-fatal)');
+  });
 }
 
 function createNewProfile(userId: string): RelationshipProfile {
@@ -258,6 +290,7 @@ export function updateStage(userId: string): RelationshipStage {
     const oldStage = profile.stage;
     profile.stage = newStage;
     relationshipStore.set(userId, profile);
+    persistRelationshipProfile(userId, profile);
 
     log.info(
       { userId, oldStage, newStage, metrics: profile.metrics },
@@ -306,6 +339,7 @@ export function recordConversation(
   }
 
   relationshipStore.set(userId, profile);
+  persistRelationshipProfile(userId, profile);
   updateStage(userId);
 }
 
@@ -319,6 +353,7 @@ export function addInsideJoke(userId: string, joke: string): void {
     profile.memory.insideJokes.push(joke);
     profile.metrics.insideJokesCount++;
     relationshipStore.set(userId, profile);
+    persistRelationshipProfile(userId, profile);
 
     log.debug({ userId, joke }, 'Added inside joke');
   }
@@ -347,6 +382,7 @@ export function addSharedReference(userId: string, reference: string): void {
   if (!profile.memory.sharedReferences.includes(reference)) {
     profile.memory.sharedReferences.push(reference);
     relationshipStore.set(userId, profile);
+    persistRelationshipProfile(userId, profile);
   }
 }
 
@@ -377,6 +413,7 @@ export function recordSignificantMoment(
   }
 
   relationshipStore.set(userId, profile);
+  persistRelationshipProfile(userId, profile);
   updateStage(userId);
 
   return id;
@@ -392,6 +429,7 @@ export function updateCommunicationStyle(
   const profile = getRelationshipProfile(userId);
   profile.communicationStyle = { ...profile.communicationStyle, ...style };
   relationshipStore.set(userId, profile);
+  persistRelationshipProfile(userId, profile);
 }
 
 // ============================================================================
