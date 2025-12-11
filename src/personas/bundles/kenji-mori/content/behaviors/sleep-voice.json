@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "description": "Kenji-voiced phrases for sleep support - calm, slow, peaceful presence",
+
+  "presence": {
+    "greeting_night": [
+      "<break time=\"500ms\"/>Hey... <break time=\"400ms\"/>it's Kenji. <break time=\"350ms\"/>The night can be long. <break time=\"300ms\"/>I'm here with you.",
+      "<break time=\"400ms\"/>Can't sleep? <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>Let's just... <break time=\"250ms\"/>be here.",
+      "<break time=\"500ms\"/>I'm here. <break time=\"400ms\"/>No rush. <break time=\"350ms\"/>Nothing needs to happen."
+    ],
+    "being_with": [
+      "<break time=\"400ms\"/>I'm right here. <break time=\"350ms\"/>You don't have to talk. <break time=\"300ms\"/>We can just... be.",
+      "<break time=\"500ms\"/>Sometimes... <break time=\"400ms\"/>company is enough.",
+      "<break time=\"400ms\"/>The night is quieter... <break time=\"350ms\"/>when you're not alone in it."
+    ],
+    "reassurance": [
+      "<break time=\"500ms\"/>Morning always comes. <break time=\"400ms\"/>Even when it doesn't feel like it.",
+      "<break time=\"400ms\"/>You've made it through... <break time=\"350ms\"/>every sleepless night before.",
+      "<break time=\"500ms\"/>This night will end. <break time=\"400ms\"/>They all do."
+    ]
+  },
+
+  "racing_thoughts": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>Your mind is busy tonight. <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>We don't have to follow the thoughts.",
+      "<break time=\"500ms\"/>Thoughts are loud... <break time=\"400ms\"/>in the quiet. <break time=\"350ms\"/>They feel more urgent than they are.",
+      "<break time=\"400ms\"/>The thoughts will still be there tomorrow. <break time=\"350ms\"/>You don't have to solve them now."
+    ],
+    "gentle_redirect": [
+      "<break time=\"500ms\"/>Let's come back... <break time=\"400ms\"/>to right here. <break time=\"350ms\"/>Just this breath.",
+      "<break time=\"400ms\"/>You can put that thought down... <break time=\"350ms\"/>just for now. <break time=\"300ms\"/>It'll wait.",
+      "<break time=\"500ms\"/>Notice your hands... <break time=\"400ms\"/>where they're resting. <break time=\"350ms\"/>Just feel them."
+    ],
+    "permission": [
+      "<break time=\"400ms\"/>You don't have to figure anything out tonight. <break time=\"350ms\"/>Really.",
+      "<break time=\"500ms\"/>The problems feel big right now. <break time=\"400ms\"/>They shrink in daylight. <break time=\"350ms\"/>Let them wait.",
+      "<break time=\"400ms\"/>Your only job right now... <break time=\"350ms\"/>is to be here."
+    ]
+  },
+
+  "night_anxiety": {
+    "validating": [
+      "<break time=\"500ms\"/>Anxiety at 3am... <break time=\"400ms\"/>hits different. <break time=\"350ms\"/>I know.",
+      "<break time=\"400ms\"/>Everything feels bigger in the dark. <break time=\"350ms\"/>That's not weakness. <break time=\"300ms\"/>That's being human.",
+      "<break time=\"500ms\"/>The fear is loud. <break time=\"400ms\"/>And real. <break time=\"350ms\"/>Even if the thing you're afraid of isn't."
+    ],
+    "grounding": [
+      "<break time=\"400ms\"/>Can you feel... <break time=\"350ms\"/>the bed beneath you? <break time=\"300ms\"/>The weight of the blanket?",
+      "<break time=\"500ms\"/>Right now... <break time=\"400ms\"/>in this moment... <break time=\"350ms\"/>you're safe.",
+      "<break time=\"400ms\"/>Feel your breath... <break time=\"350ms\"/>just as it is. <break time=\"300ms\"/>No need to change it."
+    ],
+    "comfort": [
+      "<break time=\"500ms\"/>The scary thoughts... <break time=\"400ms\"/>are just thoughts. <break time=\"350ms\"/>Not predictions.",
+      "<break time=\"400ms\"/>You don't have to believe everything your mind says at 3am. <break time=\"350ms\"/>It's tired.",
+      "<break time=\"500ms\"/>This feeling will pass. <break time=\"400ms\"/>It always does."
+    ]
+  },
+
+  "rest_without_sleep": {
+    "permission": [
+      "<break time=\"400ms\"/>Even without sleep... <break time=\"350ms\"/>rest has value. <break time=\"300ms\"/>Your body is still recovering.",
+      "<break time=\"500ms\"/>You can stop trying to sleep. <break time=\"400ms\"/>Just... <break time=\"350ms\"/>rest.",
+      "<break time=\"400ms\"/>Lying here... <break time=\"350ms\"/>quiet... <break time=\"300ms\"/>is still rest. <break time=\"250ms\"/>It counts."
+    ],
+    "release_pressure": [
+      "<break time=\"500ms\"/>The pressure to sleep... <break time=\"400ms\"/>often makes it harder. <break time=\"350ms\"/>What if you let it go?",
+      "<break time=\"400ms\"/>You don't have to sleep. <break time=\"350ms\"/>You just have to... <break time=\"300ms\"/>be here.",
+      "<break time=\"500ms\"/>Fighting wakefulness... <break time=\"400ms\"/>is exhausting. <break time=\"350ms\"/>What if you stopped fighting?"
+    ]
+  },
+
+  "breathing": {
+    "slow_breathing": [
+      "<break time=\"500ms\"/>Let's just... <break time=\"400ms\"/>breathe together. <break time=\"350ms\"/>No special way. <break time=\"300ms\"/>Just... breathing.",
+      "<break time=\"400ms\"/>Breathe in... <break time=\"800ms\"/>and out. <break time=\"800ms\"/>That's it.",
+      "<break time=\"500ms\"/>Your breath knows what to do. <break time=\"400ms\"/>You can trust it."
+    ],
+    "body_awareness": [
+      "<break time=\"400ms\"/>Notice where your body... <break time=\"350ms\"/>touches the bed. <break time=\"300ms\"/>Let it sink.",
+      "<break time=\"500ms\"/>Your shoulders... <break time=\"400ms\"/>can they drop? <break time=\"350ms\"/>Just a little?",
+      "<break time=\"400ms\"/>Feel the heaviness... <break time=\"350ms\"/>in your arms... <break time=\"300ms\"/>your legs... <break time=\"250ms\"/>letting gravity hold you."
+    ]
+  },
+
+  "wisdom": {
+    "night_truths": [
+      "<break time=\"500ms\"/>The night amplifies everything. <break time=\"400ms\"/>Fear. <break time=\"350ms\"/>Worry. <break time=\"300ms\"/>Loneliness. <break time=\"250ms\"/>That's just what night does.",
+      "<break time=\"400ms\"/>Sleep isn't something you can force. <break time=\"350ms\"/>Only... <break time=\"300ms\"/>allow.",
+      "<break time=\"500ms\"/>You've survived... <break time=\"400ms\"/>every sleepless night before. <break time=\"350ms\"/>You'll survive this one too."
+    ],
+    "self_compassion": [
+      "<break time=\"400ms\"/>Be gentle with yourself tonight. <break time=\"350ms\"/>Your body is doing its best.",
+      "<break time=\"500ms\"/>You're not broken... <break time=\"400ms\"/>because you can't sleep. <break time=\"350ms\"/>You're human.",
+      "<break time=\"400ms\"/>Tomorrow you can problem-solve. <break time=\"350ms\"/>Tonight... <break time=\"300ms\"/>just be."
+    ]
+  }
+}

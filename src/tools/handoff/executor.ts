@@ -249,6 +249,10 @@ export interface HandoffResult {
   instructions?: string;
   voiceId?: string;
   rateLimited?: boolean;
+  /** FIX: Indicates greeting was actually spoken by handler */
+  greetingSpoken?: boolean;
+  /** FIX: Indicates LLM instructions were updated by handler */
+  instructionsUpdated?: boolean;
 }
 
 // ============================================================================
@@ -417,9 +421,61 @@ export async function executeHandoff(
     '📡 Emitting voiceSwitch event'
   );
 
+  // FIX: Wait for handler to complete before returning to LLM
+  // This prevents race conditions where LLM responds before greeting is spoken
+  const HANDOFF_HANDLER_TIMEOUT_MS = 15000; // 15 second timeout
+
+  const handlerCompletePromise = new Promise<{
+    success: boolean;
+    greetingSpoken: boolean;
+    instructionsUpdated: boolean;
+    error?: string;
+  }>((resolve) => {
+    // Set up timeout
+    const timeoutId = setTimeout(() => {
+      getLogger().warn(
+        { targetId: canonicalTargetId },
+        '⚠️ Handoff handler timeout - proceeding without confirmation'
+      );
+      resolve({ success: true, greetingSpoken: false, instructionsUpdated: false });
+    }, HANDOFF_HANDLER_TIMEOUT_MS);
+
+    // Listen for handler completion
+    const onComplete = (completionData: {
+      targetId: string;
+      success: boolean;
+      greetingSpoken: boolean;
+      instructionsUpdated: boolean;
+      error?: string;
+    }) => {
+      if (completionData.targetId === canonicalTargetId) {
+        clearTimeout(timeoutId);
+        handoffEvents.off('handoffHandlerComplete', onComplete);
+        resolve(completionData);
+      }
+    };
+
+    handoffEvents.on('handoffHandlerComplete', onComplete);
+  });
+
+  // Emit the event to trigger the handler
   handoffEvents.emit('voiceSwitch', eventData);
 
-  getLogger().info({ targetId: canonicalTargetId }, '✅ voiceSwitch event emitted');
+  getLogger().info(
+    { targetId: canonicalTargetId },
+    '✅ voiceSwitch event emitted, waiting for handler...'
+  );
+
+  // Wait for handler to complete
+  const handlerResult = await handlerCompletePromise;
+
+  getLogger().info(
+    {
+      targetId: canonicalTargetId,
+      handlerResult,
+    },
+    '✅ Handoff handler completed'
+  );
 
   return {
     success: true,
@@ -430,6 +486,9 @@ export async function executeHandoff(
     contextContinuation,
     instructions,
     voiceId,
+    // FIX: Include handler result so LLM knows greeting was spoken
+    greetingSpoken: handlerResult.greetingSpoken,
+    instructionsUpdated: handlerResult.instructionsUpdated,
   };
 }
 

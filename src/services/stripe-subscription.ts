@@ -261,11 +261,16 @@ export async function createCheckoutSession(params: {
     metadata: {
       ferni_user_id: userId,
       tier,
+      // Experiment tracking - which session length variant is this user in?
+      free_session_minutes: process.env.FREE_SESSION_MINUTES || '7',
+      experiment_cohort: process.env.EXPERIMENT_COHORT || 'control',
     },
     subscription_data: {
       metadata: {
         ferni_user_id: userId,
         tier,
+        free_session_minutes: process.env.FREE_SESSION_MINUTES || '7',
+        experiment_cohort: process.env.EXPERIMENT_COHORT || 'control',
       },
     },
     // Allow promotion codes for beta users
@@ -631,7 +636,22 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
         const stripe = await getStripe();
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
         await syncSubscriptionFromStripe(userId, subscription);
-        log.info({ userId }, 'Subscription activated from checkout');
+
+        // 🧪 EXPERIMENT TRACKING: Log conversion with experiment cohort
+        const experimentCohort = session.metadata?.experiment_cohort || 'control';
+        const freeSessionMinutes = session.metadata?.free_session_minutes || '7';
+        const tier = session.metadata?.tier || 'friend';
+
+        log.info(
+          {
+            userId,
+            tier,
+            experimentCohort,
+            freeSessionMinutes,
+            conversionEvent: 'subscription_upgrade',
+          },
+          '🧪 EXPERIMENT CONVERSION: Subscription activated from checkout'
+        );
       }
       break;
     }

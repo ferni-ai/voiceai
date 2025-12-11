@@ -6,13 +6,12 @@
  * The hardcoded mapping tables have been removed.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
-import type { AgentId } from '../../services/agent-bus.js';
-import { getCanonicalPersonaId, getFrontendPersonaId } from '../../personas/voice-registry.js';
-import { AgentDirectory, normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
-import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js';
+import { AgentDirectory, normalizeAgentIdSync } from '../../personas/agent-directory.js';
+import type { AgentId } from '../../services/agent-bus.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { HandoffAnalytics, HandoffContext, HandoffRecord } from './types.js';
 
 // ============================================================================
 // HANDOFF EVENTS
@@ -25,8 +24,12 @@ import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js
  * - 'voiceSwitch': Fired when a handoff occurs, with { toAgentId, greeting }
  * - 'handoffComplete': Fired after handoff is fully processed
  * - 'handoffFailed': Fired if handoff fails
+ * - 'handoffHandlerComplete': Fired by handler when handoff is fully processed (for sync waiting)
  */
 export const handoffEvents = new EventEmitter();
+
+// Increase max listeners to handle multiple concurrent handoffs
+handoffEvents.setMaxListeners(20);
 
 // ============================================================================
 // STATE

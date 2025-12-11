@@ -697,6 +697,14 @@ export class DJBooth {
   }
 
   /**
+   * 🐛 FIX: Public method to receive music state changes
+   * Called by voice-agent when it handles the callback (since it overwrites ours)
+   */
+  onMusicStateChange(state: MusicState, track: MusicTrack | null, isAmbient: boolean): void {
+    this.handleMusicStateChange(state, track, isAmbient);
+  }
+
+  /**
    * Handle music state changes
    */
   private handleMusicStateChange(

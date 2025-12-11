@@ -667,16 +667,17 @@ async function getConfig(): Promise<ResponseContext> {
         {
           id: 'free',
           name: 'Ferni Forever',
-          description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
+          // Dynamic session time from env var for A/B testing
+          description: `Talk to Ferni unlimited times, forever. ${process.env.FREE_SESSION_MINUTES || '7'} minutes per conversation.`,
           priceInCents: 0,
           conversationsPerMonth: null, // UNLIMITED with Ferni!
-          sessionMinutes: 7, // 7-minute sessions
+          sessionMinutes: parseInt(process.env.FREE_SESSION_MINUTES || '7', 10), // Configurable for experiments
           teamAccess: 'ferni-only',
           features: [
-            '✅ Unlimited Ferni conversations',
-            '⏱️ 7-minute sessions',
-            '💾 Full memory (Ferni remembers everything)',
-            '🎨 Basic avatar & theme',
+            'Unlimited conversations with Ferni',
+            `${process.env.FREE_SESSION_MINUTES || '7'}-minute heart-to-hearts`,
+            'Full memory — I remember everything',
+            'Avatar & theme customization',
           ],
         },
         {
@@ -688,10 +689,10 @@ async function getConfig(): Promise<ResponseContext> {
           sessionMinutes: null, // Unlimited session time
           teamAccess: 'core-team',
           features: [
-            '♾️ Unlimited session time',
-            '👥 Core team (Maya, Peter, Alex, Jordan)',
-            '🛍️ Cosmetics shop access',
-            '🔄 Cross-device sync',
+            'Talk as long as you need',
+            'Meet the whole team (Maya, Peter, Alex, Jordan)',
+            'Cosmetics shop access',
+            'Sync across all your devices',
           ],
           popular: true,
         },
@@ -704,11 +705,11 @@ async function getConfig(): Promise<ResponseContext> {
           sessionMinutes: null,
           teamAccess: 'full-team',
           features: [
-            'Everything in Friend, plus:',
-            '🌟 Full team (including Nayan)',
-            '✨ Exclusive cosmetics',
-            '🚀 Priority responses',
-            '👨‍👩‍👧‍👦 Family sharing',
+            'Everything in Life Coach, plus:',
+            'Full team access (including Nayan)',
+            'Exclusive looks and themes',
+            'Priority when you need us most',
+            'Share with your family',
           ],
         },
       ],

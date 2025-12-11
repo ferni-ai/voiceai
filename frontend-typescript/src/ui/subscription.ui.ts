@@ -719,31 +719,47 @@ function getDefaultTiers(): SubscriptionTier[] {
   return [
     {
       id: 'free',
-      name: 'Getting Started',
-      description: "We're just beginning",
+      name: 'Ferni Forever',
+      description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
       priceInCents: 0,
       priceDisplay: 'Free',
-      conversationsPerMonth: 5,
-      features: ['5 conversations/month', 'Full Ferni experience', 'Basic memory'],
+      conversationsPerMonth: null, // Unlimited with Ferni!
+      features: [
+        'Unlimited conversations with Ferni',
+        '7-minute heart-to-hearts',
+        'Full memory — I remember everything',
+        'Avatar & theme customization',
+      ],
     },
     {
       id: 'friend',
       name: 'Your Life Coach',
-      description: "I'm here whenever you need me",
+      description: 'Unlimited time with Ferni + meet the whole team',
       priceInCents: 999,
       priceDisplay: '$9.99/month',
       conversationsPerMonth: null,
-      features: ['Unlimited conversations', 'Full memory', 'Cross-device sync', 'Priority support'],
+      features: [
+        'Talk as long as you need',
+        'Meet the whole team (Maya, Peter, Alex, Jordan)',
+        'Cosmetics shop access',
+        'Sync across all your devices',
+      ],
       popular: true,
     },
     {
       id: 'partner',
       name: 'Partner in Growth',
-      description: 'Together for the long haul',
+      description: 'Full team access + exclusive cosmetics + priority',
       priceInCents: 1999,
       priceDisplay: '$19.99/month',
       conversationsPerMonth: null,
-      features: ['Everything in Friend', 'Priority responses', 'Family sharing', 'Early access'],
+      features: [
+        'Everything in Life Coach, plus:',
+        'Full team access (including Nayan)',
+        'Exclusive looks and themes',
+        'Priority when you need us most',
+        'Share with your family',
+      ],
     },
   ];
 }

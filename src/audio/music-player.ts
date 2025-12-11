@@ -567,7 +567,10 @@ export class CallMusicPlayer {
       const handleTrackEnd = (source: 'waitForPlayout' | 'backupTimer') => {
         // Prevent double-firing
         if (this.trackEndHandled) {
-          getLogger().debug({ source, track: track.name }, '🎧 Track end already handled, skipping');
+          getLogger().debug(
+            { source, track: track.name },
+            '🎧 Track end already handled, skipping'
+          );
           return;
         }
         this.trackEndHandled = true;
@@ -614,7 +617,11 @@ export class CallMusicPlayer {
       // Add 2 second buffer to account for any processing delays
       const backupDelay = trackDuration + 2000;
       this.trackEndBackupTimer = setTimeout(() => {
-        if (!this.trackEndHandled && this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+        if (
+          !this.trackEndHandled &&
+          this.state.isPlaying &&
+          this.state.currentTrack?.name === track.name
+        ) {
           getLogger().warn(
             { track: track.name, expectedDuration: trackDuration },
             '🎧 Backup timer fired - waitForPlayout did not resolve in time'
@@ -847,7 +854,11 @@ export class CallMusicPlayer {
     // 🐛 FIX: Backup timer in case waitForPlayout never resolves
     const backupDelay = trackDuration + 2000;
     this.trackEndBackupTimer = setTimeout(() => {
-      if (!this.trackEndHandled && this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+      if (
+        !this.trackEndHandled &&
+        this.state.isPlaying &&
+        this.state.currentTrack?.name === track.name
+      ) {
         getLogger().warn(
           { track: track.name, expectedDuration: trackDuration },
           '🎧 Backup timer fired (crossfade) - waitForPlayout did not resolve in time'
@@ -1161,6 +1172,13 @@ export class CallMusicPlayer {
       clearTimeout(this.midSongMomentTimer);
       this.midSongMomentTimer = null;
     }
+
+    // 🐛 FIX: Clear backup timer on stop
+    if (this.trackEndBackupTimer) {
+      clearTimeout(this.trackEndBackupTimer);
+      this.trackEndBackupTimer = null;
+    }
+    this.trackEndHandled = true; // Prevent backup timer from firing
 
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
       this.currentPlayHandle.stop();

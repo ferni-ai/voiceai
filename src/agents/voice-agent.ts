@@ -4118,6 +4118,18 @@ export default defineAgent({
                 isAmbient,
               });
 
+              // 🐛 FIX: Forward state changes to DJ Booth (our callback overwrote theirs)
+              // The DJ Booth handles post-music check-ins and other DJ behaviors
+              if (_djBooth) {
+                try {
+                  // Access the DJ Booth's internal handler through its callback mechanism
+                  // by notifying it of state changes
+                  _djBooth.onMusicStateChange(state, track, isAmbient);
+                } catch (e) {
+                  diag.warn('Failed to forward music state to DJ Booth', { error: String(e) });
+                }
+              }
+
               // 🎧 DJ-STYLE CROSSFADE: When music is CHANGING, speak a transition phrase!
               // This is the magic moment where Ferni acts like a real DJ switching tracks
               if (state === 'changing' && !isAmbient) {

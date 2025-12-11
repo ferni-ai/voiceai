@@ -12,6 +12,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { isTeamMemberUnlocked } from '../../../intelligence/context-builders/team-availability.js';
 import {
   endCameo,
   executeCameo,
@@ -21,6 +22,7 @@ import {
   type CameoPersonaId,
   type CameoTriggerType,
 } from '../../../services/cameo/index.js';
+import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
@@ -154,7 +156,10 @@ Team members available:
         // Get session ID from runtime context, falling back to build-time context
         const userData = toolCtx?.userData as
           | {
-              services?: { sessionId?: string };
+              services?: {
+                sessionId?: string;
+                userProfile?: UserProfile | null;
+              };
             }
           | undefined;
         const sessionId = userData?.services?.sessionId || ctx.sessionId || ctx.userId;
@@ -169,6 +174,28 @@ Team members available:
         }
 
         log.info({ sessionId, personaId, context }, '🎬 Cameo tool invoked');
+
+        // FIX: Validate that this team member is NOT on the user's roster
+        // Cameos are for team members the user hasn't unlocked yet.
+        // If they're on the roster, use handoff instead.
+        const userProfile = userData?.services?.userProfile || null;
+        const subscriptionTier =
+          (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+
+        if (isTeamMemberUnlocked(personaId, userProfile, subscriptionTier)) {
+          const persona = CAMEO_PERSONAS[personaId as CameoPersonaKey];
+          log.warn(
+            { personaId, hasProfile: !!userProfile, tier: subscriptionTier },
+            '🎬 Cameo blocked - team member is already on roster'
+          );
+          return {
+            success: false,
+            error: `${persona?.name || personaId} is already on the user's team!`,
+            suggestion: `Use handoffTo${persona?.name || 'X'} for a full handoff instead of a cameo.`,
+            useHandoffInstead: true,
+            targetPersonaId: personaId,
+          };
+        }
 
         // Check if already in a cameo
         if (isInCameo(sessionId)) {

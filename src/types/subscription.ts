@@ -107,7 +107,9 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
     conversationsPerMonth: null, // UNLIMITED with Ferni!
     minutesPerMonth: null, // No monthly limit
-    sessionMinutes: 7, // 7-minute sessions (like Fortnite matches)
+    // Session time is configurable via env var for A/B testing (default: 7 minutes)
+    // Set FREE_SESSION_MINUTES=15 to test longer sessions
+    sessionMinutes: parseInt(process.env.FREE_SESSION_MINUTES || '7', 10),
     teamAccess: 'ferni-only',
     memoryPersistence: true, // Keep memory - this builds relationship
     crossDeviceSync: false,

@@ -609,8 +609,34 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
-        // STEP 6: Speak greeting with "Guest DJ" entrance (40% chance for natural feel)
+        // FIX: STEP 6 (was 7): Update persona & LLM instructions BEFORE speaking greeting
+        // This ensures the LLM has the correct identity when the tool returns
+        let instructionsUpdated = false;
+        try {
+          // FIX BUG #51: Use cached persona lookup
+          const loadedPersona = await getPersonaAsyncCached(persona.id);
+          const voiceAgentRef = getVoiceAgentRef();
+
+          if (loadedPersona && voiceAgentRef) {
+            voiceAgentRef.setPersona(loadedPersona);
+            instructionsUpdated = true;
+            diag.entry(`🎭 Persona & LLM instructions updated to ${persona.name}`);
+          }
+        } catch (personaErr) {
+          // FIX BUG #49: Graceful degradation - handoff proceeds but with basic instructions
+          logger.warn(
+            {
+              personaId: persona.id,
+              error: String(personaErr),
+            },
+            '⚠️ Persona update failed - handoff continues with existing configuration'
+          );
+          diag.warn(`Persona async load failed for ${persona.name}, using cached version`);
+        }
+
+        // FIX: STEP 7 (was 6): Speak greeting AFTER instructions are updated
         // FIX BUG: Always speak a greeting - generate fallback if none provided
+        let greetingSpoken = false;
         {
           // Generate fallback greeting if none provided
           let finalGreeting = greeting;
@@ -653,6 +679,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
             // NOTE: Removed 150ms delay - voice is already switched, speak immediately!
             session.say(finalGreeting, { allowInterruptions: true });
+            greetingSpoken = true;
             diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);
           } catch (greetingErr) {
             logger.warn(
@@ -662,28 +689,6 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             // FIX BUG: Even if session.say fails, log the error with the greeting that was attempted
             diag.error(`Failed to speak greeting for ${persona.name}: ${greetingErr}`);
           }
-        }
-
-        // STEP 7: Update persona & LLM instructions
-        try {
-          // FIX BUG #51: Use cached persona lookup
-          const loadedPersona = await getPersonaAsyncCached(persona.id);
-          const voiceAgentRef = getVoiceAgentRef();
-
-          if (loadedPersona && voiceAgentRef) {
-            voiceAgentRef.setPersona(loadedPersona);
-            diag.entry(`🎭 Persona & LLM instructions updated to ${persona.name}`);
-          }
-        } catch (personaErr) {
-          // FIX BUG #49: Graceful degradation - handoff proceeds but with basic instructions
-          logger.warn(
-            {
-              personaId: persona.id,
-              error: String(personaErr),
-            },
-            '⚠️ Persona update failed - handoff continues with existing configuration'
-          );
-          diag.warn(`Persona async load failed for ${persona.name}, using cached version`);
         }
 
         // STEP 8: Reload bundle runtime
@@ -834,6 +839,17 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         } else {
           diag.entry(`✅ Handoff validated: all components now ${persona.name}`);
         }
+
+        // FIX: Emit completion event so executor knows handler is done
+        // This allows the tool to return AFTER greeting is spoken and instructions updated
+        const { handoffEvents } = await import('../../tools/handoff/state.js');
+        handoffEvents.emit('handoffHandlerComplete', {
+          targetId: persona.id,
+          success: true,
+          greetingSpoken,
+          instructionsUpdated,
+        });
+        diag.entry(`✅ Handoff handler complete for ${persona.name}`);
       } catch (voiceSwitchErr) {
         // ============================================================
         // HANDOFF FAILURE RECOVERY
@@ -855,6 +871,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         } catch {
           // Last resort - just log it
         }
+
+        // FIX: Emit completion event even on failure so executor doesn't timeout
+        const { handoffEvents } = await import('../../tools/handoff/state.js');
+        handoffEvents.emit('handoffHandlerComplete', {
+          targetId: persona.id,
+          success: false,
+          greetingSpoken: false,
+          instructionsUpdated: false,
+          error: String(voiceSwitchErr),
+        });
       }
     } catch (topLevelErr) {
       // FIX BUG: Catch any uncaught errors in the handoff flow
@@ -883,6 +909,20 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       } catch {
         // Can't even send failure message - connection likely lost
         logger.error('Failed to send handoff_failed after handler crash');
+      }
+
+      // FIX: Emit completion event even on crash so executor doesn't timeout
+      try {
+        const { handoffEvents } = await import('../../tools/handoff/state.js');
+        handoffEvents.emit('handoffHandlerComplete', {
+          targetId: targetPersonaId,
+          success: false,
+          greetingSpoken: false,
+          instructionsUpdated: false,
+          error: String(topLevelErr),
+        });
+      } catch {
+        // Can't import - just let the timeout handle it
       }
     }
   };
