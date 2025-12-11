@@ -1552,7 +1552,12 @@ class VoiceAgent extends voice.Agent<UserData> {
                   // Schedule for after current turn if appropriate
                   setTimeout(() => {
                     const currentBooth = getDJBooth();
-                    if (currentBooth && !currentBooth.isPlayingMusic()) {
+                    // FIX: Prevent double-speaking - check both music AND agent speaking state
+                    if (
+                      currentBooth &&
+                      !currentBooth.isPlayingMusic() &&
+                      !getConversationManager().isAgentSpeaking()
+                    ) {
                       currentBooth.speakOverMusic(musicOffer.offer);
                     }
                   }, 3000);
@@ -2110,10 +2115,7 @@ export default defineAgent({
             );
           })(),
           new Promise<void>((_, reject) => {
-            setTimeout(
-              () => reject(new Error('Background init timeout')),
-              BACKGROUND_TIMEOUT
-            );
+            setTimeout(() => reject(new Error('Background init timeout')), BACKGROUND_TIMEOUT);
           }),
         ]);
       } catch (error) {
@@ -3538,8 +3540,22 @@ export default defineAgent({
                   // We'll queue it as a follow-up
                   setTimeout(() => {
                     try {
-                      if (session) {
+                      // FIX: Prevent double-speaking - only speak if agent is not already speaking
+                      if (session && !conversationManager.isAgentSpeaking()) {
                         session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
+                      } else if (session) {
+                        // Agent is speaking - retry after another delay
+                        setTimeout(() => {
+                          try {
+                            if (session && !conversationManager.isAgentSpeaking()) {
+                              session.say(trialStatus.transitionPrompt!, {
+                                allowInterruptions: true,
+                              });
+                            }
+                          } catch {
+                            // Ignore retry errors
+                          }
+                        }, 3000);
                       }
                     } catch (sayErr) {
                       diag.warn('Failed to speak trial transition', { error: String(sayErr) });
@@ -3875,6 +3891,7 @@ export default defineAgent({
       // ============================================================
       // Register cameo handlers for temporary voice switches where team members
       // can briefly speak and then hand back to the host persona (Ferni)
+      // FIX BUG: Now passes getVoiceAgentRef and hostPersona to enable LLM instruction updates
       let cleanupCameoHandlers: (() => void) | null = null;
       try {
         cleanupCameoHandlers = await registerCameoHandlers({
@@ -3883,11 +3900,16 @@ export default defineAgent({
           tts: session.tts as { switchVoice?: (name: string, id: string) => void },
           hostPersonaId: sessionPersona.id,
           hostVoiceId: sessionPersona.voice.voiceId,
+          // FIX BUG: Add voice agent ref for LLM instruction updates during cameos
+          // The ref is assigned later (line ~3899) but handlers run async so it will be available
+          getVoiceAgentRef: () =>
+            voiceAgentRef as import('./shared/cameo-handler.js').CameoVoiceAgentRef | null,
+          hostPersona: sessionPersona,
         });
-        diag.entry('🎬 Cameo handlers registered');
+        diag.entry('🎬 Cameo handlers registered (with LLM instruction support)');
       } catch (cameoErr) {
         // Non-critical - cameos are optional enhancement
-        diag.warn('Failed to register cameo handlers: ' + String(cameoErr));
+        diag.warn(`Failed to register cameo handlers: ${String(cameoErr)}`);
       }
 
       // ===============================================
@@ -4014,6 +4036,8 @@ export default defineAgent({
               onAgentSpeakEnd: () => {
                 diag.state('🎧 DJ Booth: Agent stopped (music will restore)');
               },
+              // FIX: Prevent double-speaking by providing agent speaking state
+              isAgentSpeaking: () => conversationManager.isAgentSpeaking(),
             },
             existingMusicPrefs
           );
@@ -5235,6 +5259,28 @@ export default defineAgent({
             cleanupCameoHandlers();
           }
 
+          // FIX GAP 7: Clean up handoff session state (queue, timeout timer)
+          try {
+            const { clearHandoffSessionState } = await import('./shared/handoff-handler.js');
+            clearHandoffSessionState(sessionId);
+            diag.session('Handoff session state cleaned up');
+          } catch (handoffCleanupErr) {
+            diag.warn('Handoff session state cleanup failed (non-fatal)', {
+              error: String(handoffCleanupErr),
+            });
+          }
+
+          // FIX GAP 7: Clean up cameo session state (timer, history)
+          try {
+            const { resetSessionState } = await import('../services/cameo/index.js');
+            resetSessionState(sessionId);
+            diag.session('Cameo session state cleaned up');
+          } catch (cameoCleanupErr) {
+            diag.warn('Cameo session state cleanup failed (non-fatal)', {
+              error: String(cameoCleanupErr),
+            });
+          }
+
           try {
             // End conversation state and get final state for logging
             const finalConvState = endConversationState(sessionId);
@@ -5641,10 +5687,10 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // Disable process pooling/prewarming - spawn processes on-demand only
-      // This avoids fork() issues in Cloud Run and reduces idle resource usage
-      // Jobs will initialize child processes when they arrive
-      numIdleProcesses: 0,
+      // Enable process pooling/prewarming with 1 idle process ready
+      // This ensures a pre-initialized process is available for incoming jobs,
+      // avoiding the 10-second child process initialization timeout
+      numIdleProcesses: 1,
       // Increase timeout for heavy initialization (bundles + startup + services)
       // The prewarm function calls startup() which does 10+ async operations:
       // - memory system (Firestore), services, bundles, schedulers,

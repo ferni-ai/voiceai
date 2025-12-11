@@ -122,5 +122,13 @@
       "milestone_celebration",
       "craving_support"
     ]
+  },
+  "content": {
+    "behaviors": {
+      "directory": "content/behaviors"
+    },
+    "identity": {
+      "directory": "identity"
+    }
   }
 }

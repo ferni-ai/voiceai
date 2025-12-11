@@ -120,5 +120,13 @@
       "dopamine_menu",
       "overwhelm_triage"
     ]
+  },
+  "content": {
+    "behaviors": {
+      "directory": "content/behaviors"
+    },
+    "identity": {
+      "directory": "identity"
+    }
   }
 }

@@ -89,5 +89,13 @@
   "colors": {
     "primary": "#4A5568",
     "secondary": "#2D3748"
+  },
+  "content": {
+    "behaviors": {
+      "directory": "content/behaviors"
+    },
+    "identity": {
+      "directory": "identity"
+    }
   }
 }
