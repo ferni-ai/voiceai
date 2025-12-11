@@ -8,8 +8,8 @@
  * Usage: npx tsx scripts/seed-experiments.ts
  */
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase
 if (getApps().length === 0) {
@@ -48,7 +48,8 @@ const EXPERIMENTS: ExperimentDef[] = [
   {
     id: 'hero-headline',
     name: 'Hero Headline Test',
-    description: 'Test different headline and tagline combinations on the landing page hero section.',
+    description:
+      'Test different headline and tagline combinations on the landing page hero section.',
     status: 'running',
     variants: [
       {

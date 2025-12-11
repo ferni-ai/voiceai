@@ -10,8 +10,8 @@
  * - Auto-dismissing with smooth exit
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('SeedsToast');
 

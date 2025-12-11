@@ -6,10 +6,14 @@
  * whether via text, email, or voice call.
  *
  * Philosophy: A thoughtful friend who checks in, not a bot that sends notifications.
+ *
+ * Brand Integration: All generated content is validated against brand rules
+ * to ensure consistent voice across all channels.
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
+import { quickBrandCheck, autoFixViolations } from '../brand/index.js';
 
 // ============================================================================
 // TYPES
@@ -1266,6 +1270,29 @@ export function generateOutreach(
       message = generateTextMessage(personaId, context, tone);
   }
 
+  // Brand validation - ensure message complies with brand rules
+  const brandCheck = quickBrandCheck(message);
+  let finalMessage = message;
+  let finalSubject = subject;
+
+  if (brandCheck.hasBannedContent) {
+    log.warn(
+      { personaId, channel, issues: brandCheck.issues },
+      'Outreach message had brand violations, auto-fixing'
+    );
+    const { fixed } = autoFixViolations(message);
+    finalMessage = fixed;
+  }
+
+  // Also check subject if present
+  if (subject) {
+    const subjectCheck = quickBrandCheck(subject);
+    if (subjectCheck.hasBannedContent) {
+      const { fixed } = autoFixViolations(subject);
+      finalSubject = fixed;
+    }
+  }
+
   log.debug(
     {
       personaId,
@@ -1273,7 +1300,8 @@ export function generateOutreach(
       tone,
       triggerType: context.trigger.type,
       relationshipStage: context.relationshipStage,
-      messageLength: message.length,
+      messageLength: finalMessage.length,
+      brandCompliant: !brandCheck.hasBannedContent,
     },
     'Generated outreach message'
   );
@@ -1281,8 +1309,8 @@ export function generateOutreach(
   return {
     channel,
     persona: personaId as AgentId,
-    message,
-    subject,
+    message: finalMessage,
+    subject: finalSubject,
     voicemailMessage,
     tone,
     metadata: {

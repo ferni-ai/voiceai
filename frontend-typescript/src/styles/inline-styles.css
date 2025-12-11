@@ -171,6 +171,35 @@ body {
   --z-elevated: 10;
   --z-modal: 100;
   --z-toast: 1000;
+
+  /* ========================================================================
+     TEAM ROSTER TOKENS - Consistent scaling across all breakpoints
+     
+     Design System Strategy:
+     - Base size at 1200px+ desktop (largest comfortable viewing)
+     - Scale DOWN proportionally for smaller screens
+     - All elements scale together using these tokens
+     - Ratio: avatar = 90% of container, ring extends 10% outside
+     ======================================================================== */
+
+  /* Container size - the hitbox/clickable area */
+  --roster-container: 48px;
+  /* Avatar size - slightly smaller than container for visual breathing room */
+  --roster-avatar: 44px;
+  /* Ring offset - how far the selection ring extends outside */
+  --roster-ring-offset: 4px;
+  /* Ring thickness */
+  --roster-ring-width: 2px;
+  /* Avatar text size */
+  --roster-text: 14px;
+  /* Name label size */
+  --roster-name: 10px;
+  /* Gap between roster members */
+  --roster-gap: 6px;
+  /* Padding inside member button */
+  --roster-padding: 6px 8px;
+  /* Show/hide name labels (1 = show, 0 = hide) */
+  --roster-show-name: 1;
 }
 
 /* ========================================================================
@@ -905,12 +934,17 @@ html.theme-transitioning *::after {
 
 /* SAFARI BOX FIX: Ensure avatar-container never shows GPU compositing artifacts
        Safari can create visible boxes around elements with certain GPU properties.
-       These explicit rules prevent any box from being visible. */
+       These explicit rules prevent any box from being visible.
+       
+       CRITICAL: Do NOT add backface-visibility here - it CAUSES the visible box bug!
+       The border-radius: 50% ensures any layer boundary matches the circular avatar. */
 .avatar-container {
   background: transparent !important;
   outline: none !important;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  border: none !important;
+  box-shadow: none !important;
+  /* border-radius matches the circular avatar - if Safari renders a layer boundary, it will be circular */
+  border-radius: 50%;
 }
 
 /* Zen theme avatar-container - explicit transparency */
@@ -2278,6 +2312,8 @@ body {
   height: 120px;
   /* NOTE: Do NOT add will-change, transform, translateZ, contain, outline, or backface-visibility here - causes visible box in Safari */
   transform-origin: center center;
+  /* border-radius: 50% ensures any Safari layer boundary matches the circular avatar shape */
+  border-radius: 50%;
 }
 
 /* Reaction animations applied via JS classes */
@@ -3339,7 +3375,13 @@ body {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
+/* DEPRECATED: #statusIndicator is replaced by .connection-heart
+   The connection-heart provides the same connection status indication
+   PLUS journey milestone tracking and click-to-open Journey modal.
+   Keeping this hidden for backwards compatibility in case any JS references it. */
 #statusIndicator {
+  display: none !important;
+  /* Original styles preserved for reference:
   position: absolute;
   bottom: 6px;
   right: 6px;
@@ -3348,9 +3390,7 @@ body {
   border-radius: var(--radius-full);
   border: 3px solid var(--color-bg-primary);
   background: var(--color-text-dimmed);
-  transition: all var(--transition-base);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  z-index: 10;
+  */
 }
 
 #statusIndicator.status-connected {
@@ -4799,7 +4839,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1, 6px); /* Tight grouping - team feels unified */
+  gap: var(--roster-gap); /* Uses token for consistent scaling */
   margin-top: var(--space-md);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   background: var(--color-bg-glass);
@@ -4888,7 +4928,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px; /* Tight gap between avatar and name */
-  padding: 6px 8px;
+  padding: var(--roster-padding); /* Token-based padding */
   border-radius: var(--radius-lg);
   background: transparent;
   cursor: pointer;
@@ -4933,8 +4973,9 @@ body {
 /* Avatar container for positioning the selection ring */
 .team-avatar-container {
   position: relative;
-  width: 44px;
-  height: 44px;
+  /* Token-based sizing for consistent scaling */
+  width: var(--roster-container);
+  height: var(--roster-container);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4943,9 +4984,10 @@ body {
 /* Selection ring - appears smoothly on active, stays still */
 .team-avatar-ring {
   position: absolute;
-  inset: -4px;
+  /* Token-based ring offset */
+  inset: calc(-1 * var(--roster-ring-offset));
   border-radius: var(--radius-full);
-  border: 2px solid var(--member-color, var(--persona-primary));
+  border: var(--roster-ring-width) solid var(--member-color, var(--persona-primary));
   opacity: 0;
   transform: scale(0.85);
   transition: all 0.35s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
@@ -4966,15 +5008,16 @@ body {
 }
 
 .team-avatar {
-  width: 40px;
-  height: 40px;
+  /* Token-based sizing */
+  width: var(--roster-avatar);
+  height: var(--roster-avatar);
   border-radius: var(--radius-full);
   background: var(--persona-gradient, var(--gradient-orb));
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: var(--text-xs);
+  font-size: var(--roster-text);
   font-weight: 700;
   color: white;
   letter-spacing: var(--tracking-tight);
@@ -5054,12 +5097,20 @@ body {
 }
 
 .team-name {
-  font-size: var(--text-2xs);
+  /* Token-based sizing */
+  font-size: var(--roster-name);
   font-weight: 600;
   color: var(--color-text-dimmed);
   white-space: nowrap;
-  transition: color var(--transition-base);
+  transition:
+    color var(--transition-base),
+    opacity var(--transition-base);
   letter-spacing: var(--tracking-wide);
+  /* Token-based visibility - hides completely when --roster-show-name is 0 */
+  opacity: var(--roster-show-name);
+  /* When hidden, collapse height to 0 */
+  max-height: calc(var(--roster-show-name) * 20px);
+  overflow: hidden;
 }
 
 .team-member:hover .team-name {
@@ -5111,8 +5162,9 @@ body {
 }
 
 .marketplace-avatar svg {
-  width: 16px;
-  height: 16px;
+  /* Base size - scales with responsive breakpoints below */
+  width: 40%;
+  height: 40%;
   stroke-width: 2;
   opacity: 0.9;
 }
@@ -5568,6 +5620,176 @@ body {
        ======================================================================== */
 
 /* ========================================================================
+       TEAM ROSTER TOKEN OVERRIDES
+       
+       Design System Strategy:
+       - All roster elements use CSS custom properties (tokens)
+       - Only token values change per breakpoint
+       - Elements automatically scale consistently
+       
+       Token Reference:
+       --roster-container: The clickable container size
+       --roster-avatar: The visible avatar circle
+       --roster-ring-offset: Selection ring extends this far outside
+       --roster-ring-width: Selection ring border thickness
+       --roster-text: Avatar initials text size
+       --roster-name: Label text size below avatar
+       --roster-gap: Space between roster members
+       --roster-padding: Padding inside each member button
+       --roster-show-name: 1 to show labels, 0 to hide
+       ======================================================================== */
+
+/* Tablet Portrait (max 768px) */
+@media (max-width: 768px) {
+  :root {
+    --roster-container: 44px;
+    --roster-avatar: 40px;
+    --roster-ring-offset: 4px;
+    --roster-ring-width: 2px;
+    --roster-text: 13px;
+    --roster-name: 10px;
+    --roster-gap: 6px;
+    --roster-padding: 5px 6px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Mobile Landscape (481px - 767px) */
+@media (max-width: 767px) and (min-width: 481px) {
+  :root {
+    --roster-container: 40px;
+    --roster-avatar: 36px;
+    --roster-ring-offset: 3px;
+    --roster-ring-width: 2px;
+    --roster-text: 12px;
+    --roster-name: 9px;
+    --roster-gap: 5px;
+    --roster-padding: 4px 5px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Mobile Portrait (max 480px) */
+@media (max-width: 480px) {
+  :root {
+    --roster-container: 44px;
+    --roster-avatar: 40px;
+    --roster-ring-offset: 4px;
+    --roster-ring-width: 2px;
+    --roster-text: 13px;
+    --roster-name: 10px;
+    --roster-gap: 6px;
+    --roster-padding: 5px 6px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Small Mobile (max 375px) */
+@media (max-width: 375px) {
+  :root {
+    --roster-container: 40px;
+    --roster-avatar: 36px;
+    --roster-ring-offset: 3px;
+    --roster-ring-width: 2px;
+    --roster-text: 12px;
+    --roster-name: 9px;
+    --roster-gap: 5px;
+    --roster-padding: 4px 5px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Very Small (max 320px) */
+@media (max-width: 320px) {
+  :root {
+    --roster-container: 36px;
+    --roster-avatar: 32px;
+    --roster-ring-offset: 3px;
+    --roster-ring-width: 1.5px;
+    --roster-text: 11px;
+    --roster-name: 8px;
+    --roster-gap: 4px;
+    --roster-padding: 3px 4px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Landscape Mobile (height < 500px) - Compact mode */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --roster-container: 32px;
+    --roster-avatar: 28px;
+    --roster-ring-offset: 3px;
+    --roster-ring-width: 1.5px;
+    --roster-text: 10px;
+    --roster-name: 0;
+    --roster-gap: 4px;
+    --roster-padding: 3px 4px;
+    --roster-show-name: 0;
+  }
+}
+
+/* Tablet Landscape (height 501-700px) */
+@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) {
+  :root {
+    --roster-container: 38px;
+    --roster-avatar: 34px;
+    --roster-ring-offset: 3px;
+    --roster-ring-width: 2px;
+    --roster-text: 11px;
+    --roster-name: 9px;
+    --roster-gap: 5px;
+    --roster-padding: 4px 6px;
+    --roster-show-name: 1;
+  }
+}
+
+/* iPad Landscape (height 701px+, width < 1366px) */
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) {
+  :root {
+    --roster-container: 44px;
+    --roster-avatar: 40px;
+    --roster-ring-offset: 4px;
+    --roster-ring-width: 2px;
+    --roster-text: 13px;
+    --roster-name: 10px;
+    --roster-gap: 6px;
+    --roster-padding: 5px 6px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Tablet (769px - 1199px) */
+@media (max-width: 1199px) and (min-width: 769px) {
+  :root {
+    --roster-container: 46px;
+    --roster-avatar: 42px;
+    --roster-ring-offset: 4px;
+    --roster-ring-width: 2px;
+    --roster-text: 13px;
+    --roster-name: 10px;
+    --roster-gap: 8px;
+    --roster-padding: 6px 8px;
+    --roster-show-name: 1;
+  }
+}
+
+/* Large Desktop (1200px+) */
+@media (min-width: 1200px) {
+  :root {
+    --roster-container: 52px;
+    --roster-avatar: 48px;
+    --roster-ring-offset: 5px;
+    --roster-ring-width: 2.5px;
+    --roster-text: 16px;
+    --roster-name: 11px;
+    --roster-gap: 10px;
+    --roster-padding: 8px 10px;
+    --roster-show-name: 1;
+  }
+}
+
+/* ========================================================================
        GOLDEN RATIO RESPONSIVE SIZING
        Base: 80px × φ^n where φ = 1.618
        - φ^0 = 80px (tiny screens)
@@ -5580,6 +5802,8 @@ body {
 
 /* Large Desktop (1200px+) - Luxurious spacing */
 @media (min-width: 1200px) {
+  /* Team roster tokens defined in consolidated section above */
+
   .app {
     max-width: 600px;
     margin: 0 auto;
@@ -5591,18 +5815,106 @@ body {
     height: 160px;
   }
 
+  /* Scale connection-heart with avatar (160px avatar → 44px heart) */
+  .connection-heart {
+    width: 44px !important;
+    height: 44px !important;
+    bottom: -6px !important;
+    right: -6px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  /* Scale avatar ring with avatar */
+  #avatarRing {
+    inset: -14px;
+    border-width: 2px;
+  }
+
   #avatarText {
     font-size: 3.5rem;
   }
 
+  /* Scale thinking float with avatar */
+  .thinking-float {
+    bottom: -36px;
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+
+  .thinking-float .thinking-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* Scale status whisper with avatar */
+  .status-whisper {
+    bottom: -40px !important;
+    font-size: 11px !important;
+  }
+
+  /* Scale persona name/subtitle */
+  #personaName {
+    font-size: var(--text-2xl);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-base);
+  }
+
+  /* Team roster uses tokens defined above - no overrides needed */
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 80px;
+    padding: 8px 0;
+  }
+
+  .waveform-bars {
+    height: 56px;
+    gap: 5px;
+  }
+
+  .waveform-bar {
+    --bar-width: 4px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 56px;
+    padding: 16px 40px;
+    font-size: var(--text-lg);
+  }
+
+  .btn-secondary {
+    min-height: 48px;
+    padding: 12px 28px;
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 15px;
+    margin-top: var(--space-md);
+  }
+
   .main {
     /* Keep gap tight - waveform and button should be close */
-    gap: var(--space-md);
+    gap: var(--space-lg);
+  }
+
+  /* Scale controls row */
+  .controls {
+    gap: var(--space-lg);
   }
 }
 
 /* Tablet (768px - 1199px) - Balanced */
 @media (max-width: 1199px) and (min-width: 769px) {
+  /* Team roster tokens defined in consolidated section above */
+
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
@@ -5613,6 +5925,85 @@ body {
     /* φ^1.25 from 80px base ≈ 146px - round to 144px (12×12 grid) */
     width: 144px;
     height: 144px;
+  }
+
+  /* Scale connection-heart with avatar (144px avatar → 40px heart) */
+  .connection-heart {
+    width: 40px !important;
+    height: 40px !important;
+    bottom: -5px !important;
+    right: -5px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Scale avatar ring with avatar */
+  #avatarRing {
+    inset: -12px;
+    border-width: 2px;
+  }
+
+  /* Scale thinking float with avatar */
+  .thinking-float {
+    bottom: -32px;
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+
+  .thinking-float .thinking-dot {
+    width: 4.5px;
+    height: 4.5px;
+  }
+
+  /* Scale status whisper with avatar */
+  .status-whisper {
+    bottom: -36px !important;
+    font-size: 10px !important;
+  }
+
+  /* Scale avatar text */
+  #avatarText {
+    font-size: 3rem;
+  }
+
+  /* Scale persona name/subtitle */
+  #personaName {
+    font-size: var(--text-xl);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-sm);
+  }
+
+  /* Team roster uses tokens - no overrides needed */
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 65px;
+  }
+
+  .waveform-bars {
+    height: 44px;
+    gap: 4px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3.5px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 52px;
+    padding: 14px 32px;
+    font-size: var(--text-base);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 13px;
   }
 }
 
@@ -5641,13 +6032,23 @@ body {
     height: 128px;
   }
 
-  /* Scale status indicator with avatar */
-  #statusIndicator {
-    width: 22px;
-    height: 22px;
-    bottom: 6px;
-    right: 6px;
-    border-width: 3px;
+  /* Scale connection-heart with avatar (128px avatar → 36px heart) */
+  .connection-heart {
+    width: 36px !important;
+    height: 36px !important;
+    bottom: -4px !important;
+    right: -4px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Scale avatar ring */
+  #avatarRing {
+    inset: -10px;
+    border-width: 2px;
   }
 
   /* Scale thinking float with avatar */
@@ -5672,13 +6073,74 @@ body {
     font-size: var(--text-3xl);
   }
 
+  /* Scale persona name/subtitle */
+  #personaName {
+    font-size: var(--text-lg);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-sm);
+  }
+
+  /* Scale team roster */
   #teamRoster {
     padding: 8px 12px;
     gap: 4px;
   }
 
+  .team-avatar-container {
+    width: 40px;
+    height: 40px;
+  }
+
+  .team-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .team-avatar-ring {
+    inset: -3px;
+    border-width: 1.5px;
+  }
+
   .team-member {
     padding: 8px 10px;
+  }
+
+  .team-name {
+    font-size: 10px;
+  }
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 65px;
+  }
+
+  .waveform-bars {
+    height: 44px;
+    gap: 3.5px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 50px;
+    padding: 12px 28px;
+    font-size: var(--text-base);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 13px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-md);
   }
 }
 
@@ -5689,6 +6151,11 @@ body {
     padding: var(--space-sm);
   }
 
+  .main {
+    gap: var(--space-sm);
+    justify-content: center;
+  }
+
   .avatar-container {
     /* HERO AVATAR: Large, prominent, central focus on mobile
            140px - big enough to be the star of the screen */
@@ -5696,10 +6163,10 @@ body {
     height: 140px;
   }
 
-  /* Scale status indicator with larger avatar */
+  /* Scale status indicator with larger avatar (140px avatar → 24px indicator ~17%) */
   #statusIndicator {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     bottom: 6px;
     right: 6px;
     border-width: 3px;
@@ -5741,6 +6208,63 @@ body {
   #personaSubtitle {
     font-size: var(--text-xs);
   }
+
+  /* Scale team roster */
+  #teamRoster {
+    padding: 7px 10px;
+    gap: 4px;
+  }
+
+  .team-avatar-container {
+    width: 38px;
+    height: 38px;
+  }
+
+  .team-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .team-avatar-ring {
+    inset: -3px;
+    border-width: 1.5px;
+  }
+
+  .team-name {
+    font-size: 9px;
+  }
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 60px;
+  }
+
+  .waveform-bars {
+    height: 42px;
+    gap: 3px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 48px;
+    padding: 12px 28px;
+    font-size: var(--text-base);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 12px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-md);
+  }
 }
 
 /* Mobile portrait (max 480px) - HERO AVATAR FOCUSED
@@ -5774,13 +6298,17 @@ body {
     height: 160px;
   }
 
-  /* Scale status indicator with hero avatar */
-  #statusIndicator {
-    width: 24px;
-    height: 24px;
-    bottom: 8px;
-    right: 8px;
-    border-width: 3px;
+  /* Scale connection-heart with hero avatar (160px avatar → 44px heart) */
+  .connection-heart {
+    width: 44px !important;
+    height: 44px !important;
+    bottom: -6px !important;
+    right: -6px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 22px !important;
+    height: 22px !important;
   }
 
   /* Scale thinking float with hero avatar */
@@ -5957,18 +6485,22 @@ body {
     padding-top: 0;
   }
 
-  /* Scale status indicator with hero avatar */
-  #statusIndicator {
-    width: 26px;
-    height: 26px;
-    bottom: 10px;
-    right: 10px;
-    border-width: 3px;
+  /* Scale connection-heart with hero avatar (180px avatar → 48px heart) */
+  .connection-heart {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: -7px !important;
+    right: -7px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 24px !important;
+    height: 24px !important;
   }
 
   /* Scale thinking float with hero avatar */
   .thinking-float {
-    bottom: -40px;
+    bottom: -44px;
     padding: 7px 16px;
     font-size: 13px;
   }
@@ -5980,7 +6512,7 @@ body {
 
   /* Scale status whisper with hero avatar */
   .status-whisper {
-    bottom: -44px !important;
+    bottom: -48px !important;
     font-size: 11px !important;
   }
 
@@ -6004,13 +6536,55 @@ body {
     opacity: 0.8;
   }
 
+  /* Scale team roster */
+  #teamRoster {
+    gap: 5px;
+    padding: 7px 12px;
+  }
+
+  .team-avatar-container {
+    width: 42px;
+    height: 42px;
+  }
+
+  .team-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 12px;
+  }
+
+  .team-avatar-ring {
+    inset: -3px;
+    border-width: 2px;
+  }
+
+  .team-name {
+    font-size: 10px;
+  }
+
   /* Waveform - compact to give avatar room */
   #waveformContainer {
-    height: 60px;
+    height: 65px;
   }
 
   .waveform-bars {
     height: 48px;
+    gap: 3px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 52px;
+    padding: 14px 32px;
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 13px;
   }
 }
 
@@ -6027,15 +6601,20 @@ body {
   .main {
     justify-content: center;
     padding-top: 0;
+    gap: var(--space-md);
   }
 
-  /* Scale status indicator with hero avatar */
-  #statusIndicator {
-    width: 26px;
-    height: 26px;
-    bottom: 10px;
-    right: 10px;
-    border-width: 3px;
+  /* Scale connection-heart with hero avatar (180px avatar → 48px heart) */
+  .connection-heart {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: -7px !important;
+    right: -7px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 24px !important;
+    height: 24px !important;
   }
 
   #avatarRing {
@@ -6048,9 +6627,19 @@ body {
     font-weight: 700;
   }
 
+  /* Scale persona name/subtitle */
+  #personaName {
+    font-size: var(--text-base);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-xs);
+    opacity: 0.8;
+  }
+
   /* Scale thinking float */
   .thinking-float {
-    bottom: -40px;
+    bottom: -44px;
     padding: 7px 16px;
     font-size: 13px;
   }
@@ -6058,6 +6647,68 @@ body {
   .thinking-float .thinking-dot {
     width: 6px;
     height: 6px;
+  }
+
+  /* Scale status whisper */
+  .status-whisper {
+    bottom: -48px !important;
+    font-size: 11px !important;
+  }
+
+  /* Scale team roster */
+  #teamRoster {
+    gap: 5px;
+    padding: 7px 12px;
+  }
+
+  .team-avatar-container {
+    width: 44px;
+    height: 44px;
+  }
+
+  .team-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .team-avatar-ring {
+    inset: -3px;
+    border-width: 2px;
+  }
+
+  .team-name {
+    font-size: 10px;
+  }
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 68px;
+  }
+
+  .waveform-bars {
+    height: 50px;
+    gap: 3px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 52px;
+    padding: 14px 32px;
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 13px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-md);
   }
 }
 
@@ -6073,6 +6724,7 @@ body {
   .main {
     justify-content: center;
     padding-top: 0;
+    gap: var(--space-sm);
   }
 
   .avatar-container {
@@ -6082,13 +6734,17 @@ body {
     height: 140px;
   }
 
-  /* Scale status indicator with hero avatar */
-  #statusIndicator {
-    width: 22px;
-    height: 22px;
-    bottom: 6px;
-    right: 6px;
-    border-width: 3px;
+  /* Scale connection-heart with hero avatar (140px avatar → 38px heart) */
+  .connection-heart {
+    width: 38px !important;
+    height: 38px !important;
+    bottom: -5px !important;
+    right: -5px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 19px !important;
+    height: 19px !important;
   }
 
   /* Scale thinking float with hero avatar */
@@ -6131,6 +6787,12 @@ body {
     opacity: 0.8;
   }
 
+  /* Scale team roster for small screens */
+  #teamRoster {
+    gap: 3px;
+    padding: 5px 8px;
+  }
+
   .team-avatar-container {
     width: 36px;
     height: 36px;
@@ -6142,18 +6804,57 @@ body {
     font-size: 11px;
   }
 
+  .team-avatar-ring {
+    inset: -2px;
+    border-width: 1.5px;
+  }
+
   .team-name {
     font-size: 9px;
   }
 
+  /* Scale waveform for small screens */
+  #waveformContainer {
+    height: 60px;
+  }
+
+  .waveform-bars {
+    height: 40px;
+    gap: 2.5px;
+  }
+
+  .waveform-bar {
+    --bar-width: 2.5px;
+  }
+
+  /* Scale buttons */
   .btn-primary {
     min-height: 48px;
     padding: 12px 28px;
+    font-size: var(--text-sm);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 12px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-sm);
   }
 }
 
 /* Very small screens (max 320px) - HERO AVATAR (smaller but still prominent) */
 @media (max-width: 320px) {
+  .app {
+    padding: var(--space-xs);
+  }
+
+  .main {
+    gap: var(--space-xs);
+  }
+
   .avatar-container {
     /* HERO AVATAR: 120px - still prominent on tiny screens
            We reduce size here but it's still the focal point */
@@ -6161,13 +6862,17 @@ body {
     height: 120px;
   }
 
-  /* Scale status indicator with hero avatar */
-  #statusIndicator {
-    width: 20px;
-    height: 20px;
-    bottom: 5px;
-    right: 5px;
-    border-width: 2.5px;
+  /* Scale connection-heart with hero avatar (120px avatar → 32px heart) */
+  .connection-heart {
+    width: 32px !important;
+    height: 32px !important;
+    bottom: -4px !important;
+    right: -4px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 16px !important;
+    height: 16px !important;
   }
 
   /* Scale thinking float with hero avatar */
@@ -6200,14 +6905,48 @@ body {
     font-weight: 700;
   }
 
+  /* Scale persona name/subtitle */
+  #personaName {
+    font-size: var(--text-xs);
+  }
+
+  #personaSubtitle {
+    font-size: 9px;
+    opacity: 0.8;
+  }
+
+  /* Scale team roster for very small screens */
+  #teamRoster {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+
   .team-member {
     padding: 4px 6px;
+    min-width: 40px;
+  }
+
+  .team-avatar-container {
+    width: 32px;
+    height: 32px;
+  }
+
+  .team-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .team-avatar-ring {
+    inset: -2px;
+    border-width: 1.5px;
   }
 
   .team-name {
     display: none;
   }
 
+  /* Scale waveform */
   #waveformContainer {
     height: 50px;
   }
@@ -6219,6 +6958,23 @@ body {
 
   .waveform-bar {
     --bar-width: 2px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 44px;
+    padding: 10px 24px;
+    font-size: var(--text-sm);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 11px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-xs);
   }
 }
 
@@ -6241,13 +6997,27 @@ body {
     height: 64px;
   }
 
-  /* Scale status indicator with avatar in landscape */
-  #statusIndicator {
-    width: 12px;
-    height: 12px;
-    bottom: 2px;
-    right: 2px;
-    border-width: 2px;
+  /* Scale connection-heart with avatar in landscape (64px avatar → 20px heart) */
+  .connection-heart {
+    width: 20px !important;
+    height: 20px !important;
+    bottom: -2px !important;
+    right: -2px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .connection-heart__count {
+    display: none !important;
+  }
+
+  /* Scale avatar ring */
+  #avatarRing {
+    inset: -6px;
+    border-width: 1.5px;
   }
 
   /* Scale thinking float with avatar in landscape */
@@ -6286,12 +7056,42 @@ body {
     font-size: var(--text-xs);
   }
 
+  /* Scale team roster for landscape */
   #teamRoster {
     margin-top: var(--space-xs);
+    gap: 3px;
+    padding: 4px 8px;
+  }
+
+  .team-avatar-container {
+    width: 28px;
+    height: 28px;
+  }
+
+  .team-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 9px;
+  }
+
+  .team-avatar-ring {
+    inset: -2px;
+    border-width: 1px;
+  }
+
+  .team-member {
+    padding: 3px 4px;
+    min-width: 32px;
+  }
+
+  .team-name {
+    display: none;
   }
 
   .main {
     gap: var(--space-sm);
+    flex: 1;
+    justify-content: center;
   }
 
   #waveformContainer {
@@ -6307,10 +7107,286 @@ body {
     --bar-width: 2px;
   }
 
+  /* Scale buttons */
   .btn-primary {
     min-height: 44px;
     padding: 10px 24px;
+    font-size: var(--text-sm);
   }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 11px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-sm);
+  }
+}
+
+/* Tablet landscape - optimize for horizontal tablets (501px-700px height) */
+@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) {
+  .app {
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .header {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xl);
+    padding: var(--space-sm);
+  }
+
+  .avatar-container {
+    /* Balanced size for tablet landscape */
+    width: 100px;
+    height: 100px;
+  }
+
+  /* Scale connection-heart with avatar (100px avatar → 28px heart) */
+  .connection-heart {
+    width: 28px !important;
+    height: 28px !important;
+    bottom: -3px !important;
+    right: -3px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* Scale avatar ring */
+  #avatarRing {
+    inset: -8px;
+    border-width: 2px;
+  }
+
+  /* Scale thinking float */
+  .thinking-float {
+    bottom: -24px;
+    padding: 4px 10px;
+    font-size: 10px;
+    gap: 5px;
+  }
+
+  .thinking-float .thinking-dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* Scale status whisper */
+  .status-whisper {
+    bottom: -28px !important;
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+
+  #avatarText {
+    font-size: var(--text-2xl);
+  }
+
+  .coach-info {
+    text-align: left;
+  }
+
+  #personaName {
+    font-size: var(--text-lg);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-sm);
+  }
+
+  /* Scale team roster */
+  #teamRoster {
+    margin-top: var(--space-sm);
+    gap: 4px;
+    padding: 6px 10px;
+  }
+
+  .team-avatar-container {
+    width: 34px;
+    height: 34px;
+  }
+
+  .team-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+
+  .team-avatar-ring {
+    inset: -2px;
+    border-width: 1.5px;
+  }
+
+  .team-member {
+    padding: 4px 6px;
+  }
+
+  .team-name {
+    font-size: 9px;
+  }
+
+  .main {
+    gap: var(--space-md);
+    flex: 1;
+    justify-content: center;
+  }
+
+  #waveformContainer {
+    height: 60px;
+  }
+
+  .waveform-bars {
+    height: 44px;
+    gap: 3px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 48px;
+    padding: 12px 28px;
+    font-size: var(--text-base);
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 12px;
+  }
+
+  /* Scale controls */
+  .controls {
+    gap: var(--space-md);
+  }
+}
+
+/* iPad landscape - larger tablets in horizontal orientation
+   NOTE: Must include max-width to avoid matching desktop browsers */
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) {
+  .header {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2xl);
+  }
+
+  .avatar-container {
+    /* Balanced size for larger tablets */
+    width: 128px;
+    height: 128px;
+  }
+
+  /* Scale connection-heart with avatar (128px avatar → 36px heart) */
+  .connection-heart {
+    width: 36px !important;
+    height: 36px !important;
+    bottom: -4px !important;
+    right: -4px !important;
+  }
+
+  .connection-heart__icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Scale avatar ring */
+  #avatarRing {
+    inset: -10px;
+    border-width: 2px;
+  }
+
+  /* Scale thinking float */
+  .thinking-float {
+    bottom: -28px;
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+
+  .thinking-float .thinking-dot {
+    width: 4.5px;
+    height: 4.5px;
+  }
+
+  /* Scale status whisper */
+  .status-whisper {
+    bottom: -32px !important;
+    font-size: 10px !important;
+  }
+
+  #avatarText {
+    font-size: var(--text-3xl);
+  }
+
+  .coach-info {
+    text-align: left;
+  }
+
+  #personaName {
+    font-size: var(--text-xl);
+  }
+
+  #personaSubtitle {
+    font-size: var(--text-base);
+  }
+
+  /* Scale team roster */
+  #teamRoster {
+    gap: 6px;
+    padding: 10px 14px;
+  }
+
+  .team-avatar-container {
+    width: 40px;
+    height: 40px;
+  }
+
+  .team-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .team-avatar-ring {
+    inset: -3px;
+    border-width: 2px;
+  }
+
+  .team-name {
+    font-size: 10px;
+  }
+
+  /* Scale waveform */
+  #waveformContainer {
+    height: 70px;
+  }
+
+  .waveform-bars {
+    height: 52px;
+    gap: 4px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3.5px;
+  }
+
+  /* Scale buttons */
+  .btn-primary {
+    min-height: 52px;
+    padding: 14px 32px;
+  }
+
+  /* Scale helper text */
+  #helperText {
+    font-size: 14px;
+  }
+
+  /* NOTE: Keep .main as column layout - row layout looked bad */
 }
 
 /* Dark mode preference - respect system settings */
@@ -8193,4 +9269,401 @@ body.ambient-aurora {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* ========================================================================
+       TOUCH DEVICE OPTIMIZATION
+       Ensures touch-friendly interactions on phones/tablets
+       @media (pointer: coarse) targets devices with imprecise input (fingers)
+       ======================================================================== */
+@media (pointer: coarse) {
+  /* Ensure minimum 48px touch targets (Apple HIG recommends 44px, Material 48px) */
+  .btn-primary,
+  .btn-secondary {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Team members need larger touch targets */
+  .team-member {
+    min-width: 52px;
+    padding: 8px;
+  }
+
+  .team-avatar-container {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .team-avatar {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Larger tap area for avatar - use ::after pseudo-element instead of padding
+     to avoid affecting absolutely positioned children like #statusIndicator */
+  .avatar-container::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    /* Invisible touch target expansion */
+  }
+
+  /* Controls need good spacing for touch */
+  .controls {
+    gap: var(--space-md);
+  }
+
+  /* Footer links need more space */
+  .footer-links {
+    gap: var(--space-lg);
+  }
+
+  .footer-links a {
+    padding: 8px 12px;
+    margin: -8px -12px;
+  }
+
+  /* Waveform touch area */
+  #waveformContainer {
+    padding: 12px 0;
+  }
+
+  /* Larger close buttons */
+  .close-btn,
+  [aria-label='Close'] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Settings and menu items */
+  .menu-item,
+  .settings-item {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+}
+
+/* ========================================================================
+       HOVER STATE FALLBACKS FOR TOUCH DEVICES
+       Devices without hover shouldn't show stuck hover states
+       ======================================================================== */
+@media (hover: none) {
+  /* Remove hover transforms that can get stuck on touch */
+  .team-member:hover:not(.switching-to):not(.switching-from) {
+    transform: none;
+    opacity: 1;
+  }
+
+  .team-member:hover .team-avatar {
+    transform: none;
+  }
+
+  .team-member:hover .team-avatar-ring {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  /* Keep active states working */
+  .team-member.active .team-avatar-ring {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Buttons shouldn't show hover states */
+  .btn-primary:hover:not(:active) {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-secondary:hover:not(:active) {
+    transform: none;
+    background: var(--color-bg-secondary);
+  }
+
+  /* Footer links */
+  .footer-links a:hover {
+    color: var(--color-text-secondary);
+  }
+
+  /* Helper text */
+  #helperText:hover {
+    color: var(--color-text-secondary);
+  }
+
+  /* Use active states for touch feedback instead */
+  .team-member:active:not(.switching-to):not(.switching-from) {
+    transform: scale(0.95);
+    transition: transform 100ms ease-out;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+    transition: transform 100ms ease-out;
+  }
+}
+
+/* ========================================================================
+       SAFE AREA INSETS - Notched/Island devices
+       Ensures content doesn't overlap with notches, home indicators, etc.
+       ======================================================================== */
+
+/* Fixed elements that need safe area respect */
+.ferni-toast {
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Footer always respects bottom safe area */
+.footer {
+  padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 16px));
+}
+
+/* Controls above the fold on notched devices */
+.controls {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* App container respects all safe areas */
+.app {
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 16px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 16px));
+}
+
+/* Landscape mode needs left/right safe areas for notches */
+@media (orientation: landscape) {
+  .app {
+    padding-left: max(var(--space-lg), env(safe-area-inset-left, 16px));
+    padding-right: max(var(--space-lg), env(safe-area-inset-right, 16px));
+  }
+
+  .header {
+    padding-left: max(var(--space-md), env(safe-area-inset-left, 8px));
+    padding-right: max(var(--space-md), env(safe-area-inset-right, 8px));
+  }
+}
+
+/* ========================================================================
+       CONNECTION QUALITY INDICATOR - Responsive
+       ======================================================================== */
+.connection-quality {
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 12px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  z-index: 1000;
+}
+
+.connection-quality.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.connection-quality.hidden {
+  display: none;
+}
+
+/* Quality bars */
+.quality-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.quality-bar {
+  width: 3px;
+  background: var(--color-text-dimmed);
+  border-radius: 1px;
+  transition:
+    background 0.2s ease,
+    height 0.2s ease;
+}
+
+.quality-bar:nth-child(1) {
+  height: 4px;
+}
+.quality-bar:nth-child(2) {
+  height: 6px;
+}
+.quality-bar:nth-child(3) {
+  height: 9px;
+}
+.quality-bar:nth-child(4) {
+  height: 12px;
+}
+
+/* Quality states */
+.connection-quality.excellent .quality-bar {
+  background: var(--color-success, #4a6741);
+}
+.connection-quality.good .quality-bar:nth-child(-n + 3) {
+  background: var(--color-success, #4a6741);
+}
+.connection-quality.fair .quality-bar:nth-child(-n + 2) {
+  background: var(--color-warning, #b8956a);
+}
+.connection-quality.poor .quality-bar:nth-child(1) {
+  background: var(--color-destructive, #a65a52);
+}
+.connection-quality.disconnected .quality-bar {
+  background: var(--color-text-dimmed);
+}
+
+/* Responsive connection quality */
+@media (max-width: 480px) {
+  .connection-quality {
+    top: var(--space-sm);
+    right: var(--space-sm);
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .quality-bars {
+    height: 10px;
+  }
+
+  .quality-bar {
+    width: 2.5px;
+  }
+
+  .quality-bar:nth-child(1) {
+    height: 3px;
+  }
+  .quality-bar:nth-child(2) {
+    height: 5px;
+  }
+  .quality-bar:nth-child(3) {
+    height: 7px;
+  }
+  .quality-bar:nth-child(4) {
+    height: 10px;
+  }
+
+  .quality-text {
+    display: none; /* Hide text on mobile, just show bars */
+  }
+}
+
+/* Safe area for connection quality */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .connection-quality {
+    top: max(var(--space-md), env(safe-area-inset-top, 16px));
+  }
+}
+
+/* ========================================================================
+       ENHANCED HIGH CONTRAST MODE
+       Better support for users who need high contrast
+       ======================================================================== */
+@media (prefers-contrast: high) {
+  /* Stronger borders everywhere */
+  .btn-primary,
+  .btn-secondary {
+    border: 2px solid currentColor;
+  }
+
+  .team-avatar {
+    border: 2px solid var(--color-text-primary);
+  }
+
+  .team-avatar-ring {
+    border-width: 3px;
+  }
+
+  #avatarRing {
+    border-width: 3px;
+  }
+
+  #statusIndicator {
+    border-width: 4px;
+  }
+
+  /* Waveform bars more visible */
+  .waveform-bar {
+    min-width: 4px;
+  }
+
+  /* Stronger text contrast */
+  #personaName,
+  #avatarText {
+    font-weight: 800;
+  }
+
+  /* Links underlined */
+  .footer-links a {
+    text-decoration: underline;
+  }
+
+  /* Focus states more visible */
+  :focus-visible {
+    outline: 3px solid var(--color-text-primary);
+    outline-offset: 2px;
+  }
+
+  /* Toast more visible */
+  .ferni-toast {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ========================================================================
+       FOCUS VISIBLE STYLES - Keyboard Navigation
+       Only show focus rings for keyboard users, not mouse/touch
+       ======================================================================== */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--persona-primary, #4a6741);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline-offset: 3px;
+}
+
+.team-member:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
+}
+
+.team-avatar:focus-visible {
+  outline: 2px solid var(--persona-primary);
+  outline-offset: 2px;
+}
+
+/* Skip link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  z-index: 10000;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: var(--space-md);
 }

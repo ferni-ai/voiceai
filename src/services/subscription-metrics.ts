@@ -247,15 +247,28 @@ export async function recordSubscriptionEvent(
 // METRICS QUERIES
 // ============================================================================
 
-export function getSubscriptionMetrics(): SubscriptionMetrics {
+export async function getSubscriptionMetrics(): Promise<SubscriptionMetrics> {
   const mrr = monthlyRevenue / 100; // Convert cents to dollars
 
   // Calculate churn rate (cancellations / total signups * 100)
   const churnRate = totalSignups > 0 ? (totalCancellations / totalSignups) * 100 : 0;
 
-  // Conversion rate would need free user count - estimate at 10% for now
-  // TODO: Get actual free user count from user analytics
-  const conversionRate = 10; // Placeholder
+  // Calculate conversion rate from actual user analytics
+  // Conversion = paid subscribers / total unique users this month
+  let conversionRate = 0;
+  try {
+    const { getAnalyticsSummary } = await import('./user-analytics.js');
+    const analytics = await getAnalyticsSummary();
+    const totalUniqueUsersThisMonth = analytics.thisMonth.uniqueUsers;
+
+    if (totalUniqueUsersThisMonth > 0 && activeSubscribers > 0) {
+      conversionRate = Math.round((activeSubscribers / totalUniqueUsersThisMonth) * 100 * 10) / 10;
+    }
+  } catch (error) {
+    log.warn({ error }, 'Could not calculate conversion rate from analytics');
+    // Fallback to estimate based on signups vs active
+    conversionRate = totalSignups > 0 ? Math.round((activeSubscribers / totalSignups) * 100) : 0;
+  }
 
   return {
     activeSubscribers,
@@ -344,20 +357,20 @@ export async function trackStripeEvent(
 /**
  * Get metrics formatted for API response
  */
-export function getMetricsForApi(): {
+export async function getMetricsForApi(): Promise<{
   activeSubscribers: number;
   mrr: number;
   churnRate: number;
   conversionRate: number;
   recentEvents: Array<{ type: string; timestamp: string; amount?: number }>;
-} {
-  const metrics = getSubscriptionMetrics();
+}> {
+  const metrics = await getSubscriptionMetrics();
   return {
     activeSubscribers: metrics.activeSubscribers,
     mrr: metrics.mrr,
     churnRate: metrics.churnRate,
     conversionRate: metrics.conversionRate,
-    recentEvents: metrics.recentEvents.map((e) => ({
+    recentEvents: metrics.recentEvents.map((e: SubscriptionEvent) => ({
       type: e.type,
       timestamp: e.timestamp.toISOString(),
       amount: e.amount ? e.amount / 100 : undefined,

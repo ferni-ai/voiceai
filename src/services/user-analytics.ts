@@ -447,6 +447,17 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
         )
       : 0;
 
+  // Calculate week-over-week trend (compare today to same day last week)
+  const lastWeekSameDayKey = getDateKey(new Date(now.getTime() - 7 * 86400000));
+  const lastWeekSameDay =
+    (await getDailyAnalytics(lastWeekSameDayKey)) || createEmptyDaily(lastWeekSameDayKey);
+  const usersVsLastWeek =
+    lastWeekSameDay.uniqueUsers > 0
+      ? Math.round(
+          ((today.uniqueUsers - lastWeekSameDay.uniqueUsers) / lastWeekSameDay.uniqueUsers) * 100
+        )
+      : 0;
+
   // Top personas
   const personaEntries = Object.entries(today.byPersona)
     .sort((a, b) => b[1] - a[1])
@@ -476,7 +487,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     trends: {
       usersVsYesterday,
       sessionsVsYesterday,
-      usersVsLastWeek: 0, // TODO: calculate
+      usersVsLastWeek,
     },
     topPersonas: personaEntries,
     peakHours: hourEntries,

@@ -64,6 +64,7 @@ const COLLECTIONS = {
   TRIGGERS: 'outreach_triggers',
   HISTORY: 'outreach_history',
   CONTEXT: 'outreach_context',
+  PENDING_MESSAGES: 'pending_inapp_messages',
 } as const;
 
 /**
@@ -501,6 +502,7 @@ export async function deleteAllUserOutreachData(userId: string): Promise<void> {
     deleteOutreachProfile(userId),
     deleteUserHistory(userId),
     deleteUserContext(userId),
+    deleteUserPendingMessages(userId),
   ]);
 
   // Also delete any pending triggers
@@ -832,6 +834,171 @@ export async function recordTestConversion(testId: string, userId: string): Prom
 }
 
 // ============================================================================
+// PENDING IN-APP MESSAGES
+// ============================================================================
+
+export interface PendingInAppMessageDocument {
+  id: string;
+  userId: string;
+  message: string;
+  type: string;
+  personaId?: string;
+  priority?: number;
+  expiresAt?: Date;
+  createdAt: Date;
+}
+
+/**
+ * Save a pending in-app message for delivery on next session
+ * This enables cross-server consistency for proactive outreach
+ */
+export async function savePendingInAppMessage(
+  userId: string,
+  message: string,
+  type: string,
+  options?: {
+    personaId?: string;
+    priority?: number;
+    expiresInHours?: number;
+  }
+): Promise<string | null> {
+  if (!isFirestoreAvailable()) {
+    log.debug({ userId }, 'Firestore unavailable - pending message not persisted');
+    return null;
+  }
+
+  try {
+    const id = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date();
+
+    const doc: PendingInAppMessageDocument = {
+      id,
+      userId,
+      message,
+      type,
+      personaId: options?.personaId,
+      priority: options?.priority ?? 0,
+      expiresAt: options?.expiresInHours
+        ? new Date(now.getTime() + options.expiresInHours * 60 * 60 * 1000)
+        : new Date(now.getTime() + 24 * 60 * 60 * 1000), // Default 24 hours
+      createdAt: now,
+    };
+
+    await firestoreClient!.collection(COLLECTIONS.PENDING_MESSAGES).doc(id).set(doc);
+
+    log.debug({ userId, messageId: id, type }, 'Saved pending in-app message');
+    return id;
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to save pending in-app message');
+    return null;
+  }
+}
+
+/**
+ * Load pending in-app messages for a user (for session start)
+ * Returns messages sorted by priority (highest first), then by creation time
+ */
+export async function loadPendingInAppMessages(
+  userId: string
+): Promise<PendingInAppMessageDocument[]> {
+  if (!isFirestoreAvailable()) {
+    return [];
+  }
+
+  try {
+    const now = new Date();
+
+    const snapshot = await firestoreClient!
+      .collection(COLLECTIONS.PENDING_MESSAGES)
+      .where('userId', '==', userId)
+      .where('expiresAt', '>', now)
+      .orderBy('expiresAt')
+      .orderBy('priority', 'desc')
+      .orderBy('createdAt', 'asc')
+      .limit(10)
+      .get();
+
+    return snapshot.docs.map((doc) => doc.data() as PendingInAppMessageDocument);
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to load pending in-app messages');
+    return [];
+  }
+}
+
+/**
+ * Delete a pending in-app message (after delivery)
+ */
+export async function deletePendingInAppMessage(messageId: string): Promise<void> {
+  if (!isFirestoreAvailable()) {
+    return;
+  }
+
+  try {
+    await firestoreClient!.collection(COLLECTIONS.PENDING_MESSAGES).doc(messageId).delete();
+    log.debug({ messageId }, 'Deleted pending in-app message');
+  } catch (error) {
+    log.error({ error, messageId }, 'Failed to delete pending in-app message');
+  }
+}
+
+/**
+ * Delete all pending messages for a user (for GDPR)
+ */
+export async function deleteUserPendingMessages(userId: string): Promise<void> {
+  if (!isFirestoreAvailable()) {
+    return;
+  }
+
+  try {
+    const snapshot = await firestoreClient!
+      .collection(COLLECTIONS.PENDING_MESSAGES)
+      .where('userId', '==', userId)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const batch = firestoreClient!.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+
+    log.info({ userId, count: snapshot.size }, 'Deleted pending messages for user');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to delete pending messages');
+  }
+}
+
+/**
+ * Cleanup expired pending messages (run periodically)
+ */
+export async function cleanupExpiredPendingMessages(): Promise<number> {
+  if (!isFirestoreAvailable()) {
+    return 0;
+  }
+
+  try {
+    const now = new Date();
+
+    const snapshot = await firestoreClient!
+      .collection(COLLECTIONS.PENDING_MESSAGES)
+      .where('expiresAt', '<', now)
+      .limit(500)
+      .get();
+
+    if (snapshot.empty) return 0;
+
+    const batch = firestoreClient!.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+
+    log.info({ deleted: snapshot.size }, 'Cleaned up expired pending messages');
+    return snapshot.size;
+  } catch (error) {
+    log.error({ error }, 'Failed to cleanup expired pending messages');
+    return 0;
+  }
+}
+
+// ============================================================================
 // EXPORT
 // ============================================================================
 
@@ -868,6 +1035,12 @@ export default {
   saveTestAssignment,
   loadTestAssignment,
   recordTestConversion,
+  // Pending in-app messages
+  savePendingInAppMessage,
+  loadPendingInAppMessages,
+  deletePendingInAppMessage,
+  deleteUserPendingMessages,
+  cleanupExpiredPendingMessages,
   // GDPR
   deleteAllUserOutreachData,
   // Analytics

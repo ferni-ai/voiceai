@@ -128,6 +128,53 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bBogle\b/g, replacement: 'Bogul', description: 'Name pronunciation' },
   { pattern: /\bindex\s+fund/gi, replacement: 'index fund', description: 'Investment type' },
   { pattern: /\bexpense\s+ratio/gi, replacement: 'expense ratio', description: 'Fund cost metric' },
+
+  // Tax forms and filings
+  { pattern: /\b10-K\b/g, replacement: 'ten K', description: 'SEC annual filing' },
+  { pattern: /\b10-Q\b/g, replacement: 'ten Q', description: 'SEC quarterly filing' },
+  { pattern: /\b8-K\b/g, replacement: 'eight K', description: 'SEC current report' },
+  { pattern: /\bW-2\b/g, replacement: 'W two', description: 'Tax form' },
+  { pattern: /\bW-4\b/g, replacement: 'W four', description: 'Tax form' },
+  { pattern: /\bW-9\b/g, replacement: 'W nine', description: 'Tax form' },
+  { pattern: /\b1099\b/g, replacement: 'ten ninety-nine', description: 'Tax form' },
+  { pattern: /\b1040\b/g, replacement: 'ten forty', description: 'Tax form' },
+  { pattern: /\bSchedule\s+C\b/gi, replacement: 'Schedule C', description: 'Tax schedule' },
+  { pattern: /\bSchedule\s+K-1\b/gi, replacement: 'Schedule K one', description: 'Tax schedule' },
+
+  // Credit and lending
+  { pattern: /\bFICO\b/g, replacement: 'fy-ko', description: 'Credit score' },
+  { pattern: /\bHELOC\b/g, replacement: 'hee-lock', description: 'Home Equity Line of Credit' },
+  { pattern: /\bARM\b/g, replacement: 'adjustable rate mortgage', description: 'Mortgage type' },
+  { pattern: /\bPMI\b/g, replacement: 'P M I', description: 'Private Mortgage Insurance' },
+  { pattern: /\bLTV\b/g, replacement: 'L T V', description: 'Loan to Value' },
+  { pattern: /\bDTI\b/g, replacement: 'D T I', description: 'Debt to Income' },
+
+  // Investment strategies
+  {
+    pattern: /\bFIRE\b/g,
+    replacement: 'fire movement',
+    description: 'Financial Independence Retire Early',
+  },
+  { pattern: /\bDRIP\b/g, replacement: 'drip', description: 'Dividend Reinvestment Plan' },
+  { pattern: /\bTLH\b/g, replacement: 'T L H', description: 'Tax Loss Harvesting' },
+
+  // Percentages and numbers
+  { pattern: /\b(\d+(?:\.\d+)?)\s*%/g, replacement: '$1 percent', description: 'Percentage' },
+  { pattern: /\b(\d+)\s*x\s+/gi, replacement: '$1 times ', description: 'Multiplier' },
+
+  // Common financial abbreviations
+  { pattern: /\bAGI\b/g, replacement: 'A G I', description: 'Adjusted Gross Income' },
+  { pattern: /\bMAGI\b/g, replacement: 'M A G I', description: 'Modified Adjusted Gross Income' },
+  { pattern: /\bRMD\b/g, replacement: 'R M D', description: 'Required Minimum Distribution' },
+  { pattern: /\bQBI\b/g, replacement: 'Q B I', description: 'Qualified Business Income' },
+  { pattern: /\bNII\b/g, replacement: 'N I I', description: 'Net Investment Income' },
+  { pattern: /\bPIA\b/g, replacement: 'P I A', description: 'Primary Insurance Amount' },
+  { pattern: /\bFPL\b/g, replacement: 'F P L', description: 'Federal Poverty Level' },
+  { pattern: /\bCOLA\b/g, replacement: 'cola', description: 'Cost of Living Adjustment' },
+
+  // Ferni team personas (ensure consistent pronunciation)
+  { pattern: /\bFerni\b/g, replacement: 'Furr-nee', description: 'Persona name' },
+  { pattern: /\bNayan\b/g, replacement: 'Nuh-yahn', description: 'Persona name' },
 ];
 
 // Protection markers for financial pronunciations

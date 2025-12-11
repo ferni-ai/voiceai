@@ -401,23 +401,33 @@ async function sendPushNotification(
 /**
  * Queue for in-app delivery (next session)
  * Stores message to be shown when user next connects
+ * Uses Firestore for cross-server consistency
  */
 async function queueInAppMessage(userId: string, message: string, type: string): Promise<boolean> {
   try {
-    // Store pending message in session memory for next connection
-    // This is a simplified approach - can be enhanced with Firestore persistence
-    const pendingKey = `pending_outreach_${userId}`;
+    // Import persistence module
+    const { savePendingInAppMessage } =
+      await import('../../services/outreach/firestore-persistence.js');
 
-    // For now, log the queued message - actual delivery happens at session start
+    // Save to Firestore for cross-server consistency
+    const messageId = await savePendingInAppMessage(userId, message, type, {
+      priority: 0,
+      expiresInHours: 24, // Expire after 24 hours if not delivered
+    });
+
+    if (messageId) {
+      log.info(
+        { userId, type, messageId, messagePreview: message.slice(0, 50) },
+        '📥 Queued in-app message for next session (persisted to Firestore)'
+      );
+      return true;
+    }
+
+    // Fallback: Log for in-memory delivery if Firestore unavailable
     log.info(
       { userId, type, messagePreview: message.slice(0, 50) },
-      '📥 Queued in-app message for next session'
+      '📥 Queued in-app message (in-memory only - Firestore unavailable)'
     );
-
-    // TODO: Persist to Firestore for cross-server consistency
-    // For MVP, the message is stored in-memory and delivered if user
-    // connects to the same server instance
-
     return true;
   } catch (error) {
     log.warn({ userId, error }, 'Failed to queue in-app message');

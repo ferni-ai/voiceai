@@ -8,16 +8,15 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { loadBrandContext, getToneConfig } from './brand-context.js';
+import { getToneConfig, loadBrandContext } from './brand-context.js';
+import { autoFixViolations, validateBrandCompliance } from './brand-validator.js';
 import { getPersonaVoice, getRandomGreeting, getResponsePatterns } from './persona-voices.js';
-import { validateBrandCompliance, autoFixViolations } from './brand-validator.js';
 import type {
+  BrandContext,
+  ContextType,
   GenerationRequest,
   GenerationResult,
-  BrandContext,
   PersonaVoice,
-  PersonaId,
-  ContextType,
 } from './types.js';
 
 const log = createLogger({ module: 'BrandGenerator' });
@@ -53,9 +52,13 @@ Instead, focus on what ${personaVoice.name} DOES: notices, remembers, shows up, 
 ${brandContext.identity.values.join(', ')}
 
 ## Voice Principles
-${brandContext.voice.principles.map((p) => `- **${p.name}**: ${p.description}
+${brandContext.voice.principles
+  .map(
+    (p) => `- **${p.name}**: ${p.description}
   BAD: "${p.badExample}"
-  GOOD: "${p.goodExample}"`).join('\n\n')}
+  GOOD: "${p.goodExample}"`
+  )
+  .join('\n\n')}
 
 ## Words to USE (prefer these)
 ${brandContext.voice.wordsToUse.map((w) => `- ${w.word}: ${w.why}`).join('\n')}
@@ -217,10 +220,7 @@ export async function generateBrandContent(
 /**
  * Generate content from templates (no LLM required)
  */
-function generateFromTemplates(
-  request: GenerationRequest,
-  personaVoice: PersonaVoice
-): string {
+function generateFromTemplates(request: GenerationRequest, personaVoice: PersonaVoice): string {
   const { type, context } = request;
 
   switch (type) {
@@ -256,41 +256,13 @@ function generateFromTemplates(
  */
 function generateHeadline(persona: PersonaVoice, context: ContextType): string {
   const headlines: Record<ContextType, string[]> = {
-    celebration: [
-      'You did it.',
-      'This moment matters.',
-      "Don't brush past this.",
-    ],
-    support: [
-      "I'm here.",
-      "You're not alone in this.",
-      'Take your time.',
-    ],
-    coaching: [
-      'One step at a time.',
-      "Let's make this doable.",
-      'What would help right now?',
-    ],
-    checkin: [
-      'Thinking of you.',
-      "How'd it go?",
-      'Just checking in.',
-    ],
-    onboarding: [
-      'Finally, someone who listens.',
-      "Hey. I'm Ferni.",
-      'Someone in your corner.',
-    ],
-    error: [
-      "Something's not right.",
-      "That's on us.",
-      "Let's try again.",
-    ],
-    notification: [
-      'Thinking of you.',
-      'Just wanted you to know.',
-      'Remember this?',
-    ],
+    celebration: ['You did it.', 'This moment matters.', "Don't brush past this."],
+    support: ["I'm here.", "You're not alone in this.", 'Take your time.'],
+    coaching: ['One step at a time.', "Let's make this doable.", 'What would help right now?'],
+    checkin: ['Thinking of you.', "How'd it go?", 'Just checking in.'],
+    onboarding: ['Finally, someone who listens.', "Hey. I'm Ferni.", 'Someone in your corner.'],
+    error: ["Something's not right.", "That's on us.", "Let's try again."],
+    notification: ['Thinking of you.', 'Just wanted you to know.', 'Remember this?'],
     marketing: [
       'Better than human.',
       'Finally, someone who actually listens.',

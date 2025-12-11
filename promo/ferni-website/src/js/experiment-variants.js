@@ -32,8 +32,7 @@
     },
     team_focus: {
       tagline: 'Better than human.',
-      headline:
-        'Six brilliant minds. <span class="hero__headline-accent">One conversation.</span>',
+      headline: 'Six brilliant minds. <span class="hero__headline-accent">One conversation.</span>',
       subhead:
         'A life coach, mentor, researcher, strategist, habit expert, and planner—all working together for you.',
     },

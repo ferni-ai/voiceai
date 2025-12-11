@@ -233,6 +233,17 @@ export {
 } from './pronunciation-memory.js';
 
 // ============================================================================
+// CONSONANT SMOOTHING
+// ============================================================================
+
+export {
+  applyConsonantSmoothing,
+  detectDifficultClusters,
+  getClusterStats,
+  type ClusterPattern,
+} from './consonant-smoothing.js';
+
+// ============================================================================
 // VOICE MANAGER
 // ============================================================================
 

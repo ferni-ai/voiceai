@@ -104,11 +104,7 @@ const memoryStore = new Map<string, RateLimitEntry>();
 /**
  * Check rate limit using in-memory store.
  */
-function checkMemoryRateLimit(
-  key: string,
-  maxRequests: number,
-  windowMs: number
-): RateLimitResult {
+function checkMemoryRateLimit(key: string, maxRequests: number, windowMs: number): RateLimitResult {
   const now = Date.now();
   const entry = memoryStore.get(key);
 

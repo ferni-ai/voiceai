@@ -67,7 +67,7 @@ describe('Cameo E2E Flow', () => {
   let mockCameoEvents: EventEmitter;
   let eventLog: Array<{ type: string; data: unknown; timestamp: number }>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockCameoEvents = new EventEmitter();
     eventLog = [];
@@ -84,10 +84,28 @@ describe('Cameo E2E Flow', () => {
         eventLog.push({ type: eventType, data, timestamp: Date.now() });
       });
     });
+
+    // FIX: Register mock handler for cameoHandlerComplete to speed up tests
+    // This simulates what cameo-handler.ts does in production
+    const { cameoEvents } = await import('../services/cameo/index.js');
+    cameoEvents.on('cameo_started', (event: { cameoId: string }) => {
+      // Emit completion after a short delay to simulate async handler
+      setTimeout(() => {
+        cameoEvents.emit('cameoHandlerComplete', {
+          cameoId: event.cameoId,
+          success: true,
+          greetingSpoken: true,
+          instructionsUpdated: true,
+        });
+      }, 10);
+    });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     mockCameoEvents.removeAllListeners();
+    // Clean up the real cameoEvents too
+    const { cameoEvents } = await import('../services/cameo/index.js');
+    cameoEvents.removeAllListeners();
   });
 
   describe('Complete Cameo Lifecycle', () => {

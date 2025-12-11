@@ -27,23 +27,34 @@ const log = createLogger('ConnectionHeart');
 // STATE
 // ============================================================================
 
-type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking';
+type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
 let indicator: HTMLElement | null = null;
 let isInitialized = false;
 let currentState: ConnectionState = 'disconnected';
 let pulseAnimation: Animation | null = null;
 
+// Track connection state for external queries
+export function getConnectionState(): ConnectionState {
+  return currentState;
+}
+
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke)
 // ============================================================================
 
-// Outline heart (disconnected)
-const HEART_OUTLINE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+// Broken/cracked heart (disconnected) - shows we're apart but can reconnect
+const HEART_BROKEN = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M19.5 12.572l-7.5 7.428l-7.5-7.428A5 5 0 1 1 12 5.006a5 5 0 1 1 7.5 7.566z"/>
+  <path d="M12 5.006V12l-2 2l2 3"/>
+</svg>`;
+
+// Filled heart (connected) - full, alive, beating
+const HEART_FILLED = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
 </svg>`;
 
-// Filled heart (connected)
-const HEART_FILLED = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+// Outline heart (connecting/healing) - transitional state
+const HEART_HEALING = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
 </svg>`;
 
@@ -93,9 +104,9 @@ function create(): void {
   const total = getTotalMilestonesCount();
 
   indicator.innerHTML = `
-    <span class="connection-heart__icon connection-heart__icon--outline">${HEART_OUTLINE}</span>
+    <span class="connection-heart__icon connection-heart__icon--broken">${HEART_BROKEN}</span>
+    <span class="connection-heart__icon connection-heart__icon--healing">${HEART_HEALING}</span>
     <span class="connection-heart__icon connection-heart__icon--filled">${HEART_FILLED}</span>
-    <span class="connection-heart__label">Connect</span>
     <span class="connection-heart__count" aria-label="${celebrated} of ${total} milestones">${celebrated}</span>
     <span class="connection-heart__glow"></span>
   `;
@@ -135,26 +146,25 @@ function setState(state: ConnectionState): void {
     'connection-heart--disconnected',
     'connection-heart--connecting',
     'connection-heart--connected',
-    'connection-heart--speaking'
+    'connection-heart--speaking',
+    'connection-heart--error'
   );
   indicator.classList.add(`connection-heart--${state}`);
 
   // Update aria and title
-  const label = indicator.querySelector('.connection-heart__label');
   const countEl = indicator.querySelector('.connection-heart__count');
 
   switch (state) {
     case 'disconnected':
-      indicator.setAttribute('aria-label', 'Connect with Ferni');
-      indicator.setAttribute('title', 'Tap to connect');
-      if (label) label.textContent = 'Connect';
+      indicator.setAttribute('aria-label', 'View your journey');
+      indicator.setAttribute('title', 'Your journey with Ferni');
+      pulseAnimation?.cancel();
       startDisconnectedPulse();
       break;
 
     case 'connecting':
       indicator.setAttribute('aria-label', 'Connecting...');
       indicator.setAttribute('title', 'Connecting...');
-      if (label) label.textContent = 'Connecting';
       pulseAnimation?.cancel();
       playConnectingAnimation();
       break;
@@ -162,10 +172,9 @@ function setState(state: ConnectionState): void {
     case 'connected':
       indicator.setAttribute('aria-label', 'View your journey');
       indicator.setAttribute('title', 'Our story so far');
-      if (label) label.textContent = '';
       pulseAnimation?.cancel();
-      // Play heart fill animation if transitioning from disconnected
-      if (oldState === 'connecting' || oldState === 'disconnected') {
+      // Play heart fill animation if transitioning from disconnected/connecting
+      if (oldState === 'connecting' || oldState === 'disconnected' || oldState === 'error') {
         playConnectionAnimation();
       }
       // Update count
@@ -175,10 +184,20 @@ function setState(state: ConnectionState): void {
 
     case 'speaking':
       // Subtle during conversation
-      indicator.setAttribute('aria-label', 'Listening...');
+      indicator.setAttribute('aria-label', 'In conversation');
       pulseAnimation?.cancel();
       break;
+
+    case 'error':
+      indicator.setAttribute('aria-label', 'Connection lost - tap to reconnect');
+      indicator.setAttribute('title', 'Connection lost');
+      pulseAnimation?.cancel();
+      playErrorPulse();
+      break;
   }
+
+  // Dispatch event so Journey modal can update if open
+  window.dispatchEvent(new CustomEvent('ferni:connection-heart-state', { detail: { state } }));
 
   log.info('Connection heart state:', state);
 }
@@ -191,16 +210,10 @@ function handleClick(e: Event): void {
   e.preventDefault();
   e.stopPropagation();
 
-  if (currentState === 'disconnected') {
-    // Trigger connection - dispatch event that app.ts listens to
-    window.dispatchEvent(new CustomEvent('ferni:request-connect'));
-    setState('connecting');
-  } else if (currentState === 'connected') {
-    // Open journey modal
-    indicator?.classList.remove('connection-heart--new');
-    journeyUI.open();
-    log.info('Journey opened from connection heart');
-  }
+  // Always open the Journey modal - it will show connection state and allow connecting
+  indicator?.classList.remove('connection-heart--new');
+  journeyUI.open();
+  log.info('Journey opened from connection heart', { state: currentState });
 }
 
 function handleConnectionChange(e: CustomEvent<{ state: string }>): void {
@@ -210,7 +223,9 @@ function handleConnectionChange(e: CustomEvent<{ state: string }>): void {
     setState('connected');
   } else if (state === 'connecting') {
     setState('connecting');
-  } else if (state === 'disconnected' || state === 'error') {
+  } else if (state === 'error') {
+    setState('error');
+  } else if (state === 'disconnected') {
     setState('disconnected');
   }
 }
@@ -371,6 +386,26 @@ function celebrationPulse(): void {
   }
 }
 
+function playErrorPulse(): void {
+  if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
+  // Subtle error indication - not alarming, just informative
+  pulseAnimation = indicator.animate(
+    [
+      { transform: 'scale(1)', opacity: 0.8 },
+      { transform: 'scale(1.05)', opacity: 1 },
+      { transform: 'scale(1)', opacity: 0.8 },
+    ],
+    {
+      duration: 2000,
+      easing: 'ease-in-out',
+      iterations: Infinity,
+    }
+  );
+}
+
 // ============================================================================
 // STYLES
 // ============================================================================
@@ -396,7 +431,7 @@ function injectStyles(): void {
       padding: 0;
       
       background: var(--color-background-elevated, #faf8f5);
-      border: 2px solid var(--color-border-subtle, rgba(74, 103, 65, 0.3));
+      border: 2px solid var(--color-text-muted, #9a8a82);
       border-radius: 50%;
       
       cursor: pointer;
@@ -428,49 +463,15 @@ function injectStyles(): void {
       height: 18px;
     }
     
-    /* Outline heart (disconnected) */
-    .connection-heart__icon--outline {
-      color: var(--color-text-muted, #70605a);
-      opacity: 1;
-    }
-    
-    /* Filled heart (connected) */
+    /* All icons hidden by default */
+    .connection-heart__icon--broken,
+    .connection-heart__icon--healing,
     .connection-heart__icon--filled {
-      color: var(--persona-primary, #4a6741);
       opacity: 0;
       transform: scale(0.8);
     }
     
-    /* Label (shows on hover when disconnected) */
-    .connection-heart__label {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%) translateY(4px);
-      
-      padding: 4px 10px;
-      margin-bottom: 8px;
-      
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      
-      color: var(--color-text-primary, #2c2520);
-      background: var(--color-background-elevated, #faf8f5);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      
-      opacity: 0;
-      pointer-events: none;
-      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
-    }
-    
-    .connection-heart:hover .connection-heart__label:not(:empty) {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    
-    /* Count badge (shows when connected) */
+    /* Count badge */
     .connection-heart__count {
       position: absolute;
       top: -6px;
@@ -509,53 +510,58 @@ function injectStyles(): void {
     }
     
     /* ===== DISCONNECTED STATE ===== */
+    /* Gray broken heart - clearly "not connected" */
     .connection-heart--disconnected {
-      border-color: var(--color-border-subtle, rgba(74, 103, 65, 0.3));
+      border-color: var(--color-text-muted, #9a8a82);
     }
     
-    .connection-heart--disconnected .connection-heart__icon--outline {
+    .connection-heart--disconnected .connection-heart__icon--broken {
       opacity: 1;
+      transform: scale(1);
+      color: var(--color-text-muted, #9a8a82);
     }
     
-    .connection-heart--disconnected .connection-heart__icon--filled {
-      opacity: 0;
-      transform: scale(0.8);
+    /* Show count on hover even when disconnected */
+    .connection-heart--disconnected:hover .connection-heart__count {
+      opacity: 0.6;
+      transform: scale(1);
     }
     
     /* ===== CONNECTING STATE ===== */
+    /* Amber/yellow healing heart - transitional */
     .connection-heart--connecting {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-warning, #d4a574);
     }
     
-    .connection-heart--connecting .connection-heart__icon--outline {
-      opacity: 0.5;
-      animation: heart-connecting 800ms ease-in-out infinite;
+    .connection-heart--connecting .connection-heart__icon--healing {
+      opacity: 1;
+      transform: scale(1);
+      color: var(--color-warning, #d4a574);
+      animation: heart-healing 800ms ease-in-out infinite;
     }
     
-    .connection-heart--connecting .connection-heart__label {
-      opacity: 1 !important;
-      transform: translateX(-50%) translateY(0) !important;
-    }
-    
-    @keyframes heart-connecting {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 1; }
+    @keyframes heart-healing {
+      0%, 100% { 
+        opacity: 0.6; 
+        transform: scale(0.95);
+      }
+      50% { 
+        opacity: 1; 
+        transform: scale(1.05);
+      }
     }
     
     /* ===== CONNECTED STATE ===== */
+    /* Green filled heart - connected and alive */
     .connection-heart--connected {
       border-color: var(--persona-primary, #4a6741);
       background: var(--color-background-elevated, #faf8f5);
     }
     
-    .connection-heart--connected .connection-heart__icon--outline {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    
     .connection-heart--connected .connection-heart__icon--filled {
       opacity: 1;
       transform: scale(1);
+      color: var(--persona-primary, #4a6741);
     }
     
     .connection-heart--connected:hover .connection-heart__count {
@@ -582,6 +588,26 @@ function injectStyles(): void {
       }
     }
     
+    /* ===== ERROR STATE ===== */
+    /* Red broken heart - connection lost */
+    .connection-heart--error {
+      border-color: var(--color-error, #c44b4b);
+    }
+    
+    .connection-heart--error .connection-heart__icon--broken {
+      opacity: 1;
+      transform: scale(1);
+      color: var(--color-error, #c44b4b);
+    }
+    
+    .connection-heart--error .connection-heart__glow {
+      background: radial-gradient(
+        circle,
+        rgba(196, 75, 75, 0.3) 0%,
+        transparent 70%
+      );
+    }
+    
     /* ===== SPEAKING STATE ===== */
     .connection-heart--speaking {
       opacity: 0.4;
@@ -596,24 +622,35 @@ function injectStyles(): void {
     /* ===== DARK THEME ===== */
     [data-theme="midnight"] .connection-heart {
       background: var(--color-background-elevated, #1a1a1f);
-      border-color: var(--color-border-subtle, rgba(107, 143, 94, 0.3));
+      border-color: var(--color-text-muted, #7a7a7a);
     }
     
-    [data-theme="midnight"] .connection-heart__icon--outline {
-      color: var(--color-text-muted, #a0a0a0);
+    [data-theme="midnight"] .connection-heart--disconnected .connection-heart__icon--broken {
+      color: var(--color-text-muted, #7a7a7a);
     }
     
-    [data-theme="midnight"] .connection-heart__icon--filled {
+    [data-theme="midnight"] .connection-heart--connecting .connection-heart__icon--healing {
+      color: var(--color-warning, #e0b080);
+    }
+    
+    [data-theme="midnight"] .connection-heart--connected {
+      border-color: var(--persona-primary, #6b8f5e);
+    }
+    
+    [data-theme="midnight"] .connection-heart--connected .connection-heart__icon--filled {
       color: var(--persona-primary, #6b8f5e);
+    }
+    
+    [data-theme="midnight"] .connection-heart--error {
+      border-color: var(--color-error, #e06060);
+    }
+    
+    [data-theme="midnight"] .connection-heart--error .connection-heart__icon--broken {
+      color: var(--color-error, #e06060);
     }
     
     [data-theme="midnight"] .connection-heart__count {
       background: var(--persona-primary, #6b8f5e);
-    }
-    
-    [data-theme="midnight"] .connection-heart__label {
-      background: var(--color-background-elevated, #1a1a1f);
-      color: var(--color-text-primary, #faf6f0);
     }
     
     /* ===== REDUCED MOTION ===== */

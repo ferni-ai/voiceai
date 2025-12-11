@@ -12,43 +12,43 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createLogger } from '../utils/safe-logger.js';
-import { parseRequestBody, sendJsonResponse, sendError } from './helpers.js';
-import { requireAuth } from './auth-middleware.js';
 import {
-  runOptimizationLoop,
   getOptimizerStatus,
   getRecentAlerts,
+  runOptimizationLoop,
   type AutoOptimizerConfig,
 } from '../services/experiments/auto-optimizer.js';
 import {
-  getBanditConfig,
-  updateBanditConfig,
-  calculateRegret,
-  enableBandit,
-  disableBandit,
-} from '../services/experiments/thompson-sampler.js';
-import {
-  runAnalysis,
   getHypotheses,
+  runAnalysis,
   updateHypothesisStatus,
   type GeneratedHypothesis,
 } from '../services/experiments/hypothesis-generator.js';
 import {
-  getVariantsForFrontend,
-  getExperimentDefinitions,
+  calculateRegret,
+  disableBandit,
+  enableBandit,
+  getBanditConfig,
+  updateBanditConfig,
+} from '../services/experiments/thompson-sampler.js';
+import {
   getCurrentDefault,
+  getExperimentDefinitions,
+  getVariantsForFrontend,
   setCurrentDefault,
 } from '../services/experiments/variant-library.js';
 import {
-  getWebExperiments,
-  getWebExperiment,
   analyzeExperiment,
   completeWebExperiment,
   createWebExperiment,
-  startWebExperiment,
+  getWebExperiment,
+  getWebExperiments,
   pauseWebExperiment,
+  startWebExperiment,
 } from '../services/experiments/web-experiments.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
+import { parseRequestBody, sendError, sendJsonResponse } from './helpers.js';
 
 const log = createLogger({ module: 'OptimizerRoutes' });
 

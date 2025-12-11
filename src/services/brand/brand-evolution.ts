@@ -12,10 +12,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getWebExperiments, type WebExperiment } from '../experiments/web-experiments.js';
 import { clearBrandContextCache } from './brand-context.js';
 import type {
-  ExperimentPattern,
-  BrandLearnings,
-  BrandRuleChange,
   BrandHealthMetrics,
+  BrandRuleChange,
+  ExperimentPattern,
   ValidationResult,
 } from './types.js';
 
@@ -171,7 +170,10 @@ function findDistinguishingFeatures(
  */
 function findMetaPatterns(patterns: ExperimentPattern[]): ExperimentPattern[] {
   const metaPatterns: ExperimentPattern[] = [];
-  const patternCounts: Record<string, { count: number; experiments: string[]; confidence: number }> = {};
+  const patternCounts: Record<
+    string,
+    { count: number; experiments: string[]; confidence: number }
+  > = {};
 
   // Count pattern occurrences
   for (const pattern of patterns) {
@@ -312,7 +314,9 @@ export async function calculateBrandHealth(): Promise<BrandHealthMetrics> {
       .limit(1000)
       .get();
 
-    const validations = validationSnap.docs.map((d) => d.data() as ValidationResult & { timestamp: Date });
+    const validations = validationSnap.docs.map(
+      (d) => d.data() as ValidationResult & { timestamp: Date }
+    );
 
     // Calculate compliance metrics
     const compliantCount = validations.filter((v) => v.isCompliant).length;

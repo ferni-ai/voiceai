@@ -76,7 +76,16 @@ export interface PronunciationMemoryState {
  * Format: lowercase canonical → sounds-like
  */
 const COMMON_DIFFICULT_NAMES: Record<string, string> = {
+  // ==========================================================================
+  // FERNI TEAM PERSONAS - Ensure consistent pronunciation
+  // ==========================================================================
+  ferni: 'Fur-nee',
+  nayan: 'Nuh-yahn',
+  // Note: Peter, Alex, Maya, Jordan are standard English names
+
+  // ==========================================================================
   // Irish names
+  // ==========================================================================
   siobhan: 'Shi-vawn',
   niamh: 'Neev',
   caoimhe: 'Kee-va',
@@ -86,51 +95,121 @@ const COMMON_DIFFICULT_NAMES: Record<string, string> = {
   cillian: 'Kill-ee-an',
   sean: 'Shawn',
   sinead: 'Shi-nayd',
+  ciara: 'Keer-ah',
+  aisling: 'Ash-ling',
+  eoin: 'Oh-in',
+  tadhg: 'Tige',
+  oonagh: 'Oo-nah',
 
+  // ==========================================================================
   // Welsh names
+  // ==========================================================================
   llywelyn: 'Hloo-well-in',
   rhiannon: 'Ree-ann-on',
   gwyneth: 'Gwin-eth',
   cerys: 'Kerr-iss',
+  angharad: 'Ann-har-ad',
+  sian: 'Shahn',
 
+  // ==========================================================================
   // French-origin names
+  // ==========================================================================
   genevieve: 'Zhen-uh-veev',
   margaux: 'Mar-go',
   beaumont: 'Bo-mont',
   guillaume: 'Ghee-yome',
+  renee: 'Ruh-nay',
+  andre: 'Ahn-dray',
+  francois: 'Frahn-swah',
 
+  // ==========================================================================
   // Greek names
+  // ==========================================================================
   persephone: 'Per-seff-oh-nee',
   hermione: 'Her-my-oh-nee',
   iphigenia: 'If-ih-jeh-nye-uh',
+  penelope: 'Puh-nell-oh-pee',
+  calliope: 'Kuh-lie-oh-pee',
 
+  // ==========================================================================
   // Hebrew names
+  // ==========================================================================
   tzvi: 'Tsvee',
   yael: 'Yah-el',
   rivka: 'Riv-kah',
+  moshe: 'Mo-sheh',
+  chaya: 'Chai-yah',
 
+  // ==========================================================================
   // Indian names (common patterns)
+  // ==========================================================================
   priya: 'Pree-yah',
   aishwarya: 'Eye-shwar-ya',
   vaishnavi: 'Vysh-nah-vee',
   srinivas: 'Shree-nee-vas',
+  deepika: 'Dee-pih-kah',
+  rajesh: 'Rah-jesh',
+  suresh: 'Su-resh',
+  ananya: 'Uh-nun-yah',
 
+  // ==========================================================================
   // Chinese names (common Romanizations)
+  // ==========================================================================
   xiaoming: 'Shyow-ming',
   qiang: 'Chee-ahng',
   xiu: 'Shyoo',
+  xiulan: 'Shyoo-lahn',
+  qin: 'Chin',
+  xu: 'Shoo',
+  zhang: 'Jahng',
+  zhou: 'Joe',
 
+  // ==========================================================================
   // Japanese names
+  // ==========================================================================
   ryuichi: 'Ryoo-ee-chee',
   yuki: 'Yoo-kee',
   kenji: 'Ken-jee',
+  takeshi: 'Tah-keh-shee',
+  haruki: 'Ha-roo-kee',
+  sakura: 'Sah-koo-rah',
+  naomi: 'Nay-oh-mee',
 
-  // Other commonly mispronounced
-  joaquin: 'Wah-keen',
+  // ==========================================================================
+  // Korean names
+  // ==========================================================================
+  hyun: 'Hyoon',
+  seung: 'Sung',
+  jiyeon: 'Jee-yun',
+  minji: 'Min-jee',
+
+  // ==========================================================================
+  // Vietnamese names
+  // ==========================================================================
   nguyen: 'Win',
+  tran: 'Trahn',
+  phuong: 'Fuhng',
+  hoa: 'Hwah',
+
+  // ==========================================================================
+  // Spanish/Latin names
+  // ==========================================================================
+  joaquin: 'Wah-keen',
   xiomara: 'See-oh-mar-ah',
+  guillermo: 'Ghee-yair-mo',
+  jorge: 'Hor-hey',
+  javier: 'Ha-vee-air',
+
+  // ==========================================================================
+  // Other commonly mispronounced
+  // ==========================================================================
   aaliyah: 'Ah-lee-yah',
   isaiah: 'Eye-zay-ah',
+  liam: 'Lee-um',
+  niall: 'Nye-ul',
+  isla: 'Eye-lah',
+  freya: 'Fray-ah',
+  ailsa: 'Ale-sah',
 };
 
 // ============================================================================

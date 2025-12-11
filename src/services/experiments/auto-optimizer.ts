@@ -404,7 +404,12 @@ function checkSampleRatioMismatch(
   experiment: WebExperiment,
   analysis: ExperimentAnalysis,
   threshold: number
-): { hasSRM: boolean; details: string; expectedRatios: Record<string, number>; actualRatios: Record<string, number> } {
+): {
+  hasSRM: boolean;
+  details: string;
+  expectedRatios: Record<string, number>;
+  actualRatios: Record<string, number>;
+} {
   const totalSamples = analysis.sampleSize;
   if (totalSamples === 0) {
     return { hasSRM: false, details: 'No samples yet', expectedRatios: {}, actualRatios: {} };
@@ -492,17 +497,20 @@ async function markForReview(experimentId: string, decision: WinnerDecision): Pr
  */
 async function updateVariantLibraryDefault(experimentId: string, winnerId: string): Promise<void> {
   const db = getFirestore();
-  await db.collection('variant_library').doc(experimentId).set(
-    {
-      currentDefault: winnerId,
-      updatedAt: FieldValue.serverTimestamp(),
-      history: FieldValue.arrayUnion({
-        variantId: winnerId,
-        promotedAt: new Date().toISOString(),
-      }),
-    },
-    { merge: true }
-  );
+  await db
+    .collection('variant_library')
+    .doc(experimentId)
+    .set(
+      {
+        currentDefault: winnerId,
+        updatedAt: FieldValue.serverTimestamp(),
+        history: FieldValue.arrayUnion({
+          variantId: winnerId,
+          promotedAt: new Date().toISOString(),
+        }),
+      },
+      { merge: true }
+    );
 }
 
 // ============================================================================

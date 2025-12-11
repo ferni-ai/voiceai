@@ -14,6 +14,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { getConnectionState } from './connection-heart.ui.js';
 import {
   getCelebratedCount,
   getMilestones,
@@ -24,6 +25,8 @@ import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
 
 const log = createLogger('JourneyUI');
+
+type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
 
 // ============================================================================
 // STATE
@@ -39,6 +42,31 @@ let isOpen = false;
 const ICONS = {
   heart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
+  heartBroken: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19.5 12.572l-7.5 7.428l-7.5-7.428A5 5 0 1 1 12 5.006a5 5 0 1 1 7.5 7.566z"/>
+    <path d="M12 5.006V12l-2 2l2 3"/>
+  </svg>`,
+  heartFilled: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
+  phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>`,
+  loader: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="2" x2="12" y2="6"/>
+    <line x1="12" y1="18" x2="12" y2="22"/>
+    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+    <line x1="2" y1="12" x2="6" y2="12"/>
+    <line x1="18" y1="12" x2="22" y2="12"/>
+    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+  </svg>`,
+  alertCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
   </svg>`,
   share: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="18" cy="5" r="3"/>
@@ -119,6 +147,12 @@ export function openJourney(): void {
 
 export function closeJourney(): void {
   if (!isOpen || !journeyModal) return;
+
+  // Clean up event listener
+  window.removeEventListener(
+    'ferni:connection-heart-state',
+    handleConnectionStateChange as EventListener
+  );
 
   soundUI.play('click');
   animateOut(journeyModal).then(() => {
@@ -221,6 +255,17 @@ function createModal(): void {
   const celebrated = getCelebratedCount();
   const total = getTotalMilestonesCount();
 
+  // Get current connection state
+  let connectionState: ConnectionState = 'disconnected';
+  try {
+    connectionState = getConnectionState();
+  } catch {
+    // If connection heart not initialized, check body classes
+    if (document.body.classList.contains('connected')) {
+      connectionState = 'connected';
+    }
+  }
+
   // Group milestones by category
   const grouped: Record<string, typeof milestones> = {};
   for (const m of milestones) {
@@ -256,6 +301,8 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
+        ${renderConnectionBanner(connectionState)}
+        
         ${Object.entries(grouped)
           .map(([category, items]) => renderCategory(category, items))
           .join('')}
@@ -281,6 +328,15 @@ function createModal(): void {
     shareJourney(celebrated, total, streak, totalDays);
   });
 
+  // Connect button handler
+  journeyModal.querySelector('.journey-connect-btn')?.addEventListener('click', handleConnectClick);
+
+  // Listen for connection state changes
+  window.addEventListener(
+    'ferni:connection-heart-state',
+    handleConnectionStateChange as EventListener
+  );
+
   // Escape key to close
   const handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -292,6 +348,104 @@ function createModal(): void {
 
   document.body.appendChild(journeyModal);
   animateIn(journeyModal);
+}
+
+// ============================================================================
+// CONNECTION STATE
+// ============================================================================
+
+function renderConnectionBanner(state: ConnectionState): string {
+  switch (state) {
+    case 'connected':
+    case 'speaking':
+      // Connected - show happy state
+      return `
+        <div class="journey-connection journey-connection--connected">
+          <span class="journey-connection__icon">${ICONS.heartFilled}</span>
+          <span class="journey-connection__text">We're connected</span>
+        </div>
+      `;
+
+    case 'connecting':
+      // Connecting - show loading state
+      return `
+        <div class="journey-connection journey-connection--connecting">
+          <span class="journey-connection__icon journey-connection__icon--spin">${ICONS.loader}</span>
+          <span class="journey-connection__text">Connecting...</span>
+        </div>
+      `;
+
+    case 'error':
+      // Error - show retry option
+      return `
+        <div class="journey-connection journey-connection--error">
+          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+          <div class="journey-connection__content">
+            <span class="journey-connection__text">Connection lost</span>
+            <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
+          </div>
+          <button class="journey-connect-btn journey-connect-btn--retry">
+            ${ICONS.phone}
+            <span>Reconnect</span>
+          </button>
+        </div>
+      `;
+
+    case 'disconnected':
+    default:
+      // Disconnected - show connect CTA
+      return `
+        <div class="journey-connection journey-connection--disconnected">
+          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+          <div class="journey-connection__content">
+            <span class="journey-connection__text">We're not connected</span>
+            <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
+          </div>
+          <button class="journey-connect-btn">
+            ${ICONS.phone}
+            <span>Start talking</span>
+          </button>
+        </div>
+      `;
+  }
+}
+
+function handleConnectClick(): void {
+  log.info('Connect clicked from Journey modal');
+
+  // Dispatch event to trigger connection
+  window.dispatchEvent(new CustomEvent('ferni:request-connect'));
+
+  // Update banner immediately to show connecting state
+  updateConnectionBanner('connecting');
+}
+
+function handleConnectionStateChange(e: CustomEvent<{ state: ConnectionState }>): void {
+  const state = e.detail?.state;
+  if (state && journeyModal) {
+    updateConnectionBanner(state);
+  }
+}
+
+function updateConnectionBanner(state: ConnectionState): void {
+  if (!journeyModal) return;
+
+  const existingBanner = journeyModal.querySelector('.journey-connection');
+  if (existingBanner) {
+    const newBannerHtml = renderConnectionBanner(state);
+    const temp = document.createElement('div');
+    temp.innerHTML = newBannerHtml;
+    const newBanner = temp.firstElementChild;
+
+    if (newBanner) {
+      existingBanner.replaceWith(newBanner);
+
+      // Re-attach connect button handler
+      journeyModal
+        .querySelector('.journey-connect-btn')
+        ?.addEventListener('click', handleConnectClick);
+    }
+  }
 }
 
 function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
@@ -744,6 +898,163 @@ function injectStyles(): void {
       transform: translateX(-50%) translateY(0);
     }
 
+    /* ===== CONNECTION BANNER ===== */
+    .journey-connection {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      padding: var(--space-4, 16px);
+      border-radius: var(--radius-xl, 16px);
+      margin-bottom: var(--space-5, 20px);
+      transition: all 0.3s ease;
+    }
+
+    .journey-connection__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .journey-connection__icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .journey-connection__icon--spin svg {
+      animation: journey-spin 1.5s linear infinite;
+    }
+
+    @keyframes journey-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .journey-connection__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .journey-connection__text {
+      font-size: var(--text-base, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+    }
+
+    .journey-connection__subtext {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-secondary, #5a4d47);
+      margin: var(--space-1, 4px) 0 0;
+    }
+
+    /* Connected state - green, happy */
+    .journey-connection--connected {
+      background: linear-gradient(
+        135deg,
+        rgba(74, 103, 65, 0.12) 0%,
+        rgba(74, 103, 65, 0.04) 100%
+      );
+      border: 1px solid rgba(74, 103, 65, 0.25);
+    }
+
+    .journey-connection--connected .journey-connection__icon {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-connection--connected .journey-connection__text {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    /* Connecting state - amber/warm */
+    .journey-connection--connecting {
+      background: linear-gradient(
+        135deg,
+        rgba(212, 165, 116, 0.12) 0%,
+        rgba(212, 165, 116, 0.04) 100%
+      );
+      border: 1px solid rgba(212, 165, 116, 0.25);
+    }
+
+    .journey-connection--connecting .journey-connection__icon {
+      color: var(--color-warning, #d4a574);
+    }
+
+    .journey-connection--connecting .journey-connection__text {
+      color: var(--color-warning-dark, #b8864e);
+    }
+
+    /* Disconnected state - muted gray */
+    .journey-connection--disconnected {
+      background: linear-gradient(
+        135deg,
+        rgba(112, 96, 90, 0.08) 0%,
+        rgba(112, 96, 90, 0.02) 100%
+      );
+      border: 1px solid rgba(112, 96, 90, 0.15);
+    }
+
+    .journey-connection--disconnected .journey-connection__icon {
+      color: var(--color-text-muted, #9a8a82);
+    }
+
+    /* Error state - red, but not alarming */
+    .journey-connection--error {
+      background: linear-gradient(
+        135deg,
+        rgba(196, 75, 75, 0.08) 0%,
+        rgba(196, 75, 75, 0.02) 100%
+      );
+      border: 1px solid rgba(196, 75, 75, 0.2);
+    }
+
+    .journey-connection--error .journey-connection__icon {
+      color: var(--color-error, #c44b4b);
+    }
+
+    .journey-connection--error .journey-connection__text {
+      color: var(--color-error, #c44b4b);
+    }
+
+    /* Connect button */
+    .journey-connect-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3, 12px) var(--space-5, 20px);
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .journey-connect-btn:hover {
+      background: var(--persona-secondary, #3d5a35);
+      transform: scale(1.03);
+    }
+
+    .journey-connect-btn:active {
+      transform: scale(0.98);
+    }
+
+    .journey-connect-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Retry button variant */
+    .journey-connect-btn--retry {
+      background: var(--color-error, #c44b4b);
+    }
+
+    .journey-connect-btn--retry:hover {
+      background: var(--color-error-dark, #a33d3d);
+    }
+
     /* Dark theme */
     [data-theme="midnight"] .journey-backdrop {
       background: rgba(8, 8, 12, 0.8);
@@ -763,6 +1074,54 @@ function injectStyles(): void {
         rgba(74, 103, 65, 0.15) 0%,
         rgba(74, 103, 65, 0.05) 100%
       );
+    }
+
+    [data-theme="midnight"] .journey-connection--connected {
+      background: linear-gradient(
+        135deg,
+        rgba(107, 143, 94, 0.15) 0%,
+        rgba(107, 143, 94, 0.05) 100%
+      );
+      border-color: rgba(107, 143, 94, 0.3);
+    }
+
+    [data-theme="midnight"] .journey-connection--connected .journey-connection__icon,
+    [data-theme="midnight"] .journey-connection--connected .journey-connection__text {
+      color: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-connection--disconnected {
+      background: linear-gradient(
+        135deg,
+        rgba(122, 122, 122, 0.1) 0%,
+        rgba(122, 122, 122, 0.02) 100%
+      );
+      border-color: rgba(122, 122, 122, 0.2);
+    }
+
+    [data-theme="midnight"] .journey-connection--error {
+      background: linear-gradient(
+        135deg,
+        rgba(224, 96, 96, 0.12) 0%,
+        rgba(224, 96, 96, 0.03) 100%
+      );
+      border-color: rgba(224, 96, 96, 0.25);
+    }
+
+    [data-theme="midnight"] .journey-connection__text {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-connection__subtext {
+      color: var(--color-text-secondary, #c0b8b0);
+    }
+
+    [data-theme="midnight"] .journey-connect-btn {
+      background: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-connect-btn:hover {
+      background: var(--persona-secondary, #5a7d4e);
     }
 
     /* Mobile */

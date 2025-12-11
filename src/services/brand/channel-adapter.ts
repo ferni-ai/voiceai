@@ -9,7 +9,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getPersonaVoice } from './persona-voices.js';
-import { getToneConfig } from './brand-context.js';
 import type { Channel, ChannelConfig, ContextType, PersonaId } from './types.js';
 
 const log = createLogger({ module: 'ChannelAdapter' });
@@ -291,11 +290,7 @@ function addEmailFraming(content: string, personaName: string, context: ContextT
 function addSmsFraming(content: string): string {
   // SMS should be ultra-concise
   // Remove any email-style formatting
-  let framed = content
-    .replace(/\n\n/g, ' ')
-    .replace(/\n/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  let framed = content.replace(/\n\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
 
   // Ensure it fits in 160 chars
   if (framed.length > 160) {
@@ -333,7 +328,10 @@ function addPushFraming(content: string, personaName: string): string {
  */
 function removeLinks(content: string): string {
   // Remove URLs
-  return content.replace(/https?:\/\/[^\s]+/g, '').replace(/\s+/g, ' ').trim();
+  return content
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ============================================================================
@@ -373,7 +371,10 @@ export function getChannelConfig(channel: Channel): ChannelConfig {
 /**
  * Check if content fits channel constraints
  */
-export function fitsChannelConstraints(content: string, channel: Channel): {
+export function fitsChannelConstraints(
+  content: string,
+  channel: Channel
+): {
   fits: boolean;
   issues: string[];
 } {
@@ -381,14 +382,19 @@ export function fitsChannelConstraints(content: string, channel: Channel): {
   const issues: string[] = [];
 
   if (content.length > config.constraints.maxLength) {
-    issues.push(`Content exceeds ${channel} max length (${content.length}/${config.constraints.maxLength})`);
+    issues.push(
+      `Content exceeds ${channel} max length (${content.length}/${config.constraints.maxLength})`
+    );
   }
 
   if (!config.constraints.allowLinks && /https?:\/\//.test(content)) {
     issues.push(`${channel} doesn't allow links`);
   }
 
-  if (!config.constraints.allowEmoji && /[\u{1F600}-\u{1F64F}]|[\u{2600}-\u{26FF}]/u.test(content)) {
+  if (
+    !config.constraints.allowEmoji &&
+    /[\u{1F600}-\u{1F64F}]|[\u{2600}-\u{26FF}]/u.test(content)
+  ) {
     issues.push(`${channel} doesn't allow emoji`);
   }
 
@@ -405,9 +411,7 @@ export function fitsChannelConstraints(content: string, channel: Channel): {
 /**
  * Check voice consistency across channels
  */
-export function checkVoiceConsistency(
-  contents: Record<Channel, string>
-): {
+export function checkVoiceConsistency(contents: Record<Channel, string>): {
   consistent: boolean;
   score: number;
   issues: string[];

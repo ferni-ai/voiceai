@@ -155,7 +155,9 @@ export class ToastManager {
 
     Object.assign(toast.style, {
       position: 'fixed',
-      bottom: '100px', // Above roster
+      // Responsive bottom: uses CSS calc with safe area for notched devices
+      // Mobile: closer to bottom, Desktop: more breathing room
+      bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
       left: '50%',
       transform: 'translateX(-50%)',
       background: colors.bg,
@@ -163,7 +165,7 @@ export class ToastManager {
       // Explicit small values - cute & compact
       padding: '6px 14px',
       borderRadius: '100px',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 2.5vw, 13px)', // Responsive font size
       fontFamily: 'var(--font-body, system-ui)',
       fontWeight: '500',
       letterSpacing: '0.01em',

@@ -93,26 +93,26 @@ export {
 
 // Export auto-optimizer (AI-driven optimization)
 export {
-  runOptimizationLoop,
   getOptimizerStatus,
   getRecentAlerts,
+  runOptimizationLoop,
   type AutoOptimizerConfig,
-  type WinnerDecision,
-  type OptimizerAlert,
   type OptimizationResult,
+  type OptimizerAlert,
   type OptimizerStatus,
+  type WinnerDecision,
 } from './auto-optimizer.js';
 
 // Export Thompson Sampler (multi-armed bandit)
 // Note: BanditConfig is already exported from advanced.js
 export {
-  selectVariantWithBandit,
-  getBanditConfig,
-  updateBanditConfig,
-  getArmStats,
   calculateRegret,
-  enableBandit,
   disableBandit,
+  enableBandit,
+  getArmStats,
+  getBanditConfig,
+  selectVariantWithBandit,
+  updateBanditConfig,
   type BanditArm,
   type BanditMetrics,
   type BanditSelection,
@@ -121,19 +121,19 @@ export {
 // Export variant library
 export {
   EXPERIMENTS,
-  HERO_HEADLINE_VARIANTS,
   HERO_CTA_VARIANTS,
-  getVariant,
-  getControlVariant,
+  HERO_HEADLINE_VARIANTS,
   getAllVariants,
-  getVariantIds,
+  getControlVariant,
   getCurrentDefault,
-  setCurrentDefault,
-  getVariantsForFrontend,
   getExperimentDefinitions,
-  type HeroVariant,
+  getVariant,
+  getVariantIds,
+  getVariantsForFrontend,
+  setCurrentDefault,
   type CTAVariant,
   type ExperimentDefinition,
+  type HeroVariant,
 } from './variant-library.js';
 
 // Export hypothesis generator
@@ -141,8 +141,8 @@ export {
   analyzeWinningPatterns,
   generateHypotheses,
   getHypotheses,
-  updateHypothesisStatus,
   runAnalysis,
+  updateHypothesisStatus,
   type ExperimentPattern,
   type GeneratedHypothesis,
   type PatternAnalysisResult,

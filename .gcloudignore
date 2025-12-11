@@ -1,42 +1,67 @@
 # ============================================================================
+
 # Cloud Build Ignore File - OPTIMIZED
+
 # ============================================================================
+
 # Only upload what Dockerfile.ui actually needs (~250MB instead of ~3GB)
-# 
+
+#
+
 # What we need:
-#   - package*.json, tsconfig*.json
-#   - src/ (backend code)
-#   - ui-server.js
-#   - frontend-typescript/ (frontend code)
-#   - design-system/dist/ (built tokens only)
-#   - docker/ (Dockerfiles)
-#   - cloudbuild*.yaml
+
+# - package*.json, tsconfig*.json
+
+# - src/ (backend code)
+
+# - ui-server.js
+
+# - frontend-typescript/ (frontend code)
+
+# - design-system/dist/ (built tokens only)
+
+# - docker/ (Dockerfiles)
+
+# - cloudbuild\*.yaml
+
 # ============================================================================
 
 # ===================
+
 # WORK IN PROGRESS (not ready for production)
+
 # ===================
+
 # EvalOps is WIP - has TypeScript errors, exclude until ready
+
 # Note: evalops is now production-ready and included in the build
 
 # ===================
+
 # LARGE DIRECTORIES - EXCLUDE THESE FIRST
+
 # ===================
 
 # Apps - Electron, iOS, Android builds (1.4GB)
+
 apps/
 
 # Ferni-speaker build directory (1.2GB) - rebuilt inside Docker
+
 ferni-speaker-build/
 
 # Promo/marketing site (639MB)
+
 promo/
 
 # Firebase functions (106MB) - separate deployment
+
 functions/
 
 # Design system (105MB total) - only keep dist/ (196KB)
+
 # Explicitly exclude each subdir except dist
+
 design-system/.storybook/
 design-system/assets/
 design-system/choreography/
@@ -45,23 +70,32 @@ design-system/preview/
 design-system/stories/
 design-system/tests/
 design-system/tokens/
+
 # Exclude root files
-design-system/*.js
-design-system/*.ts
-design-system/*.json
-design-system/*.md
+
+design-system/_.js
+design-system/_.ts
+design-system/_.json
+design-system/_.md
 
 # ===================
+
 # NODE MODULES (always rebuilt)
-# ===================
-node_modules/
-*/node_modules/
-**/node_modules/
 
 # ===================
-# BUILD OUTPUTS (rebuilt in Docker)
+
+node_modules/
+\*/node_modules/
+\*\*/node_modules/
+
 # ===================
+
+# BUILD OUTPUTS (rebuilt in Docker)
+
+# ===================
+
 # Use /dist/ to only match root dist, preserve design-system/dist
+
 /dist/
 frontend-typescript/dist/
 coverage/
@@ -70,82 +104,112 @@ playwright-report/
 test-results/
 
 # ===================
+
 # GIT & VCS
+
 # ===================
+
 .git/
 .gitignore
 .gitattributes
 
 # ===================
+
 # SECRETS & ENV
+
 # ===================
+
 .env
-.env.*
+.env._
 !.env.example
 .livekit-secrets.env
 .plaid-tokens.json
 .spotify-tokens.json
 .spotify-device.json
-*.pem
-*.key
+_.pem
+\*.key
 
 # ===================
+
 # IDE & EDITOR
+
 # ===================
+
 .vscode/
 .idea/
-*.swp
-*.swo
+_.swp
+_.swo
 .cursor/
 
 # ===================
+
 # OS FILES
+
 # ===================
+
 .DS_Store
 Thumbs.db
 
 # ===================
+
 # LOGS & TEMP
+
 # ===================
-*.log
-npm-debug.log*
+
+_.log
+npm-debug.log_
 .deploy-logs/
 tmp/
 temp/
 
 # ===================
+
 # DOCUMENTATION (not needed in build)
+
 # ===================
-*.md
+
+\*.md
 docs/
 /brand/
 reference/
 
 # ===================
+
 # TESTING
-# ===================
-e2e/
-__tests__/
-*.test.ts
-*.spec.ts
-jest.config.*
-playwright.config.*
 
 # ===================
-# MARKETPLACE (separate repo)
+
+e2e/
+**tests**/
+_.test.ts
+_.spec.ts
+jest.config._
+playwright.config._
+
 # ===================
+
+# MARKETPLACE (separate repo)
+
+# ===================
+
 marketplace-agents/
 
 # ===================
+
 # NATIVE MODULES (rebuilt in Docker)
-# ===================
-ferni-speaker/
-*.node
 
 # ===================
-# MISC
+
+ferni-speaker/
+\*.node
+
 # ===================
+
+# MISC
+
+# ===================
+
 data/
 scripts/
-*.tgz
-*.tar.gz
+_.tgz
+_.tar.gz

@@ -13,16 +13,16 @@ import { PERSONA_VOICES } from './persona-voices.js';
 import type {
   BrandContext,
   BrandIdentity,
-  BrandVoice,
   BrandLearnings,
   BrandTokens,
+  BrandVoice,
+  ContextType,
+  ExperimentPattern,
+  SampleCopy,
+  ToneConfig,
   VoicePrinciple,
   WordDefinition,
   WordReplacement,
-  ToneConfig,
-  SampleCopy,
-  ContextType,
-  ExperimentPattern,
 } from './types.js';
 
 const log = createLogger({ module: 'BrandContext' });
@@ -81,7 +81,7 @@ const VOICE_PRINCIPLES: VoicePrinciple[] = [
     description: "We know what we do well. We don't oversell it.",
     badExample: "Ferni's revolutionary AI will transform your life!",
     goodExample: 'Finally, someone who actually pays attention.',
-    rationale: "Quiet confidence is more compelling than hype.",
+    rationale: 'Quiet confidence is more compelling than hype.',
   },
   {
     name: 'Present, Not Performative',
@@ -135,7 +135,7 @@ const WORDS_TO_AVOID: WordReplacement[] = [
   { avoid: 'user', useInstead: 'you', severity: 'warning' },
   { avoid: 'human-like', useInstead: 'genuinely caring', severity: 'warning' },
   { avoid: 'feels human', useInstead: 'fully present', severity: 'warning' },
-  { avoid: 'simulate', useInstead: "(never use)", severity: 'critical' },
+  { avoid: 'simulate', useInstead: '(never use)', severity: 'critical' },
   { avoid: 'virtual assistant', useInstead: 'companion', severity: 'critical' },
   { avoid: 'digital companion', useInstead: 'companion', severity: 'warning' },
   { avoid: 'leverage', useInstead: 'use', severity: 'warning' },
@@ -143,8 +143,8 @@ const WORDS_TO_AVOID: WordReplacement[] = [
   { avoid: 'solution', useInstead: 'help', severity: 'warning' },
   { avoid: 'platform', useInstead: 'Ferni', severity: 'suggestion' },
   { avoid: 'features', useInstead: 'what we do', severity: 'suggestion' },
-  { avoid: 'functionality', useInstead: "(describe directly)", severity: 'suggestion' },
-  { avoid: 'typical', useInstead: "(compare to humans instead)", severity: 'warning' },
+  { avoid: 'functionality', useInstead: '(describe directly)', severity: 'suggestion' },
+  { avoid: 'typical', useInstead: '(compare to humans instead)', severity: 'warning' },
 ];
 
 /**
@@ -195,17 +195,13 @@ const TONE_BY_CONTEXT: Record<ContextType, ToneConfig> = {
       'That sounds really hard.',
       'What do you need right now?',
     ],
-    avoid: ["Everything will be fine!", "Don't worry!", 'Cheer up!'],
+    avoid: ['Everything will be fine!', "Don't worry!", 'Cheer up!'],
     energyLevel: 2,
     formalityLevel: 2,
   },
   coaching: {
     description: 'Encouraging, grounded, realistic',
-    examples: [
-      "Let's make this doable.",
-      'Small steps count.',
-      "What's one thing you could try?",
-    ],
+    examples: ["Let's make this doable.", 'Small steps count.', "What's one thing you could try?"],
     avoid: ['You HAVE to', 'You should', 'Just do it', 'Easy!'],
     energyLevel: 3,
     formalityLevel: 2,
@@ -302,7 +298,7 @@ const SAMPLE_COPY: SampleCopy[] = [
   {
     type: 'notification',
     context: 'checkin',
-    content: "Hey. Thinking about you. You mentioned [X] last time. No pressure to respond.",
+    content: 'Hey. Thinking about you. You mentioned [X] last time. No pressure to respond.',
     notes: 'Proactive outreach - warm, no pressure',
   },
   {
@@ -409,20 +405,11 @@ async function loadBrandLearnings(): Promise<BrandLearnings> {
     const db = getFirestore();
 
     // Load winning patterns from completed experiments
-    const patternsSnap = await db
-      .collection('brand_learnings')
-      .doc('winning_patterns')
-      .get();
+    const patternsSnap = await db.collection('brand_learnings').doc('winning_patterns').get();
 
-    const failedSnap = await db
-      .collection('brand_learnings')
-      .doc('failed_approaches')
-      .get();
+    const failedSnap = await db.collection('brand_learnings').doc('failed_approaches').get();
 
-    const prefsSnap = await db
-      .collection('brand_learnings')
-      .doc('user_preferences')
-      .get();
+    const prefsSnap = await db.collection('brand_learnings').doc('user_preferences').get();
 
     return {
       winningPatterns: (patternsSnap.data()?.patterns as ExperimentPattern[]) || [],

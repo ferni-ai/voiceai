@@ -10,7 +10,7 @@
  * @module services/experiments/thompson-sampler
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ThompsonSampler' });
@@ -153,14 +153,12 @@ export function selectVariantThompson(
   // Calculate selection probability (for logging)
   const totalSamples = arms.reduce((sum, a) => sum + a.successes + a.failures, 0);
   const selectedArm = arms.find((a) => a.variantId === selected.variantId)!;
-  const selectedRate =
-    selectedArm.successes / (selectedArm.successes + selectedArm.failures + 1);
+  const selectedRate = selectedArm.successes / (selectedArm.successes + selectedArm.failures + 1);
 
   // Determine if this was exploration (selected arm isn't the empirical best)
   const empiricalBest = [...arms].sort(
     (a, b) =>
-      b.successes / (b.successes + b.failures + 1) -
-      a.successes / (a.successes + a.failures + 1)
+      b.successes / (b.successes + b.failures + 1) - a.successes / (a.successes + a.failures + 1)
   )[0];
 
   const isExploration = selected.variantId !== empiricalBest.variantId;
@@ -300,10 +298,7 @@ export async function recordArmOutcome(
   // The actual metrics update happens in web-experiments.ts
   // This function is for explicit bandit tracking if needed
 
-  log.debug(
-    { experimentId, variantId, isConversion },
-    'Arm outcome recorded'
-  );
+  log.debug({ experimentId, variantId, isConversion }, 'Arm outcome recorded');
 }
 
 // ============================================================================
@@ -353,14 +348,12 @@ export async function calculateRegret(experimentId: string): Promise<BanditMetri
   const armProbabilities: Record<string, number> = {};
   for (const arm of arms) {
     // Posterior mean of Beta(s+1, f+1) is (s+1)/(s+f+2)
-    armProbabilities[arm.variantId] =
-      (arm.successes + 1) / (arm.successes + arm.failures + 2);
+    armProbabilities[arm.variantId] = (arm.successes + 1) / (arm.successes + arm.failures + 2);
   }
 
   // Exploration ratio (samples not on best arm / total samples)
   const bestArmSamples = rates.find((r) => r.variantId === bestArm)?.samples || 0;
-  const explorationRatio =
-    totalSamples > 0 ? (totalSamples - bestArmSamples) / totalSamples : 0;
+  const explorationRatio = totalSamples > 0 ? (totalSamples - bestArmSamples) / totalSamples : 0;
 
   return {
     experimentId,

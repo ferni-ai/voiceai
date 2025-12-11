@@ -16,6 +16,88 @@ import path from 'path';
 import crypto from 'crypto';
 
 const PORT = process.env.TOKEN_SERVER_PORT || 3001;
+
+// ============================================================================
+// SECURE TOKEN ENCRYPTION (AES-256-GCM)
+// ============================================================================
+
+const ENCRYPTION_KEY = process.env.OAUTH_ENCRYPTION_KEY || process.env.LOG_HASH_SECRET;
+const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+
+/**
+ * Get encryption key (derive 32-byte key from secret)
+ */
+function getEncryptionKey() {
+  if (!ENCRYPTION_KEY) {
+    console.warn('⚠️  SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption');
+    return null;
+  }
+  // Derive a 32-byte key using SHA-256
+  return crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
+}
+
+/**
+ * Encrypt sensitive data before storing
+ */
+function encryptData(data) {
+  const key = getEncryptionKey();
+  if (!key) return JSON.stringify(data); // Fallback to plain JSON if no key
+
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
+
+  const plaintext = JSON.stringify(data);
+  let encrypted = cipher.update(plaintext, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+
+  const authTag = cipher.getAuthTag();
+
+  // Return as structured encrypted payload
+  return JSON.stringify({
+    encrypted: true,
+    iv: iv.toString('base64'),
+    authTag: authTag.toString('base64'),
+    data: encrypted
+  });
+}
+
+/**
+ * Decrypt stored data
+ */
+function decryptData(encryptedStr) {
+  try {
+    const parsed = JSON.parse(encryptedStr);
+
+    // If not encrypted, return as-is
+    if (!parsed.encrypted) {
+      return parsed;
+    }
+
+    const key = getEncryptionKey();
+    if (!key) {
+      console.warn('⚠️  Cannot decrypt - no encryption key configured');
+      return null;
+    }
+
+    const iv = Buffer.from(parsed.iv, 'base64');
+    const authTag = Buffer.from(parsed.authTag, 'base64');
+    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(parsed.data, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return JSON.parse(decrypted);
+  } catch (e) {
+    // If decryption fails, try parsing as plain JSON (migration from old format)
+    try {
+      return JSON.parse(encryptedStr);
+    } catch {
+      console.error('Failed to decrypt or parse token data');
+      return null;
+    }
+  }
+}
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -124,8 +206,36 @@ function recordDemoSession(ip) {
   data.lastSession = Date.now();
   data.sessions.push({
     started: Date.now(),
-    sessionId: crypto.randomBytes(8).toString('hex')
+    sessionId: crypto.randomBytes(16).toString('hex')
   });
+}
+
+// ============================================================================
+// INPUT VALIDATION
+// ============================================================================
+
+// Safe pattern for IDs (alphanumeric, dash, underscore, max 128 chars)
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
+
+/**
+ * Validate that an ID is safe (prevents injection attacks)
+ * @param {string} id - The ID to validate
+ * @returns {boolean} - True if valid
+ */
+function isValidId(id) {
+  if (!id || typeof id !== 'string') return false;
+  return SAFE_ID_PATTERN.test(id);
+}
+
+/**
+ * Send 400 error for invalid input
+ */
+function sendInvalidIdError(res, field) {
+  res.writeHead(400, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    error: 'invalid_input',
+    message: `Invalid ${field}: must be 1-128 alphanumeric characters, dashes, or underscores`
+  }));
 }
 
 // ============================================================================
@@ -164,19 +274,21 @@ function getCorsOrigin(req) {
 function loadSpotifyUsers() {
   try {
     if (fs.existsSync(SPOTIFY_USERS_FILE)) {
-      return JSON.parse(fs.readFileSync(SPOTIFY_USERS_FILE, 'utf8'));
+      const content = fs.readFileSync(SPOTIFY_USERS_FILE, 'utf8');
+      return decryptData(content) || {};
     }
   } catch (e) {
-    console.error('Error loading Spotify users:', e.message);
+    console.error('Error loading Spotify users');
   }
   return {};
 }
 
 function saveSpotifyUsers(users) {
   try {
-    fs.writeFileSync(SPOTIFY_USERS_FILE, JSON.stringify(users, null, 2));
+    const encrypted = encryptData(users);
+    fs.writeFileSync(SPOTIFY_USERS_FILE, encrypted);
   } catch (e) {
-    console.error('Error saving Spotify users:', e.message);
+    console.error('Error saving Spotify users');
   }
 }
 
@@ -221,7 +333,7 @@ async function refreshSpotifyToken(deviceId) {
     });
 
     if (!response.ok) {
-      console.error('Spotify token refresh failed:', await response.text());
+      console.error('Spotify token refresh failed');
       return null;
     }
 
@@ -236,7 +348,7 @@ async function refreshSpotifyToken(deviceId) {
     saveSpotifyUserTokens(deviceId, newTokens);
     return newTokens;
   } catch (e) {
-    console.error('Error refreshing Spotify token:', e.message);
+    console.error('Error refreshing Spotify token');
     return null;
   }
 }
@@ -268,19 +380,21 @@ const googleOAuthStates = new Map();
 function loadGoogleUsers() {
   try {
     if (fs.existsSync(GOOGLE_USERS_FILE)) {
-      return JSON.parse(fs.readFileSync(GOOGLE_USERS_FILE, 'utf8'));
+      const content = fs.readFileSync(GOOGLE_USERS_FILE, 'utf8');
+      return decryptData(content) || {};
     }
   } catch (e) {
-    console.error('Error loading Google Calendar users:', e.message);
+    console.error('Error loading Google Calendar users');
   }
   return {};
 }
 
 function saveGoogleUsers(users) {
   try {
-    fs.writeFileSync(GOOGLE_USERS_FILE, JSON.stringify(users, null, 2));
+    const encrypted = encryptData(users);
+    fs.writeFileSync(GOOGLE_USERS_FILE, encrypted);
   } catch (e) {
-    console.error('Error saving Google Calendar users:', e.message);
+    console.error('Error saving Google Calendar users');
   }
 }
 
@@ -323,7 +437,7 @@ async function refreshGoogleToken(userId) {
     });
 
     if (!response.ok) {
-      console.error('Google Calendar token refresh failed:', await response.text());
+      console.error('Google Calendar token refresh failed');
       return null;
     }
 
@@ -338,7 +452,7 @@ async function refreshGoogleToken(userId) {
     saveGoogleUserTokens(userId, newTokens);
     return newTokens;
   } catch (e) {
-    console.error('Error refreshing Google Calendar token:', e.message);
+    console.error('Error refreshing Google Calendar token');
     return null;
   }
 }
@@ -503,7 +617,7 @@ const server = http.createServer(async (req, res) => {
 
     try {
       // Generate anonymous demo session ID
-      const demoId = `demo-${crypto.randomBytes(8).toString('hex')}`;
+      const demoId = `demo-${crypto.randomBytes(16).toString('hex')}`;
       const roomName = `demo-${crypto.randomBytes(12).toString('hex')}`;
       const username = 'Visitor';
       
@@ -596,6 +710,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Input validation - prevent injection attacks
+    if (device_id && !isValidId(device_id)) {
+      sendInvalidIdError(res, 'device_id');
+      return;
+    }
+    if (persona_id && !isValidId(persona_id)) {
+      sendInvalidIdError(res, 'persona_id');
+      return;
+    }
+
     try {
       const personaId = persona_id || 'jack-bogle';
       
@@ -652,6 +776,12 @@ const server = http.createServer(async (req, res) => {
     if (!device_id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'device_id is required' }));
+      return;
+    }
+
+    // Input validation
+    if (!isValidId(device_id)) {
+      sendInvalidIdError(res, 'device_id');
       return;
     }
 
@@ -737,8 +867,7 @@ const server = http.createServer(async (req, res) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Spotify token exchange failed: ${errorText}`);
+        console.error('❌ Spotify token exchange failed');
         res.writeHead(302, { Location: return_url + '?spotify_error=token_exchange_failed' });
         res.end();
         return;
@@ -746,7 +875,7 @@ const server = http.createServer(async (req, res) => {
 
       const tokens = await response.json();
 
-      // Save tokens for this user
+      // Save tokens for this user (encrypted)
       saveSpotifyUserTokens(device_id, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -754,14 +883,14 @@ const server = http.createServer(async (req, res) => {
         scope: tokens.scope,
       });
 
-      console.log(`✅ Spotify linked for device: ${device_id}`);
+      console.log('✅ Spotify linked successfully');
 
       // Redirect back to app with success
       res.writeHead(302, { Location: return_url + '?spotify_linked=true' });
       res.end();
     } catch (e) {
-      console.error(`❌ Spotify callback error: ${e.message}`);
-      res.writeHead(302, { Location: return_url + '?spotify_error=' + encodeURIComponent(e.message) });
+      console.error('❌ Spotify callback error');
+      res.writeHead(302, { Location: return_url + '?spotify_error=callback_failed' });
       res.end();
     }
     return;
@@ -861,6 +990,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Input validation
+    if (!isValidId(user_id)) {
+      sendInvalidIdError(res, 'user_id');
+      return;
+    }
+
     // Generate state token for CSRF protection
     const state = crypto.randomUUID();
     googleOAuthStates.set(state, {
@@ -930,8 +1065,7 @@ const server = http.createServer(async (req, res) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Google Calendar token exchange failed: ${errorText}`);
+        console.error('❌ Google Calendar token exchange failed');
         res.writeHead(302, { Location: return_url + '?calendar_error=token_exchange_failed' });
         res.end();
         return;
@@ -939,7 +1073,7 @@ const server = http.createServer(async (req, res) => {
 
       const tokens = await response.json();
 
-      // Save tokens for this user
+      // Save tokens for this user (encrypted)
       saveGoogleUserTokens(user_id, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -947,14 +1081,14 @@ const server = http.createServer(async (req, res) => {
         scope: tokens.scope,
       });
 
-      console.log(`✅ Google Calendar linked for user: ${user_id}`);
+      console.log('✅ Google Calendar linked successfully');
 
       // Redirect back to app with success
       res.writeHead(302, { Location: return_url + '?calendar_linked=true' });
       res.end();
     } catch (e) {
-      console.error(`❌ Google Calendar callback error: ${e.message}`);
-      res.writeHead(302, { Location: return_url + '?calendar_error=' + encodeURIComponent(e.message) });
+      console.error('❌ Google Calendar callback error');
+      res.writeHead(302, { Location: return_url + '?calendar_error=callback_failed' });
       res.end();
     }
     return;
@@ -1034,15 +1168,18 @@ const server = http.createServer(async (req, res) => {
   // ============================================================================
   // STATIC FILE SERVING (for deployed UI)
   // ============================================================================
-  const publicDir = path.join(process.cwd(), 'public');
-  
+  const publicDir = path.resolve(process.cwd(), 'public');
+
   // Serve static files from ./public if it exists
   if (fs.existsSync(publicDir)) {
     let filePath = pathname === '/' ? '/index.html' : pathname;
-    const fullPath = path.join(publicDir, filePath);
-    
-    // Security: prevent directory traversal
-    if (!fullPath.startsWith(publicDir)) {
+
+    // Security: Use path.resolve() to normalize and catch traversal attempts
+    // path.join() alone doesn't prevent ../ sequences properly
+    const fullPath = path.resolve(publicDir, filePath.replace(/^\//, ''));
+
+    // Verify the resolved path is still within publicDir
+    if (!fullPath.startsWith(publicDir + path.sep) && fullPath !== publicDir) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end('Forbidden');
       return;

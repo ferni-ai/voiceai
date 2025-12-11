@@ -247,8 +247,13 @@ export async function handleSMSStatusWebhook(
   signature?: string,
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
-  // Validate signature in production
-  if (signature && url && process.env.NODE_ENV === 'production') {
+  // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
+  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  if (!skipValidation) {
+    if (!signature || !url) {
+      log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
+      return { success: false };
+    }
     const isValid = validateTwilioSignature(
       signature,
       url,
@@ -300,8 +305,13 @@ export async function handleInboundSMSWebhook(
   signature?: string,
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
-  // Validate signature in production
-  if (signature && url && process.env.NODE_ENV === 'production') {
+  // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
+  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  if (!skipValidation) {
+    if (!signature || !url) {
+      log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
+      return { success: false };
+    }
     const isValid = validateTwilioSignature(
       signature,
       url,
@@ -473,8 +483,13 @@ export async function handleCallStatusWebhook(
   signature?: string,
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
-  // Validate signature in production
-  if (signature && url && process.env.NODE_ENV === 'production') {
+  // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
+  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  if (!skipValidation) {
+    if (!signature || !url) {
+      log.warn({ callSid: payload.CallSid }, 'Missing Twilio signature or URL');
+      return { success: false };
+    }
     const isValid = validateTwilioSignature(
       signature,
       url,

@@ -13,8 +13,8 @@
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { HERO_CTA_VARIANTS, HERO_HEADLINE_VARIANTS } from './variant-library.js';
 import { getWebExperiments, type WebExperiment } from './web-experiments.js';
-import { EXPERIMENTS, HERO_HEADLINE_VARIANTS, HERO_CTA_VARIANTS } from './variant-library.js';
 
 const log = createLogger({ module: 'HypothesisGenerator' });
 
@@ -94,7 +94,10 @@ function detectTone(text: string): 'warm' | 'direct' | 'questioning' | 'bold' {
 /**
  * Extract features from a CTA
  */
-function extractCTAFeatures(cta: { text: string; style?: string }): Record<string, string | number | boolean> {
+function extractCTAFeatures(cta: {
+  text: string;
+  style?: string;
+}): Record<string, string | number | boolean> {
   const text = cta.text;
   const words = text.split(/\s+/);
 
@@ -122,11 +125,15 @@ export async function analyzeWinningPatterns(): Promise<ExperimentPattern[]> {
 
   // Filter to completed experiments with winners
   const completed = experiments.filter(
-    (exp) => exp.status === 'completed' && exp.winner && exp.winnerConfidence && exp.winnerConfidence >= 95
+    (exp) =>
+      exp.status === 'completed' && exp.winner && exp.winnerConfidence && exp.winnerConfidence >= 95
   );
 
   if (completed.length < 2) {
-    log.info({ completed: completed.length }, 'Not enough completed experiments for pattern analysis');
+    log.info(
+      { completed: completed.length },
+      'Not enough completed experiments for pattern analysis'
+    );
     return [];
   }
 
@@ -341,9 +348,7 @@ function generateHeadlineHypothesis(patterns: ExperimentPattern[]): GeneratedHyp
 /**
  * Generate headline variants based on a pattern
  */
-function generateHeadlineVariants(
-  pattern: ExperimentPattern
-): GeneratedHypothesis['variants'] {
+function generateHeadlineVariants(pattern: ExperimentPattern): GeneratedHypothesis['variants'] {
   const variants: GeneratedHypothesis['variants'] = [];
 
   // Control is always the current winner
@@ -420,8 +425,8 @@ function generateHeadlineVariants(
           name: 'Intimate',
           weight: 25,
           content: {
-            tagline: 'We\'re here for you.',
-            headline: 'Let\'s talk. Really talk.',
+            tagline: "We're here for you.",
+            headline: "Let's talk. Really talk.",
           },
         });
       }

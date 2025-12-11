@@ -5251,9 +5251,7 @@ export default defineAgent({
             logger.info({ packId: message.packId }, '🎤 User changed voice pack via Personalize');
 
             try {
-              const { handleVoicePackMessage } = await import(
-                '../services/voice-pack-service.js'
-              );
+              const { handleVoicePackMessage } = await import('../services/voice-pack-service.js');
               handleVoicePackMessage(userId ?? 'anonymous', message);
 
               // Acknowledge the change

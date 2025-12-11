@@ -7,14 +7,14 @@
  * Design: Warm, organic feel - seeds are gifts from your relationship with Ferni
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { getSeedBalance } from '../services/cosmetics.service.js';
 import {
   getCurrentStreak,
-  isDailyBonusAvailable,
   getNextStreakMilestone,
+  isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
-import { getSeedBalance } from '../services/cosmetics.service.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('SeedsDisplay');
 
@@ -265,12 +265,16 @@ export function renderCompactSeedsDisplay(): string {
         <span class="seeds-balance-icon">${ICONS.seed}</span>
         <span class="seeds-balance-amount" data-seeds-amount>${balance}</span>
       </div>
-      ${streak > 0 ? `
+      ${
+        streak > 0
+          ? `
         <div class="seeds-streak">
           <span class="seeds-streak-icon">${ICONS.flame}</span>
           <span class="seeds-streak-count">${streak}</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }
@@ -288,7 +292,7 @@ export function renderSeedsSettingsCard(): string {
   let progressText = '';
 
   if (nextMilestone && streak > 0) {
-    const previousMilestone = [0, 7, 14, 30, 60, 100].filter(m => m < nextMilestone).pop() ?? 0;
+    const previousMilestone = [0, 7, 14, 30, 60, 100].filter((m) => m < nextMilestone).pop() ?? 0;
     const range = nextMilestone - previousMilestone;
     const progress = streak - previousMilestone;
     progressPercent = Math.min(100, (progress / range) * 100);
@@ -299,12 +303,16 @@ export function renderSeedsSettingsCard(): string {
     <div class="seeds-settings-card" data-seeds-card>
       <div class="seeds-settings-header">
         <span class="seeds-settings-title">Your Seeds</span>
-        ${dailyAvailable ? `
+        ${
+          dailyAvailable
+            ? `
           <div class="seeds-daily-bonus" data-daily-bonus>
             <span class="seeds-daily-bonus-icon">${ICONS.gift}</span>
             <span class="seeds-daily-bonus-text">Daily bonus available!</span>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
 
       <div class="seeds-settings-row">
@@ -315,7 +323,9 @@ export function renderSeedsSettingsCard(): string {
         <span class="seeds-settings-info">seeds to spend</span>
       </div>
 
-      ${streak > 0 ? `
+      ${
+        streak > 0
+          ? `
         <div class="seeds-settings-row">
           <div class="seeds-settings-value">
             <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
@@ -323,16 +333,22 @@ export function renderSeedsSettingsCard(): string {
           </div>
           <span class="seeds-settings-info">day streak</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
-      ${nextMilestone && streak > 0 ? `
+      ${
+        nextMilestone && streak > 0
+          ? `
         <div class="seeds-progress">
           <div class="seeds-progress-bar">
             <div class="seeds-progress-fill" style="width: ${progressPercent}%"></div>
           </div>
           <span class="seeds-progress-text">${progressText}</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }

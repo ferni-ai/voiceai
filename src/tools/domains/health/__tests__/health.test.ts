@@ -6,21 +6,27 @@
  * Run with: npx vitest run src/tools/domains/health/__tests__/health.test.ts
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ============================================================================
 // MOCKS
 // ============================================================================
 
 // Mock safe-logger
-vi.mock('../../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const createMockLogger = (): Record<string, unknown> => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => createMockLogger()),
+  });
+  return {
+    getLogger: () => createMockLogger(),
+    safeLog: () => createMockLogger(),
+    createLogger: (_bindings?: Record<string, unknown>) => createMockLogger(),
+  };
+});
 
 // Mock @livekit/agents
 vi.mock('@livekit/agents', () => ({
@@ -54,8 +60,8 @@ vi.mock('../../shared/index.js', () => ({
 // IMPORTS (after mocks)
 // ============================================================================
 
+import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { getToolDefinitions } from '../index.js';
-import type { ToolDefinition, ToolContext } from '../../../registry/types.js';
 
 // ============================================================================
 // TEST CONTEXT

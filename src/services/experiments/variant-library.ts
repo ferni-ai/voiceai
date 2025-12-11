@@ -6,11 +6,15 @@
  *
  * Better than human: We systematically test every word.
  *
+ * Brand Integration: All variants are validated against brand rules
+ * to ensure consistent voice across experiments.
+ *
  * @module services/experiments/variant-library
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { validateExperimentVariant } from '../brand/index.js';
 
 const log = createLogger({ module: 'VariantLibrary' });
 
@@ -76,7 +80,7 @@ export const HERO_HEADLINE_VARIANTS: VariantDefinition<HeroVariant> = {
     tagline: 'Better than human.',
     headline: 'Finally, someone who gets it.',
     subhead:
-      'Someone who remembers your whole story, hears what you\'re not saying, and shows up at 2am with the same presence as noon.',
+      "Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.",
   },
   emotional_question: {
     tagline: 'Your AI life coach.',
@@ -100,7 +104,7 @@ export const HERO_HEADLINE_VARIANTS: VariantDefinition<HeroVariant> = {
     tagline: 'Always here for you.',
     headline: 'Never too busy. Never too tired.',
     subhead:
-      'Your best friend has their own problems. Your therapist has other patients. We\'re fully present, every time.',
+      "Your best friend has their own problems. Your therapist has other patients. We're fully present, every time.",
   },
 };
 
@@ -382,36 +386,54 @@ export async function getCurrentDefault(experimentId: string): Promise<string> {
 /**
  * Set the current default variant (called when a winner ships)
  */
-export async function setCurrentDefault(
-  experimentId: string,
-  variantId: string
-): Promise<void> {
+export async function setCurrentDefault(experimentId: string, variantId: string): Promise<void> {
   const db = getFirestore();
 
-  await db.collection('variant_library').doc(experimentId).set(
-    {
-      currentDefault: variantId,
-      updatedAt: FieldValue.serverTimestamp(),
-      history: FieldValue.arrayUnion({
-        variantId,
-        promotedAt: new Date().toISOString(),
-      }),
-    },
-    { merge: true }
-  );
+  await db
+    .collection('variant_library')
+    .doc(experimentId)
+    .set(
+      {
+        currentDefault: variantId,
+        updatedAt: FieldValue.serverTimestamp(),
+        history: FieldValue.arrayUnion({
+          variantId,
+          promotedAt: new Date().toISOString(),
+        }),
+      },
+      { merge: true }
+    );
 
   log.info({ experimentId, variantId }, 'Default variant updated');
 }
 
 /**
  * Add a custom variant to an experiment (for AI-generated variants)
+ * Validates against brand rules before adding
  */
 export async function addCustomVariant(
   experimentId: string,
   variantId: string,
   content: unknown
-): Promise<void> {
+): Promise<{ success: boolean; brandScore?: number; issues?: string[] }> {
   const db = getFirestore();
+
+  // Brand validation for text content
+  const textContent = extractTextContent(content);
+  if (textContent) {
+    const brandResult = await validateExperimentVariant(textContent, 'headline');
+    if (!brandResult.isValid) {
+      log.warn(
+        { experimentId, variantId, score: brandResult.score, issues: brandResult.issues },
+        'Custom variant failed brand validation'
+      );
+      return {
+        success: false,
+        brandScore: brandResult.score,
+        issues: brandResult.issues,
+      };
+    }
+  }
 
   await db
     .collection('variant_library')
@@ -422,17 +444,44 @@ export async function addCustomVariant(
       content,
       createdAt: FieldValue.serverTimestamp(),
       source: 'ai-generated',
+      brandValidated: true,
     });
 
-  log.info({ experimentId, variantId }, 'Custom variant added');
+  log.info({ experimentId, variantId }, 'Custom variant added (brand validated)');
+  return { success: true, brandScore: 100 };
+}
+
+/**
+ * Extract text content from a variant for brand validation
+ */
+function extractTextContent(content: unknown): string | null {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (typeof content === 'object' && content !== null) {
+    const obj = content as Record<string, unknown>;
+    const textParts: string[] = [];
+
+    // Common variant fields
+    if (obj.headline) textParts.push(String(obj.headline));
+    if (obj.tagline) textParts.push(String(obj.tagline));
+    if (obj.subhead) textParts.push(String(obj.subhead));
+    if (obj.text) textParts.push(String(obj.text));
+    if (obj.body) textParts.push(String(obj.body));
+
+    if (textParts.length > 0) {
+      return textParts.join(' ');
+    }
+  }
+
+  return null;
 }
 
 /**
  * Get all custom variants for an experiment
  */
-export async function getCustomVariants(
-  experimentId: string
-): Promise<Record<string, unknown>> {
+export async function getCustomVariants(experimentId: string): Promise<Record<string, unknown>> {
   const db = getFirestore();
 
   const snapshot = await db

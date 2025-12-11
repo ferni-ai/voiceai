@@ -9,8 +9,8 @@
  * @module functions/optimizer-scheduler
  */
 
-import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as functions from 'firebase-functions';
 
 // Initialize Firebase if not already done
 if (admin.apps.length === 0) {
@@ -20,9 +20,8 @@ if (admin.apps.length === 0) {
 // Import optimizer (will be available after build)
 // These are dynamically imported to avoid bundling issues
 async function getOptimizer() {
-  const { runOptimizationLoop, getOptimizerStatus } = await import(
-    '../src/services/experiments/auto-optimizer.js'
-  );
+  const { runOptimizationLoop, getOptimizerStatus } =
+    await import('../src/services/experiments/auto-optimizer.js');
   return { runOptimizationLoop, getOptimizerStatus };
 }
 
@@ -69,16 +68,19 @@ export const hourlyOptimization = functions
       });
 
       // Store run history
-      await admin.firestore().collection('optimizer_runs').add({
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        type: 'hourly',
-        results: {
-          total: results.length,
-          shipped,
-          flagged,
-        },
-        experimentIds: results.map((r) => r.experimentId),
-      });
+      await admin
+        .firestore()
+        .collection('optimizer_runs')
+        .add({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          type: 'hourly',
+          results: {
+            total: results.length,
+            shipped,
+            flagged,
+          },
+          experimentIds: results.map((r) => r.experimentId),
+        });
 
       // If any winners were shipped, log them specifically
       if (shipped > 0) {
@@ -130,17 +132,20 @@ export const weeklyHypothesisGeneration = functions
       });
 
       // Store analysis history
-      await admin.firestore().collection('optimizer_runs').add({
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        type: 'weekly_hypothesis',
-        results: {
-          patternsFound: result.patterns.length,
-          hypothesesGenerated: result.hypotheses.length,
-          experimentsAnalyzed: result.experimentsAnalyzed,
-        },
-        patternIds: result.patterns.map((p) => p.attribute),
-        hypothesisIds: result.hypotheses.map((h) => h.id),
-      });
+      await admin
+        .firestore()
+        .collection('optimizer_runs')
+        .add({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          type: 'weekly_hypothesis',
+          results: {
+            patternsFound: result.patterns.length,
+            hypothesesGenerated: result.hypotheses.length,
+            experimentsAnalyzed: result.experimentsAnalyzed,
+          },
+          patternIds: result.patterns.map((p) => p.attribute),
+          hypothesisIds: result.hypotheses.map((h) => h.id),
+        });
 
       // Log any interesting patterns
       for (const pattern of result.patterns) {

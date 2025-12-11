@@ -8,14 +8,14 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { loadBrandContext, getVoiceRules, getBannedPhrases, getWordsToAvoid } from './brand-context.js';
+import { getBannedPhrases, getWordsToAvoid, loadBrandContext } from './brand-context.js';
 import { containsAntiPattern, getPersonaVoice } from './persona-voices.js';
 import type {
   BrandContext,
   BrandViolation,
-  ValidationResult,
-  PersonaId,
   ContextType,
+  PersonaId,
+  ValidationResult,
 } from './types.js';
 
 const log = createLogger({ module: 'BrandValidator' });
@@ -70,10 +70,7 @@ export async function validateBrandCompliance(
   const suggestionCount = violations.filter((v) => v.severity === 'suggestion').length;
 
   // Score: start at 100, subtract for violations
-  const score = Math.max(
-    0,
-    100 - criticalCount * 25 - warningCount * 10 - suggestionCount * 2
-  );
+  const score = Math.max(0, 100 - criticalCount * 25 - warningCount * 10 - suggestionCount * 2);
 
   const isCompliant = strict ? violations.length === 0 : criticalCount === 0;
 
@@ -167,8 +164,7 @@ function checkPersonaAntiPatterns(content: string, personaId: PersonaId): BrandV
       text: matchedPattern,
       position: {
         start: content.toLowerCase().indexOf(matchedPattern.toLowerCase()),
-        end:
-          content.toLowerCase().indexOf(matchedPattern.toLowerCase()) + matchedPattern.length,
+        end: content.toLowerCase().indexOf(matchedPattern.toLowerCase()) + matchedPattern.length,
       },
       suggestion: `"${matchedPattern}" doesn't fit ${persona.name}'s voice. Try using their signature phrases instead.`,
       rule: `Persona Voice Profile: ${persona.name}`,
@@ -192,7 +188,7 @@ function analyzeTone(content: string, context: ContextType): BrandViolation[] {
       severity: 'warning',
       text: '! (multiple)',
       position: { start: 0, end: content.length },
-      suggestion: 'Reduce exclamation marks - genuine warmth doesn\'t need emphasis',
+      suggestion: "Reduce exclamation marks - genuine warmth doesn't need emphasis",
       rule: 'Voice Principle: Warm, Not Saccharine',
     });
   }

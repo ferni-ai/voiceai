@@ -14,37 +14,32 @@
 export type {
   // Core types
   BrandContext,
+  BrandHealthMetrics,
   BrandIdentity,
-  BrandVoice,
-  BrandTokens,
   BrandLearnings,
-
+  BrandRuleChange,
+  BrandTokens,
+  // Validation types
+  BrandViolation,
+  BrandVoice,
+  Channel,
+  ChannelConfig,
+  ContextType,
+  // Learning types
+  ExperimentPattern,
+  // Generation types
+  GenerationRequest,
+  GenerationResult,
+  // Persona types
+  PersonaId,
+  PersonaVoice,
+  SampleCopy,
+  ToneConfig,
+  ValidationResult,
   // Voice types
   VoicePrinciple,
   WordDefinition,
   WordReplacement,
-  ToneConfig,
-  SampleCopy,
-  ContextType,
-
-  // Persona types
-  PersonaId,
-  PersonaVoice,
-
-  // Validation types
-  BrandViolation,
-  ValidationResult,
-
-  // Generation types
-  GenerationRequest,
-  GenerationResult,
-  Channel,
-  ChannelConfig,
-
-  // Learning types
-  ExperimentPattern,
-  BrandRuleChange,
-  BrandHealthMetrics,
 } from './types.js';
 
 // ============================================================================
@@ -52,14 +47,14 @@ export type {
 // ============================================================================
 
 export {
-  loadBrandContext,
   clearBrandContextCache,
-  getBrandContextForPersona,
-  getVoiceRules,
   getBannedPhrases,
-  getWordsToAvoid,
-  getToneConfig,
+  getBrandContextForPersona,
   getClientBrandRules,
+  getToneConfig,
+  getVoiceRules,
+  getWordsToAvoid,
+  loadBrandContext,
 } from './brand-context.js';
 
 // ============================================================================
@@ -68,12 +63,12 @@ export {
 
 export {
   PERSONA_VOICES,
-  getPersonaVoice,
+  containsAntiPattern,
   getCorePersonas,
   getMarketplacePersonas,
+  getPersonaVoice,
   getRandomGreeting,
   getResponsePatterns,
-  containsAntiPattern,
 } from './persona-voices.js';
 
 // ============================================================================
@@ -81,10 +76,10 @@ export {
 // ============================================================================
 
 export {
-  validateBrandCompliance,
-  quickValidate,
   autoFixViolations,
   getQuickScore,
+  quickValidate,
+  validateBrandCompliance,
 } from './brand-validator.js';
 
 // ============================================================================
@@ -94,8 +89,8 @@ export {
 export {
   buildBrandSystemPrompt,
   generateBrandContent,
-  generateVariants,
   generateExperimentVariants,
+  generateVariants,
   type LLMClient,
 } from './brand-generator.js';
 
@@ -104,13 +99,13 @@ export {
 // ============================================================================
 
 export {
-  extractBrandLearnings,
-  evolveBrandRules,
-  recordFailedApproach,
   calculateBrandHealth,
-  logValidation,
-  runDailyEvolution,
+  evolveBrandRules,
+  extractBrandLearnings,
   getRecentRuleChanges,
+  logValidation,
+  recordFailedApproach,
+  runDailyEvolution,
 } from './brand-evolution.js';
 
 // ============================================================================
@@ -120,8 +115,34 @@ export {
 export {
   CHANNEL_CONFIGS,
   adaptForChannel,
+  checkVoiceConsistency,
+  fitsChannelConstraints,
   generateForAllChannels,
   getChannelConfig,
-  fitsChannelConstraints,
-  checkVoiceConsistency,
 } from './channel-adapter.js';
+
+// ============================================================================
+// INTEGRATION HOOKS
+// ============================================================================
+
+export {
+  // Outreach hooks
+  validateOutreachContent,
+  adaptOutreachForChannel,
+  getBrandGreeting,
+  getBrandPatterns,
+  mapOutreachToneToBrandContext,
+  // Experiment hooks
+  validateExperimentVariant,
+  validateExperimentVariants,
+  // Voice agent hooks
+  enhancePromptWithBrandContext,
+  validateAgentResponse,
+  // Content generation hooks
+  withBrandValidation,
+  // Quick validation
+  quickBrandCheck,
+  hasCriticalViolations,
+  // Persona helpers
+  getPersonaProfile,
+} from './brand-hooks.js';

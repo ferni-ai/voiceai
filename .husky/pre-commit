@@ -69,6 +69,21 @@ node design-system/check-drift.js || {
 echo "  ✓ Design system checks passed"
 
 # =============================================================================
+# BRAND COMPLIANCE CHECK (Non-blocking warnings)
+# =============================================================================
+echo ""
+echo "🌿 Brand compliance check..."
+
+# Run brand check on staged files - warns but doesn't block
+npx tsx scripts/check-brand-compliance.ts --staged 2>/dev/null || {
+  echo ""
+  echo "  ⚠ Brand check found issues (review recommended)"
+  echo "  Run 'npm run brand:check' for details"
+}
+
+echo "  ✓ Brand check complete"
+
+# =============================================================================
 # FRONTEND VALIDATION
 # =============================================================================
 echo ""

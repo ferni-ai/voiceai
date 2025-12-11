@@ -11,9 +11,159 @@ import {
   type BreathGroupConfig,
   type FillerConfig,
 } from '../speech/advanced-humanization.js';
+import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
+
+// =============================================================================
+// XML/SSML SAFETY UTILITIES
+// =============================================================================
+
+/**
+ * Escape special XML characters to prevent SSML parsing errors.
+ * Critical for text that may contain user-generated content.
+ */
+function escapeXmlCharacters(text: string): string {
+  return text
+    .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;') // Escape & but not already-escaped entities
+    .replace(/<(?![a-z/!])/gi, '&lt;') // Escape < that aren't part of tags
+    .replace(/(?<![a-z"'/])>/g, '&gt;'); // Escape > that aren't part of tags
+}
+
+/**
+ * Remove or replace emoji with natural language alternatives.
+ * TTS engines may read emoji as their Unicode names which sounds unnatural.
+ */
+function handleEmoji(text: string): string {
+  // Common emoji replacements for natural speech
+  const emojiReplacements: Record<string, string> = {
+    '😊': '',
+    '😄': '',
+    '😃': '',
+    '🙂': '',
+    '😀': '',
+    '😁': '',
+    '🥰': '',
+    '😍': '',
+    '❤️': '',
+    '💜': '',
+    '💙': '',
+    '💚': '',
+    '🧡': '',
+    '💛': '',
+    '🤍': '',
+    '🖤': '',
+    '💕': '',
+    '💖': '',
+    '💗': '',
+    '🤗': '',
+    '🤔': 'hmm',
+    '😢': '',
+    '😭': '',
+    '😔': '',
+    '😞': '',
+    '😟': '',
+    '🥺': '',
+    '👍': '',
+    '👎': '',
+    '👏': '',
+    '🙏': '',
+    '✨': '',
+    '🎉': '',
+    '🎊': '',
+    '🔥': '',
+    '💪': '',
+    '🌟': '',
+    '⭐': '',
+    '💡': '',
+    '📈': '',
+    '📉': '',
+    '💰': '',
+    '💵': '',
+    '💸': '',
+    '🏠': '',
+    '🏡': '',
+    '✅': '',
+    '❌': '',
+    '⚠️': '',
+    '🚨': '',
+    '💯': '',
+    '🤷': '',
+    '🤷‍♀️': '',
+    '🤷‍♂️': '',
+    '😅': '',
+    '😂': '[laughter]',
+    '🤣': '[laughter]',
+  };
+
+  let result = text;
+
+  // Replace known emoji
+  for (const [emoji, replacement] of Object.entries(emojiReplacements)) {
+    result = result.replace(new RegExp(emoji, 'g'), replacement);
+  }
+
+  // Remove any remaining emoji (Unicode ranges for emoji)
+  // This catches emoji not in our replacement list
+  result = result.replace(
+    /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+    ''
+  );
+
+  return result;
+}
+
+/**
+ * Handle URLs and emails to prevent letter-by-letter spelling.
+ * Converts them to speakable descriptions.
+ */
+function handleUrlsAndEmails(text: string): string {
+  let result = text;
+
+  // Replace URLs with spoken description
+  // Match http(s) URLs
+  result = result.replace(
+    /https?:\/\/(?:www\.)?([a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+)(?:\/[^\s)]*)?/gi,
+    (_, domain: string) => {
+      // Just say the domain name naturally
+      const cleanDomain = domain.replace(/\./g, ' dot ');
+      return cleanDomain;
+    }
+  );
+
+  // Replace email addresses
+  result = result.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, (email) => {
+    const [local, domain] = email.split('@');
+    // Simplify: just mention it's an email
+    return `${local} at ${domain.replace(/\./g, ' dot ')}`;
+  });
+
+  return result;
+}
+
+/**
+ * Clean up problematic punctuation patterns that TTS engines struggle with.
+ */
+function cleanPunctuation(text: string): string {
+  let result = text;
+
+  // Convert double/triple dashes to single em-dash pause
+  result = result.replace(/--+/g, '—');
+
+  // Convert ellipsis variations to standard
+  result = result.replace(/\.{3,}/g, '...');
+
+  // Remove multiple exclamation/question marks
+  result = result.replace(/!{2,}/g, '!');
+  result = result.replace(/\?{2,}/g, '?');
+  result = result.replace(/[!?]{2,}/g, '?!');
+
+  // Clean up slash usage (e.g., "and/or" → "and or")
+  result = result.replace(/\b(\w+)\/(\w+)\b/g, '$1 or $2');
+
+  return result;
+}
 
 // =============================================================================
 // FINANCIAL PRONUNCIATION HANDLING
@@ -132,6 +282,8 @@ export function sanitizeSsml(text: string): string {
     'exhale',
     'inhale',
     'breathing',
+    'gasp',
+    'yawn',
     // Expressions
     'smile',
     'grin',
@@ -139,32 +291,67 @@ export function sanitizeSsml(text: string): string {
     'nod',
     'wink',
     'blink',
+    'smirk',
+    'beam',
+    'grimace',
     // Actions
     'pause',
+    'pausing',
     'think',
+    'thinking',
     'clear',
     'cough',
     'shift',
     'lean',
     'settle',
+    'settling',
     'focus',
     'attention',
     'shrug',
+    'gesture',
+    'point',
+    'wave',
+    'tilt',
     // Physical presence
     'warm',
+    'warmly',
     'steady',
     'gentle',
+    'gently',
     'soft',
+    'softly',
     'present',
     'presence',
+    'quietly',
+    'tenderly',
     // Energy
     'perk',
     'energy',
     'relief',
+    'excited',
+    'excitedly',
+    // Emotions as actions
+    'sympathetic',
+    'empathetic',
+    'concerned',
+    'curious',
+    'curiously',
+    'thoughtful',
+    'thoughtfully',
     // Misc stage directions
     "chef's kiss",
     'taking a breath',
     'visible',
+    'visibly',
+    'audible',
+    'audibly',
+    'trails off',
+    'voice softens',
+    'voice drops',
+    'voice rises',
+    'beat',
+    'moment',
+    'suddenly',
   ];
 
   // Build regex pattern for stage directions
@@ -299,8 +486,27 @@ export function tagTextWithSsmlPersonaAware(
     return sanitizeSsml(text);
   }
 
-  // Apply financial pronunciation dictionary FIRST
-  let processedText = applyFinancialPronunciations(text);
+  // ============================================================================
+  // PRE-PROCESSING: Clean text before SSML tagging
+  // ============================================================================
+
+  // 1. Handle emoji (remove or convert to [laughter] etc.)
+  let processedText = handleEmoji(text);
+
+  // 2. Handle URLs and emails (prevent letter-by-letter spelling)
+  processedText = handleUrlsAndEmails(processedText);
+
+  // 3. Clean problematic punctuation
+  processedText = cleanPunctuation(processedText);
+
+  // 4. Apply financial pronunciation dictionary
+  processedText = applyFinancialPronunciations(processedText);
+
+  // 5. Apply consonant cluster smoothing for clearer articulation
+  processedText = applyConsonantSmoothing(processedText);
+
+  // 6. Escape XML special characters (must be LAST before SSML tagging)
+  processedText = escapeXmlCharacters(processedText);
 
   // Analyze text
   const emotion = detectEmotion(processedText);

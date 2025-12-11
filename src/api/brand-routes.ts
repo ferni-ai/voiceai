@@ -7,32 +7,32 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createLogger } from '../utils/safe-logger.js';
-import { parseRequestBody, sendJsonResponse, sendError } from './helpers.js';
-import { requireAuth } from './auth-middleware.js';
 import {
-  loadBrandContext,
-  getClientBrandRules,
-  validateBrandCompliance,
-  quickValidate,
-  autoFixViolations,
-  generateBrandContent,
-  generateVariants,
-  calculateBrandHealth,
-  runDailyEvolution,
-  getRecentRuleChanges,
   adaptForChannel,
-  generateForAllChannels,
+  autoFixViolations,
+  calculateBrandHealth,
   fitsChannelConstraints,
+  generateBrandContent,
+  generateForAllChannels,
+  generateVariants,
+  getClientBrandRules,
   getPersonaVoice,
+  getRecentRuleChanges,
+  loadBrandContext,
   PERSONA_VOICES,
+  quickValidate,
+  runDailyEvolution,
+  validateBrandCompliance,
 } from '../services/brand/index.js';
 import type {
-  GenerationRequest,
   Channel,
   ContextType,
+  GenerationRequest,
   PersonaId,
 } from '../services/brand/types.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
+import { parseRequestBody, sendError, sendJsonResponse } from './helpers.js';
 
 const log = createLogger({ module: 'BrandRoutes' });
 
@@ -290,10 +290,7 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse): Promis
  * POST /api/brand/generate-variants
  * Generate multiple variants for A/B testing
  */
-async function handleGenerateVariants(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleGenerateVariants(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseRequestBody<GenerationRequest & { count?: number }>(req);
 
   if (!body?.type || !body?.context) {
