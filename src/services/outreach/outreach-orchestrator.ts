@@ -407,10 +407,23 @@ export class OutreachOrchestrator extends EventEmitter {
     // Get relationship stage
     const relationshipStage = profile.relationshipStage || 'acquaintance';
 
+    // Get outreach tracking from decision engine
+    const decisionEngine = getOutreachDecisionEngine();
+    const userState = decisionEngine.getUserState(profile.id);
+
+    // Calculate days since last outreach
+    let daysSinceLastOutreach = 999; // Default to large number if never reached out
+    if (userState.counters.lastOutreachDate) {
+      const lastOutreachDate = new Date(userState.counters.lastOutreachDate);
+      daysSinceLastOutreach = Math.floor(
+        (Date.now() - lastOutreachDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+
     return {
       profile,
       daysSinceLastContact,
-      daysSinceLastOutreach: 0, // TODO: Track this properly
+      daysSinceLastOutreach,
       emotionalState,
       upcomingEvents,
       recentWins,
@@ -419,7 +432,7 @@ export class OutreachOrchestrator extends EventEmitter {
         | 'acquaintance'
         | 'friend'
         | 'trusted_advisor',
-      outreachCountThisWeek: 0, // TODO: Track this properly
+      outreachCountThisWeek: userState.counters.outreachThisWeek,
     };
   }
 

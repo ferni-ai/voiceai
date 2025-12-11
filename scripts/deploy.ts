@@ -114,6 +114,119 @@ function getServiceUrl(serviceName: string): string {
 }
 
 // ============================================================================
+// BLUE-GREEN DEPLOYMENT HELPERS
+// ============================================================================
+
+interface BlueGreenResult {
+  success: boolean;
+  revisionName?: string;
+  revisionUrl?: string;
+  error?: string;
+}
+
+/**
+ * Get the URL for a specific revision tag (e.g., "green")
+ */
+function getRevisionUrlByTag(serviceName: string, tag: string): string {
+  try {
+    // Format: https://green---service-name-xxx-uc.a.run.app
+    const baseUrl = getServiceUrl(serviceName);
+    if (!baseUrl) return '';
+
+    // Extract the domain parts and construct tagged URL
+    const url = new URL(baseUrl);
+    const host = url.host;
+    const taggedHost = `${tag}---${host}`;
+    return `https://${taggedHost}`;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get the latest revision name for a service
+ */
+function getLatestRevision(serviceName: string): string {
+  try {
+    return exec(
+      `gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)'`,
+      { silent: true }
+    ).trim();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Health check a URL with retries
+ */
+async function healthCheck(
+  url: string,
+  options: { maxRetries?: number; retryDelay?: number; timeout?: number } = {}
+): Promise<{ healthy: boolean; statusCode?: number; error?: string }> {
+  const { maxRetries = 5, retryDelay = 3000, timeout = 10000 } = options;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        return { healthy: true, statusCode: response.status };
+      }
+
+      log.warn(`Health check attempt ${attempt}/${maxRetries}: status ${response.status}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      log.warn(`Health check attempt ${attempt}/${maxRetries}: ${errorMsg}`);
+    }
+
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+
+  return { healthy: false, error: `Failed after ${maxRetries} attempts` };
+}
+
+/**
+ * Shift traffic to a specific revision (100%)
+ */
+function shiftTraffic(serviceName: string, revisionName: string): boolean {
+  try {
+    exec(
+      `gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=${revisionName}=100 --quiet`,
+      { silent: false }
+    );
+    return true;
+  } catch (error) {
+    log.error(`Failed to shift traffic: ${error}`);
+    return false;
+  }
+}
+
+/**
+ * Remove a revision tag
+ */
+function removeTag(serviceName: string, tag: string): void {
+  try {
+    exec(
+      `gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=${tag} --quiet`,
+      { silent: true }
+    );
+  } catch {
+    // Tag might not exist, ignore
+  }
+}
+
+// ============================================================================
 // DEPLOYMENT FUNCTIONS
 // ============================================================================
 
@@ -173,13 +286,17 @@ function spawnAsync(cmd: string, logFile: string): ChildProcess {
 }
 
 async function deployAgent(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING VOICE AGENT');
+  log.step('DEPLOYING VOICE AGENT (BLUE-GREEN)');
 
   if (options.dryRun) {
     log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildAgent} .`);
-    log.info(`Would deploy: gcloud run deploy ${CONFIG.services.agent} ...`);
+    log.info(`Would deploy with --no-traffic --tag=green`);
+    log.info(`Would health check green revision`);
+    log.info(`Would shift 100% traffic if healthy`);
     return true;
   }
+
+  const serviceName = CONFIG.services.agent;
 
   // Build secrets string
   const secrets = [
@@ -216,73 +333,191 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
   }
 
   const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`;
+
+  // Deploy with --no-traffic and --tag=green for blue-green
   const deployCmd = [
-    `gcloud run deploy ${CONFIG.services.agent}`,
+    `gcloud run deploy ${serviceName}`,
     `--image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest`,
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',
-    '--memory 4Gi', // Increased for faster startup and better performance
-    '--cpu 4', // Increased for faster startup
-    '--cpu-boost', // Extra CPU during container startup
+    '--memory 4Gi',
+    '--cpu 4',
+    '--cpu-boost',
     '--timeout 3600',
-    '--concurrency 10', // Handle 10 voice calls per instance (was 1)
-    '--min-instances 1', // Warm starts, eliminates cold start latency (~$30/month)
-    '--max-instances 50', // Scale to 500 concurrent calls (quota: 200 CPUs = 50 × 4 CPUs)
-    '--vpc-connector ferni-redis-connector', // VPC connector for Memorystore Redis access
+    '--concurrency 10',
+    '--min-instances 1',
+    '--max-instances 50',
+    '--vpc-connector ferni-redis-connector',
     `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"`,
     `--set-secrets "${secrets.join(',')}"`,
+    '--no-traffic', // Blue-green: deploy without receiving traffic
+    '--tag green', // Tag for easy identification
     '--quiet',
   ].join(' ');
 
   if (options.async) {
+    // Async mode: Build script that does full blue-green
     const logFile = getLogFilePath('agent');
-    const fullCmd = `${buildCmd} && ${deployCmd}`;
+    const secretsStr = secrets.join(',');
+    const blueGreenScript = `
+      set -e
+      echo "🔵 BLUE-GREEN DEPLOYMENT: ${serviceName}"
+      echo ""
+      echo "Step 1/4: Building container image..."
+      ${buildCmd}
 
-    log.info('Starting async deployment...');
-    spawnAsync(fullCmd, logFile);
+      echo ""
+      echo "Step 2/4: Deploying to Cloud Run (no traffic)..."
+      gcloud run deploy ${serviceName} \\
+        --image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest \\
+        --region ${CONFIG.region} \\
+        --platform managed \\
+        --allow-unauthenticated \\
+        --memory 4Gi \\
+        --cpu 4 \\
+        --cpu-boost \\
+        --timeout 3600 \\
+        --concurrency 10 \\
+        --min-instances 1 \\
+        --max-instances 50 \\
+        --vpc-connector ferni-redis-connector \\
+        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app" \\
+        --set-secrets "${secretsStr}" \\
+        --no-traffic \\
+        --tag green \\
+        --quiet
+
+      echo ""
+      echo "Step 3/4: Health checking new revision..."
+      REVISION=$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
+      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app/health"
+
+      MAX_RETRIES=10
+      RETRY_DELAY=5
+
+      for i in $(seq 1 $MAX_RETRIES); do
+        echo "  Health check attempt $i/$MAX_RETRIES..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$GREEN_URL" --max-time 10 || echo "000")
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "  ✅ Health check passed (HTTP $HTTP_CODE)"
+          break
+        fi
+
+        if [ "$i" = "$MAX_RETRIES" ]; then
+          echo "  ❌ Health check failed after $MAX_RETRIES attempts"
+          echo "  Keeping traffic on previous revision"
+          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+          exit 1
+        fi
+
+        echo "  ⏳ Waiting ${RETRY_DELAY}s before retry (HTTP $HTTP_CODE)..."
+        sleep $RETRY_DELAY
+      done
+
+      echo ""
+      echo "Step 4/4: Shifting 100% traffic to new revision..."
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=$REVISION=100 --quiet
+
+      echo ""
+      echo "🟢 BLUE-GREEN DEPLOYMENT COMPLETE"
+      echo "  Revision: $REVISION"
+      echo "  URL: $(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')"
+
+      # Clean up green tag
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+    `;
+
+    log.info('Starting async blue-green deployment...');
+    spawnAsync(blueGreenScript, logFile);
 
     console.log(`
-${colors.green}✓${colors.reset} Agent deployment started in background!
+${colors.green}✓${colors.reset} Blue-green deployment started in background!
+
+${colors.bold}What's happening:${colors.reset}
+  1. Build container image
+  2. Deploy new revision (no traffic)
+  3. Health check new revision
+  4. If healthy → shift 100% traffic
+  5. If unhealthy → keep old version
 
 ${colors.bold}Monitor progress:${colors.reset}
   ${colors.cyan}tail -f ${logFile}${colors.reset}
 
 ${colors.bold}Or check Cloud Build:${colors.reset}
   ${colors.cyan}gcloud builds list --limit=1${colors.reset}
-
-${colors.bold}You'll see the deployment in:${colors.reset}
-  ${colors.cyan}https://console.cloud.google.com/cloud-build/builds?project=${CONFIG.projectId}${colors.reset}
 `);
     return true;
   }
 
-  // Synchronous deployment (original behavior)
+  // Synchronous blue-green deployment
   log.info('Building container image...');
   exec(buildCmd);
 
-  log.info('Deploying to Cloud Run...');
+  log.info('Deploying to Cloud Run (no traffic)...');
   exec(deployCmd);
 
-  const url = getServiceUrl(CONFIG.services.agent);
-  log.success(`Voice Agent deployed: ${url}`);
+  // Get the new revision name
+  const newRevision = getLatestRevision(serviceName);
+  if (!newRevision) {
+    log.error('Failed to get new revision name');
+    return false;
+  }
+  log.info(`New revision: ${newRevision}`);
+
+  // Health check the green revision
+  log.info('Health checking new revision...');
+  const greenUrl = getRevisionUrlByTag(serviceName, 'green');
+  const healthUrl = `${greenUrl}/health`;
+  log.info(`Checking: ${healthUrl}`);
+
+  const health = await healthCheck(healthUrl, { maxRetries: 10, retryDelay: 5000 });
+
+  if (!health.healthy) {
+    log.error(`Health check failed: ${health.error}`);
+    log.warn('Keeping traffic on previous revision');
+    removeTag(serviceName, 'green');
+    return false;
+  }
+
+  log.success(`Health check passed (HTTP ${health.statusCode})`);
+
+  // Shift 100% traffic to new revision
+  log.info('Shifting 100% traffic to new revision...');
+  if (!shiftTraffic(serviceName, newRevision)) {
+    log.error('Failed to shift traffic');
+    return false;
+  }
+
+  // Clean up green tag
+  removeTag(serviceName, 'green');
+
+  const url = getServiceUrl(serviceName);
+  log.success(`Blue-green deployment complete: ${url}`);
   return true;
 }
 
 async function deployUi(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING FRONTEND UI');
+  log.step('DEPLOYING FRONTEND UI (BLUE-GREEN)');
 
   if (options.dryRun) {
     log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildUi} .`);
-    log.info(`Would deploy: gcloud run deploy ${CONFIG.services.ui} ...`);
+    log.info(`Would deploy with --no-traffic --tag=green`);
+    log.info(`Would health check green revision`);
+    log.info(`Would shift 100% traffic if healthy`);
     return true;
   }
 
+  const serviceName = CONFIG.services.ui;
+
   // Build the full command sequence
   const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildUi} . --quiet`;
+
+  // Deploy with --no-traffic and --tag=green for blue-green
   const deployCmd = [
-    `gcloud run deploy ${CONFIG.services.ui}`,
-    `--image gcr.io/${CONFIG.projectId}/${CONFIG.services.ui}:latest`,
+    `gcloud run deploy ${serviceName}`,
+    `--image gcr.io/${CONFIG.projectId}/${serviceName}:latest`,
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',
@@ -291,43 +526,135 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--timeout 300',
     '--min-instances 0',
     '--max-instances 10',
-    '--vpc-connector ferni-redis-connector', // VPC connector for Memorystore Redis access
+    '--vpc-connector ferni-redis-connector',
     '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"',
     '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest"',
+    '--no-traffic', // Blue-green: deploy without receiving traffic
+    '--tag green', // Tag for easy identification
     '--quiet',
   ].join(' ');
 
   if (options.async) {
+    // Async mode: Build script that does full blue-green
     const logFile = getLogFilePath('ui');
-    const fullCmd = `${buildCmd} && ${deployCmd}`;
+    const blueGreenScript = `
+      set -e
+      echo "🔵 BLUE-GREEN DEPLOYMENT: ${serviceName}"
+      echo ""
+      echo "Step 1/4: Building container image..."
+      ${buildCmd}
 
-    log.info('Starting async deployment...');
-    spawnAsync(fullCmd, logFile);
+      echo ""
+      echo "Step 2/4: Deploying to Cloud Run (no traffic)..."
+      ${deployCmd}
+
+      echo ""
+      echo "Step 3/4: Health checking new revision..."
+      REVISION=$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
+      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app/health"
+
+      MAX_RETRIES=10
+      RETRY_DELAY=5
+
+      for i in $(seq 1 $MAX_RETRIES); do
+        echo "  Health check attempt $i/$MAX_RETRIES..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$GREEN_URL" --max-time 10 || echo "000")
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "  ✅ Health check passed (HTTP $HTTP_CODE)"
+          break
+        fi
+
+        if [ "$i" = "$MAX_RETRIES" ]; then
+          echo "  ❌ Health check failed after $MAX_RETRIES attempts"
+          echo "  Keeping traffic on previous revision"
+          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+          exit 1
+        fi
+
+        echo "  ⏳ Waiting ${RETRY_DELAY}s before retry (HTTP $HTTP_CODE)..."
+        sleep $RETRY_DELAY
+      done
+
+      echo ""
+      echo "Step 4/4: Shifting 100% traffic to new revision..."
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=$REVISION=100 --quiet
+
+      echo ""
+      echo "🟢 BLUE-GREEN DEPLOYMENT COMPLETE"
+      echo "  Revision: $REVISION"
+      echo "  URL: $(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')"
+
+      # Clean up green tag
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+    `;
+
+    log.info('Starting async blue-green deployment...');
+    spawnAsync(blueGreenScript, logFile);
 
     console.log(`
-${colors.green}✓${colors.reset} UI deployment started in background!
+${colors.green}✓${colors.reset} Blue-green deployment started in background!
+
+${colors.bold}What's happening:${colors.reset}
+  1. Build container image
+  2. Deploy new revision (no traffic)
+  3. Health check new revision
+  4. If healthy → shift 100% traffic
+  5. If unhealthy → keep old version
 
 ${colors.bold}Monitor progress:${colors.reset}
   ${colors.cyan}tail -f ${logFile}${colors.reset}
 
 ${colors.bold}Or check Cloud Build:${colors.reset}
   ${colors.cyan}gcloud builds list --limit=1${colors.reset}
-
-${colors.bold}You'll see the deployment in:${colors.reset}
-  ${colors.cyan}https://console.cloud.google.com/cloud-build/builds?project=${CONFIG.projectId}${colors.reset}
 `);
     return true;
   }
 
-  // Synchronous deployment (original behavior)
+  // Synchronous blue-green deployment
   log.info('Building container image...');
   exec(buildCmd);
 
-  log.info('Deploying to Cloud Run...');
+  log.info('Deploying to Cloud Run (no traffic)...');
   exec(deployCmd);
 
-  const url = getServiceUrl(CONFIG.services.ui);
-  log.success(`Frontend UI deployed: ${url}`);
+  // Get the new revision name
+  const newRevision = getLatestRevision(serviceName);
+  if (!newRevision) {
+    log.error('Failed to get new revision name');
+    return false;
+  }
+  log.info(`New revision: ${newRevision}`);
+
+  // Health check the green revision
+  log.info('Health checking new revision...');
+  const greenUrl = getRevisionUrlByTag(serviceName, 'green');
+  const healthUrl = `${greenUrl}/health`;
+  log.info(`Checking: ${healthUrl}`);
+
+  const health = await healthCheck(healthUrl, { maxRetries: 10, retryDelay: 5000 });
+
+  if (!health.healthy) {
+    log.error(`Health check failed: ${health.error}`);
+    log.warn('Keeping traffic on previous revision');
+    removeTag(serviceName, 'green');
+    return false;
+  }
+
+  log.success(`Health check passed (HTTP ${health.statusCode})`);
+
+  // Shift 100% traffic to new revision
+  log.info('Shifting 100% traffic to new revision...');
+  if (!shiftTraffic(serviceName, newRevision)) {
+    log.error('Failed to shift traffic');
+    return false;
+  }
+
+  // Clean up green tag
+  removeTag(serviceName, 'green');
+
+  const url = getServiceUrl(serviceName);
+  log.success(`Blue-green deployment complete: ${url}`);
   return true;
 }
 
