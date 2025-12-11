@@ -281,9 +281,16 @@ import {
 
 // User Analytics (DAU/WAU/MAU, concurrent users, session tracking)
 import {
-  recordSessionStart as recordUserSessionStart,
   recordSessionEnd as recordUserSessionEnd,
+  recordSessionStart as recordUserSessionStart,
 } from '../services/user-analytics.js';
+
+// Mid-session accent change support
+import {
+  checkForAccentChange,
+  registerSessionTTS,
+  unregisterSessionTTS,
+} from '../api/session-accent-routes.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
@@ -303,6 +310,9 @@ import {
   resetMetPersonas,
 } from '../tools/handoff/index.js';
 import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handler.js';
+
+// Cameo system (for team member pop-ins)
+import { registerCameoHandlers } from './shared/cameo-handler.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
 import { createBundleRuntime, type BundleRuntimeEngine } from '../personas/bundles/index.js';
@@ -1959,9 +1969,17 @@ export default defineAgent({
 
     try {
       // Use unified startup system (handles config, storage, cache, services)
+      diag.prewarm('Importing startup module...');
+      const t1 = Date.now();
       const { startup, registerShutdownHandlers } = await import('../startup.js');
+      diag.prewarm('Startup module imported', { elapsed: Date.now() - t1 });
+
       registerShutdownHandlers();
+
+      diag.prewarm('Running startup()...');
+      const t2 = Date.now();
       await startup();
+      diag.prewarm('startup() complete', { elapsed: Date.now() - t2 });
     } catch (error) {
       diag.error('Startup failed', { error: String(error) });
       // Fall back to basic initialization
@@ -1975,16 +1993,18 @@ export default defineAgent({
 
     // Preload commonly used modules for faster first turn response
     try {
+      diag.prewarm('Preloading common modules...');
+      const t3 = Date.now();
       const { preloadCommonModules } = await import('./shared/cached-imports.js');
       await preloadCommonModules();
-      diag.prewarm('Common modules preloaded');
+      diag.prewarm('Common modules preloaded', { elapsed: Date.now() - t3 });
     } catch (preloadError) {
       diag.warn('Module preload failed (non-fatal)', { error: String(preloadError) });
     }
 
     proc.userData.vadLoaded = false;
 
-    diag.prewarm('Prewarm complete', { elapsed: Date.now() - startTime });
+    diag.prewarm('Prewarm complete', { totalElapsed: Date.now() - startTime });
   },
 
   entry: async (ctx: JobContext) => {
@@ -2568,6 +2588,9 @@ export default defineAgent({
         isLocalizedVoice,
       });
 
+      // 🌍 Register TTS for mid-session accent changes
+      registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent);
+
       const session = new voice.AgentSession({
         vad: vad as silero.VAD,
         llm: new google.beta.realtime.RealtimeModel({
@@ -2757,6 +2780,12 @@ export default defineAgent({
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
         if (event.newState === 'speaking') {
           conversationManager.handleAgentStartedSpeaking('');
+
+          // 🌍 Check for mid-session accent changes
+          // This applies any pending accent change before the agent speaks
+          void checkForAccentChange(sessionId).catch((accentErr) => {
+            diag.warn('Mid-session accent check failed', { error: String(accentErr) });
+          });
 
           // 🎧 DJ BOOTH: Notify agent speaking - smooth ducking with timing
           // The DJ Booth handles volume fading (not abrupt duck/unduck)
@@ -3683,6 +3712,26 @@ export default defineAgent({
       // - Voice switching with VoiceManager
       // - Persona and bundle runtime updates
       // - State sync and validation
+
+      // ============================================================
+      // CAMEO EVENT HANDLERS - Team member "pop-in" support
+      // ============================================================
+      // Register cameo handlers for temporary voice switches where team members
+      // can briefly speak and then hand back to the host persona (Ferni)
+      let cleanupCameoHandlers: (() => void) | null = null;
+      try {
+        cleanupCameoHandlers = await registerCameoHandlers({
+          ctx,
+          session,
+          tts: session.tts as { switchVoice?: (name: string, id: string) => void },
+          hostPersonaId: sessionPersona.id,
+          hostVoiceId: sessionPersona.voice.voiceId,
+        });
+        diag.entry('🎬 Cameo handlers registered');
+      } catch (cameoErr) {
+        // Non-critical - cameos are optional enhancement
+        diag.warn('Failed to register cameo handlers: ' + String(cameoErr));
+      }
 
       // ===============================================
       // STEP 6: CREATE VOICE AGENT
@@ -4669,8 +4718,7 @@ export default defineAgent({
 
       // User Analytics: Track session for DAU/WAU/MAU metrics
       const visitorId = services.userId || 'anonymous';
-      const isSubscriber =
-        (services.userProfile?.subscription?.tier ?? 'free') !== 'free';
+      const isSubscriber = (services.userProfile?.subscription?.tier ?? 'free') !== 'free';
       void recordUserSessionStart(sessionId, visitorId, sessionPersona.id, isSubscriber).catch(
         (err) => diag.warn('📊 User analytics session start failed', { error: String(err) })
       );
@@ -5025,6 +5073,11 @@ export default defineAgent({
           // FIX BUG #42: Remove handoffEvents listener to prevent memory leaks
           handoffEvents.off('voiceSwitch', wrappedHandoffHandler);
 
+          // Clean up cameo handlers to prevent memory leaks
+          if (cleanupCameoHandlers) {
+            cleanupCameoHandlers();
+          }
+
           try {
             // End conversation state and get final state for logging
             const finalConvState = endConversationState(sessionId);
@@ -5136,6 +5189,9 @@ export default defineAgent({
               void recordUserSessionEnd(sessionId, userData.turnCount || 0, []).catch((err) =>
                 diag.warn('📊 User analytics session end failed', { error: String(err) })
               );
+
+              // 🌍 Unregister TTS for accent changes
+              unregisterSessionTTS(sessionId);
 
               // Reset all advanced services
               resetFFTAnalyzer(sessionId);
@@ -5418,8 +5474,12 @@ cli.runApp(
   new WorkerOptions({
     agent: fileURLToPath(import.meta.url),
     agentName,
-    // Increase timeout for bundle loading (default is 10s, our bundles take ~40s to load)
-    initializeProcessTimeout: 60 * 1000, // 60 seconds
+    // Increase timeout for heavy initialization (bundles + startup + services)
+    // The prewarm function calls startup() which does 10+ async operations:
+    // - memory system (Firestore), services, bundles, schedulers,
+    // - team handlers, community insights, agent evolution, analytics, persistence
+    // Cold start can take 120-150s; set to 180s for safety margin
+    initializeProcessTimeout: 180 * 1000, // 180 seconds
   })
 );
 

@@ -1,0 +1,131 @@
+name: Performance Budget
+
+# Checks bundle size and fails PR if it exceeds budget
+# Runs on PRs to catch regressions before merge
+
+on:
+  pull_request:
+    paths:
+      - 'frontend-typescript/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+env:
+  # Bundle size limits (in KB)
+  MAX_BUNDLE_SIZE_KB: 500
+  MAX_CHUNK_SIZE_KB: 200
+
+jobs:
+  check-bundle-size:
+    name: Check Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          cd frontend-typescript && npm ci
+
+      - name: Build design system
+        run: node design-system/build.js
+
+      - name: Build frontend
+        run: |
+          cd frontend-typescript
+          npm run build
+
+      - name: Analyze bundle size
+        id: bundle
+        run: |
+          cd frontend-typescript/dist
+
+          # Get total size
+          TOTAL_SIZE=$(du -sk . | cut -f1)
+          echo "total_kb=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+
+          # Get largest chunk
+          LARGEST_CHUNK=$(find . -name "*.js" -exec du -k {} \; | sort -rn | head -1 | cut -f1)
+          echo "largest_chunk_kb=$LARGEST_CHUNK" >> $GITHUB_OUTPUT
+
+          # List all chunks
+          echo "## Bundle Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----------|" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.js" -exec du -k {} \; | sort -rn | head -10 | while read size file; do
+            echo "| $file | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: ${TOTAL_SIZE} KB**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check budget
+        run: |
+          TOTAL=${{ steps.bundle.outputs.total_kb }}
+          LARGEST=${{ steps.bundle.outputs.largest_chunk_kb }}
+          MAX_TOTAL=${{ env.MAX_BUNDLE_SIZE_KB }}
+          MAX_CHUNK=${{ env.MAX_CHUNK_SIZE_KB }}
+
+          FAILED=false
+
+          if [ "$TOTAL" -gt "$MAX_TOTAL" ]; then
+            echo "❌ Total bundle size (${TOTAL}KB) exceeds budget (${MAX_TOTAL}KB)"
+            FAILED=true
+          else
+            echo "✅ Total bundle size: ${TOTAL}KB (budget: ${MAX_TOTAL}KB)"
+          fi
+
+          if [ "$LARGEST" -gt "$MAX_CHUNK" ]; then
+            echo "❌ Largest chunk (${LARGEST}KB) exceeds budget (${MAX_CHUNK}KB)"
+            FAILED=true
+          else
+            echo "✅ Largest chunk: ${LARGEST}KB (budget: ${MAX_CHUNK}KB)"
+          fi
+
+          if [ "$FAILED" = true ]; then
+            echo ""
+            echo "💡 Tips to reduce bundle size:"
+            echo "  - Use dynamic imports for large dependencies"
+            echo "  - Check for duplicate dependencies"
+            echo "  - Remove unused code with tree-shaking"
+            exit 1
+          fi
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const total = '${{ steps.bundle.outputs.total_kb }}';
+            const largest = '${{ steps.bundle.outputs.largest_chunk_kb }}';
+            const maxTotal = '${{ env.MAX_BUNDLE_SIZE_KB }}';
+            const maxChunk = '${{ env.MAX_CHUNK_SIZE_KB }}';
+
+            const totalOk = parseInt(total) <= parseInt(maxTotal);
+            const chunkOk = parseInt(largest) <= parseInt(maxChunk);
+
+            const body = `## 📦 Bundle Size Report
+
+            | Metric | Value | Budget | Status |
+            |--------|-------|--------|--------|
+            | Total Bundle | ${total} KB | ${maxTotal} KB | ${totalOk ? '✅' : '❌'} |
+            | Largest Chunk | ${largest} KB | ${maxChunk} KB | ${chunkOk ? '✅' : '❌'} |
+
+            ${totalOk && chunkOk ? '✅ All performance budgets passed!' : '❌ Performance budget exceeded - please optimize before merging.'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

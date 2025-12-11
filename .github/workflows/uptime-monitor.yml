@@ -1,0 +1,129 @@
+name: Uptime Monitor
+
+# Checks all production endpoints every 5 minutes
+# Alerts to Slack if any service is down
+
+on:
+  schedule:
+    # Every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Verbose output'
+        type: boolean
+        default: false
+
+env:
+  # Endpoints to monitor
+  VOICE_AGENT_URL: https://voiceai-agent-667305022191.us-central1.run.app
+  UI_SERVER_URL: https://john-bogle-ui-667305022191.us-central1.run.app
+  APP_URL: https://app.ferni.ai
+  LANDING_URL: https://ferni.ai
+
+jobs:
+  check-uptime:
+    name: Check All Services
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Voice Agent
+        id: voice
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${{ env.VOICE_AGENT_URL }}/health" || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ Voice Agent: UP ($STATUS)"
+          else
+            echo "❌ Voice Agent: DOWN ($STATUS)"
+          fi
+
+      - name: Check UI Server
+        id: ui
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${{ env.UI_SERVER_URL }}/health" || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ UI Server: UP ($STATUS)"
+          else
+            echo "❌ UI Server: DOWN ($STATUS)"
+          fi
+
+      - name: Check App (Firebase)
+        id: app
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${{ env.APP_URL }}" || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ App: UP ($STATUS)"
+          else
+            echo "❌ App: DOWN ($STATUS)"
+          fi
+
+      - name: Check Landing Page
+        id: landing
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${{ env.LANDING_URL }}" || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ Landing: UP ($STATUS)"
+          else
+            echo "❌ Landing: DOWN ($STATUS)"
+          fi
+
+      - name: Determine overall status
+        id: overall
+        run: |
+          VOICE="${{ steps.voice.outputs.status }}"
+          UI="${{ steps.ui.outputs.status }}"
+          APP="${{ steps.app.outputs.status }}"
+          LANDING="${{ steps.landing.outputs.status }}"
+
+          FAILURES=""
+          [ "$VOICE" != "200" ] && FAILURES="$FAILURES Voice-Agent($VOICE)"
+          [ "$UI" != "200" ] && FAILURES="$FAILURES UI-Server($UI)"
+          [ "$APP" != "200" ] && FAILURES="$FAILURES App($APP)"
+          [ "$LANDING" != "200" ] && FAILURES="$FAILURES Landing($LANDING)"
+
+          if [ -z "$FAILURES" ]; then
+            echo "all_up=true" >> $GITHUB_OUTPUT
+            echo "failures=" >> $GITHUB_OUTPUT
+          else
+            echo "all_up=false" >> $GITHUB_OUTPUT
+            echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Alert on failure
+        if: steps.overall.outputs.all_up == 'false'
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data '{
+              "text": "🚨 *OUTAGE DETECTED*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚨 *Production Outage Detected*\n\nFailed services: `${{ steps.overall.outputs.failures }}`\n\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }'
+
+      - name: Update status badge
+        if: always()
+        run: |
+          if [ "${{ steps.overall.outputs.all_up }}" == "true" ]; then
+            echo "## ✅ All Services Operational" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🚨 Outage Detected" >> $GITHUB_STEP_SUMMARY
+            echo "Failed: ${{ steps.overall.outputs.failures }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Voice Agent | ${{ steps.voice.outputs.status == '200' && '✅' || '❌' }} ${{ steps.voice.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| UI Server | ${{ steps.ui.outputs.status == '200' && '✅' || '❌' }} ${{ steps.ui.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| App | ${{ steps.app.outputs.status == '200' && '✅' || '❌' }} ${{ steps.app.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Landing | ${{ steps.landing.outputs.status == '200' && '✅' || '❌' }} ${{ steps.landing.outputs.status }} |" >> $GITHUB_STEP_SUMMARY

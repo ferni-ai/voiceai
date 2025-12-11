@@ -1,0 +1,130 @@
+name: Error Rate Monitor
+
+# Checks Cloud Run error logs every 15 minutes
+# Alerts to Slack if error rate exceeds threshold
+
+on:
+  schedule:
+    # Every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  ERROR_THRESHOLD: 10  # Alert if more than 10 errors in 15 min
+
+jobs:
+  check-errors:
+    name: Check Error Rates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Check Voice Agent errors
+        id: voice-errors
+        run: |
+          # Query last 15 minutes of errors
+          COUNT=$(gcloud logging read \
+            'resource.type="cloud_run_revision" AND resource.labels.service_name="voiceai-agent" AND severity>=ERROR' \
+            --limit=1000 \
+            --freshness=15m \
+            --format="value(timestamp)" \
+            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
+
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Voice Agent errors (15m): $COUNT"
+
+      - name: Check UI Server errors
+        id: ui-errors
+        run: |
+          COUNT=$(gcloud logging read \
+            'resource.type="cloud_run_revision" AND resource.labels.service_name="john-bogle-ui" AND severity>=ERROR' \
+            --limit=1000 \
+            --freshness=15m \
+            --format="value(timestamp)" \
+            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
+
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "UI Server errors (15m): $COUNT"
+
+      - name: Check for error spike
+        id: spike
+        run: |
+          VOICE=${{ steps.voice-errors.outputs.count }}
+          UI=${{ steps.ui-errors.outputs.count }}
+          THRESHOLD=${{ env.ERROR_THRESHOLD }}
+
+          ALERTS=""
+          if [ "$VOICE" -gt "$THRESHOLD" ]; then
+            ALERTS="$ALERTS Voice-Agent($VOICE errors)"
+          fi
+          if [ "$UI" -gt "$THRESHOLD" ]; then
+            ALERTS="$ALERTS UI-Server($UI errors)"
+          fi
+
+          if [ -z "$ALERTS" ]; then
+            echo "has_spike=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_spike=true" >> $GITHUB_OUTPUT
+            echo "alerts=$ALERTS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get sample errors
+        id: samples
+        if: steps.spike.outputs.has_spike == 'true'
+        run: |
+          echo "Recent Voice Agent errors:"
+          gcloud logging read \
+            'resource.type="cloud_run_revision" AND resource.labels.service_name="voiceai-agent" AND severity>=ERROR' \
+            --limit=3 \
+            --freshness=15m \
+            --format="table(timestamp,textPayload)" \
+            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null || echo "No errors found"
+
+      - name: Alert on error spike
+        if: steps.spike.outputs.has_spike == 'true'
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data '{
+              "text": "⚠️ *Error Rate Spike Detected*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *Error Rate Spike*\n\nServices with high errors (last 15m):\n`${{ steps.spike.outputs.alerts }}`\n\nThreshold: ${{ env.ERROR_THRESHOLD }} errors/15min\n\n<https://console.cloud.google.com/logs?project=${{ env.GCP_PROJECT_ID }}|View Logs> | <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }'
+
+      - name: Summary
+        run: |
+          echo "## Error Rate Summary (Last 15 min)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Errors | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          VOICE=${{ steps.voice-errors.outputs.count }}
+          UI=${{ steps.ui-errors.outputs.count }}
+          THRESHOLD=${{ env.ERROR_THRESHOLD }}
+
+          if [ "$VOICE" -gt "$THRESHOLD" ]; then
+            echo "| Voice Agent | $VOICE | 🚨 Spike |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Voice Agent | $VOICE | ✅ Normal |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$UI" -gt "$THRESHOLD" ]; then
+            echo "| UI Server | $UI | 🚨 Spike |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| UI Server | $UI | ✅ Normal |" >> $GITHUB_STEP_SUMMARY
+          fi
