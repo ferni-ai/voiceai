@@ -1,4 +1,3 @@
-// @ts-nocheck - WIP file, type definitions need updating
 /**
  * Account Routes
  *
@@ -14,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/firebase-auth.js';
 import { recordSecurityEvent } from '../services/security-events.js';
+import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
@@ -128,11 +128,11 @@ async function handleGetAccount(
       profile: profile
         ? {
             name: profile.name,
-            email: profile.email,
-            createdAt: profile.createdAt,
-            lastActiveAt: profile.lastActiveAt,
+            email: profile.contactInfo?.email,
+            createdAt: profile.firstContact,
+            lastActiveAt: profile.lastContact,
             totalConversations: profile.totalConversations,
-            hasVoiceProfile: !!profile.voiceProfile,
+            hasVoiceProfile: !!profile.voiceSketch,
           }
         : null,
       firebase: firebaseInfo,
@@ -165,9 +165,9 @@ async function handleDeleteAccount(
   }
 
   // Parse confirmation from body
-  const body = await parseJsonBody(req);
+  const body = await parseJsonBody<{ confirmation?: string }>(req);
 
-  if (!body || body.confirmation !== 'DELETE_MY_ACCOUNT') {
+  if (body.confirmation !== 'DELETE_MY_ACCOUNT') {
     sendError(
       res,
       'Account deletion requires confirmation. Send { "confirmation": "DELETE_MY_ACCOUNT" }',
@@ -244,44 +244,48 @@ async function handleUpdateProfile(
   res: ServerResponse,
   userId: string
 ): Promise<boolean> {
-  const body = await parseJsonBody(req);
-
-  if (!body) {
-    sendError(res, 'Missing request body', 400);
-    return true;
-  }
-
-  const { name, email, preferences } = body as {
+  interface UpdateProfileBody {
     name?: string;
     email?: string;
-    preferences?: Record<string, unknown>;
-  };
+    preferences?: Partial<{
+      verbosity: 'concise' | 'balanced' | 'storytelling';
+      topicsToAvoid: string[];
+      wantsProactiveAdvice: boolean;
+    }>;
+  }
+
+  const body = await parseJsonBody<UpdateProfileBody>(req);
+  const { name, email, preferences } = body;
 
   try {
     const store = getDefaultStore();
     let profile = await store.getProfile(userId);
 
     if (!profile) {
-      // Create new profile
-      profile = {
-        userId,
-        name: name || 'Friend',
-        email,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        totalConversations: 0,
-        preferences: preferences || {},
-        linkedIdentifiers: [],
-        voiceProfile: undefined,
-      };
+      // Create new profile using the proper factory function
+      profile = createUserProfile(userId, name || 'Friend');
+      if (email) {
+        profile.contactInfo = { ...profile.contactInfo, email };
+      }
     } else {
       // Update existing profile
       if (name !== undefined) profile.name = name;
-      if (email !== undefined) profile.email = email;
-      if (preferences) {
-        profile.preferences = { ...profile.preferences, ...preferences };
+      if (email !== undefined) {
+        profile.contactInfo = { ...profile.contactInfo, email };
       }
-      profile.lastActiveAt = new Date().toISOString();
+      if (preferences) {
+        // Only update specific preference fields that are provided
+        if (preferences.verbosity !== undefined) {
+          profile.preferences.verbosity = preferences.verbosity;
+        }
+        if (preferences.topicsToAvoid !== undefined) {
+          profile.preferences.topicsToAvoid = preferences.topicsToAvoid;
+        }
+        if (preferences.wantsProactiveAdvice !== undefined) {
+          profile.preferences.wantsProactiveAdvice = preferences.wantsProactiveAdvice;
+        }
+      }
+      profile.lastContact = new Date();
     }
 
     await store.saveProfile(profile);
@@ -290,9 +294,9 @@ async function handleUpdateProfile(
       success: true,
       profile: {
         name: profile.name,
-        email: profile.email,
+        email: profile.contactInfo?.email,
         preferences: profile.preferences,
-        updatedAt: profile.lastActiveAt,
+        updatedAt: profile.lastContact,
       },
     });
 

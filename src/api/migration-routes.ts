@@ -1,4 +1,3 @@
-// @ts-nocheck - WIP file, helper imports need updating
 /**
  * Migration Routes
  *
@@ -92,8 +91,18 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
+  interface MigrationRequestBody {
+    deviceId?: string;
+    device_id?: string;
+    firebaseUid?: string;
+    firebase_uid?: string;
+    email?: string;
+    displayName?: string;
+    display_name?: string;
+  }
+
   try {
-    const body = await parseJsonBody(req);
+    const body = await parseJsonBody<MigrationRequestBody>(req);
 
     // Get device ID from body
     const deviceId = body.deviceId || body.device_id;

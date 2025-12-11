@@ -889,16 +889,32 @@ html.theme-transitioning *::after {
   opacity: 0 !important;
 }
 
-/* Avatar entrance - spring bounce in */
+/* Avatar entrance - SAFARI FIX: Use opacity-only animation to avoid GPU box artifact
+       The transform-based animation (scale + translateY) triggers Safari's GPU compositing
+       which creates a visible rectangular bounding box around the avatar.
+       This simpler opacity animation avoids that bug while still providing a nice entrance. */
 @keyframes entranceAvatar {
   0% {
     opacity: 0;
-    transform: scale(0.8) translateY(20px);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
+}
+
+/* SAFARI BOX FIX: Ensure avatar-container never shows GPU compositing artifacts
+       Safari can create visible boxes around elements with certain GPU properties.
+       These explicit rules prevent any box from being visible. */
+.avatar-container {
+  background: transparent !important;
+  outline: none !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Zen theme avatar-container - explicit transparency */
+[data-theme='zen'] .avatar-container {
+  background: transparent !important;
 }
 
 /* Controls/text entrance - smooth slide up */

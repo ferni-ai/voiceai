@@ -5,11 +5,15 @@
  * Handles searching, playing, and managing music during games.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { getMusicPlayer, type MusicTrack } from '../../audio/music-player.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { findTrack, searchItunes, type iTunesTrack } from '../itunes.js';
 
 const log = getLogger();
+
+// 🐛 FIX: iTunes API returns full track duration (e.g., 3 min), but we play 30-second PREVIEWS!
+// The fade-out timer was being set for the full duration, so it never triggered.
+const ITUNES_PREVIEW_DURATION_MS = 30000;
 
 // ============================================================================
 // FALLBACK SONGS (when iTunes fails)
@@ -209,7 +213,7 @@ export async function searchSongWithWord(word: string): Promise<SearchResult> {
           name: firstWithPreview.trackName,
           artist: firstWithPreview.artistName,
           previewUrl: firstWithPreview.previewUrl,
-          duration: firstWithPreview.trackTimeMillis,
+          duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
         },
       };
     }
@@ -220,7 +224,7 @@ export async function searchSongWithWord(word: string): Promise<SearchResult> {
         name: matchingTrack.trackName,
         artist: matchingTrack.artistName,
         previewUrl: matchingTrack.previewUrl,
-        duration: matchingTrack.trackTimeMillis,
+        duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
       },
     };
   } catch (error) {

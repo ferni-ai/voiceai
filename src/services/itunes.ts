@@ -7,8 +7,8 @@
  * API Documentation: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
  */
 
+import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { createLogger, getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'iTunes' });
 const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
@@ -35,7 +35,7 @@ export interface iTunesTrack {
   collectionName: string; // Album name
   previewUrl: string; // 30-second preview MP3 URL
   artworkUrl100: string; // Album artwork
-  trackTimeMillis: number; // Duration in ms
+  trackTimeMillis: number; // ⚠️ Full track duration in ms (NOT preview duration!) Preview is ~30s
   primaryGenreName: string;
   releaseDate: string;
 }

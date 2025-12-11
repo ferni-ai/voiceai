@@ -19,7 +19,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { handoffMetrics } from '../services/handoff-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
-import { sendJSON, sendError, parsePositiveInt } from './helpers.js';
+import { parsePositiveInt, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'HandoffDiagnostics' });
 
@@ -353,7 +353,7 @@ export function setupHandoffDiagnosticsRoutes(app: {
 // ============================================================================
 
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 // Get the path to the static dashboard file

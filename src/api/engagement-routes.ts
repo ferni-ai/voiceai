@@ -25,20 +25,20 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded } from './helpers.js';
-import { requireAuth, rateLimit } from './auth-middleware.js';
 
 // Import modular route handlers
-import { handleConversationsRoutes } from './routes/conversations.js';
 import { handleAnalyticsRoutes } from './routes/analytics.js';
-import { handlePredictionsRoutes } from './routes/predictions.js';
-import { handleRitualsRoutes } from './routes/rituals.js';
-import { handleMemoriesRoutes } from './routes/memories.js';
-import { handleTeamRoutes } from './routes/team.js';
+import { handleConversationsRoutes } from './routes/conversations.js';
 import { handleDataRoutes } from './routes/data.js';
-import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleGamesRoutes } from './routes/games.js';
+import { handleMemoriesRoutes } from './routes/memories.js';
+import { handlePredictionsRoutes } from './routes/predictions.js';
+import { handleRelationshipRoutes } from './routes/relationship.js';
+import { handleRitualsRoutes } from './routes/rituals.js';
 import { handleSkyCheckRoutes } from './routes/sky-check.js';
+import { handleTeamRoutes } from './routes/team.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [

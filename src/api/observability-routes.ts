@@ -18,18 +18,18 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
-  observabilityHub,
-  llmHealthMetrics,
   connectionHealthMetrics,
-  uxQualityMetrics,
-  memoryMetrics,
   costMetrics,
   errorMetrics,
+  llmHealthMetrics,
+  memoryMetrics,
+  observabilityHub,
   personaMetrics,
+  uxQualityMetrics,
 } from '../services/observability/index.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { sendJSON, sendError, parsePositiveInt, handleCorsPreflightIfNeeded } from './helpers.js';
-import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'ObservabilityAPI' });
 

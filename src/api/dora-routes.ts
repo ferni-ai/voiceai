@@ -22,13 +22,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDORAMetricsService } from '../services/dora-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
-import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import {
-  validateBody,
   RecordDeploymentSchema,
   RecordIncidentSchema,
   ResolveIncidentSchema,
+  validateBody,
 } from './validators.js';
 
 const log = createLogger({ module: 'DORA-API' });

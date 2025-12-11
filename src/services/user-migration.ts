@@ -1,4 +1,3 @@
-// @ts-nocheck - WIP file, types need updating
 /**
  * User Migration Service
  *
@@ -15,7 +14,7 @@
  */
 
 import { getDefaultStore } from '../memory/index.js';
-import type { UserProfile } from '../types/user-profile.js';
+import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'UserMigration' });
@@ -130,18 +129,11 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
     const sourceProfile = await store.getProfile(legacyUserId);
     if (!sourceProfile) {
       log.info('No existing profile to migrate - creating fresh profile');
-      // Create a new profile with the Firebase UID
-      const newProfile: UserProfile = {
-        userId: firebaseUid,
-        name: displayName || 'Friend',
-        email: email || undefined,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        totalConversations: 0,
-        preferences: {},
-        linkedIdentifiers: [],
-        voiceProfile: undefined,
-      };
+      // Create a new profile with the Firebase UID using the proper factory
+      const newProfile = createUserProfile(firebaseUid, displayName || 'Friend');
+      if (email) {
+        newProfile.contactInfo = { ...newProfile.contactInfo, email };
+      }
       await store.saveProfile(newProfile);
 
       completedMigrations.set(legacyUserId, {
@@ -169,7 +161,12 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
         ...existingFirebaseProfile,
         // Prefer newer name if available
         name: displayName || existingFirebaseProfile.name || sourceProfile.name,
-        email: email || existingFirebaseProfile.email || sourceProfile.email,
+        // Merge contact info
+        contactInfo: {
+          ...existingFirebaseProfile.contactInfo,
+          ...sourceProfile.contactInfo,
+          ...(email ? { email } : {}),
+        },
         // Combine conversations count
         totalConversations:
           existingFirebaseProfile.totalConversations + sourceProfile.totalConversations,
@@ -178,8 +175,8 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
           ...existingFirebaseProfile.preferences,
           ...sourceProfile.preferences,
         },
-        // Keep voice profile from source if exists
-        voiceProfile: sourceProfile.voiceProfile || existingFirebaseProfile.voiceProfile,
+        // Keep voice sketch from source if exists
+        voiceSketch: sourceProfile.voiceSketch || existingFirebaseProfile.voiceSketch,
         // Add legacy ID to linked identifiers
         linkedIdentifiers: [
           ...new Set([
@@ -188,7 +185,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
             legacyUserId,
           ]),
         ],
-        lastActiveAt: new Date().toISOString(),
+        lastContact: new Date(),
       };
       await store.saveProfile(mergedProfile);
       log.info('Merged profiles');
@@ -196,55 +193,57 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       // Create new profile with Firebase UID
       const migratedProfile: UserProfile = {
         ...sourceProfile,
-        userId: firebaseUid,
+        id: firebaseUid,
         name: displayName || sourceProfile.name,
-        email: email || sourceProfile.email,
+        contactInfo: {
+          ...sourceProfile.contactInfo,
+          ...(email ? { email } : {}),
+        },
         linkedIdentifiers: [...(sourceProfile.linkedIdentifiers || []), legacyUserId],
-        lastActiveAt: new Date().toISOString(),
+        lastContact: new Date(),
       };
       await store.saveProfile(migratedProfile);
       log.info('Created migrated profile');
     }
 
-    // 4. Migrate conversations
+    // 4. Migrate conversation summaries
     let conversationsMigrated = 0;
     try {
-      const conversations = await store.getConversationHistory(legacyUserId, 1000);
-      for (const conv of conversations) {
-        // Save conversation under new user ID
-        await store.saveConversation(firebaseUid, {
-          ...conv,
-          userId: firebaseUid,
+      const summaries = await store.getSummaries(legacyUserId, { limit: 1000 });
+      for (const summary of summaries) {
+        // Save summary under new user ID
+        await store.saveSummary(firebaseUid, {
+          ...summary,
         });
         conversationsMigrated++;
       }
-      log.info('Migrated conversations', { count: conversationsMigrated });
+      log.info('Migrated conversation summaries', { count: conversationsMigrated });
     } catch (convErr) {
-      log.warn('Failed to migrate some conversations', { error: String(convErr) });
+      log.warn('Failed to migrate some conversation summaries', { error: String(convErr) });
     }
 
-    // 5. Migrate memories
+    // 5. Migrate key moments (memories)
     let memoriesMigrated = 0;
     try {
-      const memories = await store.getMemories(legacyUserId, 1000);
-      for (const memory of memories) {
-        await store.saveMemory(firebaseUid, {
-          ...memory,
-          userId: firebaseUid,
+      const moments = await store.getKeyMoments(legacyUserId, { limit: 1000 });
+      for (const moment of moments) {
+        await store.addKeyMoment(firebaseUid, {
+          ...moment,
         });
         memoriesMigrated++;
       }
-      log.info('Migrated memories', { count: memoriesMigrated });
+      log.info('Migrated key moments', { count: memoriesMigrated });
     } catch (memErr) {
-      log.warn('Failed to migrate some memories', { error: String(memErr) });
+      log.warn('Failed to migrate some key moments', { error: String(memErr) });
     }
 
     // 6. Mark source profile as migrated (don't delete for safety)
+    // Store migration info in linkedIdentifiers and customData
     const updatedSourceProfile: UserProfile = {
       ...sourceProfile,
       linkedIdentifiers: [...(sourceProfile.linkedIdentifiers || []), `migrated:${firebaseUid}`],
-      preferences: {
-        ...sourceProfile.preferences,
+      customData: {
+        ...sourceProfile.customData,
         migratedTo: firebaseUid,
         migratedAt: new Date().toISOString(),
       },

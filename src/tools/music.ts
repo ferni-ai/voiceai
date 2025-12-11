@@ -9,31 +9,26 @@
  * This ensures every user can enjoy music without requiring a subscription.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { getDJDropPhrase } from '../audio/ambient-music.js';
 import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
-import { findTrack, searchItunes, searchByMood, isItunesAvailable } from '../services/itunes.js';
-import { isSpotifyConfigured, getSpotifyAccessToken } from '../services/spotify-auth.js';
+import { getMusicDiscoveryOffer, getQueueTeaser } from '../services/dj-service.js';
+import { findTrack, searchByMood, searchItunes } from '../services/itunes.js';
+import { getSpotifyAccessToken, isSpotifyConfigured } from '../services/spotify-auth.js';
 import {
-  getMusicReaction,
-  shouldReactToMusic,
-  getPlayfulMusicIntro,
+  getAirDJMoment,
+  getDancingComment,
+  getExcitedMusicReaction,
+  getFunDJMoment,
   getGenreReaction,
   getMoodMusicReaction,
+  getMusicReaction,
   getPlayfulMusicComment,
-  getFunDJMoment,
-  getAirDJMoment,
-  getExcitedMusicReaction,
-  getDancingComment,
+  getPlayfulMusicIntro,
+  shouldReactToMusic,
 } from '../speech/music-reactions.js';
-import { getDJTrackChangePhrase, getDJDropPhrase } from '../audio/ambient-music.js';
-import {
-  getDJStyle,
-  getMusicAppreciationComment,
-  getQueueTeaser,
-  getMusicDiscoveryOffer,
-} from '../services/dj-service.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // MUSIC SOURCE CONFIGURATION
@@ -222,11 +217,15 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     log.debug('Music player state', playerState);
 
     // Step 3: Create track object
+    // 🐛 FIX: iTunes API returns full track duration (e.g., 3 min), but we play 30-second PREVIEWS!
+    // The fade-out timer was being set for the full duration, so it never triggered.
+    // Use 30000ms (30 seconds) for previews, regardless of full track length.
+    const ITUNES_PREVIEW_DURATION_MS = 30000;
     const musicTrack: MusicTrack = {
       name: track.name,
       artist: track.artist,
       previewUrl: track.previewUrl,
-      duration: track.duration,
+      duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
     };
 
     // Step 4: Play the track - use crossfade if something is already playing!
@@ -425,12 +424,14 @@ export async function suggestAndPlayMusic(mood: string): Promise<string> {
   }
 
   // Play the suggestion
+  // 🐛 FIX: Use preview duration (30s), not full track duration from iTunes API
+  const ITUNES_PREVIEW_DURATION_MS = 30000;
   const musicPlayer = getMusicPlayer();
   const musicTrack: MusicTrack = {
     name: result.track.name,
     artist: result.track.artist,
     previewUrl: result.track.previewUrl,
-    duration: result.track.duration,
+    duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration for proper fade-out
   };
 
   const success = await musicPlayer.playFromUrl(result.track.previewUrl, musicTrack);

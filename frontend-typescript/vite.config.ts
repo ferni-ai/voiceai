@@ -1,6 +1,9 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
+// Stub for native Capacitor plugins that don't exist in web builds
+const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
+
 export default defineConfig({
   root: '.',
   publicDir: 'public',
@@ -8,6 +11,9 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
       '@design-system': resolve(__dirname, '../design-system/dist'),
+      // Stub native-only Capacitor plugins for web development
+      '@ferni/capacitor-purchases': capacitorStub,
+      '@capacitor/browser': capacitorStub,
     },
   },
   // Use global GSAP from CDN instead of bundling npm version

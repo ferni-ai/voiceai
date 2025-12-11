@@ -263,6 +263,7 @@ Ferni has two complementary intelligence systems:
 **Scope:** Real-time, within a single session
 
 **Capabilities:**
+
 - **Concern Detection** - Detect distress before explicit mention
 - **Proactive Memory** - Surface relevant memories in-session
 - **Predictive Anticipation** - Know what they need before they ask
@@ -286,6 +287,7 @@ if (insight.concern.level === 'elevated') {
 **Scope:** Cross-session relationship building
 
 **Capabilities:**
+
 1. Emotional Memory Evolution
 2. Anticipatory Presence ("I was hoping you'd call")
 3. Linguistic Mirroring
@@ -314,6 +316,7 @@ response = bth.applyInsights(response, insight);
 ### How They Work Together
 
 The `humanizer.ts` orchestrates both:
+
 1. **Session Intelligence runs first** - immediate context and concern detection
 2. **Better Than Human runs second** - adds relationship depth
 3. Both emit signals to frontend for avatar EQ response
