@@ -141,11 +141,12 @@ export function startBreathing(): void {
   const tl = gsap.timeline({ repeat: -1, yoyo: true });
   state.breathingTimeline = tl;
 
-  // Inhale - slight expansion
+  // Inhale - noticeable but gentle expansion
+  // Increased from 1.5-2% to 2.5-3.5% for better visibility
   tl.to(coachAvatar, {
-    scaleX: 1.015,
-    scaleY: 1.02,
-    duration: 2.5,
+    scaleX: 1.025,
+    scaleY: 1.035,
+    duration: 2.8,
     ease: 'sine.inOut',
   });
 

@@ -13,10 +13,15 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
+  checkQualityAlerts,
+  getAlertHistory,
   getAllPersonaMetrics,
   getDashboardData,
+  getDashboardDataWithAlerts,
   getGlobalMetricsSnapshot,
   getPersonaMetrics,
+  getQualityThresholds,
+  setQualityThresholds,
 } from '../agents/integrations/speech-metrics-integration.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
@@ -63,16 +68,32 @@ export async function handleSpeechMetricsRoutes(
     res.end(JSON.stringify(data));
   };
 
-  // Only allow GET requests
-  if (method !== 'GET') {
-    sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
-    return true;
-  }
+  // Helper to read request body
+  const readBody = async (): Promise<Record<string, unknown>> => {
+    return new Promise((resolve, reject) => {
+      let body = '';
+      req.on('data', (chunk: Buffer | string) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        try {
+          resolve(body ? JSON.parse(body) : {});
+        } catch {
+          resolve({});
+        }
+      });
+      req.on('error', reject);
+    });
+  };
 
   try {
-    // Route: /api/speech-metrics/dashboard
+    // Route: /api/speech-metrics/dashboard (includes alerts)
     if (pathname === '/api/speech-metrics/dashboard') {
-      const data = getDashboardData();
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
+      const data = getDashboardDataWithAlerts();
       sendJson(200, {
         success: true,
         data: {
@@ -85,6 +106,10 @@ export async function handleSpeechMetricsRoutes(
 
     // Route: /api/speech-metrics/global
     if (pathname === '/api/speech-metrics/global') {
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
       const snapshot = getGlobalMetricsSnapshot();
       sendJson(200, {
         success: true,
@@ -95,7 +120,11 @@ export async function handleSpeechMetricsRoutes(
 
     // Route: /api/speech-metrics/sessions
     if (pathname === '/api/speech-metrics/sessions') {
-      const { activeSessions } = getDashboardData();
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
+      const { activeSessions } = getDashboardDataWithAlerts();
       sendJson(200, {
         success: true,
         data: {
@@ -116,6 +145,10 @@ export async function handleSpeechMetricsRoutes(
 
     // Route: /api/speech-metrics/personas
     if (pathname === '/api/speech-metrics/personas') {
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
       const personas = getAllPersonaMetrics();
       sendJson(200, {
         success: true,
@@ -137,6 +170,10 @@ export async function handleSpeechMetricsRoutes(
     // Route: /api/speech-metrics/persona/:id
     const personaMatch = pathname.match(/^\/api\/speech-metrics\/persona\/([a-z-]+)$/);
     if (personaMatch) {
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
       const personaId = personaMatch[1];
       const metrics = getPersonaMetrics(personaId);
 
@@ -164,13 +201,91 @@ export async function handleSpeechMetricsRoutes(
 
     // Route: /api/speech-metrics/health (simple health check)
     if (pathname === '/api/speech-metrics/health') {
-      const { global } = getDashboardData();
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
+      const { global, alerts } = getDashboardDataWithAlerts();
+      const criticalAlerts = alerts.filter((a) => a.severity === 'critical');
       sendJson(200, {
         success: true,
-        status: 'healthy',
+        status: criticalAlerts.length > 0 ? 'degraded' : 'healthy',
         uptimeSec: global.uptimeSec,
         activeSessions: global.metrics.usage.activeSessionCount,
+        alertCount: alerts.length,
+        criticalCount: criticalAlerts.length,
       });
+      return true;
+    }
+
+    // Route: /api/speech-metrics/alerts (current active alerts)
+    if (pathname === '/api/speech-metrics/alerts') {
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
+      const alerts = checkQualityAlerts();
+      sendJson(200, {
+        success: true,
+        data: {
+          count: alerts.length,
+          critical: alerts.filter((a) => a.severity === 'critical').length,
+          warning: alerts.filter((a) => a.severity === 'warning').length,
+          alerts,
+        },
+      });
+      return true;
+    }
+
+    // Route: /api/speech-metrics/alerts/history
+    if (pathname === '/api/speech-metrics/alerts/history') {
+      if (method !== 'GET') {
+        sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET'] });
+        return true;
+      }
+      const history = getAlertHistory(100);
+      sendJson(200, {
+        success: true,
+        data: {
+          count: history.length,
+          alerts: history,
+        },
+      });
+      return true;
+    }
+
+    // Route: /api/speech-metrics/thresholds (GET/POST)
+    if (pathname === '/api/speech-metrics/thresholds') {
+      if (method === 'GET') {
+        const thresholds = getQualityThresholds();
+        sendJson(200, {
+          success: true,
+          data: thresholds,
+        });
+        return true;
+      }
+
+      if (method === 'POST') {
+        const body = await readBody();
+        setQualityThresholds(
+          body as Partial<{
+            turnPredictionAccuracy: number;
+            backchannelAccuracy: number;
+            responseLatencyMs: number;
+            emotionConfidence: number;
+            p99LatencyMs: number;
+          }>
+        );
+        const thresholds = getQualityThresholds();
+        sendJson(200, {
+          success: true,
+          message: 'Thresholds updated',
+          data: thresholds,
+        });
+        return true;
+      }
+
+      sendJson(405, { error: 'Method not allowed', allowedMethods: ['GET', 'POST'] });
       return true;
     }
 

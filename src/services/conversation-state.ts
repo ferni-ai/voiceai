@@ -21,7 +21,6 @@
  *   // and can be recovered on server restart
  */
 
-import type { Firestore } from 'firebase-admin/firestore';
 import { createSessionId, createUserId, type SessionId, type UserId } from '../types/branded.js';
 import { getLogger } from '../utils/safe-logger.js';
 

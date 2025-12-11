@@ -30,7 +30,8 @@ const log = createLogger('ConnectionHeart');
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
 let indicator: HTMLElement | null = null;
 let isInitialized = false;
-let currentState: ConnectionState = 'disconnected';
+// Initialize to null so first setState() call always applies the class
+let currentState: ConnectionState | null = null;
 let pulseAnimation: Animation | null = null;
 
 // Track connection state for external queries
@@ -95,21 +96,32 @@ function create(): void {
   document.querySelector('.journey-indicator')?.remove();
   document.querySelector('.connection-heart')?.remove();
 
-  // Create indicator
+  // Create indicator with inline fallback styles for guaranteed visibility
   indicator = document.createElement('button');
   indicator.className = 'connection-heart';
   indicator.setAttribute('aria-label', 'Connect with Ferni');
+  // Inline styles as fallback in case CSS injection fails
+  indicator.style.cssText = `
+    border: 2px solid #9a8a82;
+    background: #faf8f5;
+    border-radius: 50%;
+    cursor: pointer;
+  `;
 
   const celebrated = getCelebratedCount();
   const total = getTotalMilestonesCount();
 
+  // Icons - broken heart visible by default with inline fallback styles
   indicator.innerHTML = `
-    <span class="connection-heart__icon connection-heart__icon--broken">${HEART_BROKEN}</span>
+    <span class="connection-heart__icon connection-heart__icon--broken" style="opacity: 1; transform: scale(1); color: #9a8a82;">${HEART_BROKEN}</span>
     <span class="connection-heart__icon connection-heart__icon--healing">${HEART_HEALING}</span>
     <span class="connection-heart__icon connection-heart__icon--filled">${HEART_FILLED}</span>
     <span class="connection-heart__count" aria-label="${celebrated} of ${total} milestones">${celebrated}</span>
     <span class="connection-heart__glow"></span>
   `;
+
+  // Immediately apply disconnected state class for initial visibility
+  indicator.classList.add('connection-heart--disconnected');
 
   // Position relative to avatar container
   avatarContainer.appendChild(indicator);
@@ -258,15 +270,23 @@ function startDisconnectedPulse(): void {
     return;
   }
 
-  // Gentle "waiting" pulse - like a heart waiting to connect
+  // "Heartbeat" pulse - more alive, like a real heart waiting to connect
+  // Two-beat rhythm: lub-dub pattern
   pulseAnimation = indicator.animate(
     [
-      { transform: 'scale(1)', opacity: 0.7 },
+      // Rest
+      { transform: 'scale(1)', opacity: 0.75 },
+      // First beat (lub)
+      { transform: 'scale(1.12)', opacity: 1 },
+      // Quick settle
+      { transform: 'scale(1.02)', opacity: 0.9 },
+      // Second beat (dub)
       { transform: 'scale(1.08)', opacity: 1 },
-      { transform: 'scale(1)', opacity: 0.7 },
+      // Return to rest
+      { transform: 'scale(1)', opacity: 0.75 },
     ],
     {
-      duration: 2500,
+      duration: 1800,
       easing: 'ease-in-out',
       iterations: Infinity,
     }
@@ -278,11 +298,23 @@ function startConnectedPulse(): void {
     return;
   }
 
-  // Gentle heartbeat when connected
+  // Gentle but alive heartbeat when connected
+  // Slightly more pronounced than disconnected - we're together now!
   pulseAnimation = indicator.animate(
-    [{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }],
+    [
+      // Rest
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+      // First beat (lub) - stronger when connected
+      { transform: 'scale(1.1)', filter: 'brightness(1.05)' },
+      // Quick settle
+      { transform: 'scale(1.02)', filter: 'brightness(1)' },
+      // Second beat (dub)
+      { transform: 'scale(1.06)', filter: 'brightness(1.03)' },
+      // Return to rest
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+    ],
     {
-      duration: 3500,
+      duration: 2200,
       easing: 'ease-in-out',
       iterations: Infinity,
     }

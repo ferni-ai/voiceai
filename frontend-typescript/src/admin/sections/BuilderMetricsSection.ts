@@ -146,12 +146,12 @@ function renderBuilderTable(stats: BuilderStats[]): string {
       <table class="builder-table">
         <thead>
           <tr>
-            <th>Builder</th>
-            <th>Calls</th>
-            <th>Avg (ms)</th>
-            <th>Max (ms)</th>
-            <th>Injections</th>
-            <th>Errors</th>
+            <th scope="col">Builder</th>
+            <th scope="col">Calls</th>
+            <th scope="col">Avg (ms)</th>
+            <th scope="col">Max (ms)</th>
+            <th scope="col">Injections</th>
+            <th scope="col">Errors</th>
           </tr>
         </thead>
         <tbody>

@@ -43,16 +43,16 @@ export async function render(): Promise<string> {
           <p class="avatar-state">Current: <strong id="avatarState">neutral</strong></p>
         </div>
         <div class="avatar-controls">
-          <button class="demo-btn" data-emotion="happy">Happy</button>
-          <button class="demo-btn" data-emotion="thinking">Thinking</button>
-          <button class="demo-btn" data-emotion="excited">Excited</button>
-          <button class="demo-btn" data-emotion="calm">Calm</button>
+          <button class="demo-btn" data-emotion="happy" aria-label="Set avatar emotion to happy">Happy</button>
+          <button class="demo-btn" data-emotion="thinking" aria-label="Set avatar emotion to thinking">Thinking</button>
+          <button class="demo-btn" data-emotion="excited" aria-label="Set avatar emotion to excited">Excited</button>
+          <button class="demo-btn" data-emotion="calm" aria-label="Set avatar emotion to calm">Calm</button>
         </div>
         <div class="avatar-reactions">
-          <button class="demo-btn demo-btn--small" data-reaction="nod">Nod</button>
-          <button class="demo-btn demo-btn--small" data-reaction="shake">Shake</button>
-          <button class="demo-btn demo-btn--small" data-reaction="bounce">Bounce</button>
-          <button class="demo-btn demo-btn--small" data-reaction="pulse">Pulse</button>
+          <button class="demo-btn demo-btn--small" data-reaction="nod" aria-label="Trigger nod reaction">Nod</button>
+          <button class="demo-btn demo-btn--small" data-reaction="shake" aria-label="Trigger shake reaction">Shake</button>
+          <button class="demo-btn demo-btn--small" data-reaction="bounce" aria-label="Trigger bounce reaction">Bounce</button>
+          <button class="demo-btn demo-btn--small" data-reaction="pulse" aria-label="Trigger pulse reaction">Pulse</button>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export async function render(): Promise<string> {
       <!-- Avatar Soul Quick Access -->
       <div class="admin-card design-soul">
         <h2 class="admin-section-title">
-          <span class="admin-icon">✨</span>
+          <span class="admin-icon">${iconSm(ICON_LEAF)}</span>
           Avatar Soul
           <span class="badge badge--new">Better Than Human</span>
         </h2>

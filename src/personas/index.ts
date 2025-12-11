@@ -171,10 +171,15 @@ export function getPersona(id: PersonaId): PersonaConfig | undefined {
 /**
  * Get the default persona (from env or fallback)
  *
+ * WARNING: This is a SYNC function that can only return personas already loaded.
+ * Use getPersonaAsync() instead for reliable persona loading with bundle support.
+ *
  * Fallback chain:
  * 1. Requested persona (PERSONA_ID env var or 'ferni')
  * 2. 'ferni' (coordinator)
- * 3. 'generic-advisor' (always available, legacy persona)
+ *
+ * THROWS if persona not found - no more generic-advisor fallback!
+ * This prevents silent failures where users talk to the wrong persona.
  */
 export function getDefaultPersona(): PersonaConfig {
   const logger = getLogger();
@@ -188,19 +193,16 @@ export function getDefaultPersona(): PersonaConfig {
   persona = personaRegistry.get('ferni');
   if (persona) return persona;
 
-  // Fall back to generic-advisor (always available as legacy persona)
-  persona = personaRegistry.get('generic-advisor');
-  if (persona) {
-    logger.warn(
-      { requestedId: defaultId },
-      'Persona not found, using generic-advisor (bundles may not be loaded yet)'
-    );
-    return persona;
-  }
-
-  // This should never happen, but handle it gracefully
-  logger.error('CRITICAL: No personas available in registry!');
-  throw new Error('No personas available. Check that persona bundles are properly configured.');
+  // FAIL LOUDLY - do NOT fall back to generic-advisor!
+  // If bundles aren't loaded yet, caller should use getPersonaAsync() instead
+  logger.error(
+    { requestedId: defaultId, availablePersonas: Array.from(personaRegistry.keys()) },
+    'CRITICAL: Persona not found! Bundles may not be loaded yet. Use getPersonaAsync() instead.'
+  );
+  throw new Error(
+    `Persona '${defaultId}' not found. Available: ${Array.from(personaRegistry.keys()).join(', ')}. ` +
+      `If called at module load time, use getPersonaAsync() instead of getDefaultPersona().`
+  );
 }
 
 /**

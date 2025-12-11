@@ -98,12 +98,12 @@ export async function render(): Promise<string> {
         <table class="admin-table">
           <thead>
             <tr>
-              <th>From</th>
-              <th>To</th>
-              <th>Trigger</th>
-              <th>Duration</th>
-              <th>Status</th>
-              <th>Time</th>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Status</th>
+              <th scope="col">Time</th>
             </tr>
           </thead>
           <tbody>

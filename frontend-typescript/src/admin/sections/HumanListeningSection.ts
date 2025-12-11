@@ -149,11 +149,11 @@ export async function render(): Promise<string> {
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Signal</th>
-              <th>Severity</th>
-              <th>Details</th>
-              <th>Response</th>
+              <th scope="col">Time</th>
+              <th scope="col">Signal</th>
+              <th scope="col">Severity</th>
+              <th scope="col">Details</th>
+              <th scope="col">Response</th>
             </tr>
           </thead>
           <tbody>
@@ -165,7 +165,7 @@ export async function render(): Promise<string> {
       <!-- Avatar Soul Response -->
       <div class="admin-card listening-soul-response">
         <h2 class="admin-section-title">
-          <span class="admin-icon">✨</span>
+          <span class="admin-icon">${iconSm(ICON_ACTIVITY)}</span>
           Avatar Soul Response
           <span class="badge badge--new">NEW</span>
         </h2>

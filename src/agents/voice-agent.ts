@@ -86,7 +86,6 @@ import { hasSsmlTags, startHealthCheckServer, type UserData } from './shared/ind
 // Persona System
 import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
 import {
-  getDefaultPersona,
   getPersonaAsync,
   initializeFromBundles,
   type PersonaConfig,
@@ -377,16 +376,18 @@ import { loadBundleById } from '../personas/bundles/loader.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 
 // ============================================================================
-// LOAD PERSONA
+// PERSONA AND AGENT NAME
 // ============================================================================
+// NOTE: Do NOT call getDefaultPersona() at module load time!
+// Bundles may not be loaded yet, causing fallback to wrong persona.
+// Actual persona loading happens in entry() using getPersonaAsync().
+const DEFAULT_PERSONA_ID = process.env.PERSONA_ID || 'ferni';
 
-const PERSONA = getDefaultPersona();
 // Use a static agent name since this agent handles ALL personas via dispatch metadata
 const AGENT_NAME = process.env['AGENT_NAME'] || 'voice-agent';
 
-earlyLog.info('Persona and agent configured', {
-  defaultPersona: PERSONA.id,
-  personaName: PERSONA.name,
+earlyLog.info('Agent module loaded (persona will be loaded async in entry)', {
+  defaultPersonaId: DEFAULT_PERSONA_ID,
   agentName: AGENT_NAME,
 });
 
@@ -2415,8 +2416,7 @@ export default defineAgent({
     diag.section('ENTRY FUNCTION CALLED');
     diag.entry('Job received', {
       jobId: ctx.job.id,
-      persona: PERSONA.id,
-      personaName: PERSONA.name,
+      defaultPersonaId: DEFAULT_PERSONA_ID,
     });
 
     const sessionId = ctx.room?.name || `session-${Date.now()}`;
@@ -2451,31 +2451,37 @@ export default defineAgent({
       // STEP 0: LOAD PERSONA FROM DISPATCH METADATA
       // ===============================================
       // UI can select persona; agent loads it dynamically per-session
-      let sessionPersona = PERSONA; // Default from env var
+      // FIX: Use getPersonaAsync to ensure bundles are loaded before getting persona
+      // This fixes the race condition where PERSONA was set at module load time
+      // before bundles were initialized, causing fallback to generic-advisor
+      const defaultPersonaId = process.env.PERSONA_ID || 'ferni';
+      let requestedPersonaId = defaultPersonaId;
 
       try {
         if (ctx.job.metadata) {
           const metadata = JSON.parse(ctx.job.metadata);
           if (metadata.persona_id) {
-            // Use async version to ensure bundles are loaded and aliases are registered
-            const requestedPersona = await getPersonaAsync(metadata.persona_id);
-            if (requestedPersona) {
-              sessionPersona = requestedPersona;
-              diag.session('Persona loaded from dispatch', {
-                personaId: sessionPersona.id,
-                personaName: sessionPersona.name,
-              });
-            } else {
-              diag.warn('Unknown persona requested, using default', {
-                requested: metadata.persona_id,
-                fallback: PERSONA.id,
-              });
-            }
+            requestedPersonaId = metadata.persona_id;
           }
         }
       } catch (e) {
         diag.warn('Failed to parse persona from metadata', { error: String(e) });
       }
+
+      // Use async version to ensure bundles are loaded and aliases are registered
+      // This properly waits for initializeFromBundles() to complete
+      const sessionPersona = await getPersonaAsync(requestedPersonaId);
+      if (!sessionPersona) {
+        throw new Error(
+          `Persona '${requestedPersonaId}' not found. Bundles may have failed to load. ` +
+            `Check that persona bundle exists at src/personas/bundles/${requestedPersonaId}/`
+        );
+      }
+      diag.session('Persona loaded for session', {
+        personaId: sessionPersona.id,
+        personaName: sessionPersona.name,
+        requestedId: requestedPersonaId,
+      });
 
       // ===============================================
       // STEP 1: IDENTIFY USER
@@ -6053,7 +6059,7 @@ if (!process.send) {
 const agentName = process.env.AGENT_NAME || 'voice-agent';
 
 diag.section('STARTING WORKER');
-diag.info('Worker configuration', { defaultPersona: PERSONA.id, agentName });
+diag.info('Worker configuration', { defaultPersonaId: DEFAULT_PERSONA_ID, agentName });
 
 // ============================================================================
 // GRACEFUL SHUTDOWN HANDLER

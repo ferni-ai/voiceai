@@ -559,6 +559,66 @@ describe('Persona Speed Profiles', () => {
   });
 });
 
+describe('Quality Alerts System', () => {
+  it('should return current quality thresholds', async () => {
+    const { getQualityThresholds } = await import('../integrations/speech-metrics-integration.js');
+
+    const thresholds = getQualityThresholds();
+
+    expect(thresholds.turnPredictionAccuracy).toBeGreaterThan(0);
+    expect(thresholds.backchannelAccuracy).toBeGreaterThan(0);
+    expect(thresholds.responseLatencyMs).toBeGreaterThan(0);
+    expect(thresholds.emotionConfidence).toBeGreaterThan(0);
+    expect(thresholds.p99LatencyMs).toBeGreaterThan(0);
+  });
+
+  it('should allow setting custom thresholds', async () => {
+    const { setQualityThresholds, getQualityThresholds } =
+      await import('../integrations/speech-metrics-integration.js');
+
+    const originalThresholds = getQualityThresholds();
+
+    setQualityThresholds({ turnPredictionAccuracy: 0.9 });
+
+    const newThresholds = getQualityThresholds();
+    expect(newThresholds.turnPredictionAccuracy).toBe(0.9);
+
+    // Reset
+    setQualityThresholds({ turnPredictionAccuracy: originalThresholds.turnPredictionAccuracy });
+  });
+
+  it('should check quality alerts based on metrics', async () => {
+    const { checkQualityAlerts } = await import('../integrations/speech-metrics-integration.js');
+
+    const alerts = checkQualityAlerts();
+
+    // Should return an array (may be empty if metrics are good)
+    expect(Array.isArray(alerts)).toBe(true);
+  });
+
+  it('should get dashboard data with alerts', async () => {
+    const { getDashboardDataWithAlerts } =
+      await import('../integrations/speech-metrics-integration.js');
+
+    const data = getDashboardDataWithAlerts();
+
+    expect(data).toHaveProperty('global');
+    expect(data).toHaveProperty('activeSessions');
+    expect(data).toHaveProperty('personaMetrics');
+    expect(data).toHaveProperty('recentSessions');
+    expect(data).toHaveProperty('alerts');
+    expect(data).toHaveProperty('thresholds');
+  });
+
+  it('should get alert history', async () => {
+    const { getAlertHistory } = await import('../integrations/speech-metrics-integration.js');
+
+    const history = getAlertHistory();
+
+    expect(Array.isArray(history)).toBe(true);
+  });
+});
+
 describe('End-to-End Integration Flow', () => {
   const sessionId = 'test-e2e-session';
 

@@ -9,21 +9,14 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  createSessionId,
-  createUserId,
-  createPersonaId,
   createGoalId,
   createMemoryId,
-  createTurnId,
+  createPersonaId,
   createRoomId,
+  createSessionId,
+  createTurnId,
+  createUserId,
   isValidPersonaId,
-  type SessionId,
-  type UserId,
-  type PersonaId,
-  type GoalId,
-  type MemoryId,
-  type TurnId,
-  type RoomId,
 } from '../../types/branded.js';
 
 // Local constant for testing valid persona IDs

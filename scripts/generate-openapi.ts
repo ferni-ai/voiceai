@@ -196,7 +196,9 @@ const SpeechDashboardSchema = z.object({
 // Conversation state schemas
 const EmotionalContextSchema = z.object({
   sentiment: z.enum(['positive', 'neutral', 'negative', 'mixed']),
-  emotions: z.array(z.enum(['happy', 'excited', 'calm', 'anxious', 'frustrated', 'sad', 'confused', 'grateful'])),
+  emotions: z.array(
+    z.enum(['happy', 'excited', 'calm', 'anxious', 'frustrated', 'sad', 'confused', 'grateful'])
+  ),
   urgency: z.number().min(1).max(5),
   topicFatigue: z.boolean(),
   confidence: z.number().min(0).max(1),

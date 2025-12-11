@@ -309,10 +309,17 @@ export const appState = new AppStateStore();
 // ============================================================================
 
 /**
- * Update connection state.
+ * Update connection state and notify UI components.
  */
 export function setConnectionState(state: ConnectionState): void {
   appState.set('connection', state);
+
+  // Dispatch event for UI components (connection heart, favicon, etc.)
+  window.dispatchEvent(
+    new CustomEvent('ferni:connection-state', {
+      detail: { state },
+    })
+  );
 }
 
 /**

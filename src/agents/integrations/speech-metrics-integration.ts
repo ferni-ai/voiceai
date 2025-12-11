@@ -512,6 +512,243 @@ export function getDashboardData(): {
 }
 
 // ============================================================================
+// QUALITY ALERTS SYSTEM
+// ============================================================================
+
+/**
+ * Quality thresholds for alerting
+ */
+export interface QualityThresholds {
+  /** Minimum acceptable turn prediction accuracy (0-1) */
+  turnPredictionAccuracy: number;
+  /** Minimum acceptable backchannel timing accuracy (0-1) */
+  backchannelAccuracy: number;
+  /** Maximum acceptable response latency (ms) */
+  responseLatencyMs: number;
+  /** Minimum acceptable emotion detection confidence (0-1) */
+  emotionConfidence: number;
+  /** Maximum acceptable p99 latency (ms) */
+  p99LatencyMs: number;
+}
+
+/**
+ * Alert severity levels
+ */
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+
+/**
+ * Quality alert
+ */
+export interface QualityAlert {
+  id: string;
+  severity: AlertSeverity;
+  metric: string;
+  message: string;
+  currentValue: number;
+  threshold: number;
+  timestamp: number;
+  personaId?: string;
+}
+
+/**
+ * Default quality thresholds
+ */
+const DEFAULT_THRESHOLDS: QualityThresholds = {
+  turnPredictionAccuracy: 0.7, // 70% minimum
+  backchannelAccuracy: 0.7, // 70% minimum
+  responseLatencyMs: 300, // 300ms maximum
+  emotionConfidence: 0.5, // 50% minimum
+  p99LatencyMs: 500, // 500ms maximum for p99
+};
+
+// Store for custom thresholds
+let customThresholds: Partial<QualityThresholds> = {};
+
+// Alert history (last 100 alerts)
+const alertHistory: QualityAlert[] = [];
+
+/**
+ * Set custom quality thresholds
+ */
+export function setQualityThresholds(thresholds: Partial<QualityThresholds>): void {
+  customThresholds = { ...customThresholds, ...thresholds };
+  log.info({ thresholds: customThresholds }, '📊 Quality thresholds updated');
+}
+
+/**
+ * Get current quality thresholds
+ */
+export function getQualityThresholds(): QualityThresholds {
+  return { ...DEFAULT_THRESHOLDS, ...customThresholds };
+}
+
+/**
+ * Check metrics against thresholds and generate alerts
+ */
+export function checkQualityAlerts(): QualityAlert[] {
+  const thresholds = getQualityThresholds();
+  const global = getSpeechMetricsSnapshot();
+  const alerts: QualityAlert[] = [];
+
+  // Check turn prediction accuracy
+  const turnPredAccuracy = global.metrics.quality.turnPredictionAccuracy;
+  if (turnPredAccuracy < thresholds.turnPredictionAccuracy && turnPredAccuracy > 0) {
+    alerts.push({
+      id: `turn-pred-${Date.now()}`,
+      severity: turnPredAccuracy < thresholds.turnPredictionAccuracy * 0.7 ? 'critical' : 'warning',
+      metric: 'turnPredictionAccuracy',
+      message: `Turn prediction accuracy (${(turnPredAccuracy * 100).toFixed(0)}%) below threshold`,
+      currentValue: turnPredAccuracy,
+      threshold: thresholds.turnPredictionAccuracy,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Check backchannel accuracy
+  const backchannelAcc = global.metrics.quality.backchannelAccuracy;
+  if (backchannelAcc < thresholds.backchannelAccuracy && backchannelAcc > 0) {
+    alerts.push({
+      id: `backchannel-${Date.now()}`,
+      severity: backchannelAcc < thresholds.backchannelAccuracy * 0.7 ? 'critical' : 'warning',
+      metric: 'backchannelAccuracy',
+      message: `Backchannel timing accuracy (${(backchannelAcc * 100).toFixed(0)}%) below threshold`,
+      currentValue: backchannelAcc,
+      threshold: thresholds.backchannelAccuracy,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Check average response latency
+  if (global.metrics.latency.avgAnalysisLatencyMs > thresholds.responseLatencyMs) {
+    alerts.push({
+      id: `latency-avg-${Date.now()}`,
+      severity:
+        global.metrics.latency.avgAnalysisLatencyMs > thresholds.responseLatencyMs * 1.5
+          ? 'critical'
+          : 'warning',
+      metric: 'responseLatency',
+      message: `Average response latency (${global.metrics.latency.avgAnalysisLatencyMs.toFixed(0)}ms) exceeds threshold`,
+      currentValue: global.metrics.latency.avgAnalysisLatencyMs,
+      threshold: thresholds.responseLatencyMs,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Check p99 latency
+  if (global.metrics.latency.p99LatencyMs > thresholds.p99LatencyMs) {
+    alerts.push({
+      id: `latency-p99-${Date.now()}`,
+      severity:
+        global.metrics.latency.p99LatencyMs > thresholds.p99LatencyMs * 1.5
+          ? 'critical'
+          : 'warning',
+      metric: 'p99Latency',
+      message: `P99 latency (${global.metrics.latency.p99LatencyMs.toFixed(0)}ms) exceeds threshold`,
+      currentValue: global.metrics.latency.p99LatencyMs,
+      threshold: thresholds.p99LatencyMs,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Check emotion confidence
+  if (
+    global.metrics.quality.avgEmotionConfidence < thresholds.emotionConfidence &&
+    global.metrics.quality.avgEmotionConfidence > 0
+  ) {
+    alerts.push({
+      id: `emotion-${Date.now()}`,
+      severity: 'warning',
+      metric: 'emotionConfidence',
+      message: `Average emotion confidence (${(global.metrics.quality.avgEmotionConfidence * 100).toFixed(0)}%) below threshold`,
+      currentValue: global.metrics.quality.avgEmotionConfidence,
+      threshold: thresholds.emotionConfidence,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Check per-persona metrics for anomalies
+  const personaMetrics = getAllPersonaMetrics();
+  for (const persona of personaMetrics) {
+    // Persona-specific turn prediction alert
+    if (persona.avgTurnPredictionAccuracy / 100 < thresholds.turnPredictionAccuracy * 0.8) {
+      alerts.push({
+        id: `persona-turn-${persona.personaId}-${Date.now()}`,
+        severity: 'warning',
+        metric: 'personaTurnPrediction',
+        message: `${persona.personaId}: Turn prediction (${persona.avgTurnPredictionAccuracy}%) significantly below average`,
+        currentValue: persona.avgTurnPredictionAccuracy / 100,
+        threshold: thresholds.turnPredictionAccuracy,
+        timestamp: Date.now(),
+        personaId: persona.personaId,
+      });
+    }
+
+    // Persona-specific latency alert
+    if (persona.avgResponseLatencyMs > thresholds.responseLatencyMs * 1.2) {
+      alerts.push({
+        id: `persona-latency-${persona.personaId}-${Date.now()}`,
+        severity: 'warning',
+        metric: 'personaLatency',
+        message: `${persona.personaId}: Response latency (${persona.avgResponseLatencyMs.toFixed(0)}ms) higher than expected`,
+        currentValue: persona.avgResponseLatencyMs,
+        threshold: thresholds.responseLatencyMs,
+        timestamp: Date.now(),
+        personaId: persona.personaId,
+      });
+    }
+  }
+
+  // Store alerts in history
+  for (const alert of alerts) {
+    alertHistory.push(alert);
+    if (alertHistory.length > 100) {
+      alertHistory.shift();
+    }
+
+    // Log alerts
+    if (alert.severity === 'critical') {
+      log.error(alert, '🚨 Critical quality alert');
+    } else if (alert.severity === 'warning') {
+      log.warn(alert, '⚠️ Quality warning');
+    }
+  }
+
+  return alerts;
+}
+
+/**
+ * Get alert history
+ */
+export function getAlertHistory(limit = 50): QualityAlert[] {
+  return alertHistory.slice(-limit);
+}
+
+/**
+ * Get current active alerts (check now)
+ */
+export function getActiveAlerts(): QualityAlert[] {
+  return checkQualityAlerts();
+}
+
+/**
+ * Get full dashboard data including alerts
+ */
+export function getDashboardDataWithAlerts(): {
+  global: MetricsSnapshot;
+  activeSessions: SpeechMetricsContext[];
+  personaMetrics: PersonaMetrics[];
+  recentSessions: SessionSummary[];
+  alerts: QualityAlert[];
+  thresholds: QualityThresholds;
+} {
+  return {
+    ...getDashboardData(),
+    alerts: checkQualityAlerts(),
+    thresholds: getQualityThresholds(),
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -535,5 +772,12 @@ export default {
   getPersonaMetrics,
   getAllPersonaMetrics,
   getDashboardData,
+  getDashboardDataWithAlerts,
   logMetricsSummary,
+  // Quality alerts
+  setQualityThresholds,
+  getQualityThresholds,
+  checkQualityAlerts,
+  getAlertHistory,
+  getActiveAlerts,
 };

@@ -116,6 +116,14 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/HumanListeningSection.js')).render(),
   },
   {
+    id: 'speech-metrics',
+    name: 'Speech Metrics',
+    icon: ICON_SPEAKER,
+    description: 'Unified speech pipeline performance',
+    badge: 'NEW',
+    component: async () => (await import('./sections/SpeechMetricsSection.js')).render(),
+  },
+  {
     id: 'experiments',
     name: 'Experiments',
     icon: ICON_FLAGS, // Using flags icon for now

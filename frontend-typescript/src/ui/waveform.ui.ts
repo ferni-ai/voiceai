@@ -1,6 +1,6 @@
 /**
  * Waveform UI - Expressive Bars Visualization
- * 
+ *
  * 🎬 PIXAR PRINCIPLES APPLIED:
  * - SQUASH & STRETCH: Bars deform naturally with motion
  * - ANTICIPATION: Slight wind-up before peaks
@@ -9,7 +9,7 @@
  * - TIMING: Emotion-specific animation speeds
  * - EXAGGERATION: Emotion shapes are expressive
  * - APPEAL: Warm, organic movements
- * 
+ *
  * Features:
  * - Bars that dance with audio and form emotion shapes
  * - Happy = smile curve, Sad = frown, Excited = bouncy peaks
@@ -20,9 +20,9 @@
  * - 🆕 Particle celebrations on laugh detection
  */
 
-import type { PersonaId } from '../types/persona.js';
-import type { VoiceEmotion } from '../types/events.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import type { VoiceEmotion } from '../types/events.js';
+import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Waveform');
@@ -44,9 +44,9 @@ interface EmotionShape {
   // Height multipliers for each bar position (0-1)
   curve: number[];
   // Animation style
-  jitter: number;      // Random movement (0-1)
-  bounce: number;      // Bounce intensity (0-1)  
-  speed: number;       // Animation speed multiplier
+  jitter: number; // Random movement (0-1)
+  bounce: number; // Bounce intensity (0-1)
+  speed: number; // Animation speed multiplier
 }
 
 const EMOTION_SHAPES: Record<VoiceEmotion | 'speaking', EmotionShape> = {
@@ -117,9 +117,9 @@ const EMOTION_SHAPES: Record<VoiceEmotion | 'speaking', EmotionShape> = {
 // Like a gentle meditation visualization
 const MUSIC_LISTENING_SHAPE: EmotionShape = {
   curve: [0.35, 0.45, 0.55, 0.65, 0.7, 0.65, 0.55, 0.45, 0.35], // Gentle hill
-  jitter: 0.01,    // Almost no random jitter - smooth and reflective
-  bounce: 0.02,    // Minimal bounce - natural breathing
-  speed: 0.4,      // Slow, meditative pace
+  jitter: 0.01, // Almost no random jitter - smooth and reflective
+  bounce: 0.02, // Minimal bounce - natural breathing
+  speed: 0.4, // Slow, meditative pace
 };
 
 // ============================================================================
@@ -196,7 +196,7 @@ for (let i = 0; i < BAR_COUNT; i++) {
 
 export function initWaveformUI(): void {
   container = document.getElementById('waveformContainer');
-  
+
   if (!container) {
     log.warn('Waveform container not found');
     return;
@@ -209,7 +209,7 @@ export function initWaveformUI(): void {
     barsContainer.className = 'waveform-bars';
     container.innerHTML = '';
     container.appendChild(barsContainer);
-    
+
     emotionIndicator = document.createElement('div');
     emotionIndicator.className = 'emotion-indicator';
     emotionIndicator.id = 'emotionIndicator';
@@ -219,15 +219,14 @@ export function initWaveformUI(): void {
   emotionIndicator = container.querySelector('.emotion-indicator');
   createBars();
   updateBarsStyle();
-  
 }
 
 function createBars(): void {
   if (!barsContainer) return;
-  
+
   barsContainer.innerHTML = '';
   bars = [];
-  
+
   for (let i = 0; i < BAR_COUNT; i++) {
     const bar = document.createElement('div');
     bar.className = 'waveform-bar';
@@ -240,7 +239,7 @@ function createBars(): void {
     barsContainer.appendChild(bar);
     bars.push(bar);
   }
-  
+
   // 🎬 Create particle container for celebrations
   createParticleContainer();
 }
@@ -250,7 +249,7 @@ function createBars(): void {
  */
 function createParticleContainer(): void {
   if (particleContainer || !container) return;
-  
+
   particleContainer = document.createElement('div');
   particleContainer.className = 'waveform-particles';
   particleContainer.style.cssText = `
@@ -289,29 +288,27 @@ export function stop(): void {
 
 export function setSpeaking(speaking: boolean): void {
   if (!container) return;
-  
+
   isSpeaking = speaking;
-  
+
   if (speaking) {
     container.classList.add('speaking');
     container.classList.remove('listening', 'thinking');
     // Use speaking shape, or emotion shape if one is active
-    targetShape = currentEmotion !== 'neutral' 
-      ? EMOTION_SHAPES[currentEmotion] 
-      : EMOTION_SHAPES.speaking;
+    targetShape =
+      currentEmotion !== 'neutral' ? EMOTION_SHAPES[currentEmotion] : EMOTION_SHAPES.speaking;
     startAnimation();
   } else {
     container.classList.remove('speaking');
-    targetShape = currentEmotion !== 'neutral'
-      ? EMOTION_SHAPES[currentEmotion]
-      : EMOTION_SHAPES.neutral;
+    targetShape =
+      currentEmotion !== 'neutral' ? EMOTION_SHAPES[currentEmotion] : EMOTION_SHAPES.neutral;
     smoothWindDown();
   }
 }
 
 export function setListening(listening: boolean): void {
   if (!container) return;
-  
+
   if (listening) {
     container.classList.add('listening');
     container.classList.remove('speaking', 'thinking');
@@ -323,7 +320,7 @@ export function setListening(listening: boolean): void {
 
 export function setThinking(thinking: boolean): void {
   if (!container) return;
-  
+
   if (thinking) {
     container.classList.add('thinking');
     container.classList.remove('speaking', 'listening');
@@ -349,26 +346,26 @@ export function setPersona(personaId: PersonaId): void {
 
 export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
   if (!container) return;
-  
+
   currentEmotion = emotion;
-  
+
   // Set target shape based on emotion
   const emotionShape = EMOTION_SHAPES[emotion] || EMOTION_SHAPES.neutral;
   targetShape = emotionShape;
-  
+
   // Update UI classes
   container.classList.add('has-emotion');
   container.setAttribute('data-emotion', emotion);
-  
+
   // Emotion indicator - pure color, no emojis (Apple-clean aesthetic)
   if (emotionIndicator) {
     emotionIndicator.textContent = ''; // No emojis - emotions shown through waveform shape/color
     emotionIndicator.style.opacity = String(intensity);
   }
-  
+
   // Start animation to morph into shape
   startAnimation();
-  
+
   // Clear emotion after duration
   setTimeout(() => {
     if (currentEmotion === emotion) {
@@ -399,7 +396,7 @@ export function thinkPulse(): void {
 export function setTransitioning(transitioning: boolean): void {
   isTransitioning = transitioning;
   if (!container) return;
-  
+
   if (transitioning) {
     container.classList.add('transitioning');
     // Set a gentle shimmer shape
@@ -419,13 +416,13 @@ export function setTransitioning(transitioning: boolean): void {
 /**
  * Set music listening mode - natural, reflective, calm visualization.
  * Not aggressive - like gentle waves responding to the music's mood.
- * 
+ *
  * @param listening - Whether music is playing
  */
 export function setMusicPlaying(listening: boolean): void {
   isListeningToMusic = listening;
   if (!container) return;
-  
+
   if (listening) {
     container.classList.add('music-playing');
     container.classList.remove('speaking', 'thinking');
@@ -445,31 +442,31 @@ export function setMusicPlaying(listening: boolean): void {
 
 function startAnimation(): void {
   if (animationId !== null) return;
-  
+
   lastTimestamp = performance.now();
-  
+
   const animate = (timestamp: number) => {
     const deltaTime = Math.min(timestamp - lastTimestamp, 50);
     lastTimestamp = timestamp;
-    
+
     // Update phase
     const shapeSpeed = targetShape.speed * currentConfig.speed;
     wavePhase += deltaTime * 0.004 * shapeSpeed;
-    
+
     // Smooth volume - use faster response for more reactive feel
     // Higher factor = faster response (less smoothing)
     const smoothingFactor = Math.max(0.3, 1 - currentConfig.smoothing * 0.7);
     smoothedVolume += (lastVolume - smoothedVolume) * smoothingFactor;
-    
+
     // Interpolate shape curve toward target
     interpolateShape();
-    
+
     // Update bars
     updateBars();
-    
+
     animationId = requestAnimationFrame(animate);
   };
-  
+
   animationId = requestAnimationFrame(animate);
 }
 
@@ -483,13 +480,13 @@ function stopAnimation(): void {
 function interpolateShape(): void {
   // Smoothly morph between current shape and target shape
   const lerpFactor = 0.08;
-  
+
   for (let i = 0; i < BAR_COUNT; i++) {
     const target = targetShape.curve[i] ?? 0.5;
     const current = interpolatedCurve[i] ?? 0.5;
     interpolatedCurve[i] = current + (target - current) * lerpFactor;
   }
-  
+
   // Also interpolate shape properties
   currentShape = {
     curve: [...interpolatedCurve],
@@ -502,11 +499,11 @@ function interpolateShape(): void {
 function updateBars(): void {
   const isThinking = container?.classList.contains('thinking');
   const isListening = container?.classList.contains('listening');
-  
+
   for (let i = 0; i < BAR_COUNT; i++) {
     const shapeCurve = currentShape.curve[i] ?? 0.5;
     let targetHeight: number;
-    
+
     if (isTransitioning) {
       // Shimmer effect during handoff - gentle wave that travels across bars
       const shimmerWave = Math.sin(wavePhase * 2 + i * 0.4) * 0.5 + 0.5;
@@ -514,16 +511,16 @@ function updateBars(): void {
     } else if (isListeningToMusic) {
       // MUSIC LISTENING: Natural, reflective, meditative
       // Like gentle breathing or calm water ripples
-      
+
       // Very slow primary wave - the main breathing rhythm
       const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
-      
+
       // Secondary subtle harmonic - adds natural variation without chaos
       const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
-      
+
       // Combine for organic, non-mechanical movement
       const combined = breathWave * 0.7 + harmonic * 0.3;
-      
+
       // Use shape curve for the base, modulated by the gentle waves
       // Keep it subtle - max 40% of full height for a calm presence
       const musicEnergy = shapeCurve * 0.4 * combined;
@@ -531,83 +528,88 @@ function updateBars(): void {
     } else if (isSpeaking) {
       // Lower threshold - even small volume should be detected
       const hasRealVolume = smoothedVolume > 0.005;
-      
+
       if (hasRealVolume) {
         // Real volume + shape curve - boost the volume effect
         const volumeFactor = Math.pow(smoothedVolume, 0.7) * currentConfig.energy * 1.5;
         const baseHeight = shapeCurve * MAX_BAR_HEIGHT * Math.min(1, volumeFactor);
-        
+
         // Add wave motion
         const wave = Math.sin(wavePhase * 3 + i * 0.5) * currentShape.bounce * 8;
-        
+
         // Add jitter
         const jitter = (Math.random() - 0.5) * currentShape.jitter * 15;
-        
+
         targetHeight = MIN_BAR_HEIGHT + baseHeight + wave + jitter;
       } else {
         // Simulated speech with shape
         const talkMotion = Math.sin(wavePhase * 4 + i * 0.4) * 0.5 + 0.5;
         const variation = Math.sin(wavePhase * 7 + i * 0.8) * 0.3;
-        
+
         const baseHeight = shapeCurve * MAX_BAR_HEIGHT * currentConfig.energy;
         const motionHeight = baseHeight * (0.3 + talkMotion * 0.5 + variation * 0.2);
-        
+
         // Add bounce
         const bounce = Math.sin(wavePhase * 5 + i * 0.6) * currentShape.bounce * 6;
-        
+
         // Add jitter
         const jitter = (Math.random() - 0.5) * currentShape.jitter * 10;
-        
+
         targetHeight = MIN_BAR_HEIGHT + motionHeight + bounce + jitter;
       }
     } else if (isThinking) {
       // Thinking wave with shape influence
       const thinkWave = Math.sin(wavePhase * 2 + i * 0.6) * 0.5 + 0.5;
-      targetHeight = MIN_BAR_HEIGHT + (MAX_BAR_HEIGHT * 0.25 * shapeCurve) * thinkWave;
+      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * 0.25 * shapeCurve * thinkWave;
     } else if (isListening) {
       // Listening breath with shape
       const breathe = Math.sin(wavePhase * 0.8) * 0.5 + 0.5;
-      targetHeight = MIN_BAR_HEIGHT + (MAX_BAR_HEIGHT * 0.15 * shapeCurve) * breathe;
+      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * 0.15 * shapeCurve * breathe;
     } else {
-      // Idle - subtle shape presence
-      const idle = Math.sin(wavePhase * 0.5 + i * 0.3) * 0.5 + 0.5;
-      targetHeight = MIN_BAR_HEIGHT + (MAX_BAR_HEIGHT * 0.08 * shapeCurve) * idle;
+      // Idle - visible "breathing" presence that shows Ferni is alive
+      // Increased from 0.08 to 0.12 for more noticeable ambient life
+      const breathPhase = wavePhase * 0.4; // Slower, more meditative
+      const primaryBreath = Math.sin(breathPhase + i * 0.25) * 0.5 + 0.5;
+      // Add subtle secondary wave for organic variation
+      const secondaryRipple = Math.sin(breathPhase * 1.8 + i * 0.5) * 0.15 + 0.5;
+      const combinedBreath = primaryBreath * 0.8 + secondaryRipple * 0.2;
+      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * 0.14 * shapeCurve * combinedBreath;
     }
-    
+
     barTargets[i] = Math.max(MIN_BAR_HEIGHT, Math.min(MAX_BAR_HEIGHT, targetHeight));
   }
-  
+
   // 🎬 Spring physics interpolation with squash & stretch
   const springStiffness = 0.15;
   const springDamping = 0.75;
-  
+
   for (let i = 0; i < BAR_COUNT; i++) {
     const currentHeight = barHeights[i] ?? MIN_BAR_HEIGHT;
     const targetHeight = barTargets[i] ?? MIN_BAR_HEIGHT;
     const velocity = barVelocities[i] ?? 0;
-    
+
     // Spring physics for natural motion
     const force = (targetHeight - currentHeight) * springStiffness;
     const newVelocity = (velocity + force) * springDamping;
     const newHeight = currentHeight + newVelocity;
-    
+
     barVelocities[i] = newVelocity;
     barHeights[i] = Math.max(MIN_BAR_HEIGHT, Math.min(MAX_BAR_HEIGHT, newHeight));
-    
+
     // 🎬 Squash & stretch: wider when short, narrower when tall
     const currentBarHeight = barHeights[i] ?? MIN_BAR_HEIGHT;
     const heightRatio = (currentBarHeight - MIN_BAR_HEIGHT) / (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
     const squashStretch = 1 + (0.5 - heightRatio) * 0.15; // Inverse relationship
     barWidths[i] = squashStretch;
-    
+
     const bar = bars[i];
     if (bar) {
       bar.style.height = `${currentBarHeight}px`;
-      
+
       // 🎬 Apply squash & stretch transform (no translateZ - Safari bug)
       const currentBarWidth = barWidths[i] ?? 1;
       bar.style.transform = `scaleX(${currentBarWidth})`;
-      
+
       // 🎬 Dynamic shadows based on height (3D depth illusion)
       const shadowIntensity = heightRatio * 0.3;
       const shadowBlur = 2 + heightRatio * 8;
@@ -618,7 +620,7 @@ function updateBars(): void {
       `;
     }
   }
-  
+
   // 🎬 Volume peak tracking (ripple effects disabled for cleaner look)
   // The waveform bars provide enough visual feedback without extra circles
   if (smoothedVolume > peakVolume * 1.3) {
@@ -626,7 +628,7 @@ function updateBars(): void {
     // Ripple effect removed - waveform bars are expressive enough
   }
   peakVolume *= 0.95; // Decay peak tracker
-  
+
   // 🎬 Detect laugh patterns (rapid high-volume bursts)
   // Skip during music - maintain reflective mood
   if (!isListeningToMusic && isSpeaking && smoothedVolume > 0.4 && currentEmotion === 'excited') {
@@ -641,7 +643,7 @@ function updateBars(): void {
 function smoothWindDown(): void {
   const windDown = () => {
     let allSettled = true;
-    
+
     for (let i = 0; i < BAR_COUNT; i++) {
       barTargets[i] = MIN_BAR_HEIGHT;
       const height = barHeights[i] ?? MIN_BAR_HEIGHT;
@@ -649,12 +651,12 @@ function smoothWindDown(): void {
         allSettled = false;
       }
     }
-    
+
     if (!allSettled && !isSpeaking) {
       requestAnimationFrame(windDown);
     }
   };
-  
+
   windDown();
 }
 
@@ -677,7 +679,7 @@ function updateBarsStyle(): void {
   const color = getPersonaColor();
   container.style.setProperty('--waveform-color', color);
 
-  bars.forEach(bar => {
+  bars.forEach((bar) => {
     bar.style.setProperty('--bar-color', color);
   });
 }
@@ -692,27 +694,27 @@ function updateBarsStyle(): void {
  */
 function createRipple(): void {
   if (!container || !barsContainer) return;
-  
+
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  
+
   // Limit active ripples
   if (rippleElements.length >= 3) {
     const oldRipple = rippleElements.shift();
     oldRipple?.remove();
   }
-  
+
   const ripple = document.createElement('div');
   ripple.className = 'waveform-ripple';
-  
+
   const color = getPersonaColor();
   const rect = barsContainer.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
-  
+
   // Position at center of waveform
   const centerX = rect.left - containerRect.left + rect.width / 2;
   const centerY = rect.top - containerRect.top + rect.height / 2;
-  
+
   ripple.style.cssText = `
     position: absolute;
     left: ${centerX}px;
@@ -725,18 +727,21 @@ function createRipple(): void {
     transform: translate(-50%, -50%) scale(1);
     pointer-events: none;
   `;
-  
+
   container.appendChild(ripple);
   rippleElements.push(ripple);
-  
+
   // Animate ripple expansion
-  ripple.animate([
-    { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.6 },
-    { transform: 'translate(-50%, -50%) scale(4)', opacity: 0 },
-  ], {
-    duration: DURATION.CELEBRATION,
-    easing: EASING.STANDARD,
-  }).onfinish = () => {
+  ripple.animate(
+    [
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.6 },
+      { transform: 'translate(-50%, -50%) scale(4)', opacity: 0 },
+    ],
+    {
+      duration: DURATION.CELEBRATION,
+      easing: EASING.STANDARD,
+    }
+  ).onfinish = () => {
     const index = rippleElements.indexOf(ripple);
     if (index > -1) rippleElements.splice(index, 1);
     ripple.remove();
@@ -753,30 +758,30 @@ function createRipple(): void {
  */
 function createParticleBurst(): void {
   if (!particleContainer || !barsContainer) return;
-  
+
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  
+
   const color = getPersonaColor();
   const rect = barsContainer.getBoundingClientRect();
   const containerRect = particleContainer.getBoundingClientRect();
-  
+
   // Spawn point at top center of waveform
   const spawnX = rect.left - containerRect.left + rect.width / 2;
   const spawnY = rect.top - containerRect.top;
-  
+
   const particleCount = 8 + Math.floor(Math.random() * 6);
-  
+
   for (let i = 0; i < particleCount; i++) {
     const particle = document.createElement('div');
     const size = 4 + Math.random() * 6;
     const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
     const velocity = 30 + Math.random() * 50;
     const rotation = Math.random() * 720 - 360;
-    
+
     // Random shapes: circles and rounded squares
     const isCircle = Math.random() > 0.3;
-    
+
     particle.style.cssText = `
       position: absolute;
       left: ${spawnX}px;
@@ -788,35 +793,38 @@ function createParticleBurst(): void {
       opacity: 0.9;
       pointer-events: none;
     `;
-    
+
     particleContainer.appendChild(particle);
-    
+
     // Calculate trajectory
     const endX = Math.cos(angle) * velocity;
     const endY = Math.sin(angle) * velocity - 60; // Arc upward
-    
+
     // Animate with physics-like motion
-    const animation = particle.animate([
+    const animation = particle.animate(
+      [
+        {
+          transform: 'translate(0, 0) rotate(0deg) scale(1)',
+          opacity: 0.9,
+          offset: 0,
+        },
+        {
+          transform: `translate(${endX * 0.5}px, ${endY * 0.3 - 30}px) rotate(${rotation * 0.5}deg) scale(1.2)`,
+          opacity: 0.8,
+          offset: 0.3,
+        },
+        {
+          transform: `translate(${endX}px, ${endY + 40}px) rotate(${rotation}deg) scale(0.3)`,
+          opacity: 0,
+          offset: 1,
+        },
+      ],
       {
-        transform: 'translate(0, 0) rotate(0deg) scale(1)',
-        opacity: 0.9,
-        offset: 0,
-      },
-      {
-        transform: `translate(${endX * 0.5}px, ${endY * 0.3 - 30}px) rotate(${rotation * 0.5}deg) scale(1.2)`,
-        opacity: 0.8,
-        offset: 0.3,
-      },
-      {
-        transform: `translate(${endX}px, ${endY + 40}px) rotate(${rotation}deg) scale(0.3)`,
-        opacity: 0,
-        offset: 1,
-      },
-    ], {
-      duration: DURATION.DRAMATIC + Math.random() * DURATION.SLOW, // 600-900ms varied
-      easing: EASING.GENTLE, // Organic particle movement
-    });
-    
+        duration: DURATION.DRAMATIC + Math.random() * DURATION.SLOW, // 600-900ms varied
+        easing: EASING.GENTLE, // Organic particle movement
+      }
+    );
+
     animation.onfinish = () => particle.remove();
   }
 }
@@ -835,16 +843,16 @@ export function burstCelebration(): void {
 
 export function dispose(): void {
   stopAnimation();
-  
+
   // 🎬 Clean up ripples and particles
-  rippleElements.forEach(r => r.remove());
+  rippleElements.forEach((r) => r.remove());
   rippleElements = [];
-  
+
   if (particleContainer?.parentNode) {
     particleContainer.parentNode.removeChild(particleContainer);
     particleContainer = null;
   }
-  
+
   container = null;
   barsContainer = null;
   bars = [];

@@ -176,6 +176,20 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     }
   }
 
+  // 4. Legacy fallback: Accept X-User-Id header for backward compatibility
+  // This allows users who haven't migrated to Firebase auth to still use the API
+  // TODO: Remove this fallback once Firebase auth migration is complete
+  const legacyUserId = getHeader(req, 'X-User-Id');
+  if (legacyUserId) {
+    log.debug({ userId: legacyUserId }, 'Legacy X-User-Id auth (no Firebase token)');
+    return {
+      userId: legacyUserId,
+      isAdmin: false,
+      isDevMode: false,
+      authMethod: 'api_key', // Treat as api_key for rate limiting purposes
+    };
+  }
+
   return null;
 }
 

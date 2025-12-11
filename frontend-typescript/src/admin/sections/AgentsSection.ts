@@ -335,7 +335,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
       style="--agent-color: ${colors.primary};"
       draggable="${!isCoordinator}"
     >
-      ${!isCoordinator ? `<span class="agent-drag">${iconSm(ICON_GRIP)}</span>` : ''}
+      ${!isCoordinator ? `<span class="agent-drag" role="button" tabindex="0" aria-label="Drag to reorder ${agent.name}">${iconSm(ICON_GRIP)}</span>` : ''}
       <div class="agent-avatar" style="background: ${colors.gradient};">
         ${agent.initials}
       </div>
@@ -344,21 +344,22 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
         <div class="agent-subtitle">${agent.subtitle || agent.roleId}</div>
       </div>
       <div class="agent-actions">
-        <button class="agent-action-btn" data-action="edit" data-agent-id="${agent.id}" title="Edit">
+        <button class="agent-action-btn" data-action="edit" data-agent-id="${agent.id}" aria-label="Edit ${agent.name}">
           ${iconSm(ICON_EDIT)}
         </button>
-        <button class="agent-action-btn" data-action="preview-voice" data-agent-id="${agent.id}" title="Preview Voice">
+        <button class="agent-action-btn" data-action="preview-voice" data-agent-id="${agent.id}" aria-label="Preview voice for ${agent.name}">
           ${iconSm(ICON_SPEAKER)}
         </button>
         ${!isCoordinator ? `
           <label class="admin-toggle">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               ${agent.role === 'team' ? 'checked' : ''}
               data-action="toggle"
               data-agent-id="${agent.id}"
+              aria-label="Enable or disable ${agent.name}"
             >
-            <span class="admin-toggle-slider"></span>
+            <span class="admin-toggle-slider" aria-hidden="true"></span>
           </label>
         ` : ''}
       </div>

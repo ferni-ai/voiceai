@@ -43,12 +43,12 @@ export interface AnalyticsDashboardData {
   currentLongestStreak: number;
   averageMood: number; // 1-5 scale
   predictionAccuracy: number | null;
-  
+
   // Trends (last 30 days)
   streakTrends: StreakTrend[];
   moodTrends: MoodTrend[];
   predictionTrends: PredictionAccuracyTrend[];
-  
+
   // Insights
   bestDay: string | null; // Day of week
   mostConsistentRitual: string | null;
@@ -98,7 +98,7 @@ class AnalyticsDashboardUI {
     if (this.panel) return;
 
     // HMR protection - clean up orphaned elements
-    document.querySelectorAll('.analytics').forEach(el => el.remove());
+    document.querySelectorAll('.analytics').forEach((el) => el.remove());
 
     this.injectStyles();
     this.createPanel();
@@ -281,7 +281,9 @@ class AnalyticsDashboardUI {
         </section>
       </div>
 
-      ${data.predictionTrends.length > 0 ? `
+      ${
+        data.predictionTrends.length > 0
+          ? `
         <div class="analytics__prediction-section">
           <section class="analytics__chart-section analytics__chart-section--full">
             <div class="analytics__section-header">
@@ -291,7 +293,9 @@ class AnalyticsDashboardUI {
             ${this.renderPredictionTrendChart(data.predictionTrends)}
           </section>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div class="analytics__insights">
         <h3>Insights</h3>
@@ -301,7 +305,9 @@ class AnalyticsDashboardUI {
 
     // Bind events
     this.wrapper.querySelector('.analytics__close')?.addEventListener('click', () => this.hide());
-    this.wrapper.querySelector('.analytics__export')?.addEventListener('click', () => this.callbacks.onExportData?.());
+    this.wrapper
+      .querySelector('.analytics__export')
+      ?.addEventListener('click', () => this.callbacks.onExportData?.());
   }
 
   private renderOverviewCard(label: string, value: string, icon: string): string {
@@ -358,19 +364,23 @@ class AnalyticsDashboardUI {
 
     return `
       <div class="analytics__mood-chart">
-        ${recent.map((t, i) => {
-          const value = MOOD_VALUES[t.mood] || 3;
-          const height = (value / maxValue) * 100;
-          const color = MOOD_COLORS[t.mood] || 'var(--color-text-muted)';
-          const day = new Date(t.date).toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1);
-          
-          return `
+        ${recent
+          .map((t, i) => {
+            const value = MOOD_VALUES[t.mood] || 3;
+            const height = (value / maxValue) * 100;
+            const color = MOOD_COLORS[t.mood] || 'var(--color-text-muted)';
+            const day = new Date(t.date)
+              .toLocaleDateString('en-US', { weekday: 'short' })
+              .slice(0, 1);
+
+            return `
             <div class="analytics__mood-bar" style="--bar-height: ${height}%; --bar-color: ${color}; --bar-delay: ${i * 30}ms">
               <div class="analytics__mood-bar-fill"></div>
               <span class="analytics__mood-bar-label">${day}</span>
             </div>
           `;
-        }).join('')}
+          })
+          .join('')}
       </div>
     `;
   }
@@ -401,17 +411,21 @@ class AnalyticsDashboardUI {
 
     return `
       <div class="analytics__streak-chart">
-        ${dates.map(([date, count], i) => {
-          const height = (count / maxValue) * 100;
-          const day = new Date(date).toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1);
-          
-          return `
+        ${dates
+          .map(([date, count], i) => {
+            const height = (count / maxValue) * 100;
+            const day = new Date(date)
+              .toLocaleDateString('en-US', { weekday: 'short' })
+              .slice(0, 1);
+
+            return `
             <div class="analytics__streak-bar" style="--bar-height: ${height}%; --bar-delay: ${i * 30}ms">
               <div class="analytics__streak-bar-fill"></div>
               <span class="analytics__streak-bar-label">${day}</span>
             </div>
           `;
-        }).join('')}
+          })
+          .join('')}
       </div>
     `;
   }
@@ -423,29 +437,29 @@ class AnalyticsDashboardUI {
 
     // Take last 14 days
     const recent = trends.slice(-14);
-    
+
     // Calculate SVG line chart path
     const width = 300;
     const height = 80;
     const padding = 10;
-    const chartWidth = width - (padding * 2);
-    const chartHeight = height - (padding * 2);
-    
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+
     const points = recent.map((t, i) => {
       const x = padding + (i / (recent.length - 1 || 1)) * chartWidth;
       const y = padding + chartHeight - (t.accuracy / 100) * chartHeight;
       return { x, y, accuracy: t.accuracy, date: t.date };
     });
-    
+
     // Create path
     const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    
+
     // Create area fill path
     const areaD = `${pathD} L ${points[points.length - 1]?.x || padding} ${height - padding} L ${padding} ${height - padding} Z`;
-    
+
     // Calculate average
     const avgAccuracy = Math.round(recent.reduce((sum, t) => sum + t.accuracy, 0) / recent.length);
-    
+
     return `
       <div class="analytics__prediction-chart">
         <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
@@ -461,9 +475,13 @@ class AnalyticsDashboardUI {
           <path d="${pathD}" class="analytics__prediction-line" fill="none" stroke-width="2" />
           
           <!-- Points -->
-          ${points.map(p => `
+          ${points
+            .map(
+              (p) => `
             <circle cx="${p.x}" cy="${p.y}" r="4" class="analytics__prediction-point" />
-          `).join('')}
+          `
+            )
+            .join('')}
         </svg>
         
         <div class="analytics__prediction-summary">
@@ -472,7 +490,7 @@ class AnalyticsDashboardUI {
             <span class="analytics__prediction-avg-label">Average</span>
           </div>
           <div class="analytics__prediction-range">
-            <span>${Math.min(...recent.map(t => t.accuracy))}% - ${Math.max(...recent.map(t => t.accuracy))}%</span>
+            <span>${Math.min(...recent.map((t) => t.accuracy))}% - ${Math.max(...recent.map((t) => t.accuracy))}%</span>
             <span class="analytics__prediction-range-label">Range</span>
           </div>
         </div>
@@ -481,8 +499,9 @@ class AnalyticsDashboardUI {
   }
 
   private renderInsightsList(data: AnalyticsDashboardData): string {
-    const hasInsights = data.bestDay || data.mostConsistentRitual || data.improvementAreas.length > 0;
-    
+    const hasInsights =
+      data.bestDay || data.mostConsistentRitual || data.improvementAreas.length > 0;
+
     if (!hasInsights) {
       return `
         <div class="analytics__insights-empty">
@@ -498,7 +517,7 @@ class AnalyticsDashboardUI {
         </div>
       `;
     }
-    
+
     // SVG icons for insights (Lucide-style, 2px stroke, rounded)
     const icons = {
       calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
@@ -516,9 +535,9 @@ class AnalyticsDashboardUI {
         <path d="M10 22h4"/>
       </svg>`,
     };
-    
+
     const items: string[] = [];
-    
+
     if (data.bestDay) {
       items.push(`<li class="analytics__insight-item">
         <div class="analytics__insight-icon-wrapper">${icons.calendar}</div>
@@ -528,7 +547,7 @@ class AnalyticsDashboardUI {
         </div>
       </li>`);
     }
-    
+
     if (data.mostConsistentRitual) {
       items.push(`<li class="analytics__insight-item">
         <div class="analytics__insight-icon-wrapper">${icons.flame}</div>
@@ -538,23 +557,25 @@ class AnalyticsDashboardUI {
         </div>
       </li>`);
     }
-    
+
     for (const area of data.improvementAreas) {
       items.push(`<li class="analytics__insight-item analytics__insight-item--tip">
         <div class="analytics__insight-icon-wrapper analytics__insight-icon-wrapper--tip">${icons.lightbulb}</div>
         <span class="analytics__insight-text">${this.escapeHtml(area)}</span>
       </li>`);
     }
-    
+
     return `<ul class="analytics__insights-list">${items.join('')}</ul>`;
   }
 
   private animateCharts(): void {
     // Animate bar fills
     setTimeout(() => {
-      this.wrapper?.querySelectorAll('.analytics__mood-bar-fill, .analytics__streak-bar-fill').forEach((el) => {
-        (el as HTMLElement).style.height = 'var(--bar-height)';
-      });
+      this.wrapper
+        ?.querySelectorAll('.analytics__mood-bar-fill, .analytics__streak-bar-fill')
+        .forEach((el) => {
+          (el as HTMLElement).style.height = 'var(--bar-height)';
+        });
     }, DURATION.NORMAL);
   }
 
@@ -1181,6 +1202,82 @@ class AnalyticsDashboardUI {
       }
 
       /* ========================================================================
+         MOBILE RESPONSIVE - Small Screens
+         ======================================================================== */
+      @media (max-width: 480px) {
+        .analytics__wrapper {
+          max-height: 95vh;
+          border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
+          margin-top: auto;
+        }
+
+        .analytics__header {
+          padding: var(--space-4, 16px);
+        }
+
+        .analytics__title {
+          font-size: var(--text-lg, 1.125rem);
+        }
+
+        .analytics__overview {
+          grid-template-columns: repeat(2, 1fr);
+          gap: var(--space-2, 8px);
+          padding: var(--space-3, 12px) var(--space-4, 16px);
+        }
+
+        .analytics__card {
+          padding: var(--space-2, 8px);
+        }
+
+        .analytics__card-value {
+          font-size: var(--text-lg, 1.125rem);
+        }
+
+        .analytics__charts {
+          grid-template-columns: 1fr;
+          padding: var(--space-3, 12px) var(--space-4, 16px);
+        }
+
+        .analytics__insights {
+          padding: var(--space-3, 12px) var(--space-4, 16px);
+        }
+
+        .analytics__prediction-section {
+          padding: 0 var(--space-4, 16px) var(--space-3, 12px);
+        }
+      }
+
+      /* Very small screens (320px) */
+      @media (max-width: 375px) {
+        .analytics__wrapper {
+          max-height: 100vh;
+          border-radius: 0;
+        }
+
+        .analytics__overview {
+          gap: var(--space-1, 4px);
+          padding: var(--space-2, 8px) var(--space-3, 12px);
+        }
+
+        .analytics__card {
+          padding: var(--space-1, 4px) var(--space-2, 8px);
+        }
+
+        .analytics__card-icon {
+          width: 20px;
+          height: 20px;
+        }
+
+        .analytics__card-value {
+          font-size: var(--text-base, 1rem);
+        }
+
+        .analytics__card-label {
+          font-size: 10px;
+        }
+      }
+
+      /* ========================================================================
          REDUCED MOTION
          ======================================================================== */
       @media (prefers-reduced-motion: reduce) {
@@ -1242,4 +1339,3 @@ export function hideAnalyticsDashboard(): void {
 }
 
 export default AnalyticsDashboardUI;
-

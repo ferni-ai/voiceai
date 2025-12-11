@@ -236,12 +236,12 @@ export async function render(): Promise<string> {
       }
 
       .admin-btn.primary {
-        background: #3D5A45;
+        background: var(--persona-primary, #4a6741);
         color: white;
       }
 
       .admin-btn.primary:hover {
-        background: #4a6d52;
+        background: var(--persona-primary-hover, #3d5a35);
       }
 
       .experiments-list {
@@ -377,7 +377,7 @@ export async function render(): Promise<string> {
 
       .progress-fill {
         height: 100%;
-        background: #3D5A45;
+        background: var(--persona-primary, #4a6741);
         border-radius: var(--radius-full);
         transition: width 0.3s ease;
       }
@@ -396,7 +396,7 @@ export async function render(): Promise<string> {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         margin-bottom: var(--space-4);
-        border-left: 3px solid #3D5A45;
+        border-left: 3px solid var(--persona-primary, #4a6741);
       }
 
       .experiment-actions {

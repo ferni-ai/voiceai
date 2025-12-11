@@ -1,18 +1,33 @@
 /**
  * API Utilities
- * 
+ *
  * Centralized helper for making authenticated API calls.
  * Handles userId injection for all backend requests.
+ *
+ * Authentication strategy:
+ * - PRIMARY: Firebase Auth token (Authorization: Bearer header)
+ * - FALLBACK: X-User-Id header for user identification (migration)
+ * - DEV MODE: X-Admin-Key: dev-mode to bypass auth
  */
 
+import { getAuthToken, getFirebaseUid } from '../services/firebase-auth.service.js';
+import { isDevelopment } from './environment.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('API');
 
 /**
- * Get the current user ID from localStorage.
+ * Get the current user ID.
+ * Prefers Firebase UID, falls back to device-based ID from localStorage.
  */
 export function getUserId(): string | null {
+  // Prefer Firebase UID
+  const firebaseUid = getFirebaseUid();
+  if (firebaseUid) {
+    return firebaseUid;
+  }
+
+  // Fallback to legacy device-based ID
   try {
     return localStorage.getItem('ferni_user_id');
   } catch {
@@ -32,29 +47,56 @@ export function getDeviceId(): string | null {
 }
 
 /**
- * Build standard headers for API requests.
- * Includes user authentication via X-User-Id header.
+ * Build standard headers for API requests (sync version).
+ * NOTE: Prefer using getApiHeadersAsync() for Firebase token support.
+ * This sync version only includes X-User-Id, not the Bearer token.
  */
 export function getApiHeaders(includeJson = true): HeadersInit {
   const headers: HeadersInit = {};
-  
+
+  // In development mode, add admin key to bypass auth
+  if (isDevelopment()) {
+    headers['X-Admin-Key'] = 'dev-mode';
+  }
+
   // Add user ID for authentication
   const userId = getUserId();
   if (userId) {
     headers['X-User-Id'] = userId;
   }
-  
+
   // Add device ID for tracking
   const deviceId = getDeviceId();
   if (deviceId) {
     headers['X-Device-Id'] = deviceId;
   }
-  
+
   // Add JSON content type if needed
   if (includeJson) {
     headers['Content-Type'] = 'application/json';
   }
-  
+
+  return headers;
+}
+
+/**
+ * Build standard headers for API requests with Firebase auth token (async version).
+ * This is the preferred method for authenticated API calls.
+ */
+export async function getApiHeadersAsync(includeJson = true): Promise<HeadersInit> {
+  const headers = getApiHeaders(includeJson);
+
+  // Get Firebase auth token
+  try {
+    const token = await getAuthToken();
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {
+    // Firebase token not available - continue with X-User-Id only
+    // This is expected during migration or if Firebase isn't configured
+  }
+
   return headers;
 }
 
@@ -67,25 +109,28 @@ export async function apiGet<T = unknown>(
 ): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
   try {
     const url = new URL(path, window.location.origin);
-    
+
     // Add query params
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         url.searchParams.set(key, value);
       }
     }
-    
+
     // Always include userId in query for compatibility
     const userId = getUserId();
     if (userId && !url.searchParams.has('userId')) {
       url.searchParams.set('userId', userId);
     }
-    
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(false);
+
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: getApiHeaders(false),
+      headers,
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       // 401 errors are expected before auth completes - use debug level
@@ -97,10 +142,10 @@ export async function apiGet<T = unknown>(
       return {
         ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status
+        status: response.status,
       };
     }
-    
+
     const data = await response.json();
     return { ok: true, data, status: response.status };
   } catch (err) {
@@ -118,18 +163,20 @@ export async function apiPost<T = unknown>(
 ): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
   try {
     const userId = getUserId();
-    
+
     // Ensure userId is in body if not already present
-    const finalBody = body && typeof body === 'object' && !Array.isArray(body)
-      ? { userId, ...body }
-      : body;
-    
+    const finalBody =
+      body && typeof body === 'object' && !Array.isArray(body) ? { userId, ...body } : body;
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(true);
+
     const response = await fetch(path, {
       method: 'POST',
-      headers: getApiHeaders(true),
+      headers,
       body: JSON.stringify(finalBody),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       // 401 errors are expected before auth completes - use debug level
@@ -141,10 +188,10 @@ export async function apiPost<T = unknown>(
       return {
         ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status
+        status: response.status,
       };
     }
-    
+
     const data = await response.json();
     return { ok: true, data, status: response.status };
   } catch (err) {
@@ -162,25 +209,28 @@ export async function apiDelete<T = unknown>(
 ): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
   try {
     const url = new URL(path, window.location.origin);
-    
+
     // Add query params
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         url.searchParams.set(key, value);
       }
     }
-    
+
     // Always include userId in query
     const userId = getUserId();
     if (userId && !url.searchParams.has('userId')) {
       url.searchParams.set('userId', userId);
     }
-    
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(false);
+
     const response = await fetch(url.toString(), {
       method: 'DELETE',
-      headers: getApiHeaders(false),
+      headers,
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       // 401 errors are expected before auth completes - use debug level
@@ -192,10 +242,10 @@ export async function apiDelete<T = unknown>(
       return {
         ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status
+        status: response.status,
       };
     }
-    
+
     const data = await response.json();
     return { ok: true, data, status: response.status };
   } catch (err) {
@@ -212,4 +262,3 @@ export default {
   post: apiPost,
   delete: apiDelete,
 };
-

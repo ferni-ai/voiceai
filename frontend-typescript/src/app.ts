@@ -115,6 +115,8 @@ import { initFerniEQ } from './ui/better-than-human.ui.js';
 import { avatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
 import { avatarLamp, initAvatarLamp } from './ui/avatar-lamp.ui.js';
+// Ambient Life - Makes Ferni feel alive when idle
+import { initAmbientLife } from './ui/ambient-life.ui.js';
 // Speech Event Dispatcher - Critical foundation for Ferni EQ
 import {
   dispatchAgentSpeechEnd,
@@ -140,11 +142,11 @@ import { shouldUseDemoData } from './utils/environment.js';
 import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
+import { getCommandsPanelUI } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
-import { getCommandsPanelUI } from './ui/commands.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
 // Services for feature persistence
 import {
@@ -1050,6 +1052,13 @@ class VoiceAIApp {
       if (typeof window !== 'undefined') {
         (window as unknown as Record<string, unknown>).__avatarLamp = avatarLamp;
       }
+    });
+
+    // 🌿 Ambient Life - Makes Ferni feel alive when idle
+    this.safeInit('AmbientLife', () => {
+      initAmbientLife();
+      // Random blinks, glances, stretches, warmth pulses
+      // Creates presence even when not in conversation
     });
 
     // 🌅 Mood Context - Time-based persona mood

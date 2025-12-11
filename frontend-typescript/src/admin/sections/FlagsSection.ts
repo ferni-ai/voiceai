@@ -48,12 +48,13 @@ export async function render(): Promise<string> {
       <!-- Actions -->
       <div class="flags-actions">
         <div class="flags-search">
-          <span class="flags-search-icon">${iconSm(ICON_SEARCH)}</span>
-          <input 
-            type="text" 
-            placeholder="Search flags..." 
+          <span class="flags-search-icon" aria-hidden="true">${iconSm(ICON_SEARCH)}</span>
+          <input
+            type="text"
+            placeholder="Search flags..."
             class="flags-search-input"
             id="flagsSearch"
+            aria-label="Search feature flags"
           >
         </div>
         <div class="flags-action-btns">
@@ -305,13 +306,14 @@ function renderFlagItem(flag: FeatureFlag): string {
           </div>
         ` : ''}
         <label class="admin-toggle">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             ${flag.enabled ? 'checked' : ''}
             data-flag-id="${flag.id}"
             data-action="toggle"
+            aria-label="Toggle ${flag.name}"
           >
-          <span class="admin-toggle-slider"></span>
+          <span class="admin-toggle-slider" aria-hidden="true"></span>
         </label>
       </div>
     </div>
