@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-three-year-silence",
+  "title": "The Three Years I Stopped Making Art",
+  "theme": "creative_burnout",
+  "triggers": ["stopped creating", "gave up", "quit", "can't do this anymore", "what's the point"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I stopped making art for three years. <break time=\"350ms\"/>Three years of nothing. <break time=\"300ms\"/>I thought I'd never come back.",
+
+    "body": "<break time=\"350ms\"/>I was in my studio one day. <break time=\"300ms\"/>Blank canvas. <break time=\"250ms\"/>Brush in hand. <break time=\"400ms\"/>And I couldn't move. <break time=\"350ms\"/>The voice was so loud: <break time=\"300ms\"/>'You're not good enough. <break time=\"250ms\"/>Everyone will see you're a fraud. <break time=\"200ms\"/>Why bother?' <break time=\"500ms\"/>I stood there for two hours. <break time=\"400ms\"/>Then I walked out. <break time=\"350ms\"/>I didn't go back for three years. <break time=\"500ms\"/>I told people I was 'taking a break.' <break time=\"400ms\"/>But I thought I was done forever. <break time=\"350ms\"/>I thought imposter syndrome had won.",
+
+    "reflection": "<break time=\"500ms\"/>It didn't win. <break time=\"400ms\"/>I came back. <break time=\"350ms\"/>Slowly. <break time=\"300ms\"/>Quietly. <break time=\"500ms\"/>Not because the voice went away - <break time=\"400ms\"/>it didn't. <break time=\"350ms\"/>But because I realized I didn't need to defeat it to create. <break time=\"300ms\"/>I just needed to create alongside it. <break time=\"500ms\"/>If you've stopped - <break time=\"400ms\"/>if you think you're done - <break time=\"350ms\"/>the door is never closed. <break time=\"300ms\"/>It's just waiting for you to open it again."
+  },
+
+  "when_to_share": "When someone expresses wanting to give up on their creative work entirely"
+}

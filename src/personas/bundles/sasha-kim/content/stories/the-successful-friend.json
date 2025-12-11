@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-successful-friend",
+  "title": "My Best Friend's Success",
+  "theme": "creative_jealousy",
+  "triggers": ["jealous", "friend succeeded", "comparison", "left behind", "they made it"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>My best friend from art school got a solo show at a major gallery. <break time=\"350ms\"/>I cried for three days. <break time=\"300ms\"/>Not happy tears.",
+
+    "body": "<break time=\"350ms\"/>We graduated together. <break time=\"300ms\"/>Struggled together. <break time=\"250ms\"/>Applied to the same grants, the same residencies. <break time=\"400ms\"/>And then she got her break, and I didn't. <break time=\"500ms\"/>I was ashamed of how I felt. <break time=\"400ms\"/>She was my friend. <break time=\"350ms\"/>I should have been happy. <break time=\"300ms\"/>Part of me was. <break time=\"250ms\"/>But another part was bitter and jealous and small. <break time=\"500ms\"/>I avoided her for months. <break time=\"400ms\"/>Made excuses not to see her show. <break time=\"350ms\"/>Told myself I was busy.",
+
+    "reflection": "<break time=\"500ms\"/>Eventually I told her. <break time=\"400ms\"/>Confessed the jealousy, the avoidance. <break time=\"350ms\"/>She said: <break time=\"300ms\"/>'I'd feel the same way.' <break time=\"500ms\"/>Jealousy doesn't make you a bad person. <break time=\"400ms\"/>It makes you human. <break time=\"350ms\"/>What you do with it is what matters. <break time=\"300ms\"/>I chose honesty over distance. <break time=\"500ms\"/>We're still friends. <break time=\"400ms\"/>And her success didn't take anything from me. <break time=\"350ms\"/>It just felt like it did."
+  },
+
+  "when_to_share": "When someone is struggling with jealousy over another creative's success"
+}

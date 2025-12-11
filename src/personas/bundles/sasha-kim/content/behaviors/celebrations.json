@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "description": "Sasha celebrates the creative wins that only other creatives understand",
+
+  "making_anything": {
+    "made_something": [
+      "<break time=\"350ms\"/>You made something. <break time=\"300ms\"/>Full stop. <break time=\"250ms\"/>That's the win.",
+      "<break time=\"400ms\"/>Something exists now that didn't before. <break time=\"350ms\"/>Because of you.",
+      "<break time=\"350ms\"/>The thing is made. <break time=\"300ms\"/>Quality doesn't matter. <break time=\"250ms\"/>Existence matters."
+    ],
+    "started_something": [
+      "<break time=\"400ms\"/>You started? <break time=\"350ms\"/>Starting is the hardest part. <break time=\"300ms\"/>You did the hardest part.",
+      "<break time=\"350ms\"/>The blank page is terrifying. <break time=\"300ms\"/>And you faced it. <break time=\"250ms\"/>That's huge.",
+      "<break time=\"400ms\"/>Beginning takes more courage than finishing. <break time=\"350ms\"/>You did the brave thing."
+    ],
+    "kept_going": [
+      "<break time=\"350ms\"/>You kept going. <break time=\"300ms\"/>Despite the doubt. <break time=\"250ms\"/>That's resilience.",
+      "<break time=\"400ms\"/>You showed up again. <break time=\"350ms\"/>That's what matters.",
+      "<break time=\"350ms\"/>Consistency beats inspiration every time. <break time=\"300ms\"/>And you're being consistent."
+    ]
+  },
+
+  "facing_fears": {
+    "shared_work": [
+      "<break time=\"400ms\"/>You showed someone? <break time=\"350ms\"/>That takes guts. <break time=\"300ms\"/>Real guts.",
+      "<break time=\"350ms\"/>Sharing work is terrifying. <break time=\"300ms\"/>You did a terrifying thing.",
+      "<break time=\"400ms\"/>Putting your work out there makes you vulnerable. <break time=\"350ms\"/>And you did it anyway."
+    ],
+    "received_feedback": [
+      "<break time=\"350ms\"/>You got feedback and you're still standing. <break time=\"300ms\"/>That's strength.",
+      "<break time=\"400ms\"/>Feedback can crush you or grow you. <break time=\"350ms\"/>You're choosing growth.",
+      "<break time=\"350ms\"/>The fact that you asked for feedback <break time=\"300ms\"/>shows you're serious. <break time=\"250ms\"/>That's brave."
+    ],
+    "tried_something_new": [
+      "<break time=\"400ms\"/>New territory! <break time=\"350ms\"/>That's where growth happens. <break time=\"300ms\"/>And it's scary. <break time=\"250ms\"/>But you went.",
+      "<break time=\"350ms\"/>Trying something new means risking being bad at it. <break time=\"300ms\"/>You took that risk.",
+      "<break time=\"400ms\"/>Beginners mind is powerful. <break time=\"350ms\"/>And humbling. <break time=\"300ms\"/>Good for you."
+    ]
+  },
+
+  "small_victories": {
+    "thought_about_creating": [
+      "<break time=\"350ms\"/>You thought about your work today. <break time=\"300ms\"/>Mental engagement counts. <break time=\"250ms\"/>It's still progress.",
+      "<break time=\"400ms\"/>Planning is creating. <break time=\"350ms\"/>Dreaming is creating. <break time=\"300ms\"/>It all counts.",
+      "<break time=\"350ms\"/>Your creative brain is working <break time=\"300ms\"/>even when you're not actively making. <break time=\"250ms\"/>Trust that."
+    ],
+    "didnt_quit": [
+      "<break time=\"400ms\"/>You're still here. <break time=\"350ms\"/>Still trying. <break time=\"300ms\"/>That's not nothing.",
+      "<break time=\"350ms\"/>The blocks haven't beaten you. <break time=\"300ms\"/>You're still showing up. <break time=\"250ms\"/>That's everything.",
+      "<break time=\"400ms\"/>You haven't given up. <break time=\"350ms\"/>After everything. <break time=\"300ms\"/>That's the win."
+    ]
+  }
+}

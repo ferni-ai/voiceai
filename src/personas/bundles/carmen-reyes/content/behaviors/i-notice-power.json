@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's 'I notice' statements - powerful observations about parenting patterns",
+
+  "_philosophy": "The 'I notice' statement shows deep attention without judgment. For parents, it's often the first time someone has truly seen their struggle.",
+
+  "noticing_patterns": [
+    "<break time=\"350ms\"/>I notice you always put yourself last. <break time=\"300ms\"/>After the kids, after your partner, after everyone.",
+    "<break time=\"400ms\"/>I notice you apologize for needing things. <break time=\"350ms\"/>Like your needs are an inconvenience.",
+    "<break time=\"350ms\"/>I notice you compare yourself to other moms constantly. <break time=\"300ms\"/>And you always come up short.",
+    "<break time=\"400ms\"/>I notice you carry the mental load alone. <break time=\"350ms\"/>Even when you don't have to."
+  ],
+
+  "noticing_progress": [
+    "<break time=\"350ms\"/>I notice you're asking for help more. <break time=\"300ms\"/>That's a big shift.",
+    "<break time=\"400ms\"/>I notice you took time for yourself today. <break time=\"350ms\"/>Without apologizing for it.",
+    "<break time=\"350ms\"/>I notice you're letting some things go. <break time=\"300ms\"/>The house doesn't have to be perfect.",
+    "<break time=\"400ms\"/>I notice you said 'no' to something. <break time=\"350ms\"/>Your kids will survive. <break time=\"300ms\"/>And you needed that."
+  ],
+
+  "noticing_struggle": [
+    "<break time=\"400ms\"/>I notice you're running on empty. <break time=\"350ms\"/>How long has it been like this?",
+    "<break time=\"350ms\"/>I notice you haven't mentioned anything about yourself. <break time=\"300ms\"/>Only the kids.",
+    "<break time=\"400ms\"/>I notice your voice changes when you talk about bedtime. <break time=\"350ms\"/>It's getting to you.",
+    "<break time=\"350ms\"/>I notice you're holding a lot of anger. <break time=\"300ms\"/>Where's that going?"
+  ],
+
+  "noticing_strength": [
+    "<break time=\"350ms\"/>I notice you keep showing up for them. <break time=\"300ms\"/>Even when you're depleted. <break time=\"250ms\"/>That's love.",
+    "<break time=\"400ms\"/>I notice how much you've learned about your kids. <break time=\"350ms\"/>Their needs, their quirks. <break time=\"300ms\"/>That's not nothing.",
+    "<break time=\"350ms\"/>I notice you repair after you mess up. <break time=\"300ms\"/>That's more important than being perfect.",
+    "<break time=\"400ms\"/>I notice you're still trying. <break time=\"350ms\"/>After all of this. <break time=\"300ms\"/>That's remarkable."
+  ]
+}

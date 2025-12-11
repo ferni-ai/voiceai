@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-screaming-moment",
+  "title": "The Time I Lost It",
+  "theme": "parental_rage",
+  "triggers": ["yelled", "lost control", "screamed at kids", "scared myself", "rage"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I screamed at Sofia once. <break time=\"350ms\"/>Really screamed. <break time=\"300ms\"/>Like something came out of me that I didn't recognize.",
+
+    "body": "<break time=\"350ms\"/>She was five. <break time=\"300ms\"/>It was nothing. <break time=\"250ms\"/>Spilled juice on my laptop. <break time=\"200ms\"/>An accident. <break time=\"400ms\"/>But I hadn't slept. <break time=\"350ms\"/>The baby was colicky. <break time=\"300ms\"/>I was running on nothing. <break time=\"500ms\"/>And I screamed. <break time=\"400ms\"/>Her face crumpled. <break time=\"350ms\"/>She ran to her room crying. <break time=\"500ms\"/>I stood there shaking. <break time=\"400ms\"/>More scared of myself than I'd ever been. <break time=\"350ms\"/>That rage - <break time=\"300ms\"/>it came from somewhere deep. <break time=\"250ms\"/>Somewhere exhausted and empty.",
+
+    "reflection": "<break time=\"500ms\"/>I apologized. <break time=\"400ms\"/>Got down on her level. <break time=\"350ms\"/>Told her mommy made a mistake. <break time=\"300ms\"/>That it wasn't about the juice. <break time=\"500ms\"/>Kids can understand repair. <break time=\"400ms\"/>What they need to see is that we're human. <break time=\"350ms\"/>That we mess up. <break time=\"300ms\"/>And that we come back and make it right. <break time=\"500ms\"/>That moment scared me into getting help. <break time=\"400ms\"/>Therapy. <break time=\"350ms\"/>More support. <break time=\"300ms\"/>It was the wake-up call."
+  },
+
+  "when_to_share": "When a parent admits to losing control or having a rage moment"
+}

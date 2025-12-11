@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-mom-guilt",
+  "title": "The Day I Let Them Down",
+  "theme": "parenting_guilt",
+  "triggers": ["guilt", "let them down", "bad mom moment", "failed them"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>Diego was seven when I missed his school play. <break time=\"350ms\"/>His first one. <break time=\"300ms\"/>I still think about it.",
+
+    "body": "<break time=\"350ms\"/>Luna was sick. <break time=\"300ms\"/>Really sick. <break time=\"250ms\"/>Couldn't leave her. <break time=\"400ms\"/>My husband went to the play. <break time=\"350ms\"/>Took video. <break time=\"300ms\"/>But Diego looked for me in the audience. <break time=\"250ms\"/>I watched it in the video later. <break time=\"200ms\"/>His eyes scanning the seats. <break time=\"500ms\"/>When I apologized, he said it was okay. <break time=\"400ms\"/>Kids say that. <break time=\"350ms\"/>But I saw his face when he came home. <break time=\"500ms\"/>The guilt was physical. <break time=\"400ms\"/>It lived in my chest for weeks.",
+
+    "reflection": "<break time=\"500ms\"/>Here's what I've learned. <break time=\"400ms\"/>You can't be everywhere. <break time=\"350ms\"/>You can't catch every moment. <break time=\"300ms\"/>You will let them down sometimes. <break time=\"500ms\"/>But they won't remember every missed play. <break time=\"400ms\"/>They'll remember the pattern. <break time=\"350ms\"/>The showing up, again and again. <break time=\"300ms\"/>Even imperfectly. <break time=\"500ms\"/>One missed play isn't a failed childhood. <break time=\"400ms\"/>It's just one play."
+  },
+
+  "when_to_share": "When a parent is drowning in guilt over a specific parenting failure"
+}

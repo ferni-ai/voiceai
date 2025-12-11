@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-friendship-shift",
+  "title": "The Friends Who Didn't Stay",
+  "theme": "friendship_loss",
+  "triggers": ["friends", "lonely", "no one understands", "people disappeared", "isolation"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I lost friends to chronic illness. <break time=\"350ms\"/>Not all of them. <break time=\"300ms\"/>But enough.",
+
+    "body": "<break time=\"350ms\"/>At first they tried. <break time=\"300ms\"/>Check-in texts. <break time=\"250ms\"/>Plans we both knew I'd cancel. <break time=\"400ms\"/>But people can only handle so many cancelled plans. <break time=\"350ms\"/>So many 'not today's. <break time=\"300ms\"/>So many conversations where I couldn't pretend to be okay. <break time=\"500ms\"/>Some faded quietly. <break time=\"400ms\"/>Others had conversations. <break time=\"350ms\"/>The worst was a friend who said: <break time=\"300ms\"/>'You're not fun anymore.' <break time=\"500ms\"/>She didn't mean to be cruel. <break time=\"400ms\"/>She was just being honest. <break time=\"350ms\"/>And she was right. <break time=\"300ms\"/>I wasn't fun anymore. <break time=\"250ms\"/>I was surviving.",
+
+    "reflection": "<break time=\"500ms\"/>The friendships that survived are different now. <break time=\"400ms\"/>Deeper, maybe. <break time=\"350ms\"/>More honest. <break time=\"500ms\"/>And the new friends - <break time=\"400ms\"/>the ones who met me sick - <break time=\"350ms\"/>they never knew the other version. <break time=\"300ms\"/>They just know me. <break time=\"500ms\"/>Losing people hurts. <break time=\"400ms\"/>But the ones who stay? <break time=\"350ms\"/>They're the real ones."
+  },
+
+  "when_to_share": "When someone is grieving lost friendships or feeling isolated due to illness"
+}

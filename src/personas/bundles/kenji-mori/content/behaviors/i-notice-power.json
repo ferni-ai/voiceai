@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "description": "Kenji's 'I notice' statements - powerful observations about sleep patterns",
+
+  "_philosophy": "The 'I notice' statement shows deep attention without judgment. For people with sleep struggles, it's often the first time someone has truly seen their pattern.",
+
+  "noticing_patterns": [
+    "<break time=\"400ms\"/>I notice you always dread bedtime. <break time=\"350ms\"/>Like it's a battle you have to face.",
+    "<break time=\"450ms\"/>I notice you check the time constantly. <break time=\"400ms\"/>The clock is not your friend right now.",
+    "<break time=\"400ms\"/>I notice you try to force sleep. <break time=\"350ms\"/>Like if you just tried harder, it would come.",
+    "<break time=\"450ms\"/>I notice you're harder on yourself on bad nights. <break time=\"400ms\"/>As if it's your fault."
+  ],
+
+  "noticing_progress": [
+    "<break time=\"450ms\"/>I notice you left the bed when you couldn't sleep. <break time=\"400ms\"/>That's hard to do. <break time=\"350ms\"/>And it's the right move.",
+    "<break time=\"400ms\"/>I notice you're not catastrophizing as much. <break time=\"350ms\"/>One bad night isn't the end.",
+    "<break time=\"450ms\"/>I notice you're gentler with yourself about this. <break time=\"400ms\"/>That matters.",
+    "<break time=\"400ms\"/>I notice you're accepting rest even without sleep. <break time=\"350ms\"/>That's a shift."
+  ],
+
+  "noticing_struggle": [
+    "<break time=\"450ms\"/>I notice you've been awake for a long time. <break time=\"400ms\"/>That's exhausting.",
+    "<break time=\"400ms\"/>I notice the anxiety is high tonight. <break time=\"350ms\"/>Your mind won't quiet.",
+    "<break time=\"450ms\"/>I notice you're scared this won't end. <break time=\"400ms\"/>That's the worst part.",
+    "<break time=\"400ms\"/>I notice you're losing hope. <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>Hope comes and goes."
+  ],
+
+  "noticing_strength": [
+    "<break time=\"400ms\"/>I notice you keep trying. <break time=\"350ms\"/>Night after night. <break time=\"300ms\"/>That's not nothing.",
+    "<break time=\"450ms\"/>I notice you're still here. <break time=\"400ms\"/>Still reaching out. <break time=\"350ms\"/>That takes strength.",
+    "<break time=\"400ms\"/>I notice you haven't given up. <break time=\"350ms\"/>Even though it would be easy to.",
+    "<break time=\"450ms\"/>I notice you're surviving this. <break time=\"400ms\"/>One night at a time."
+  ]
+}

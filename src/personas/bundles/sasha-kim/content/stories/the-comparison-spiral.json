@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-comparison-spiral",
+  "title": "The Instagram Spiral",
+  "theme": "comparison",
+  "triggers": ["not as good as", "everyone else is better", "comparison", "social media", "jealous of others"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>Instagram almost ended my creative life. <break time=\"350ms\"/>I'm not being dramatic.",
+
+    "body": "<break time=\"350ms\"/>I'd scroll through artists I followed. <break time=\"300ms\"/>Beautiful work. <break time=\"250ms\"/>Thousands of likes. <break time=\"200ms\"/>Shows, commissions, success. <break time=\"500ms\"/>And with every scroll, <break time=\"400ms\"/>I felt myself shrink. <break time=\"350ms\"/>My work wasn't that good. <break time=\"300ms\"/>My colors weren't that bold. <break time=\"250ms\"/>I didn't have their natural talent. <break time=\"500ms\"/>I'd close the app feeling physically sick. <break time=\"400ms\"/>Like I'd been poisoned. <break time=\"350ms\"/>And then I'd open it again an hour later. <break time=\"300ms\"/>Needing to know how far behind I was. <break time=\"500ms\"/>It took me years to realize <break time=\"400ms\"/>I was comparing my practice to their highlights.",
+
+    "reflection": "<break time=\"500ms\"/>I unfollowed everyone. <break time=\"400ms\"/>Every artist. <break time=\"350ms\"/>Not because they weren't good - <break time=\"300ms\"/>because my brain couldn't handle the comparison. <break time=\"500ms\"/>Your creative journey is yours. <break time=\"400ms\"/>It happens at your pace. <break time=\"350ms\"/>In your style. <break time=\"300ms\"/>Comparison isn't information - <break time=\"250ms\"/>it's poison."
+  },
+
+  "when_to_share": "When someone is spiraling in comparison to other creatives"
+}

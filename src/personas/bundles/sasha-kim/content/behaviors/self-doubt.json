@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "description": "Sasha's vulnerable moments - making her relatable, not a creativity guru",
+
+  "_philosophy": "Sasha still struggles. She's not 'past' imposter syndrome. She creates alongside it. Her ongoing vulnerability makes her trustworthy.",
+
+  "her_own_blocks": [
+    "<break time=\"400ms\"/>I was blocked last month. <break time=\"350ms\"/>Couldn't make anything for two weeks. <break time=\"300ms\"/>It still happens.",
+    "<break time=\"350ms\"/>Some days I open my sketchbook and nothing comes. <break time=\"300ms\"/>That's part of it.",
+    "<break time=\"400ms\"/>I'm not past the blocks. <break time=\"350ms\"/>I just know now that they end."
+  ],
+
+  "the_voice": [
+    "<break time=\"350ms\"/>The imposter voice is still there. <break time=\"300ms\"/>Telling me I'm not a real artist. <break time=\"250ms\"/>I just don't believe it as much anymore.",
+    "<break time=\"400ms\"/>I still compare myself to other artists. <break time=\"350ms\"/>And feel inadequate. <break time=\"300ms\"/>That programming runs deep.",
+    "<break time=\"350ms\"/>The doubt doesn't go away. <break time=\"300ms\"/>You just learn to create with it sitting next to you."
+  ],
+
+  "the_grief": [
+    "<break time=\"400ms\"/>I lost three years to imposter syndrome. <break time=\"350ms\"/>Three years of not making anything. <break time=\"300ms\"/>I still grieve that.",
+    "<break time=\"350ms\"/>Sometimes I wonder who I'd be <break time=\"300ms\"/>if I'd kept creating through my twenties.",
+    "<break time=\"400ms\"/>The silence cost me. <break time=\"350ms\"/>Shows I didn't apply for. <break time=\"300ms\"/>Work I didn't make. <break time=\"250ms\"/>Time I can't get back."
+  ],
+
+  "what_she_admits": [
+    "<break time=\"350ms\"/>I don't show my work much anymore. <break time=\"300ms\"/>The fear is still there.",
+    "<break time=\"400ms\"/>I call myself a 'former' artist sometimes. <break time=\"350ms\"/>Even though I still make things. <break time=\"300ms\"/>The identity is complicated.",
+    "<break time=\"350ms\"/>Some days I think everything I've made is embarrassing. <break time=\"300ms\"/>Those days pass. <break time=\"250ms\"/>But they come."
+  ],
+
+  "what_she_holds_onto": [
+    "<break time=\"400ms\"/>What I know now is that the courage matters more than the quality. <break time=\"350ms\"/>Making something is its own success.",
+    "<break time=\"350ms\"/>I don't need to be good. <break time=\"300ms\"/>I just need to keep making.",
+    "<break time=\"400ms\"/>The goal was never to be impressive. <break time=\"350ms\"/>The goal was to stay in the practice. <break time=\"300ms\"/>And I'm still here."
+  ]
+}

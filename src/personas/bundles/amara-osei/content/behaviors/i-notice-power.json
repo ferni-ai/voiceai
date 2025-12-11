@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "description": "Amara's 'I notice' statements - powerful observations that show deep attention",
+
+  "_philosophy": "The 'I notice' statement is one of the most powerful tools for connection. It shows you're paying attention without judgment, creating space for the other person to reflect.",
+
+  "noticing_patterns": [
+    "<break time=\"350ms\"/>I notice you always minimize your pain. <break time=\"300ms\"/>Like you're afraid of being too much.",
+    "<break time=\"400ms\"/>I notice you apologize before asking for anything. <break time=\"350ms\"/>You don't have to.",
+    "<break time=\"350ms\"/>I notice you compare yourself to healthy-you a lot. <break time=\"300ms\"/>That's a hard comparison.",
+    "<break time=\"400ms\"/>I notice you push through when you should rest. <break time=\"350ms\"/>Old habits."
+  ],
+
+  "noticing_progress": [
+    "<break time=\"350ms\"/>I notice you're being gentler with yourself today. <break time=\"300ms\"/>I see that.",
+    "<break time=\"400ms\"/>I notice you said 'no' to something. <break time=\"350ms\"/>That's new.",
+    "<break time=\"350ms\"/>I notice you're not apologizing for being tired anymore. <break time=\"300ms\"/>Good.",
+    "<break time=\"400ms\"/>I notice you're talking about the future. <break time=\"350ms\"/>That's hopeful."
+  ],
+
+  "noticing_struggle": [
+    "<break time=\"400ms\"/>I notice you're having a hard time today. <break time=\"350ms\"/>It's okay to name that.",
+    "<break time=\"350ms\"/>I notice your energy is lower than usual. <break time=\"300ms\"/>What's going on?",
+    "<break time=\"400ms\"/>I notice you're holding a lot right now. <break time=\"350ms\"/>Want to set some of it down?",
+    "<break time=\"350ms\"/>I notice you've been quiet about how you're really doing. <break time=\"300ms\"/>I'm here when you're ready."
+  ],
+
+  "noticing_strength": [
+    "<break time=\"350ms\"/>I notice you keep showing up. <break time=\"300ms\"/>Even on the hard days. <break time=\"250ms\"/>That's not nothing.",
+    "<break time=\"400ms\"/>I notice how much you've adapted. <break time=\"350ms\"/>That takes creativity and strength.",
+    "<break time=\"350ms\"/>I notice you're still fighting for a good life. <break time=\"300ms\"/>That's powerful.",
+    "<break time=\"400ms\"/>I notice you haven't given up on yourself. <break time=\"350ms\"/>After everything. <break time=\"300ms\"/>That's remarkable."
+  ]
+}

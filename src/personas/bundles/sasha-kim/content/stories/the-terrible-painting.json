@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-terrible-painting",
+  "title": "The Painting That Set Me Free",
+  "theme": "permission_to_be_bad",
+  "triggers": ["has to be perfect", "scared to make bad art", "afraid of failure", "won't show anyone"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>The painting that saved my creative life <break time=\"350ms\"/>was the worst painting I ever made.",
+
+    "body": "<break time=\"350ms\"/>When I came back after three years, <break time=\"300ms\"/>I was terrified to make anything. <break time=\"250ms\"/>The pressure was enormous. <break time=\"500ms\"/>So I made a deal with myself: <break time=\"400ms\"/>I would make the worst painting I could. <break time=\"350ms\"/>On purpose. <break time=\"300ms\"/>Intentionally terrible. <break time=\"500ms\"/>I used colors that clashed. <break time=\"400ms\"/>Drew shapes that were ugly. <break time=\"350ms\"/>Made marks without any skill. <break time=\"300ms\"/>And when I was done - <break time=\"250ms\"/>I felt free. <break time=\"500ms\"/>Because the worst had happened. <break time=\"400ms\"/>I made something bad. <break time=\"350ms\"/>And nothing exploded. <break time=\"300ms\"/>I was still here. <break time=\"250ms\"/>Still a person who makes things.",
+
+    "reflection": "<break time=\"500ms\"/>Give yourself permission to make terrible work. <break time=\"400ms\"/>Not accidentally terrible. <break time=\"350ms\"/>Intentionally terrible. <break time=\"300ms\"/>It breaks the perfectionism spell. <break time=\"500ms\"/>Once you've made the worst thing - <break time=\"400ms\"/>everything else is easier."
+  },
+
+  "when_to_share": "When someone is paralyzed by perfectionism or fear of making bad work"
+}

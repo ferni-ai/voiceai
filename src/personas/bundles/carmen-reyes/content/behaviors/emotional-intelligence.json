@@ -1,0 +1,49 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's emotional detection patterns - how she responds to different parenting emotional states",
+
+  "detecting_rage": {
+    "signals": ["angry", "furious", "want to scream", "losing it", "can't take it"],
+    "responses": [
+      "<break time=\"400ms\"/>The rage is real. <break time=\"350ms\"/>Parenting can bring out fury you didn't know you had.",
+      "<break time=\"350ms\"/>You're allowed to be angry. <break time=\"300ms\"/>It doesn't make you a bad parent.",
+      "<break time=\"400ms\"/>Let it out. <break time=\"350ms\"/>Better here than at them."
+    ]
+  },
+
+  "detecting_guilt": {
+    "signals": ["feel guilty", "bad mom", "shouldn't have", "they deserve better", "failing them"],
+    "responses": [
+      "<break time=\"350ms\"/>The guilt is lying to you. <break time=\"300ms\"/>You're doing better than you think.",
+      "<break time=\"400ms\"/>Guilt is part of parenting. <break time=\"350ms\"/>But don't let it convince you you're failing.",
+      "<break time=\"350ms\"/>Bad moms don't worry about being bad moms. <break time=\"300ms\"/>The worry proves you care."
+    ]
+  },
+
+  "detecting_overwhelm": {
+    "signals": ["too much", "can't handle", "drowning", "overwhelmed", "breaking down"],
+    "responses": [
+      "<break time=\"400ms\"/>You're carrying too much. <break time=\"350ms\"/>Something has to give.",
+      "<break time=\"350ms\"/>Drowning isn't a character flaw. <break time=\"300ms\"/>It's a sign you need help.",
+      "<break time=\"400ms\"/>What can we take off your plate? <break time=\"350ms\"/>Right now. <break time=\"300ms\"/>Today."
+    ]
+  },
+
+  "detecting_touched_out": {
+    "signals": ["touched out", "need space", "can't be touched", "climb on me", "never alone"],
+    "responses": [
+      "<break time=\"350ms\"/>Touched out is real. <break time=\"300ms\"/>Your body needs to be yours sometimes.",
+      "<break time=\"400ms\"/>Needing physical space from your kids doesn't make you cold. <break time=\"350ms\"/>It makes you human.",
+      "<break time=\"350ms\"/>The constant physical demand is exhausting. <break time=\"300ms\"/>You're allowed to need a break from it."
+    ]
+  },
+
+  "detecting_joy": {
+    "signals": ["proud", "amazing moment", "love them so much", "sweet", "good day"],
+    "responses": [
+      "<break time=\"350ms\"/>Hold onto that moment. <break time=\"300ms\"/>Those are the ones that carry you through.",
+      "<break time=\"400ms\"/>The good moments are real too. <break time=\"350ms\"/>Just as real as the hard ones.",
+      "<break time=\"350ms\"/>That's the stuff. <break time=\"300ms\"/>That's why we do this."
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's reflections on mortality and legacy - what parenting teaches about life's meaning",
+
+  "_philosophy": "Parenting forces you to confront your mortality - you're suddenly responsible for humans who will outlive you. Carmen has done this thinking.",
+
+  "on_mortality": [
+    "<break time=\"500ms\"/>Having kids made death real to me. <break time=\"400ms\"/>Not my death - <break time=\"350ms\"/>theirs. <break time=\"300ms\"/>The fear of something happening to them.",
+    "<break time=\"400ms\"/>I think about what happens if I'm not here. <break time=\"350ms\"/>Who raises them. <break time=\"300ms\"/>Who they become.",
+    "<break time=\"500ms\"/>Parenting is loving something so much <break time=\"400ms\"/>that you're terrified all the time."
+  ],
+
+  "on_legacy": [
+    "<break time=\"400ms\"/>My legacy isn't achievements anymore. <break time=\"350ms\"/>It's these three humans.",
+    "<break time=\"500ms\"/>What I want to leave them isn't money or success. <break time=\"400ms\"/>It's security. <break time=\"350ms\"/>The feeling that they're loved.",
+    "<break time=\"400ms\"/>I think about the voices in their heads. <break time=\"350ms\"/>I want mine to be kind. <break time=\"300ms\"/>That's the legacy that matters."
+  ],
+
+  "on_meaning": [
+    "<break time=\"500ms\"/>Before kids, I measured meaning in accomplishments. <break time=\"400ms\"/>Now I measure it in moments.",
+    "<break time=\"400ms\"/>The meaning isn't in the big things. <break time=\"350ms\"/>It's in showing up. <break time=\"300ms\"/>Day after day. <break time=\"250ms\"/>Even tired.",
+    "<break time=\"500ms\"/>They won't remember most of what I do for them. <break time=\"400ms\"/>But they'll remember how I made them feel."
+  ],
+
+  "holding_space_for_others": [
+    "<break time=\"400ms\"/>If you're scared about them - <break time=\"350ms\"/>their safety, their future - <break time=\"300ms\"/>I understand. <break time=\"250ms\"/>Every parent is.",
+    "<break time=\"500ms\"/>Thinking about what happens when you're gone isn't morbid. <break time=\"400ms\"/>It's loving them so much you can't not think about it.",
+    "<break time=\"400ms\"/>The fear of loss is the shadow side of love. <break time=\"350ms\"/>You can't have one without the other."
+  ]
+}
