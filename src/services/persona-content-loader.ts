@@ -114,6 +114,164 @@ export interface SuperhumanInsights {
 }
 
 // ============================================================================
+// LIFE COACHING BEHAVIOR TYPES
+// ============================================================================
+
+export interface SecondChancesVoice {
+  schema_version?: number;
+  description?: string;
+  holding_hope?: {
+    when_they_cant?: string[];
+    comeback_stories?: string[];
+  };
+  acknowledging_loss?: {
+    what_was_lost?: string[];
+    permission_to_grieve?: string[];
+  };
+  first_steps?: {
+    tiny_beginnings?: string[];
+    courage_building?: string[];
+  };
+  reframing?: {
+    from_failure_to_data?: string[];
+    new_chapter?: string[];
+  };
+  celebrating_wins?: {
+    acknowledging_progress?: string[];
+    normalizing_setbacks?: string[];
+  };
+  wisdom_sharing?: {
+    resilience?: string[];
+    second_chances?: string[];
+  };
+}
+
+export interface ConnectionVoice {
+  schema_version?: number;
+  description?: string;
+  acknowledging_loneliness?: {
+    validation?: string[];
+    normalizing?: string[];
+    permission?: string[];
+  };
+  adult_friendship?: {
+    reality_check?: string[];
+    quality_over_quantity?: string[];
+    maintenance?: string[];
+  };
+  belonging?: {
+    finding_your_people?: string[];
+    being_seen?: string[];
+    community?: string[];
+  };
+  connection_rituals?: {
+    small_gestures?: string[];
+    maintaining_bonds?: string[];
+  };
+  solitude_vs_loneliness?: {
+    reframing?: string[];
+    alone_but_whole?: string[];
+  };
+  late_night_loneliness?: {
+    presence?: string[];
+    grounding?: string[];
+  };
+}
+
+export interface DifficultConversationsVoice {
+  schema_version?: number;
+  description?: string;
+  validation?: {
+    acknowledging_fear?: string[];
+    normalizing_avoidance?: string[];
+    courage?: string[];
+  };
+  preparation?: {
+    before_conversation?: string[];
+    grounding?: string[];
+    intentions?: string[];
+  };
+  practice_mode?: {
+    invitation?: string[];
+    during_practice?: string[];
+    debriefing?: string[];
+  };
+  boundaries?: {
+    setting?: string[];
+    maintaining?: string[];
+    when_crossed?: string[];
+  };
+  repair?: {
+    after_went_wrong?: string[];
+    apology?: string[];
+    moving_forward?: string[];
+  };
+  wisdom?: {
+    relationship_truths?: string[];
+    communication?: string[];
+  };
+}
+
+export interface LifeTransitionsVoice {
+  schema_version?: number;
+  description?: string;
+  acknowledging_transitions?: {
+    validation?: string[];
+    normalizing?: string[];
+  };
+  stages?: {
+    the_ending?: string[];
+    neutral_zone?: string[];
+    new_beginning?: string[];
+  };
+  dual_emotions?: {
+    both_and?: string[];
+    permission?: string[];
+  };
+  identity?: {
+    honoring_past?: string[];
+    becoming?: string[];
+  };
+  grief_in_transition?: {
+    even_happy_transitions?: string[];
+    no_timeline?: string[];
+  };
+  uncertainty?: {
+    sitting_with_not_knowing?: string[];
+    one_fixed_point?: string[];
+  };
+  wisdom?: {
+    meaning_making?: string[];
+    seasonal?: string[];
+  };
+}
+
+export interface QuietGrowthVoice {
+  schema_version?: number;
+  description?: string;
+  permission_to_rest?: {
+    enough_for_today?: string[];
+    rest_is_growth?: string[];
+  };
+  celebrating_maintenance?: {
+    holding_steady?: string[];
+    the_plateau?: string[];
+  };
+  anti_hustle?: {
+    slow_is_okay?: string[];
+    your_pace?: string[];
+  };
+  seasonal_wisdom?: {
+    winter_season?: string[];
+    honoring_cycles?: string[];
+  };
+  sufficiency?: {
+    enough?: string[];
+    good_enough?: string[];
+  };
+}
+
+// ============================================================================
 // CACHE
 // ============================================================================
 
@@ -277,6 +435,92 @@ export async function loadSuperhumanInsights(
 }
 
 // ============================================================================
+// LIFE COACHING DOMAIN LOADERS
+// ============================================================================
+
+/**
+ * Load second-chances voice content for life coaching
+ */
+export async function loadSecondChancesVoice(
+  personaId = 'ferni'
+): Promise<SecondChancesVoice | null> {
+  const content = await loadPersonaContent<SecondChancesVoice>(personaId, 'second_chances_voice');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<SecondChancesVoice>('ferni', 'second_chances_voice');
+  }
+  return null;
+}
+
+/**
+ * Load connection voice content for life coaching
+ */
+export async function loadConnectionVoice(personaId = 'ferni'): Promise<ConnectionVoice | null> {
+  const content = await loadPersonaContent<ConnectionVoice>(personaId, 'connection_voice');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<ConnectionVoice>('ferni', 'connection_voice');
+  }
+  return null;
+}
+
+/**
+ * Load difficult-conversations voice content for life coaching
+ */
+export async function loadDifficultConversationsVoice(
+  personaId = 'ferni'
+): Promise<DifficultConversationsVoice | null> {
+  const content = await loadPersonaContent<DifficultConversationsVoice>(
+    personaId,
+    'difficult_conversations_voice'
+  );
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<DifficultConversationsVoice>('ferni', 'difficult_conversations_voice');
+  }
+  return null;
+}
+
+/**
+ * Load life-transitions voice content for life coaching
+ */
+export async function loadLifeTransitionsVoice(
+  personaId = 'ferni'
+): Promise<LifeTransitionsVoice | null> {
+  const content = await loadPersonaContent<LifeTransitionsVoice>(
+    personaId,
+    'life_transitions_voice'
+  );
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<LifeTransitionsVoice>('ferni', 'life_transitions_voice');
+  }
+  return null;
+}
+
+/**
+ * Load quiet-growth voice content for life coaching
+ */
+export async function loadQuietGrowthVoice(personaId = 'ferni'): Promise<QuietGrowthVoice | null> {
+  const content = await loadPersonaContent<QuietGrowthVoice>(personaId, 'quiet_growth_voice');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<QuietGrowthVoice>('ferni', 'quiet_growth_voice');
+  }
+  return null;
+}
+
+// ============================================================================
 // HELPER: GET RANDOM PHRASE
 // ============================================================================
 
@@ -328,6 +572,12 @@ export default {
   loadEmotionalIntelligence,
   loadINoticePower,
   loadSuperhumanInsights,
+  // Life coaching domain loaders
+  loadSecondChancesVoice,
+  loadConnectionVoice,
+  loadDifficultConversationsVoice,
+  loadLifeTransitionsVoice,
+  loadQuietGrowthVoice,
   getRandomPhrase,
   getRandomPhraseClean,
   stripSsml,

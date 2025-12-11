@@ -590,6 +590,7 @@ async function ensureBuildersLoaded(): Promise<void> {
       // 🧑‍🏫 LIFE COACHING CAPABILITIES
       // ============================================================================
       import('./coaching-context.js'), // Goals, actions, obstacles, values, style, journey, team
+      import('./life-coaching-context.js'), // Second chances, connection, difficult conversations, transitions, quiet growth
       // ============================================================================
       // 🎉 BETTER-THAN-HUMAN: CELEBRATION & GROWTH
       // ============================================================================
