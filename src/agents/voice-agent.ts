@@ -1967,19 +1967,46 @@ export default defineAgent({
       persona: PERSONA.id,
     });
 
+    // LIGHTWEIGHT PREWARM - avoid heavy Firestore/external calls that can timeout
+    // Heavy initialization is done on first job in entry() if needed
+
+    // Set a 20 second timeout for prewarm to avoid indefinite hangs
+    const PREWARM_TIMEOUT = 20_000;
+
     try {
-      // Use unified startup system (handles config, storage, cache, services)
-      diag.prewarm('Importing startup module...');
-      const t1 = Date.now();
-      const { startup, registerShutdownHandlers } = await import('../startup.js');
-      diag.prewarm('Startup module imported', { elapsed: Date.now() - t1 });
+      // Race startup against timeout
+      const startupPromise = (async () => {
+        diag.prewarm('Importing startup module...');
+        const t1 = Date.now();
+        const { startup, registerShutdownHandlers } = await import('../startup.js');
+        diag.prewarm('Startup module imported', { elapsed: Date.now() - t1 });
 
-      registerShutdownHandlers();
+        registerShutdownHandlers();
 
-      diag.prewarm('Running startup()...');
-      const t2 = Date.now();
-      await startup();
-      diag.prewarm('startup() complete', { elapsed: Date.now() - t2 });
+        diag.prewarm('Running startup()...');
+        const t2 = Date.now();
+        await startup();
+        diag.prewarm('startup() complete', { elapsed: Date.now() - t2 });
+        return true;
+      })();
+
+      const timeoutPromise = new Promise<false>((resolve) => {
+        setTimeout(() => {
+          diag.warn('Prewarm startup timeout - continuing with minimal init');
+          resolve(false);
+        }, PREWARM_TIMEOUT);
+      });
+
+      const completed = await Promise.race([startupPromise, timeoutPromise]);
+      if (!completed) {
+        // Startup timed out, do minimal init
+        diag.prewarm('Using minimal initialization due to timeout');
+        try {
+          await initializeServices();
+        } catch {
+          diag.warn('Minimal init failed, continuing anyway');
+        }
+      }
     } catch (error) {
       diag.error('Startup failed', { error: String(error) });
       // Fall back to basic initialization
@@ -1991,15 +2018,20 @@ export default defineAgent({
       }
     }
 
-    // Preload commonly used modules for faster first turn response
-    try {
-      diag.prewarm('Preloading common modules...');
-      const t3 = Date.now();
-      const { preloadCommonModules } = await import('./shared/cached-imports.js');
-      await preloadCommonModules();
-      diag.prewarm('Common modules preloaded', { elapsed: Date.now() - t3 });
-    } catch (preloadError) {
-      diag.warn('Module preload failed (non-fatal)', { error: String(preloadError) });
+    // Preload commonly used modules (skip if already taking too long)
+    const elapsed = Date.now() - startTime;
+    if (elapsed < PREWARM_TIMEOUT) {
+      try {
+        diag.prewarm('Preloading common modules...');
+        const t3 = Date.now();
+        const { preloadCommonModules } = await import('./shared/cached-imports.js');
+        await preloadCommonModules();
+        diag.prewarm('Common modules preloaded', { elapsed: Date.now() - t3 });
+      } catch (preloadError) {
+        diag.warn('Module preload failed (non-fatal)', { error: String(preloadError) });
+      }
+    } else {
+      diag.warn('Skipping module preload due to time constraints');
     }
 
     proc.userData.vadLoaded = false;

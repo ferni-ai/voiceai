@@ -1,0 +1,77 @@
+# Cloud Run Service Configuration - UI Server
+#
+# Deploy with:
+#   gcloud run services replace infra/cloudrun-service-ui.yaml --region=us-central1
+#
+# This config sets scaling limits to prevent cost explosion during DDoS attacks
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ferni-ui
+  annotations:
+    # Prevent cost explosion during DDoS
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scaling limits
+        autoscaling.knative.dev/maxScale: "10"  # Max 10 instances (adjust based on budget)
+        autoscaling.knative.dev/minScale: "0"   # Scale to zero when idle
+
+        # Resource limits per instance
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+
+        # Connection limits
+        run.googleapis.com/max-instance-request-concurrency: "100"
+
+    spec:
+      # Request timeout - kill requests that take too long
+      timeoutSeconds: 60
+
+      # Container spec
+      containers:
+        - image: gcr.io/${PROJECT_ID}/ferni-ui:latest
+          ports:
+            - containerPort: 3002
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+            requests:
+              cpu: "0.5"
+              memory: "256Mi"
+
+          # Health check - Cloud Run will restart unhealthy instances
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 3
+            periodSeconds: 5
+
+          # Environment variables from secrets
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3002"
+
+          # Mount secrets (configure these in GCP Secret Manager)
+          # envFrom:
+          #   - secretRef:
+          #       name: ferni-secrets
+
+  traffic:
+    - percent: 100
+      latestRevision: true

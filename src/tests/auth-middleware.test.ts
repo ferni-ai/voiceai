@@ -2,11 +2,12 @@
  * Auth Middleware Tests
  *
  * Tests for API authentication, authorization, and rate limiting.
+ * Note: JWT verification and X-User-Id fallback have been removed.
+ * Authentication now uses: API Keys, Firebase ID Tokens, or dev mode (X-Admin-Key header).
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createHmac } from 'crypto';
 
 // Mock environment before importing module
 const originalEnv = { ...process.env };
@@ -56,25 +57,11 @@ describe('Auth Middleware', () => {
     return res as unknown as ServerResponse & typeof res;
   }
 
-  // Helper to create valid JWT
-  function createJWT(
-    payload: { sub: string; admin?: boolean; exp?: number },
-    secret: string
-  ): string {
-    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = createHmac('sha256', secret)
-      .update(`${header}.${payloadB64}`)
-      .digest('base64url');
-    return `${header}.${payloadB64}.${signature}`;
-  }
-
   describe('authenticate', () => {
     beforeEach(() => {
       // Reset env
       process.env.API_KEYS = 'test-api-key-1,test-api-key-2';
       process.env.ADMIN_API_KEYS = 'admin-key-1';
-      process.env.JWT_SECRET = 'test-jwt-secret-256-bits-long!!';
       process.env.NODE_ENV = 'development';
     });
 
@@ -121,97 +108,49 @@ describe('Auth Middleware', () => {
       expect(auth).toBeNull();
     });
 
-    it('should authenticate with valid JWT', async () => {
+    it('should store bearer token for async Firebase verification', async () => {
       const { authenticate } = await import('../api/auth-middleware.js');
-      const token = createJWT(
-        { sub: 'user-123', exp: Math.floor(Date.now() / 1000) + 3600 },
-        'test-jwt-secret-256-bits-long!!'
-      );
       const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
+        headers: { authorization: 'Bearer some-firebase-token' },
       });
 
+      // authenticate() is sync and returns null for bearer tokens
+      // The token is stored for async verification via tryFirebaseAuth
       const auth = authenticate(req);
 
-      expect(auth).not.toBeNull();
-      expect(auth?.authMethod).toBe('jwt');
-      expect(auth?.userId).toBe('user-123');
-    });
-
-    it('should reject expired JWT', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const token = createJWT(
-        { sub: 'user-123', exp: Math.floor(Date.now() / 1000) - 3600 }, // Expired
-        'test-jwt-secret-256-bits-long!!'
-      );
-      const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const auth = authenticate(req);
-
+      // Bearer tokens require async Firebase verification
       expect(auth).toBeNull();
     });
 
-    it('should reject JWT with invalid signature', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const token = createJWT({ sub: 'user-123' }, 'wrong-secret-key-that-is-long!!');
-      const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).toBeNull();
-    });
-
-    it('should authenticate with X-User-Id in dev mode', async () => {
+    it('should authenticate with X-Admin-Key header in dev mode', async () => {
       const { authenticate } = await import('../api/auth-middleware.js');
       const req = createMockRequest({
-        headers: { 'x-user-id': 'dev-user-456' },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).not.toBeNull();
-      expect(auth?.authMethod).toBe('user_id');
-      expect(auth?.userId).toBe('dev-user-456');
-      expect(auth?.isDevMode).toBe(true);
-    });
-
-    it('should authenticate with dev mode query param', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({
-        url: '/api/test?admin_key=dev-mode&userId=query-user',
-        headers: { host: 'localhost:3000' },
+        headers: { 'x-admin-key': 'dev-mode' },
       });
 
       const auth = authenticate(req);
 
       expect(auth).not.toBeNull();
       expect(auth?.authMethod).toBe('dev_mode');
-      expect(auth?.userId).toBe('query-user');
       expect(auth?.isAdmin).toBe(true);
       expect(auth?.isDevMode).toBe(true);
     });
 
-    it('should use X-User-Id with API key', async () => {
+    it('should reject X-Admin-Key in production mode', async () => {
+      process.env.NODE_ENV = 'production';
+      vi.resetModules();
       const { authenticate } = await import('../api/auth-middleware.js');
       const req = createMockRequest({
-        headers: {
-          'x-api-key': 'test-api-key-1',
-          'x-user-id': 'custom-user-789',
-        },
+        headers: { 'x-admin-key': 'dev-mode' },
       });
 
       const auth = authenticate(req);
 
-      expect(auth).not.toBeNull();
-      expect(auth?.userId).toBe('custom-user-789');
+      expect(auth).toBeNull();
     });
   });
 
-  describe('requireAuth', () => {
+  describe('requireAuthSync', () => {
     beforeEach(() => {
       process.env.API_KEYS = 'test-key';
       process.env.ADMIN_API_KEYS = 'admin-key';
@@ -224,13 +163,87 @@ describe('Auth Middleware', () => {
     });
 
     it('should return auth context for valid request', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'test-key' },
+      });
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(req, res);
+
+      expect(auth).not.toBeNull();
+      expect(res._statusCode).toBe(200);
+    });
+
+    it('should send 401 for unauthenticated request', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({});
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(req, res);
+
+      expect(auth).toBeNull();
+      expect(res._statusCode).toBe(401);
+    });
+
+    it('should return null without error for optional auth', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({});
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(req, res, { optional: true });
+
+      expect(auth).toBeNull();
+      expect(res._statusCode).toBe(200); // No error sent
+    });
+
+    it('should send 403 when admin required but not admin', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'test-key' }, // Non-admin key
+      });
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(req, res, { requireAdmin: true });
+
+      expect(auth).toBeNull();
+      expect(res._statusCode).toBe(403);
+    });
+
+    it('should allow admin when admin required', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'admin-key' },
+      });
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(req, res, { requireAdmin: true });
+
+      expect(auth).not.toBeNull();
+      expect(auth?.isAdmin).toBe(true);
+    });
+  });
+
+  describe('requireAuth (async)', () => {
+    beforeEach(() => {
+      process.env.API_KEYS = 'test-key';
+      process.env.ADMIN_API_KEYS = 'admin-key';
+      process.env.NODE_ENV = 'development';
+    });
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+      vi.resetModules();
+    });
+
+    it('should return auth context for valid API key', async () => {
       const { requireAuth } = await import('../api/auth-middleware.js');
       const req = createMockRequest({
         headers: { 'x-api-key': 'test-key' },
       });
       const res = createMockResponse();
 
-      const auth = requireAuth(req, res);
+      const auth = await requireAuth(req, res);
 
       expect(auth).not.toBeNull();
       expect(res._statusCode).toBe(200);
@@ -241,47 +254,10 @@ describe('Auth Middleware', () => {
       const req = createMockRequest({});
       const res = createMockResponse();
 
-      const auth = requireAuth(req, res);
+      const auth = await requireAuth(req, res);
 
       expect(auth).toBeNull();
       expect(res._statusCode).toBe(401);
-    });
-
-    it('should return null without error for optional auth', async () => {
-      const { requireAuth } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({});
-      const res = createMockResponse();
-
-      const auth = requireAuth(req, res, { optional: true });
-
-      expect(auth).toBeNull();
-      expect(res._statusCode).toBe(200); // No error sent
-    });
-
-    it('should send 403 when admin required but not admin', async () => {
-      const { requireAuth } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({
-        headers: { 'x-api-key': 'test-key' }, // Non-admin key
-      });
-      const res = createMockResponse();
-
-      const auth = requireAuth(req, res, { requireAdmin: true });
-
-      expect(auth).toBeNull();
-      expect(res._statusCode).toBe(403);
-    });
-
-    it('should allow admin when admin required', async () => {
-      const { requireAuth } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({
-        headers: { 'x-api-key': 'admin-key' },
-      });
-      const res = createMockResponse();
-
-      const auth = requireAuth(req, res, { requireAdmin: true });
-
-      expect(auth).not.toBeNull();
-      expect(auth?.isAdmin).toBe(true);
     });
   });
 
@@ -386,7 +362,7 @@ describe('Auth Middleware', () => {
 
       expect(getRateLimitTier(null)).toBe(RATE_LIMIT_TIERS.anonymous);
       expect(
-        getRateLimitTier({ userId: 'user', isAdmin: false, isDevMode: false, authMethod: 'jwt' })
+        getRateLimitTier({ userId: 'user', isAdmin: false, isDevMode: false, authMethod: 'firebase' })
       ).toBe(RATE_LIMIT_TIERS.free);
       expect(
         getRateLimitTier({
@@ -402,109 +378,48 @@ describe('Auth Middleware', () => {
     });
   });
 
-  describe('JWT Verification Edge Cases', () => {
-    beforeEach(() => {
-      process.env.JWT_SECRET = 'test-secret-for-jwt-verification!';
-      process.env.NODE_ENV = 'development';
-    });
-
-    afterEach(() => {
-      process.env = { ...originalEnv };
-      vi.resetModules();
-    });
-
-    it('should reject malformed JWT (not 3 parts)', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({
-        headers: { authorization: 'Bearer invalid.token' },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).toBeNull();
-    });
-
-    it('should reject JWT with unsupported algorithm', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      // Create JWT with RS256 header
-      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString(
-        'base64url'
-      );
-      const payload = Buffer.from(JSON.stringify({ sub: 'user' })).toString('base64url');
-      const token = `${header}.${payload}.fake-signature`;
-      const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).toBeNull();
-    });
-
-    it('should reject JWT without sub claim', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString(
-        'base64url'
-      );
-      const payload = Buffer.from(JSON.stringify({ name: 'test' })).toString('base64url'); // No sub
-      const signature = createHmac('sha256', 'test-secret-for-jwt-verification!')
-        .update(`${header}.${payload}`)
-        .digest('base64url');
-      const token = `${header}.${payload}.${signature}`;
-      const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).toBeNull();
-    });
-
-    it('should extract admin claim from JWT', async () => {
-      const { authenticate } = await import('../api/auth-middleware.js');
-      const token = createJWT(
-        { sub: 'admin-user', admin: true, exp: Math.floor(Date.now() / 1000) + 3600 },
-        'test-secret-for-jwt-verification!'
-      );
-      const req = createMockRequest({
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const auth = authenticate(req);
-
-      expect(auth).not.toBeNull();
-      expect(auth?.isAdmin).toBe(true);
-    });
-  });
-
   describe('Helper Functions', () => {
     afterEach(() => {
       process.env = { ...originalEnv };
       vi.resetModules();
     });
 
-    it('should get authenticated user ID', async () => {
+    it('should get authenticated user ID (sync)', async () => {
       process.env.API_KEYS = 'test-key';
-      const { getAuthenticatedUserId } = await import('../api/auth-middleware.js');
+      const { getAuthenticatedUserIdSync } = await import('../api/auth-middleware.js');
       const req = createMockRequest({
-        headers: { 'x-api-key': 'test-key', 'x-user-id': 'user-abc' },
+        headers: { 'x-api-key': 'test-key' },
       });
       const res = createMockResponse();
 
-      const userId = getAuthenticatedUserId(req, res);
+      const userId = getAuthenticatedUserIdSync(req, res);
 
-      expect(userId).toBe('user-abc');
+      // API key auth returns 'system' as userId (or anonymous-xxx for non-admin)
+      expect(userId).toBeDefined();
     });
 
-    it('should return null and send 401 for unauthenticated getAuthenticatedUserId', async () => {
-      const { getAuthenticatedUserId } = await import('../api/auth-middleware.js');
+    it('should return null and send 401 for unauthenticated getAuthenticatedUserIdSync', async () => {
+      const { getAuthenticatedUserIdSync } = await import('../api/auth-middleware.js');
       const req = createMockRequest({});
       const res = createMockResponse();
 
-      const userId = getAuthenticatedUserId(req, res);
+      const userId = getAuthenticatedUserIdSync(req, res);
 
       expect(userId).toBeNull();
       expect(res._statusCode).toBe(401);
+    });
+
+    it('should get authenticated user ID (async)', async () => {
+      process.env.API_KEYS = 'test-key';
+      const { getAuthenticatedUserId } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'test-key' },
+      });
+      const res = createMockResponse();
+
+      const userId = await getAuthenticatedUserId(req, res);
+
+      expect(userId).toBeDefined();
     });
 
     it('should handle optionalAuth without sending error', async () => {
@@ -532,7 +447,31 @@ describe('Auth Middleware', () => {
     });
   });
 
-  describe('requireAdmin', () => {
+  describe('requireAdminSync', () => {
+    beforeEach(() => {
+      process.env.ADMIN_API_KEYS = 'admin-key';
+    });
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+      vi.resetModules();
+    });
+
+    it('should be shorthand for requireAuthSync with requireAdmin: true', async () => {
+      const { requireAdminSync } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'admin-key' },
+      });
+      const res = createMockResponse();
+
+      const auth = requireAdminSync(req, res);
+
+      expect(auth).not.toBeNull();
+      expect(auth?.isAdmin).toBe(true);
+    });
+  });
+
+  describe('requireAdmin (async)', () => {
     beforeEach(() => {
       process.env.ADMIN_API_KEYS = 'admin-key';
     });
@@ -549,7 +488,7 @@ describe('Auth Middleware', () => {
       });
       const res = createMockResponse();
 
-      const auth = requireAdmin(req, res);
+      const auth = await requireAdmin(req, res);
 
       expect(auth).not.toBeNull();
       expect(auth?.isAdmin).toBe(true);

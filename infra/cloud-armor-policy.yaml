@@ -1,0 +1,127 @@
+# Cloud Armor Security Policy for Ferni
+#
+# Deploy with:
+#   gcloud compute security-policies create ferni-ddos-policy --file-name=cloud-armor-policy.yaml
+#
+# Then attach to Cloud Run service:
+#   gcloud run services update ferni-ui --security-policy=ferni-ddos-policy
+#
+# Note: Cloud Armor for Cloud Run requires a Serverless NEG + External HTTP(S) Load Balancer
+# See: https://cloud.google.com/armor/docs/cloud-armor-overview#cloud-armor-for-serverless-neg
+
+name: ferni-ddos-policy
+description: "DDoS and bot protection for Ferni voice AI"
+
+# Default rule - allow traffic
+rules:
+  # Rule 1: Rate limiting for all IPs (100 req/min baseline)
+  - priority: 100
+    description: "Global rate limit - 100 req/min per IP"
+    action: "throttle"
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+          - "*"
+    rateLimitOptions:
+      conformAction: "allow"
+      exceedAction: "deny(429)"
+      enforceOnKey: "IP"
+      rateLimitThreshold:
+        count: 100
+        intervalSec: 60
+
+  # Rule 2: Stricter rate limit for expensive endpoints
+  - priority: 200
+    description: "Rate limit for token generation endpoints"
+    action: "throttle"
+    match:
+      expr:
+        expression: 'request.path.matches("/token.*") || request.path.matches("/api/subscription.*")'
+    rateLimitOptions:
+      conformAction: "allow"
+      exceedAction: "deny(429)"
+      enforceOnKey: "IP"
+      rateLimitThreshold:
+        count: 20
+        intervalSec: 60
+
+  # Rule 3: Block known bad actors (update as needed)
+  - priority: 300
+    description: "Block specific bad actor IPs (update via gcloud)"
+    action: "deny(403)"
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+          # Placeholder - add bad IPs here
+          - "0.0.0.0/32"
+    preview: true  # Start in preview mode
+
+  # Rule 4: Geographic restrictions (optional - uncomment if needed)
+  # - priority: 400
+  #   description: "Block high-risk countries"
+  #   action: "deny(403)"
+  #   match:
+  #     expr:
+  #       expression: 'origin.region_code == "KP" || origin.region_code == "RU"'
+
+  # Rule 5: Preconfigured WAF rules - SQL injection
+  - priority: 500
+    description: "Block SQL injection attacks"
+    action: "deny(403)"
+    match:
+      expr:
+        expression: "evaluatePreconfiguredExpr('sqli-stable')"
+
+  # Rule 6: Preconfigured WAF rules - XSS
+  - priority: 600
+    description: "Block XSS attacks"
+    action: "deny(403)"
+    match:
+      expr:
+        expression: "evaluatePreconfiguredExpr('xss-stable')"
+
+  # Rule 7: Block obvious bots/scanners by User-Agent
+  - priority: 700
+    description: "Block known vulnerability scanners"
+    action: "deny(403)"
+    match:
+      expr:
+        expression: |
+          request.headers['user-agent'].matches('(?i).*(nmap|nikto|sqlmap|masscan|nuclei|dirbuster|gobuster|wfuzz|feroxbuster).*')
+
+  # Rule 8: Protect against application-layer DDoS
+  - priority: 800
+    description: "Adaptive protection - auto-detect and mitigate DDoS"
+    action: "throttle"
+    match:
+      expr:
+        expression: "evaluatePreconfiguredExpr('layer7ddos-v1')"
+    rateLimitOptions:
+      conformAction: "allow"
+      exceedAction: "deny(429)"
+      enforceOnKey: "IP"
+      rateLimitThreshold:
+        count: 50
+        intervalSec: 10
+
+  # Default rule - allow all other traffic
+  - priority: 2147483647
+    description: "Default allow rule"
+    action: "allow"
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+          - "*"
+
+# Adaptive Protection (ML-based DDoS detection)
+adaptiveProtectionConfig:
+  layer7DdosDefenseConfig:
+    enable: true
+    ruleVisibility: "STANDARD"
+
+# Log all security events to Cloud Logging
+logConfig:
+  enable: true

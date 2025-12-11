@@ -1,0 +1,68 @@
+# Cloud Run Service Configuration - Voice Agent
+#
+# Deploy with:
+#   gcloud run services replace infra/cloudrun-service-agent.yaml --region=us-central1
+#
+# Voice agent needs more resources but should still have scaling limits
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ferni-voice-agent
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scaling limits - voice agent is more expensive
+        autoscaling.knative.dev/maxScale: "5"   # Max 5 instances (voice is expensive)
+        autoscaling.knative.dev/minScale: "1"   # Keep 1 warm for fast response
+
+        # Resource limits per instance
+        run.googleapis.com/cpu-throttling: "false"  # Voice needs consistent CPU
+        run.googleapis.com/startup-cpu-boost: "true"
+
+        # Connection limits - voice has long-lived connections
+        run.googleapis.com/max-instance-request-concurrency: "10"  # Few concurrent voice sessions per instance
+
+    spec:
+      # Longer timeout for voice sessions (5 minutes)
+      timeoutSeconds: 300
+
+      # Container spec
+      containers:
+        - image: gcr.io/${PROJECT_ID}/ferni-voice-agent:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+
+          # Health check
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
+  traffic:
+    - percent: 100
+      latestRevision: true
