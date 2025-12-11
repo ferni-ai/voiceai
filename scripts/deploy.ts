@@ -235,6 +235,7 @@ interface DeployOptions {
   skipBuild: boolean;
   verbose: boolean;
   async: boolean;
+  skipGitCheck: boolean;
 }
 
 // ============================================================================
@@ -696,7 +697,7 @@ async function deployBrand(options: DeployOptions): Promise<boolean> {
 }
 
 async function deployFrontend(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING FRONTEND TO FIREBASE HOSTING');
+  log.step('DEPLOYING FRONTEND TO FIREBASE HOSTING (BLUE-GREEN)');
 
   const frontendDir = join(PROJECT_ROOT, 'frontend-typescript');
 
@@ -706,7 +707,10 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
   }
 
   if (options.dryRun) {
-    log.info('Would deploy frontend to Firebase Hosting (ferni-prod + johnb-app)');
+    log.info('Would build frontend');
+    log.info('Would deploy to preview channel');
+    log.info('Would health check preview URL');
+    log.info('Would promote to live if healthy');
     return true;
   }
 
@@ -716,11 +720,59 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     exec(`cd ${frontendDir} && npm run build`);
   }
 
-  // Deploy to BOTH Firebase Hosting sites
-  log.info('Deploying to Firebase Hosting (ferni-prod + johnb-app)...');
+  // Step 1: Deploy to preview channel (blue-green)
+  log.info('Step 1/3: Deploying to preview channel...');
+  const channelId = `preview-${Date.now()}`;
+  let previewUrl = '';
+
+  try {
+    const previewOutput = exec(
+      `cd ${frontendDir} && firebase hosting:channel:deploy ${channelId} --only ferni-prod --project ${CONFIG.projectId} --json`,
+      { silent: true }
+    );
+    const previewData = JSON.parse(previewOutput);
+    previewUrl = previewData.result?.['ferni-prod']?.url || '';
+    if (previewUrl) {
+      log.success(`Preview deployed: ${previewUrl}`);
+    }
+  } catch {
+    log.warn('Could not get preview URL, continuing with direct deploy');
+  }
+
+  // Step 2: Health check preview (if we got a URL)
+  if (previewUrl) {
+    log.info('Step 2/3: Health checking preview...');
+    const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
+
+    if (!health.healthy) {
+      log.error(`Preview health check failed: ${health.error}`);
+      log.info('Cleaning up preview channel...');
+      try {
+        exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+      return false;
+    }
+    log.success(`Preview health check passed (HTTP ${health.statusCode})`);
+  } else {
+    log.info('Step 2/3: Skipping preview health check (no preview URL)');
+  }
+
+  // Step 3: Promote to live
+  log.info('Step 3/3: Promoting to live...');
   exec(
     `cd ${frontendDir} && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project ${CONFIG.projectId}`
   );
+
+  // Clean up preview channel
+  if (previewUrl) {
+    try {
+      exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 
   log.success('Frontend deployed to:');
   log.success('  - https://ferni-prod.web.app');
@@ -729,7 +781,7 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 }
 
 async function deployLanding(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING LANDING PAGE');
+  log.step('DEPLOYING LANDING PAGE (BLUE-GREEN)');
 
   const landingDir = join(PROJECT_ROOT, 'promo/ferni-website');
 
@@ -739,17 +791,75 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
   }
 
   if (options.dryRun) {
-    log.info('Would deploy landing page via Firebase or Cloud Storage');
+    log.info('Would deploy to preview channel');
+    log.info('Would health check preview URL');
+    log.info('Would promote to live if healthy');
     return true;
   }
 
-  // Try Firebase first
+  // Try Firebase with blue-green
   if (checkCommand('firebase')) {
-    log.info('Deploying via Firebase Hosting...');
+    // Step 1: Deploy to preview channel
+    log.info('Step 1/3: Deploying to preview channel...');
+    const channelId = `landing-preview-${Date.now()}`;
+    let previewUrl = '';
+
+    try {
+      const previewOutput = exec(
+        `cd ${landingDir} && firebase hosting:channel:deploy ${channelId} --project ${CONFIG.projectId} --json`,
+        { silent: true }
+      );
+      const previewData = JSON.parse(previewOutput);
+      // Extract URL from the first site in the result
+      const sites = previewData.result || {};
+      const siteKeys = Object.keys(sites);
+      if (siteKeys.length > 0) {
+        previewUrl = sites[siteKeys[0]]?.url || '';
+      }
+      if (previewUrl) {
+        log.success(`Preview deployed: ${previewUrl}`);
+      }
+    } catch {
+      log.warn('Could not get preview URL, continuing with direct deploy');
+    }
+
+    // Step 2: Health check preview
+    if (previewUrl) {
+      log.info('Step 2/3: Health checking preview...');
+      const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
+
+      if (!health.healthy) {
+        log.error(`Preview health check failed: ${health.error}`);
+        log.info('Cleaning up preview channel...');
+        try {
+          exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+        return false;
+      }
+      log.success(`Preview health check passed (HTTP ${health.statusCode})`);
+    } else {
+      log.info('Step 2/3: Skipping preview health check (no preview URL)');
+    }
+
+    // Step 3: Promote to live
+    log.info('Step 3/3: Promoting to live...');
     exec(`cd ${landingDir} && firebase deploy --only hosting --project ${CONFIG.projectId}`);
-    log.success('Landing page deployed via Firebase');
+
+    // Clean up preview channel
+    if (previewUrl) {
+      try {
+        exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
+    log.success('Landing page deployed via Firebase (https://ferni.ai)');
   } else {
-    // Fall back to Cloud Storage
+    // Fall back to Cloud Storage (no blue-green)
+    log.warn('Firebase not available, using direct Cloud Storage deploy');
     const bucketName = `ferni-landing-${CONFIG.projectId}`;
 
     try {
@@ -962,8 +1072,53 @@ Manual trigger:
 // PREFLIGHT CHECKS
 // ============================================================================
 
-function preflightChecks(): boolean {
+function preflightChecks(options: DeployOptions): boolean {
   log.step('PREFLIGHT CHECKS');
+
+  // Check for uncommitted changes (REQUIRED - no dirty deploys!)
+  if (!options.skipGitCheck) {
+    try {
+      const gitStatus = exec('git status --porcelain', { silent: true }).trim();
+      if (gitStatus) {
+        log.error('Uncommitted changes detected! Commit your changes before deploying.');
+        log.info('');
+        log.info('Uncommitted files:');
+        gitStatus.split('\n').slice(0, 10).forEach((line) => {
+          log.info(`  ${line}`);
+        });
+        if (gitStatus.split('\n').length > 10) {
+          log.info(`  ... and ${gitStatus.split('\n').length - 10} more`);
+        }
+        log.info('');
+        log.info('To commit your changes:');
+        log.info('  git add -A && git commit -m "your message"');
+        log.info('');
+        log.info('Or to bypass (not recommended):');
+        log.info('  npm run deploy -- --skip-git-check <target>');
+        return false;
+      }
+      log.success('Working directory clean');
+
+      // Also check if we're ahead of remote
+      try {
+        exec('git fetch --quiet', { silent: true });
+        const behindAhead = exec('git rev-list --left-right --count HEAD...@{upstream}', { silent: true }).trim();
+        const [behind, ahead] = behindAhead.split('\t').map(Number);
+        if (ahead > 0) {
+          log.warn(`${ahead} commit(s) not pushed. Consider: git push`);
+        }
+        if (behind > 0) {
+          log.warn(`${behind} commit(s) behind remote. Consider: git pull`);
+        }
+      } catch {
+        // No upstream or fetch failed - not critical
+      }
+    } catch {
+      log.warn('Could not check git status');
+    }
+  } else {
+    log.warn('Skipping git check (--skip-git-check)');
+  }
 
   // Check gcloud
   if (!checkCommand('gcloud')) {
@@ -1042,11 +1197,16 @@ ${colors.bold}Targets:${colors.reset}
   ${colors.green}all${colors.reset}        Deploy everything (agent, ui, frontend, landing)
 
 ${colors.bold}Options:${colors.reset}
-  --async       Run deployment in background (don't wait for completion)
-  --dry-run     Show what would be deployed without making changes
-  --skip-build  Skip local build steps
-  --verbose     Show detailed output
-  --help, -h    Show this help
+  --async           Run deployment in background (don't wait for completion)
+  --dry-run         Show what would be deployed without making changes
+  --skip-build      Skip local build steps
+  --skip-git-check  Allow deploy with uncommitted changes (not recommended)
+  --verbose         Show detailed output
+  --help, -h        Show this help
+
+${colors.bold}Safety:${colors.reset}
+  All deploys require committed code. Uncommitted changes will be rejected.
+  Blue-green deployment ensures health check before traffic shift.
 
 ${colors.bold}Environment Variables:${colors.reset}
   GCP_PROJECT_ID    Google Cloud project (default: johnb-2025)
@@ -1072,6 +1232,7 @@ async function main() {
     skipBuild: args.includes('--skip-build'),
     verbose: args.includes('--verbose'),
     async: args.includes('--async'),
+    skipGitCheck: args.includes('--skip-git-check'),
   };
 
   // Get target (non-option argument)
@@ -1097,7 +1258,7 @@ ${colors.cyan}╚═════════════════════
   }
 
   // Run preflight checks
-  if (!options.dryRun && !preflightChecks()) {
+  if (!options.dryRun && !preflightChecks(options)) {
     process.exit(1);
   }
 
