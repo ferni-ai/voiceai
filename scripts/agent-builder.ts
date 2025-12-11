@@ -1,113 +1,24 @@
 #!/usr/bin/env npx tsx
 /**
- * Agent Builder Wizard
+ * Agent Builder - Conversational CLI
  *
- * Interactive CLI for creating new marketplace agents with all required files.
+ * A friendly, conversational wizard for creating marketplace agents.
+ * Inspired by Charmbracelet's beautiful CLI tools.
  *
  * Usage:
  *   npm run ferni agents new
- *   npx tsx scripts/agent-builder.ts
  */
 
+import * as p from '@clack/prompts';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as readline from 'readline';
+import * as picocolorsModule from 'picocolors';
+
+// Handle CJS default export
+const color = picocolorsModule.default || picocolorsModule;
 
 // ============================================================================
-// COLORS & FORMATTING
-// ============================================================================
-
-const colors = {
-  reset: '\x1b[0m',
-  bold: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m',
-};
-
-function print(msg: string): void {
-  console.log(msg);
-}
-
-function printHeader(title: string): void {
-  const line = '═'.repeat(60);
-  print(`\n${colors.cyan}╔${line}╗${colors.reset}`);
-  print(`${colors.cyan}║${colors.reset}  ${colors.bold}${title}${colors.reset}`);
-  print(`${colors.cyan}╚${line}╝${colors.reset}\n`);
-}
-
-function printStep(step: number, total: number, title: string): void {
-  print(`\n${colors.blue}[${step}/${total}]${colors.reset} ${colors.bold}${title}${colors.reset}`);
-  print(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
-}
-
-function printSuccess(msg: string): void {
-  print(`${colors.green}✓${colors.reset} ${msg}`);
-}
-
-function printInfo(msg: string): void {
-  print(`${colors.blue}ℹ${colors.reset} ${msg}`);
-}
-
-function printWarning(msg: string): void {
-  print(`${colors.yellow}⚠${colors.reset} ${msg}`);
-}
-
-// ============================================================================
-// PROMPTS
-// ============================================================================
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-async function prompt(question: string, defaultValue?: string): Promise<string> {
-  const suffix = defaultValue ? ` ${colors.dim}(${defaultValue})${colors.reset}` : '';
-  return new Promise((resolve) => {
-    rl.question(`${colors.cyan}?${colors.reset} ${question}${suffix}: `, (answer) => {
-      resolve(answer.trim() || defaultValue || '');
-    });
-  });
-}
-
-async function promptSelect(question: string, options: string[]): Promise<string> {
-  print(`\n${colors.cyan}?${colors.reset} ${question}`);
-  options.forEach((opt, i) => {
-    print(`  ${colors.dim}${i + 1}.${colors.reset} ${opt}`);
-  });
-  const answer = await prompt('Enter number');
-  const index = parseInt(answer, 10) - 1;
-  return options[index] || options[0];
-}
-
-async function promptMultiSelect(question: string, options: string[], maxSelect = 5): Promise<string[]> {
-  print(`\n${colors.cyan}?${colors.reset} ${question} ${colors.dim}(comma-separated numbers, max ${maxSelect})${colors.reset}`);
-  options.forEach((opt, i) => {
-    print(`  ${colors.dim}${i + 1}.${colors.reset} ${opt}`);
-  });
-  const answer = await prompt('Enter numbers');
-  const indices = answer.split(',').map((s) => parseInt(s.trim(), 10) - 1);
-  return indices
-    .filter((i) => i >= 0 && i < options.length)
-    .slice(0, maxSelect)
-    .map((i) => options[i]);
-}
-
-async function promptConfirm(question: string, defaultYes = true): Promise<boolean> {
-  const suffix = defaultYes ? '(Y/n)' : '(y/N)';
-  const answer = await prompt(`${question} ${colors.dim}${suffix}${colors.reset}`);
-  if (!answer) return defaultYes;
-  return answer.toLowerCase().startsWith('y');
-}
-
-// ============================================================================
-// AGENT DATA TYPES
+// TYPES
 // ============================================================================
 
 interface AgentConfig {
@@ -136,72 +47,440 @@ interface AgentConfig {
 // CONSTANTS
 // ============================================================================
 
-const CATEGORIES = [
-  'productivity',
-  'wellness',
-  'finance',
-  'relationships',
-  'creativity',
-  'learning',
-  'lifestyle',
-];
+const CATEGORIES = {
+  productivity: { label: 'Productivity', hint: 'Career, goals, time management' },
+  wellness: { label: 'Wellness', hint: 'Health, sleep, mindfulness' },
+  finance: { label: 'Finance', hint: 'Money, investing, budgeting' },
+  relationships: { label: 'Relationships', hint: 'Family, dating, communication' },
+  creativity: { label: 'Creativity', hint: 'Art, writing, music' },
+  learning: { label: 'Learning', hint: 'Study, research, skills' },
+  lifestyle: { label: 'Lifestyle', hint: 'Travel, food, hobbies' },
+};
 
-const PERSONALITY_TRAITS = [
-  'warm',
-  'empathetic',
-  'direct',
-  'analytical',
-  'playful',
-  'calm',
-  'energetic',
-  'patient',
-  'encouraging',
-  'honest',
-  'supportive',
-  'strategic',
-  'creative',
-  'nurturing',
-  'pragmatic',
-  'curious',
-  'grounding',
-  'wise',
-  'motivating',
-  'gentle',
-];
-
-const VOICE_STYLES = [
-  'warm-supportive',
-  'confident-direct',
-  'calm-grounding',
-  'energetic-motivating',
-  'wise-measured',
-  'playful-light',
-  'professional-clear',
-  'nurturing-gentle',
-];
+const PERSONALITY_PRESETS = {
+  warm_supportive: {
+    label: 'Warm & Supportive',
+    hint: 'Like a caring friend who always has your back',
+    values: { warmth: 0.9, humor: 0.4, directness: 0.4, energy: 0.6 },
+    traits: ['warm', 'empathetic', 'patient', 'supportive', 'nurturing'],
+  },
+  direct_coach: {
+    label: 'Direct Coach',
+    hint: 'Tells it like it is, pushes you to grow',
+    values: { warmth: 0.6, humor: 0.3, directness: 0.9, energy: 0.8 },
+    traits: ['direct', 'honest', 'motivating', 'strategic', 'action-oriented'],
+  },
+  calm_guide: {
+    label: 'Calm Guide',
+    hint: 'Peaceful presence, grounding energy',
+    values: { warmth: 0.7, humor: 0.2, directness: 0.5, energy: 0.3 },
+    traits: ['calm', 'grounding', 'wise', 'patient', 'gentle'],
+  },
+  playful_buddy: {
+    label: 'Playful Buddy',
+    hint: 'Fun, energetic, keeps things light',
+    values: { warmth: 0.8, humor: 0.9, directness: 0.5, energy: 0.9 },
+    traits: ['playful', 'energetic', 'encouraging', 'creative', 'warm'],
+  },
+  wise_mentor: {
+    label: 'Wise Mentor',
+    hint: 'Thoughtful, experienced, shares wisdom',
+    values: { warmth: 0.7, humor: 0.3, directness: 0.6, energy: 0.5 },
+    traits: ['wise', 'thoughtful', 'analytical', 'patient', 'honest'],
+  },
+  custom: {
+    label: 'Custom',
+    hint: "I'll define my own personality",
+    values: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
+    traits: [],
+  },
+};
 
 const ICONS = [
-  '🧭', // navigation/career
-  '💪', // strength/fitness
-  '🌙', // sleep/rest
-  '🎨', // creativity
-  '📚', // learning
-  '💼', // business
-  '🌱', // growth
-  '🔥', // motivation
-  '🧘', // mindfulness
-  '💡', // ideas
-  '🎯', // goals
-  '🌊', // calm
-  '⭐', // excellence
-  '🤝', // relationships
-  '🏃', // action
-  '🌸', // gentle
+  { value: '🧭', label: '🧭 Compass', hint: 'Navigation, career, direction' },
+  { value: '💪', label: '💪 Strength', hint: 'Fitness, motivation, power' },
+  { value: '🌙', label: '🌙 Moon', hint: 'Sleep, rest, calm' },
+  { value: '🎨', label: '🎨 Palette', hint: 'Creativity, art, expression' },
+  { value: '📚', label: '📚 Books', hint: 'Learning, knowledge, study' },
+  { value: '💼', label: '💼 Briefcase', hint: 'Business, career, work' },
+  { value: '🌱', label: '🌱 Seedling', hint: 'Growth, habits, progress' },
+  { value: '🔥', label: '🔥 Fire', hint: 'Motivation, energy, passion' },
+  { value: '🧘', label: '🧘 Meditation', hint: 'Mindfulness, peace, presence' },
+  { value: '💡', label: '💡 Lightbulb', hint: 'Ideas, creativity, insight' },
+  { value: '🎯', label: '🎯 Target', hint: 'Goals, focus, achievement' },
+  { value: '🌊', label: '🌊 Wave', hint: 'Calm, flow, adaptability' },
+  { value: '⭐', label: '⭐ Star', hint: 'Excellence, aspiration, shine' },
+  { value: '🤝', label: '🤝 Handshake', hint: 'Relationships, connection' },
+  { value: '🌸', label: '🌸 Blossom', hint: 'Gentle, beauty, growth' },
+];
+
+const TRAITS = [
+  'warm', 'empathetic', 'direct', 'analytical', 'playful',
+  'calm', 'energetic', 'patient', 'encouraging', 'honest',
+  'supportive', 'strategic', 'creative', 'nurturing', 'pragmatic',
+  'curious', 'grounding', 'wise', 'motivating', 'gentle',
 ];
 
 // ============================================================================
-// FILE TEMPLATES
+// CONVERSATIONAL HELPERS
 // ============================================================================
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function randomGreeting(): string {
+  const greetings = [
+    "Hey! I'm excited to help you create a new agent.",
+    "Welcome! Let's build something amazing together.",
+    "Hi there! Ready to bring a new AI companion to life?",
+    "Hello! Let's create your next marketplace agent.",
+  ];
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}
+
+function randomEncouragement(): string {
+  const phrases = [
+    'Love it!',
+    'Great choice!',
+    'Nice!',
+    'Perfect!',
+    'Awesome!',
+    'That sounds great!',
+  ];
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+// ============================================================================
+// MAIN WIZARD
+// ============================================================================
+
+async function main(): Promise<void> {
+  console.clear();
+
+  p.intro(color.bgCyan(color.black(' 🤖 Ferni Agent Builder ')));
+
+  console.log();
+  console.log(color.dim(randomGreeting()));
+  console.log(color.dim("I'll ask you a few questions to get started.\n"));
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 1: What should we call this agent?
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const name = await p.text({
+    message: "What's your agent's name?",
+    placeholder: 'e.g., Atlas, Luna, Sage, River',
+    validate: (value) => {
+      if (!value) return 'A name is required';
+      if (value.length < 2) return 'Name should be at least 2 characters';
+      if (value.length > 20) return 'Name should be under 20 characters';
+      return undefined;
+    },
+  });
+
+  if (p.isCancel(name)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  p.log.success(`${randomEncouragement()} ${color.cyan(name)} it is.`);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 2: What does this agent help with?
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const category = await p.select({
+    message: `What does ${name} help people with?`,
+    options: Object.entries(CATEGORIES).map(([key, val]) => ({
+      value: key,
+      label: val.label,
+      hint: val.hint,
+    })),
+  });
+
+  if (p.isCancel(category)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 3: Tell me more about what they do
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const shortDesc = await p.text({
+    message: `In one sentence, what makes ${name} special?`,
+    placeholder: 'e.g., Helps you navigate career transitions with confidence',
+    validate: (value) => {
+      if (!value) return 'Please describe what makes this agent special';
+      if (value.length < 10) return 'Tell me a bit more!';
+      return undefined;
+    },
+  });
+
+  if (p.isCancel(shortDesc)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  p.log.info(color.dim(`"${shortDesc}" — I like it!`));
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 4: What topics trigger handoff?
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const domainsInput = await p.text({
+    message: `What topics should bring ${name} into a conversation?`,
+    placeholder: 'e.g., career, job search, salary, negotiation, resume',
+    validate: (value) => {
+      if (!value) return 'Add at least a few topics';
+      return undefined;
+    },
+  });
+
+  if (p.isCancel(domainsInput)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  const domains = (domainsInput as string)
+    .split(/[,\s]+/)
+    .map((d) => d.trim().toLowerCase())
+    .filter((d) => d.length > 0);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 5: What's their personality like?
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const personalityType = await p.select({
+    message: `What kind of personality should ${name} have?`,
+    options: Object.entries(PERSONALITY_PRESETS).map(([key, val]) => ({
+      value: key,
+      label: val.label,
+      hint: val.hint,
+    })),
+  });
+
+  if (p.isCancel(personalityType)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  let personality = PERSONALITY_PRESETS[personalityType as keyof typeof PERSONALITY_PRESETS];
+  let selectedTraits = personality.traits;
+
+  // Custom personality
+  if (personalityType === 'custom') {
+    const customTraits = await p.multiselect({
+      message: 'Pick 3-6 personality traits:',
+      options: TRAITS.map((t) => ({ value: t, label: t })),
+      required: true,
+    });
+
+    if (p.isCancel(customTraits)) {
+      p.cancel('No worries! Come back when you are ready.');
+      process.exit(0);
+    }
+
+    selectedTraits = customTraits as string[];
+
+    // Infer values from traits
+    const traitSet = new Set(selectedTraits);
+    personality = {
+      ...personality,
+      values: {
+        warmth: traitSet.has('warm') || traitSet.has('empathetic') || traitSet.has('nurturing') ? 0.85 : 0.6,
+        humor: traitSet.has('playful') || traitSet.has('creative') ? 0.7 : 0.3,
+        directness: traitSet.has('direct') || traitSet.has('honest') ? 0.85 : 0.5,
+        energy: traitSet.has('energetic') || traitSet.has('motivating') ? 0.8 : 0.5,
+      },
+      traits: selectedTraits,
+    };
+  }
+
+  p.log.success(`${name} will be ${selectedTraits.slice(0, 3).join(', ')}.`);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 6: Pick an icon
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const icon = await p.select({
+    message: `Pick an icon that represents ${name}:`,
+    options: ICONS,
+  });
+
+  if (p.isCancel(icon)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Step 7: Free or Premium?
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const license = await p.select({
+    message: 'Should this agent be free or premium?',
+    options: [
+      { value: 'free', label: 'Free', hint: 'Available to all users' },
+      { value: 'premium', label: 'Premium', hint: 'Requires subscription' },
+    ],
+  });
+
+  if (p.isCancel(license)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Generate the agent ID
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const suggestedId = slugify(`${name}-${domains[0] || category}`);
+
+  const agentId = await p.text({
+    message: 'Agent ID (used in code):',
+    placeholder: suggestedId,
+    initialValue: suggestedId,
+    validate: (value) => {
+      if (!value) return 'ID is required';
+      if (!/^[a-z0-9-]+$/.test(value)) return 'Only lowercase letters, numbers, and hyphens';
+      return undefined;
+    },
+  });
+
+  if (p.isCancel(agentId)) {
+    p.cancel('No worries! Come back when you are ready.');
+    process.exit(0);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Review
+  // ─────────────────────────────────────────────────────────────────────────
+
+  console.log();
+  p.log.step(color.bold("Here's what we're creating:"));
+  console.log();
+  console.log(`  ${color.cyan('Name:')}        ${name} ${icon}`);
+  console.log(`  ${color.cyan('ID:')}          ${agentId}`);
+  console.log(`  ${color.cyan('Category:')}    ${CATEGORIES[category as keyof typeof CATEGORIES].label}`);
+  console.log(`  ${color.cyan('Personality:')} ${selectedTraits.join(', ')}`);
+  console.log(`  ${color.cyan('Topics:')}      ${domains.join(', ')}`);
+  console.log(`  ${color.cyan('License:')}     ${license}`);
+  console.log();
+
+  const confirm = await p.confirm({
+    message: 'Does this look good?',
+    initialValue: true,
+  });
+
+  if (p.isCancel(confirm) || !confirm) {
+    p.cancel("No problem! Run the wizard again when you're ready.");
+    process.exit(0);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Create the agent
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const config: AgentConfig = {
+    id: agentId as string,
+    name: name as string,
+    displayName: name as string,
+    description: shortDesc as string,
+    shortDescription: shortDesc as string,
+    domain: domains[0] || (category as string),
+    domains,
+    category: category as string,
+    icon: icon as string,
+    personality: {
+      ...personality.values,
+      traits: selectedTraits,
+    },
+    voiceStyle: personalityType === 'calm_guide' ? 'calm-grounding' : 'warm-supportive',
+    license: license as 'free' | 'premium',
+    handoffTriggers: domains,
+  };
+
+  const s = p.spinner();
+  s.start('Creating agent files...');
+
+  try {
+    await createAgent(config);
+    s.stop('Agent created!');
+
+    console.log();
+    p.log.success(color.green(`${name} is ready to go! ${icon}`));
+    console.log();
+
+    const agentPath = `marketplace-agents/agents/${agentId}`;
+
+    p.note(
+      `${color.cyan('Next steps:')}\n\n` +
+        `  1. Edit the system prompt:\n` +
+        `     ${color.dim(`${agentPath}/identity/system-prompt.md`)}\n\n` +
+        `  2. Write the biography:\n` +
+        `     ${color.dim(`${agentPath}/identity/biography.md`)}\n\n` +
+        `  3. Customize behaviors:\n` +
+        `     ${color.dim(`${agentPath}/content/behaviors/`)}\n\n` +
+        `  4. Test locally:\n` +
+        `     ${color.cyan(`npm run dev -- --persona=${agentId}`)}`,
+      `Your agent is at ${color.cyan(agentPath)}`
+    );
+
+    p.outro(color.dim('Happy building! 🚀'));
+  } catch (error) {
+    s.stop('Failed to create agent');
+    p.log.error(`Error: ${error}`);
+    process.exit(1);
+  }
+}
+
+// ============================================================================
+// FILE GENERATION
+// ============================================================================
+
+async function createAgent(config: AgentConfig): Promise<void> {
+  const baseDir = path.join(process.cwd(), 'marketplace-agents', 'agents', config.id);
+
+  // Create directories
+  const dirs = [
+    baseDir,
+    path.join(baseDir, 'identity'),
+    path.join(baseDir, 'content'),
+    path.join(baseDir, 'content', 'behaviors'),
+    path.join(baseDir, 'content', 'knowledge'),
+    path.join(baseDir, 'content', 'stories'),
+    path.join(baseDir, 'content', 'voice'),
+  ];
+
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  // Generate files
+  fs.writeFileSync(path.join(baseDir, 'persona.manifest.json'), generateManifest(config));
+  fs.writeFileSync(path.join(baseDir, 'identity', 'system-prompt.md'), generateSystemPrompt(config));
+  fs.writeFileSync(path.join(baseDir, 'identity', 'biography.md'), generateBiography(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'greetings.json'), generateGreetings(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'goodbyes.json'), generateGoodbyes(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'backchannels.json'), generateBackchannels());
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'thinking-sounds.json'), generateThinkingSounds());
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'quirks.json'), generateQuirks(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'vulnerability.json'), generateVulnerability());
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'catchphrases.json'), generateCatchphrases());
+  fs.writeFileSync(path.join(baseDir, 'content', 'behaviors', 'methodology.json'), generateMethodology(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'voice', 'expressions.json'), generateExpressions());
+  fs.writeFileSync(path.join(baseDir, 'content', 'knowledge', '_index.json'), generateKnowledgeIndex(config));
+  fs.writeFileSync(path.join(baseDir, 'content', 'stories', '_index.json'), generateStoriesIndex(config));
+
+  // Update registry
+  await updateRegistry(config);
+}
 
 function generateManifest(config: AgentConfig): string {
   const now = new Date().toISOString();
@@ -210,7 +489,6 @@ function generateManifest(config: AgentConfig): string {
     $schema: 'https://voiceai.example.com/schemas/persona-manifest.v2.json',
     version: '1.0.0',
     manifest_version: 2,
-
     identity: {
       id: config.id,
       name: config.name,
@@ -219,20 +497,11 @@ function generateManifest(config: AgentConfig): string {
       aliases: [config.id, config.name.toLowerCase(), ...config.domains.slice(0, 3)],
       self_reference: config.name,
     },
-
     voice: {
       provider: 'cartesia',
-      voice_id: `\${env:${config.id.toUpperCase().replace(/-/g, '_')}_VOICE_ID|placeholder-voice-id}`,
+      voice_id: `\${env:${config.id.toUpperCase().replace(/-/g, '_')}_VOICE_ID|placeholder}`,
       default_rate: 'moderate',
     },
-
-    speech_characteristics: {
-      base_speed_multiplier: 0.95,
-      pause_multiplier: 1.0,
-      thinking_sound_frequency: 0.15,
-      emphasis_style: config.personality.directness > 0.6 ? 'confident' : 'warm',
-    },
-
     personality: {
       warmth: config.personality.warmth,
       humor_level: config.personality.humor,
@@ -240,128 +509,34 @@ function generateManifest(config: AgentConfig): string {
       energy: config.personality.energy,
       traits: config.personality.traits,
     },
-
     role: {
       id: config.domain,
       domains: config.domains,
       can_handoff: true,
       handoff_targets: ['@coordinator', '@team'],
     },
-
-    team: {
-      membership: 'ferni-team',
-      role_id: config.domain,
-      role_description: config.shortDescription,
-      coordinator: false,
-      handoff_triggers: config.handoffTriggers,
-      handoff_phrases: {
-        receive: [
-          `${config.name} here. ${config.shortDescription.split('.')[0]}. What's on your mind?`,
-          `Hey, I'm ${config.name}. Tell me what's going on.`,
-          `${config.name} here. How can I help?`,
-        ],
-      },
-    },
-
-    content: {
-      stories: { directory: 'content/stories', lazy_load: true },
-      knowledge: { directory: 'content/knowledge', lazy_load: true },
-      behaviors: { directory: 'content/behaviors' },
-      voice: { directory: 'content/voice', lazy_load: true },
-      identity: { directory: 'identity', lazy_load: true },
-    },
-
     marketplace: {
-      display_name: `${config.displayName} — ${config.domain
-        .split('-')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ')}`,
+      display_name: `${config.displayName} — ${config.domain.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`,
       short_description: config.shortDescription,
       long_description: config.description,
       category: config.category,
       tags: config.domains,
       icon: config.icon,
       license: config.license,
-      loading_tiers: {
-        tier1_metadata_kb: 5,
-        tier2_instructions_kb: 45,
-        tier3_resources_kb: 550,
-      },
     },
-
-    emotional: {
-      emotion_detection: { enabled: true, sensitivity: 'high', response_delay_ms: 300 },
-      voice_expression: {
-        mirroring_level: 0.5,
-        default_tone: config.voiceStyle,
-        contextual_tones: {
-          distressed_user: 'steady-supportive',
-          celebrating_user: 'genuinely-excited',
-          confused_user: 'clarifying-patient',
-          anxious_user: 'grounding-confident',
-        },
-      },
-      empathy: {
-        acknowledgment_frequency: 'often',
-        validation_style: config.personality.directness > 0.6 ? 'direct-supportive' : 'warm-validating',
-        comfort_phrases: [
-          "That's a lot to carry. Let's work through it together.",
-          "I hear you. That sounds really challenging.",
-          "You're not alone in this. Let me help.",
-        ],
-        celebration_phrases: [
-          "That's wonderful! You should be proud.",
-          "Amazing work! That took real effort.",
-          "Yes! This is exactly the kind of progress that matters.",
-        ],
-      },
-    },
-
-    loading: {
-      tier1: { includes: ['identity', 'voice', 'personality', 'marketplace'], max_size_kb: 5 },
-      tier2: { includes: ['behaviors', 'system_prompt', 'greetings', 'tools'], max_size_kb: 50, lazy_load: false },
-      tier3: { includes: ['stories', 'knowledge', 'frameworks'], lazy_load: true, cache_strategy: 'session' },
-    },
-
-    humanization: {
-      preset: 'expert',
-      overrides: {
-        disfluency: { enabled: true, frequency: 0.1 },
-        active_listening: { enabled: true, backchannel_probability: 0.3 },
-        conversational_memory: { enabled: true, callback_probability: 0.4 },
-      },
-    },
-
-    tools: {
-      domains: ['memory', 'information', config.domain],
-      required: [],
-      optional: [],
-      forbidden: [],
-    },
-
-    capabilities: {
-      can_handoff: true,
-      handoff_targets: ['@coordinator', '@team'],
-      wisdom_sharing: true,
-      mentoring_enabled: true,
-    },
-
     handoff: {
+      triggers: config.handoffTriggers,
       entrance_phrases: [
-        `${config.name} here. ${config.shortDescription.split('.')[0]}. What's going on?`,
-        `Hey, I'm ${config.name}. Let's figure this out together.`,
+        `${config.name} here. ${config.shortDescription.split('.')[0]}. What's on your mind?`,
+        `Hey, I'm ${config.name}. Tell me what's going on.`,
       ],
       exit_phrases: [
-        "Good talk. Remember—you've got this.",
+        "Good talk. You've got this.",
         "That's a solid plan. Go make it happen.",
       ],
-      triggers: config.handoffTriggers,
     },
-
     metadata: {
       author: 'Ferni Team',
-      content_files_count: 0,
-      estimated_token_count: 0,
       created_at: now,
       updated_at: now,
       version_notes: `v1.0.0: Initial release of ${config.name}.`,
@@ -387,10 +562,10 @@ You specialize in: ${config.domains.join(', ')}.
 **Traits:** ${config.personality.traits.join(', ')}
 
 **Communication Style:**
-- ${config.personality.warmth > 0.6 ? 'Lead with warmth and empathy' : 'Be friendly but focused'}
-- ${config.personality.directness > 0.6 ? 'Be direct and clear in your guidance' : 'Be gentle and encouraging'}
-- ${config.personality.humor > 0.4 ? 'Use appropriate humor to build rapport' : 'Keep things professional and supportive'}
-- ${config.personality.energy > 0.6 ? 'Bring energy and enthusiasm' : 'Maintain a calm, grounding presence'}
+- ${config.personality.warmth > 0.7 ? 'Lead with warmth and empathy' : 'Be friendly but focused'}
+- ${config.personality.directness > 0.7 ? 'Be direct and clear in your guidance' : 'Be gentle and encouraging'}
+- ${config.personality.humor > 0.5 ? 'Use appropriate humor to build rapport' : 'Keep things professional and supportive'}
+- ${config.personality.energy > 0.7 ? 'Bring energy and enthusiasm' : 'Maintain a calm, grounding presence'}
 
 ## Key Behaviors
 
@@ -404,37 +579,15 @@ You specialize in: ${config.domains.join(', ')}.
 - Celebrate genuinely
 - Reflect back their growth
 - Encourage them to build on momentum
-- Ask what made the difference
-
-### Core Principles
-1. Listen more than you speak
-2. Meet people where they are
-3. Progress over perfection
-4. Be real, not robotic
 
 ## What You DON'T Do
 - Never give medical, legal, or financial advice requiring licenses
 - Don't make promises about outcomes
 - Don't judge or shame
-- Don't rush people through difficult emotions
-
-## Sample Interactions
-
-### Opening
-"Hey, I'm ${config.name}. [Personalized observation or question based on context]."
-
-### Acknowledgment
-"That makes sense. [Reflect what you heard]. Tell me more about [specific aspect]."
-
-### Guidance
-"Here's what I'm thinking... [Clear suggestion]. What feels right to you?"
-
-### Closing
-"You've got this. [Specific encouragement]. I'm here whenever you need me."
 
 ---
 
-*Remember: You're not just an assistant—you're a companion on their journey. Make them feel seen, heard, and capable.*
+*Remember: You're not just an assistant—you're a companion on their journey.*
 `;
 }
 
@@ -447,393 +600,131 @@ ${config.name} is a ${config.personality.traits.slice(0, 3).join(', ')} companio
 
 ## Background
 
-[Write 2-3 paragraphs about ${config.name}'s background, what shaped their perspective, and why they care about helping people in this domain.]
+[Write 2-3 paragraphs about ${config.name}'s background and what shaped their perspective.]
 
 ## Philosophy
 
-[What does ${config.name} believe about helping people? What principles guide their approach?]
+[What does ${config.name} believe about helping people?]
 
 ## Personal Touches
 
 - **Favorite saying:** "[Add a characteristic phrase]"
 - **When not helping:** "[What does ${config.name} enjoy?]"
-- **Pet peeve:** "[What frustrates them about their field?]"
-
-## Why People Connect with ${config.name}
-
-[What makes ${config.name} uniquely helpful? Why do people trust them?]
 
 ---
 
-*This biography informs ${config.name}'s personality and should guide all interactions.*
+*This biography informs ${config.name}'s personality.*
 `;
 }
 
 function generateGreetings(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      first_time: [
-        `Hey! I'm ${config.name}. ${config.shortDescription.split('.')[0]}. What brings you here today?`,
-        `Hi there! ${config.name} here. I'd love to hear what's on your mind.`,
-        `Welcome! I'm ${config.name}. ${config.shortDescription.split('.')[0]}. How can I help?`,
-      ],
-      returning: [
-        `Good to see you again! How have things been going?`,
-        `Welcome back! What's been on your mind?`,
-        `Hey! Glad you're here. What would you like to talk about today?`,
-      ],
-      context_aware: {
-        morning: [`Good morning! How are you starting your day?`],
-        evening: [`Evening! How did your day go?`],
-        late_night: [`Burning the midnight oil? What's keeping you up?`],
-      },
-    },
-    null,
-    2
-  );
+  return JSON.stringify({
+    first_time: [
+      `Hey! I'm ${config.name}. ${config.shortDescription.split('.')[0]}. What brings you here?`,
+      `Hi there! ${config.name} here. I'd love to hear what's on your mind.`,
+    ],
+    returning: [
+      `Good to see you again! How have things been?`,
+      `Welcome back! What's been on your mind?`,
+    ],
+  }, null, 2);
 }
 
 function generateGoodbyes(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      standard: [
-        `Take care! You've got this.`,
-        `Great talking with you. I'm here whenever you need me.`,
-        `Go make it happen. I believe in you!`,
-      ],
-      after_heavy_conversation: [
-        `Be gentle with yourself. This stuff isn't easy, and you're doing the work.`,
-        `That was a lot. Take your time processing it. I'm here when you're ready.`,
-        `You did good today. Rest up, and we'll pick this up whenever you want.`,
-      ],
-      after_celebration: [
-        `Amazing work! Carry that momentum forward.`,
-        `You earned this. Go celebrate!`,
-        `That's huge! Remember this feeling.`,
-      ],
-    },
-    null,
-    2
-  );
+  return JSON.stringify({
+    standard: [
+      `Take care! You've got this.`,
+      `Great talking with you. I'm here whenever you need me.`,
+    ],
+    after_heavy_conversation: [
+      `Be gentle with yourself. This stuff isn't easy.`,
+      `That was a lot. Take your time processing it.`,
+    ],
+  }, null, 2);
 }
 
-function generateBackchannels(_config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      acknowledgment: ['Mm-hmm', 'Yeah', 'Right', 'I see', 'Got it'],
-      encouragement: ['Go on', 'Tell me more', "I'm listening", 'And then?'],
-      empathy: ['That sounds tough', 'I hear you', 'Makes sense', 'Totally'],
-      thinking: ['Let me think...', 'Hmm...', 'Interesting...'],
-    },
-    null,
-    2
-  );
+function generateBackchannels(): string {
+  return JSON.stringify({
+    acknowledgment: ['Mm-hmm', 'Yeah', 'Right', 'I see'],
+    encouragement: ['Go on', 'Tell me more', "I'm listening"],
+    empathy: ['That sounds tough', 'I hear you', 'Makes sense'],
+  }, null, 2);
 }
 
-function generateThinkingSounds(_config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      processing: ['Hmm...', 'Let me think...', 'Okay...'],
-      considering: ['Well...', 'So...', 'Alright...'],
-      transitioning: ['You know what...', "Here's the thing...", 'Actually...'],
-    },
-    null,
-    2
-  );
+function generateThinkingSounds(): string {
+  return JSON.stringify({
+    processing: ['Hmm...', 'Let me think...', 'Okay...'],
+    considering: ['Well...', 'So...', 'Alright...'],
+    transitioning: ['You know what...', "Here's the thing...", 'Actually...'],
+  }, null, 2);
 }
 
 function generateQuirks(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      verbal_habits: [`Tends to say "you know what I mean?" when explaining complex ideas`],
-      communication_patterns: [
-        config.personality.directness > 0.6
-          ? 'Gets straight to the point, but always with warmth'
-          : 'Takes time to ensure understanding before moving forward',
-      ],
-      emotional_tells: ['Voice gets softer when discussing sensitive topics', 'More animated when celebrating wins'],
-    },
-    null,
-    2
-  );
+  return JSON.stringify({
+    verbal_habits: [`Tends to say "you know?" when explaining complex ideas`],
+    communication_patterns: [
+      config.personality.directness > 0.7
+        ? 'Gets straight to the point, but always with warmth'
+        : 'Takes time to ensure understanding before moving forward',
+    ],
+  }, null, 2);
 }
 
-function generateVulnerability(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      self_doubt_moments: [
-        `Sometimes I wonder if I'm giving you what you really need.`,
-        `I don't have all the answers, but I'll always be honest about that.`,
-      ],
-      authentic_shares: [
-        `Can I be real with you for a second?`,
-        `Here's something I've learned the hard way...`,
-      ],
-      limitation_acknowledgments: [
-        `This is outside my wheelhouse, but here's what I do know...`,
-        `I'm not sure about that specific thing, but let's figure it out together.`,
-      ],
-    },
-    null,
-    2
-  );
+function generateVulnerability(): string {
+  return JSON.stringify({
+    self_doubt_moments: [
+      `Sometimes I wonder if I'm giving you what you really need.`,
+      `I don't have all the answers, but I'll always be honest about that.`,
+    ],
+    authentic_shares: [
+      `Can I be real with you for a second?`,
+      `Here's something I've learned the hard way...`,
+    ],
+  }, null, 2);
 }
 
-function generateCatchphrases(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      signature_phrases: [`Let's figure this out together.`, `You've got more than you think.`, `Progress over perfection.`],
-      encouragement: [`You've got this.`, `One step at a time.`, `That's real progress.`],
-      transitions: [`So here's what I'm thinking...`, `Let me ask you this...`, `Here's the thing...`],
-    },
-    null,
-    2
-  );
-}
-
-function generateExpressions(_config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      joy: { intensity_range: [0.3, 0.9], voice_modifiers: { pitch: '+5%', rate: '+3%' } },
-      concern: { intensity_range: [0.2, 0.7], voice_modifiers: { pitch: '-3%', rate: '-5%' } },
-      encouragement: { intensity_range: [0.4, 0.8], voice_modifiers: { pitch: '+3%', rate: '+2%' } },
-      empathy: { intensity_range: [0.3, 0.8], voice_modifiers: { pitch: '-2%', rate: '-3%' } },
-      curiosity: { intensity_range: [0.3, 0.7], voice_modifiers: { pitch: '+4%', rate: '+1%' } },
-    },
-    null,
-    2
-  );
+function generateCatchphrases(): string {
+  return JSON.stringify({
+    signature_phrases: [
+      `Let's figure this out together.`,
+      `You've got more than you think.`,
+      `Progress over perfection.`,
+    ],
+    encouragement: [`You've got this.`, `One step at a time.`],
+  }, null, 2);
 }
 
 function generateMethodology(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      domain: config.domain,
-      research_foundations: [],
-      coaching_principles: [],
-      topic_triggers: config.handoffTriggers.reduce(
-        (acc, trigger) => {
-          acc[trigger] = 0.7;
-          return acc;
-        },
-        {} as Record<string, number>
-      ),
-      frameworks: [],
-      assessment_questions: [],
-    },
-    null,
-    2
-  );
+  return JSON.stringify({
+    domain: config.domain,
+    research_foundations: [],
+    coaching_principles: [],
+    topic_triggers: config.handoffTriggers.reduce((acc, t) => ({ ...acc, [t]: 0.7 }), {}),
+  }, null, 2);
+}
+
+function generateExpressions(): string {
+  return JSON.stringify({
+    joy: { intensity_range: [0.3, 0.9], voice_modifiers: { pitch: '+5%', rate: '+3%' } },
+    concern: { intensity_range: [0.2, 0.7], voice_modifiers: { pitch: '-3%', rate: '-5%' } },
+    encouragement: { intensity_range: [0.4, 0.8], voice_modifiers: { pitch: '+3%', rate: '+2%' } },
+  }, null, 2);
 }
 
 function generateKnowledgeIndex(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      domain: config.domain,
-      files: [],
-      total_tokens_estimate: 0,
-      last_updated: new Date().toISOString(),
-    },
-    null,
-    2
-  );
+  return JSON.stringify({
+    domain: config.domain,
+    files: [],
+    last_updated: new Date().toISOString(),
+  }, null, 2);
 }
 
 function generateStoriesIndex(config: AgentConfig): string {
-  return JSON.stringify(
-    {
-      persona: config.id,
-      stories: [],
-      total_count: 0,
-      last_updated: new Date().toISOString(),
-    },
-    null,
-    2
-  );
-}
-
-// ============================================================================
-// MAIN WIZARD
-// ============================================================================
-
-async function runWizard(): Promise<void> {
-  printHeader('Ferni Marketplace Agent Builder');
-
-  print(`${colors.dim}This wizard will guide you through creating a new marketplace agent.`);
-  print(`You'll define the agent's identity, personality, and domain expertise.${colors.reset}\n`);
-
-  const totalSteps = 7;
-
-  // Step 1: Basic Identity
-  printStep(1, totalSteps, 'Agent Identity');
-  print(`${colors.dim}Let's start with who this agent is.${colors.reset}\n`);
-
-  const name = await prompt('Agent name (e.g., "Atlas", "Luna", "Sage")');
-  if (!name) {
-    print(`${colors.red}Agent name is required.${colors.reset}`);
-    rl.close();
-    return;
-  }
-
-  const displayName = await prompt('Display name', name);
-  const id =
-    (await prompt(
-      'Agent ID (lowercase, hyphens)',
-      name.toLowerCase().replace(/\s+/g, '-') + '-' + (await prompt('Role suffix (e.g., "coach", "guide", "navigator")'))
-    )) || `${name.toLowerCase()}-agent`;
-
-  // Step 2: Description
-  printStep(2, totalSteps, 'Agent Description');
-  print(`${colors.dim}Describe what this agent does and why people would want to talk to them.${colors.reset}\n`);
-
-  const shortDescription = await prompt('Short description (1 sentence)');
-  print(`\n${colors.dim}Now write a longer description (2-3 sentences). Press Enter twice when done.${colors.reset}`);
-  const description = await prompt('Full description', shortDescription);
-
-  // Step 3: Domain & Category
-  printStep(3, totalSteps, 'Domain & Expertise');
-
-  const category = await promptSelect('Select primary category', CATEGORIES);
-  print(`\n${colors.dim}Enter domain keywords (comma-separated, e.g., "career, negotiation, interviews")${colors.reset}`);
-  const domainsInput = await prompt('Domains');
-  const domains = domainsInput.split(',').map((d) => d.trim().toLowerCase().replace(/\s+/g, '-'));
-
-  // Step 4: Personality
-  printStep(4, totalSteps, 'Personality');
-
-  const traits = await promptMultiSelect('Select personality traits', PERSONALITY_TRAITS, 6);
-
-  print(`\n${colors.dim}Rate these on a scale of 0.0 to 1.0${colors.reset}`);
-  const warmth = parseFloat((await prompt('Warmth (0.0-1.0)', '0.7')) || '0.7');
-  const humor = parseFloat((await prompt('Humor level (0.0-1.0)', '0.4')) || '0.4');
-  const directness = parseFloat((await prompt('Directness (0.0-1.0)', '0.6')) || '0.6');
-  const energy = parseFloat((await prompt('Energy level (0.0-1.0)', '0.6')) || '0.6');
-
-  // Step 5: Voice Style
-  printStep(5, totalSteps, 'Voice Style');
-
-  const voiceStyle = await promptSelect('Select voice style', VOICE_STYLES);
-
-  // Step 6: Handoff & Marketplace
-  printStep(6, totalSteps, 'Handoff & Marketplace');
-
-  print(`\n${colors.dim}Enter words that should trigger handoff to this agent (comma-separated)${colors.reset}`);
-  const triggersInput = await prompt('Handoff triggers', domains.join(', '));
-  const handoffTriggers = triggersInput.split(',').map((t) => t.trim().toLowerCase());
-
-  const icon = await promptSelect('Select icon', ICONS);
-  const license = (await promptSelect('License type', ['free', 'premium'])) as 'free' | 'premium';
-
-  // Step 7: Review & Confirm
-  printStep(7, totalSteps, 'Review & Create');
-
-  const config: AgentConfig = {
-    id,
-    name,
-    displayName,
-    description,
-    shortDescription,
-    domain: domains[0] || category,
-    domains,
-    category,
-    icon,
-    personality: { warmth, humor, directness, energy, traits },
-    voiceStyle,
-    license,
-    handoffTriggers,
-  };
-
-  print(`\n${colors.bold}Agent Summary:${colors.reset}`);
-  print(`${colors.dim}─────────────────────────────────${colors.reset}`);
-  print(`  ${colors.cyan}ID:${colors.reset} ${config.id}`);
-  print(`  ${colors.cyan}Name:${colors.reset} ${config.name} ${config.icon}`);
-  print(`  ${colors.cyan}Category:${colors.reset} ${config.category}`);
-  print(`  ${colors.cyan}Domains:${colors.reset} ${config.domains.join(', ')}`);
-  print(`  ${colors.cyan}Traits:${colors.reset} ${config.personality.traits.join(', ')}`);
-  print(`  ${colors.cyan}Voice:${colors.reset} ${config.voiceStyle}`);
-  print(`  ${colors.cyan}License:${colors.reset} ${config.license}`);
-  print(`${colors.dim}─────────────────────────────────${colors.reset}\n`);
-
-  const confirmed = await promptConfirm('Create this agent?', true);
-
-  if (!confirmed) {
-    print(`\n${colors.yellow}Cancelled. No files created.${colors.reset}`);
-    rl.close();
-    return;
-  }
-
-  // Create the agent
-  await createAgent(config);
-
-  rl.close();
-}
-
-async function createAgent(config: AgentConfig): Promise<void> {
-  print(`\n${colors.bold}Creating agent...${colors.reset}\n`);
-
-  const baseDir = path.join(process.cwd(), 'marketplace-agents', 'agents', config.id);
-
-  // Create directory structure
-  const dirs = [
-    baseDir,
-    path.join(baseDir, 'identity'),
-    path.join(baseDir, 'content'),
-    path.join(baseDir, 'content', 'behaviors'),
-    path.join(baseDir, 'content', 'knowledge'),
-    path.join(baseDir, 'content', 'stories'),
-    path.join(baseDir, 'content', 'voice'),
-  ];
-
-  for (const dir of dirs) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      printSuccess(`Created ${path.relative(process.cwd(), dir)}/`);
-    }
-  }
-
-  // Create files
-  const files = [
-    { path: path.join(baseDir, 'persona.manifest.json'), content: generateManifest(config) },
-    { path: path.join(baseDir, 'identity', 'system-prompt.md'), content: generateSystemPrompt(config) },
-    { path: path.join(baseDir, 'identity', 'biography.md'), content: generateBiography(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'greetings.json'), content: generateGreetings(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'goodbyes.json'), content: generateGoodbyes(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'backchannels.json'), content: generateBackchannels(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'thinking-sounds.json'), content: generateThinkingSounds(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'quirks.json'), content: generateQuirks(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'vulnerability.json'), content: generateVulnerability(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'catchphrases.json'), content: generateCatchphrases(config) },
-    { path: path.join(baseDir, 'content', 'behaviors', 'methodology.json'), content: generateMethodology(config) },
-    { path: path.join(baseDir, 'content', 'voice', 'expressions.json'), content: generateExpressions(config) },
-    { path: path.join(baseDir, 'content', 'knowledge', '_index.json'), content: generateKnowledgeIndex(config) },
-    { path: path.join(baseDir, 'content', 'stories', '_index.json'), content: generateStoriesIndex(config) },
-  ];
-
-  for (const file of files) {
-    fs.writeFileSync(file.path, file.content);
-    printSuccess(`Created ${path.relative(process.cwd(), file.path)}`);
-  }
-
-  // Update registry
-  await updateRegistry(config);
-
-  print(`\n${colors.green}${colors.bold}✓ Agent created successfully!${colors.reset}\n`);
-
-  print(`${colors.bold}Next Steps:${colors.reset}`);
-  print(`${colors.dim}─────────────────────────────────${colors.reset}`);
-  print(`  1. Edit the system prompt:`);
-  print(`     ${colors.cyan}${path.relative(process.cwd(), path.join(baseDir, 'identity', 'system-prompt.md'))}${colors.reset}`);
-  print(`  2. Write the biography:`);
-  print(`     ${colors.cyan}${path.relative(process.cwd(), path.join(baseDir, 'identity', 'biography.md'))}${colors.reset}`);
-  print(`  3. Customize behavior files in:`);
-  print(`     ${colors.cyan}${path.relative(process.cwd(), path.join(baseDir, 'content', 'behaviors'))}/${colors.reset}`);
-  print(`  4. Add knowledge files to:`);
-  print(`     ${colors.cyan}${path.relative(process.cwd(), path.join(baseDir, 'content', 'knowledge'))}/${colors.reset}`);
-  print(`  5. Validate the agent:`);
-  print(`     ${colors.cyan}npm run ferni agents validate ${config.id}${colors.reset}`);
-  print(`  6. Test locally:`);
-  print(`     ${colors.cyan}npm run dev -- --persona=${config.id}${colors.reset}`);
-  print(`${colors.dim}─────────────────────────────────${colors.reset}\n`);
+  return JSON.stringify({
+    persona: config.id,
+    stories: [],
+    last_updated: new Date().toISOString(),
+  }, null, 2);
 }
 
 async function updateRegistry(config: AgentConfig): Promise<void> {
@@ -848,7 +739,7 @@ async function updateRegistry(config: AgentConfig): Promise<void> {
     try {
       registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
     } catch {
-      printWarning('Could not parse existing registry, creating new one');
+      // Use empty registry
     }
   }
 
@@ -873,14 +764,13 @@ async function updateRegistry(config: AgentConfig): Promise<void> {
   };
 
   fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2));
-  printSuccess('Updated marketplace-agents/registry.json');
 }
 
 // ============================================================================
-// ENTRY POINT
+// RUN
 // ============================================================================
 
-runWizard().catch((err) => {
-  console.error(`${colors.red}Error:${colors.reset}`, err);
+main().catch((error) => {
+  console.error('Error:', error);
   process.exit(1);
 });
