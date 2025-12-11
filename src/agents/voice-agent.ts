@@ -5433,26 +5433,30 @@ export default defineAgent({
 // This starts loading from bundles, with fallbacks available immediately
 import { initializeVoiceRegistry } from '../personas/voice-registry.js';
 
-// Fire and forget - initialization happens in background
-// Fallbacks are used until bundles are loaded
-// NOTE: initializeVoiceRegistry already calls discoverAndLoadBundles internally,
-// so we run them sequentially to avoid redundant loading
-void (async () => {
-  try {
-    // Voice registry loads bundles and caches the result
-    await initializeVoiceRegistry();
-    // This will use the cached result from voice registry
-    const bundleResult = await initializeFromBundles();
-    if (bundleResult) {
-      diag.info('Personas initialized from bundles', {
-        loaded: bundleResult.loaded,
-        failed: bundleResult.failed,
-      });
+// Only do background initialization in main process
+// Child processes use prewarm() for initialization
+if (!process.send) {
+  // Fire and forget - initialization happens in background
+  // Fallbacks are used until bundles are loaded
+  // NOTE: initializeVoiceRegistry already calls discoverAndLoadBundles internally,
+  // so we run them sequentially to avoid redundant loading
+  void (async () => {
+    try {
+      // Voice registry loads bundles and caches the result
+      await initializeVoiceRegistry();
+      // This will use the cached result from voice registry
+      const bundleResult = await initializeFromBundles();
+      if (bundleResult) {
+        diag.info('Personas initialized from bundles', {
+          loaded: bundleResult.loaded,
+          failed: bundleResult.failed,
+        });
+      }
+    } catch (e) {
+      diag.warn('Bundle init warning', { error: String(e) });
     }
-  } catch (e) {
-    diag.warn('Bundle init warning', { error: String(e) });
-  }
-})();
+  })();
+}
 
 // ============================================================================
 // WORKER STARTUP
@@ -5470,17 +5474,24 @@ diag.info('Worker configuration', { defaultPersona: PERSONA.id, agentName });
 import { registerShutdownSignalHandlers } from './shared/shutdown-handler.js';
 registerShutdownSignalHandlers();
 
-cli.runApp(
-  new WorkerOptions({
-    agent: fileURLToPath(import.meta.url),
-    agentName,
-    // Increase timeout for heavy initialization (bundles + startup + services)
-    // The prewarm function calls startup() which does 10+ async operations:
-    // - memory system (Firestore), services, bundles, schedulers,
-    // - team handlers, community insights, agent evolution, analytics, persistence
-    // Cold start can take 180-240s on busy clusters; set to 300s for safety margin
-    initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
-  })
-);
+// Only run cli.runApp in the main process, not in child processes
+// Child processes are spawned by LiveKit and import this module to get prewarm/entry
+// process.send is only defined in child processes (IPC channel to parent)
+if (!process.send) {
+  cli.runApp(
+    new WorkerOptions({
+      agent: fileURLToPath(import.meta.url),
+      agentName,
+      // Increase timeout for heavy initialization (bundles + startup + services)
+      // The prewarm function calls startup() which does 10+ async operations:
+      // - memory system (Firestore), services, bundles, schedulers,
+      // - team handlers, community insights, agent evolution, analytics, persistence
+      // Cold start can take 180-240s on busy clusters; set to 300s for safety margin
+      initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
+    })
+  );
 
-diag.info('CLI.runApp called - worker running');
+  diag.info('CLI.runApp called - worker running');
+} else {
+  diag.info('Child process detected - skipping cli.runApp');
+}

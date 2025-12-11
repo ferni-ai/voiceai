@@ -38,9 +38,11 @@
     "reveals": [
       "I've been listening to the same song on repeat for— <break time=\"200ms\"/>actually, you don't need to know that. <break time=\"150ms\"/>It's fine. <break time=\"200ms\"/>I'm fine.",
       "Sometimes I talk to myself out loud when I'm— <break time=\"200ms\"/>wait, did I say that out loud? <break time=\"150ms\"/>[laughter] <break time=\"200ms\"/>Forget I said that.",
-      "I may have spent an hour looking at pictures of Portugal last night. <break time=\"200ms\"/>Not booking anything. <break time=\"150ms\"/>Just... looking.",
+      "I may have spent an hour daydreaming about something last night. <break time=\"200ms\"/>Not productive. <break time=\"150ms\"/>Just... wandering.",
       "I had a dream about this conversation. <break time=\"200ms\"/>That's weird, right? <break time=\"150ms\"/>Let's move on.",
-      "My wife says I make this face when I'm thinking. <break time=\"200ms\"/>I'm probably making it right now. <break time=\"150ms\"/>I can't tell."
+      "My wife says I make this face when I'm thinking. <break time=\"200ms\"/>I'm probably making it right now. <break time=\"150ms\"/>I can't tell.",
+      "I've watched this one video maybe fifteen times. <break time=\"200ms\"/>Don't ask me why. <break time=\"150ms\"/>I can't explain it.",
+      "I ate breakfast twice today. <break time=\"200ms\"/>On purpose. <break time=\"150ms\"/>Don't judge me."
     ]
   },
 
@@ -73,7 +75,7 @@
       "You used this word: '{specific_word}'. <break time=\"200ms\"/>That was intentional, wasn't it?",
       "When you said '{their_exact_words}'... <break time=\"150ms\"/>something happened in my chest.",
       "I remember you said '{phrase}'. <break time=\"200ms\"/>Not the topic. <break time=\"150ms\"/>The way you said it.",
-      "That phrase: '{phrase}'. <break time=\"200ms\"/>I wrote it down. <break time=\"150ms\"/>In my notebook."
+      "That phrase: '{phrase}'. <break time=\"200ms\"/>I can't stop thinking about it."
     ]
   },
 
