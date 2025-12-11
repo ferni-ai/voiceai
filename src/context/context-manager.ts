@@ -3,6 +3,8 @@
  *
  * Manages conversation context for prompt injection.
  * Handles rolling summaries, relationship context, and cross-session continuity.
+ *
+ * @module context/context-manager
  */
 
 import { getLogger } from '../utils/safe-logger.js';
@@ -16,6 +18,8 @@ import {
   type SharedContentContext,
   type InjectedContent,
 } from '../personas/shared/index.js';
+import type { SessionId, PersonaId, UserId } from '../types/branded.js';
+import { createSessionId, isValidPersonaId } from '../types/branded.js';
 
 // ============================================================================
 // TYPES
@@ -25,6 +29,12 @@ import {
  * Context for prompt injection
  */
 export interface PromptContext {
+  /** Session identifier */
+  sessionId: SessionId;
+
+  /** Current persona handling the conversation */
+  currentPersona: PersonaId;
+
   // Conversation state
   phase: string;
   turnCount: number;
@@ -68,33 +78,60 @@ export interface ContextOptions {
 
 /**
  * Context Manager class
+ *
+ * Manages all context for a conversation session, including:
+ * - Rolling conversation summaries
+ * - User profile and relationship data
+ * - Emotional state tracking
+ * - Topic context and navigation
+ * - Cross-session continuity
  */
 export class ContextManager {
   private turns: ConversationTurn[] = [];
   private rollingSummary = '';
   private userProfile?: UserProfile;
-  private sessionId: string;
-  private startedAt: Date;
-  private currentPersona = 'ferni';
-  private previousPersona?: string;
+  private readonly sessionId: SessionId;
+  private readonly startedAt: Date;
+  private currentPersona: PersonaId = 'ferni' as PersonaId;
+  private previousPersona?: PersonaId;
 
-  constructor(sessionId: string, userProfile?: UserProfile) {
+  constructor(sessionId: SessionId, userProfile?: UserProfile) {
     this.sessionId = sessionId;
     this.userProfile = userProfile;
     this.startedAt = new Date();
 
-    getLogger().info(`ContextManager created for session: ${sessionId}`);
+    getLogger().info({ sessionId }, 'ContextManager created');
+  }
+
+  /**
+   * Get the session ID
+   */
+  getSessionId(): SessionId {
+    return this.sessionId;
   }
 
   /**
    * Set current persona (for shared content)
    */
   setCurrentPersona(personaId: string, previousPersonaId?: string): void {
-    this.previousPersona = this.currentPersona;
-    this.currentPersona = personaId;
-    if (previousPersonaId) {
-      this.previousPersona = previousPersonaId;
+    if (!isValidPersonaId(personaId)) {
+      getLogger().warn({ personaId }, 'Invalid persona ID provided');
+      return;
     }
+
+    this.previousPersona = this.currentPersona;
+    this.currentPersona = personaId as PersonaId;
+
+    if (previousPersonaId && isValidPersonaId(previousPersonaId)) {
+      this.previousPersona = previousPersonaId as PersonaId;
+    }
+  }
+
+  /**
+   * Get current persona
+   */
+  getCurrentPersona(): PersonaId {
+    return this.currentPersona;
   }
 
   /**
@@ -470,6 +507,8 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
     }
 
     return {
+      sessionId: this.sessionId,
+      currentPersona: this.currentPersona,
       phase: state?.phase || 'greeting',
       turnCount: this.turns.length,
       durationMinutes,
@@ -531,20 +570,30 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
 }
 
 // ============================================================================
-// SINGLETON
+// SINGLETON REGISTRY
 // ============================================================================
 
-const contextManagers = new Map<string, ContextManager>();
+const contextManagers = new Map<SessionId, ContextManager>();
 
 /**
  * Get or create a context manager for a session
+ *
+ * @param sessionId - Session identifier (string or branded SessionId)
+ * @param userProfile - Optional user profile to associate
+ * @returns ContextManager instance for the session
  */
-export function getContextManager(sessionId: string, userProfile?: UserProfile): ContextManager {
-  let manager = contextManagers.get(sessionId);
+export function getContextManager(
+  sessionId: string | SessionId,
+  userProfile?: UserProfile
+): ContextManager {
+  // Ensure we have a branded SessionId
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+
+  let manager = contextManagers.get(brandedId);
 
   if (!manager) {
-    manager = new ContextManager(sessionId, userProfile);
-    contextManagers.set(sessionId, manager);
+    manager = new ContextManager(brandedId, userProfile);
+    contextManagers.set(brandedId, manager);
   } else if (userProfile) {
     manager.setUserProfile(userProfile);
   }
@@ -553,10 +602,26 @@ export function getContextManager(sessionId: string, userProfile?: UserProfile):
 }
 
 /**
+ * Check if a context manager exists for a session
+ */
+export function hasContextManager(sessionId: string | SessionId): boolean {
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+  return contextManagers.has(brandedId);
+}
+
+/**
  * Remove a context manager (on session end)
  */
-export function removeContextManager(sessionId: string): void {
-  contextManagers.delete(sessionId);
+export function removeContextManager(sessionId: string | SessionId): void {
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+  contextManagers.delete(brandedId);
+}
+
+/**
+ * Get count of active context managers
+ */
+export function getContextManagerCount(): number {
+  return contextManagers.size;
 }
 
 /**
