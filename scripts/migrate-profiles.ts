@@ -20,7 +20,7 @@
  * @module scripts/migrate-profiles
  */
 
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 // ============================================================================
@@ -200,9 +200,8 @@ async function migrateProfile(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Import migration utilities
-    const { migrateToComposite, detectProfileFormat } = await import(
-      '../src/types/migration/index.js'
-    );
+    const { migrateToComposite, detectProfileFormat } =
+      await import('../src/types/migration/index.js');
 
     // Check if already migrated
     const format = detectProfileFormat(profile);

@@ -66,6 +66,9 @@ import { handleRelationshipRoutes } from './dist/api/routes/relationship.js';
 // Voice Humanization routes (metrics, feature flags)
 import { handleVoiceHumanizationRoutes } from './dist/api/voice-humanization-routes.js';
 
+// Speech Metrics routes (unified speech pipeline metrics, per-persona analytics)
+import { handleSpeechMetricsRoutes } from './dist/api/speech-metrics-routes.js';
+
 // Voice Authentication routes (enrollment, verification, identification)
 import { handleVoiceAuthRoutes } from './dist/api/voice-auth-handler.js';
 
@@ -893,6 +896,12 @@ const server = http.createServer(async (req, res) => {
     // Voice Humanization routes (metrics, feature toggles, dashboard)
     if (pathname.startsWith('/api/voice-humanization')) {
       const handled = await handleVoiceHumanizationRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Speech Metrics routes (unified speech pipeline metrics, per-persona analytics)
+    if (pathname.startsWith('/api/speech-metrics')) {
+      const handled = await handleSpeechMetricsRoutes(req, res, pathname);
       if (handled) return;
     }
 

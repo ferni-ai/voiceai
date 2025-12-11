@@ -414,8 +414,8 @@ function renderDimension(name: string, score: number, desc: string): string {
         <span class="dimension-name">${name}</span>
         <span class="dimension-score dimension-score--${scoreClass}">${score}%</span>
       </div>
-      <div class="dimension-bar">
-        <div class="dimension-bar-fill" style="width: ${score}%; background: ${barColor};"></div>
+      <div class="dimension-bar" role="progressbar" aria-valuenow="${score}" aria-valuemin="0" aria-valuemax="100" aria-label="${name}: ${score} percent">
+        <div class="dimension-bar-fill" style="width: ${score}%; background: ${barColor};" aria-hidden="true"></div>
       </div>
       <p class="dimension-desc">${desc}</p>
     </div>

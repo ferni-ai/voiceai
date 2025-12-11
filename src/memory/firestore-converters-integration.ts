@@ -15,35 +15,35 @@
 
 import { z } from 'zod';
 import {
+  convertDatesForFirestore,
+  convertTimestampsToDate,
   createFirestoreConverter,
-  createUserProfileConverter,
   createGoalConverter,
   createMemoryConverter,
-  createSessionConverter,
-  convertTimestampsToDate,
-  convertDatesForFirestore,
-  safeParseFromFirestore,
-  validateForFirestore,
-  toBrandedId,
-  createPartialUpdate,
   createNestedUpdate,
+  createPartialUpdate,
+  createSessionConverter,
+  createUserProfileConverter,
+  safeParseFromFirestore,
+  toBrandedId,
+  validateForFirestore,
 } from '../types/firestore/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Re-export all converter utilities for convenient access
 export {
+  convertDatesForFirestore,
+  convertTimestampsToDate,
   createFirestoreConverter,
-  createUserProfileConverter,
   createGoalConverter,
   createMemoryConverter,
-  createSessionConverter,
-  convertTimestampsToDate,
-  convertDatesForFirestore,
-  safeParseFromFirestore,
-  validateForFirestore,
-  toBrandedId,
-  createPartialUpdate,
   createNestedUpdate,
+  createPartialUpdate,
+  createSessionConverter,
+  createUserProfileConverter,
+  safeParseFromFirestore,
+  toBrandedId,
+  validateForFirestore,
 };
 
 // ============================================================================
@@ -166,7 +166,7 @@ export function safelyMigrateDocument<T>(
       {
         collection,
         docId,
-        errors: result.error.errors.map((e) => ({
+        errors: result.error.issues.map((e) => ({
           path: e.path.join('.'),
           message: e.message,
         })),

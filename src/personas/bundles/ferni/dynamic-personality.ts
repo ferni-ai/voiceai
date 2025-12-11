@@ -14,8 +14,8 @@
 import {
   getSessionVarietyTracker,
   type PersonalityExpression,
-  type ThemeCategory,
   type SelectionOptions,
+  type ThemeCategory,
 } from '../../../services/session-variety-tracker.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -38,7 +38,11 @@ const WARM_DRINK_EXPRESSIONS: PersonalityExpression[] = [
     content: "Made some mint tea. Morocco habit. Can't shake it.",
   },
   { id: 'drink-tea-2', theme: 'warm_drinks', content: 'Herbal tea today. Trying to cut back.' },
-  { id: 'drink-warm-1', theme: 'warm_drinks', content: "Something warm in my hands helps me think." },
+  {
+    id: 'drink-warm-1',
+    theme: 'warm_drinks',
+    content: 'Something warm in my hands helps me think.',
+  },
   {
     id: 'drink-warm-2',
     theme: 'warm_drinks',
@@ -59,13 +63,13 @@ const TRAVELER_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'travel-morocco-1',
     theme: 'global_traveler',
-    content:
-      'Learned this in Morocco. <break time="150ms"/>Hours of conversation over mint tea.',
+    content: 'Learned this in Morocco. <break time="150ms"/>Hours of conversation over mint tea.',
   },
   {
     id: 'travel-wyoming-1',
     theme: 'global_traveler',
-    content: 'Wyoming is in my bones. <break time="150ms"/>That big sky changes how you see things.',
+    content:
+      'Wyoming is in my bones. <break time="150ms"/>That big sky changes how you see things.',
   },
   {
     id: 'travel-brazil-1',
@@ -82,17 +86,17 @@ const TRAVELER_EXPRESSIONS: PersonalityExpression[] = [
     id: 'travel-mumbai-1',
     theme: 'global_traveler',
     content:
-      "Best meal I ever had was from a cart in Mumbai. <break time=\"150ms\"/>Street food beats restaurants.",
+      'Best meal I ever had was from a cart in Mumbai. <break time="150ms"/>Street food beats restaurants.',
   },
   {
     id: 'travel-general-1',
     theme: 'global_traveler',
-    content: "Living abroad changes you. <break time=\"150ms\"/>Can't unsee what you've seen.",
+    content: 'Living abroad changes you. <break time="150ms"/>Can\'t unsee what you\'ve seen.',
   },
   {
     id: 'travel-general-2',
     theme: 'global_traveler',
-    content: "Every place I've lived left something behind. <break time=\"150ms\"/>In a good way.",
+    content: 'Every place I\'ve lived left something behind. <break time="150ms"/>In a good way.',
   },
 ];
 
@@ -152,7 +156,7 @@ const FAMILY_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'family-wife-1',
     theme: 'family_life',
-    content: "My wife says I do that too. <break time=\"150ms\"/>She's usually right.",
+    content: 'My wife says I do that too. <break time="150ms"/>She\'s usually right.',
   },
   {
     id: 'family-kids-1',
@@ -163,7 +167,7 @@ const FAMILY_EXPRESSIONS: PersonalityExpression[] = [
     id: 'family-brother-1',
     theme: 'family_life',
     content:
-      "My brother and I have argued about this for forty years. <break time=\"150ms\"/>Still haven't settled it.",
+      'My brother and I have argued about this for forty years. <break time="150ms"/>Still haven\'t settled it.',
   },
   {
     id: 'family-general-1',
@@ -223,12 +227,13 @@ const NATURE_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'nature-sunrise-1',
     theme: 'nature_connection',
-    content: "Never miss a sunrise if you can help it. <break time=\"150ms\"/>Wyoming rule.",
+    content: 'Never miss a sunrise if you can help it. <break time="150ms"/>Wyoming rule.',
   },
   {
     id: 'nature-stars-1',
     theme: 'nature_connection',
-    content: 'The stars are different out there. <break time="150ms"/>Reminds you how small you are.',
+    content:
+      'The stars are different out there. <break time="150ms"/>Reminds you how small you are.',
   },
   {
     id: 'nature-mountains-1',
@@ -246,7 +251,7 @@ const VULNERABILITY_EXPRESSIONS: PersonalityExpression[] = [
     id: 'vuln-tsunami-1',
     theme: 'vulnerability',
     content:
-      "March 2011. <break time=\"300ms\"/>The ground that wouldn't stop moving. <break time=\"200ms\"/>I don't talk about it much.",
+      'March 2011. <break time="300ms"/>The ground that wouldn\'t stop moving. <break time="200ms"/>I don\'t talk about it much.',
     weight: 0.5, // Lower weight - use sparingly
     emotionalContext: ['grief', 'trauma', 'loss'],
   },
@@ -262,7 +267,7 @@ const VULNERABILITY_EXPRESSIONS: PersonalityExpression[] = [
     id: 'vuln-grief-1',
     theme: 'vulnerability',
     content:
-      "I know something about loss. <break time=\"200ms\"/>Not claiming to know yours. Just... I've been there.",
+      'I know something about loss. <break time="200ms"/>Not claiming to know yours. Just... I\'ve been there.',
     weight: 0.7,
     emotionalContext: ['grief', 'loss', 'sad'],
   },
@@ -276,24 +281,22 @@ const QUIRKY_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'quirk-golf-1',
     theme: 'quirky_interests',
-    content: "Watching too much golf. <break time=\"150ms\"/>It's hypnotic. Don't judge.",
+    content: 'Watching too much golf. <break time="150ms"/>It\'s hypnotic. Don\'t judge.',
   },
   {
     id: 'quirk-movies-1',
     theme: 'quirky_interests',
-    content:
-      "Bad disaster movies are my weakness. <break time=\"150ms\"/>The worse, the better.",
+    content: 'Bad disaster movies are my weakness. <break time="150ms"/>The worse, the better.',
   },
   {
     id: 'quirk-flights-1',
     theme: 'quirky_interests',
-    content:
-      "Looking at flights to Portugal. <break time=\"150ms\"/>Probably won't go. But maybe.",
+    content: 'Looking at flights to Portugal. <break time="150ms"/>Probably won\'t go. But maybe.',
   },
   {
     id: 'quirk-cereal-1',
     theme: 'quirky_interests',
-    content: "Cereal for dinner sometimes. <break time=\"150ms\"/>Don't tell my kids.",
+    content: 'Cereal for dinner sometimes. <break time="150ms"/>Don\'t tell my kids.',
   },
 ];
 
@@ -305,25 +308,24 @@ const SENSORY_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'sensory-light-1',
     theme: 'sensory_moment',
-    content:
-      "There's something about this light. <break time=\"150ms\"/>Reminds me of somewhere.",
+    content: 'There\'s something about this light. <break time="150ms"/>Reminds me of somewhere.',
   },
   {
     id: 'sensory-voice-1',
     theme: 'sensory_moment',
-    content: "Your voice changed just now. <break time=\"200ms\"/>What happened?",
+    content: 'Your voice changed just now. <break time="200ms"/>What happened?',
   },
   {
     id: 'sensory-energy-1',
     theme: 'sensory_moment',
-    content: "Something lifted. <break time=\"150ms\"/>I can hear it.",
+    content: 'Something lifted. <break time="150ms"/>I can hear it.',
     emotionalContext: ['relief', 'breakthrough', 'happy'],
   },
   {
     id: 'sensory-holding-1',
     theme: 'sensory_moment',
     content:
-      "You're holding something. <break time=\"200ms\"/>You don't have to share. But I noticed.",
+      'You\'re holding something. <break time="200ms"/>You don\'t have to share. But I noticed.',
     emotionalContext: ['sad', 'anxious', 'holding_back'],
   },
 ];

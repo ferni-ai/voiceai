@@ -8,10 +8,10 @@
  * @module scripts/generate-openapi
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { z } from 'zod';
-import { OpenAPIDocumentBuilder, zodToOpenAPI, schemaRef } from '../src/types/openapi/index.js';
+import { OpenAPIDocumentBuilder, schemaRef } from '../src/types/openapi/index.js';
 
 // ============================================================================
 // API SCHEMAS (Import or define your Zod schemas here)
@@ -120,7 +120,15 @@ const GoalSchema = z.object({
 const CreateGoalSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
-  category: z.enum(['health', 'career', 'relationships', 'personal', 'financial', 'learning', 'other']),
+  category: z.enum([
+    'health',
+    'career',
+    'relationships',
+    'personal',
+    'financial',
+    'learning',
+    'other',
+  ]),
   targetDate: z.string().datetime().optional(),
 });
 

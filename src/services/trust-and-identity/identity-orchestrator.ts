@@ -16,41 +16,40 @@
  * @module IdentityOrchestrator
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
 import { createUserId } from '../../types/branded.js';
-import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
+import type { VoiceSketch } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // Voice and Auth imports
 import { authenticateNaturally, type AuthContext } from '../natural-auth.js';
 import { identifyFromMetadata, type IdentificationResult } from '../user-identification.js';
 import {
-  verifyUser,
-  identifySpeaker,
-  type VoiceProfile,
-  type VerificationResult,
   ContinuousAuthenticator,
+  identifySpeaker,
+  verifyUser,
+  type VerificationResult,
+  type VoiceProfile,
 } from '../voice-enrollment.js';
 import {
-  loadVoiceProfile,
-  saveVoiceProfile,
   loadAllVoiceProfiles,
+  loadVoiceProfile,
   recordVerification,
+  saveVoiceProfile,
 } from '../voice-profile-store.js';
 
 // Trust and Contact imports
+import { completeOnboarding, detectContactInfo } from '../contact-onboarding.js';
 import {
-  detectMagicMoment,
   calculateTrustLevel,
-  shouldAskForPhone,
-  recordPhoneAskResponse,
   canPerformOperation,
-  type TrustLevel,
-  type TrustState,
+  detectMagicMoment,
+  recordPhoneAskResponse,
+  shouldAskForPhone,
   type MagicMomentAnalysis,
   type OperationSensitivity,
+  type TrustLevel,
+  type TrustState,
 } from './human-first-2fa.js';
-import { detectContactInfo, completeOnboarding } from '../contact-onboarding.js';
 
 const log = getLogger().child({ module: 'IdentityOrchestrator' });
 

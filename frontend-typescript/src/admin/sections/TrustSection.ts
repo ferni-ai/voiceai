@@ -111,7 +111,7 @@ export async function render(): Promise<string> {
       <!-- Relationship Warmth Visualization -->
       <div class="admin-card trust-warmth">
         <h2 class="admin-section-title">
-          <span class="admin-icon">✨</span>
+          <span class="admin-icon">${iconSm(ICON_TRUST)}</span>
           Relationship Warmth
           <span class="badge badge--new">Avatar Soul</span>
         </h2>

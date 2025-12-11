@@ -13,34 +13,30 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // Integration modules
 import {
-  initializeSpeechMetrics,
   finalizeSpeechMetrics,
-  trackSpeechLatency,
-  trackEmotionDetection,
-  trackBackchannelQuality,
-  trackTurnPrediction,
-  trackConversationTurn,
-  getSessionMetricsContext,
   getGlobalMetricsSnapshot,
+  getSessionMetricsContext,
+  initializeSpeechMetrics,
+  trackBackchannelQuality,
+  trackConversationTurn,
+  trackEmotionDetection,
+  trackSpeechLatency,
+  trackTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
 
 import {
   applyDynamicSpeed,
-  getSessionSpeedTrend,
   cleanupDynamicSpeed,
   getPersonaBaseSpeed,
+  getSessionSpeedTrend,
 } from '../integrations/dynamic-speed-integration.js';
 
 // Context manager
-import {
-  getContextManager,
-  removeContextManager,
-  type SpeechInsightsContext,
-} from '../../context/context-manager.js';
+import { getContextManager, removeContextManager } from '../../context/context-manager.js';
 
 // Speech module types
-import type { HumanListeningResult } from '../../speech/human-listening-pipeline/types.js';
 import type { EmotionalMomentum } from '../../speech/emotional-contagion.js';
+import type { HumanListeningResult } from '../../speech/human-listening-pipeline/types.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -424,6 +420,142 @@ describe('Context Manager Speech Insights', () => {
 
       expect(formatted).toBe('');
     });
+  });
+});
+
+describe('Enhanced Tracking Features', () => {
+  const sessionId = 'test-enhanced-session';
+
+  beforeEach(() => {
+    initializeSpeechMetrics(sessionId, 'ferni');
+  });
+
+  afterEach(() => {
+    finalizeSpeechMetrics(sessionId, true);
+  });
+
+  describe('Backchannel Event Tracking', () => {
+    it('should track detailed backchannel events', async () => {
+      const { trackBackchannelEvent, getSessionMetricsContext } =
+        await import('../integrations/speech-metrics-integration.js');
+
+      trackBackchannelEvent(sessionId, {
+        pauseDurationMs: 500,
+        wasTimely: true,
+        category: 'acknowledgment',
+        userEmotion: 'neutral',
+        mode: 'standard',
+      });
+
+      const context = getSessionMetricsContext(sessionId);
+      expect(context?.backchannelCount).toBe(1);
+      expect(context?.backchannelEvents).toHaveLength(1);
+      expect(context?.backchannelEvents[0].category).toBe('acknowledgment');
+    });
+  });
+
+  describe('Turn Prediction Validation', () => {
+    it('should track and validate turn predictions', async () => {
+      const { trackTurnPredictionEvent, validateTurnPrediction, getSessionMetricsContext } =
+        await import('../integrations/speech-metrics-integration.js');
+
+      // Record a prediction
+      trackTurnPredictionEvent(sessionId, {
+        prediction: 'take_turn',
+        probability: 0.8,
+        silenceDurationMs: 800,
+      });
+
+      // Validate with actual outcome
+      validateTurnPrediction(sessionId, 'user_finished');
+
+      const context = getSessionMetricsContext(sessionId);
+      expect(context?.turnPredictions).toBe(1);
+      expect(context?.turnPredictionEvents[0].wasCorrect).toBe(true);
+    });
+
+    it('should mark incorrect predictions', async () => {
+      const { trackTurnPredictionEvent, validateTurnPrediction, getSessionMetricsContext } =
+        await import('../integrations/speech-metrics-integration.js');
+
+      trackTurnPredictionEvent(sessionId, {
+        prediction: 'wait',
+        probability: 0.3,
+        silenceDurationMs: 200,
+      });
+
+      validateTurnPrediction(sessionId, 'user_finished');
+
+      const context = getSessionMetricsContext(sessionId);
+      expect(context?.turnPredictionEvents[0].wasCorrect).toBe(false);
+    });
+  });
+
+  describe('Response Latency Tracking', () => {
+    it('should track response latency with running average', async () => {
+      const { trackResponseLatency, getSessionMetricsContext } =
+        await import('../integrations/speech-metrics-integration.js');
+
+      trackResponseLatency(sessionId, 100);
+      trackResponseLatency(sessionId, 200);
+      trackResponseLatency(sessionId, 150);
+
+      const context = getSessionMetricsContext(sessionId);
+      expect(context?.responseLatencySamples).toBe(3);
+      expect(context?.avgResponseLatencyMs).toBe(150);
+    });
+  });
+});
+
+describe('Persona Speed Profiles', () => {
+  it('should return persona-specific speed profiles', async () => {
+    const { getPersonaSpeedProfile } = await import('../integrations/dynamic-speed-integration.js');
+
+    const ferniProfile = getPersonaSpeedProfile('ferni');
+    const nayanProfile = getPersonaSpeedProfile('nayan');
+
+    expect(ferniProfile.baseSpeed).toBe(1.0);
+    expect(nayanProfile.baseSpeed).toBe(0.9);
+    expect(nayanProfile.traits.reflective).toBeGreaterThan(ferniProfile.traits.reflective);
+  });
+
+  it('should calculate persona-adjusted speed based on context', async () => {
+    const { calculatePersonaAdjustedSpeed } =
+      await import('../integrations/dynamic-speed-integration.js');
+
+    // Nayan with emotional content should be quite slow
+    const nayanEmotional = calculatePersonaAdjustedSpeed('nayan', {
+      emotionalIntensity: 0.8,
+      contentComplexity: 0.3,
+      topicWeight: 'heavy',
+    });
+
+    // Alex with light content should be fast
+    const alexLight = calculatePersonaAdjustedSpeed('alex', {
+      emotionalIntensity: 0.2,
+      contentComplexity: 0.2,
+      topicWeight: 'light',
+    });
+
+    expect(nayanEmotional.speed).toBeLessThan(alexLight.speed);
+    expect(nayanEmotional.reason).toContain('emotional');
+  });
+
+  it('should respect persona speed bounds', async () => {
+    const { calculatePersonaAdjustedSpeed, getPersonaSpeedProfile } =
+      await import('../integrations/dynamic-speed-integration.js');
+
+    const profile = getPersonaSpeedProfile('nayan');
+
+    // Even with extreme values, should stay within bounds
+    const extreme = calculatePersonaAdjustedSpeed('nayan', {
+      emotionalIntensity: 1.0,
+      contentComplexity: 1.0,
+      topicWeight: 'heavy',
+    });
+
+    expect(extreme.speed).toBeGreaterThanOrEqual(profile.minSpeed);
+    expect(extreme.speed).toBeLessThanOrEqual(profile.maxSpeed);
   });
 });
 

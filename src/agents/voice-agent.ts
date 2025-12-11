@@ -268,6 +268,20 @@ import { getEmotionalContagionService } from '../speech/emotional-contagion.js';
 import { setHumanListeningResult } from '../intelligence/context-builders/human-listening.js';
 import { getHumanListeningPipeline } from '../speech/human-listening-pipeline.js';
 
+// Speech Metrics & Dynamic Speed Integration (new unified systems)
+import {
+  applyDynamicSpeed,
+  cleanupDynamicSpeed,
+  getPersonaBaseSpeed,
+} from './integrations/dynamic-speed-integration.js';
+import {
+  finalizeSpeechMetrics,
+  initializeSpeechMetrics,
+  logMetricsSummary,
+  trackConversationTurn,
+  trackEmotionDetection,
+} from './integrations/speech-metrics-integration.js';
+
 // ============================================================================
 // ADVANCED VOICE HUMANIZATION (Phase 7+)
 // ============================================================================
@@ -880,6 +894,38 @@ class VoiceAgent extends voice.Agent<UserData> {
             if (arcAdjustments.addBreaks && !taggedText.includes('<break')) {
               // Add gentle opening break for emotional moments
               taggedText = `<break time="200ms"/>${taggedText}`;
+            }
+
+            // ============================================================
+            // DYNAMIC SPEED: Adjust speech rate based on context
+            // ============================================================
+            const dynamicSpeedSessionId = userData?.services?.sessionId;
+            if (dynamicSpeedSessionId) {
+              try {
+                const { getHumanListeningResult } =
+                  await import('../intelligence/context-builders/human-listening.js');
+                const listeningResult = getHumanListeningResult(dynamicSpeedSessionId);
+
+                const speedResult = applyDynamicSpeed(taggedText, {
+                  sessionId: dynamicSpeedSessionId,
+                  personaId: agent.persona.id,
+                  emotionalArc: emotionalArc.getArc(),
+                  listeningResult: listeningResult || undefined,
+                  topicWeight: 'medium', // Default - could be enhanced with topic detection
+                  turnNumber: userData?.turnCount || 0,
+                  baseSpeed: getPersonaBaseSpeed(agent.persona.id),
+                });
+
+                if (speedResult.wasAdjusted) {
+                  taggedText = speedResult.ssmlText;
+                  diag.debug('⏱️ Dynamic speed applied', {
+                    speed: speedResult.speedResult.speedMultiplier,
+                    reason: speedResult.speedResult.reason,
+                  });
+                }
+              } catch {
+                // Non-critical - continue without dynamic speed
+              }
             }
 
             // ============================================================
@@ -1508,6 +1554,11 @@ class VoiceAgent extends voice.Agent<UserData> {
               .catch((e) =>
                 log().debug({ error: String(e) }, 'Voice emotion publish (non-critical)')
               ); // Fire and forget
+
+            // Track emotion detection in unified speech metrics
+            if (sessionId) {
+              trackEmotionDetection(sessionId, voiceEmotion.confidence);
+            }
 
             // 🚀 FERNI EQ: Send voice prosody data for concern detection & breath sync
             // This enables "Better than Human" emotional intelligence
@@ -3687,6 +3738,9 @@ export default defineAgent({
             voiceHumanization.recordTurn();
           }
 
+          // Track turn in unified speech metrics
+          trackConversationTurn(sessionId);
+
           // ===============================================
           // FIRST TASTE TRIAL: Check trial status periodically
           // Inject transition prompt when trial is ending
@@ -5086,6 +5140,10 @@ export default defineAgent({
         diag.session('📊 Voice humanization metrics enabled');
       }
 
+      // Initialize unified speech pipeline metrics
+      initializeSpeechMetrics(sessionId, sessionPersona.id);
+      diag.session('📊 Speech pipeline metrics initialized');
+
       // User Analytics: Track session for DAU/WAU/MAU metrics
       const visitorId = services.userId || 'anonymous';
       const isSubscriber = (services.userProfile?.subscription?.tier ?? 'free') !== 'free';
@@ -5618,6 +5676,11 @@ export default defineAgent({
               resetMultiSignalLaughterDetector(sessionId);
               resetWordTimingRhythmService(sessionId);
               resetResponseAnticipationService(sessionId);
+
+              // Finalize unified speech metrics and cleanup dynamic speed
+              logMetricsSummary(sessionId);
+              finalizeSpeechMetrics(sessionId, true);
+              cleanupDynamicSpeed(sessionId);
 
               diag.session('🎤 Advanced voice humanization services cleaned up');
             } catch (advVhErr) {

@@ -6,17 +6,17 @@
  * dynamic speed control.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   ContextManager,
   getContextManager,
   removeContextManager,
   type SpeechInsightsContext,
 } from '../context/context-manager.js';
-import { createSessionId } from '../types/branded.js';
+import type { SpeedControlResult } from '../speech/adaptive-ssml/dynamic-speed-control.js';
 import type { EmotionalMomentum, ProsodyContinuityHints } from '../speech/emotional-contagion.js';
 import type { HumanListeningResult } from '../speech/human-listening-pipeline/types.js';
-import type { SpeedControlResult } from '../speech/adaptive-ssml/dynamic-speed-control.js';
+import { createSessionId } from '../types/branded.js';
 
 // ============================================================================
 // TEST DATA FACTORIES

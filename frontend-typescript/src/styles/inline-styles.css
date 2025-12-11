@@ -6112,34 +6112,18 @@ body {
     font-size: var(--text-sm);
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens from :root responsive section */
   #teamRoster {
     padding: 8px 12px;
-    gap: 4px;
-  }
-
-  .team-avatar-container {
-    width: 40px;
-    height: 40px;
-  }
-
-  .team-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 1.5px;
+    gap: var(--roster-gap);
   }
 
   .team-member {
-    padding: 8px 10px;
+    padding: var(--roster-padding);
   }
 
   .team-name {
-    font-size: 10px;
+    font-size: var(--roster-name);
   }
 
   /* Scale waveform */
@@ -6239,30 +6223,14 @@ body {
     font-size: var(--text-xs);
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens from :root responsive section */
   #teamRoster {
     padding: 7px 10px;
-    gap: 4px;
-  }
-
-  .team-avatar-container {
-    width: 38px;
-    height: 38px;
-  }
-
-  .team-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 11px;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 1.5px;
+    gap: var(--roster-gap);
   }
 
   .team-name {
-    font-size: 9px;
+    font-size: var(--roster-name);
   }
 
   /* Scale waveform */
@@ -6434,30 +6402,15 @@ body {
   }
 
   .team-member {
-    padding: 4px 6px;
+    padding: var(--roster-padding);
     min-width: 46px;
     flex-shrink: 0;
   }
 
-  .team-avatar-container {
-    width: 40px;
-    height: 40px;
-  }
-
-  .team-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 2px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-name {
-    font-size: 10px;
+    font-size: var(--roster-name);
     font-weight: 500;
     margin-top: 2px;
   }
@@ -6566,30 +6519,16 @@ body {
     opacity: 0.8;
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens */
   #teamRoster {
-    gap: 5px;
+    gap: var(--roster-gap);
     padding: 7px 12px;
   }
 
-  .team-avatar-container {
-    width: 42px;
-    height: 42px;
-  }
-
-  .team-avatar {
-    width: 38px;
-    height: 38px;
-    font-size: 12px;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 2px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-name {
-    font-size: 10px;
+    font-size: var(--roster-name);
   }
 
   /* Waveform - compact to give avatar room */
@@ -6685,27 +6624,13 @@ body {
     font-size: 11px !important;
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens */
   #teamRoster {
-    gap: 5px;
+    gap: var(--roster-gap);
     padding: 7px 12px;
   }
 
-  .team-avatar-container {
-    width: 44px;
-    height: 44px;
-  }
-
-  .team-avatar {
-    width: 40px;
-    height: 40px;
-    font-size: 13px;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 2px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-name {
     font-size: 10px;
@@ -6817,21 +6742,16 @@ body {
     opacity: 0.8;
   }
 
-  /* Scale team roster for small screens */
+  /* Scale team roster for small screens - uses CSS tokens */
   #teamRoster {
-    gap: 3px;
+    gap: var(--roster-gap);
     padding: 5px 8px;
   }
 
-  .team-avatar-container {
-    width: 36px;
-    height: 36px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 11px;
+    font-size: var(--roster-text);
   }
 
   .team-avatar-ring {
@@ -6945,32 +6865,18 @@ body {
     opacity: 0.8;
   }
 
-  /* Scale team roster for very small screens */
+  /* Scale team roster for very small screens - uses CSS tokens */
   #teamRoster {
-    gap: 2px;
+    gap: var(--roster-gap);
     padding: 4px 6px;
   }
 
   .team-member {
-    padding: 4px 6px;
+    padding: var(--roster-padding);
     min-width: 40px;
   }
 
-  .team-avatar-container {
-    width: 32px;
-    height: 32px;
-  }
-
-  .team-avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 10px;
-  }
-
-  .team-avatar-ring {
-    inset: -2px;
-    border-width: 1.5px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-name {
     display: none;
@@ -7074,31 +6980,17 @@ body {
     font-size: var(--text-xs);
   }
 
-  /* Scale team roster for landscape */
+  /* Scale team roster for landscape - uses CSS tokens */
   #teamRoster {
     margin-top: var(--space-xs);
-    gap: 3px;
+    gap: var(--roster-gap);
     padding: 4px 8px;
   }
 
-  .team-avatar-container {
-    width: 28px;
-    height: 28px;
-  }
-
-  .team-avatar {
-    width: 24px;
-    height: 24px;
-    font-size: 9px;
-  }
-
-  .team-avatar-ring {
-    inset: -2px;
-    border-width: 1px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-member {
-    padding: 3px 4px;
+    padding: var(--roster-padding);
     min-width: 32px;
   }
 
@@ -7207,31 +7099,17 @@ body {
     font-size: var(--text-sm);
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens */
   #teamRoster {
     margin-top: var(--space-sm);
-    gap: 4px;
+    gap: var(--roster-gap);
     padding: 6px 10px;
   }
 
-  .team-avatar-container {
-    width: 34px;
-    height: 34px;
-  }
-
-  .team-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 10px;
-  }
-
-  .team-avatar-ring {
-    inset: -2px;
-    border-width: 1.5px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-member {
-    padding: 4px 6px;
+    padding: var(--roster-padding);
   }
 
   .team-name {

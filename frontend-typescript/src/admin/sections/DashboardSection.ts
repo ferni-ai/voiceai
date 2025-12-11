@@ -92,8 +92,8 @@ export async function render(): Promise<string> {
           <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
           System Health
         </h2>
-        <div class="health-status health-status--${health.status}">
-          <span class="health-indicator"></span>
+        <div class="health-status health-status--${health.status}" role="status" aria-live="polite" aria-label="System status: ${getHealthText(health.status)}">
+          <span class="health-indicator" aria-hidden="true"></span>
           <span class="health-text">${getHealthText(health.status)}</span>
         </div>
         <div class="health-details">
@@ -155,7 +155,7 @@ export async function render(): Promise<string> {
           Recent Activity
           ${activity.length > 0 ? `<span class="activity-count">${activity.length}</span>` : ''}
         </h2>
-        <div class="activity-list">
+        <div class="activity-list" role="log" aria-live="polite" aria-label="Recent activity feed">
           ${activity.length > 0 ? activity.map((a) => renderActivityItem(a)).join('') : renderNoActivity()}
         </div>
       </div>

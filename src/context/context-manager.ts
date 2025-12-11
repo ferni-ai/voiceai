@@ -21,8 +21,7 @@ import {
   type InjectedContent,
   type SharedContentContext,
 } from '../personas/shared/index.js';
-import type { PersonaId, SessionId } from '../types/branded.js';
-import { createSessionId, isValidPersonaId } from '../types/branded.js';
+import { createSessionId, isValidPersonaId, type PersonaId, type SessionId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 
