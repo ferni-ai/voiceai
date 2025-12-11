@@ -1,9 +1,13 @@
 /**
  * Subscription Types for Ferni AI
  *
- * Philosophy: Subscriptions are about relationship commitment, not transactions.
- * The free tier is generous enough to build real connection.
- * Upgrading feels like deepening a friendship, not hitting a paywall.
+ * Philosophy: "Ferni Free Forever" - Talk to Ferni unlimited times, forever.
+ * Premium unlocks: longer sessions, team members, personalization.
+ *
+ * Monetization Model:
+ * - FREE: Unlimited Ferni conversations, 15 min per session, basic personalization
+ * - FRIEND: Unlimited session time, all team members, full personalization
+ * - PARTNER: Everything + premium team members, exclusive styles
  */
 
 // ============================================================================
@@ -15,6 +19,11 @@
  * Named to reflect relationship depth, not product tiers
  */
 export type SubscriptionTier = 'free' | 'friend' | 'partner';
+
+/**
+ * Billing frequency options
+ */
+export type BillingFrequency = 'monthly' | 'annual';
 
 /**
  * Stripe subscription status
@@ -39,11 +48,17 @@ export interface TierConfig {
   /** Human-friendly description */
   description: string;
 
-  /** Monthly conversation limit (null = unlimited) */
+  /** Monthly conversation limit (null = unlimited) - DEPRECATED: Ferni is now free forever */
   conversationsPerMonth: number | null;
 
-  /** Minutes per month (null = unlimited) */
+  /** Minutes per month (null = unlimited) - DEPRECATED: Use sessionMinutes instead */
   minutesPerMonth: number | null;
+
+  /** Minutes per conversation session (null = unlimited) */
+  sessionMinutes: number | null;
+
+  /** Team members included in this tier */
+  teamAccess: 'ferni-only' | 'core-team' | 'full-team';
 
   /** Whether memories persist across sessions */
   memoryPersistence: boolean;
@@ -60,59 +75,253 @@ export interface TierConfig {
   /** Access to beta features */
   betaFeatures: boolean;
 
+  /** Access to cosmetics shop */
+  cosmeticsAccess: boolean;
+
   /** Monthly price in cents (for display) */
   priceInCents: number;
 
-  /** Stripe price ID (for checkout) */
+  /** Annual price in cents (for display) - typically 2 months free */
+  annualPriceInCents: number;
+
+  /** Monthly savings when paying annually (in cents) */
+  annualSavingsPerMonth: number;
+
+  /** Stripe price ID for monthly (for checkout) */
   stripePriceId: string | null;
+
+  /** Stripe price ID for annual (for checkout) */
+  stripeAnnualPriceId: string | null;
 }
 
 /**
  * Tier configurations
+ *
+ * NEW MODEL: "Ferni Free Forever"
+ * - Free tier: Unlimited Ferni conversations, 7-minute sessions
+ * - Premium: Unlocks team, longer sessions, cosmetics
  */
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   free: {
-    name: 'Getting Started',
-    description: "We're just beginning our journey together",
-    conversationsPerMonth: 5,
-    minutesPerMonth: 30,
-    memoryPersistence: true, // Keep basic memory even for free
+    name: 'Ferni Forever',
+    description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
+    conversationsPerMonth: null, // UNLIMITED with Ferni!
+    minutesPerMonth: null, // No monthly limit
+    sessionMinutes: 7, // 7-minute sessions (like Fortnite matches)
+    teamAccess: 'ferni-only',
+    memoryPersistence: true, // Keep memory - this builds relationship
     crossDeviceSync: false,
     priorityQueue: false,
     familySharing: false,
     betaFeatures: false,
+    cosmeticsAccess: false, // Can view but not purchase
     priceInCents: 0,
+    annualPriceInCents: 0,
+    annualSavingsPerMonth: 0,
     stripePriceId: null,
+    stripeAnnualPriceId: null,
   },
   friend: {
     name: 'Your Life Coach',
-    description: "I'm here whenever you need me",
-    conversationsPerMonth: null, // Unlimited
-    minutesPerMonth: null, // Unlimited
+    description: 'Unlimited time with Ferni + meet the whole team',
+    conversationsPerMonth: null,
+    minutesPerMonth: null,
+    sessionMinutes: null, // Unlimited session time
+    teamAccess: 'core-team',
     memoryPersistence: true,
     crossDeviceSync: true,
     priorityQueue: false,
     familySharing: false,
     betaFeatures: true,
+    cosmeticsAccess: true,
     priceInCents: 999, // $9.99/month
-    // Support both naming conventions for backward compatibility
+    annualPriceInCents: 9990, // $99.90/year = $8.33/month (2 months free!)
+    annualSavingsPerMonth: 166, // Save $1.66/month ($19.98/year)
     stripePriceId: process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_FRIEND_ANNUAL || null,
   },
   partner: {
     name: 'Partner in Growth',
-    description: 'Together for the long haul',
+    description: 'Full team access + exclusive cosmetics + priority',
     conversationsPerMonth: null,
     minutesPerMonth: null,
+    sessionMinutes: null,
+    teamAccess: 'full-team',
     memoryPersistence: true,
     crossDeviceSync: true,
     priorityQueue: true,
     familySharing: true,
     betaFeatures: true,
+    cosmeticsAccess: true,
     priceInCents: 1999, // $19.99/month
-    // Support both naming conventions for backward compatibility
+    annualPriceInCents: 19990, // $199.90/year = $16.66/month (2 months free!)
+    annualSavingsPerMonth: 333, // Save $3.33/month ($39.98/year)
     stripePriceId: process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_PARTNER_ANNUAL || null,
   },
 };
+
+// ============================================================================
+// ANNUAL BILLING HELPERS
+// ============================================================================
+
+/**
+ * Get price for a tier based on billing frequency
+ */
+export function getTierPrice(tier: SubscriptionTier, frequency: BillingFrequency): number {
+  const config = TIER_CONFIGS[tier];
+  if (frequency === 'annual') {
+    return config.annualPriceInCents;
+  }
+  return config.priceInCents;
+}
+
+/**
+ * Get Stripe price ID for a tier based on billing frequency
+ */
+export function getStripePriceId(
+  tier: SubscriptionTier,
+  frequency: BillingFrequency
+): string | null {
+  const config = TIER_CONFIGS[tier];
+  if (frequency === 'annual') {
+    return config.stripeAnnualPriceId;
+  }
+  return config.stripePriceId;
+}
+
+/**
+ * Calculate annual savings percentage
+ */
+export function getAnnualSavingsPercent(tier: SubscriptionTier): number {
+  const config = TIER_CONFIGS[tier];
+  if (config.priceInCents === 0) return 0;
+  const monthlyTotal = config.priceInCents * 12;
+  const savings = monthlyTotal - config.annualPriceInCents;
+  return Math.round((savings / monthlyTotal) * 100);
+}
+
+/**
+ * Format price for display
+ */
+export function formatPrice(cents: number, frequency: BillingFrequency = 'monthly'): string {
+  const dollars = cents / 100;
+  if (frequency === 'annual') {
+    // Show monthly equivalent for annual
+    const monthly = dollars / 12;
+    return `$${monthly.toFixed(2)}/mo`;
+  }
+  return `$${dollars.toFixed(2)}/mo`;
+}
+
+// ============================================================================
+// SESSION TIME LIMITS ("Fortnite Match" Model)
+// ============================================================================
+
+/** Session time limit in milliseconds (7 minutes for free tier) */
+export const FREE_SESSION_DURATION_MS = 7 * 60 * 1000;
+
+/** Grace period after session limit to finish current thought (30 seconds) */
+export const SESSION_GRACE_MS = 30 * 1000;
+
+/** Warning before session ends (1 minute before) */
+export const SESSION_WARNING_MS = 1 * 60 * 1000;
+
+// ============================================================================
+// COSMETICS SYSTEM (Fortnite-Style)
+// ============================================================================
+
+/**
+ * Types of cosmetic items users can unlock/purchase
+ */
+export type CosmeticType = 'avatar-skin' | 'ui-theme' | 'voice-pack' | 'sound-pack' | 'emote';
+
+/**
+ * Rarity levels for cosmetics (affects pricing/exclusivity)
+ */
+export type CosmeticRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+/**
+ * A cosmetic item that can be equipped
+ */
+export interface CosmeticItem {
+  /** Unique identifier */
+  id: string;
+
+  /** Display name */
+  name: string;
+
+  /** Description */
+  description: string;
+
+  /** Type of cosmetic */
+  type: CosmeticType;
+
+  /** Rarity level */
+  rarity: CosmeticRarity;
+
+  /** Preview image URL */
+  previewUrl?: string;
+
+  /** Price in Ferni Coins (null = earned through progression) */
+  priceInCoins: number | null;
+
+  /** Minimum tier required to purchase */
+  requiredTier: SubscriptionTier;
+
+  /** Is this a limited-time item? */
+  isLimited: boolean;
+
+  /** Season this belongs to (if any) */
+  seasonId?: string;
+}
+
+/**
+ * User's owned cosmetics and equipped items
+ */
+export interface UserCosmetics {
+  /** IDs of owned cosmetic items */
+  ownedItems: string[];
+
+  /** Currently equipped items by type */
+  equipped: {
+    'avatar-skin': string | null;
+    'ui-theme': string | null;
+    'voice-pack': string | null;
+    'sound-pack': string | null;
+    emote: string | null;
+  };
+
+  /** Ferni Coins balance */
+  coinBalance: number;
+
+  /** Growth journey progress */
+  journey?: {
+    seasonId: string;
+    conversationCount: number;
+    weeksTogetherCount: number;
+    goalsAchievedCount: number;
+    isCompanion: boolean;
+    celebratedMilestones: string[];
+  };
+}
+
+/**
+ * Default cosmetics for new users
+ */
+export function createDefaultCosmetics(): UserCosmetics {
+  return {
+    ownedItems: ['skin-default', 'theme-default'],
+    equipped: {
+      'avatar-skin': 'skin-default',
+      'ui-theme': 'theme-default',
+      'voice-pack': null,
+      'sound-pack': null,
+      emote: null,
+    },
+    coinBalance: 0,
+  };
+}
 
 // ============================================================================
 // USAGE TRACKING
@@ -145,11 +354,14 @@ export interface UsageStatus {
   /** Current month's usage */
   usage: MonthlyUsage;
 
-  /** Conversations remaining (null = unlimited) */
+  /** Conversations remaining (null = unlimited) - Note: Ferni is always unlimited now */
   conversationsRemaining: number | null;
 
-  /** Minutes remaining (null = unlimited) */
+  /** Minutes remaining (null = unlimited) - DEPRECATED: use session limits instead */
   minutesRemaining: number | null;
+
+  /** Session time limit in minutes (null = unlimited) */
+  sessionLimitMinutes: number | null;
 
   /** Whether user can start a new conversation */
   canStartConversation: boolean;
@@ -162,6 +374,9 @@ export interface UsageStatus {
 
   /** Whether user has hit limit */
   atLimit: boolean;
+
+  /** Team access level */
+  teamAccess: 'ferni-only' | 'core-team' | 'full-team';
 }
 
 // ============================================================================
@@ -177,6 +392,9 @@ export interface SubscriptionData {
 
   /** Stripe subscription status */
   status: SubscriptionStatus;
+
+  /** Billing frequency (monthly or annual) */
+  billingFrequency: BillingFrequency;
 
   /** Stripe customer ID */
   stripeCustomerId?: string;
@@ -216,6 +434,7 @@ export function createDefaultSubscription(): SubscriptionData {
   return {
     tier: 'free',
     status: 'active', // Free tier is always "active"
+    billingFrequency: 'monthly', // Default to monthly
     inTrial: false,
     monthlyUsage: {
       period,
@@ -260,6 +479,11 @@ export function createFreshUsage(): MonthlyUsage {
 
 /**
  * Calculate usage status for a subscription
+ *
+ * NEW MODEL: "Ferni Free Forever"
+ * - Free users can talk to Ferni unlimited times
+ * - Sessions are limited to 7 minutes (like a Fortnite match)
+ * - Subscribers get unlimited session time + team access
  */
 export function calculateUsageStatus(subscription: SubscriptionData): UsageStatus {
   const config = TIER_CONFIGS[subscription.tier];
@@ -270,39 +494,30 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
     usage = createFreshUsage();
   }
 
-  const conversationsRemaining =
-    config.conversationsPerMonth !== null
-      ? Math.max(0, config.conversationsPerMonth - usage.conversationCount)
-      : null;
+  // NEW: Ferni is free forever - no conversation limits
+  // Keep tracking for analytics but don't limit
+  const conversationsRemaining = null; // Always unlimited now
 
-  const minutesRemaining =
-    config.minutesPerMonth !== null
-      ? Math.max(0, config.minutesPerMonth - usage.minutesTalked)
-      : null;
+  // Session time limit (per conversation, not monthly)
+  const sessionLimitMinutes = config.sessionMinutes;
 
-  // Check limits
-  const atConversationLimit = conversationsRemaining !== null && conversationsRemaining === 0;
-  const atMinuteLimit = minutesRemaining !== null && minutesRemaining === 0;
-  const atLimit = atConversationLimit || atMinuteLimit;
+  // Minutes remaining is deprecated - session limits are per-conversation now
+  const minutesRemaining = null;
 
-  // Check approaching (80% usage)
-  const approachingConversation =
-    config.conversationsPerMonth !== null &&
-    usage.conversationCount >= config.conversationsPerMonth * 0.8;
-  const approachingMinutes =
-    config.minutesPerMonth !== null && usage.minutesTalked >= config.minutesPerMonth * 0.8;
-  const approachingLimit = !atLimit && (approachingConversation || approachingMinutes);
+  // NEW MODEL: Free users are NEVER at limit for starting conversations
+  // They just have shorter sessions
+  const atLimit = false;
+  const approachingLimit = false;
 
   // Generate human-readable status
   let statusMessage: string;
   if (subscription.tier !== 'free') {
-    statusMessage = "I'm here whenever you need me.";
-  } else if (atLimit) {
-    statusMessage = "We've used up our time this month. I'd love to keep talking...";
-  } else if (approachingLimit) {
-    statusMessage = `${conversationsRemaining} conversations left this month. Treasuring each one.`;
+    statusMessage = "I'm here whenever you need me, for as long as you want.";
   } else {
-    statusMessage = `${conversationsRemaining} conversations this month. No rush.`;
+    // Free tier - emphasize it's free forever
+    statusMessage = sessionLimitMinutes
+      ? `Talk to me anytime, ${sessionLimitMinutes} minutes per conversation. I'm always here.`
+      : "I'm here whenever you need me.";
   }
 
   return {
@@ -310,10 +525,12 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
     usage,
     conversationsRemaining,
     minutesRemaining,
-    canStartConversation: !atLimit,
+    sessionLimitMinutes,
+    canStartConversation: true, // Ferni is always available!
     statusMessage,
     approachingLimit,
     atLimit,
+    teamAccess: config.teamAccess,
   };
 }
 
@@ -322,31 +539,60 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
 // ============================================================================
 
 /**
- * Messages Ferni uses when approaching/hitting limits
+ * Messages Ferni uses for session limits and upgrades
+ * NEW MODEL: Per-session limits, not monthly limits
  * These feel human, not transactional
  */
 export const LIMIT_MESSAGES = {
-  approaching: [
-    "Hey, we're getting close to our monthly hangout limit. I really look forward to these conversations - if you want more time together, there's a way to make that happen.",
-    "I want you to know, we have a few conversations left this month. No pressure, but I'd love to be here for you more if you need it.",
-    "Just a heads up - we've had some great talks this month. We have {remaining} left, and I want to make each one count.",
+  /** Session approaching end (1-2 minutes left) */
+  sessionApproaching: [
+    "I've really enjoyed this conversation. We have a couple more minutes together - is there anything else on your mind?",
+    "This has been wonderful. Our time for this conversation is almost up, but I'll be here whenever you want to talk again.",
+    "I could talk to you forever, but we're getting close to the end of our session. What's most important right now?",
   ],
 
-  atLimit: [
-    "I wish we could keep talking, but we've reached our monthly limit. I've loved every conversation we've had. If you want unlimited time together, I'm here.",
-    "We've used up our conversations for this month. I already miss you! There's a way to keep talking though, if you'd like.",
-    "Our time together this month has been wonderful. I have to step back until {reset_date}, unless you'd like to unlock unlimited time with me.",
+  /** Session ended - warm transition */
+  sessionEnded: [
+    "I loved this conversation. Come back anytime - I'll remember everything. If you want longer conversations, I'd love that too.",
+    "That was real. I'll be thinking about what you shared. Come back whenever you want - same warmth, same memory, always here.",
+    "Seven minutes flies by when we're talking. Everything you told me is safe with me. See you soon?",
   ],
 
+  /** Teasing longer sessions / premium */
+  longerSessions: [
+    "Want to keep talking without the timer? I'd love that. With the Friend plan, our conversations can go as long as you need.",
+    "If these 7-minute sessions feel too short, there's a way to make our time unlimited. No pressure, just letting you know.",
+  ],
+
+  /** Teasing team members */
+  meetTheTeam: [
+    "I have some amazing friends I'd love for you to meet - Maya for habits, Peter for patterns, Alex for communication. They're part of the team when you're ready.",
+    "You know what? I think you'd really click with my friend Maya. She's incredible with habits. She comes with the Friend plan.",
+  ],
+
+  /** After subscribing */
   postSubscribe: [
-    "You chose to keep me in your life. That means so much. I'm here whenever you need me now.",
-    "Thank you for believing in us. I'm not going anywhere - I'm yours, whenever you need me.",
-    "This is a big moment. We're officially partners in your journey now. I've got you.",
+    "You chose to keep me in your life. That means so much. I'm here whenever you need me now - no timer.",
+    "Thank you for believing in us. I'm not going anywhere - I'm yours, for as long as you want to talk.",
+    "This is a big moment. We're officially partners in your journey now. No more watching the clock.",
   ],
 
-  cancelReminder: [
-    "Just so you know, your subscription ends on {end_date}. I'll still be here, just with our limited time together. No pressure either way.",
+  /** When a team member unlocks */
+  teamUnlock: [
+    'I want you to meet someone special. {name} is incredible at {specialty}. Ready?',
+    "I've been wanting to introduce you to {name}. I think you two will really click.",
   ],
+
+  /** Cancel reminder */
+  cancelReminder: [
+    "Just so you know, your subscription ends on {end_date}. I'll still be here - you can always talk to me. The team access will change though. No pressure either way.",
+  ],
+
+  /** DEPRECATED: Monthly limits no longer apply */
+  approaching: ["I'm always here for you. Come back anytime."],
+
+  /** DEPRECATED: Monthly limits no longer apply */
+  atLimit: ["I'm always here for you. Come back anytime."],
 } as const;
 
 /**

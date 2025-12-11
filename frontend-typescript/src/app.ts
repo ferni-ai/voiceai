@@ -179,8 +179,13 @@ import { initHouseholdManager, showHouseholdManager } from './ui/household-manag
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
-// Tip Jar - Support Ferni (monetization)
+// Monetization UIs - Support Ferni
+import { ferniFundUI } from './ui/ferni-fund.ui.js';
+import { growthJourneyUI } from './ui/growth-journey.ui.js';
+import { personalizeUI } from './ui/personalize.ui.js';
 import { tipJarUI } from './ui/tip-jar.ui.js';
+// Growth Journey - Celebrates relationship milestones
+import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications
@@ -375,7 +380,7 @@ class VoiceAIApp {
         const remaining = subscriptionCheck.remaining;
         if (remaining !== null) {
           if (remaining <= 1) {
-            toast.info("This is your last conversation this month. Let's make it count! 💚");
+            toast.info("This is your last conversation this month. Let's make it count.");
           } else if (remaining <= 2) {
             toast.info(`${remaining} conversations left. I'm here whenever you need me.`);
           }
@@ -858,7 +863,7 @@ class VoiceAIApp {
       initGSAP();
       // Promote frequently animated elements to GPU layers
       // NOTE: #coachAvatar removed - causes visible box bug in Safari
-      // GSAP's force3D handles GPU acceleration for avatar animations
+      // GSAP's force3D config (set in initGSAP) handles GPU acceleration
       promoteAllToGPU('.waveform-bar, .btn');
     });
 
@@ -1146,6 +1151,21 @@ class VoiceAIApp {
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
 
+    // 🌱 Growth Journey - Celebrate milestones as relationship deepens
+    this.safeInit('GrowthJourney', () => {
+      growthJourneyService.init();
+
+      // Listen for new milestones to celebrate
+      document.addEventListener('ferni:milestone-celebrated', ((e: CustomEvent) => {
+        const { milestone } = e.detail;
+        // Celebrate with warmth, not gamification
+        presenceUI.bounce();
+        soundUI.play('success');
+        celebrationsUI.warmthGlow({ intensity: 'warm' });
+        messageUI.show(milestone.title, 'success', 3000);
+      }) as EventListener);
+    });
+
     // 🔊 Voice Enrollment UI - Learn user's voice
     this.safeInit('VoiceEnrollmentUI', () => initVoiceEnrollmentUI());
 
@@ -1197,6 +1217,14 @@ class VoiceAIApp {
             tipJarUI.open(userId);
           }
         },
+        onFerniFundClick: () => {
+          const userId = appState.get('deviceId');
+          if (userId) {
+            void ferniFundUI.open(userId);
+          }
+        },
+        onPersonalizeClick: () => personalizeUI.open(),
+        onYourJourneyClick: () => growthJourneyUI.open(),
       });
 
       // Wire up Spotify state changes to menu

@@ -98,9 +98,11 @@ const styles = `
   margin-bottom: var(--space-6, 24px);
 }
 
-.tip-jar-emoji {
-  font-size: 48px;
-  margin-bottom: var(--space-3, 12px);
+.tip-jar-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-3, 12px);
+  color: var(--persona-primary, #4a6741);
 }
 
 .tip-jar-title {
@@ -214,9 +216,11 @@ const styles = `
   padding: var(--space-8, 32px) 0;
 }
 
-.tip-thank-you-emoji {
-  font-size: 64px;
-  margin-bottom: var(--space-4, 16px);
+.tip-thank-you-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4, 16px);
+  color: var(--persona-primary, #4a6741);
   animation: tip-bounce 0.6s ${EASING.SPRING};
 }
 
@@ -269,6 +273,12 @@ const styles = `
 // ============================================================================
 
 const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+// Lucide coffee icon
+const COFFEE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`;
+
+// Lucide heart icon for thank you
+const HEART_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
 
 // ============================================================================
 // COMPONENT
@@ -325,7 +335,7 @@ function createModal(): HTMLElement {
 function renderAmountSelection(): string {
   return `
     <div class="tip-jar-header">
-      <div class="tip-jar-emoji">☕</div>
+      <div class="tip-jar-icon">${COFFEE_ICON}</div>
       <h2 class="tip-jar-title" id="tip-jar-title">Support Ferni</h2>
       <p class="tip-jar-subtitle">
         Ferni is free forever. If I've helped you, you can buy me a coffee.
@@ -384,7 +394,7 @@ function renderLoading(): string {
 function renderThankYou(message: string): string {
   return `
     <div class="tip-thank-you">
-      <div class="tip-thank-you-emoji">💚</div>
+      <div class="tip-thank-you-icon">${HEART_ICON}</div>
       <h2 class="tip-thank-you-title">Thank You!</h2>
       <p class="tip-thank-you-message">${message}</p>
     </div>
@@ -507,7 +517,7 @@ export function showThankYou(message?: string): void {
   const content = container.querySelector('.tip-jar-content');
   if (content) {
     content.innerHTML = renderThankYou(
-      message || "That means so much. I'll keep being here for you - and everyone. 💚"
+      message || "That means so much. I'll keep being here for you - and everyone."
     );
   }
 
