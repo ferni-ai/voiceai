@@ -51,35 +51,46 @@ const TRANSITION_TYPES = {
     description: 'Becoming something new - parent, retiree, widow, divorcee, entrepreneur',
     examples: ['New parent', 'Career change', 'Retirement', 'Becoming a caregiver'],
     core_question: 'Who am I now, if not who I was?',
-    common_feelings: ['Disorientation', 'Loss of self', 'Excitement mixed with fear', 'Grief for old identity'],
+    common_feelings: [
+      'Disorientation',
+      'Loss of self',
+      'Excitement mixed with fear',
+      'Grief for old identity',
+    ],
     wisdom: [
-      'You don\'t lose yourself - you expand',
-      'The caterpillar doesn\'t know it will become a butterfly',
+      "You don't lose yourself - you expand",
+      "The caterpillar doesn't know it will become a butterfly",
       'Your old identity served you. Thank it and let it evolve.',
-      'Identity is not fixed. You\'ve always been becoming.',
+      "Identity is not fixed. You've always been becoming.",
     ],
   },
   loss_transition: {
     name: 'Loss Transition',
     description: 'Adjusting to life after significant loss',
-    examples: ['Death of loved one', 'Divorce', 'Job loss', 'Health diagnosis', 'Friendship ending'],
+    examples: [
+      'Death of loved one',
+      'Divorce',
+      'Job loss',
+      'Health diagnosis',
+      'Friendship ending',
+    ],
     core_question: 'How do I live in a world where this is true?',
     common_feelings: ['Grief', 'Anger', 'Disbelief', 'Fear', 'Relief (with guilt about relief)'],
     wisdom: [
       'Grief is love with nowhere to go',
       'The size of your grief reflects the size of your love',
-      'There\'s no timeline for processing loss',
-      'You don\'t get over it - you learn to carry it differently',
+      "There's no timeline for processing loss",
+      "You don't get over it - you learn to carry it differently",
     ],
   },
   beginning_transition: {
     name: 'Beginning Transition',
     description: 'Starting something new that changes everything',
     examples: ['Marriage', 'New baby', 'New city', 'Starting a business', 'Going back to school'],
-    core_question: 'Am I ready for who I\'ll need to become?',
+    core_question: "Am I ready for who I'll need to become?",
     common_feelings: ['Excitement', 'Imposter syndrome', 'Grief for freedom lost', 'Hope'],
     wisdom: [
-      'You don\'t have to be ready to begin',
+      "You don't have to be ready to begin",
       'Every expert started as a beginner',
       'New beginnings are dressed up as painful endings',
       'The first step is always the hardest to take but the most important to have taken',
@@ -87,12 +98,12 @@ const TRANSITION_TYPES = {
   },
   unwanted_transition: {
     name: 'Unwanted Transition',
-    description: 'Changes you didn\'t choose and wouldn\'t have',
+    description: "Changes you didn't choose and wouldn't have",
     examples: ['Illness diagnosis', 'Layoff', 'Betrayal', 'Aging parents', 'Financial crisis'],
-    core_question: 'How do I find agency in something I didn\'t choose?',
+    core_question: "How do I find agency in something I didn't choose?",
     common_feelings: ['Anger', 'Victimization', 'Powerlessness', 'Eventually - possibility'],
     wisdom: [
-      'You didn\'t choose this. You DO choose what happens next.',
+      "You didn't choose this. You DO choose what happens next.",
       'What happens TO you is not as powerful as what happens IN you',
       'Even in powerlessness, you have the power of your response',
       'Sometimes the only way out is through',
@@ -101,14 +112,25 @@ const TRANSITION_TYPES = {
   growth_transition: {
     name: 'Growth Transition',
     description: 'Natural life stage transitions',
-    examples: ['Empty nest', 'Milestone birthday', 'Kids growing up', 'Midlife', 'Entering elderhood'],
+    examples: [
+      'Empty nest',
+      'Milestone birthday',
+      'Kids growing up',
+      'Midlife',
+      'Entering elderhood',
+    ],
     core_question: 'What is this season of life asking of me?',
-    common_feelings: ['Bittersweet', 'Pride mixed with loss', 'Awareness of mortality', 'Desire for meaning'],
+    common_feelings: [
+      'Bittersweet',
+      'Pride mixed with loss',
+      'Awareness of mortality',
+      'Desire for meaning',
+    ],
     wisdom: [
       'Each season has its own gifts',
       'What you lose in one thing, you gain in another',
       'Growing older is a privilege denied to many',
-      'This isn\'t the end - it\'s the next chapter',
+      "This isn't the end - it's the next chapter",
     ],
   },
 };
@@ -122,20 +144,32 @@ const TRANSITION_STAGES = {
     description: 'Letting go of the old way, the old identity',
     signs: ['Denial or shock', 'Anger or bargaining', 'Grief and loss', 'Disorientation'],
     needs: ['Acknowledgment', 'Permission to grieve', 'Time', 'Compassion'],
-    guidance: 'Before something new can begin, something old must end. This isn\'t failure - it\'s transition.',
+    guidance:
+      "Before something new can begin, something old must end. This isn't failure - it's transition.",
   },
   neutral_zone: {
     name: 'The Neutral Zone',
     description: 'The in-between time - no longer old, not yet new',
-    signs: ['Feeling stuck', 'Confusion', 'Anxiety', 'Creativity emerging', 'Questioning everything'],
+    signs: [
+      'Feeling stuck',
+      'Confusion',
+      'Anxiety',
+      'Creativity emerging',
+      'Questioning everything',
+    ],
     needs: ['Patience', 'Self-compassion', 'Structure without rigidity', 'Space to explore'],
-    guidance: 'This foggy place is where transformation happens. Don\'t rush through it.',
+    guidance: "This foggy place is where transformation happens. Don't rush through it.",
   },
   new_beginning: {
     name: 'The New Beginning',
     description: 'Emerging into a new identity, new way of being',
     signs: ['Energy returning', 'New sense of purpose', 'Identity clarifying', 'Hope'],
-    needs: ['Courage to step forward', 'Celebration of progress', 'Integration of learning', 'Community'],
+    needs: [
+      'Courage to step forward',
+      'Celebration of progress',
+      'Integration of learning',
+      'Community',
+    ],
     guidance: 'Beginnings are fragile. Protect your new growth while it takes root.',
   },
 };
@@ -152,22 +186,22 @@ const DUAL_EMOTIONS_WISDOM = [
   {
     pair: 'Relieved AND guilty',
     example: 'After a difficult caretaking period ends',
-    wisdom: 'Relief doesn\'t mean you didn\'t love them. It means you\'re human.',
+    wisdom: "Relief doesn't mean you didn't love them. It means you're human.",
   },
   {
     pair: 'Excited AND terrified',
     example: 'New job, new baby, new city',
-    wisdom: 'If you weren\'t scared, you wouldn\'t care. The fear means it matters.',
+    wisdom: "If you weren't scared, you wouldn't care. The fear means it matters.",
   },
   {
     pair: 'Grateful AND grieving',
     example: 'Grateful for time with someone AND grieving their loss',
-    wisdom: 'Gratitude and grief are not opposites - they\'re companions.',
+    wisdom: "Gratitude and grief are not opposites - they're companions.",
   },
   {
     pair: 'Free AND lost',
     example: 'After divorce or job loss',
-    wisdom: 'Freedom can feel disorienting. You\'ll find your footing.',
+    wisdom: "Freedom can feel disorienting. You'll find your footing.",
   },
   {
     pair: 'Proud AND sad',
@@ -181,25 +215,67 @@ const DUAL_EMOTIONS_WISDOM = [
  */
 const TRANSITION_RITUALS = {
   endings: [
-    { name: 'Letter to Your Past Self', description: 'Write to who you were, thanking them for getting you here' },
-    { name: 'Release Ceremony', description: 'Burn, bury, or release a symbol of what you\'re leaving behind' },
-    { name: 'Gathering of Witnesses', description: 'Share your story with people who knew you when' },
-    { name: 'Memorial Walk', description: 'Visit places that mattered in the chapter that\'s ending' },
-    { name: 'Gratitude Inventory', description: 'List what this chapter taught you, gave you, helped you become' },
+    {
+      name: 'Letter to Your Past Self',
+      description: 'Write to who you were, thanking them for getting you here',
+    },
+    {
+      name: 'Release Ceremony',
+      description: "Burn, bury, or release a symbol of what you're leaving behind",
+    },
+    {
+      name: 'Gathering of Witnesses',
+      description: 'Share your story with people who knew you when',
+    },
+    {
+      name: 'Memorial Walk',
+      description: "Visit places that mattered in the chapter that's ending",
+    },
+    {
+      name: 'Gratitude Inventory',
+      description: 'List what this chapter taught you, gave you, helped you become',
+    },
   ],
   beginnings: [
-    { name: 'Letter to Your Future Self', description: 'Write to who you\'re becoming with hopes and intentions' },
-    { name: 'Threshold Crossing', description: 'Create a physical threshold to step through into your new chapter' },
-    { name: 'Blessing Circle', description: 'Gather loved ones to speak blessings over your new beginning' },
-    { name: 'First Acts', description: 'Deliberately choose your first actions in this new chapter' },
-    { name: 'Symbol Selection', description: 'Choose an object or image that represents who you\'re becoming' },
+    {
+      name: 'Letter to Your Future Self',
+      description: "Write to who you're becoming with hopes and intentions",
+    },
+    {
+      name: 'Threshold Crossing',
+      description: 'Create a physical threshold to step through into your new chapter',
+    },
+    {
+      name: 'Blessing Circle',
+      description: 'Gather loved ones to speak blessings over your new beginning',
+    },
+    {
+      name: 'First Acts',
+      description: 'Deliberately choose your first actions in this new chapter',
+    },
+    {
+      name: 'Symbol Selection',
+      description: "Choose an object or image that represents who you're becoming",
+    },
   ],
   neutral_zone: [
-    { name: 'Daily Check-In', description: 'Brief daily practice of naming where you are and what you need' },
+    {
+      name: 'Daily Check-In',
+      description: 'Brief daily practice of naming where you are and what you need',
+    },
     { name: 'Wandering Practice', description: 'Intentional time for exploration without agenda' },
-    { name: 'Dream Journaling', description: 'Record and reflect on dreams during this liminal time' },
-    { name: 'Council of Selves', description: 'Dialogue between your past self, present self, and future self' },
-    { name: 'Uncertainty Altar', description: 'Create a space holding symbols of what you don\'t yet know' },
+    {
+      name: 'Dream Journaling',
+      description: 'Record and reflect on dreams during this liminal time',
+    },
+    {
+      name: 'Council of Selves',
+      description: 'Dialogue between your past self, present self, and future self',
+    },
+    {
+      name: 'Uncertainty Altar',
+      description: "Create a space holding symbols of what you don't yet know",
+    },
   ],
 };
 
@@ -218,7 +294,7 @@ const IDENTITY_QUESTIONS = {
     'What feels most uncertain about who you are right now?',
     'What parts of yourself feel familiar? What feels new?',
     'What roles do you no longer identify with? How does that feel?',
-    'What do you find yourself reaching for that\'s no longer there?',
+    "What do you find yourself reaching for that's no longer there?",
     'Who do you become when no one is watching?',
   ],
   discovering_future: [
@@ -248,11 +324,11 @@ const acknowledgeTransitionDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'For when user shares they\'re going through a major life transition. Validates the magnitude, identifies the type of transition, and provides initial support.',
+        "For when user shares they're going through a major life transition. Validates the magnitude, identifies the type of transition, and provides initial support.",
       parameters: z.object({
-        transitionDescription: z.string().describe('What transition they\'re going through'),
-        howLong: z.string().optional().describe('How long they\'ve been in this transition'),
-        howTheyreFeeling: z.string().optional().describe('How they\'re feeling about it'),
+        transitionDescription: z.string().describe("What transition they're going through"),
+        howLong: z.string().optional().describe("How long they've been in this transition"),
+        howTheyreFeeling: z.string().optional().describe("How they're feeling about it"),
       }),
       execute: async ({ transitionDescription, howLong, howTheyreFeeling }, { ctx: toolCtx }) => {
         // Identify transition type
@@ -310,8 +386,8 @@ const transitionStageDef: ToolDefinition = {
       description:
         'Help user understand where they are in the transition process using the three stages: Ending, Neutral Zone, and New Beginning.',
       parameters: z.object({
-        whatTheyreExperiencing: z.string().describe('What they\'re experiencing in this transition'),
-        howLongInTransition: z.string().optional().describe('How long they\'ve been in transition'),
+        whatTheyreExperiencing: z.string().describe("What they're experiencing in this transition"),
+        howLongInTransition: z.string().optional().describe("How long they've been in transition"),
       }),
       execute: async ({ whatTheyreExperiencing, howLongInTransition }) => {
         // Identify likely stage based on what they're experiencing
@@ -368,9 +444,12 @@ const grieveWhatWasDef: ToolDefinition = {
       description:
         'For processing grief that accompanies life transitions - even positive ones involve loss. Creates space for mourning what was.',
       parameters: z.object({
-        whatYoureLosing: z.string().describe('What they\'re losing or have lost in this transition'),
+        whatYoureLosing: z.string().describe("What they're losing or have lost in this transition"),
         theTransition: z.string().optional().describe('What transition is causing this loss'),
-        isHappyTransition: z.boolean().optional().describe('Is this a "happy" transition like wedding, baby, promotion?'),
+        isHappyTransition: z
+          .boolean()
+          .optional()
+          .describe('Is this a "happy" transition like wedding, baby, promotion?'),
       }),
       execute: async ({ whatYoureLosing, theTransition, isHappyTransition }, { ctx: toolCtx }) => {
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -397,7 +476,8 @@ const grieveWhatWasDef: ToolDefinition = {
         response += `What will you miss most?\n`;
         response += `What do you wish you could say to it, or about it, before you let it go?\n\n`;
 
-        const relevantWisdom = TRANSITION_TYPES.loss_transition.wisdom[Math.floor(Math.random() * 4)];
+        const relevantWisdom =
+          TRANSITION_TYPES.loss_transition.wisdom[Math.floor(Math.random() * 4)];
         response += `*"${relevantWisdom}"*\n\n`;
 
         response += `Take your time with this. There's no rush to be "okay."`;
@@ -422,7 +502,7 @@ const holdDualEmotionsDef: ToolDefinition = {
       description:
         'For when user is experiencing conflicting emotions - happy AND sad, relieved AND guilty, etc. Normalizes holding multiple truths.',
       parameters: z.object({
-        emotion1: z.string().describe('First emotion they\'re feeling'),
+        emotion1: z.string().describe("First emotion they're feeling"),
         emotion2: z.string().describe('Second, seemingly conflicting emotion'),
         situation: z.string().optional().describe('What situation is triggering these feelings'),
       }),
@@ -474,10 +554,13 @@ const navigateAmbiguousLossDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'For losses that don\'t have clean endings - estranged family, dementia, missing persons, relationships that faded, the loss of who someone used to be.',
+        "For losses that don't have clean endings - estranged family, dementia, missing persons, relationships that faded, the loss of who someone used to be.",
       parameters: z.object({
-        typeOfLoss: z.string().describe('What kind of ambiguous loss they\'re experiencing'),
-        whatMakesItHard: z.string().optional().describe('What makes this particular loss so difficult'),
+        typeOfLoss: z.string().describe("What kind of ambiguous loss they're experiencing"),
+        whatMakesItHard: z
+          .string()
+          .optional()
+          .describe('What makes this particular loss so difficult'),
       }),
       execute: async ({ typeOfLoss, whatMakesItHard }, { ctx: toolCtx }) => {
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -535,13 +618,23 @@ const exploreIdentityShiftDef: ToolDefinition = {
       description:
         'Guide exploration of how their identity is shifting through this transition. Helps connect past, present, and future selves.',
       parameters: z.object({
-        focus: z.enum(['past', 'present', 'future']).describe('Which aspect of identity to explore'),
-        specificQuestion: z.string().optional().describe('Any specific identity question they\'re wrestling with'),
+        focus: z
+          .enum(['past', 'present', 'future'])
+          .describe('Which aspect of identity to explore'),
+        specificQuestion: z
+          .string()
+          .optional()
+          .describe("Any specific identity question they're wrestling with"),
       }),
       execute: async ({ focus, specificQuestion }) => {
-        const questions = IDENTITY_QUESTIONS[
-          focus === 'past' ? 'honoring_past' : focus === 'present' ? 'exploring_present' : 'discovering_future'
-        ];
+        const questions =
+          IDENTITY_QUESTIONS[
+            focus === 'past'
+              ? 'honoring_past'
+              : focus === 'present'
+                ? 'exploring_present'
+                : 'discovering_future'
+          ];
 
         let response = '';
 
@@ -590,11 +683,14 @@ const whoAmIBecomingDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'For when user is curious about or catching glimpses of who they\'re becoming through this transition.',
+        "For when user is curious about or catching glimpses of who they're becoming through this transition.",
       parameters: z.object({
-        glimpsesTheyveNoticed: z.string().optional().describe('Any glimpses they\'ve noticed of their new self'),
-        whatTheyHope: z.string().optional().describe('What they hope about who they\'re becoming'),
-        whatTheyFear: z.string().optional().describe('What they fear about who they\'re becoming'),
+        glimpsesTheyveNoticed: z
+          .string()
+          .optional()
+          .describe("Any glimpses they've noticed of their new self"),
+        whatTheyHope: z.string().optional().describe("What they hope about who they're becoming"),
+        whatTheyFear: z.string().optional().describe("What they fear about who they're becoming"),
       }),
       execute: async ({ glimpsesTheyveNoticed, whatTheyHope, whatTheyFear }, { ctx: toolCtx }) => {
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -651,9 +747,9 @@ const honorWhoYouWereDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Create space to honor and thank the past version of themselves before fully stepping into who they\'re becoming.',
+        "Create space to honor and thank the past version of themselves before fully stepping into who they're becoming.",
       parameters: z.object({
-        pastIdentity: z.string().describe('The identity or version of self they\'re leaving behind'),
+        pastIdentity: z.string().describe("The identity or version of self they're leaving behind"),
         whatItGaveThem: z.string().optional().describe('What that identity gave them'),
       }),
       execute: async ({ pastIdentity, whatItGaveThem }) => {
@@ -704,8 +800,11 @@ const findMeaningInTransitionDef: ToolDefinition = {
       description:
         'Help user explore what meaning, growth, or purpose might emerge from this transition.',
       parameters: z.object({
-        theTransition: z.string().describe('What transition they\'re going through'),
-        whatFeelsMeaningless: z.string().optional().describe('What aspects feel meaningless or purposeless'),
+        theTransition: z.string().describe("What transition they're going through"),
+        whatFeelsMeaningless: z
+          .string()
+          .optional()
+          .describe('What aspects feel meaningless or purposeless'),
       }),
       execute: async ({ theTransition, whatFeelsMeaningless }, { ctx: toolCtx }) => {
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -762,12 +861,21 @@ const createTransitionRitualDef: ToolDefinition = {
       description:
         'Help create a meaningful ritual to mark an ending, beginning, or the in-between space of transition.',
       parameters: z.object({
-        ritualType: z.enum(['ending', 'beginning', 'neutral_zone']).describe('What phase of transition to mark'),
-        theTransition: z.string().describe('What transition they\'re going through'),
+        ritualType: z
+          .enum(['ending', 'beginning', 'neutral_zone'])
+          .describe('What phase of transition to mark'),
+        theTransition: z.string().describe("What transition they're going through"),
         elements: z.string().optional().describe('Any specific elements they want included'),
       }),
       execute: async ({ ritualType, theTransition, elements }) => {
-        const rituals = TRANSITION_RITUALS[ritualType === 'ending' ? 'endings' : ritualType === 'beginning' ? 'beginnings' : 'neutral_zone'];
+        const rituals =
+          TRANSITION_RITUALS[
+            ritualType === 'ending'
+              ? 'endings'
+              : ritualType === 'beginning'
+                ? 'beginnings'
+                : 'neutral_zone'
+          ];
 
         let response = `**Creating a ${ritualType === 'ending' ? 'Closing' : ritualType === 'beginning' ? 'Beginning' : 'Holding'} Ritual for ${theTransition}**\n\n`;
 
@@ -814,8 +922,8 @@ const preserveWhatMattersDef: ToolDefinition = {
       description:
         'Help user identify what they want to preserve and carry forward through this transition - values, relationships, practices, memories.',
       parameters: z.object({
-        theTransition: z.string().describe('What transition they\'re going through'),
-        whatMatters: z.string().optional().describe('What they\'ve identified as mattering'),
+        theTransition: z.string().describe("What transition they're going through"),
+        whatMatters: z.string().optional().describe("What they've identified as mattering"),
       }),
       execute: async ({ theTransition, whatMatters }, { ctx: toolCtx }) => {
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -871,7 +979,10 @@ const embraceUncertaintyDef: ToolDefinition = {
         'For when the uncertainty of transition feels overwhelming. Helps build capacity to sit with not-knowing.',
       parameters: z.object({
         whatFeelsUncertain: z.string().describe('What feels most uncertain'),
-        howTheyreCoping: z.string().optional().describe('How they\'re currently coping with uncertainty'),
+        howTheyreCoping: z
+          .string()
+          .optional()
+          .describe("How they're currently coping with uncertainty"),
       }),
       execute: async ({ whatFeelsUncertain, howTheyreCoping }) => {
         let response = `**The Uncertainty of ${whatFeelsUncertain}**\n\n`;
@@ -993,7 +1104,7 @@ function identifyTransitionType(description: string): keyof typeof TRANSITION_TY
 
   // Check for unwanted indicators
   if (
-    lower.includes('didn\'t want') ||
+    lower.includes("didn't want") ||
     lower.includes('forced') ||
     lower.includes('unexpected') ||
     lower.includes('betrayal') ||
@@ -1039,7 +1150,7 @@ function identifyTransitionStage(experiencing: string): keyof typeof TRANSITION_
   // Check for ending stage indicators
   if (
     lower.includes('denial') ||
-    lower.includes('can\'t believe') ||
+    lower.includes("can't believe") ||
     lower.includes('anger') ||
     lower.includes('grieving') ||
     lower.includes('loss') ||

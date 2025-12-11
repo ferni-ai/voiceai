@@ -137,7 +137,7 @@ const ADULT_FRIENDSHIP_BARRIERS = {
       'Start with activities, not "hanging out"',
       'Assume they want connection too',
       'Be the initiator you wish you had',
-      'Accept that some attempts won\'t click - that\'s normal',
+      "Accept that some attempts won't click - that's normal",
     ],
   },
   depth: {
@@ -174,7 +174,8 @@ const CONNECTION_WISDOM = [
     context: 'importance',
   },
   {
-    quote: 'Loneliness does not come from having no people around you, but from being unable to communicate the things that seem important to you.',
+    quote:
+      'Loneliness does not come from having no people around you, but from being unable to communicate the things that seem important to you.',
     attribution: 'Carl Jung',
     context: 'intimate-loneliness',
   },
@@ -189,12 +190,14 @@ const CONNECTION_WISDOM = [
     context: 'importance',
   },
   {
-    quote: "Language has created the word 'loneliness' to express the pain of being alone. And it has created the word 'solitude' to express the glory of being alone.",
+    quote:
+      "Language has created the word 'loneliness' to express the pain of being alone. And it has created the word 'solitude' to express the glory of being alone.",
     attribution: 'Paul Tillich',
     context: 'solitude-vs-loneliness',
   },
   {
-    quote: 'Friendship is born at that moment when one person says to another, "What! You too? I thought I was the only one."',
+    quote:
+      'Friendship is born at that moment when one person says to another, "What! You too? I thought I was the only one."',
     attribution: 'C.S. Lewis',
     context: 'friendship',
   },
@@ -215,22 +218,58 @@ const CONNECTION_WISDOM = [
  */
 const CONNECTION_RITUALS = {
   daily: [
-    { ritual: 'Text one person you haven\'t talked to recently', time: '2 min', impact: 'Keeps connections warm' },
-    { ritual: 'Make eye contact and smile at a stranger', time: '5 sec', impact: 'Reminds you of shared humanity' },
-    { ritual: 'Have a real conversation with a service person', time: '1 min', impact: 'Practices connection anywhere' },
+    {
+      ritual: "Text one person you haven't talked to recently",
+      time: '2 min',
+      impact: 'Keeps connections warm',
+    },
+    {
+      ritual: 'Make eye contact and smile at a stranger',
+      time: '5 sec',
+      impact: 'Reminds you of shared humanity',
+    },
+    {
+      ritual: 'Have a real conversation with a service person',
+      time: '1 min',
+      impact: 'Practices connection anywhere',
+    },
     { ritual: 'Share something vulnerable with one person', time: '5 min', impact: 'Builds depth' },
   ],
   weekly: [
-    { ritual: 'Call (not text) someone you care about', time: '15 min', impact: 'Voice deepens connection' },
-    { ritual: 'Eat a meal with someone', time: '1 hr', impact: 'Breaking bread is ancient bonding' },
-    { ritual: 'Show up at a recurring activity/group', time: '1-2 hrs', impact: 'Builds relational circles' },
-    { ritual: 'Write a note of appreciation to someone', time: '5 min', impact: 'Strengthens bonds' },
+    {
+      ritual: 'Call (not text) someone you care about',
+      time: '15 min',
+      impact: 'Voice deepens connection',
+    },
+    {
+      ritual: 'Eat a meal with someone',
+      time: '1 hr',
+      impact: 'Breaking bread is ancient bonding',
+    },
+    {
+      ritual: 'Show up at a recurring activity/group',
+      time: '1-2 hrs',
+      impact: 'Builds relational circles',
+    },
+    {
+      ritual: 'Write a note of appreciation to someone',
+      time: '5 min',
+      impact: 'Strengthens bonds',
+    },
   ],
   monthly: [
     { ritual: 'Host something at your home', time: '2-3 hrs', impact: 'Creates belonging' },
     { ritual: 'Try a new group or activity', time: '1-2 hrs', impact: 'Expands network' },
-    { ritual: 'Have a deeper conversation with someone', time: '1 hr', impact: 'Moves acquaintance to friend' },
-    { ritual: 'Reconnect with someone from the past', time: '30 min', impact: 'Revives dormant ties' },
+    {
+      ritual: 'Have a deeper conversation with someone',
+      time: '1 hr',
+      impact: 'Moves acquaintance to friend',
+    },
+    {
+      ritual: 'Reconnect with someone from the past',
+      time: '30 min',
+      impact: 'Revives dormant ties',
+    },
   ],
 };
 
@@ -240,7 +279,7 @@ const CONNECTION_RITUALS = {
 const CONNECTION_HEALTH = {
   healthy_signs: [
     'You have at least one person you can call in a crisis',
-    'Someone knows what\'s really going on in your life',
+    "Someone knows what's really going on in your life",
     'You feel seen and known by at least one person',
     'You have people you look forward to seeing',
     'You have recurring social activities',
@@ -248,11 +287,11 @@ const CONNECTION_HEALTH = {
     'You give and receive support',
   ],
   warning_signs: [
-    'You can\'t remember the last meaningful conversation',
+    "You can't remember the last meaningful conversation",
     'No one would notice if something happened to you',
     'You always initiate - no one reaches out first',
     'You feel invisible, even in groups',
-    'You perform a version of yourself that isn\'t real',
+    "You perform a version of yourself that isn't real",
     'You feel drained after every social interaction',
     'You have no one to share good news with',
   ],
@@ -272,11 +311,12 @@ const acknowledgeLonelinessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'When user expresses loneliness, first acknowledge it. Don\'t rush to fix. Loneliness is not a problem to solve - it\'s a human experience to be witnessed.',
+      description:
+        "When user expresses loneliness, first acknowledge it. Don't rush to fix. Loneliness is not a problem to solve - it's a human experience to be witnessed.",
       parameters: z.object({
         howLonelyFeels: z.string().describe('What their loneliness feels like'),
-        howLong: z.string().optional().describe('How long they\'ve felt this way'),
-        whatTheyveTriед: z.string().optional().describe('What they\'ve tried'),
+        howLong: z.string().optional().describe("How long they've felt this way"),
+        whatTheyveTriед: z.string().optional().describe("What they've tried"),
       }),
       execute: async ({ howLonelyFeels, howLong, whatTheyveTriед }) => {
         getLogger().info(
@@ -316,7 +356,9 @@ const acknowledgeLonelinessDef: ToolDefinition = {
 
         response += `---\n\n`;
 
-        const wisdom = CONNECTION_WISDOM.find(w => w.context === 'intimate-loneliness' || w.context === 'importance');
+        const wisdom = CONNECTION_WISDOM.find(
+          (w) => w.context === 'intimate-loneliness' || w.context === 'importance'
+        );
         if (wisdom) {
           response += `> "${wisdom.quote}"\n`;
           response += `> — ${wisdom.attribution}\n\n`;
@@ -339,16 +381,14 @@ const exploreLonelinessTypeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Different types of loneliness need different approaches. Help user identify what they\'re actually missing.',
+      description:
+        "Different types of loneliness need different approaches. Help user identify what they're actually missing.",
       parameters: z.object({
         symptoms: z.string().describe('How their loneliness manifests'),
         whatsMissing: z.string().optional().describe('What they feel is missing'),
       }),
       execute: async ({ symptoms, whatsMissing }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Exploring loneliness type'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Exploring loneliness type');
 
         let response = `**Understanding Your Loneliness**\n\n`;
 
@@ -362,7 +402,7 @@ const exploreLonelinessTypeDef: ToolDefinition = {
 
         response += `**Types of Loneliness:**\n\n`;
 
-        Object.values(LONELINESS_TYPES).forEach(type => {
+        Object.values(LONELINESS_TYPES).forEach((type) => {
           response += `**${type.name}**\n`;
           response += `_${type.description}_\n`;
           response += `Feels like: "${type.feels_like}"\n\n`;
@@ -394,16 +434,14 @@ const sitWithLonelinessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'For moments of acute loneliness. Ferni offers presence - not solutions, just companionship.',
+      description:
+        'For moments of acute loneliness. Ferni offers presence - not solutions, just companionship.',
       parameters: z.object({
-        rightNow: z.string().describe('What they\'re feeling right now'),
+        rightNow: z.string().describe("What they're feeling right now"),
         timeOfDay: z.enum(['late-night', 'morning', 'afternoon', 'evening']).optional(),
       }),
       execute: async ({ rightNow, timeOfDay }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, timeOfDay },
-          'Sitting with loneliness'
-        );
+        getLogger().info({ agentId: ctx.agentId, timeOfDay }, 'Sitting with loneliness');
 
         // Persist as key moment
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -464,18 +502,16 @@ const makeAdultFriendsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user understand why adult friendship is hard and how to build it. Making friends after school/college requires different strategies.',
+      description:
+        'Help user understand why adult friendship is hard and how to build it. Making friends after school/college requires different strategies.',
       parameters: z.object({
-        mainBarrier: z.enum(['time', 'proximity', 'vulnerability', 'depth', 'energy', 'unsure'])
+        mainBarrier: z
+          .enum(['time', 'proximity', 'vulnerability', 'depth', 'energy', 'unsure'])
           .describe('What feels like the biggest barrier'),
-        currentSituation: z.string().optional()
-          .describe('Their current social situation'),
+        currentSituation: z.string().optional().describe('Their current social situation'),
       }),
       execute: async ({ mainBarrier, currentSituation }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, mainBarrier },
-          'Helping make adult friends'
-        );
+        getLogger().info({ agentId: ctx.agentId, mainBarrier }, 'Helping make adult friends');
 
         let response = `**Making Friends as an Adult**\n\n`;
 
@@ -496,13 +532,13 @@ const makeAdultFriendsDef: ToolDefinition = {
           response += `_The reality:_ ${barrier.reality}\n\n`;
           response += `_Reframe:_ ${barrier.reframe}\n\n`;
           response += `**What helps:**\n`;
-          barrier.strategies.forEach(s => {
+          barrier.strategies.forEach((s) => {
             response += `- ${s}\n`;
           });
           response += `\n`;
         } else {
           response += `**Common Barriers:**\n\n`;
-          Object.values(ADULT_FRIENDSHIP_BARRIERS).forEach(barrier => {
+          Object.values(ADULT_FRIENDSHIP_BARRIERS).forEach((barrier) => {
             response += `**${barrier.barrier}:** ${barrier.reality}\n`;
             response += `→ ${barrier.reframe}\n\n`;
           });
@@ -527,7 +563,7 @@ const makeAdultFriendsDef: ToolDefinition = {
         response += `4. Move past "how are you" - share something real\n`;
         response += `5. Expect awkwardness - it's normal, push through\n\n`;
 
-        const wisdom = CONNECTION_WISDOM.find(w => w.context === 'friendship');
+        const wisdom = CONNECTION_WISDOM.find((w) => w.context === 'friendship');
         if (wisdom) {
           response += `> "${wisdom.quote}"\n`;
           response += `> — ${wisdom.attribution}\n\n`;
@@ -550,16 +586,14 @@ const maintainFriendshipsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user maintain existing friendships that are drifting due to life circumstances.',
+      description:
+        'Help user maintain existing friendships that are drifting due to life circumstances.',
       parameters: z.object({
         friendshipStatus: z.string().describe('Status of friendships they want to maintain'),
-        barrier: z.string().optional().describe('What\'s getting in the way'),
+        barrier: z.string().optional().describe("What's getting in the way"),
       }),
       execute: async ({ friendshipStatus, barrier }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping maintain friendships'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping maintain friendships');
 
         let response = `**Keeping Friendships Alive**\n\n`;
 
@@ -584,17 +618,17 @@ const maintainFriendshipsDef: ToolDefinition = {
         response += `**Connection Rituals:**\n\n`;
 
         response += `**Daily (2 minutes):**\n`;
-        CONNECTION_RITUALS.daily.forEach(r => {
+        CONNECTION_RITUALS.daily.forEach((r) => {
           response += `- ${r.ritual} → ${r.impact}\n`;
         });
 
         response += `\n**Weekly (15-60 min):**\n`;
-        CONNECTION_RITUALS.weekly.forEach(r => {
+        CONNECTION_RITUALS.weekly.forEach((r) => {
           response += `- ${r.ritual} → ${r.impact}\n`;
         });
 
         response += `\n**Monthly (1-3 hrs):**\n`;
-        CONNECTION_RITUALS.monthly.forEach(r => {
+        CONNECTION_RITUALS.monthly.forEach((r) => {
           response += `- ${r.ritual} → ${r.impact}\n`;
         });
 
@@ -631,10 +665,7 @@ const deepenFriendshipDef: ToolDefinition = {
         whatHoldsBack: z.string().optional().describe('What holds them back from going deeper'),
       }),
       execute: async ({ currentState, whatTheyWant, whatHoldsBack }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping deepen friendship'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping deepen friendship');
 
         let response = `**From Acquaintance to Friend**\n\n`;
 
@@ -706,10 +737,7 @@ const recognizeToxicFriendshipDef: ToolDefinition = {
         whatWorries: z.string().optional().describe('What worries them about the friendship'),
       }),
       execute: async ({ situation, howTheyFeel, whatWorries }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping recognize toxic friendship'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping recognize toxic friendship');
 
         let response = `**Evaluating a Friendship**\n\n`;
 
@@ -773,18 +801,16 @@ const findYourPeopleDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user think about where they might find their people - those who share their values, interests, or experiences.',
+      description:
+        'Help user think about where they might find their people - those who share their values, interests, or experiences.',
       parameters: z.object({
         whatMatters: z.string().describe('What matters most to them'),
         interests: z.array(z.string()).optional().describe('Their interests'),
         identities: z.array(z.string()).optional().describe('Important parts of their identity'),
-        whatTheyveTriед: z.string().optional().describe('What they\'ve tried'),
+        whatTheyveTriед: z.string().optional().describe("What they've tried"),
       }),
       execute: async ({ whatMatters, interests, identities, whatTheyveTriед }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping find their people'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping find their people');
 
         let response = `**Finding Your People**\n\n`;
 
@@ -839,7 +865,7 @@ const findYourPeopleDef: ToolDefinition = {
         response += `Don't look for "friends." Look for activities with people who share what matters to you. `;
         response += `Friendships form as a byproduct.\n\n`;
 
-        const wisdom = CONNECTION_WISDOM.find(w => w.context === 'belonging');
+        const wisdom = CONNECTION_WISDOM.find((w) => w.context === 'belonging');
         if (wisdom) {
           response += `> "${wisdom.quote}"\n`;
           response += `> — ${wisdom.attribution}\n\n`;
@@ -862,16 +888,14 @@ const createBelongingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Sometimes belonging isn\'t found - it\'s created. Help user build belonging in their current context.',
+      description:
+        "Sometimes belonging isn't found - it's created. Help user build belonging in their current context.",
       parameters: z.object({
         currentContext: z.string().describe('Where they currently are (work, neighborhood, etc.)'),
         whatsMissing: z.string().describe('What belonging would feel like'),
       }),
       execute: async ({ currentContext, whatsMissing }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping create belonging'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping create belonging');
 
         let response = `**Creating Belonging**\n\n`;
 
@@ -936,7 +960,7 @@ const createBelongingDef: ToolDefinition = {
 const assessConnectionHealthDef: ToolDefinition = {
   id: 'assessConnectionHealth',
   name: 'Assess Connection Health',
-  description: 'Evaluate the health of someone\'s social connections',
+  description: "Evaluate the health of someone's social connections",
   domain: 'connection',
   tags: ['connection', 'assessment', 'health', 'relationships'],
 
@@ -944,14 +968,12 @@ const assessConnectionHealthDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user assess the overall health of their social connections.',
       parameters: z.object({
-        selfAssessment: z.enum(['isolated', 'somewhat-connected', 'well-connected', 'unsure'])
-          .describe('How they\'d describe their connection level'),
+        selfAssessment: z
+          .enum(['isolated', 'somewhat-connected', 'well-connected', 'unsure'])
+          .describe("How they'd describe their connection level"),
       }),
       execute: async ({ selfAssessment }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, selfAssessment },
-          'Assessing connection health'
-        );
+        getLogger().info({ agentId: ctx.agentId, selfAssessment }, 'Assessing connection health');
 
         // Persist assessment
         persistTrackedItem(toolCtx as ToolCtxWithUserData, {
@@ -969,13 +991,13 @@ const assessConnectionHealthDef: ToolDefinition = {
 
         response += `**Healthy Connection Signs:**\n`;
         response += `_How many of these feel true for you?_\n\n`;
-        CONNECTION_HEALTH.healthy_signs.forEach(sign => {
+        CONNECTION_HEALTH.healthy_signs.forEach((sign) => {
           response += `☐ ${sign}\n`;
         });
 
         response += `\n**Warning Signs:**\n`;
         response += `_How many of these resonate?_\n\n`;
-        CONNECTION_HEALTH.warning_signs.forEach(sign => {
+        CONNECTION_HEALTH.warning_signs.forEach((sign) => {
           response += `☐ ${sign}\n`;
         });
 
@@ -1013,15 +1035,13 @@ const balanceAloneAndTogetherDef: ToolDefinition = {
       description: 'Help user find their personal balance between alone time and social time.',
       parameters: z.object({
         currentBalance: z.string().describe('Their current balance'),
-        energyPattern: z.enum(['energized-by-people', 'drained-by-people', 'depends', 'unsure'])
+        energyPattern: z
+          .enum(['energized-by-people', 'drained-by-people', 'depends', 'unsure'])
           .optional(),
         whatFeelsOff: z.string().optional().describe('What feels off about their balance'),
       }),
       execute: async ({ currentBalance, energyPattern, whatFeelsOff }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, energyPattern },
-          'Balancing alone and together'
-        );
+        getLogger().info({ agentId: ctx.agentId, energyPattern }, 'Balancing alone and together');
 
         let response = `**Finding Your Balance**\n\n`;
 
@@ -1036,7 +1056,7 @@ const balanceAloneAndTogetherDef: ToolDefinition = {
 
         response += `**Solitude vs. Loneliness:**\n\n`;
 
-        const wisdom = CONNECTION_WISDOM.find(w => w.context === 'solitude-vs-loneliness');
+        const wisdom = CONNECTION_WISDOM.find((w) => w.context === 'solitude-vs-loneliness');
         if (wisdom) {
           response += `> "${wisdom.quote}"\n`;
           response += `> — ${wisdom.attribution}\n\n`;
@@ -1095,7 +1115,8 @@ const smallActsOfConnectionDef: ToolDefinition = {
     return llm.tool({
       description: 'Provide small, practical acts of connection the user can do today.',
       parameters: z.object({
-        timeAvailable: z.enum(['2-minutes', '15-minutes', '1-hour', 'more'])
+        timeAvailable: z
+          .enum(['2-minutes', '15-minutes', '1-hour', 'more'])
           .describe('How much time they have'),
         energyLevel: z.enum(['low', 'medium', 'high']).optional(),
         preference: z.enum(['text-based', 'voice', 'in-person', 'any']).optional(),
@@ -1187,21 +1208,30 @@ const shareConnectionWisdomDef: ToolDefinition = {
     return llm.tool({
       description: 'Share relevant wisdom about connection, loneliness, and belonging.',
       parameters: z.object({
-        context: z.enum(['importance', 'intimate-loneliness', 'modern-loneliness', 'solitude-vs-loneliness', 'friendship', 'belonging', 'general'])
+        context: z
+          .enum([
+            'importance',
+            'intimate-loneliness',
+            'modern-loneliness',
+            'solitude-vs-loneliness',
+            'friendship',
+            'belonging',
+            'general',
+          ])
           .describe('What context they need wisdom for'),
       }),
       execute: async ({ context }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, context },
-          'Sharing connection wisdom'
-        );
+        getLogger().info({ agentId: ctx.agentId, context }, 'Sharing connection wisdom');
 
         let response = `**Wisdom on Connection**\n\n`;
 
-        const matchingWisdom = CONNECTION_WISDOM.filter(w => w.context === context || context === 'general');
-        const wisdomToShare = matchingWisdom.length > 0 ? matchingWisdom : CONNECTION_WISDOM.slice(0, 3);
+        const matchingWisdom = CONNECTION_WISDOM.filter(
+          (w) => w.context === context || context === 'general'
+        );
+        const wisdomToShare =
+          matchingWisdom.length > 0 ? matchingWisdom : CONNECTION_WISDOM.slice(0, 3);
 
-        wisdomToShare.forEach(w => {
+        wisdomToShare.forEach((w) => {
           response += `> "${w.quote}"\n`;
           response += `> — ${w.attribution}\n\n`;
         });

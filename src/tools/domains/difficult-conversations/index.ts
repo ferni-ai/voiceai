@@ -48,7 +48,11 @@ const CONVERSATION_TYPES = {
   boundary: {
     name: 'Setting a Boundary',
     description: 'Communicating limits, saying no, protecting your needs',
-    common_fears: ['Being seen as selfish', 'Damaging the relationship', 'The other person\'s reaction'],
+    common_fears: [
+      'Being seen as selfish',
+      'Damaging the relationship',
+      "The other person's reaction",
+    ],
     key_principles: [
       'Boundaries are about YOUR behavior, not controlling others',
       '"No" is a complete sentence, but explanation can help',
@@ -73,8 +77,8 @@ const CONVERSATION_TYPES = {
     common_fears: ['Being too needy', 'Being rejected', 'Seeming weak'],
     key_principles: [
       'Having needs is human, not weakness',
-      'People can\'t meet needs they don\'t know about',
-      'Ask, don\'t hint or expect mind-reading',
+      "People can't meet needs they don't know about",
+      "Ask, don't hint or expect mind-reading",
       'How you ask matters as much as what you ask',
     ],
   },
@@ -83,9 +87,9 @@ const CONVERSATION_TYPES = {
     description: 'Revealing something that might change how someone sees you or the situation',
     common_fears: ['Judgment', 'Rejection', 'Changing the relationship'],
     key_principles: [
-      'Honesty is a gift, even when it\'s hard',
+      "Honesty is a gift, even when it's hard",
       'The anticipation is usually worse than the reality',
-      'You can\'t control their response, only your honesty',
+      "You can't control their response, only your honesty",
       'Secrets often hurt more than truth',
     ],
   },
@@ -95,7 +99,7 @@ const CONVERSATION_TYPES = {
     common_fears: ['Hurting them', 'Being the bad guy', 'Regret'],
     key_principles: [
       'Clarity is kindness - even when the message is hard',
-      'You don\'t need their permission to leave',
+      "You don't need their permission to leave",
       'A clean ending is better than a slow fade',
       'Both people deserve to move on',
     ],
@@ -105,10 +109,10 @@ const CONVERSATION_TYPES = {
     description: 'Coming out, changing careers, getting divorced, major decisions',
     common_fears: ['Disappointment', 'Losing the relationship', 'Being misunderstood'],
     key_principles: [
-      'You don\'t need permission to live your truth',
+      "You don't need permission to live your truth",
       'Their adjustment is their work to do',
       'Give them time to catch up to your reality',
-      'Some relationships won\'t survive - and that\'s information',
+      "Some relationships won't survive - and that's information",
     ],
   },
   end_of_life: {
@@ -116,10 +120,10 @@ const CONVERSATION_TYPES = {
     description: 'Talking about death, wishes, legacy with aging parents or loved ones',
     common_fears: ['Making it real', 'Upsetting them', 'Not knowing what to say'],
     key_principles: [
-      'Avoiding the topic doesn\'t avoid death',
+      "Avoiding the topic doesn't avoid death",
       'These conversations are acts of love',
       'Start with questions, not statements',
-      'It\'s okay to have multiple conversations',
+      "It's okay to have multiple conversations",
     ],
   },
 };
@@ -131,33 +135,85 @@ const CONVERSATION_FRAMEWORKS = {
   nonviolent_communication: {
     name: 'Nonviolent Communication (NVC)',
     steps: [
-      { step: 'Observation', description: 'State facts without judgment', example: '"When I see the dishes in the sink..."' },
+      {
+        step: 'Observation',
+        description: 'State facts without judgment',
+        example: '"When I see the dishes in the sink..."',
+      },
       { step: 'Feeling', description: 'Share how you feel', example: '"...I feel frustrated..."' },
-      { step: 'Need', description: 'Express the underlying need', example: '"...because I need order to feel calm..."' },
-      { step: 'Request', description: 'Make a specific request', example: '"Would you be willing to do them before bed?"' },
+      {
+        step: 'Need',
+        description: 'Express the underlying need',
+        example: '"...because I need order to feel calm..."',
+      },
+      {
+        step: 'Request',
+        description: 'Make a specific request',
+        example: '"Would you be willing to do them before bed?"',
+      },
     ],
     when_to_use: 'Asserting needs, giving feedback, addressing hurt',
   },
   dear_man: {
     name: 'DEAR MAN (DBT)',
     steps: [
-      { step: 'Describe', description: 'Describe the situation factually', example: '"We agreed to meet at 7..."' },
-      { step: 'Express', description: 'Express your feelings', example: '"I felt worried when you were late..."' },
-      { step: 'Assert', description: 'Assert what you want', example: '"I\'d like you to text if you\'re running late..."' },
-      { step: 'Reinforce', description: 'Reinforce benefits', example: '"It would help me not worry..."' },
-      { step: 'Mindful', description: 'Stay focused on the goal', example: 'Don\'t get derailed' },
-      { step: 'Appear confident', description: 'Use confident body language', example: 'Eye contact, calm voice' },
-      { step: 'Negotiate', description: 'Be willing to give and take', example: 'Find middle ground' },
+      {
+        step: 'Describe',
+        description: 'Describe the situation factually',
+        example: '"We agreed to meet at 7..."',
+      },
+      {
+        step: 'Express',
+        description: 'Express your feelings',
+        example: '"I felt worried when you were late..."',
+      },
+      {
+        step: 'Assert',
+        description: 'Assert what you want',
+        example: '"I\'d like you to text if you\'re running late..."',
+      },
+      {
+        step: 'Reinforce',
+        description: 'Reinforce benefits',
+        example: '"It would help me not worry..."',
+      },
+      { step: 'Mindful', description: 'Stay focused on the goal', example: "Don't get derailed" },
+      {
+        step: 'Appear confident',
+        description: 'Use confident body language',
+        example: 'Eye contact, calm voice',
+      },
+      {
+        step: 'Negotiate',
+        description: 'Be willing to give and take',
+        example: 'Find middle ground',
+      },
     ],
     when_to_use: 'Assertive communication, asking for what you want',
   },
   softened_startup: {
     name: 'Softened Startup (Gottman)',
     steps: [
-      { step: 'Start with "I"', description: 'Use "I" statements, not "You"', example: '"I feel..." not "You always..."' },
-      { step: 'Describe without blame', description: 'State what happened neutrally', example: 'Facts, not interpretation' },
-      { step: 'Be polite', description: 'Add appreciation or softening', example: '"I know you\'re busy, AND..."' },
-      { step: 'Be clear', description: 'State what you need positively', example: 'What you want, not what you don\'t want' },
+      {
+        step: 'Start with "I"',
+        description: 'Use "I" statements, not "You"',
+        example: '"I feel..." not "You always..."',
+      },
+      {
+        step: 'Describe without blame',
+        description: 'State what happened neutrally',
+        example: 'Facts, not interpretation',
+      },
+      {
+        step: 'Be polite',
+        description: 'Add appreciation or softening',
+        example: '"I know you\'re busy, AND..."',
+      },
+      {
+        step: 'Be clear',
+        description: 'State what you need positively',
+        example: "What you want, not what you don't want",
+      },
     ],
     when_to_use: 'Starting difficult conversations in relationships',
   },
@@ -168,7 +224,7 @@ const CONVERSATION_FRAMEWORKS = {
  */
 const CONVERSATION_WISDOM = [
   {
-    quote: 'The conversation you\'re avoiding is the one you most need to have.',
+    quote: "The conversation you're avoiding is the one you most need to have.",
     attribution: 'Unknown',
     context: 'avoidance',
   },
@@ -178,7 +234,8 @@ const CONVERSATION_WISDOM = [
     context: 'clarity',
   },
   {
-    quote: 'Between stimulus and response there is a space. In that space is our power to choose our response.',
+    quote:
+      'Between stimulus and response there is a space. In that space is our power to choose our response.',
     attribution: 'Viktor Frankl',
     context: 'response',
   },
@@ -193,7 +250,8 @@ const CONVERSATION_WISDOM = [
     context: 'timing',
   },
   {
-    quote: 'Courage is what it takes to stand up and speak. Courage is also what it takes to sit down and listen.',
+    quote:
+      'Courage is what it takes to stand up and speak. Courage is also what it takes to sit down and listen.',
     attribution: 'Winston Churchill',
     context: 'listening',
   },
@@ -203,7 +261,10 @@ const CONVERSATION_WISDOM = [
  * Common conversation mistakes
  */
 const CONVERSATION_MISTAKES = [
-  { mistake: 'Starting with blame', better: 'Start with your experience ("I feel..." not "You always...")' },
+  {
+    mistake: 'Starting with blame',
+    better: 'Start with your experience ("I feel..." not "You always...")',
+  },
   { mistake: 'Kitchen-sinking', better: 'Focus on ONE issue, not every grievance' },
   { mistake: 'Mind-reading', better: 'Ask about their experience instead of assuming' },
   { mistake: 'Defending before understanding', better: 'Listen fully before responding' },
@@ -225,20 +286,31 @@ const prepareHardConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare for a difficult conversation by clarifying their intention, planning what to say, and anticipating challenges.',
+      description:
+        'Help user prepare for a difficult conversation by clarifying their intention, planning what to say, and anticipating challenges.',
       parameters: z.object({
-        conversationType: z.enum(['boundary', 'repair', 'needs', 'truth', 'ending', 'life_change', 'end_of_life', 'other'])
+        conversationType: z
+          .enum([
+            'boundary',
+            'repair',
+            'needs',
+            'truth',
+            'ending',
+            'life_change',
+            'end_of_life',
+            'other',
+          ])
           .describe('Type of difficult conversation'),
         withWhom: z.string().describe('Who they need to talk to'),
         whatAbout: z.string().describe('What the conversation is about'),
-        whatTheyFear: z.string().optional().describe('What they\'re afraid might happen'),
+        whatTheyFear: z.string().optional().describe("What they're afraid might happen"),
         whatTheyHope: z.string().optional().describe('What outcome they hope for'),
       }),
-      execute: async ({ conversationType, withWhom, whatAbout, whatTheyFear, whatTheyHope }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, conversationType },
-          'Preparing hard conversation'
-        );
+      execute: async (
+        { conversationType, withWhom, whatAbout, whatTheyFear, whatTheyHope },
+        { ctx: toolCtx }
+      ) => {
+        getLogger().info({ agentId: ctx.agentId, conversationType }, 'Preparing hard conversation');
 
         // Persist as a tracked item
         persistTrackedItem(toolCtx as ToolCtxWithUserData, {
@@ -248,8 +320,9 @@ const prepareHardConversationDef: ToolDefinition = {
           importance: 'medium',
         });
 
-        const typeInfo = CONVERSATION_TYPES[conversationType as keyof typeof CONVERSATION_TYPES]
-          || CONVERSATION_TYPES.boundary;
+        const typeInfo =
+          CONVERSATION_TYPES[conversationType as keyof typeof CONVERSATION_TYPES] ||
+          CONVERSATION_TYPES.boundary;
 
         let response = `**Preparing for a Difficult Conversation**\n\n`;
 
@@ -273,7 +346,7 @@ const prepareHardConversationDef: ToolDefinition = {
 
         // Show common fears for this type
         response += `**Common fears with ${typeInfo.name.toLowerCase()}:**\n`;
-        typeInfo.common_fears.forEach(fear => {
+        typeInfo.common_fears.forEach((fear) => {
           response += `- ${fear}\n`;
         });
         response += `\nThese fears are normal. Let's work with them, not against them.\n\n`;
@@ -282,7 +355,7 @@ const prepareHardConversationDef: ToolDefinition = {
 
         // Key principles
         response += `**Key principles:**\n`;
-        typeInfo.key_principles.forEach(principle => {
+        typeInfo.key_principles.forEach((principle) => {
           response += `- ${principle}\n`;
         });
 
@@ -313,16 +386,14 @@ const clarifyIntentionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user clarify what they really want from a difficult conversation - often different from what they think they want.',
+      description:
+        'Help user clarify what they really want from a difficult conversation - often different from what they think they want.',
       parameters: z.object({
         whatTheyWantToSay: z.string().describe('What they want to say'),
         whyItMatters: z.string().optional().describe('Why this conversation matters'),
       }),
       execute: async ({ whatTheyWantToSay, whyItMatters }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Clarifying intention'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Clarifying intention');
 
         let response = `**Clarifying Your Intention**\n\n`;
 
@@ -361,7 +432,7 @@ const clarifyIntentionDef: ToolDefinition = {
 
         response += `---\n\n`;
 
-        const wisdom = CONVERSATION_WISDOM.find(w => w.context === 'clarity');
+        const wisdom = CONVERSATION_WISDOM.find((w) => w.context === 'clarity');
         if (wisdom) {
           response += `> "${wisdom.quote}"\n`;
           response += `> — ${wisdom.attribution}\n\n`;
@@ -384,17 +455,15 @@ const anticipateResponsesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user anticipate and prepare for different ways the other person might respond.',
+      description:
+        'Help user anticipate and prepare for different ways the other person might respond.',
       parameters: z.object({
         conversation: z.string().describe('What the conversation is about'),
         personDescription: z.string().optional().describe('What the person is like'),
-        pastPatterns: z.string().optional().describe('How they\'ve responded in the past'),
+        pastPatterns: z.string().optional().describe("How they've responded in the past"),
       }),
       execute: async ({ conversation, personDescription, pastPatterns }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Anticipating responses'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Anticipating responses');
 
         let response = `**Anticipating Responses**\n\n`;
 
@@ -463,18 +532,17 @@ const practiceConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide a safe space to practice what the user wants to say. Ferni can role-play the other person or coach the user through it.',
+      description:
+        'Provide a safe space to practice what the user wants to say. Ferni can role-play the other person or coach the user through it.',
       parameters: z.object({
         whatToPractice: z.string().describe('What they want to practice saying'),
-        mode: z.enum(['coach-me', 'role-play', 'just-listen'])
+        mode: z
+          .enum(['coach-me', 'role-play', 'just-listen'])
           .describe('How they want to practice'),
         context: z.string().optional().describe('Context about the situation'),
       }),
       execute: async ({ whatToPractice, mode, context }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, mode },
-          'Practicing conversation'
-        );
+        getLogger().info({ agentId: ctx.agentId, mode }, 'Practicing conversation');
 
         let response = `**Practice Space**\n\n`;
 
@@ -491,7 +559,6 @@ const practiceConversationDef: ToolDefinition = {
           response += `Go ahead and say it out loud. Just speaking the words can help you find them.\n\n`;
           response += `When you're done, I can offer feedback if you want. Or we can just let it sit.\n\n`;
           response += `No judgment here. This is practice.`;
-
         } else if (mode === 'coach-me') {
           response += `**Let me coach you through this.**\n\n`;
 
@@ -515,7 +582,6 @@ const practiceConversationDef: ToolDefinition = {
 
           response += `---\n\n`;
           response += `Would you like to work through each of these parts?`;
-
         } else {
           // role-play
           response += `**Let's role-play.**\n\n`;
@@ -546,18 +612,17 @@ const buildScriptDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user build a framework or script for their conversation using proven communication frameworks.',
+      description:
+        'Help user build a framework or script for their conversation using proven communication frameworks.',
       parameters: z.object({
         situation: z.string().describe('The situation they need to address'),
-        framework: z.enum(['nvc', 'dear_man', 'softened_startup', 'custom'])
+        framework: z
+          .enum(['nvc', 'dear_man', 'softened_startup', 'custom'])
           .optional()
           .describe('Communication framework to use'),
       }),
       execute: async ({ situation, framework }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, framework },
-          'Building conversation script'
-        );
+        getLogger().info({ agentId: ctx.agentId, framework }, 'Building conversation script');
 
         let response = `**Building Your Conversation Script**\n\n`;
 
@@ -569,7 +634,7 @@ const buildScriptDef: ToolDefinition = {
           // Show all frameworks
           response += `**Communication Frameworks:**\n\n`;
 
-          Object.values(CONVERSATION_FRAMEWORKS).forEach(fw => {
+          Object.values(CONVERSATION_FRAMEWORKS).forEach((fw) => {
             response += `**${fw.name}**\n`;
             response += `_Best for: ${fw.when_to_use}_\n\n`;
             fw.steps.forEach((step, i) => {
@@ -580,7 +645,6 @@ const buildScriptDef: ToolDefinition = {
           });
 
           response += `Which framework resonates with your situation?`;
-
         } else {
           const fw = CONVERSATION_FRAMEWORKS[framework as keyof typeof CONVERSATION_FRAMEWORKS];
 
@@ -632,14 +696,14 @@ const setBoundaryConversationDef: ToolDefinition = {
       parameters: z.object({
         boundary: z.string().describe('The boundary they need to set'),
         withWhom: z.string().describe('Who they need to set it with'),
-        whatHappensNow: z.string().optional().describe('What currently happens that crosses the boundary'),
+        whatHappensNow: z
+          .string()
+          .optional()
+          .describe('What currently happens that crosses the boundary'),
         pastAttempts: z.string().optional().describe('Past attempts to set this boundary'),
       }),
       execute: async ({ boundary, withWhom, whatHappensNow, pastAttempts }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Preparing boundary conversation'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Preparing boundary conversation');
 
         let response = `**Setting a Boundary**\n\n`;
 
@@ -716,10 +780,7 @@ const sayNoWithGraceDef: ToolDefinition = {
         relationship: z.string().optional().describe('Their relationship to the person'),
       }),
       execute: async ({ whatToDecline, whyItsHard, relationship }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Helping say no with grace'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Helping say no with grace');
 
         let response = `**Saying No With Grace**\n\n`;
 
@@ -791,7 +852,8 @@ const repairRelationshipRuptureDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user address and repair a rupture or distance in an important relationship.',
+      description:
+        'Help user address and repair a rupture or distance in an important relationship.',
       parameters: z.object({
         whatHappened: z.string().describe('What caused the rupture'),
         relationship: z.string().describe('The relationship affected'),
@@ -799,11 +861,11 @@ const repairRelationshipRuptureDef: ToolDefinition = {
         yourPart: z.string().optional().describe('What their own part might be'),
         whatTheyWant: z.string().optional().describe('What repair would look like'),
       }),
-      execute: async ({ whatHappened, relationship, theirPart, yourPart, whatTheyWant }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Preparing relationship repair'
-        );
+      execute: async (
+        { whatHappened, relationship, theirPart, yourPart, whatTheyWant },
+        { ctx: toolCtx }
+      ) => {
+        getLogger().info({ agentId: ctx.agentId }, 'Preparing relationship repair');
 
         // Persist as key moment - relationship repair is significant
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -877,17 +939,15 @@ const makeAmendsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare to make genuine amends - not just apologize, but take accountability and make it right.',
+      description:
+        'Help user prepare to make genuine amends - not just apologize, but take accountability and make it right.',
       parameters: z.object({
         whatYouDid: z.string().describe('What they did that needs amending'),
         whoWasHurt: z.string().describe('Who was affected'),
         impact: z.string().optional().describe('The impact on the other person'),
       }),
       execute: async ({ whatYouDid, whoWasHurt, impact }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Preparing to make amends'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Preparing to make amends');
 
         let response = `**Making Amends**\n\n`;
 
@@ -959,10 +1019,12 @@ const endOfLifeConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare for end-of-life conversations with aging parents or loved ones.',
+      description:
+        'Help user prepare for end-of-life conversations with aging parents or loved ones.',
       parameters: z.object({
         withWhom: z.string().describe('Who they need to talk to'),
-        whatToDiscuss: z.enum(['wishes', 'logistics', 'relationship', 'all'])
+        whatToDiscuss: z
+          .enum(['wishes', 'logistics', 'relationship', 'all'])
           .describe('What aspects to discuss'),
         urgency: z.enum(['no-rush', 'should-happen-soon', 'urgent']).optional(),
         whatHoldsBack: z.string().optional().describe('What makes this hard'),
@@ -1069,7 +1131,8 @@ const majorAnnouncementDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare to announce something major - coming out, divorce, career change, moving away, etc.',
+      description:
+        'Help user prepare to announce something major - coming out, divorce, career change, moving away, etc.',
       parameters: z.object({
         announcement: z.string().describe('What they need to announce'),
         toWhom: z.string().describe('Who they need to tell'),
@@ -1077,10 +1140,7 @@ const majorAnnouncementDef: ToolDefinition = {
         whyItsHard: z.string().optional().describe('Why this feels difficult'),
       }),
       execute: async ({ announcement, toWhom, anticipatedReaction, whyItsHard }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Preparing major announcement'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Preparing major announcement');
 
         let response = `**Preparing Your Announcement**\n\n`;
 
@@ -1158,21 +1218,30 @@ const shareConversationWisdomDef: ToolDefinition = {
     return llm.tool({
       description: 'Share relevant wisdom about difficult conversations and communication.',
       parameters: z.object({
-        context: z.enum(['avoidance', 'clarity', 'response', 'importance', 'timing', 'listening', 'general'])
+        context: z
+          .enum([
+            'avoidance',
+            'clarity',
+            'response',
+            'importance',
+            'timing',
+            'listening',
+            'general',
+          ])
           .describe('What context they need wisdom for'),
       }),
       execute: async ({ context }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, context },
-          'Sharing conversation wisdom'
-        );
+        getLogger().info({ agentId: ctx.agentId, context }, 'Sharing conversation wisdom');
 
         let response = `**Wisdom for Difficult Conversations**\n\n`;
 
-        const matchingWisdom = CONVERSATION_WISDOM.filter(w => w.context === context || context === 'general');
-        const wisdomToShare = matchingWisdom.length > 0 ? matchingWisdom : CONVERSATION_WISDOM.slice(0, 3);
+        const matchingWisdom = CONVERSATION_WISDOM.filter(
+          (w) => w.context === context || context === 'general'
+        );
+        const wisdomToShare =
+          matchingWisdom.length > 0 ? matchingWisdom : CONVERSATION_WISDOM.slice(0, 3);
 
-        wisdomToShare.forEach(w => {
+        wisdomToShare.forEach((w) => {
           response += `> "${w.quote}"\n`;
           response += `> — ${w.attribution}\n\n`;
         });
@@ -1180,7 +1249,7 @@ const shareConversationWisdomDef: ToolDefinition = {
         response += `---\n\n`;
 
         response += `**Common Mistakes to Avoid:**\n\n`;
-        CONVERSATION_MISTAKES.slice(0, 4).forEach(m => {
+        CONVERSATION_MISTAKES.slice(0, 4).forEach((m) => {
           response += `❌ ${m.mistake}\n`;
           response += `✅ ${m.better}\n\n`;
         });

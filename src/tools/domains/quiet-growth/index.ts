@@ -48,7 +48,12 @@ const SEASONAL_WISDOM = {
   spring: {
     name: 'Spring Season',
     description: 'Time of new beginnings, fresh energy, planting seeds',
-    characteristics: ['Energy returning', 'New ideas emerging', 'Motivation building', 'Ready to start'],
+    characteristics: [
+      'Energy returning',
+      'New ideas emerging',
+      'Motivation building',
+      'Ready to start',
+    ],
     guidance: 'Spring energy is for planting, not harvesting. Start small. Let things be tender.',
     warning: "Don't try to harvest in spring. Seeds need time.",
   },
@@ -70,7 +75,7 @@ const SEASONAL_WISDOM = {
     name: 'Winter Season',
     description: 'Time of rest, restoration, dormancy, gestation',
     characteristics: ['Low energy', 'Introspection', 'Rest', 'Invisible work'],
-    guidance: 'Winter is not failure. It\'s when roots grow deep. Honor the fallow.',
+    guidance: "Winter is not failure. It's when roots grow deep. Honor the fallow.",
     warning: 'Trying to force spring during winter will exhaust you.',
   },
 };
@@ -81,23 +86,26 @@ const SEASONAL_WISDOM = {
 const PLATEAU_WISDOM = [
   {
     reframe: 'Integration Period',
-    explanation: 'Plateaus are when your brain and body are integrating what you learned. Growth is happening below the surface.',
+    explanation:
+      'Plateaus are when your brain and body are integrating what you learned. Growth is happening below the surface.',
     metaphor: 'Like a plant sending roots deeper before the next growth spurt.',
   },
   {
     reframe: 'Consolidation Phase',
-    explanation: 'Your skills are moving from conscious effort to unconscious competence. This takes time and plateau.',
+    explanation:
+      'Your skills are moving from conscious effort to unconscious competence. This takes time and plateau.',
     metaphor: 'Like muscle memory forming - the moves have to become automatic.',
   },
   {
     reframe: 'Testing Ground',
-    explanation: "Plateaus test whether you'll stick with something when progress isn't visible. This IS the work.",
-    metaphor: 'Like a seed underground - you can\'t see growth, but something is happening.',
+    explanation:
+      "Plateaus test whether you'll stick with something when progress isn't visible. This IS the work.",
+    metaphor: "Like a seed underground - you can't see growth, but something is happening.",
   },
   {
     reframe: 'Maintenance Achievement',
     explanation: 'Holding steady at a level IS an achievement. Not sliding backward is progress.',
-    metaphor: 'Like treading water - you\'re not moving forward, but you\'re not sinking either.',
+    metaphor: "Like treading water - you're not moving forward, but you're not sinking either.",
   },
 ];
 
@@ -141,23 +149,27 @@ const SUFFICIENCY_AFFIRMATIONS = [
 const ANTI_HUSTLE_WISDOM = [
   {
     belief: 'I should be further along by now.',
-    reframe: 'You are exactly where your journey has taken you. "Further along" compared to who? An imaginary version of you with a different life?',
+    reframe:
+      'You are exactly where your journey has taken you. "Further along" compared to who? An imaginary version of you with a different life?',
   },
   {
-    belief: 'I\'m wasting time by resting.',
-    reframe: 'Rest is not a waste - it\'s an investment. You cannot pour from an empty cup. Your nervous system needs recovery.',
+    belief: "I'm wasting time by resting.",
+    reframe:
+      "Rest is not a waste - it's an investment. You cannot pour from an empty cup. Your nervous system needs recovery.",
   },
   {
     belief: 'I should be doing more.',
-    reframe: 'Says who? What if what you\'re doing is exactly right for this season of your life?',
+    reframe: "Says who? What if what you're doing is exactly right for this season of your life?",
   },
   {
     belief: 'Everyone else is ahead of me.',
-    reframe: 'You\'re comparing your behind-the-scenes to their highlight reel. Their timeline is not your timeline.',
+    reframe:
+      "You're comparing your behind-the-scenes to their highlight reel. Their timeline is not your timeline.",
   },
   {
-    belief: 'If I slow down, I\'ll fall behind.',
-    reframe: 'Behind what? There is no race. There is no finish line. There is only your one wild and precious life.',
+    belief: "If I slow down, I'll fall behind.",
+    reframe:
+      'Behind what? There is no race. There is no finish line. There is only your one wild and precious life.',
   },
   {
     belief: 'I should always be growing.',
@@ -179,10 +191,11 @@ const honorTheRestDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'When user is tired, burned out, or feels guilty for resting. Give genuine permission. Rest is not laziness.',
+      description:
+        'When user is tired, burned out, or feels guilty for resting. Give genuine permission. Rest is not laziness.',
       parameters: z.object({
         whyResting: z.string().describe('Why they need or want to rest'),
-        howLong: z.string().optional().describe('How long they\'ve been pushing'),
+        howLong: z.string().optional().describe("How long they've been pushing"),
         guilt: z.string().optional().describe('Any guilt they feel about resting'),
       }),
       execute: async ({ whyResting, howLong, guilt }) => {
@@ -224,10 +237,11 @@ const celebrateMaintenanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'For celebrating maintenance - holding steady without progress. Not falling back IS progress.',
+      description:
+        'For celebrating maintenance - holding steady without progress. Not falling back IS progress.',
       parameters: z.object({
-        whatMaintaining: z.string().describe('What they\'re maintaining/holding steady'),
-        howLong: z.string().optional().describe('How long they\'ve maintained'),
+        whatMaintaining: z.string().describe("What they're maintaining/holding steady"),
+        howLong: z.string().optional().describe("How long they've maintained"),
         feelingStuck: z.boolean().optional().describe('Whether they feel stuck'),
       }),
       execute: async ({ whatMaintaining, howLong, feelingStuck }) => {
@@ -269,9 +283,10 @@ const enoughForTodayDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user define what "enough" means for today and give permission to stop there.',
+      description:
+        'Help user define what "enough" means for today and give permission to stop there.',
       parameters: z.object({
-        whatDone: z.string().optional().describe('What they\'ve already done today'),
+        whatDone: z.string().optional().describe("What they've already done today"),
         whatRemains: z.string().optional().describe('What feels undone'),
         energy: z.enum(['depleted', 'low', 'moderate', 'good', 'high']).optional(),
       }),
@@ -295,7 +310,8 @@ const enoughForTodayDef: ToolDefinition = {
         }
 
         // Pick a random sufficiency affirmation
-        const affirmation = SUFFICIENCY_AFFIRMATIONS[Math.floor(Math.random() * SUFFICIENCY_AFFIRMATIONS.length)];
+        const affirmation =
+          SUFFICIENCY_AFFIRMATIONS[Math.floor(Math.random() * SUFFICIENCY_AFFIRMATIONS.length)];
         response += `**Today's permission:**\n`;
         response += `*${affirmation.affirmation}*\n\n`;
 
@@ -314,18 +330,19 @@ const enoughForTodayDef: ToolDefinition = {
 const seasonalWisdomDef: ToolDefinition = {
   id: 'seasonalWisdom',
   name: 'Seasonal Wisdom',
-  description: 'Identify what season of growth they\'re in',
+  description: "Identify what season of growth they're in",
   domain: 'quiet-growth',
   additionalDomains: ['meaning', 'life-transitions'],
   tags: ['quiet-growth', 'seasons', 'cycles', 'wisdom'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user identify what season of growth/rest they\'re in and what that season requires.',
+      description:
+        "Help user identify what season of growth/rest they're in and what that season requires.",
       parameters: z.object({
         currentEnergy: z.enum(['dormant', 'emerging', 'full', 'declining']),
         whatFeelsTrue: z.string().optional().describe('What their inner state feels like'),
-        whatTheyrePushing: z.string().optional().describe('What they\'re trying to force'),
+        whatTheyrePushing: z.string().optional().describe("What they're trying to force"),
       }),
       execute: async ({ currentEnergy, whatFeelsTrue, whatTheyrePushing }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Exploring seasonal wisdom');
@@ -380,11 +397,15 @@ const winterSeasonDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'For when user is in a winter season - low energy, fallow, dormant. Normalize and honor it.',
+      description:
+        'For when user is in a winter season - low energy, fallow, dormant. Normalize and honor it.',
       parameters: z.object({
         howItFeels: z.string().describe('What the winter season feels like'),
-        howLong: z.string().optional().describe('How long they\'ve been in winter'),
-        pressureToGrow: z.boolean().optional().describe('Whether they feel pressure to be in spring'),
+        howLong: z.string().optional().describe("How long they've been in winter"),
+        pressureToGrow: z
+          .boolean()
+          .optional()
+          .describe('Whether they feel pressure to be in spring'),
       }),
       execute: async ({ howItFeels, howLong, pressureToGrow }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Supporting winter season');
@@ -440,10 +461,11 @@ const gentleGoalsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user set goals that are ambitious enough to matter but gentle enough to be sustainable.',
+      description:
+        'Help user set goals that are ambitious enough to matter but gentle enough to be sustainable.',
       parameters: z.object({
         goalArea: z.string().describe('What area they want to grow in'),
-        currentPush: z.string().optional().describe('How hard they\'ve been pushing'),
+        currentPush: z.string().optional().describe("How hard they've been pushing"),
         whatWouldBeGentle: z.string().optional().describe('What a gentler version might look like'),
       }),
       execute: async ({ goalArea, currentPush, whatWouldBeGentle }) => {
@@ -491,11 +513,12 @@ const releaseUrgencyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user release artificial urgency. Question the "I should be further along" narrative.',
+      description:
+        'Help user release artificial urgency. Question the "I should be further along" narrative.',
       parameters: z.object({
         urgencySource: z.string().describe('What feels urgent'),
         deadline: z.string().optional().describe('Any real vs imagined deadline'),
-        comparison: z.string().optional().describe('Who or what they\'re comparing to'),
+        comparison: z.string().optional().describe("Who or what they're comparing to"),
       }),
       execute: async ({ urgencySource, deadline, comparison }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Releasing urgency');
@@ -553,7 +576,10 @@ const goodEnoughDef: ToolDefinition = {
       description: 'Help user see that "good enough" is a valid, wise choice - not settling.',
       parameters: z.object({
         whatConsidering: z.string().describe('What they\'re considering calling "good enough"'),
-        perfectionistPressure: z.string().optional().describe('The voice saying it should be better'),
+        perfectionistPressure: z
+          .string()
+          .optional()
+          .describe('The voice saying it should be better'),
         costOfMore: z.string().optional().describe('What more effort would cost them'),
       }),
       execute: async ({ whatConsidering, perfectionistPressure, costOfMore }) => {
@@ -611,9 +637,9 @@ const compareToYesterdayDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user compare to their past self, not others. The only valid comparison.',
       parameters: z.object({
-        whoComparing: z.string().optional().describe('Who they\'re comparing themselves to'),
+        whoComparing: z.string().optional().describe("Who they're comparing themselves to"),
         timeframe: z.enum(['week', 'month', 'year', 'five-years']).optional(),
-        areaOfLife: z.string().describe('What area they\'re evaluating'),
+        areaOfLife: z.string().describe("What area they're evaluating"),
       }),
       execute: async ({ whoComparing, timeframe, areaOfLife }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Redirecting comparison to self');
@@ -661,7 +687,7 @@ const embracePlateauDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user reframe a plateau as a necessary integration period, not failure.',
       parameters: z.object({
-        plateauArea: z.string().describe('Where they\'re experiencing a plateau'),
+        plateauArea: z.string().describe("Where they're experiencing a plateau"),
         howLong: z.string().optional().describe('How long the plateau has lasted'),
         frustration: z.string().optional().describe('What frustration they feel'),
       }),

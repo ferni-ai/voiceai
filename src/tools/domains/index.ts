@@ -566,7 +566,8 @@ export const DOMAIN_METADATA = {
   },
   'quiet-growth': {
     name: 'Quiet Growth',
-    description: 'Anti-hustle growth: rest, seasons, plateaus, and sufficiency. Growth without comparison or urgency.',
+    description:
+      'Anti-hustle growth: rest, seasons, plateaus, and sufficiency. Growth without comparison or urgency.',
     icon: '🌱',
     status: 'active',
   },

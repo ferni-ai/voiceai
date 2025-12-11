@@ -74,9 +74,23 @@ describe('Life Transitions Domain', () => {
 
   describe('Transition Stages (Bridges Model)', () => {
     const TRANSITION_STAGES = {
-      ending: { name: 'The Ending', needs: ['Acknowledgment', 'Permission to grieve', 'Time', 'Compassion'] },
-      neutral_zone: { name: 'The Neutral Zone', needs: ['Patience', 'Self-compassion', 'Structure without rigidity', 'Space to explore'] },
-      new_beginning: { name: 'The New Beginning', needs: ['Courage to step forward', 'Celebration of progress', 'Integration of learning', 'Community'] },
+      ending: {
+        name: 'The Ending',
+        needs: ['Acknowledgment', 'Permission to grieve', 'Time', 'Compassion'],
+      },
+      neutral_zone: {
+        name: 'The Neutral Zone',
+        needs: ['Patience', 'Self-compassion', 'Structure without rigidity', 'Space to explore'],
+      },
+      new_beginning: {
+        name: 'The New Beginning',
+        needs: [
+          'Courage to step forward',
+          'Celebration of progress',
+          'Integration of learning',
+          'Community',
+        ],
+      },
     };
 
     it('should have all three Bridges transition stages', () => {
@@ -104,10 +118,16 @@ describe('Life Transitions Domain', () => {
 
   describe('Dual Emotions Wisdom', () => {
     const DUAL_EMOTIONS = [
-      { pair: 'Happy AND sad', example: 'Wedding day - joy for marriage, grief for leaving family home' },
+      {
+        pair: 'Happy AND sad',
+        example: 'Wedding day - joy for marriage, grief for leaving family home',
+      },
       { pair: 'Relieved AND guilty', example: 'After a difficult caretaking period ends' },
       { pair: 'Excited AND terrified', example: 'New job, new baby, new city' },
-      { pair: 'Grateful AND grieving', example: 'Grateful for time with someone AND grieving their loss' },
+      {
+        pair: 'Grateful AND grieving',
+        example: 'Grateful for time with someone AND grieving their loss',
+      },
       { pair: 'Free AND lost', example: 'After divorce or job loss' },
       { pair: 'Proud AND sad', example: 'Child graduating, leaving home' },
     ];
@@ -136,11 +156,20 @@ describe('Second Chances Domain', () => {
       career: [
         { name: 'Vera Wang', lesson: 'Sometimes rejection redirects us to our true path.' },
         { name: 'Colonel Sanders', lesson: "It's never too late to begin again." },
-        { name: 'J.K. Rowling', lesson: 'Rock bottom can become the foundation for something extraordinary.' },
-        { name: 'Steve Jobs', lesson: 'Getting fired can be the best thing that never happened to you.' },
+        {
+          name: 'J.K. Rowling',
+          lesson: 'Rock bottom can become the foundation for something extraordinary.',
+        },
+        {
+          name: 'Steve Jobs',
+          lesson: 'Getting fired can be the best thing that never happened to you.',
+        },
       ],
       personal: [
-        { name: 'Nelson Mandela', lesson: 'Time in the wilderness can prepare you for your purpose.' },
+        {
+          name: 'Nelson Mandela',
+          lesson: 'Time in the wilderness can prepare you for your purpose.',
+        },
         { name: 'Maya Angelou', lesson: 'Our wounds can become our wisdom.' },
       ],
       financial: [
@@ -200,7 +229,10 @@ describe('Second Chances Domain', () => {
   describe('Second Chance Wisdom', () => {
     const WISDOM = [
       { quote: "It's never too late to be what you might have been.", attribution: 'George Eliot' },
-      { quote: 'Rock bottom became the solid foundation on which I rebuilt my life.', attribution: 'J.K. Rowling' },
+      {
+        quote: 'Rock bottom became the solid foundation on which I rebuilt my life.',
+        attribution: 'J.K. Rowling',
+      },
       { quote: 'Your net worth is not your self-worth.', attribution: 'Ferni' },
     ];
 

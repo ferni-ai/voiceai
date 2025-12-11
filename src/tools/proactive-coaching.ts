@@ -507,7 +507,7 @@ export function generateLonelinessCheckInMessage(): ProactiveMessage {
     {
       opener: 'Hey, checking in on you.',
       body: "I noticed it's been a while since you mentioned spending time with anyone. That's not a criticism - just noticing. Loneliness is real and it matters.",
-      question: "How are you feeling about your social world right now?",
+      question: 'How are you feeling about your social world right now?',
       actionSuggestion: "Even a text to someone you've been thinking about counts as connection.",
       tone: 'warm',
     },
@@ -528,13 +528,13 @@ export function generateSocialWinCelebrationMessage(winType: string): ProactiveM
   const messages: Record<string, ProactiveMessage> = {
     reached_out: {
       opener: '🎉 You reached out!',
-      body: "You took the brave step of initiating connection. That takes courage. Most people wait for others to reach out first.",
+      body: 'You took the brave step of initiating connection. That takes courage. Most people wait for others to reach out first.',
       question: 'How did it feel?',
       tone: 'celebratory',
     },
     made_plans: {
       opener: '📅 Plans on the calendar!',
-      body: "Having something social to look forward to is powerful. You made that happen.",
+      body: 'Having something social to look forward to is powerful. You made that happen.',
       question: 'Excited?',
       tone: 'celebratory',
     },
@@ -546,8 +546,8 @@ export function generateSocialWinCelebrationMessage(winType: string): ProactiveM
     },
     felt_belonging: {
       opener: '✨ A moment of belonging!',
-      body: "You felt like you belonged somewhere. That feeling is precious. Notice it. Let it soak in.",
-      question: "What made you feel seen?",
+      body: 'You felt like you belonged somewhere. That feeling is precious. Notice it. Let it soak in.',
+      question: 'What made you feel seen?',
       tone: 'warm',
     },
   };
@@ -559,9 +559,9 @@ export function generateSocialWinCelebrationMessage(winType: string): ProactiveM
  */
 export function generateConversationFollowUpMessage(conversationType: string): ProactiveMessage {
   return {
-    opener: "How did the conversation go?",
+    opener: 'How did the conversation go?',
     body: "You were preparing for a difficult conversation. I've been thinking about you. However it went - even if it didn't go perfectly - you showed up for something hard.",
-    question: "Want to process what happened?",
+    question: 'Want to process what happened?',
     actionSuggestion: "Whether it went well or not, there's learning here. Let's talk about it.",
     tone: 'warm',
   };
@@ -572,7 +572,7 @@ export function generateConversationFollowUpMessage(conversationType: string): P
  */
 export function generateBoundaryCheckInMessage(boundaryName: string): ProactiveMessage {
   return {
-    opener: "Checking in on your boundary.",
+    opener: 'Checking in on your boundary.',
     body: `You set a boundary${boundaryName ? ` about ${boundaryName}` : ''} a while back. Boundaries need tending. Sometimes they hold strong, sometimes they need reinforcement, sometimes they need adjustment.`,
     question: "How's it going? Is the boundary holding?",
     actionSuggestion: "If it's slipping, that's normal. We can practice reinforcing it together.",
@@ -583,30 +583,33 @@ export function generateBoundaryCheckInMessage(boundaryName: string): ProactiveM
 /**
  * Second Chances domain: Rebuilding milestone
  */
-export function generateRebuildingMilestoneMessage(milestone: string, journeyType: string): ProactiveMessage {
+export function generateRebuildingMilestoneMessage(
+  milestone: string,
+  journeyType: string
+): ProactiveMessage {
   const milestoneMessages: Record<string, ProactiveMessage> = {
     first_step: {
       opener: '🌱 You took the first step!',
-      body: "The hardest part of any comeback is starting. You started. That takes more courage than people realize.",
-      question: "How does it feel to be moving forward?",
+      body: 'The hardest part of any comeback is starting. You started. That takes more courage than people realize.',
+      question: 'How does it feel to be moving forward?',
       tone: 'celebratory',
     },
     one_week: {
       opener: '⭐ One week into your fresh start!',
-      body: "Seven days of rebuilding. A week ago you made a choice to begin again. Look at you now - still going.",
+      body: 'Seven days of rebuilding. A week ago you made a choice to begin again. Look at you now - still going.',
       question: "What's different from a week ago?",
       tone: 'celebratory',
     },
     one_month: {
       opener: '🎉 One month of rebuilding!',
       body: "30 days into your second chance. You're not where you started. You're not where you're going. But you're on your way.",
-      question: "What would you tell yourself 30 days ago?",
+      question: 'What would you tell yourself 30 days ago?',
       tone: 'celebratory',
     },
     setback_recovery: {
-      opener: "You bounced back. 💪",
+      opener: 'You bounced back. 💪',
       body: "You had a setback within your comeback - and you kept going anyway. That's what resilience looks like. Not perfection, but persistence.",
-      question: "What helped you get back up?",
+      question: 'What helped you get back up?',
       tone: 'warm',
     },
   };
@@ -621,7 +624,7 @@ export function generateFreshStartAnniversaryMessage(duration: string): Proactiv
     '1-month': {
       opener: '🌟 One month since your fresh start!',
       body: "30 days ago, you chose to begin again. That choice took courage. And you've been living it ever since.",
-      question: "How does this version of your life compare to before?",
+      question: 'How does this version of your life compare to before?',
       tone: 'celebratory',
     },
     '3-months': {
@@ -639,7 +642,7 @@ export function generateFreshStartAnniversaryMessage(duration: string): Proactiv
     '1-year': {
       opener: '🌈 ONE YEAR of your fresh start!',
       body: "365 days since you chose to begin again. You've lived a whole year of your second chance. The setback that brought you here is now part of your story - not the ending, but a turning point.",
-      question: "What would you say to someone just starting their second chance journey?",
+      question: 'What would you say to someone just starting their second chance journey?',
       tone: 'celebratory',
     },
   };
@@ -658,7 +661,7 @@ export function generateTransitionStageShiftMessage(
     return {
       opener: "You're in the in-between now.",
       body: "The ending has ended. The new beginning hasn't begun. You're in what's called the 'neutral zone' - that foggy, uncertain middle. This is where transformation happens, even though it feels like nothing is happening.",
-      question: "How does the uncertainty feel?",
+      question: 'How does the uncertainty feel?',
       actionSuggestion: "This is normal. Don't rush through it. The fog will lift.",
       tone: 'gentle',
     };
@@ -668,16 +671,16 @@ export function generateTransitionStageShiftMessage(
     return {
       opener: '✨ Something new is emerging.',
       body: "You're moving out of the in-between and into something new. The fog is lifting. You can see, even faintly, who you're becoming.",
-      question: "What glimpses of the new you are you seeing?",
+      question: 'What glimpses of the new you are you seeing?',
       actionSuggestion: "Protect this new growth. It's still tender.",
       tone: 'warm',
     };
   }
 
   return {
-    opener: "The transition is shifting.",
+    opener: 'The transition is shifting.',
     body: `Something is changing in your ${transitionType || 'journey'}. You're not where you were. Trust the process.`,
-    question: "What do you notice is different?",
+    question: 'What do you notice is different?',
     tone: 'curious',
   };
 }
@@ -687,10 +690,10 @@ export function generateTransitionStageShiftMessage(
  */
 export function generateLifeTransitionCheckInMessage(transitionType: string): ProactiveMessage {
   return {
-    opener: "Checking in on you.",
+    opener: 'Checking in on you.',
     body: `You're going through a major transition${transitionType ? ` - ${transitionType}` : ''}. That takes energy, even when it doesn't show. I'm here to hold space for however this is going.`,
-    question: "How are you really doing with all of this?",
-    actionSuggestion: "No need to be okay. Just be honest.",
+    question: 'How are you really doing with all of this?',
+    actionSuggestion: 'No need to be okay. Just be honest.',
     tone: 'gentle',
   };
 }
@@ -703,19 +706,19 @@ export function generateBelongingMilestoneMessage(milestone: string): ProactiveM
     found_community: {
       opener: '🎉 You found your people!',
       body: "You've found a community where you belong. That's one of the most important human needs, and you made it happen.",
-      question: "What made this group feel like home?",
+      question: 'What made this group feel like home?',
       tone: 'celebratory',
     },
     deepened_friendship: {
       opener: '💙 A friendship deepened!',
-      body: "A friendship moved to a new level. You let someone in a little more. That vulnerability is how real connection happens.",
-      question: "What changed between you?",
+      body: 'A friendship moved to a new level. You let someone in a little more. That vulnerability is how real connection happens.',
+      question: 'What changed between you?',
       tone: 'warm',
     },
     regular_connection: {
       opener: '⭐ Consistent connection!',
       body: "You've been showing up for your relationships regularly. That consistency is what turns acquaintances into friends and friends into community.",
-      question: "How does having regular connection feel?",
+      question: 'How does having regular connection feel?',
       tone: 'celebratory',
     },
   };

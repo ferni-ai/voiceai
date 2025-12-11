@@ -66,7 +66,8 @@ const COMEBACK_STORIES = {
     },
     {
       name: 'Steve Jobs',
-      story: 'Fired from Apple, the company he founded. Returned to make it the most valuable company in the world.',
+      story:
+        'Fired from Apple, the company he founded. Returned to make it the most valuable company in the world.',
       lesson: 'Getting fired can be the best thing that never happened to you.',
     },
   ],
@@ -78,19 +79,22 @@ const COMEBACK_STORIES = {
     },
     {
       name: 'Maya Angelou',
-      story: 'Survived trauma and poverty to become one of the most influential voices of our time.',
+      story:
+        'Survived trauma and poverty to become one of the most influential voices of our time.',
       lesson: 'Our wounds can become our wisdom.',
     },
   ],
   financial: [
     {
       name: 'Walt Disney',
-      story: 'Went bankrupt with his first animation company. Mickey Mouse was born from that failure.',
+      story:
+        'Went bankrupt with his first animation company. Mickey Mouse was born from that failure.',
       lesson: 'Financial failure is not the end of the story.',
     },
     {
       name: 'Abraham Lincoln',
-      story: 'Failed in business twice, went bankrupt, lost multiple elections before becoming president.',
+      story:
+        'Failed in business twice, went bankrupt, lost multiple elections before becoming president.',
       lesson: 'Each setback can be setup for something greater.',
     },
   ],
@@ -116,7 +120,8 @@ const SECOND_CHANCE_WISDOM = [
     context: 'rock-bottom',
   },
   {
-    quote: "You can't go back and change the beginning, but you can start where you are and change the ending.",
+    quote:
+      "You can't go back and change the beginning, but you can start where you are and change the ending.",
     attribution: 'C.S. Lewis',
     context: 'starting-over',
   },
@@ -136,12 +141,13 @@ const SECOND_CHANCE_WISDOM = [
     context: 'resilience',
   },
   {
-    quote: 'Sometimes the hardest part isn\'t letting go but learning to start over.',
+    quote: "Sometimes the hardest part isn't letting go but learning to start over.",
     attribution: 'Nicole Sobon',
     context: 'grief',
   },
   {
-    quote: 'Courage doesn\'t always roar. Sometimes courage is the quiet voice at the end of the day saying, "I will try again tomorrow."',
+    quote:
+      'Courage doesn\'t always roar. Sometimes courage is the quiet voice at the end of the day saying, "I will try again tomorrow."',
     attribution: 'Mary Anne Radmacher',
     context: 'courage',
   },
@@ -164,13 +170,14 @@ const SECOND_CHANCE_STAGES = {
   },
   grief: {
     name: 'Grieving What Was',
-    description: 'Mourning the loss - the identity, the plan, the future that won\'t happen.',
+    description: "Mourning the loss - the identity, the plan, the future that won't happen.",
     needs: ['Permission to grieve', 'Validation that loss is real', 'Time'],
-    ferniApproach: 'Hold space for grief. Don\'t rush to silver linings.',
+    ferniApproach: "Hold space for grief. Don't rush to silver linings.",
   },
   reckoning: {
     name: 'Honest Reckoning',
-    description: 'Looking clearly at what happened. Taking appropriate responsibility without excessive self-blame.',
+    description:
+      'Looking clearly at what happened. Taking appropriate responsibility without excessive self-blame.',
     needs: ['Honest reflection', 'Balanced perspective', 'Self-compassion'],
     ferniApproach: 'Help them see clearly without judgment.',
   },
@@ -182,7 +189,8 @@ const SECOND_CHANCE_STAGES = {
   },
   rebuilding: {
     name: 'Active Rebuilding',
-    description: 'Taking concrete steps. Building new identity, skills, relationships, or finances.',
+    description:
+      'Taking concrete steps. Building new identity, skills, relationships, or finances.',
     needs: ['Practical support', 'Accountability', 'Celebration of small wins'],
     ferniApproach: 'Walk alongside. Celebrate every step.',
   },
@@ -200,39 +208,81 @@ const SECOND_CHANCE_STAGES = {
 const SECOND_CHANCE_TYPES = {
   career: {
     name: 'Career Reinvention',
-    triggers: ['Job loss', 'Burnout', 'Industry change', 'Career gap', 'Professional failure', 'Returning after caregiving'],
-    uniqueChallenges: ['Identity tied to work', 'Financial pressure', 'Age discrimination fears', 'Skill gaps'],
-    ferniReminder: 'You are not your job title. Your worth isn\'t determined by your LinkedIn.',
+    triggers: [
+      'Job loss',
+      'Burnout',
+      'Industry change',
+      'Career gap',
+      'Professional failure',
+      'Returning after caregiving',
+    ],
+    uniqueChallenges: [
+      'Identity tied to work',
+      'Financial pressure',
+      'Age discrimination fears',
+      'Skill gaps',
+    ],
+    ferniReminder: "You are not your job title. Your worth isn't determined by your LinkedIn.",
   },
   relationship: {
     name: 'Relationship Rebuilding',
     triggers: ['Divorce', 'Estrangement', 'Betrayal', 'Lost friendships', 'Family ruptures'],
-    uniqueChallenges: ['Trust rebuilding', 'Grief for the relationship', 'Identity as partner/friend', 'Loneliness'],
+    uniqueChallenges: [
+      'Trust rebuilding',
+      'Grief for the relationship',
+      'Identity as partner/friend',
+      'Loneliness',
+    ],
     ferniReminder: 'Some relationships end. Some heal. Both can lead to growth.',
   },
   financial: {
     name: 'Financial Fresh Start',
-    triggers: ['Bankruptcy', 'Debt spiral', 'Job loss', 'Medical bills', 'Business failure', 'Poor decisions'],
+    triggers: [
+      'Bankruptcy',
+      'Debt spiral',
+      'Job loss',
+      'Medical bills',
+      'Business failure',
+      'Poor decisions',
+    ],
     uniqueChallenges: ['Shame', 'Practical constraints', 'Trust in self', 'Starting from zero'],
     ferniReminder: 'Your net worth is not your self-worth. Money can be rebuilt.',
   },
   identity: {
     name: 'Identity Reconstruction',
-    triggers: ['Divorce', 'Empty nest', 'Retirement', 'Role loss', 'Faith transition', 'Coming out'],
-    uniqueChallenges: ['Who am I now?', 'Building new sense of self', 'Others\' expectations'],
-    ferniReminder: 'Becoming someone new doesn\'t erase who you were. It builds on it.',
+    triggers: [
+      'Divorce',
+      'Empty nest',
+      'Retirement',
+      'Role loss',
+      'Faith transition',
+      'Coming out',
+    ],
+    uniqueChallenges: ['Who am I now?', 'Building new sense of self', "Others' expectations"],
+    ferniReminder: "Becoming someone new doesn't erase who you were. It builds on it.",
   },
   return: {
     name: 'Return to Life',
-    triggers: ['Serious illness', 'Long caregiving', 'Incarceration', 'Addiction recovery', 'Mental health crisis'],
-    uniqueChallenges: ['World moved on', 'Reentry anxiety', 'Explaining gaps', 'Rebuilding routines'],
+    triggers: [
+      'Serious illness',
+      'Long caregiving',
+      'Incarceration',
+      'Addiction recovery',
+      'Mental health crisis',
+    ],
+    uniqueChallenges: [
+      'World moved on',
+      'Reentry anxiety',
+      'Explaining gaps',
+      'Rebuilding routines',
+    ],
     ferniReminder: 'You survived something hard. That took strength. Use that strength now.',
   },
   redemption: {
     name: 'Personal Redemption',
     triggers: ['Moral failure', 'Hurt others', 'Addiction', 'Broken trust', 'Public shame'],
     uniqueChallenges: ['Self-forgiveness', 'Making amends', 'Earning trust', 'Living with regret'],
-    ferniReminder: 'You are not the worst thing you\'ve ever done. What you do next matters.',
+    ferniReminder: "You are not the worst thing you've ever done. What you do next matters.",
   },
 };
 
@@ -250,15 +300,27 @@ const assessReadinessForChangeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user assess their readiness for making a significant change or fresh start. Meet them where they are without pushing.',
+      description:
+        'Help user assess their readiness for making a significant change or fresh start. Meet them where they are without pushing.',
       parameters: z.object({
-        changeType: z.enum(['career', 'relationship', 'financial', 'identity', 'return', 'redemption', 'general'])
-          .describe('What kind of second chance they\'re considering'),
-        whatHappened: z.string().optional()
+        changeType: z
+          .enum([
+            'career',
+            'relationship',
+            'financial',
+            'identity',
+            'return',
+            'redemption',
+            'general',
+          ])
+          .describe("What kind of second chance they're considering"),
+        whatHappened: z
+          .string()
+          .optional()
           .describe('Brief description of what led to needing a fresh start'),
-        howLongAgo: z.string().optional()
-          .describe('How long since the triggering event'),
-        currentFeeling: z.enum(['stuck', 'scared', 'hopeful', 'numb', 'angry', 'exhausted', 'ready', 'unsure'])
+        howLongAgo: z.string().optional().describe('How long since the triggering event'),
+        currentFeeling: z
+          .enum(['stuck', 'scared', 'hopeful', 'numb', 'angry', 'exhausted', 'ready', 'unsure'])
           .optional(),
       }),
       execute: async ({ changeType, whatHappened, howLongAgo, currentFeeling }) => {
@@ -267,8 +329,9 @@ const assessReadinessForChangeDef: ToolDefinition = {
           'Assessing readiness for change'
         );
 
-        const typeInfo = SECOND_CHANCE_TYPES[changeType as keyof typeof SECOND_CHANCE_TYPES]
-          || SECOND_CHANCE_TYPES.career;
+        const typeInfo =
+          SECOND_CHANCE_TYPES[changeType as keyof typeof SECOND_CHANCE_TYPES] ||
+          SECOND_CHANCE_TYPES.career;
 
         let response = `**Where You Are Right Now**\n\n`;
 
@@ -334,17 +397,16 @@ const identifyWhatToKeepDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user identify what valuable things they want to carry forward into their fresh start—skills, lessons, relationships, values.',
+      description:
+        'Help user identify what valuable things they want to carry forward into their fresh start—skills, lessons, relationships, values.',
       parameters: z.object({
-        context: z.string().describe('What situation they\'re starting over from'),
-        feelingAboutPast: z.enum(['all-bad', 'mixed', 'grateful-despite-pain', 'unsure'])
+        context: z.string().describe("What situation they're starting over from"),
+        feelingAboutPast: z
+          .enum(['all-bad', 'mixed', 'grateful-despite-pain', 'unsure'])
           .optional(),
       }),
       execute: async ({ context, feelingAboutPast }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, feelingAboutPast },
-          'Identifying what to keep'
-        );
+        getLogger().info({ agentId: ctx.agentId, feelingAboutPast }, 'Identifying what to keep');
 
         let response = `**What to Carry Forward**\n\n`;
 
@@ -408,19 +470,21 @@ const acknowledgeWhatWasDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Create space for user to acknowledge and grieve what was lost. Moving forward requires honoring what was, not bypassing it.',
+      description:
+        'Create space for user to acknowledge and grieve what was lost. Moving forward requires honoring what was, not bypassing it.',
       parameters: z.object({
         whatWasLost: z.string().describe('What they lost or are leaving behind'),
-        hasHadSpaceToGrieve: z.boolean().optional()
-          .describe('Whether they\'ve had space to process the loss'),
-        rushingToMoveOn: z.boolean().optional()
+        hasHadSpaceToGrieve: z
+          .boolean()
+          .optional()
+          .describe("Whether they've had space to process the loss"),
+        rushingToMoveOn: z
+          .boolean()
+          .optional()
           .describe('Whether they feel pressure to "get over it"'),
       }),
       execute: async ({ whatWasLost, hasHadSpaceToGrieve, rushingToMoveOn }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, hasHadSpaceToGrieve },
-          'Acknowledging what was'
-        );
+        getLogger().info({ agentId: ctx.agentId, hasHadSpaceToGrieve }, 'Acknowledging what was');
 
         // Persist this as a key moment - shared vulnerability about loss
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -474,7 +538,7 @@ const acknowledgeWhatWasDef: ToolDefinition = {
         response += `> I can grieve AND move forward, in my own time."\n\n`;
 
         // Find relevant wisdom
-        const griefWisdom = SECOND_CHANCE_WISDOM.find(w => w.context === 'grief');
+        const griefWisdom = SECOND_CHANCE_WISDOM.find((w) => w.context === 'grief');
         if (griefWisdom) {
           response += `---\n\n`;
           response += `> "${griefWisdom.quote}"\n`;
@@ -502,11 +566,11 @@ const reframeNarrativeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user reframe their narrative from "this happened TO me" to "this is part of my story." Not toxic positivity—honest meaning-making.',
+      description:
+        'Help user reframe their narrative from "this happened TO me" to "this is part of my story." Not toxic positivity—honest meaning-making.',
       parameters: z.object({
         currentStory: z.string().describe('How they currently tell the story of what happened'),
-        stuckPoint: z.string().optional()
-          .describe('Where they feel stuck in the narrative'),
+        stuckPoint: z.string().optional().describe('Where they feel stuck in the narrative'),
       }),
       execute: async ({ currentStory, stuckPoint }) => {
         getLogger().info(
@@ -571,17 +635,17 @@ const findTheLessonsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user find genuine lessons from their experience—not forced silver linings, but real wisdom earned.',
+      description:
+        'Help user find genuine lessons from their experience—not forced silver linings, but real wisdom earned.',
       parameters: z.object({
-        experience: z.string().describe('The experience they\'re extracting lessons from'),
-        readyForLessons: z.boolean().optional()
+        experience: z.string().describe("The experience they're extracting lessons from"),
+        readyForLessons: z
+          .boolean()
+          .optional()
           .describe('Whether they feel ready to look for lessons'),
       }),
       execute: async ({ experience, readyForLessons }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, readyForLessons },
-          'Finding the lessons'
-        );
+        getLogger().info({ agentId: ctx.agentId, readyForLessons }, 'Finding the lessons');
 
         let response = '';
 
@@ -653,10 +717,12 @@ const defineFirstStepDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user identify a tiny, manageable first step. Not the whole journey—just the very next thing.',
+      description:
+        'Help user identify a tiny, manageable first step. Not the whole journey—just the very next thing.',
       parameters: z.object({
         direction: z.string().describe('What direction they want to move in'),
-        overwhelmLevel: z.enum(['very-overwhelmed', 'somewhat-overwhelmed', 'manageable', 'ready-to-go'])
+        overwhelmLevel: z
+          .enum(['very-overwhelmed', 'somewhat-overwhelmed', 'manageable', 'ready-to-go'])
           .optional(),
         energy: z.enum(['depleted', 'low', 'moderate', 'good']).optional(),
       }),
@@ -667,10 +733,7 @@ const defineFirstStepDef: ToolDefinition = {
           : null;
 
         try {
-          getLogger().info(
-            { agentId: ctx.agentId, overwhelmLevel, energy },
-            'Defining first step'
-          );
+          getLogger().info({ agentId: ctx.agentId, overwhelmLevel, energy }, 'Defining first step');
 
           let response = `**Finding Your First Step**\n\n`;
 
@@ -746,18 +809,16 @@ const createComebackPlanDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user create a realistic comeback plan with phases, not a rigid timeline.',
       parameters: z.object({
-        comebackType: z.enum(['career', 'financial', 'relationship', 'health', 'identity', 'general'])
-          .describe('What area they\'re rebuilding'),
+        comebackType: z
+          .enum(['career', 'financial', 'relationship', 'health', 'identity', 'general'])
+          .describe("What area they're rebuilding"),
         startingPoint: z.string().describe('Honest assessment of where they are'),
         destination: z.string().optional().describe('Where they want to get to'),
         resources: z.array(z.string()).optional().describe('Resources they have'),
-        constraints: z.array(z.string()).optional().describe('Constraints they\'re working with'),
+        constraints: z.array(z.string()).optional().describe("Constraints they're working with"),
       }),
       execute: async ({ comebackType, startingPoint, destination, resources, constraints }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, comebackType },
-          'Creating comeback plan'
-        );
+        getLogger().info({ agentId: ctx.agentId, comebackType }, 'Creating comeback plan');
 
         let response = `**Your Comeback Plan**\n\n`;
 
@@ -768,13 +829,17 @@ const createComebackPlanDef: ToolDefinition = {
 
         if (resources && resources.length > 0) {
           response += `**Resources you have:**\n`;
-          resources.forEach(r => { response += `- ${r}\n`; });
+          resources.forEach((r) => {
+            response += `- ${r}\n`;
+          });
           response += `\n`;
         }
 
         if (constraints && constraints.length > 0) {
           response += `**Constraints to work with:**\n`;
-          constraints.forEach(c => { response += `- ${c}\n`; });
+          constraints.forEach((c) => {
+            response += `- ${c}\n`;
+          });
           response += `\n`;
         }
 
@@ -814,9 +879,15 @@ const createComebackPlanDef: ToolDefinition = {
         response += `- You don't have to do this alone. Who can help?\n\n`;
 
         // Add inspiring story
-        const storyCategory = comebackType === 'financial' ? 'financial' :
-                             comebackType === 'career' ? 'career' : 'personal';
-        const stories = COMEBACK_STORIES[storyCategory as keyof typeof COMEBACK_STORIES] || COMEBACK_STORIES.career;
+        const storyCategory =
+          comebackType === 'financial'
+            ? 'financial'
+            : comebackType === 'career'
+              ? 'career'
+              : 'personal';
+        const stories =
+          COMEBACK_STORIES[storyCategory as keyof typeof COMEBACK_STORIES] ||
+          COMEBACK_STORIES.career;
         const story = stories[Math.floor(Math.random() * stories.length)];
 
         response += `---\n\n`;
@@ -841,17 +912,15 @@ const identifySupportsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user identify and strengthen their support system for their fresh start journey.',
+      description:
+        'Help user identify and strengthen their support system for their fresh start journey.',
       parameters: z.object({
         currentSupport: z.string().optional().describe('Who/what currently supports them'),
         supportGaps: z.string().optional().describe('What support they feel is missing'),
         hardToAskForHelp: z.boolean().optional().describe('Whether they struggle to ask for help'),
       }),
       execute: async ({ currentSupport, supportGaps, hardToAskForHelp }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, hardToAskForHelp },
-          'Identifying supports'
-        );
+        getLogger().info({ agentId: ctx.agentId, hardToAskForHelp }, 'Identifying supports');
 
         let response = `**Your Support System**\n\n`;
 
@@ -925,17 +994,16 @@ const processGriefForWhatWasDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Create dedicated space for grieving losses. Not rushing past pain, but sitting with it.',
+      description:
+        'Create dedicated space for grieving losses. Not rushing past pain, but sitting with it.',
       parameters: z.object({
-        loss: z.string().describe('What they\'re grieving'),
-        griefExpression: z.enum(['crying', 'angry', 'numb', 'waves', 'avoiding', 'ready-to-process'])
+        loss: z.string().describe("What they're grieving"),
+        griefExpression: z
+          .enum(['crying', 'angry', 'numb', 'waves', 'avoiding', 'ready-to-process'])
           .optional(),
       }),
       execute: async ({ loss, griefExpression }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, griefExpression },
-          'Processing grief'
-        );
+        getLogger().info({ agentId: ctx.agentId, griefExpression }, 'Processing grief');
 
         let response = `**A Space for Grief**\n\n`;
 
@@ -988,20 +1056,22 @@ const processGriefForWhatWasDef: ToolDefinition = {
 
 const buildCourageForWhatNextDef: ToolDefinition = {
   id: 'buildCourageForWhatNext',
-  name: 'Build Courage for What\'s Next',
+  name: "Build Courage for What's Next",
   description: 'Cultivate courage for facing the unknown',
   domain: 'second-chances',
   tags: ['second-chances', 'courage', 'fear', 'moving-forward'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user build courage for their fresh start. Acknowledge fear while building capacity to act.',
+      description:
+        'Help user build courage for their fresh start. Acknowledge fear while building capacity to act.',
       parameters: z.object({
-        fearOf: z.string().describe('What they\'re afraid of'),
-        whatCourageLooksLike: z.string().optional()
+        fearOf: z.string().describe("What they're afraid of"),
+        whatCourageLooksLike: z
+          .string()
+          .optional()
           .describe('What taking the step would look like'),
-        pastCourage: z.string().optional()
-          .describe('A time they showed courage before'),
+        pastCourage: z.string().optional().describe('A time they showed courage before'),
       }),
       execute: async ({ fearOf, whatCourageLooksLike, pastCourage }) => {
         getLogger().info(
@@ -1048,7 +1118,7 @@ const buildCourageForWhatNextDef: ToolDefinition = {
         response += `Fear grows with delay. Sometimes setting a time ("I'll do this by Friday") helps.\n\n`;
 
         // Courage quote
-        const courageWisdom = SECOND_CHANCE_WISDOM.find(w => w.context === 'courage');
+        const courageWisdom = SECOND_CHANCE_WISDOM.find((w) => w.context === 'courage');
         if (courageWisdom) {
           response += `---\n\n`;
           response += `> "${courageWisdom.quote}"\n`;
@@ -1078,18 +1148,18 @@ const celebrateTinyWinsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user recognize and celebrate their progress on the fresh start journey—especially the small wins that are easy to dismiss.',
+      description:
+        'Help user recognize and celebrate their progress on the fresh start journey—especially the small wins that are easy to dismiss.',
       parameters: z.object({
         win: z.string().describe('What they accomplished'),
-        sizePerception: z.enum(['tiny', 'small', 'medium', 'big']).optional()
+        sizePerception: z
+          .enum(['tiny', 'small', 'medium', 'big'])
+          .optional()
           .describe('How big they think it is'),
         feelingAboutIt: z.string().optional(),
       }),
       execute: async ({ win, sizePerception, feelingAboutIt }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, sizePerception },
-          'Celebrating tiny win'
-        );
+        getLogger().info({ agentId: ctx.agentId, sizePerception }, 'Celebrating tiny win');
 
         // Always persist wins as key moments
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -1159,19 +1229,18 @@ const checkInOnJourneyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Check in with user on how their fresh start journey is going. Not to judge progress, but to understand where they are.',
+      description:
+        'Check in with user on how their fresh start journey is going. Not to judge progress, but to understand where they are.',
       parameters: z.object({
-        timeSinceStart: z.string().optional().describe('How long they\'ve been on this journey'),
-        currentPhase: z.enum(['stabilizing', 'exploring', 'building', 'sustaining', 'struggling', 'unsure'])
+        timeSinceStart: z.string().optional().describe("How long they've been on this journey"),
+        currentPhase: z
+          .enum(['stabilizing', 'exploring', 'building', 'sustaining', 'struggling', 'unsure'])
           .optional(),
         biggestChallenge: z.string().optional(),
         smallestWin: z.string().optional(),
       }),
       execute: async ({ timeSinceStart, currentPhase, biggestChallenge, smallestWin }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, currentPhase },
-          'Checking in on journey'
-        );
+        getLogger().info({ agentId: ctx.agentId, currentPhase }, 'Checking in on journey');
 
         let response = `**Journey Check-In**\n\n`;
 
@@ -1243,23 +1312,21 @@ const checkInOnJourneyDef: ToolDefinition = {
 
 const holdHopeWhenCantDef: ToolDefinition = {
   id: 'holdHopeWhenCant',
-  name: 'Hold Hope When Can\'t',
-  description: 'Hold hope for someone when they can\'t hold it themselves',
+  name: "Hold Hope When Can't",
+  description: "Hold hope for someone when they can't hold it themselves",
   domain: 'second-chances',
   tags: ['second-chances', 'hope', 'support', 'dark-times'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'For moments when user has lost hope. Ferni holds hope for them until they can hold it themselves.',
+      description:
+        'For moments when user has lost hope. Ferni holds hope for them until they can hold it themselves.',
       parameters: z.object({
         whatFeelsHopeless: z.string().describe('What feels hopeless to them'),
-        howLongFeeling: z.string().optional().describe('How long they\'ve felt this way'),
+        howLongFeeling: z.string().optional().describe("How long they've felt this way"),
       }),
       execute: async ({ whatFeelsHopeless, howLongFeeling }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId },
-          'Holding hope for user'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Holding hope for user');
 
         // Persist this as a significant moment - user expressing hopelessness is a concern
         persistKeyMoment(toolCtx as ToolCtxWithUserData, {
@@ -1300,7 +1367,8 @@ const holdHopeWhenCantDef: ToolDefinition = {
         response += `---\n\n`;
 
         // Add a comeback story
-        const story = COMEBACK_STORIES.personal[Math.floor(Math.random() * COMEBACK_STORIES.personal.length)];
+        const story =
+          COMEBACK_STORIES.personal[Math.floor(Math.random() * COMEBACK_STORIES.personal.length)];
         response += `**Someone who came back:**\n`;
         response += `> ${story.name}: ${story.story}\n\n`;
 
@@ -1322,23 +1390,21 @@ const holdHopeWhenCantDef: ToolDefinition = {
 const remindOfProgressDef: ToolDefinition = {
   id: 'remindOfProgress',
   name: 'Remind of Progress',
-  description: 'Remind user how far they\'ve come on their journey',
+  description: "Remind user how far they've come on their journey",
   domain: 'second-chances',
   tags: ['second-chances', 'progress', 'reminder', 'reflection'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Remind user of the progress they\'ve made—especially useful when they feel like they\'re not getting anywhere.',
+      description:
+        "Remind user of the progress they've made—especially useful when they feel like they're not getting anywhere.",
       parameters: z.object({
         whereyStarted: z.string().describe('Where they started this journey'),
         whereTheyAreNow: z.string().describe('Where they are now'),
         feelingStuck: z.boolean().optional().describe('Whether they feel stuck'),
       }),
       execute: async ({ whereyStarted: whereTheyStarted, whereTheyAreNow, feelingStuck }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, feelingStuck },
-          'Reminding of progress'
-        );
+        getLogger().info({ agentId: ctx.agentId, feelingStuck }, 'Reminding of progress');
 
         let response = `**Look How Far You've Come**\n\n`;
 
@@ -1402,7 +1468,19 @@ const shareSecondChanceWisdomDef: ToolDefinition = {
     return llm.tool({
       description: 'Share relevant wisdom, quotes, or comeback stories to inspire and encourage.',
       parameters: z.object({
-        context: z.enum(['starting-over', 'failure', 'rock-bottom', 'redemption', 'healing', 'resilience', 'grief', 'courage', 'financial', 'general'])
+        context: z
+          .enum([
+            'starting-over',
+            'failure',
+            'rock-bottom',
+            'redemption',
+            'healing',
+            'resilience',
+            'grief',
+            'courage',
+            'financial',
+            'general',
+          ])
           .describe('What context they need wisdom for'),
         wantStory: z.boolean().optional().describe('Whether they want a comeback story'),
       }),
@@ -1415,12 +1493,11 @@ const shareSecondChanceWisdomDef: ToolDefinition = {
         let response = `**Wisdom for the Journey**\n\n`;
 
         // Find matching wisdom
-        const matchingWisdom = SECOND_CHANCE_WISDOM.filter(w => w.context === context);
-        const wisdomToShare = matchingWisdom.length > 0
-          ? matchingWisdom
-          : SECOND_CHANCE_WISDOM.slice(0, 3);
+        const matchingWisdom = SECOND_CHANCE_WISDOM.filter((w) => w.context === context);
+        const wisdomToShare =
+          matchingWisdom.length > 0 ? matchingWisdom : SECOND_CHANCE_WISDOM.slice(0, 3);
 
-        wisdomToShare.forEach(w => {
+        wisdomToShare.forEach((w) => {
           response += `> "${w.quote}"\n`;
           response += `> — ${w.attribution}\n\n`;
         });
@@ -1430,10 +1507,17 @@ const shareSecondChanceWisdomDef: ToolDefinition = {
           response += `**A Comeback Story:**\n\n`;
 
           // Pick appropriate category
-          const storyCategories = Object.keys(COMEBACK_STORIES) as Array<keyof typeof COMEBACK_STORIES>;
-          const category = context === 'financial' ? 'financial' :
-                          ['career', 'failure'].includes(context) ? 'career' : 'personal';
-          const stories = COMEBACK_STORIES[category as keyof typeof COMEBACK_STORIES] || COMEBACK_STORIES.career;
+          const storyCategories = Object.keys(COMEBACK_STORIES) as Array<
+            keyof typeof COMEBACK_STORIES
+          >;
+          const category =
+            context === 'financial'
+              ? 'financial'
+              : ['career', 'failure'].includes(context)
+                ? 'career'
+                : 'personal';
+          const stories =
+            COMEBACK_STORIES[category as keyof typeof COMEBACK_STORIES] || COMEBACK_STORIES.career;
           const story = stories[Math.floor(Math.random() * stories.length)];
 
           response += `**${story.name}**\n`;
