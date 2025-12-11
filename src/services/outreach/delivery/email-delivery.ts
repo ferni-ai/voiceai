@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { validateEmailContent } from '../../brand/index.js';
 
 const log = getLogger().child({ module: 'email-delivery' });
 
@@ -457,17 +458,35 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
   }
 
   try {
+    // Brand validation - ensure content is on-brand before sending
+    const brandCheck = validateEmailContent(
+      message.subject,
+      message.body,
+      message.personaId as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan'
+    );
+
+    if (!brandCheck.isValid) {
+      log.warn(
+        { userId: message.userId, issues: brandCheck.issues },
+        '⚠️ Email content has brand issues'
+      );
+    }
+
+    // Use validated/fixed content
+    const validatedSubject = brandCheck.subject;
+    const validatedBody = brandCheck.body;
+
     // Generate HTML if not provided
     const html =
       message.html ||
       generatePersonaEmailHTML(message.personaId, {
-        body: message.body,
+        body: validatedBody,
         userName: message.toName,
         preheader: message.preheader,
       });
 
     // Generate plain text fallback
-    const text = generatePlainText(message.personaId, message.body, message.toName);
+    const text = generatePlainText(message.personaId, validatedBody, message.toName);
 
     let result: EmailDeliveryResult;
 

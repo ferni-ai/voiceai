@@ -1,8 +1,8 @@
 /**
- * Brand Service (Frontend)
+ * Brand Service - Client-side brand validation
  *
- * Client-side brand validation and content generation.
- * Fetches brand rules from the API and validates content locally.
+ * Preloads brand rules for fast client-side validation.
+ * Used for real-time content checking before submission.
  *
  * @module @ferni/frontend/brand-service
  */
@@ -15,174 +15,145 @@ const log = createLogger('BrandService');
 // TYPES
 // ============================================================================
 
-export interface BrandRules {
+interface BrandRules {
   bannedPhrases: string[];
   wordsToAvoid: string[];
   wordsToUse: string[];
 }
 
-export interface ValidationResult {
-  isValid: boolean;
+interface ValidationResult {
+  isCompliant: boolean;
   issues: string[];
-}
-
-export interface PersonaSummary {
-  id: string;
-  name: string;
-  role: string;
-  archetype: string;
-  tone: string;
-  colors: {
-    primary: string;
-    secondary: string;
-    glow: string;
-  };
+  suggestions: string[];
 }
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-let cachedRules: BrandRules | null = null;
-let cachedPersonas: PersonaSummary[] | null = null;
-let rulesLoadedAt: number = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let brandRules: BrandRules | null = null;
+let loadPromise: Promise<BrandRules> | null = null;
 
 // ============================================================================
-// API FUNCTIONS
+// INITIALIZATION
 // ============================================================================
 
 /**
- * Load brand rules from API (cached)
+ * Initialize the brand service by preloading rules
  */
-export async function loadBrandRules(): Promise<BrandRules> {
-  // Return cached if fresh
-  if (cachedRules && Date.now() - rulesLoadedAt < CACHE_TTL_MS) {
-    return cachedRules;
-  }
+export async function initBrandService(): Promise<void> {
+  log.info('Initializing brand service');
 
   try {
-    const response = await fetch('/api/brand/rules');
-    if (!response.ok) {
-      throw new Error(`Failed to load brand rules: ${response.status}`);
-    }
+    await loadBrandRules();
+    log.info('Brand rules loaded', { 
+      bannedPhrases: brandRules?.bannedPhrases.length,
+      wordsToAvoid: brandRules?.wordsToAvoid.length 
+    });
+  } catch (error) {
+    log.warn('Failed to preload brand rules, will retry on demand', { error });
+  }
+}
 
-    cachedRules = (await response.json()) as BrandRules;
-    rulesLoadedAt = Date.now();
+/**
+ * Load brand rules from API
+ */
+async function loadBrandRules(): Promise<BrandRules> {
+  if (brandRules) return brandRules;
 
-    log.debug('Brand rules loaded', { 
-      bannedCount: cachedRules.bannedPhrases.length,
-      avoidCount: cachedRules.wordsToAvoid.length,
+  if (loadPromise) return loadPromise;
+
+  loadPromise = fetch('/api/brand/rules')
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`Failed to load brand rules: ${res.status}`);
+      const data = (await res.json()) as BrandRules;
+      brandRules = data;
+      return data;
+    })
+    .catch((error) => {
+      loadPromise = null;
+      throw error;
     });
 
-    return cachedRules;
-  } catch (error) {
-    log.error('Failed to load brand rules', error);
-    // Return minimal fallback rules
-    return {
-      bannedPhrases: ['As an AI', "I'm an AI", 'chatbot', 'bot'],
-      wordsToAvoid: ['AI', 'artificial', 'virtual assistant'],
-      wordsToUse: ['companion', 'present', 'notice', 'remember'],
-    };
-  }
-}
-
-/**
- * Load personas from API (cached)
- */
-export async function loadPersonas(): Promise<PersonaSummary[]> {
-  if (cachedPersonas) {
-    return cachedPersonas;
-  }
-
-  try {
-    const response = await fetch('/api/brand/personas');
-    if (!response.ok) {
-      throw new Error(`Failed to load personas: ${response.status}`);
-    }
-
-    const data = (await response.json()) as { personas: PersonaSummary[] };
-    cachedPersonas = data.personas;
-
-    log.debug('Personas loaded', { count: cachedPersonas.length });
-
-    return cachedPersonas;
-  } catch (error) {
-    log.error('Failed to load personas', error);
-    return [];
-  }
-}
-
-/**
- * Get a specific persona
- */
-export async function getPersona(personaId: string): Promise<PersonaSummary | null> {
-  const personas = await loadPersonas();
-  return personas.find((p) => p.id === personaId) || null;
+  return loadPromise;
 }
 
 // ============================================================================
-// VALIDATION FUNCTIONS
+// VALIDATION
 // ============================================================================
 
 /**
- * Validate content against brand rules (local, fast)
+ * Quick validate content against brand rules (client-side)
  */
-export async function validateContent(content: string): Promise<ValidationResult> {
-  const rules = await loadBrandRules();
+export function quickValidate(content: string): ValidationResult {
+  if (!brandRules) {
+    // Rules not loaded yet, assume compliant
+    return { isCompliant: true, issues: [], suggestions: [] };
+  }
+
   const issues: string[] = [];
+  const suggestions: string[] = [];
   const lowerContent = content.toLowerCase();
 
   // Check banned phrases
-  for (const phrase of rules.bannedPhrases) {
+  for (const phrase of brandRules.bannedPhrases) {
     if (lowerContent.includes(phrase.toLowerCase())) {
       issues.push(`Contains banned phrase: "${phrase}"`);
+      suggestions.push(`Remove "${phrase}"`);
     }
   }
 
   // Check avoided words
-  for (const word of rules.wordsToAvoid) {
+  for (const word of brandRules.wordsToAvoid) {
     const regex = new RegExp(`\\b${escapeRegex(word)}\\b`, 'i');
     if (regex.test(content)) {
       issues.push(`Contains avoided word: "${word}"`);
+      suggestions.push(`Consider removing or replacing "${word}"`);
     }
   }
 
   return {
-    isValid: issues.length === 0,
+    isCompliant: issues.length === 0,
     issues,
+    suggestions,
   };
 }
 
 /**
- * Quick sync validation (for real-time checking)
+ * Check if content uses brand-preferred words
  */
-export function quickValidateSync(content: string): ValidationResult {
-  if (!cachedRules) {
-    // Rules not loaded yet - assume valid
-    return { isValid: true, issues: [] };
-  }
+export function checkPreferredWords(content: string): string[] {
+  if (!brandRules) return [];
 
-  const issues: string[] = [];
+  const found: string[] = [];
   const lowerContent = content.toLowerCase();
 
-  // Check banned phrases only (fast)
-  for (const phrase of cachedRules.bannedPhrases) {
-    if (lowerContent.includes(phrase.toLowerCase())) {
-      issues.push(`Contains banned phrase: "${phrase}"`);
+  for (const word of brandRules.wordsToUse) {
+    if (lowerContent.includes(word.toLowerCase())) {
+      found.push(word);
     }
   }
 
-  return {
-    isValid: issues.length === 0,
-    issues,
-  };
+  return found;
+}
+
+/**
+ * Get brand compliance score (0-100)
+ */
+export function getComplianceScore(content: string): number {
+  const result = quickValidate(content);
+  
+  // Start at 100, subtract for issues
+  const criticalCount = result.issues.filter((i) => i.includes('banned')).length;
+  const warningCount = result.issues.filter((i) => i.includes('avoided')).length;
+
+  return Math.max(0, 100 - criticalCount * 25 - warningCount * 10);
 }
 
 /**
  * Full validation via API (more thorough)
  */
-export async function validateContentFull(
+export async function validateContent(
   content: string,
   options: { persona?: string; context?: string } = {}
 ): Promise<{
@@ -194,11 +165,7 @@ export async function validateContentFull(
     const response = await fetch('/api/brand/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content,
-        persona: options.persona,
-        context: options.context,
-      }),
+      body: JSON.stringify({ content, ...options }),
     });
 
     if (!response.ok) {
@@ -207,73 +174,82 @@ export async function validateContentFull(
 
     return await response.json();
   } catch (error) {
-    log.error('Brand validation API error', error);
+    log.error('Brand validation failed', { error });
+    // Fallback to client-side validation
+    const result = quickValidate(content);
     return {
-      isCompliant: true,
-      score: 100,
-      violations: [],
+      isCompliant: result.isCompliant,
+      score: getComplianceScore(content),
+      violations: result.issues.map((issue) => ({
+        type: issue.includes('banned') ? 'critical' : 'warning',
+        text: issue,
+        suggestion: result.suggestions[result.issues.indexOf(issue)] || '',
+      })),
     };
   }
 }
 
 // ============================================================================
-// CONTENT HELPERS
+// HELPERS
 // ============================================================================
 
 /**
- * Check if content contains any words we should use
+ * Check if rules are loaded
  */
-export async function hasGoodBrandWords(content: string): Promise<boolean> {
-  const rules = await loadBrandRules();
-  const lowerContent = content.toLowerCase();
-
-  return rules.wordsToUse.some((word) => 
-    lowerContent.includes(word.toLowerCase())
-  );
+export function isReady(): boolean {
+  return brandRules !== null;
 }
 
 /**
- * Get persona colors
+ * Get banned phrases list
  */
-export async function getPersonaColors(
-  personaId: string
-): Promise<{ primary: string; secondary: string; glow: string } | null> {
-  const persona = await getPersona(personaId);
-  return persona?.colors || null;
+export function getBannedPhrases(): string[] {
+  return brandRules?.bannedPhrases || [];
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
 /**
- * Initialize brand service (preload rules)
+ * Get words to avoid list
  */
-export async function initBrandService(): Promise<void> {
-  log.info('Initializing brand service');
-  
-  // Preload rules and personas in parallel
-  await Promise.all([loadBrandRules(), loadPersonas()]);
-  
-  log.info('Brand service initialized');
+export function getWordsToAvoid(): string[] {
+  return brandRules?.wordsToAvoid || [];
 }
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
+/**
+ * Get preferred words list
+ */
+export function getWordsToUse(): string[] {
+  return brandRules?.wordsToUse || [];
+}
 
 /**
- * Escape regex special characters
+ * Force reload brand rules
+ */
+export async function reloadRules(): Promise<void> {
+  brandRules = null;
+  loadPromise = null;
+  await loadBrandRules();
+}
+
+/**
+ * Escape special regex characters
  */
 function escapeRegex(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Clear cache (for testing or forced refresh)
- */
-export function clearBrandCache(): void {
-  cachedRules = null;
-  cachedPersonas = null;
-  rulesLoadedAt = 0;
-}
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const brandService = {
+  init: initBrandService,
+  quickValidate,
+  validateContent,
+  checkPreferredWords,
+  getComplianceScore,
+  isReady,
+  getBannedPhrases,
+  getWordsToAvoid,
+  getWordsToUse,
+  reloadRules,
+};

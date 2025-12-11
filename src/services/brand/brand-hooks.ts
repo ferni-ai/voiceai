@@ -1,222 +1,241 @@
 /**
- * Brand System Hooks
+ * Brand Hooks - Easy integration points for brand compliance
  *
- * Integration points for the brand system throughout the codebase.
- * These hooks ensure brand compliance at key touchpoints.
+ * Pre-built hooks for common integration scenarios:
+ * - Voice agent responses
+ * - Email/SMS outreach
+ * - Notifications
+ * - Generated content
  *
  * @module @ferni/brand/brand-hooks
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { logValidation } from './brand-evolution.js';
+import { loadBrandContext } from './brand-context.js';
+import { buildBrandSystemPrompt, type LLMClient } from './brand-generator.js';
+import { getPersonaVoice } from './persona-voices.js';
 import { autoFixViolations, quickValidate, validateBrandCompliance } from './brand-validator.js';
 import { adaptForChannel } from './channel-adapter.js';
-import { getPersonaVoice, getRandomGreeting, getResponsePatterns } from './persona-voices.js';
 import type { Channel, ContextType, PersonaId } from './types.js';
 
 const log = createLogger({ module: 'BrandHooks' });
-
-// ============================================================================
-// OUTREACH HOOKS
-// ============================================================================
-
-/**
- * Validate outreach content before sending
- * Use this in email/SMS/push generation
- */
-export async function validateOutreachContent(
-  content: string,
-  options: {
-    personaId: string;
-    channel: Channel;
-    autoFix?: boolean;
-  }
-): Promise<{
-  isValid: boolean;
-  content: string;
-  violations: string[];
-}> {
-  const { personaId, channel, autoFix = true } = options;
-
-  // Map outreach contexts to brand contexts
-  const context: ContextType = channel === 'email' ? 'notification' : 'notification';
-
-  const result = await validateBrandCompliance(content, {
-    persona: personaId as PersonaId,
-    context,
-  });
-
-  // Log for metrics
-  await logValidation(content, result, { persona: personaId, channel }).catch(() => {});
-
-  if (result.isCompliant) {
-    return { isValid: true, content, violations: [] };
-  }
-
-  // Auto-fix if enabled
-  if (autoFix && result.violations.length > 0) {
-    const { fixed, changes } = autoFixViolations(content);
-    if (changes.length > 0) {
-      log.info({ personaId, channel, changes }, 'Auto-fixed outreach content');
-      return { isValid: true, content: fixed, violations: [] };
-    }
-  }
-
-  return {
-    isValid: false,
-    content,
-    violations: result.violations.map((v) => v.suggestion),
-  };
-}
-
-/**
- * Adapt outreach content for channel constraints
- */
-export function adaptOutreachForChannel(
-  content: string,
-  channel: Channel,
-  personaId: string
-): string {
-  return adaptForChannel(content, channel, {
-    persona: personaId as PersonaId,
-    context: 'notification',
-  });
-}
-
-/**
- * Get brand-compliant greeting for outreach
- */
-export function getBrandGreeting(personaId: string): string {
-  return getRandomGreeting(personaId as PersonaId);
-}
-
-/**
- * Get brand-compliant response patterns for context
- */
-export function getBrandPatterns(personaId: string, context: ContextType): string[] {
-  return getResponsePatterns(personaId as PersonaId, context);
-}
-
-// ============================================================================
-// EXPERIMENT HOOKS
-// ============================================================================
-
-/**
- * Validate experiment variant content
- * Use this when creating or updating experiment variants
- */
-export async function validateExperimentVariant(
-  content: string,
-  experimentType: 'headline' | 'cta' | 'body'
-): Promise<{
-  isValid: boolean;
-  score: number;
-  issues: string[];
-}> {
-  const result = await validateBrandCompliance(content, {
-    context: 'marketing',
-    strict: true, // Experiments should be fully compliant
-  });
-
-  return {
-    isValid: result.isCompliant,
-    score: result.score,
-    issues: result.violations.map((v) => v.suggestion),
-  };
-}
-
-/**
- * Batch validate all variants in an experiment
- */
-export async function validateExperimentVariants(
-  variants: { id: string; content: string }[]
-): Promise<{
-  allValid: boolean;
-  results: { id: string; isValid: boolean; score: number; issues: string[] }[];
-}> {
-  const results = await Promise.all(
-    variants.map(async (variant) => {
-      const validation = await validateExperimentVariant(variant.content, 'headline');
-      return {
-        id: variant.id,
-        ...validation,
-      };
-    })
-  );
-
-  return {
-    allValid: results.every((r) => r.isValid),
-    results,
-  };
-}
 
 // ============================================================================
 // VOICE AGENT HOOKS
 // ============================================================================
 
 /**
- * Enhance persona system prompt with brand context
- * Call this when building LLM prompts
+ * Get a brand-aware system prompt for a persona
+ * Use this when initializing voice agent sessions
  */
-export function enhancePromptWithBrandContext(basePrompt: string, personaId: string): string {
-  const persona = getPersonaVoice(personaId as PersonaId);
+export async function getBrandSystemPrompt(
+  personaId: PersonaId,
+  context: {
+    audience?: 'new_user' | 'returning_user' | 'churned_user' | 'subscriber';
+    emotion?: ContextType;
+  } = {}
+): Promise<string> {
+  const brandContext = await loadBrandContext();
+  const personaVoice = getPersonaVoice(personaId);
 
-  const brandInstructions = `
-## CRITICAL BRAND RULES
-
-You are ${persona.name}, ${persona.archetype}. 
-Your tone: ${persona.tone}
-
-NEVER say these phrases:
-- "As an AI"
-- "I'm designed to"
-- "I'm programmed"
-- Any reference to being artificial
-
-ALWAYS use language like:
-${persona.signaturePhrases.map((p) => `- "${p}"`).join('\n')}
-
-Your speaking style: ${persona.speakingStyle}
-
-Words you use often: ${persona.vocabularyBias.join(', ')}
-`;
-
-  // Inject brand rules at the start of the prompt
-  return brandInstructions + '\n\n' + basePrompt;
+  return buildBrandSystemPrompt({
+    brandContext,
+    personaVoice,
+    contentType: 'response',
+    context: {
+      audience: context.audience || 'returning_user',
+      emotion: context.emotion || 'checkin',
+      channel: 'voice',
+      persona: personaId,
+    },
+  });
 }
 
 /**
- * Validate LLM response against brand rules
- * Call this after receiving LLM output
+ * Validate and optionally fix agent response before sending
  */
 export async function validateAgentResponse(
   response: string,
-  personaId: string
+  personaId: PersonaId = 'ferni'
 ): Promise<{
   isValid: boolean;
-  sanitized: string;
-  hadViolations: boolean;
+  response: string;
+  issues: string[];
 }> {
   const result = await validateBrandCompliance(response, {
-    persona: personaId as PersonaId,
-    context: 'support', // Agent responses are usually supportive
+    persona: personaId,
+    context: 'coaching',
   });
 
   if (result.isCompliant) {
-    return { isValid: true, sanitized: response, hadViolations: false };
+    return { isValid: true, response, issues: [] };
   }
 
-  // Auto-fix any violations
+  // Try auto-fix for minor violations
   const { fixed, changes } = autoFixViolations(response);
 
   if (changes.length > 0) {
-    log.warn({ personaId, changes }, 'Auto-fixed agent response brand violations');
+    log.info({ changes }, 'Auto-fixed agent response');
+
+    // Re-validate after fix
+    const revalidation = await validateBrandCompliance(fixed, {
+      persona: personaId,
+      context: 'coaching',
+    });
+
+    return {
+      isValid: revalidation.isCompliant,
+      response: fixed,
+      issues: revalidation.violations.map((v) => v.suggestion),
+    };
   }
 
   return {
-    isValid: changes.length === 0 || quickValidate(fixed).hasBannedContent === false,
-    sanitized: fixed,
-    hadViolations: true,
+    isValid: false,
+    response,
+    issues: result.violations.map((v) => v.suggestion),
+  };
+}
+
+// ============================================================================
+// OUTREACH HOOKS
+// ============================================================================
+
+/**
+ * Validate and adapt content for outreach channel
+ * Use before sending emails, SMS, push notifications
+ */
+export function prepareOutreachContent(
+  content: string,
+  channel: Channel,
+  options: {
+    personaId?: PersonaId;
+    context?: ContextType;
+  } = {}
+): {
+  content: string;
+  isValid: boolean;
+  issues: string[];
+} {
+  const { personaId = 'ferni', context = 'notification' } = options;
+
+  // Quick validate first
+  const validation = quickValidate(content);
+
+  let finalContent = content;
+
+  if (validation.hasBannedContent) {
+    // Try auto-fix
+    const { fixed, changes } = autoFixViolations(content);
+    if (changes.length > 0) {
+      finalContent = fixed;
+      log.info({ channel, changes }, 'Auto-fixed outreach content');
+    }
+  }
+
+  // Adapt for channel
+  const adapted = adaptForChannel(finalContent, channel, {
+    persona: personaId,
+    context,
+  });
+
+  // Final validation
+  const finalValidation = quickValidate(adapted);
+
+  return {
+    content: adapted,
+    isValid: !finalValidation.hasBannedContent,
+    issues: finalValidation.issues,
+  };
+}
+
+/**
+ * Validate email content specifically
+ */
+export function validateEmailContent(
+  subject: string,
+  body: string,
+  personaId: PersonaId = 'ferni'
+): {
+  isValid: boolean;
+  subject: string;
+  body: string;
+  issues: string[];
+} {
+  const subjectResult = quickValidate(subject);
+  const bodyResult = quickValidate(body);
+
+  let finalSubject = subject;
+  let finalBody = body;
+  const issues: string[] = [];
+
+  if (subjectResult.hasBannedContent) {
+    const { fixed, changes } = autoFixViolations(subject);
+    if (changes.length > 0) {
+      finalSubject = fixed;
+    } else {
+      issues.push(...subjectResult.issues.map((i) => `Subject: ${i}`));
+    }
+  }
+
+  if (bodyResult.hasBannedContent) {
+    const { fixed, changes } = autoFixViolations(body);
+    if (changes.length > 0) {
+      finalBody = fixed;
+    } else {
+      issues.push(...bodyResult.issues.map((i) => `Body: ${i}`));
+    }
+  }
+
+  // Adapt body for email channel
+  const adaptedBody = adaptForChannel(finalBody, 'email', {
+    persona: personaId,
+    context: 'notification',
+  });
+
+  return {
+    isValid: issues.length === 0,
+    subject: finalSubject,
+    body: adaptedBody,
+    issues,
+  };
+}
+
+/**
+ * Validate SMS content specifically
+ */
+export function validateSmsContent(
+  message: string,
+  personaId: PersonaId = 'ferni'
+): {
+  isValid: boolean;
+  message: string;
+  issues: string[];
+} {
+  const result = quickValidate(message);
+
+  let finalMessage = message;
+  const issues: string[] = [];
+
+  if (result.hasBannedContent) {
+    const { fixed, changes } = autoFixViolations(message);
+    if (changes.length > 0) {
+      finalMessage = fixed;
+    } else {
+      issues.push(...result.issues);
+    }
+  }
+
+  // Adapt for SMS (shorten, remove links if needed)
+  const adapted = adaptForChannel(finalMessage, 'sms', {
+    persona: personaId,
+    context: 'notification',
+  });
+
+  return {
+    isValid: issues.length === 0,
+    message: adapted,
+    issues,
   };
 }
 
@@ -225,87 +244,111 @@ export async function validateAgentResponse(
 // ============================================================================
 
 /**
- * Wrap any content generation with brand validation
+ * Create a brand-aware content generator function
+ * Returns a function that validates and fixes generated content
  */
-export async function withBrandValidation<T extends string>(
-  generator: () => T | Promise<T>,
-  options: {
-    personaId?: string;
-    context?: ContextType;
-    autoFix?: boolean;
-  } = {}
-): Promise<{ content: T; wasFixed: boolean; score: number }> {
-  const { personaId = 'ferni', context = 'checkin', autoFix = true } = options;
+export function createBrandValidator(personaId: PersonaId = 'ferni') {
+  return (content: string): { content: string; isValid: boolean } => {
+    const result = quickValidate(content);
 
-  const content = await generator();
-
-  const result = await validateBrandCompliance(content, {
-    persona: personaId as PersonaId,
-    context,
-  });
-
-  if (result.isCompliant) {
-    return { content, wasFixed: false, score: result.score };
-  }
-
-  if (autoFix) {
-    const { fixed, changes } = autoFixViolations(content);
-    if (changes.length > 0) {
-      return { content: fixed as T, wasFixed: true, score: 100 };
+    if (!result.hasBannedContent) {
+      return { content, isValid: true };
     }
-  }
 
-  return { content, wasFixed: false, score: result.score };
-}
+    const { fixed, changes } = autoFixViolations(content);
 
-// ============================================================================
-// QUICK VALIDATION HOOKS
-// ============================================================================
+    if (changes.length > 0) {
+      const recheck = quickValidate(fixed);
+      return { content: fixed, isValid: !recheck.hasBannedContent };
+    }
 
-/**
- * Quick check for banned content (fast, synchronous)
- * Use this for real-time validation in UI
- */
-export function quickBrandCheck(content: string): {
-  hasBannedContent: boolean;
-  issues: string[];
-} {
-  return quickValidate(content);
-}
-
-/**
- * Check if content contains any critical brand violations
- */
-export function hasCriticalViolations(content: string): boolean {
-  const { hasBannedContent } = quickValidate(content);
-  return hasBannedContent;
-}
-
-// ============================================================================
-// PERSONA HELPERS
-// ============================================================================
-
-/**
- * Get persona voice profile for integrations
- */
-export function getPersonaProfile(personaId: string) {
-  return getPersonaVoice(personaId as PersonaId);
-}
-
-/**
- * Map outreach tone to brand context
- */
-export function mapOutreachToneToBrandContext(
-  tone: 'celebratory' | 'supportive' | 'encouraging' | 'casual' | 'informative' | 'urgent'
-): ContextType {
-  const mapping: Record<string, ContextType> = {
-    celebratory: 'celebration',
-    supportive: 'support',
-    encouraging: 'coaching',
-    casual: 'checkin',
-    informative: 'notification',
-    urgent: 'notification',
+    return { content, isValid: false };
   };
-  return mapping[tone] || 'checkin';
 }
 
+/**
+ * Wrap an LLM client to add brand validation
+ */
+export function wrapLLMWithBrandValidation(
+  client: LLMClient,
+  personaId: PersonaId = 'ferni'
+): LLMClient {
+  const validator = createBrandValidator(personaId);
+
+  return {
+    async generate(params) {
+      const response = await client.generate(params);
+      const { content, isValid } = validator(response);
+
+      if (!isValid) {
+        log.warn({ personaId }, 'LLM response failed brand validation after fix');
+      }
+
+      return content;
+    },
+  };
+}
+
+// ============================================================================
+// QUICK CHECKS
+// ============================================================================
+
+/**
+ * Quick check if content is brand-compliant
+ * Fastest option - no async, no detailed report
+ */
+export function isBrandCompliant(content: string): boolean {
+  const result = quickValidate(content);
+  return !result.hasBannedContent;
+}
+
+/**
+ * Get a list of brand issues in content
+ */
+export function getBrandIssues(content: string): string[] {
+  const result = quickValidate(content);
+  return result.issues;
+}
+
+/**
+ * Auto-fix content and return the result
+ */
+export function fixBrandViolations(content: string): string {
+  const { fixed } = autoFixViolations(content);
+  return fixed;
+}
+
+// ============================================================================
+// PERSONA-SPECIFIC HOOKS
+// ============================================================================
+
+/**
+ * Get greeting options for a persona
+ */
+export function getPersonaGreetings(personaId: PersonaId): string[] {
+  const persona = getPersonaVoice(personaId);
+  return persona.greetings;
+}
+
+/**
+ * Get response patterns for a persona and context
+ */
+export function getPersonaResponses(
+  personaId: PersonaId,
+  context: ContextType
+): string[] {
+  const persona = getPersonaVoice(personaId);
+  return persona.responsePatterns[context] || persona.responsePatterns.checkin;
+}
+
+/**
+ * Check if phrase matches persona's anti-patterns
+ */
+export function isAntiPattern(content: string, personaId: PersonaId): boolean {
+  const persona = getPersonaVoice(personaId);
+  const lowerContent = content.toLowerCase();
+
+  return persona.antiPatterns.some((pattern) =>
+    lowerContent.includes(pattern.toLowerCase())
+  );
+}

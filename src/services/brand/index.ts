@@ -120,3 +120,28 @@ export {
   generateForAllChannels,
   getChannelConfig,
 } from './channel-adapter.js';
+
+// ============================================================================
+// BRAND HOOKS (Integration helpers)
+// ============================================================================
+
+export {
+  // Voice agent hooks
+  getBrandSystemPrompt,
+  validateAgentResponse,
+  // Outreach hooks
+  prepareOutreachContent,
+  validateEmailContent,
+  validateSmsContent,
+  // Content generation hooks
+  createBrandValidator,
+  wrapLLMWithBrandValidation,
+  // Quick checks
+  isBrandCompliant,
+  getBrandIssues,
+  fixBrandViolations,
+  // Persona helpers
+  getPersonaGreetings,
+  getPersonaResponses,
+  isAntiPattern,
+} from './brand-hooks.js';

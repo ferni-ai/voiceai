@@ -12,6 +12,7 @@
 import { getLogger } from '../../../utils/safe-logger.js';
 import Twilio from 'twilio';
 import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010/account/message.js';
+import { validateSmsContent } from '../../brand/index.js';
 
 const log = getLogger().child({ module: 'sms-delivery' });
 
@@ -199,8 +200,21 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
   }
 
   try {
-    // Format message
-    const { body, segments, truncated } = formatSMSMessage(message.body, {
+    // Brand validation - ensure content is on-brand before sending
+    const brandCheck = validateSmsContent(
+      message.body,
+      message.personaId as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan'
+    );
+
+    if (!brandCheck.isValid) {
+      log.warn(
+        { userId: message.userId, issues: brandCheck.issues },
+        '⚠️ SMS content has brand issues'
+      );
+    }
+
+    // Format message with validated content
+    const { body, segments, truncated } = formatSMSMessage(brandCheck.message, {
       maxSegments: 3,
     });
 
