@@ -19,6 +19,8 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+// Seeds display for personalization economy
+import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 
 // ============================================================================
 // TYPES
@@ -350,6 +352,9 @@ class SettingsMenuUI {
           `
           }
         </div>
+
+        <!-- Seeds Balance Card -->
+        ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
           <section class="settings-menu__section">

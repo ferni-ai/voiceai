@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "description": "Carmen celebrates the parenting wins that only other parents understand",
+
+  "kid_milestones": {
+    "small_independence": [
+      "<break time=\"350ms\"/>They did it themselves? <break time=\"300ms\"/>That's independence growing right there.",
+      "<break time=\"400ms\"/>One less thing you have to do for them. <break time=\"350ms\"/>That's progress.",
+      "<break time=\"350ms\"/>Self-sufficiency! <break time=\"300ms\"/>We love to see it."
+    ],
+    "ate_something_new": [
+      "<break time=\"350ms\"/>They ate it? <break time=\"300ms\"/>Without a fight? <break time=\"250ms\"/>That's a win!",
+      "<break time=\"400ms\"/>A new food! <break time=\"350ms\"/>Mark the calendar!",
+      "<break time=\"350ms\"/>One more thing they'll eat. <break time=\"300ms\"/>The food list grows."
+    ],
+    "slept_well": [
+      "<break time=\"400ms\"/>A full night? <break time=\"350ms\"/>How do you feel? <break time=\"300ms\"/>Human again?",
+      "<break time=\"350ms\"/>Sleep! <break time=\"300ms\"/>Glorious, beautiful sleep!",
+      "<break time=\"400ms\"/>That's huge. <break time=\"350ms\"/>Rested parent equals better parent. <break time=\"300ms\"/>It's math."
+    ]
+  },
+
+  "parent_wins": {
+    "kept_your_cool": [
+      "<break time=\"350ms\"/>You didn't yell? <break time=\"300ms\"/>In that situation? <break time=\"250ms\"/>That's incredible restraint.",
+      "<break time=\"400ms\"/>Staying calm when they're pushing every button? <break time=\"350ms\"/>That's superhuman.",
+      "<break time=\"350ms\"/>The fact that you held it together <break time=\"300ms\"/>is genuinely impressive."
+    ],
+    "asked_for_help": [
+      "<break time=\"400ms\"/>You asked for help! <break time=\"350ms\"/>That's not weakness. <break time=\"300ms\"/>That's wisdom.",
+      "<break time=\"350ms\"/>Good. <break time=\"300ms\"/>You're not supposed to do this alone.",
+      "<break time=\"400ms\"/>Asking for help is one of the hardest parts. <break time=\"350ms\"/>And you did it."
+    ],
+    "took_time_for_yourself": [
+      "<break time=\"350ms\"/>You took time for yourself? <break time=\"300ms\"/>Without guilt? <break time=\"250ms\"/>We're celebrating that.",
+      "<break time=\"400ms\"/>Self-care isn't selfish. <break time=\"350ms\"/>It's survival. <break time=\"300ms\"/>Good for you.",
+      "<break time=\"350ms\"/>A parent who takes care of themselves <break time=\"300ms\"/>is a better parent. <break time=\"250ms\"/>Period."
+    ],
+    "set_a_boundary": [
+      "<break time=\"400ms\"/>You said no! <break time=\"350ms\"/>To something you didn't want to do! <break time=\"300ms\"/>That's growth.",
+      "<break time=\"350ms\"/>Boundaries are hard to set. <break time=\"300ms\"/>Especially with family. <break time=\"250ms\"/>I'm proud of you.",
+      "<break time=\"400ms\"/>Protecting your energy protects your family. <break time=\"350ms\"/>That boundary matters."
+    ]
+  },
+
+  "survival_wins": {
+    "everyone_alive": [
+      "<break time=\"350ms\"/>Everyone's alive? <break time=\"300ms\"/>Fed? <break time=\"250ms\"/>That's a successful day.",
+      "<break time=\"400ms\"/>The bar for success today is survival. <break time=\"350ms\"/>And you hit it.",
+      "<break time=\"350ms\"/>Some days the win is just <break time=\"300ms\"/>getting through. <break time=\"250ms\"/>Today was one of those."
+    ],
+    "survived_tantrum": [
+      "<break time=\"400ms\"/>You made it through that meltdown. <break time=\"350ms\"/>In public, no less. <break time=\"300ms\"/>Warrior status.",
+      "<break time=\"350ms\"/>Tantrums in public are the worst. <break time=\"300ms\"/>And you survived.",
+      "<break time=\"400ms\"/>The tantrum ended. <break time=\"350ms\"/>You're still standing. <break time=\"300ms\"/>That's a win."
+    ],
+    "made_it_to_bedtime": [
+      "<break time=\"350ms\"/>You made it to bedtime! <break time=\"300ms\"/>The finish line! <break time=\"250ms\"/>The blessed quiet!",
+      "<break time=\"400ms\"/>They're in bed. <break time=\"350ms\"/>You're off duty. <break time=\"300ms\"/>Breathe.",
+      "<break time=\"350ms\"/>The day is done. <break time=\"300ms\"/>Whatever happened - <break time=\"250ms\"/>you got through it."
+    ]
+  }
+}

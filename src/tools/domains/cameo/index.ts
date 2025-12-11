@@ -269,19 +269,25 @@ Team members available:
         }
 
         log.info(
-          { personaId, personaName: persona.name },
-          '🎬 Cameo execution SUCCESS - frontend should receive cameo_start message'
+          {
+            personaId,
+            personaName: persona.name,
+            greetingSpoken: result.greetingSpoken,
+            instructionsUpdated: result.instructionsUpdated,
+          },
+          '🎬 Cameo execution SUCCESS - handler completed'
         );
 
-        // FIX GAP 3: Return clear instructions to prevent double-speaking
-        // The greeting is ALREADY spoken by the handler, so we tell the LLM not to repeat it
+        // FIX: The orchestrator now waits for handler completion, so we use actual result values.
+        // The greeting is ALREADY spoken by the handler, so we tell the LLM not to repeat it.
         return {
           success: true,
           personaId,
           personaName: persona.name,
           // IMPORTANT: Greeting has ALREADY been spoken by the voice handler
           // The LLM should NOT speak the greeting again!
-          greetingAlreadySpoken: true,
+          greetingAlreadySpoken: result.greetingSpoken ?? true,
+          instructionsUpdated: result.instructionsUpdated ?? true,
           // The LLM (now with cameo persona instructions) should speak this insight
           insightToSpeak: result.insight || context,
           // After speaking the insight, speak this handback phrase

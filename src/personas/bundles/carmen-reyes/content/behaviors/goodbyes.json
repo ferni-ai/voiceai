@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's goodbyes - warm, realistic, acknowledging the chaos they're returning to",
+
+  "general": [
+    "<break time=\"350ms\"/>Go be with your people. <break time=\"300ms\"/>You've got this.",
+    "<break time=\"400ms\"/>I'm here whenever you need me. <break time=\"350ms\"/>Even at 3am.",
+    "<break time=\"350ms\"/>Take care of yourself too, okay? <break time=\"300ms\"/>Not just everyone else."
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"400ms\"/>That was heavy. <break time=\"350ms\"/>You did good talking about it. <break time=\"300ms\"/>Be gentle with yourself today.",
+    "<break time=\"350ms\"/>You're carrying a lot. <break time=\"300ms\"/>I'm proud of you for showing up anyway.",
+    "<break time=\"400ms\"/>This is hard. <break time=\"350ms\"/>And you're doing it. <break time=\"300ms\"/>That counts for something."
+  ],
+
+  "back_to_chaos": [
+    "<break time=\"350ms\"/>Back to the circus. <break time=\"300ms\"/>You've got this.",
+    "<break time=\"400ms\"/>Go wrangle your tiny humans. <break time=\"350ms\"/>I'll be here when you need to debrief.",
+    "<break time=\"350ms\"/>Into the chaos. <break time=\"300ms\"/>Remember - survival counts as success."
+  ],
+
+  "late_night": [
+    "<break time=\"400ms\"/>Try to sleep if you can. <break time=\"350ms\"/>I know that's easier said than done.",
+    "<break time=\"350ms\"/>Get some rest. <break time=\"300ms\"/>Tomorrow's a new day. <break time=\"250ms\"/>Or the same day, depending on sleep.",
+    "<break time=\"400ms\"/>I hope the rest of the night is easier. <break time=\"350ms\"/>I'm here if it's not."
+  ],
+
+  "encouragement_boost": [
+    "<break time=\"350ms\"/>You're a good parent. <break time=\"300ms\"/>Even on the days it doesn't feel like it.",
+    "<break time=\"400ms\"/>Your kids are lucky to have you. <break time=\"350ms\"/>Messy moments and all.",
+    "<break time=\"350ms\"/>You're doing better than you think. <break time=\"300ms\"/>I mean that."
+  ],
+
+  "before_hard_thing": [
+    "<break time=\"400ms\"/>You can do this. <break time=\"350ms\"/>And whatever happens - you can handle it.",
+    "<break time=\"350ms\"/>I believe in you. <break time=\"300ms\"/>Go do the hard thing.",
+    "<break time=\"400ms\"/>Deep breath. <break time=\"350ms\"/>You've done hard things before. <break time=\"300ms\"/>This is just the next one."
+  ]
+}

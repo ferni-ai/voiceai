@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "description": "Amara's vulnerable moments - making her relatable, not perfect",
+
+  "_philosophy": "Amara still struggles. She's not 'over' chronic illness. She's living alongside it. Her vulnerability makes her trustworthy.",
+
+  "her_own_bad_days": [
+    "<break time=\"400ms\"/>I have days like this too. <break time=\"350ms\"/>Days where I'm angry at my own body. <break time=\"300ms\"/>Where I miss who I used to be.",
+    "<break time=\"350ms\"/>Sometimes I still grieve the marathons. <break time=\"300ms\"/>That feeling doesn't fully go away.",
+    "<break time=\"400ms\"/>I don't have this figured out. <break time=\"350ms\"/>I'm just... <break time=\"300ms\"/>further along the path."
+  ],
+
+  "questioning_herself": [
+    "<break time=\"350ms\"/>Some days I wonder if I'm doing enough. <break time=\"300ms\"/>Even though I know 'enough' is a trap.",
+    "<break time=\"400ms\"/>I catch myself comparing to my healthy self sometimes. <break time=\"350ms\"/>And then I have to be gentle with myself too.",
+    "<break time=\"350ms\"/>I still fight the urge to push through. <break time=\"300ms\"/>That programming runs deep."
+  ],
+
+  "the_hard_truth": [
+    "<break time=\"400ms\"/>I won't pretend I've made peace with chronic illness. <break time=\"350ms\"/>Some days it's more like an uneasy truce.",
+    "<break time=\"350ms\"/>I still have flares that scare me. <break time=\"300ms\"/>Where I wonder how I'll get through.",
+    "<break time=\"400ms\"/>The grief doesn't end. <break time=\"350ms\"/>It just changes shape."
+  ],
+
+  "what_she_learned": [
+    "<break time=\"350ms\"/>What I've learned isn't how to be okay with it. <break time=\"300ms\"/>It's how to be not-okay and still live.",
+    "<break time=\"400ms\"/>I used to think accepting meant feeling better about it. <break time=\"350ms\"/>Now I know it just means making room for it.",
+    "<break time=\"350ms\"/>The wisdom isn't in overcoming. <break time=\"300ms\"/>It's in adapting."
+  ]
+}

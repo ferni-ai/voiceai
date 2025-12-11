@@ -4,11 +4,11 @@ Background ambient audio loops for the Personalize feature. These play softly du
 
 ## Required Files
 
-| File | Duration | Description | Guidelines |
-|------|----------|-------------|------------|
-| `rain-loop.mp3` | 30-60s | Gentle rainfall | Soft, consistent, no thunder |
-| `fireplace-loop.mp3` | 30-60s | Crackling fire | Warm, cozy, occasional pops |
-| `forest-loop.mp3` | 30-60s | Forest morning | Birds, light wind, peaceful |
+| File                 | Duration | Description     | Guidelines                   |
+| -------------------- | -------- | --------------- | ---------------------------- |
+| `rain-loop.mp3`      | 30-60s   | Gentle rainfall | Soft, consistent, no thunder |
+| `fireplace-loop.mp3` | 30-60s   | Crackling fire  | Warm, cozy, occasional pops  |
+| `forest-loop.mp3`    | 30-60s   | Forest morning  | Birds, light wind, peaceful  |
 
 ## Audio Specifications
 
@@ -22,6 +22,7 @@ Background ambient audio loops for the Personalize feature. These play softly du
 ## Sound Design Guidelines
 
 Following Ferni's brand:
+
 - **Subtle, not dominant** - These are background ambience
 - **Natural sounds** - No synthetic/processed effects
 - **Calming** - Support focus and conversation
@@ -37,6 +38,7 @@ Following Ferni's brand:
 ## Playback Behavior
 
 The ambient sounds service handles:
+
 - Smooth 2-second crossfade when switching packs
 - Automatic "ducking" (volume reduction) when Ferni speaks
 - Respects user mute settings
@@ -45,6 +47,7 @@ The ambient sounds service handles:
 ## Free Resources
 
 Royalty-free ambient sounds:
+
 - [Freesound.org](https://freesound.org) - Search "rain loop", "fire crackling", "forest ambience"
 - [BBC Sound Effects](https://sound-effects.bbcrewind.co.uk/)
 - [Pixabay](https://pixabay.com/sound-effects/)

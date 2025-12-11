@@ -2,22 +2,39 @@
 #
 # Builds the main UI server with frontend app and API routes.
 # Uses modular Dockerfile from docker/ directory.
+#
+# CACHING STRATEGY:
+# - Docker layer caching via --cache-from (pulls previous build as cache)
+# - BuildKit cache mounts for npm ci (persists node_modules between builds)
+# - Significantly reduces build time from ~20min to ~5min on cache hit
 
 steps:
-  # Build the UI container image (includes frontend-typescript build)
+  # Pull previous image for cache (ignore failure if first build)
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'docker pull gcr.io/$PROJECT_ID/john-bogle-ui:latest || true'
+    id: 'pull-cache'
+
+  # Build the UI container image with caching
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         docker build \
-          --no-cache \
+          --cache-from gcr.io/$PROJECT_ID/john-bogle-ui:latest \
           -f docker/Dockerfile.ui \
           --build-arg GITHUB_PAT=$$GITHUB_PAT \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
           -t gcr.io/$PROJECT_ID/john-bogle-ui:latest \
           .
     id: 'build-ui'
+    waitFor: ['pull-cache']
     secretEnv: ['GITHUB_PAT']
+    env:
+      - 'DOCKER_BUILDKIT=1'
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'

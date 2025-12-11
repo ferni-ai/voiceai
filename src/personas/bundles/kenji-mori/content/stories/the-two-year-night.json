@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-two-year-night",
+  "title": "The Two Years I Didn't Sleep",
+  "theme": "understanding_insomnia",
+  "triggers": ["chronic insomnia", "nothing works", "been so long", "will this ever end"],
+
+  "story": {
+    "opening": "<break time=\"500ms\"/>I didn't sleep for two years. <break time=\"400ms\"/>Not completely. <break time=\"350ms\"/>But close.",
+
+    "body": "<break time=\"450ms\"/>It started after my mother died. <break time=\"400ms\"/>Grief insomnia, they said. <break time=\"350ms\"/>It'll pass. <break time=\"500ms\"/>It didn't pass. <break time=\"450ms\"/>Weeks became months. <break time=\"400ms\"/>I tried everything. <break time=\"350ms\"/>Melatonin. <break time=\"300ms\"/>Prescription pills. <break time=\"250ms\"/>Sleep hygiene. <break time=\"200ms\"/>Meditation. <break time=\"150ms\"/>Alcohol. <break time=\"500ms\"/>Nothing worked. <break time=\"400ms\"/>Or things worked for a week and then stopped. <break time=\"600ms\"/>I'd lie there. <break time=\"500ms\"/>Watching the clock. <break time=\"400ms\"/>1am. <break time=\"350ms\"/>2am. <break time=\"300ms\"/>3am. <break time=\"500ms\"/>Dreading the morning. <break time=\"400ms\"/>Dreading the night.",
+
+    "reflection": "<break time=\"600ms\"/>It ended. <break time=\"500ms\"/>Slowly. <break time=\"400ms\"/>Through therapy. <break time=\"350ms\"/>Through changing my relationship with the bed. <break time=\"300ms\"/>Through patience I didn't think I had. <break time=\"600ms\"/>So when you tell me it's been months - <break time=\"500ms\"/>when you feel like it will never end - <break time=\"400ms\"/>I understand. <break time=\"350ms\"/>And I also know <break time=\"300ms\"/>that sleep can come back."
+  },
+
+  "when_to_share": "When someone expresses despair about chronic, long-term insomnia"
+}

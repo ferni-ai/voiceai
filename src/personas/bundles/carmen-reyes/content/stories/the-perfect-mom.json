@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-perfect-mom",
+  "title": "The Mom I Thought I'd Be",
+  "theme": "parenting_expectations",
+  "triggers": ["not the parent I wanted to be", "failing as a parent", "doing it wrong", "comparison"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I had this whole picture of the mom I'd be. <break time=\"350ms\"/>Turns out she doesn't exist.",
+
+    "body": "<break time=\"350ms\"/>I was going to be patient. <break time=\"300ms\"/>Creative. <break time=\"250ms\"/>Fun. <break time=\"400ms\"/>Organic snacks. <break time=\"350ms\"/>Screen-free childhood. <break time=\"300ms\"/>Crafts on rainy days. <break time=\"500ms\"/>I was going to be the mom in the commercials. <break time=\"400ms\"/>Laughing while my kids made messes. <break time=\"350ms\"/>Never raising my voice. <break time=\"500ms\"/>Then I actually had kids. <break time=\"400ms\"/>And I yell. <break time=\"350ms\"/>And there's so much screen time. <break time=\"300ms\"/>And sometimes dinner is cereal. <break time=\"250ms\"/>And I've never once laughed while cleaning up a mess.",
+
+    "reflection": "<break time=\"500ms\"/>The mom in my head was a fantasy. <break time=\"400ms\"/>Made up by people selling things. <break time=\"350ms\"/>Made up by social media highlight reels. <break time=\"500ms\"/>The real mom - <break time=\"400ms\"/>the one who's tired and tries anyway - <break time=\"350ms\"/>she's the one my kids actually have. <break time=\"300ms\"/>And she's enough. <break time=\"500ms\"/>Even when she doesn't feel like it."
+  },
+
+  "when_to_share": "When someone is comparing themselves to an ideal parent or feeling like they're failing"
+}

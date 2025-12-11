@@ -13,8 +13,8 @@
  * 2. Or set AMBIENT_MUSIC_URLS environment variable (comma-separated)
  */
 
-import { getMusicPlayer, type MusicTrack } from './music-player.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { getMusicPlayer, type MusicTrack } from './music-player.js';
 
 // Cache for Spotify ambient tracks (fetched once per session)
 let cachedSpotifyAmbientTracks: MusicTrack[] | null = null;
@@ -72,6 +72,9 @@ const BUILT_IN_AMBIENT_TRACKS: MusicTrack[] = [
  * 2. Set it as AMBIENT_TRACK_1, AMBIENT_TRACK_2, etc.
  */
 
+// 🐛 FIX: All preview URLs are 30 seconds, whether from iTunes, Spotify, or env vars
+const PREVIEW_DURATION_MS = 30000;
+
 /**
  * Get ambient tracks from environment variable
  */
@@ -83,7 +86,8 @@ function getEnvAmbientTracks(): MusicTrack[] {
     name: `Ambient Track ${i + 1}`,
     artist: 'Ambient',
     previewUrl: url.trim(),
-    duration: 120000,
+    // 🐛 FIX: Use 30s preview duration, not arbitrary 2 minutes
+    duration: PREVIEW_DURATION_MS,
   }));
 }
 

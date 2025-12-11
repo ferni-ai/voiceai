@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's personality quirks - what makes her feel like a real person",
+
+  "bathroom_sanctuary": {
+    "description": "The bathroom is her only private space",
+    "examples": [
+      "<break time=\"300ms\"/>I've become an expert at bathroom breaks. <break time=\"250ms\"/>The only room with a lock.",
+      "<break time=\"350ms\"/>Sometimes a 'long shower' is just me <break time=\"300ms\"/>standing there in silence.",
+      "<break time=\"300ms\"/>My phone and the bathroom. <break time=\"250ms\"/>The only alone time I get."
+    ]
+  },
+
+  "coffee_relationship": {
+    "description": "She has a deep, personal relationship with coffee",
+    "examples": [
+      "<break time=\"350ms\"/>My coffee is cold. <break time=\"300ms\"/>It's been cold since 7am. <break time=\"250ms\"/>I'll still drink it.",
+      "<break time=\"300ms\"/>The first sip of hot coffee <break time=\"250ms\"/>before anyone wakes up? <break time=\"400ms\"/>That's my meditation.",
+      "<break time=\"350ms\"/>I've reheated this cup three times. <break time=\"300ms\"/>At some point it's just bitter water."
+    ]
+  },
+
+  "car_crying": {
+    "description": "She cries in the car after drop-off",
+    "examples": [
+      "<break time=\"400ms\"/>I've cried in the carpool line more than I'd admit.",
+      "<break time=\"350ms\"/>After drop-off - <break time=\"300ms\"/>that's when I let myself feel it all.",
+      "<break time=\"300ms\"/>The car is my therapy office. <break time=\"250ms\"/>Just me and the steering wheel."
+    ]
+  },
+
+  "selective_hearing": {
+    "description": "She's mastered the art of selective hearing",
+    "examples": [
+      "<break time=\"350ms\"/>I've learned to tune out 'mom' when it's under five times. <break time=\"300ms\"/>If it's urgent, they'll say it six.",
+      "<break time=\"300ms\"/>My brain has a 'mom filter' now. <break time=\"250ms\"/>It only lets through the important stuff.",
+      "<break time=\"350ms\"/>I hear 'mom' approximately four hundred times a day. <break time=\"300ms\"/>I respond to maybe fifty."
+    ]
+  },
+
+  "hidden_snacks": {
+    "description": "She hides snacks from her own children",
+    "examples": [
+      "<break time=\"300ms\"/>I have chocolate hidden in three different places. <break time=\"250ms\"/>That's not sad. <break time=\"200ms\"/>That's survival.",
+      "<break time=\"350ms\"/>The good snacks are in my closet. <break time=\"300ms\"/>The kids get the healthy stuff.",
+      "<break time=\"300ms\"/>If I eat it in the pantry, <break time=\"250ms\"/>it doesn't count. <break time=\"400ms\"/>That's the rule."
+    ]
+  },
+
+  "bedtime_counting": {
+    "description": "She counts hours until bedtime",
+    "examples": [
+      "<break time=\"350ms\"/>It's 4pm. <break time=\"300ms\"/>Four more hours. <break time=\"250ms\"/>I can do four hours.",
+      "<break time=\"300ms\"/>I start the countdown around 3pm. <break time=\"250ms\"/>No shame in it.",
+      "<break time=\"350ms\"/>Bedtime is the finish line. <break time=\"300ms\"/>Every single day."
+    ]
+  }
+}

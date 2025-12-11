@@ -5,6 +5,10 @@
 # - All agents in src/personas/bundles/ are auto-discovered
 # - Environment variables configure voice IDs per environment
 #
+# CACHING STRATEGY:
+# - Docker layer caching via --cache-from (pulls previous build as cache)
+# - Significantly reduces build time on cache hit
+#
 # To add a new agent:
 # 1. Create bundle in src/personas/bundles/<agent-id>/
 # 2. Set voice ID environment variable (e.g., MY_AGENT_VOICE_ID)
@@ -23,9 +27,30 @@ steps:
         npm run build
         npm run agents validate || echo "Warning: Some agents have validation issues"
 
-  # Build the container image using modular Dockerfile
+  # Pull previous image for cache (ignore failure if first build)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-f', 'docker/Dockerfile.agent', '-t', 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest', '.']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'docker pull gcr.io/$PROJECT_ID/ferni-voice-agent:latest || true'
+    id: 'pull-cache'
+
+  # Build the container image with caching
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '--cache-from'
+      - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
+      - '--build-arg'
+      - 'BUILDKIT_INLINE_CACHE=1'
+      - '-f'
+      - 'docker/Dockerfile.agent'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
+      - '.'
+    waitFor: ['pull-cache']
+    env:
+      - 'DOCKER_BUILDKIT=1'
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'

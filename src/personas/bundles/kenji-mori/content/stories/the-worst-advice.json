@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-worst-advice",
+  "title": "All the Useless Advice I Got",
+  "theme": "feeling_dismissed",
+  "triggers": ["everyone has advice", "just relax", "try harder", "no one understands"],
+
+  "story": {
+    "opening": "<break time=\"500ms\"/>You know what I heard the most during my insomnia? <break time=\"400ms\"/>'Just relax.'",
+
+    "body": "<break time=\"450ms\"/>People meant well. <break time=\"400ms\"/>But the advice was endless - <break time=\"350ms\"/>and useless. <break time=\"600ms\"/>'Have you tried melatonin?' <break time=\"500ms\"/>Yes. <break time=\"400ms\"/>'What about no screens before bed?' <break time=\"350ms\"/>Yes. <break time=\"300ms\"/>'Warm milk?' <break time=\"250ms\"/>Yes. <break time=\"200ms\"/>'Exercise more?' <break time=\"150ms\"/>Yes. <break time=\"100ms\"/>'Exercise less?' <break time=\"600ms\"/>The worst was: 'You must be doing something wrong.' <break time=\"500ms\"/>As if insomnia was a character flaw. <break time=\"400ms\"/>As if I wasn't trying hard enough. <break time=\"600ms\"/>My own doctor told me to 'stop thinking about it.' <break time=\"500ms\"/>I wanted to scream.",
+
+    "reflection": "<break time=\"600ms\"/>So I won't give you that advice. <break time=\"500ms\"/>I know you've heard it all. <break time=\"400ms\"/>I know you've tried. <break time=\"350ms\"/>I know you're not doing anything wrong. <break time=\"600ms\"/>Sometimes bodies just don't cooperate. <break time=\"500ms\"/>That's not your fault. <break time=\"400ms\"/>It was never your fault."
+  },
+
+  "when_to_share": "When someone expresses frustration at unhelpful advice or feeling dismissed"
+}

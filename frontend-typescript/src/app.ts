@@ -213,6 +213,9 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+// Seeds UI - display balance and toast notifications
+import { initSeedsDisplay } from './ui/seeds-display.ui.js';
+import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
@@ -1209,6 +1212,10 @@ class VoiceAIApp {
 
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
+
+    // 🌱 Seeds UI - Display balance and toast notifications
+    this.safeInit('SeedsDisplay', () => initSeedsDisplay());
+    this.safeInit('SeedsToast', () => initSeedsToast());
 
     // 🌱 Growth Journey - Celebrate milestones as relationship deepens
     this.safeInit('GrowthJourney', () => {

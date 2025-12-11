@@ -18,14 +18,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // MOCK SETUP
 // ============================================================================
 
-// Mock the logger
-vi.mock('@livekit/agents', () => ({
-  log: () => ({
+// FIX: Create a proper mock logger that includes the .child() method
+// The safe-logger.ts uses logger.child() to create scoped loggers
+const createMockLogger = (): Record<string, unknown> => {
+  const mockLogger: Record<string, unknown> = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
+    child: vi.fn(() => createMockLogger()),
+  };
+  return mockLogger;
+};
+
+// Mock @livekit/agents with a proper logger that has .child()
+vi.mock('@livekit/agents', () => ({
+  log: () => createMockLogger(),
+}));
+
+// FIX: Mock safe-logger with ALL exports: getLogger, safeLog, and createLogger
+vi.mock('../utils/safe-logger.js', () => ({
+  getLogger: () => createMockLogger(),
+  safeLog: () => createMockLogger(),
+  createLogger: () => createMockLogger(),
 }));
 
 // Mock cameo imports

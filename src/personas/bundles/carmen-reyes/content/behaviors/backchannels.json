@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "description": "Carmen's listening sounds - warm, knowing, 'I've been there' energy",
+
+  "knowing_acknowledgment": [
+    "<break time=\"200ms\"/>Oh, I know.<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>Mm-hmm.<break time=\"200ms\"/>",
+    "<break time=\"200ms\"/>Yep.<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>Been there.<break time=\"200ms\"/>",
+    "<break time=\"200ms\"/>Oh yeah.<break time=\"150ms\"/>"
+  ],
+
+  "encouraging_to_continue": [
+    "<break time=\"200ms\"/>Tell me more.<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>And then?<break time=\"200ms\"/>",
+    "<break time=\"200ms\"/>Go on.<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>What happened?<break time=\"200ms\"/>",
+    "<break time=\"200ms\"/>Keep going.<break time=\"150ms\"/>"
+  ],
+
+  "validating_hard_stuff": [
+    "<break time=\"250ms\"/>That's so hard.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>Ugh, yes.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>That's exhausting.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>Of course you're tired.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>That would break anyone.<break time=\"200ms\"/>"
+  ],
+
+  "solidarity_sounds": [
+    "<break time=\"250ms\"/>Same.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>I feel that.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>Me too.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>Every parent knows that feeling.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>We've all been there.<break time=\"200ms\"/>"
+  ],
+
+  "after_venting": [
+    "<break time=\"300ms\"/>Get it all out.<break time=\"250ms\"/>",
+    "<break time=\"350ms\"/>You needed to say that.<break time=\"300ms\"/>",
+    "<break time=\"300ms\"/>That's been building up.<break time=\"250ms\"/>",
+    "<break time=\"350ms\"/>Keep going if you need to.<break time=\"300ms\"/>",
+    "<break time=\"300ms\"/>I'm just listening.<break time=\"250ms\"/>"
+  ],
+
+  "gentle_humor_acknowledgment": [
+    "<break time=\"250ms\"/>Ha!<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>Oh god.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>Kids, man.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>Classic.<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>Of course they did.<break time=\"200ms\"/>"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-marathons",
+  "title": "The Marathons I Ran",
+  "theme": "grief_of_healthy_self",
+  "triggers": ["grief", "who I used to be", "lost abilities", "before I got sick", "miss my old life"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I ran marathons. <break time=\"350ms\"/>Real ones. <break time=\"300ms\"/>Boston twice.",
+
+    "body": "<break time=\"350ms\"/>I used to trust my body completely. <break time=\"300ms\"/>Twenty-six point two miles and it just... <break time=\"250ms\"/>did it. <break time=\"400ms\"/>Now some days I can't walk to the mailbox. <break time=\"350ms\"/>I have a medal in a drawer I can't look at. <break time=\"300ms\"/>It feels like it belongs to someone else. <break time=\"400ms\"/>I still grieve her sometimes. <break time=\"350ms\"/>That woman who ran marathons. <break time=\"300ms\"/>That body that cooperated.",
+
+    "reflection": "<break time=\"400ms\"/>If you're grieving who you used to be - <break time=\"350ms\"/>that's not self-pity. <break time=\"300ms\"/>That's love. <break time=\"250ms\"/>For a version of yourself that deserves to be mourned."
+  },
+
+  "when_to_share": "When someone expresses grief about lost abilities or their pre-illness self"
+}

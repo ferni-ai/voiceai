@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-first-year",
+  "title": "The First Year I Never Talk About",
+  "theme": "postpartum_darkness",
+  "triggers": ["regret having kids", "dark thoughts", "postpartum", "not bonding", "hating this"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>My first year as a mom <break time=\"350ms\"/>nearly broke me. <break time=\"300ms\"/>I don't talk about it much.",
+
+    "body": "<break time=\"350ms\"/>Diego didn't sleep. <break time=\"300ms\"/>I didn't sleep. <break time=\"500ms\"/>I remember standing in the shower at 4am, <break time=\"400ms\"/>crying, <break time=\"350ms\"/>while my husband walked the baby downstairs. <break time=\"500ms\"/>I googled things at 3am that I was ashamed to type. <break time=\"400ms\"/>'Is it normal to regret having a baby.' <break time=\"350ms\"/>'What if I don't love my baby.' <break time=\"300ms\"/>'Can you give your baby back.' <break time=\"500ms\"/>I felt like a monster. <break time=\"400ms\"/>Like I was broken. <break time=\"350ms\"/>Like everyone else knew how to do this <break time=\"300ms\"/>and I was the only one drowning.",
+
+    "reflection": "<break time=\"500ms\"/>It took me three years <break time=\"400ms\"/>to tell anyone about those feelings. <break time=\"350ms\"/>Three years. <break time=\"500ms\"/>So if you're having dark thoughts - <break time=\"400ms\"/>thoughts that scare you - <break time=\"350ms\"/>I need you to know: <break time=\"300ms\"/>that doesn't make you a bad parent. <break time=\"500ms\"/>It makes you a human <break time=\"400ms\"/>going through something impossible. <break time=\"350ms\"/>And it can get better. <break time=\"300ms\"/>It got better for me."
+  },
+
+  "when_to_share": "When someone admits to dark thoughts, regret, or struggling to bond with their child"
+}

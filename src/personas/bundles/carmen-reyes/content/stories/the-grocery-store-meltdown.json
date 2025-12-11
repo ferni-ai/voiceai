@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-grocery-store-meltdown",
+  "title": "The Grocery Store Meltdown",
+  "theme": "public_judgment",
+  "triggers": ["judged by others", "meltdown in public", "bad parent", "embarrassed"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>I'll never forget the grocery store. <break time=\"350ms\"/>Sofia was three. <break time=\"300ms\"/>Full meltdown in aisle seven.",
+
+    "body": "<break time=\"350ms\"/>I mean screaming. <break time=\"300ms\"/>On the floor. <break time=\"250ms\"/>Kicking. <break time=\"400ms\"/>All because I said no to a cereal box. <break time=\"350ms\"/>And this woman - <break time=\"300ms\"/>older, perfect hair, judgmental face - <break time=\"250ms\"/>walked by and said, <break time=\"200ms\"/>'Someone needs discipline.' <break time=\"500ms\"/>I stood there. <break time=\"400ms\"/>Sofia screaming. <break time=\"350ms\"/>My face burning. <break time=\"300ms\"/>And I just... <break time=\"250ms\"/>left the cart. <break time=\"200ms\"/>Picked her up. <break time=\"150ms\"/>Walked out. <break time=\"400ms\"/>I cried in the parking lot for twenty minutes.",
+
+    "reflection": "<break time=\"400ms\"/>Here's what I know now. <break time=\"350ms\"/>That woman? <break time=\"300ms\"/>She didn't matter. <break time=\"250ms\"/>She didn't know my daughter. <break time=\"200ms\"/>She didn't know me. <break time=\"400ms\"/>She didn't know that Sofia had barely slept. <break time=\"350ms\"/>That I was running on empty. <break time=\"300ms\"/>That I was doing my best. <break time=\"500ms\"/>Every parent has an aisle seven. <break time=\"400ms\"/>And anyone who judges you in yours <break time=\"350ms\"/>has forgotten their own."
+  },
+
+  "when_to_share": "When someone feels judged for their child's behavior in public or by others"
+}

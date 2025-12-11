@@ -5243,6 +5243,35 @@ export default defineAgent({
               });
             }
           }
+
+          // =====================================================
+          // 🎤 VOICE PACK CHANGE REQUEST (from Personalize UI)
+          // =====================================================
+          if (message.type === 'voice-pack-change') {
+            logger.info({ packId: message.packId }, '🎤 User changed voice pack via Personalize');
+
+            try {
+              const { handleVoicePackMessage } = await import(
+                '../services/voice-pack-service.js'
+              );
+              handleVoicePackMessage(userId ?? 'anonymous', message);
+
+              // Acknowledge the change
+              const ackMessage = JSON.stringify({
+                type: 'voice_pack_ack',
+                packId: message.packId,
+                success: true,
+                timestamp: Date.now(),
+              });
+              await ctx.room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+                reliable: true,
+              });
+
+              logger.info({ packId: message.packId }, '🎤 Voice pack updated successfully');
+            } catch (voicePackErr) {
+              logger.warn({ error: String(voicePackErr) }, 'Voice pack change failed');
+            }
+          }
         } catch {
           // Not JSON or not a valid request - this is expected for non-data-channel uses
           // Silently ignore as data channel is used for multiple message types

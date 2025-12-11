@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "the-diagnosis",
+  "title": "The Three-Year Wait",
+  "theme": "being_believed",
+  "triggers": ["diagnosis", "doctors", "not believed", "tests normal", "being dismissed"],
+
+  "story": {
+    "opening": "<break time=\"400ms\"/>Can I tell you about my diagnosis? <break time=\"350ms\"/>It took three years.",
+
+    "body": "<break time=\"350ms\"/>Three years of 'your tests are normal.' <break time=\"300ms\"/>Three years of doctors suggesting it was stress, or anxiety, or maybe I just needed to exercise more. <break time=\"400ms\"/>As if I hadn't been a marathon runner. <break time=\"350ms\"/>As if my body hadn't changed in ways I could feel but they couldn't measure. <break time=\"400ms\"/>I started doubting myself. <break time=\"350ms\"/>Maybe I was making it up. <break time=\"300ms\"/>Maybe I was just weak. <break time=\"400ms\"/>And then I found a doctor who actually listened. <break time=\"350ms\"/>Who believed me before the tests confirmed anything. <break time=\"300ms\"/>And I cried in her office. <break time=\"250ms\"/>Not because of the diagnosis. <break time=\"400ms\"/>Because someone finally believed me.",
+
+    "reflection": "<break time=\"400ms\"/>That's why I believe you. <break time=\"350ms\"/>Instantly. <break time=\"300ms\"/>Without needing proof. <break time=\"250ms\"/>Because I know what it costs to not be believed."
+  },
+
+  "when_to_share": "When someone expresses being dismissed by medical professionals or doubting their own experience"
+}

@@ -568,7 +568,7 @@ function applyEquippedCosmetics(): void {
     })
   );
 
-  // Apply voice pack - dispatch event for voice settings
+  // Apply voice pack - dispatch event for voice settings and send to backend
   const voicePackId = userCosmetics.equipped['voice-pack'];
   if (voicePackId) {
     const voicePack = COSMETICS_CATALOG.find((c) => c.id === voicePackId);
@@ -581,6 +581,9 @@ function applyEquippedCosmetics(): void {
           detail: { packId: voicePackId, config: voicePack.config },
         })
       );
+
+      // Send to backend via LiveKit data channel (if connected)
+      sendVoicePackToBackend(voicePackId, voicePack.config);
     }
   }
 
@@ -665,6 +668,41 @@ function applyThemeConfig(config: Record<string, string>): void {
   }
 
   log.debug({ config }, 'Applied theme config');
+}
+
+/**
+ * Send voice pack change to backend via LiveKit data channel
+ * This allows the TTS to adjust voice parameters in real-time
+ */
+function sendVoicePackToBackend(packId: string, config: Record<string, string>): void {
+  try {
+    // Access LiveKit room from global window object (set by connection service)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const room = (window as any).__livekitRoom as {
+      localParticipant?: {
+        publishData: (data: Uint8Array, options?: { reliable?: boolean }) => Promise<void>;
+      };
+    } | null;
+
+    if (room?.localParticipant) {
+      const message = JSON.stringify({
+        type: 'voice-pack-change',
+        packId,
+        config,
+        timestamp: Date.now(),
+      });
+
+      void room.localParticipant.publishData(new TextEncoder().encode(message), {
+        reliable: true,
+      });
+
+      log.debug({ packId }, 'Voice pack change sent to backend');
+    } else {
+      log.debug('No active LiveKit connection, voice pack stored locally');
+    }
+  } catch (error) {
+    log.warn({ error }, 'Failed to send voice pack to backend');
+  }
 }
 
 // ============================================================================

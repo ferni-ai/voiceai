@@ -189,7 +189,22 @@ describe('Handoff Executor', () => {
     resetHandoffState();
     vi.clearAllMocks();
     // Ensure handoffEvents is loaded
-    await getHandoffEvents();
+    const events = await getHandoffEvents();
+
+    // FIX: Mock the handoff handler by auto-emitting handoffHandlerComplete
+    // This simulates what handoff-handler.ts does in production.
+    // Without this, tests timeout waiting for the completion event.
+    events!.on('voiceSwitch', (data: { persona?: { id: string } }) => {
+      // Emit completion after a short delay to simulate async handler
+      setTimeout(() => {
+        events!.emit('handoffHandlerComplete', {
+          targetId: data.persona?.id || 'unknown',
+          success: true,
+          greetingSpoken: true,
+          instructionsUpdated: true,
+        });
+      }, 10);
+    });
   });
 
   afterEach(async () => {

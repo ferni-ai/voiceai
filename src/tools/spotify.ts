@@ -11,27 +11,31 @@
  * @see https://developer.spotify.com/documentation/web-api
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
-import { z } from 'zod';
+import { llm } from '@livekit/agents';
 import * as fs from 'fs';
 import * as path from 'path';
+import { z } from 'zod';
 import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
 import {
   getSpotifyAccessToken,
+  getSpotifyHealthStatus,
+  getSpotifyTokenStatus,
   isSpotifyConfigured,
+  logSpotifyDiagnostics,
+  recordSpotifyError,
   startAutoRefresh,
   stopAutoRefresh,
-  getSpotifyTokenStatus,
-  recordSpotifyError,
-  logSpotifyDiagnostics,
-  getSpotifyHealthStatus,
 } from '../services/spotify-auth.js';
-import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
 import { getMusicReaction, shouldReactToMusic } from '../speech/music-reactions.js';
+import { getLogger } from '../utils/safe-logger.js';
+import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
 
 // Flag to control playback mode
 let streamIntoCall = false; // If true, stream music INTO the call (phone users)
+
+// 🐛 FIX: Spotify previews are also 30 seconds, just like iTunes
+// We MUST use this constant for duration when playing previews
+const SPOTIFY_PREVIEW_DURATION_MS = 30000;
 
 // API endpoints
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
@@ -399,7 +403,8 @@ export async function searchTracksWithPreviews(
         artist: t.artists.map((a) => a.name).join(', '),
         previewUrl: t.preview_url!,
         uri: t.uri,
-        duration: t.duration_ms,
+        // 🐛 FIX: Use preview duration (30s), NOT full track duration
+        duration: SPOTIFY_PREVIEW_DURATION_MS,
       }));
 
     return tracksWithPreviews;
@@ -471,7 +476,8 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
         artist: artists,
         uri: track.uri,
         previewUrl: previewUrl,
-        duration: track.duration_ms,
+        // 🐛 FIX: Use preview duration (30s), NOT full track duration
+        duration: SPOTIFY_PREVIEW_DURATION_MS,
       };
 
       const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
@@ -519,7 +525,8 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
             artist: artists,
             uri: track.uri,
             previewUrl: previewUrl,
-            duration: track.duration_ms,
+            // 🐛 FIX: Use preview duration (30s), NOT full track duration
+            duration: SPOTIFY_PREVIEW_DURATION_MS,
           };
 
           const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
