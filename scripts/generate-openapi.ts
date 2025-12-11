@@ -144,6 +144,73 @@ const MemorySchema = z.object({
   accessCount: z.number().int().min(0),
 });
 
+// Speech metrics schemas
+const SpeechMetricsGlobalSchema = z.object({
+  uptimeSec: z.number().describe('Server uptime in seconds'),
+  metrics: z.object({
+    usage: z.object({
+      totalSessions: z.number().int(),
+      activeSessionCount: z.number().int(),
+      totalTurns: z.number().int(),
+    }),
+    performance: z.object({
+      avgResponseLatencyMs: z.number(),
+      avgEmotionConfidence: z.number(),
+      avgBackchannelAccuracy: z.number(),
+      avgTurnPredictionAccuracy: z.number(),
+    }),
+    quality: z.object({
+      avgSentimentScore: z.number(),
+      avgEngagementScore: z.number(),
+    }),
+  }),
+});
+
+const ActiveSessionSchema = z.object({
+  sessionId: z.string(),
+  personaId: z.string(),
+  startTime: z.number().describe('Unix timestamp'),
+  durationSec: z.number(),
+  turnCount: z.number().int(),
+  emotionSamples: z.number().int(),
+  backchannelCount: z.number().int(),
+});
+
+const PersonaMetricsSchema = z.object({
+  personaId: z.string(),
+  sessionCount: z.number().int(),
+  avgBackchannelAccuracy: z.number().min(0).max(100).describe('Percentage'),
+  avgTurnPredictionAccuracy: z.number().min(0).max(100).describe('Percentage'),
+  avgEmotionConfidence: z.number().min(0).max(100).describe('Percentage'),
+  avgResponseLatencyMs: z.number(),
+  avgSessionDurationSec: z.number(),
+});
+
+const SpeechDashboardSchema = z.object({
+  timestamp: z.number().describe('Unix timestamp'),
+  global: SpeechMetricsGlobalSchema,
+  activeSessions: z.array(ActiveSessionSchema),
+  personaBreakdown: z.array(PersonaMetricsSchema),
+});
+
+// Conversation state schemas
+const EmotionalContextSchema = z.object({
+  sentiment: z.enum(['positive', 'neutral', 'negative', 'mixed']),
+  emotions: z.array(z.enum(['happy', 'excited', 'calm', 'anxious', 'frustrated', 'sad', 'confused', 'grateful'])),
+  urgency: z.number().min(1).max(5),
+  topicFatigue: z.boolean(),
+  confidence: z.number().min(0).max(1),
+});
+
+const ConversationContextSchema = z.object({
+  sessionId: SessionIdSchema,
+  userId: UserIdSchema,
+  emotional: EmotionalContextSchema,
+  currentTopic: z.string().nullable(),
+  turnCount: z.number().int(),
+  startedAt: z.string().datetime(),
+});
+
 // ============================================================================
 // BUILD OPENAPI DOCUMENT
 // ============================================================================
@@ -191,6 +258,13 @@ API requests are rate-limited to prevent abuse. Limits vary by endpoint.
   builder.addSchema('Goal', GoalSchema);
   builder.addSchema('CreateGoal', CreateGoalSchema);
   builder.addSchema('Memory', MemorySchema);
+  // Speech metrics schemas
+  builder.addSchema('SpeechMetricsGlobal', SpeechMetricsGlobalSchema);
+  builder.addSchema('ActiveSession', ActiveSessionSchema);
+  builder.addSchema('PersonaMetrics', PersonaMetricsSchema);
+  builder.addSchema('SpeechDashboard', SpeechDashboardSchema);
+  builder.addSchema('EmotionalContext', EmotionalContextSchema);
+  builder.addSchema('ConversationContext', ConversationContextSchema);
 
   // Health endpoint
   builder.addPath('/health', 'get', {
@@ -435,6 +509,181 @@ API requests are rate-limited to prevent abuse. Limits vary by endpoint.
                   items: schemaRef('Memory'),
                 },
                 total: { type: 'integer' },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Speech Metrics endpoints
+  builder.addPath('/api/speech-metrics/dashboard', 'get', {
+    summary: 'Speech Dashboard',
+    description: 'Get comprehensive speech pipeline metrics dashboard',
+    tags: ['Speech Metrics'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      '200': {
+        description: 'Dashboard data retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: schemaRef('SpeechDashboard'),
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  builder.addPath('/api/speech-metrics/global', 'get', {
+    summary: 'Global Speech Metrics',
+    description: 'Get global speech metrics snapshot',
+    tags: ['Speech Metrics'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      '200': {
+        description: 'Metrics retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: schemaRef('SpeechMetricsGlobal'),
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  builder.addPath('/api/speech-metrics/sessions', 'get', {
+    summary: 'Active Speech Sessions',
+    description: 'Get list of active speech sessions with metrics',
+    tags: ['Speech Metrics'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      '200': {
+        description: 'Sessions retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'integer' },
+                    sessions: {
+                      type: 'array',
+                      items: schemaRef('ActiveSession'),
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  builder.addPath('/api/speech-metrics/personas', 'get', {
+    summary: 'Persona Speech Metrics',
+    description: 'Get speech metrics breakdown by persona',
+    tags: ['Speech Metrics'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      '200': {
+        description: 'Persona metrics retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'integer' },
+                    personas: {
+                      type: 'array',
+                      items: schemaRef('PersonaMetrics'),
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  builder.addPath('/api/speech-metrics/persona/{personaId}', 'get', {
+    summary: 'Single Persona Metrics',
+    description: 'Get speech metrics for a specific persona',
+    tags: ['Speech Metrics'],
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'personaId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' },
+        description: 'Persona identifier (e.g., ferni, peter, alex)',
+      },
+    ],
+    responses: {
+      '200': {
+        description: 'Persona metrics retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: schemaRef('PersonaMetrics'),
+              },
+            },
+          },
+        },
+      },
+      '404': {
+        description: 'Persona not found',
+        content: {
+          'application/json': {
+            schema: schemaRef('ApiError'),
+          },
+        },
+      },
+    },
+  });
+
+  builder.addPath('/api/speech-metrics/health', 'get', {
+    summary: 'Speech System Health',
+    description: 'Quick health check for speech system',
+    tags: ['Speech Metrics'],
+    responses: {
+      '200': {
+        description: 'Speech system is healthy',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'] },
+                uptimeSec: { type: 'number' },
+                activeSessions: { type: 'integer' },
               },
             },
           },

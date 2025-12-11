@@ -208,6 +208,146 @@ paths:
                       $ref: "#/components/schemas/Memory"
                   total:
                     type: integer
+  /api/speech-metrics/dashboard:
+    get:
+      summary: Speech Dashboard
+      description: Get comprehensive speech pipeline metrics dashboard
+      tags:         - Speech Metrics
+      security:         - bearerAuth: []
+      responses:
+        200:
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/SpeechDashboard"
+  /api/speech-metrics/global:
+    get:
+      summary: Global Speech Metrics
+      description: Get global speech metrics snapshot
+      tags:         - Speech Metrics
+      security:         - bearerAuth: []
+      responses:
+        200:
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/SpeechMetricsGlobal"
+  /api/speech-metrics/sessions:
+    get:
+      summary: Active Speech Sessions
+      description: Get list of active speech sessions with metrics
+      tags:         - Speech Metrics
+      security:         - bearerAuth: []
+      responses:
+        200:
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      sessions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ActiveSession"
+  /api/speech-metrics/personas:
+    get:
+      summary: Persona Speech Metrics
+      description: Get speech metrics breakdown by persona
+      tags:         - Speech Metrics
+      security:         - bearerAuth: []
+      responses:
+        200:
+          description: Persona metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      personas:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PersonaMetrics"
+  /api/speech-metrics/persona/{personaId}:
+    get:
+      summary: Single Persona Metrics
+      description: Get speech metrics for a specific persona
+      tags:         - Speech Metrics
+      security:         - bearerAuth: []
+      parameters:         - name: personaId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Persona identifier (e.g., ferni, peter, alex)"
+      responses:
+        200:
+          description: Persona metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/PersonaMetrics"
+        404:
+          description: Persona not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/speech-metrics/health:
+    get:
+      summary: Speech System Health
+      description: Quick health check for speech system
+      tags:         - Speech Metrics
+      responses:
+        200:
+          description: Speech system is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                    enum:                       - healthy
+                      - degraded
+                      - unhealthy
+                  uptimeSec:
+                    type: number
+                  activeSessions:
+                    type: integer
 components:
   schemas:
     UserProfileSummary:
@@ -414,6 +554,220 @@ components:
         - importance
         - createdAt
         - accessCount
+    SpeechMetricsGlobal:
+      type: object
+      properties:
+        uptimeSec:
+          type: number
+        metrics:
+          type: object
+          properties:
+            usage:
+              type: object
+              properties:
+                totalSessions:
+                  type: number
+                activeSessionCount:
+                  type: number
+                totalTurns:
+                  type: number
+              required:                 - totalSessions
+                - activeSessionCount
+                - totalTurns
+            performance:
+              type: object
+              properties:
+                avgResponseLatencyMs:
+                  type: number
+                avgEmotionConfidence:
+                  type: number
+                avgBackchannelAccuracy:
+                  type: number
+                avgTurnPredictionAccuracy:
+                  type: number
+              required:                 - avgResponseLatencyMs
+                - avgEmotionConfidence
+                - avgBackchannelAccuracy
+                - avgTurnPredictionAccuracy
+            quality:
+              type: object
+              properties:
+                avgSentimentScore:
+                  type: number
+                avgEngagementScore:
+                  type: number
+              required:                 - avgSentimentScore
+                - avgEngagementScore
+          required:             - usage
+            - performance
+            - quality
+      required:         - uptimeSec
+        - metrics
+    ActiveSession:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        personaId:
+          type: string
+        startTime:
+          type: number
+        durationSec:
+          type: number
+        turnCount:
+          type: number
+        emotionSamples:
+          type: number
+        backchannelCount:
+          type: number
+      required:         - sessionId
+        - personaId
+        - startTime
+        - durationSec
+        - turnCount
+        - emotionSamples
+        - backchannelCount
+    PersonaMetrics:
+      type: object
+      properties:
+        personaId:
+          type: string
+        sessionCount:
+          type: number
+        avgBackchannelAccuracy:
+          type: number
+        avgTurnPredictionAccuracy:
+          type: number
+        avgEmotionConfidence:
+          type: number
+        avgResponseLatencyMs:
+          type: number
+        avgSessionDurationSec:
+          type: number
+      required:         - personaId
+        - sessionCount
+        - avgBackchannelAccuracy
+        - avgTurnPredictionAccuracy
+        - avgEmotionConfidence
+        - avgResponseLatencyMs
+        - avgSessionDurationSec
+    SpeechDashboard:
+      type: object
+      properties:
+        timestamp:
+          type: number
+        global:
+          type: object
+          properties:
+            uptimeSec:
+              type: number
+            metrics:
+              type: object
+              properties:
+                usage:
+                  type: object
+                  properties:
+                    totalSessions:
+                      type: number
+                    activeSessionCount:
+                      type: number
+                    totalTurns:
+                      type: number
+                  required:                     - totalSessions
+                    - activeSessionCount
+                    - totalTurns
+                performance:
+                  type: object
+                  properties:
+                    avgResponseLatencyMs:
+                      type: number
+                    avgEmotionConfidence:
+                      type: number
+                    avgBackchannelAccuracy:
+                      type: number
+                    avgTurnPredictionAccuracy:
+                      type: number
+                  required:                     - avgResponseLatencyMs
+                    - avgEmotionConfidence
+                    - avgBackchannelAccuracy
+                    - avgTurnPredictionAccuracy
+                quality:
+                  type: object
+                  properties:
+                    avgSentimentScore:
+                      type: number
+                    avgEngagementScore:
+                      type: number
+                  required:                     - avgSentimentScore
+                    - avgEngagementScore
+              required:                 - usage
+                - performance
+                - quality
+          required:             - uptimeSec
+            - metrics
+        activeSessions:
+          type: array
+        personaBreakdown:
+          type: array
+      required:         - timestamp
+        - global
+        - activeSessions
+        - personaBreakdown
+    EmotionalContext:
+      type: object
+      properties:
+        sentiment:
+          type: string
+        emotions:
+          type: array
+        urgency:
+          type: number
+        topicFatigue:
+          type: boolean
+        confidence:
+          type: number
+      required:         - sentiment
+        - emotions
+        - urgency
+        - topicFatigue
+        - confidence
+    ConversationContext:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        userId:
+          type: string
+        emotional:
+          type: object
+          properties:
+            sentiment:
+              type: string
+            emotions:
+              type: array
+            urgency:
+              type: number
+            topicFatigue:
+              type: boolean
+            confidence:
+              type: number
+          required:             - sentiment
+            - emotions
+            - urgency
+            - topicFatigue
+            - confidence
+        currentTopic:
+          type: string
+          nullable: true
+        turnCount:
+          type: number
+        startedAt:
+          type: string
+      required:         - sessionId
+        - userId
+        - emotional
+        - turnCount
+        - startedAt
   securitySchemes:
     bearerAuth:
       type: http

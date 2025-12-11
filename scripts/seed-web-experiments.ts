@@ -10,8 +10,8 @@
  * @module scripts/seed-web-experiments
  */
 
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase
 if (getApps().length === 0) {
@@ -106,7 +106,7 @@ const EXPERIMENTS = [
 // SEEDING FUNCTIONS
 // ============================================================================
 
-async function seedExperiment(experiment: typeof EXPERIMENTS[0]) {
+async function seedExperiment(experiment: (typeof EXPERIMENTS)[0]) {
   const docRef = db.collection('web_experiments').doc(experiment.id);
   const existing = await docRef.get();
 
@@ -140,16 +140,18 @@ async function seedExperiment(experiment: typeof EXPERIMENTS[0]) {
 
 async function main() {
   console.log('\n🧪 Seeding Web Experiments\n');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   for (const experiment of EXPERIMENTS) {
     await seedExperiment(experiment);
   }
 
-  console.log('\n' + '=' .repeat(50));
+  console.log('\n' + '='.repeat(50));
   console.log('✅ Done! Experiments are now active.\n');
   console.log('📊 View in Firebase Console:');
-  console.log('   https://console.firebase.google.com/project/johnb-2025/firestore/data/~2Fweb_experiments\n');
+  console.log(
+    '   https://console.firebase.google.com/project/johnb-2025/firestore/data/~2Fweb_experiments\n'
+  );
   console.log('🔍 Test variant assignment:');
   console.log('   window.FerniExperiments.getVariant("hero-headline")\n');
 

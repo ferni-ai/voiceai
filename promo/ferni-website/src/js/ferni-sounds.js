@@ -40,7 +40,10 @@
   };
 
   // Check for reduced motion preference
-  if (CONFIG.respectsReducedMotion && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (
+    CONFIG.respectsReducedMotion &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
     CONFIG.enabled = false;
   }
 
@@ -318,7 +321,10 @@
     };
 
     if (CONFIG.enabled) {
-      console.log('%c🔊 Ferni Sounds loaded (subtle audio feedback)', 'color: #4a6741; font-weight: bold;');
+      console.log(
+        '%c🔊 Ferni Sounds loaded (subtle audio feedback)',
+        'color: #4a6741; font-weight: bold;'
+      );
     } else {
       console.log('%c🔇 Ferni Sounds loaded (disabled)', 'color: #756a5e;');
     }
