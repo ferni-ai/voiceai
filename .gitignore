@@ -97,3 +97,4 @@ frontend-typescript/src/services/apple-iap.service.ts
 frontend-typescript/src/services/cameo.service.ts
 frontend-typescript/src/ui/cameo-transition.ui.ts
 frontend-typescript/src/ui/manage-subscription.ui.ts
+marketplace-agents/
