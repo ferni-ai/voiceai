@@ -34,21 +34,46 @@ export {
 
 // Session State - Centralized session state management
 export {
+  // Cognitive state helpers
+  addReasoningApproach,
+  addUserMessageForStyleDetection,
+  getActiveReasoningChain,
+  getCognitiveState,
+  // Core state management
   getCustomState,
+  // Lovable presence helpers
+  getLovableState,
+  // Session flow helpers
+  getSessionFlowState,
   getSessionState,
   incrementTurnCount,
+  isInsightOnCooldown,
+  markHabitUsed,
+  markInsightShared,
   markMemoryReferenced,
+  markQuirkUsed,
   recordKeyMoment,
   SessionStateManager,
+  setActiveReasoningChain,
   setCustomState,
   updateCognitiveLoad,
   updateEmotionalTrajectory,
+  updateLovableState,
+  updateSessionFlowState,
+  updateUserCognitiveStyle,
   updateVoiceEmotion,
+  wasHabitUsed,
+  wasInsightShared,
   wasMemoryReferenced,
+  wasQuirkUsed,
+  type CognitiveReasoningState,
   type ConversationFlowState,
   type EmotionalTrajectory,
+  type LovablePresenceState,
   type PatternState,
+  // Types
   type CognitiveLoadState as SessionCognitiveLoadState,
+  type SessionFlowTrackingState,
   type SessionState,
   type VoiceEmotionState,
 } from './session-state.js';

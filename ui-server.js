@@ -93,6 +93,9 @@ import { handleSubscriptionRequest, isSubscriptionRoute } from './dist/api/subsc
 // User Analytics routes (DAU/WAU/MAU, session tracking, concurrent users)
 import { handleAnalyticsRoutes } from './dist/api/user-analytics-routes.js';
 
+// Builder Metrics routes (admin/monitoring - context builder performance)
+import { handleBuilderMetricsRoutes } from './dist/api/routes/builder-metrics.js';
+
 // Monetization routes (tip jar, value capture, ferni fund, B2B, partnerships)
 import { handleMonetizationRequest, isMonetizationRoute } from './dist/api/monetization-routes.js';
 
@@ -934,6 +937,12 @@ const server = http.createServer(async (req, res) => {
     // User Analytics routes (DAU/WAU/MAU, sessions, concurrent users)
     if (pathname.startsWith('/api/analytics')) {
       const handled = await handleAnalyticsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Builder Metrics routes (admin/monitoring - context builder performance)
+    if (pathname.startsWith('/api/admin/builder-metrics')) {
+      const handled = await handleBuilderMetricsRoutes(req, res, pathname);
       if (handled) return;
     }
 

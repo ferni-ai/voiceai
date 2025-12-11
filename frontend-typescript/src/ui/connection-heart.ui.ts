@@ -449,9 +449,10 @@ function injectStyles(): void {
       transform: scale(0.95);
     }
     
-    /* Icons container */
+    /* Icons container - MUST have inset:0 to fill parent and center via flexbox */
     .connection-heart__icon {
       position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;

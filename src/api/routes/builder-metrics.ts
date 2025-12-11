@@ -187,6 +187,56 @@ export async function handleGetSessionBuilderMetrics(
 }
 
 // ============================================================================
+// ALERTS HANDLER
+// ============================================================================
+
+// Lazy import to avoid circular dependencies
+let alertsModule: typeof import('../../intelligence/context-builders/alerts.js') | null = null;
+
+async function getAlertsModule() {
+  if (!alertsModule) {
+    alertsModule = await import('../../intelligence/context-builders/alerts.js');
+  }
+  return alertsModule;
+}
+
+/**
+ * GET /api/admin/builder-metrics/alerts
+ *
+ * Returns active alerts and alert history.
+ */
+export async function handleGetBuilderAlerts(
+  _req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  try {
+    const alerts = await getAlertsModule();
+
+    // Run checks to ensure alerts are fresh
+    alerts.runAlertChecks();
+
+    const summary = alerts.getAlertSummary();
+    const history = alerts.getAlertHistory(50);
+    const thresholds = alerts.getThresholds();
+
+    sendJSON(res, {
+      timestamp: new Date().toISOString(),
+      summary: {
+        activeCount: summary.active,
+        criticalCount: summary.critical,
+        warningCount: summary.warnings,
+      },
+      activeAlerts: summary.alerts,
+      recentHistory: history,
+      thresholds,
+    });
+  } catch (error) {
+    log.error({ error }, 'Failed to get builder alerts');
+    sendJSON(res, { error: 'Failed to get alerts' }, 500);
+  }
+}
+
+// ============================================================================
 // ROUTE HANDLER
 // ============================================================================
 
@@ -212,6 +262,12 @@ export async function handleBuilderMetricsRoutes(
   // Warnings endpoint
   if (pathname === '/api/admin/builder-metrics/warnings') {
     await handleGetBuilderWarnings(req, res);
+    return true;
+  }
+
+  // Alerts endpoint
+  if (pathname === '/api/admin/builder-metrics/alerts') {
+    await handleGetBuilderAlerts(req, res);
     return true;
   }
 

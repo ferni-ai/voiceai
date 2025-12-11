@@ -11,15 +11,20 @@
  * - Topic change detection
  *
  * This bridges the conversation module with the LLM prompt injection system.
+ *
+ * Uses centralized DISTRESS constants for consistent thresholds.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { createInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
 import {
   getConversationHumanizer,
   getEmotionalArcTracker,
   type HumanizationContext,
 } from '../../conversation/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
+import { createInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
+
+const log = createLogger({ module: 'context:conversation-humanizing' });
 
 // ============================================================================
 // TYPES
@@ -56,9 +61,12 @@ export function buildConversationHumanizingContext(
     userMessage: userText,
     userEmotion: analysis.emotion.primary,
     topic,
-    isSeriousContext: distressLevel > 0.3,
+    // Use centralized DISTRESS constants
+    isSeriousContext: distressLevel >= DISTRESS.MILD, // 0.2
     wasPersonalSharing:
-      input.wasPersonalSharing || distressLevel > 0.5 || analysis.emotion.intensity > 0.7,
+      input.wasPersonalSharing ||
+      distressLevel >= DISTRESS.MODERATE || // 0.5
+      analysis.emotion.intensity > 0.7,
   };
 
   // Process the user message (records in memory, dynamics, etc.)
@@ -85,7 +93,7 @@ export function buildConversationHumanizingContext(
 
   // Log what we're injecting
   if (injections.length > 0) {
-    getLogger().debug(
+    log.debug(
       {
         personaId,
         turnNumber,

@@ -13,16 +13,16 @@
  *
  * Extracted from jack-bogle.ts lines 1052-1064, 1389-1411
  */
+import { getSessionConversationManager } from '../../services/conversation-manager.js';
+import type { TopicWeight } from '../../speech/speech-context.js';
+import { getProactiveGoalReference, verifyTopicThreading } from '../human-behaviors.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { verifyTopicThreading, getProactiveGoalReference } from '../human-behaviors.js';
-import { getConversationManager } from '../../services/conversation-manager.js';
-import type { TopicWeight } from '../../speech/speech-context.js';
 
 // Extended services interface for topics
 interface TopicServices {
@@ -45,7 +45,8 @@ function buildTopicsContext(input: ContextBuilderInput): ContextInjection[] {
   const services = input.services as TopicServices;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
-  const conversationManager = getConversationManager();
+  const sessionId = input.services.sessionId || 'default';
+  const conversationManager = getSessionConversationManager(sessionId);
   const detectedTopics = analysis.topics.detected;
   const promptContext = services.getPromptContext?.() ?? {};
   const circleBackTopics = promptContext.topicsToCircleBack || [];

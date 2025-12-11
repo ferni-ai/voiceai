@@ -3,16 +3,20 @@
  *
  * Coordinates interruption handling, turn-taking, topic changes,
  * and backchanneling for natural conversation flow.
+ *
+ * REFACTORED: Now session-scoped to prevent cross-session contamination.
+ * Use getSessionConversationManager(sessionId) to get session-specific instance.
+ * Legacy getConversationManager() still works for backward compatibility but is deprecated.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../conversation/turn-taking.js';
-import { getTopicTracker } from '../intelligence/topic-tracker.js';
-import { getBackchannelingSystem } from '../speech/backchanneling.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
+import { getTopicTracker } from '../intelligence/topic-tracker.js';
+import { getBackchannelManager } from '../speech/backchanneling/index.js';
 import type { TopicWeight } from '../speech/speech-context.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -43,10 +47,10 @@ export interface ConversationEnhancements {
 // ============================================================================
 
 export class ConversationManager {
+  private readonly sessionId: string;
   private interruptionHandler = getInterruptionHandler();
   private turnMonitor = getTurnTakingMonitor();
   private topicTracker = getTopicTracker();
-  private backchannelSystem = getBackchannelingSystem();
 
   private agentCurrentlySpeaking = false;
   private currentAgentUtterance = '';
@@ -60,12 +64,26 @@ export class ConversationManager {
   // Current persona ID for persona-specific behaviors
   private personaId: string | null = null;
 
+  // Track last backchannel time for rate limiting
+  private lastBackchannelTime = 0;
+
+  constructor(sessionId = 'default') {
+    this.sessionId = sessionId;
+  }
+
   /**
    * Set the current persona ID for persona-specific behaviors
    * Called when persona is loaded or changes
    */
   setPersonaId(personaId: string): void {
     this.personaId = personaId;
+  }
+
+  /**
+   * Get the session-scoped backchanneling manager
+   */
+  private getBackchannelEngine() {
+    return getBackchannelManager(this.sessionId).getEngine('standard');
   }
 
   /**
@@ -220,18 +238,29 @@ export class ConversationManager {
       ? Date.now() - this.userSpeakingStartTime
       : 0;
 
-    const backchannelResult = this.backchannelSystem.shouldBackchannel({
-      userHasBeenSpeaking: userSpeakingDuration,
-      userPausedBriefly: userSpeakingDuration > 3000, // Assume pause after 3+ seconds
+    // Use the unified backchanneling engine
+    const backchannelEngine = this.getBackchannelEngine();
+    const timeSinceLastBackchannel = this.lastBackchannelTime
+      ? Date.now() - this.lastBackchannelTime
+      : undefined;
+
+    // Create context for the unified backchannel engine
+    const backchannelDecision = backchannelEngine.decide({
+      sessionId: this.sessionId,
+      personaId: this.personaId || 'ferni',
+      userSpeechDuration: userSpeakingDuration,
+      currentPauseDuration: userSpeakingDuration > 3000 ? 500 : 0, // Assume brief pause after 3+ seconds
       userEmotion: emotion,
-      topicWeight,
-      lastBackchannelTime: this.backchannelSystem.getStats().lastTime,
-      personaId: this.personaId || undefined, // Pass persona for persona-specific backchannels
+      topicWeight: topicWeight,
+      turnCount: 0, // Not tracked here - could be added
+      backchannelCountThisTurn: 0, // Not tracked here - could be added
+      lastBackchannelTime: this.lastBackchannelTime || undefined,
+      timeSinceLastBackchannel,
     });
 
-    if (backchannelResult.shouldBackchannel && backchannelResult.phrase) {
-      enhancements.backchannel = backchannelResult.phrase;
-      this.backchannelSystem.recordBackchannel();
+    if (backchannelDecision.shouldEmit && backchannelDecision.phrase) {
+      enhancements.backchannel = backchannelDecision.phrase;
+      this.lastBackchannelTime = Date.now();
     }
 
     // 5. Add length guidance details
@@ -284,10 +313,12 @@ export class ConversationManager {
     this.interruptionHandler.reset();
     this.turnMonitor.reset();
     this.topicTracker.clear();
-    this.backchannelSystem.reset();
+    // Reset backchanneling via the session-scoped manager
+    getBackchannelManager(this.sessionId).reset();
     this.agentCurrentlySpeaking = false;
     this.currentAgentUtterance = '';
     this.userSpeakingStartTime = null;
+    this.lastBackchannelTime = 0;
     this.insightCallback = null;
   }
 
@@ -299,26 +330,67 @@ export class ConversationManager {
       interruptions: this.interruptionHandler.getStats(),
       turnTaking: this.turnMonitor.getStats(),
       currentTopic: this.topicTracker.getCurrentTopic()?.name || null,
-      backchannels: this.backchannelSystem.getStats(),
+      backchannels: {
+        lastTime: this.lastBackchannelTime,
+        count: 0, // Simplified stats - detailed stats available via BackchannelEngine
+      },
     };
   }
 }
 
-// Singleton instance
+// ============================================================================
+// SESSION-SCOPED MANAGEMENT
+// ============================================================================
+
+const sessionManagers = new Map<string, ConversationManager>();
+
+/**
+ * Get session-scoped conversation manager
+ * This is the preferred way to get a ConversationManager instance.
+ */
+export function getSessionConversationManager(sessionId: string): ConversationManager {
+  let manager = sessionManagers.get(sessionId);
+  if (!manager) {
+    manager = new ConversationManager(sessionId);
+    sessionManagers.set(sessionId, manager);
+    getLogger().debug({ sessionId }, 'Created session conversation manager');
+  }
+  return manager;
+}
+
+/**
+ * Reset session-scoped conversation manager
+ */
+export function resetSessionConversationManager(sessionId: string): void {
+  const manager = sessionManagers.get(sessionId);
+  if (manager) {
+    manager.reset();
+    sessionManagers.delete(sessionId);
+    getLogger().debug({ sessionId }, 'Reset session conversation manager');
+  }
+}
+
+// ============================================================================
+// LEGACY GLOBAL SINGLETON (DEPRECATED)
+// ============================================================================
+
+// Global singleton instance for backward compatibility
 let defaultManager: ConversationManager | null = null;
 
 /**
  * Get global conversation manager
+ * @deprecated Use getSessionConversationManager(sessionId) instead for session isolation
  */
 export function getConversationManager(): ConversationManager {
   if (!defaultManager) {
-    defaultManager = new ConversationManager();
+    defaultManager = new ConversationManager('global');
   }
   return defaultManager;
 }
 
 /**
  * Reset global conversation manager
+ * @deprecated Use resetSessionConversationManager(sessionId) instead
  */
 export function resetConversationManager(): void {
   if (defaultManager) {

@@ -16,6 +16,7 @@
 import type { PersonaConfig } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
 import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
 import {
   checkPerformanceIssues,
@@ -431,16 +432,17 @@ export function formatContextForPrompt(
  * BETTER-THAN-HUMAN: Determine if we should use high-emotion mode
  *
  * High emotion mode reduces context noise when the user needs focused support.
+ * Uses centralized DISTRESS constants for consistent thresholds.
  */
 export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolean {
   // High emotion mode triggers:
   // 1. User needs support
-  // 2. High distress level (> 0.7)
+  // 2. High distress level (>= DISTRESS.HIGH)
   // 3. High emotion intensity (> 0.8)
   // 4. Mental health signals detected
   return Boolean(
     analysis.emotion.needsSupport ||
-    (analysis.emotion.distressLevel && analysis.emotion.distressLevel > 0.7) ||
+    (analysis.emotion.distressLevel && analysis.emotion.distressLevel >= DISTRESS.HIGH) ||
     analysis.emotion.intensity > 0.8 ||
     (analysis.emotion.mentalHealthSignals && analysis.emotion.mentalHealthSignals.length > 0)
   );
@@ -468,9 +470,11 @@ export async function buildConversationContext(
   const injections: ContextInjection[] = [];
 
   // Basic emotional context (always injected before builders run)
+  // Uses centralized DISTRESS constants
   if (
     input.analysis.emotion.needsSupport ||
-    (input.analysis.emotion.distressLevel && input.analysis.emotion.distressLevel > 0.6)
+    (input.analysis.emotion.distressLevel &&
+      input.analysis.emotion.distressLevel >= DISTRESS.MODERATE)
   ) {
     injections.push(
       createCriticalInjection(

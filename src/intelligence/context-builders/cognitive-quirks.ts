@@ -7,28 +7,35 @@
  * This builder complements the main cognitive builder by adding the
  * "personality layer" of cognition - the quirks, habits, and idiosyncrasies
  * that make each persona's thinking feel unique.
+ *
+ * Uses centralized SessionStateManager for session tracking.
  */
 
 import {
-  registerContextBuilder,
-  createHintInjection,
-  type ContextBuilderInput,
-  type ContextInjection,
-} from './index.js';
-import {
-  getCognitiveQuirks,
   getActiveQuirk,
+  getCognitiveQuirks,
   getTransitionPhrase,
   type PersonaCognitiveQuirks,
 } from '../../personas/cognitive-quirks.js';
 import { broadcastQuirkActivated } from '../../services/cognitive-broadcast.js';
-
-// Track quirks used in session to avoid repetition
-const sessionQuirksUsed = new Map<string, Set<string>>();
-const sessionMentalHabitsUsed = new Map<string, Set<string>>();
+import {
+  getCognitiveState,
+  markHabitUsed,
+  markQuirkUsed,
+  wasHabitUsed,
+  wasQuirkUsed,
+} from '../session-state.js';
+import {
+  createHintInjection,
+  registerContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 
 /**
  * Build cognitive quirks context
+ *
+ * Uses centralized session state for tracking quirks/habits used.
  */
 async function buildCognitiveQuirksContext(
   input: ContextBuilderInput
@@ -45,26 +52,18 @@ async function buildCognitiveQuirksContext(
     return injections;
   }
 
-  const sessionKey = `${personaId}_${input.services.sessionId || 'default'}`;
+  const sessionId = input.services.sessionId || 'default';
   const turnCount = input.userData.turnCount || 1;
 
-  // Initialize session tracking
-  if (!sessionQuirksUsed.has(sessionKey)) {
-    sessionQuirksUsed.set(sessionKey, new Set());
-  }
-  if (!sessionMentalHabitsUsed.has(sessionKey)) {
-    sessionMentalHabitsUsed.set(sessionKey, new Set());
-  }
-
-  const usedQuirks = sessionQuirksUsed.get(sessionKey)!;
-  const usedHabits = sessionMentalHabitsUsed.get(sessionKey)!;
+  // Get centralized cognitive state
+  const cognitiveState = getCognitiveState(sessionId);
 
   // ============================================================================
   // 1. ACTIVE QUIRK - Check if current context triggers a cognitive quirk
   // ============================================================================
   const activeQuirk = getActiveQuirk(personaId, input.userText);
 
-  if (activeQuirk && !usedQuirks.has(activeQuirk.name)) {
+  if (activeQuirk && !wasQuirkUsed(sessionId, activeQuirk.name)) {
     // Don't use same quirk too often
     if (Math.random() < activeQuirk.frequency) {
       const quirkPhrase =
@@ -86,14 +85,14 @@ async function buildCognitiveQuirksContext(
         activeQuirk.frequency
       );
 
-      usedQuirks.add(activeQuirk.name);
+      markQuirkUsed(sessionId, activeQuirk.name);
     }
   }
 
   // ============================================================================
   // 2. MENTAL HABIT - Trigger based on conversation context
   // ============================================================================
-  const activeHabit = findActiveHabit(quirks, input, usedHabits);
+  const activeHabit = findActiveHabitCentralized(quirks, input, sessionId);
 
   if (activeHabit && turnCount > 2) {
     injections.push(
@@ -104,7 +103,7 @@ async function buildCognitiveQuirksContext(
       )
     );
 
-    usedHabits.add(activeHabit.habit);
+    markHabitUsed(sessionId, activeHabit.habit);
   }
 
   // ============================================================================
@@ -201,24 +200,27 @@ async function buildCognitiveQuirksContext(
 
 /**
  * Find an active mental habit based on conversation context
+ * Uses centralized session state for tracking used habits.
  */
-function findActiveHabit(
+function findActiveHabitCentralized(
   quirks: PersonaCognitiveQuirks,
   input: ContextBuilderInput,
-  usedHabits: Set<string>
+  sessionId: string
 ): PersonaCognitiveQuirks['mentalHabits'][0] | null {
   const userText = input.userText.toLowerCase();
   const { emotion } = input.analysis;
 
   for (const habit of quirks.mentalHabits) {
-    if (usedHabits.has(habit.habit)) continue;
+    // Use centralized state to check if habit was used
+    if (wasHabitUsed(sessionId, habit.habit)) continue;
 
     const whenLower = habit.when.toLowerCase();
 
     // Check if the "when" condition matches
+    // Using DISTRESS.MODERATE (0.5) threshold
     if (
       whenLower.includes('difficulty') &&
-      (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel > 0.5))
+      (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel >= 0.5))
     ) {
       return habit;
     }
@@ -234,7 +236,8 @@ function findActiveHabit(
     ) {
       return habit;
     }
-    if (whenLower.includes('heavy') && emotion.distressLevel && emotion.distressLevel > 0.6) {
+    // Using DISTRESS.MODERATE (0.5) threshold for "heavy"
+    if (whenLower.includes('heavy') && emotion.distressLevel && emotion.distressLevel >= 0.5) {
       return habit;
     }
   }
@@ -326,10 +329,11 @@ function findCognitiveFrustration(
 
 /**
  * Clear session quirk tracking (for session end)
+ * Now handled by centralized session state in session-state.ts
  */
-export function clearCognitiveQuirksSession(sessionKey: string): void {
-  sessionQuirksUsed.delete(sessionKey);
-  sessionMentalHabitsUsed.delete(sessionKey);
+export function clearCognitiveQuirksSession(_sessionKey: string): void {
+  // No-op: Session state now managed centrally via getCognitiveState/clearAllSessionStates
+  // The quirksUsed and habitsUsed Sets are part of CognitiveReasoningState
 }
 
 // ============================================================================

@@ -144,6 +144,19 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/OperationsSection.js')).render(),
   },
   {
+    id: 'builder-metrics',
+    name: 'Builder Metrics',
+    icon: ICON_SETTINGS,
+    description: 'Context builder performance & health',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/BuilderMetricsSection.js');
+      const html = section.render();
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'diagnostics',
     name: 'Diagnostics',
     icon: ICON_DIAGNOSTICS,

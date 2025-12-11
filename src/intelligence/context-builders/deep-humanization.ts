@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
 import {
   createHintInjection,
   createStandardInjection,
@@ -89,7 +90,7 @@ const deepHumanizationBuilder: ContextBuilder = {
     const emotionPrimary = analysis?.emotion?.primary;
     const emotionalIntensity = analysis?.emotion?.intensity;
     const isVulnerable = analysis?.emotion?.distressLevel
-      ? analysis.emotion.distressLevel > 0.5
+      ? analysis.emotion.distressLevel >= DISTRESS.MODERATE
       : false;
     const hasBreakthrough = analysis?.emotion?.markers?.includes('breakthrough') || false;
     const currentTopic = analysis?.topics?.primary || userData.lastTopic;

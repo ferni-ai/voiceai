@@ -16,6 +16,9 @@
  * @module MethodologyContextBuilder
  */
 
+import { loadBundleById } from '../../personas/bundles/loader.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { BuilderCategory } from './categories.js';
 import {
   createHintInjection,
   createStandardInjection,
@@ -23,10 +26,64 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { loadBundleById } from '../../personas/bundles/loader.js';
-import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:methodology' });
+
+// ============================================================================
+// METHODOLOGY CACHE
+// ============================================================================
+
+/**
+ * Cache methodology content per persona to avoid repeated bundle loads.
+ * This significantly improves performance for repeated calls.
+ */
+const methodologyCache = new Map<string, MethodologyContent | null>();
+const cacheLoadTimes = new Map<string, number>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get methodology with caching
+ */
+async function getCachedMethodology(personaId: string): Promise<MethodologyContent | null> {
+  const now = Date.now();
+  const lastLoad = cacheLoadTimes.get(personaId);
+
+  // Return cached if valid
+  if (methodologyCache.has(personaId) && lastLoad && now - lastLoad < CACHE_TTL_MS) {
+    return methodologyCache.get(personaId) ?? null;
+  }
+
+  // Load and cache
+  try {
+    const bundle = await loadBundleById(personaId);
+    if (!bundle) {
+      methodologyCache.set(personaId, null);
+      cacheLoadTimes.set(personaId, now);
+      return null;
+    }
+
+    const behaviors = await bundle.getBehaviors();
+    const methodology = (behaviors.methodology as MethodologyContent) ?? null;
+
+    methodologyCache.set(personaId, methodology);
+    cacheLoadTimes.set(personaId, now);
+
+    return methodology;
+  } catch (error) {
+    log.warn({ error: String(error), personaId }, 'Error loading methodology');
+    methodologyCache.set(personaId, null);
+    cacheLoadTimes.set(personaId, now);
+    return null;
+  }
+}
+
+/**
+ * Clear methodology cache (useful for testing)
+ */
+export function clearMethodologyCache(): void {
+  methodologyCache.clear();
+  cacheLoadTimes.clear();
+}
 
 // ============================================================================
 // TOPIC MATCHING
@@ -39,7 +96,14 @@ const log = createLogger({ module: 'context:methodology' });
 const TOPIC_TRIGGERS: Record<string, string[]> = {
   // Habits & Behavior Change (Maya Santos)
   habits: ['habit', 'routine', 'consistency', 'daily practice', 'building', 'breaking', 'change'],
-  behavior_change: ['motivation', 'willpower', 'discipline', 'stick to', 'keep up with', 'fall off'],
+  behavior_change: [
+    'motivation',
+    'willpower',
+    'discipline',
+    'stick to',
+    'keep up with',
+    'fall off',
+  ],
   atomic_habits: ['small steps', 'tiny', '1%', 'compound', 'stack', 'cue', 'reward'],
 
   // Communication (Alex Chen)
@@ -160,10 +224,7 @@ interface MethodologyContent {
 /**
  * Format methodology content for LLM injection
  */
-function formatMethodologyInjection(
-  methodology: MethodologyContent,
-  triggers: string[]
-): string {
+function formatMethodologyInjection(methodology: MethodologyContent, triggers: string[]): string {
   const parts: string[] = [];
 
   // Add research foundation if available
@@ -194,7 +255,9 @@ function formatMethodologyInjection(
 
   // Add guidance on using methodology
   parts.push(`\n[GUIDANCE]`);
-  parts.push(`Apply these frameworks naturally in your voice. Don't lecture or cite sources directly.`);
+  parts.push(
+    `Apply these frameworks naturally in your voice. Don't lecture or cite sources directly.`
+  );
   parts.push(`Let the methodology inform your questions and reflections, not your vocabulary.`);
 
   return parts.join('\n');
@@ -234,83 +297,70 @@ registerContextBuilder({
   name: 'methodology',
   description: 'Evidence-based coaching frameworks from methodology.json',
   priority: 55, // Mid-priority - after core context, before polish
+  category: BuilderCategory.COACHING,
 
   async build(input: ContextBuilderInput): Promise<ContextInjection[]> {
     const { userText, analysis, persona } = input;
     const injections: ContextInjection[] = [];
 
-    try {
-      // Load persona bundle
-      const bundle = await loadBundleById(persona.id);
-      if (!bundle) {
-        log.debug({ personaId: persona.id }, 'No bundle found for persona');
-        return injections;
-      }
+    // Check if conversation triggers methodology injection FIRST (fast path)
+    const detectedTopics = analysis.topics.detected || [];
+    const triggers = detectMethodologyTriggers(userText, detectedTopics);
 
-      // Get behaviors including methodology
-      const behaviors = await bundle.getBehaviors();
-      const methodology = behaviors.methodology as MethodologyContent | undefined;
+    if (triggers.length === 0) {
+      // No triggers - don't load methodology (avoid unnecessary work)
+      return injections;
+    }
 
-      if (!methodology) {
-        log.debug({ personaId: persona.id }, 'No methodology found in bundle');
-        return injections;
-      }
+    // Only load methodology if we have triggers (optimized)
+    const methodology = await getCachedMethodology(persona.id);
+    if (!methodology) {
+      log.debug({ personaId: persona.id }, 'No methodology found for persona');
+      return injections;
+    }
 
-      // Check if conversation triggers methodology injection
-      const detectedTopics = analysis.topics.detected || [];
-      const triggers = detectMethodologyTriggers(userText, detectedTopics);
+    log.debug(
+      { personaId: persona.id, triggers, topics: detectedTopics },
+      'Methodology triggers detected'
+    );
 
-      if (triggers.length === 0) {
-        // No triggers - don't inject methodology (avoid prompt bloat)
-        return injections;
-      }
+    // Inject main methodology context
+    const methodologyContext = formatMethodologyInjection(methodology, triggers);
+    injections.push(
+      createStandardInjection('methodology', methodologyContext, {
+        category: 'methodology',
+        confidence: 0.8,
+      })
+    );
 
-      log.debug(
-        { personaId: persona.id, triggers, topics: detectedTopics },
-        'Methodology triggers detected'
-      );
+    // Check for specific intervention opportunities
+    if (methodology.intervention_techniques) {
+      // Match triggers to intervention techniques
+      const techniques = methodology.intervention_techniques as Record<
+        string,
+        Record<string, unknown>
+      >;
 
-      // Inject main methodology context
-      const methodologyContext = formatMethodologyInjection(methodology, triggers);
-      injections.push(
-        createStandardInjection('methodology', methodologyContext, {
-          category: 'methodology',
-          confidence: 0.8,
-        })
-      );
+      for (const [techniqueName, technique] of Object.entries(techniques)) {
+        // Check if any trigger matches this technique
+        const techniqueKeywords = techniqueName.toLowerCase().split('_');
+        const isRelevant = triggers.some((trigger) =>
+          techniqueKeywords.some(
+            (keyword) => trigger.includes(keyword) || keyword.includes(trigger)
+          )
+        );
 
-      // Check for specific intervention opportunities
-      if (methodology.intervention_techniques) {
-        // Match triggers to intervention techniques
-        const techniques = methodology.intervention_techniques as Record<
-          string,
-          Record<string, unknown>
-        >;
-
-        for (const [techniqueName, technique] of Object.entries(techniques)) {
-          // Check if any trigger matches this technique
-          const techniqueKeywords = techniqueName.toLowerCase().split('_');
-          const isRelevant = triggers.some((trigger) =>
-            techniqueKeywords.some(
-              (keyword) => trigger.includes(keyword) || keyword.includes(trigger)
-            )
+        if (isRelevant) {
+          const techniqueInjection = formatInterventionTechnique(techniqueName, technique);
+          injections.push(
+            createHintInjection('intervention', techniqueInjection, {
+              category: 'intervention_technique',
+              confidence: 0.6,
+            })
           );
-
-          if (isRelevant) {
-            const techniqueInjection = formatInterventionTechnique(techniqueName, technique);
-            injections.push(
-              createHintInjection('intervention', techniqueInjection, {
-                category: 'intervention_technique',
-                confidence: 0.6,
-              })
-            );
-            break; // Only inject one technique per turn to avoid overload
-          }
+          break; // Only inject one technique per turn to avoid overload
         }
       }
-    } catch (error) {
-      // Non-fatal - methodology is enhancement, not core
-      log.warn({ error: String(error), personaId: persona.id }, 'Error loading methodology');
     }
 
     return injections;

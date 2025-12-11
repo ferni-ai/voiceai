@@ -113,8 +113,10 @@ export class DynamicTTS extends tts.TTS {
 
 /**
  * Create a DynamicTTS instance for use with AgentSession
- * NOTE: This is the legacy TTS that switches between all personas.
- * For per-session persona binding, use createPersonaAwareTTS() instead.
+ *
+ * @deprecated This is legacy TTS that uses global state and switches between all personas.
+ * For per-session persona binding, use createPersonaAwareTTS() instead,
+ * which is session-scoped and properly isolated.
  */
 export function createDynamicTTS(): DynamicTTS {
   return new DynamicTTS();

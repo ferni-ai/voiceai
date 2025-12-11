@@ -21,30 +21,30 @@
  */
 
 import {
-  registerContextBuilder,
-  createStandardInjection,
+  detectQuestionComplexity,
+  detectUserExpertise,
+  getCognitiveEngine,
+  getCognitiveProfile,
+} from '../../personas/cognitive-index.js';
+import type { CognitiveContext, ReasoningStyle } from '../../personas/cognitive-types.js';
+import {
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import {
-  getCognitiveProfile,
-  getCognitiveEngine,
-  detectQuestionComplexity,
-  detectUserExpertise,
-} from '../../personas/cognitive-index.js';
-import type { CognitiveContext, ReasoningStyle } from '../../personas/cognitive-types.js';
 
 // Advanced cognitive features
 import {
-  detectUserCognitiveStyle,
+  buildCognitiveGrowthContext,
   buildReasoningChain,
-  getReasoningChainGuidance,
   detectCognitiveConflict,
+  detectUserCognitiveStyle,
+  getCognitiveGrowthProfile,
   getCognitiveLearningTracker,
   getKnowledgeStateTracker,
-  getCognitiveGrowthProfile,
-  buildCognitiveGrowthContext,
+  getReasoningChainGuidance,
   type UserCognitiveStyle,
 } from '../../personas/cognitive-advanced.js';
 
@@ -54,30 +54,36 @@ import { getUnlockedTeamMemberIds } from './team-availability.js';
 
 // Broadcast service for real-time dashboard updates
 import {
-  broadcastCognitiveMode,
-  broadcastUserStyle,
-  broadcastConfidence,
   broadcastApproachUsed,
+  broadcastCognitiveMode,
+  broadcastConfidence,
+  broadcastUserStyle,
 } from '../../services/cognitive-broadcast.js';
 
 // Cognitive metrics for performance tracking
 import {
   cognitiveMetrics,
-  recordTurnMetrics,
   maybeBroadcastMetrics,
+  recordTurnMetrics,
 } from '../../utils/cognitive-metrics.js';
 
-// Track reasoning styles used in this session
-const sessionReasoningHistory = new Map<string, ReasoningStyle[]>();
+// Centralized distress levels
+import { DISTRESS } from '../distress-levels.js';
 
-// Track user messages for cognitive style detection
-const sessionUserMessages = new Map<string, string[]>();
-
-// Track active reasoning chains
-const activeReasoningChains = new Map<string, ReturnType<typeof buildReasoningChain>>();
+// Centralized session state
+import {
+  addReasoningApproach,
+  addUserMessageForStyleDetection,
+  getActiveReasoningChain,
+  getCognitiveState,
+  setActiveReasoningChain,
+  updateUserCognitiveStyle,
+} from '../session-state.js';
 
 /**
  * Build cognitive intelligence context
+ *
+ * Uses centralized SessionStateManager for session tracking.
  */
 async function buildCognitiveContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   // Start timing cognitive context building
@@ -86,6 +92,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   const injections: ContextInjection[] = [];
   const personaId = input.persona?.id;
   const userId = input.services.userId || 'anonymous';
+  const sessionId = input.services.sessionId || `${personaId}_${userId}`;
 
   if (!personaId) {
     cognitiveMetrics.endTiming('contextBuildTime');
@@ -103,27 +110,23 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   // Get or create engine
   const engine = getCognitiveEngine(personaId, profile);
 
-  // Initialize session tracking
-  if (!sessionReasoningHistory.has(personaId)) {
-    sessionReasoningHistory.set(personaId, []);
-  }
-  if (!sessionUserMessages.has(userId)) {
-    sessionUserMessages.set(userId, []);
-  }
+  // Get centralized session state
+  const cognitiveState = getCognitiveState(sessionId);
+  // Cast to ReasoningStyle[] - reasoningHistory stores valid ReasoningStyle strings
+  const previousApproaches = cognitiveState.reasoningHistory as ReasoningStyle[];
 
-  const previousApproaches = sessionReasoningHistory.get(personaId) || [];
-  const userMessages = sessionUserMessages.get(userId) || [];
-
-  // Track user message for cognitive style detection
-  userMessages.push(input.userText);
-  if (userMessages.length > 20) {
-    userMessages.shift();
-  }
+  // Track user message for cognitive style detection (centralized)
+  const userMessages = addUserMessageForStyleDetection(sessionId, input.userText);
 
   // ============================================================================
   // DETECT USER COGNITIVE STYLE
   // ============================================================================
   const userCognitiveStyle = detectUserCognitiveStyle(userMessages);
+
+  // Store in centralized state for other builders
+  if (userCognitiveStyle.confidence > 0.3) {
+    updateUserCognitiveStyle(sessionId, userCognitiveStyle.primary, userCognitiveStyle.confidence);
+  }
 
   // Build cognitive context
   const emotionalWeight = calculateEmotionalWeight(input);
@@ -165,11 +168,8 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     );
   }
 
-  // Track the reasoning approach used
-  previousApproaches.push(finalApproach);
-  if (previousApproaches.length > 10) {
-    previousApproaches.shift();
-  }
+  // Track the reasoning approach used (centralized)
+  addReasoningApproach(sessionId, finalApproach);
 
   // 📡 Broadcast cognitive mode selection for dashboard
   broadcastCognitiveMode(
@@ -257,9 +257,11 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
 
   // ============================================================================
   // 4. MULTI-STEP REASONING CHAINS (for complex situations)
+  // Uses centralized session state
   // ============================================================================
-  const chainKey = `${personaId}_${userId}`;
-  let activeChain = activeReasoningChains.get(chainKey);
+  let activeChain = getActiveReasoningChain(sessionId) as ReturnType<
+    typeof buildReasoningChain
+  > | null;
 
   if (!activeChain && (questionComplexity === 'complex' || questionComplexity === 'ambiguous')) {
     // Build new reasoning chain for complex situation
@@ -271,7 +273,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
       userNeed,
     });
     if (activeChain) {
-      activeReasoningChains.set(chainKey, activeChain);
+      setActiveReasoningChain(sessionId, activeChain);
     }
   }
 
@@ -288,7 +290,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     // Advance chain
     activeChain.currentStep++;
     if (activeChain.currentStep > activeChain.totalSteps) {
-      activeReasoningChains.delete(chainKey);
+      setActiveReasoningChain(sessionId, null);
     }
   }
 
@@ -498,7 +500,7 @@ function determineRequestType(
   const intent = input.analysis.intent.primary.toLowerCase();
   const { emotion } = input.analysis;
 
-  if (emotion.isVenting || (emotion.distressLevel && emotion.distressLevel > 0.6)) {
+  if (emotion.isVenting || (emotion.distressLevel && emotion.distressLevel >= DISTRESS.MODERATE)) {
     return 'venting';
   }
 

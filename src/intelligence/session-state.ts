@@ -531,6 +531,273 @@ export function wasMemoryReferenced(sessionId: string, memoryId: string): boolea
 }
 
 // ============================================================================
+// COGNITIVE STATE HELPERS
+// ============================================================================
+
+/**
+ * Cognitive reasoning state for session
+ */
+export interface CognitiveReasoningState {
+  /** Previous reasoning approaches used */
+  reasoningHistory: string[];
+  /** User messages for style detection */
+  userMessages: string[];
+  /** Active reasoning chain */
+  activeChain: unknown | null;
+  /** Detected user cognitive style */
+  userStyle: string;
+  /** Style confidence */
+  styleConfidence: number;
+  /** Quirks used this session (to prevent repetition) */
+  quirksUsed: Set<string>;
+  /** Mental habits used this session */
+  habitsUsed: Set<string>;
+  /** Shared insights (to prevent repetition) */
+  sharedInsights: Set<string>;
+  /** Insight cooldowns */
+  insightCooldowns: Map<string, number>;
+}
+
+const COGNITIVE_STATE_KEY = 'cognitive-reasoning';
+
+/**
+ * Get cognitive reasoning state for session
+ */
+export function getCognitiveState(sessionId: string): CognitiveReasoningState {
+  let state = getCustomState<CognitiveReasoningState>(sessionId, COGNITIVE_STATE_KEY);
+  if (!state) {
+    state = {
+      reasoningHistory: [],
+      userMessages: [],
+      activeChain: null,
+      userStyle: 'unknown',
+      styleConfidence: 0,
+      quirksUsed: new Set(),
+      habitsUsed: new Set(),
+      sharedInsights: new Set(),
+      insightCooldowns: new Map(),
+    };
+    setCustomState(sessionId, COGNITIVE_STATE_KEY, state);
+  }
+  return state;
+}
+
+/**
+ * Update cognitive reasoning history
+ */
+export function addReasoningApproach(sessionId: string, approach: string): void {
+  const state = getCognitiveState(sessionId);
+  state.reasoningHistory.push(approach);
+  // Keep last 10
+  if (state.reasoningHistory.length > 10) {
+    state.reasoningHistory.shift();
+  }
+}
+
+/**
+ * Add user message for cognitive style detection
+ */
+export function addUserMessageForStyleDetection(sessionId: string, message: string): string[] {
+  const state = getCognitiveState(sessionId);
+  state.userMessages.push(message);
+  // Keep last 20
+  if (state.userMessages.length > 20) {
+    state.userMessages.shift();
+  }
+  return state.userMessages;
+}
+
+/**
+ * Update detected user cognitive style
+ */
+export function updateUserCognitiveStyle(
+  sessionId: string,
+  style: string,
+  confidence: number
+): void {
+  const state = getCognitiveState(sessionId);
+  state.userStyle = style;
+  state.styleConfidence = confidence;
+}
+
+/**
+ * Set active reasoning chain
+ */
+export function setActiveReasoningChain(sessionId: string, chain: unknown): void {
+  const state = getCognitiveState(sessionId);
+  state.activeChain = chain;
+}
+
+/**
+ * Get active reasoning chain
+ */
+export function getActiveReasoningChain(sessionId: string): unknown | null {
+  const state = getCognitiveState(sessionId);
+  return state.activeChain;
+}
+
+/**
+ * Mark a quirk as used
+ */
+export function markQuirkUsed(sessionId: string, quirkId: string): void {
+  const state = getCognitiveState(sessionId);
+  state.quirksUsed.add(quirkId);
+}
+
+/**
+ * Check if quirk was used
+ */
+export function wasQuirkUsed(sessionId: string, quirkId: string): boolean {
+  const state = getCognitiveState(sessionId);
+  return state.quirksUsed.has(quirkId);
+}
+
+/**
+ * Mark a mental habit as used
+ */
+export function markHabitUsed(sessionId: string, habitId: string): void {
+  const state = getCognitiveState(sessionId);
+  state.habitsUsed.add(habitId);
+}
+
+/**
+ * Check if habit was used
+ */
+export function wasHabitUsed(sessionId: string, habitId: string): boolean {
+  const state = getCognitiveState(sessionId);
+  return state.habitsUsed.has(habitId);
+}
+
+/**
+ * Mark an insight as shared
+ */
+export function markInsightShared(sessionId: string, insightKey: string, turnCount: number): void {
+  const state = getCognitiveState(sessionId);
+  state.sharedInsights.add(insightKey);
+  state.insightCooldowns.set(insightKey, turnCount);
+}
+
+/**
+ * Check if insight was shared
+ */
+export function wasInsightShared(sessionId: string, insightKey: string): boolean {
+  const state = getCognitiveState(sessionId);
+  return state.sharedInsights.has(insightKey);
+}
+
+/**
+ * Check if insight is on cooldown
+ */
+export function isInsightOnCooldown(
+  sessionId: string,
+  insightKey: string,
+  currentTurn: number,
+  cooldownTurns: number
+): boolean {
+  const state = getCognitiveState(sessionId);
+  const lastUsed = state.insightCooldowns.get(insightKey);
+  if (lastUsed === undefined) return false;
+  return currentTurn - lastUsed < cooldownTurns;
+}
+
+// ============================================================================
+// LOVABLE PRESENCE STATE HELPERS
+// ============================================================================
+
+/**
+ * Lovable presence state for session
+ */
+export interface LovablePresenceState {
+  lastTangent?: number;
+  lastSelfDeprecation?: number;
+  lastSpecificDetail?: number;
+  lastPlayfulMoment?: number;
+  lastGenuineReaction?: number;
+  tangentsThisSession: number;
+  surprisesThisSession: number;
+  userSmileSignals: number;
+}
+
+const LOVABLE_STATE_KEY = 'lovable-presence';
+
+/**
+ * Get lovable presence state for session
+ */
+export function getLovableState(sessionId: string): LovablePresenceState {
+  let state = getCustomState<LovablePresenceState>(sessionId, LOVABLE_STATE_KEY);
+  if (!state) {
+    state = {
+      tangentsThisSession: 0,
+      surprisesThisSession: 0,
+      userSmileSignals: 0,
+    };
+    setCustomState(sessionId, LOVABLE_STATE_KEY, state);
+  }
+  return state;
+}
+
+/**
+ * Update lovable presence state
+ */
+export function updateLovableState(
+  sessionId: string,
+  updates: Partial<LovablePresenceState>
+): LovablePresenceState {
+  const state = getLovableState(sessionId);
+  Object.assign(state, updates);
+  return state;
+}
+
+// ============================================================================
+// SESSION FLOW STATE HELPERS
+// ============================================================================
+
+/**
+ * Session flow tracking state
+ */
+export interface SessionFlowTrackingState {
+  lastTrackedEmotion: string | null;
+  emotionShiftCount: number;
+  lastSignificantMoment: number;
+  topicChanges: number;
+  questionAsked: number;
+  storiesShared: number;
+}
+
+const SESSION_FLOW_KEY = 'session-flow-tracking';
+
+/**
+ * Get session flow tracking state
+ */
+export function getSessionFlowState(sessionId: string): SessionFlowTrackingState {
+  let state = getCustomState<SessionFlowTrackingState>(sessionId, SESSION_FLOW_KEY);
+  if (!state) {
+    state = {
+      lastTrackedEmotion: null,
+      emotionShiftCount: 0,
+      lastSignificantMoment: 0,
+      topicChanges: 0,
+      questionAsked: 0,
+      storiesShared: 0,
+    };
+    setCustomState(sessionId, SESSION_FLOW_KEY, state);
+  }
+  return state;
+}
+
+/**
+ * Update session flow tracking state
+ */
+export function updateSessionFlowState(
+  sessionId: string,
+  updates: Partial<SessionFlowTrackingState>
+): SessionFlowTrackingState {
+  const state = getSessionFlowState(sessionId);
+  Object.assign(state, updates);
+  return state;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 

@@ -5,34 +5,34 @@
  * Separated for clean imports without circular dependencies.
  */
 
-import type { UserProfile } from '../types/user-profile.js';
-import type { MemoryStore, VectorStore, ConversationHistoryTracker } from '../memory/index.js';
-import type { FirestoreVectorStore } from '../memory/firestore-vector-store.js';
 import type { ContextManager, PromptContext } from '../context/index.js';
-import type { SpeechContext } from '../speech/index.js';
+import type { OpenThread } from '../intelligence/cross-session-threader.js';
 import type {
+  CommunicationMirroringEngine,
   ConversationAnalysis,
-  EmotionResult,
-  IntentResult,
-  ConversationState,
-  DynamicUserContext,
-  ResponseQualityTracker,
   ConversationPatternAnalyzer,
-  ProactiveInsightEngine,
-  FinancialJourneyTracker,
+  ConversationState,
   CrossSessionThreader,
-  VoicePaceAdapter,
-  UserLearningEngine,
+  DynamicUserContext,
+  EmotionalMemoryEngine,
+  EmotionResult,
+  FinancialJourneyTracker,
   // Human-level interaction engines
   HumorCalibrationEngine,
+  IntentResult,
+  ProactiveInsightEngine,
+  ResponseQualityTracker,
   StoryPreferenceEngine,
-  CommunicationMirroringEngine,
-  EmotionalMemoryEngine,
+  UserLearningEngine,
+  VoicePaceAdapter,
 } from '../intelligence/index.js';
 import type { InsightGenerationResult } from '../intelligence/proactive-insight-engine.js';
-import type { OpenThread } from '../intelligence/cross-session-threader.js';
-import type { HumanizingStateUpdate } from './humanizing-state.js';
+import type { FirestoreVectorStore } from '../memory/firestore-vector-store.js';
+import type { ConversationHistoryTracker, MemoryStore, VectorStore } from '../memory/index.js';
+import type { SpeechContext } from '../speech/index.js';
 import type { HandoffState } from '../tools/handoff-state.js';
+import type { UserProfile } from '../types/user-profile.js';
+import type { HumanizingStateUpdate } from './humanizing-state.js';
 
 // ============================================================================
 // SESSION SERVICES
@@ -158,13 +158,13 @@ export interface CreateSessionOptions {
 // ============================================================================
 
 export type {
-  UserProfile,
   ConversationAnalysis,
-  EmotionResult,
-  IntentResult,
   ConversationState,
+  DynamicUserContext,
+  EmotionResult,
+  HumanizingStateUpdate,
+  IntentResult,
   PromptContext,
   SpeechContext,
-  DynamicUserContext,
-  HumanizingStateUpdate,
+  UserProfile,
 };

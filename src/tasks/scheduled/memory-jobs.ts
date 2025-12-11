@@ -11,19 +11,19 @@
  * while keeping the system performant and storage efficient.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import {
+  checkMemoryHealthAlerts,
+  collectMemoryMetrics,
   getMemoryConsolidator,
   getMemoryDecayManager,
   getMemoryDeduplicator,
-  collectMemoryMetrics,
-  checkMemoryHealthAlerts,
   type ConsolidationResult,
-  type PruneResult,
+  type DecayingMemory,
   type MemoryMetrics,
   type MetricAlert,
-  type DecayingMemory,
+  type PruneResult,
 } from '../../memory/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
 const log = getLogger();
@@ -169,10 +169,8 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
     return {
       memoriesDecayed: ctx.counters.processed,
       memoriesPruned: pruneResult.archived.length,
-      averageStrengthBefore:
-        memories.length > 0 ? totalStrengthBefore / memories.length : 0,
-      averageStrengthAfter:
-        memories.length > 0 ? totalStrengthAfter / memories.length : 0,
+      averageStrengthBefore: memories.length > 0 ? totalStrengthBefore / memories.length : 0,
+      averageStrengthAfter: memories.length > 0 ? totalStrengthAfter / memories.length : 0,
     };
   }
 }
@@ -228,7 +226,7 @@ export class MemoryDeduplicationJob extends ScheduledJob<
     // Would iterate through memories and check for duplicates
     // For now, return placeholder result
     ctx.counters.processed = 0;
-    
+
     return {
       memoriesScanned: 0,
       duplicatesFound: 0,
@@ -261,10 +259,7 @@ export interface HealthCheckJobResult extends Record<string, unknown> {
  * Collects metrics and checks for health issues in the memory system.
  * Can send alerts for critical issues.
  */
-export class MemoryHealthCheckJob extends ScheduledJob<
-  HealthCheckJobConfig,
-  HealthCheckJobResult
-> {
+export class MemoryHealthCheckJob extends ScheduledJob<HealthCheckJobConfig, HealthCheckJobResult> {
   readonly name = 'MemoryHealthCheckJob';
   readonly defaultConfig: HealthCheckJobConfig = {
     dryRun: false,
@@ -288,7 +283,10 @@ export class MemoryHealthCheckJob extends ScheduledJob<
 
     // Send alerts if configured and there are critical issues
     if (config.sendAlerts && alerts.some((a) => a.severity === 'critical')) {
-      await this.sendAlerts(alerts.filter((a) => a.severity === 'critical'), config);
+      await this.sendAlerts(
+        alerts.filter((a) => a.severity === 'critical'),
+        config
+      );
     }
 
     ctx.counters.processed = 1;

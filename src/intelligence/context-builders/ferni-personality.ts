@@ -14,6 +14,10 @@
  * - Consistent quirks and preferences
  * - Authentic reactions, not just validation
  *
+ * DYNAMIC VARIETY: Uses session variety tracking to prevent repetitive
+ * mentions of coffee, Japan, music, etc. Ferni's identity stays constant,
+ * but HOW he expresses it varies naturally each session.
+ *
  * @module FerniPersonalityContextBuilder
  */
 
@@ -25,6 +29,13 @@ import {
 } from './index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  getExpression,
+  getRandomExpression,
+  recordTurnComplete,
+  type DynamicExpressionResult,
+} from '../../personas/bundles/ferni/dynamic-personality.js';
+import { getSessionVarietyTracker } from '../../services/session-variety-tracker.js';
 
 const log = createLogger({ module: 'FerniPersonality' });
 
@@ -316,29 +327,34 @@ function getTimePersonality(): string | null {
 }
 
 // ============================================================================
-// SESSION TRACKING - Prevent repetitive quirks
+// SESSION TRACKING - Using unified variety tracker
 // ============================================================================
 
-/** Track which quirks have been used in each session (keyed by userName or 'anonymous') */
-const sessionQuirksUsed = new Map<string, Set<string>>();
-
-function getSessionKey(userData: { userName?: string; name?: string }): string {
-  return userData.userName || userData.name || 'anonymous';
+/**
+ * Get session ID for variety tracking
+ * Falls back to userName or anonymous
+ */
+function getSessionId(
+  services: { sessionId?: string } | undefined,
+  userData: { userName?: string; name?: string }
+): string {
+  return services?.sessionId || userData.userName || userData.name || 'anonymous';
 }
 
-function getSessionQuirks(sessionKey: string): Set<string> {
-  if (!sessionQuirksUsed.has(sessionKey)) {
-    sessionQuirksUsed.set(sessionKey, new Set());
-  }
-  return sessionQuirksUsed.get(sessionKey)!;
-}
-
-function markQuirkUsed(sessionKey: string, quirkTrigger: string): void {
-  getSessionQuirks(sessionKey).add(quirkTrigger);
-}
-
-function wasQuirkUsed(sessionKey: string, quirkTrigger: string): boolean {
-  return getSessionQuirks(sessionKey).has(quirkTrigger);
+/**
+ * Get a dynamic expression with variety tracking
+ * This replaces the old static quirk system
+ */
+function getDynamicQuirk(
+  sessionId: string,
+  emotion?: string
+): DynamicExpressionResult | null {
+  // Get a random expression from any light category
+  return getRandomExpression(sessionId, {
+    emotionalContext: emotion,
+    // Exclude heavy categories for casual quirks
+    excludeCategories: ['vulnerability'],
+  });
 }
 
 // ============================================================================
@@ -347,11 +363,14 @@ function wasQuirkUsed(sessionKey: string, quirkTrigger: string): boolean {
 
 /**
  * Build Ferni's personality context
+ *
+ * Now uses dynamic variety tracking to prevent repetitive mentions.
+ * Ferni's core identity stays constant, but expressions vary naturally.
  */
 async function buildFerniPersonalityContext(
   input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
-  const { userText, persona, userData } = input;
+  const { userText, persona, userData, services, analysis } = input;
   const injections: ContextInjection[] = [];
 
   // Only apply to Ferni persona
@@ -360,7 +379,8 @@ async function buildFerniPersonalityContext(
   }
 
   const turnCount = userData.turnCount || 0;
-  const sessionKey = getSessionKey(userData);
+  const sessionId = getSessionId(services, userData);
+  const userEmotion = analysis?.emotion?.primary;
 
   // Don't inject on very early turns
   if (turnCount < 2) {
@@ -385,12 +405,19 @@ async function buildFerniPersonalityContext(
     );
   }
 
-  // Check for quirk - but DON'T repeat quirks we've already mentioned this session
-  const quirk = detectQuirk(userText);
-  if (quirk && Math.random() < 0.3 && !wasQuirkUsed(sessionKey, quirk.trigger)) {
-    // Only 30% chance to mention quirks, AND only if not used this session
-    contextParts.push(`[QUIRK] ${quirk.note} - mention this naturally if it fits.`);
-    markQuirkUsed(sessionKey, quirk.trigger);
+  // DYNAMIC QUIRK - Uses variety tracking to prevent repetition
+  // Only 20% chance to add a quirk, and variety tracker prevents duplicates
+  if (Math.random() < 0.2) {
+    const dynamicExpr = getDynamicQuirk(sessionId, userEmotion);
+    if (dynamicExpr) {
+      contextParts.push(
+        `[PERSONAL MOMENT] ${dynamicExpr.content} - weave this naturally if it fits.`
+      );
+      log.debug(
+        { theme: dynamicExpr.theme, id: dynamicExpr.id },
+        'Dynamic personality expression selected'
+      );
+    }
   }
 
   // Check for pushback opportunity
@@ -408,6 +435,9 @@ async function buildFerniPersonalityContext(
     contextParts.push(`[TIME VIBE] ${timeNote}`);
   }
 
+  // Record turn completion for variety tracking
+  recordTurnComplete(sessionId);
+
   // Build the injection
   if (contextParts.length > 0) {
     const guidance = [
@@ -422,6 +452,7 @@ async function buildFerniPersonalityContext(
       '• Get genuinely excited about things you care about',
       '• Gently question assumptions when appropriate',
       "• Don't just agree to be agreeable",
+      '• Vary your personal references - don\'t repeat the same traits',
       '',
       "You're a friend with a real personality, not a validation machine.",
     ];
@@ -434,9 +465,10 @@ async function buildFerniPersonalityContext(
       {
         hasPassion: !!passion,
         hasOpinion: !!opinion,
-        hasQuirk: !!quirk,
+        hasDynamicExpr: contextParts.some((p) => p.includes('[PERSONAL MOMENT]')),
         hasPushback: !!pushback,
         hasTimeNote: !!timeNote,
+        sessionId,
       },
       '🌟 Personality context injected'
     );

@@ -6,35 +6,35 @@
  */
 
 // Types
-export type { AnyRecord, Weather, Pattern, UIMemory } from './types.js';
 export { MILESTONES, MILESTONE_MESSAGES, getMilestoneMessage, getPersonaName } from './types.js';
+export type { AnyRecord, Pattern, UIMemory, Weather } from './types.js';
 
 // Conversation routes
-export { handleGetConversations, handleConversationsRoutes } from './conversations.js';
+export { handleConversationsRoutes, handleGetConversations } from './conversations.js';
 
 // Analytics routes
-export { handleGetUserAnalytics, handleAnalyticsRoutes } from './analytics.js';
+export { handleAnalyticsRoutes, handleGetUserAnalytics } from './analytics.js';
 
 // Predictions routes
 export {
   handleGetPredictions,
-  handleUpdatePredictionActuals,
   handlePredictionsRoutes,
+  handleUpdatePredictionActuals,
 } from './predictions.js';
 
 // Rituals routes
 export {
-  handleGetRituals,
+  handleCompleteRitual,
   handleCreateRitual,
   handleDeleteRitual,
-  handleCompleteRitual,
+  handleGetRituals,
   handleRitualsRoutes,
 } from './rituals.js';
 
 // Memories routes
 export {
-  handleGetCognitiveMemories,
   handleDeleteMemory,
+  handleGetCognitiveMemories,
   handleMemoriesRoutes,
 } from './memories.js';
 
@@ -43,10 +43,10 @@ export { handleGetHuddles, handleTeamRoutes } from './team.js';
 
 // Data export/delete routes
 export {
-  handleGetExportCategories,
-  handleExportData,
-  handleDeleteAllData,
   handleDataRoutes,
+  handleDeleteAllData,
+  handleExportData,
+  handleGetExportCategories,
 } from './data.js';
 
 // Relationship routes
@@ -54,7 +54,16 @@ export { handleGetRelationshipProgress, handleRelationshipRoutes } from './relat
 
 // Sky Check routes (daily check-in / emotional weather)
 export {
-  handleRecordSkyCheck,
   handleGetSkyCheckHistory,
+  handleRecordSkyCheck,
   handleSkyCheckRoutes,
 } from './sky-check.js';
+
+// Builder metrics routes (admin/monitoring)
+export {
+  handleBuilderMetricsRoutes,
+  handleGetBuilderAlerts,
+  handleGetBuilderMetrics,
+  handleGetBuilderWarnings,
+  handleGetSessionBuilderMetrics,
+} from './builder-metrics.js';

@@ -12,33 +12,29 @@
  * - Memory metrics
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // Result type imports
 import {
-  ok,
-  err,
-  isOk,
-  isErr,
-  map,
-  mapError,
-  andThen,
-  unwrapOr,
-  unwrap,
   all,
   allSettled,
-  trySync,
+  andThen,
+  err,
+  isErr,
+  isOk,
+  map,
+  mapError,
   memoryError,
-  type Result,
+  ok,
+  trySync,
+  unwrap,
+  unwrapOr,
   type MemoryError,
+  type Result,
 } from '../memory/result.js';
 
 // Embedding cache imports
-import {
-  EmbeddingCache,
-  getEmbeddingCache,
-  resetEmbeddingCache,
-} from '../memory/embedding-cache.js';
+import { getEmbeddingCache, resetEmbeddingCache } from '../memory/embedding-cache.js';
 
 // Memory consolidator imports
 import {
@@ -48,18 +44,10 @@ import {
 } from '../memory/memory-consolidator.js';
 
 // Memory decay imports
-import {
-  MemoryDecayManager,
-  getMemoryDecayManager,
-  resetMemoryDecayManager,
-} from '../memory/memory-decay.js';
+import { getMemoryDecayManager, resetMemoryDecayManager } from '../memory/memory-decay.js';
 
 // Session priming imports
-import {
-  SessionPrimer,
-  getSessionPrimer,
-  resetSessionPrimer,
-} from '../memory/session-priming.js';
+import { getSessionPrimer, resetSessionPrimer } from '../memory/session-priming.js';
 
 // ============================================================================
 // RESULT TYPE TESTS
@@ -147,9 +135,7 @@ describe('Memory Result Type', () => {
 
     it('should pass through success unchanged', () => {
       const result = ok(42);
-      const mapped = mapError(result, (e: MemoryError) =>
-        memoryError('generic', e.message)
-      );
+      const mapped = mapError(result, (e: MemoryError) => memoryError('generic', e.message));
 
       expect(isOk(mapped)).toBe(true);
       expect((mapped as { ok: true; value: number }).value).toBe(42);

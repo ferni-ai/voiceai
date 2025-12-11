@@ -11,24 +11,24 @@
  * - "I'm adjusting my pace because you seem stressed"
  *
  * This creates transparency and builds trust.
+ *
+ * Uses centralized SessionStateManager for session tracking.
  */
 
-import {
-  registerContextBuilder,
-  createHintInjection,
-  type ContextBuilderInput,
-  type ContextInjection,
-} from './index.js';
-import { getCognitiveProfile } from '../../personas/cognitive-profiles.js';
 import {
   detectUserCognitiveStyle,
   type UserCognitiveStyle,
 } from '../../personas/cognitive-advanced.js';
+import { getCognitiveProfile } from '../../personas/cognitive-profiles.js';
 import { broadcastInsightGenerated } from '../../services/cognitive-broadcast.js';
-
-// Track what insights have been shared to avoid repetition
-const sharedInsights = new Map<string, Set<string>>();
-const insightCooldowns = new Map<string, number>();
+import { DISTRESS } from '../distress-levels.js';
+import { isInsightOnCooldown, markInsightShared, wasInsightShared } from '../session-state.js';
+import {
+  createHintInjection,
+  registerContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 
 // Minimum turns between sharing similar insights
 const INSIGHT_COOLDOWN_TURNS = 8;
@@ -53,25 +53,21 @@ interface CognitiveInsight {
 
 /**
  * Build cognitive insights context
+ *
+ * Uses centralized session state for tracking shared insights.
  */
 async function buildCognitiveInsightsContext(
   input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const personaId = input.persona?.id;
-  const userId = input.services.userId || 'anonymous';
-  const sessionKey = `${personaId}_${userId}`;
+  const sessionId =
+    input.services.sessionId || `${personaId}_${input.services.userId || 'anonymous'}`;
   const turnCount = input.userData.turnCount || 1;
 
   if (!personaId) {
     return injections;
   }
-
-  // Initialize tracking
-  if (!sharedInsights.has(sessionKey)) {
-    sharedInsights.set(sessionKey, new Set());
-  }
-  const shared = sharedInsights.get(sessionKey)!;
 
   // Get persona profile
   const profile = getCognitiveProfile(personaId);
@@ -97,14 +93,13 @@ async function buildCognitiveInsightsContext(
 
   // Select one insight to potentially share (don't overwhelm)
   for (const insight of insights) {
-    const insightKey = `${insight.type}_${insight.message.substring(0, 20)}`;
+    const insightKey = insight.type;
 
-    // Check if already shared
-    if (shared.has(insight.type)) continue;
+    // Check if already shared (centralized state)
+    if (wasInsightShared(sessionId, insightKey)) continue;
 
-    // Check cooldown
-    const lastSharedTurn = insightCooldowns.get(`${sessionKey}_${insight.type}`) || 0;
-    if (turnCount - lastSharedTurn < INSIGHT_COOLDOWN_TURNS) continue;
+    // Check cooldown (centralized state)
+    if (isInsightOnCooldown(sessionId, insightKey, turnCount, INSIGHT_COOLDOWN_TURNS)) continue;
 
     // Probability of sharing (don't share too often)
     if (Math.random() > 0.25) continue;
@@ -129,9 +124,8 @@ async function buildCognitiveInsightsContext(
       true // This is a shared insight
     );
 
-    // Mark as shared
-    shared.add(insight.type);
-    insightCooldowns.set(`${sessionKey}_${insight.type}`, turnCount);
+    // Mark as shared (centralized state)
+    markInsightShared(sessionId, insightKey, turnCount);
 
     // Only share one insight per turn
     break;
@@ -207,7 +201,11 @@ function generateInsights(
   // 4. EMPATHY SHIFT INSIGHT - When shifting to empathetic mode
   // ============================================================================
   const { emotion } = input.analysis;
-  if (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel > 0.6)) {
+  // Use DISTRESS.MODERATE (0.5) threshold for empathy shift
+  if (
+    emotion.needsSupport ||
+    (emotion.distressLevel && emotion.distressLevel >= DISTRESS.MODERATE)
+  ) {
     if (profile.reasoningStyle !== 'empathetic') {
       insights.push({
         type: 'empathy_shift',
@@ -342,15 +340,11 @@ function getLearningPhrase(personaId: string): string {
 
 /**
  * Clear cognitive insights session state
+ * Now handled by centralized session state in session-state.ts
  */
-export function clearCognitiveInsightsSession(sessionKey: string): void {
-  sharedInsights.delete(sessionKey);
-  // Clear cooldowns for this session
-  for (const key of insightCooldowns.keys()) {
-    if (key.startsWith(sessionKey)) {
-      insightCooldowns.delete(key);
-    }
-  }
+export function clearCognitiveInsightsSession(_sessionKey: string): void {
+  // No-op: Session state now managed centrally via getCognitiveState/clearAllSessionStates
+  // Use isInsightOnCooldown, markInsightShared, wasInsightShared from session-state.ts
 }
 
 // ============================================================================

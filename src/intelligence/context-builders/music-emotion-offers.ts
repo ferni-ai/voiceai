@@ -44,8 +44,8 @@ interface EmotionOfferState {
 // ============================================================================
 
 const offerStates = new Map<string, EmotionOfferState>();
-const OFFER_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes between offers
-const MAX_OFFERS_PER_SESSION = 3; // Don't over-offer
+const OFFER_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes between offers (was 5 - too aggressive)
+const MAX_OFFERS_PER_SESSION = 2; // Max 2 per session (was 3 - too many)
 
 function getOrCreateOfferState(userId: string): EmotionOfferState {
   let state = offerStates.get(userId);
@@ -159,19 +159,20 @@ function shouldOfferMusic(
   }
 
   // Calculate offer probability based on history
-  let probability = 0.4; // Base probability
+  // REDUCED from 40% to 15% - was too aggressive and felt repetitive
+  let probability = 0.15; // Base probability (was 0.4)
 
   // Increase if user has accepted before
   if (state.acceptedCount > 0) {
-    probability += 0.2;
+    probability += 0.15; // Reduced from 0.2
   }
 
   // Decrease if user has declined recently
   if (state.declinedCount > state.acceptedCount) {
-    probability -= 0.2;
+    probability -= 0.1; // Reduced from 0.2
   }
 
-  // Some emotions have higher offer rates
+  // Some emotions have higher offer rates, but still conservative
   const highOfferEmotions = ['sad', 'anxious', 'stressed', 'lonely'];
   if (highOfferEmotions.includes(emotion)) {
     probability += 0.1;

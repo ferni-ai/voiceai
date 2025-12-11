@@ -209,13 +209,13 @@ import {
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';
 
 // Voice Manager
-import { createPersonaAwareTTS, getVoiceManager } from '../speech/voice-manager.js';
+import { createPersonaAwareTTS, getSessionVoiceManager } from '../speech/voice-manager.js';
 
 // Diagnostic logger
 import { diag } from '../services/diagnostic-logger.js';
 
 // Audio prosody analysis
-import { getAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
+import { getSessionAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
 // Emotion matching - connect prosody to voice response
 import {
@@ -1110,20 +1110,32 @@ class VoiceAgent extends voice.Agent<UserData> {
     // Store reference for use in async callback (this is intentional)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const agent = this;
-    const prosodyAnalyzer = getAudioProsodyAnalyzer();
 
     const [audioForSTT, audioForProsody] = audio.tee();
 
     // Process audio for prosody analysis in background
     void (async () => {
       const reader = audioForProsody.getReader();
+      // Session-scoped prosody analyzer - initialized lazily when sessionId is available
+      let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
+      let prosodySessionId: string | null = null;
+
       try {
         while (true) {
           const { value: frame, done } = await reader.read();
           if (done) break;
 
           if (frame && frame.data && frame.data.length > 0) {
-            prosodyAnalyzer.processAudioFrame(frame);
+            // Lazy init prosody analyzer when sessionId becomes available
+            if (!prosodyAnalyzer) {
+              const userData = agent.getUserDataFromContext();
+              prosodySessionId = userData?.services?.sessionId ?? null;
+              if (prosodySessionId) {
+                prosodyAnalyzer = getSessionAudioProsodyAnalyzer(prosodySessionId);
+              }
+            }
+            // Process frame if analyzer is ready
+            prosodyAnalyzer?.processAudioFrame(frame);
 
             // Feed audio to speaker change detector for voice identity verification
             const userData = agent.getUserDataFromContext();
@@ -1144,7 +1156,7 @@ class VoiceAgent extends voice.Agent<UserData> {
           }
         }
 
-        const voiceEmotion = prosodyAnalyzer.analyze();
+        const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
         if (voiceEmotion) {
           const userData = agent.getUserDataFromContext();
           if (userData) {
@@ -1567,7 +1579,7 @@ class VoiceAgent extends voice.Agent<UserData> {
           }
         }
 
-        prosodyAnalyzer.clearBuffers();
+        prosodyAnalyzer?.clearBuffers();
       } catch (error) {
         agent.logger.warn(`Prosody analysis error: ${error}`);
       } finally {
@@ -2696,8 +2708,8 @@ export default defineAgent({
         ctx.proc.userData.vad = vad;
       }
 
-      // Initialize voice manager
-      const voiceManager = getVoiceManager();
+      // Initialize voice manager (session-scoped)
+      const voiceManager = getSessionVoiceManager(sessionId);
       voiceManager.initialize();
 
       // Create TTS using PersonaAwareTTS - uses the persona's specific voice

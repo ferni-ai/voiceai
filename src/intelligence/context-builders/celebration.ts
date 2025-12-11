@@ -12,15 +12,18 @@
  *
  * Extracted from jack-bogle.ts lines 847-884
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { getCelebration, type CelebrationType } from '../../personas/theatrical.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { BuilderCategory } from './categories.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { getCelebration, type CelebrationType } from '../../personas/theatrical.js';
+
+const log = createLogger({ module: 'context:celebration' });
 
 // ============================================================================
 // EXTENDED TYPES
@@ -92,7 +95,7 @@ function buildCelebrationContext(input: ContextBuilderInput): ContextInjection[]
   // -----------------------------------------------
   for (const pattern of MILESTONE_PATTERNS) {
     if (pattern.test(userText) && analysis.emotion.valence === 'positive') {
-      getLogger().info({ persona: personaId }, 'Financial milestone detected!');
+      log.info({ persona: personaId }, 'Financial milestone detected!');
       const celebrationExample = getPersonaCelebrationExample(personaId, 'goal_reached');
       injections.push(
         createStandardInjection(
@@ -122,7 +125,7 @@ DO NOT:
     analysis.emotion.intensity &&
     analysis.emotion.intensity > 0.6
   ) {
-    getLogger().info({ persona: personaId }, 'Good news detected - celebrating!');
+    log.info({ persona: personaId }, 'Good news detected - celebrating!');
     const celebrationExample = getPersonaCelebrationExample(personaId, 'win');
     injections.push(
       createStandardInjection(
@@ -145,7 +148,7 @@ Let them bask in it before moving on.`
     (AHA_PATTERNS.test(userText) || REALIZATION_PATTERNS.test(userText)) &&
     analysis.emotion.valence !== 'negative'
   ) {
-    getLogger().info({ persona: personaId }, 'Aha moment detected!');
+    log.info({ persona: personaId }, 'Aha moment detected!');
     const celebrationExample = getPersonaCelebrationExample(personaId, 'breakthrough');
     injections.push(
       createStandardInjection(
@@ -169,7 +172,7 @@ DO NOT:
   // User has made up their mind about something
   // -----------------------------------------------
   if (DECISION_PATTERNS.test(userText)) {
-    getLogger().info({ persona: personaId }, 'Decision/commitment detected!');
+    log.info({ persona: personaId }, 'Decision/commitment detected!');
     const celebrationExample = getPersonaCelebrationExample(personaId, 'decision_made');
     injections.push(
       createStandardInjection(
@@ -215,5 +218,13 @@ DO NOT:
 // ============================================================================
 // REGISTER BUILDER
 // ============================================================================
-registerContextBuilder('celebration', buildCelebrationContext);
-export { buildCelebrationContext, MILESTONE_PATTERNS, GOOD_NEWS_PATTERNS };
+
+registerContextBuilder({
+  name: 'celebration',
+  description: 'Positive moments: milestones, good news, achievements',
+  priority: 25, // EMOTIONAL category (15-35)
+  category: BuilderCategory.EMOTIONAL,
+  build: async (input) => buildCelebrationContext(input),
+});
+
+export { buildCelebrationContext, GOOD_NEWS_PATTERNS, MILESTONE_PATTERNS };

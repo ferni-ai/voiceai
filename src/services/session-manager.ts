@@ -52,6 +52,8 @@ import { onSessionEndUnified, onSessionStartUnified } from './trust-systems/unif
 import {
   clearCurrentSessionMomentsGetter,
   getHistoryTracker,
+  // Session priming for cross-session continuity
+  getSessionPrimer,
   indexConversationSummary,
   removeHistoryTracker,
   ragLookup as semanticRagLookup,
@@ -59,8 +61,6 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
-  // Session priming for cross-session continuity
-  getSessionPrimer,
 } from '../memory/index.js';
 
 // Intelligence imports
@@ -437,10 +437,12 @@ export async function createSessionServices(
           topic: t.topic,
           urgency: t.priority as 'high' | 'medium' | 'low',
         })),
-        pendingFollowUps: primingResult.pendingFollowUps.map((f: { commitment: string; dueDate?: Date }) => ({
-          topic: f.commitment,
-          dueDate: f.dueDate?.toISOString(),
-        })),
+        pendingFollowUps: primingResult.pendingFollowUps.map(
+          (f: { commitment: string; dueDate?: Date }) => ({
+            topic: f.commitment,
+            dueDate: f.dueDate?.toISOString(),
+          })
+        ),
         emotionalContext: primingResult.emotionalContext
           ? {
               trend: primingResult.emotionalContext.sessionEndState,

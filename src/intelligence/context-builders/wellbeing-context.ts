@@ -16,22 +16,21 @@
  */
 
 import {
-  registerContextBuilder,
-  type ContextBuilderInput,
-  type ContextInjection,
-  createHintInjection,
-  createStandardInjection,
-  createCriticalInjection,
-} from './index.js';
-
-import {
   processForWellbeing,
   type WellbeingProcessResult,
 } from '../../services/wellbeing-tracking/index.js';
-
 import { createLogger } from '../../utils/safe-logger.js';
+import { BuilderCategory } from './categories.js';
+import {
+  createCriticalInjection,
+  createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 
-const log = createLogger({ module: 'WellbeingContextBuilder' });
+const log = createLogger({ module: 'context:wellbeing' });
 
 // ============================================================================
 // CONTEXT BUILDER
@@ -102,8 +101,9 @@ function determineInjectionPriority(result: WellbeingProcessResult): ContextInje
 
 registerContextBuilder({
   name: 'wellbeing-context',
-  priority: 82, // High priority, after cognitive distortions
   description: 'Track wellbeing signals and surface alerts when patterns indicate concern',
+  priority: 15, // High priority - SAFETY category (0-20)
+  category: BuilderCategory.SAFETY,
   build: buildWellbeingContext,
 });
 

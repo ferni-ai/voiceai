@@ -36,7 +36,9 @@ import { getDJIntegration } from '../dj-integration.js';
 // ============================================================================
 
 interface CachedModules {
-  getVoiceManager: typeof import('../../speech/voice-manager.js').getVoiceManager | null;
+  getSessionVoiceManager:
+    | typeof import('../../speech/voice-manager.js').getSessionVoiceManager
+    | null;
   getMusicPlayer: typeof import('../../audio/index.js').getMusicPlayer | null;
   getPersonaAsync: typeof import('../../personas/index.js').getPersonaAsync | null;
   loadBundleById: typeof import('../../personas/bundles/index.js').loadBundleById | null;
@@ -46,7 +48,7 @@ interface CachedModules {
 }
 
 const cachedModules: CachedModules = {
-  getVoiceManager: null,
+  getSessionVoiceManager: null,
   getMusicPlayer: null,
   getPersonaAsync: null,
   loadBundleById: null,
@@ -54,14 +56,14 @@ const cachedModules: CachedModules = {
 };
 
 /**
- * Get VoiceManager with caching
+ * Get VoiceManager with caching (session-scoped)
  */
-async function getVoiceManagerCached() {
-  if (!cachedModules.getVoiceManager) {
+async function getVoiceManagerCached(sessionId: string) {
+  if (!cachedModules.getSessionVoiceManager) {
     const mod = await import('../../speech/voice-manager.js');
-    cachedModules.getVoiceManager = mod.getVoiceManager;
+    cachedModules.getSessionVoiceManager = mod.getSessionVoiceManager;
   }
-  return cachedModules.getVoiceManager();
+  return cachedModules.getSessionVoiceManager(sessionId);
 }
 
 /**
@@ -515,8 +517,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           attempt++
         ) {
           try {
-            // FIX BUG #51: Use cached voice manager
-            const voiceManager = await getVoiceManagerCached();
+            // FIX BUG #51: Use cached voice manager (session-scoped)
+            const voiceManager = await getVoiceManagerCached(sessionId);
             voiceManager.switchVoice(persona.id);
 
             // Also switch the session's TTS if it supports voice switching

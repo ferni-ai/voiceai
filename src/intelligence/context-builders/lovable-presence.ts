@@ -28,6 +28,12 @@ import type {
   BundleVerbalPersonality,
 } from '../../personas/bundles/types/content.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
+import {
+  getLovableState,
+  type LovablePresenceState,
+  updateLovableState,
+} from '../session-state.js';
 import {
   createHintInjection,
   createStandardInjection,
@@ -36,22 +42,14 @@ import {
   type ContextInjection,
 } from './index.js';
 
-const log = createLogger({ module: 'LovablePresence' });
+const log = createLogger({ module: 'context:lovable-presence' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface LovableState {
-  lastTangent?: number;
-  lastSelfDeprecation?: number;
-  lastSpecificDetail?: number;
-  lastPlayfulMoment?: number;
-  lastGenuineReaction?: number;
-  tangentsThisSession: number;
-  surprisesThisSession: number;
-  userSmileSignals: number;
-}
+// LovableState is now imported from session-state.ts
+type LovableState = LovablePresenceState;
 
 interface LovableMomentType {
   type:
@@ -95,22 +93,10 @@ const LOVABLE_MOMENTS: LovableMomentType[] = [
   { type: 'confession', probability: 0.05, cooldownTurns: 12, requiresRapport: true },
 ];
 
-// Per-session state
-const sessionStates = new Map<string, LovableState>();
-
-// Content cache per persona
+// Content cache per persona (not session-specific)
 const contentCache = new Map<string, LoadedLovableContent>();
 
-function getSessionState(sessionId: string): LovableState {
-  if (!sessionStates.has(sessionId)) {
-    sessionStates.set(sessionId, {
-      tangentsThisSession: 0,
-      surprisesThisSession: 0,
-      userSmileSignals: 0,
-    });
-  }
-  return sessionStates.get(sessionId)!;
-}
+// Use centralized session state via getLovableState from session-state.ts
 
 // ============================================================================
 // CONTENT LOADING
@@ -207,7 +193,7 @@ function isGoodMomentForTangent(input: ContextBuilderInput): boolean {
   const emotion = input.analysis.emotion;
   const state = input.analysis.state;
 
-  if (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel > 0.5)) {
+  if (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel >= DISTRESS.MODERATE)) {
     return false;
   }
 
@@ -463,16 +449,16 @@ async function buildLovablePresenceContext(
 ): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const sessionId = input.services.sessionId;
-  const state = getSessionState(sessionId);
+  const state = getLovableState(sessionId); // Uses centralized session state
   const turnCount = input.userData.turnCount || 0;
 
   // Load persona-specific content
   const personaId = input.persona?.id || 'ferni';
   const content = await loadLovableContent(personaId);
 
-  // Track user delight signals
+  // Track user delight signals (update centralized state)
   if (detectUserDelight(input)) {
-    state.userSmileSignals++;
+    updateLovableState(sessionId, { userSmileSignals: state.userSmileSignals + 1 });
     log.debug('Detected user delight signal');
   }
 
@@ -480,7 +466,7 @@ async function buildLovablePresenceContext(
   if (
     input.analysis.emotion.needsSupport ||
     input.analysis.state.phase === 'crisis' ||
-    (input.analysis.emotion.distressLevel && input.analysis.emotion.distressLevel > 0.7)
+    (input.analysis.emotion.distressLevel && input.analysis.emotion.distressLevel >= DISTRESS.HIGH)
   ) {
     return injections;
   }
@@ -511,8 +497,10 @@ async function buildLovablePresenceContext(
         category: 'personality',
       })
     );
-    state.lastGenuineReaction = turnCount;
-    state.surprisesThisSession++;
+    updateLovableState(sessionId, {
+      lastGenuineReaction: turnCount,
+      surprisesThisSession: state.surprisesThisSession + 1,
+    });
   }
 
   // NOTICING (when we detect changes)
@@ -552,7 +540,7 @@ async function buildLovablePresenceContext(
       case 'tangent':
         if (isGoodMomentForTangent(input)) {
           guidance = generateTangentGuidance(content);
-          state.tangentsThisSession++;
+          // tangentsThisSession updated below with other state
         }
         break;
       case 'self_deprecation':
@@ -584,10 +572,19 @@ async function buildLovablePresenceContext(
         })
       );
 
-      // Update state
+      // Update state (centralized)
       const stateKey = `last${capitalize(moment.type)}` as keyof LovableState;
-      (state as unknown as Record<string, number>)[stateKey] = turnCount;
-      state.surprisesThisSession++;
+      const updates: Partial<LovablePresenceState> = {
+        surprisesThisSession: state.surprisesThisSession + 1,
+      };
+      // Type-safe assignment for last* fields
+      if (moment.type === 'tangent') {
+        updates.lastTangent = turnCount;
+        updates.tangentsThisSession = (state.tangentsThisSession || 0) + 1;
+      } else if (stateKey.startsWith('last')) {
+        (updates as Record<string, number>)[stateKey] = turnCount;
+      }
+      updateLovableState(sessionId, updates);
 
       // Only inject one personality moment per turn to avoid overload
       break;
@@ -621,9 +618,16 @@ export function clearLovableContentCache(): void {
   contentCache.clear();
 }
 
-/** Clear session states (for testing) */
+/**
+ * Clear session states (for testing)
+ *
+ * NOTE: Session state is now managed centrally by SessionStateManager.
+ * Use SessionStateManager.clearAll() to clear all session state.
+ * This function is kept for backward compatibility but is a no-op.
+ */
 export function clearLovableSessionStates(): void {
-  sessionStates.clear();
+  // Session state now managed by SessionStateManager
+  // Use SessionStateManager.clearAll() instead
 }
 
 // ============================================================================

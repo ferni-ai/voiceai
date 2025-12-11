@@ -5174,6 +5174,17 @@ body {
   background: transparent;
 }
 
+/* Marketplace button - MUST use tokens to match roster sizing at all breakpoints */
+.team-member--marketplace .team-avatar-container {
+  width: var(--roster-container);
+  height: var(--roster-container);
+}
+
+.team-member--marketplace .team-avatar {
+  width: var(--roster-avatar);
+  height: var(--roster-avatar);
+}
+
 .marketplace-avatar {
   display: flex;
   align-items: center;
@@ -5464,16 +5475,16 @@ body {
   }
 }
 
-/* Coach avatar - same size as regular team members for consistent alignment */
+/* Coach avatar - uses tokens for consistent sizing at all breakpoints */
 .team-member--coach .team-avatar {
-  width: 40px;
-  height: 40px;
-  font-size: var(--text-sm);
+  width: var(--roster-avatar);
+  height: var(--roster-avatar);
+  font-size: var(--roster-text);
 }
 
 .team-member--coach .team-avatar-container {
-  width: 44px;
-  height: 44px;
+  width: var(--roster-container);
+  height: var(--roster-container);
 }
 
 .team-member--coach .team-avatar-ring {

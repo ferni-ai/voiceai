@@ -13,14 +13,15 @@
  * @module intelligence/context-builders/financial-prediction
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { hasLinkedAccounts } from '../../tools/plaid.js';
 import {
+  detectAnomalies,
   generateFinancialInsight,
   generateSuperhumanMoment,
   predictCashFlow,
-  detectAnomalies,
 } from '../../services/finance/prediction.js';
+import { hasLinkedAccounts } from '../../tools/plaid.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
 import {
   registerContextBuilder,
   type ContextBuilder,
@@ -121,7 +122,7 @@ export const financialPredictionBuilder: ContextBuilder = {
         /money|budget|spend|save|bill|debt|finance|afford/.test(t.toLowerCase())
       ) ||
       analysis.emotion.primary === 'anxiety' ||
-      (analysis.state.distressLevel && analysis.state.distressLevel > 0.5);
+      (analysis.state.distressLevel && analysis.state.distressLevel >= DISTRESS.MODERATE);
 
     // Superhuman moments after turn 2 if topic is relevant
     if (turnCount >= 2 && isFinancialTopic && Date.now() - lastMoment > MOMENT_COOLDOWN_MS) {

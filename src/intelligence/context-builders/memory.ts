@@ -17,7 +17,7 @@
  */
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import { getKeyMomentRetrieval } from '../../memory/key-moment-retrieval.js';
-import { getConversationManager } from '../../services/conversation-manager.js';
+import { getSessionConversationManager } from '../../services/conversation-manager.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -176,7 +176,8 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   const extServices = services as ExtendedSessionServices;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
-  const conversationManager = getConversationManager();
+  const sessionId = services.sessionId || 'default';
+  const conversationManager = getSessionConversationManager(sessionId);
   const topics = conversationManager.getTopicHistory();
   // -----------------------------------------------
   // MEMORY CALLBACKS (reference earlier in conversation)
