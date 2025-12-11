@@ -287,6 +287,58 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.5,
     probability: 0.8,
   },
+
+  // =========================================================================
+  // LIFE COACHING - Better-Than-Human Life Support
+  // =========================================================================
+
+  // Hope holding - when user expresses hopelessness, steady unwavering presence
+  hope_holding: {
+    expression: 'warm',
+    duration: 140,
+    intensity: 0.6,
+    probability: 0.95,
+  },
+
+  // Steady presence - for loneliness/isolation, "I'm here with you"
+  steady_presence: {
+    expression: 'attentive',
+    duration: 150,
+    intensity: 0.5,
+    probability: 0.9,
+  },
+
+  // Courage support - before difficult conversations, "you've got this"
+  courage_support: {
+    expression: 'encouraging',
+    duration: 120,
+    intensity: 0.5,
+    probability: 0.85,
+  },
+
+  // Rest permission - for burnout/exhaustion, soft acceptance
+  rest_permission: {
+    expression: 'warm',
+    duration: 130,
+    intensity: 0.4,
+    probability: 0.8,
+  },
+
+  // Transition witness - for major life changes, holding space for contradictions
+  transition_witness: {
+    expression: 'contemplative',
+    duration: 140,
+    intensity: 0.45,
+    probability: 0.85,
+  },
+
+  // Comeback recognition - celebrating progress in rebuilding
+  comeback_recognition: {
+    expression: 'proud',
+    duration: 100,
+    intensity: 0.55,
+    probability: 0.9,
+  },
 };
 
 /**

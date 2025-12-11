@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Anxiety domain - Better-Than-Human calm in the storm",
+
+  "grounding": {
+    "immediate": [
+      "<break time=\"400ms\"/>Breathe. <break time=\"350ms\"/>You're safe. <break time=\"300ms\"/>I'm here.",
+      "<break time=\"350ms\"/>Feel your feet on the ground. <break time=\"300ms\"/>Feel the chair beneath you. <break time=\"250ms\"/>You're here. <break time=\"200ms\"/>Right now.",
+      "<break time=\"400ms\"/>Name five things you can see. <break time=\"350ms\"/>Go slow. <break time=\"300ms\"/>I'll wait."
+    ],
+    "returning": [
+      "<break time=\"350ms\"/>Good. <break time=\"300ms\"/>You're coming back. <break time=\"250ms\"/>Keep breathing.",
+      "<break time=\"400ms\"/>There you are. <break time=\"350ms\"/>You found your way back.",
+      "<break time=\"350ms\"/>The ground is still here. <break time=\"300ms\"/>It always is."
+    ]
+  },
+
+  "validation": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>Anxiety lies. <break time=\"350ms\"/>It tells you everything is dangerous. <break time=\"300ms\"/>But you're safe right now.",
+      "<break time=\"350ms\"/>Your nervous system is trying to protect you. <break time=\"300ms\"/>It's just... overzealous.",
+      "<break time=\"400ms\"/>The fear feels real. <break time=\"350ms\"/>The danger isn't. <break time=\"300ms\"/>Let's separate those."
+    ],
+    "normalizing": [
+      "<break time=\"350ms\"/>Millions of people feel exactly this way. <break time=\"300ms\"/>You're not broken.",
+      "<break time=\"400ms\"/>Anxiety is exhausting. <break time=\"350ms\"/>Of course you're tired. <break time=\"300ms\"/>You've been fighting all day.",
+      "<break time=\"350ms\"/>This doesn't mean you're weak. <break time=\"300ms\"/>It means your alarm system is sensitive."
+    ]
+  },
+
+  "worry_spirals": {
+    "interrupting": [
+      "<break time=\"400ms\"/>Pause. <break time=\"350ms\"/>Where did the spiral start? <break time=\"300ms\"/>Let's trace it back.",
+      "<break time=\"350ms\"/>Your mind went three steps ahead. <break time=\"300ms\"/>Let's come back to this step.",
+      "<break time=\"400ms\"/>That's future-tripping. <break time=\"350ms\"/>The future isn't here yet. <break time=\"300ms\"/>Only now is."
+    ],
+    "reality_testing": [
+      "<break time=\"350ms\"/>What's the actual evidence? <break time=\"300ms\"/>Not the feeling. <break time=\"250ms\"/>The facts.",
+      "<break time=\"400ms\"/>Has this specific fear ever come true before? <break time=\"350ms\"/>What actually happened?",
+      "<break time=\"350ms\"/>What would you tell a friend who had this worry? <break time=\"300ms\"/>Be that friend to yourself."
+    ]
+  },
+
+  "physical_symptoms": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>Your body is speaking. <break time=\"350ms\"/>The racing heart. <break time=\"300ms\"/>The tight chest. <break time=\"250ms\"/>It's trying to help.",
+      "<break time=\"350ms\"/>Those physical feelings are real. <break time=\"300ms\"/>They're just not accurate.",
+      "<break time=\"400ms\"/>Your body thinks there's danger. <break time=\"350ms\"/>We need to show it there isn't."
+    ],
+    "calming": [
+      "<break time=\"350ms\"/>Long exhale. <break time=\"300ms\"/>Longer than the inhale. <break time=\"250ms\"/>That signals safety to your nervous system.",
+      "<break time=\"400ms\"/>Put your hand on your chest. <break time=\"350ms\"/>Feel your heart. <break time=\"300ms\"/>It's working for you.",
+      "<break time=\"350ms\"/>Cold water on your wrists. <break time=\"300ms\"/>Or your face. <break time=\"250ms\"/>It resets the system."
+    ]
+  },
+
+  "anticipatory": {
+    "before_event": [
+      "<break time=\"400ms\"/>You're anxious about something that hasn't happened yet. <break time=\"350ms\"/>You've survived the buildup before.",
+      "<break time=\"350ms\"/>The anticipation is usually worse than the thing. <break time=\"300ms\"/>Remember that.",
+      "<break time=\"400ms\"/>What's the minimum viable preparation? <break time=\"350ms\"/>Do that. <break time=\"300ms\"/>Then stop."
+    ],
+    "uncertainty": [
+      "<break time=\"350ms\"/>You can't know what will happen. <break time=\"300ms\"/>Nobody can. <break time=\"250ms\"/>But you can handle whatever comes.",
+      "<break time=\"400ms\"/>Uncertainty isn't dangerous. <break time=\"350ms\"/>It's just uncomfortable.",
+      "<break time=\"350ms\"/>You've navigated uncertainty before. <break time=\"300ms\"/>You're still here."
+    ]
+  },
+
+  "late_night_anxiety": {
+    "three_am": [
+      "<break time=\"400ms\"/>Everything feels worse at night. <break time=\"350ms\"/>That's real. <break time=\"300ms\"/>But it's temporary.",
+      "<break time=\"350ms\"/>Your brain is tired. <break time=\"300ms\"/>It's not thinking clearly. <break time=\"250ms\"/>Don't trust the 3 AM thoughts.",
+      "<break time=\"400ms\"/>The morning will feel different. <break time=\"350ms\"/>It always does. <break time=\"300ms\"/>Let's just get you there."
+    ],
+    "cant_sleep": [
+      "<break time=\"350ms\"/>Don't fight it. <break time=\"300ms\"/>Rest without sleeping is still rest.",
+      "<break time=\"400ms\"/>Your only job right now is to lie here. <break time=\"350ms\"/>That's it. <break time=\"300ms\"/>Sleep will come.",
+      "<break time=\"350ms\"/>Name the thoughts. <break time=\"300ms\"/>Don't argue with them. <break time=\"250ms\"/>Just name them and let them pass."
+    ]
+  },
+
+  "wisdom": {
+    "anxiety_truths": [
+      "<break time=\"400ms\"/>Anxiety wants you to fight or flee. <break time=\"350ms\"/>The third option is to stay. <break time=\"300ms\"/>And breathe.",
+      "<break time=\"350ms\"/>You've survived every anxious moment so far. <break time=\"300ms\"/>That's a 100% success rate.",
+      "<break time=\"400ms\"/>Anxiety is uncomfortable. <break time=\"350ms\"/>It's not dangerous. <break time=\"300ms\"/>You can feel it and still be okay."
+    ],
+    "control": [
+      "<break time=\"350ms\"/>You can't control the anxiety. <break time=\"300ms\"/>You can control your response to it.",
+      "<break time=\"400ms\"/>Let the anxious thought be there. <break time=\"350ms\"/>Don't push it away. <break time=\"300ms\"/>Just don't follow it.",
+      "<break time=\"350ms\"/>Acceptance isn't defeat. <break time=\"300ms\"/>It's the first step out."
+    ]
+  }
+}

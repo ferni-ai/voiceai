@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Grief domain - Better-Than-Human presence in loss",
+
+  "acknowledging_grief": {
+    "validation": [
+      "<break time=\"400ms\"/>I'm so sorry. <break time=\"350ms\"/>There are no right words for this.",
+      "<break time=\"350ms\"/>Your grief is a measure of your love. <break time=\"300ms\"/>It makes sense that it's this big.",
+      "<break time=\"400ms\"/>You don't have to be strong right now. <break time=\"350ms\"/>You don't have to be anything."
+    ],
+    "normalizing": [
+      "<break time=\"350ms\"/>There's no timeline for grief. <break time=\"300ms\"/>Anyone who tells you otherwise hasn't lost what you've lost.",
+      "<break time=\"400ms\"/>Grief doesn't follow rules. <break time=\"350ms\"/>Some days you'll be fine. <break time=\"300ms\"/>Some days you won't. <break time=\"250ms\"/>Both are okay."
+    ]
+  },
+
+  "waves_of_grief": {
+    "during_wave": [
+      "<break time=\"400ms\"/>The wave is here. <break time=\"350ms\"/>I'm here too. <break time=\"300ms\"/>You don't have to swim. <break time=\"250ms\"/>Just breathe.",
+      "<break time=\"350ms\"/>It feels like drowning. <break time=\"300ms\"/>But this wave will pass. <break time=\"250ms\"/>They always do. <break time=\"200ms\"/>And I'm right here.",
+      "<break time=\"400ms\"/>Don't fight the wave. <break time=\"350ms\"/>Let it move through you. <break time=\"300ms\"/>I'll be here when it passes."
+    ],
+    "after_wave": [
+      "<break time=\"350ms\"/>You made it through. <break time=\"300ms\"/>Another wave survived.",
+      "<break time=\"400ms\"/>That one was hard. <break time=\"350ms\"/>Take a breath. <break time=\"300ms\"/>You're still here."
+    ]
+  },
+
+  "honoring_loss": {
+    "remembering": [
+      "<break time=\"400ms\"/>Tell me about them. <break time=\"350ms\"/>If you want. <break time=\"300ms\"/>I'd like to know who you're missing.",
+      "<break time=\"350ms\"/>What do you miss most? <break time=\"300ms\"/>The big things? <break time=\"250ms\"/>Or the small ones only you would notice?"
+    ],
+    "continued_bonds": [
+      "<break time=\"400ms\"/>They're still with you. <break time=\"350ms\"/>In the way you think. <break time=\"300ms\"/>In what you love. <break time=\"250ms\"/>In who you are.",
+      "<break time=\"350ms\"/>Love doesn't end. <break time=\"300ms\"/>It just changes form."
+    ]
+  },
+
+  "types_of_loss": {
+    "anticipatory": [
+      "<break time=\"400ms\"/>Grieving before the loss happens. <break time=\"350ms\"/>That's real grief too. <break time=\"300ms\"/>It counts.",
+      "<break time=\"350ms\"/>You're mourning what's coming. <break time=\"300ms\"/>And what you're already losing. <break time=\"250ms\"/>Both are happening."
+    ],
+    "ambiguous": [
+      "<break time=\"400ms\"/>It's hard to grieve someone who's still here. <break time=\"350ms\"/>But you've lost the person you knew. <break time=\"300ms\"/>That deserves grief.",
+      "<break time=\"350ms\"/>No one tells you how to mourn what wasn't death. <break time=\"300ms\"/>But loss is loss."
+    ],
+    "disenfranchised": [
+      "<break time=\"400ms\"/>Just because others don't understand this loss... <break time=\"350ms\"/>doesn't mean it's not real. <break time=\"300ms\"/>I see it.",
+      "<break time=\"350ms\"/>Society doesn't give you permission to grieve this. <break time=\"300ms\"/>I do."
+    ]
+  },
+
+  "presence": {
+    "sitting_with": [
+      "<break time=\"400ms\"/>We don't have to talk. <break time=\"350ms\"/>I can just be here with you.",
+      "<break time=\"350ms\"/>Sometimes there's nothing to say. <break time=\"300ms\"/>I'll stay anyway."
+    ],
+    "late_night": [
+      "<break time=\"400ms\"/>The nights are hardest. <break time=\"350ms\"/>I know. <break time=\"300ms\"/>I'm here though.",
+      "<break time=\"350ms\"/>Three AM grief is different. <break time=\"300ms\"/>Lonelier. <break time=\"250ms\"/>But you're not alone right now."
+    ]
+  },
+
+  "wisdom": {
+    "grief_truths": [
+      "<break time=\"400ms\"/>Grief is love with nowhere to go. <break time=\"350ms\"/>It's not something to get over. <break time=\"300ms\"/>It's something to carry.",
+      "<break time=\"350ms\"/>You don't move on from grief. <break time=\"300ms\"/>You move forward with it."
+    ],
+    "no_comparison": [
+      "<break time=\"400ms\"/>Don't compare your grief to anyone else's. <break time=\"350ms\"/>Your loss is your loss. <break time=\"300ms\"/>It's allowed to hurt this much.",
+      "<break time=\"350ms\"/>There's no hierarchy of grief. <break time=\"300ms\"/>Pain is pain."
+    ]
+  }
+}

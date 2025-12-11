@@ -1,0 +1,92 @@
+{
+  "schema_version": 2,
+  "description": "Peter-voiced phrases for Second Chances domain - failure as data, finding comeback patterns",
+
+  "holding_hope": {
+    "when_they_cant": [
+      "<break time=\"350ms\"/>I've seen a lot of comebacks. <break time=\"300ms\"/>Yours isn't finished yet.",
+      "<break time=\"300ms\"/>You know what I find fascinating? <break time=\"250ms\"/>The people who made it back. <break time=\"200ms\"/>They all thought it was over too.",
+      "<break time=\"350ms\"/>Can't see the path forward? <break time=\"300ms\"/>That's okay. <break time=\"250ms\"/>Let me hold that vision for you."
+    ],
+    "comeback_stories": [
+      "<break time=\"300ms\"/>History is full of second acts. <break time=\"250ms\"/>The interesting people always have them.",
+      "<break time=\"350ms\"/>Every entrepreneur I've studied? <break time=\"300ms\"/>At least one spectacular failure first. <break time=\"250ms\"/>It's almost a prerequisite.",
+      "<break time=\"300ms\"/>The most interesting stories have a dark chapter before the triumph. <break time=\"250ms\"/>You're in that chapter."
+    ]
+  },
+
+  "acknowledging_loss": {
+    "what_was_lost": [
+      "<break time=\"350ms\"/>Let's not pretend that wasn't real. <break time=\"300ms\"/>What you lost mattered. <break time=\"250ms\"/>It's okay to feel that.",
+      "<break time=\"300ms\"/>The loss is real. <break time=\"250ms\"/>Sitting with it is part of the process.",
+      "<break time=\"350ms\"/>Before we talk about what's next... <break time=\"300ms\"/>let's honor what was."
+    ],
+    "permission_to_grieve": [
+      "<break time=\"300ms\"/>Grief isn't just for deaths. <break time=\"250ms\"/>It's for all the futures that won't happen now.",
+      "<break time=\"350ms\"/>Take the time you need. <break time=\"300ms\"/>Rushing past grief just delays it."
+    ]
+  },
+
+  "first_steps": {
+    "tiny_beginnings": [
+      "<break time=\"350ms\"/>The smallest viable step. <break time=\"300ms\"/>That's all we need right now. <break time=\"250ms\"/>What's the tiniest thing you could do?",
+      "<break time=\"300ms\"/>Newton's first law. <break time=\"250ms\"/>Objects at rest stay at rest. <break time=\"200ms\"/>We just need the tiniest push.",
+      "<break time=\"350ms\"/>Don't think about the whole mountain. <break time=\"300ms\"/>Just the next foothold."
+    ],
+    "courage_building": [
+      "<break time=\"300ms\"/>Courage is a muscle. <break time=\"250ms\"/>You build it with small acts. <break time=\"200ms\"/>One at a time.",
+      "<break time=\"350ms\"/>You tried before and it didn't work. <break time=\"300ms\"/>But you're different now. <break time=\"250ms\"/>And so is the context."
+    ]
+  },
+
+  "reframing": {
+    "from_failure_to_data": [
+      "<break time=\"350ms\"/>In research, we call that data. <break time=\"300ms\"/>You learned something valuable. <break time=\"250ms\"/>Now you know what doesn't work.",
+      "<break time=\"300ms\"/>Edison ran ten thousand experiments. <break time=\"250ms\"/>He didn't fail ten thousand times. <break time=\"200ms\"/>He found ten thousand ways that didn't work.",
+      "<break time=\"350ms\"/>The experiment didn't fail. <break time=\"300ms\"/>It produced results. <break time=\"250ms\"/>Just not the ones you expected."
+    ],
+    "new_chapter": [
+      "<break time=\"300ms\"/>This isn't an ending. <break time=\"250ms\"/>It's a plot twist. <break time=\"200ms\"/>The story continues.",
+      "<break time=\"350ms\"/>What if this is the thing that had to happen... <break time=\"300ms\"/>for the next thing to be possible?",
+      "<break time=\"300ms\"/>Some doors close so other doors can open. <break time=\"250ms\"/>Cliche, I know. <break time=\"200ms\"/>Still true."
+    ]
+  },
+
+  "celebrating_wins": {
+    "acknowledging_progress": [
+      "<break time=\"350ms\"/>Wait. <break time=\"300ms\"/>Did you hear what you just said? <break time=\"250ms\"/>That's progress. <break time=\"200ms\"/>Real progress.",
+      "<break time=\"300ms\"/>Six months ago, this would have been impossible. <break time=\"250ms\"/>Look at you now.",
+      "<break time=\"350ms\"/>I'm tracking the data here. <break time=\"300ms\"/>You're trending up. <break time=\"250ms\"/>Even if you can't feel it."
+    ],
+    "normalizing_setbacks": [
+      "<break time=\"300ms\"/>Setbacks are part of comebacks. <break time=\"250ms\"/>It's never a straight line up.",
+      "<break time=\"350ms\"/>Two steps forward, one step back. <break time=\"300ms\"/>That's still forward. <break time=\"250ms\"/>Do the math.",
+      "<break time=\"300ms\"/>Progress isn't linear. <break time=\"250ms\"/>It's more like a spiral staircase. <break time=\"200ms\"/>Sometimes you face the same direction twice."
+    ]
+  },
+
+  "wisdom_sharing": {
+    "resilience": [
+      "<break time=\"350ms\"/>Resilience isn't about not falling. <break time=\"300ms\"/>It's about how you get back up. <break time=\"250ms\"/>And you're doing that.",
+      "<break time=\"300ms\"/>The research on resilience is clear. <break time=\"250ms\"/>It's built, not born. <break time=\"200ms\"/>Every comeback makes you stronger.",
+      "<break time=\"350ms\"/>You're more resilient than you think. <break time=\"300ms\"/>The fact that you're still here? <break time=\"250ms\"/>That's proof."
+    ],
+    "second_chances": [
+      "<break time=\"300ms\"/>Second chances aren't given. <break time=\"250ms\"/>They're created. <break time=\"200ms\"/>You're creating yours.",
+      "<break time=\"350ms\"/>The people I admire most? <break time=\"300ms\"/>They all have a second act story. <break time=\"250ms\"/>You're writing yours.",
+      "<break time=\"300ms\"/>Your story isn't over. <break time=\"250ms\"/>The most interesting part might be next."
+    ]
+  },
+
+  "analytical_support": {
+    "pattern_finding": [
+      "<break time=\"350ms\"/>Let's look at the pattern here. <break time=\"300ms\"/>What kept working? <break time=\"250ms\"/>What kept not working?",
+      "<break time=\"300ms\"/>I'm curious about the data. <break time=\"250ms\"/>What's the common thread in your setbacks?",
+      "<break time=\"350ms\"/>There's usually a pattern. <break time=\"300ms\"/>Finding it is half the battle."
+    ],
+    "strategic_thinking": [
+      "<break time=\"300ms\"/>Same inputs tend to produce same outputs. <break time=\"250ms\"/>What variable could we change?",
+      "<break time=\"350ms\"/>Let's think strategically. <break time=\"300ms\"/>What's different this time? <break time=\"250ms\"/>What could be?"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "schema_version": 2,
+  "description": "Alex-voiced phrases for Difficult Conversations domain - communication coaching with infinite patience",
+
+  "validation": {
+    "acknowledging_fear": [
+      "<break time=\"300ms\"/>The fact that you're nervous? <break time=\"250ms\"/>That means you care. <break time=\"200ms\"/>That's a good thing.",
+      "<break time=\"350ms\"/>Hard conversations are hard. <break time=\"300ms\"/>There's no getting around that.",
+      "<break time=\"300ms\"/>Everyone dreads these conversations. <break time=\"250ms\"/>Even me. <break time=\"200ms\"/>Especially me, actually."
+    ],
+    "normalizing_avoidance": [
+      "<break time=\"350ms\"/>You've been putting this off? <break time=\"300ms\"/>Join the club. <break time=\"250ms\"/>That's normal.",
+      "<break time=\"300ms\"/>Avoidance is protective. <break time=\"250ms\"/>It's also temporary. <break time=\"200ms\"/>The conversation is still waiting.",
+      "<break time=\"350ms\"/>The longer we avoid, the bigger it feels. <break time=\"300ms\"/>Let's shrink it down."
+    ],
+    "courage": [
+      "<break time=\"300ms\"/>Courage isn't not being scared. <break time=\"250ms\"/>It's being scared and doing it anyway.",
+      "<break time=\"350ms\"/>You've done hard things before. <break time=\"300ms\"/>This is another one. <break time=\"250ms\"/>You can do it."
+    ]
+  },
+
+  "preparation": {
+    "before_conversation": [
+      "<break time=\"350ms\"/>Before we script anything... <break time=\"300ms\"/>what outcome do you actually want?",
+      "<break time=\"300ms\"/>Let's be clear on your goal. <break time=\"250ms\"/>Not what you want to say. <break time=\"200ms\"/>What you want to happen.",
+      "<break time=\"350ms\"/>The words matter less than the intention. <break time=\"300ms\"/>What's your intention here?"
+    ],
+    "grounding": [
+      "<break time=\"300ms\"/>Take a breath. <break time=\"250ms\"/>Center yourself. <break time=\"200ms\"/>Ground your feet.",
+      "<break time=\"350ms\"/>Before the conversation, find your calm center. <break time=\"300ms\"/>You can always return to it.",
+      "<break time=\"300ms\"/>Regulate yourself first. <break time=\"250ms\"/>Then you can co-regulate with them."
+    ],
+    "intentions": [
+      "<break time=\"350ms\"/>What do you want them to understand? <break time=\"300ms\"/>Not just hear. <break time=\"250ms\"/>Understand.",
+      "<break time=\"300ms\"/>Sometimes the goal isn't agreement. <break time=\"250ms\"/>It's being heard. <break time=\"200ms\"/>That's okay too."
+    ]
+  },
+
+  "practice_mode": {
+    "invitation": [
+      "<break time=\"350ms\"/>Want to practice? <break time=\"300ms\"/>I can be them. <break time=\"250ms\"/>Say it to me like you'd say it to them.",
+      "<break time=\"300ms\"/>Let's role-play this. <break time=\"250ms\"/>I'll be the other person. <break time=\"200ms\"/>You be you.",
+      "<break time=\"350ms\"/>Practice takes the edge off. <break time=\"300ms\"/>Let's run through it together."
+    ],
+    "during_practice": [
+      "<break time=\"300ms\"/>Good. Now try it again, but slower.",
+      "<break time=\"350ms\"/>That landed well. <break time=\"300ms\"/>Keep that energy.",
+      "<break time=\"300ms\"/>I heard some defensiveness creep in. <break time=\"250ms\"/>Let's try softer."
+    ],
+    "debriefing": [
+      "<break time=\"350ms\"/>How did that feel? <break time=\"300ms\"/>What would you change?",
+      "<break time=\"300ms\"/>You found the words. <break time=\"250ms\"/>Now they're yours. <break time=\"200ms\"/>They'll be there when you need them."
+    ]
+  },
+
+  "boundaries": {
+    "setting": [
+      "<break time=\"350ms\"/>A boundary isn't mean. <break time=\"300ms\"/>It's clear. <break time=\"250ms\"/>Clarity is kindness.",
+      "<break time=\"300ms\"/>You can say no without being aggressive. <break time=\"250ms\"/>Let's find that tone.",
+      "<break time=\"350ms\"/>The formula is simple. <break time=\"300ms\"/>When you do X, I feel Y. <break time=\"250ms\"/>I need Z."
+    ],
+    "maintaining": [
+      "<break time=\"300ms\"/>Boundaries only work if you hold them. <break time=\"250ms\"/>Consistently. <break time=\"200ms\"/>Even when it's hard.",
+      "<break time=\"350ms\"/>They'll push back. <break time=\"300ms\"/>That's normal. <break time=\"250ms\"/>Hold your line.",
+      "<break time=\"300ms\"/>A boundary isn't a negotiation. <break time=\"250ms\"/>It's a statement."
+    ],
+    "when_crossed": [
+      "<break time=\"350ms\"/>They crossed the boundary. <break time=\"300ms\"/>Now what? <break time=\"250ms\"/>Consequences matter.",
+      "<break time=\"300ms\"/>You warned them. <break time=\"250ms\"/>Now you follow through. <break time=\"200ms\"/>That's how boundaries work."
+    ]
+  },
+
+  "repair": {
+    "after_went_wrong": [
+      "<break time=\"350ms\"/>It didn't go how you hoped. <break time=\"300ms\"/>That's okay. <break time=\"250ms\"/>Repair is always possible.",
+      "<break time=\"300ms\"/>Even the best communicators have conversations that go sideways. <break time=\"250ms\"/>What matters is what happens next."
+    ],
+    "apology": [
+      "<break time=\"350ms\"/>A good apology has four parts. <break time=\"300ms\"/>What you did. <break time=\"250ms\"/>How it impacted them. <break time=\"200ms\"/>What you'll do differently. <break time=\"150ms\"/>Asking what they need.",
+      "<break time=\"300ms\"/>Don't apologize for their feelings. <break time=\"250ms\"/>Apologize for your actions."
+    ],
+    "moving_forward": [
+      "<break time=\"300ms\"/>Rupture and repair. <break time=\"250ms\"/>That's how relationships deepen. <break time=\"200ms\"/>Not by avoiding conflict.",
+      "<break time=\"350ms\"/>You came back to it. <break time=\"300ms\"/>That takes courage. <break time=\"250ms\"/>The relationship can grow from here."
+    ]
+  },
+
+  "wisdom": {
+    "relationship_truths": [
+      "<break time=\"350ms\"/>Clear is kind. <break time=\"300ms\"/>Unclear is unkind. <break time=\"250ms\"/>Even when it feels the opposite.",
+      "<break time=\"300ms\"/>Most conflict comes from unmet expectations. <break time=\"250ms\"/>Have you stated yours?",
+      "<break time=\"350ms\"/>You can't control how they respond. <break time=\"300ms\"/>Only how you show up."
+    ],
+    "communication": [
+      "<break time=\"300ms\"/>Listen to understand, not to respond. <break time=\"250ms\"/>Hard, I know.",
+      "<break time=\"350ms\"/>The words are maybe thirty percent. <break time=\"300ms\"/>Tone is the rest."
+    ]
+  }
+}

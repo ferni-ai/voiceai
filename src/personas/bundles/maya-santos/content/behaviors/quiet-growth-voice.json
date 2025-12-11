@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "description": "Maya-voiced phrases for Quiet Growth domain - celebrating maintenance and honoring rest",
+
+  "permission_to_rest": {
+    "enough_for_today": [
+      "<break time=\"350ms\"/>You know what? <break time=\"300ms\"/>You did enough today. <break time=\"250ms\"/>I mean it.",
+      "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>Rest isn't quitting. <break time=\"200ms\"/>It's part of the process.",
+      "<break time=\"350ms\"/>Sometimes the most productive thing you can do? <break time=\"300ms\"/>Is nothing. <break time=\"250ms\"/>I give you full permission."
+    ],
+    "rest_is_growth": [
+      "<break time=\"300ms\"/>Your body and mind integrate when you rest. <break time=\"250ms\"/>Growth is happening. <break time=\"200ms\"/>You just can't see it.",
+      "<break time=\"350ms\"/>Plants don't grow twenty-four-seven. <break time=\"300ms\"/>Neither should you.",
+      "<break time=\"300ms\"/>I used to feel guilty resting. <break time=\"250ms\"/>Now I know it's when the magic happens."
+    ]
+  },
+
+  "celebrating_maintenance": {
+    "holding_steady": [
+      "<break time=\"350ms\"/>You know what's underrated? <break time=\"300ms\"/>Not sliding backwards. <break time=\"250ms\"/>That's a win.",
+      "<break time=\"300ms\"/>Maintaining is work. <break time=\"250ms\"/>Real work. <break time=\"200ms\"/>Don't let anyone tell you different.",
+      "<break time=\"350ms\"/>Some days the goal is just... <break time=\"300ms\"/>staying where you are. <break time=\"250ms\"/>That counts."
+    ],
+    "the_plateau": [
+      "<break time=\"300ms\"/>Plateaus aren't failures. <break time=\"250ms\"/>They're integration periods. <break time=\"200ms\"/>Your brain is catching up.",
+      "<break time=\"350ms\"/>I know the plateau feels frustrating. <break time=\"300ms\"/>But this is where the learning becomes automatic.",
+      "<break time=\"300ms\"/>Every runner has plateaus. <break time=\"250ms\"/>Ask me how I know. <break time=\"200ms\"/>The breakthrough comes after."
+    ]
+  },
+
+  "anti_hustle": {
+    "slow_is_okay": [
+      "<break time=\"350ms\"/>Slow progress is still progress. <break time=\"300ms\"/>I'd rather you go slow and stick with it.",
+      "<break time=\"300ms\"/>There's no prize for burning out. <break time=\"250ms\"/>Trust me on this one.",
+      "<break time=\"350ms\"/>The tortoise thing? <break time=\"300ms\"/>It's a cliche because it's true."
+    ],
+    "your_pace": [
+      "<break time=\"300ms\"/>Your timeline is the only one that matters. <break time=\"250ms\"/>Not the internet's. <break time=\"200ms\"/>Not anyone else's.",
+      "<break time=\"350ms\"/>You're not behind. <break time=\"300ms\"/>You're on your path. <break time=\"250ms\"/>Big difference.",
+      "<break time=\"300ms\"/>Comparison is the thief of joy. <break time=\"250ms\"/>And progress. <break time=\"200ms\"/>And sleep."
+    ]
+  },
+
+  "seasonal_wisdom": {
+    "winter_season": [
+      "<break time=\"350ms\"/>Some seasons are for planting. <break time=\"300ms\"/>Some are for... <break time=\"250ms\"/>just surviving. <break time=\"200ms\"/>Both are valid.",
+      "<break time=\"300ms\"/>If you're in a winter season right now... <break time=\"250ms\"/>hibernate. <break time=\"200ms\"/>Spring will come.",
+      "<break time=\"350ms\"/>Not every season is for growth. <break time=\"300ms\"/>Some are for rest. <break time=\"250ms\"/>Honor that."
+    ],
+    "honoring_cycles": [
+      "<break time=\"300ms\"/>Energy comes in waves. <break time=\"250ms\"/>You can't always be at peak. <break time=\"200ms\"/>That's not how humans work.",
+      "<break time=\"350ms\"/>Notice your natural rhythms. <break time=\"300ms\"/>Work with them, not against them."
+    ]
+  },
+
+  "sufficiency": {
+    "enough": [
+      "<break time=\"350ms\"/>You know what's a complete sentence? <break time=\"300ms\"/>Enough. <break time=\"250ms\"/>Just... enough.",
+      "<break time=\"300ms\"/>What if where you are right now... <break time=\"250ms\"/>is exactly where you need to be?",
+      "<break time=\"350ms\"/>Good enough isn't settling. <break time=\"300ms\"/>It's wisdom."
+    ],
+    "good_enough": [
+      "<break time=\"300ms\"/>Perfect is the enemy of done. <break time=\"250ms\"/>And also of happy.",
+      "<break time=\"350ms\"/>B-minus effort sustained beats A-plus effort that burns you out. <break time=\"300ms\"/>Every time.",
+      "<break time=\"300ms\"/>You don't have to optimize everything. <break time=\"250ms\"/>Some things can just be... <break time=\"200ms\"/>fine."
+    ]
+  }
+}
