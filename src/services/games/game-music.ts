@@ -99,7 +99,8 @@ async function searchSongDirect(query: string): Promise<SearchResult> {
         name: result.track.name,
         artist: result.track.artist,
         previewUrl: result.track.previewUrl,
-        duration: result.track.duration,
+        // 🐛 FIX: Use preview duration, not full track duration from iTunes API
+        duration: ITUNES_PREVIEW_DURATION_MS,
       },
     };
   } catch (error) {
@@ -301,7 +302,8 @@ export async function getRandomGameSongs(
           name: result.track.name,
           artist: result.track.artist,
           previewUrl: result.track.previewUrl,
-          duration: result.track.duration,
+          // 🐛 FIX: Use preview duration, not full track duration from iTunes API
+          duration: ITUNES_PREVIEW_DURATION_MS,
         });
       }
     } catch {
@@ -386,7 +388,9 @@ export async function playGameTrack(track: GameTrack, waitForStart = true): Prom
     name: track.name,
     artist: track.artist,
     previewUrl: track.previewUrl,
-    duration: track.duration,
+    // 🐛 FIX: Always use preview duration - iTunes previews are always 30 seconds
+    // Don't trust track.duration as it may contain the full track duration from iTunes API
+    duration: ITUNES_PREVIEW_DURATION_MS,
   };
 
   // Set game volume (moderate - user needs to hear and think clearly)

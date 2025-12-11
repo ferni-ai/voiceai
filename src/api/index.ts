@@ -15,6 +15,7 @@ export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleGDPRRoutes } from './gdpr-routes.js';
 export { handlePerformanceRoutes } from './performance-routes.js';
+export { handleOptimizerRoutes } from './optimizer-routes.js';
 export {
   handleSubscriptionRequest,
   isSubscriptionRoute,

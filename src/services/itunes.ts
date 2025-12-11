@@ -13,6 +13,10 @@ import { createLogger, getLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'iTunes' });
 const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
 
+// 🐛 FIX: iTunes API returns full track duration (e.g., 3 min), but previews are always 30 seconds
+// We MUST use this constant for duration, not trackTimeMillis from the API
+const ITUNES_PREVIEW_DURATION_MS = 30000;
+
 // Circuit breaker for iTunes API
 // 🎯 IMPROVED: More lenient thresholds to handle transient network issues
 // - 5 failures (up from 3) before opening
@@ -181,7 +185,9 @@ export async function findTrack(query: string): Promise<MusicSearchResult> {
       artist: trackWithPreview.artistName,
       album: trackWithPreview.collectionName,
       previewUrl: trackWithPreview.previewUrl,
-      duration: trackWithPreview.trackTimeMillis,
+      // 🐛 FIX: Use preview duration (30s), NOT full track duration from API
+      // trackTimeMillis is the full song length, but we only play 30-second previews
+      duration: ITUNES_PREVIEW_DURATION_MS,
       genre: trackWithPreview.primaryGenreName,
       artwork: trackWithPreview.artworkUrl100,
     },

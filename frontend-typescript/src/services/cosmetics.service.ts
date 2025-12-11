@@ -9,6 +9,7 @@
  * can see what's available (creating aspiration).
  */
 
+import { setTheme, type ThemeName } from '../theme/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Cosmetics');
@@ -74,16 +75,15 @@ const DEFAULT_AVATAR_SKINS: CosmeticItem[] = [
 const DEFAULT_UI_THEMES: CosmeticItem[] = [
   {
     id: 'theme-default',
-    name: 'Paper & Ink',
-    description: 'Warm cream background with natural ink text',
+    name: 'Zen Garden',
+    description: 'Clean, natural, serene light theme',
     type: 'ui-theme',
     rarity: 'common',
     priceInSeeds: null,
     requiredTier: 'free',
     isLimited: false,
     config: {
-      '--color-background': 'var(--color-paper-cream)',
-      '--color-text': 'var(--color-natural-ink)',
+      systemTheme: 'zen', // Default light theme
     },
   },
 ];
@@ -163,16 +163,23 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
     priceInSeeds: 200,
     requiredTier: 'friend',
     isLimited: false,
+    config: {
+      systemTheme: 'zen', // Light base
+      accentHue: '120', // Green accent shift
+    },
   },
   {
     id: 'theme-midnight',
     name: 'Midnight',
-    description: 'True dark mode with soft blue accents',
+    description: 'True dark mode with warm cedar tones',
     type: 'ui-theme',
     rarity: 'rare',
     priceInSeeds: 300,
     requiredTier: 'friend',
     isLimited: false,
+    config: {
+      systemTheme: 'midnight', // Dark mode
+    },
   },
   {
     id: 'theme-cozy',
@@ -183,6 +190,10 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
     priceInSeeds: 500,
     requiredTier: 'partner',
     isLimited: false,
+    config: {
+      systemTheme: 'midnight', // Dark base
+      accentHue: '35', // Warm amber shift
+    },
   },
 ];
 
@@ -219,6 +230,72 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
   },
 ];
 
+const DEFAULT_VOICE_PACKS: CosmeticItem[] = [
+  {
+    id: 'voice-default',
+    name: 'Natural',
+    description: "Ferni's natural, balanced voice",
+    type: 'voice-pack',
+    rarity: 'common',
+    priceInSeeds: null,
+    requiredTier: 'free',
+    isLimited: false,
+    config: {
+      voiceStyle: 'natural',
+      speed: '1.0',
+      pitch: '0',
+    },
+  },
+];
+
+const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
+  {
+    id: 'voice-warm',
+    name: 'Extra Warm',
+    description: 'A warmer, more comforting tone',
+    type: 'voice-pack',
+    rarity: 'uncommon',
+    priceInSeeds: 200,
+    requiredTier: 'friend',
+    isLimited: false,
+    config: {
+      voiceStyle: 'warm',
+      speed: '0.95',
+      pitch: '-2',
+    },
+  },
+  {
+    id: 'voice-calm',
+    name: 'Zen Calm',
+    description: 'Slower, more meditative pace',
+    type: 'voice-pack',
+    rarity: 'rare',
+    priceInSeeds: 300,
+    requiredTier: 'friend',
+    isLimited: false,
+    config: {
+      voiceStyle: 'calm',
+      speed: '0.9',
+      pitch: '-1',
+    },
+  },
+  {
+    id: 'voice-energetic',
+    name: 'Energetic',
+    description: 'More upbeat and motivating',
+    type: 'voice-pack',
+    rarity: 'rare',
+    priceInSeeds: 300,
+    requiredTier: 'friend',
+    isLimited: false,
+    config: {
+      voiceStyle: 'energetic',
+      speed: '1.05',
+      pitch: '+1',
+    },
+  },
+];
+
 // ============================================================================
 // ALL COSMETICS CATALOG
 // ============================================================================
@@ -226,9 +303,11 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
 export const COSMETICS_CATALOG: CosmeticItem[] = [
   ...DEFAULT_AVATAR_SKINS,
   ...DEFAULT_UI_THEMES,
+  ...DEFAULT_VOICE_PACKS,
   ...PREMIUM_AVATAR_SKINS,
   ...PREMIUM_UI_THEMES,
   ...PREMIUM_SOUND_PACKS,
+  ...PREMIUM_VOICE_PACKS,
 ];
 
 // ============================================================================
@@ -241,11 +320,11 @@ const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
 
 function createDefaultCosmetics(): UserCosmetics {
   return {
-    ownedItems: ['skin-default', 'theme-default'],
+    ownedItems: ['skin-default', 'theme-default', 'voice-default'],
     equipped: {
       'avatar-skin': 'skin-default',
       'ui-theme': 'theme-default',
-      'voice-pack': null,
+      'voice-pack': 'voice-default',
       'sound-pack': null,
       emote: null,
     },
@@ -481,6 +560,30 @@ function applyEquippedCosmetics(): void {
     }
   }
 
+  // Apply sound pack - dispatch event for ambient sounds service
+  const soundPackId = userCosmetics.equipped['sound-pack'];
+  document.dispatchEvent(
+    new CustomEvent('ferni:sound-pack-change', {
+      detail: { packId: soundPackId },
+    })
+  );
+
+  // Apply voice pack - dispatch event for voice settings
+  const voicePackId = userCosmetics.equipped['voice-pack'];
+  if (voicePackId) {
+    const voicePack = COSMETICS_CATALOG.find((c) => c.id === voicePackId);
+    if (voicePack?.config) {
+      // Store voice preferences for backend to use
+      localStorage.setItem('ferni_voice_style', JSON.stringify(voicePack.config));
+
+      document.dispatchEvent(
+        new CustomEvent('ferni:voice-pack-change', {
+          detail: { packId: voicePackId, config: voicePack.config },
+        })
+      );
+    }
+  }
+
   log.debug('Applied equipped cosmetics');
 }
 
@@ -533,15 +636,35 @@ function applySkinConfig(config: Record<string, string>): void {
 }
 
 /**
- * Apply a UI theme config (CSS custom properties)
+ * Apply a UI theme config
+ * Integrates with the main theme system (zen/midnight) and applies any additional CSS overrides
  */
 function applyThemeConfig(config: Record<string, string>): void {
   const root = document.documentElement;
+
+  // Apply system theme if specified (zen or midnight)
+  if (config.systemTheme) {
+    const themeName = config.systemTheme as ThemeName;
+    if (themeName === 'zen' || themeName === 'midnight') {
+      setTheme(themeName);
+    }
+  }
+
+  // Apply accent hue shift if specified (for theme variations)
+  if (config.accentHue) {
+    root.style.setProperty('--theme-accent-hue', config.accentHue);
+  } else {
+    root.style.removeProperty('--theme-accent-hue');
+  }
+
+  // Apply any additional CSS custom properties
   for (const [property, value] of Object.entries(config)) {
     if (property.startsWith('--')) {
       root.style.setProperty(property, value);
     }
   }
+
+  log.debug({ config }, 'Applied theme config');
 }
 
 // ============================================================================

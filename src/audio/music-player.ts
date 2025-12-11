@@ -1065,7 +1065,19 @@ export class CallMusicPlayer {
       );
 
       if (nextTrack.previewUrl) {
+        // 🐛 FIX: Reset trackEndHandled so the new track's backup timer can work
+        this.trackEndHandled = false;
+        // 🐛 FIX: Clear backup timer from previous track (playFromUrl will set a new one)
+        if (this.trackEndBackupTimer) {
+          clearTimeout(this.trackEndBackupTimer);
+          this.trackEndBackupTimer = null;
+        }
         void this.playFromUrl(nextTrack.previewUrl, nextTrack);
+      } else {
+        // 🐛 FIX: Track has no previewUrl - skip to next or notify stopped
+        getLogger().warn({ track: nextTrack.name }, '🎧 Queue track has no previewUrl - skipping');
+        // Recursively try the next track in queue
+        this.onTrackEnded();
       }
     } else {
       // 🎧 FIX: Save track info BEFORE clearing for proper notification

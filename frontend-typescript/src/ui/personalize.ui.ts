@@ -452,8 +452,8 @@ function renderCategories(): string {
     'all',
     'avatar-skin',
     'ui-theme',
+    'voice-pack',
     'sound-pack',
-    // 'voice-pack' - Currently no voice pack items, will add when available
     // 'emote' - Currently no emote items, will add when available
   ];
 

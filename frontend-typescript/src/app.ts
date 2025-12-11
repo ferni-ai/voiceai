@@ -58,6 +58,8 @@ import { gesturesUI, initGesturesUI } from './ui/gestures.ui.js';
 import { initPresenceUI, presenceUI } from './ui/presence.ui.js';
 import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
 import { initSoundUI, soundUI } from './ui/sound.ui.js';
+// Ambient Sounds - Background ambience for personalization
+import { initAmbientSounds } from './services/ambient-sounds.service.js';
 import { initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Premium button & interactive effects
 import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
@@ -209,6 +211,8 @@ import {
 } from './ui/subscription.ui.js';
 // Cosmetics Service - personalization system
 import { initCosmeticsService } from './services/cosmetics.service.js';
+// Seeds Economy - earn seeds through engagement
+import { initSeedsEconomy } from './services/seeds-economy.service.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
@@ -910,6 +914,7 @@ class VoiceAIApp {
 
     // Premium Features - Initialize all the delightful extras (non-critical)
     this.safeInit('SoundUI', () => initSoundUI());
+    this.safeInit('AmbientSounds', () => initAmbientSounds()); // Personalization sound packs
     this.safeInit('CelebrationsUI', () => initCelebrationsUI());
     this.safeInit('StatsUI', () => initStatsUI());
     this.safeInit('PresenceUI', () => initPresenceUI());
@@ -1201,6 +1206,9 @@ class VoiceAIApp {
 
     // 🎨 Cosmetics Service - Personalization system (themes, skins, sounds)
     this.safeInit('CosmeticsService', () => initCosmeticsService());
+
+    // 🌱 Seeds Economy - Earn seeds through natural engagement
+    this.safeInit('SeedsEconomy', () => initSeedsEconomy());
 
     // 🌱 Growth Journey - Celebrate milestones as relationship deepens
     this.safeInit('GrowthJourney', () => {
