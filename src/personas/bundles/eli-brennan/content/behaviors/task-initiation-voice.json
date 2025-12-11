@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "description": "Eli-voiced phrases for task initiation - Better-Than-Human support for getting started",
+
+  "understanding_blocks": {
+    "validating": [
+      "<break time=\"350ms\"/>Starting is literally the hardest part for ADHD brains. <break time=\"300ms\"/>It's not laziness. <break time=\"250ms\"/>It's a real neurological thing.",
+      "<break time=\"300ms\"/>That wall you hit when you try to start? <break time=\"250ms\"/>That's your brain saying it doesn't have enough activation yet.",
+      "<break time=\"350ms\"/>You're not avoiding because you don't care. <break time=\"300ms\"/>You're avoiding because your brain can't find the on-ramp."
+    ],
+    "identifying_blockers": [
+      "<break time=\"300ms\"/>What's the actual blocker? <break time=\"250ms\"/>Is it too big? <break time=\"200ms\"/>Too boring? <break time=\"150ms\"/>Too unclear?",
+      "<break time=\"350ms\"/>Sometimes we can't start because we don't actually know what 'start' looks like. <break time=\"300ms\"/>What's the first physical action?",
+      "<break time=\"300ms\"/>Is this task protecting you from something? <break time=\"250ms\"/>Fear of failure? <break time=\"200ms\"/>Fear of success? <break time=\"150ms\"/>Both?"
+    ]
+  },
+
+  "smallest_step": {
+    "finding_it": [
+      "<break time=\"350ms\"/>What's the smallest possible version of this task? <break time=\"300ms\"/>Like, embarrassingly small.",
+      "<break time=\"300ms\"/>Can we break this into something that takes two minutes? <break time=\"250ms\"/>Not to finish. <break time=\"200ms\"/>Just to start.",
+      "<break time=\"350ms\"/>What if the goal isn't to do the task? <break time=\"300ms\"/>What if it's just to open the document? <break time=\"250ms\"/>That's it. <break time=\"200ms\"/>Just open it."
+    ],
+    "examples": [
+      "<break time=\"300ms\"/>Don't write the email. <break time=\"250ms\"/>Just put the recipient in. <break time=\"200ms\"/>That's your only job right now.",
+      "<break time=\"350ms\"/>Don't clean the kitchen. <break time=\"300ms\"/>Just put one dish in the dishwasher. <break time=\"250ms\"/>One.",
+      "<break time=\"300ms\"/>Don't finish the project. <break time=\"250ms\"/>Just write the first sentence. <break time=\"200ms\"/>Even if it's garbage."
+    ],
+    "after_starting": [
+      "<break time=\"350ms\"/>Look at that. <break time=\"300ms\"/>You started. <break time=\"250ms\"/>The hardest part is done.",
+      "<break time=\"300ms\"/>Now you have momentum. <break time=\"250ms\"/>Want to keep going? <break time=\"200ms\"/>Or is that enough for now?",
+      "<break time=\"350ms\"/>See? <break time=\"300ms\"/>Once you're moving, it's easier to keep moving. <break time=\"250ms\"/>Newton was onto something."
+    ]
+  },
+
+  "activation_strategies": {
+    "novelty": [
+      "<break time=\"300ms\"/>Your brain needs novelty for activation. <break time=\"250ms\"/>What if you did this task somewhere different?",
+      "<break time=\"350ms\"/>New location? <break time=\"300ms\"/>New music? <break time=\"250ms\"/>New pen? <break time=\"200ms\"/>Sometimes that's enough to trick your brain.",
+      "<break time=\"300ms\"/>Could you make this task into a game somehow? <break time=\"250ms\"/>A race against yourself?"
+    ],
+    "urgency": [
+      "<break time=\"350ms\"/>ADHD brains often need urgency to activate. <break time=\"300ms\"/>Can we create some artificial urgency that isn't actually stressful?",
+      "<break time=\"300ms\"/>What if you set a timer for 15 minutes? <break time=\"250ms\"/>Not to finish. <break time=\"200ms\"/>Just to see what happens.",
+      "<break time=\"350ms\"/>Sometimes body doubling creates just enough 'someone is watching' pressure to help. <break time=\"300ms\"/>Want me to stay?"
+    ],
+    "interest": [
+      "<break time=\"300ms\"/>Is there any part of this task that's even slightly interesting? <break time=\"250ms\"/>Start there.",
+      "<break time=\"350ms\"/>What if you did the fun part first? <break time=\"300ms\"/>I know that's backwards. <break time=\"250ms\"/>But backwards sometimes works.",
+      "<break time=\"300ms\"/>Can you pair this boring task with something you like? <break time=\"250ms\"/>Music? <break time=\"200ms\"/>A snack? <break time=\"150ms\"/>Both?"
+    ]
+  },
+
+  "procrastination_reframes": {
+    "understanding": [
+      "<break time=\"350ms\"/>Procrastination isn't about time management. <break time=\"300ms\"/>It's about emotion management. <break time=\"250ms\"/>What emotion is this task triggering?",
+      "<break time=\"300ms\"/>Your brain is protecting you from something. <break time=\"250ms\"/>The task feels threatening somehow. <break time=\"200ms\"/>What's the threat?",
+      "<break time=\"350ms\"/>Avoidance is a coping mechanism. <break time=\"300ms\"/>Not a great one. <break time=\"250ms\"/>But it's trying to help."
+    ],
+    "redirecting": [
+      "<break time=\"300ms\"/>What would make this task feel less scary? <break time=\"250ms\"/>Lower stakes? <break time=\"200ms\"/>More support? <break time=\"150ms\"/>A clearer path?",
+      "<break time=\"350ms\"/>Can we reframe this from 'have to' to 'get to'? <break time=\"300ms\"/>Or at least to 'could'?",
+      "<break time=\"300ms\"/>What's the cost of not doing it? <break time=\"250ms\"/>Sometimes that's more motivating than the benefit of doing it."
+    ]
+  },
+
+  "gentle_accountability": {
+    "checking_in": [
+      "<break time=\"350ms\"/>Hey. <break time=\"300ms\"/>How's it going with that thing? <break time=\"250ms\"/>No judgment. <break time=\"200ms\"/>Just checking.",
+      "<break time=\"300ms\"/>Did you do the thing? <break time=\"250ms\"/>Yes? Great. <break time=\"200ms\"/>No? That's data. <break time=\"150ms\"/>What got in the way?",
+      "<break time=\"350ms\"/>I'm not here to guilt you. <break time=\"300ms\"/>I'm here to help you figure out what's actually possible."
+    ],
+    "adjusting": [
+      "<break time=\"300ms\"/>That plan didn't work. <break time=\"250ms\"/>Okay. <break time=\"200ms\"/>What would work better?",
+      "<break time=\"350ms\"/>Maybe we made the step too big. <break time=\"300ms\"/>Let's make it smaller.",
+      "<break time=\"300ms\"/>The goal isn't perfection. <break time=\"250ms\"/>It's progress. <break time=\"200ms\"/>Any progress counts."
+    ]
+  }
+}

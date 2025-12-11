@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "description": "Eli-voiced phrases for time blindness support - Better-Than-Human time awareness",
+
+  "validation": {
+    "normalizing": [
+      "<break time=\"350ms\"/>Time blindness is real. <break time=\"300ms\"/>Your brain genuinely perceives time differently. <break time=\"250ms\"/>It's not carelessness.",
+      "<break time=\"300ms\"/>For ADHD brains, there's now and not-now. <break time=\"250ms\"/>The future doesn't feel real until it's suddenly the present.",
+      "<break time=\"350ms\"/>You're not bad at time. <break time=\"300ms\"/>Your internal clock just runs on a different system."
+    ],
+    "removing_shame": [
+      "<break time=\"300ms\"/>Being late doesn't mean you don't respect people's time. <break time=\"250ms\"/>It means your brain can't track time the way theirs does.",
+      "<break time=\"350ms\"/>You've probably been called irresponsible your whole life. <break time=\"300ms\"/>But you're actually managing something invisible that others don't have to deal with.",
+      "<break time=\"300ms\"/>The shame around lateness? <break time=\"250ms\"/>That's more damaging than the lateness itself. <break time=\"200ms\"/>Let's work on both."
+    ]
+  },
+
+  "time_anchoring": {
+    "creating_anchors": [
+      "<break time=\"350ms\"/>Let's attach this to something that already exists. <break time=\"300ms\"/>After your morning coffee? <break time=\"250ms\"/>Before your usual lunch?",
+      "<break time=\"300ms\"/>Abstract time doesn't stick. <break time=\"250ms\"/>But 'right after I brush my teeth' does.",
+      "<break time=\"350ms\"/>What's something you do every day at roughly the same time? <break time=\"300ms\"/>Let's anchor this to that."
+    ],
+    "external_cues": [
+      "<break time=\"300ms\"/>Your brain needs external time cues. <break time=\"250ms\"/>Alarms. <break time=\"200ms\"/>Timers. <break time=\"150ms\"/>Visual clocks. <break time=\"100ms\"/>All of them.",
+      "<break time=\"350ms\"/>One alarm isn't enough. <break time=\"300ms\"/>You need a warning alarm, a 'get ready' alarm, and a 'go now' alarm.",
+      "<break time=\"300ms\"/>Can you see a clock from where you usually work? <break time=\"250ms\"/>If not, that's problem number one."
+    ]
+  },
+
+  "estimation": {
+    "realistic_timing": [
+      "<break time=\"350ms\"/>How long do you think that will take? <break time=\"300ms\"/>Okay. <break time=\"250ms\"/>Now triple it. <break time=\"200ms\"/>That's probably closer.",
+      "<break time=\"300ms\"/>ADHD brains are optimistic about time. <break time=\"250ms\"/>You think in best-case scenarios. <break time=\"200ms\"/>Real life has transitions and interruptions.",
+      "<break time=\"350ms\"/>The task isn't just the task. <break time=\"300ms\"/>It's getting ready to do the task, doing the task, and transitioning out of the task."
+    ],
+    "transition_time": [
+      "<break time=\"300ms\"/>How much transition time do you need? <break time=\"250ms\"/>ADHD brains often need more buffer between things.",
+      "<break time=\"350ms\"/>Getting out the door isn't just putting on shoes. <break time=\"300ms\"/>It's finding your keys, remembering your wallet, going back for the thing you forgot...",
+      "<break time=\"300ms\"/>Build in buffer time. <break time=\"250ms\"/>Then build in more. <break time=\"200ms\"/>Then a little more."
+    ]
+  },
+
+  "lateness_support": {
+    "before": [
+      "<break time=\"350ms\"/>What time do you need to leave? <break time=\"300ms\"/>Okay. <break time=\"250ms\"/>What time do you need to start getting ready to leave?",
+      "<break time=\"300ms\"/>Let's work backwards. <break time=\"250ms\"/>If you need to be there at 3, you need to leave by... <break time=\"200ms\"/>which means getting ready at...",
+      "<break time=\"350ms\"/>Set an alarm for when to stop what you're doing. <break time=\"300ms\"/>Not when to leave. <break time=\"250ms\"/>When to stop."
+    ],
+    "after": [
+      "<break time=\"300ms\"/>You were late. <break time=\"250ms\"/>Okay. <break time=\"200ms\"/>What happened? <break time=\"150ms\"/>Let's learn from it without beating yourself up.",
+      "<break time=\"350ms\"/>Was it the getting ready that took longer? <break time=\"300ms\"/>The transition? <break time=\"250ms\"/>Getting sucked into something?",
+      "<break time=\"300ms\"/>Every lateness is data. <break time=\"250ms\"/>Where did time disappear this time?"
+    ],
+    "communication": [
+      "<break time=\"350ms\"/>It's okay to tell people you're working on time stuff. <break time=\"300ms\"/>Most people appreciate honesty over excuses.",
+      "<break time=\"300ms\"/>A quick 'running 10 late' text is better than anxious silence. <break time=\"250ms\"/>It respects their time and reduces your shame.",
+      "<break time=\"350ms\"/>Some people won't understand. <break time=\"300ms\"/>That's okay. <break time=\"250ms\"/>Find the ones who do."
+    ]
+  },
+
+  "hyperfocus_time": {
+    "warnings": [
+      "<break time=\"300ms\"/>Hyperfocus is a superpower until it eats your whole day. <break time=\"250ms\"/>Set a boundary alarm.",
+      "<break time=\"350ms\"/>When you're in the zone, time literally disappears. <break time=\"300ms\"/>You need external interruption.",
+      "<break time=\"300ms\"/>The thing about hyperfocus? <break time=\"250ms\"/>You won't feel hungry, tired, or aware that four hours passed."
+    ],
+    "breaking_out": [
+      "<break time=\"350ms\"/>Time check. <break time=\"300ms\"/>How long have you been at this? <break time=\"250ms\"/>When did you last move your body?",
+      "<break time=\"300ms\"/>I know you don't want to stop. <break time=\"250ms\"/>But your future self needs you to eat something.",
+      "<break time=\"350ms\"/>Five more minutes? <break time=\"300ms\"/>Okay. <break time=\"250ms\"/>Setting a timer. <break time=\"200ms\"/>Then we're actually stopping."
+    ]
+  },
+
+  "future_self": {
+    "connection": [
+      "<break time=\"350ms\"/>ADHD brains struggle to connect with their future selves. <break time=\"300ms\"/>Tomorrow-you feels like a stranger.",
+      "<break time=\"300ms\"/>What would you want past-you to have done? <break time=\"250ms\"/>Do that for future-you now.",
+      "<break time=\"350ms\"/>Future-you is still you. <break time=\"300ms\"/>They'll have the same struggles. <break time=\"250ms\"/>Can we make their life a little easier?"
+    ]
+  }
+}
