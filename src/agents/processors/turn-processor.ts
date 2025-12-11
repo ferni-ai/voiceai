@@ -36,6 +36,18 @@ import type {
   TurnProcessorResult,
 } from './types.js';
 
+// Extracted injection builders (cleaner separation of concerns)
+import {
+  buildConversationDynamicsInjections,
+  buildCrossPersonaInsightsInjection,
+  buildHumanLevelInjections,
+  buildLifeCoachingInjections,
+  buildSafetyInjections,
+  buildScientificCoachingInjections,
+  buildTrustSystemsInjections,
+  type ConversationDynamicsResult as InjectionDynamicsResult,
+} from './injection-builders.js';
+
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,
@@ -83,18 +95,11 @@ import {
   type MismatchResult,
 } from '../../intelligence/voice-text-mismatch.js';
 
-// Scientific Coaching Context (cognitive distortion detection, wellbeing, nudges, wisdom)
-import {
-  buildScientificCoachingContext,
-  type ScientificCoachingResult,
-} from '../../intelligence/context-builders/scientific-coaching.js';
+// Note: Scientific coaching and cross-persona insights are now handled
+// by injection-builders.ts for cleaner separation of concerns
 
-// Cross-persona insight sharing
-import {
-  acknowledgeInsight,
-  buildInsightContext,
-  getInsightsToSurface,
-} from '../../services/cross-persona-insights.js';
+// Monetization - Value Capture (detect achievements/breakthroughs)
+import { valueCapture } from '../../services/monetization/value-capture.js';
 
 // Personal theme tracking (prevents "always talks about Wyoming")
 import { extractPersonalThemes } from '../session/session-state.js';
@@ -1043,59 +1048,17 @@ async function buildContextInjections(
     bundleRuntime,
   };
 
-  // 2a. SAFETY FIRST: Crisis Detection
-  // User safety is non-negotiable. Check for crisis signals before anything else.
-  try {
-    const { performSafetyCheck } = await import('../../services/safety/index.js');
-
-    // Map relationship stage to safety module's expected values
-    const relationshipMap: Record<string, 'new' | 'building' | 'established' | 'deep'> = {
-      stranger: 'new',
-      acquaintance: 'building',
-      friend: 'established',
-      trusted_advisor: 'deep',
-      building: 'building',
-    };
-    const safetyRelationship =
-      relationshipMap[userData.relationshipStage || 'building'] || 'building';
-
-    const safetyResult = performSafetyCheck(userText, {
-      userId: services.userId || 'unknown',
-      personaId: persona.id,
-      relationshipStage: safetyRelationship,
-      userName: services.userProfile?.name,
-    });
-
-    if (safetyResult.crisisDetected) {
-      diag.warn('🛡️ Crisis signal detected', {
-        type: safetyResult.detection.primary?.type,
-        severity: safetyResult.detection.primary?.severity,
-        requiresAction: safetyResult.shouldInterrupt,
-      });
-
-      // Add crisis context at highest priority
-      if (safetyResult.contextInjection) {
-        injections.push({
-          category: 'safety',
-          content: safetyResult.contextInjection,
-          priority: 99, // Highest priority - safety first
-        });
-      }
-
-      // If crisis response is generated, add it
-      if (safetyResult.response) {
-        const resourceName = safetyResult.response.primaryResource?.name || 'professional support';
-        injections.push({
-          category: 'crisis_response',
-          content: `[CRISIS SUPPORT]\nValidate first: "${safetyResult.response.validation}"\nResource if appropriate: ${resourceName}`,
-          priority: 98,
-        });
-      }
-    }
-  } catch (safetyError) {
-    diag.error('Safety check failed (CRITICAL)', { error: String(safetyError) });
-    // Continue anyway - don't break the conversation, but log this
-  }
+  // 2a. SAFETY FIRST: Crisis Detection (extracted to injection-builders.ts)
+  const safetyInjections = await buildSafetyInjections({
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  });
+  injections.push(...safetyInjections);
 
   const contextInjections = await buildConversationContext(contextInput);
   if (contextInjections.length > 0) {
@@ -1116,183 +1079,92 @@ async function buildContextInjections(
     });
   }
 
-  // 2b. Scientific Coaching Context (cognitive distortions, wellbeing, nudges, wisdom)
-  let scientificCoachingResult: ScientificCoachingResult | undefined;
+  // 2b. Scientific Coaching Context (extracted to injection-builders.ts)
+  const scientificResult = await buildScientificCoachingInjections({
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  });
+  injections.push(...scientificResult.injections);
+
+  // Store adaptive endpointing recommendation in userData for voice agent
+  if (scientificResult.endpointingRecommendation) {
+    (userData as Record<string, unknown>).adaptiveEndpointing =
+      scientificResult.endpointingRecommendation;
+    diag.debug('Adaptive endpointing updated', scientificResult.endpointingRecommendation);
+  }
+
+  // 2c. Life Coaching Context (extracted to injection-builders.ts)
+  const coachingInjections = await buildLifeCoachingInjections({
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  });
+  injections.push(...coachingInjections);
+
+  // 2d. Trust Systems Context (extracted to injection-builders.ts)
+  const trustInjections = await buildTrustSystemsInjections({
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  });
+  injections.push(...trustInjections);
+
+  // 2e. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
+  // This runs silently and stores detected events for later potential prompting
   try {
-    scientificCoachingResult = await buildScientificCoachingContext({
-      userId: services.userId || 'unknown',
-      userMessage: userText,
-      personaId: persona.id,
-      topic: currentTopic,
-      emotionalState: emotionalState.primary,
-      emotionalIntensity: emotionalState.intensity,
-      conversationPhase:
-        userData.turnCount && userData.turnCount < 3
-          ? 'opening'
-          : userData.turnCount && userData.turnCount > 10
-            ? 'closing'
-            : 'exploring',
-      turnNumber: userData.turnCount || 1,
+    const userId = services.userId || 'unknown';
+    const valueEvent = await valueCapture.detect({
+      userId,
+      message: userText,
+      conversationId: services.sessionId,
     });
 
-    // Add scientific coaching injections
-    for (const injection of scientificCoachingResult.injections) {
-      const priorityMap: Record<string, number> = {
-        critical: 95,
-        high: 85,
-        standard: 75,
-        hint: 65,
+    if (valueEvent) {
+      diag.info('💰 Value event detected', {
+        type: valueEvent.type,
+        estimatedValue: valueEvent.estimatedValueCents,
+      });
+
+      // Store on userData for later frontend integration
+      // This allows the UI to optionally prompt for contribution after conversation
+      (userData as Record<string, unknown>).lastValueEvent = {
+        type: valueEvent.type,
+        eventId: valueEvent.id,
+        message: userText.slice(0, 100),
+        timestamp: valueEvent.createdAt,
       };
-      injections.push({
-        category: `scientific_${injection.source}`,
-        content: injection.content,
-        priority: priorityMap[injection.priority] || 70,
+
+      // Check if we should show value capture (rate-limited, not disruptive)
+      const recentValuePromptCount =
+        ((userData as Record<string, unknown>).valuePromptCount as number) || 0;
+      const shouldShow = valueCapture.shouldShow({
+        event: valueEvent,
+        recentValuePromptCount,
+        conversationTurnCount: userData.turnCount || 0,
       });
+
+      if (shouldShow) {
+        // Flag for potential post-conversation prompt (not during!)
+        (userData as Record<string, unknown>).shouldPromptValueCapture = true;
+        (userData as Record<string, unknown>).valuePromptCount = recentValuePromptCount + 1;
+      }
     }
-
-    // Log detections for debugging
-    if (scientificCoachingResult.detectedDistortions.length > 0) {
-      diag.info('🧠 Cognitive distortions detected', {
-        distortions: scientificCoachingResult.detectedDistortions,
-      });
-    }
-    if (scientificCoachingResult.warnings.length > 0) {
-      diag.warn('⚠️ Early warnings detected', {
-        warnings: scientificCoachingResult.warnings,
-      });
-    }
-
-    // Store adaptive endpointing recommendation in userData for potential use
-    // The voice agent session can use this to adjust pause detection
-    if (scientificCoachingResult.endpointingRecommendation) {
-      (userData as Record<string, unknown>).adaptiveEndpointing =
-        scientificCoachingResult.endpointingRecommendation;
-      diag.debug('Adaptive endpointing updated', {
-        minDelay: scientificCoachingResult.endpointingRecommendation.minDelay,
-        maxDelay: scientificCoachingResult.endpointingRecommendation.maxDelay,
-      });
-    }
-  } catch (sciError) {
-    diag.warn('Scientific coaching context failed (non-fatal)', { error: String(sciError) });
-  }
-
-  // 2c. Life Coaching Context (goals, actions, obstacles, values, style)
-  try {
-    const { getCoachingContextForLLM, analyzeForCoaching } =
-      await import('../../services/coaching/index.js');
-
-    // Map full persona IDs to short names for coaching module
-    const coachingPersonaMap: Record<
-      string,
-      'ferni' | 'maya' | 'alex' | 'peter' | 'jack' | 'jordan'
-    > = {
-      ferni: 'ferni',
-      'jack-b': 'jack',
-      'jack-bogle': 'jack',
-      'maya-santos': 'maya',
-      'alex-chen': 'alex',
-      'peter-john': 'peter',
-      'jordan-taylor': 'jordan',
-    };
-    const coachingPersona = coachingPersonaMap[persona.id] || 'ferni';
-
-    // Analyze user message for coaching opportunities
-    const coachingAnalysis = analyzeForCoaching(services.userId || 'unknown', userText, {
-      currentPersona: coachingPersona,
-    });
-
-    // Log coaching opportunities for debugging
-    if (coachingAnalysis.hasGoalStatement) {
-      diag.info('🎯 Goal statement detected', {
-        goal: coachingAnalysis.goalText,
-        domain: coachingAnalysis.domain,
-      });
-    }
-    if (coachingAnalysis.hasObstacle) {
-      diag.debug('🚧 Obstacle detected', { type: coachingAnalysis.obstacleType });
-    }
-    if (coachingAnalysis.suggestedHandoff) {
-      diag.debug('🤝 Handoff suggested', { target: coachingAnalysis.handoffTarget });
-    }
-
-    // Get comprehensive coaching context for LLM
-    const coachingContext = getCoachingContextForLLM(services.userId || 'unknown', {
-      currentPersona: coachingPersona,
-      userMessage: userText,
-    });
-
-    if (coachingContext) {
-      injections.push({
-        category: 'coaching',
-        content: coachingContext,
-        priority: 72, // Between scientific coaching (75) and tasks (70)
-      });
-    }
-
-    // If user has vague emotions, add granularity expansion prompt
-    if (coachingAnalysis.hasVagueEmotion && coachingAnalysis.emotionExpansion) {
-      injections.push({
-        category: 'emotional_granularity',
-        content: `[EMOTIONAL DEPTH] User used vague emotion language. Consider gently expanding: "${coachingAnalysis.emotionExpansion}"`,
-        priority: 68,
-      });
-    }
-  } catch (coachingError) {
-    diag.warn('Coaching context failed (non-fatal)', { error: String(coachingError) });
-  }
-
-  // 2d. Trust Systems Context (small wins, intentions, growth reflections, callbacks)
-  try {
-    const { buildTrustContext } = await import('../../services/trust-systems/index.js');
-
-    const trustContext = buildTrustContext(services.userId || 'unknown', userText, {
-      currentTopic,
-      detectedEmotion: emotionalState.primary,
-      emotionIntensity: emotionalState.intensity,
-    });
-
-    // Add celebration opportunity if detected
-    if (trustContext.celebrationOpportunity) {
-      diag.info('🎉 Small win celebration opportunity', {
-        type: trustContext.celebrationOpportunity.win.type,
-        description: trustContext.celebrationOpportunity.win.description,
-      });
-      injections.push({
-        category: 'celebration',
-        content: `[🎉 CELEBRATION OPPORTUNITY]\nUser showed ${trustContext.celebrationOpportunity.win.type}: "${trustContext.celebrationOpportunity.win.description}"\nCelebrate this! "${trustContext.celebrationOpportunity.celebration}"`,
-        priority: 71,
-      });
-    }
-
-    // Add growth reflection if appropriate
-    if (trustContext.growthReflection) {
-      injections.push({
-        category: 'growth',
-        content: `[🌱 GROWTH REFLECTION]\n"${trustContext.growthReflection}"`,
-        priority: 66,
-      });
-    }
-
-    // Add callback opportunity (remembering something from the past)
-    if (trustContext.callbackOpportunity) {
-      const momentContent = trustContext.callbackOpportunity.moment?.content || 'a past moment';
-      injections.push({
-        category: 'callback',
-        content: `[💭 CALLBACK OPPORTUNITY]\nRelated to "${momentContent}" - could reference: "${trustContext.callbackOpportunity.suggestedCallback}"`,
-        priority: 64,
-      });
-    }
-
-    // Add topics to avoid
-    if (trustContext.topicsToAvoid?.length > 0) {
-      injections.push({
-        category: 'boundaries',
-        content: `[⚠️ TOPICS TO AVOID]\n${trustContext.topicsToAvoid.join(', ')}`,
-        priority: 90, // High priority - respect boundaries
-      });
-    }
-  } catch (trustError) {
-    diag.warn('Trust context failed (non-fatal)', { error: String(trustError) });
+  } catch (valueError) {
+    diag.debug('Value capture detection skipped', { error: String(valueError) });
+    // Non-fatal - monetization detection should never block conversation
   }
 
   // 3. Task wisdom
@@ -1339,87 +1211,17 @@ async function buildContextInjections(
     });
   }
 
-  // 7. Human-level features
-  try {
-    // Communication style
-    services.communicationMirroring.analyzeMessage(userText);
-    const styleGuidance = services.communicationMirroring.formatGuidanceForPrompt();
-    if (styleGuidance) {
-      injections.push({
-        category: 'communication_style',
-        content: styleGuidance,
-        priority: 45,
-      });
-    }
-
-    // Humor calibration
-    if (userData.lastResponseHadHumor) {
-      const userLaughed =
-        userData.voiceEmotion?.primary === 'happy' && userData.voiceEmotion?.confidence > 0.6;
-      services.humorCalibration.analyzeReaction(userText, userLaughed);
-      userData.lastResponseHadHumor = false;
-    }
-
-    if (responseGuidance.humor?.shouldAttempt) {
-      const humorContent = [
-        `[HUMOR OK]`,
-        responseGuidance.humor.type ? `Try ${responseGuidance.humor.type} humor.` : '',
-        responseGuidance.humor.avoid?.length
-          ? `Avoid: ${responseGuidance.humor.avoid.join(', ')}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-
-      injections.push({
-        category: 'humor',
-        content: humorContent,
-        priority: 40,
-      });
-    }
-
-    // Story preference
-    if (userData.lastResponseHadStory) {
-      services.storyPreference.analyzeEngagement(userText);
-      userData.lastResponseHadStory = false;
-    }
-
-    const storyPrefGuidance = services.storyPreference.getStoryGuidance(
-      currentTopic || 'general',
-      analysis.emotion.primary,
-      userData.turnCount || 0
-    );
-    if (storyPrefGuidance.shouldTellStory && storyPrefGuidance.recommendedType) {
-      injections.push({
-        category: 'story_preference',
-        content: `[STORY PREFERENCE] User responds well to ${storyPrefGuidance.recommendedType} stories. Preferred: ${storyPrefGuidance.recommendedLength || 'medium'} length.`,
-        priority: 38,
-      });
-    }
-
-    // Emotional memory
-    if (analysis.emotion.primary !== 'neutral' && (analysis.emotion.intensity || 0.5) > 0.5) {
-      const intensity = (analysis.emotion.intensity || 0.5) >= 0.7 ? 'strong' : 'moderate';
-      services.emotionalMemory.recordMoment(
-        analysis.emotion.primary as import('../../intelligence/emotion-detector.js').PrimaryEmotion,
-        currentTopic || 'general',
-        userText.slice(0, 50),
-        userText,
-        intensity
-      );
-    }
-
-    const emotionalContext = services.emotionalMemory.formatForPrompt();
-    if (emotionalContext) {
-      injections.push({
-        category: 'emotional_memory',
-        content: emotionalContext,
-        priority: 35,
-      });
-    }
-  } catch (error) {
-    ctx.logger.warn({ error: String(error) }, 'Human-level features failed (non-fatal)');
-  }
+  // 7. Human-level features (extracted to injection-builders.ts)
+  const humanLevelInjections = await buildHumanLevelInjections({
+    services,
+    userData,
+    userText,
+    analysis,
+    currentTopic,
+    humorGuidance: responseGuidance.humor,
+    logger: ctx.logger,
+  });
+  injections.push(...humanLevelInjections);
 
   // 8. Emotional guidance
   if (emotionalState.responseGuidance) {
@@ -1438,36 +1240,10 @@ async function buildContextInjections(
     });
   }
 
-  // 8b. Cross-persona insights (team intelligence)
-  try {
-    const personaId = persona.id as
-      | 'ferni'
-      | 'maya'
-      | 'peter'
-      | 'alex'
-      | 'jordan'
-      | 'nayan'
-      | 'jack';
-    const insightContext = buildInsightContext(services.userId || 'anonymous', personaId, {
-      maxInsights: 3,
-    });
-    if (insightContext) {
-      injections.push({
-        category: 'team_insights',
-        content: insightContext,
-        priority: 31,
-      });
-    }
-
-    // Acknowledge insights we're using
-    const insightsToSurface = getInsightsToSurface(services.userId || 'anonymous', personaId, 2);
-    for (const item of insightsToSurface) {
-      void acknowledgeInsight(services.userId || 'anonymous', item.insight.id, personaId).catch(
-        () => {}
-      );
-    }
-  } catch {
-    // Non-fatal
+  // 8b. Cross-persona insights (extracted to injection-builders.ts)
+  const insightsInjection = await buildCrossPersonaInsightsInjection(services, persona.id);
+  if (insightsInjection) {
+    injections.push(insightsInjection);
   }
 
   // 9. Story opportunity
@@ -1621,79 +1397,29 @@ async function buildContextInjections(
     }
   }
 
-  // 15. Conversation dynamics (narrative arc, engagement, rhythm)
-  // 15a. Narrative arc - when user is building to a point
-  if (conversationDynamics.narrativeArc) {
-    const {
-      structure,
-      climaxApproaching,
-      hasReachedCore,
-      suggestedIntervention,
-      interventionGuidance,
-    } = conversationDynamics.narrativeArc;
-
-    if (structure !== 'direct' || climaxApproaching || hasReachedCore) {
-      const narrativeContent = hasReachedCore
-        ? `[NARRATIVE: USER REACHED CORE] ${interventionGuidance}`
-        : climaxApproaching
-          ? `[NARRATIVE: CLIMAX APPROACHING] User is building to something important. ${interventionGuidance}`
-          : structure === 'circular'
-            ? `[NARRATIVE: CIRCULAR] User keeps returning to the same concern. ${interventionGuidance}`
-            : structure === 'meandering'
-              ? `[NARRATIVE: MEANDERING] ${interventionGuidance}`
-              : `[NARRATIVE: ${structure.toUpperCase()}] Action: ${suggestedIntervention}. ${interventionGuidance}`;
-
-      injections.push({
-        category: 'narrative_arc',
-        content: narrativeContent,
-        priority: 48,
-      });
-    }
-  }
-
-  // 15b. Engagement tracking - when user seems disengaged
-  if (conversationDynamics.engagement) {
-    const { level, declining, suggestedAction, actionGuidance } = conversationDynamics.engagement;
-
-    if (level === 'low' || level === 'distracted' || declining) {
-      const engagementContent =
-        level === 'distracted'
-          ? `[⚠️ USER DISTRACTED] ${actionGuidance}`
-          : level === 'low'
-            ? `[ENGAGEMENT: LOW] ${actionGuidance}`
-            : `[ENGAGEMENT: DECLINING] Consider: ${suggestedAction}. ${actionGuidance}`;
-
-      injections.push({
-        category: 'engagement',
-        content: engagementContent,
-        priority: declining ? 52 : 42,
-      });
-    }
-  }
-
-  // 15c. Rhythm guidance - match user's pacing
-  if (conversationDynamics.rhythm && conversationDynamics.rhythm.guidance) {
-    const { lengthMultiplier, energyLevel, guidance } = conversationDynamics.rhythm;
-
-    // Only inject if there's meaningful deviation from default
-    if (lengthMultiplier < 0.8 || lengthMultiplier > 1.2 || energyLevel !== 'medium') {
-      injections.push({
-        category: 'rhythm',
-        content: `[RHYTHM MATCH] ${guidance}${energyLevel !== 'medium' ? ` Energy: ${energyLevel}.` : ''}`,
-        priority: 38,
-      });
-    }
-  }
-
-  // 15d. Silence decision - meaningful pauses
-  if (conversationDynamics.silence?.useSilence) {
-    const { reason, duration } = conversationDynamics.silence;
-    injections.push({
-      category: 'silence',
-      content: `[MEANINGFUL SILENCE: ${reason.toUpperCase()}] Before responding, take ${Math.round(duration / 1000)}s pause. This communicates presence and care.`,
-      priority: 46,
-    });
-  }
+  // 15. Conversation dynamics (extracted to injection-builders.ts)
+  // Map to the injection builder's expected type (which has stricter level typing)
+  const dynamicsForBuilder: InjectionDynamicsResult = {
+    narrativeArc: conversationDynamics.narrativeArc,
+    engagement: conversationDynamics.engagement
+      ? {
+          level: conversationDynamics.engagement.level as 'low' | 'medium' | 'high' | 'distracted',
+          declining: conversationDynamics.engagement.declining,
+          suggestedAction: conversationDynamics.engagement.suggestedAction,
+          actionGuidance: conversationDynamics.engagement.actionGuidance,
+        }
+      : undefined,
+    rhythm: conversationDynamics.rhythm
+      ? {
+          lengthMultiplier: conversationDynamics.rhythm.lengthMultiplier,
+          energyLevel: conversationDynamics.rhythm.energyLevel as 'low' | 'medium' | 'high',
+          guidance: conversationDynamics.rhythm.guidance,
+        }
+      : undefined,
+    silence: conversationDynamics.silence,
+  };
+  const dynamicsInjections = buildConversationDynamicsInjections(dynamicsForBuilder);
+  injections.push(...dynamicsInjections);
 
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
@@ -1956,6 +1682,20 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     logger.warn({ elapsedMs }, 'Turn processing took longer than expected');
   }
 
+  // Build value capture result if detected
+  const lastValueEvent = (userData as Record<string, unknown>).lastValueEvent as
+    | { type: string; eventId: string }
+    | undefined;
+  const shouldPromptValue = (userData as Record<string, unknown>).shouldPromptValueCapture;
+
+  const valueCapture = lastValueEvent
+    ? {
+        type: lastValueEvent.type,
+        eventId: lastValueEvent.eventId,
+        shouldPrompt: !!shouldPromptValue,
+      }
+    : undefined;
+
   return {
     analysis: analysisResult,
     context: {
@@ -1968,6 +1708,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     identity: identityContext,
     bundleRuntime: bundleRuntimeContext,
     easterEgg,
+    valueCapture,
   };
 }
 

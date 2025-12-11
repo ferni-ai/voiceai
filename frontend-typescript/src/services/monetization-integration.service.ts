@@ -138,7 +138,7 @@ function detectValueEvent(message: string): {
 function estimateValueCents(type: string, message: string): number {
   // Try to extract numbers from the message
   const numberMatch = message.match(/\$?([\d,]+)/);
-  const extractedValue = numberMatch ? parseInt(numberMatch[1].replace(/,/g, ''), 10) * 100 : 0;
+  const extractedValue = numberMatch?.[1] ? parseInt(numberMatch[1].replace(/,/g, ''), 10) * 100 : 0;
 
   // Default estimates by type
   const defaultEstimates: Record<string, number> = {
