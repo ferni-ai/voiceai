@@ -42,6 +42,11 @@ export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
 }
 
 /**
+ * Alias for removeSessionAudioProsodyAnalyzer (preferred naming)
+ */
+export const resetSessionAudioProsodyAnalyzer = removeSessionAudioProsodyAnalyzer;
+
+/**
  * Get or create a global audio prosody analyzer.
  *
  * @deprecated Use getSessionAudioProsodyAnalyzer(sessionId) for proper session isolation.

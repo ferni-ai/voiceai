@@ -7,10 +7,10 @@
  * NOW USES PERSONA-SPECIFIC BACKCHANNELS for distinct personalities!
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
-import type { TopicWeight } from './speech-context.js';
 import { getEnhancedBackchannel } from '../personas/theatrical.js';
+import { getLogger } from '../utils/safe-logger.js';
+import type { TopicWeight } from './speech-context.js';
 
 // ============================================================================
 // TYPES
@@ -240,6 +240,11 @@ export function getSessionBackchannelingSystem(sessionId: string): Backchannelin
 export function removeSessionBackchannelingSystem(sessionId: string): void {
   sessionBackchannelingSystems.delete(sessionId);
 }
+
+/**
+ * Alias for removeSessionBackchannelingSystem (preferred naming)
+ */
+export const resetSessionBackchannelingSystem = removeSessionBackchannelingSystem;
 
 // ============================================================================
 // LEGACY COMPATIBILITY (Remove after all callers migrated)

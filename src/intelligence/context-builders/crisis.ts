@@ -8,16 +8,22 @@
  *
  * These are HIGH PRIORITY injections that override normal conversation flow.
  *
+ * Uses centralized DISTRESS constants for consistent thresholds.
+ *
  * Extracted from jack-bogle.ts lines 722-845
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
+import { BuilderCategory } from './categories.js';
 import {
-  registerContextBuilder,
   createCriticalInjection,
   createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+
+const log = createLogger({ module: 'context:crisis' });
 
 // ============================================================================
 // CRISIS PATTERNS
@@ -134,21 +140,28 @@ Don't quote failure statistics. Support the dream.`,
 // ============================================================================
 // CRISIS CONTEXT BUILDER
 // ============================================================================
+
 /**
  * Build crisis-related context injections
+ *
+ * Uses centralized DISTRESS constants for consistent thresholds:
+ * - DISTRESS.ELEVATED (0.4) for market panic trigger
+ * - DISTRESS.MODERATE (0.5) for grief detection
  */
 function buildCrisisContext(input: ContextBuilderInput): ContextInjection[] {
   const { userText, analysis } = input;
   const injections: ContextInjection[] = [];
+  const distressLevel = analysis.emotion.distressLevel ?? 0;
+
   // -----------------------------------------------
   // MARKET PANIC DETECTION (CRITICAL)
+  // Uses DISTRESS.ELEVATED threshold
   // -----------------------------------------------
-  const distressLevel = analysis.emotion.distressLevel ?? 0;
   if (
     MARKET_PANIC_PATTERNS.test(userText) &&
-    (distressLevel > 0.4 || analysis.emotion.primary === 'fear')
+    (distressLevel >= DISTRESS.ELEVATED || analysis.emotion.primary === 'fear')
   ) {
-    getLogger().warn('MARKET PANIC DETECTED - Critical intervention needed');
+    log.warn({ distress: distressLevel }, 'MARKET PANIC DETECTED - Critical intervention needed');
     injections.push(
       createCriticalInjection(
         'market_panic',
@@ -164,16 +177,19 @@ KEY PHRASES:
   - "Time is your friend; impulse is your enemy."
   - "The stock market is the only market where people run OUT of the store when things go on sale."
   - "Stay the course. No matter what happens."
-DO NOT: Promise the market will go up. DO: Promise you'll be here to talk.`
+DO NOT: Promise the market will go up. DO: Promise you'll be here to talk.`,
+        { category: 'crisis' }
       )
     );
   }
+
   // -----------------------------------------------
   // GRIEF DETECTION
+  // Uses DISTRESS.MODERATE threshold
   // -----------------------------------------------
   for (const { pattern, lossType } of GRIEF_PATTERNS) {
-    if (pattern.test(userText) && distressLevel > 0.5) {
-      getLogger().info({ lossType }, 'Grief detected');
+    if (pattern.test(userText) && distressLevel >= DISTRESS.MODERATE) {
+      log.info({ lossType, distress: distressLevel }, 'Grief detected');
       injections.push(
         createCriticalInjection(
           'grief',
@@ -193,12 +209,14 @@ DO SAY:
   - "I'm so sorry."
   - "That's really hard."
   - "Tell me about them/it."
-  - [Silence is okay. Even preferred.]`
+  - [Silence is okay. Even preferred.]`,
+          { category: 'crisis' }
         )
       );
       break; // Only add one grief injection
     }
   }
+
   // -----------------------------------------------
   // LIFE EVENT DETECTION
   // -----------------------------------------------
@@ -206,23 +224,34 @@ DO SAY:
     if (pattern.test(userText)) {
       const guidance = LIFE_EVENT_GUIDANCE[eventType];
       if (guidance) {
-        getLogger().info({ eventType }, 'Life event detected');
-        injections.push(createStandardInjection('life_event', guidance));
+        log.info({ eventType }, 'Life event detected');
+        injections.push(createStandardInjection('life_event', guidance, { category: 'crisis' }));
       } else {
         injections.push(
           createStandardInjection(
             'life_event',
-            `[LIFE EVENT: ${eventType}] Lead with empathy, not advice.`
+            `[LIFE EVENT: ${eventType}] Lead with empathy, not advice.`,
+            { category: 'crisis' }
           )
         );
       }
       break; // Only add one life event injection
     }
   }
+
   return injections;
 }
+
 // ============================================================================
 // REGISTER BUILDER
 // ============================================================================
-registerContextBuilder('crisis', buildCrisisContext);
-export { buildCrisisContext, MARKET_PANIC_PATTERNS, GRIEF_PATTERNS, LIFE_EVENT_PATTERNS };
+
+registerContextBuilder({
+  name: 'crisis',
+  description: 'Crisis detection: market panic, grief, life events',
+  priority: 10, // Very high priority - runs first
+  category: BuilderCategory.SAFETY,
+  build: async (input) => buildCrisisContext(input),
+});
+
+export { buildCrisisContext, GRIEF_PATTERNS, LIFE_EVENT_PATTERNS, MARKET_PANIC_PATTERNS };

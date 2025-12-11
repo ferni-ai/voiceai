@@ -3,51 +3,28 @@
  *
  * Modular system for building conversational context injections.
  *
- * NOTE: This is a simplified implementation that provides basic
- * context building functionality.
+ * Features:
+ * - 70+ context builders organized by category
+ * - Metrics tracking for performance monitoring
+ * - Validation and error handling
+ * - Dependency resolution between builders
+ * - High-emotion mode for focused support
+ *
+ * @module intelligence/context-builders
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
+import {
+  checkPerformanceIssues,
+  getMetricsSummary,
+  recordBuilderMetrics,
+  recordTurnMetrics,
+} from './metrics.js';
 
-// Logger interface for safe logging
-interface SimpleLogger {
-  debug: (...args: unknown[]) => void;
-  info: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-}
-
-// Safe logger that returns a no-op if not initialized yet (module load time)
-let cachedLog: SimpleLogger | null = null;
-const getLogger = () => {
-  if (cachedLog) return cachedLog;
-  // Return no-op logger for synchronous access
-  // The actual logger will be set asynchronously if available
-  return {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  };
-};
-
-// Try to initialize the logger asynchronously
-void (async () => {
-  try {
-    const agents = await import('@livekit/agents');
-    const agentLog = agents.log();
-    // Wrap the agent logger to match our SimpleLogger interface
-    cachedLog = {
-      debug: (...args: unknown[]) => agentLog.debug(String(args[0]), ...(args.slice(1) as [])),
-      info: (...args: unknown[]) => agentLog.info(String(args[0]), ...(args.slice(1) as [])),
-      warn: (...args: unknown[]) => agentLog.warn(String(args[0]), ...(args.slice(1) as [])),
-      error: (...args: unknown[]) => agentLog.error(String(args[0]), ...(args.slice(1) as [])),
-    };
-  } catch {
-    // Logger not available
-  }
-})();
+const log = createLogger({ module: 'context-builders' });
 
 // ============================================================================
 // TYPES
@@ -206,6 +183,11 @@ export interface ContextBuilder {
   name: string;
   description: string;
   priority: number;
+  /** Optional category for organization */
+  category?: BuilderCategory;
+  /** Optional dependencies - builders that must run before this one */
+  dependsOn?: string[];
+  /** The build function */
   build: (input: ContextBuilderInput) => Promise<ContextInjection[]>;
 }
 
@@ -221,11 +203,24 @@ export interface ContextBuilderMetrics {
 // Re-export imported types
 export type { PersonaConfig, UserProfile };
 
+// Re-export categories and metrics
+export { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
+export {
+  checkPerformanceIssues,
+  getAllBuilderMetrics,
+  getBuilderMetrics,
+  getMetricsSummary,
+  getRecentTurnMetrics,
+} from './metrics.js';
+
 // ============================================================================
 // REGISTRY
 // ============================================================================
 
 const builders = new Map<string, ContextBuilder>();
+
+/** Track duplicate registration attempts */
+const registrationWarnings = new Set<string>();
 
 /**
  * Register a context builder.
@@ -233,36 +228,88 @@ const builders = new Map<string, ContextBuilder>();
  * Supports two call signatures for backward compatibility:
  * 1. registerContextBuilder(builder: ContextBuilder) - new style
  * 2. registerContextBuilder(name: string, buildFn: Function) - legacy style
+ *
+ * @param builderOrName - Either a ContextBuilder object or the builder name (legacy)
+ * @param buildFn - Build function (only for legacy style)
  */
 export function registerContextBuilder(
   builderOrName: ContextBuilder | string,
   buildFn?: (input: ContextBuilderInput) => Promise<ContextInjection[]> | ContextInjection[]
 ): void {
+  let builder: ContextBuilder;
+
   if (typeof builderOrName === 'string') {
     // Legacy call: registerContextBuilder('name', buildFn)
     if (!buildFn) {
       throw new Error(`registerContextBuilder('${builderOrName}') called without a build function`);
     }
-    const legacyBuilder: ContextBuilder = {
+    builder = {
       name: builderOrName,
       description: `Context builder: ${builderOrName}`,
       priority: 50, // Default priority
+      category: getBuilderCategory(builderOrName),
       build: async (input) => {
         const result = buildFn(input);
         return result instanceof Promise ? result : Promise.resolve(result);
       },
     };
-    builders.set(builderOrName, legacyBuilder);
-    getLogger().debug(`Registered context builder (legacy): ${builderOrName}`);
   } else {
-    // New style: registerContextBuilder(builder)
-    builders.set(builderOrName.name, builderOrName);
-    getLogger().debug(`Registered context builder: ${builderOrName.name}`);
+    builder = {
+      ...builderOrName,
+      category: builderOrName.category || getBuilderCategory(builderOrName.name),
+    };
   }
+
+  // Validation: warn on duplicate registration
+  if (builders.has(builder.name) && !registrationWarnings.has(builder.name)) {
+    log.warn({ builder: builder.name }, 'Builder already registered, overwriting');
+    registrationWarnings.add(builder.name);
+  }
+
+  // Validation: check dependencies exist (deferred check)
+  if (builder.dependsOn) {
+    for (const dep of builder.dependsOn) {
+      if (!builders.has(dep) && !BUILDER_CATEGORIES[dep]) {
+        log.debug(
+          { builder: builder.name, dependency: dep },
+          'Builder depends on unregistered builder (may load later)'
+        );
+      }
+    }
+  }
+
+  builders.set(builder.name, builder);
+  log.debug({ builder: builder.name, priority: builder.priority }, 'Registered context builder');
 }
 
+/**
+ * Get all registered builders, sorted by priority (highest first)
+ */
 export function getRegisteredBuilders(): ContextBuilder[] {
   return Array.from(builders.values()).sort((a, b) => b.priority - a.priority);
+}
+
+/**
+ * Get builders by category
+ */
+export function getBuildersByCategory(category: BuilderCategory): ContextBuilder[] {
+  return Array.from(builders.values())
+    .filter((b) => b.category === category || getBuilderCategory(b.name) === category)
+    .sort((a, b) => b.priority - a.priority);
+}
+
+/**
+ * Check if a builder is registered
+ */
+export function isBuilderRegistered(name: string): boolean {
+  return builders.has(name);
+}
+
+/**
+ * Get builder count
+ */
+export function getBuilderCount(): number {
+  return builders.size;
 }
 
 // ============================================================================
@@ -405,6 +452,12 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
 
 /**
  * Build conversation context from all registered builders
+ *
+ * Features:
+ * - Parallel execution for performance
+ * - Per-builder metrics tracking
+ * - Error isolation (one failing builder doesn't break others)
+ * - Basic emotional context injection
  */
 export async function buildConversationContext(
   input: ContextBuilderInput
@@ -414,7 +467,7 @@ export async function buildConversationContext(
 
   const injections: ContextInjection[] = [];
 
-  // Basic emotional context
+  // Basic emotional context (always injected before builders run)
   if (
     input.analysis.emotion.needsSupport ||
     (input.analysis.emotion.distressLevel && input.analysis.emotion.distressLevel > 0.6)
@@ -440,42 +493,97 @@ export async function buildConversationContext(
     );
   }
 
-  // NOTE: Removed duplicate lastConversationSummary injection here.
-  // This is now handled ONLY in memory.ts context builder to prevent
-  // the LLM from seeing the same information multiple times and
-  // repeatedly referencing it. See memory.ts getCrossSessionMemory().
-
-  // Run all registered builders IN PARALLEL for better performance
-  // Each builder is independent and can run concurrently
+  // Run all registered builders IN PARALLEL with metrics tracking
   const registeredBuilders = getRegisteredBuilders();
-  const builderResults = await Promise.allSettled(
-    registeredBuilders.map((builder) => builder.build(input))
+  const builderResults: Array<{
+    name: string;
+    durationMs: number;
+    injectionCount: number;
+    error?: string;
+  }> = [];
+
+  const results = await Promise.allSettled(
+    registeredBuilders.map(async (builder) => {
+      const start = Date.now();
+      try {
+        const result = await builder.build(input);
+        const durationMs = Date.now() - start;
+
+        // Record metrics
+        recordBuilderMetrics(builder.name, durationMs, result.length);
+        builderResults.push({
+          name: builder.name,
+          durationMs,
+          injectionCount: result.length,
+        });
+
+        return result;
+      } catch (error) {
+        const durationMs = Date.now() - start;
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Record metrics with error
+        recordBuilderMetrics(builder.name, durationMs, 0, error as Error);
+        builderResults.push({
+          name: builder.name,
+          durationMs,
+          injectionCount: 0,
+          error: errorMsg,
+        });
+
+        throw error;
+      }
+    })
   );
 
-  // Collect results, logging any failures
-  builderResults.forEach((result, index) => {
+  // Collect results
+  results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       injections.push(...result.value);
     } else {
-      getLogger().warn(
+      log.warn(
         { builder: registeredBuilders[index].name, error: result.reason },
         'Context builder failed'
       );
     }
   });
 
+  // Record turn-level metrics
+  const sessionId = input.services.sessionId || 'unknown';
+  const turnNumber = input.userData.turnCount || 0;
+  recordTurnMetrics(sessionId, turnNumber, builderResults);
+
   return injections;
 }
 
 /**
- * Build context with metrics tracking
+ * Build context with detailed metrics tracking
+ *
+ * Returns both the injections and comprehensive metrics including:
+ * - Total build time
+ * - Per-builder breakdown
+ * - Performance warnings
  */
-export async function buildConversationContextWithMetrics(
-  input: ContextBuilderInput
-): Promise<{ injections: ContextInjection[]; metrics: Record<string, number> }> {
+export async function buildConversationContextWithMetrics(input: ContextBuilderInput): Promise<{
+  injections: ContextInjection[];
+  metrics: {
+    totalDurationMs: number;
+    injectionCount: number;
+    builderCount: number;
+    buildersRan: number;
+    buildersProducedInjections: number;
+    performanceWarnings: string[];
+  };
+}> {
   const start = Date.now();
   const injections = await buildConversationContext(input);
   const duration = Date.now() - start;
+
+  // Get performance issues
+  const performanceWarnings = checkPerformanceIssues();
+
+  // Get summary for this build
+  const summary = getMetricsSummary();
 
   return {
     injections,
@@ -483,6 +591,9 @@ export async function buildConversationContextWithMetrics(
       totalDurationMs: duration,
       injectionCount: injections.length,
       builderCount: builders.size,
+      buildersRan: summary.totalBuilds > 0 ? builders.size : 0,
+      buildersProducedInjections: injections.length > 0 ? summary.mostActiveBuilders.length : 0,
+      performanceWarnings,
     },
   };
 }
@@ -490,127 +601,20 @@ export async function buildConversationContextWithMetrics(
 // ============================================================================
 // AUTO-LOAD ALL CONTEXT BUILDERS
 // ============================================================================
-// Dynamic imports to avoid initialization order issues.
-// Each module calls registerContextBuilder() when loaded.
 
-let buildersLoaded = false;
+// Re-export loader functions
+export {
+  areBuildersLoaded,
+  BUILDER_MANIFEST,
+  ensureBuildersLoaded,
+  getAllBuilderModules,
+  getBuilderModulesByCategory,
+  getLoadingStatus,
+  reloadBuilders,
+} from './loader.js';
 
-/**
- * Lazily load all context builder modules.
- * Called on first buildConversationContext() invocation.
- */
-async function ensureBuildersLoaded(): Promise<void> {
-  if (buildersLoaded) return;
-  buildersLoaded = true;
-
-  try {
-    await Promise.all([
-      import('./celebration.js'),
-      import('./cognitive.js'), // Persona-specific cognitive intelligence
-      import('./cognitive-quirks.js'), // Cognitive quirks, mental habits, thought patterns
-      import('./community-learning.js'), // Collective learning from all users
-      import('./conversation-recap.js'), // "Where were we?" memory
-      import('./crisis.js'),
-      import('./discovery.js'),
-      import('./emotional.js'),
-      import('./energy-awareness.js'), // Time-of-day energy levels
-      import('./engagement.js'),
-      import('./goodbye.js'),
-      import('./handoff.js'),
-      import('./humanizing.js'),
-      import('./intent.js'),
-      import('./memory.js'),
-      import('./music.js'),
-      import('./pacing.js'),
-      import('./persona-memory.js'), // Persona-specific memories
-      import('./persona-quirks.js'), // Quirks surface naturally in conversation
-      import('./persona-playful.js'),
-      import('./personal.js'),
-      import('./physical-presence.js'), // Embodied persona presence
-      import('./proactive-memory.js'), // Spontaneous memory recall & voice recognition
-      import('./advanced-memory.js'), // Semantic memory with temporal decay & emotional salience
-      import('./trust-context.js'), // "Better than human" trust: unsaid signals, boundaries, growth, callbacks
-      import('./rag.js'),
-      import('./situational-awareness.js'), // "What's going on?" awareness
-      import('./storytelling.js'),
-      import('./tasks.js'),
-      import('./team-availability.js'), // Which team members are unlocked for this user
-      import('./team-dynamics.js'), // Cross-persona team awareness
-      import('./cameo-opportunities.js'), // Team member "pop-in" cameo suggestions
-      import('./topics.js'),
-      import('./engagement-context.js'), // Daily rituals, games, team engagement
-      import('./voice-emotion.js'), // Voice emotion → cognitive state integration
-      import('./cognitive-insights.js'), // Shareable cognitive insights for transparency
-      import('./game-context.js'), // 🎮 Active game state for music games
-      // 🧠 Humanizing behaviors - make Ferni feel more human
-      import('./natural-uncertainty.js'), // "I'm not sure", "let me think" - genuine uncertainty
-      import('./response-length.js'), // Sometimes brief, sometimes elaborate
-      import('./energy-mirroring.js'), // Match user's energy level
-      import('./ferni-personality.js'), // Genuine preferences, opinions, quirks
-      import('./lovable-presence.js'), // 💕 Orchestrates charm, delight, personality surprises
-      // 🎓 Better-than-PhD capabilities
-      import('./cognitive-distortions.js'), // Detect cognitive distortions, Socratic intervention
-      import('./somatic-context.js'), // Grounding & breathing when distressed
-      import('./wellbeing-context.js'), // Continuous wellbeing tracking & alerts
-      import('./therapeutic-frameworks.js'), // ACT, DBT, MI frameworks
-      import('./behavioral-economics.js'), // Implementation intentions, commitment devices
-      // ============================================================================
-      // 🚀 FERNI 200% - Superhuman capabilities
-      // ============================================================================
-      import('./superhuman-insights.js'), // Pattern surfacing, the mirror, emotional weather, anticipation
-      import('./persona-identity.js'), // Core persona identity injection
-      import('./meta-conversation.js'), // Topic repetition, emotional shifts
-      import('./cross-session-reflection.js'), // Cross-session continuity
-      import('./cross-session-threading.js'), // Open threads/promises from previous sessions
-      import('./role-boundaries.js'), // Domain ownership and handoff triggers
-      import('./spontaneous-vulnerability.js'), // Spontaneous vulnerability moments
-      import('./persona-vulnerability.js'), // 200% persona vulnerability (self-doubt, fears, mortality)
-      import('./voice-emotion-intelligence.js'), // Voice emotion → cognitive state (enhanced)
-      import('./relationship-behaviors.js'), // Relationship-aware behaviors
-      import('./persona-mood.js'), // Persona mood state
-      import('./alive-awareness.js'), // "Alive" presence features
-      import('./inner-world-injector.js'), // Inner world/self-talk
-      // 📊 Cross-user learning (privacy-preserving)
-      import('./wisdom-synthesis.js'), // Population-level wisdom from anonymized patterns
-      // 🎧 Better-than-human listening
-      import('./human-listening.js'), // Voice tremor, breath patterns, cognitive load, hedging
-      // ============================================================================
-      // 🎭 DEEP HUMANIZATION - Make Ferni feel ALIVE
-      // ============================================================================
-      import('./deep-humanization.js'), // Arc-awareness, artifacts, monologue, vocabulary
-      // ============================================================================
-      // 🦸 BETTER-THAN-HUMAN APIs - Superhuman awareness from external data
-      // ============================================================================
-      import('./biometrics.js'), // HRV, sleep, recovery from wearables
-      import('./financial-prediction.js'), // Cash flow, spending anomalies, bill forecasting
-      import('./advanced-voice-emotion.js'), // Hume AI precise emotion detection
-      import('./anticipation.js'), // Location/calendar awareness, travel time, event prep
-      import('./social-relationships.js'), // Social graph, relationship patterns, important dates
-      // ============================================================================
-      // 🧑‍🏫 LIFE COACHING CAPABILITIES
-      // ============================================================================
-      import('./coaching-context.js'), // Goals, actions, obstacles, values, style, journey, team
-      import('./life-coaching-context.js'), // Second chances, connection, difficult conversations, transitions, quiet growth
-      // ============================================================================
-      // 🎉 BETTER-THAN-HUMAN: CELEBRATION & GROWTH
-      // ============================================================================
-      import('./celebration-growth.js'), // Systematic celebration & growth visibility
-      import('./pattern-surfacing.js'), // Surface patterns user can't see about themselves
-      // ============================================================================
-      // 🌍 WORLD AWARENESS - "Better Than Human" knows the world
-      // ============================================================================
-      import('./world-awareness.js'), // Weather, news, sports, holidays - pre-fetched
-      // ============================================================================
-      // 🌟 PERSONAL JOURNEY - "Better Than Human" remembers YOUR journey
-      // ============================================================================
-      import('./personal-journey.js'), // Rhythm, milestones, seasonal memory, chapters
-    ]);
-
-    getLogger().info(`Context builders loaded: ${builders.size} registered`);
-  } catch (error) {
-    getLogger().warn({ error }, 'Some context builders failed to load');
-  }
-}
+// Import for internal use
+import { ensureBuildersLoaded } from './loader.js';
 
 // ============================================================================
 // CONVERSATION HUMANIZING CONTEXT BUILDER

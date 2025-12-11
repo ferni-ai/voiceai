@@ -10,7 +10,7 @@ This module is **production-ready** with:
 
 - ✅ Full session-scoped service management
 - ✅ Comprehensive test coverage (including session-cleanup, ssml-tagger)
-- ✅ Memory-safe cleanup for 27+ services
+- ✅ Memory-safe cleanup for 29+ services
 - ✅ Optimized FFT with iterative Cooley-Tukey algorithm
 - ✅ Tunable detection thresholds via exported constants
 
@@ -132,23 +132,47 @@ const result = await pipeline.analyze({
 
 ## Adding New Services
 
-### Pattern to Follow
+### Recommended Pattern: Use SessionServiceManager
+
+Use the `createSessionManager` abstraction to reduce boilerplate:
 
 ```typescript
-// 1. Create the service class
-export class MyNewService {
+import { createSessionManager, type SessionService } from './session-service.js';
+
+// 1. Create the service class (implement SessionService interface)
+export class MyNewService implements SessionService {
   private sessionId: string;
+  private state: SomeState;
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
+    this.state = initialState();
   }
 
+  // Required: reset method for cleanup
   reset(): void {
-    // Reset internal state
+    this.state = initialState();
   }
+
+  // Your service methods...
 }
 
-// 2. Session management
+// 2. Create session manager (replaces 15+ lines of boilerplate!)
+const manager = createSessionManager('MyNewService', (sessionId) => new MyNewService(sessionId));
+
+export const getMyNewService = manager.get;
+export const resetMyNewService = manager.reset;
+export const resetAllMyNewServices = manager.resetAll;
+export const getActiveMyNewServiceCount = manager.getActiveCount;
+
+// 3. Add to session-cleanup.ts!
+// IMPORTANT: Add your reset function to cleanupSpeechSession()
+```
+
+### Legacy Pattern (Still Supported)
+
+```typescript
+// Manual session management (use SessionServiceManager instead)
 const instances = new Map<string, MyNewService>();
 
 export function getMyNewService(sessionId: string): MyNewService {
@@ -165,20 +189,29 @@ export function resetMyNewService(sessionId: string): void {
     instances.delete(sessionId);
   }
 }
-
-// 3. Add to session-cleanup.ts!
-// IMPORTANT: Add your reset function to cleanupSpeechSession()
 ```
 
 ### Checklist for New Services
 
-- [ ] Service class has `reset()` method
-- [ ] Session Map uses `new Map<string, ServiceClass>()`
+- [ ] Service class implements `SessionService` interface with `reset()` method
+- [ ] Uses `createSessionManager()` for session management (preferred)
 - [ ] Has `get*Service(sessionId)` function
 - [ ] Has `reset*Service(sessionId)` function
 - [ ] **Added to `session-cleanup.ts`** ← Most important!
 - [ ] Exported from `index.ts`
 - [ ] Has unit tests
+
+### Services Cleaned Up by session-cleanup.ts (29+ total)
+
+| Category                  | Services                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Core Speech**           | audioProsody, wpmTracker, backchanneling, cognitiveSpeech, ttsContext, pronunciationMemory, cartesiaContext                 |
+| **Listening & Analysis**  | humanListening, voiceHumanization, turnPrediction, emotionalContagion                                                       |
+| **Audio Analysis**        | voiceTremor, volumeDynamics, energyDynamics, fluencyAnalyzer, fillerAnalyzer, fftAnalyzer, laughterDetector, breathDetector |
+| **Timing & Rhythm**       | wordTiming, responseAnticipation                                                                                            |
+| **Context & Environment** | ambientAwareness, realtimePreemptive                                                                                        |
+| **Voice Manager**         | voiceManager                                                                                                                |
+| **Backchanneling**        | enhancedBackchanneling, catchphraseTracker                                                                                  |
 
 ## File Size Guidelines
 
@@ -268,15 +301,44 @@ const adjustments = humanizer.getEmotionalTtsAdjustments(emotionalArc);
 
 ## Deprecated APIs
 
-These functions are deprecated and will be removed:
+These functions are deprecated and will be removed in a future version:
+
+### Session-Scoped Replacements
 
 | Deprecated                           | Use Instead                                 |
 | ------------------------------------ | ------------------------------------------- |
 | `getAudioProsodyAnalyzer()`          | `getSessionAudioProsodyAnalyzer(sessionId)` |
 | `getBackchannelingSystem()`          | `getSessionBackchannelingSystem(sessionId)` |
-| `tagTextWithSsml()`                  | `tagTextWithSsmlPersonaAware()`             |
 | `getVoiceManager()`                  | `getSessionVoiceManager(sessionId)`         |
+| `resetVoiceManager()`                | `resetSessionVoiceManager(sessionId)`       |
+| `getWPMTracker()`                    | `getSessionWPMTracker(sessionId)`           |
 | `shouldInjectCatchphrase()` (3 args) | `shouldInjectCatchphrase(sessionId, ...)`   |
+
+### Unified Module Replacements
+
+| Deprecated                 | Use Instead                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `tagTextWithSsml()`        | `tagTextWithSsmlPersonaAware()` from `../ssml/`      |
+| `BackchannelType`          | `BackchannelCategory` from `persona-phrases.ts`      |
+| `LegacyBackchannelContext` | `BackchannelContext` from `backchanneling/types.ts`  |
+| `LegacyBackchannelResult`  | `BackchannelDecision` from `backchanneling/types.ts` |
+
+### Naming Convention Updates
+
+| Deprecated                             | Use Instead (Preferred)               |
+| -------------------------------------- | ------------------------------------- |
+| `removeSessionAudioProsodyAnalyzer()`  | `resetSessionAudioProsodyAnalyzer()`  |
+| `removeSessionWPMTracker()`            | `resetSessionWPMTracker()`            |
+| `removeSessionBackchannelingSystem()`  | `resetSessionBackchannelingSystem()`  |
+| `removeEnhancedBackchannelingEngine()` | `resetEnhancedBackchannelingEngine()` |
+
+### Other Deprecated
+
+| Deprecated                          | Notes                                     |
+| ----------------------------------- | ----------------------------------------- |
+| `patchCartesiaForPersistentContext` | Use `getCartesiaContextOptions()` instead |
+| `isCartesiaPatched()`               | Always returns false, no longer needed    |
+| `PersonaAwareTTS.switchAccent()`    | Use `switchToLocalizedAccent()` instead   |
 
 ## Dependencies
 
@@ -315,3 +377,65 @@ console.log(BREATH_DETECTION_CONFIG.GASP_MIN_CENTROID); // 500 Hz
 ```
 
 This allows fine-tuning detection sensitivity for different audio environments without modifying the source code.
+
+## Future Refactoring Opportunities
+
+### 1. Consolidate Backchanneling Systems
+
+There are currently **three** backchanneling implementations:
+
+- `backchanneling.ts` - Original system (5-8 second triggers)
+- `enhanced-backchanneling.ts` - Research-backed (3-5 second triggers, context-aware)
+- `live-backchanneling/` - Real-time during speech (breath-pause detection)
+
+**Recommendation**: Unify into a single `backchanneling/` module with:
+
+```
+backchanneling/
+├── types.ts            # Unified types
+├── timing-config.ts    # Standard, enhanced, live timing configs
+├── phrase-library.ts   # All persona phrases in one place
+├── decision-engine.ts  # Unified decision logic with mode parameter
+├── session.ts          # Session management
+└── index.ts
+```
+
+### 2. Consolidate Persona Phrases
+
+Persona-specific phrases are duplicated across:
+
+- `response-naturalness.ts` (ACKNOWLEDGMENT_PREFIXES, THINKING_FILLERS, PERSONA_CATCHPHRASES)
+- `enhanced-backchanneling.ts` (BACKCHANNEL_LIBRARY, PERSONA_BACKCHANNEL_STYLE)
+- `live-backchanneling/constants.ts` (SOFT_BACKCHANNELS)
+- `backchanneling.ts` (inline backchannels)
+
+**Recommendation**: Create `persona-phrases.ts` as single source of truth.
+
+### 3. Naming Conventions (Standardized)
+
+**Preferred naming pattern:**
+
+- `get*Service(sessionId)` or `get*Manager(sessionId)` - Get or create
+- `reset*Service(sessionId)` - Reset and remove (preferred naming)
+
+**Backward compatibility:**
+Legacy `remove*` functions now have `reset*` aliases:
+
+- `removeSessionAudioProsodyAnalyzer` → `resetSessionAudioProsodyAnalyzer`
+- `removeSessionWPMTracker` → `resetSessionWPMTracker`
+- `removeSessionBackchannelingSystem` → `resetSessionBackchannelingSystem`
+- `removeEnhancedBackchannelingEngine` → `resetEnhancedBackchannelingEngine`
+
+New code should use the `reset*` naming for consistency.
+
+### 4. Type Consolidation
+
+Types are scattered across many files. Consider a `types/` directory:
+
+```
+types/
+├── prosody.ts      # ProsodyFeatures, VoiceEmotion, etc.
+├── backchannel.ts  # All backchannel types
+├── listening.ts    # HumanListeningResult, etc.
+└── index.ts        # Re-exports all
+```

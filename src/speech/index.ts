@@ -31,6 +31,84 @@ export {
 } from './session-cleanup.js';
 
 // ============================================================================
+// SESSION SERVICE MANAGER (Abstraction for session-scoped services)
+// ============================================================================
+
+export {
+  cleanupRegisteredServices,
+  createSessionManager,
+  getRegisteredManagerCount,
+  registerSessionManager,
+  type ServiceFactory,
+  type SessionService,
+  type SessionServiceManager,
+} from './session-service.js';
+
+// ============================================================================
+// PERSONA PHRASES (Single source of truth for all persona-specific phrases)
+// ============================================================================
+
+export {
+  ACKNOWLEDGMENT_PREFIXES,
+  BACKCHANNEL_LIBRARY,
+  PERSONA_BACKCHANNEL_STYLE,
+  PERSONA_CATCHPHRASES,
+  SOFT_BACKCHANNELS,
+  THINKING_FILLERS,
+  getAcknowledgmentPrefix,
+  getBackchannelPhrase,
+  getCatchphraseWithSsml,
+  getPersonaBackchannelStyle,
+  getSoftBackchannel,
+  getThinkingFiller,
+  normalizePersonaId,
+  type AcknowledgmentMood,
+  type BackchannelCategory,
+  type BackchannelEmotionType,
+  type CatchphraseConfig,
+  type PersonaBackchannelStyle,
+  type PersonaId,
+} from './persona-phrases.js';
+
+// ============================================================================
+// UNIFIED BACKCHANNELING (Consolidated module for all backchanneling modes)
+// ============================================================================
+
+export {
+  BackchannelEngine,
+  BreathPauseDetector,
+  DEFAULT_BREATH_PAUSE_CONFIG,
+  ENHANCED_TIMING,
+  LIVE_TIMING,
+  STANDARD_TIMING,
+  SessionBackchannelManager,
+  adjustTimingForTopic,
+  createBackchannelEngine,
+  getActiveBackchannelSessionCount,
+  getBackchannelEngine,
+  getBackchannelManager,
+  getSessionBreathPauseDetector,
+  getTimingForMode,
+  resetAllBackchanneling,
+  resetBackchanneling,
+  signalNewTurn,
+  type BackchannelEngineOptions,
+  type BackchannelMode,
+  type BackchannelTiming,
+  type BreathPauseConfig,
+  type BreathPauseStats,
+  type BackchannelContext as UnifiedBackchannelContext,
+  type BackchannelDecision as UnifiedBackchannelDecision,
+} from './backchanneling/index.js';
+
+// ============================================================================
+// TYPES BARREL (Convenient type imports)
+// ============================================================================
+
+// Re-export all types from the types barrel for convenience
+export type * from './types/index.js';
+
+// ============================================================================
 // SPEECH CONTEXT
 // ============================================================================
 
@@ -45,6 +123,7 @@ export {
   getSessionWPMTracker,
   getWPMTracker,
   removeSessionWPMTracker,
+  resetSessionWPMTracker, // Preferred naming alias
   type EnergyLevel,
   type SpeechContext,
   type TopicWeight,
@@ -80,20 +159,16 @@ export { sanitizeSsml, tagTextWithSsml } from './ssml-tagger/index.js';
 
 // ============================================================================
 // RESPONSE NATURALNESS
+// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, THINKING_FILLERS, etc.
+// are exported from persona-phrases.js (canonical source)
 // ============================================================================
 
 export {
-  ACKNOWLEDGMENT_PREFIXES,
   CatchphraseTracker,
-  PERSONA_CATCHPHRASES,
-  THINKING_FILLERS,
   determineAcknowledgmentMood,
-  getAcknowledgmentPrefix,
-  getCatchphraseWithSsml,
   getResponseEnhancements,
   // Session-scoped catchphrase tracking
   getSessionCatchphraseTracker,
-  getThinkingFiller,
   resetAllCatchphraseTrackers,
   resetCatchphraseTracking,
   resetSessionCatchphraseTracker,
@@ -116,6 +191,7 @@ export {
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
   removeSessionAudioProsodyAnalyzer,
+  resetSessionAudioProsodyAnalyzer, // Preferred naming alias
   type ProsodyFeatures,
   type ProsodyMetrics,
   type VoiceEmotion,
@@ -147,16 +223,17 @@ export {
   getBackchannelingSystem,
   getSessionBackchannelingSystem,
   removeSessionBackchannelingSystem,
+  resetSessionBackchannelingSystem, // Preferred naming alias
   type BackchannelContext,
   type BackchannelResult,
 } from './backchanneling.js';
 
 // ============================================================================
 // LIVE BACKCHANNELING (Real-time, breath-pause aware)
+// Note: BreathPauseDetector is exported from backchanneling/index.js (canonical source)
 // ============================================================================
 
 export {
-  BreathPauseDetector,
   LiveBackchannelingService,
   getBreathPauseDetector,
   getLiveBackchannelingService,
@@ -480,17 +557,17 @@ export {
 // ============================================================================
 // ENHANCED BACKCHANNELING (Active Listening)
 // Research-backed: faster response, context-aware, persona-specific
+// Note: BACKCHANNEL_LIBRARY, PERSONA_BACKCHANNEL_STYLE, BackchannelTiming
+// are exported from persona-phrases.js and backchanneling/index.js (canonical sources)
 // ============================================================================
 
 export {
-  BACKCHANNEL_LIBRARY,
   EnhancedBackchannelingEngine,
-  PERSONA_BACKCHANNEL_STYLE,
   getEnhancedBackchannelingEngine,
   getQuickBackchannel,
   removeEnhancedBackchannelingEngine,
-  type BackchannelDecision,
-  type BackchannelTiming,
+  resetEnhancedBackchannelingEngine,
   type BackchannelType,
-  type EnhancedBackchannelContext,
+  type EnhancedBackchannelContext, // Preferred naming alias
+  type BackchannelDecision as EnhancedBackchannelDecision,
 } from './enhanced-backchanneling.js';

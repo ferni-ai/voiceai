@@ -14,11 +14,22 @@
  * - Encourages users to continue speaking
  * - Increases perceived attentiveness and trust
  *
+ * NOTE: This module is kept for backward compatibility.
+ * New code should use the unified backchanneling module at ./backchanneling/
+ *
  * @see docs/VOICE-HUMANIZATION-RESEARCH.md
+ * @see ./backchanneling/index.ts for unified API
  */
 
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { createLogger } from '../utils/safe-logger.js';
+
+// Import from persona-phrases (single source of truth)
+import {
+  BACKCHANNEL_LIBRARY as _BACKCHANNEL_LIBRARY,
+  PERSONA_BACKCHANNEL_STYLE as _PERSONA_BACKCHANNEL_STYLE,
+  type BackchannelCategory,
+} from './persona-phrases.js';
 
 const log = createLogger({ module: 'EnhancedBackchanneling' });
 
@@ -26,14 +37,10 @@ const log = createLogger({ module: 'EnhancedBackchanneling' });
 // TYPES
 // ============================================================================
 
-export type BackchannelType =
-  | 'acknowledgment' // "Mm-hmm", "Yeah"
-  | 'understanding' // "I see", "Got it"
-  | 'encouragement' // "Go on", "Tell me more"
-  | 'empathy' // "Mmm", "Oh", "I hear you"
-  | 'agreement' // "Right", "Exactly"
-  | 'surprise' // "Oh!", "Wow"
-  | 'thinking'; // "Hmm", "Interesting";
+/**
+ * @deprecated Use BackchannelCategory from persona-phrases.ts
+ */
+export type BackchannelType = BackchannelCategory;
 
 export interface BackchannelTiming {
   /** Minimum user speech duration before backchannel (ms) */
@@ -93,79 +100,20 @@ export interface BackchannelDecision {
 }
 
 // ============================================================================
-// BACKCHANNEL LIBRARIES
+// BACKCHANNEL LIBRARIES (Re-exported from persona-phrases)
 // ============================================================================
 
 /**
  * Core backchannel library with variations
- * Each type has multiple options to prevent repetition
+ * @see persona-phrases.ts for source of truth
  */
-export const BACKCHANNEL_LIBRARY: Record<BackchannelType, string[]> = {
-  acknowledgment: ['Mm-hmm', 'Mhm', 'Yeah', 'Yes', 'Uh-huh', 'Okay'],
-
-  understanding: ['I see', 'Got it', 'I understand', 'Okay', 'Ah', 'Right'],
-
-  encouragement: ['Go on', 'Tell me more', 'And then?', "I'm listening", 'Continue', "I'm here"],
-
-  empathy: ['Mmm', 'Oh', 'I hear you', "That's...", 'I feel that', 'Yeah...'],
-
-  agreement: ['Right', 'Exactly', 'Absolutely', 'Yes', 'Definitely', "That's right"],
-
-  surprise: ['Oh!', 'Wow', 'Really?', 'Oh wow', 'No kidding', 'Huh'],
-
-  thinking: [
-    'Hmm',
-    'Interesting',
-    'Hm',
-    "That's interesting",
-    'I see what you mean',
-    'Let me think about that',
-  ],
-};
+export const BACKCHANNEL_LIBRARY = _BACKCHANNEL_LIBRARY;
 
 /**
  * Persona-specific backchannel preferences
- * Each persona has a distinct listening style
+ * @see persona-phrases.ts for source of truth
  */
-export const PERSONA_BACKCHANNEL_STYLE: Record<
-  string,
-  {
-    preferred: BackchannelType[];
-    volumeRatio: number;
-    emotionTag?: string;
-  }
-> = {
-  ferni: {
-    preferred: ['acknowledgment', 'empathy', 'encouragement'],
-    volumeRatio: 0.75,
-    emotionTag: 'affectionate',
-  },
-  'jack-bogle': {
-    preferred: ['understanding', 'thinking', 'agreement'],
-    volumeRatio: 0.8,
-    emotionTag: 'calm',
-  },
-  'peter-john': {
-    preferred: ['thinking', 'surprise', 'understanding'],
-    volumeRatio: 0.75,
-    emotionTag: 'curious',
-  },
-  'maya-santos': {
-    preferred: ['acknowledgment', 'empathy', 'encouragement'],
-    volumeRatio: 0.7,
-    emotionTag: 'sympathetic',
-  },
-  'alex-chen': {
-    preferred: ['understanding', 'agreement', 'thinking'],
-    volumeRatio: 0.8,
-    emotionTag: 'content',
-  },
-  'jordan-taylor': {
-    preferred: ['acknowledgment', 'surprise', 'encouragement'],
-    volumeRatio: 0.75,
-    emotionTag: 'enthusiastic',
-  },
-};
+export const PERSONA_BACKCHANNEL_STYLE = _PERSONA_BACKCHANNEL_STYLE;
 
 // ============================================================================
 // TIMING CONFIGURATIONS
@@ -476,6 +424,11 @@ export function getEnhancedBackchannelingEngine(sessionId: string): EnhancedBack
 export function removeEnhancedBackchannelingEngine(sessionId: string): void {
   sessionEngines.delete(sessionId);
 }
+
+/**
+ * Alias for removeEnhancedBackchannelingEngine (preferred naming)
+ */
+export const resetEnhancedBackchannelingEngine = removeEnhancedBackchannelingEngine;
 
 // ============================================================================
 // QUICK BACKCHANNELS

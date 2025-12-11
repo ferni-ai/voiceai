@@ -8,7 +8,6 @@
  * so each agent sounds distinctly different (pacing, pauses, energy).
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { SpeechCharacteristics } from '../personas/types.js';
@@ -453,9 +452,17 @@ export function getSessionWPMTracker(sessionId: string): WPMTracker {
 /**
  * Remove a session's WPM tracker (on session end)
  */
+/**
+ * Reset and remove a session's WPM tracker
+ */
 export function removeSessionWPMTracker(sessionId: string): void {
   sessionWPMTrackers.delete(sessionId);
 }
+
+/**
+ * Alias for removeSessionWPMTracker (preferred naming)
+ */
+export const resetSessionWPMTracker = removeSessionWPMTracker;
 
 // ============================================================================
 // LEGACY COMPATIBILITY (Remove after all callers migrated)

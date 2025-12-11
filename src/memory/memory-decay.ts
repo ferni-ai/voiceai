@@ -366,7 +366,7 @@ export class MemoryDecayManager {
   simulateDecay(
     memory: MemoryItem,
     daysToSimulate: number,
-    stepDays: number = 7
+    stepDays = 7
   ): Array<{ day: number; strength: number }> {
     const results: Array<{ day: number; strength: number }> = [];
     const baseMemory = this.initializeDecay(memory);

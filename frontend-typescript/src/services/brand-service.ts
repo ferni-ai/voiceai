@@ -46,9 +46,9 @@ export async function initBrandService(): Promise<void> {
 
   try {
     await loadBrandRules();
-    log.info('Brand rules loaded', { 
+    log.info('Brand rules loaded', {
       bannedPhrases: brandRules?.bannedPhrases.length,
-      wordsToAvoid: brandRules?.wordsToAvoid.length 
+      wordsToAvoid: brandRules?.wordsToAvoid.length,
     });
   } catch (error) {
     log.warn('Failed to preload brand rules, will retry on demand', { error });
@@ -142,7 +142,7 @@ export function checkPreferredWords(content: string): string[] {
  */
 export function getComplianceScore(content: string): number {
   const result = quickValidate(content);
-  
+
   // Start at 100, subtract for issues
   const criticalCount = result.issues.filter((i) => i.includes('banned')).length;
   const warningCount = result.issues.filter((i) => i.includes('avoided')).length;

@@ -13,9 +13,9 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { loadBrandContext } from './brand-context.js';
 import { buildBrandSystemPrompt, type LLMClient } from './brand-generator.js';
-import { getPersonaVoice } from './persona-voices.js';
 import { autoFixViolations, quickValidate, validateBrandCompliance } from './brand-validator.js';
 import { adaptForChannel } from './channel-adapter.js';
+import { getPersonaVoice } from './persona-voices.js';
 import type { Channel, ContextType, PersonaId } from './types.js';
 
 const log = createLogger({ module: 'BrandHooks' });
@@ -333,10 +333,7 @@ export function getPersonaGreetings(personaId: PersonaId): string[] {
 /**
  * Get response patterns for a persona and context
  */
-export function getPersonaResponses(
-  personaId: PersonaId,
-  context: ContextType
-): string[] {
+export function getPersonaResponses(personaId: PersonaId, context: ContextType): string[] {
   const persona = getPersonaVoice(personaId);
   return persona.responsePatterns[context] || persona.responsePatterns.checkin;
 }
@@ -348,7 +345,5 @@ export function isAntiPattern(content: string, personaId: PersonaId): boolean {
   const persona = getPersonaVoice(personaId);
   const lowerContent = content.toLowerCase();
 
-  return persona.antiPatterns.some((pattern) =>
-    lowerContent.includes(pattern.toLowerCase())
-  );
+  return persona.antiPatterns.some((pattern) => lowerContent.includes(pattern.toLowerCase()));
 }

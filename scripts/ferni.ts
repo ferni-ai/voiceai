@@ -157,9 +157,9 @@ const COMMANDS: Record<string, CliCommand> = {
     name: 'Agents',
     description: 'Manage AI agents',
     icon: icons.agent,
-    script: 'src/cli/agent-manager.ts',
-    subcommands: ['list', 'show', 'create', 'validate', 'install', 'uninstall', 'search'],
-    examples: ['ferni agents list', 'ferni agents create my-agent --template sage'],
+    handler: handleAgents,
+    subcommands: ['new', 'list', 'show', 'validate', 'install', 'uninstall', 'search'],
+    examples: ['ferni agents new', 'ferni agents list', 'ferni agents validate atlas-career-navigator'],
   },
   logs: {
     name: 'Logs',
@@ -288,6 +288,40 @@ function execCommandWithStatus(cmd: string): { output: string; success: boolean 
   } catch (error) {
     return { output: (error as Error).message, success: false };
   }
+}
+
+// ============================================================================
+// LOGS COMMAND
+// ============================================================================
+
+// ============================================================================
+// AGENTS COMMAND (with interactive builder)
+// ============================================================================
+
+async function handleAgents(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+
+  // Intercept "new" to run the interactive agent builder
+  if (subcommand === 'new') {
+    log.header(`${icons.agent} Create New Marketplace Agent`);
+    log.info('Starting interactive agent builder wizard...\n');
+
+    // Run the agent builder wizard
+    const builderScript = join(PROJECT_ROOT, 'scripts', 'agent-builder.ts');
+    const result = spawnSync('npx', ['tsx', builderScript], {
+      stdio: 'inherit',
+      cwd: PROJECT_ROOT,
+    });
+
+    if (result.status !== 0) {
+      log.error('Agent builder wizard failed');
+    }
+    return;
+  }
+
+  // For all other subcommands, delegate to agent-manager.ts
+  const agentManagerScript = join(PROJECT_ROOT, 'src', 'cli', 'agent-manager.ts');
+  runCommand(agentManagerScript, args);
 }
 
 // ============================================================================

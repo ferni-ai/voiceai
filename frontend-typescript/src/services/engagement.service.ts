@@ -190,7 +190,12 @@ class EngagementService {
         });
         return engagementData;
       } else {
-        log.warn('API returned error', { error: result.error, status: result.status });
+        // 401 errors are expected before auth completes - use debug level
+        if (result.status === 401) {
+          log.debug('Engagement API unauthorized (auth pending)');
+        } else {
+          log.warn('API returned error', { error: result.error, status: result.status });
+        }
       }
     } catch (err) {
       log.warn('Failed to fetch engagement data from API', err);

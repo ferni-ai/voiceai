@@ -88,11 +88,16 @@ export async function apiGet<T = unknown>(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      log.warn('API GET failed', { path, status: response.status, error: errorData });
-      return { 
-        ok: false, 
+      // 401 errors are expected before auth completes - use debug level
+      if (response.status === 401) {
+        log.debug('API GET unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API GET failed', { path, status: response.status, error: errorData });
+      }
+      return {
+        ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status 
+        status: response.status
       };
     }
     
@@ -127,11 +132,16 @@ export async function apiPost<T = unknown>(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      log.warn('API POST failed', { path, status: response.status, error: errorData });
-      return { 
-        ok: false, 
+      // 401 errors are expected before auth completes - use debug level
+      if (response.status === 401) {
+        log.debug('API POST unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API POST failed', { path, status: response.status, error: errorData });
+      }
+      return {
+        ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status 
+        status: response.status
       };
     }
     
@@ -173,11 +183,16 @@ export async function apiDelete<T = unknown>(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      log.warn('API DELETE failed', { path, status: response.status, error: errorData });
-      return { 
-        ok: false, 
+      // 401 errors are expected before auth completes - use debug level
+      if (response.status === 401) {
+        log.debug('API DELETE unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API DELETE failed', { path, status: response.status, error: errorData });
+      }
+      return {
+        ok: false,
         error: errorData.error || `HTTP ${response.status}`,
-        status: response.status 
+        status: response.status
       };
     }
     

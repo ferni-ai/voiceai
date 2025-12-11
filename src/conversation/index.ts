@@ -366,23 +366,20 @@ export {
 // ============================================================================
 
 export {
-  // Detailed energy detection (new)
-  detectUserEnergyDetailed,
-
-  // Engagement detection (new)
-  detectDisengagement,
-  detectHighEngagement,
-  detectHesitation,
-  detectEngagementLevel,
-
   // Composite analysis (new)
   analyzeMessage,
-
-  // Types (new - renamed to avoid conflict with engagement-scoring.ts)
-  type TopicWeight,
+  // Engagement detection (new)
+  detectDisengagement,
+  detectEngagementLevel,
+  detectHesitation,
+  detectHighEngagement,
+  // Detailed energy detection (new)
+  detectUserEnergyDetailed,
   type EngagementLevel as DetectedEngagementLevel,
   type DetectionResult,
   type MessageAnalysis,
+  // Types (new - renamed to avoid conflict with engagement-scoring.ts)
+  type TopicWeight,
 } from './utils/index.js';
 
 // ============================================================================
@@ -612,23 +609,88 @@ export function resetAllConversationState(
 // ============================================================================
 
 export {
+  // Performance optimizations
+  CircuitBreaker,
+  // Debug & Monitoring
+  clearABTests,
+  clearDetectionCache,
+  clearSessionRecords,
+  // Orchestrator
   ConversationOrchestrator,
-  getConversationOrchestrator,
-  resetConversationOrchestrator,
-  resetAllOrchestrators,
+  createABTest,
+  // Humanizer integration (drop-in replacement)
+  createHumanizer,
+  createOrchestratedHumanizer,
+  createProfiler,
   DEFAULT_ORCHESTRATOR_CONFIG,
-  type OrchestratorInput,
-  type OrchestratorOutput,
-  type OrchestratorConfig,
-  type AnalysisPhaseResult,
-  type IntelligencePhaseResult,
-  type HumanizationPhaseResult,
-  type DetectedSignals,
+  endABTest,
+  exportSession,
+  getABTestStats,
+  getABTestVariant,
+  // Metrics
+  getAggregatedMetrics,
+  getCircuitBreaker,
+  getCircuitBreakerStatus,
+  // Config adapter (unified feature toggles)
+  getConfigAdapter,
+  getConversationOrchestrator,
+  getDebugSnapshot,
+  getHealthStatus,
+  getMetricsCollector,
+  getOrchestratedHumanizer,
+  getOrComputeDetection,
+  getPerformanceStats,
+  getSessionRecords,
+  getSystemHealth,
+  logDebugSummary,
+  logFeatureStats,
+  logMetricsSummary,
+  logSlowOrchestration,
+  LRUCache,
+  orchestratorConfig,
+  orchestratorDebug,
+  profileOrchestration,
+  recordOrchestration,
+  resetAllCircuitBreakers,
+  resetAllMetrics,
+  resetAllOrchestratedHumanizers,
+  resetAllOrchestrators,
+  resetConfigAdapter,
+  resetConversationOrchestrator,
+  resetMetrics,
+  resetOrchestratedHumanizer,
+  resetPerformanceOptimizations,
+  withTimeout,
+  // Types
+  type ABTestConfig,
   type AnalysisContext,
-  type IntelligenceGuidance,
-  type PriorityAction,
+  type AnalysisPhaseResult,
   type AppliedFeature,
-  type SkippedFeature,
-  type ResponseAdditions,
+  type CircuitBreakerConfig,
+  type CircuitState,
+  type DebugSnapshot,
+  type DetectedSignals,
+  type ExtendedHumanizationContext,
+  type ExtendedHumanizedResponse,
+  type FeatureMetrics,
+  type HealthIndicators,
+  type HumanizationPhaseResult,
+  type IntelligenceGuidance,
+  type IntelligencePhaseResult,
+  type MetricsCollector,
+  type MetricsSnapshot,
+  type OrchestratedHumanizer,
+  type OrchestrationRecord,
+  type OrchestratorConfig,
+  type OrchestratorConfigAdapter,
+  type OrchestratorInput,
+  type OrchestratorMetrics,
+  type OrchestratorOutput,
   type OutputMetadata,
+  type PhaseMetrics,
+  type PriorityAction,
+  type ResponseAdditions,
+  type SkippedFeature,
+  type UnifiedFeatureState,
+  type UnifiedPreset,
 } from './orchestrator/index.js';

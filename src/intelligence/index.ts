@@ -6,7 +6,69 @@
  * - Intent classification
  * - Topic tracking
  * - Conversation state management
+ * - Session state management
+ * - Voice emotion orchestration
+ * - Distress level handling
+ *
+ * @module intelligence
  */
+
+// ============================================================================
+// NEW INFRASTRUCTURE (added in refactor)
+// ============================================================================
+
+// Distress Levels - Centralized thresholds for emotional support
+export {
+  DISTRESS,
+  DISTRESS_GUIDANCE,
+  formatDistressForPrompt,
+  getDistressCategory,
+  getDistressGuidance,
+  getSuggestedTone,
+  isCrisis,
+  needsEmotionalSupport,
+  shouldBeGentle,
+  type DistressGuidance,
+  type DistressLevel,
+} from './distress-levels.js';
+
+// Session State - Centralized session state management
+export {
+  getCustomState,
+  getSessionState,
+  incrementTurnCount,
+  markMemoryReferenced,
+  recordKeyMoment,
+  SessionStateManager,
+  setCustomState,
+  updateCognitiveLoad,
+  updateEmotionalTrajectory,
+  updateVoiceEmotion,
+  wasMemoryReferenced,
+  type ConversationFlowState,
+  type EmotionalTrajectory,
+  type PatternState,
+  type CognitiveLoadState as SessionCognitiveLoadState,
+  type SessionState,
+  type VoiceEmotionState,
+} from './session-state.js';
+
+// Voice Emotion Orchestrator - Unified voice emotion analysis
+export {
+  analyzeVoiceEmotion,
+  detectEmotionSuppression,
+  formatVoiceEmotionForPrompt,
+  VoiceEmotionOrchestrator,
+  type SuppressionResult,
+  type TextEmotionInput,
+  type VoiceEmotionAnalysis,
+  type VoiceEmotionGuidance,
+  type VoiceEmotionInput,
+} from './voice-emotion-orchestrator.js';
+
+// ============================================================================
+// CORE INTELLIGENCE
+// ============================================================================
 
 // Emotion Detection
 export {

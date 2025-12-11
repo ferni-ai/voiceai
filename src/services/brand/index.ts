@@ -126,22 +126,22 @@ export {
 // ============================================================================
 
 export {
-  // Voice agent hooks
-  getBrandSystemPrompt,
-  validateAgentResponse,
-  // Outreach hooks
-  prepareOutreachContent,
-  validateEmailContent,
-  validateSmsContent,
   // Content generation hooks
   createBrandValidator,
-  wrapLLMWithBrandValidation,
-  // Quick checks
-  isBrandCompliant,
-  getBrandIssues,
   fixBrandViolations,
+  getBrandIssues,
+  // Voice agent hooks
+  getBrandSystemPrompt,
   // Persona helpers
   getPersonaGreetings,
   getPersonaResponses,
   isAntiPattern,
+  // Quick checks
+  isBrandCompliant,
+  // Outreach hooks
+  prepareOutreachContent,
+  validateAgentResponse,
+  validateEmailContent,
+  validateSmsContent,
+  wrapLLMWithBrandValidation,
 } from './brand-hooks.js';

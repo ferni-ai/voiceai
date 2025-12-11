@@ -5,46 +5,39 @@
  * - High distress detection and crisis support
  * - Validation needs detection
  * - Emotional mirroring (match user's energy)
- * - Voice + text emotion merging
+ * - Voice + text emotion merging (via VoiceEmotionOrchestrator)
  * - Emotional context (positive/negative valence)
+ *
+ * Uses centralized:
+ * - DISTRESS constants for consistent thresholds
+ * - VoiceEmotionOrchestrator for voice+text merging
+ * - SessionStateManager for session tracking
  *
  * Extracted from jack-bogle.ts lines 647-666, 897-917, 1102-1118
  */
-import { createLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
+  getRandomPhraseClean,
+  loadEmotionalIntelligence,
+} from '../../services/persona-content-loader.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { DISTRESS } from '../distress-levels.js';
+import {
+  analyzeVoiceEmotion,
+  formatVoiceEmotionForPrompt,
+  type TextEmotionInput,
+  type VoiceEmotionInput,
+} from '../voice-emotion-orchestrator.js';
+import { BuilderCategory } from './categories.js';
+import {
   createCriticalInjection,
-  createStandardInjection,
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import {
-  loadEmotionalIntelligence,
-  getRandomPhraseClean,
-} from '../../services/persona-content-loader.js';
 
-const log = createLogger({ module: 'EmotionalContext' });
-
-// ============================================================================
-// VOICE EMOTION TYPES (extended for prosody analysis)
-// ============================================================================
-
-interface VoiceEmotionExtended {
-  primary: string;
-  confidence: number;
-  stressLevel: number;
-  arousal: number;
-  valence: number;
-  anxietyMarkers?: boolean;
-  speechRate?: number;
-  pitch?: number;
-}
-
-interface ExtendedUserData {
-  voiceEmotion?: VoiceEmotionExtended;
-  [key: string]: unknown;
-}
+const log = createLogger({ module: 'context:emotional' });
 
 // ============================================================================
 // EMOTIONAL CONTEXT BUILDER
@@ -52,48 +45,80 @@ interface ExtendedUserData {
 
 /**
  * Build emotional awareness context
- * Enhanced to load persona-specific emotional intelligence content
+ *
+ * Uses centralized infrastructure:
+ * - VoiceEmotionOrchestrator for voice+text merging
+ * - DISTRESS constants for consistent thresholds
+ * - Persona-specific emotional intelligence content
  */
 async function buildEmotionalContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { userText, analysis, userData, persona } = input;
+  const { userText, analysis, userData, persona, services, voiceEmotion } = input;
   const injections: ContextInjection[] = [];
+  const sessionId = services.sessionId;
 
   // Load persona-specific emotional intelligence (if available)
   const emotionalIntelligence = await loadEmotionalIntelligence(persona.id);
 
-  // Merge voice emotion with text emotion if available
-  const textDistress = analysis.emotion.distressLevel ?? 0;
-  let mergedDistress = textDistress;
-  const { voiceEmotion } = userData as ExtendedUserData;
-  if (voiceEmotion) {
-    // Voice prosody provides physical stress indicators
-    // Weight: 60% text emotion, 40% voice (voice can detect things text can't)
-    mergedDistress = textDistress * 0.6 + voiceEmotion.stressLevel * 0.4;
-    // If voice shows anxiety markers, boost distress
-    if (voiceEmotion.anxietyMarkers) {
-      mergedDistress = Math.min(1, mergedDistress + 0.15);
-    }
-    log.debug(
-      {
-        textEmotion: analysis.emotion.primary,
-        voiceEmotion: voiceEmotion.primary,
-        textDistress: textDistress.toFixed(2),
-        voiceStress: voiceEmotion.stressLevel.toFixed(2),
-        mergedDistress: mergedDistress.toFixed(2),
-      },
-      'Merged text + voice emotion'
-    );
-    // Update analysis with merged distress (for other builders)
-    analysis.emotion.distressLevel = mergedDistress;
-  }
   // -----------------------------------------------
-  // HIGH DISTRESS DETECTION (PRIORITY: CRITICAL)
+  // VOICE + TEXT EMOTION MERGING (via Orchestrator)
   // -----------------------------------------------
-  if (mergedDistress > 0.7) {
+  const textInput: TextEmotionInput = {
+    primary: analysis.emotion.primary,
+    intensity: analysis.emotion.intensity || 0.5,
+    distressLevel: analysis.emotion.distressLevel ?? 0,
+    valence: analysis.emotion.valence ?? 'neutral',
+  };
+
+  // Convert voiceEmotion to VoiceEmotionInput if available
+  // Extended voice emotion may have additional properties
+  const extendedVoice = voiceEmotion as
+    | (typeof voiceEmotion & {
+        stressLevel?: number;
+        arousal?: number;
+        valence?: number;
+      })
+    | undefined;
+
+  const voiceInput: VoiceEmotionInput | undefined = voiceEmotion
+    ? {
+        emotion: voiceEmotion.emotion,
+        confidence: voiceEmotion.confidence,
+        speechRate: voiceEmotion.speechRate,
+        pitch: voiceEmotion.pitch,
+        stressLevel: extendedVoice?.stressLevel,
+        arousal: extendedVoice?.arousal,
+        valence: extendedVoice?.valence,
+      }
+    : undefined;
+
+  // Use orchestrator for unified voice emotion analysis
+  const voiceAnalysis = analyzeVoiceEmotion(sessionId, voiceInput, textInput, userText);
+  const mergedDistress = voiceAnalysis.distressLevel;
+  const distressCategory = voiceAnalysis.distressCategory;
+
+  // Update analysis with merged distress (for other builders)
+  analysis.emotion.distressLevel = mergedDistress;
+
+  log.debug(
+    {
+      textEmotion: analysis.emotion.primary,
+      voiceEmotion: voiceInput?.emotion,
+      mergedDistress: mergedDistress.toFixed(2),
+      category: distressCategory,
+      trend: voiceAnalysis.trend,
+    },
+    'Emotional analysis complete'
+  );
+
+  // -----------------------------------------------
+  // DISTRESS-BASED RESPONSE (using centralized constants)
+  // -----------------------------------------------
+  if (mergedDistress >= DISTRESS.HIGH) {
+    // HIGH/CRISIS DISTRESS - Critical intervention
     injections.push(
       createCriticalInjection(
         'emotional_crisis',
-        `[EMOTIONAL CRISIS DETECTED - ${Math.round(mergedDistress * 100)}% distress]
+        `[EMOTIONAL ${distressCategory} DETECTED - ${Math.round(mergedDistress * 100)}% distress]
 STOP everything. This person needs you to be PRESENT, not helpful.
 DO: "I can hear this is really hard." "I'm here." "Take your time."
 DO NOT: Offer advice, solutions, or silver linings. Just be present.
@@ -104,6 +129,7 @@ If they need silence, give them silence.`
     log.warn(
       {
         distress: mergedDistress,
+        category: distressCategory,
         emotion: analysis.emotion.primary,
       },
       'HIGH DISTRESS DETECTED'
@@ -123,7 +149,7 @@ If they need silence, give them silence.`
         }
       }
     }
-  } else if (mergedDistress > 0.5) {
+  } else if (mergedDistress >= DISTRESS.MODERATE) {
     // MODERATE DISTRESS
     injections.push(
       createStandardInjection(
@@ -208,57 +234,51 @@ DO NOT say "but..." after validating.`
     );
   }
   // -----------------------------------------------
-  // VOICE PROSODY RESPONSE
+  // VOICE PROSODY RESPONSE (via Orchestrator)
   // Respond to HOW they sound, not just what they say
   // -----------------------------------------------
-  if (voiceEmotion) {
-    const prosodyResponse = buildVoiceProsodyGuidance(voiceEmotion);
-    if (prosodyResponse) {
-      injections.push(prosodyResponse);
+  if (voiceInput && voiceAnalysis.guidance.messages.length > 0) {
+    // Add voice-specific guidance from orchestrator
+    const voiceGuidance = formatVoiceEmotionForPrompt(voiceAnalysis);
+    if (voiceGuidance) {
+      injections.push(
+        createStandardInjection('voice_prosody', voiceGuidance, { category: 'voice-emotion' })
+      );
     }
   }
+
+  // -----------------------------------------------
+  // EMOTIONAL TREND FEEDBACK
+  // -----------------------------------------------
+  if (voiceAnalysis.trend === 'improving') {
+    injections.push(
+      createHintInjection(
+        'emotional_trend',
+        `[EMOTIONAL TREND: IMPROVING] User seems to be feeling better during this conversation. Keep doing what you're doing.`
+      )
+    );
+  } else if (voiceAnalysis.trend === 'declining') {
+    injections.push(
+      createStandardInjection(
+        'emotional_trend',
+        `[EMOTIONAL TREND: DECLINING] User's emotional state seems to be worsening. Consider a different approach or check in directly.`
+      )
+    );
+  }
+
   return injections;
 }
-/**
- * Build guidance based on voice prosody analysis
- */
-function buildVoiceProsodyGuidance(voiceEmotion: VoiceEmotionExtended): ContextInjection | null {
-  const { arousal, valence, stressLevel, primary, anxietyMarkers } = voiceEmotion;
-  // High stress detected in voice
-  if (stressLevel > 0.6) {
-    let guidance = "User's voice shows stress. Slow down, be extra gentle.";
-    let emotionalMirror;
-    if (anxietyMarkers) {
-      guidance =
-        'Voice analysis detects anxiety markers (trembling, pitch variation). This person needs calm presence.';
-      emotionalMirror = "I can hear there's a lot on your mind. Take your time.";
-    } else if (arousal > 0.7 && valence < 0.3) {
-      guidance = 'Voice is agitated and negative. They may be frustrated or upset.';
-      emotionalMirror = 'I sense this is really weighing on you.';
-    }
-    return createStandardInjection(
-      'voice_prosody',
-      `[VOICE ANALYSIS: ${guidance}${emotionalMirror ? ` You could say: "${emotionalMirror}"` : ''}]`
-    );
-  }
-  // Voice emotion differs significantly from text content
-  if (primary === 'sad' && valence < 0.3) {
-    return createHintInjection(
-      'voice_prosody',
-      `[VOICE ANALYSIS: Voice sounds sad, even if words don't say it. Be extra attentive to emotional undertones.]`
-    );
-  }
-  // Very positive voice - match the energy
-  if (valence > 0.7 && arousal > 0.5) {
-    return createHintInjection(
-      'voice_prosody',
-      `[VOICE ANALYSIS: Voice sounds genuinely happy/excited! Match this positive energy.]`
-    );
-  }
-  return null;
-}
+
 // ============================================================================
 // REGISTER BUILDER
 // ============================================================================
-registerContextBuilder('emotional', buildEmotionalContext);
+
+registerContextBuilder({
+  name: 'emotional',
+  description: 'Emotional awareness, distress detection, voice+text emotion merging',
+  priority: 20, // High priority - informs approach
+  category: BuilderCategory.EMOTIONAL,
+  build: buildEmotionalContext,
+});
+
 export { buildEmotionalContext };

@@ -67,6 +67,50 @@ const TOPIC_TRIGGERS: Record<string, string[]> = {
   wisdom: ['wisdom', 'philosophy', 'meaning of life', 'big picture'],
   patience: ['patience', 'wait', 'rushing', 'slow down', 'time'],
   simplicity: ['simplify', 'simple', 'complicated', 'overwhelmed', 'too much'],
+
+  // ============================================================================
+  // MARKETPLACE PERSONAS
+  // ============================================================================
+
+  // Career Navigation (Atlas)
+  career: ['career', 'job', 'promotion', 'interview', 'resume', 'networking'],
+  negotiation: ['negotiate', 'salary', 'offer', 'raise', 'compensation'],
+  job_search: ['job search', 'applying', 'hired', 'recruiter', 'linkedin'],
+
+  // Sleep & Rest (Luna)
+  sleep: ['sleep', 'insomnia', 'tired', 'rest', 'bedtime', 'wake up'],
+  relaxation: ['relax', 'wind down', 'calm', 'peaceful', 'restless'],
+  racing_thoughts: ['racing thoughts', "can't sleep", 'mind racing', 'anxious at night'],
+
+  // Accountability (Moxie)
+  accountability: ['accountable', 'follow through', 'commitment', 'promise', 'show up'],
+  excuses: ['excuse', 'procrastinate', 'putting off', 'later', 'tomorrow'],
+  streaks: ['streak', 'consecutive', 'miss', 'skipped', 'got back on'],
+
+  // Tech Translation (Pixel)
+  technology: ['tech', 'computer', 'phone', 'app', 'software', 'device'],
+  troubleshooting: ['not working', 'broken', 'error', 'fix', 'help with'],
+  digital_literacy: ['how does', 'what is', 'explain', 'confused about'],
+
+  // Grief Companion (River)
+  bereavement: ['grieving', 'bereaved', 'funeral', 'memorial', 'anniversary'],
+  loss_types: ['lost my', 'passed', 'gone', 'miss them', 'without them'],
+  grief_waves: ['wave of grief', 'hit me', 'out of nowhere', 'triggered'],
+
+  // Relationship Navigation (Sage)
+  relationships: ['relationship', 'partner', 'spouse', 'dating', 'marriage'],
+  attachment: ['attached', 'clingy', 'avoidant', 'secure', 'anxious'],
+  family_dynamics: ['family', 'parents', 'siblings', 'in-laws', 'kids'],
+
+  // Creativity (Spark)
+  creativity: ['creative', 'idea', 'brainstorm', 'stuck', 'block'],
+  artistic: ['write', 'paint', 'draw', 'make', 'create', 'art'],
+  inspiration: ['inspired', 'muse', 'flow', 'imagination', 'play'],
+
+  // Mindfulness & Presence (Zen)
+  mindfulness: ['mindful', 'present', 'aware', 'attention', 'focus'],
+  meditation: ['meditate', 'breathe', 'center', 'ground', 'stillness'],
+  overwhelm: ['overwhelmed', 'anxious', 'stressed', 'scattered', 'racing'],
 };
 
 /**

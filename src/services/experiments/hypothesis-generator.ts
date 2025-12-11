@@ -12,8 +12,8 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { quickValidate } from '../brand/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { quickValidate } from '../brand/index.js';
 import { HERO_CTA_VARIANTS, HERO_HEADLINE_VARIANTS } from './variant-library.js';
 import { getWebExperiments, type WebExperiment } from './web-experiments.js';
 
@@ -97,16 +97,16 @@ function detectTone(text: string): 'warm' | 'direct' | 'questioning' | 'bold' {
  */
 function validateVariantContent(content: unknown): boolean {
   if (!content || typeof content !== 'object') return true;
-  
+
   const c = content as Record<string, unknown>;
   const textsToCheck: string[] = [];
-  
+
   // Extract text fields
   if (typeof c.headline === 'string') textsToCheck.push(c.headline);
   if (typeof c.tagline === 'string') textsToCheck.push(c.tagline);
   if (typeof c.text === 'string') textsToCheck.push(c.text);
   if (typeof c.cta === 'string') textsToCheck.push(c.cta);
-  
+
   // Validate each text
   for (const text of textsToCheck) {
     const result = quickValidate(text);
@@ -115,7 +115,7 @@ function validateVariantContent(content: unknown): boolean {
       return false;
     }
   }
-  
+
   return true;
 }
 

@@ -69,6 +69,8 @@ export interface TokenRequest {
   readonly username: string;
   readonly deviceId: string;
   readonly personaId: string;
+  /** Firebase UID for cross-device user identification */
+  readonly firebaseUid?: string;
 }
 
 // ============================================================================

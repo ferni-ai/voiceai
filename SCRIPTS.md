@@ -263,11 +263,35 @@ npm run ferni env check       # Validate environment
 
 | Command | Subcommands | Description |
 |---------|-------------|-------------|
-| `ferni agents` | list, show, create, validate, install | Manage AI agents |
+| `ferni agents` | **new**, list, show, validate, install | Manage AI agents |
 | `ferni validate` | voices, humanization, integrations, all | Run validations |
 | `ferni generate` | personas, env, design-system, all | Generate code/assets |
 | `ferni rollout` | start, status, advance, rollback | Feature rollouts |
 | `ferni audit` | quality, architecture, legacy, a11y | Code audits |
+
+### Creating New Marketplace Agents
+
+The CLI includes an interactive wizard for creating new marketplace agents:
+
+```bash
+npm run ferni agents new
+```
+
+The wizard guides you through:
+1. **Agent Identity** - Name, ID, and description
+2. **Domain & Expertise** - Category and specialty areas
+3. **Personality** - Traits, warmth, directness, energy levels
+4. **Voice Style** - Communication style and tone
+5. **Handoff Triggers** - Keywords that activate this agent
+
+The wizard generates all required files:
+- `persona.manifest.json` - Complete agent configuration
+- `identity/system-prompt.md` - LLM system prompt
+- `identity/biography.md` - Character backstory
+- `content/behaviors/*.json` - Greetings, goodbyes, quirks, etc.
+- `content/knowledge/_index.json` - Knowledge base index
+- `content/stories/_index.json` - Story library index
+- Registry entry in `marketplace-agents/registry.json`
 
 ### Examples
 
@@ -293,8 +317,11 @@ npm run ferni db status
 # List all AI agents
 npm run ferni agents list
 
-# Create a new agent
-npm run ferni agents create my-coach --template sage
+# Create a new marketplace agent (interactive wizard)
+npm run ferni agents new
+
+# Validate an agent
+npm run ferni agents validate atlas-career-navigator
 ```
 
 ---

@@ -9,9 +9,9 @@
  * - Character limit handling
  */
 
-import { getLogger } from '../../../utils/safe-logger.js';
 import Twilio from 'twilio';
 import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010/account/message.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { validateSmsContent } from '../../brand/index.js';
 
 const log = getLogger().child({ module: 'sms-delivery' });

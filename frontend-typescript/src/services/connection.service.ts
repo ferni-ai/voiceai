@@ -184,6 +184,8 @@ class ConnectionService {
         username: state.userName ?? 'User',
         deviceId: state.deviceId,
         personaId: state.selectedPersona.id,
+        // Firebase UID for cross-device user identification (Priority 2 in voice agent)
+        firebaseUid: state.firebaseUid ?? undefined,
       };
 
       // Fetch token
@@ -319,6 +321,11 @@ class ConnectionService {
       device_id: request.deviceId,
       persona_id: request.personaId,
     });
+
+    // Add Firebase UID if available (Priority 2 for user identification)
+    if (request.firebaseUid) {
+      params.set('firebase_uid', request.firebaseUid);
+    }
 
     const url = `${API.TOKEN}?${params.toString()}`;
     

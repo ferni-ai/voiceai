@@ -515,12 +515,14 @@ async function createToken(roomName, participantName, metadata = {}) {
 }
 
 // Create room and dispatch agent
-async function createRoomWithAgent(roomName, personaId, deviceId, userName) {
+async function createRoomWithAgent(roomName, personaId, deviceId, userName, firebaseUid) {
   try {
     // Build metadata object with all user identification info
+    // firebase_uid is Priority 2 for user identification (after explicit user_id)
     const roomMetadata = {
       persona_id: personaId,
       device_id: deviceId,
+      firebase_uid: firebaseUid, // CRITICAL: Enables cross-device memory recall!
       user_name: userName,
     };
 
@@ -531,7 +533,7 @@ async function createRoomWithAgent(roomName, personaId, deviceId, userName) {
       maxParticipants: 10,
       metadata: JSON.stringify(roomMetadata),
     });
-    console.log(`✅ Room created: ${roomName} (device: ${deviceId || 'anonymous'})`);
+    console.log(`✅ Room created: ${roomName} (firebase: ${firebaseUid || 'none'}, device: ${deviceId || 'anonymous'})`);
 
     // Try to dispatch agent if available
     if (agentDispatch) {
@@ -700,7 +702,7 @@ const server = http.createServer(async (req, res) => {
 
   // Token generation endpoint (authenticated users)
   if (pathname === '/token') {
-    const { room, username, device_id, persona_id } = parsedUrl.query;
+    const { room, username, device_id, persona_id, firebase_uid } = parsedUrl.query;
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -719,25 +721,31 @@ const server = http.createServer(async (req, res) => {
       sendInvalidIdError(res, 'persona_id');
       return;
     }
+    if (firebase_uid && !isValidId(firebase_uid)) {
+      sendInvalidIdError(res, 'firebase_uid');
+      return;
+    }
 
     try {
       const personaId = persona_id || 'jack-bogle';
-      
+
       // Create room and dispatch agent with user identification
-      // device_id is CRITICAL for remembering users across sessions!
-      await createRoomWithAgent(room, personaId, device_id, username);
+      // firebase_uid is CRITICAL for remembering users across sessions!
+      // Falls back to device_id if no Firebase auth
+      await createRoomWithAgent(room, personaId, device_id, username, firebase_uid);
 
       // Check if user has Spotify linked
       const spotifyLinked = !!getSpotifyUserTokens(device_id);
 
-      // Create token for user
+      // Create token for user with identification metadata
       const token = await createToken(room, username, {
         device_id,
+        firebase_uid, // Priority 2 for user identification in voice agent
         persona_id: personaId,
         spotify_linked: spotifyLinked,
       });
 
-      console.log(`✅ Token generated for "${username}" in room "${room}" (persona: ${personaId}, spotify: ${spotifyLinked})`);
+      console.log(`✅ Token generated for "${username}" in room "${room}" (firebase: ${firebase_uid || 'none'}, persona: ${personaId}, spotify: ${spotifyLinked})`);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({

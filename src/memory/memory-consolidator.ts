@@ -290,7 +290,8 @@ export class MemoryConsolidator {
       if (consolidationResult.ok) {
         result.consolidated.push(consolidationResult.value);
       } else {
-        log.warn({ topic, error: consolidationResult.error }, 'Failed to consolidate group');
+        const errorResult = consolidationResult as { ok: false; error: MemoryError };
+        log.warn({ topic, error: errorResult.error }, 'Failed to consolidate group');
       }
     }
 

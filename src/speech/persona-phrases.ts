@@ -227,7 +227,10 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
       `${breakTag('250ms')}I hear you.${breakTag('350ms')}`,
       `Yes... ${breakTag('400ms')}that's difficult.${breakTag('300ms')}`,
     ],
-    excited: [`Ha!${breakTag('200ms')}Yes!${breakTag('250ms')}`, `Now you're talking!${breakTag('300ms')}`],
+    excited: [
+      `Ha!${breakTag('200ms')}Yes!${breakTag('250ms')}`,
+      `Now you're talking!${breakTag('300ms')}`,
+    ],
     thoughtful: [
       `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
       `${breakTag('200ms')}Let me think...${breakTag('500ms')}`,
@@ -280,7 +283,11 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
       `A lot of people feel that way.${breakTag('250ms')}`,
       `I totally understand.${breakTag('300ms')}`,
     ],
-    excited: [`That's great!${breakTag('200ms')}`, `Love that!${breakTag('200ms')}`, `Progress!${breakTag('200ms')}`],
+    excited: [
+      `That's great!${breakTag('200ms')}`,
+      `Love that!${breakTag('200ms')}`,
+      `Progress!${breakTag('200ms')}`,
+    ],
     thoughtful: [
       `Hmm...${breakTag('300ms')}`,
       `That's a good question.${breakTag('300ms')}`,
@@ -289,7 +296,11 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
   },
 
   'jordan-taylor': {
-    neutral: [`Yeah!${breakTag('150ms')}`, `Okay!${breakTag('150ms')}So,${breakTag('100ms')}`, `Got it!${breakTag('200ms')}`],
+    neutral: [
+      `Yeah!${breakTag('150ms')}`,
+      `Okay!${breakTag('150ms')}So,${breakTag('100ms')}`,
+      `Got it!${breakTag('200ms')}`,
+    ],
     engaged: [
       `Ooh!${breakTag('200ms')}I love it!${breakTag('200ms')}`,
       `Yes yes yes!${breakTag('200ms')}`,
@@ -309,11 +320,22 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
   },
 
   'alex-chen': {
-    neutral: [`Got it.${breakTag('150ms')}`, `Okay.${breakTag('150ms')}`, `Clear.${breakTag('150ms')}`],
-    engaged: [`Noted.${breakTag('150ms')}`, `Good.${breakTag('150ms')}`, `I see.${breakTag('200ms')}`],
+    neutral: [
+      `Got it.${breakTag('150ms')}`,
+      `Okay.${breakTag('150ms')}`,
+      `Clear.${breakTag('150ms')}`,
+    ],
+    engaged: [
+      `Noted.${breakTag('150ms')}`,
+      `Good.${breakTag('150ms')}`,
+      `I see.${breakTag('200ms')}`,
+    ],
     empathetic: [`I understand.${breakTag('200ms')}`, `Makes sense.${breakTag('200ms')}`],
     excited: [`Perfect.${breakTag('150ms')}`, `Excellent.${breakTag('200ms')}`],
-    thoughtful: [`${breakTag('200ms')}Let me check...${breakTag('300ms')}`, `One moment.${breakTag('250ms')}`],
+    thoughtful: [
+      `${breakTag('200ms')}Let me check...${breakTag('300ms')}`,
+      `One moment.${breakTag('250ms')}`,
+    ],
   },
 };
 
@@ -412,7 +434,12 @@ export const PERSONA_CATCHPHRASES: Record<string, CatchphraseConfig> = {
       `${breakTag('250ms')}<emotion value="affectionate">${phrase}</emotion>${breakTag('300ms')}`,
   },
   'jordan-taylor': {
-    phrases: ["Let's make it happen!", 'The future you will thank you!', 'This is exciting!', "We've got this!"],
+    phrases: [
+      "Let's make it happen!",
+      'The future you will thank you!',
+      'This is exciting!',
+      "We've got this!",
+    ],
     emphasis: 'excited',
     ssmlWrapper: (phrase) =>
       `${breakTag('200ms')}<speed ratio="1.08"><emotion value="surprised">${phrase}</emotion></speed>${breakTag('250ms')}`,

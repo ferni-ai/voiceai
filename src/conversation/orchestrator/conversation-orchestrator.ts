@@ -17,51 +17,67 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+// Config adapter (unified feature toggles)
+import { getConfigAdapter } from './config-adapter.js';
+
 // Shared utilities
 import {
   analyzeMessage,
-  detectEvidence,
-  detectBreakthrough,
   detectAdviceGiving,
+  detectBreakthrough,
   detectDisengagement,
-  detectHighEngagement,
+  detectEvidence,
   detectHesitation,
-  type EnergyLevel,
+  detectHighEngagement,
 } from '../utils/detection.js';
 
 // Phase 2: Intelligence systems
-import { getSessionIntelligence, type SessionIntelligenceContext } from '../session-intelligence.js';
-import { getBetterThanHuman, type BetterThanHumanContext } from '../superhuman/index.js';
-import { getDeepHumanizationEngine, classifyTopicWeight } from '../deep-humanization.js';
+import { getDeepHumanizationEngine } from '../deep-humanization.js';
 import { getEmotionalArcTracker } from '../emotional-arc.js';
+import {
+  getSessionIntelligence,
+  type SessionIntelligenceContext,
+} from '../session-intelligence.js';
+import { getBetterThanHuman, type BetterThanHumanContext } from '../superhuman/index.js';
 
 // Phase 3: Humanization systems
-import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
-import { humanizeVocals, detectUserEnergy, type VocalContext } from '../vocal-humanization.js';
-import { getHumanizationOrchestrator, humanizationConfig, type HumanizationContext as OrchestratorContext } from '../humanization/index.js';
-import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
-import { getSilencePresenceEngine } from '../silence-presence.js';
 import { getActiveListeningEngine } from '../active-listening.js';
+import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
 import { getConversationalMemory } from '../conversational-memory.js';
+import {
+  getHumanizationOrchestrator,
+  humanizationConfig,
+  type HumanizationContext as OrchestratorContext,
+} from '../humanization/index.js';
 import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
-import { getResponseDynamicsEngine } from '../response-dynamics.js';
+import { getSilencePresenceEngine } from '../silence-presence.js';
+import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
+import { humanizeVocals, type VocalContext } from '../vocal-humanization.js';
 
 // Types
 import type {
+  AnalysisContext,
+  AnalysisPhaseResult,
+  AppliedFeature,
+  DetectedSignals,
+  HumanizationPhaseResult,
+  IntelligenceGuidance,
+  IntelligencePhaseResult,
+  OrchestratorConfig,
   OrchestratorInput,
   OrchestratorOutput,
-  OrchestratorConfig,
-  AnalysisPhaseResult,
-  IntelligencePhaseResult,
-  HumanizationPhaseResult,
-  DetectedSignals,
-  AnalysisContext,
-  IntelligenceGuidance,
-  AppliedFeature,
-  SkippedFeature,
   ResponseAdditions,
-  DEFAULT_ORCHESTRATOR_CONFIG,
+  SkippedFeature,
 } from './types.js';
+
+// Metrics
+import { getMetricsCollector, logSlowOrchestration } from './metrics.js';
+
+// Performance optimizations
+import { getCircuitBreaker, getOrComputeDetection, withTimeout } from './performance.js';
+
+// Debug
+import { recordOrchestration } from './debug.js';
 
 const log = createLogger({ module: 'ConversationOrchestrator' });
 
@@ -70,12 +86,41 @@ const log = createLogger({ module: 'ConversationOrchestrator' });
 // ============================================================================
 
 export class ConversationOrchestrator {
-  private config: OrchestratorConfig;
+  private configOverrides: Partial<OrchestratorConfig>;
   private sessionStartTime: number;
+  private personaId: string | null = null;
+  private sessionId: string;
 
-  constructor(config: Partial<OrchestratorConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+  constructor(sessionId: string = 'default', config: Partial<OrchestratorConfig> = {}) {
+    this.sessionId = sessionId;
+    this.configOverrides = config;
     this.sessionStartTime = Date.now();
+  }
+
+  /**
+   * Get the effective config, merging adapter config with overrides
+   */
+  private get config(): OrchestratorConfig {
+    // Get config from adapter (which reads from existing config systems)
+    const adapterConfig = getConfigAdapter().buildOrchestratorConfig();
+
+    // Merge with any overrides passed to constructor
+    return {
+      ...adapterConfig,
+      ...this.configOverrides,
+      features: {
+        ...adapterConfig.features,
+        ...this.configOverrides.features,
+      },
+    };
+  }
+
+  /**
+   * Set persona for persona-specific config
+   */
+  setPersona(personaId: string): void {
+    this.personaId = personaId;
+    getConfigAdapter().setPersona(personaId);
   }
 
   // ==========================================================================
@@ -121,6 +166,20 @@ export class ConversationOrchestrator {
       timing.output = Date.now() - outputStart;
       timing.total = Date.now() - startTime;
 
+      // Record metrics
+      const metricsCollector = getMetricsCollector(this.sessionId, input.personaId);
+      metricsCollector.recordTiming(timing);
+      metricsCollector.recordFeatures(output.appliedFeatures, humanizationResult.skippedFeatures);
+      metricsCollector.recordConfidence(output.metadata.confidence);
+
+      // Log slow orchestrations
+      logSlowOrchestration(this.sessionId, timing, input.turnNumber);
+
+      // Record for debugging (when debug enabled)
+      if (this.config.debug) {
+        recordOrchestration(this.sessionId, input, output);
+      }
+
       log.debug(
         {
           turn: input.turnNumber,
@@ -132,6 +191,10 @@ export class ConversationOrchestrator {
 
       return output;
     } catch (error) {
+      // Record error in metrics
+      const metricsCollector = getMetricsCollector(this.sessionId, input.personaId);
+      metricsCollector.recordError();
+
       log.error({ error: String(error), turn: input.turnNumber }, 'Orchestration failed');
 
       // Return minimal response on error
@@ -158,16 +221,31 @@ export class ConversationOrchestrator {
       return this.getDefaultAnalysis();
     }
 
-    // Analyze the user message
-    const analysis = analyzeMessage(input.userMessage, input.userEmotion);
+    // Use cached analysis for the same message (within same turn)
+    const cacheKey = `analysis:${input.userMessage}:${input.userEmotion || ''}`;
+    const cachedAnalysis = getOrComputeDetection(cacheKey, () =>
+      analyzeMessage(input.userMessage, input.userEmotion)
+    );
+    const analysis = cachedAnalysis;
 
-    // Detect specific signals
+    // Cache individual signal detections
+    const signalCachePrefix = `signal:${input.userMessage}:`;
     const signals: DetectedSignals = {
-      hasEvidence: detectEvidence(input.userMessage),
-      isBreakthrough: detectBreakthrough(input.userMessage),
-      hasHesitation: detectHesitation(input.userMessage),
-      isDisengaged: detectDisengagement(input.userMessage),
-      isHighlyEngaged: detectHighEngagement(input.userMessage),
+      hasEvidence: getOrComputeDetection(`${signalCachePrefix}evidence`, () =>
+        detectEvidence(input.userMessage)
+      ),
+      isBreakthrough: getOrComputeDetection(`${signalCachePrefix}breakthrough`, () =>
+        detectBreakthrough(input.userMessage)
+      ),
+      hasHesitation: getOrComputeDetection(`${signalCachePrefix}hesitation`, () =>
+        detectHesitation(input.userMessage)
+      ),
+      isDisengaged: getOrComputeDetection(`${signalCachePrefix}disengaged`, () =>
+        detectDisengagement(input.userMessage)
+      ),
+      isHighlyEngaged: getOrComputeDetection(`${signalCachePrefix}engaged`, () =>
+        detectHighEngagement(input.userMessage)
+      ),
       isEmotional: analysis.isEmotional,
       isHeavy: analysis.isHeavy,
       isFirstTurn: input.turnNumber <= 1,
@@ -182,6 +260,10 @@ export class ConversationOrchestrator {
       needsSupport: signals.isHeavy || signals.isEmotional || input.wasPersonalSharing === true,
       confidence: analysis.confidence,
     };
+
+    // Record cache hit in metrics
+    const metricsCollector = getMetricsCollector(this.sessionId, input.personaId);
+    metricsCollector.recordCacheHit(true); // Cached detection used
 
     return { analysis, signals, context };
   }
@@ -271,11 +353,13 @@ export class ConversationOrchestrator {
       return null;
     }
 
-    try {
-      const intelligence = getSessionIntelligence(input.sessionId, input.userId);
+    // Use circuit breaker to protect against slow/failing intelligence
+    const breaker = getCircuitBreaker('sessionIntelligence');
+    const result = await breaker.execute(async () => {
+      const intelligence = getSessionIntelligence(input.sessionId, input.userId!);
       const context: SessionIntelligenceContext = {
         sessionId: input.sessionId,
-        userId: input.userId,
+        userId: input.userId!,
         turnCount: input.turnNumber,
         userMessage: input.userMessage,
         topic: input.topic,
@@ -285,10 +369,13 @@ export class ConversationOrchestrator {
         engagementLevel: analysis.context.engagement === 'high' ? 0.8 : 0.5,
       };
       return intelligence.analyze(context);
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Session intelligence failed (non-fatal)');
-      return null;
+    }, null);
+
+    if (!result.success && result.fromCircuit) {
+      log.debug('Session intelligence skipped (circuit open)');
     }
+
+    return result.value ?? null;
   }
 
   private async getSuperhumanInsight(
@@ -299,35 +386,53 @@ export class ConversationOrchestrator {
       return null;
     }
 
-    try {
-      const orchestrator = getBetterThanHuman(
-        input.userId,
-        input.sessionId,
-        input.personaId,
-        input.sessionCount || 0
+    // Use circuit breaker with timeout for superhuman intelligence
+    const breaker = getCircuitBreaker('betterThanHuman');
+    const result = await breaker.execute(async () => {
+      const { value, timedOut } = await withTimeout(
+        async () => {
+          const orchestrator = getBetterThanHuman(
+            input.userId!,
+            input.sessionId,
+            input.personaId,
+            input.sessionCount || 0
+          );
+
+          const context: BetterThanHumanContext = {
+            userMessage: input.userMessage,
+            turnCount: input.turnNumber,
+            sessionCount: input.sessionCount || 0,
+            topic: input.topic,
+            emotion: input.userEmotion,
+            isSessionStart: input.turnNumber <= 1,
+            relationshipStage: this.mapRelationshipStage(input.relationshipStage),
+            personaId: input.personaId,
+            userId: input.userId!,
+            sessionId: input.sessionId,
+            draftResponse: input.rawResponse,
+            timeOfDay: this.getTimeOfDay(),
+            dayOfWeek: new Date().getDay(),
+          };
+
+          return orchestrator.analyze(context);
+        },
+        100, // 100ms timeout for better-than-human
+        null
       );
 
-      const context: BetterThanHumanContext = {
-        userMessage: input.userMessage,
-        turnCount: input.turnNumber,
-        sessionCount: input.sessionCount || 0,
-        topic: input.topic,
-        emotion: input.userEmotion,
-        isSessionStart: input.turnNumber <= 1,
-        relationshipStage: this.mapRelationshipStage(input.relationshipStage),
-        personaId: input.personaId,
-        userId: input.userId,
-        sessionId: input.sessionId,
-        draftResponse: input.rawResponse,
-        timeOfDay: this.getTimeOfDay(),
-        dayOfWeek: new Date().getDay(),
-      };
+      if (timedOut) {
+        log.debug('Better-than-human timed out');
+        return null;
+      }
 
-      return orchestrator.analyze(context);
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Better-than-human failed (non-fatal)');
-      return null;
+      return value;
+    }, null);
+
+    if (!result.success && result.fromCircuit) {
+      log.debug('Better-than-human skipped (circuit open)');
     }
+
+    return result.value ?? null;
   }
 
   private async getMoodState(
@@ -389,7 +494,10 @@ export class ConversationOrchestrator {
 
     // Incorporate session insight
     if (sessionInsight) {
-      if (sessionInsight.concern.level === 'elevated' || sessionInsight.concern.level === 'crisis') {
+      if (
+        sessionInsight.concern.level === 'elevated' ||
+        sessionInsight.concern.level === 'crisis'
+      ) {
         guidance.approach = 'cautious';
         guidance.avoid.push(...sessionInsight.responseGuidance.avoid);
       }
@@ -414,7 +522,7 @@ export class ConversationOrchestrator {
         ...superhumanInsight.prioritizedActions.slice(0, 2).map((a) => ({
           type: a.type,
           content: a.content,
-          placement: a.placement === 'interrupt' ? 'prefix' as const : a.placement,
+          placement: a.placement === 'interrupt' ? ('prefix' as const) : a.placement,
           priority: a.priority / 10, // Normalize to 0-1
           reason: 'superhuman',
         }))
@@ -505,7 +613,9 @@ export class ConversationOrchestrator {
       const vocalResult = this.applyVocalHumanization(text, input, analysis, intelligence);
       text = vocalResult.ssml;
       ssml = vocalResult.ssml;
-      appliedFeatures.push(...vocalResult.appliedFeatures.map((f) => ({ name: f, source: 'vocal' as const })));
+      appliedFeatures.push(
+        ...vocalResult.appliedFeatures.map((f) => ({ name: f, source: 'vocal' as const }))
+      );
     }
 
     // 5. Silence Presence (for heavy moments)
@@ -536,7 +646,11 @@ export class ConversationOrchestrator {
     }
 
     // 8. Apply Priority Actions from Intelligence
-    const actionResult = this.applyPriorityActions(text, ssml, intelligence.guidance.priorityActions);
+    const actionResult = this.applyPriorityActions(
+      text,
+      ssml,
+      intelligence.guidance.priorityActions
+    );
     text = actionResult.text;
     ssml = actionResult.ssml;
     appliedFeatures.push(...actionResult.features);
@@ -836,7 +950,13 @@ export class ConversationOrchestrator {
     analysis: AnalysisPhaseResult,
     intelligence: IntelligencePhaseResult,
     humanization: HumanizationPhaseResult,
-    timing: { analysis: number; intelligence: number; humanization: number; output: number; total: number }
+    timing: {
+      analysis: number;
+      intelligence: number;
+      humanization: number;
+      output: number;
+      total: number;
+    }
   ): OrchestratorOutput {
     // Apply SSML enhancements based on emotional guidance
     let ssml = humanization.ssml;
@@ -861,7 +981,8 @@ export class ConversationOrchestrator {
         confidence: {
           analysis: analysis.context.confidence,
           intelligence: intelligence.sessionInsight?.confidence || 0.5,
-          overall: (analysis.context.confidence + (intelligence.sessionInsight?.confidence || 0.5)) / 2,
+          overall:
+            (analysis.context.confidence + (intelligence.sessionInsight?.confidence || 0.5)) / 2,
         },
         debug: this.config.debug
           ? {
@@ -956,32 +1077,6 @@ export class ConversationOrchestrator {
 }
 
 // ============================================================================
-// DEFAULT CONFIG
-// ============================================================================
-
-const DEFAULT_CONFIG: OrchestratorConfig = {
-  enableAnalysis: true,
-  enableIntelligence: true,
-  enableHumanization: true,
-
-  features: {
-    speechNaturalization: true,
-    vocalHumanization: true,
-    advancedHumanization: true,
-    deepHumanization: true,
-    sessionIntelligence: true,
-    betterThanHuman: true,
-    contentDeliveryPacing: true,
-    silencePresence: true,
-  },
-
-  maxHumanizationsPerResponse: 3,
-  maxPriorityActions: 2,
-
-  debug: false,
-};
-
-// ============================================================================
 // SINGLETON MANAGEMENT
 // ============================================================================
 
@@ -995,7 +1090,7 @@ export function getConversationOrchestrator(
   config?: Partial<OrchestratorConfig>
 ): ConversationOrchestrator {
   if (!orchestrators.has(sessionId)) {
-    orchestrators.set(sessionId, new ConversationOrchestrator(config));
+    orchestrators.set(sessionId, new ConversationOrchestrator(sessionId, config));
   }
   return orchestrators.get(sessionId)!;
 }

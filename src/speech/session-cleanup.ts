@@ -33,13 +33,13 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Core speech services
-import { removeSessionAudioProsodyAnalyzer } from './audio-prosody.js';
-import { removeSessionBackchannelingSystem } from './backchanneling.js';
+// Core speech services (using preferred reset* naming)
+import { resetSessionAudioProsodyAnalyzer } from './audio-prosody.js';
+import { resetSessionBackchannelingSystem } from './backchanneling.js';
 import { clearSessionContextId } from './cartesia-context-patch.js';
 import { clearCognitiveSpeechState } from './cognitive-speech-integration.js';
 import { resetPronunciationMemory } from './pronunciation-memory.js';
-import { removeSessionWPMTracker } from './speech-context.js';
+import { resetSessionWPMTracker } from './speech-context.js';
 import { getTtsContextService } from './tts-context.js';
 
 // Human listening & analysis services
@@ -68,6 +68,15 @@ import { resetRealtimePreemptiveProcessor } from './realtime-preemptive-patch.js
 
 // Voice manager
 import { resetSessionVoiceManager } from './voice-manager.js';
+
+// Enhanced backchanneling (legacy, using preferred reset* naming)
+import { resetEnhancedBackchannelingEngine } from './enhanced-backchanneling.js';
+
+// Catchphrase tracking
+import { resetSessionCatchphraseTracker } from './response-naturalness.js';
+
+// Unified backchanneling
+import { resetBackchanneling } from './backchanneling/index.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -150,9 +159,9 @@ export function cleanupSpeechSession(
   // CORE SPEECH SERVICES
   // ============================================================================
 
-  safeCleanup('audioProsody', () => removeSessionAudioProsodyAnalyzer(sessionId));
-  safeCleanup('wpmTracker', () => removeSessionWPMTracker(sessionId));
-  safeCleanup('backchanneling', () => removeSessionBackchannelingSystem(sessionId));
+  safeCleanup('audioProsody', () => resetSessionAudioProsodyAnalyzer(sessionId));
+  safeCleanup('wpmTracker', () => resetSessionWPMTracker(sessionId));
+  safeCleanup('backchanneling', () => resetSessionBackchannelingSystem(sessionId));
   safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));
   safeCleanup('ttsContext', () => getTtsContextService().clearSession(sessionId));
   safeCleanup('pronunciationMemory', () => resetPronunciationMemory(sessionId));
@@ -199,6 +208,14 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('voiceManager', () => resetSessionVoiceManager(sessionId));
+
+  // ============================================================================
+  // BACKCHANNELING (Unified + Legacy)
+  // ============================================================================
+
+  safeCleanup('unifiedBackchanneling', () => resetBackchanneling(sessionId));
+  safeCleanup('enhancedBackchanneling', () => resetEnhancedBackchannelingEngine(sessionId));
+  safeCleanup('catchphraseTracker', () => resetSessionCatchphraseTracker(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);

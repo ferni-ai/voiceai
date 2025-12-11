@@ -104,10 +104,10 @@ export function memoryError(
  * Map over a successful result
  */
 export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
-  if (result.ok) {
-    return ok(fn(result.value));
+  if (!result.ok) {
+    return err((result as { ok: false; error: E }).error);
   }
-  return result;
+  return ok(fn((result as { ok: true; value: T }).value));
 }
 
 /**
@@ -115,9 +115,9 @@ export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<
  */
 export function mapError<T, E, F>(result: Result<T, E>, fn: (error: E) => F): Result<T, F> {
   if (!result.ok) {
-    return err(fn(result.error));
+    return err(fn((result as { ok: false; error: E }).error));
   }
-  return result;
+  return ok((result as { ok: true; value: T }).value);
 }
 
 /**
@@ -128,9 +128,9 @@ export function andThen<T, U, E>(
   fn: (value: T) => Result<U, E>
 ): Result<U, E> {
   if (result.ok) {
-    return fn(result.value);
+    return fn((result as { ok: true; value: T }).value);
   }
-  return result;
+  return err((result as { ok: false; error: E }).error);
 }
 
 /**
@@ -148,9 +148,9 @@ export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
  */
 export function unwrap<T, E extends { message: string }>(result: Result<T, E>): T {
   if (result.ok) {
-    return result.value;
+    return (result as { ok: true; value: T }).value;
   }
-  throw new Error(result.error.message);
+  throw new Error((result as { ok: false; error: E }).error.message);
 }
 
 /**
@@ -175,9 +175,9 @@ export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
   const values: T[] = [];
   for (const result of results) {
     if (!result.ok) {
-      return result;
+      return err((result as { ok: false; error: E }).error);
     }
-    values.push(result.value);
+    values.push((result as { ok: true; value: T }).value);
   }
   return ok(values);
 }
@@ -191,9 +191,9 @@ export function allSettled<T, E>(results: Result<T, E>[]): { successes: T[]; err
 
   for (const result of results) {
     if (result.ok) {
-      successes.push(result.value);
+      successes.push((result as { ok: true; value: T }).value);
     } else {
-      errors.push(result.error);
+      errors.push((result as { ok: false; error: E }).error);
     }
   }
 
@@ -255,28 +255,33 @@ export async function retry<T, E extends { retryable: boolean }>(
   const baseDelayMs = options?.baseDelayMs ?? 100;
   const maxDelayMs = options?.maxDelayMs ?? 5000;
 
-  let lastResult: Result<T, E> | undefined;
+  let lastError: E | undefined;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    lastResult = await fn();
+    const result = await fn();
 
-    if (lastResult.ok) {
-      return lastResult;
+    if (result.ok) {
+      return result;
     }
 
+    const errorResult = result as { ok: false; error: E };
+    lastError = errorResult.error;
+
     // Don't retry if error isn't retryable
-    if (!lastResult.error.retryable) {
-      return lastResult;
+    if (!errorResult.error.retryable) {
+      return err(errorResult.error);
     }
 
     // Don't sleep after last attempt
     if (attempt < maxAttempts - 1) {
       const delay = Math.min(baseDelayMs * Math.pow(2, attempt), maxDelayMs);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
 
-  return lastResult!;
+  return err(lastError!);
 }
 
 // ============================================================================

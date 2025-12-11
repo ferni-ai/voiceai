@@ -22,6 +22,9 @@ import {
 } from './vector-store.js';
 import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
+import { embedCached, getEmbeddingCache } from './embedding-cache.js';
+import { getMemoryMetricsCollector } from './memory-metrics.js';
+import { isOk } from './result.js';
 
 // Type for any vector store implementation
 type AnyVectorStore = VectorStore | FirestoreVectorStore;
@@ -221,6 +224,7 @@ export async function indexConversationSummary(
 /**
  * Search the knowledge base semantically
  * Uses persistent vector store when available for cross-session search
+ * Now with embedding caching and metrics collection
  */
 export async function semanticSearch(
   query: string,
@@ -235,6 +239,8 @@ export async function semanticSearch(
   const store = getActiveStore();
   const topK = options?.topK || 5;
   const minScore = options?.minScore || 0.3;
+  const metrics = getMemoryMetricsCollector();
+  const startTime = Date.now();
 
   // Build filter
   const filter: VectorFilter = {};
@@ -255,6 +261,11 @@ export async function semanticSearch(
     filter: Object.keys(filter).length > 0 ? filter : undefined,
     minScore,
   });
+
+  // Record metrics
+  const durationMs = Date.now() - startTime;
+  const topScore = results.length > 0 ? results[0].score : undefined;
+  metrics.recordRetrieval(durationMs, results.length, topScore);
 
   return results.map((r) => ({
     content: r.document.text,
@@ -302,8 +313,9 @@ export async function getRAGContext(
   // Format for prompt injection
   const formattedContext = formatRAGContext(results);
 
-  // Get query embedding for potential reuse
-  const queryEmbedding = await embed(query);
+  // Get query embedding for potential reuse (using cache)
+  const embeddingResult = await embedCached(query);
+  const queryEmbedding = isOk(embeddingResult) ? embeddingResult.value : await embed(query);
 
   getLogger().info(`RAG: Found ${results.length} relevant results for query`);
 

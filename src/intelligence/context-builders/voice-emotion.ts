@@ -7,33 +7,34 @@
  *
  * This creates emotionally intelligent AI that responds to
  * HOW something is said, not just WHAT is said.
+ *
+ * Uses centralized:
+ * - SessionStateManager for session tracking
+ * - VoiceEmotionOrchestrator for unified analysis
  */
 
+import { broadcastVoiceEmotion } from '../../services/cognitive-broadcast.js';
+import { getSessionState, updateVoiceEmotion } from '../session-state.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
-  createHintInjection,
+  generateVoiceAwareGuidance,
+  processVoiceEmotion,
+  trackSessionVoiceEmotion,
+  type VoiceEmotionSignals,
+} from '../voice-emotion-cognitive.js';
+import { BuilderCategory } from './categories.js';
+import {
   createCriticalInjection,
+  createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import {
-  processVoiceEmotion,
-  generateVoiceAwareGuidance,
-  trackSessionVoiceEmotion,
-  getSessionVoiceState,
-  type VoiceEmotionSignals,
-  type CognitiveStateAdjustment,
-} from '../voice-emotion-cognitive.js';
-
-// Broadcast service for real-time dashboard updates
-import { broadcastVoiceEmotion } from '../../services/cognitive-broadcast.js';
-
-// Session tracking for voice emotion state
-const sessionVoiceHistory = new Map<string, string[]>();
 
 /**
  * Build voice emotion context
+ *
+ * Uses centralized SessionStateManager for session tracking.
  */
 async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
@@ -46,17 +47,15 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
     return injections;
   }
 
-  // Initialize session tracking
-  if (!sessionVoiceHistory.has(sessionId)) {
-    sessionVoiceHistory.set(sessionId, []);
-  }
-  const history = sessionVoiceHistory.get(sessionId)!;
-  history.push(voiceEmotion.emotion);
-  if (history.length > 10) {
-    history.shift();
-  }
+  // Get centralized session state
+  const sessionState = getSessionState(sessionId);
 
-  // Build voice emotion signals
+  // Update centralized voice emotion state
+  // Extended voice emotion may have additional properties
+  const extendedVoice = voiceEmotion as typeof voiceEmotion & { stressLevel?: number };
+  updateVoiceEmotion(sessionId, voiceEmotion.emotion, extendedVoice.stressLevel ?? 0);
+
+  // Build voice emotion signals for cognitive processing
   const signals: VoiceEmotionSignals = {
     emotion: voiceEmotion.emotion,
     confidence: voiceEmotion.confidence,
@@ -68,15 +67,29 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
     hasHesitation: detectHesitation(input.userText),
   };
 
-  // Track session voice emotion
-  const sessionState = trackSessionVoiceEmotion(sessionId, signals);
+  // Track session voice emotion in cognitive system
+  const cognitiveState = trackSessionVoiceEmotion(sessionId, signals);
 
   // 📡 Broadcast voice emotion for dashboard
+  // Use arc trend from centralized state, or fallback to cognitive state
+  const arcTrend = sessionState.voiceEmotion.arc?.trend;
+  const emotionalTrend = cognitiveState.emotionalTrend;
+  const trend: 'stable' | 'improving' | 'worsening' =
+    arcTrend === 'declining'
+      ? 'worsening'
+      : arcTrend === 'improving'
+        ? 'improving'
+        : emotionalTrend === 'worsening'
+          ? 'worsening'
+          : emotionalTrend === 'improving'
+            ? 'improving'
+            : 'stable';
+
   broadcastVoiceEmotion(
     input.services.userId || 'anonymous',
     signals.emotion,
     signals.confidence || 0.5,
-    sessionState.emotionalTrend || 'stable'
+    trend
   );
 
   // Process voice emotion for cognitive adjustments
@@ -132,9 +145,11 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
 
   // ============================================================================
   // 3. EMOTIONAL TREND - Track improving/worsening
+  // Use centralized session state for voice samples, cognitive state for trend
   // ============================================================================
-  if (sessionState.totalSamples >= 3) {
-    if (sessionState.emotionalTrend === 'improving') {
+  if (sessionState.voiceEmotion.totalSamples >= 3) {
+    const emotionalTrendValue = cognitiveState.emotionalTrend;
+    if (emotionalTrendValue === 'improving') {
       injections.push(
         createHintInjection(
           'voice-trend',
@@ -142,7 +157,7 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
           { category: 'voice-emotion', confidence: 0.7 }
         )
       );
-    } else if (sessionState.emotionalTrend === 'worsening') {
+    } else if (emotionalTrendValue === 'worsening') {
       injections.push(
         createStandardInjection(
           'voice-trend',
@@ -225,9 +240,13 @@ function detectHesitation(userText: string): boolean {
 
 /**
  * Clear voice emotion session state
+ *
+ * NOTE: Session state is now managed centrally by SessionStateManager.
+ * This function is kept for backward compatibility but delegates to the manager.
  */
 export function clearVoiceEmotionSession(sessionId: string): void {
-  sessionVoiceHistory.delete(sessionId);
+  // Session state is managed by SessionStateManager.clear(sessionId)
+  // This is a no-op for backward compatibility
 }
 
 // ============================================================================
@@ -237,7 +256,8 @@ export function clearVoiceEmotionSession(sessionId: string): void {
 registerContextBuilder({
   name: 'voice-emotion',
   description: 'Voice emotion analysis and cognitive adaptation',
-  priority: 85, // High priority - affects how we respond
+  priority: 30, // High priority - affects how we respond (VOICE category: 20-40)
+  category: BuilderCategory.VOICE,
   build: buildVoiceEmotionContext,
 });
 
