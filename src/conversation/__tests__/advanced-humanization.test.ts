@@ -41,7 +41,11 @@ import {
   clearHopeInjectionEngine,
 } from '../hope-injection.js';
 
-import { getCuriosityEngine, resetCuriosityEngine, clearCuriosityEngine } from '../curiosity-engine.js';
+import {
+  getCuriosityEngine,
+  resetCuriosityEngine,
+  clearCuriosityEngine,
+} from '../curiosity-engine.js';
 
 import {
   getEnergyRegulationEngine,
@@ -164,13 +168,9 @@ describe('EmotionalAftercareEngine', () => {
 
   it('should detect heavy emotional content', () => {
     const engine = getEmotionalAftercareEngine(sessionId);
-    
+
     // Process heavy message
-    engine.processTurn(
-      "My father just died. I don't know what to do.",
-      5,
-      'grief'
-    );
+    engine.processTurn("My father just died. I don't know what to do.", 5, 'grief');
 
     const state = engine.getState();
     // Should accumulate some emotional debt
@@ -181,13 +181,9 @@ describe('EmotionalAftercareEngine', () => {
 
   it('should provide aftercare guidance', () => {
     const engine = getEmotionalAftercareEngine(sessionId);
-    
+
     // Trigger high emotional content
-    engine.processTurn(
-      "I've never told anyone this but I was abused as a child.",
-      10,
-      'distress'
-    );
+    engine.processTurn("I've never told anyone this but I was abused as a child.", 10, 'distress');
 
     const guidance = engine.getGuidance();
     expect(guidance.transitionPhrase).toBeTruthy();
@@ -196,10 +192,10 @@ describe('EmotionalAftercareEngine', () => {
 
   it('should suggest closing when appropriate', () => {
     const engine = getEmotionalAftercareEngine(sessionId);
-    
+
     // High emotional debt
-    engine.processTurn("This is so hard to talk about", 10, 'sadness');
-    engine.processTurn("I feel overwhelmed", 11, 'anxiety');
+    engine.processTurn('This is so hard to talk about', 10, 'sadness');
+    engine.processTurn('I feel overwhelmed', 11, 'anxiety');
     engine.processTurn("I don't know if I can keep going", 12, 'exhaustion');
 
     const shouldClose = engine.shouldSuggestClosing(false);
@@ -224,7 +220,7 @@ describe('ConversationalRepairEngine', () => {
 
   it('should detect misunderstanding signals', () => {
     const engine = getConversationalRepairEngine(sessionId);
-    
+
     engine.recordTurn('agent', "Sounds like you're excited about this job!", 5);
     engine.recordTurn('user', "No, that's not what I meant at all.", 6);
 
@@ -242,7 +238,7 @@ describe('ConversationalRepairEngine', () => {
   it('should detect topic unwanted signals', () => {
     const engine = getConversationalRepairEngine(sessionId);
 
-    const decision = engine.analyze("Can we talk about something else?");
+    const decision = engine.analyze('Can we talk about something else?');
 
     // Just verify the decision structure is valid
     expect(decision).toBeTruthy();
@@ -251,7 +247,7 @@ describe('ConversationalRepairEngine', () => {
 
   it('should provide repair strategies', () => {
     const engine = getConversationalRepairEngine(sessionId);
-    
+
     const decision = engine.analyze("That's not what I was trying to say.");
 
     if (decision.shouldRepair) {
@@ -278,11 +274,8 @@ describe('HopeInjectionEngine', () => {
 
   it('should detect context for hope injection', () => {
     const engine = getHopeInjectionEngine(sessionId);
-    
-    const result = engine.analyze(
-      "I don't see how things will ever get better.",
-      5
-    );
+
+    const result = engine.analyze("I don't see how things will ever get better.", 5);
 
     expect(result.shouldInject).toBeDefined();
     if (result.shouldInject) {
@@ -292,12 +285,9 @@ describe('HopeInjectionEngine', () => {
 
   it('should avoid toxic positivity', () => {
     const engine = getHopeInjectionEngine(sessionId);
-    
+
     // First message - don't inject immediately on heavy content
-    const result = engine.analyze(
-      "My life is falling apart. Everything is terrible.",
-      2
-    );
+    const result = engine.analyze('My life is falling apart. Everything is terrible.', 2);
 
     // Should not jump to positivity too quickly
     expect(result.toxicPositivityRisk).toBeDefined();
@@ -305,8 +295,8 @@ describe('HopeInjectionEngine', () => {
 
   it('should analyze messages for hope context', () => {
     const engine = getHopeInjectionEngine(sessionId);
-    
-    const result = engine.analyze("I have a job interview next week.", 5);
+
+    const result = engine.analyze('I have a job interview next week.', 5);
 
     // Should return a valid analysis result
     expect(result).toBeTruthy();
@@ -332,7 +322,7 @@ describe('CuriosityEngine', () => {
 
   it('should extract life details', () => {
     const engine = getCuriosityEngine(userId);
-    
+
     engine.processMessage(
       "My sister Sarah is visiting next week. She's been struggling with her divorce.",
       5
@@ -344,7 +334,7 @@ describe('CuriosityEngine', () => {
 
   it('should track unresolved threads', () => {
     const engine = getCuriosityEngine(userId);
-    
+
     engine.processMessage("I've been thinking about changing careers.", 5);
 
     const state = engine.getState();
@@ -355,16 +345,16 @@ describe('CuriosityEngine', () => {
 
   it('should generate follow-up questions', () => {
     const engine = getCuriosityEngine(userId);
-    
-    engine.processMessage("My mom has been sick lately.", 5);
-    
+
+    engine.processMessage('My mom has been sick lately.', 5);
+
     // Simulate some turns passing
     for (let i = 0; i < 5; i++) {
-      engine.processMessage("Just talking about other stuff.", 6 + i);
+      engine.processMessage('Just talking about other stuff.', 6 + i);
     }
 
     const prompt = engine.getCuriosityPrompt(15, ['work']);
-    
+
     // May or may not have a prompt depending on timing
     if (prompt) {
       expect(prompt.question).toBeTruthy();
@@ -389,11 +379,8 @@ describe('EnergyRegulationEngine', () => {
 
   it('should detect low energy', () => {
     const engine = getEnergyRegulationEngine(sessionId);
-    
-    const state = engine.detectEnergy(
-      "I'm so tired. Everything feels like too much.",
-      5
-    );
+
+    const state = engine.detectEnergy("I'm so tired. Everything feels like too much.", 5);
 
     expect(state.level).toBeLessThan(0.5);
     expect(state.levelCategory).toBe('low');
@@ -401,11 +388,8 @@ describe('EnergyRegulationEngine', () => {
 
   it('should detect high energy', () => {
     const engine = getEnergyRegulationEngine(sessionId);
-    
-    const state = engine.detectEnergy(
-      "OH MY GOD! I got the job! This is AMAZING!!!",
-      5
-    );
+
+    const state = engine.detectEnergy('OH MY GOD! I got the job! This is AMAZING!!!', 5);
 
     expect(state.level).toBeGreaterThan(0.6);
     // Could be 'high' or 'very_high'
@@ -414,11 +398,19 @@ describe('EnergyRegulationEngine', () => {
 
   it('should recommend matching or leading', () => {
     const engine = getEnergyRegulationEngine(sessionId);
-    
-    const state = engine.detectEnergy("I feel completely drained.", 5);
+
+    const state = engine.detectEnergy('I feel completely drained.', 5);
     const decision = engine.decide(state, { turnCount: 5 });
 
-    expect(['match', 'lead_up', 'lead_down', 'ground', 'contain', 'celebrate', 'stabilize']).toContain(decision.strategy);
+    expect([
+      'match',
+      'lead_up',
+      'lead_down',
+      'ground',
+      'contain',
+      'celebrate',
+      'stabilize',
+    ]).toContain(decision.strategy);
     expect(decision.responseGuidance.pace).toBeTruthy();
   });
 });
@@ -440,11 +432,8 @@ describe('MicroAffirmationEngine', () => {
 
   it('should decide when to affirm', () => {
     const engine = getMicroAffirmationEngine(sessionId);
-    
-    const decision = engine.decide(
-      "I've been trying really hard to stay positive.",
-      10
-    );
+
+    const decision = engine.decide("I've been trying really hard to stay positive.", 10);
 
     expect(decision.shouldAffirm).toBeDefined();
     if (decision.shouldAffirm) {
@@ -454,10 +443,10 @@ describe('MicroAffirmationEngine', () => {
 
   it('should provide context-appropriate affirmations', () => {
     const engine = getMicroAffirmationEngine(sessionId);
-    
+
     // First few turns - lower density
     const earlyDecision = engine.decide("I'm struggling with this.", 2);
-    
+
     // Later turns - potentially higher density
     const laterDecision = engine.decide("I'm still struggling with this.", 15);
 
@@ -468,11 +457,11 @@ describe('MicroAffirmationEngine', () => {
 
   it('should respect density limits', () => {
     const engine = getMicroAffirmationEngine(sessionId);
-    
+
     // Get multiple decisions in quick succession
     let affirmCount = 0;
     for (let i = 0; i < 5; i++) {
-      const decision = engine.decide("Test message " + i, 10 + i);
+      const decision = engine.decide('Test message ' + i, 10 + i);
       if (decision.shouldAffirm) affirmCount++;
     }
 
@@ -500,7 +489,15 @@ describe('TemporalContextEngine', () => {
     const engine = getTemporalContextEngine(userId);
     const state = engine.getState();
 
-    expect(['early_morning', 'morning', 'midday', 'afternoon', 'evening', 'night', 'late_night']).toContain(state.timeOfDay);
+    expect([
+      'early_morning',
+      'morning',
+      'midday',
+      'afternoon',
+      'evening',
+      'night',
+      'late_night',
+    ]).toContain(state.timeOfDay);
   });
 
   it('should provide time-appropriate greetings', () => {
@@ -544,7 +541,7 @@ describe('RelationshipEventsEngine', () => {
 
   it('should track session count', () => {
     const engine = getRelationshipEventsEngine(userId);
-    
+
     engine.startSession();
     engine.startSession();
     engine.startSession();
@@ -555,14 +552,14 @@ describe('RelationshipEventsEngine', () => {
 
   it('should detect milestone opportunities', () => {
     const engine = getRelationshipEventsEngine(userId);
-    
+
     // Simulate 10 sessions
     for (let i = 0; i < 10; i++) {
       engine.startSession();
     }
 
     const milestone = engine.checkMilestoneOpportunity(5);
-    
+
     // May or may not have a milestone
     if (milestone?.shouldAcknowledge) {
       expect(milestone.phrase).toBeTruthy();
@@ -572,8 +569,8 @@ describe('RelationshipEventsEngine', () => {
   it('should record first vulnerability', () => {
     const engine = getRelationshipEventsEngine(userId);
     engine.startSession();
-    
-    engine.recordFirstEvent('vulnerability', "shared something personal");
+
+    engine.recordFirstEvent('vulnerability', 'shared something personal');
 
     const state = engine.getState();
     expect(state.milestones.some((m) => m.type === 'first_vulnerability')).toBe(true);
@@ -581,8 +578,8 @@ describe('RelationshipEventsEngine', () => {
 
   it('should store shared memories', () => {
     const engine = getRelationshipEventsEngine(userId);
-    
-    engine.addSharedMemory("the two minute rule", 'phrase');
+
+    engine.addSharedMemory('the two minute rule', 'phrase');
 
     const state = engine.getState();
     expect(state.sharedMemories.length).toBe(1);
@@ -606,12 +603,8 @@ describe('ParadoxicalInterventionEngine', () => {
 
   it('should detect resistance patterns', () => {
     const engine = getParadoxicalInterventionEngine(sessionId);
-    
-    const result = engine.detectResistance(
-      "Yeah, but that won't work for me.",
-      5,
-      true
-    );
+
+    const result = engine.detectResistance("Yeah, but that won't work for me.", 5, true);
 
     expect(result.detected).toBe(true);
     expect(result.type).toBe('yes_but');
@@ -619,9 +612,9 @@ describe('ParadoxicalInterventionEngine', () => {
 
   it('should track consecutive resistance', () => {
     const engine = getParadoxicalInterventionEngine(sessionId);
-    
-    const r1 = engine.detectResistance("Yeah but...", 5, true);
-    const r2 = engine.detectResistance("I already tried that.", 6, true);
+
+    const r1 = engine.detectResistance('Yeah but...', 5, true);
+    const r2 = engine.detectResistance('I already tried that.', 6, true);
     const r3 = engine.detectResistance("That won't work.", 7, true);
 
     // All should be detected as resistance
@@ -632,7 +625,7 @@ describe('ParadoxicalInterventionEngine', () => {
 
   it('should provide intervention options', () => {
     const engine = getParadoxicalInterventionEngine(sessionId);
-    
+
     // Single resistance detection
     const resistance = engine.detectResistance("Yeah but that won't work.", 5, true);
     const decision = engine.decide(resistance);
@@ -719,4 +712,3 @@ describe('AdvancedHumanizationOrchestrator', () => {
     expect(typeof closing.aftercareNeeded).toBe('boolean');
   });
 });
-

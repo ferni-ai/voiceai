@@ -9,11 +9,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getOutreachDecisionEngine } from './decision-engine.js';
-import { pruneOldData as pruneContextData } from './context-aggregator.js';
-import { clearUserTimingData } from './timing-intelligence.js';
 import { clearUserChannelData } from './channel-selector.js';
+import { pruneOldData as pruneContextData } from './context-aggregator.js';
+import { getOutreachDecisionEngine } from './decision-engine.js';
 import { clearRelationshipData } from './relationship-adapter.js';
+import { clearUserTimingData } from './timing-intelligence.js';
 
 const log = getLogger().child({ module: 'outreach-maintenance' });
 
@@ -40,9 +40,11 @@ export interface MaintenanceStats {
   lastWeeklyReset?: Date;
   lastDataPrune?: Date;
   lastDeadTriggerCleanup?: Date;
+  lastCalendarSync?: Date;
   triggersCleanedUp: number;
   dataEntriesPruned: number;
   usersReset: number;
+  calendarsSynced: number;
 }
 
 // ============================================================================
@@ -62,6 +64,7 @@ const stats: MaintenanceStats = {
   triggersCleanedUp: 0,
   dataEntriesPruned: 0,
   usersReset: 0,
+  calendarsSynced: 0,
 };
 
 // ============================================================================
@@ -202,6 +205,75 @@ export function pruneOutreachHistory(): void {
 }
 
 /**
+ * Sync calendars for all users with connected Google Calendar
+ *
+ * This fetches each user's calendar events and updates their timing
+ * profile with busy periods, ensuring outreach avoids meeting times.
+ */
+export async function syncAllCalendars(): Promise<{
+  synced: number;
+  failed: number;
+}> {
+  let synced = 0;
+  let failed = 0;
+
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { isCalendarConfigured, getAllCalendarUsers } =
+      await import('../google-calendar-oauth.js');
+    const { syncCalendarToOutreach } = await import('../calendar-busy-detection.js');
+
+    // Get all users with connected calendars
+    let userIds: string[];
+    try {
+      userIds = await getAllCalendarUsers();
+    } catch {
+      // Fallback: get user IDs from decision engine and check each
+      const engine = getOutreachDecisionEngine();
+      userIds = engine.getAllUserIds();
+    }
+
+    log.info({ userCount: userIds.length }, '📅 Starting calendar sync for outreach');
+
+    for (const userId of userIds) {
+      try {
+        // Check if user has calendar connected
+        const connected = await isCalendarConfigured(userId);
+        if (!connected) {
+          continue;
+        }
+
+        // Sync their calendar to timing intelligence
+        const result = await syncCalendarToOutreach(userId);
+        synced++;
+
+        log.debug(
+          {
+            userId,
+            busyPeriodsAdded: result.busyPeriodsAdded,
+            rulesAdded: result.rulesAdded,
+          },
+          '📅 Calendar synced for user'
+        );
+      } catch (error) {
+        failed++;
+        log.warn({ error, userId }, 'Failed to sync calendar for user');
+      }
+    }
+
+    stats.lastCalendarSync = new Date();
+    stats.calendarsSynced = synced;
+
+    log.info({ synced, failed }, '✅ Calendar sync completed');
+
+    return { synced, failed };
+  } catch (error) {
+    log.error({ error }, 'Calendar sync failed');
+    return { synced: 0, failed: 0 };
+  }
+}
+
+/**
  * Full reset for a user (for GDPR deletion, etc.)
  */
 export function resetUserData(userId: string): void {
@@ -269,6 +341,16 @@ async function runMaintenance(): Promise<void> {
   if (!stats.lastDataPrune || now.getTime() - stats.lastDataPrune.getTime() > 24 * 60 * 60 * 1000) {
     await pruneOldData();
   }
+
+  // Hourly calendar sync - keeps timing intelligence updated with user calendars
+  // This ensures we never reach out during meetings
+  const hoursSinceCalendarSync = stats.lastCalendarSync
+    ? (now.getTime() - stats.lastCalendarSync.getTime()) / (60 * 60 * 1000)
+    : 999;
+
+  if (hoursSinceCalendarSync >= 1) {
+    await syncAllCalendars();
+  }
 }
 
 /**
@@ -326,6 +408,7 @@ export default {
   pruneOldData,
   cleanupDeadTriggers,
   pruneOutreachHistory,
+  syncAllCalendars,
   resetUserData,
   startMaintenanceScheduler,
   stopMaintenanceScheduler,

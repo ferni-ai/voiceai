@@ -23,12 +23,12 @@ import { getLogger, getUserId } from './utils/tool-helpers.js';
 
 // Import Maya's financial store for real data
 import {
-  getMayaFinancialStore,
+  getFinancialStore,
   type BudgetData,
   type SavingsGoalData,
   type SpendingTriggerData,
   type SpendingLimitData,
-} from '../services/maya-financial-store.js';
+} from '../services/financial-store.js';
 
 // ============================================================================
 // TYPES FOR CROSS-DOMAIN ANALYSIS
@@ -107,7 +107,7 @@ export interface ProactiveInsight {
  * Get spending signals from Maya's financial store
  */
 async function getSpendingSignalsFromMaya(userId: string): Promise<SpendingSignal[]> {
-  const store = getMayaFinancialStore();
+  const store = getFinancialStore();
   await store.loadUserData(userId);
 
   const budget = store.getMainBudget(userId);
@@ -159,7 +159,7 @@ function generateSampleSpendingSignals(): SpendingSignal[] {
  * Get habit signals from Maya's store
  */
 async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
-  const store = getMayaFinancialStore();
+  const store = getFinancialStore();
   await store.loadUserData(userId);
 
   const triggers = store.getUserSpendingTriggers(userId);
@@ -193,7 +193,7 @@ async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
  * Get goal signals from savings goals
  */
 async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
-  const store = getMayaFinancialStore();
+  const store = getFinancialStore();
   await store.loadUserData(userId);
 
   const goals = store.getActiveSavingsGoals(userId);
@@ -993,7 +993,7 @@ Use when:
         const userId = getUserId({ ctx });
         getLogger().info({ scanDepth, userId }, '🔭 Peter running proactive insight scan');
 
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const insights: Array<{
@@ -1318,7 +1318,7 @@ Use when:
         const userId = getUserId({ ctx });
         getLogger().info({ userId }, '📊 Peter generating insights dashboard');
 
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const budget = store.getMainBudget(userId);

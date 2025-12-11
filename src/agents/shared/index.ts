@@ -28,7 +28,7 @@ export * from './types.js';
 // Health Check Server
 export { startHealthCheckServer } from './health-server.js';
 
-// External APIs
+// External APIs (re-exported from services layer)
 export {
   getStockQuote,
   getMarketOverview,
@@ -37,7 +37,7 @@ export {
   getStockFallback,
   getMarketFallback,
   getWeatherFallback,
-} from './external-apis.js';
+} from '../../services/external-apis.js';
 
 // Session Setup Helpers
 export {

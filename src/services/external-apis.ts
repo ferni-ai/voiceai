@@ -8,7 +8,7 @@
  * Fallback messages can be customized per persona if needed.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 const logger = getLogger();
 

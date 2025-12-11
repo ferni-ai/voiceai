@@ -20,7 +20,7 @@
  * @module WorldAwareness
  */
 
-import { getHistoricalEvent } from '../../agents/shared/external-apis.js';
+import { getHistoricalEvent } from '../external-apis.js';
 import { getFinancialNews, getGeneralNews, getTechNews } from '../../tools/news.js';
 import { getTeamScore } from '../../tools/sports.js';
 import { getCurrentWeather, getWeatherForecast } from '../../tools/weather.js';

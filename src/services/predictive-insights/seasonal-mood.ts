@@ -252,15 +252,24 @@ async function getOrCreateProfile(userId: string): Promise<UserSeasonalProfile> 
 
     // Try to load from wellbeing tracking
     try {
-      const { getWellbeingProfile } = await import('../wellbeing-tracking/index.js');
-      const wellbeing = await getWellbeingProfile(userId);
+      const { getRecentSnapshots } = await import('../wellbeing-tracking/index.js');
+      const snapshots = getRecentSnapshots(userId, 100);
 
-      if (wellbeing?.history) {
-        for (const entry of wellbeing.history) {
+      if (snapshots && snapshots.length > 0) {
+        for (const snapshot of snapshots) {
+          // Calculate overall score from dimensions (0-1 scale, convert to 0-100)
+          const dims = snapshot.dimensions;
+          const overallScore = (
+            (dims.mood || 0.5) +
+            (dims.energy || 0.5) +
+            (1 - (dims.worry || 0.5)) + // Invert worry
+            (dims.hopefulness || 0.5)
+          ) / 4 * 100;
+
           profile.moodHistory.push({
-            date: new Date(entry.date),
-            score: entry.overallScore,
-            themes: entry.themes || [],
+            date: snapshot.timestamp,
+            score: overallScore,
+            themes: [], // Themes not available from snapshots
           });
         }
       }

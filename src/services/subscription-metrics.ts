@@ -227,10 +227,13 @@ export async function recordSubscriptionEvent(
   // Persist
   if (firestoreAvailable && firestoreClient) {
     try {
-      await firestoreClient.collection(COLLECTIONS.EVENTS).doc(event.id).set({
-        ...event,
-        timestamp: event.timestamp,
-      });
+      await firestoreClient
+        .collection(COLLECTIONS.EVENTS)
+        .doc(event.id)
+        .set({
+          ...event,
+          timestamp: event.timestamp,
+        });
       await saveCurrentState();
     } catch (error) {
       log.error({ error }, 'Failed to persist subscription event');

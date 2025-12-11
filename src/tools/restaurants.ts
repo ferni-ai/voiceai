@@ -4,10 +4,8 @@
  * Find restaurants, read reviews, and make reservations.
  *
  * APIs:
- * - Yelp Fusion API (search, reviews)
- * - Google Places API (alternative for search)
- * - OpenTable API (reservations) - requires partnership
- * - Resy API (reservations) - requires partnership
+ * - Google Places API (search, details, reviews)
+ * - OpenTable/Resy (reservations) - future integration
  *
  * @module tools/restaurants
  */
@@ -20,7 +18,6 @@ import { getLogger } from '../utils/safe-logger.js';
 // CONFIGURATION
 // ============================================================================
 
-const YELP_API_KEY = process.env.YELP_API_KEY || '';
 const GOOGLE_PLACES_API_KEY =
   process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
 
@@ -40,7 +37,6 @@ interface Restaurant {
   isOpen?: boolean;
   hours?: string;
   url?: string;
-  highlights?: string[];
 }
 
 interface SearchParams {
@@ -54,72 +50,6 @@ interface SearchParams {
 }
 
 // ============================================================================
-// YELP API
-// ============================================================================
-
-async function searchYelp(params: SearchParams): Promise<Restaurant[]> {
-  if (!YELP_API_KEY) return [];
-
-  try {
-    const searchParams = new URLSearchParams({
-      location: params.location,
-      term: params.query || 'restaurants',
-      categories: params.cuisine || 'restaurants',
-      limit: String(params.limit || 5),
-      sort_by: params.sortBy || 'rating',
-    });
-
-    if (params.priceLevel) {
-      searchParams.set('price', String(params.priceLevel));
-    }
-    if (params.openNow) {
-      searchParams.set('open_now', 'true');
-    }
-
-    const url = `https://api.yelp.com/v3/businesses/search?${searchParams}`;
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${YELP_API_KEY}`,
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) return [];
-
-    const data = (await response.json()) as {
-      businesses?: Array<{
-        name?: string;
-        rating?: number;
-        review_count?: number;
-        price?: string;
-        categories?: Array<{ title?: string }>;
-        location?: { display_address?: string[] };
-        phone?: string;
-        distance?: number;
-        is_closed?: boolean;
-        url?: string;
-      }>;
-    };
-
-    return (data.businesses || []).map((biz) => ({
-      name: biz.name || 'Unknown',
-      rating: biz.rating || 0,
-      reviewCount: biz.review_count || 0,
-      priceLevel: biz.price || '$$',
-      cuisine: biz.categories?.map((c) => c.title || '').filter(Boolean) || [],
-      address: biz.location?.display_address?.join(', ') || '',
-      phone: biz.phone,
-      distance: biz.distance ? `${(biz.distance / 1609.34).toFixed(1)} mi` : undefined,
-      isOpen: biz.is_closed === false,
-      url: biz.url,
-    }));
-  } catch (error) {
-    getLogger().warn({ error }, 'Yelp API error');
-    return [];
-  }
-}
-
-// ============================================================================
 // GOOGLE PLACES API
 // ============================================================================
 
@@ -127,8 +57,12 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
   if (!GOOGLE_PLACES_API_KEY) return [];
 
   try {
+    const searchQuery = [params.query || 'restaurants', params.cuisine, params.location]
+      .filter(Boolean)
+      .join(' ');
+
     const searchParams = new URLSearchParams({
-      query: `${params.query || 'restaurants'} ${params.cuisine || ''} ${params.location}`.trim(),
+      query: searchQuery,
       type: 'restaurant',
       key: GOOGLE_PLACES_API_KEY,
     });
@@ -143,6 +77,7 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
     if (!response.ok) return [];
 
     const data = (await response.json()) as {
+      status?: string;
       results?: Array<{
         name?: string;
         rating?: number;
@@ -155,6 +90,11 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
       }>;
     };
 
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      getLogger().warn({ status: data.status }, 'Google Places API error');
+      return [];
+    }
+
     const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
 
     return (data.results || []).slice(0, params.limit || 5).map((place) => ({
@@ -162,10 +102,9 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
       rating: place.rating || 0,
       reviewCount: place.user_ratings_total || 0,
       priceLevel: priceLevels[place.price_level || 2] || '$$',
-      cuisine:
-        place.types?.filter(
-          (t) => !['restaurant', 'food', 'point_of_interest', 'establishment'].includes(t)
-        ) || [],
+      cuisine: (place.types || []).filter(
+        (t) => !['restaurant', 'food', 'point_of_interest', 'establishment'].includes(t)
+      ),
       address: place.formatted_address || '',
       isOpen: place.opening_hours?.open_now,
     }));
@@ -182,17 +121,11 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
 export async function searchRestaurants(params: SearchParams): Promise<string> {
   getLogger().info({ params }, '🍽️ Searching for restaurants');
 
-  // Try Yelp first (better restaurant data), then Google Places
-  let restaurants = await searchYelp(params);
+  const restaurants = await searchGooglePlaces(params);
 
   if (restaurants.length === 0) {
-    restaurants = await searchGooglePlaces(params);
-  }
-
-  if (restaurants.length === 0) {
-    // No API configured or no results
-    if (!YELP_API_KEY && !GOOGLE_PLACES_API_KEY) {
-      return `I don't have restaurant search configured yet. To enable this:\n\n1. Get a Yelp Fusion API key from yelp.com/developers\n2. Add YELP_API_KEY to your environment\n\nOr use GOOGLE_PLACES_API_KEY if you already have Google Maps set up.`;
+    if (!GOOGLE_PLACES_API_KEY) {
+      return `I don't have restaurant search configured yet. Add GOOGLE_PLACES_API_KEY or GOOGLE_MAPS_API_KEY to enable this feature.`;
     }
     return `I couldn't find any restaurants matching your criteria in ${params.location}. Try:\n• Being more specific about the location\n• Broadening your cuisine preference\n• Searching without "open now"`;
   }
@@ -255,9 +188,9 @@ export function getReservationHelp(
   response += `   Search for "${restaurantName}" and book directly\n\n`;
   response += `2. **Resy** - resy.com\n`;
   response += `   Many popular restaurants use Resy\n\n`;
-  response += `3. **Call directly**\n`;
-  response += `   Some restaurants only take phone reservations\n\n`;
-  response += `4. **Yelp** - Check if "Reserve" button is available\n\n`;
+  response += `3. **Google** - Search "${restaurantName} reservations"\n`;
+  response += `   Often links directly to the restaurant's booking\n\n`;
+  response += `4. **Call directly** - Some restaurants only take phone reservations\n\n`;
 
   response += `Would you like me to search for the restaurant's phone number?`;
 
@@ -265,25 +198,14 @@ export function getReservationHelp(
 }
 
 // ============================================================================
-// CUISINE CATEGORIES
+// CUISINE SUGGESTIONS
 // ============================================================================
-
-const CUISINE_CATEGORIES = {
-  american: ['American', 'Southern', 'BBQ', 'Burgers', 'Steakhouse'],
-  asian: ['Chinese', 'Japanese', 'Korean', 'Thai', 'Vietnamese', 'Indian', 'Sushi', 'Ramen'],
-  european: ['Italian', 'French', 'Spanish', 'Greek', 'Mediterranean', 'German'],
-  latin: ['Mexican', 'Latin American', 'Brazilian', 'Peruvian', 'Cuban'],
-  other: ['Middle Eastern', 'African', 'Caribbean', 'Fusion'],
-  dietary: ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher'],
-  casual: ['Pizza', 'Fast Food', 'Diner', 'Cafe', 'Breakfast'],
-  upscale: ['Fine Dining', 'Farm-to-Table', 'Tasting Menu'],
-};
 
 function suggestCuisine(mood: string): string[] {
   const moodMap: Record<string, string[]> = {
     romantic: ['Italian', 'French', 'Japanese', 'Fine Dining'],
     casual: ['American', 'Pizza', 'Mexican', 'Burgers'],
-    healthy: ['Vegetarian', 'Mediterranean', 'Poke', 'Salads'],
+    healthy: ['Salads', 'Mediterranean', 'Poke', 'Vegetarian'],
     comfort: ['Southern', 'BBQ', 'Diner', 'American'],
     adventurous: ['Ethiopian', 'Korean', 'Peruvian', 'Fusion'],
     quick: ['Fast Food', 'Sandwiches', 'Pizza', 'Tacos'],
@@ -291,7 +213,7 @@ function suggestCuisine(mood: string): string[] {
     family: ['Italian', 'American', 'Chinese', 'Mexican'],
   };
 
-  return moodMap[mood.toLowerCase()] || ['American', 'Italian', 'Mexican'];
+  return moodMap[mood.toLowerCase()] || ['American', 'Italian'];
 }
 
 // ============================================================================

@@ -498,8 +498,7 @@ This is NOT a full handoff - you remain the active speaker.`,
       // Find a locked teammate who matches the specialty (exclude coach)
       const lockedTeammates = TEAM_MEMBERS.filter(
         (m) =>
-          !isCoach(m.memberId) &&
-          !isTeamMemberUnlocked(m.memberId, runtimeUserProfile, runtimeTier)
+          !isCoach(m.memberId) && !isTeamMemberUnlocked(m.memberId, runtimeUserProfile, runtimeTier)
       );
 
       // Try to match specialty to a locked teammate

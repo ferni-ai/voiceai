@@ -12,11 +12,11 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
-  getMayaGamificationStore,
+  getGamificationStore,
   type GamificationProfile,
   type EarnedBadge,
   type LeaderboardEntry,
-} from '../services/maya-gamification-store.js';
+} from '../services/gamification-store.js';
 import { BADGE_DEFINITIONS, TITLE_PROGRESSION } from './gamification.js';
 
 // ============================================================================
@@ -24,7 +24,7 @@ import { BADGE_DEFINITIONS, TITLE_PROGRESSION } from './gamification.js';
 // ============================================================================
 
 export function createGamificationToolsV2() {
-  const store = getMayaGamificationStore();
+  const store = getGamificationStore();
 
   return {
     /**

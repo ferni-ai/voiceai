@@ -319,13 +319,14 @@ async function getRecentStressFactor(
   try {
     // Try to get recent wellbeing data
     const { getWellbeingProfile } = await import('../wellbeing-tracking/index.js');
-    const profile = await getWellbeingProfile(userId);
+    const profile = getWellbeingProfile(userId);
 
-    if (!profile || !profile.dimensions.emotional) {
+    if (!profile?.current) {
       return null;
     }
 
-    const stressLevel = profile.dimensions.emotional.currentScore;
+    // Use mood and energy from current snapshot (0-1 scale, convert to 0-100)
+    const stressLevel = ((profile.current.dimensions.mood || 0.5) + (profile.current.dimensions.energy || 0.5)) / 2 * 100;
 
     // Higher wellbeing = more energy
     let modifier = 1.0;

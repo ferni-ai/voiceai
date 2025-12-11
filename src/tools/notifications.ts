@@ -18,7 +18,7 @@ import { z } from 'zod';
 import {
   getMayaNotificationService,
   type MayaNotificationType,
-} from '../services/maya-notification-service.js';
+} from '../services/engagement-notification-service.js';
 
 // ============================================================================
 // NOTIFICATION TOOLS

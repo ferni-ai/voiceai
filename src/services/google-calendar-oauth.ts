@@ -12,8 +12,8 @@
  * - Service Account (for shared/team calendars)
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import crypto from 'node:crypto';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -600,6 +600,37 @@ export async function deleteUserTokens(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Get all users with connected Google Calendar
+ *
+ * Used by maintenance scheduler to sync calendar events for outreach timing.
+ */
+export async function getAllCalendarUsers(): Promise<string[]> {
+  const userIds: string[] = [];
+
+  // First add all cached users
+  for (const userId of userTokens.keys()) {
+    userIds.push(userId);
+  }
+
+  // Then check Firestore for any not in cache
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
+      for (const doc of snapshot.docs) {
+        if (!userIds.includes(doc.id)) {
+          userIds.push(doc.id);
+        }
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to get calendar users from Firestore');
+    }
+  }
+
+  return userIds;
+}
+
 // ============================================================================
 // SERVICE ACCOUNT SUPPORT
 // ============================================================================
@@ -668,6 +699,7 @@ export default {
   storeUserTokens,
   getUserTokens,
   deleteUserTokens,
+  getAllCalendarUsers,
   listCalendars,
   createEvent,
   updateEvent,

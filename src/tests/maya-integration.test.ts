@@ -437,7 +437,7 @@ describe('Maya Data Persistence', () => {
 describe('Maya Gamification Store V2', () => {
   describe('Zod Schemas', () => {
     it('should validate gamification profile schema', async () => {
-      const { GamificationProfileSchema } = await import('../services/maya-gamification-store.js');
+      const { GamificationProfileSchema } = await import('../services/gamification-store.js');
 
       const validProfile = {
         userId: 'test-123',
@@ -472,7 +472,7 @@ describe('Maya Gamification Store V2', () => {
     });
 
     it('should validate earned badge schema', async () => {
-      const { EarnedBadgeSchema } = await import('../services/maya-gamification-store.js');
+      const { EarnedBadgeSchema } = await import('../services/gamification-store.js');
 
       const validBadge = {
         id: 'badge_first_streak_123',
@@ -489,7 +489,7 @@ describe('Maya Gamification Store V2', () => {
     });
 
     it('should validate export schema', async () => {
-      const { GamificationExportSchema } = await import('../services/maya-gamification-store.js');
+      const { GamificationExportSchema } = await import('../services/gamification-store.js');
 
       const validExport = {
         version: '1.0',

@@ -92,6 +92,8 @@ import { initWeatherEffects } from './ui/weather-effects.ui.js';
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
 // Ferni Milestones - Warm relationship celebrations
 import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
+// Journey Indicator - Subtle heart near avatar showing milestone progress
+import { initJourneyIndicator } from './ui/journey-indicator.ui.js';
 // Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
@@ -952,6 +954,11 @@ class VoiceAIApp {
     this.safeInit('FerniMilestones', () => {
       initFerniMilestones();
       // Tracks conversation streaks, team connections, sweet moments
+    });
+
+    // 💚 Journey Indicator - Heart icon near avatar showing progress
+    this.safeInit('JourneyIndicator', () => {
+      initJourneyIndicator();
     });
     // 🎬 Ferni Expressions - Character-level eye expressions & reactions
     this.safeInit('FerniExpressions', () => {

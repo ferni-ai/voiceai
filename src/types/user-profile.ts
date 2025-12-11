@@ -5,7 +5,7 @@
  * preferences, relationship history, and financial context.
  */
 
-import type { PersonalJourneyData } from '../services/personal-journey/types.js';
+import type { PersonalJourneyData } from './personal-journey.js';
 import type { SubscriptionData } from './subscription.js';
 
 // ============================================================================

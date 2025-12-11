@@ -362,7 +362,12 @@ describe('Auth Middleware', () => {
 
       expect(getRateLimitTier(null)).toBe(RATE_LIMIT_TIERS.anonymous);
       expect(
-        getRateLimitTier({ userId: 'user', isAdmin: false, isDevMode: false, authMethod: 'firebase' })
+        getRateLimitTier({
+          userId: 'user',
+          isAdmin: false,
+          isDevMode: false,
+          authMethod: 'firebase',
+        })
       ).toBe(RATE_LIMIT_TIERS.free);
       expect(
         getRateLimitTier({

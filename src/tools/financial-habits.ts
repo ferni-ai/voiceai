@@ -1,9 +1,8 @@
 /**
- * Maya Tools - Life Habits Coach (Financial Wellness Domain)
+ * Financial Habits Tools
  *
- * Tools for Maya to help with budgeting, spending analysis, savings goals,
- * and building healthy financial habits. Maya is warm, non-judgmental,
- * and focuses on systems over willpower.
+ * Tools for budgeting, spending analysis, savings goals,
+ * and building healthy financial habits.
  *
  * KEY CAPABILITIES:
  * - Real spending analysis via Plaid integration
@@ -16,7 +15,10 @@
  * - Cash flow analysis
  * - Weekly/monthly financial check-ins
  *
- * ALL DATA PERSISTED TO FIRESTORE via MayaFinancialStore
+ * ALL DATA PERSISTED TO FIRESTORE via FinancialStore
+ *
+ * @see ./financial-habits/types.ts - Type definitions
+ * @see ./financial-habits/helpers.ts - Helper functions
  */
 
 import { llm } from '@livekit/agents';
@@ -33,79 +35,30 @@ import {
   formatSpendingForSpeech,
 } from './plaid.js';
 
-// Import Maya's Firestore-backed financial store
+// Import Firestore-backed financial store and types
 import {
-  getMayaFinancialStore,
+  getFinancialStore,
   type BudgetData,
   type BudgetCategoryData,
   type SavingsGoalData,
   type SubscriptionData,
   type SpendingTriggerData,
   type SpendingLimitData,
-} from '../services/maya-financial-store.js';
+} from '../services/financial-store.js';
 
-// ============================================================================
-// TYPES (for internal use - mapped to store types)
-// ============================================================================
+// Import extracted types and helpers
+import type { SpendingCategory } from './financial-habits/types.js';
+import { analyzeSpendingFromBudget, findSpendingLeaksFromStore } from './financial-habits/helpers.js';
 
-interface SpendingCategory {
-  name: string;
-  amount: number;
-  percentage: number;
-  trend: 'up' | 'down' | 'stable';
-  isEssential: boolean;
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Analyze spending from budget data
- */
-function analyzeSpendingFromBudget(budget: BudgetData | undefined): SpendingCategory[] {
-  if (!budget) return [];
-
-  return budget.categories.map((cat) => ({
-    name: cat.name,
-    amount: cat.spent,
-    percentage: budget.spent > 0 ? Math.round((cat.spent / budget.spent) * 100) : 0,
-    trend: cat.spent > cat.limit ? 'up' : cat.spent < cat.limit * 0.8 ? 'down' : 'stable',
-    isEssential: cat.isEssential || ['Housing', 'Food', 'Transport'].includes(cat.name),
-  }));
-}
-
-/**
- * Find spending leaks from user's financial data
- */
-function findSpendingLeaksFromStore(userId: string): string[] {
-  const store = getMayaFinancialStore();
-  const leaks: string[] = [];
-
-  // Check subscriptions
-  const unusedSubs = store.getUnusedSubscriptions(userId);
-  if (unusedSubs.length > 0) {
-    const total = unusedSubs.reduce((sum, s) => sum + s.amount, 0);
-    leaks.push(`${unusedSubs.length} unused subscriptions costing $${total.toFixed(2)}/month`);
-  }
-
-  // Check budget overages
-  const budget = store.getMainBudget(userId);
-  if (budget) {
-    const overCategories = budget.categories.filter((c) => c.spent > c.limit);
-    for (const cat of overCategories) {
-      leaks.push(`${cat.name} is $${(cat.spent - cat.limit).toFixed(2)} over budget`);
-    }
-  }
-
-  return leaks;
-}
-
-// ============================================================================
-// SPENDING ANALYSIS (Using Firestore-backed store)
-// ============================================================================
-
-// Note: analyzeSpendingFromBudget and findSpendingLeaksFromStore are defined above
+// Re-export types for backward compatibility
+export type {
+  BudgetData,
+  BudgetCategoryData,
+  SavingsGoalData,
+  SubscriptionData,
+  SpendingTriggerData,
+  SpendingLimitData,
+};
 
 // ============================================================================
 // TOOL DEFINITIONS
@@ -129,7 +82,7 @@ Use when the user asks about:
       }),
       execute: async ({ timeframe }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const budget = store.getMainBudget(userId);
@@ -166,7 +119,7 @@ Use when the user wants to:
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const leaks = findSpendingLeaksFromStore(userId);
@@ -197,7 +150,7 @@ Use when the user asks:
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const budget = store.getMainBudget(userId);
@@ -241,7 +194,7 @@ Use when the user wants to:
       }),
       execute: async ({ category, monthlyLimit, isEssential }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         let budget = store.getMainBudget(userId);
@@ -301,7 +254,7 @@ Use when the user asks about:
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const goals = store.getActiveSavingsGoals(userId);
@@ -355,7 +308,7 @@ Use when the user wants to:
         { ctx }
       ) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const now = new Date().toISOString();
@@ -409,7 +362,7 @@ Use when the user wants to:
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const subs = store.getActiveSubscriptions(userId);
@@ -955,7 +908,7 @@ Use when:
       }),
       execute: async ({ purchase, amount, emotion, situation, regretLevel }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         // Store this trigger (persisted to Firestore)
@@ -1021,7 +974,7 @@ Use when user wants to understand their spending triggers.`,
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const triggers = store.getUserSpendingTriggers(userId);
@@ -1344,7 +1297,7 @@ Use when user wants to:
       }),
       execute: async ({ category, weeklyLimit, monthlyLimit, alertAt = 80 }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const now = new Date().toISOString();
@@ -1405,7 +1358,7 @@ Use when user asks:
       }),
       execute: async ({ category }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         const limits = store.getUserSpendingLimits(userId);
@@ -1470,7 +1423,7 @@ Use when user tells you about a purchase in a limited category.`,
       }),
       execute: async ({ category, amount, description }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const store = getMayaFinancialStore();
+        const store = getFinancialStore();
         await store.loadUserData(userId);
 
         // Use the store's method which handles week/month reset automatically

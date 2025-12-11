@@ -118,14 +118,14 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Maya Notification Service
   try {
-    const { initializeMayaNotificationService, shutdownMayaNotificationService } =
-      await import('../maya-notification-service.js');
+    const { initializeMayaNotificationService, shutdownEngagementNotificationService } =
+      await import('../engagement-notification-service.js');
     services.push({
       name: 'maya-notifications',
       initialize: async () => {
         await initializeMayaNotificationService();
       },
-      shutdown: shutdownMayaNotificationService,
+      shutdown: shutdownEngagementNotificationService,
       critical: false,
     });
   } catch (error) {
@@ -151,9 +151,9 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Maya Financial Store
   try {
     const { initializeMayaFinancialStore, shutdownMayaFinancialStore } =
-      await import('../maya-financial-store.js');
+      await import('../financial-store.js');
     services.push({
-      name: 'maya-financial-store',
+      name: 'financial-store',
       initialize: async () => {
         await initializeMayaFinancialStore();
       },

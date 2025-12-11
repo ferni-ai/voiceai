@@ -194,7 +194,7 @@ async function analyzeCalendarDensity(
   userId: string
 ): Promise<(BurnoutFactor & { peakDate?: Date }) | null> {
   try {
-    const { getCalendarBusyProfile, getCalendarBusyProfileForWeek } = await import(
+    const { getCalendarBusyProfile } = await import(
       '../calendar-busy-detection.js'
     );
 
@@ -207,22 +207,9 @@ async function analyzeCalendarDensity(
       return sum + (slot.end.getTime() - slot.start.getTime()) / (60 * 60 * 1000);
     }, 0);
 
-    // Try to get week view
-    let weekMeetingHours = todayMeetingHours;
-    let peakDate = new Date();
-    let peakHours = todayMeetingHours;
-
-    try {
-      const weekProfile = await getCalendarBusyProfileForWeek(userId);
-      if (weekProfile) {
-        weekMeetingHours = weekProfile.totalMeetingHours;
-        peakDate = weekProfile.busiestDay || new Date();
-        peakHours = weekProfile.busiestDayHours || todayMeetingHours;
-      }
-    } catch {
-      // Week view not available, estimate from today
-      weekMeetingHours = todayMeetingHours * 5; // Rough estimate
-    }
+    // Estimate weekly from today (week view not always available)
+    const weekMeetingHours = todayMeetingHours * 5; // Rough estimate
+    const peakDate = new Date();
 
     // Score: 6+ hours/day = high risk
     let score = 0;
@@ -370,12 +357,15 @@ async function analyzeStressMentions(userId: string): Promise<BurnoutFactor | nu
   try {
     // Try to get recent conversation themes
     const { getWellbeingProfile } = await import('../wellbeing-tracking/index.js');
-    const profile = await getWellbeingProfile(userId);
+    const profile = getWellbeingProfile(userId);
 
-    if (!profile) return null;
+    if (!profile?.current) return null;
 
-    // Check emotional dimension
-    const emotionalScore = profile.dimensions.emotional?.currentScore || 50;
+    // Use mood and worry from current snapshot (0-1 scale, convert to 0-100)
+    // Higher mood and lower worry = better emotional state
+    const moodScore = (profile.current.dimensions.mood || 0.5) * 100;
+    const worryScore = (profile.current.dimensions.worry || 0.5) * 100;
+    const emotionalScore = (moodScore + (100 - worryScore)) / 2;
 
     let score = 0;
     let observation = '';

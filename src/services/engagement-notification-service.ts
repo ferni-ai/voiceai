@@ -23,7 +23,7 @@ import { EventEmitter } from 'events';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { createReminder, type ScheduledReminder } from './reminder-scheduler.js';
 import { getProductivityStore } from './productivity-store.js';
-import { getMayaGamificationStore } from './maya-gamification-store.js';
+import { getGamificationStore } from './gamification-store.js';
 import { getDefaultStore } from '../memory/index.js';
 
 // ============================================================================
@@ -569,7 +569,7 @@ class MayaNotificationService extends EventEmitter {
     if (!prefs.enabled) return;
 
     const store = getProductivityStore();
-    const gamificationStore = getMayaGamificationStore();
+    const gamificationStore = getGamificationStore();
 
     try {
       // Check for silence (no activity in 3+ days)
@@ -691,7 +691,7 @@ export async function initializeMayaNotificationService(): Promise<MayaNotificat
   return service;
 }
 
-export async function shutdownMayaNotificationService(): Promise<void> {
+export async function shutdownEngagementNotificationService(): Promise<void> {
   if (serviceInstance) {
     await serviceInstance.shutdown();
     serviceInstance = null;

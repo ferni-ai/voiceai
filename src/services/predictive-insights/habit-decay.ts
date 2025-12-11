@@ -407,26 +407,27 @@ function calculateConfidence(
 
 async function loadHabitsFromSources(userId: string): Promise<void> {
   try {
-    // Try to load from daily rituals
-    const { getUserRituals } = await import('../daily-rituals.js');
-    const rituals = await getUserRituals(userId);
+    // Try to load from daily rituals service
+    const { getDailyRitualsService, PERSONA_RITUALS } = await import('../daily-rituals.js');
+    const service = getDailyRitualsService();
+    const profile = await service.getOrCreateProfileAsync(userId);
 
-    if (rituals && rituals.length > 0) {
+    if (profile?.activeRituals && profile.activeRituals.length > 0) {
       const habitsMap = new Map<string, TrackedHabit>();
 
-      for (const ritual of rituals) {
-        habitsMap.set(ritual.id, {
-          id: ritual.id,
-          name: ritual.name,
-          category: mapRitualCategory(ritual.category),
-          targetFrequency: ritual.targetFrequency || 7,
-          completions: (ritual.history || []).map((h: { date: string; completed: boolean }) => ({
-            date: new Date(h.date),
-            completed: h.completed,
-          })),
-          createdAt: new Date(ritual.createdAt || Date.now()),
-          currentStreak: ritual.currentStreak || 0,
-          longestStreak: ritual.longestStreak || 0,
+      for (const ritualId of profile.activeRituals) {
+        const ritualDef = PERSONA_RITUALS[ritualId];
+        const streak = profile.streaks[ritualId];
+
+        habitsMap.set(ritualId, {
+          id: ritualId,
+          name: ritualDef?.name || ritualId.replace(/-/g, ' '),
+          category: mapRitualCategory(ritualDef?.personaId),
+          targetFrequency: 7, // Default daily
+          completions: [], // Will be populated from engagement store
+          createdAt: new Date(profile.lastRitualDate || Date.now()),
+          currentStreak: streak?.currentStreak || 0,
+          longestStreak: streak?.longestStreak || 0,
         });
       }
 
@@ -440,25 +441,28 @@ async function loadHabitsFromSources(userId: string): Promise<void> {
     // Try to load from engagement store
     const { getEngagementStore } = await import('../engagement-store.js');
     const store = await getEngagementStore();
-    const streaks = await store.getStreaks(userId);
+    const streaks = await store.getAllStreaks(userId);
 
-    if (streaks && Object.keys(streaks).length > 0) {
-      let habitsMap = userHabits.get(userId) || new Map<string, TrackedHabit>();
+    if (streaks && streaks.length > 0) {
+      const habitsMap = userHabits.get(userId) || new Map<string, TrackedHabit>();
 
-      for (const [streakId, streak] of Object.entries(streaks)) {
-        if (!habitsMap.has(streakId)) {
-          habitsMap.set(streakId, {
-            id: streakId,
-            name: streak.name || streakId.replace(/_/g, ' '),
+      for (const streak of streaks) {
+        if (!habitsMap.has(streak.ritualId)) {
+          // Get start date from streak history if available
+          const firstHistory = streak.streakHistory?.[0];
+          const createdAt = firstHistory?.startDate
+            ? new Date(firstHistory.startDate)
+            : new Date();
+
+          habitsMap.set(streak.ritualId, {
+            id: streak.ritualId,
+            name: streak.ritualId.replace(/_/g, ' '),
             category: 'other',
-            targetFrequency: streak.targetFrequency || 7,
-            completions: (streak.history || []).map((h: { date: string; completed?: boolean }) => ({
-              date: new Date(h.date),
-              completed: h.completed !== false,
-            })),
-            createdAt: new Date(streak.startDate || Date.now()),
-            currentStreak: streak.current || 0,
-            longestStreak: streak.longest || 0,
+            targetFrequency: 7,
+            completions: [], // Streaks don't store full history, just current count
+            createdAt,
+            currentStreak: streak.currentStreak || 0,
+            longestStreak: streak.longestStreak || 0,
           });
         }
       }

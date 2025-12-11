@@ -24,543 +24,59 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { createPersistenceStore, type PersistenceStore } from '../services/persistence/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 
-// ============================================================================
-// TYPES - LIFE PLANNING
-// ============================================================================
-
-interface MajorPurchase {
-  id: string;
-  type: 'car' | 'appliance' | 'electronics' | 'furniture' | 'other';
-  name: string;
-  budget: number;
-  targetDate?: Date;
-  status: 'researching' | 'comparing' | 'ready-to-buy' | 'purchased';
-  options: PurchaseOption[];
-  criteria: string[];
-  notes: string;
-  createdAt: Date;
-}
-
-interface PurchaseOption {
-  name: string;
-  price: number;
-  pros: string[];
-  cons: string[];
-  rating?: number;
-  source?: string;
-}
-
-interface Vacation {
-  id: string;
-  name: string;
-  destination: string;
-  startDate?: Date;
-  endDate?: Date;
-  budget: number;
-  travelers: number;
-  type: 'relaxation' | 'adventure' | 'cultural' | 'family' | 'romantic' | 'other';
-  status: 'dreaming' | 'planning' | 'booked' | 'completed';
-  itinerary: ItineraryDay[];
-  bookings: Booking[];
-  packingList: string[];
-  createdAt: Date;
-}
-
-interface ItineraryDay {
-  day: number;
-  date?: Date;
-  activities: string[];
-  meals: string[];
-  accommodation?: string;
-  notes: string;
-}
-
-interface Booking {
-  type: 'flight' | 'hotel' | 'car' | 'activity' | 'restaurant' | 'other';
-  name: string;
-  confirmationNumber?: string;
-  cost: number;
-  date?: Date;
-  booked: boolean;
-}
-
-interface AnnualPlan {
-  id: string;
-  year: number;
-  goals: LifeGoal[];
-  quarterlyMilestones: QuarterlyMilestone[];
-  experiences: PlannedExperience[];
-  createdAt: Date;
-}
-
-interface LifeGoal {
-  id: string;
-  category:
-    | 'health'
-    | 'career'
-    | 'financial'
-    | 'relationships'
-    | 'personal'
-    | 'travel'
-    | 'learning'
-    | 'other';
-  description: string;
-  specificTarget?: string;
-  deadline?: Date;
-  progress: number; // 0-100
-  status: 'not-started' | 'in-progress' | 'completed' | 'paused';
-}
-
-interface QuarterlyMilestone {
-  quarter: 1 | 2 | 3 | 4;
-  milestones: string[];
-  completed: string[];
-}
-
-interface PlannedExperience {
-  id: string;
-  name: string;
-  month?: number;
-  category: string;
-  estimated_cost?: number;
-  completed: boolean;
-  notes?: string;
-}
-
-// ============================================================================
-// TYPES - EVENTS (existing)
-// ============================================================================
-
-interface Event {
-  id: string;
-  name: string;
-  type: EventType;
-  date: Date;
-  location?: string;
-  guestCount: number;
-  budget: number;
-  spent: number;
-  theme?: string;
-  status: 'planning' | 'confirmed' | 'completed' | 'cancelled';
-  checklist: ChecklistItem[];
-  guests: Guest[];
-  vendors: Vendor[];
-  notes: string;
-  createdAt: Date;
-}
-
-type EventType =
-  | 'birthday'
-  | 'anniversary'
-  | 'wedding'
-  | 'graduation'
-  | 'baby-shower'
-  | 'retirement'
-  | 'holiday'
-  | 'corporate'
-  | 'dinner-party'
-  | 'other';
-
-interface ChecklistItem {
-  id: string;
-  task: string;
-  category: 'venue' | 'catering' | 'decor' | 'entertainment' | 'logistics' | 'other';
-  dueDate?: Date;
-  completed: boolean;
-  assignedTo?: string;
-  notes?: string;
-}
-
-interface Guest {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  rsvpStatus: 'pending' | 'confirmed' | 'declined' | 'maybe';
-  dietaryRestrictions?: string[];
-  plusOne: boolean;
-  tableAssignment?: number;
-}
-
-interface Vendor {
-  id: string;
-  name: string;
-  type: 'venue' | 'catering' | 'photography' | 'music' | 'decor' | 'cake' | 'other';
-  contact: string;
-  cost: number;
-  depositPaid: boolean;
-  confirmed: boolean;
-  notes: string;
-}
-
-interface VenueOption {
-  name: string;
-  type: string;
-  capacity: number;
-  priceRange: string;
-  amenities: string[];
-  rating: number;
-  location: string;
-}
-
-// ============================================================================
-// PERSISTENCE TYPES (serialized for Firestore)
-// ============================================================================
-
-interface PersistedEvent extends Omit<Event, 'date' | 'createdAt' | 'checklist'> {
-  date: string;
-  createdAt: string;
-  checklist: Array<Omit<ChecklistItem, 'dueDate'> & { dueDate?: string }>;
-}
-
-interface PersistedMajorPurchase extends Omit<MajorPurchase, 'targetDate' | 'createdAt'> {
-  targetDate?: string;
-  createdAt: string;
-}
-
-interface PersistedVacation extends Omit<
+// Import types from extracted module
+import type {
+  Event,
+  EventType,
+  MajorPurchase,
   Vacation,
-  'startDate' | 'endDate' | 'createdAt' | 'itinerary' | 'bookings'
-> {
-  startDate?: string;
-  endDate?: string;
-  createdAt: string;
-  itinerary: Array<Omit<ItineraryDay, 'date'> & { date?: string }>;
-  bookings: Array<Omit<Booking, 'date'> & { date?: string }>;
-}
+  AnnualPlan,
+  ChecklistItem,
+  Guest,
+  Vendor,
+  VenueOption,
+  ItineraryDay,
+  Booking,
+  LifeGoal,
+  QuarterlyMilestone,
+  PlannedExperience,
+} from './event-planning/types.js';
 
-interface PersistedAnnualPlan extends Omit<AnnualPlan, 'createdAt' | 'goals'> {
-  createdAt: string;
-  goals: Array<Omit<LifeGoal, 'deadline'> & { deadline?: string }>;
-}
+// Import storage and helpers from extracted module
+import {
+  events,
+  majorPurchases,
+  vacations,
+  annualPlans,
+  ensureUserLoaded,
+  persistEventPlanningData,
+  BEST_TIMES_TO_BUY,
+  DESTINATION_DATABASE,
+  venueDatabase,
+} from './event-planning/storage.js';
 
-interface UserEventPlanningData {
-  events: PersistedEvent[];
-  majorPurchases: PersistedMajorPurchase[];
-  vacations: PersistedVacation[];
-  annualPlans: PersistedAnnualPlan[];
-}
+// Re-export types for backward compatibility
+export type {
+  Event,
+  EventType,
+  MajorPurchase,
+  Vacation,
+  AnnualPlan,
+  ChecklistItem,
+  Guest,
+  Vendor,
+  VenueOption,
+  ItineraryDay,
+  Booking,
+  LifeGoal,
+  QuarterlyMilestone,
+  PlannedExperience,
+} from './event-planning/types.js';
 
-// ============================================================================
-// SERIALIZATION HELPERS
-// ============================================================================
-
-function serializeEvent(event: Event): PersistedEvent {
-  return {
-    ...event,
-    date: event.date.toISOString(),
-    createdAt: event.createdAt.toISOString(),
-    checklist: event.checklist.map((item) => ({
-      ...item,
-      dueDate: item.dueDate?.toISOString(),
-    })),
-  };
-}
-
-function deserializeEvent(data: PersistedEvent): Event {
-  return {
-    ...data,
-    date: new Date(data.date),
-    createdAt: new Date(data.createdAt),
-    checklist: data.checklist.map((item) => ({
-      ...item,
-      dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
-    })),
-  };
-}
-
-function serializePurchase(purchase: MajorPurchase): PersistedMajorPurchase {
-  return {
-    ...purchase,
-    targetDate: purchase.targetDate?.toISOString(),
-    createdAt: purchase.createdAt.toISOString(),
-  };
-}
-
-function deserializePurchase(data: PersistedMajorPurchase): MajorPurchase {
-  return {
-    ...data,
-    targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
-    createdAt: new Date(data.createdAt),
-  };
-}
-
-function serializeVacation(vacation: Vacation): PersistedVacation {
-  return {
-    ...vacation,
-    startDate: vacation.startDate?.toISOString(),
-    endDate: vacation.endDate?.toISOString(),
-    createdAt: vacation.createdAt.toISOString(),
-    itinerary: vacation.itinerary.map((day) => ({
-      ...day,
-      date: day.date?.toISOString(),
-    })),
-    bookings: vacation.bookings.map((booking) => ({
-      ...booking,
-      date: booking.date?.toISOString(),
-    })),
-  };
-}
-
-function deserializeVacation(data: PersistedVacation): Vacation {
-  return {
-    ...data,
-    startDate: data.startDate ? new Date(data.startDate) : undefined,
-    endDate: data.endDate ? new Date(data.endDate) : undefined,
-    createdAt: new Date(data.createdAt),
-    itinerary: data.itinerary.map((day) => ({
-      ...day,
-      date: day.date ? new Date(day.date) : undefined,
-    })),
-    bookings: data.bookings.map((booking) => ({
-      ...booking,
-      date: booking.date ? new Date(booking.date) : undefined,
-    })),
-  };
-}
-
-function serializeAnnualPlan(plan: AnnualPlan): PersistedAnnualPlan {
-  return {
-    ...plan,
-    createdAt: plan.createdAt.toISOString(),
-    goals: plan.goals.map((goal) => ({
-      ...goal,
-      deadline: goal.deadline?.toISOString(),
-    })),
-  };
-}
-
-function deserializeAnnualPlan(data: PersistedAnnualPlan): AnnualPlan {
-  return {
-    ...data,
-    createdAt: new Date(data.createdAt),
-    goals: data.goals.map((goal) => ({
-      ...goal,
-      deadline: goal.deadline ? new Date(goal.deadline) : undefined,
-    })),
-  };
-}
-
-// ============================================================================
-// STORAGE (in-memory cache backed by Firestore)
-// ============================================================================
-
-const events = new Map<string, Event>();
-const majorPurchases = new Map<string, MajorPurchase>();
-const vacations = new Map<string, Vacation>();
-const annualPlans = new Map<string, AnnualPlan>();
-const loadedUsers = new Set<string>();
-
-// Note: Event planning data is global (not user-scoped) for now
-// In a multi-user system, each event should have a userId field
-let persistence: PersistenceStore<UserEventPlanningData> | null = null;
-
-function getPersistence(): PersistenceStore<UserEventPlanningData> {
-  if (!persistence) {
-    persistence = createPersistenceStore<UserEventPlanningData>({
-      collection: 'event_planning',
-      documentId: 'data',
-      syncIntervalMs: 3000,
-    });
-  }
-  return persistence;
-}
-
-/**
- * Load user's event planning data from persistence
- */
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
-  try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      // Load events
-      for (const event of data.events || []) {
-        events.set(event.id, deserializeEvent(event));
-      }
-      // Load purchases
-      for (const purchase of data.majorPurchases || []) {
-        majorPurchases.set(purchase.id, deserializePurchase(purchase));
-      }
-      // Load vacations
-      for (const vacation of data.vacations || []) {
-        vacations.set(vacation.id, deserializeVacation(vacation));
-      }
-      // Load annual plans
-      for (const plan of data.annualPlans || []) {
-        annualPlans.set(plan.id, deserializeAnnualPlan(plan));
-      }
-    }
-    loadedUsers.add(userId);
-    getLogger().debug({ userId }, 'Loaded event planning data from persistence');
-  } catch (error) {
-    getLogger().warn({ error, userId }, 'Failed to load event planning data');
-    loadedUsers.add(userId);
-  }
-}
-
-/**
- * Persist all event planning data for a user
- */
-function persistEventPlanningData(userId: string): void {
-  const data: UserEventPlanningData = {
-    events: Array.from(events.values()).map(serializeEvent),
-    majorPurchases: Array.from(majorPurchases.values()).map(serializePurchase),
-    vacations: Array.from(vacations.values()).map(serializeVacation),
-    annualPlans: Array.from(annualPlans.values()).map(serializeAnnualPlan),
-  };
-  getPersistence().set(userId, data);
-}
-
-/**
- * Flush event planning persistence
- */
-export async function flushEventPlanningPersistence(): Promise<void> {
-  await getPersistence().flush();
-  getLogger().info('Event planning persistence flushed');
-}
-
-// Best times to buy database
-const BEST_TIMES_TO_BUY: Record<string, string[]> = {
-  car: [
-    'End of month',
-    'End of quarter (Mar, Jun, Sep, Dec)',
-    'End of model year (Sep-Nov)',
-    'Holiday weekends',
-  ],
-  appliances: ['Memorial Day', 'Labor Day', 'Black Friday', 'Presidents Day'],
-  electronics: ['Black Friday', 'Prime Day', 'Back to school (Aug)', 'After CES (Jan-Feb)'],
-  furniture: ['Presidents Day', 'Memorial Day', 'July 4th', 'Labor Day'],
-  mattress: ['Presidents Day', 'Memorial Day', 'July 4th', 'Labor Day'],
-  flights: [
-    'Tuesdays',
-    '6-8 weeks before domestic',
-    '2-3 months before international',
-    'Off-peak seasons',
-  ],
-  hotels: ['Last minute for business hotels', '2-4 weeks out for vacation', 'Off-season'],
-};
-
-// Vacation destination database
-const DESTINATION_DATABASE = [
-  {
-    name: 'Costa Rica',
-    type: ['adventure', 'relaxation'],
-    budget: '$$',
-    bestTime: 'Dec-Apr',
-    highlights: ['Beaches', 'Rainforests', 'Wildlife'],
-  },
-  {
-    name: 'Italy',
-    type: ['cultural', 'romantic'],
-    budget: '$$$',
-    bestTime: 'Apr-Jun, Sep-Oct',
-    highlights: ['History', 'Food', 'Art'],
-  },
-  {
-    name: 'Japan',
-    type: ['cultural', 'adventure'],
-    budget: '$$$',
-    bestTime: 'Mar-May, Sep-Nov',
-    highlights: ['Cherry blossoms', 'Temples', 'Food'],
-  },
-  {
-    name: 'Mexico',
-    type: ['relaxation', 'cultural'],
-    budget: '$',
-    bestTime: 'Dec-Apr',
-    highlights: ['Beaches', 'Ruins', 'Food'],
-  },
-  {
-    name: 'Iceland',
-    type: ['adventure'],
-    budget: '$$$',
-    bestTime: 'Jun-Aug (midnight sun), Sep-Mar (aurora)',
-    highlights: ['Landscapes', 'Northern Lights', 'Hot springs'],
-  },
-  {
-    name: 'Portugal',
-    type: ['cultural', 'relaxation'],
-    budget: '$$',
-    bestTime: 'Mar-May, Sep-Oct',
-    highlights: ['History', 'Wine', 'Beaches'],
-  },
-  {
-    name: 'Thailand',
-    type: ['adventure', 'relaxation'],
-    budget: '$',
-    bestTime: 'Nov-Feb',
-    highlights: ['Beaches', 'Temples', 'Food'],
-  },
-  {
-    name: 'National Parks (US)',
-    type: ['adventure', 'family'],
-    budget: '$',
-    bestTime: 'Varies by park',
-    highlights: ['Nature', 'Hiking', 'Wildlife'],
-  },
-];
-
-const venueDatabase: VenueOption[] = [
-  {
-    name: 'The Grand Ballroom',
-    type: 'ballroom',
-    capacity: 200,
-    priceRange: '$$$',
-    amenities: ['catering', 'bar', 'dance floor', 'AV equipment'],
-    rating: 4.8,
-    location: 'Downtown',
-  },
-  {
-    name: 'Riverside Gardens',
-    type: 'outdoor',
-    capacity: 150,
-    priceRange: '$$',
-    amenities: ['scenic views', 'tent rental', 'parking'],
-    rating: 4.6,
-    location: 'Riverside',
-  },
-  {
-    name: 'The Loft',
-    type: 'industrial',
-    capacity: 80,
-    priceRange: '$$',
-    amenities: ['exposed brick', 'flexible space', 'rooftop access'],
-    rating: 4.7,
-    location: 'Arts District',
-  },
-  {
-    name: 'Sunny Side Restaurant',
-    type: 'restaurant',
-    capacity: 50,
-    priceRange: '$',
-    amenities: ['private room', 'in-house catering', 'bar'],
-    rating: 4.5,
-    location: 'Midtown',
-  },
-  {
-    name: 'Community Center',
-    type: 'community',
-    capacity: 100,
-    priceRange: '$',
-    amenities: ['kitchen access', 'tables/chairs', 'parking'],
-    rating: 4.2,
-    location: 'Suburban',
-  },
-  {
-    name: 'Beachfront Pavilion',
-    type: 'outdoor',
-    capacity: 120,
-    priceRange: '$$$',
-    amenities: ['ocean views', 'sunset ceremony', 'catering options'],
-    rating: 4.9,
-    location: 'Coastal',
-  },
-];
+// Re-export storage/persistence for backward compatibility
+export { flushEventPlanningPersistence } from './event-planning/storage.js';
 
 // ============================================================================
 // EVENT MANAGEMENT

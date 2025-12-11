@@ -624,7 +624,7 @@ class MayaFinancialStore {
 
 let mayaFinancialStoreInstance: MayaFinancialStore | null = null;
 
-export function getMayaFinancialStore(): MayaFinancialStore {
+export function getFinancialStore(): MayaFinancialStore {
   if (!mayaFinancialStoreInstance) {
     mayaFinancialStoreInstance = new MayaFinancialStore();
     // Initialize asynchronously
@@ -639,7 +639,7 @@ export function getMayaFinancialStore(): MayaFinancialStore {
  * Initialize the Maya Financial Store (for lifecycle management)
  */
 export async function initializeMayaFinancialStore(): Promise<void> {
-  const store = getMayaFinancialStore();
+  const store = getFinancialStore();
   await store.initialize();
   getLogger().info('Maya Financial Store initialized');
 }

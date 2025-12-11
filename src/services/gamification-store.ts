@@ -1228,7 +1228,7 @@ class MayaGamificationStore {
 
 let storeInstance: MayaGamificationStore | null = null;
 
-export function getMayaGamificationStore(): MayaGamificationStore {
+export function getGamificationStore(): MayaGamificationStore {
   if (!storeInstance) {
     storeInstance = new MayaGamificationStore();
   }
@@ -1236,7 +1236,7 @@ export function getMayaGamificationStore(): MayaGamificationStore {
 }
 
 export async function initializeMayaGamificationStore(): Promise<MayaGamificationStore> {
-  const store = getMayaGamificationStore();
+  const store = getGamificationStore();
   await store.initialize();
   return store;
 }

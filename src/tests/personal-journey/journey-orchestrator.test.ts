@@ -25,7 +25,7 @@ import {
   recordSession,
 } from '../../services/personal-journey/rhythm-awareness.js';
 import { clearSeasonalCache } from '../../services/personal-journey/seasonal-memory.js';
-import type { JourneyMoment } from '../../services/personal-journey/types.js';
+import type { JourneyMoment } from '../../types/personal-journey.js';
 
 describe('Journey Orchestrator Service', () => {
   const testUserId = 'test-user-orchestrator-123';

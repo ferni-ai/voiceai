@@ -89,6 +89,8 @@ import {
   addNeverDuringRule,
   addRecurringEvent,
   calculateOptimalTime,
+  calculateOptimalTimeWithCalendar,
+  checkCalendarBeforeOutreach,
   clearUserTimingData,
   getTimingProfile,
   isGoodTimeForOutreach,
@@ -536,6 +538,34 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
   const personaId = decision.persona || 'ferni';
   const outreachId = decision.trigger.id;
 
+  // 📅 Live calendar check - don't reach out during meetings
+  // (A good friend doesn't call when you're in a meeting)
+  const calendarCheck = await checkCalendarBeforeOutreach(userId, decision.trigger.priority);
+  if (!calendarCheck.canSend) {
+    log.info(
+      {
+        userId,
+        reason: calendarCheck.reason,
+        suggestedRetry: calendarCheck.suggestedRetry,
+        triggerType: decision.trigger.type,
+      },
+      '📅 Outreach delayed - user is busy (calendar)'
+    );
+
+    // Reschedule trigger for when user is free
+    if (calendarCheck.suggestedRetry) {
+      const engine = getOutreachDecisionEngine();
+      // Create new trigger without id/createdAt (engine generates these)
+      const { id: _id, createdAt: _createdAt, ...triggerData } = decision.trigger;
+      engine.addTrigger({
+        ...triggerData,
+        suggestedTime: calendarCheck.suggestedRetry,
+        reason: `${decision.trigger.reason} (rescheduled from calendar conflict)`,
+      });
+    }
+    return;
+  }
+
   log.info(
     {
       userId,
@@ -850,6 +880,8 @@ export {
   addNeverDuringRule,
   addRecurringEvent,
   calculateOptimalTime,
+  calculateOptimalTimeWithCalendar,
+  checkCalendarBeforeOutreach,
   clearUserTimingData,
   getTimingProfile,
   isGoodTimeForOutreach,
@@ -1150,6 +1182,8 @@ export default {
   getTimingProfile,
   updateTimingPreferences,
   calculateOptimalTime,
+  calculateOptimalTimeWithCalendar,
+  checkCalendarBeforeOutreach,
   isGoodTimeForOutreach,
   addNeverDuringRule,
   addBusyPeriod,

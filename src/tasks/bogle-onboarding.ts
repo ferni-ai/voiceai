@@ -236,7 +236,9 @@ export function createOnboardingFlow(): TaskGroup {
 /**
  * Run the complete onboarding flow and get typed results
  */
-export async function runOnboarding(session: voice.AgentSession<unknown>): Promise<OnboardingResult> {
+export async function runOnboarding(
+  session: voice.AgentSession<unknown>
+): Promise<OnboardingResult> {
   const group = createOnboardingFlow();
   const results = await group.start(session);
 

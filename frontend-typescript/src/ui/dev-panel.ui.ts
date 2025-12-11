@@ -68,11 +68,9 @@ import {
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 // Ferni Milestones - Relationship celebrations
-import {
-  ferniMilestones,
-  getMilestones,
-  type MilestoneType,
-} from './ferni-milestones.ui.js';
+import { ferniMilestones, type MilestoneType } from './ferni-milestones.ui.js';
+// Journey UI - Milestone scrapbook view
+import { journeyUI } from './journey.ui.js';
 
 // Real Ambient Effects - Canvas-based particles and aurora
 import {
@@ -963,6 +961,7 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Actions</span>
           <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-action="open-journey" title="View Your Journey scrapbook">Your Journey</button>
             <button class="dev-expression-btn dev-expression-btn--danger" data-action="reset-milestones" title="Reset all milestone progress">Reset All</button>
           </div>
         </div>
@@ -2309,6 +2308,12 @@ function createPanel(): HTMLElement {
         log.info({ milestone }, '🎉 Ferni milestone triggered');
       }
     });
+  });
+
+  // Open journey button
+  container.querySelector('[data-action="open-journey"]')?.addEventListener('click', () => {
+    journeyUI.open();
+    log.info('📖 Journey view opened');
   });
 
   // Reset milestones button

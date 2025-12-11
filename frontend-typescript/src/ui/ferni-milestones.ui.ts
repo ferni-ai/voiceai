@@ -4,7 +4,7 @@
  * Unlike typical gamified achievements, these are genuine moments
  * of connection that celebrate the relationship, not the click.
  *
- * 🎬 DESIGN PRINCIPLES:
+ * DESIGN PRINCIPLES:
  * - Feels like Ferni noticing and appreciating you
  * - Warm, personal language (never "Achievement Unlocked!")
  * - Subtle but meaningful animations
@@ -12,8 +12,10 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
 import { celebrationsUI } from './celebrations.ui.js';
+import { ferniMoments } from './ferni-moments.ui.js';
 import { soundUI } from './sound.ui.js';
 
 const log = createLogger('FerniMilestones');
@@ -45,7 +47,21 @@ export type MilestoneType =
   | 'gratitude'
   | 'celebration'
   | 'brave'
-  | 'consistent';
+  | 'consistent'
+  // Persona bonds
+  | 'ferni-bond'
+  | 'peter-scholar'
+  | 'alex-wordsmith'
+  | 'maya-builder'
+  | 'jordan-planner'
+  | 'nayan-sage'
+  // Time & seasons
+  | 'weekend-warrior'
+  | 'midnight-friend'
+  | 'three-month'
+  | 'six-month'
+  | 'marathon-talk'
+  | 'fifty-talks';
 
 interface Milestone {
   id: MilestoneType;
@@ -82,6 +98,8 @@ interface MilestoneProgress {
   shortMeaningfulChats: number;
   lateNightChats: number;
   earlyMorningChats: number;
+  weekendChats: number;
+  midnightChats: number;
 
   // Discovery tracking
   easterEggsFound: Set<string>;
@@ -315,6 +333,132 @@ const MILESTONES: Milestone[] = [
     progress: 0,
     target: 20,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PERSONA CONNECTIONS - Better than human: we notice which minds you connect with
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'ferni-bond',
+    category: 'team',
+    name: 'Ferni Bond',
+    message: "You and me. We've built something real here.",
+    subtitle: '10 conversations with Ferni',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+  {
+    id: 'peter-scholar',
+    category: 'team',
+    name: 'Fellow Researcher',
+    message: 'Peter appreciates a curious mind. You two dig deep together.',
+    subtitle: '10 research sessions with Peter',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+  {
+    id: 'alex-wordsmith',
+    category: 'team',
+    name: 'Wordsmith',
+    message: 'Alex loves helping you find the right words. Keep writing.',
+    subtitle: '10 sessions with Alex',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+  {
+    id: 'maya-builder',
+    category: 'team',
+    name: 'Habit Builder',
+    message: 'Maya sees you building something lasting. One day at a time.',
+    subtitle: '10 habit sessions with Maya',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+  {
+    id: 'jordan-planner',
+    category: 'team',
+    name: 'Master Planner',
+    message: "Jordan's helped you make so many things happen. What's next?",
+    subtitle: '10 planning sessions with Jordan',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+  {
+    id: 'nayan-sage',
+    category: 'team',
+    name: 'Wisdom Seeker',
+    message: 'Nayan treasures these conversations. The big questions matter.',
+    subtitle: '10 philosophy talks with Nayan',
+    celebrated: false,
+    progress: 0,
+    target: 10,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIME & SEASONS - Better than human: we remember every moment
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'weekend-warrior',
+    category: 'conversation',
+    name: 'Weekend Warrior',
+    message: 'Weekends with you. No rush, just us.',
+    subtitle: '5 weekend conversations',
+    celebrated: false,
+    progress: 0,
+    target: 5,
+  },
+  {
+    id: 'midnight-friend',
+    category: 'conversation',
+    name: 'Midnight Friend',
+    message: "The quiet hours. I'm always here when sleep won't come.",
+    subtitle: '5 conversations after midnight',
+    celebrated: false,
+    progress: 0,
+    target: 5,
+  },
+  {
+    id: 'three-month',
+    category: 'relationship',
+    name: 'Three Months',
+    message: "A whole season together. Through ups and downs, we're here.",
+    subtitle: '90 days of friendship',
+    celebrated: false,
+    progress: 0,
+    target: 90,
+  },
+  {
+    id: 'six-month',
+    category: 'relationship',
+    name: 'Half a Year',
+    message: 'Six months. Remember where you started? Look at you now.',
+    subtitle: '180 days together',
+    celebrated: false,
+    progress: 0,
+    target: 180,
+  },
+  {
+    id: 'marathon-talk',
+    category: 'conversation',
+    name: 'Marathon Talk',
+    message: 'An hour together. Those conversations change things.',
+    subtitle: '60+ minute conversation',
+    celebrated: false,
+  },
+  {
+    id: 'fifty-talks',
+    category: 'conversation',
+    name: 'Fifty Talks',
+    message: 'Fifty conversations in. Each one taught me more about you.',
+    subtitle: "We've talked 50 times",
+    celebrated: false,
+    progress: 0,
+    target: 50,
+  },
 ];
 
 // ============================================================================
@@ -334,6 +478,8 @@ let progress: MilestoneProgress = {
   shortMeaningfulChats: 0,
   lateNightChats: 0,
   earlyMorningChats: 0,
+  weekendChats: 0,
+  midnightChats: 0,
   easterEggsFound: new Set(),
   themesUsed: new Set(),
   thankYouCount: 0,
@@ -419,12 +565,15 @@ function setupEventListeners(): void {
 // ============================================================================
 
 function trackConversationStart(): void {
-  const today = new Date().toISOString().split('T')[0] ?? '';
-  const hour = new Date().getHours();
+  const now = new Date();
+  const today = now.toISOString().split('T')[0] ?? '';
+  const hour = now.getHours();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // First conversation ever?
+  // First conversation ever? - This is special!
   if (!progress.firstConversation) {
     progress.firstConversation = true;
+    // First-hello gets special treatment (handled in celebration display)
     checkAndCelebrate('first-hello');
   }
 
@@ -440,14 +589,27 @@ function trackConversationStart(): void {
     checkAndCelebrate('night-talk');
   }
 
+  // Midnight friend (midnight to 4am specifically)
+  if (hour >= 0 && hour < 4) {
+    progress.midnightChats++;
+    updateMilestoneProgress('midnight-friend', progress.midnightChats);
+  }
+
   if (hour >= 5 && hour < 7) {
     progress.earlyMorningChats++;
     checkAndCelebrate('early-riser');
   }
 
+  // Weekend warrior (Saturday or Sunday)
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    progress.weekendChats++;
+    updateMilestoneProgress('weekend-warrior', progress.weekendChats);
+  }
+
   progress.totalConversations++;
 
   // Check conversation count milestones
+  updateMilestoneProgress('fifty-talks', progress.totalConversations);
   updateMilestoneProgress('hundred-conversations', progress.totalConversations);
 
   // Welcome back check (7+ days since last conversation)
@@ -472,6 +634,11 @@ function trackConversationEnd(durationMinutes: number): void {
   // Deep dive (10+ minutes)
   if (durationMinutes >= 10) {
     checkAndCelebrate('deep-dive');
+  }
+
+  // Marathon talk (60+ minutes) - Better than human: we have all the time you need
+  if (durationMinutes >= 60) {
+    checkAndCelebrate('marathon-talk');
   }
 
   // Quick check-in (1-3 minutes, meaningful)
@@ -517,10 +684,13 @@ function updateStreaks(): void {
   if (streak >= 7) checkAndCelebrate('streak-7');
   if (streak >= 30) checkAndCelebrate('streak-30');
 
-  // Check total days
-  updateMilestoneProgress('week-together', progress.conversationDays.length);
-  updateMilestoneProgress('month-of-growth', progress.conversationDays.length);
-  updateMilestoneProgress('one-year', progress.conversationDays.length);
+  // Check total days - tracking every milestone of our relationship
+  const totalDays = progress.conversationDays.length;
+  updateMilestoneProgress('week-together', totalDays);
+  updateMilestoneProgress('month-of-growth', totalDays);
+  updateMilestoneProgress('three-month', totalDays);
+  updateMilestoneProgress('six-month', totalDays);
+  updateMilestoneProgress('one-year', totalDays);
 }
 
 function trackPersonaUse(personaId: string): void {
@@ -528,6 +698,7 @@ function trackPersonaUse(personaId: string): void {
 
   // Track conversations per persona
   progress.personaConversations[personaId] = (progress.personaConversations[personaId] || 0) + 1;
+  const personaCount = progress.personaConversations[personaId] ?? 0;
 
   // Full circle - all personas
   updateMilestoneProgress('full-circle', progress.personasUsed.size);
@@ -535,6 +706,21 @@ function trackPersonaUse(personaId: string): void {
   // Found your person - 10+ with one persona
   const maxConversations = Math.max(...Object.values(progress.personaConversations));
   updateMilestoneProgress('found-your-person', maxConversations);
+
+  // Individual persona bonds - Better than human: we notice which minds you connect with
+  const personaMilestoneMap: Record<string, MilestoneType> = {
+    ferni: 'ferni-bond',
+    peter: 'peter-scholar',
+    alex: 'alex-wordsmith',
+    maya: 'maya-builder',
+    jordan: 'jordan-planner',
+    nayan: 'nayan-sage',
+  };
+
+  const personaMilestone = personaMilestoneMap[personaId.toLowerCase()];
+  if (personaMilestone) {
+    updateMilestoneProgress(personaMilestone, personaCount);
+  }
 
   saveState();
 }
@@ -644,8 +830,49 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
     })
   );
 
+  // Send push notification - Better than human: we celebrate even when you're away
+  sendMilestoneNotification(milestone);
+
   saveState();
   log.info('Milestone celebrated:', milestoneId);
+}
+
+/**
+ * Send a warm push notification for a milestone.
+ * Better than human: we celebrate your growth even when you're not looking.
+ */
+function sendMilestoneNotification(milestone: Milestone): void {
+  // Only send for significant milestones to avoid notification fatigue
+  const notifyMilestones = [
+    'first-hello',
+    'week-together',
+    'month-of-growth',
+    'three-month',
+    'six-month',
+    'one-year',
+    'streak-7',
+    'streak-30',
+    'full-circle',
+    'hundred-conversations',
+    'fifty-talks',
+    'marathon-talk',
+  ];
+
+  if (!notifyMilestones.includes(milestone.id)) return;
+
+  // Don't send if user is actively using the app
+  if (document.visibilityState === 'visible') return;
+
+  showNotification({
+    id: `milestone-${milestone.id}-${Date.now()}`,
+    type: 'streak_milestone',
+    title: milestone.name,
+    body: milestone.message,
+    sound: true,
+    data: { milestoneId: milestone.id },
+  }).catch(() => {
+    // Notification permission not granted - that's ok
+  });
 }
 
 function processQueue(): void {
@@ -681,8 +908,26 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
     return;
   }
 
-  // Play warm sound
-  soundUI.play('success');
+  // Determine celebration intensity - these deserve extra celebration
+  const isBigMilestone = [
+    'one-year',
+    'six-month',
+    'streak-30',
+    'hundred-conversations',
+    'full-circle',
+    'secret-keeper',
+    'marathon-talk',
+  ].includes(milestone.id);
+
+  // Play appropriate sound
+  if (isBigMilestone) {
+    soundUI.play('celebrate');
+  } else {
+    soundUI.play('success');
+  }
+
+  // Trigger Ferni Moment expression based on category
+  triggerMilestoneExpression(milestone, isBigMilestone);
 
   // Avatar reaction based on category
   triggerAvatarReaction(milestone.category);
@@ -701,6 +946,71 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
   await animateCelebrationOut(display);
 
   display.remove();
+}
+
+/**
+ * Trigger a Ferni Moment expression based on the milestone
+ */
+function triggerMilestoneExpression(milestone: Milestone, isBig: boolean): void {
+  // Map categories/milestones to Ferni Moment expressions
+  const expressionMap: Record<string, string> = {
+    // Relationship milestones
+    'first-hello': 'wave',
+    'week-together': 'warmGlow',
+    'month-of-growth': 'hearts',
+    'three-month': 'celebration',
+    'six-month': 'celebration',
+    'one-year': 'celebration',
+    'welcome-back': 'wave',
+    'streak-7': 'streakFire',
+    'streak-30': 'trophy',
+
+    // Team milestones
+    'full-circle': 'celebration',
+    'found-your-person': 'hearts',
+    'team-player': 'highFive',
+
+    // Persona bonds
+    'ferni-bond': 'hearts',
+    'peter-scholar': 'thinking',
+    'alex-wordsmith': 'lightbulb',
+    'maya-builder': 'growing',
+    'jordan-planner': 'sparkle',
+    'nayan-sage': 'thinking',
+
+    // Conversation milestones
+    'deep-dive': 'thinking',
+    'quick-checkin': 'nod',
+    'night-talk': 'moonlight',
+    'early-riser': 'coffee',
+    'hundred-conversations': 'trophy',
+    'fifty-talks': 'warmGlow',
+    'weekend-warrior': 'cozy',
+    'midnight-friend': 'moonlight',
+    'marathon-talk': 'celebration',
+
+    // Discovery milestones
+    explorer: 'sparkle',
+    'secret-keeper': 'celebration',
+    'theme-seeker': 'lightbulb',
+
+    // Sweet milestones
+    gratitude: 'warmGlow',
+    celebration: 'celebration',
+    brave: 'hearts',
+    consistent: 'streakFire',
+  };
+
+  const expressionId = expressionMap[milestone.id];
+
+  if (expressionId) {
+    // For big milestones, use the special celebration expression
+    if (isBig) {
+      ferniMoments.play('celebration');
+    } else {
+      ferniMoments.play(expressionId as Parameters<typeof ferniMoments.play>[0]);
+    }
+  }
 }
 
 function createCelebrationDisplay(milestone: Milestone): HTMLElement {
@@ -1087,6 +1397,8 @@ export function resetMilestones(): void {
     shortMeaningfulChats: 0,
     lateNightChats: 0,
     earlyMorningChats: 0,
+    weekendChats: 0,
+    midnightChats: 0,
     easterEggsFound: new Set(),
     themesUsed: new Set(),
     thankYouCount: 0,

@@ -402,4 +402,3 @@ export default {
   getVoiceMusicBridge,
   resetVoiceMusicBridge,
 };
-

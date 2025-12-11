@@ -124,11 +124,13 @@ export function onSessionStart(
   }
 
   // Initialize advanced humanization (10 deep capabilities)
-  let advancedStart: {
-    greeting: string | null;
-    eventFollowUp: string | null;
-    milestoneAcknowledgment: string | null;
-  } | undefined;
+  let advancedStart:
+    | {
+        greeting: string | null;
+        eventFollowUp: string | null;
+        milestoneAcknowledgment: string | null;
+      }
+    | undefined;
 
   if (state.advancedHumanization.enabled) {
     const relationshipDepthMap: Record<

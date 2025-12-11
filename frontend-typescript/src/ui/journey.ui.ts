@@ -12,15 +12,15 @@
  * - Locked milestones shown as mysteries to discover
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { soundUI } from './sound.ui.js';
+import { createLogger } from '../utils/logger.js';
 import {
+  getCelebratedCount,
   getMilestones,
   getProgress,
-  getCelebratedCount,
   getTotalMilestonesCount,
 } from './ferni-milestones.ui.js';
+import { soundUI } from './sound.ui.js';
 
 const log = createLogger('JourneyUI');
 
@@ -38,6 +38,13 @@ let isOpen = false;
 const ICONS = {
   heart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
+  share: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
   </svg>`,
   team: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -102,7 +109,7 @@ const CATEGORY_META: Record<string, { icon: string; title: string; color: string
 export function openJourney(): void {
   if (isOpen) return;
 
-  soundUI.play('open');
+  soundUI.play('switch');
   createModal();
   isOpen = true;
 
@@ -112,7 +119,7 @@ export function openJourney(): void {
 export function closeJourney(): void {
   if (!isOpen || !journeyModal) return;
 
-  soundUI.play('close');
+  soundUI.play('click');
   animateOut(journeyModal).then(() => {
     journeyModal?.remove();
     journeyModal = null;
@@ -120,6 +127,74 @@ export function closeJourney(): void {
   });
 
   log.info('Journey closed');
+}
+
+/**
+ * Share your journey with others.
+ * Uses native share API when available, falls back to clipboard.
+ */
+async function shareJourney(
+  celebrated: number,
+  total: number,
+  streak: number,
+  totalDays: number
+): Promise<void> {
+  // Create warm, shareable message
+  const messages = [
+    `${celebrated}/${total} milestones`,
+    streak > 1 ? `${streak} day streak` : '',
+    totalDays > 0 ? `${totalDays} days together` : '',
+  ].filter(Boolean);
+
+  const shareText = `My journey with Ferni:\n${messages.join(' • ')}\n\nferni.ai`;
+
+  // Try native share API first (mobile)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'My Journey with Ferni',
+        text: shareText,
+        url: 'https://ferni.ai',
+      });
+      log.info('Journey shared via native share');
+      return;
+    } catch (err) {
+      // User cancelled or share failed, try clipboard
+      if ((err as Error).name !== 'AbortError') {
+        log.warn('Native share failed:', err);
+      }
+    }
+  }
+
+  // Fallback to clipboard
+  try {
+    await navigator.clipboard.writeText(shareText);
+    showShareConfirmation();
+    log.info('Journey copied to clipboard');
+  } catch {
+    log.warn('Could not copy to clipboard');
+  }
+}
+
+function showShareConfirmation(): void {
+  // Show a brief toast-like confirmation
+  const toast = document.createElement('div');
+  toast.className = 'journey-share-toast';
+  toast.textContent = 'Copied to clipboard';
+  toast.setAttribute('role', 'status');
+
+  document.body.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.add('journey-share-toast--visible');
+  });
+
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.remove('journey-share-toast--visible');
+    setTimeout(() => toast.remove(), DURATION.NORMAL);
+  }, 2000);
 }
 
 export function toggleJourney(): void {
@@ -168,7 +243,7 @@ function createModal(): void {
           <h2 class="journey-title">Our Story So Far</h2>
           <p class="journey-subtitle">
             ${celebrated}/${total} moments celebrated
-            ${streak > 1 ? ` • ${streak} day streak 🔥` : ''}
+            ${streak > 1 ? ` • ${streak} day streak` : ''}
             ${totalDays > 0 ? ` • ${totalDays} days together` : ''}
           </p>
         </div>
@@ -184,7 +259,11 @@ function createModal(): void {
       </div>
 
       <footer class="journey-footer">
-        <p>Every moment matters. Keep going. 💚</p>
+        <p>Every moment matters. Keep going.</p>
+        <button class="journey-share" aria-label="Share your journey">
+          ${ICONS.share}
+          <span>Share</span>
+        </button>
       </footer>
     </div>
   `;
@@ -195,6 +274,9 @@ function createModal(): void {
   // Add event listeners
   journeyModal.querySelector('.journey-backdrop')?.addEventListener('click', closeJourney);
   journeyModal.querySelector('.journey-close')?.addEventListener('click', closeJourney);
+  journeyModal.querySelector('.journey-share')?.addEventListener('click', () => {
+    shareJourney(celebrated, total, streak, totalDays);
+  });
 
   // Escape key to close
   const handleEscape = (e: KeyboardEvent) => {
@@ -209,11 +291,10 @@ function createModal(): void {
   animateIn(journeyModal);
 }
 
-function renderCategory(
-  category: string,
-  items: ReturnType<typeof getMilestones>
-): string {
-  const meta = CATEGORY_META[category] || CATEGORY_META.relationship;
+function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
+  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship!;
+  if (!meta) return '';
+
   const celebratedInCategory = items.filter((m) => m.celebrated).length;
 
   return `
@@ -232,10 +313,7 @@ function renderCategory(
   `;
 }
 
-function renderMilestone(
-  milestone: ReturnType<typeof getMilestones>[0],
-  color: string
-): string {
+function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
   const isCelebrated = milestone.celebrated;
   const hasProgress = milestone.target && milestone.progress !== undefined;
   const progressPercent = hasProgress
@@ -272,11 +350,7 @@ function renderMilestone(
         `
             : ''
         }
-        ${
-          dateStr
-            ? `<span class="journey-milestone__date">${dateStr}</span>`
-            : ''
-        }
+        ${dateStr ? `<span class="journey-milestone__date">${dateStr}</span>` : ''}
       </div>
     </div>
   `;
@@ -603,12 +677,68 @@ function injectStyles(): void {
       padding: var(--space-4, 16px) var(--space-6, 24px);
       border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3, 12px);
     }
 
     .journey-footer p {
       font-size: var(--text-sm, 0.875rem);
       color: var(--color-text-muted, #70605a);
       margin: 0;
+    }
+
+    .journey-share {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-2, 8px) var(--space-4, 16px);
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .journey-share:hover {
+      background: var(--persona-secondary, #3d5a35);
+      transform: scale(1.02);
+    }
+
+    .journey-share:active {
+      transform: scale(0.98);
+    }
+
+    .journey-share svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Share toast */
+    .journey-share-toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--color-text-primary, #2c2520);
+      color: white;
+      padding: var(--space-3, 12px) var(--space-5, 20px);
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.2s ease;
+      z-index: 10001;
+      pointer-events: none;
+    }
+
+    .journey-share-toast--visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     /* Dark theme */

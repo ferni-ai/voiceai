@@ -19,7 +19,7 @@
 import * as admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
 import { getLifeDataStore } from './life-data-store.js';
-import { getMayaFinancialStore } from './maya-financial-store.js';
+import { getFinancialStore } from './financial-store.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -244,7 +244,7 @@ class ProactiveInsightsService {
    */
   private async scanSpendingDomain(userId: string): Promise<ProactiveInsight[]> {
     const insights: ProactiveInsight[] = [];
-    const store = getMayaFinancialStore();
+    const store = getFinancialStore();
     await store.loadUserData(userId);
 
     const budget = store.getMainBudget(userId);
@@ -408,7 +408,7 @@ class ProactiveInsightsService {
    */
   private async scanBehavioralDomain(userId: string): Promise<ProactiveInsight[]> {
     const insights: ProactiveInsight[] = [];
-    const mayaStore = getMayaFinancialStore();
+    const mayaStore = getFinancialStore();
     await mayaStore.loadUserData(userId);
 
     const triggers = mayaStore.getRecentSpendingTriggers(userId, 7);
@@ -466,7 +466,7 @@ class ProactiveInsightsService {
     // This would use context received from other personas
     // For now, we generate insights based on available data patterns
 
-    const mayaStore = getMayaFinancialStore();
+    const mayaStore = getFinancialStore();
     await mayaStore.loadUserData(userId);
     const lifeStore = getLifeDataStore();
 

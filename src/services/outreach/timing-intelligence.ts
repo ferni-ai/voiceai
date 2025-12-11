@@ -14,10 +14,10 @@
  * Philosophy: Reach out when they're receptive, not when it's convenient for us.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { getDefaultStore } from '../../memory/in-memory-store.js';
-import type { OutreachChannel } from './persona-voice-generator.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
+import type { OutreachChannel } from './persona-voice-generator.js';
 
 // ============================================================================
 // TIMEZONE UTILITIES
@@ -934,6 +934,120 @@ function generateReasoning(time: Date, score: number, profile: TimingProfile): s
 }
 
 // ============================================================================
+// CALENDAR INTEGRATION - Live Calendar Check
+// ============================================================================
+
+/**
+ * Check calendar before sending outreach
+ *
+ * This async function checks the user's live calendar to see if they're busy.
+ * Use this as a final gate before actually sending outreach.
+ *
+ * @example
+ * ```typescript
+ * const check = await checkCalendarBeforeOutreach(userId, 'high');
+ * if (!check.canSend) {
+ *   // Reschedule for check.suggestedRetry
+ * }
+ * ```
+ */
+export async function checkCalendarBeforeOutreach(
+  userId: string,
+  priority: OutreachPriority
+): Promise<{
+  canSend: boolean;
+  reason?: string;
+  busyUntil?: Date;
+  suggestedRetry?: Date;
+}> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { isUserBusy, getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+
+    const busyCheck = await isUserBusy(userId);
+
+    if (!busyCheck.isBusy) {
+      return { canSend: true };
+    }
+
+    // For urgent messages, we can send anyway with a note
+    if (priority === 'urgent') {
+      log.debug({ userId }, '📅 User is busy but priority is urgent - allowing');
+      return { canSend: true, reason: 'Urgent message overrides calendar' };
+    }
+
+    // For high priority, allow during short meetings
+    if (priority === 'high' && busyCheck.busyUntil) {
+      const busyMinutesRemaining = (busyCheck.busyUntil.getTime() - Date.now()) / 60000;
+      if (busyMinutesRemaining < 15) {
+        log.debug({ userId, busyMinutesRemaining }, '📅 User busy but meeting ending soon');
+        return {
+          canSend: false,
+          reason: `In meeting (ending in ${Math.round(busyMinutesRemaining)} min)`,
+          busyUntil: busyCheck.busyUntil,
+          suggestedRetry: busyCheck.busyUntil,
+        };
+      }
+    }
+
+    // Get the next free window for retry suggestion
+    const profile = await getCalendarBusyProfile(userId);
+    const suggestedRetry = profile.nextFreeWindow?.start || busyCheck.busyUntil;
+
+    log.info(
+      {
+        userId,
+        reason: busyCheck.reason,
+        busyUntil: busyCheck.busyUntil,
+        suggestedRetry,
+      },
+      '📅 Outreach delayed - user is busy'
+    );
+
+    return {
+      canSend: false,
+      reason: busyCheck.reason || 'User is busy (calendar)',
+      busyUntil: busyCheck.busyUntil,
+      suggestedRetry,
+    };
+  } catch (error) {
+    // If calendar check fails, default to allowing (graceful degradation)
+    log.warn({ error, userId }, '📅 Calendar check failed - allowing outreach');
+    return { canSend: true, reason: 'Calendar check unavailable' };
+  }
+}
+
+/**
+ * Enhanced optimal time calculation with live calendar awareness
+ *
+ * Use this when you need a truly optimal time considering live calendar data.
+ */
+export async function calculateOptimalTimeWithCalendar(
+  userId: string,
+  context: TimingContext
+): Promise<TimingDecision & { calendarAware: boolean }> {
+  // First get the basic timing decision
+  const decision = calculateOptimalTime(userId, context);
+
+  // If we're suggesting to send now, verify with calendar
+  if (decision.shouldSendNow) {
+    const calendarCheck = await checkCalendarBeforeOutreach(userId, context.trigger.priority);
+
+    if (!calendarCheck.canSend && calendarCheck.suggestedRetry) {
+      return {
+        ...decision,
+        shouldSendNow: false,
+        optimalTime: calendarCheck.suggestedRetry,
+        reasoning: `${decision.reasoning}. Delayed: ${calendarCheck.reason}`,
+        calendarAware: true,
+      };
+    }
+  }
+
+  return { ...decision, calendarAware: true };
+}
+
+// ============================================================================
 // CLEANUP
 // ============================================================================
 
@@ -957,6 +1071,8 @@ export default {
   setSleepPattern,
   recordInteraction,
   calculateOptimalTime,
+  calculateOptimalTimeWithCalendar,
+  checkCalendarBeforeOutreach,
   isGoodTimeForOutreach,
   clearUserTimingData,
 };

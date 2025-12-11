@@ -58,11 +58,7 @@
   },
 
   "micro_affirmations": {
-    "acknowledgments": [
-      "Got it.",
-      "Copy.",
-      "<break time=\"150ms\"/>Right."
-    ],
+    "acknowledgments": ["Got it.", "Copy.", "<break time=\"150ms\"/>Right."],
     "validations": [
       "<break time=\"200ms\"/>That tracks.",
       "Makes sense.",
@@ -95,4 +91,3 @@
     "paradoxical_min_resistance_count": 2
   }
 }
-
