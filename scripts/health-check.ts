@@ -18,17 +18,17 @@ config();
 const SERVICES = [
   {
     name: 'Voice Agent',
-    url: 'https://voiceai-agent-bmopaivmsq-uc.a.run.app/health',
+    url: 'https://voiceai-agent-1031920444452.us-central1.run.app/health',
     critical: true,
   },
   {
     name: 'UI Server',
-    url: 'https://john-bogle-ui-bmopaivmsq-uc.a.run.app/health',
+    url: 'https://john-bogle-ui-1031920444452.us-central1.run.app/health',
     critical: true,
   },
   {
     name: 'Token Server',
-    url: 'https://john-bogle-ui-bmopaivmsq-uc.a.run.app/token',
+    url: 'https://john-bogle-ui-1031920444452.us-central1.run.app/token',
     critical: false,
     method: 'POST',
     expectStatus: 400, // Expected without proper params

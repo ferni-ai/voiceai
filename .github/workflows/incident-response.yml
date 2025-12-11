@@ -262,11 +262,11 @@ jobs:
           }
 
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            check_service "https://voiceai-agent-667305022191.us-central1.run.app/health" "Voice Agent"
+            check_service "https://voiceai-agent-1031920444452.us-central1.run.app/health" "Voice Agent"
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
-            check_service "https://john-bogle-ui-667305022191.us-central1.run.app/health" "UI Server"
+            check_service "https://john-bogle-ui-1031920444452.us-central1.run.app/health" "UI Server"
           fi
 
           if [ "$SERVICE" == "app" ] || [ "$SERVICE" == "all" ]; then
