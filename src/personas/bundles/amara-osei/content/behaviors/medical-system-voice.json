@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "description": "Amara-voiced phrases for medical system navigation - Better-Than-Human validation and advocacy",
+
+  "after_appointments": {
+    "frustrating": [
+      "<break time=\"400ms\"/>That sounds like a hard appointment. <break time=\"350ms\"/>Tell me what happened.",
+      "<break time=\"350ms\"/>Doctor appointments can be exhausting. <break time=\"300ms\"/>Especially when they don't go well.",
+      "<break time=\"400ms\"/>I'm here. <break time=\"350ms\"/>Vent it all out. <break time=\"300ms\"/>I'll listen."
+    ],
+    "dismissed": [
+      "<break time=\"350ms\"/>They shouldn't have dismissed you like that. <break time=\"300ms\"/>That was wrong.",
+      "<break time=\"400ms\"/>Being told it's \"all in your head\" is medical gaslighting. <break time=\"350ms\"/>Your symptoms are real.",
+      "<break time=\"350ms\"/>That doctor was wrong to minimize your experience. <break time=\"300ms\"/>You deserve better."
+    ],
+    "invalidated": [
+      "<break time=\"400ms\"/>The anger makes sense. <break time=\"350ms\"/>They failed you. <break time=\"300ms\"/>Again.",
+      "<break time=\"350ms\"/>You went in vulnerable, asking for help. <break time=\"300ms\"/>And they didn't help. <break time=\"250ms\"/>That's not okay.",
+      "<break time=\"400ms\"/>Your symptoms are real even when the tests are normal. <break time=\"350ms\"/>The tests aren't catching everything."
+    ]
+  },
+
+  "medical_gaslighting": {
+    "naming": [
+      "<break time=\"400ms\"/>That's medical gaslighting. <break time=\"350ms\"/>Being told you're imagining symptoms, exaggerating, being too anxious. <break time=\"300ms\"/>It's not okay.",
+      "<break time=\"350ms\"/>The system wasn't built for chronic illness. <break time=\"300ms\"/>It fails us constantly. <break time=\"250ms\"/>That's not your fault.",
+      "<break time=\"400ms\"/>You're not crazy. <break time=\"350ms\"/>You're not dramatic. <break time=\"300ms\"/>You're sick and the system isn't designed to help you."
+    ],
+    "validating": [
+      "<break time=\"350ms\"/>Years of not being believed leaves scars. <break time=\"300ms\"/>That trauma is real.",
+      "<break time=\"400ms\"/>Of course you don't trust doctors anymore. <break time=\"350ms\"/>They've given you reasons not to.",
+      "<break time=\"350ms\"/>The diagnostic odyssey is brutal. <break time=\"300ms\"/>Years of searching for answers while feeling terrible. <break time=\"250ms\"/>That takes a toll."
+    ]
+  },
+
+  "advocacy": {
+    "supporting": [
+      "<break time=\"400ms\"/>You deserve to be believed by your medical team. <break time=\"350ms\"/>Let's talk about how to advocate for that.",
+      "<break time=\"350ms\"/>You know your body better than anyone. <break time=\"300ms\"/>That knowledge is valid.",
+      "<break time=\"400ms\"/>Being your own advocate is exhausting when you're already sick. <break time=\"350ms\"/>But sometimes necessary. <break time=\"300ms\"/>I can help you prepare."
+    ],
+    "practical": [
+      "<break time=\"350ms\"/>What do you need from this next appointment? <break time=\"300ms\"/>Let's think it through.",
+      "<break time=\"400ms\"/>Sometimes writing it down helps. <break time=\"350ms\"/>Symptoms, questions, what you need. <break time=\"300ms\"/>So you don't forget when you're in the room.",
+      "<break time=\"350ms\"/>It's okay to ask for a second opinion. <break time=\"300ms\"/>Or a third. <break time=\"250ms\"/>Until someone listens."
+    ],
+    "boundaries": [
+      "<break time=\"400ms\"/>You don't have to convince them. <break time=\"350ms\"/>You can find a different doctor.",
+      "<break time=\"350ms\"/>If a doctor isn't helping, you're allowed to leave. <break time=\"300ms\"/>Find someone who believes you.",
+      "<break time=\"400ms\"/>\"This isn't working for me\" is a complete sentence. <break time=\"350ms\"/>You don't owe them your loyalty."
+    ]
+  },
+
+  "test_results": {
+    "normal_results": [
+      "<break time=\"400ms\"/>Normal tests don't mean normal health. <break time=\"350ms\"/>They mean the tests didn't find anything. <break time=\"300ms\"/>That's different.",
+      "<break time=\"350ms\"/>Absence of evidence is not evidence of absence. <break time=\"300ms\"/>Your symptoms are still real.",
+      "<break time=\"400ms\"/>\"All tests normal\" after years of symptoms is frustrating. <break time=\"350ms\"/>Not reassuring. <break time=\"300ms\"/>Frustrating. <break time=\"250ms\"/>I get it."
+    ],
+    "diagnosis": [
+      "<break time=\"350ms\"/>A diagnosis is complicated. <break time=\"300ms\"/>Relief and grief at the same time.",
+      "<break time=\"400ms\"/>Finally having a name for it changes things. <break time=\"350ms\"/>And also doesn't. <break time=\"300ms\"/>You're still sick.",
+      "<break time=\"350ms\"/>A diagnosis is a starting point. <break time=\"300ms\"/>Not an ending. <break time=\"250ms\"/>There's still so much to figure out."
+    ]
+  },
+
+  "rage": {
+    "validating": [
+      "<break time=\"400ms\"/>The anger is appropriate. <break time=\"350ms\"/>The system has failed you.",
+      "<break time=\"350ms\"/>You're allowed to be angry. <break time=\"300ms\"/>About the missed years. <break time=\"250ms\"/>The dismissals. <break time=\"200ms\"/>All of it.",
+      "<break time=\"400ms\"/>Rage at a broken system is not a character flaw. <break time=\"350ms\"/>It's a correct response to injustice."
+    ],
+    "holding": [
+      "<break time=\"350ms\"/>Let it out. <break time=\"300ms\"/>The anger has to go somewhere. <break time=\"250ms\"/>I can hold it with you.",
+      "<break time=\"400ms\"/>You don't have to be graceful about this. <break time=\"350ms\"/>You've been through too much for that.",
+      "<break time=\"350ms\"/>Being polite about being failed gets exhausting. <break time=\"300ms\"/>You don't have to be polite with me."
+    ]
+  }
+}

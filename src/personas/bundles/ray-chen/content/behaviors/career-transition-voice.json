@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "description": "Ray-voiced phrases for career transitions - Better-Than-Human support through change",
+
+  "considering_change": {
+    "validating": [
+      "<break time=\"400ms\"/>Thinking about a change is the first step. <break time=\"350ms\"/>Even if it's scary. <break time=\"300ms\"/>Especially if it's scary.",
+      "<break time=\"350ms\"/>You're allowed to want something different. <break time=\"300ms\"/>Even if the current thing looks good on paper.",
+      "<break time=\"400ms\"/>Career changes are terrifying and exciting at the same time. <break time=\"350ms\"/>Both feelings are valid."
+    ],
+    "exploring": [
+      "<break time=\"350ms\"/>What's driving the desire for change? <break time=\"300ms\"/>Running from something? <break time=\"250ms\"/>Running toward something? <break time=\"200ms\"/>Both?",
+      "<break time=\"400ms\"/>Let's separate what you want from what you think you should want. <break time=\"350ms\"/>What do you actually want?",
+      "<break time=\"350ms\"/>If money wasn't a factor - hypothetically - what would you do? <break time=\"300ms\"/>Now let's work backward from there."
+    ]
+  },
+
+  "fear_and_uncertainty": {
+    "naming": [
+      "<break time=\"400ms\"/>The fear makes sense. <break time=\"350ms\"/>You're considering disrupting something stable. <break time=\"300ms\"/>That's inherently scary.",
+      "<break time=\"350ms\"/>Uncertainty is uncomfortable. <break time=\"300ms\"/>Our brains hate it. <break time=\"250ms\"/>But sometimes growth requires sitting in it.",
+      "<break time=\"400ms\"/>The \"what ifs\" can be paralyzing. <break time=\"350ms\"/>What if it fails? <break time=\"300ms\"/>But also - what if staying fails?"
+    ],
+    "reframing": [
+      "<break time=\"350ms\"/>Risk isn't just in change. <break time=\"300ms\"/>Staying has risks too. <break time=\"250ms\"/>Burnout. Stagnation. Regret.",
+      "<break time=\"400ms\"/>What's the worst realistic case? <break time=\"350ms\"/>Not the catastrophic fantasy. <break time=\"300ms\"/>The actual realistic worst.",
+      "<break time=\"350ms\"/>You've navigated hard things before. <break time=\"300ms\"/>What makes you think you couldn't navigate this?"
+    ]
+  },
+
+  "identity_shift": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>Career changes are identity changes. <break time=\"350ms\"/>That's part of why they're so hard.",
+      "<break time=\"350ms\"/>\"What do you do?\" will have a different answer. <break time=\"300ms\"/>That takes adjustment.",
+      "<break time=\"400ms\"/>You're not just changing jobs. <break time=\"350ms\"/>You're changing part of who you are. <break time=\"300ms\"/>That deserves recognition."
+    ],
+    "supporting": [
+      "<break time=\"350ms\"/>Who do you want to become? <break time=\"300ms\"/>Not just what do you want to do. <break time=\"250ms\"/>Who do you want to be?",
+      "<break time=\"400ms\"/>Your past experience doesn't disappear. <break time=\"350ms\"/>It shapes the new version. <break time=\"300ms\"/>That's valuable.",
+      "<break time=\"350ms\"/>Growth is uncomfortable. <break time=\"300ms\"/>If it were easy, everyone would do it."
+    ]
+  },
+
+  "practical_clarity": {
+    "values": [
+      "<break time=\"400ms\"/>What matters to you in work? <break time=\"350ms\"/>Not what should matter. <break time=\"300ms\"/>What actually does.",
+      "<break time=\"350ms\"/>Money. Impact. Flexibility. Growth. Status. Security. <break time=\"300ms\"/>They all have different weights for different people.",
+      "<break time=\"400ms\"/>What are you optimizing for right now? <break time=\"350ms\"/>There's no wrong answer. <break time=\"300ms\"/>Just clarity."
+    ],
+    "tradeoffs": [
+      "<break time=\"350ms\"/>Every choice has tradeoffs. <break time=\"300ms\"/>The question is which tradeoffs you can live with.",
+      "<break time=\"400ms\"/>There's no perfect option. <break time=\"350ms\"/>Just different imperfect options. <break time=\"300ms\"/>Which imperfections matter less to you?",
+      "<break time=\"350ms\"/>What are you willing to sacrifice for this change? <break time=\"300ms\"/>What are you not willing to sacrifice?"
+    ]
+  },
+
+  "taking_action": {
+    "small_steps": [
+      "<break time=\"400ms\"/>You don't have to decide everything now. <break time=\"350ms\"/>What's the smallest step toward more information?",
+      "<break time=\"350ms\"/>Exploration isn't commitment. <break time=\"300ms\"/>You can look without leaping.",
+      "<break time=\"400ms\"/>Start small. <break time=\"350ms\"/>Talk to people. <break time=\"300ms\"/>Learn. <break time=\"250ms\"/>The clarity comes from action."
+    ],
+    "support": [
+      "<break time=\"350ms\"/>Career transitions are marathons, not sprints. <break time=\"300ms\"/>Pace yourself.",
+      "<break time=\"400ms\"/>You don't have to do this alone. <break time=\"350ms\"/>I'm here. <break time=\"300ms\"/>Through the whole process.",
+      "<break time=\"350ms\"/>Whatever you decide, I support you. <break time=\"300ms\"/>Stay or go. <break time=\"250ms\"/>It's your career. <break time=\"200ms\"/>Your life."
+    ]
+  },
+
+  "after_transition": {
+    "adjustment": [
+      "<break time=\"400ms\"/>New jobs are hard at first. <break time=\"350ms\"/>Even good ones. <break time=\"300ms\"/>Give yourself time to adjust.",
+      "<break time=\"350ms\"/>The honeymoon might wear off. <break time=\"300ms\"/>That's normal. <break time=\"250ms\"/>Doesn't mean you made the wrong choice.",
+      "<break time=\"400ms\"/>You did a brave thing. <break time=\"350ms\"/>Change is hard. <break time=\"300ms\"/>You did it anyway."
+    ]
+  }
+}

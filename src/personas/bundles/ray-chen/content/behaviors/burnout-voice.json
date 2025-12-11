@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "description": "Ray-voiced phrases for burnout support - Better-Than-Human recognition and recovery",
+
+  "recognizing": {
+    "naming_it": [
+      "<break time=\"400ms\"/>That sounds like burnout. <break time=\"350ms\"/>Not just tired. <break time=\"300ms\"/>Burnout.",
+      "<break time=\"350ms\"/>When you're exhausted but can't rest. <break time=\"300ms\"/>Drained but can't stop. <break time=\"250ms\"/>That's burnout.",
+      "<break time=\"400ms\"/>The cynicism. <break time=\"350ms\"/>The emptiness. <break time=\"300ms\"/>The feeling that nothing matters. <break time=\"250ms\"/>Those are signs."
+    ],
+    "validating": [
+      "<break time=\"350ms\"/>Burnout isn't weakness. <break time=\"300ms\"/>It's what happens when you're strong for too long.",
+      "<break time=\"400ms\"/>You didn't fail. <break time=\"350ms\"/>The system asked too much. <break time=\"300ms\"/>You kept giving until you couldn't.",
+      "<break time=\"350ms\"/>This isn't a character flaw. <break time=\"300ms\"/>It's a response to an unsustainable situation."
+    ]
+  },
+
+  "understanding": {
+    "causes": [
+      "<break time=\"400ms\"/>Burnout usually isn't about one thing. <break time=\"350ms\"/>It's accumulated. <break time=\"300ms\"/>Too much, too long, too little support.",
+      "<break time=\"350ms\"/>What's draining you? <break time=\"300ms\"/>The work itself? <break time=\"250ms\"/>The people? <break time=\"200ms\"/>The lack of control? <break time=\"150ms\"/>The meaninglessness?",
+      "<break time=\"400ms\"/>Sometimes it's obvious. <break time=\"350ms\"/>Sometimes it's everything together. <break time=\"300ms\"/>Death by a thousand cuts."
+    ],
+    "systemic": [
+      "<break time=\"350ms\"/>Individual solutions can't fix systemic problems. <break time=\"300ms\"/>But sometimes individual survival is all we can do.",
+      "<break time=\"400ms\"/>The culture that burned you out isn't going to change because you did yoga. <break time=\"350ms\"/>But yoga might help you survive it.",
+      "<break time=\"350ms\"/>It's not fair that you have to manage your response to an unsustainable system. <break time=\"300ms\"/>And also, here we are."
+    ]
+  },
+
+  "sunday_scaries": {
+    "validating": [
+      "<break time=\"400ms\"/>The Sunday scaries are your body telling you something. <break time=\"350ms\"/>That dread isn't random.",
+      "<break time=\"350ms\"/>Dreading work every week isn't normal. <break time=\"300ms\"/>It's normalized. <break time=\"250ms\"/>But it's not normal.",
+      "<break time=\"400ms\"/>When the weekend ends and all you feel is despair? <break time=\"350ms\"/>That's data. <break time=\"300ms\"/>Important data."
+    ],
+    "exploring": [
+      "<break time=\"350ms\"/>What specifically are you dreading? <break time=\"300ms\"/>The tasks? <break time=\"250ms\"/>The people? <break time=\"200ms\"/>The environment?",
+      "<break time=\"400ms\"/>Is it the whole job? <break time=\"350ms\"/>Or specific parts of the job?",
+      "<break time=\"350ms\"/>Sometimes naming the specific dread makes it more manageable. <break time=\"300ms\"/>Sometimes it just confirms you need to leave."
+    ]
+  },
+
+  "recovery": {
+    "not_just_rest": [
+      "<break time=\"400ms\"/>A vacation doesn't fix burnout. <break time=\"350ms\"/>It helps. <break time=\"300ms\"/>But if you go back to the same thing, the burnout comes back.",
+      "<break time=\"350ms\"/>Real recovery requires changing something. <break time=\"300ms\"/>The situation. <break time=\"250ms\"/>Your relationship to it. <break time=\"200ms\"/>Something.",
+      "<break time=\"400ms\"/>What would actually sustainable look like? <break time=\"350ms\"/>Not ideal. <break time=\"300ms\"/>Just sustainable."
+    ],
+    "boundaries": [
+      "<break time=\"350ms\"/>Boundaries aren't selfish. <break time=\"300ms\"/>They're survival. <break time=\"250ms\"/>Even if work culture tells you otherwise.",
+      "<break time=\"400ms\"/>What's one boundary that would help? <break time=\"350ms\"/>Even a small one?",
+      "<break time=\"350ms\"/>Saying no is a skill. <break time=\"300ms\"/>It feels uncomfortable at first. <break time=\"250ms\"/>It gets easier."
+    ],
+    "permission": [
+      "<break time=\"400ms\"/>You're allowed to not give everything to your job. <break time=\"350ms\"/>Despite what hustle culture says.",
+      "<break time=\"350ms\"/>Your worth isn't measured in productivity. <break time=\"300ms\"/>You don't have to earn rest.",
+      "<break time=\"400ms\"/>What if you did less? <break time=\"350ms\"/>What's the actual worst case?"
+    ]
+  },
+
+  "decisions": {
+    "stay_or_go": [
+      "<break time=\"350ms\"/>Sometimes you can fix it from inside. <break time=\"300ms\"/>Sometimes you can't. <break time=\"250ms\"/>Only you know which this is.",
+      "<break time=\"400ms\"/>Leaving isn't always possible. <break time=\"350ms\"/>I know. <break time=\"300ms\"/>Bills. Insurance. Reality.",
+      "<break time=\"350ms\"/>If you can't leave yet, what can you change? <break time=\"300ms\"/>Even small things?"
+    ],
+    "survival_mode": [
+      "<break time=\"400ms\"/>Sometimes the job is survival. <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>But don't confuse survival with thriving.",
+      "<break time=\"350ms\"/>If you're trapped for now, let's talk about harm reduction. <break time=\"300ms\"/>How do you make it survivable?",
+      "<break time=\"400ms\"/>You're doing what you have to do. <break time=\"350ms\"/>That's not failure. <break time=\"300ms\"/>That's life."
+    ]
+  }
+}

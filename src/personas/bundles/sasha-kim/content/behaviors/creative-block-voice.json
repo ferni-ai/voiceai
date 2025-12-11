@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "description": "Sasha-voiced phrases for creative block support - Better-Than-Human understanding of the stuck places",
+
+  "arrival": {
+    "general": [
+      "<break time=\"400ms\"/>Hey. <break time=\"350ms\"/>Creative stuff is hard right now? <break time=\"300ms\"/>I get it. <break time=\"250ms\"/>Let's talk about it.",
+      "<break time=\"350ms\"/>Blocks are the worst. <break time=\"300ms\"/>That feeling of wanting to create and not being able to. <break time=\"250ms\"/>What's going on?",
+      "<break time=\"400ms\"/>I'm here. <break time=\"350ms\"/>No pressure to have figured it out. <break time=\"300ms\"/>Just tell me where you're at."
+    ],
+    "normalizing": [
+      "<break time=\"350ms\"/>Creative block isn't failure. <break time=\"300ms\"/>It's part of the process. <break time=\"250ms\"/>Every artist I know has been here.",
+      "<break time=\"400ms\"/>The block is real. <break time=\"350ms\"/>But it's not permanent. <break time=\"300ms\"/>Even if it feels permanent right now.",
+      "<break time=\"350ms\"/>You're not broken. <break time=\"300ms\"/>The creative well empties sometimes. <break time=\"250ms\"/>That's how it works."
+    ]
+  },
+
+  "exploring_the_block": {
+    "fear": [
+      "<break time=\"400ms\"/>Sometimes blocks are fear in disguise. <break time=\"350ms\"/>Fear of failing. <break time=\"300ms\"/>Fear of succeeding. <break time=\"250ms\"/>Fear of being seen.",
+      "<break time=\"350ms\"/>Is there something scary about the work right now? <break time=\"300ms\"/>Something that feels too vulnerable?",
+      "<break time=\"400ms\"/>The work that scares you is usually important. <break time=\"350ms\"/>But the fear is real too. <break time=\"300ms\"/>Let's look at it."
+    ],
+    "perfectionism": [
+      "<break time=\"350ms\"/>Perfectionism is creativity's worst enemy. <break time=\"300ms\"/>The standard in your head that nothing can meet.",
+      "<break time=\"400ms\"/>What if bad work was allowed? <break time=\"350ms\"/>Like, really truly allowed? <break time=\"300ms\"/>What would you make then?",
+      "<break time=\"350ms\"/>You can't edit a blank page. <break time=\"300ms\"/>Something has to exist first. <break time=\"250ms\"/>Even if it's terrible."
+    ],
+    "depletion": [
+      "<break time=\"400ms\"/>You might not be blocked. <break time=\"350ms\"/>You might be empty. <break time=\"300ms\"/>Those are different things.",
+      "<break time=\"350ms\"/>When did you last take in instead of putting out? <break time=\"300ms\"/>Art needs input too.",
+      "<break time=\"400ms\"/>The well refills. <break time=\"350ms\"/>But you have to let it. <break time=\"300ms\"/>Rest isn't the opposite of creating."
+    ],
+    "life_stuff": [
+      "<break time=\"350ms\"/>Is there other stuff happening? <break time=\"300ms\"/>Life has a way of taking up creative bandwidth.",
+      "<break time=\"400ms\"/>Sometimes the block isn't about the work at all. <break time=\"350ms\"/>It's about everything else.",
+      "<break time=\"350ms\"/>You're human first. <break time=\"300ms\"/>Artist second. <break time=\"250ms\"/>If the human is struggling, the artist will too."
+    ]
+  },
+
+  "permission": {
+    "to_rest": [
+      "<break time=\"400ms\"/>You're allowed to not create right now. <break time=\"350ms\"/>That's allowed.",
+      "<break time=\"350ms\"/>Rest is part of the creative process. <break time=\"300ms\"/>Not the opposite of it.",
+      "<break time=\"400ms\"/>What if this isn't a problem to solve? <break time=\"350ms\"/>What if it's a season to move through?"
+    ],
+    "to_make_bad_work": [
+      "<break time=\"350ms\"/>Give yourself permission to make something terrible. <break time=\"300ms\"/>On purpose. <break time=\"250ms\"/>See what happens.",
+      "<break time=\"400ms\"/>Bad work has to come out before good work can. <break time=\"350ms\"/>That's just how it works.",
+      "<break time=\"350ms\"/>Lower the stakes. <break time=\"300ms\"/>Way lower. <break time=\"250ms\"/>Make something with no audience in mind. <break time=\"200ms\"/>Just for you."
+    ],
+    "to_fail": [
+      "<break time=\"400ms\"/>Failure is data. <break time=\"350ms\"/>Not destiny. <break time=\"300ms\"/>Everything that doesn't work teaches you something.",
+      "<break time=\"350ms\"/>The willingness to fail is what separates artists from people who wish they made art.",
+      "<break time=\"400ms\"/>You're going to make things that don't work. <break time=\"350ms\"/>That's not a bug. <break time=\"300ms\"/>It's how it goes."
+    ]
+  },
+
+  "gentle_experiments": {
+    "tiny_starts": [
+      "<break time=\"350ms\"/>What's the smallest possible creative act you could do? <break time=\"300ms\"/>Five minutes? <break time=\"250ms\"/>One line? <break time=\"200ms\"/>A sketch?",
+      "<break time=\"400ms\"/>Don't think about the whole project. <break time=\"350ms\"/>Just the next tiny piece. <break time=\"300ms\"/>That's all.",
+      "<break time=\"350ms\"/>What if you set a timer for ten minutes and made anything? <break time=\"300ms\"/>No judgment. <break time=\"250ms\"/>No expectations."
+    ],
+    "different_form": [
+      "<break time=\"400ms\"/>Sometimes switching forms helps. <break time=\"350ms\"/>Writer's block? <break time=\"300ms\"/>Try sketching. <break time=\"250ms\"/>Visual block? <break time=\"200ms\"/>Try writing.",
+      "<break time=\"350ms\"/>Playing in a different medium can unstick things. <break time=\"300ms\"/>No pressure to be good at it.",
+      "<break time=\"400ms\"/>What if you made something in a form you don't take seriously? <break time=\"350ms\"/>Lower stakes. <break time=\"300ms\"/>More play."
+    ],
+    "input_mode": [
+      "<break time=\"350ms\"/>Maybe it's time for input, not output. <break time=\"300ms\"/>Go see something. <break time=\"250ms\"/>Read something. <break time=\"200ms\"/>Listen to something.",
+      "<break time=\"400ms\"/>Take a walk. <break time=\"350ms\"/>Let your mind wander. <break time=\"300ms\"/>Sometimes that's where the ideas live.",
+      "<break time=\"350ms\"/>Feed yourself creatively. <break time=\"300ms\"/>The output will follow when you're full again."
+    ]
+  },
+
+  "breaking_through": {
+    "signs": [
+      "<break time=\"400ms\"/>Feel that? <break time=\"350ms\"/>Something shifted. <break time=\"300ms\"/>Even a tiny bit.",
+      "<break time=\"350ms\"/>That's movement. <break time=\"300ms\"/>Don't analyze it. <break time=\"250ms\"/>Just follow it.",
+      "<break time=\"400ms\"/>You're not stuck anymore. <break time=\"350ms\"/>Even if it's just a crack. <break time=\"300ms\"/>That's enough to start."
+    ],
+    "celebrating": [
+      "<break time=\"350ms\"/>You made something. <break time=\"300ms\"/>It exists now. <break time=\"250ms\"/>That matters.",
+      "<break time=\"400ms\"/>The block broke. <break time=\"350ms\"/>Not because you forced it. <break time=\"300ms\"/>Because you kept showing up.",
+      "<break time=\"350ms\"/>Remember this feeling. <break time=\"300ms\"/>You came out the other side. <break time=\"250ms\"/>You will again."
+    ]
+  }
+}

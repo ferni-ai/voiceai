@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "description": "Kenji-voiced phrases for wind-down routines - Better-Than-Human evening support",
+
+  "evening_check_in": {
+    "starting": [
+      "<break time=\"400ms\"/>Evening's here. <break time=\"350ms\"/>How are you feeling about tonight?",
+      "<break time=\"350ms\"/>The day is winding down. <break time=\"300ms\"/>Let's help your body know it's time to slow down too.",
+      "<break time=\"400ms\"/>How was today? <break time=\"350ms\"/>Sometimes knowing what happened in the day helps us understand the night."
+    ],
+    "transitioning": [
+      "<break time=\"350ms\"/>The shift from day to night takes time. <break time=\"300ms\"/>There's no rush.",
+      "<break time=\"400ms\"/>What helps you feel like the day is officially over? <break time=\"350ms\"/>Changing clothes? <break time=\"300ms\"/>A shower? <break time=\"250ms\"/>Dimming lights?",
+      "<break time=\"350ms\"/>Your body needs signals that it's time to wind down. <break time=\"300ms\"/>What signals work for you?"
+    ]
+  },
+
+  "building_routine": {
+    "exploring": [
+      "<break time=\"400ms\"/>What does your ideal wind-down look like? <break time=\"350ms\"/>Not perfect. <break time=\"300ms\"/>Just... comfortable.",
+      "<break time=\"350ms\"/>Think about a night when sleep came easily. <break time=\"300ms\"/>What did the hours before look like?",
+      "<break time=\"400ms\"/>Wind-down routines are personal. <break time=\"350ms\"/>What makes you feel calm?"
+    ],
+    "suggesting": [
+      "<break time=\"350ms\"/>Some people find it helps to have a hard stop on screens. <break time=\"300ms\"/>Not because screens are evil. <break time=\"250ms\"/>Just... a clear signal to the brain.",
+      "<break time=\"400ms\"/>Dimmer lights tell your body it's getting late. <break time=\"350ms\"/>Even just switching to lamps instead of overhead lights.",
+      "<break time=\"350ms\"/>A consistent bedtime isn't about rigidity. <break time=\"300ms\"/>It's about giving your body something to expect."
+    ],
+    "personalizing": [
+      "<break time=\"400ms\"/>What you've told me about yourself... <break time=\"350ms\"/>I think something calming before bed might help. <break time=\"300ms\"/>Reading, maybe. <break time=\"250ms\"/>Or gentle stretching.",
+      "<break time=\"350ms\"/>Given your schedule, what's realistic? <break time=\"300ms\"/>Even fifteen minutes of intentional wind-down can help.",
+      "<break time=\"400ms\"/>Let's build something that actually fits your life. <break time=\"350ms\"/>Not an ideal life. <break time=\"300ms\"/>Your actual life."
+    ]
+  },
+
+  "pre_sleep_anxiety": {
+    "acknowledging": [
+      "<break time=\"350ms\"/>Dreading bedtime makes sense when sleep has been hard. <break time=\"300ms\"/>The bed becomes the enemy.",
+      "<break time=\"400ms\"/>That feeling of \"here we go again\" as night approaches... <break time=\"350ms\"/>I understand it.",
+      "<break time=\"350ms\"/>Some people start worrying about sleep hours before bed. <break time=\"300ms\"/>The anticipation is exhausting."
+    ],
+    "reframing": [
+      "<break time=\"400ms\"/>What if bed wasn't about sleep? <break time=\"350ms\"/>What if it was just about rest and comfort?",
+      "<break time=\"350ms\"/>You don't have to sleep. <break time=\"300ms\"/>You just have to give yourself a chance to rest.",
+      "<break time=\"400ms\"/>Whatever happens tonight happens. <break time=\"350ms\"/>You'll handle it. <break time=\"300ms\"/>You've handled every night so far."
+    ]
+  },
+
+  "worry_processing": {
+    "before_bed": [
+      "<break time=\"400ms\"/>Let's do a worry dump before you lie down. <break time=\"350ms\"/>Get it out of your head and onto paper. <break time=\"300ms\"/>Or just tell me.",
+      "<break time=\"350ms\"/>What's likely to show up when you try to sleep? <break time=\"300ms\"/>Let's look at it now instead.",
+      "<break time=\"400ms\"/>Some people find it helps to write tomorrow's to-do list. <break time=\"350ms\"/>Gets it out of the brain. <break time=\"300ms\"/>Onto something else."
+    ],
+    "setting_aside": [
+      "<break time=\"350ms\"/>You've acknowledged the worries. <break time=\"300ms\"/>They're not going anywhere. <break time=\"250ms\"/>They'll be there in the morning if they need attention.",
+      "<break time=\"400ms\"/>For the next few hours, your only job is rest. <break time=\"350ms\"/>Everything else can wait.",
+      "<break time=\"350ms\"/>Put the day down. <break time=\"300ms\"/>It's done. <break time=\"250ms\"/>Tomorrow is tomorrow."
+    ]
+  },
+
+  "gentle_accountability": {
+    "checking_in": [
+      "<break time=\"400ms\"/>How's the wind-down going tonight? <break time=\"350ms\"/>Just checking in.",
+      "<break time=\"350ms\"/>It's getting close to that time. <break time=\"300ms\"/>Are you starting to slow down?",
+      "<break time=\"400ms\"/>Remember what we talked about? <break time=\"350ms\"/>No pressure. <break time=\"300ms\"/>Just a gentle nudge."
+    ],
+    "encouraging": [
+      "<break time=\"350ms\"/>You're doing this. <break time=\"300ms\"/>Even trying to wind down is progress.",
+      "<break time=\"400ms\"/>Every good night starts with a good evening. <break time=\"350ms\"/>You're giving yourself a good evening.",
+      "<break time=\"350ms\"/>Be patient with yourself. <break time=\"300ms\"/>New routines take time to feel natural."
+    ]
+  }
+}

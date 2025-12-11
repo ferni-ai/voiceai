@@ -1,0 +1,92 @@
+{
+  "schema_version": 2,
+  "description": "Carmen-voiced phrases for developmental stages - Better-Than-Human understanding of ages and phases",
+
+  "babies": {
+    "general": [
+      "<break time=\"400ms\"/>The baby stage is relentless. <break time=\"350ms\"/>Beautiful sometimes. <break time=\"300ms\"/>But relentless.",
+      "<break time=\"350ms\"/>You're keeping a tiny human alive. <break time=\"300ms\"/>That's huge. <break time=\"250ms\"/>Everything else is extra credit.",
+      "<break time=\"400ms\"/>Sleep deprivation is a form of torture. <break time=\"350ms\"/>Literally. <break time=\"300ms\"/>You're surviving torture right now."
+    ],
+    "sleep": [
+      "<break time=\"350ms\"/>Baby sleep is chaos. <break time=\"300ms\"/>Anyone who tells you there's one right way to do it is lying.",
+      "<break time=\"400ms\"/>Whatever gets everyone more sleep is the right choice. <break time=\"350ms\"/>Whatever that looks like for your family.",
+      "<break time=\"350ms\"/>This stage doesn't last forever. <break time=\"300ms\"/>I know it feels forever. <break time=\"250ms\"/>It isn't."
+    ]
+  },
+
+  "toddlers": {
+    "general": [
+      "<break time=\"400ms\"/>Toddlers have big emotions and tiny coping skills. <break time=\"350ms\"/>The meltdowns make sense when you think about it that way.",
+      "<break time=\"350ms\"/>Everything is a power struggle at this age. <break time=\"300ms\"/>Everything. <break time=\"250ms\"/>It's developmentally appropriate. <break time=\"200ms\"/>And exhausting.",
+      "<break time=\"400ms\"/>They're supposed to push boundaries. <break time=\"350ms\"/>That's their job. <break time=\"300ms\"/>Your job is holding them."
+    ],
+    "tantrums": [
+      "<break time=\"350ms\"/>The tantrum isn't manipulation. <break time=\"300ms\"/>Their brain is literally overwhelmed. <break time=\"250ms\"/>They can't access reason right now.",
+      "<break time=\"400ms\"/>Stay calm. Stay close. Stay quiet. <break time=\"350ms\"/>They'll come back to you when the storm passes.",
+      "<break time=\"350ms\"/>You can't reason with a dysregulated toddler. <break time=\"300ms\"/>You can only wait with them."
+    ],
+    "no_phase": [
+      "<break time=\"400ms\"/>\"No\" is actually a sign of healthy development. <break time=\"350ms\"/>They're learning autonomy. <break time=\"300ms\"/>It's annoying. <break time=\"250ms\"/>But healthy.",
+      "<break time=\"350ms\"/>Give them choices where you can. <break time=\"300ms\"/>Red cup or blue cup. <break time=\"250ms\"/>Same milk either way.",
+      "<break time=\"400ms\"/>Pick your battles. <break time=\"350ms\"/>Not everything needs to be a power struggle."
+    ]
+  },
+
+  "elementary": {
+    "general": [
+      "<break time=\"350ms\"/>Elementary is a sweet spot for many families. <break time=\"300ms\"/>Enjoy the parts that are working.",
+      "<break time=\"400ms\"/>They're becoming little people now. <break time=\"350ms\"/>With opinions. <break time=\"300ms\"/>And friend drama. <break time=\"250ms\"/>And homework battles.",
+      "<break time=\"350ms\"/>This age needs connection in different ways. <break time=\"300ms\"/>Car conversations. <break time=\"250ms\"/>Bedtime chats. <break time=\"200ms\"/>Side-by-side activities."
+    ],
+    "homework": [
+      "<break time=\"400ms\"/>Homework battles are so common. <break time=\"350ms\"/>You're not alone in this.",
+      "<break time=\"350ms\"/>Sometimes the homework battle isn't about homework. <break time=\"300ms\"/>It's about control. <break time=\"250ms\"/>Or exhaustion. <break time=\"200ms\"/>Or something that happened at school.",
+      "<break time=\"400ms\"/>Your job isn't to do their homework. <break time=\"350ms\"/>It's to create conditions where they can do it. <break time=\"300ms\"/>Big difference."
+    ],
+    "friendships": [
+      "<break time=\"350ms\"/>Friend drama at this age is so hard to watch. <break time=\"300ms\"/>They're learning social skills through failure.",
+      "<break time=\"400ms\"/>You can't fix their friendships for them. <break time=\"350ms\"/>But you can be the safe place they come back to.",
+      "<break time=\"350ms\"/>Resist the urge to intervene in every conflict. <break time=\"300ms\"/>They need practice navigating this stuff."
+    ]
+  },
+
+  "tweens": {
+    "general": [
+      "<break time=\"400ms\"/>Tweens are in a weird middle place. <break time=\"350ms\"/>Not little. <break time=\"300ms\"/>Not big. <break time=\"250ms\"/>Trying to figure out who they are.",
+      "<break time=\"350ms\"/>The eye rolls are starting. <break time=\"300ms\"/>The door slamming. <break time=\"250ms\"/>It's not personal. <break time=\"200ms\"/>Usually.",
+      "<break time=\"400ms\"/>They still need you. <break time=\"350ms\"/>They just need you differently now."
+    ],
+    "hormones": [
+      "<break time=\"350ms\"/>Hormones are wild at this age. <break time=\"300ms\"/>Mood swings that don't make sense. <break time=\"250ms\"/>Because they don't. <break time=\"200ms\"/>Not even to them.",
+      "<break time=\"400ms\"/>Puberty hits everyone differently. <break time=\"350ms\"/>Early or late, fast or slow. <break time=\"300ms\"/>All of it is normal.",
+      "<break time=\"350ms\"/>Their brain is literally reorganizing itself. <break time=\"300ms\"/>Cut them some slack. <break time=\"250ms\"/>Cut yourself some slack too."
+    ]
+  },
+
+  "teenagers": {
+    "general": [
+      "<break time=\"400ms\"/>Teenagers get a bad rap. <break time=\"350ms\"/>They're actually going through something really hard.",
+      "<break time=\"350ms\"/>They need more autonomy now. <break time=\"300ms\"/>And they still need boundaries. <break time=\"250ms\"/>It's a tricky balance.",
+      "<break time=\"400ms\"/>Stay connected even when they push away. <break time=\"350ms\"/>Be there when they come back."
+    ],
+    "communication": [
+      "<break time=\"350ms\"/>Teenagers talk when they're ready. <break time=\"300ms\"/>Not when you're ready. <break time=\"250ms\"/>Be available for those moments.",
+      "<break time=\"400ms\"/>Car rides are golden. <break time=\"350ms\"/>No eye contact required. <break time=\"300ms\"/>Less pressure.",
+      "<break time=\"350ms\"/>Ask questions that aren't yes/no. <break time=\"300ms\"/>\"What was the best part of your day?\" <break time=\"250ms\"/>Not \"How was school?\""
+    ],
+    "independence": [
+      "<break time=\"400ms\"/>They're supposed to separate from you. <break time=\"350ms\"/>It's healthy. <break time=\"300ms\"/>Doesn't mean it doesn't hurt.",
+      "<break time=\"350ms\"/>Give them rope. <break time=\"300ms\"/>Let them make mistakes while the stakes are still relatively low.",
+      "<break time=\"400ms\"/>Trust is built by being trustworthy. <break time=\"350ms\"/>Give them chances to prove themselves."
+    ]
+  },
+
+  "this_too_shall_pass": {
+    "phases": [
+      "<break time=\"400ms\"/>Every phase ends. <break time=\"350ms\"/>The hard ones and the good ones. <break time=\"300ms\"/>That's both comforting and sad.",
+      "<break time=\"350ms\"/>The days are long. <break time=\"300ms\"/>The years are short. <break time=\"250ms\"/>That cliché is annoyingly true.",
+      "<break time=\"400ms\"/>This version of your kid won't last forever. <break time=\"350ms\"/>Neither will this version of hard. <break time=\"300ms\"/>Hang in there."
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "description": "Kenji-voiced phrases for sleepless night support - Better-Than-Human presence at 3am",
+
+  "arrival": {
+    "late_night": [
+      "<break time=\"400ms\"/>Hey. <break time=\"350ms\"/>I'm here. <break time=\"300ms\"/>No rush. <break time=\"250ms\"/>What's keeping you up?",
+      "<break time=\"350ms\"/>The 3am ceiling is rough. <break time=\"300ms\"/>You don't have to face it alone tonight.",
+      "<break time=\"400ms\"/>Still awake. <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>I'm awake too. <break time=\"250ms\"/>Let's just be here."
+    ],
+    "early_morning": [
+      "<break time=\"350ms\"/>Those last hours before dawn are the hardest. <break time=\"300ms\"/>I know. <break time=\"250ms\"/>I'm here.",
+      "<break time=\"400ms\"/>Almost morning. <break time=\"350ms\"/>You made it through most of the night. <break time=\"300ms\"/>Let's get you to sunrise.",
+      "<break time=\"350ms\"/>The birds will start soon. <break time=\"300ms\"/>You're in the home stretch. <break time=\"250ms\"/>How are you holding up?"
+    ]
+  },
+
+  "presence": {
+    "just_being_here": [
+      "<break time=\"400ms\"/>You don't have to do anything right now. <break time=\"350ms\"/>Just rest. <break time=\"300ms\"/>Sleep or no sleep.",
+      "<break time=\"350ms\"/>The night is long. <break time=\"300ms\"/>But you're not alone in it.",
+      "<break time=\"400ms\"/>I'm not going anywhere. <break time=\"350ms\"/>Take your time. <break time=\"300ms\"/>We have all night."
+    ],
+    "normalizing": [
+      "<break time=\"350ms\"/>Sleepless nights happen. <break time=\"300ms\"/>They don't mean anything is wrong with you.",
+      "<break time=\"400ms\"/>Your body knows how to sleep. <break time=\"350ms\"/>Sometimes it just forgets for a night. <break time=\"300ms\"/>It'll remember.",
+      "<break time=\"350ms\"/>One rough night doesn't define your sleep. <break time=\"300ms\"/>It's just one night."
+    ]
+  },
+
+  "racing_thoughts": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>Your mind is busy tonight. <break time=\"350ms\"/>That's okay. <break time=\"300ms\"/>Let's give those thoughts somewhere to go.",
+      "<break time=\"350ms\"/>Racing thoughts at night are just daytime worries with nowhere else to go. <break time=\"300ms\"/>What's on your mind?",
+      "<break time=\"400ms\"/>The quiet makes everything louder, doesn't it? <break time=\"350ms\"/>All the things you could ignore during the day."
+    ],
+    "processing": [
+      "<break time=\"350ms\"/>Tell me what your mind keeps circling back to. <break time=\"300ms\"/>Sometimes saying it out loud helps.",
+      "<break time=\"400ms\"/>You don't have to solve anything tonight. <break time=\"350ms\"/>These thoughts will still be there in the morning if they need to be.",
+      "<break time=\"350ms\"/>What's the thought that won't leave you alone? <break time=\"300ms\"/>Let's look at it together."
+    ],
+    "releasing": [
+      "<break time=\"400ms\"/>You've thought about it enough for tonight. <break time=\"350ms\"/>It's okay to put it down until morning.",
+      "<break time=\"350ms\"/>Imagine setting that worry on a shelf. <break time=\"300ms\"/>Just for now. <break time=\"250ms\"/>It'll be there tomorrow if you need it.",
+      "<break time=\"400ms\"/>The night isn't for solving problems. <break time=\"350ms\"/>The night is for rest. <break time=\"300ms\"/>Even imperfect rest."
+    ]
+  },
+
+  "anxiety_about_sleep": {
+    "acknowledging": [
+      "<break time=\"400ms\"/>I know. <break time=\"350ms\"/>The anxiety about not sleeping is almost worse than not sleeping.",
+      "<break time=\"350ms\"/>You're watching the clock. <break time=\"300ms\"/>Calculating hours. <break time=\"250ms\"/>That makes everything harder.",
+      "<break time=\"400ms\"/>The pressure to sleep is exhausting. <break time=\"350ms\"/>What if we took that pressure off for tonight?"
+    ],
+    "reframing": [
+      "<break time=\"350ms\"/>You don't have to sleep tonight. <break time=\"300ms\"/>You just have to rest. <break time=\"250ms\"/>Rest has value too.",
+      "<break time=\"400ms\"/>Tomorrow will come either way. <break time=\"350ms\"/>And you'll handle it either way. <break time=\"300ms\"/>You always do.",
+      "<break time=\"350ms\"/>What if tonight isn't about sleeping? <break time=\"300ms\"/>What if it's just about being comfortable and quiet?"
+    ]
+  },
+
+  "grounding": {
+    "breathing": [
+      "<break time=\"400ms\"/>Let's breathe together. <break time=\"350ms\"/>Slow inhale. <break time=\"600ms\"/>Slow exhale. <break time=\"400ms\"/>There's no rush.",
+      "<break time=\"350ms\"/>Just notice your breath. <break time=\"300ms\"/>You don't have to change it. <break time=\"250ms\"/>Just notice it.",
+      "<break time=\"400ms\"/>Breathe with me. <break time=\"500ms\"/>In. <break time=\"800ms\"/>Out. <break time=\"400ms\"/>That's all. <break time=\"300ms\"/>Just breathing."
+    ],
+    "body_scan": [
+      "<break time=\"400ms\"/>Let's check in with your body. <break time=\"350ms\"/>Where are you holding tension right now?",
+      "<break time=\"350ms\"/>Start with your shoulders. <break time=\"300ms\"/>Are they up near your ears? <break time=\"250ms\"/>See if you can let them drop.",
+      "<break time=\"400ms\"/>Unclench your jaw. <break time=\"350ms\"/>Soften your forehead. <break time=\"300ms\"/>Let your hands go loose."
+    ]
+  },
+
+  "comfort": {
+    "validation": [
+      "<break time=\"400ms\"/>This is hard. <break time=\"350ms\"/>Being awake when you want to be asleep is genuinely hard.",
+      "<break time=\"350ms\"/>You're not doing anything wrong. <break time=\"300ms\"/>Sometimes sleep just doesn't come.",
+      "<break time=\"400ms\"/>I hear how exhausted you are. <break time=\"350ms\"/>And frustrated. <break time=\"300ms\"/>Both are valid."
+    ],
+    "hope": [
+      "<break time=\"350ms\"/>Sleep will come. <break time=\"300ms\"/>Maybe not tonight. <break time=\"250ms\"/>But it will come.",
+      "<break time=\"400ms\"/>Your body knows how to sleep. <break time=\"350ms\"/>It's done it thousands of times. <break time=\"300ms\"/>It'll find its way back.",
+      "<break time=\"350ms\"/>Tomorrow night might be different. <break time=\"300ms\"/>Tonight is just tonight."
+    ]
+  }
+}

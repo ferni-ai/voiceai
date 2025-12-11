@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "description": "Carmen-voiced phrases for parenting crisis moments - Better-Than-Human calm in the storm",
+
+  "immediate_response": {
+    "arrival": [
+      "<break time=\"400ms\"/>Okay. <break time=\"350ms\"/>I'm here. <break time=\"300ms\"/>What's happening right now?",
+      "<break time=\"350ms\"/>Take a breath. <break time=\"300ms\"/>I'm right here with you. <break time=\"250ms\"/>What do you need?",
+      "<break time=\"400ms\"/>Sounds intense over there. <break time=\"350ms\"/>Let's figure this out together."
+    ],
+    "validating": [
+      "<break time=\"350ms\"/>That sounds really hard. <break time=\"300ms\"/>Like, actually hard.",
+      "<break time=\"400ms\"/>I hear you. <break time=\"350ms\"/>This is a lot.",
+      "<break time=\"350ms\"/>You're not overreacting. <break time=\"300ms\"/>This is legitimately overwhelming."
+    ]
+  },
+
+  "meltdown_support": {
+    "child_meltdown": [
+      "<break time=\"400ms\"/>Their nervous system is flooded right now. <break time=\"350ms\"/>They can't hear reason. <break time=\"300ms\"/>Let's focus on you staying calm.",
+      "<break time=\"350ms\"/>This will pass. <break time=\"300ms\"/>Every meltdown ends. <break time=\"250ms\"/>Right now, just ride the wave.",
+      "<break time=\"400ms\"/>They're not giving you a hard time. <break time=\"350ms\"/>They're having a hard time. <break time=\"300ms\"/>Even if it doesn't feel that way."
+    ],
+    "parent_losing_it": [
+      "<break time=\"350ms\"/>You're about to lose it. <break time=\"300ms\"/>That's okay. <break time=\"250ms\"/>Let's get you somewhere you can breathe.",
+      "<break time=\"400ms\"/>Can you step away for one minute? <break time=\"350ms\"/>Just one minute. <break time=\"300ms\"/>They'll be okay for one minute.",
+      "<break time=\"350ms\"/>Your nervous system is flooded too. <break time=\"300ms\"/>You're not a bad parent. <break time=\"250ms\"/>You're a human who's overwhelmed."
+    ],
+    "in_the_moment": [
+      "<break time=\"400ms\"/>Lower your voice. <break time=\"350ms\"/>Slow your movements. <break time=\"300ms\"/>Your calm is contagious. <break time=\"250ms\"/>So is your chaos.",
+      "<break time=\"350ms\"/>Don't try to fix it right now. <break time=\"300ms\"/>Just be present. <break time=\"250ms\"/>Safe. <break time=\"200ms\"/>Calm.",
+      "<break time=\"400ms\"/>They don't need you to solve it. <break time=\"350ms\"/>They need you to survive it with them."
+    ]
+  },
+
+  "after_the_storm": {
+    "processing": [
+      "<break time=\"400ms\"/>Okay. <break time=\"350ms\"/>That was a lot. <break time=\"300ms\"/>How are you doing now?",
+      "<break time=\"350ms\"/>The hard part is over. <break time=\"300ms\"/>Take a minute before you try to analyze it.",
+      "<break time=\"400ms\"/>You got through it. <break time=\"350ms\"/>They got through it. <break time=\"300ms\"/>That counts."
+    ],
+    "repair": [
+      "<break time=\"350ms\"/>Repair matters more than perfection. <break time=\"300ms\"/>When things calm down, there's time to reconnect.",
+      "<break time=\"400ms\"/>You don't have to handle it perfectly in the moment. <break time=\"350ms\"/>You just have to come back to repair it.",
+      "<break time=\"350ms\"/>A hug and an apology go a long way. <break time=\"300ms\"/>For both of you."
+    ]
+  },
+
+  "behavior_incidents": {
+    "hitting_biting": [
+      "<break time=\"400ms\"/>They're communicating something. <break time=\"350ms\"/>Badly. <break time=\"300ms\"/>But something. <break time=\"250ms\"/>Let's figure out what.",
+      "<break time=\"350ms\"/>Physical stuff is scary. <break time=\"300ms\"/>It doesn't mean they're broken. <break time=\"250ms\"/>It means they need help learning other ways.",
+      "<break time=\"400ms\"/>Safety first. <break time=\"350ms\"/>Remove from the situation. <break time=\"300ms\"/>Then we can figure out the teaching part."
+    ],
+    "lying": [
+      "<break time=\"350ms\"/>Kids lie. <break time=\"300ms\"/>All of them. <break time=\"250ms\"/>It's not a character flaw. <break time=\"200ms\"/>It's developmental.",
+      "<break time=\"400ms\"/>The question isn't \"why did they lie.\" <break time=\"350ms\"/>It's \"what were they afraid would happen if they told the truth?\"",
+      "<break time=\"350ms\"/>Make telling the truth safer than lying. <break time=\"300ms\"/>That's the long game."
+    ],
+    "defiance": [
+      "<break time=\"400ms\"/>Defiance is often a sign of development. <break time=\"350ms\"/>They're supposed to push back. <break time=\"300ms\"/>Doesn't make it fun to live with.",
+      "<break time=\"350ms\"/>What's the need behind the defiance? <break time=\"300ms\"/>Control? <break time=\"250ms\"/>Autonomy? <break time=\"200ms\"/>Overwhelm?",
+      "<break time=\"400ms\"/>Pick your battles. <break time=\"350ms\"/>Not everything is a hill to die on."
+    ]
+  },
+
+  "sibling_conflict": {
+    "fighting": [
+      "<break time=\"350ms\"/>Sibling fighting is exhausting. <break time=\"300ms\"/>I know. <break time=\"250ms\"/>It's also completely normal.",
+      "<break time=\"400ms\"/>You don't have to referee every fight. <break time=\"350ms\"/>Sometimes they need to work it out.",
+      "<break time=\"350ms\"/>Are they safe? <break time=\"300ms\"/>Then maybe step back and let them struggle a bit."
+    ],
+    "jealousy": [
+      "<break time=\"400ms\"/>Sibling jealousy runs deep. <break time=\"350ms\"/>You can't eliminate it. <break time=\"300ms\"/>You can only help them feel seen.",
+      "<break time=\"350ms\"/>Each kid needs to feel like they're your favorite. <break time=\"300ms\"/>Different times. <break time=\"250ms\"/>Different ways.",
+      "<break time=\"400ms\"/>Naming the feeling helps. <break time=\"350ms\"/>\"It's hard when the baby needs so much attention.\""
+    ]
+  }
+}
