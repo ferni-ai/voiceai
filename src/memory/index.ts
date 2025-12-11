@@ -8,44 +8,58 @@
  * - Development: InMemoryStore (fast, ephemeral)
  * - Production: FirestoreStore (Google Cloud) or PostgresStore (self-hosted)
  * - Redis: Optional cache layer for sessions
+ *
+ * New in v2:
+ * - Result types for better error handling
+ * - Embedding caching for performance
+ * - Memory consolidation for long-term users
+ * - Graceful forgetting with decay curves
+ * - Natural language retrieval explanations
+ * - Enhanced session priming
+ * - Semantic deduplication
+ * - Comprehensive metrics
  */
 
 // Store interfaces and implementations
+export { getDefaultStore, InMemoryStore, resetDefaultStore } from './in-memory-store.js';
 export { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
-export { InMemoryStore, getDefaultStore, resetDefaultStore } from './in-memory-store.js';
 
 // Production stores
 export { FirestoreStore, getFirestoreStore, resetFirestoreStore } from './firestore-store.js';
-export { PostgresStore, getPostgresStore, resetPostgresStore } from './postgres-store.js';
-export { RedisCache, getRedisCache, resetRedisCache } from './redis-cache.js';
+export { getPostgresStore, PostgresStore, resetPostgresStore } from './postgres-store.js';
+export { getRedisCache, RedisCache, resetRedisCache } from './redis-cache.js';
 
 // Embeddings
 export {
+  cosineSimilarity,
   embed,
   embedBatch,
-  cosineSimilarity,
   euclideanDistance,
   findTopK,
   getEmbeddingProvider,
-  setEmbeddingProvider,
-  OpenAIEmbeddings,
   GoogleEmbeddings,
-  VertexAIEmbeddings,
   LocalEmbeddings,
+  OpenAIEmbeddings,
+  setEmbeddingProvider,
+  VertexAIEmbeddings,
+  type EmbeddingConfig,
   type EmbeddingProvider,
   type EmbeddingResult,
-  type EmbeddingConfig,
 } from './embeddings.js';
 
-// Vector store (in-memory fallback)
+// Vector store interface (unified)
 export {
-  VectorStore,
-  getVectorStore,
-  resetVectorStore,
+  isVectorStore,
+  type IVectorStore,
   type VectorDocument,
-  type VectorSearchResult,
   type VectorFilter,
-} from './vector-store.js';
+  type VectorSearchOptions,
+  type VectorSearchResult,
+  type VectorStoreStats,
+} from './vector-store-interface.js';
+
+// Vector store (in-memory fallback)
+export { getVectorStore, resetVectorStore, VectorStore } from './vector-store.js';
 
 // Persistent vector store (Firestore-backed)
 export {
@@ -56,26 +70,26 @@ export {
 
 // Semantic RAG
 export {
-  indexPersonaContent,
+  formatRAGContext,
+  getRAGContext,
+  hybridSearch,
   indexAllPersonaContent,
   indexConversationSummary,
-  semanticSearch,
-  getRAGContext,
-  formatRAGContext,
-  hybridSearch,
+  indexPersonaContent,
   ragLookup,
+  semanticSearch,
   setActiveVectorStore,
-  type RAGResult,
   type RAGContext,
+  type RAGResult,
 } from './semantic-rag.js';
 
 // Summarization
 export {
+  extractFollowUpItems,
+  extractOpenQuestions,
+  generateRollingSummary,
   summarizeConversation,
   summarizeWithLLM,
-  generateRollingSummary,
-  extractOpenQuestions,
-  extractFollowUpItems,
   type ConversationTurn,
   type SummarizationOptions,
 } from './summarizer.js';
@@ -83,37 +97,146 @@ export {
 // History tracking
 export {
   ConversationHistoryTracker,
+  getActiveSessionIds,
   getHistoryTracker,
   removeHistoryTracker,
-  getActiveSessionIds,
-  type TrackedTurn,
   type SessionHistory,
+  type TrackedTurn,
 } from './history.js';
 
 // Key Moment Retrieval
 export {
-  KeyMomentRetrieval,
-  getKeyMomentRetrieval,
-  setCurrentSessionMomentsGetter,
   clearCurrentSessionMomentsGetter,
+  getKeyMomentRetrieval,
+  KeyMomentRetrieval,
+  setCurrentSessionMomentsGetter,
   type KeyMomentMatch,
 } from './key-moment-retrieval.js';
 
 // Advanced Memory Retrieval (semantic, temporal, emotional scoring)
 export {
   buildMemoryIndex,
-  retrieveMemories,
-  getConversationPrimingMemories,
-  getPersonRelatedMemories,
-  searchMemoriesByTopic,
-  computeMemoryEmbeddings,
   clearMemoryIndex,
+  computeMemoryEmbeddings,
+  getConversationPrimingMemories,
   getIndexStats,
+  getPersonRelatedMemories,
+  retrieveMemories,
+  searchMemoriesByTopic,
   type MemoryItem,
-  type RetrievedMemory,
-  type RetrievalContext,
   type RetrievalConfig,
+  type RetrievalContext,
+  type RetrievedMemory,
 } from './advanced-retrieval.js';
+
+// ============================================================================
+// NEW v2 MODULES
+// ============================================================================
+
+// Result Type Pattern (error handling)
+export {
+  all,
+  allSettled,
+  andThen,
+  err,
+  isErr,
+  isOk,
+  map,
+  mapError,
+  memoryError,
+  ok,
+  retry,
+  tryAsync,
+  trySync,
+  unwrap,
+  unwrapOr,
+  type MemoryError,
+  type MemoryErrorType,
+  type Result,
+} from './result.js';
+
+// Embedding Cache (performance)
+export {
+  embedBatchCached,
+  embedCached,
+  EmbeddingCache,
+  getEmbeddingCache,
+  resetEmbeddingCache,
+  type CachedEmbedding,
+  type CacheStats,
+  type EmbeddingCacheConfig,
+} from './embedding-cache.js';
+
+// Memory Consolidation (long-term memory management)
+export {
+  getMemoryConsolidator,
+  MemoryConsolidator,
+  resetMemoryConsolidator,
+  type ConsolidatedMemory,
+  type ConsolidationConfig,
+  type ConsolidationResult,
+} from './memory-consolidator.js';
+
+// Memory Decay (graceful forgetting)
+export {
+  getMemoryDecayManager,
+  MemoryDecayManager,
+  resetMemoryDecayManager,
+  type DecayingMemory,
+  type DecayResult,
+  type MemoryDecayConfig,
+  type PruneResult,
+} from './memory-decay.js';
+
+// Retrieval Explanations (natural language reasoning)
+export {
+  getRetrievalExplainer,
+  resetRetrievalExplainer,
+  RetrievalExplainer,
+  type ConnectionType,
+  type ExplainedMemory,
+} from './retrieval-explanations.js';
+
+// Session Priming (cross-session continuity)
+export {
+  getSessionPrimer,
+  resetSessionPrimer,
+  SessionPrimer,
+  type EmotionalContext,
+  type OpenThread,
+  type PendingFollowUp,
+  type RelationshipContext,
+  type SessionPrimingConfig,
+  type SessionPrimingResult,
+} from './session-priming.js';
+
+// Memory Deduplication (data quality)
+export {
+  getMemoryDeduplicator,
+  MemoryDeduplicator,
+  resetMemoryDeduplicator,
+  type DeduplicationConfig,
+  type DeduplicationStats,
+  type DuplicateCheckResult,
+  type MergeResult,
+} from './memory-deduplication.js';
+
+// Memory Metrics (observability)
+export {
+  checkMemoryHealthAlerts,
+  collectMemoryMetrics,
+  getMemoryMetricsCollector,
+  MemoryMetricsCollector,
+  resetMemoryMetricsCollector,
+  type DeduplicationMetrics,
+  type EmbeddingMetrics,
+  type IndexMetrics,
+  type MemoryMetrics,
+  type MetricAlert,
+  type MetricThresholds,
+  type RetrievalMetrics,
+  type StorageMetrics,
+} from './memory-metrics.js';
 
 // ============================================================================
 // STORE TYPE DETECTION
@@ -234,9 +357,9 @@ export function isRedisCacheEnabled(): boolean {
 // INITIALIZATION HELPER
 // ============================================================================
 
-import { getVectorStore, type VectorStore } from './vector-store.js';
 import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
 import { indexAllPersonaContent, setActiveVectorStore } from './semantic-rag.js';
+import { getVectorStore, type VectorStore } from './vector-store.js';
 
 export interface MemorySystemConfig {
   store?: MemoryStore;

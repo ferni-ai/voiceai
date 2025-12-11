@@ -25,8 +25,13 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { embed, embedBatch, cosineSimilarity } from './embeddings.js';
-import type { VectorDocument, VectorSearchResult, VectorFilter } from './vector-store.js';
+import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
+import type {
+  IVectorStore,
+  VectorDocument,
+  VectorFilter,
+  VectorSearchResult,
+} from './vector-store-interface.js';
 
 // ============================================================================
 // TYPES
@@ -94,7 +99,7 @@ interface FieldVector {
 // FIRESTORE VECTOR STORE
 // ============================================================================
 
-export class FirestoreVectorStore {
+export class FirestoreVectorStore implements IVectorStore {
   private db: FirestoreInstance | null = null;
   private config: FirestoreVectorConfig;
   private _initialized = false;

@@ -3,50 +3,22 @@
  *
  * In-memory vector store for semantic search over embeddings.
  * Supports the persona knowledge base and conversation history.
+ *
+ * Implements IVectorStore interface for swappable backends.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { embed, embedBatch, cosineSimilarity } from './embeddings.js';
+import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
+import type {
+  IVectorStore,
+  VectorDocument,
+  VectorFilter,
+  VectorSearchResult,
+  VectorStoreStats,
+} from './vector-store-interface.js';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * Document stored in the vector store
- */
-export interface VectorDocument {
-  id: string;
-  text: string;
-  embedding?: number[];
-  metadata: {
-    source: string; // e.g., 'persona', 'conversation', 'user_profile'
-    category?: string;
-    userId?: string;
-    timestamp?: Date;
-    [key: string]: unknown;
-  };
-}
-
-/**
- * Search result with score
- */
-export interface VectorSearchResult {
-  document: VectorDocument;
-  score: number;
-}
-
-/**
- * Filter for vector search
- */
-export interface VectorFilter {
-  source?: string | string[];
-  category?: string | string[];
-  userId?: string;
-  minTimestamp?: Date;
-  maxTimestamp?: Date;
-  metadata?: Record<string, unknown>;
-}
+// Re-export types from interface for backwards compatibility
+export type { VectorDocument, VectorFilter, VectorSearchResult } from './vector-store-interface.js';
 
 // ============================================================================
 // VECTOR STORE IMPLEMENTATION
@@ -54,8 +26,9 @@ export interface VectorFilter {
 
 /**
  * In-memory vector store for semantic search
+ * Implements IVectorStore for swappable backends
  */
-export class VectorStore {
+export class VectorStore implements IVectorStore {
   private documents = new Map<string, VectorDocument>();
   private embeddings = new Map<string, number[]>();
   private _initialized = false;
@@ -279,11 +252,7 @@ export class VectorStore {
   /**
    * Get store statistics
    */
-  getStats(): {
-    documentCount: number;
-    bySource: Record<string, number>;
-    byCategory: Record<string, number>;
-  } {
+  getStats(): VectorStoreStats {
     const bySource: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
 
