@@ -253,6 +253,29 @@ See [brand/README.md](../brand/README.md) for complete brand documentation index
 
 ---
 
+## DevOps & Development Workflow
+
+| Doc | Description |
+|-----|-------------|
+| [BRANCH-PROTECTION.md](./BRANCH-PROTECTION.md) | GitHub branch protection setup |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute |
+| [guides/COMMIT-CONVENTIONS.md](./guides/COMMIT-CONVENTIONS.md) | Commit message format |
+
+### Automation Overview
+
+| System | What It Does |
+|--------|--------------|
+| **Pre-commit hooks** | Typecheck, lint, test on commit |
+| **Conventional commits** | Enforced via commitlint |
+| **Blue-green deploys** | Safe deployments with rollback |
+| **Auto-release tags** | Semver from conventional commits |
+| **Dependabot** | Weekly dependency updates |
+| **Slack notifications** | Deploy success/failure alerts |
+
+See [.github/workflows/](../.github/workflows/) for all CI/CD workflows.
+
+---
+
 ## Documentation Maintenance
 
 For documentation cleanup status and maintenance guidelines, see:

@@ -1,19 +1,18 @@
 ---
 name: Bug Report
-about: Report a bug in Ferni AI
+about: Report a bug or unexpected behavior
 title: '[BUG] '
-labels: 'bug'
+labels: bug
 assignees: ''
 ---
 
-## Description
-<!-- A clear and concise description of the bug -->
+## Bug Description
+<!-- Clear description of the bug -->
 
 ## Steps to Reproduce
 1. Go to '...'
 2. Click on '...'
-3. Scroll down to '...'
-4. See error
+3. See error
 
 ## Expected Behavior
 <!-- What should happen -->
@@ -21,27 +20,14 @@ assignees: ''
 ## Actual Behavior
 <!-- What actually happens -->
 
-## Human Impact
-<!-- How does this bug affect the human experience? Does it make interactions feel robotic, cold, or frustrating? -->
-
 ## Environment
-- **OS**: [e.g., macOS 14.0, Windows 11, Ubuntu 22.04]
-- **Browser**: [e.g., Chrome 120, Safari 17]
-- **Node Version**: [e.g., 20.10.0]
-- **Persona**: [e.g., Ferni, Maya]
+- **Browser:** (e.g., Chrome 120, Safari 17)
+- **Device:** (e.g., MacBook Pro, iPhone 15)
+- **OS:** (e.g., macOS 14.2, iOS 17)
+- **User ID:** (if logged in, check localStorage)
 
 ## Screenshots/Logs
-<!-- If applicable, add screenshots or error logs -->
+<!-- Add screenshots or console logs if helpful -->
 
-```
-// Paste relevant logs here
-```
-
-## Possible Cause
-<!-- If you have an idea what might be causing this -->
-
-## Checklist
-- [ ] I've searched existing issues for duplicates
-- [ ] I can reproduce this consistently
-- [ ] I've included relevant logs/screenshots
-
+## Additional Context
+<!-- Any other relevant information -->

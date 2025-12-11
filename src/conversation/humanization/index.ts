@@ -19,6 +19,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+// Shared detection utilities
+import {
+  classifyTopicWeight,
+  detectAdviceGiving as sharedDetectAdviceGiving,
+  detectEmotionalContent as sharedDetectEmotionalContent,
+} from '../utils/detection.js';
+
 // Sub-modules
 import {
   SelfCorrectionEngine,
@@ -704,39 +711,11 @@ export class HumanizationOrchestrator {
   }
 
   // ==========================================================================
-  // TOPIC WEIGHT DETECTION
+  // TOPIC WEIGHT DETECTION (uses shared utilities)
   // ==========================================================================
 
   private detectTopicWeight(userMessage: string): 'light' | 'medium' | 'heavy' {
-    const text = userMessage.toLowerCase();
-
-    // Heavy indicators
-    const heavyPatterns = [
-      /\b(died?|death|passed away|suicide|depression)\b/,
-      /\b(divorce|separated|breakup)\b/,
-      /\b(cancer|terminal|diagnosis)\b/,
-      /\b(abuse|trauma|assault)\b/,
-      /\b(fired|laid off|bankrupt)\b/,
-      /\b(anxiety|panic|overwhelmed)\b/,
-    ];
-
-    if (heavyPatterns.some((p) => p.test(text))) {
-      return 'heavy';
-    }
-
-    // Light indicators
-    const lightPatterns = [
-      /\b(haha|lol|lmao|funny|joke)\b/,
-      /\b(great|awesome|amazing|wonderful)\b/,
-      /\b(excited|happy|glad|thrilled)\b/,
-      /\b(weekend|vacation|holiday|party)\b/,
-    ];
-
-    if (lightPatterns.some((p) => p.test(text))) {
-      return 'light';
-    }
-
-    return 'medium';
+    return classifyTopicWeight(userMessage);
   }
 
   // ==========================================================================
@@ -763,15 +742,11 @@ export class HumanizationOrchestrator {
   }
 
   private detectAdviceGiving(text: string): boolean {
-    return /\b(I think you should|you might want to|consider|my suggestion|I'd recommend)\b/i.test(
-      text
-    );
+    return sharedDetectAdviceGiving(text);
   }
 
   private detectEmotionalContent(text: string): boolean {
-    return /\b(feel|feeling|emotion|heart|sorry|understand|hard|proud|worried|love|care)\b/i.test(
-      text
-    );
+    return sharedDetectEmotionalContent(text);
   }
 }
 

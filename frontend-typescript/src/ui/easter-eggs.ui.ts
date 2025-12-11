@@ -1,12 +1,12 @@
 /**
  * Easter Eggs UI - Hidden delights and surprises
- *
+ * 
  * 🎬 PIXAR PRINCIPLES APPLIED:
  * - APPEAL: Rewarding, delightful discoveries
  * - EXAGGERATION: Over-the-top celebrations
  * - TIMING: Perfectly paced reveals
  * - SECONDARY ACTION: Characters react to discoveries
- *
+ * 
  * Secret features that reward curious users:
  * - Konami code dance party (full Pixar celebration!)
  * - Avatar eye click interaction (WALL-E style)
@@ -136,15 +136,15 @@ const TRIPLE_CLICK_TIMEOUT = 400;
 export function initEasterEggsUI(): void {
   // 🎬 Load saved achievements
   loadAchievements();
-
+  
   // Listen for keyboard sequences
   document.addEventListener('keydown', handleKeyDown);
-
+  
   // Listen for click patterns on avatar
   const avatar = document.getElementById('coachAvatar');
   const avatarContainer = document.querySelector('.avatar-container');
   avatar?.addEventListener('click', handleAvatarClick);
-
+  
   // 🎬 Listen for eye area clicks (WALL-E style)
   avatar?.addEventListener('click', handleEyeClick);
 
@@ -166,7 +166,7 @@ export function initEasterEggsUI(): void {
     passive: false,
   });
   avatarContainer?.addEventListener('touchend', handlePullEnd);
-
+  
   // 🎬 Start random quirk timer
   scheduleRandomQuirk();
 
@@ -183,7 +183,7 @@ export function initEasterEggsUI(): void {
   // 🗣️ Listen for speech events (laughter, sighs, thank you)
   window.addEventListener('ferni:transcript-update', handleTranscriptForReactions as EventListener);
   window.addEventListener('ferni:user-audio-level', handleAudioLevelForReactions as EventListener);
-
+  
   // Listen for shake gesture (mobile)
   // iOS 13+ requires permission for DeviceMotion
   if (window.DeviceMotionEvent) {
@@ -192,7 +192,7 @@ export function initEasterEggsUI(): void {
       const DeviceMotionEventWithPermission = DeviceMotionEvent as unknown as {
         requestPermission?: () => Promise<'granted' | 'denied'>;
       };
-
+      
       if (typeof DeviceMotionEventWithPermission.requestPermission === 'function') {
         try {
           const permission = await DeviceMotionEventWithPermission.requestPermission();
@@ -209,11 +209,11 @@ export function initEasterEggsUI(): void {
         initTiltResponse();
       }
     };
-
+    
     // Request on first user interaction (required for iOS)
     document.addEventListener('click', () => void requestMotionPermission(), { once: true });
   }
-
+  
   // 📱 Also try DeviceOrientation for tilt (separate from motion)
   if (window.DeviceOrientationEvent) {
     document.addEventListener(
@@ -232,27 +232,27 @@ export function initEasterEggsUI(): void {
 
 function handleKeyDown(e: KeyboardEvent): void {
   const now = Date.now();
-
+  
   // Reset sequence if too much time passed
   if (now - lastKeyTime > 2000) {
     keySequence = [];
   }
-
+  
   lastKeyTime = now;
   keySequence.push(e.key);
-
+  
   // Keep only last 12 keys
   if (keySequence.length > 12) {
     keySequence.shift();
   }
-
+  
   // Check for codes
   checkCodes();
 }
 
 function checkCodes(): void {
   const sequence = keySequence.join(',');
-
+  
   if (sequence.endsWith(KONAMI_CODE.join(','))) {
     triggerEasterEgg('konami');
     keySequence = [];
@@ -274,15 +274,15 @@ function checkCodes(): void {
 
 function handleAvatarClick(): void {
   const now = Date.now();
-
+  
   // Reset pattern if too much time passed
   if (now - lastClickTime > TRIPLE_CLICK_TIMEOUT) {
     clickPattern = [];
   }
-
+  
   lastClickTime = now;
   clickPattern.push(now);
-
+  
   // Triple click detection
   if (clickPattern.length >= 3) {
     const first = clickPattern[0];
@@ -295,7 +295,7 @@ function handleAvatarClick(): void {
       }
     }
   }
-
+  
   // Keep only last 3 clicks
   if (clickPattern.length > 3) {
     clickPattern.shift();
@@ -313,17 +313,17 @@ let shakeCount = 0;
 function handleDeviceMotion(e: DeviceMotionEvent): void {
   const acceleration = e.accelerationIncludingGravity;
   if (!acceleration) return;
-
+  
   const total =
     Math.abs(acceleration.x ?? 0) + Math.abs(acceleration.y ?? 0) + Math.abs(acceleration.z ?? 0);
-
+  
   const now = Date.now();
-
+  
   if (total > shakeThreshold) {
     if (now - lastShakeTime > 100) {
       shakeCount++;
       lastShakeTime = now;
-
+      
       // 5 shakes triggers surprise
       if (shakeCount >= 5) {
         triggerShakeSurprise();
@@ -331,7 +331,7 @@ function handleDeviceMotion(e: DeviceMotionEvent): void {
       }
     }
   }
-
+  
   // Reset shake count after 2 seconds
   if (now - lastShakeTime > 2000) {
     shakeCount = 0;
@@ -362,18 +362,18 @@ function triggerEasterEgg(code: SecretCode): void {
 function triggerKonamiCode(): void {
   // 🎬 Unlock achievement
   unlockAchievement('konami');
-
+  
   // Warm celebration
   soundUI.play('celebrate');
   celebrationsUI.warmthGlow({ intensity: 'warm' });
   celebrationsUI.gentleBounce();
-
+  
   // Show achievement - clean, no emoji
   showSecretMessage('Konami Code', 'Dance party activated!');
-
+  
   // 🎬 Start the FULL PIXAR DANCE PARTY!
   startDanceParty();
-
+  
   // Temporary special effect
   document.body.classList.add('konami-mode');
   setTimeout(() => {
@@ -384,7 +384,7 @@ function triggerKonamiCode(): void {
 
 function toggleDiscoMode(): void {
   discoMode = !discoMode;
-
+  
   if (discoMode) {
     unlockAchievement('disco');
     soundUI.play('celebrate');
@@ -397,7 +397,7 @@ function toggleDiscoMode(): void {
 
 function toggleMatrixMode(): void {
   matrixMode = !matrixMode;
-
+  
   if (matrixMode) {
     unlockAchievement('matrix');
     startMatrixRain();
@@ -411,9 +411,9 @@ function triggerRainbowMode(): void {
   unlockAchievement('rainbow');
   soundUI.play('success');
   document.body.classList.add('rainbow-mode');
-
+  
   showSecretMessage('Rainbow Mode', 'Full spectrum.');
-
+  
   // Auto-disable after 10 seconds
   setTimeout(() => {
     document.body.classList.remove('rainbow-mode');
@@ -437,7 +437,7 @@ function triggerShakeSurprise(): void {
   soundUI.play('celebrate');
   celebrationsUI.warmthGlow({ intensity: 'warm' });
   celebrationsUI.gentleBounce();
-
+  
   // Safe vibration (iOS doesn't support vibration API)
   if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
     try {
@@ -464,42 +464,42 @@ function startMatrixRain(): void {
     z-index: 0;
     opacity: 0.15;
   `;
-
+  
   document.body.insertBefore(matrixCanvas, document.body.firstChild);
-
+  
   const ctx = matrixCanvas.getContext('2d')!;
   matrixCanvas.width = window.innerWidth;
   matrixCanvas.height = window.innerHeight;
-
+  
   const columns = Math.floor(matrixCanvas.width / 20);
   const drops: number[] = new Array<number>(columns).fill(1);
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$¥£€@#%&*';
-
+  
   function drawMatrix(): void {
     if (!ctx || !matrixCanvas) return;
-
+    
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-
+    
     ctx.fillStyle = '#0f0';
     ctx.font = '15px monospace';
-
+    
     for (let i = 0; i < drops.length; i++) {
       const dropValue = drops[i] ?? 1;
       const char = chars[Math.floor(Math.random() * chars.length)] ?? 'A';
       ctx.fillText(char, i * 20, dropValue * 20);
-
+      
       if (dropValue * 20 > matrixCanvas.height && Math.random() > 0.975) {
         drops[i] = 0;
       }
       drops[i] = dropValue + 1;
     }
-
+    
     if (matrixMode) {
       matrixAnimationId = requestAnimationFrame(drawMatrix);
     }
   }
-
+  
   drawMatrix();
 }
 
@@ -508,7 +508,7 @@ function stopMatrixRain(): void {
     cancelAnimationFrame(matrixAnimationId);
     matrixAnimationId = null;
   }
-
+  
   if (matrixCanvas) {
     matrixCanvas.remove();
     matrixCanvas = null;
@@ -526,13 +526,13 @@ function showSecretMessage(title: string, subtitle: string): void {
     <div class="secret-title">${title}</div>
     <div class="secret-subtitle">${subtitle}</div>
   `;
-
+  
   document.body.appendChild(message);
-
+  
   requestAnimationFrame(() => {
     message.classList.add('visible');
   });
-
+  
   setTimeout(() => {
     message.classList.remove('visible');
     setTimeout(() => message.remove(), 500);
@@ -552,26 +552,26 @@ function showSecretMessage(title: string, subtitle: string): void {
 function startDanceParty(): void {
   if (dancePartyMode) return;
   dancePartyMode = true;
-
+  
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-
+  
   // Get all elements
   const avatar = document.querySelector('.avatar-container');
   const teamMembers = document.querySelectorAll('.team-member');
   const connectButton = document.querySelector('.btn-connect');
   const waveformBars = document.querySelectorAll('.waveform-bar');
-
+  
   let phase = 0;
-
+  
   const zenCelebration = () => {
     if (!dancePartyMode) return;
-
+    
     // Much slower phase increment - meditative rhythm
     phase += 0.02;
-
+    
     // Avatar: Gentle breathing and very subtle sway
     if (avatar instanceof HTMLElement) {
       const breathe = Math.sin(phase) * 3; // Subtle vertical breathing
@@ -583,7 +583,7 @@ function startDanceParty(): void {
         rotate(${tilt}deg)
       `;
     }
-
+    
     // Team members: Staggered gentle wave, like leaves in a breeze
     teamMembers.forEach((member, i) => {
       if (member instanceof HTMLElement) {
@@ -592,13 +592,13 @@ function startDanceParty(): void {
         member.style.transform = `translateY(${wave}px)`;
       }
     });
-
+    
     // Connect button: Gentle warmth pulse
     if (connectButton instanceof HTMLElement) {
       const warmth = 1 + Math.sin(phase) * 0.015;
       connectButton.style.transform = `scale(${warmth})`;
     }
-
+    
     // Waveform bars: Smooth breathing pattern
     waveformBars.forEach((bar, i) => {
       if (bar instanceof HTMLElement) {
@@ -606,10 +606,10 @@ function startDanceParty(): void {
         bar.style.height = `${height}px`;
       }
     });
-
+    
     danceAnimationId = requestAnimationFrame(zenCelebration);
   };
-
+  
   danceAnimationId = requestAnimationFrame(zenCelebration);
 }
 
@@ -618,27 +618,27 @@ function startDanceParty(): void {
  */
 function stopDanceParty(): void {
   dancePartyMode = false;
-
+  
   if (danceAnimationId) {
     cancelAnimationFrame(danceAnimationId);
     danceAnimationId = null;
   }
-
+  
   // Reset transforms
   const avatar = document.querySelector('.avatar-container');
   const teamMembers = document.querySelectorAll('.team-member');
   const connectButton = document.querySelector('.btn-connect');
-
+  
   if (avatar instanceof HTMLElement) {
     avatar.style.transform = '';
   }
-
+  
   teamMembers.forEach((member) => {
     if (member instanceof HTMLElement) {
       member.style.transform = '';
     }
   });
-
+  
   if (connectButton instanceof HTMLElement) {
     connectButton.style.transform = '';
   }
@@ -662,7 +662,7 @@ function handleEyeClick(_e: MouseEvent): void {
   const now = Date.now();
   const timeSinceLastClick = now - lastEyeClickTime;
   lastEyeClickTime = now;
-
+  
   // Double-click detection
   if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD) {
     triggerEyePoke();
@@ -767,7 +767,7 @@ function triggerEyePoke(): void {
   eyePokeActive = true;
 
   unlockAchievement('eye-poke');
-
+  
   const avatar = document.getElementById('coachAvatar');
   const avatarText = document.getElementById('avatarText');
 
@@ -775,13 +775,13 @@ function triggerEyePoke(): void {
     eyePokeActive = false;
     return;
   }
-
+  
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     eyePokeActive = false;
     return;
   }
-
+  
   soundUI.play('click');
 
   // Create and add the eye element if it doesn't exist
@@ -913,7 +913,7 @@ function triggerEyePoke(): void {
 function scheduleRandomQuirk(): void {
   // Random time between 30-120 seconds
   const delay = 30000 + Math.random() * 90000;
-
+  
   quirkTimeoutId = setTimeout(() => {
     triggerRandomQuirk();
     scheduleRandomQuirk(); // Schedule next
@@ -930,33 +930,33 @@ function triggerRandomQuirk(): void {
   if (isConnected) {
     return;
   }
-
+  
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-
+  
   const now = performance.now();
   if (now - lastQuirkTime < 10000) return; // Min 10s between quirks
   lastQuirkTime = now;
-
+  
   // Build quirk list based on current state
   let quirks = [quirk_curiousLook, quirk_happyBounce, quirk_lookAround, quirk_birdWatching];
 
   // Late night? More likely to yawn or nod off
   if (sleepyModeActive) {
     quirks = [
-      quirk_sleepyYawn,
+    quirk_sleepyYawn,
       quirk_sleepyYawn,
       triggerSleepyBehavior,
       quirk_curiousLook,
-      quirk_lookAround,
-    ];
+    quirk_lookAround,
+  ];
   } else {
     // Normal hours - include yawn but less frequent
     quirks.push(quirk_sleepyYawn);
   }
-
+  
   const randomQuirk = quirks[Math.floor(Math.random() * quirks.length)];
   randomQuirk?.();
 }
@@ -967,19 +967,19 @@ function triggerRandomQuirk(): void {
 function quirk_curiousLook(): void {
   const avatar = document.querySelector('.avatar-container');
   if (!avatar || !(avatar instanceof HTMLElement)) return;
-
+  
   avatar.animate(
     [
-      { transform: 'rotate(0deg)', offset: 0 },
-      { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.2 },
-      { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.4 },
-      { transform: 'rotate(5deg) translateX(3px)', offset: 0.6 },
-      { transform: 'rotate(5deg) translateX(3px)', offset: 0.8 },
-      { transform: 'rotate(0deg)', offset: 1 },
+    { transform: 'rotate(0deg)', offset: 0 },
+    { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.2 },
+    { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.4 },
+    { transform: 'rotate(5deg) translateX(3px)', offset: 0.6 },
+    { transform: 'rotate(5deg) translateX(3px)', offset: 0.8 },
+    { transform: 'rotate(0deg)', offset: 1 },
     ],
     {
-      duration: DURATION.AMBIENT_FAST * 0.66, // ~2000ms quirk
-      easing: EASING.EASE_IN_OUT,
+    duration: DURATION.AMBIENT_FAST * 0.66, // ~2000ms quirk
+    easing: EASING.EASE_IN_OUT,
     }
   );
 }
@@ -990,22 +990,22 @@ function quirk_curiousLook(): void {
 function quirk_sleepyYawn(): void {
   const avatar = document.querySelector('.avatar-container');
   if (!avatar || !(avatar instanceof HTMLElement)) return;
-
+  
   avatar.animate(
     [
-      { transform: 'scale(1)', offset: 0 },
-      // Inhale
-      { transform: 'scale(1.05, 0.95) translateY(-3px)', offset: 0.2 },
-      { transform: 'scale(1.08, 0.92) translateY(-5px)', offset: 0.4 },
-      // Hold
-      { transform: 'scale(1.06, 0.94) translateY(-4px)', offset: 0.6 },
-      // Exhale/settle
-      { transform: 'scale(0.98, 1.02) translateY(2px)', offset: 0.8 },
-      { transform: 'scale(1)', offset: 1 },
+    { transform: 'scale(1)', offset: 0 },
+    // Inhale
+    { transform: 'scale(1.05, 0.95) translateY(-3px)', offset: 0.2 },
+    { transform: 'scale(1.08, 0.92) translateY(-5px)', offset: 0.4 },
+    // Hold
+    { transform: 'scale(1.06, 0.94) translateY(-4px)', offset: 0.6 },
+    // Exhale/settle
+    { transform: 'scale(0.98, 1.02) translateY(2px)', offset: 0.8 },
+    { transform: 'scale(1)', offset: 1 },
     ],
     {
-      duration: DURATION.AMBIENT_FAST * 0.83, // ~2500ms quirk
-      easing: EASING.EASE_IN_OUT,
+    duration: DURATION.AMBIENT_FAST * 0.83, // ~2500ms quirk
+    easing: EASING.EASE_IN_OUT,
     }
   );
 }
@@ -1016,19 +1016,19 @@ function quirk_sleepyYawn(): void {
 function quirk_happyBounce(): void {
   const avatar = document.querySelector('.avatar-container');
   if (!avatar || !(avatar instanceof HTMLElement)) return;
-
+  
   avatar.animate(
     [
-      { transform: 'translateY(0)', offset: 0 },
-      { transform: 'translateY(-8px)', offset: 0.15 },
-      { transform: 'translateY(2px)', offset: 0.35 },
-      { transform: 'translateY(-4px)', offset: 0.55 },
-      { transform: 'translateY(1px)', offset: 0.75 },
-      { transform: 'translateY(0)', offset: 1 },
+    { transform: 'translateY(0)', offset: 0 },
+    { transform: 'translateY(-8px)', offset: 0.15 },
+    { transform: 'translateY(2px)', offset: 0.35 },
+    { transform: 'translateY(-4px)', offset: 0.55 },
+    { transform: 'translateY(1px)', offset: 0.75 },
+    { transform: 'translateY(0)', offset: 1 },
     ],
     {
-      duration: DURATION.CELEBRATION,
-      easing: EASING.SPRING,
+    duration: DURATION.CELEBRATION,
+    easing: EASING.SPRING,
     }
   );
 }
@@ -1039,18 +1039,18 @@ function quirk_happyBounce(): void {
 function quirk_lookAround(): void {
   const avatar = document.querySelector('.avatar-container');
   if (!avatar || !(avatar instanceof HTMLElement)) return;
-
+  
   avatar.animate(
     [
-      { transform: 'translateX(0) rotate(0deg)', offset: 0 },
-      { transform: 'translateX(-5px) rotate(-2deg)', offset: 0.25 },
-      { transform: 'translateX(0) rotate(0deg)', offset: 0.5 },
-      { transform: 'translateX(5px) rotate(2deg)', offset: 0.75 },
-      { transform: 'translateX(0) rotate(0deg)', offset: 1 },
+    { transform: 'translateX(0) rotate(0deg)', offset: 0 },
+    { transform: 'translateX(-5px) rotate(-2deg)', offset: 0.25 },
+    { transform: 'translateX(0) rotate(0deg)', offset: 0.5 },
+    { transform: 'translateX(5px) rotate(2deg)', offset: 0.75 },
+    { transform: 'translateX(0) rotate(0deg)', offset: 1 },
     ],
     {
-      duration: DURATION.GLACIAL,
-      easing: EASING.EASE_IN_OUT,
+    duration: DURATION.GLACIAL,
+    easing: EASING.EASE_IN_OUT,
     }
   );
 }
@@ -1065,10 +1065,10 @@ function quirk_lookAround(): void {
 function unlockAchievement(id: string): void {
   const achievement = achievements.find((a) => a.id === id);
   if (!achievement || achievement.unlocked) return;
-
+  
   achievement.unlocked = true;
   achievement.unlockedAt = Date.now();
-
+  
   // Save to localStorage
   try {
     const saved = achievements.filter((a) => a.unlocked).map((a) => a.id);
@@ -1083,7 +1083,7 @@ function unlockAchievement(id: string): void {
       detail: { id, achievement },
     })
   );
-
+  
   // Show achievement notification
   showAchievementNotification(achievement);
 }
@@ -1137,32 +1137,32 @@ function showAchievementNotification(achievement: Achievement): void {
     transform: translateX(120%);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   `;
-
+  
   const icon = notification.querySelector('.achievement-icon');
   if (icon instanceof HTMLElement) {
     icon.style.cssText = 'font-size: 28px;';
   }
-
+  
   const title = notification.querySelector('.achievement-title');
   if (title instanceof HTMLElement) {
     title.style.cssText = 'font-weight: 600; font-size: 14px;';
   }
-
+  
   const desc = notification.querySelector('.achievement-desc');
   if (desc instanceof HTMLElement) {
     desc.style.cssText = 'font-size: 12px; opacity: 0.8;';
   }
-
+  
   document.body.appendChild(notification);
-
+  
   // Animate in
   requestAnimationFrame(() => {
     notification.style.transform = 'translateX(0)';
   });
-
+  
   // Play sound
   soundUI.play('success');
-
+  
   // Animate out after delay
   setTimeout(() => {
     notification.style.transform = 'translateX(120%)';
@@ -1771,7 +1771,7 @@ function snapOutOfDaydream(): void {
 
 export function dispose(): void {
   document.removeEventListener('keydown', handleKeyDown);
-
+  
   const avatar = document.getElementById('coachAvatar');
   const avatarContainer = document.querySelector('.avatar-container');
 
@@ -1805,12 +1805,12 @@ export function dispose(): void {
     'ferni:user-audio-level',
     handleAudioLevelForReactions as EventListener
   );
-
+  
   window.removeEventListener('devicemotion', handleDeviceMotion);
-
+  
   stopMatrixRain();
   stopDanceParty();
-
+  
   // Clear quirk timeout
   if (quirkTimeoutId) {
     clearTimeout(quirkTimeoutId);
@@ -1854,7 +1854,7 @@ export function dispose(): void {
   tiltEnabled = false;
   sleepyModeActive = false;
   isDaydreaming = false;
-
+  
   document.body.classList.remove('disco-mode', 'rainbow-mode', 'konami-mode');
 }
 

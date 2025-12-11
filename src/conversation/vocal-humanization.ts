@@ -16,13 +16,22 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
+// Import shared detection utilities (re-export for backwards compatibility)
+import {
+  detectUserEnergy as sharedDetectUserEnergy,
+  detectEmotionalContent as sharedDetectEmotionalContent,
+  detectHeavyContent as sharedDetectHeavyContent,
+  HEAVY_CONTENT_PATTERNS,
+  type EnergyLevel,
+} from './utils/detection.js';
+
 const log = getLogger().child({ module: 'VocalHumanization' });
 
 // ============================================================================
-// TYPES
+// TYPES (re-export from shared)
 // ============================================================================
 
-export type EnergyLevel = 'high' | 'medium' | 'low' | 'subdued';
+export type { EnergyLevel } from './utils/detection.js';
 
 export interface VocalContext {
   /** Detected user energy level */
@@ -130,41 +139,6 @@ const CONTRACTION_MAP: Record<string, string> = {
   'got to': 'gotta',
 };
 
-/** Patterns indicating high energy in user message */
-const HIGH_ENERGY_PATTERNS = [
-  /!{2,}/,
-  /\b(amazing|awesome|incredible|fantastic|excited|thrilled|pumped|yes|yeah|yay)\b/i,
-  /\b(can't wait|so happy|love it|best|great news)\b/i,
-  /^(omg|oh my god|wow|whoa|holy)\b/i,
-  /\?!|\?{2,}/,
-];
-
-/** Patterns indicating low/subdued energy */
-const LOW_ENERGY_PATTERNS = [
-  /\b(tired|exhausted|drained|overwhelmed|sad|down|depressed|anxious)\b/i,
-  /\b(struggling|hard time|difficult|tough|rough)\b/i,
-  /\b(I don't know|not sure|maybe|I guess)\b/i,
-  /\.{3,}/, // Trailing off...
-  /\b(sigh|ugh|meh)\b/i,
-];
-
-/** Patterns indicating the response contains emotional content */
-const EMOTIONAL_CONTENT_PATTERNS = [
-  /\b(I'm sorry|that's hard|that sounds|I hear you|that's heavy)\b/i,
-  /\b(proud of you|believe in you|you matter|you're not alone)\b/i,
-  /\b(love|care|feel|heart|soul)\b/i,
-  /\b(hurt|pain|struggle|suffer|grief|loss)\b/i,
-];
-
-/** Patterns indicating heavy/serious content */
-const HEAVY_CONTENT_PATTERNS = [
-  /\b(death|dying|died|passed away|suicide|crisis)\b/i,
-  /\b(abuse|trauma|assault|violence)\b/i,
-  /\b(divorce|breakup|separation|lost my)\b/i,
-  /\b(fired|laid off|bankrupt|homeless)\b/i,
-  /\b(diagnosis|cancer|terminal|chronic)\b/i,
-];
-
 /** Intake breath sounds for different contexts */
 const INTAKE_BREATHS = {
   meaningful: ['<break time="400ms"/>', '<break time="350ms"/>', '<break time="450ms"/>'],
@@ -174,67 +148,26 @@ const INTAKE_BREATHS = {
 };
 
 // ============================================================================
-// ENERGY DETECTION
+// ENERGY DETECTION (delegated to shared utilities)
 // ============================================================================
 
 /**
  * Detect user's energy level from their message
+ * @see {@link sharedDetectUserEnergy} - Uses shared detection utilities
  */
-export function detectUserEnergy(userMessage: string): EnergyLevel {
-  if (!userMessage) return 'medium';
-
-  const lower = userMessage.toLowerCase();
-
-  // Check for high energy signals
-  let highScore = 0;
-  for (const pattern of HIGH_ENERGY_PATTERNS) {
-    if (pattern.test(userMessage)) highScore++;
-  }
-
-  // Check for low energy signals
-  let lowScore = 0;
-  for (const pattern of LOW_ENERGY_PATTERNS) {
-    if (pattern.test(lower)) lowScore++;
-  }
-
-  // Word count and punctuation analysis
-  const wordCount = userMessage.split(/\s+/).length;
-  const exclamationCount = (userMessage.match(/!/g) || []).length;
-  const questionCount = (userMessage.match(/\?/g) || []).length;
-  const capsRatio = (userMessage.match(/[A-Z]/g) || []).length / Math.max(userMessage.length, 1);
-
-  // High energy: lots of exclamations, caps, short excited messages
-  if (exclamationCount >= 2 || capsRatio > 0.3) highScore++;
-  if (wordCount < 10 && exclamationCount > 0) highScore++;
-
-  // Low energy: short responses, trailing off
-  if (wordCount < 5 && !exclamationCount && !questionCount) lowScore++;
-  if (/\.{2,}$/.test(userMessage)) lowScore++;
-
-  // Determine energy level
-  if (highScore >= 2 || (highScore > 0 && lowScore === 0 && exclamationCount > 0)) {
-    return 'high';
-  }
-  if (lowScore >= 2 || (lowScore > 0 && highScore === 0)) {
-    return HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower)) ? 'subdued' : 'low';
-  }
-
-  return 'medium';
-}
+export const detectUserEnergy = sharedDetectUserEnergy;
 
 /**
  * Detect if content is emotionally charged
+ * @see {@link sharedDetectEmotionalContent} - Uses shared detection utilities
  */
-export function detectEmotionalContent(text: string): boolean {
-  return EMOTIONAL_CONTENT_PATTERNS.some((p) => p.test(text));
-}
+export const detectEmotionalContent = sharedDetectEmotionalContent;
 
 /**
  * Detect if content is heavy/serious
+ * @see {@link sharedDetectHeavyContent} - Uses shared detection utilities
  */
-export function detectHeavyContent(text: string): boolean {
-  return HEAVY_CONTENT_PATTERNS.some((p) => p.test(text));
-}
+export const detectHeavyContent = sharedDetectHeavyContent;
 
 // ============================================================================
 // CONTRACTION ENFORCER

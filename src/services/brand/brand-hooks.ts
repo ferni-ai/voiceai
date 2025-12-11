@@ -8,11 +8,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { quickValidate, validateBrandCompliance, autoFixViolations } from './brand-validator.js';
-import { getPersonaVoice, getRandomGreeting, getResponsePatterns } from './persona-voices.js';
-import { adaptForChannel } from './channel-adapter.js';
 import { logValidation } from './brand-evolution.js';
-import type { ContextType, PersonaId, Channel, ValidationResult } from './types.js';
+import { autoFixViolations, quickValidate, validateBrandCompliance } from './brand-validator.js';
+import { adaptForChannel } from './channel-adapter.js';
+import { getPersonaVoice, getRandomGreeting, getResponsePatterns } from './persona-voices.js';
+import type { Channel, ContextType, PersonaId } from './types.js';
 
 const log = createLogger({ module: 'BrandHooks' });
 
@@ -158,10 +158,7 @@ export async function validateExperimentVariants(
  * Enhance persona system prompt with brand context
  * Call this when building LLM prompts
  */
-export function enhancePromptWithBrandContext(
-  basePrompt: string,
-  personaId: string
-): string {
+export function enhancePromptWithBrandContext(basePrompt: string, personaId: string): string {
   const persona = getPersonaVoice(personaId as PersonaId);
 
   const brandInstructions = `
@@ -311,3 +308,4 @@ export function mapOutreachToneToBrandContext(
   };
   return mapping[tone] || 'checkin';
 }
+

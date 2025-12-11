@@ -141,12 +141,41 @@ Spotify, Plaid, Stripe, Twilio, Google Calendar - see `.env.example`
 ## Deployment
 
 ```bash
-# Production (Google Cloud Run)
-./scripts/deploy-gcp.sh   # Voice agent
-./scripts/deploy-ui.sh    # UI + APIs
+# Production (Blue-Green with health checks)
+npm run deploy agent    # Voice agent → Cloud Run
+npm run deploy ui       # UI server → Cloud Run
+npm run deploy frontend # App → Firebase Hosting
+npm run deploy landing  # Landing → Firebase Hosting
 ```
 
+All deploys use **blue-green deployment**:
+1. Deploy new version with no traffic
+2. Health check the new revision
+3. If healthy → shift 100% traffic
+4. If unhealthy → keep traffic on old version
+
 See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for details.
+
+---
+
+## Automation & Quality Gates
+
+| Gate | When | What |
+|------|------|------|
+| **Pre-commit** | Every commit | Typecheck, lint, tests, design tokens |
+| **Conventional Commits** | Commit msg | Format enforced via commitlint |
+| **CI Pipeline** | Every PR | Full test suite, build verification |
+| **Blue-Green Deploy** | Production | Safe rollouts with health checks |
+| **Auto-Release** | Successful deploy | Semver tags + GitHub releases |
+| **Dependabot** | Weekly | Dependency updates |
+| **Slack Alerts** | Deploy events | Success/failure notifications |
+
+```bash
+npm run quality       # Run all checks locally
+npm run quality:full  # Full audit including UI
+```
+
+See [docs/BRANCH-PROTECTION.md](./docs/BRANCH-PROTECTION.md) for branch rules.
 
 ---
 

@@ -182,6 +182,11 @@ body {
      - Ratio: avatar = 90% of container, ring extends 10% outside
      ======================================================================== */
 
+  /* Connection Heart - scales with avatar */
+  --heart-size: 36px;
+  --heart-icon: 18px;
+  --heart-offset: -4px;
+
   /* Container size - the hitbox/clickable area */
   --roster-container: 48px;
   /* Avatar size - slightly smaller than container for visual breathing room */
@@ -3393,6 +3398,22 @@ body {
   */
 }
 
+/* ========================================================================
+   CONNECTION HEART - Token-based sizing
+   Overrides JavaScript-injected styles for consistent responsive scaling
+   ======================================================================== */
+.connection-heart {
+  width: var(--heart-size) !important;
+  height: var(--heart-size) !important;
+  bottom: var(--heart-offset) !important;
+  right: var(--heart-offset) !important;
+}
+
+.connection-heart__icon svg {
+  width: var(--heart-icon) !important;
+  height: var(--heart-icon) !important;
+}
+
 #statusIndicator.status-connected {
   background: var(--color-success);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
@@ -5642,6 +5663,9 @@ body {
 /* Tablet Portrait (max 768px) */
 @media (max-width: 768px) {
   :root {
+    --heart-size: 36px;
+    --heart-icon: 18px;
+    --heart-offset: -4px;
     --roster-container: 44px;
     --roster-avatar: 40px;
     --roster-ring-offset: 4px;
@@ -5657,6 +5681,9 @@ body {
 /* Mobile Landscape (481px - 767px) */
 @media (max-width: 767px) and (min-width: 481px) {
   :root {
+    --heart-size: 32px;
+    --heart-icon: 16px;
+    --heart-offset: -4px;
     --roster-container: 40px;
     --roster-avatar: 36px;
     --roster-ring-offset: 3px;
@@ -5672,6 +5699,9 @@ body {
 /* Mobile Portrait (max 480px) */
 @media (max-width: 480px) {
   :root {
+    --heart-size: 40px;
+    --heart-icon: 20px;
+    --heart-offset: -5px;
     --roster-container: 44px;
     --roster-avatar: 40px;
     --roster-ring-offset: 4px;
@@ -5687,6 +5717,9 @@ body {
 /* Small Mobile (max 375px) */
 @media (max-width: 375px) {
   :root {
+    --heart-size: 38px;
+    --heart-icon: 19px;
+    --heart-offset: -5px;
     --roster-container: 40px;
     --roster-avatar: 36px;
     --roster-ring-offset: 3px;
@@ -5702,6 +5735,9 @@ body {
 /* Very Small (max 320px) */
 @media (max-width: 320px) {
   :root {
+    --heart-size: 32px;
+    --heart-icon: 16px;
+    --heart-offset: -4px;
     --roster-container: 36px;
     --roster-avatar: 32px;
     --roster-ring-offset: 3px;
@@ -5717,6 +5753,9 @@ body {
 /* Landscape Mobile (height < 500px) - Compact mode */
 @media (max-height: 500px) and (orientation: landscape) {
   :root {
+    --heart-size: 20px;
+    --heart-icon: 10px;
+    --heart-offset: -2px;
     --roster-container: 32px;
     --roster-avatar: 28px;
     --roster-ring-offset: 3px;
@@ -5729,9 +5768,12 @@ body {
   }
 }
 
-/* Tablet Landscape (height 501-700px) */
-@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) {
+/* Tablet Landscape (height 501-700px, TOUCH DEVICES ONLY) */
+@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) and (pointer: coarse) {
   :root {
+    --heart-size: 28px;
+    --heart-icon: 14px;
+    --heart-offset: -3px;
     --roster-container: 38px;
     --roster-avatar: 34px;
     --roster-ring-offset: 3px;
@@ -5744,9 +5786,13 @@ body {
   }
 }
 
-/* iPad Landscape (height 701px+, width < 1366px) */
-@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) {
+/* iPad Landscape (height 701px+, width < 1366px, TOUCH DEVICES ONLY)
+   NOTE: Added (pointer: coarse) to prevent matching desktop browsers */
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   :root {
+    --heart-size: 36px;
+    --heart-icon: 18px;
+    --heart-offset: -4px;
     --roster-container: 44px;
     --roster-avatar: 40px;
     --roster-ring-offset: 4px;
@@ -5762,6 +5808,9 @@ body {
 /* Tablet (769px - 1199px) */
 @media (max-width: 1199px) and (min-width: 769px) {
   :root {
+    --heart-size: 40px;
+    --heart-icon: 20px;
+    --heart-offset: -5px;
     --roster-container: 46px;
     --roster-avatar: 42px;
     --roster-ring-offset: 4px;
@@ -5777,6 +5826,9 @@ body {
 /* Large Desktop (1200px+) */
 @media (min-width: 1200px) {
   :root {
+    --heart-size: 44px;
+    --heart-icon: 22px;
+    --heart-offset: -6px;
     --roster-container: 52px;
     --roster-avatar: 48px;
     --roster-ring-offset: 5px;
@@ -7125,8 +7177,9 @@ body {
   }
 }
 
-/* Tablet landscape - optimize for horizontal tablets (501px-700px height) */
-@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) {
+/* Tablet landscape - optimize for horizontal tablets (501px-700px height)
+   NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
+@media (min-height: 501px) and (max-height: 700px) and (orientation: landscape) and (pointer: coarse) {
   .app {
     padding: var(--space-sm) var(--space-lg);
   }
@@ -7268,8 +7321,8 @@ body {
 }
 
 /* iPad landscape - larger tablets in horizontal orientation
-   NOTE: Must include max-width to avoid matching desktop browsers */
-@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) {
+   NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   .header {
     flex-direction: row;
     align-items: center;

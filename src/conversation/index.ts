@@ -362,6 +362,30 @@ export {
 } from './vocal-humanization.js';
 
 // ============================================================================
+// SHARED DETECTION UTILITIES (additional exports not already available above)
+// ============================================================================
+
+export {
+  // Detailed energy detection (new)
+  detectUserEnergyDetailed,
+
+  // Engagement detection (new)
+  detectDisengagement,
+  detectHighEngagement,
+  detectHesitation,
+  detectEngagementLevel,
+
+  // Composite analysis (new)
+  analyzeMessage,
+
+  // Types (new - renamed to avoid conflict with engagement-scoring.ts)
+  type TopicWeight,
+  type EngagementLevel as DetectedEngagementLevel,
+  type DetectionResult,
+  type MessageAnalysis,
+} from './utils/index.js';
+
+// ============================================================================
 // ADVANCED HUMANIZATION - Deep Connection Features
 // ============================================================================
 
@@ -582,3 +606,29 @@ export function resetAllConversationState(
     _resetAdvancedHumanization(sessionId, userId);
   }
 }
+
+// ============================================================================
+// UNIFIED ORCHESTRATOR
+// ============================================================================
+
+export {
+  ConversationOrchestrator,
+  getConversationOrchestrator,
+  resetConversationOrchestrator,
+  resetAllOrchestrators,
+  DEFAULT_ORCHESTRATOR_CONFIG,
+  type OrchestratorInput,
+  type OrchestratorOutput,
+  type OrchestratorConfig,
+  type AnalysisPhaseResult,
+  type IntelligencePhaseResult,
+  type HumanizationPhaseResult,
+  type DetectedSignals,
+  type AnalysisContext,
+  type IntelligenceGuidance,
+  type PriorityAction,
+  type AppliedFeature,
+  type SkippedFeature,
+  type ResponseAdditions,
+  type OutputMetadata,
+} from './orchestrator/index.js';

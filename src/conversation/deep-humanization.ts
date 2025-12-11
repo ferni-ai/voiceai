@@ -19,6 +19,17 @@
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 
+// Import shared detection utilities
+import {
+  classifyTopicWeight as sharedClassifyTopicWeight,
+  detectAdviceGiving as sharedDetectAdviceGiving,
+  detectBreakthrough as sharedDetectBreakthrough,
+  detectDisengagement as sharedDetectDisengagement,
+  detectEvidence as sharedDetectEvidence,
+  detectHighEngagement as sharedDetectHighEngagement,
+  type TopicWeight,
+} from './utils/detection.js';
+
 const logger = createLogger({ module: 'DeepHumanization' });
 
 // ============================================================================
@@ -928,196 +939,44 @@ export function resetDeepHumanizationEngine(personaId: string): void {
 }
 
 // ============================================================================
-// DETECTION HELPERS
+// DETECTION HELPERS (delegated to shared utilities)
 // ============================================================================
 
 /**
  * Detect if user presented evidence/counter-argument
+ * @see {@link sharedDetectEvidence} - Uses shared detection utilities
  */
-export function detectEvidence(userMessage: string): boolean {
-  const evidencePatterns = [
-    /here'?s the thing/i,
-    /but actually/i,
-    /what about/i,
-    /consider this/i,
-    /in my experience/i,
-    /when I tried/i,
-    /what happened was/i,
-    /I disagree/i,
-    /that'?s not how I see it/i,
-    /but what if/i,
-    /let me tell you/i,
-    /I know someone who/i,
-  ];
-
-  return evidencePatterns.some((p) => p.test(userMessage));
-}
+export const detectEvidence = sharedDetectEvidence;
 
 /**
  * Detect breakthrough/insight moment
+ * @see {@link sharedDetectBreakthrough} - Uses shared detection utilities
  */
-export function detectBreakthrough(userMessage: string): boolean {
-  const breakthroughPatterns = [
-    /I (just )?realized/i,
-    /it hit me/i,
-    /I (just )?figured out/i,
-    /maybe what I need/i,
-    /finally/i,
-    /for the first time/i,
-    /I never thought of it/i,
-    /I'?ve never told anyone/i,
-    /this is hard to say/i,
-    /oh my god/i,
-    /wait\s*[,.!]/i,
-  ];
-
-  return breakthroughPatterns.some((p) => p.test(userMessage));
-}
+export const detectBreakthrough = sharedDetectBreakthrough;
 
 /**
  * Detect if agent response is giving advice
+ * @see {@link sharedDetectAdviceGiving} - Uses shared detection utilities
  */
-export function detectAdviceGiving(agentMessage: string): boolean {
-  const advicePatterns = [
-    /you should/i,
-    /I'?d recommend/i,
-    /try to/i,
-    /consider/i,
-    /my advice/i,
-    /what I suggest/i,
-    /here'?s what/i,
-    /the key is/i,
-  ];
-
-  return advicePatterns.some((p) => p.test(agentMessage));
-}
+export const detectAdviceGiving = sharedDetectAdviceGiving;
 
 /**
  * Classify topic weight
+ * @see {@link sharedClassifyTopicWeight} - Uses shared detection utilities
  */
-export function classifyTopicWeight(
+export const classifyTopicWeight: (
   userMessage: string,
   detectedEmotion?: string
-): 'light' | 'medium' | 'heavy' {
-  const heavyIndicators = [
-    /died|death|passed away/i,
-    /divorce|separated/i,
-    /cancer|terminal/i,
-    /suicide|depression/i,
-    /abuse|trauma/i,
-    /lost my job|fired/i,
-    /bankruptcy|foreclosure/i,
-  ];
-
-  const lightIndicators = [
-    /haha|lol|lmao/i,
-    /great|awesome|amazing/i,
-    /excited|happy|fun/i,
-    /weekend|vacation/i,
-  ];
-
-  if (heavyIndicators.some((p) => p.test(userMessage))) return 'heavy';
-  if (detectedEmotion === 'sadness' || detectedEmotion === 'fear') return 'heavy';
-  if (lightIndicators.some((p) => p.test(userMessage))) return 'light';
-  if (detectedEmotion === 'joy') return 'light';
-
-  return 'medium';
-}
+) => TopicWeight = sharedClassifyTopicWeight;
 
 /**
  * Detect if user seems disengaged based on message content
- * Short responses, disengagement words, or lack of substance
+ * @see {@link sharedDetectDisengagement} - Uses shared detection utilities
  */
-export function detectDisengagement(userMessage: string): boolean {
-  const trimmed = userMessage.trim().toLowerCase();
-
-  // Very short responses (under 15 chars) are often disengaged
-  if (trimmed.length < 15) {
-    // Check for common disengagement words
-    const disengagementWords = [
-      'yeah',
-      'ok',
-      'okay',
-      'sure',
-      'fine',
-      'whatever',
-      'i guess',
-      'uh huh',
-      'mhm',
-      'yep',
-      'nope',
-      'dunno',
-      'idk',
-      'meh',
-      'eh',
-      'k',
-      'kk',
-      'cool',
-      'right',
-    ];
-
-    if (disengagementWords.some((word) => trimmed === word || trimmed.startsWith(`${word} `))) {
-      return true;
-    }
-  }
-
-  // Patterns indicating disengagement
-  const disengagementPatterns = [
-    /^yeah[.,!?]?$/i,
-    /^ok(ay)?[.,!?]?$/i,
-    /^sure[.,!?]?$/i,
-    /^i (guess|suppose)[.,!?]?$/i,
-    /^whatever[.,!?]?$/i,
-    /^fine[.,!?]?$/i,
-    /^not really[.,!?]?$/i,
-    /^i don'?t (know|care)[.,!?]?$/i,
-  ];
-
-  return disengagementPatterns.some((p) => p.test(trimmed));
-}
+export const detectDisengagement = sharedDetectDisengagement;
 
 /**
  * Detect if user seems highly engaged based on message content
- * Long responses, enthusiasm markers, or deep sharing
+ * @see {@link sharedDetectHighEngagement} - Uses shared detection utilities
  */
-export function detectHighEngagement(userMessage: string): boolean {
-  const trimmed = userMessage.trim().toLowerCase();
-
-  // Long responses (over 100 chars) often indicate engagement
-  const isLongResponse = trimmed.length > 100;
-
-  // Enthusiasm markers
-  const enthusiasmPatterns = [
-    /!{2,}/, // Multiple exclamation marks
-    /that'?s (so |really )?(interesting|cool|amazing|fascinating)/i,
-    /i (love|really like) (this|that|what you)/i,
-    /wow/i,
-    /oh my (god|gosh)/i,
-    /yes!+/i,
-    /exactly!?/i,
-    /you know what/i,
-    /i'?ve (been thinking|never thought)/i,
-    /i want to tell you/i,
-    /can i share something/i,
-    /this is (hard|difficult|important)/i,
-    /i'?ve never told anyone/i,
-  ];
-
-  const hasEnthusiasm = enthusiasmPatterns.some((p) => p.test(trimmed));
-
-  // Deep sharing indicators
-  const deepSharingPatterns = [
-    /i feel like/i,
-    /it makes me feel/i,
-    /i'?ve been struggling/i,
-    /honestly|truthfully/i,
-    /i realized/i,
-    /the thing is/i,
-    /what i really want/i,
-  ];
-
-  const isDeepSharing = deepSharingPatterns.some((p) => p.test(trimmed));
-
-  // Combined heuristic
-  return (isLongResponse && (hasEnthusiasm || isDeepSharing)) || (hasEnthusiasm && isDeepSharing);
-}
+export const detectHighEngagement = sharedDetectHighEngagement;

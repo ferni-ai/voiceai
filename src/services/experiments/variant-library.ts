@@ -6,15 +6,11 @@
  *
  * Better than human: We systematically test every word.
  *
- * Brand Integration: All variants are validated against brand rules
- * to ensure consistent voice across experiments.
- *
  * @module services/experiments/variant-library
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { validateExperimentVariant } from '../brand/index.js';
 
 const log = createLogger({ module: 'VariantLibrary' });
 
@@ -409,31 +405,13 @@ export async function setCurrentDefault(experimentId: string, variantId: string)
 
 /**
  * Add a custom variant to an experiment (for AI-generated variants)
- * Validates against brand rules before adding
  */
 export async function addCustomVariant(
   experimentId: string,
   variantId: string,
   content: unknown
-): Promise<{ success: boolean; brandScore?: number; issues?: string[] }> {
+): Promise<void> {
   const db = getFirestore();
-
-  // Brand validation for text content
-  const textContent = extractTextContent(content);
-  if (textContent) {
-    const brandResult = await validateExperimentVariant(textContent, 'headline');
-    if (!brandResult.isValid) {
-      log.warn(
-        { experimentId, variantId, score: brandResult.score, issues: brandResult.issues },
-        'Custom variant failed brand validation'
-      );
-      return {
-        success: false,
-        brandScore: brandResult.score,
-        issues: brandResult.issues,
-      };
-    }
-  }
 
   await db
     .collection('variant_library')
@@ -444,38 +422,9 @@ export async function addCustomVariant(
       content,
       createdAt: FieldValue.serverTimestamp(),
       source: 'ai-generated',
-      brandValidated: true,
     });
 
-  log.info({ experimentId, variantId }, 'Custom variant added (brand validated)');
-  return { success: true, brandScore: 100 };
-}
-
-/**
- * Extract text content from a variant for brand validation
- */
-function extractTextContent(content: unknown): string | null {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  if (typeof content === 'object' && content !== null) {
-    const obj = content as Record<string, unknown>;
-    const textParts: string[] = [];
-
-    // Common variant fields
-    if (obj.headline) textParts.push(String(obj.headline));
-    if (obj.tagline) textParts.push(String(obj.tagline));
-    if (obj.subhead) textParts.push(String(obj.subhead));
-    if (obj.text) textParts.push(String(obj.text));
-    if (obj.body) textParts.push(String(obj.body));
-
-    if (textParts.length > 0) {
-      return textParts.join(' ');
-    }
-  }
-
-  return null;
+  log.info({ experimentId, variantId }, 'Custom variant added');
 }
 
 /**

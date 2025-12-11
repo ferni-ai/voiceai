@@ -1,75 +1,35 @@
 ## Summary
-
 <!-- Brief description of what this PR does -->
 
-## Human-ness Check
-
-> **We believe in making AI human, and the decisions we make will reflect that.**
-
-<!-- Answer honestly - it's okay if not all apply to every PR -->
-
-- [ ] **Human Connection**: Does this make interactions feel more human?
-- [ ] **Relationship**: Does this serve the ongoing relationship, not just this transaction?
-- [ ] **Gentle Growth**: If user-facing, does this support without pressuring?
-- [ ] **Authenticity**: Does this feel genuine, not corporate or robotic?
-
-<!-- If you checked none, that's fine for pure technical/infra PRs. But pause and consider if there's an opportunity to add warmth. -->
-
 ## Type of Change
+- [ ] Bug fix (non-breaking change fixing an issue)
+- [ ] New feature (non-breaking change adding functionality)
+- [ ] Breaking change (fix or feature causing existing functionality to change)
+- [ ] Refactor (no functional changes)
+- [ ] Documentation update
+- [ ] CI/CD or tooling change
 
-- [ ] `feat` - New feature
-- [ ] `fix` - Bug fix
-- [ ] `refactor` - Code refactoring
-- [ ] `docs` - Documentation
-- [ ] `test` - Tests
-- [ ] `chore` - Maintenance
+## Changes Made
+<!-- Bullet points of specific changes -->
+-
 
-## Quality Checklist
+## Testing
+<!-- How did you test these changes? -->
+- [ ] Ran `npm run quality` (typecheck + lint + test)
+- [ ] Tested locally in browser
+- [ ] Added/updated tests
+- [ ] Tested with voice agent
 
-<!-- All items must be checked before merging -->
+## Checklist
+- [ ] My code follows the [CLAUDE.md](../CLAUDE.md) coding standards
+- [ ] I've used design tokens (no hardcoded colors, spacing, z-index)
+- [ ] I've used `createLogger()` instead of `console.log()`
+- [ ] Files are under 500 lines
+- [ ] No `as any` casts (or justified with comment)
+- [ ] Error handling uses proper logging
 
-### Required
-- [ ] `npm run quality` passes (typecheck + lint + format + tests)
-- [ ] `npm run quality:check` passes (as any ≤30, console.* ≤100)
-- [ ] `npm run quality:arch` passes (no layer violations)
-- [ ] No new files over 500 lines
-- [ ] No hardcoded colors/durations in UI (use design tokens)
-
-### Frontend Changes (if applicable)
-- [ ] `cd frontend-typescript && npm run quality` passes
-- [ ] `npm run lint:tokens` passes (design token validation)
-- [ ] `npm run audit:ui` passes (accessibility audit)
-- [ ] Tested on mobile viewport
-
-### Testing
-- [ ] Unit tests added/updated for new functionality
-- [ ] Manual testing completed
-- [ ] Edge cases considered
-
-## Screenshots (if UI changes)
-
-<!-- Add before/after screenshots for UI changes -->
+## Screenshots
+<!-- If UI changes, add before/after screenshots -->
 
 ## Related Issues
-
-<!-- Link to related issues: Fixes #123, Relates to #456 -->
-
----
-
-<details>
-<summary>Quality Commands Reference</summary>
-
-```bash
-# Backend
-npm run quality        # Full quality check
-npm run quality:check  # Code metrics
-npm run quality:arch   # Architecture validation
-
-# Frontend
-cd frontend-typescript
-npm run quality        # Full quality check
-npm run lint:tokens    # Design token validation
-npm run audit:ui       # Accessibility audit
-```
-
-</details>
+<!-- Link any related issues: Fixes #123, Relates to #456 -->

@@ -10,9 +10,8 @@
  * @module scripts/check-brand-compliance
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
+import * as fs from 'fs';
 
 // ============================================================================
 // CONFIGURATION
@@ -193,12 +192,7 @@ async function main() {
   } else if (checkStaged) {
     console.log('Checking staged files...\n');
     filesToCheck = getChangedFiles().filter((f) => {
-      return (
-        f.endsWith('.ts') ||
-        f.endsWith('.js') ||
-        f.endsWith('.html') ||
-        f.endsWith('.json')
-      );
+      return f.endsWith('.ts') || f.endsWith('.js') || f.endsWith('.html') || f.endsWith('.json');
     });
   } else {
     filesToCheck = args;
@@ -284,3 +278,4 @@ main().catch((error) => {
   console.error('Error running brand check:', error);
   process.exit(1);
 });
+

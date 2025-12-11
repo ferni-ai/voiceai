@@ -1,0 +1,1021 @@
+/**
+ * Unified Conversation Orchestrator
+ *
+ * Coordinates all conversation humanization systems through a clean,
+ * layered architecture:
+ *
+ * 1. ANALYSIS - Understand the user message
+ * 2. INTELLIGENCE - Gather insights from all intelligence systems
+ * 3. HUMANIZATION - Apply humanization features
+ * 4. OUTPUT - Format and return the final response
+ *
+ * This replaces the complex, interleaved logic in humanizer.ts with
+ * a clear, maintainable pipeline.
+ *
+ * @module @ferni/conversation/orchestrator
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+
+// Shared utilities
+import {
+  analyzeMessage,
+  detectEvidence,
+  detectBreakthrough,
+  detectAdviceGiving,
+  detectDisengagement,
+  detectHighEngagement,
+  detectHesitation,
+  type EnergyLevel,
+} from '../utils/detection.js';
+
+// Phase 2: Intelligence systems
+import { getSessionIntelligence, type SessionIntelligenceContext } from '../session-intelligence.js';
+import { getBetterThanHuman, type BetterThanHumanContext } from '../superhuman/index.js';
+import { getDeepHumanizationEngine, classifyTopicWeight } from '../deep-humanization.js';
+import { getEmotionalArcTracker } from '../emotional-arc.js';
+
+// Phase 3: Humanization systems
+import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
+import { humanizeVocals, detectUserEnergy, type VocalContext } from '../vocal-humanization.js';
+import { getHumanizationOrchestrator, humanizationConfig, type HumanizationContext as OrchestratorContext } from '../humanization/index.js';
+import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
+import { getSilencePresenceEngine } from '../silence-presence.js';
+import { getActiveListeningEngine } from '../active-listening.js';
+import { getConversationalMemory } from '../conversational-memory.js';
+import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
+import { getResponseDynamicsEngine } from '../response-dynamics.js';
+
+// Types
+import type {
+  OrchestratorInput,
+  OrchestratorOutput,
+  OrchestratorConfig,
+  AnalysisPhaseResult,
+  IntelligencePhaseResult,
+  HumanizationPhaseResult,
+  DetectedSignals,
+  AnalysisContext,
+  IntelligenceGuidance,
+  AppliedFeature,
+  SkippedFeature,
+  ResponseAdditions,
+  DEFAULT_ORCHESTRATOR_CONFIG,
+} from './types.js';
+
+const log = createLogger({ module: 'ConversationOrchestrator' });
+
+// ============================================================================
+// CONVERSATION ORCHESTRATOR
+// ============================================================================
+
+export class ConversationOrchestrator {
+  private config: OrchestratorConfig;
+  private sessionStartTime: number;
+
+  constructor(config: Partial<OrchestratorConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.sessionStartTime = Date.now();
+  }
+
+  // ==========================================================================
+  // MAIN ORCHESTRATION METHOD
+  // ==========================================================================
+
+  /**
+   * Orchestrate the full humanization pipeline
+   */
+  async orchestrate(input: OrchestratorInput): Promise<OrchestratorOutput> {
+    const startTime = Date.now();
+    const timing = { analysis: 0, intelligence: 0, humanization: 0, output: 0, total: 0 };
+
+    try {
+      // Phase 1: Analysis
+      const analysisStart = Date.now();
+      const analysisResult = this.runAnalysisPhase(input);
+      timing.analysis = Date.now() - analysisStart;
+
+      // Phase 2: Intelligence
+      const intelligenceStart = Date.now();
+      const intelligenceResult = await this.runIntelligencePhase(input, analysisResult);
+      timing.intelligence = Date.now() - intelligenceStart;
+
+      // Phase 3: Humanization
+      const humanizationStart = Date.now();
+      const humanizationResult = await this.runHumanizationPhase(
+        input,
+        analysisResult,
+        intelligenceResult
+      );
+      timing.humanization = Date.now() - humanizationStart;
+
+      // Phase 4: Output
+      const outputStart = Date.now();
+      const output = this.runOutputPhase(
+        input,
+        analysisResult,
+        intelligenceResult,
+        humanizationResult,
+        timing
+      );
+      timing.output = Date.now() - outputStart;
+      timing.total = Date.now() - startTime;
+
+      log.debug(
+        {
+          turn: input.turnNumber,
+          features: output.appliedFeatures.length,
+          timing,
+        },
+        '🎭 Orchestration complete'
+      );
+
+      return output;
+    } catch (error) {
+      log.error({ error: String(error), turn: input.turnNumber }, 'Orchestration failed');
+
+      // Return minimal response on error
+      return {
+        text: input.rawResponse,
+        ssml: input.rawResponse,
+        appliedFeatures: [],
+        emotionalGuidance: null,
+        pacing: 'normal',
+        metadata: {
+          timing: { ...timing, total: Date.now() - startTime },
+          confidence: { analysis: 0, intelligence: 0, overall: 0 },
+        },
+      };
+    }
+  }
+
+  // ==========================================================================
+  // PHASE 1: ANALYSIS
+  // ==========================================================================
+
+  private runAnalysisPhase(input: OrchestratorInput): AnalysisPhaseResult {
+    if (!this.config.enableAnalysis) {
+      return this.getDefaultAnalysis();
+    }
+
+    // Analyze the user message
+    const analysis = analyzeMessage(input.userMessage, input.userEmotion);
+
+    // Detect specific signals
+    const signals: DetectedSignals = {
+      hasEvidence: detectEvidence(input.userMessage),
+      isBreakthrough: detectBreakthrough(input.userMessage),
+      hasHesitation: detectHesitation(input.userMessage),
+      isDisengaged: detectDisengagement(input.userMessage),
+      isHighlyEngaged: detectHighEngagement(input.userMessage),
+      isEmotional: analysis.isEmotional,
+      isHeavy: analysis.isHeavy,
+      isFirstTurn: input.turnNumber <= 1,
+    };
+
+    // Build context
+    const context: AnalysisContext = {
+      energy: analysis.energy,
+      topicWeight: analysis.topicWeight,
+      engagement: analysis.engagement,
+      conversationDepth: this.getConversationDepth(input.turnNumber),
+      needsSupport: signals.isHeavy || signals.isEmotional || input.wasPersonalSharing === true,
+      confidence: analysis.confidence,
+    };
+
+    return { analysis, signals, context };
+  }
+
+  private getDefaultAnalysis(): AnalysisPhaseResult {
+    return {
+      analysis: {
+        energy: 'medium',
+        topicWeight: 'medium',
+        engagement: 'medium',
+        hasEvidence: false,
+        isBreakthrough: false,
+        hasHesitation: false,
+        isEmotional: false,
+        isHeavy: false,
+        confidence: 0.5,
+      },
+      signals: {
+        hasEvidence: false,
+        isBreakthrough: false,
+        hasHesitation: false,
+        isDisengaged: false,
+        isHighlyEngaged: false,
+        isEmotional: false,
+        isHeavy: false,
+        isFirstTurn: false,
+      },
+      context: {
+        energy: 'medium',
+        topicWeight: 'medium',
+        engagement: 'medium',
+        conversationDepth: 'surface',
+        needsSupport: false,
+        confidence: 0.5,
+      },
+    };
+  }
+
+  private getConversationDepth(turnNumber: number): 'surface' | 'medium' | 'deep' {
+    if (turnNumber > 8) return 'deep';
+    if (turnNumber > 4) return 'medium';
+    return 'surface';
+  }
+
+  // ==========================================================================
+  // PHASE 2: INTELLIGENCE
+  // ==========================================================================
+
+  private async runIntelligencePhase(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): Promise<IntelligencePhaseResult> {
+    if (!this.config.enableIntelligence) {
+      return this.getDefaultIntelligence();
+    }
+
+    // Run intelligence systems in parallel where possible
+    const [sessionInsight, superhumanInsight, mood, emotionalGuidance] = await Promise.all([
+      this.getSessionInsight(input, analysis),
+      this.getSuperhumanInsight(input, analysis),
+      this.getMoodState(input, analysis),
+      this.getEmotionalGuidance(),
+    ]);
+
+    // Build combined guidance
+    const guidance = this.buildGuidance(
+      analysis,
+      sessionInsight,
+      superhumanInsight,
+      emotionalGuidance
+    );
+
+    return {
+      sessionInsight,
+      superhumanInsight,
+      mood,
+      emotionalGuidance,
+      guidance,
+    };
+  }
+
+  private async getSessionInsight(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): Promise<IntelligencePhaseResult['sessionInsight']> {
+    if (!this.config.features.sessionIntelligence || !input.userId) {
+      return null;
+    }
+
+    try {
+      const intelligence = getSessionIntelligence(input.sessionId, input.userId);
+      const context: SessionIntelligenceContext = {
+        sessionId: input.sessionId,
+        userId: input.userId,
+        turnCount: input.turnNumber,
+        userMessage: input.userMessage,
+        topic: input.topic,
+        emotion: input.userEmotion,
+        wasVulnerable: input.wasPersonalSharing,
+        isSessionStart: input.turnNumber <= 1,
+        engagementLevel: analysis.context.engagement === 'high' ? 0.8 : 0.5,
+      };
+      return intelligence.analyze(context);
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Session intelligence failed (non-fatal)');
+      return null;
+    }
+  }
+
+  private async getSuperhumanInsight(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): Promise<IntelligencePhaseResult['superhumanInsight']> {
+    if (!this.config.features.betterThanHuman || !input.userId) {
+      return null;
+    }
+
+    try {
+      const orchestrator = getBetterThanHuman(
+        input.userId,
+        input.sessionId,
+        input.personaId,
+        input.sessionCount || 0
+      );
+
+      const context: BetterThanHumanContext = {
+        userMessage: input.userMessage,
+        turnCount: input.turnNumber,
+        sessionCount: input.sessionCount || 0,
+        topic: input.topic,
+        emotion: input.userEmotion,
+        isSessionStart: input.turnNumber <= 1,
+        relationshipStage: this.mapRelationshipStage(input.relationshipStage),
+        personaId: input.personaId,
+        userId: input.userId,
+        sessionId: input.sessionId,
+        draftResponse: input.rawResponse,
+        timeOfDay: this.getTimeOfDay(),
+        dayOfWeek: new Date().getDay(),
+      };
+
+      return orchestrator.analyze(context);
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Better-than-human failed (non-fatal)');
+      return null;
+    }
+  }
+
+  private async getMoodState(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): Promise<IntelligencePhaseResult['mood']> {
+    if (!this.config.features.deepHumanization) {
+      return {
+        energy: 0.75,
+        engagement: 0.7,
+        emotionalLoad: 0,
+        heavyTopicCount: 0,
+        inEmotionalMoment: false,
+      };
+    }
+
+    const engine = getDeepHumanizationEngine(input.personaId);
+    engine.updateMood({
+      userEmotion: input.userEmotion,
+      topicWeight: analysis.context.topicWeight,
+      userEngagement: analysis.context.engagement === 'high' ? 'high' : 'medium',
+      turnCount: input.turnNumber,
+    });
+    return engine.getMood();
+  }
+
+  private async getEmotionalGuidance(): Promise<IntelligencePhaseResult['emotionalGuidance']> {
+    try {
+      const tracker = getEmotionalArcTracker();
+      return tracker.getResponseRecommendation();
+    } catch {
+      return null;
+    }
+  }
+
+  private buildGuidance(
+    analysis: AnalysisPhaseResult,
+    sessionInsight: IntelligencePhaseResult['sessionInsight'],
+    superhumanInsight: IntelligencePhaseResult['superhumanInsight'],
+    emotionalGuidance: IntelligencePhaseResult['emotionalGuidance']
+  ): IntelligenceGuidance {
+    const guidance: IntelligenceGuidance = {
+      approach: 'normal',
+      pacing: 'normal',
+      energyTarget: analysis.context.energy,
+      avoid: [],
+      priorityActions: [],
+    };
+
+    // Adjust based on analysis
+    if (analysis.context.needsSupport) {
+      guidance.approach = 'supportive';
+      guidance.pacing = 'slower';
+    } else if (analysis.signals.isBreakthrough) {
+      guidance.approach = 'celebratory';
+    } else if (analysis.signals.isHighlyEngaged) {
+      guidance.approach = 'energetic';
+    }
+
+    // Incorporate session insight
+    if (sessionInsight) {
+      if (sessionInsight.concern.level === 'elevated' || sessionInsight.concern.level === 'crisis') {
+        guidance.approach = 'cautious';
+        guidance.avoid.push(...sessionInsight.responseGuidance.avoid);
+      }
+
+      // Add priority actions from session insight
+      if (sessionInsight.responseModifications.length > 0) {
+        guidance.priorityActions.push(
+          ...sessionInsight.responseModifications.slice(0, 2).map((m) => ({
+            type: m.type,
+            content: m.content || '',
+            placement: 'prefix' as const,
+            priority: 0.8,
+            reason: 'session_intelligence',
+          }))
+        );
+      }
+    }
+
+    // Incorporate superhuman insight
+    if (superhumanInsight && superhumanInsight.prioritizedActions.length > 0) {
+      guidance.priorityActions.push(
+        ...superhumanInsight.prioritizedActions.slice(0, 2).map((a) => ({
+          type: a.type,
+          content: a.content,
+          placement: a.placement === 'interrupt' ? 'prefix' as const : a.placement,
+          priority: a.priority / 10, // Normalize to 0-1
+          reason: 'superhuman',
+        }))
+      );
+    }
+
+    // Sort by priority and limit
+    guidance.priorityActions.sort((a, b) => b.priority - a.priority);
+    guidance.priorityActions = guidance.priorityActions.slice(0, this.config.maxPriorityActions);
+
+    return guidance;
+  }
+
+  private getDefaultIntelligence(): IntelligencePhaseResult {
+    return {
+      sessionInsight: null,
+      superhumanInsight: null,
+      mood: {
+        energy: 0.75,
+        engagement: 0.7,
+        emotionalLoad: 0,
+        heavyTopicCount: 0,
+        inEmotionalMoment: false,
+      },
+      emotionalGuidance: null,
+      guidance: {
+        approach: 'normal',
+        pacing: 'normal',
+        energyTarget: 'medium',
+        avoid: [],
+        priorityActions: [],
+      },
+    };
+  }
+
+  // ==========================================================================
+  // PHASE 3: HUMANIZATION
+  // ==========================================================================
+
+  private async runHumanizationPhase(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult,
+    intelligence: IntelligencePhaseResult
+  ): Promise<HumanizationPhaseResult> {
+    if (!this.config.enableHumanization) {
+      return {
+        text: input.rawResponse,
+        ssml: input.rawResponse,
+        appliedFeatures: [],
+        skippedFeatures: [],
+        additions: {},
+      };
+    }
+
+    let text = input.rawResponse;
+    let ssml = input.rawResponse;
+    const appliedFeatures: AppliedFeature[] = [];
+    const skippedFeatures: SkippedFeature[] = [];
+    const additions: ResponseAdditions = {};
+
+    // 1. Speech Naturalization
+    if (this.config.features.speechNaturalization) {
+      const result = this.applySpeechNaturalization(text, input, analysis);
+      text = result.text;
+      if (result.applied) {
+        appliedFeatures.push({ name: 'speech_naturalization', source: 'speech' });
+      }
+    }
+
+    // 2. Vocabulary Mirroring
+    const mirrorResult = this.applyVocabularyMirroring(text, input.userMessage);
+    if (mirrorResult.applied) {
+      text = mirrorResult.text;
+      appliedFeatures.push({ name: 'vocabulary_mirroring', source: 'speech' });
+    }
+
+    // 3. Content Delivery Pacing (for long content)
+    if (this.config.features.contentDeliveryPacing && shouldApplyDeliveryPacing(text)) {
+      text = applyDeliveryPacing(text, {
+        personaId: input.personaId,
+        isDirectResponse: input.userMessage.includes('?'),
+      });
+      appliedFeatures.push({ name: 'content_delivery_pacing', source: 'speech' });
+    }
+
+    // 4. Vocal Humanization
+    if (this.config.features.vocalHumanization) {
+      const vocalResult = this.applyVocalHumanization(text, input, analysis, intelligence);
+      text = vocalResult.ssml;
+      ssml = vocalResult.ssml;
+      appliedFeatures.push(...vocalResult.appliedFeatures.map((f) => ({ name: f, source: 'vocal' as const })));
+    }
+
+    // 5. Silence Presence (for heavy moments)
+    if (this.config.features.silencePresence && analysis.context.needsSupport) {
+      const silenceResult = this.applySilencePresence(text, ssml, input, analysis);
+      if (silenceResult.applied) {
+        text = silenceResult.text;
+        ssml = silenceResult.ssml;
+        appliedFeatures.push({ name: 'silence_presence', source: 'deep' });
+      }
+    }
+
+    // 6. Deep Humanization Injections
+    if (this.config.features.deepHumanization) {
+      const deepResult = await this.applyDeepHumanization(text, ssml, input, analysis);
+      text = deepResult.text;
+      ssml = deepResult.ssml;
+      appliedFeatures.push(...deepResult.features);
+    }
+
+    // 7. Advanced Humanization (disfluencies, self-correction)
+    if (this.config.features.advancedHumanization) {
+      const advResult = this.applyAdvancedHumanization(text, ssml, input, analysis, intelligence);
+      text = advResult.text;
+      ssml = advResult.ssml;
+      appliedFeatures.push(...advResult.features);
+      skippedFeatures.push(...advResult.skipped);
+    }
+
+    // 8. Apply Priority Actions from Intelligence
+    const actionResult = this.applyPriorityActions(text, ssml, intelligence.guidance.priorityActions);
+    text = actionResult.text;
+    ssml = actionResult.ssml;
+    appliedFeatures.push(...actionResult.features);
+
+    // 9. Generate Additions (follow-up question, memory callback)
+    const additionsResult = this.generateAdditions(input, analysis);
+    Object.assign(additions, additionsResult);
+
+    return { text, ssml, appliedFeatures, skippedFeatures, additions };
+  }
+
+  private applySpeechNaturalization(
+    text: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): { text: string; applied: boolean } {
+    try {
+      const naturalizer = getSpeechNaturalizer();
+      const context: NaturalizationContext = {
+        emotion: input.userEmotion,
+        topic: input.topic,
+        isSeriousContext: analysis.context.needsSupport,
+        turnNumber: input.turnNumber,
+      };
+      const result = naturalizer.naturalize(text, input.personaId, context);
+      return { text: result, applied: result !== text };
+    } catch {
+      return { text, applied: false };
+    }
+  }
+
+  private applyVocabularyMirroring(
+    text: string,
+    userMessage: string
+  ): { text: string; applied: boolean } {
+    try {
+      const listening = getActiveListeningEngine();
+      const mirrored = listening.mirrorUserVocabulary(userMessage, text);
+      if (mirrored) {
+        return { text: mirrored.mirrored, applied: true };
+      }
+    } catch {
+      // Non-fatal
+    }
+    return { text, applied: false };
+  }
+
+  private applyVocalHumanization(
+    text: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult,
+    intelligence: IntelligencePhaseResult
+  ): { ssml: string; appliedFeatures: string[] } {
+    const context: VocalContext = {
+      userEnergy: analysis.context.energy,
+      emotion: input.userEmotion,
+      isQuestion: text.trim().endsWith('?'),
+      isHeavyContent: analysis.context.needsSupport,
+      turnNumber: input.turnNumber,
+      isMeaningfulMoment: input.wasPersonalSharing,
+      userMessage: input.userMessage,
+    };
+
+    const result = humanizeVocals(text, context);
+    return { ssml: result.ssml, appliedFeatures: result.appliedFeatures };
+  }
+
+  private applySilencePresence(
+    text: string,
+    ssml: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): { text: string; ssml: string; applied: boolean } {
+    try {
+      const engine = getSilencePresenceEngine();
+      const decision = engine.decideSilence({
+        userMessage: input.userMessage,
+        userEmotion: input.userEmotion,
+        turnCount: input.turnNumber,
+        wasPersonalSharing: input.wasPersonalSharing,
+        conversationDepth: analysis.context.conversationDepth,
+        topicWeight: analysis.context.topicWeight,
+      });
+
+      if (decision.useSilence) {
+        const result = engine.applyToResponse(text, decision);
+        return {
+          text: result.text,
+          ssml: decision.ssml + result.ssml,
+          applied: true,
+        };
+      }
+    } catch {
+      // Non-fatal
+    }
+    return { text, ssml, applied: false };
+  }
+
+  private async applyDeepHumanization(
+    text: string,
+    ssml: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): Promise<{ text: string; ssml: string; features: AppliedFeature[] }> {
+    const features: AppliedFeature[] = [];
+
+    try {
+      const engine = getDeepHumanizationEngine(input.personaId);
+      const context = {
+        personaId: input.personaId,
+        turnCount: input.turnNumber,
+        sessionMinutes: input.sessionMinutes,
+        currentHour: new Date().getHours(),
+        userMessage: input.userMessage,
+        recentTopics: input.topic ? [input.topic] : [],
+        relationshipStage: input.relationshipStage || 'acquaintance',
+        sessionData: input.sessionData,
+      };
+
+      const signals = {
+        userPresentedEvidence: analysis.signals.hasEvidence,
+        isBreakthroughMoment: analysis.signals.isBreakthrough,
+        isGivingAdvice: detectAdviceGiving(text),
+        isDisengaged: analysis.signals.isDisengaged,
+        isHighlyEngaged: analysis.signals.isHighlyEngaged,
+      };
+
+      const injections = await engine.getHumanizationInjections(context, signals);
+
+      if (injections.length > 0) {
+        text = engine.applyInjections(text, injections);
+        ssml = engine.applyInjections(ssml, injections);
+        features.push(
+          ...injections.map((i) => ({
+            name: `deep_${i.type}`,
+            source: 'deep' as const,
+            details: { placement: i.placement },
+          }))
+        );
+      }
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Deep humanization failed (non-fatal)');
+    }
+
+    return { text, ssml, features };
+  }
+
+  private applyAdvancedHumanization(
+    text: string,
+    ssml: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult,
+    intelligence: IntelligencePhaseResult
+  ): { text: string; ssml: string; features: AppliedFeature[]; skipped: SkippedFeature[] } {
+    const features: AppliedFeature[] = [];
+    const skipped: SkippedFeature[] = [];
+
+    try {
+      const isEnabled =
+        humanizationConfig.isEnabled('selfCorrection') ||
+        humanizationConfig.isEnabled('disfluency') ||
+        humanizationConfig.isEnabled('emotionalLeading');
+
+      if (!isEnabled) {
+        return { text, ssml, features, skipped };
+      }
+
+      const orchestrator = getHumanizationOrchestrator(input.sessionId);
+
+      // Map energy level
+      const rawEnergy = analysis.context.energy;
+      const userEnergy: 'high' | 'medium' | 'low' = rawEnergy === 'subdued' ? 'low' : rawEnergy;
+
+      const context: Omit<OrchestratorContext, 'responseText' | 'responseWordCount'> = {
+        userMessage: input.userMessage,
+        userWordCount: input.userMessage.split(/\s+/).length,
+        userEnergy,
+        userEmotion: input.userEmotion,
+        turnCount: input.turnNumber,
+        sessionMinutes: input.sessionMinutes,
+        comfortLevel: this.getComfortLevel(input.relationshipStage),
+        relationshipStage: input.relationshipStage || 'acquaintance',
+        personaId: input.personaId,
+        recentTopics: input.topic ? [input.topic] : [],
+        recentHumanizations: [],
+        isEmotionalContent: analysis.context.needsSupport,
+        responseComplexity: text.split(/\s+/).length > 50 ? 0.7 : 0.3,
+        isGivingAdvice: detectAdviceGiving(text),
+      };
+
+      const result = orchestrator.humanize(text, context);
+
+      if (result.appliedHumanizations.length > 0) {
+        text = result.text;
+        ssml = result.ssml || ssml;
+        features.push(
+          ...result.appliedHumanizations.map((h) => ({
+            name: `adv_${h.type}`,
+            source: 'advanced' as const,
+            details: { placement: h.placement },
+          }))
+        );
+      }
+
+      skipped.push(
+        ...result.skippedFeatures.map((s) => ({
+          name: s.feature,
+          reason: s.reason,
+        }))
+      );
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Advanced humanization failed (non-fatal)');
+    }
+
+    return { text, ssml, features, skipped };
+  }
+
+  private applyPriorityActions(
+    text: string,
+    ssml: string,
+    actions: IntelligenceGuidance['priorityActions']
+  ): { text: string; ssml: string; features: AppliedFeature[] } {
+    const features: AppliedFeature[] = [];
+
+    for (const action of actions) {
+      if (!action.content) continue;
+
+      switch (action.placement) {
+        case 'prefix':
+          text = `${action.content} ${text}`;
+          ssml = `${action.content} ${ssml}`;
+          break;
+        case 'suffix':
+          text = `${text} ${action.content}`;
+          ssml = `${ssml} ${action.content}`;
+          break;
+        case 'inline':
+        case 'standalone':
+          // For inline/standalone, prepend for simplicity
+          text = `${action.content} ${text}`;
+          ssml = `${action.content} ${ssml}`;
+          break;
+      }
+
+      features.push({
+        name: `priority_${action.type}`,
+        source: action.reason === 'superhuman' ? 'superhuman' : 'session',
+        details: { reason: action.reason, priority: action.priority },
+      });
+    }
+
+    return { text, ssml, features };
+  }
+
+  private generateAdditions(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult
+  ): ResponseAdditions {
+    const additions: ResponseAdditions = {};
+
+    try {
+      // Memory callback (after turn 4, with probability)
+      if (input.turnNumber > 4 && Math.random() < 0.2) {
+        const memory = getConversationalMemory();
+        const callback = memory.getMemoryCallback(input.topic || 'general', input.turnNumber);
+        if (callback) {
+          additions.memoryCallback = { text: callback.phrase, ssml: callback.ssml };
+        }
+      }
+
+      // Follow-up question (if not already a question, with probability)
+      if (!input.userMessage.includes('?') && Math.random() < 0.35) {
+        const questions = getQuestionPatternEngine();
+        const context: QuestionContext = {
+          topic: input.topic,
+          userEmotion: input.userEmotion,
+          previousUserStatement: input.userMessage,
+          personaId: input.personaId,
+          conversationDepth: analysis.context.conversationDepth,
+        };
+        const question = questions.generateQuestion(context);
+        additions.followUpQuestion = { text: question.text, ssml: question.ssml };
+      }
+    } catch {
+      // Non-fatal
+    }
+
+    return additions;
+  }
+
+  // ==========================================================================
+  // PHASE 4: OUTPUT
+  // ==========================================================================
+
+  private runOutputPhase(
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult,
+    intelligence: IntelligencePhaseResult,
+    humanization: HumanizationPhaseResult,
+    timing: { analysis: number; intelligence: number; humanization: number; output: number; total: number }
+  ): OrchestratorOutput {
+    // Apply SSML enhancements based on emotional guidance
+    let ssml = humanization.ssml;
+    if (intelligence.emotionalGuidance) {
+      ssml = this.applySsmlEnhancements(ssml, intelligence.emotionalGuidance);
+    }
+
+    // Compile all feature names
+    const appliedFeatures = humanization.appliedFeatures.map((f) => f.name);
+
+    return {
+      text: humanization.text,
+      ssml,
+      appliedFeatures,
+      emotionalGuidance: intelligence.emotionalGuidance,
+      pacing: intelligence.guidance.pacing,
+      memoryCallback: humanization.additions.memoryCallback,
+      followUpQuestion: humanization.additions.followUpQuestion,
+      backchannel: humanization.additions.backchannel,
+      metadata: {
+        timing,
+        confidence: {
+          analysis: analysis.context.confidence,
+          intelligence: intelligence.sessionInsight?.confidence || 0.5,
+          overall: (analysis.context.confidence + (intelligence.sessionInsight?.confidence || 0.5)) / 2,
+        },
+        debug: this.config.debug
+          ? {
+              analysisResult: analysis,
+              intelligenceResult: intelligence,
+              humanizationResult: humanization,
+            }
+          : undefined,
+      },
+    };
+  }
+
+  private applySsmlEnhancements(
+    ssml: string,
+    guidance: IntelligencePhaseResult['emotionalGuidance']
+  ): string {
+    if (!guidance) return ssml;
+
+    let result = ssml;
+
+    // Add opening break
+    result = `<break time="100ms"/>${result}`;
+
+    // Add emotion if specified
+    if (guidance.suggestedEmotion && guidance.suggestedEmotion !== 'neutral') {
+      result = `<emotion value="${guidance.suggestedEmotion}"/>${result}`;
+    }
+
+    // Add volume adjustment for support
+    if (guidance.warmthLevel === 'high') {
+      result = `<volume level="soft"/>${result}`;
+    }
+
+    // Add breaks for pause frequency
+    if (guidance.pauseFrequency === 'more') {
+      result = result.replace(/\.(\s)/g, '.<break time="200ms"/>$1');
+    }
+
+    return result;
+  }
+
+  // ==========================================================================
+  // UTILITY METHODS
+  // ==========================================================================
+
+  private getComfortLevel(stage?: string): number {
+    const levels: Record<string, number> = {
+      stranger: 0.25,
+      acquaintance: 0.45,
+      friend: 0.65,
+      trusted_advisor: 0.85,
+    };
+    return levels[stage || 'acquaintance'] || 0.45;
+  }
+
+  private mapRelationshipStage(
+    stage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor'
+  ): 'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend' {
+    const mapping: Record<
+      string,
+      'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend'
+    > = {
+      stranger: 'new_acquaintance',
+      acquaintance: 'getting_to_know',
+      friend: 'trusted_advisor',
+      trusted_advisor: 'old_friend',
+    };
+    return mapping[stage || 'acquaintance'] || 'getting_to_know';
+  }
+
+  private getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    return 'night';
+  }
+
+  /**
+   * Reset session time
+   */
+  resetSession(): void {
+    this.sessionStartTime = Date.now();
+  }
+
+  /**
+   * Get session duration in minutes
+   */
+  getSessionMinutes(): number {
+    return Math.floor((Date.now() - this.sessionStartTime) / (1000 * 60));
+  }
+}
+
+// ============================================================================
+// DEFAULT CONFIG
+// ============================================================================
+
+const DEFAULT_CONFIG: OrchestratorConfig = {
+  enableAnalysis: true,
+  enableIntelligence: true,
+  enableHumanization: true,
+
+  features: {
+    speechNaturalization: true,
+    vocalHumanization: true,
+    advancedHumanization: true,
+    deepHumanization: true,
+    sessionIntelligence: true,
+    betterThanHuman: true,
+    contentDeliveryPacing: true,
+    silencePresence: true,
+  },
+
+  maxHumanizationsPerResponse: 3,
+  maxPriorityActions: 2,
+
+  debug: false,
+};
+
+// ============================================================================
+// SINGLETON MANAGEMENT
+// ============================================================================
+
+const orchestrators = new Map<string, ConversationOrchestrator>();
+
+/**
+ * Get or create an orchestrator for a session
+ */
+export function getConversationOrchestrator(
+  sessionId: string,
+  config?: Partial<OrchestratorConfig>
+): ConversationOrchestrator {
+  if (!orchestrators.has(sessionId)) {
+    orchestrators.set(sessionId, new ConversationOrchestrator(config));
+  }
+  return orchestrators.get(sessionId)!;
+}
+
+/**
+ * Reset orchestrator for a session
+ */
+export function resetConversationOrchestrator(sessionId: string): void {
+  const orchestrator = orchestrators.get(sessionId);
+  if (orchestrator) {
+    orchestrator.resetSession();
+    orchestrators.delete(sessionId);
+  }
+}
+
+/**
+ * Reset all orchestrators
+ */
+export function resetAllOrchestrators(): void {
+  orchestrators.clear();
+}
+
+export default ConversationOrchestrator;

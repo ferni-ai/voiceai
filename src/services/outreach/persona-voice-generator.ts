@@ -13,7 +13,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
-import { quickBrandCheck, autoFixViolations } from '../brand/index.js';
+import { autoFixViolations, quickValidate } from '../brand/index.js';
 
 // ============================================================================
 // TYPES
@@ -1271,7 +1271,7 @@ export function generateOutreach(
   }
 
   // Brand validation - ensure message complies with brand rules
-  const brandCheck = quickBrandCheck(message);
+  const brandCheck = quickValidate(message);
   let finalMessage = message;
   let finalSubject = subject;
 
@@ -1286,7 +1286,7 @@ export function generateOutreach(
 
   // Also check subject if present
   if (subject) {
-    const subjectCheck = quickBrandCheck(subject);
+    const subjectCheck = quickValidate(subject);
     if (subjectCheck.hasBannedContent) {
       const { fixed } = autoFixViolations(subject);
       finalSubject = fixed;

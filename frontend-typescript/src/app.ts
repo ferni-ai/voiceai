@@ -60,6 +60,8 @@ import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
 import { initSoundUI, soundUI } from './ui/sound.ui.js';
 // Ambient Sounds - Background ambience for personalization
 import { initAmbientSounds } from './services/ambient-sounds.service.js';
+// Brand Service - Client-side brand validation
+import { initBrandService } from './services/brand-service.js';
 import { initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Premium button & interactive effects
 import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
@@ -918,6 +920,7 @@ class VoiceAIApp {
     // Premium Features - Initialize all the delightful extras (non-critical)
     this.safeInit('SoundUI', () => initSoundUI());
     this.safeInit('AmbientSounds', () => initAmbientSounds()); // Personalization sound packs
+    this.safeInit('BrandService', () => initBrandService()); // Brand validation preload
     this.safeInit('CelebrationsUI', () => initCelebrationsUI());
     this.safeInit('StatsUI', () => initStatsUI());
     this.safeInit('PresenceUI', () => initPresenceUI());
