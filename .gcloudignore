@@ -118,7 +118,7 @@ temp/
 # ===================
 *.md
 docs/
-brand/
+/brand/
 reference/
 
 # ===================
