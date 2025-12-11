@@ -69,6 +69,9 @@ import { handleHabitRoutes } from './dist/api/habit-routes.js';
 // Wellbeing Dashboard routes (dashboard, trends, insights, snapshots)
 import { handleWellbeingRoutes } from './dist/api/wellbeing-handler.js';
 
+// Predictive Insights routes (energy, burnout, habits, goals, etc.)
+import { handlePredictiveInsightsRequest } from './dist/api/predictive-insights-routes.js';
+
 // Scheduled Jobs routes (for Cloud Scheduler)
 import { handleScheduledJobsRoutes } from './dist/api/scheduled-jobs-handler.js';
 
@@ -873,6 +876,14 @@ const server = http.createServer(async (req, res) => {
     // Wellbeing Dashboard routes (dashboard, trends, insights, snapshots)
     if (pathname.startsWith('/api/wellbeing')) {
       const handled = await handleWellbeingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Predictive Insights routes (energy, burnout, habits, goals, etc.)
+    if (pathname.startsWith('/api/insights')) {
+      // Extract userId from auth token
+      const userId = req.headers['x-user-id'] || 'anonymous';
+      const handled = await handlePredictiveInsightsRequest(req, res, parsedUrl, userId);
       if (handled) return;
     }
 

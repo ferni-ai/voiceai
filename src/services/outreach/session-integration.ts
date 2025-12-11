@@ -13,6 +13,7 @@ import {
   updateEmotionalState as updateContextEmotionalState,
   type OutreachTriggerType,
 } from './index.js';
+import { onSessionEnd as recordPredictiveSignals } from '../predictive-insights/data-collector.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -392,6 +393,21 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     } catch (error) {
       log.warn({ error }, 'Failed to create reengagement trigger');
     }
+  }
+
+  // Record signals for predictive insights system
+  try {
+    const transcript = turns.map((t) => `${t.role}: ${t.content}`).join('\n');
+    await recordPredictiveSignals(userId, `session-${Date.now()}`, transcript, {
+      duration: durationMinutes,
+      userInitiated: true, // Assume user-initiated for voice sessions
+      satisfactionSignal:
+        satisfaction === 'positive' ? 'positive' :
+        satisfaction === 'negative' ? 'negative' : 'neutral',
+    });
+    log.debug({ userId }, '📊 Recorded predictive insight signals');
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to record predictive signals');
   }
 
   log.info(

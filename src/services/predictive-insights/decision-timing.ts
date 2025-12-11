@@ -100,9 +100,7 @@ const userDecisionProfiles = new Map<string, UserDecisionProfile>();
 /**
  * Assess readiness of all pending decisions for a user
  */
-export async function assessDecisionReadiness(
-  userId: string
-): Promise<DecisionReadiness[]> {
+export async function assessDecisionReadiness(userId: string): Promise<DecisionReadiness[]> {
   const profile = userDecisionProfiles.get(userId);
   if (!profile || profile.activeDecisions.size === 0) {
     return [];
@@ -173,8 +171,7 @@ function assessSingleDecision(
 
   // Should surface if decision seems ready or has been pending too long
   const shouldSurface =
-    (isReady && confidence >= 0.5) ||
-    (incubationDays > 30 && mentionCount >= 5);
+    (isReady && confidence >= 0.5) || (incubationDays > 30 && mentionCount >= 5);
 
   return {
     userId,
@@ -205,8 +202,7 @@ function calculateSentimentStability(mentions: DecisionMention[]): number {
 
   // Calculate variance
   const avg = sentiments.reduce((a, b) => a + b, 0) / sentiments.length;
-  const variance =
-    sentiments.reduce((sum, s) => sum + Math.pow(s - avg, 2), 0) / sentiments.length;
+  const variance = sentiments.reduce((sum, s) => sum + Math.pow(s - avg, 2), 0) / sentiments.length;
 
   // Lower variance = higher stability
   // Variance of 0 = stability of 1
@@ -214,9 +210,7 @@ function calculateSentimentStability(mentions: DecisionMention[]): number {
   return Math.max(0, 1 - Math.sqrt(variance));
 }
 
-function getHistoricalPattern(
-  profile: UserDecisionProfile
-): HistoricalDecisionPattern | undefined {
+function getHistoricalPattern(profile: UserDecisionProfile): HistoricalDecisionPattern | undefined {
   const resolved = profile.historicalDecisions.filter((d) => d.resolved);
 
   if (resolved.length < 3) return undefined;
@@ -257,8 +251,7 @@ function getHistoricalPattern(
   }
 
   return {
-    avgIncubationDays:
-      incubationDays.reduce((a, b) => a + b, 0) / incubationDays.length,
+    avgIncubationDays: incubationDays.reduce((a, b) => a + b, 0) / incubationDays.length,
     optimalMentionCount: Math.round(
       mentionCounts.reduce((a, b) => a + b, 0) / mentionCounts.length
     ),
@@ -335,10 +328,10 @@ function generateDecisionMessage(
       message += ` Your best decisions typically happen when you've ${pattern.bestOutcomeConditions[0].toLowerCase()}.`;
     }
     message += ' This one might be ready.';
-    suggestion = "Want to talk through the final decision?";
+    suggestion = 'Want to talk through the final decision?';
   } else if (incubationDays > 30) {
     message = `"${topic}" has been on your mind for over a month. That's a long time to carry uncertainty.`;
-    suggestion = "Sometimes decisions need a deadline. Want to set one?";
+    suggestion = 'Sometimes decisions need a deadline. Want to set one?';
   } else if (mentionCount >= 5 && incubationDays < 7) {
     message = `You've mentioned "${topic}" ${mentionCount} times this week. It's clearly on your mind.`;
     suggestion = "But maybe give it a few more days to settle. Your best decisions aren't rushed.";

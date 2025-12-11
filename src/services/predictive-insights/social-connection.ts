@@ -80,21 +80,21 @@ const MAX_MENTIONS = 100;
  * These are defaults - actual user patterns may differ
  */
 const EXPECTED_FREQUENCY: Record<RelationshipType, number> = {
-  partner: 3,        // Every few days
-  family: 7,         // Weekly
-  close_friend: 10,  // Every week or two
-  friend: 21,        // Every few weeks
-  colleague: 14,     // Every couple weeks
-  acquaintance: 60,  // Monthly or less
+  partner: 3, // Every few days
+  family: 7, // Weekly
+  close_friend: 10, // Every week or two
+  friend: 21, // Every few weeks
+  colleague: 14, // Every couple weeks
+  acquaintance: 60, // Monthly or less
 };
 
 /**
  * Alert thresholds (multiples of usual frequency)
  */
 const ALERT_THRESHOLDS = {
-  minor: 1.5,      // 1.5x usual frequency
-  moderate: 2.0,   // 2x usual frequency
-  significant: 3.0 // 3x usual frequency
+  minor: 1.5, // 1.5x usual frequency
+  moderate: 2.0, // 2x usual frequency
+  significant: 3.0, // 3x usual frequency
 };
 
 // ============================================================================
@@ -104,9 +104,7 @@ const ALERT_THRESHOLDS = {
 /**
  * Check for neglected social connections
  */
-export async function checkSocialConnections(
-  userId: string
-): Promise<SocialConnectionAlert[]> {
+export async function checkSocialConnections(userId: string): Promise<SocialConnectionAlert[]> {
   const socialGraph = userSocialGraphs.get(userId);
   if (!socialGraph || socialGraph.size === 0) {
     return [];
@@ -132,13 +130,7 @@ export async function checkSocialConnections(
     const gapRatio = daysSinceLastMention / usualFrequency;
 
     if (gapRatio >= ALERT_THRESHOLDS.minor) {
-      const alert = createAlert(
-        userId,
-        person,
-        daysSinceLastMention,
-        usualFrequency,
-        gapRatio
-      );
+      const alert = createAlert(userId, person, daysSinceLastMention, usualFrequency, gapRatio);
       alerts.push(alert);
     }
   }
@@ -146,8 +138,7 @@ export async function checkSocialConnections(
   // Sort by severity and importance
   alerts.sort((a, b) => {
     const severityOrder = { significant: 3, moderate: 2, minor: 1 };
-    const severityDiff =
-      severityOrder[b.severity] - severityOrder[a.severity];
+    const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
     if (severityDiff !== 0) return severityDiff;
 
     // Higher importance first
@@ -193,8 +184,7 @@ function createAlert(
 
   // Should surface for moderate+ severity on important relationships
   const shouldSurface =
-    (severity !== 'minor' && person.importance >= 0.5) ||
-    (severity === 'significant');
+    (severity !== 'minor' && person.importance >= 0.5) || severity === 'significant';
 
   return {
     userId,
@@ -222,7 +212,7 @@ function calculateUsualFrequency(person: TrackedPerson): number {
   }
 
   // Calculate from mentions
-  const mentions = person.mentions;
+  const { mentions } = person;
   if (mentions.length < 2) {
     return EXPECTED_FREQUENCY[person.relationshipType];
   }
@@ -264,7 +254,7 @@ function generateSocialMessage(
     case 'significant':
       if (relationshipType === 'partner') {
         message = `I haven't heard you mention ${name} in ${weeks} weeks. Is everything okay?`;
-        suggestion = "That feels like a long time for a partner. Want to talk about it?";
+        suggestion = 'That feels like a long time for a partner. Want to talk about it?';
       } else {
         message = `You haven't mentioned ${name} in ${weeks} weeks. Usually you talk about them ${frequencyDesc}.`;
         suggestion = `Have you checked in with them lately?`;
@@ -315,8 +305,8 @@ export function recordPersonMention(
   userId: string,
   personName: string,
   relationshipType: RelationshipType,
-  context: string = '',
-  sentiment: number = 0
+  context = '',
+  sentiment = 0
 ): void {
   let graph = userSocialGraphs.get(userId);
   if (!graph) {
@@ -333,10 +323,14 @@ export function recordPersonMention(
       name: personName,
       relationshipType,
       mentions: [],
-      importance: relationshipType === 'partner' ? 1.0 :
-                  relationshipType === 'family' ? 0.8 :
-                  relationshipType === 'close_friend' ? 0.7 :
-                  0.5,
+      importance:
+        relationshipType === 'partner'
+          ? 1.0
+          : relationshipType === 'family'
+            ? 0.8
+            : relationshipType === 'close_friend'
+              ? 0.7
+              : 0.5,
     };
     graph.set(personId, person);
   }
@@ -350,20 +344,25 @@ export function recordPersonMention(
   // Recalculate importance based on mention frequency
   if (person.mentions.length >= 5) {
     const recentMentions = person.mentions.slice(-20);
-    const timeSpan = recentMentions.length > 1
-      ? (recentMentions[recentMentions.length - 1].timestamp.getTime() -
-         recentMentions[0].timestamp.getTime()) / (24 * 60 * 60 * 1000)
-      : 1;
+    const timeSpan =
+      recentMentions.length > 1
+        ? (recentMentions[recentMentions.length - 1].timestamp.getTime() -
+            recentMentions[0].timestamp.getTime()) /
+          (24 * 60 * 60 * 1000)
+        : 1;
 
     const frequency = recentMentions.length / Math.max(timeSpan, 1); // mentions per day
 
     // Higher frequency = higher importance (capped by relationship type)
     const frequencyBoost = Math.min(0.3, frequency * 0.1);
     const typeMax =
-      relationshipType === 'partner' ? 1.0 :
-      relationshipType === 'family' ? 0.9 :
-      relationshipType === 'close_friend' ? 0.85 :
-      0.7;
+      relationshipType === 'partner'
+        ? 1.0
+        : relationshipType === 'family'
+          ? 0.9
+          : relationshipType === 'close_friend'
+            ? 0.85
+            : 0.7;
 
     person.importance = Math.min(typeMax, person.importance + frequencyBoost);
   }
@@ -376,7 +375,10 @@ export function recordPersonMention(
   // Clear cached frequency
   person.avgDaysBetweenMentions = undefined;
 
-  log.debug({ userId, personName, mentionCount: person.mentions.length }, 'Recorded person mention');
+  log.debug(
+    { userId, personName, mentionCount: person.mentions.length },
+    'Recorded person mention'
+  );
 }
 
 /**

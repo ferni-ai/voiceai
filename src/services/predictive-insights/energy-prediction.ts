@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { EnergyLevel, EnergyFactor } from './types.js';
+import type { EnergyFactor, EnergyLevel } from './types.js';
 
 const log = createLogger({ module: 'EnergyPrediction' });
 
@@ -96,10 +96,30 @@ function scoreToLevel(score: number): EnergyLevel {
  * Troughs: early morning, post-lunch dip, late evening
  */
 const BASE_HOURLY_ENERGY: Record<number, number> = {
-  0: 1.5, 1: 1.2, 2: 1.0, 3: 1.0, 4: 1.2, 5: 1.5,
-  6: 2.0, 7: 2.5, 8: 3.0, 9: 3.5, 10: 4.0, 11: 3.8,
-  12: 3.5, 13: 3.0, 14: 3.5, 15: 3.8, 16: 3.5, 17: 3.2,
-  18: 3.0, 19: 2.8, 20: 2.5, 21: 2.2, 22: 2.0, 23: 1.8,
+  0: 1.5,
+  1: 1.2,
+  2: 1.0,
+  3: 1.0,
+  4: 1.2,
+  5: 1.5,
+  6: 2.0,
+  7: 2.5,
+  8: 3.0,
+  9: 3.5,
+  10: 4.0,
+  11: 3.8,
+  12: 3.5,
+  13: 3.0,
+  14: 3.5,
+  15: 3.8,
+  16: 3.5,
+  17: 3.2,
+  18: 3.0,
+  19: 2.8,
+  20: 2.5,
+  21: 2.2,
+  22: 2.0,
+  23: 1.8,
 };
 
 /**
@@ -107,13 +127,13 @@ const BASE_HOURLY_ENERGY: Record<number, number> = {
  * Monday drag, Friday anticipation, weekend relaxation
  */
 const DAY_OF_WEEK_MODIFIER: Record<number, number> = {
-  0: 0.9,  // Sunday - recovery
+  0: 0.9, // Sunday - recovery
   1: 0.85, // Monday - drag
-  2: 1.0,  // Tuesday - productive
+  2: 1.0, // Tuesday - productive
   3: 1.05, // Wednesday - midweek peak
-  4: 1.0,  // Thursday - sustained
+  4: 1.0, // Thursday - sustained
   5: 0.95, // Friday - winding down
-  6: 0.9,  // Saturday - relaxed
+  6: 0.9, // Saturday - relaxed
 };
 
 // ============================================================================
@@ -184,7 +204,12 @@ export async function predictEnergy(userId: string): Promise<EnergyPrediction> {
 
     // Generate message and suggestion
     const predictedLevel = scoreToLevel(baseScore);
-    const { message, suggestion } = generateInsight(predictedLevel, windowStart, windowEnd, factors);
+    const { message, suggestion } = generateInsight(
+      predictedLevel,
+      windowStart,
+      windowEnd,
+      factors
+    );
 
     // Determine if we should surface this
     const shouldSurface =
@@ -219,25 +244,25 @@ function calculateTimeBasedScore(date: Date): number {
 }
 
 function getTimeExplanation(hour: number): string {
-  if (hour >= 9 && hour <= 11) return "Mid-morning is typically a peak focus time";
-  if (hour >= 14 && hour <= 16) return "Early afternoon often brings renewed energy";
-  if (hour >= 13 && hour <= 14) return "Post-lunch energy dip is natural";
-  if (hour >= 21 || hour <= 5) return "Late night/early morning - energy naturally low";
-  if (hour >= 6 && hour <= 8) return "Morning ramp-up period";
-  return "Standard energy period";
+  if (hour >= 9 && hour <= 11) return 'Mid-morning is typically a peak focus time';
+  if (hour >= 14 && hour <= 16) return 'Early afternoon often brings renewed energy';
+  if (hour >= 13 && hour <= 14) return 'Post-lunch energy dip is natural';
+  if (hour >= 21 || hour <= 5) return 'Late night/early morning - energy naturally low';
+  if (hour >= 6 && hour <= 8) return 'Morning ramp-up period';
+  return 'Standard energy period';
 }
 
 function getDayExplanation(day: number): string {
   const explanations: Record<number, string> = {
-    0: "Sundays tend toward recovery mode",
-    1: "Monday drag is real for most people",
-    2: "Tuesdays are often highly productive",
-    3: "Midweek energy peak",
-    4: "Thursday - maintaining momentum",
-    5: "Friday anticipation can affect focus",
-    6: "Saturday relaxation mode",
+    0: 'Sundays tend toward recovery mode',
+    1: 'Monday drag is real for most people',
+    2: 'Tuesdays are often highly productive',
+    3: 'Midweek energy peak',
+    4: 'Thursday - maintaining momentum',
+    5: 'Friday anticipation can affect focus',
+    6: 'Saturday relaxation mode',
   };
-  return explanations[day] || "Normal day pattern";
+  return explanations[day] || 'Normal day pattern';
 }
 
 async function getCalendarDensityFactor(
@@ -274,7 +299,7 @@ async function getCalendarDensityFactor(
     } else if (hoursOfMeetings < 2) {
       modifier = 1.1;
       impact = 'positive';
-      explanation = "Light meeting day - more energy for deep work";
+      explanation = 'Light meeting day - more energy for deep work';
     }
 
     return {
@@ -291,24 +316,18 @@ async function getCalendarDensityFactor(
   }
 }
 
-function getPersonalPattern(
-  history: EnergyHistoryEntry[],
-  now: Date
-): { avgScore: number } | null {
+function getPersonalPattern(history: EnergyHistoryEntry[], now: Date): { avgScore: number } | null {
   if (history.length < 10) return null;
 
   // Find entries at similar time and day
   const hour = now.getHours();
   const day = now.getDay();
 
-  const similar = history.filter(
-    (e) => Math.abs(e.hour - hour) <= 1 && e.dayOfWeek === day
-  );
+  const similar = history.filter((e) => Math.abs(e.hour - hour) <= 1 && e.dayOfWeek === day);
 
   if (similar.length < 3) return null;
 
-  const avgScore =
-    similar.reduce((sum, e) => sum + ENERGY_SCORES[e.level], 0) / similar.length;
+  const avgScore = similar.reduce((sum, e) => sum + ENERGY_SCORES[e.level], 0) / similar.length;
 
   return { avgScore };
 }
@@ -326,7 +345,10 @@ async function getRecentStressFactor(
     }
 
     // Use mood and energy from current snapshot (0-1 scale, convert to 0-100)
-    const stressLevel = ((profile.current.dimensions.mood || 0.5) + (profile.current.dimensions.energy || 0.5)) / 2 * 100;
+    const stressLevel =
+      (((profile.current.dimensions.mood || 0.5) + (profile.current.dimensions.energy || 0.5)) /
+        2) *
+      100;
 
     // Higher wellbeing = more energy
     let modifier = 1.0;
@@ -336,11 +358,11 @@ async function getRecentStressFactor(
     if (stressLevel < 40) {
       modifier = 0.8;
       impact = 'negative';
-      explanation = "Recent emotional strain may affect energy";
+      explanation = 'Recent emotional strain may affect energy';
     } else if (stressLevel > 70) {
       modifier = 1.1;
       impact = 'positive';
-      explanation = "Good emotional state supports energy";
+      explanation = 'Good emotional state supports energy';
     }
 
     return {
@@ -373,13 +395,10 @@ function findOptimalWindow(
     let score = BASE_HOURLY_ENERGY[hour] * DAY_OF_WEEK_MODIFIER[day];
 
     // Boost if we have good history for this time
-    const historical = history.filter(
-      (e) => Math.abs(e.hour - hour) <= 1 && e.dayOfWeek === day
-    );
+    const historical = history.filter((e) => Math.abs(e.hour - hour) <= 1 && e.dayOfWeek === day);
     if (historical.length >= 3) {
       const avgHistorical =
-        historical.reduce((sum, e) => sum + ENERGY_SCORES[e.level], 0) /
-        historical.length;
+        historical.reduce((sum, e) => sum + ENERGY_SCORES[e.level], 0) / historical.length;
       score = score * 0.5 + avgHistorical * 0.5;
     }
 
@@ -442,13 +461,13 @@ function generateInsight(
       "This might be good timing for that difficult conversation or creative work you've been putting off.";
   } else if (level === 'moderate') {
     message = `Your energy looks moderate for ${timeStr}.`;
-    suggestion = "Good for routine tasks, but maybe save the big stuff for later.";
+    suggestion = 'Good for routine tasks, but maybe save the big stuff for later.';
   } else {
     message = `Energy might be lower ${timeStr}.`;
     if (negativeFactor) {
       message += ` ${negativeFactor.explanation}.`;
     }
-    suggestion = "Consider lighter tasks or building in breaks.";
+    suggestion = 'Consider lighter tasks or building in breaks.';
   }
 
   return { message, suggestion };

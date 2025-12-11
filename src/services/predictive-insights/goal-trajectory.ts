@@ -195,8 +195,7 @@ function calculateProgressRate(goal: GoalProgress): number {
   const history = goal.progressHistory;
   if (history.length < 2) {
     // Not enough data, assume linear progress
-    const totalDays =
-      (goal.deadline.getTime() - goal.createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    const totalDays = (goal.deadline.getTime() - goal.createdAt.getTime()) / (24 * 60 * 60 * 1000);
     return goal.targetValue / totalDays;
   }
 
@@ -211,19 +210,14 @@ function calculateProgressRate(goal: GoalProgress): number {
   const lastEntry = recentHistory[recentHistory.length - 1];
 
   const valueDiff = lastEntry.value - firstEntry.value;
-  const daysDiff =
-    (lastEntry.date.getTime() - firstEntry.date.getTime()) / (24 * 60 * 60 * 1000);
+  const daysDiff = (lastEntry.date.getTime() - firstEntry.date.getTime()) / (24 * 60 * 60 * 1000);
 
   if (daysDiff === 0) return 0;
 
   return valueDiff / daysDiff; // Units per day
 }
 
-function projectCompletionDate(
-  goal: GoalProgress,
-  progressRate: number,
-  now: Date
-): Date {
+function projectCompletionDate(goal: GoalProgress, progressRate: number, now: Date): Date {
   if (progressRate <= 0) {
     // No progress or negative - project far future
     return new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
@@ -240,8 +234,7 @@ function generateCourseCorrection(
   daysOff: number,
   currentRate: number
 ): CourseCorrection {
-  const daysRemaining =
-    (goal.deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+  const daysRemaining = (goal.deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
   const remaining = goal.targetValue - goal.currentValue;
   const requiredRate = remaining / daysRemaining;
 
@@ -254,12 +247,13 @@ function generateCourseCorrection(
   let effort: 'low' | 'medium' | 'high' = 'medium';
 
   switch (goal.goalType) {
-    case 'savings':
+    case 'savings': {
       const weeklyIncrease = rateIncrease * 7;
       action = `Increase weekly savings by $${weeklyIncrease.toFixed(0)}`;
       impact = `Gets you back on track in ${Math.abs(daysOff)} days`;
       effort = percentIncrease < 20 ? 'low' : percentIncrease < 50 ? 'medium' : 'high';
       break;
+    }
 
     case 'habit':
       action = `Add ${Math.ceil(rateIncrease)} more sessions per week`;
@@ -301,7 +295,7 @@ function generateGoalMessage(
   if (onTrack && daysOff > 7) {
     // Ahead of schedule
     message = `You're ${daysOff} days ahead on "${goal.goalName}"! Current progress: ${currentProgress.toFixed(0)}%.`;
-    suggestion = "Keep this momentum going, or consider raising your target.";
+    suggestion = 'Keep this momentum going, or consider raising your target.';
   } else if (onTrack) {
     // On track
     message = `"${goal.goalName}" is on track. You're at ${currentProgress.toFixed(0)}% with ${Math.ceil((goal.deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000))} days to go.`;
@@ -314,7 +308,7 @@ function generateGoalMessage(
     if (courseCorrection) {
       suggestion = `${courseCorrection.action} and you're back on track.`;
     } else {
-      suggestion = "Want to adjust your timeline or find ways to catch up?";
+      suggestion = 'Want to adjust your timeline or find ways to catch up?';
     }
   }
 
@@ -355,7 +349,9 @@ async function loadGoalsFromSources(userId: string): Promise<void> {
           targetValue: 100, // Goals are typically 0-100% progress
           currentValue: goal.progress || 0,
           unit: 'percent',
-          deadline: goal.smart?.timebound ? new Date(goal.smart.timebound) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          deadline: goal.smart?.timebound
+            ? new Date(goal.smart.timebound)
+            : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
           createdAt: goal.createdAt ? new Date(goal.createdAt) : new Date(),
           progressHistory: [],
         });
@@ -370,7 +366,7 @@ async function loadGoalsFromSources(userId: string): Promise<void> {
   try {
     // Try to load from financial goals
     const { getFinancialStore } = await import('../financial-store.js');
-    const store = await getFinancialStore();
+    const _store = getFinancialStore();
     // Get all savings goals for user by iterating (no bulk get method available)
     // This is a simplified approach - in production would need proper method
     const goalsMap = userGoals.get(userId) || new Map<string, GoalProgress>();
@@ -412,11 +408,7 @@ function mapGoalType(category?: string): GoalProgress['goalType'] {
 /**
  * Record goal progress update
  */
-export function recordGoalProgress(
-  userId: string,
-  goalId: string,
-  currentValue: number
-): void {
+export function recordGoalProgress(userId: string, goalId: string, currentValue: number): void {
   const goals = userGoals.get(userId);
   if (!goals) return;
 
@@ -435,10 +427,7 @@ export function recordGoalProgress(
 /**
  * Add a new goal to track
  */
-export function addGoalToTrack(
-  userId: string,
-  goal: Omit<GoalProgress, 'progressHistory'>
-): void {
+export function addGoalToTrack(userId: string, goal: Omit<GoalProgress, 'progressHistory'>): void {
   let goals = userGoals.get(userId);
   if (!goals) {
     goals = new Map();

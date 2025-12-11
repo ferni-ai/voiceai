@@ -38,14 +38,19 @@ export * from './decision-timing.js';
 export * from './social-connection.js';
 export * from './seasonal-mood.js';
 export * from './habit-decay.js';
-export * from './types.js';
+export * from './outreach-integration.js';
+export * from './data-collector.js';
+export type * from './types.js';
 
 // ============================================================================
 // UNIFIED PREDICTION ENGINE
 // ============================================================================
 
 import { predictEnergy, type EnergyPrediction } from './energy-prediction.js';
-import { assessRelationshipHealth, type RelationshipHealthAssessment } from './relationship-health.js';
+import {
+  assessRelationshipHealth,
+  type RelationshipHealthAssessment,
+} from './relationship-health.js';
 import { projectGoalTrajectory, type GoalTrajectory } from './goal-trajectory.js';
 import { predictBurnoutRisk, type BurnoutPrediction } from './burnout-prediction.js';
 import { assessDecisionReadiness, type DecisionReadiness } from './decision-timing.js';
@@ -66,25 +71,41 @@ export async function runPredictiveAnalysis(userId: string): Promise<PredictiveI
 
   try {
     // Run all predictions in parallel
-    const [
-      energy,
-      relationships,
-      goals,
-      burnout,
-      decisions,
-      social,
-      seasonal,
-      habits,
-    ] = await Promise.all([
-      predictEnergy(userId).catch((e) => { log.warn({ e }, 'Energy prediction failed'); return null; }),
-      assessRelationshipHealth(userId).catch((e) => { log.warn({ e }, 'Relationship health failed'); return null; }),
-      projectGoalTrajectory(userId).catch((e) => { log.warn({ e }, 'Goal trajectory failed'); return null; }),
-      predictBurnoutRisk(userId).catch((e) => { log.warn({ e }, 'Burnout prediction failed'); return null; }),
-      assessDecisionReadiness(userId).catch((e) => { log.warn({ e }, 'Decision timing failed'); return null; }),
-      checkSocialConnections(userId).catch((e) => { log.warn({ e }, 'Social connection failed'); return null; }),
-      predictSeasonalMood(userId).catch((e) => { log.warn({ e }, 'Seasonal mood failed'); return null; }),
-      detectHabitDecay(userId).catch((e) => { log.warn({ e }, 'Habit decay failed'); return null; }),
-    ]);
+    const [energy, relationships, goals, burnout, decisions, social, seasonal, habits] =
+      await Promise.all([
+        predictEnergy(userId).catch((e) => {
+          log.warn({ e }, 'Energy prediction failed');
+          return null;
+        }),
+        assessRelationshipHealth(userId).catch((e) => {
+          log.warn({ e }, 'Relationship health failed');
+          return null;
+        }),
+        projectGoalTrajectory(userId).catch((e) => {
+          log.warn({ e }, 'Goal trajectory failed');
+          return null;
+        }),
+        predictBurnoutRisk(userId).catch((e) => {
+          log.warn({ e }, 'Burnout prediction failed');
+          return null;
+        }),
+        assessDecisionReadiness(userId).catch((e) => {
+          log.warn({ e }, 'Decision timing failed');
+          return null;
+        }),
+        checkSocialConnections(userId).catch((e) => {
+          log.warn({ e }, 'Social connection failed');
+          return null;
+        }),
+        predictSeasonalMood(userId).catch((e) => {
+          log.warn({ e }, 'Seasonal mood failed');
+          return null;
+        }),
+        detectHabitDecay(userId).catch((e) => {
+          log.warn({ e }, 'Habit decay failed');
+          return null;
+        }),
+      ]);
 
     // Convert predictions to insights
     if (energy?.shouldSurface) {
@@ -217,7 +238,11 @@ function goalToInsight(goal: GoalTrajectory, userId: string, now: Date): Predict
   };
 }
 
-function burnoutToInsight(burnout: BurnoutPrediction, userId: string, now: Date): PredictiveInsight {
+function burnoutToInsight(
+  burnout: BurnoutPrediction,
+  userId: string,
+  now: Date
+): PredictiveInsight {
   return {
     id: `burnout_${userId}_${now.getTime()}`,
     type: 'burnout_prediction',
@@ -225,7 +250,12 @@ function burnoutToInsight(burnout: BurnoutPrediction, userId: string, now: Date)
     title: 'Burnout Risk Alert',
     message: burnout.message,
     suggestion: burnout.suggestion,
-    priority: burnout.riskLevel === 'high' ? 'urgent' : burnout.riskLevel === 'moderate' ? 'high' : 'medium',
+    priority:
+      burnout.riskLevel === 'high'
+        ? 'urgent'
+        : burnout.riskLevel === 'moderate'
+          ? 'high'
+          : 'medium',
     confidence: burnout.confidence,
     validUntil: burnout.riskPeakDate,
     createdAt: now,
@@ -239,7 +269,11 @@ function burnoutToInsight(burnout: BurnoutPrediction, userId: string, now: Date)
   };
 }
 
-function decisionToInsight(decision: DecisionReadiness, userId: string, now: Date): PredictiveInsight {
+function decisionToInsight(
+  decision: DecisionReadiness,
+  userId: string,
+  now: Date
+): PredictiveInsight {
   return {
     id: `decision_${userId}_${decision.decisionId}_${now.getTime()}`,
     type: 'decision_timing',
@@ -260,7 +294,11 @@ function decisionToInsight(decision: DecisionReadiness, userId: string, now: Dat
   };
 }
 
-function socialToInsight(alert: SocialConnectionAlert, userId: string, now: Date): PredictiveInsight {
+function socialToInsight(
+  alert: SocialConnectionAlert,
+  userId: string,
+  now: Date
+): PredictiveInsight {
   return {
     id: `social_${userId}_${alert.personId}_${now.getTime()}`,
     type: 'social_connection',
@@ -280,7 +318,11 @@ function socialToInsight(alert: SocialConnectionAlert, userId: string, now: Date
   };
 }
 
-function seasonalToInsight(seasonal: SeasonalMoodPrediction, userId: string, now: Date): PredictiveInsight {
+function seasonalToInsight(
+  seasonal: SeasonalMoodPrediction,
+  userId: string,
+  now: Date
+): PredictiveInsight {
   return {
     id: `seasonal_${userId}_${now.getTime()}`,
     type: 'seasonal_mood',

@@ -19,7 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { BurnoutRiskLevel, BurnoutFactor } from './types.js';
+import type { BurnoutFactor, BurnoutRiskLevel } from './types.js';
 
 const log = createLogger({ module: 'BurnoutPrediction' });
 
@@ -194,9 +194,7 @@ async function analyzeCalendarDensity(
   userId: string
 ): Promise<(BurnoutFactor & { peakDate?: Date }) | null> {
   try {
-    const { getCalendarBusyProfile } = await import(
-      '../calendar-busy-detection.js'
-    );
+    const { getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
 
     // Get today's busy profile
     const todayProfile = await getCalendarBusyProfile(userId);
@@ -439,13 +437,9 @@ function analyzeHistoricalPattern(
   if (!profile || profile.history.length === 0) return null;
 
   // Check if current conditions match past burnout triggers
-  const currentTriggers = currentFactors
-    .filter((f) => f.score >= 60)
-    .map((f) => f.factor);
+  const currentTriggers = currentFactors.filter((f) => f.score >= 60).map((f) => f.factor);
 
-  const matchingTriggers = profile.knownTriggers.filter((t) =>
-    currentTriggers.includes(t)
-  );
+  const matchingTriggers = profile.knownTriggers.filter((t) => currentTriggers.includes(t));
 
   let score = 0;
   let observation = '';
@@ -485,9 +479,7 @@ function generateBurnoutInsight(
   factors: BurnoutFactor[],
   profile?: UserBurnoutProfile
 ): { message: string; suggestion: string; recoveryActions: string[] } {
-  const topFactors = factors
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 2);
+  const topFactors = factors.sort((a, b) => b.score - a.score).slice(0, 2);
 
   let message = '';
   let suggestion = '';
@@ -506,7 +498,7 @@ function generateBurnoutInsight(
       break;
 
     case 'high':
-      message = `I'm seeing burnout warning signs. ${topFactors[0]?.observation || 'You\'re running hot.'}`;
+      message = `I'm seeing burnout warning signs. ${topFactors[0]?.observation || "You're running hot."}`;
       suggestion = 'This is the inflection point. Small changes now prevent bigger problems.';
       recoveryActions = [
         'Decline one non-essential meeting this week',
@@ -528,7 +520,7 @@ function generateBurnoutInsight(
 
     default:
       message = 'Burnout risk looks manageable right now.';
-      suggestion = 'Keep doing what you\'re doing.';
+      suggestion = "Keep doing what you're doing.";
       recoveryActions = ['Maintain current boundaries'];
   }
 
@@ -543,9 +535,8 @@ function generateBurnoutInsight(
 function calculateConfidence(factors: BurnoutFactor[]): number {
   // More factors = more confidence
   const factorCount = factors.length;
-  const avgScore = factors.length > 0
-    ? factors.reduce((sum, f) => sum + f.score, 0) / factors.length
-    : 0;
+  const avgScore =
+    factors.length > 0 ? factors.reduce((sum, f) => sum + f.score, 0) / factors.length : 0;
 
   let confidence = 0.3;
   if (factorCount >= 5) confidence += 0.3;

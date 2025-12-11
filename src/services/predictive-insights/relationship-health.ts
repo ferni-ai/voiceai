@@ -302,16 +302,16 @@ function generateRelationshipMessage(
 
   if (languageShift && languageShift.significance > 0.3) {
     message = `I've noticed your mentions of ${personName} have shifted from "we" to "I" lately. Sometimes that signals something brewing.`;
-    suggestion = "Want to talk about how things are going with them?";
+    suggestion = 'Want to talk about how things are going with them?';
   } else if (trend === 'declining') {
     message = `The way you talk about ${personName} seems different lately. There's been a subtle shift.`;
     suggestion = "I'm here if you want to unpack what's going on there.";
   } else if (daysSincePositive > 21) {
     message = `It's been a while since you mentioned something positive about ${personName}. Just noticing.`;
-    suggestion = "How are things between you two?";
+    suggestion = 'How are things between you two?';
   } else {
     message = `I've been tracking how you talk about ${personName}. Something feels a bit off.`;
-    suggestion = "Is there something on your mind about them?";
+    suggestion = 'Is there something on your mind about them?';
   }
 
   if (severity === 'urgent') {
@@ -346,7 +346,7 @@ export function recordRelationshipMention(
   sentiment: number,
   pronouns: { we: number; i: number; they: number },
   topics: string[] = [],
-  emotionalTone: string = 'neutral'
+  emotionalTone = 'neutral'
 ): void {
   let userRels = userRelationships.get(userId);
   if (!userRels) {

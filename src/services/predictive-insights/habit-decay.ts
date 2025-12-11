@@ -82,12 +82,12 @@ const MAX_COMPLETIONS = 180; // 6 months
 // ============================================================================
 
 const ANALYSIS_WINDOWS = {
-  recent: 14,    // Last 14 days
-  baseline: 28,  // Previous 28 days (before recent)
+  recent: 14, // Last 14 days
+  baseline: 28, // Previous 28 days (before recent)
 };
 
 const DECAY_THRESHOLDS = {
-  minor: 0.2,     // 20% frequency drop
+  minor: 0.2, // 20% frequency drop
   moderate: 0.35, // 35% frequency drop
   significant: 0.5, // 50% frequency drop
 };
@@ -99,9 +99,7 @@ const DECAY_THRESHOLDS = {
 /**
  * Detect decaying habits for a user
  */
-export async function detectHabitDecay(
-  userId: string
-): Promise<HabitDecayWarning[]> {
+export async function detectHabitDecay(userId: string): Promise<HabitDecayWarning[]> {
   const habits = userHabits.get(userId);
   if (!habits || habits.size === 0) {
     // Try to load from external sources
@@ -128,10 +126,7 @@ export async function detectHabitDecay(
   return warnings;
 }
 
-function analyzeHabitDecay(
-  userId: string,
-  habit: TrackedHabit
-): HabitDecayWarning | null {
+function analyzeHabitDecay(userId: string, habit: TrackedHabit): HabitDecayWarning | null {
   const now = Date.now();
 
   // Need enough history
@@ -145,9 +140,7 @@ function analyzeHabitDecay(
     now - (ANALYSIS_WINDOWS.recent + ANALYSIS_WINDOWS.baseline) * 24 * 60 * 60 * 1000
   );
 
-  const recentCompletions = habit.completions.filter(
-    (c) => c.date >= recentCutoff && c.completed
-  );
+  const recentCompletions = habit.completions.filter((c) => c.date >= recentCutoff && c.completed);
   const baselineCompletions = habit.completions.filter(
     (c) => c.date >= baselineCutoff && c.date < recentCutoff && c.completed
   );
@@ -173,11 +166,7 @@ function analyzeHabitDecay(
   }
 
   // Project days until abandonment
-  const daysUntilAbandonment = projectAbandonment(
-    recentFrequency,
-    baselineFrequency,
-    decayRate
-  );
+  const daysUntilAbandonment = projectAbandonment(recentFrequency, baselineFrequency, decayRate);
 
   // Generate message and interventions
   const { message, suggestion, interventions } = generateDecayInsight(
@@ -188,15 +177,10 @@ function analyzeHabitDecay(
   );
 
   // Calculate confidence
-  const confidence = calculateConfidence(
-    habit.completions.length,
-    decayRate,
-    baselineFrequency
-  );
+  const confidence = calculateConfidence(habit.completions.length, decayRate, baselineFrequency);
 
   // Should surface if decay is moderate+ and confidence is decent
-  const shouldSurface =
-    decayRate >= DECAY_THRESHOLDS.moderate && confidence >= 0.5;
+  const shouldSurface = decayRate >= DECAY_THRESHOLDS.moderate && confidence >= 0.5;
 
   return {
     userId,
@@ -229,7 +213,7 @@ function projectAbandonment(
 
   // Simple linear projection
   // How many more decay cycles until frequency hits ~0?
-  const decayPerWeek = baselineFrequency * decayRate / 2; // Assume decay rate measured over 2 weeks
+  const decayPerWeek = (baselineFrequency * decayRate) / 2; // Assume decay rate measured over 2 weeks
   const weeksUntilZero = currentFrequency / decayPerWeek;
 
   return Math.max(1, Math.round(weeksUntilZero * 7));
@@ -260,13 +244,14 @@ function generateDecayInsight(
 
   if (decayRate >= DECAY_THRESHOLDS.significant) {
     message = `Your ${habit.name} has dropped from ${freqDescription(baselineFreq)} to ${freqDescription(currentFreq)}. That's a significant shift.`;
-    suggestion = "This is often the inflection point before a habit fades completely. Want to troubleshoot?";
+    suggestion =
+      'This is often the inflection point before a habit fades completely. Want to troubleshoot?';
   } else if (decayRate >= DECAY_THRESHOLDS.moderate) {
     message = `I've noticed your ${habit.name} slipping from ${freqDescription(baselineFreq)} to ${freqDescription(currentFreq)}.`;
-    suggestion = "Small adjustments now are easier than rebuilding later.";
+    suggestion = 'Small adjustments now are easier than rebuilding later.';
   } else {
     message = `Your ${habit.name} has dipped slightly. Currently ${freqDescription(currentFreq)} instead of ${freqDescription(baselineFreq)}.`;
-    suggestion = "Just flagging it. Might be a blip or might be worth watching.";
+    suggestion = 'Just flagging it. Might be a blip or might be worth watching.';
   }
 
   // Generate interventions based on habit type
@@ -275,10 +260,7 @@ function generateDecayInsight(
   return { message, suggestion, interventions };
 }
 
-function generateInterventions(
-  habit: TrackedHabit,
-  decayRate: number
-): HabitIntervention[] {
+function generateInterventions(habit: TrackedHabit, decayRate: number): HabitIntervention[] {
   const interventions: HabitIntervention[] = [];
 
   // Universal interventions
@@ -450,9 +432,7 @@ async function loadHabitsFromSources(userId: string): Promise<void> {
         if (!habitsMap.has(streak.ritualId)) {
           // Get start date from streak history if available
           const firstHistory = streak.streakHistory?.[0];
-          const createdAt = firstHistory?.startDate
-            ? new Date(firstHistory.startDate)
-            : new Date();
+          const createdAt = firstHistory?.startDate ? new Date(firstHistory.startDate) : new Date();
 
           habitsMap.set(streak.ritualId, {
             id: streak.ritualId,
@@ -563,7 +543,7 @@ export function addHabitToTrack(
   habitId: string,
   name: string,
   category: TrackedHabit['category'],
-  targetFrequency: number = 7
+  targetFrequency = 7
 ): void {
   let habits = userHabits.get(userId);
   if (!habits) {

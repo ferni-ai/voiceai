@@ -686,6 +686,35 @@ export class EngagementStore {
       throw error;
     }
   }
+
+  /**
+   * Get user IDs that have been active in the last N days
+   */
+  async getActiveUserIds(daysActive = 30): Promise<string[]> {
+    if (!this.db) {
+      getLogger().warn('Firestore not initialized');
+      return [];
+    }
+
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - daysActive);
+      const cutoffTimestamp = cutoff.toISOString();
+
+      // Query Firestore for users active since cutoff
+      const snapshot = await this.db
+        .collection('engagement_profiles')
+        .where('lastEngagementAt', '>=', cutoffTimestamp)
+        .get();
+
+      const userIds = snapshot.docs.map((doc) => doc.id);
+      getLogger().debug({ userCount: userIds.length, daysActive }, 'Got active user IDs');
+      return userIds;
+    } catch (error) {
+      getLogger().error({ error }, 'Failed to get active user IDs');
+      return [];
+    }
+  }
 }
 
 // ============================================================================

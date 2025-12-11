@@ -161,9 +161,7 @@ function getSeasonDateRange(
 /**
  * Predict seasonal mood patterns for a user
  */
-export async function predictSeasonalMood(
-  userId: string
-): Promise<SeasonalMoodPrediction> {
+export async function predictSeasonalMood(userId: string): Promise<SeasonalMoodPrediction> {
   const now = new Date();
   const profile = await getOrCreateProfile(userId);
 
@@ -188,8 +186,7 @@ export async function predictSeasonalMood(
   }
 
   // Determine severity
-  const severity = predictedMood < 40 ? 'significant' :
-                   predictedMood < 55 ? 'moderate' : 'mild';
+  const severity = predictedMood < 40 ? 'significant' : predictedMood < 55 ? 'moderate' : 'mild';
 
   // Generate support strategies
   const supportStrategies = generateSupportStrategies(
@@ -215,8 +212,7 @@ export async function predictSeasonalMood(
 
   // Should surface if moderate+ severity with decent confidence
   const shouldSurface =
-    (severity !== 'mild' && confidence >= 0.5) ||
-    (upcomingSignificantDate !== null);
+    (severity !== 'mild' && confidence >= 0.5) || upcomingSignificantDate !== null;
 
   return {
     userId,
@@ -259,12 +255,13 @@ async function getOrCreateProfile(userId: string): Promise<UserSeasonalProfile> 
         for (const snapshot of snapshots) {
           // Calculate overall score from dimensions (0-1 scale, convert to 0-100)
           const dims = snapshot.dimensions;
-          const overallScore = (
-            (dims.mood || 0.5) +
-            (dims.energy || 0.5) +
-            (1 - (dims.worry || 0.5)) + // Invert worry
-            (dims.hopefulness || 0.5)
-          ) / 4 * 100;
+          const overallScore =
+            (((dims.mood || 0.5) +
+              (dims.energy || 0.5) +
+              (1 - (dims.worry || 0.5)) + // Invert worry
+              (dims.hopefulness || 0.5)) /
+              4) *
+            100;
 
           profile.moodHistory.push({
             date: snapshot.timestamp,
@@ -293,9 +290,7 @@ async function analyzeHistoricalPattern(
 
   // Need at least a year of data
   const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-  const historicalEntries = profile.moodHistory.filter(
-    (e) => e.date < oneYearAgo
-  );
+  const historicalEntries = profile.moodHistory.filter((e) => e.date < oneYearAgo);
 
   if (historicalEntries.length < 30) {
     return undefined;
@@ -328,8 +323,7 @@ async function analyzeHistoricalPattern(
   }
 
   // Calculate pattern
-  const avgMoodScore =
-    seasonEntries.reduce((sum, e) => sum + e.score, 0) / seasonEntries.length;
+  const avgMoodScore = seasonEntries.reduce((sum, e) => sum + e.score, 0) / seasonEntries.length;
 
   // Find common themes
   const themeCounts = new Map<string, number>();
@@ -370,16 +364,12 @@ function findUpcomingSignificantDate(
 
     // Calculate days until this date
     const thisYearDate = new Date(now.getFullYear(), sigMonth - 1, sigDay);
-    let daysUntil = Math.floor(
-      (thisYearDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-    );
+    let daysUntil = Math.floor((thisYearDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
     // If date passed this year, check next year
     if (daysUntil < 0) {
       const nextYearDate = new Date(now.getFullYear() + 1, sigMonth - 1, sigDay);
-      daysUntil = Math.floor(
-        (nextYearDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-      );
+      daysUntil = Math.floor((nextYearDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
     }
 
     if (daysUntil >= 0 && daysUntil <= 14) {
@@ -445,7 +435,7 @@ function generateSupportStrategies(
       strategies.push("It's okay to skip events that drain you");
       break;
     case 'fall':
-      strategies.push('Transition seasons can be unsettling - that\'s normal');
+      strategies.push("Transition seasons can be unsettling - that's normal");
       break;
   }
 
@@ -497,7 +487,7 @@ function generateSeasonalMessage(
     suggestion = "I'm paying attention. We'll take it as it comes.";
   } else {
     message = `${periodName} looks manageable based on your patterns.`;
-    suggestion = "Enjoying the season?";
+    suggestion = 'Enjoying the season?';
   }
 
   return { message, suggestion };
@@ -560,7 +550,7 @@ export function addSignificantDate(
   date: string, // MM-DD format
   type: 'anniversary' | 'loss' | 'birthday' | 'other',
   description: string,
-  associatedMood: number = 50
+  associatedMood = 50
 ): void {
   let profile = userSeasonalProfiles.get(userId);
   if (!profile) {

@@ -99,6 +99,28 @@ async function runProactiveOutreach(res: ServerResponse): Promise<void> {
   }
 }
 
+async function runPredictiveInsights(res: ServerResponse): Promise<void> {
+  try {
+    const { runDailyPredictiveOutreach } =
+      await import('../services/predictive-insights/outreach-integration.js');
+
+    // Get active users from engagement store
+    const { getEngagementStore } = await import('../services/engagement-store.js');
+    const store = await getEngagementStore();
+
+    const result = await runDailyPredictiveOutreach(async () => {
+      // Get all users who've been active in last 30 days
+      return store.getActiveUserIds(30);
+    });
+
+    log.info({ result }, 'Predictive insights job completed');
+    sendJson(res, 200, { success: true, job: 'predictiveInsights', result });
+  } catch (error) {
+    log.error({ error }, 'Predictive insights job failed');
+    sendJson(res, 500, { success: false, job: 'predictiveInsights', error: String(error) });
+  }
+}
+
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
@@ -147,6 +169,12 @@ export async function handleScheduledJobsRoutes(
   // POST /api/jobs/proactive-outreach
   if (pathname === '/api/jobs/proactive-outreach' && req.method === 'POST') {
     await runProactiveOutreach(res);
+    return true;
+  }
+
+  // POST /api/jobs/predictive-insights
+  if (pathname === '/api/jobs/predictive-insights' && req.method === 'POST') {
+    await runPredictiveInsights(res);
     return true;
   }
 

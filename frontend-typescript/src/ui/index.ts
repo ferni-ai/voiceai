@@ -164,6 +164,16 @@ export type {
 export { PredictionsUI, getPredictionsUI, initializePredictionsUI } from './predictions.ui.js';
 export type { PredictionsUIData } from './predictions.ui.js';
 
+// Predictive Insights UI (proactive predictions)
+export {
+  getPredictiveInsightsUI,
+  initPredictiveInsights,
+  showPredictiveInsight,
+  dismissPredictiveInsight,
+  showInsightFromAPI,
+} from './predictive-insights.ui.js';
+export type { InsightCard, InsightType } from './predictive-insights.ui.js';
+
 // Engagement Trigger Buttons
 export { engagementTriggerUI, initEngagementTriggerUI } from './engagement-trigger.ui.js';
 export type { EngagementBadgeState, EngagementTriggerCallbacks } from './engagement-trigger.ui.js';
@@ -321,6 +331,22 @@ export type {
   OutreachPreferences,
   OutreachPreferencesCallbacks,
 } from './outreach-preferences.ui.js';
+
+// Outreach Schedule UI - View upcoming and past check-ins
+export {
+  closeOutreachSchedule,
+  initializeOutreachScheduleUI,
+  openOutreachSchedule,
+  outreachSchedule,
+} from './outreach-schedule.ui.js';
+
+// Next Check-in Widget - Embeddable widget showing next scheduled outreach
+export {
+  mountNextCheckinWidget,
+  nextCheckinWidget,
+  refreshNextCheckin,
+  unmountNextCheckinWidget,
+} from './next-checkin.ui.js';
 
 // Trust Analytics Dashboard - Admin monitoring view
 export {
