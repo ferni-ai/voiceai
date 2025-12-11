@@ -9,6 +9,8 @@
 
 // Route handlers
 export { handleBrandRoutes } from './brand-routes.js';
+export { handleCommandsRoutes } from './commands-routes.js';
+export { handleWidgetRoutes } from './widget-routes.js';
 export { handleDORARoutes } from './dora-routes.js';
 export { handleEngagementRoutes } from './engagement-routes.js';
 export { handleFeatureFlagsRoutes } from './feature-flags-routes.js';
