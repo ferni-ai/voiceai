@@ -271,15 +271,19 @@ import { getHumanListeningPipeline } from '../speech/human-listening-pipeline.js
 // Speech Metrics & Dynamic Speed Integration (new unified systems)
 import {
   applyDynamicSpeed,
+  calculatePersonaAdjustedSpeed,
   cleanupDynamicSpeed,
-  getPersonaBaseSpeed,
+  getPersonaSpeedProfile,
 } from './integrations/dynamic-speed-integration.js';
 import {
   finalizeSpeechMetrics,
   initializeSpeechMetrics,
   logMetricsSummary,
+  trackBackchannelEvent,
   trackConversationTurn,
   trackEmotionDetection,
+  trackResponseLatency,
+  validateTurnPrediction,
 } from './integrations/speech-metrics-integration.js';
 
 // ============================================================================
@@ -898,6 +902,7 @@ class VoiceAgent extends voice.Agent<UserData> {
 
             // ============================================================
             // DYNAMIC SPEED: Adjust speech rate based on context
+            // Uses full persona profile system for nuanced adjustments
             // ============================================================
             const dynamicSpeedSessionId = userData?.services?.sessionId;
             if (dynamicSpeedSessionId) {
@@ -906,20 +911,68 @@ class VoiceAgent extends voice.Agent<UserData> {
                   await import('../intelligence/context-builders/human-listening.js');
                 const listeningResult = getHumanListeningResult(dynamicSpeedSessionId);
 
+                // Get full persona profile for this persona
+                const personaProfile = getPersonaSpeedProfile(agent.persona.id);
+
+                // Derive emotional intensity from arc and listening result
+                const arcData = emotionalArc.getArc();
+                // Convert tremor intensity string to number
+                const tremorIntensity = listeningResult?.audio?.tremor?.intensity;
+                const tremorScore =
+                  tremorIntensity === 'pronounced'
+                    ? 0.9
+                    : tremorIntensity === 'noticeable'
+                      ? 0.6
+                      : tremorIntensity === 'subtle'
+                        ? 0.3
+                        : 0;
+                const emotionalIntensity = Math.max(
+                  Math.abs(arcData.currentValence || 0),
+                  arcData.currentArousal || 0,
+                  tremorScore
+                );
+
+                // Derive content complexity from listening result
+                const contentComplexity =
+                  listeningResult?.text?.cognitiveLoad?.level === 'high'
+                    ? 0.8
+                    : listeningResult?.text?.cognitiveLoad?.level === 'medium'
+                      ? 0.5
+                      : 0.3;
+
+                // Determine topic weight from emotional context
+                const topicWeight: 'light' | 'medium' | 'heavy' =
+                  (arcData.currentValence ?? 0) < -0.3 || emotionalIntensity > 0.7
+                    ? 'heavy'
+                    : (arcData.currentValence ?? 0) > 0.3
+                      ? 'light'
+                      : 'medium';
+
+                // Calculate persona-adjusted base speed
+                const personaSpeed = calculatePersonaAdjustedSpeed(agent.persona.id, {
+                  emotionalIntensity,
+                  contentComplexity,
+                  topicWeight,
+                  isQuestion: taggedText.includes('?'),
+                });
+
                 const speedResult = applyDynamicSpeed(taggedText, {
                   sessionId: dynamicSpeedSessionId,
                   personaId: agent.persona.id,
-                  emotionalArc: emotionalArc.getArc(),
+                  emotionalArc: arcData,
                   listeningResult: listeningResult || undefined,
-                  topicWeight: 'medium', // Default - could be enhanced with topic detection
+                  topicWeight,
                   turnNumber: userData?.turnCount || 0,
-                  baseSpeed: getPersonaBaseSpeed(agent.persona.id),
+                  baseSpeed: personaSpeed.speed, // Use persona-adjusted speed
                 });
 
                 if (speedResult.wasAdjusted) {
                   taggedText = speedResult.ssmlText;
                   diag.debug('⏱️ Dynamic speed applied', {
                     speed: speedResult.speedResult.speedMultiplier,
+                    personaBase: personaProfile.baseSpeed,
+                    personaAdjusted: personaSpeed.speed.toFixed(2),
+                    personaReason: personaSpeed.reason,
                     reason: speedResult.speedResult.reason,
                   });
                 }
@@ -2309,6 +2362,20 @@ export default defineAgent({
               // Non-fatal
             }
 
+            // Warm caches in background (non-blocking)
+            try {
+              const { warmCachesOnStartup } = await import('../services/cache-warming.js');
+              const { startCacheMaintenance } = await import('../services/cache-monitoring.js');
+              // Fire-and-forget cache warming
+              warmCachesOnStartup().catch(() => {
+                // Ignore warming errors - caches will fill on demand
+              });
+              // Start periodic cache maintenance (every 15 min)
+              startCacheMaintenance();
+            } catch {
+              // Non-fatal - caches will fill on demand
+            }
+
             proc.userData.prewarmComplete = true;
             process.stderr.write(
               `[voice-agent] PREWARM COMPLETE pid=${process.pid} elapsed=${Date.now() - startTime}ms\n`
@@ -3164,9 +3231,19 @@ export default defineAgent({
         })();
       });
 
+      // Track when user finished speaking for response latency calculation
+      let userFinishedSpeakingAt = 0;
+
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
         if (event.newState === 'speaking') {
           conversationManager.handleAgentStartedSpeaking('');
+
+          // Track response latency: time from user finish to agent start
+          if (userFinishedSpeakingAt > 0) {
+            const responseLatency = Date.now() - userFinishedSpeakingAt;
+            trackResponseLatency(sessionId, responseLatency);
+            userFinishedSpeakingAt = 0; // Reset after tracking
+          }
 
           // 🌍 Check for mid-session accent changes
           // This applies any pending accent change before the agent speaks
@@ -3281,10 +3358,29 @@ export default defineAgent({
           try {
             // Say the backchannel with SSML - allow interruption
             session.say(backchannel.ssml, { allowInterruptions: true });
-            lastBackchannelAt = Date.now();
+            const backchannelFiredAt = Date.now();
+            const pauseDuration = backchannelFiredAt - lastBackchannelAt;
+            lastBackchannelAt = backchannelFiredAt;
 
             // Track that we gave a backchannel (for reaction analysis)
             pendingBackchannelReaction = true;
+
+            // Track detailed backchannel event in unified metrics
+            // Backchannel types: 'acknowledgment' | 'understanding' | 'encouragement' | 'empathy' | 'agreement' | 'surprise' | 'thinking'
+            trackBackchannelEvent(sessionId, {
+              pauseDurationMs: pauseDuration,
+              wasTimely: true, // Assume timely initially, will validate later
+              category:
+                backchannel.type === 'empathy'
+                  ? 'empathy'
+                  : backchannel.type === 'encouragement'
+                    ? 'encouragement'
+                    : backchannel.type === 'agreement'
+                      ? 'affirmation'
+                      : 'acknowledgment',
+              userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
+              mode: 'adaptive',
+            });
 
             diag.state('Backchannel fired', {
               text: backchannel.verbal,
@@ -3304,6 +3400,9 @@ export default defineAgent({
         if (event.newState === 'speaking') {
           userLastSpokeAt = Date.now();
           userData.userSpeakingStartTime = userLastSpokeAt;
+
+          // Validate turn prediction: user continued speaking
+          validateTurnPrediction(sessionId, 'user_continued');
 
           // Check if user responded to our backchannel (within 10 seconds)
           if (pendingBackchannelReaction && Date.now() - lastBackchannelAt < 10000) {
@@ -3353,6 +3452,12 @@ export default defineAgent({
             clearTimeout(backchannelTimer);
             backchannelTimer = null;
           }
+
+          // Validate turn prediction: user finished speaking
+          validateTurnPrediction(sessionId, 'user_finished');
+
+          // Record timestamp for response latency tracking
+          userFinishedSpeakingAt = Date.now();
 
           if (userData.userSpeakingStartTime) {
             conversationManager.handleUserFinishedSpeaking(
