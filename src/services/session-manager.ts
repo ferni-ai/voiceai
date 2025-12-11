@@ -59,6 +59,8 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
+  // Session priming for cross-session continuity
+  getSessionPrimer,
 } from '../memory/index.js';
 
 // Intelligence imports
@@ -410,6 +412,67 @@ export async function createSessionServices(
   crossSessionThreader.setCurrentSession(sessionId);
 
   // ============================================================================
+  // SESSION PRIMING (for returning users)
+  // Generate natural openers and surface relevant context for "better than human" continuity
+  // ============================================================================
+
+  let sessionPriming: SessionServices['sessionPriming'];
+  if (userProfile && isReturningUser && validatedUserId) {
+    try {
+      const primer = getSessionPrimer();
+
+      // Get recent conversation summaries for context
+      const recentSummaries = userProfile.conversationSummaries?.slice(-5) || [];
+
+      // Generate priming context (passing empty memories array for now - could enhance later)
+      const primingResult = await primer.generatePrimingContext(
+        userProfile,
+        [], // memories - could populate from vector store later
+        recentSummaries
+      );
+
+      sessionPriming = {
+        suggestedOpener: primingResult.suggestedOpener,
+        openThreads: primingResult.openThreads.map((t: { topic: string; priority: string }) => ({
+          topic: t.topic,
+          urgency: t.priority as 'high' | 'medium' | 'low',
+        })),
+        pendingFollowUps: primingResult.pendingFollowUps.map((f: { commitment: string; dueDate?: Date }) => ({
+          topic: f.commitment,
+          dueDate: f.dueDate?.toISOString(),
+        })),
+        emotionalContext: primingResult.emotionalContext
+          ? {
+              trend: primingResult.emotionalContext.sessionEndState,
+              lastEmotion: primingResult.emotionalContext.lastSessionMood,
+            }
+          : undefined,
+        relationshipContext: primingResult.relationshipContext
+          ? {
+              stage: primingResult.relationshipContext.relationshipStage,
+              sessionsCount: primingResult.relationshipContext.sessionCount,
+            }
+          : undefined,
+        naturalGreetingHints: primingResult.emotionalContext?.carePoints || [],
+      };
+
+      getLogger().info(
+        {
+          openThreads: sessionPriming.openThreads.length,
+          pendingFollowUps: sessionPriming.pendingFollowUps.length,
+          suggestedOpenerPreview: sessionPriming.suggestedOpener.slice(0, 50),
+        },
+        '🎯 Session priming generated for returning user'
+      );
+    } catch (primingError) {
+      getLogger().debug(
+        { error: String(primingError) },
+        'Failed to generate session priming (non-blocking)'
+      );
+    }
+  }
+
+  // ============================================================================
   // PROACTIVE INSIGHTS GENERATION (for returning users)
   // Generate proactive check-ins based on user history
   // ============================================================================
@@ -582,6 +645,9 @@ export async function createSessionServices(
     storyPreference,
     communicationMirroring,
     emotionalMemory,
+
+    // Session Priming (cross-session continuity)
+    sessionPriming,
 
     // ========================================================================
     // ANALYSIS METHODS

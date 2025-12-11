@@ -72,6 +72,16 @@ export interface SessionServices {
   communicationMirroring: CommunicationMirroringEngine;
   emotionalMemory: EmotionalMemoryEngine;
 
+  // Session Priming (cross-session continuity)
+  sessionPriming?: {
+    suggestedOpener: string;
+    openThreads: Array<{ topic: string; urgency: 'high' | 'medium' | 'low' }>;
+    pendingFollowUps: Array<{ topic: string; dueDate?: string }>;
+    emotionalContext?: { trend: string; lastEmotion?: string };
+    relationshipContext?: { stage: string; sessionsCount: number };
+    naturalGreetingHints: string[];
+  };
+
   // Methods
   analyze: (message: string) => ConversationAnalysis;
   addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
