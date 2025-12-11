@@ -7210,30 +7210,16 @@ body {
     font-size: var(--text-base);
   }
 
-  /* Scale team roster */
+  /* Scale team roster - uses CSS tokens */
   #teamRoster {
-    gap: 6px;
+    gap: var(--roster-gap);
     padding: 10px 14px;
   }
 
-  .team-avatar-container {
-    width: 40px;
-    height: 40px;
-  }
-
-  .team-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .team-avatar-ring {
-    inset: -3px;
-    border-width: 2px;
-  }
+  /* Team avatar sizing uses CSS tokens from :root responsive section */
 
   .team-name {
-    font-size: 10px;
+    font-size: var(--roster-name);
   }
 
   /* Scale waveform */

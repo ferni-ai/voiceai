@@ -21,9 +21,9 @@
  *   // and can be recovered on server restart
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-
 import type { Firestore } from 'firebase-admin/firestore';
+import { createSessionId, createUserId, type SessionId, type UserId } from '../types/branded.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -107,8 +107,8 @@ export interface UserContext {
   /** User's name (if known) */
   name?: string;
 
-  /** User ID */
-  userId: string;
+  /** User ID (branded type for type safety) */
+  userId: UserId;
 
   /** Key moments from this conversation */
   keyMoments: string[];
@@ -171,9 +171,9 @@ export interface GameContext {
  * Complete conversation state
  */
 export interface ConversationState {
-  // Identity
-  sessionId: string;
-  userId: string;
+  // Identity (branded types for type safety)
+  sessionId: SessionId;
+  userId: UserId;
   agentId: string;
 
   // Contexts
@@ -223,7 +223,7 @@ function createDefaultFlowContext(): FlowContext {
   };
 }
 
-function createDefaultUserContext(userId: string): UserContext {
+function createDefaultUserContext(userId: UserId): UserContext {
   return {
     userId,
     keyMoments: [],
@@ -256,7 +256,7 @@ export class ConversationStateManager {
   private state: ConversationState;
   private logger = getLogger();
 
-  constructor(sessionId: string, userId: string, agentId: string) {
+  constructor(sessionId: SessionId, userId: UserId, agentId: string) {
     const now = new Date();
 
     this.state = {
@@ -278,7 +278,7 @@ export class ConversationStateManager {
   // GETTERS
   // ============================================================================
 
-  get sessionId(): string {
+  get sessionId(): SessionId {
     return this.state.sessionId;
   }
 
@@ -643,8 +643,8 @@ export class ConversationStateManager {
    */
   static fromJSON(data: Record<string, unknown>): ConversationStateManager {
     const manager = new ConversationStateManager(
-      data.sessionId as string,
-      data.userId as string,
+      createSessionId(data.sessionId as string),
+      createUserId(data.userId as string),
       data.agentId as string
     );
 
@@ -690,17 +690,25 @@ const activeConversations = new Map<string, ConversationStateManager>();
 
 /**
  * Get or create conversation state for a session
+ *
+ * @param sessionId - Session identifier (string or branded SessionId)
+ * @param userId - User identifier (string or branded UserId)
+ * @param agentId - Agent/persona identifier
  */
 export function getConversationState(
-  sessionId: string,
-  userId = 'default',
+  sessionId: string | SessionId,
+  userId: string | UserId = 'default',
   agentId = 'default'
 ): ConversationStateManager {
-  let state = activeConversations.get(sessionId);
+  // Convert to branded types if necessary
+  const brandedSessionId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+  const brandedUserId = typeof userId === 'string' ? createUserId(userId) : userId;
+
+  let state = activeConversations.get(brandedSessionId as string);
 
   if (!state) {
-    state = new ConversationStateManager(sessionId, userId, agentId);
-    activeConversations.set(sessionId, state);
+    state = new ConversationStateManager(brandedSessionId, brandedUserId, agentId);
+    activeConversations.set(brandedSessionId as string, state);
   }
 
   return state;
@@ -709,19 +717,21 @@ export function getConversationState(
 /**
  * Check if a conversation state exists
  */
-export function hasConversationState(sessionId: string): boolean {
-  return activeConversations.has(sessionId);
+export function hasConversationState(sessionId: string | SessionId): boolean {
+  const id = typeof sessionId === 'string' ? sessionId : (sessionId as string);
+  return activeConversations.has(id);
 }
 
 /**
  * End a conversation and clean up state
  */
-export function endConversation(sessionId: string): ConversationState | null {
-  const state = activeConversations.get(sessionId);
+export function endConversation(sessionId: string | SessionId): ConversationState | null {
+  const id = typeof sessionId === 'string' ? sessionId : (sessionId as string);
+  const state = activeConversations.get(id);
 
   if (state) {
     const finalState = state.getState();
-    activeConversations.delete(sessionId);
+    activeConversations.delete(id);
     return finalState as ConversationState;
   }
 
