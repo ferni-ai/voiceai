@@ -5867,18 +5867,7 @@ body {
     height: 160px;
   }
 
-  /* Scale connection-heart with avatar (160px avatar → 44px heart) */
-  .connection-heart {
-    width: 44px !important;
-    height: 44px !important;
-    bottom: -6px !important;
-    right: -6px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 22px !important;
-    height: 22px !important;
-  }
+  /* Connection-heart uses tokens defined above */
 
   /* Scale avatar ring with avatar */
   #avatarRing {
@@ -5979,18 +5968,7 @@ body {
     height: 144px;
   }
 
-  /* Scale connection-heart with avatar (144px avatar → 40px heart) */
-  .connection-heart {
-    width: 40px !important;
-    height: 40px !important;
-    bottom: -5px !important;
-    right: -5px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
+  /* Connection-heart uses tokens defined above */
 
   /* Scale avatar ring with avatar */
   #avatarRing {
@@ -6084,18 +6062,7 @@ body {
     height: 128px;
   }
 
-  /* Scale connection-heart with avatar (128px avatar → 36px heart) */
-  .connection-heart {
-    width: 36px !important;
-    height: 36px !important;
-    bottom: -4px !important;
-    right: -4px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 18px !important;
-    height: 18px !important;
-  }
+  /* Connection-heart uses tokens */
 
   /* Scale avatar ring */
   #avatarRing {
@@ -7049,19 +7016,7 @@ body {
     height: 64px;
   }
 
-  /* Scale connection-heart with avatar in landscape (64px avatar → 20px heart) */
-  .connection-heart {
-    width: 20px !important;
-    height: 20px !important;
-    bottom: -2px !important;
-    right: -2px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 10px !important;
-    height: 10px !important;
-  }
-
+  /* Connection-heart uses tokens */
   .connection-heart__count {
     display: none !important;
   }
@@ -7197,18 +7152,7 @@ body {
     height: 100px;
   }
 
-  /* Scale connection-heart with avatar (100px avatar → 28px heart) */
-  .connection-heart {
-    width: 28px !important;
-    height: 28px !important;
-    bottom: -3px !important;
-    right: -3px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 14px !important;
-    height: 14px !important;
-  }
+  /* Connection-heart uses tokens */
 
   /* Scale avatar ring */
   #avatarRing {
@@ -7335,18 +7279,7 @@ body {
     height: 128px;
   }
 
-  /* Scale connection-heart with avatar (128px avatar → 36px heart) */
-  .connection-heart {
-    width: 36px !important;
-    height: 36px !important;
-    bottom: -4px !important;
-    right: -4px !important;
-  }
-
-  .connection-heart__icon svg {
-    width: 18px !important;
-    height: 18px !important;
-  }
+  /* Connection-heart uses tokens */
 
   /* Scale avatar ring */
   #avatarRing {
