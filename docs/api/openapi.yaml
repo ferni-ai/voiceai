@@ -1,0 +1,431 @@
+openapi: 3.0.3
+info:
+  title: Ferni AI API
+  version: 1.0.0
+  description: |
+      Ferni is a voice-first AI life coach platform featuring six brilliant personas
+      that provide emotional support, guidance, and genuine connection.
+      
+      ## Authentication
+      Most endpoints require Firebase authentication. Include the Firebase ID token
+      in the Authorization header: `Authorization: Bearer <token>`
+      
+      ## Rate Limiting
+      API requests are rate-limited to prevent abuse. Limits vary by endpoint.
+      
+      ## Personas
+      - **Ferni** - Life coach (default)
+      - **Peter** - Research & due diligence
+      - **Alex** - Communication specialist
+      - **Maya** - Habits & routines
+      - **Jordan** - Event planning
+      - **Nayan** - Wisdom & philosophy
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Check the health status of the API and its dependencies
+      tags:         - System
+      responses:
+        200:
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheck"
+        503:
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheck"
+  /api/users/me:
+    get:
+      summary: Get Current User
+      description: Get the currently authenticated user's profile
+      tags:         - Users
+      security:         - bearerAuth: []
+      responses:
+        200:
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileSummary"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/sessions:
+    post:
+      summary: Start Session
+      description: Start a new conversation session
+      tags:         - Sessions
+      security:         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSession"
+      responses:
+        201:
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/sessions/{sessionId}:
+    get:
+      summary: Get Session
+      description: Get details of a specific session
+      tags:         - Sessions
+      security:         - bearerAuth: []
+      parameters:         - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Session identifier
+      responses:
+        200:
+          description: Session retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        404:
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/personas:
+    get:
+      summary: List Personas
+      description: Get all available personas
+      tags:         - Personas
+      responses:
+        200:
+          description: Personas retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personas:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Persona"
+  /api/goals:
+    get:
+      summary: List Goals
+      description: Get the user's goals
+      tags:         - Goals
+      security:         - bearerAuth: []
+      parameters:         - name: status
+          in: query
+          schema:
+            type: string
+            enum:               - active
+              - paused
+              - completed
+              - abandoned
+          description: Filter by status
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category
+      responses:
+        200:
+          description: Goals retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goals:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Goal"
+                  total:
+                    type: integer
+    post:
+      summary: Create Goal
+      description: Create a new goal
+      tags:         - Goals
+      security:         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGoal"
+      responses:
+        201:
+          description: Goal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+  /api/memories:
+    get:
+      summary: List Memories
+      description: Get the user's memories
+      tags:         - Memory
+      security:         - bearerAuth: []
+      parameters:         - name: type
+          in: query
+          schema:
+            type: string
+          description: Filter by memory type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Maximum number of memories to return
+      responses:
+        200:
+          description: Memories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Memory"
+                  total:
+                    type: integer
+components:
+  schemas:
+    UserProfileSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        preferredName:
+          type: string
+        relationshipStage:
+          type: string
+        totalConversations:
+          type: number
+        lastContact:
+          type: string
+      required:         - id
+        - relationshipStage
+        - totalConversations
+    CreateUser:
+      type: object
+      properties:
+        name:
+          type: string
+        preferredName:
+          type: string
+        phoneNumber:
+          type: string
+        firebaseUid:
+          type: string
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        personaId:
+          type: string
+        startedAt:
+          type: string
+        status:
+          type: string
+        turnCount:
+          type: number
+        durationSeconds:
+          type: number
+      required:         - id
+        - userId
+        - personaId
+        - startedAt
+        - status
+        - turnCount
+        - durationSeconds
+    StartSession:
+      type: object
+      properties:
+        userId:
+          type: string
+        personaId:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      required:         - userId
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+        timestamp:
+          type: string
+        emotionalContext:
+          type: object
+          properties:
+            primary:
+              type: string
+            intensity:
+              type: number
+          required:             - primary
+            - intensity
+      required:         - role
+        - content
+        - timestamp
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+        version:
+          type: string
+        timestamp:
+          type: string
+        services:
+          type: object
+          additionalProperties: true
+      required:         - status
+        - version
+        - timestamp
+        - services
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+          required:             - code
+            - message
+      required:         - error
+    Persona:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        specialty:
+          type: string
+        voiceId:
+          type: string
+        available:
+          type: boolean
+      required:         - id
+        - name
+        - role
+        - specialty
+        - voiceId
+        - available
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+        targetDate:
+          type: string
+        progressPercentage:
+          type: number
+      required:         - id
+        - userId
+        - name
+        - category
+        - status
+        - createdAt
+    CreateGoal:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        targetDate:
+          type: string
+      required:         - name
+        - category
+    Memory:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+        importance:
+          type: number
+        createdAt:
+          type: string
+        lastAccessed:
+          type: string
+        accessCount:
+          type: number
+      required:         - id
+        - userId
+        - content
+        - type
+        - importance
+        - createdAt
+        - accessCount
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID token
+servers:   - url: |
+        https://app.ferni.ai
+    description: Production
+  - url: |
+        https://ferni-prod.web.app
+    description: Staging
+  - url: |
+        http://localhost:3000
+    description: Local Development
