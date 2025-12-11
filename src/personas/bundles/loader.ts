@@ -675,6 +675,16 @@ export async function loadBundle(
           await loadJsonFile<BundleBehaviors['live_reactions']>(liveReactionsPath);
       }
 
+      // ========================================================================
+      // METHODOLOGY - Evidence-based coaching frameworks
+      // ========================================================================
+
+      // Load methodology (research foundations, intervention techniques, coaching principles)
+      const methodologyPath = join(behaviorsPath, 'methodology.json');
+      if (await fileExists(methodologyPath)) {
+        behaviors.methodology = await loadJsonFile<BundleBehaviors['methodology']>(methodologyPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },
