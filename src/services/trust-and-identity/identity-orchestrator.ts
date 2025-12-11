@@ -18,6 +18,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { getDefaultStore } from '../../memory/index.js';
+import { createUserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 
 // Voice and Auth imports
@@ -291,7 +292,7 @@ export async function processMessage(
   });
 
   const identityContext = buildIdentityContext(session, trustState, session.initialAuth, {
-    userId: session.userId,
+    userId: createUserId(session.userId),
     isNew: false,
     isReturning: true,
     profile: null,

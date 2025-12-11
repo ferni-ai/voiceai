@@ -1,7 +1,7 @@
 /**
  * User Identification Service
  *
- * Enables cross-platform user recognition - Jack remembers you whether
+ * Enables cross-platform user recognition - Ferni remembers you whether
  * you call from a phone or use the web app.
  *
  * Features:
@@ -9,9 +9,12 @@
  * - Phone-to-user profile linking
  * - Web session authentication
  * - Cross-platform profile resolution
+ *
+ * @module services/user-identification
  */
 
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import { createUserId, type UserId } from '../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
@@ -124,7 +127,8 @@ export interface IdentificationSource {
 }
 
 export interface IdentificationResult {
-  userId: string;
+  /** Branded user ID for type safety */
+  userId: UserId;
   isNew: boolean;
   isReturning: boolean;
   profile: UserProfile | null;
@@ -151,7 +155,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
     const profile = await store.getProfile(cachedUserId);
     if (profile) {
       return {
-        userId: cachedUserId,
+        userId: createUserId(cachedUserId),
         isNew: false,
         isReturning: profile.totalConversations > 0,
         profile,
@@ -169,7 +173,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
     await savePhoneMapping(normalized, existingProfile.id);
 
     return {
-      userId: existingProfile.id,
+      userId: createUserId(existingProfile.id),
       isNew: false,
       isReturning: existingProfile.totalConversations > 0,
       profile: existingProfile,
@@ -179,7 +183,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
   }
 
   // New user - create ID from phone number
-  const newUserId = `phone:${normalized}`;
+  const newUserId = createUserId(`phone:${normalized}`);
   await savePhoneMapping(normalized, newUserId);
 
   getLogger().info({ userId: newUserId, phone: normalized }, 'New user identified by phone');
@@ -202,15 +206,15 @@ export async function identifyByWebAuth(
   authProvider = 'default'
 ): Promise<IdentificationResult> {
   const store = getStore();
-  const userId = `auth:${authProvider}:${authId}`;
+  const userIdStr = `auth:${authProvider}:${authId}`;
 
   getLogger().info({ authId, authProvider }, 'Identifying user by web auth');
 
-  const profile = await store.getProfile(userId);
+  const profile = await store.getProfile(userIdStr);
 
   if (profile) {
     return {
-      userId,
+      userId: createUserId(userIdStr),
       isNew: false,
       isReturning: profile.totalConversations > 0,
       profile,
@@ -220,7 +224,7 @@ export async function identifyByWebAuth(
   }
 
   return {
-    userId,
+    userId: createUserId(userIdStr),
     isNew: true,
     isReturning: false,
     profile: null,
@@ -250,7 +254,7 @@ export async function identifyFromMetadata(
     const profile = await store.getProfile(explicitUserId);
 
     return {
-      userId: explicitUserId,
+      userId: createUserId(explicitUserId),
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
@@ -267,7 +271,7 @@ export async function identifyFromMetadata(
     const profile = await store.getProfile(firebaseUid);
 
     return {
-      userId: firebaseUid,
+      userId: createUserId(firebaseUid),
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
@@ -292,12 +296,12 @@ export async function identifyFromMetadata(
   // This is the fallback during the Firebase migration period
   const deviceId = metadata.device_id || metadata.deviceId;
   if (deviceId && typeof deviceId === 'string') {
-    const userId = `device:${deviceId}`;
+    const userIdStr = `device:${deviceId}`;
     const store = getStore();
-    const profile = await store.getProfile(userId);
+    const profile = await store.getProfile(userIdStr);
 
     return {
-      userId,
+      userId: createUserId(userIdStr),
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
@@ -307,10 +311,10 @@ export async function identifyFromMetadata(
   }
 
   // Priority 6: Anonymous session (truly unknown users)
-  const sessionId = metadata.session_id || `anon:${Date.now()}`;
+  const sessionId = (metadata.session_id as string) || `anon:${Date.now()}`;
 
   return {
-    userId: sessionId as string,
+    userId: createUserId(sessionId),
     isNew: true,
     isReturning: false,
     profile: null,
@@ -514,7 +518,7 @@ export async function identifyWithNaturalAuth(
     identification: {
       ...identification,
       // Use the natural auth userId if it found a known user
-      userId: profile ? authContext.userId : identification.userId,
+      userId: profile ? createUserId(authContext.userId) : identification.userId,
       profile: profile || identification.profile,
       isReturning: authContext.isReturningUser,
     },
