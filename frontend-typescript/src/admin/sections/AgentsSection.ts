@@ -368,13 +368,13 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
 
 function renderTemplate(id: string, icon: string, name: string, desc: string): string {
   return `
-    <div class="template-card" data-template="${id}" tabindex="0" role="button">
-      <span class="template-icon">${icon}</span>
+    <button class="template-card" data-template="${id}" type="button" aria-label="Create ${name} agent: ${desc}">
+      <span class="template-icon" aria-hidden="true">${icon}</span>
       <div class="template-info">
         <div class="template-name">${name}</div>
         <div class="template-desc">${desc}</div>
       </div>
-    </div>
+    </button>
   `;
 }
 

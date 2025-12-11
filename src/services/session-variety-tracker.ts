@@ -25,6 +25,7 @@ const log = createLogger({ module: 'session-variety-tracker' });
  * These map multiple specific mentions to a single theme
  */
 export type ThemeCategory =
+  // Core personality themes
   | 'warm_drinks' // coffee, tea, mint tea
   | 'global_traveler' // Japan, Morocco, Wyoming, Brazil, Scotland
   | 'music_taste' // Bon Iver, Japanese songs, jazz
@@ -36,7 +37,27 @@ export type ThemeCategory =
   | 'vulnerability' // tsunami, grief, survivor guilt
   | 'professional' // coaching, listening, questions
   | 'quirky_interests' // golf, disaster movies, flight searches
-  | 'sensory_moment'; // sounds, smells, textures
+  | 'sensory_moment' // sounds, smells, textures
+  // Life events & milestones
+  | 'celebration' // achievements, wins, birthdays
+  | 'adventure' // travel, experiences, exploration
+  | 'family_milestones' // weddings, births, graduations
+  | 'life_transitions' // moves, career changes, relationships
+  // Wisdom & growth
+  | 'wisdom' // life lessons, insights
+  | 'mortality_awareness' // impermanence, legacy
+  | 'communication_wisdom' // connection, listening, empathy
+  | 'professional_insight' // career wisdom, leadership
+  // Productivity & wellness
+  | 'productivity' // focus, habits, systems
+  | 'nutrition' // food, diet, health
+  // Finance & investing (for Peter/Nayan)
+  | 'market_history' // historical events, patterns
+  | 'analytical_process' // research, due diligence
+  | 'behavioral_finance' // psychology, biases
+  | 'long_term_thinking' // patience, compounding
+  | 'investment_philosophy' // principles, approach
+  | 'wealth_philosophy'; // money mindset, abundance
 
 /**
  * A specific personality expression with its theme

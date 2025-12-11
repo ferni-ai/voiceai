@@ -336,6 +336,7 @@ const SENSORY_EXPRESSIONS: PersonalityExpression[] = [
  * All expression pools by category
  */
 const ALL_POOLS: Record<ThemeCategory, PersonalityExpression[]> = {
+  // Core personality themes
   warm_drinks: WARM_DRINK_EXPRESSIONS,
   global_traveler: TRAVELER_EXPRESSIONS,
   music_taste: MUSIC_EXPRESSIONS,
@@ -348,6 +349,26 @@ const ALL_POOLS: Record<ThemeCategory, PersonalityExpression[]> = {
   professional: [], // Could add later
   quirky_interests: QUIRKY_EXPRESSIONS,
   sensory_moment: SENSORY_EXPRESSIONS,
+  // Life events & milestones
+  celebration: [], // Used by mid-response tangents
+  adventure: [], // Used by mid-response tangents
+  family_milestones: [], // Used by mid-response tangents
+  life_transitions: [], // Used by mid-response tangents
+  // Wisdom & growth
+  wisdom: [], // Used by mid-response tangents
+  mortality_awareness: [], // Used by mid-response tangents
+  communication_wisdom: [], // Used by mid-response tangents
+  professional_insight: [], // Used by mid-response tangents
+  // Productivity & wellness
+  productivity: [], // Used by mid-response tangents
+  nutrition: [], // Used by mid-response tangents
+  // Finance & investing (primarily for Peter/Nayan)
+  market_history: [], // Used by mid-response tangents
+  analytical_process: [], // Used by mid-response tangents
+  behavioral_finance: [], // Used by mid-response tangents
+  long_term_thinking: [], // Used by mid-response tangents
+  investment_philosophy: [], // Used by mid-response tangents
+  wealth_philosophy: [], // Used by mid-response tangents
 };
 
 // ============================================================================

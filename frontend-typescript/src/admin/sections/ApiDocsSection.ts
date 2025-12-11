@@ -222,10 +222,10 @@ export async function render(): Promise<string> {
         text-align: center;
       }
 
-      .api-method--GET { background: rgba(74, 103, 65, 0.2); color: #4a6741; }
-      .api-method--POST { background: rgba(58, 107, 115, 0.2); color: #3a6b73; }
-      .api-method--PUT { background: rgba(212, 168, 75, 0.2); color: #d4a84b; }
-      .api-method--DELETE { background: rgba(196, 69, 54, 0.2); color: #c44536; }
+      .api-method--GET { background: var(--color-method-get-bg, rgba(74, 103, 65, 0.2)); color: var(--color-semantic-success, #4a6741); }
+      .api-method--POST { background: var(--color-method-post-bg, rgba(58, 107, 115, 0.2)); color: var(--persona-peter, #3a6b73); }
+      .api-method--PUT { background: var(--color-method-put-bg, rgba(212, 168, 75, 0.2)); color: var(--color-semantic-warning, #d4a84b); }
+      .api-method--DELETE { background: var(--color-method-delete-bg, rgba(196, 69, 54, 0.2)); color: var(--color-semantic-error, #c44536); }
 
       .api-path {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
@@ -248,8 +248,8 @@ export async function render(): Promise<string> {
       }
 
       .api-auth--admin {
-        background: rgba(196, 69, 54, 0.2);
-        color: #c44536;
+        background: var(--color-method-delete-bg, rgba(196, 69, 54, 0.2));
+        color: var(--color-semantic-error, #c44536);
       }
 
       /* API Tester */
@@ -369,12 +369,12 @@ function renderCategory(category: ApiCategory): string {
 
 function renderEndpoint(endpoint: ApiEndpoint): string {
   return `
-    <div class="api-endpoint" data-path="${endpoint.path}" data-method="${endpoint.method}" tabindex="0" role="button">
-      <span class="api-method api-method--${endpoint.method}">${endpoint.method}</span>
+    <button class="api-endpoint" data-path="${endpoint.path}" data-method="${endpoint.method}" type="button" aria-label="${endpoint.method} ${endpoint.path}: ${endpoint.description}">
+      <span class="api-method api-method--${endpoint.method}" aria-hidden="true">${endpoint.method}</span>
       <span class="api-path">${endpoint.path}</span>
       <span class="api-desc">${endpoint.description}</span>
-      ${endpoint.auth === 'admin' ? '<span class="api-auth api-auth--admin">ADMIN</span>' : ''}
-    </div>
+      ${endpoint.auth === 'admin' ? '<span class="api-auth api-auth--admin" aria-label="Requires admin authentication">ADMIN</span>' : ''}
+    </button>
   `;
 }
 

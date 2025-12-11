@@ -289,17 +289,19 @@ function renderFlagItem(flag: FeatureFlag): string {
       <div class="flag-controls">
         ${flag.percentage !== undefined ? `
           <div class="flag-percentage">
-            <span class="flag-percentage-label">Rollout:</span>
-            <input 
-              type="number" 
+            <label for="percentage-${flag.id}" class="flag-percentage-label">Rollout:</label>
+            <input
+              type="number"
+              id="percentage-${flag.id}"
               class="flag-percentage-input"
               value="${flag.percentage}"
               min="0"
               max="100"
               data-flag-id="${flag.id}"
               data-action="set-percentage"
+              aria-describedby="percentage-hint-${flag.id}"
             >
-            <span class="flag-percentage-label">%</span>
+            <span id="percentage-hint-${flag.id}" class="flag-percentage-label">%</span>
           </div>
         ` : ''}
         <label class="admin-toggle">
