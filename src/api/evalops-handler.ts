@@ -80,7 +80,7 @@ export async function handleEvalOpsRoutes(
   }
 
   // All EvalOps routes require admin access
-  const auth = requireAdmin(req, res);
+  const auth = await requireAdmin(req, res);
   if (!auth) return true;
 
   try {

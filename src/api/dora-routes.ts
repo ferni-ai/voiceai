@@ -62,11 +62,11 @@ export async function handleDORARoutes(
   if (!isWebhook) {
     // Write operations (POST) require admin
     if (method === 'POST') {
-      const auth = requireAdmin(req, res);
+      const auth = await requireAdmin(req, res);
       if (!auth) return true;
     } else {
       // Read operations require basic auth
-      const auth = requireAuth(req, res, { allowDevMode: true });
+      const auth = await requireAuth(req, res, { allowDevMode: true });
       if (!auth) return true;
     }
   }

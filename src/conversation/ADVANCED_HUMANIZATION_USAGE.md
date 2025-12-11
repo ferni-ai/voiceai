@@ -253,3 +253,67 @@ console.log({
   milestones: state.relationship.milestones.length,
 });
 ```
+
+## Intelligence Architecture
+
+Ferni has two complementary intelligence systems:
+
+### Session Intelligence (`session-intelligence.ts`)
+
+**Scope:** Real-time, within a single session
+
+**Capabilities:**
+- **Concern Detection** - Detect distress before explicit mention
+- **Proactive Memory** - Surface relevant memories in-session
+- **Predictive Anticipation** - Know what they need before they ask
+
+**Use for:** Immediate emotional response, crisis detection, real-time adaptation
+
+```typescript
+import { getSessionIntelligence } from './session-intelligence.js';
+
+const session = getSessionIntelligence(sessionId, userId);
+const insight = session.analyze(context);
+
+// Check for concerns
+if (insight.concern.level === 'elevated') {
+  // Prioritize validation
+}
+```
+
+### Better Than Human (`superhuman/`)
+
+**Scope:** Cross-session relationship building
+
+**Capabilities:**
+1. Emotional Memory Evolution
+2. Anticipatory Presence ("I was hoping you'd call")
+3. Linguistic Mirroring
+4. Visible Vulnerability
+5. Spontaneous Delight
+6. Protective Instincts
+7. Evolving Inside Jokes
+8. Cross-Persona Coherence
+9. Temporal Intelligence ("You sound lighter today")
+10. Meta-Relationship Awareness
+11. Somatic Presence
+12. Superhuman Observations ("You use 'should' a lot")
+
+**Use for:** Long-term relationship depth, cross-session patterns, team coherence
+
+```typescript
+import { getBetterThanHuman } from './superhuman/index.js';
+
+const bth = getBetterThanHuman(userId, sessionId, personaId, sessionCount);
+const insight = bth.analyze(context);
+
+// Apply relationship-aware enhancements
+response = bth.applyInsights(response, insight);
+```
+
+### How They Work Together
+
+The `humanizer.ts` orchestrates both:
+1. **Session Intelligence runs first** - immediate context and concern detection
+2. **Better Than Human runs second** - adds relationship depth
+3. Both emit signals to frontend for avatar EQ response

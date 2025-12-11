@@ -147,7 +147,7 @@ export async function handleDashboardMetricsRoutes(
   }
 
   // Require authentication
-  const auth = requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // 401 already sent
   }

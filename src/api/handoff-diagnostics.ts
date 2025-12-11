@@ -216,7 +216,7 @@ export async function handleDiagnosticsRoutes(
   }
 
   // Require admin auth for all diagnostics endpoints
-  const auth = requireAuth(req, res, { requireAdmin: true });
+  const auth = await requireAuth(req, res, { requireAdmin: true });
   if (!auth) {
     return true; // Auth failed, response already sent
   }

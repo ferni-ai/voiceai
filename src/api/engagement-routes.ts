@@ -88,7 +88,7 @@ export async function handleEngagementRoutes(
   }
 
   // Require authentication for all engagement routes
-  const auth = requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // Auth failed, 401 already sent
   }

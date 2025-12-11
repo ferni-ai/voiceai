@@ -102,7 +102,7 @@ export async function handleAuthMonitoringRoutes(
 ): Promise<boolean> {
   // GET /api/auth/metrics - Get auth metrics (admin only)
   if (pathname === '/api/auth/metrics' && req.method === 'GET') {
-    return await handleGetMetrics(req, res);
+    return handleGetMetrics(req, res);
   }
 
   // GET /api/auth/health - Health check
@@ -112,7 +112,7 @@ export async function handleAuthMonitoringRoutes(
 
   // GET /api/auth/events - Recent auth events (admin only)
   if (pathname === '/api/auth/events' && req.method === 'GET') {
-    return await handleGetEvents(req, res);
+    return handleGetEvents(req, res);
   }
 
   return false;
@@ -132,7 +132,7 @@ async function handleGetMetrics(req: IncomingMessage, res: ServerResponse): Prom
 
   try {
     // Get security metrics from security-events service
-    const securityMetrics = await getSecurityMetrics();
+    const securityMetrics = getSecurityMetrics();
 
     sendJSON(res, {
       auth: {
