@@ -1,6 +1,8 @@
 # Ferni Operations Automation Status
 
 > Last updated: 2025-12-11
+>
+> *"Hey, I need your attention right now."* - How Ferni alerts feel
 
 ## Quick Commands
 
@@ -39,20 +41,16 @@ npm run ops:logs:errors   # View error logs only
 | Error log filter | `npm run ops:logs:errors` | Shows ERROR+ severity |
 | Sentry error tracking | Automatic | DSN configured in `.env` |
 
-### Blocked (GitHub Billing)
+### Working (GitHub Actions - Billing Fixed!)
 
-These GitHub Actions workflows exist but cannot run due to billing issue:
-
-| Workflow | File | Frequency |
-|----------|------|-----------|
-| Uptime Monitor | `.github/workflows/uptime-monitor.yml` | Every 5 min |
-| Error Rate Alerting | `.github/workflows/error-alerting.yml` | Every 15 min |
-| Cost Alerts | `.github/workflows/cost-alerts.yml` | Daily |
-| Incident Response | `.github/workflows/incident-response.yml` | Manual trigger |
-| Auto Deploy | `.github/workflows/auto-deploy.yml` | On push |
-| CI | `.github/workflows/ci.yml` | On PR |
-
-**Fix:** Update payment at https://github.com/settings/billing
+| Workflow | File | Frequency | Status |
+|----------|------|-----------|--------|
+| Uptime Monitor | `.github/workflows/uptime-monitor.yml` | Every 5 min | Active |
+| Error Rate Alerting | `.github/workflows/error-alerting.yml` | Every 15 min | Active |
+| Cost Alerts | `.github/workflows/cost-alerts.yml` | Daily | Active |
+| Incident Response | `.github/workflows/incident-response.yml` | Manual trigger | Ready |
+| Auto Deploy | `.github/workflows/auto-deploy.yml` | On push | Active |
+| CI | `.github/workflows/ci.yml` | On PR | Active |
 
 ---
 
@@ -60,14 +58,8 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
 
 ### P0 - Critical (Do This Week)
 
-- [ ] **Fix GitHub billing** - Re-enables all CI/CD and monitoring workflows
-  - URL: https://github.com/settings/billing
-  - Impact: Blocks all automated CI/CD
-
-- [ ] **Add Slack webhook to .env** - Enables local Slack alerting
-  ```bash
-  echo "SLACK_WEBHOOK_URL=https://hooks.slack.com/services/..." >> .env
-  ```
+- [x] ~~**Fix GitHub billing**~~ - DONE (CI/CD workflows running)
+- [x] ~~**Add Slack webhook to .env**~~ - DONE (local Slack alerting enabled)
 
 ### P1 - Important (Do This Sprint)
 
@@ -85,9 +77,7 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
   - Alternative to Slack for critical alerts
   - Supports phone/SMS escalation
 
-- [ ] **Create monitoring dashboard** - Single-pane-of-glass
-  - GCP Cloud Monitoring dashboard
-  - Key metrics: latency, error rate, instance count, cost
+- [x] ~~**Create monitoring dashboard**~~ - DONE (Ferni Operations Dashboard)
 
 - [ ] **Add synthetic monitoring** - E2E user flow testing
   - Test actual voice conversations periodically
@@ -108,9 +98,14 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
 
 ### Notification Channels
 - Email: seth.ford@gmail.com (ID: 497418305396229287)
+- Slack: #ferni-ops via webhook (ID: 6446167218147320966)
 
 ### Budget
 - `Ferni Monthly Budget` - $50/month with alerts at 50%, 80%, 100%
+
+### Dashboard
+- `Ferni Operations Dashboard` - Single-pane view of all metrics
+  - View: https://console.cloud.google.com/monitoring/dashboards?project=johnb-2025
 
 ---
 

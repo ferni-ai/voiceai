@@ -96,32 +96,43 @@ async function sendSlackAlert(results: HealthResult[]): Promise<void> {
   const criticalFailures = failures.filter((r) => r.critical);
   const emoji = criticalFailures.length > 0 ? '🚨' : '⚠️';
 
+  // On-brand messaging - warm, human, direct
+  const criticalMsg = criticalFailures.length > 0
+    ? "Hey, I need your attention right now."
+    : "Just a heads up - something's not quite right.";
+
   const blocks = [
-    {
-      type: 'header',
-      text: {
-        type: 'plain_text',
-        text: `${emoji} Ferni Health Alert`,
-      },
-    },
     {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${failures.length} service(s) unhealthy*\n${new Date().toISOString()}`,
+        text: `${emoji} *${criticalMsg}*`,
       },
+    },
+    {
+      type: 'context',
+      elements: [{
+        type: 'mrkdwn',
+        text: `${failures.length} service${failures.length > 1 ? 's need' : ' needs'} attention • ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit', hour12: true })} PT`,
+      }],
     },
     { type: 'divider' },
     ...failures.map((f) => ({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${f.name}* ${f.critical ? '(CRITICAL)' : ''}\n` +
-              `Status: ${f.statusCode || 'N/A'}\n` +
-              `Error: ${f.error || 'HTTP status mismatch'}\n` +
-              `Response time: ${f.responseTime}ms`,
+        text: `*${f.name}*${f.critical ? ' _(this one matters most)_' : ''}\n` +
+              `Response: ${f.statusCode || 'No response'} • ${f.responseTime}ms\n` +
+              `${f.error ? `Issue: ${f.error}` : ''}`,
       },
     })),
+    {
+      type: 'context',
+      elements: [{
+        type: 'mrkdwn',
+        text: `_Run \`npm run ops:health\` locally to check again_`,
+      }],
+    },
   ];
 
   try {
@@ -139,10 +150,11 @@ async function sendSlackAlert(results: HealthResult[]): Promise<void> {
 async function main(): Promise<void> {
   const shouldAlert = process.argv.includes('--alert');
 
-  console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║  FERNI HEALTH CHECK                                          ║');
-  console.log('╚══════════════════════════════════════════════════════════════╝');
-  console.log(`Time: ${new Date().toISOString()}`);
+  console.log('');
+  console.log('  ✦ Ferni Health Check');
+  console.log('  ─────────────────────────────────────────');
+  console.log(`  ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PT`);
+  console.log('');
   console.log('');
 
   const results = await Promise.all(SERVICES.map(checkService));
