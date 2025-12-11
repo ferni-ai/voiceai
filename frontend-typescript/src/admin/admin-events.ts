@@ -195,20 +195,22 @@ export async function editAgent(agentId: string): Promise<void> {
         <header class="admin-modal-header">
           <span class="admin-eyebrow">EDIT AGENT</span>
           <h2 class="admin-modal-title">${agent.name}</h2>
-          <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+          <button class="admin-modal-close" data-action="close-modal" aria-label="Close modal" title="Close">
+            <span aria-hidden="true">×</span>
+          </button>
         </header>
         <div class="admin-modal-content">
           <div class="admin-form-group">
-            <label class="admin-label">Subtitle</label>
+            <label class="admin-label" for="agentSubtitle">Subtitle</label>
             <input type="text" class="admin-input" id="agentSubtitle" value="${agent.subtitle || ''}" placeholder="e.g. Life Coach">
           </div>
           <div class="admin-form-group">
-            <label class="admin-label">Primary Color</label>
-            <input type="color" class="admin-color-input" id="agentPrimaryColor" value="${agent.colors?.primary || '#4a6741'}">
+            <label class="admin-label" for="agentPrimaryColor">Primary Color</label>
+            <input type="color" class="admin-color-input" id="agentPrimaryColor" value="${agent.colors?.primary || TEMPLATE_COLORS.ferni.primary}">
           </div>
           <div class="admin-form-group">
-            <label class="admin-label">Secondary Color</label>
-            <input type="color" class="admin-color-input" id="agentSecondaryColor" value="${agent.colors?.secondary || '#3d5a35'}">
+            <label class="admin-label" for="agentSecondaryColor">Secondary Color</label>
+            <input type="color" class="admin-color-input" id="agentSecondaryColor" value="${agent.colors?.secondary || TEMPLATE_COLORS.ferni.secondary}">
           </div>
         </div>
         <footer class="admin-modal-footer">
@@ -325,14 +327,25 @@ interface AgentTemplate {
   personality: string;
 }
 
+// Template colors - these reference design system tokens when possible
+// These are data values, but we document the token equivalents
+const TEMPLATE_COLORS = {
+  ferni: { primary: '#4a6741', secondary: '#3d5a35' }, // --color-ferni, --color-ferni-dark
+  peter: { primary: '#3a6b73', secondary: '#2d545a' }, // --persona-peter
+  nayan: { primary: '#7a5c4f', secondary: '#5d463c' }, // --persona-nayan
+  jordan: { primary: '#5c4a7a', secondary: '#463c5d' }, // --persona-jordan
+  warmth: { primary: '#d4a84b', secondary: '#b8923f' }, // --color-warmth
+  maya: { primary: '#a67a6a', secondary: '#8a6458' }, // --persona-maya
+};
+
 const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
   basic: {
     id: 'basic',
     name: 'New Agent',
     subtitle: 'General Purpose',
     description: 'A friendly, general-purpose assistant',
-    primaryColor: '#4a6741',
-    secondaryColor: '#3d5a35',
+    primaryColor: TEMPLATE_COLORS.ferni.primary,
+    secondaryColor: TEMPLATE_COLORS.ferni.secondary,
     voiceStyle: 'neutral',
     personality: 'helpful and friendly',
   },
@@ -341,8 +354,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
     name: 'Sage',
     subtitle: 'Wise Coach',
     description: 'A thoughtful coach with deep insights',
-    primaryColor: '#3a6b73',
-    secondaryColor: '#2d545a',
+    primaryColor: TEMPLATE_COLORS.peter.primary,
+    secondaryColor: TEMPLATE_COLORS.peter.secondary,
     voiceStyle: 'calm',
     personality: 'wise, patient, and insightful',
   },
@@ -351,8 +364,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
     name: 'Specialist',
     subtitle: 'Domain Expert',
     description: 'An expert in their specific domain',
-    primaryColor: '#7a5c4f',
-    secondaryColor: '#5d463c',
+    primaryColor: TEMPLATE_COLORS.nayan.primary,
+    secondaryColor: TEMPLATE_COLORS.nayan.secondary,
     voiceStyle: 'professional',
     personality: 'knowledgeable and precise',
   },
@@ -361,8 +374,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
     name: 'Coordinator',
     subtitle: 'Team Lead',
     description: 'Helps coordinate between team members',
-    primaryColor: '#5c4a7a',
-    secondaryColor: '#463c5d',
+    primaryColor: TEMPLATE_COLORS.jordan.primary,
+    secondaryColor: TEMPLATE_COLORS.jordan.secondary,
     voiceStyle: 'organized',
     personality: 'efficient and collaborative',
   },
@@ -371,8 +384,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
     name: 'Coach',
     subtitle: 'Personal Coach',
     description: 'A supportive personal development coach',
-    primaryColor: '#d4a84b',
-    secondaryColor: '#b8923f',
+    primaryColor: TEMPLATE_COLORS.warmth.primary,
+    secondaryColor: TEMPLATE_COLORS.warmth.secondary,
     voiceStyle: 'encouraging',
     personality: 'motivating and supportive',
   },
@@ -381,8 +394,8 @@ const AGENT_TEMPLATES: Record<string, AgentTemplate> = {
     name: 'Creative',
     subtitle: 'Creative Partner',
     description: 'A creative collaborator for ideas and projects',
-    primaryColor: '#a67a6a',
-    secondaryColor: '#8a6458',
+    primaryColor: TEMPLATE_COLORS.maya.primary,
+    secondaryColor: TEMPLATE_COLORS.maya.secondary,
     voiceStyle: 'expressive',
     personality: 'imaginative and enthusiastic',
   },
@@ -412,29 +425,29 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
         <p class="admin-template-description">${template.description}</p>
 
         <div class="admin-form-group">
-          <label class="admin-label">Agent ID</label>
-          <input type="text" class="admin-input" id="templateAgentId" placeholder="e.g. my-${template.id}-agent" pattern="[a-z0-9-]+">
-          <p class="admin-hint">Lowercase letters, numbers, and hyphens only</p>
+          <label class="admin-label" for="templateAgentId">Agent ID</label>
+          <input type="text" class="admin-input" id="templateAgentId" placeholder="e.g. my-${template.id}-agent" pattern="[a-z0-9-]+" aria-describedby="templateAgentIdHint">
+          <p class="admin-hint" id="templateAgentIdHint">Lowercase letters, numbers, and hyphens only</p>
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Display Name</label>
+          <label class="admin-label" for="templateAgentName">Display Name</label>
           <input type="text" class="admin-input" id="templateAgentName" value="${template.name}" placeholder="e.g. ${template.name}">
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Subtitle</label>
+          <label class="admin-label" for="templateAgentSubtitle">Subtitle</label>
           <input type="text" class="admin-input" id="templateAgentSubtitle" value="${template.subtitle}" placeholder="e.g. ${template.subtitle}">
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Personality</label>
+          <label class="admin-label" for="templateAgentPersonality">Personality</label>
           <input type="text" class="admin-input" id="templateAgentPersonality" value="${template.personality}">
         </div>
         <div class="admin-form-row">
           <div class="admin-form-group">
-            <label class="admin-label">Primary Color</label>
+            <label class="admin-label" for="templateAgentPrimaryColor">Primary Color</label>
             <input type="color" class="admin-color-input" id="templateAgentPrimaryColor" value="${template.primaryColor}">
           </div>
           <div class="admin-form-group">
-            <label class="admin-label">Secondary Color</label>
+            <label class="admin-label" for="templateAgentSecondaryColor">Secondary Color</label>
             <input type="color" class="admin-color-input" id="templateAgentSecondaryColor" value="${template.secondaryColor}">
           </div>
         </div>
@@ -809,24 +822,26 @@ export async function openCreateAgentModal(): Promise<void> {
       <header class="admin-modal-header">
         <span class="admin-eyebrow">NEW AGENT</span>
         <h2 class="admin-modal-title">Create Agent</h2>
-        <button class="admin-modal-close" data-action="close-modal" aria-label="Close">×</button>
+        <button class="admin-modal-close" data-action="close-modal" aria-label="Close modal" title="Close">
+          <span aria-hidden="true">×</span>
+        </button>
       </header>
       <div class="admin-modal-content">
         <div class="admin-form-group">
-          <label class="admin-label">Agent ID</label>
-          <input type="text" class="admin-input" id="newAgentId" placeholder="e.g. coach-sam" pattern="[a-z0-9-]+">
-          <p class="admin-hint">Lowercase letters, numbers, and hyphens only</p>
+          <label class="admin-label" for="newAgentId">Agent ID</label>
+          <input type="text" class="admin-input" id="newAgentId" placeholder="e.g. coach-sam" pattern="[a-z0-9-]+" aria-describedby="newAgentIdHint">
+          <p class="admin-hint" id="newAgentIdHint">Lowercase letters, numbers, and hyphens only</p>
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Display Name</label>
+          <label class="admin-label" for="newAgentName">Display Name</label>
           <input type="text" class="admin-input" id="newAgentName" placeholder="e.g. Sam">
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Subtitle</label>
+          <label class="admin-label" for="newAgentSubtitle">Subtitle</label>
           <input type="text" class="admin-input" id="newAgentSubtitle" placeholder="e.g. Fitness Coach">
         </div>
         <div class="admin-form-group">
-          <label class="admin-label">Template</label>
+          <label class="admin-label" for="newAgentTemplate">Template</label>
           <select class="admin-input" id="newAgentTemplate">
             <option value="basic">Basic - General purpose</option>
             <option value="sage">Sage - Wise coach</option>
@@ -836,12 +851,12 @@ export async function openCreateAgentModal(): Promise<void> {
         </div>
         <div class="admin-form-row">
           <div class="admin-form-group">
-            <label class="admin-label">Primary Color</label>
-            <input type="color" class="admin-color-input" id="newAgentPrimaryColor" value="#4a6741">
+            <label class="admin-label" for="newAgentPrimaryColor">Primary Color</label>
+            <input type="color" class="admin-color-input" id="newAgentPrimaryColor" value="${TEMPLATE_COLORS.ferni.primary}">
           </div>
           <div class="admin-form-group">
-            <label class="admin-label">Secondary Color</label>
-            <input type="color" class="admin-color-input" id="newAgentSecondaryColor" value="#3d5a35">
+            <label class="admin-label" for="newAgentSecondaryColor">Secondary Color</label>
+            <input type="color" class="admin-color-input" id="newAgentSecondaryColor" value="${TEMPLATE_COLORS.ferni.secondary}">
           </div>
         </div>
       </div>

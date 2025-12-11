@@ -584,7 +584,7 @@ function injectAdminPortalStyles(): void {
       font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
       /* Ensure admin portal is on top */
       position: relative;
-      z-index: 100;
+      z-index: var(--z-sticky, 100);
       overflow: hidden; /* Contain all scrolling within children */
     }
 
@@ -812,7 +812,7 @@ function injectAdminPortalStyles(): void {
         left: 0;
         top: 0;
         bottom: 0;
-        z-index: 100;
+        z-index: var(--z-modal, 2100);
         transform: translateX(-100%);
         transition: transform var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
       }
@@ -968,7 +968,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-error-icon {
-      color: #d4a84b;
+      color: var(--color-semantic-warning, #d4a84b);
     }
 
     .admin-error-icon svg {
@@ -978,7 +978,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-error h2 {
       font-size: 1.25rem;
-      color: #c44536;
+      color: var(--color-semantic-error, #c44536);
       margin: 0;
     }
 
@@ -1003,7 +1003,7 @@ function injectAdminPortalStyles(): void {
     .admin-modal-overlay {
       position: fixed;
       inset: 0;
-      z-index: 1000;
+      z-index: var(--z-modal-backdrop, 2000);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1096,7 +1096,12 @@ function injectAdminPortalStyles(): void {
 
     .admin-input:focus {
       outline: none;
-      border-color: #4a6741;
+      border-color: var(--admin-accent);
+    }
+
+    .admin-input:focus-visible {
+      outline: 2px solid var(--admin-accent);
+      outline-offset: 2px;
     }
 
     .admin-color-input {
@@ -1144,14 +1149,19 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-btn--danger {
-      background: #c44536;
-      border-color: #c44536;
+      background: var(--color-semantic-error, #c44536);
+      border-color: var(--color-semantic-error, #c44536);
       color: white;
     }
 
     .admin-btn--danger:hover {
-      background: #a83a2e;
-      border-color: #a83a2e;
+      background: var(--color-semantic-error-hover, #a83a2e);
+      border-color: var(--color-semantic-error-hover, #a83a2e);
+    }
+
+    .admin-btn--danger:focus-visible {
+      outline: 2px solid var(--color-semantic-error, #c44536);
+      outline-offset: 2px;
     }
 
     .admin-eyebrow {
@@ -1159,7 +1169,7 @@ function injectAdminPortalStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #4a6741;
+      color: var(--admin-accent);
       display: block;
       margin-bottom: var(--space-1, 0.25rem);
     }
@@ -1220,7 +1230,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-section-title .admin-icon,
     [data-theme="admin"] .admin-section-title .admin-icon {
-      color: #4a6741 !important;
+      color: var(--admin-accent) !important;
     }
 
     /* Tables */

@@ -30,7 +30,7 @@ export async function render(): Promise<string> {
   return `
     <div class="soul-section">
       <header class="soul-header">
-        <h1>✨ Avatar Soul Lab</h1>
+        <h1>Avatar Soul Lab</h1>
         <p class="soul-subtitle">Test "Better Than Human" emotional animations in real-time</p>
       </header>
 
@@ -144,10 +144,10 @@ export async function render(): Promise<string> {
           <div class="control-group">
             <label>Trigger Effect</label>
             <div class="control-buttons">
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="memorySpark">✨ Memory Spark</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="anticipation">⚡ Anticipation</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="comfortPulse">💙 Comfort Pulse</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="growthCelebration">🎉 Celebrate</button>
+              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="memorySpark">Memory Spark</button>
+              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="anticipation">Anticipation</button>
+              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="comfortPulse">Comfort Pulse</button>
+              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="growthCelebration">Celebrate</button>
             </div>
           </div>
 
@@ -220,12 +220,12 @@ export async function render(): Promise<string> {
       /* Preview Panel */
       .soul-preview-panel {
         display: flex;
-        gap: 2rem;
-        padding: 2rem;
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(154, 123, 90, 0.1));
-        border-radius: 16px;
-        border: 1px solid rgba(74, 103, 65, 0.3);
-        margin-bottom: 2rem;
+        gap: var(--space-xl, 2rem);
+        padding: var(--space-xl, 2rem);
+        background: linear-gradient(135deg, var(--color-ferni-glass, rgba(74, 103, 65, 0.15)), var(--color-warmth-glass, rgba(154, 123, 90, 0.1)));
+        border-radius: var(--radius-xl, 16px);
+        border: 1px solid var(--color-ferni-border, rgba(74, 103, 65, 0.3));
+        margin-bottom: var(--space-xl, 2rem);
       }
 
       .soul-preview-container {
@@ -284,18 +284,18 @@ export async function render(): Promise<string> {
         width: 100px;
         height: 100px;
         border-radius: 50%;
-        background: linear-gradient(180deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+        background: linear-gradient(180deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-dark)));
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 0 40px rgba(74, 103, 65, 0.5);
-        transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
-        z-index: 2;
+        box-shadow: 0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
+        transition: transform var(--duration-slow, 0.6s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow var(--duration-slow, 0.5s) ease;
+        z-index: var(--z-raised, 2);
       }
 
       .soul-preview-avatar.protective {
         transform: scale(1.1);
-        box-shadow: 0 0 50px rgba(154, 123, 90, 0.7);
+        box-shadow: 0 0 50px var(--color-warmth-glow, rgba(154, 123, 90, 0.7));
       }
 
       .soul-preview-initial {
@@ -313,7 +313,7 @@ export async function render(): Promise<string> {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent);
+        background: radial-gradient(circle at 30% 30%, var(--color-white-30, rgba(255,255,255,0.3)), transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -324,8 +324,8 @@ export async function render(): Promise<string> {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: radial-gradient(circle, #1a1612, #2c2520);
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        background: radial-gradient(circle, var(--color-bg-darkest, #1a1612), var(--color-bg-dark, #2c2520));
+        transition: all var(--duration-normal, 0.4s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
       }
 
       .soul-preview-pupil.contracted { width: 8px; height: 8px; }
@@ -392,36 +392,36 @@ export async function render(): Promise<string> {
       .soul-status-item {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
-        padding: 0.75rem;
-        background: rgba(0,0,0,0.2);
-        border-radius: 8px;
+        gap: var(--space-xs, 0.25rem);
+        padding: var(--space-sm, 0.75rem);
+        background: var(--color-bg-secondary, rgba(0,0,0,0.2));
+        border-radius: var(--radius-md, 8px);
       }
 
       .soul-status-item .status-label {
         font-size: 0.75rem;
-        color: var(--color-text-muted, rgba(255,255,255,0.5));
+        color: var(--color-text-muted);
       }
 
       .soul-status-item .status-value {
         font-size: 1rem;
         font-weight: 600;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-primary, var(--color-ferni));
       }
 
       /* Control Cards */
       .soul-controls-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
+        gap: var(--space-md, 1rem);
+        margin-bottom: var(--space-xl, 2rem);
       }
 
       .soul-control-card {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px;
-        padding: 1.25rem;
+        background: var(--color-bg-glass, rgba(255,255,255,0.05));
+        border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-md, 1.25rem);
       }
 
       .soul-control-card--wide {
@@ -431,14 +431,14 @@ export async function render(): Promise<string> {
       .control-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
+        gap: var(--space-sm, 0.5rem);
+        margin-bottom: var(--space-sm, 0.5rem);
       }
 
       .control-header svg {
         width: 20px;
         height: 20px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-primary, var(--color-ferni));
       }
 
       .control-header h3 {
@@ -448,13 +448,13 @@ export async function render(): Promise<string> {
       }
 
       .soul-control-card > p {
-        color: var(--color-text-muted, rgba(255,255,255,0.5));
+        color: var(--color-text-muted);
         font-size: 0.85rem;
-        margin: 0 0 1rem;
+        margin: 0 0 var(--space-md, 1rem);
       }
 
       .control-group {
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-md, 1rem);
       }
 
       .control-group:last-child {
@@ -464,57 +464,71 @@ export async function render(): Promise<string> {
       .control-group label {
         display: block;
         font-size: 0.8rem;
-        color: var(--color-text-muted, rgba(255,255,255,0.6));
-        margin-bottom: 0.5rem;
+        color: var(--color-text-muted);
+        margin-bottom: var(--space-sm, 0.5rem);
       }
 
       .control-buttons {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-sm, 0.5rem);
       }
 
       .soul-btn {
-        padding: 0.5rem 0.75rem;
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 6px;
-        color: var(--color-text-primary, #fff);
+        padding: var(--space-sm, 0.5rem) var(--space-sm, 0.75rem);
+        background: var(--color-bg-glass, rgba(255,255,255,0.1));
+        border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.15));
+        border-radius: var(--radius-md, 6px);
+        color: var(--color-text-primary);
         font-size: 0.8rem;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all var(--duration-fast, 0.2s);
       }
 
-      .soul-btn:hover {
-        background: rgba(255,255,255,0.2);
-        border-color: var(--persona-primary, #4a6741);
+      .soul-btn:hover,
+      .soul-btn:focus-visible {
+        background: var(--color-bg-elevated, rgba(255,255,255,0.2));
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
-      .soul-btn--warm:hover { border-color: #c4a265; }
-      .soul-btn--joy:hover { border-color: #ffd764; }
-      .soul-btn--concern:hover { border-color: #9a7b5a; }
-      .soul-btn--effect { background: rgba(74, 103, 65, 0.2); }
+      .soul-btn:focus-visible {
+        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline-offset: 2px;
+      }
+
+      .soul-btn--warm:hover,
+      .soul-btn--warm:focus-visible { border-color: var(--color-warmth, #c4a265); }
+      .soul-btn--joy:hover,
+      .soul-btn--joy:focus-visible { border-color: var(--color-joy, #ffd764); }
+      .soul-btn--concern:hover,
+      .soul-btn--concern:focus-visible { border-color: var(--color-comfort, #9a7b5a); }
+      .soul-btn--effect { background: var(--color-ferni-glass, rgba(74, 103, 65, 0.2)); }
 
       /* Sliders */
       .soul-sliders {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
+        gap: var(--space-lg, 1.5rem);
       }
 
       .soul-slider label {
         display: block;
         font-size: 0.85rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: var(--space-sm, 0.5rem);
       }
 
       .soul-slider input[type="range"] {
         width: 100%;
         height: 8px;
-        border-radius: 4px;
-        background: rgba(255,255,255,0.1);
+        border-radius: var(--radius-sm, 4px);
+        background: var(--color-bg-glass, rgba(255,255,255,0.1));
         appearance: none;
         cursor: pointer;
+      }
+
+      .soul-slider input[type="range"]:focus-visible {
+        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline-offset: 2px;
       }
 
       .soul-slider input[type="range"]::-webkit-slider-thumb {
@@ -522,9 +536,9 @@ export async function render(): Promise<string> {
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         cursor: pointer;
-        transition: transform 0.2s;
+        transition: transform var(--duration-fast, 0.2s);
       }
 
       .soul-slider input[type="range"]::-webkit-slider-thumb:hover {
@@ -534,20 +548,40 @@ export async function render(): Promise<string> {
       /* Links */
       .soul-links {
         display: flex;
-        gap: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255,255,255,0.1);
+        gap: var(--space-md, 1rem);
+        padding-top: var(--space-md, 1rem);
+        border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
       }
 
       .soul-link {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-primary, var(--color-ferni));
         text-decoration: none;
         font-size: 0.85rem;
-        transition: opacity 0.2s;
+        transition: opacity var(--duration-fast, 0.2s);
       }
 
       .soul-link:hover {
         opacity: 0.8;
+      }
+
+      .soul-link:focus-visible {
+        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline-offset: 2px;
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .soul-preview-shimmer,
+        .soul-preview-spark,
+        .comfort-ring {
+          animation: none;
+        }
+        .soul-preview-avatar,
+        .soul-preview-pupil,
+        .soul-btn,
+        .soul-slider input[type="range"]::-webkit-slider-thumb {
+          transition: none;
+        }
       }
     </style>
   `;

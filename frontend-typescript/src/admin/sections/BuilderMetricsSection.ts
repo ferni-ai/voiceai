@@ -65,7 +65,7 @@ async function fetchBuilderMetrics(): Promise<BuilderMetricsSummary | null> {
   }
 }
 
-async function fetchWarnings(): Promise<string[]> {
+export async function fetchWarnings(): Promise<string[]> {
   try {
     const response = await fetch('/api/admin/builder-metrics/warnings');
     if (!response.ok) {
