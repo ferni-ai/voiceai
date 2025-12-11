@@ -5,22 +5,21 @@
  * Verifies round-trip conversion integrity and edge cases.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  createUnifiedProfile,
   detectProfileFormat,
-  needsMigration,
+  diffProfiles,
+  mergeProfileUpdate,
+  migrateProfileBatch,
   migrateToComposite,
   migrateToLegacy,
+  needsMigration,
   UnifiedProfileAdapter,
-  createUnifiedProfile,
-  migrateProfileBatch,
-  mergeProfileUpdate,
-  diffProfiles,
-  type ProfileFormat,
 } from '../../types/migration/index.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import type { CompositeUserProfile } from '../../types/profile/index.js';
 import { createCompositeUserProfile } from '../../types/profile/index.js';
+import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
 // TEST DATA FACTORIES
@@ -364,10 +363,7 @@ describe('Profile Migration', () => {
       // Remove entertainment from before to simulate it being missing
       const beforeWithoutEntertainment = { ...before, entertainment: undefined };
 
-      const diff = diffProfiles(
-        beforeWithoutEntertainment as CompositeUserProfile,
-        before
-      );
+      const diff = diffProfiles(beforeWithoutEntertainment as CompositeUserProfile, before);
 
       expect(diff.added).toContain('entertainment');
     });

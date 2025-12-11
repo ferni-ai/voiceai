@@ -4,19 +4,19 @@
  * Tests the type-safe Firestore converters with branded types.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
-  createFirestoreConverter,
-  createUserProfileConverter,
-  createSessionConverter,
-  convertTimestampsToDate,
   convertDatesForFirestore,
-  toBrandedId,
-  createPartialUpdate,
+  convertTimestampsToDate,
+  createFirestoreConverter,
   createNestedUpdate,
-  validateForFirestore,
+  createPartialUpdate,
+  createSessionConverter,
+  createUserProfileConverter,
   safeParseFromFirestore,
+  toBrandedId,
+  validateForFirestore,
 } from '../../types/firestore/index.js';
 
 // ============================================================================

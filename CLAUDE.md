@@ -119,6 +119,42 @@ GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = f
 
 **Key files:** `design-system/tokens/`, `design-system/*.js`, `.github/workflows/token-check.yml`
 
+## 🔌 Agent Extensibility System
+
+Extend personas with custom commands, hooks, MCP servers, and embeddable widgets. **All extensions are opt-in and per-persona.**
+
+| Feature | Location | Purpose |
+|---------|----------|---------|
+| **Commands** | `src/personas/bundles/{persona}/commands/*.md` | Slash commands in UI |
+| **Shell Hooks** | `src/personas/bundles/{persona}/hooks/*.sh` | Pre/post execution scripts |
+| **MCP Servers** | `src/personas/bundles/{persona}/mcp/servers.json` | Model Context Protocol |
+| **Widget SDK** | `src/api/widget-routes.ts` | Embed on external websites |
+
+### Adding Commands to a Persona
+```bash
+# Create commands folder
+mkdir -p src/personas/bundles/ferni/commands
+
+# Add a command (markdown with frontmatter)
+cat > src/personas/bundles/ferni/commands/morning-ritual.md << 'EOF'
+---
+title: Morning Ritual
+description: Start your day with intention
+category: rituals
+---
+Guide me through a morning ritual to set intentions for today.
+EOF
+```
+
+### Embedding Widget on External Sites
+```html
+<script src="https://your-domain.com/api/widget/embed.js"
+        data-widget-id="widget_abc123"
+        async></script>
+```
+
+**Full documentation:** `docs/architecture/AGENT-EXTENSIBILITY.md`
+
 ## Dev Mode (Testing Subscription & Team Unlocks)
 ```bash
 # Enable dev mode
@@ -135,6 +171,7 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 ## Read First
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
+- **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
 - **Monetization & Team Unlocks**: `docs/architecture/MONETIZATION-SYSTEM.md`
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design System**: `design-system/README.md` (tokens, animations, colors)

@@ -4,14 +4,14 @@
  * Tests the Zod-to-OpenAPI conversion utilities.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
-  zodToOpenAPI,
+  createStandardResponses,
+  jsonContent,
   OpenAPIDocumentBuilder,
   schemaRef,
-  jsonContent,
-  createStandardResponses,
+  zodToOpenAPI,
   type OpenAPISchema,
 } from '../../types/openapi/index.js';
 

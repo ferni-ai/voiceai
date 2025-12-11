@@ -7,11 +7,11 @@
  * @module session-manager/access
  */
 
+import type { SessionId } from '../../types/branded.js';
+import { createSessionId } from '../../types/branded.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { SessionServices } from '../types.js';
 import { SHUTDOWN_TIMEOUT_MS } from './constants.js';
-import type { SessionId } from '../../types/branded.js';
-import { createSessionId } from '../../types/branded.js';
 
 // Reference to active sessions map (injected from main module)
 let activeSessionsRef: Map<SessionId, SessionServices> | null = null;

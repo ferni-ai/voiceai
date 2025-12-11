@@ -12,24 +12,24 @@
  * @module context/context-manager
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
 import type { ConversationState, PhaseGuidance } from '../intelligence/conversation-state.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { generateRollingSummary, type ConversationTurn } from '../memory/summarizer.js';
 import {
-  injectSharedContent,
   formatForPrompt,
-  type SharedContentContext,
+  injectSharedContent,
   type InjectedContent,
+  type SharedContentContext,
 } from '../personas/shared/index.js';
-import type { SessionId, PersonaId, UserId } from '../types/branded.js';
+import type { PersonaId, SessionId } from '../types/branded.js';
 import { createSessionId, isValidPersonaId } from '../types/branded.js';
+import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // Speech insights imports
-import type { HumanListeningResult } from '../speech/human-listening-pipeline/types.js';
-import type { EmotionalMomentum, ProsodyContinuityHints } from '../speech/emotional-contagion.js';
 import type { SpeedControlResult } from '../speech/adaptive-ssml/dynamic-speed-control.js';
+import type { EmotionalMomentum, ProsodyContinuityHints } from '../speech/emotional-contagion.js';
+import type { HumanListeningResult } from '../speech/human-listening-pipeline/types.js';
 
 // ============================================================================
 // TYPES
@@ -628,12 +628,8 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
     prosodyContinuityHints?: ProsodyContinuityHints;
     speedControl?: SpeedControlResult;
   }): SpeechInsightsContext {
-    const {
-      humanListeningResult,
-      emotionalMomentum,
-      prosodyContinuityHints,
-      speedControl,
-    } = options;
+    const { humanListeningResult, emotionalMomentum, prosodyContinuityHints, speedControl } =
+      options;
 
     // Determine distress signals from voice
     let voiceDistressSignals = false;
@@ -727,7 +723,7 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
 
     // Human listening signals
     if (humanListeningResult) {
-      const text = humanListeningResult.text;
+      const { text } = humanListeningResult;
 
       if (text.selfSoothing?.detected && text.selfSoothing.confidence > 0.5) {
         guidance.push('User is self-soothing - they need validation, not advice');
@@ -748,9 +744,7 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
       guidance.push(`Speech pacing: ${speedControl.reason}`);
     }
 
-    return guidance.length > 0
-      ? `[VOICE INSIGHTS]\n${guidance.join('\n')}`
-      : '';
+    return guidance.length > 0 ? `[VOICE INSIGHTS]\n${guidance.join('\n')}` : '';
   }
 
   /**

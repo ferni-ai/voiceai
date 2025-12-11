@@ -8,6 +8,7 @@ export {
   ContextManager,
   getContextManager,
   removeContextManager,
-  type PromptContext,
   type ContextOptions,
+  type PromptContext,
+  type SpeechInsightsContext,
 } from './context-manager.js';
