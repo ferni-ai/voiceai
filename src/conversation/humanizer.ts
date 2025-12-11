@@ -34,11 +34,6 @@ import {
   type SessionMemory,
 } from './deep-humanization.js';
 // 🌟 BETTER THAN HUMAN - Advanced superhuman capabilities
-import {
-  getBetterThanHuman,
-  type BetterThanHumanContext,
-  type BetterThanHumanInsight,
-} from './superhuman/index.js';
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
 import {
   getHumanizationOrchestrator,
@@ -48,13 +43,18 @@ import {
 } from './humanization/index.js';
 import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
 import { getResponseDynamicsEngine } from './response-dynamics.js';
+import {
+  getSessionIntelligence,
+  type SessionIntelligenceContext,
+  type SessionIntelligenceInsight,
+} from './session-intelligence.js';
 import { getSilencePresenceEngine } from './silence-presence.js';
 import { getSpeechNaturalizer, type NaturalizationContext } from './speech-naturalizer.js';
 import {
-  getSuperhumanIntelligence,
-  type SuperhumanContext,
-  type SuperhumanInsight,
-} from './superhuman-intelligence.js';
+  getBetterThanHuman,
+  type BetterThanHumanContext,
+  type BetterThanHumanInsight,
+} from './superhuman/index.js';
 import { detectUserEnergy, humanizeVocals, type VocalContext } from './vocal-humanization.js';
 
 // ============================================================================
@@ -128,10 +128,10 @@ export class ConversationHumanizer {
   // Session time tracking
   private sessionStartTime = Date.now();
 
-  // 🧠 Superhuman intelligence - session scoped
+  // 🧠 Session intelligence - real-time within-session intelligence
   private sessionId: string;
   private userId?: string;
-  private lastSuperhumanInsight: SuperhumanInsight | null = null;
+  private lastSessionInsight: SessionIntelligenceInsight | null = null;
 
   // 🌟 Better Than Human - advanced capabilities
   private sessionCount = 0;
@@ -151,7 +151,7 @@ export class ConversationHumanizer {
   }
 
   /**
-   * Set session and user IDs for superhuman intelligence
+   * Set session and user IDs for session intelligence
    */
   setSessionContext(sessionId: string, userId?: string): void {
     this.sessionId = sessionId;
@@ -160,10 +160,17 @@ export class ConversationHumanizer {
   }
 
   /**
-   * Get the last superhuman insight (for external use)
+   * Get the last session insight (for external use)
    */
-  getLastSuperhumanInsight(): SuperhumanInsight | null {
-    return this.lastSuperhumanInsight;
+  getLastSessionInsight(): SessionIntelligenceInsight | null {
+    return this.lastSessionInsight;
+  }
+
+  /**
+   * @deprecated Use getLastSessionInsight
+   */
+  getLastSuperhumanInsight(): SessionIntelligenceInsight | null {
+    return this.lastSessionInsight;
   }
 
   /**
@@ -428,10 +435,10 @@ export class ConversationHumanizer {
       });
     }
 
-    // 10. 🧠 SUPERHUMAN INTELLIGENCE guidance
+    // 10. 🧠 SESSION INTELLIGENCE guidance
     // Include guidance from concern detection, proactive memory, and predictions
-    if (this.lastSuperhumanInsight) {
-      const insight = this.lastSuperhumanInsight;
+    if (this.lastSessionInsight) {
+      const insight = this.lastSessionInsight;
 
       // Concern-based guidance (HIGH PRIORITY)
       if (insight.concern.level === 'elevated' || insight.concern.level === 'crisis') {
@@ -676,12 +683,13 @@ export class ConversationHumanizer {
     context: HumanizationContext
   ): Promise<HumanizedResponse> {
     // =========================================================================
-    // 🧠 SUPERHUMAN INTELLIGENCE - Run first to inform everything else
+    // 🧠 SESSION INTELLIGENCE - Run first to inform everything else
+    // Real-time within-session analysis (concern detection, predictions, memory)
     // =========================================================================
-    const superhumanIntelligence = getSuperhumanIntelligence(this.sessionId, this.userId);
+    const sessionIntelligence = getSessionIntelligence(this.sessionId, this.userId);
 
-    // Build superhuman context
-    const superhumanContext: SuperhumanContext = {
+    // Build session intelligence context
+    const sessionContext: SessionIntelligenceContext = {
       sessionId: this.sessionId,
       userId: this.userId,
       turnCount: context.turnNumber,
@@ -693,9 +701,9 @@ export class ConversationHumanizer {
       engagementLevel: context.userMessage.length > 100 ? 0.8 : 0.5,
     };
 
-    // Get superhuman insight
-    const insight = superhumanIntelligence.analyze(superhumanContext);
-    this.lastSuperhumanInsight = insight;
+    // Get session intelligence insight
+    const insight = sessionIntelligence.analyze(sessionContext);
+    this.lastSessionInsight = insight;
 
     // Log significant insights
     if (insight.confidence > 0.6) {
@@ -706,7 +714,7 @@ export class ConversationHumanizer {
           modifications: insight.responseModifications.length,
           voiceState: insight.predictions.voiceState.state,
         },
-        '🧠 Superhuman insight applied'
+        '🧠 Session insight applied'
       );
     }
 
@@ -941,25 +949,25 @@ export class ConversationHumanizer {
     }
 
     // =========================================================================
-    // 🧠 SUPERHUMAN MODIFICATIONS
+    // 🧠 SESSION INTELLIGENCE MODIFICATIONS
     // Apply concern validation, voice acknowledgments, proactive memory, etc.
-    // These are the "Better Than Human" capabilities that make Ferni superhuman.
+    // These are within-session intelligence capabilities.
     // =========================================================================
     if (insight.responseModifications.length > 0) {
-      enhancedText = superhumanIntelligence.applyModifications(enhancedText, insight);
-      enhancedSsml = superhumanIntelligence.applyModifications(enhancedSsml, insight);
-      additionalFeatures.push(...insight.responseModifications.map((m) => `superhuman_${m.type}`));
+      enhancedText = sessionIntelligence.applyModifications(enhancedText, insight);
+      enhancedSsml = sessionIntelligence.applyModifications(enhancedSsml, insight);
+      additionalFeatures.push(...insight.responseModifications.map((m) => `session_${m.type}`));
 
       getLogger().debug(
         {
           modifications: insight.responseModifications.map((m) => m.type),
           approach: insight.responseGuidance.approach,
         },
-        '🧠 Superhuman modifications applied'
+        '🧠 Session intelligence modifications applied'
       );
     }
 
-    // Add superhuman opening if this is session start
+    // Add session intelligence opening if this is session start
     if (insight.suggestedOpening && context.turnNumber <= 1) {
       // Replace the first sentence with the suggested opening
       const firstSentenceEnd = enhancedText.search(/[.!?]\s/) + 1;
@@ -967,7 +975,7 @@ export class ConversationHumanizer {
         enhancedText = `${insight.suggestedOpening} ${enhancedText.slice(firstSentenceEnd).trim()}`;
         enhancedSsml = `${insight.suggestedOpening} ${enhancedSsml.slice(firstSentenceEnd).trim()}`;
       }
-      additionalFeatures.push('superhuman_opening');
+      additionalFeatures.push('session_opening');
     }
 
     return {

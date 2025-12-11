@@ -60,6 +60,23 @@ const TEMPORAL_PHRASES = {
     ],
     consistent: ['Steady as always.', "You've got that consistent energy I've come to expect."],
   },
+  openness_comparison: {
+    more_open: [
+      'You seem more open today. I appreciate that.',
+      "You're sharing more than usual. Thank you for trusting me.",
+      "It feels like you're letting me in more today.",
+      "There's something different—you're being more real with me.",
+    ],
+    less_open: [
+      "You seem more guarded today. That's okay. I'm here when you're ready.",
+      "Taking things slower today? I respect that.",
+      "You're holding back a bit. No pressure—take your time.",
+    ],
+    consistently_open: [
+      "You've always been so open with me. I don't take that for granted.",
+      'Your willingness to share never stops impressing me.',
+    ],
+  },
   mood_shift: {
     improving: [
       "You've been trending up lately. I've noticed.",
@@ -83,6 +100,11 @@ const TEMPORAL_PHRASES = {
     "I've watched you grow. It's been remarkable.",
     "The version of you I'm talking to now? Different. Better.",
     'Remember when this would have sent you spiraling? Look at you now.',
+  ],
+  openness_growth: [
+    "You open up more easily now than when we first started talking.",
+    "I've noticed how much more comfortable you are sharing the hard stuff.",
+    "The trust you show now compared to our early conversations—that means something.",
   ],
   concern_pattern: [
     "This topic comes up a lot when you're stressed.",
@@ -116,12 +138,21 @@ export class TemporalEmotionalEngine {
     dominantEmotion: string;
     energyLevel: number;
     positivity: number;
+    openness?: number;
     topics: string[];
     concernsDetected: boolean;
   }): void {
+    // Calculate openness if not provided - based on vulnerability indicators
+    const openness = snapshot.openness ?? this.inferOpenness(snapshot);
+
     const newSnapshot: SessionEmotionSnapshot = {
       date: new Date(),
-      ...snapshot,
+      dominantEmotion: snapshot.dominantEmotion,
+      energyLevel: snapshot.energyLevel,
+      positivity: snapshot.positivity,
+      openness,
+      topics: snapshot.topics,
+      concernsDetected: snapshot.concernsDetected,
     };
 
     this.profile.sessionEmotions.push(newSnapshot);
@@ -162,6 +193,7 @@ export class TemporalEmotionalEngine {
     turnCount: number;
     currentEnergy: number;
     currentPositivity: number;
+    currentOpenness?: number;
     sessionCount: number;
   }): TemporalInsight {
     // Need enough history
@@ -181,6 +213,15 @@ export class TemporalEmotionalEngine {
       return energyInsight;
     }
 
+    // Check for openness comparison (new capability)
+    if (context.currentOpenness !== undefined) {
+      const opennessInsight = this.checkOpennessComparison(context.currentOpenness);
+      if (opennessInsight.shouldMention && Math.random() < 0.12) {
+        this.lastInsightTurn = context.turnCount;
+        return opennessInsight;
+      }
+    }
+
     // Check for mood shift observation
     const moodInsight = this.checkMoodShift();
     if (moodInsight.shouldMention && Math.random() < 0.1) {
@@ -193,6 +234,13 @@ export class TemporalEmotionalEngine {
     if (growthInsight.shouldMention && Math.random() < 0.08) {
       this.lastInsightTurn = context.turnCount;
       return growthInsight;
+    }
+
+    // Check for openness growth over time (different from comparison)
+    const opennessGrowthInsight = this.checkOpennessGrowth();
+    if (opennessGrowthInsight.shouldMention && Math.random() < 0.06) {
+      this.lastInsightTurn = context.turnCount;
+      return opennessGrowthInsight;
     }
 
     return { shouldMention: false };
@@ -324,6 +372,76 @@ export class TemporalEmotionalEngine {
     return { shouldMention: false };
   }
 
+  /**
+   * Check for openness comparison with recent sessions
+   */
+  private checkOpennessComparison(currentOpenness: number): TemporalInsight {
+    if (this.profile.sessionEmotions.length < 2) {
+      return { shouldMention: false };
+    }
+
+    const lastSession = this.profile.sessionEmotions[this.profile.sessionEmotions.length - 1];
+    const opennessDiff = currentOpenness - lastSession.openness;
+    const baselineDiff = currentOpenness - this.profile.baseline.openness;
+
+    // Significantly more open
+    if (opennessDiff > 0.25 || baselineDiff > 0.3) {
+      return {
+        shouldMention: true,
+        type: 'openness_comparison',
+        phrase: this.selectRandom(TEMPORAL_PHRASES.openness_comparison.more_open),
+      };
+    }
+
+    // Significantly less open (be gentle)
+    if (opennessDiff < -0.25 || baselineDiff < -0.3) {
+      return {
+        shouldMention: true,
+        type: 'openness_comparison',
+        phrase: this.selectRandom(TEMPORAL_PHRASES.openness_comparison.less_open),
+      };
+    }
+
+    // Consistently high openness (acknowledge it)
+    if (currentOpenness > 0.7 && this.profile.baseline.openness > 0.65) {
+      return {
+        shouldMention: true,
+        type: 'openness_comparison',
+        phrase: this.selectRandom(TEMPORAL_PHRASES.openness_comparison.consistently_open),
+      };
+    }
+
+    return { shouldMention: false };
+  }
+
+  /**
+   * Check for openness growth over time (longer-term pattern)
+   */
+  private checkOpennessGrowth(): TemporalInsight {
+    // Need enough history
+    if (this.profile.sessionEmotions.length < 10) {
+      return { shouldMention: false };
+    }
+
+    // Compare early sessions to recent
+    const early = this.profile.sessionEmotions.slice(0, 5);
+    const recent = this.profile.sessionEmotions.slice(-5);
+
+    const earlyAvgOpenness = early.reduce((sum, s) => sum + s.openness, 0) / early.length;
+    const recentAvgOpenness = recent.reduce((sum, s) => sum + s.openness, 0) / recent.length;
+
+    // Significant improvement in openness over time
+    if (recentAvgOpenness - earlyAvgOpenness > 0.2) {
+      return {
+        shouldMention: true,
+        type: 'openness_growth',
+        phrase: this.selectRandom(TEMPORAL_PHRASES.openness_growth),
+      };
+    }
+
+    return { shouldMention: false };
+  }
+
   // ==========================================================================
   // PROFILE UPDATES
   // ==========================================================================
@@ -335,8 +453,56 @@ export class TemporalEmotionalEngine {
     this.profile.baseline = {
       energy: recent.reduce((sum, s) => sum + s.energyLevel, 0) / recent.length,
       positivity: recent.reduce((sum, s) => sum + s.positivity, 0) / recent.length,
-      openness: 0.5, // TODO: Track openness
+      openness: recent.reduce((sum, s) => sum + s.openness, 0) / recent.length,
     };
+  }
+
+  /**
+   * Infer openness level from session characteristics
+   * Openness reflects how vulnerable/sharing the user was
+   */
+  private inferOpenness(snapshot: {
+    dominantEmotion: string;
+    topics: string[];
+    concernsDetected: boolean;
+  }): number {
+    let openness = 0.3; // Base level
+
+    // Vulnerable emotions indicate openness
+    const vulnerableEmotions = ['sadness', 'fear', 'anxiety', 'grief', 'shame', 'guilt'];
+    if (vulnerableEmotions.includes(snapshot.dominantEmotion.toLowerCase())) {
+      openness += 0.3;
+    }
+
+    // Discussing personal topics indicates openness
+    const personalTopics = [
+      'family',
+      'relationship',
+      'childhood',
+      'trauma',
+      'fear',
+      'dream',
+      'regret',
+      'insecurity',
+    ];
+    const hasPersonalTopic = snapshot.topics.some((t) =>
+      personalTopics.some((p) => t.toLowerCase().includes(p))
+    );
+    if (hasPersonalTopic) {
+      openness += 0.2;
+    }
+
+    // Multiple topics suggest more sharing
+    if (snapshot.topics.length >= 3) {
+      openness += 0.1;
+    }
+
+    // Concerns detected usually means they opened up
+    if (snapshot.concernsDetected) {
+      openness += 0.15;
+    }
+
+    return Math.min(1, openness);
   }
 
   private updateTrajectory(): void {

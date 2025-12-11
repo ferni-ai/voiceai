@@ -27,16 +27,16 @@ import { humanizationSignalEmitter } from '../services/humanization/humanization
 import { createLogger } from '../utils/safe-logger.js';
 import {
   getConcernDetectionEngine,
-  type BreathingSignals,
   type ConcernDetectionEngine,
+  type BreathingSignals,
   type ConcernState,
   type ProsodySignals,
   type TemporalContext,
 } from './concern-detection.js';
 import {
   getPredictiveAnticipationEngine,
-  type PredictionResult,
   type PredictiveAnticipationEngine,
+  type PredictionResult,
   type ProsodyInput,
 } from './predictive-anticipation.js';
 import {

@@ -386,6 +386,110 @@ describe('Temporal Emotional Intelligence', () => {
     // We recorded 2 sessions in this test
     expect(profile.sessionEmotions.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('should track openness from explicit values', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    engine.recordSessionEmotion({
+      dominantEmotion: 'vulnerable',
+      energyLevel: 0.5,
+      positivity: 0.4,
+      openness: 0.8, // High explicit openness
+      topics: ['family', 'childhood'],
+      concernsDetected: true,
+    });
+
+    const profile = engine.export();
+    // Openness should be recorded (either explicit or inferred)
+    expect(profile.sessionEmotions[0].openness).toBeDefined();
+    expect(profile.sessionEmotions[0].openness).toBeGreaterThanOrEqual(0);
+    expect(profile.sessionEmotions[0].openness).toBeLessThanOrEqual(1);
+  });
+
+  it('should infer openness from session characteristics', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    // Session with vulnerable emotion (sadness) and personal topics
+    engine.recordSessionEmotion({
+      dominantEmotion: 'sadness',
+      energyLevel: 0.3,
+      positivity: 0.3,
+      topics: ['relationship', 'family', 'childhood'], // Personal topics
+      concernsDetected: true,
+    });
+
+    const profile = engine.export();
+    // Openness should be inferred and present
+    expect(profile.sessionEmotions[0].openness).toBeDefined();
+    // With sad emotion + personal topics + concerns, should be higher than base (0.3)
+    expect(profile.sessionEmotions[0].openness).toBeGreaterThanOrEqual(0.3);
+  });
+
+  it('should infer lower openness from neutral sessions', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    // Session with neutral emotion and general topic
+    engine.recordSessionEmotion({
+      dominantEmotion: 'neutral',
+      energyLevel: 0.5,
+      positivity: 0.5,
+      topics: ['weather'],
+      concernsDetected: false,
+    });
+
+    const profile = engine.export();
+    // Should have base-level openness (0.3) for neutral content
+    expect(profile.sessionEmotions[0].openness).toBeLessThanOrEqual(0.4);
+  });
+
+  it('should update baseline openness from multiple sessions', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    // Record enough sessions to update baseline
+    for (let i = 0; i < 5; i++) {
+      engine.recordSessionEmotion({
+        dominantEmotion: 'trust',
+        energyLevel: 0.6,
+        positivity: 0.6,
+        openness: 0.7, // Consistently high openness
+        topics: ['personal'],
+        concernsDetected: false,
+      });
+    }
+
+    const baseline = engine.getBaseline();
+    // Baseline should reflect the consistent high openness
+    expect(baseline.openness).toBeGreaterThan(0.5);
+  });
+
+  it('should provide openness comparison insights', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    // Build up history with lower openness
+    for (let i = 0; i < 5; i++) {
+      engine.recordSessionEmotion({
+        dominantEmotion: 'neutral',
+        energyLevel: 0.5,
+        positivity: 0.5,
+        openness: 0.3, // Low openness baseline
+        topics: ['general'],
+        concernsDetected: false,
+      });
+    }
+
+    // Now get insight with higher current openness
+    const insight = engine.getTemporalInsight({
+      turnCount: 50, // After cooldown
+      currentEnergy: 0.5,
+      currentPositivity: 0.5,
+      currentOpenness: 0.8, // Much higher than baseline
+      sessionCount: 10,
+    });
+
+    // The insight check is probabilistic, but the method should not error
+    expect(insight).toBeDefined();
+    expect(typeof insight.shouldMention).toBe('boolean');
+  });
 });
 
 describe('Team Coherence Engine', () => {

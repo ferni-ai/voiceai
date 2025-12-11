@@ -514,6 +514,9 @@ export interface SessionEmotionSnapshot {
   /** Positivity (0-1) */
   positivity: number;
 
+  /** Openness/vulnerability level (0-1) - how much they shared */
+  openness: number;
+
   /** Notable topics */
   topics: string[];
 
@@ -540,7 +543,13 @@ export interface TemporalInsight {
   shouldMention: boolean;
 
   /** Type of observation */
-  type?: 'energy_comparison' | 'mood_shift' | 'growth_observation' | 'concern_pattern';
+  type?:
+    | 'energy_comparison'
+    | 'mood_shift'
+    | 'growth_observation'
+    | 'concern_pattern'
+    | 'openness_comparison'
+    | 'openness_growth';
 
   /** Phrase */
   phrase?: string;

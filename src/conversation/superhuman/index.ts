@@ -1,10 +1,16 @@
 /**
- * Better Than Human - Superhuman Capabilities
+ * Better Than Human - Cross-Session Relationship Intelligence
  *
  * > "Your best friend forgets. We don't."
  *
- * This module exports all 12 superhuman capabilities that make Ferni
- * genuinely better than human support:
+ * This module exports all 12 **cross-session** relationship-building
+ * capabilities that make Ferni genuinely better than human support.
+ *
+ * **Note:** This is the **relationship intelligence** system that builds
+ * and evolves across sessions. For **within-session** real-time intelligence
+ * (concern detection, predictions), see `session-intelligence.ts`.
+ *
+ * ## Capabilities
  *
  * 1. **Emotional Memory Evolution** - How we feel about you grows
  * 2. **Anticipatory Presence** - "I was hoping you'd call"

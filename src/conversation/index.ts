@@ -37,11 +37,11 @@ import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns.js';
 import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
+import { resetSessionIntelligence as _resetSessionIntelligence } from './session-intelligence.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
 import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
 import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
-import { resetSuperhumanIntelligence as _resetSuperhumanIntelligence } from './superhuman-intelligence.js';
 import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
@@ -309,17 +309,26 @@ export {
   type VoiceStatePrediction,
 } from './predictive-anticipation.js';
 
-// Superhuman Intelligence Orchestrator - Coordinates all "Better Than Human" capabilities
+// Session Intelligence Orchestrator - Real-time within-session intelligence
+// (For cross-session relationship features, see superhuman/ module)
 export {
+  // New names
+  clearSessionIntelligence,
+  // Backwards compatibility (deprecated)
   clearSuperhumanIntelligence,
+  getSessionIntelligence,
   getSuperhumanIntelligence,
+  resetSessionIntelligence,
   resetSuperhumanIntelligence,
+  SessionIntelligenceOrchestrator,
   SuperhumanIntelligenceOrchestrator,
   type ResponseGuidance,
   type ResponseModification,
+  type SessionIntelligenceContext,
+  type SessionIntelligenceInsight,
   type SuperhumanContext,
   type SuperhumanInsight,
-} from './superhuman-intelligence.js';
+} from './session-intelligence.js';
 
 // ============================================================================
 // CONTENT DELIVERY PACING - Human-like reading of long content
@@ -514,8 +523,8 @@ export {
   addSharedMemory as addAdvancedSharedMemory,
   addSignificantDate as addAdvancedSignificantDate,
   cleanupAdvancedHumanization,
-  getAdvancedHumanizationState,
   getClosingGuidance as getAdvancedClosingGuidance,
+  getAdvancedHumanizationState,
   getResponseModifications as getAdvancedResponseModifications,
   initAdvancedHumanization,
   processAdvancedTurn,
@@ -559,7 +568,7 @@ export function resetAllConversationState(
     _resetConcernDetection(sessionId);
     _resetProactiveMemory(sessionId);
     _resetPredictiveAnticipation(sessionId);
-    _resetSuperhumanIntelligence(sessionId);
+    _resetSessionIntelligence(sessionId);
     // Advanced humanization (session-scoped)
     _resetSubtextDetection(sessionId);
     _resetEmotionalAftercare(sessionId);

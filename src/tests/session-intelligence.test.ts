@@ -1,11 +1,13 @@
 /**
- * Superhuman Intelligence Tests
+ * Session Intelligence Tests
  *
- * Tests for the "Better Than Human" capabilities:
+ * Tests for real-time within-session intelligence:
  * - Concern Detection
  * - Proactive Memory
  * - Predictive Anticipation
  * - Orchestrator Integration
+ *
+ * Note: For cross-session relationship features, see superhuman/ module tests.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -25,10 +27,10 @@ import {
   getProactiveMemoryEngine,
 } from '../conversation/proactive-memory.js';
 import {
-  SuperhumanIntelligenceOrchestrator,
-  clearSuperhumanIntelligence,
-  getSuperhumanIntelligence,
-} from '../conversation/superhuman-intelligence.js';
+  SessionIntelligenceOrchestrator,
+  clearSessionIntelligence,
+  getSessionIntelligence,
+} from '../conversation/session-intelligence.js';
 
 // ============================================================================
 // CONCERN DETECTION TESTS
@@ -427,14 +429,14 @@ describe('PredictiveAnticipationEngine', () => {
 // ORCHESTRATOR INTEGRATION TESTS
 // ============================================================================
 
-describe('SuperhumanIntelligenceOrchestrator', () => {
+describe('SessionIntelligenceOrchestrator', () => {
   const sessionId = 'test-session-orchestrator';
   const userId = 'test-user';
-  let orchestrator: SuperhumanIntelligenceOrchestrator;
+  let orchestrator: SessionIntelligenceOrchestrator;
 
   beforeEach(() => {
-    clearSuperhumanIntelligence(sessionId, userId);
-    orchestrator = getSuperhumanIntelligence(sessionId, userId);
+    clearSessionIntelligence(sessionId, userId);
+    orchestrator = getSessionIntelligence(sessionId, userId);
   });
 
   describe('Unified Analysis', () => {
@@ -557,16 +559,16 @@ describe('SuperhumanIntelligenceOrchestrator', () => {
 // END-TO-END FLOW TEST
 // ============================================================================
 
-describe('End-to-End Superhuman Flow', () => {
+describe('End-to-End Session Intelligence Flow', () => {
   const sessionId = 'e2e-test-session';
   const userId = 'e2e-user';
 
   beforeEach(() => {
-    clearSuperhumanIntelligence(sessionId, userId);
+    clearSessionIntelligence(sessionId, userId);
   });
 
   it('handles a complete conversation with escalating concern', () => {
-    const orchestrator = getSuperhumanIntelligence(sessionId, userId);
+    const orchestrator = getSessionIntelligence(sessionId, userId);
 
     // Turn 1: Normal
     const insight1 = orchestrator.analyze({
@@ -605,7 +607,7 @@ describe('End-to-End Superhuman Flow', () => {
   });
 
   it('processes messages and generates insights', () => {
-    const orchestrator = getSuperhumanIntelligence(sessionId, userId);
+    const orchestrator = getSessionIntelligence(sessionId, userId);
 
     // Turn 1: Process a message about work
     const insight1 = orchestrator.analyze({

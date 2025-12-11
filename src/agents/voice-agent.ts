@@ -5478,8 +5478,8 @@ cli.runApp(
     // The prewarm function calls startup() which does 10+ async operations:
     // - memory system (Firestore), services, bundles, schedulers,
     // - team handlers, community insights, agent evolution, analytics, persistence
-    // Cold start can take 120-150s; set to 180s for safety margin
-    initializeProcessTimeout: 180 * 1000, // 180 seconds
+    // Cold start can take 180-240s on busy clusters; set to 300s for safety margin
+    initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
   })
 );
 
