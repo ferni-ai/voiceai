@@ -55,7 +55,7 @@ registerContextBuilder({
     const userId = services.userId || services.sessionId;
 
     // Only apply to Ferni (life coach persona)
-    if (persona.id !== 'ferni' && persona.id !== 'jack-b') {
+    if (persona.id !== 'ferni') {
       return injections;
     }
 

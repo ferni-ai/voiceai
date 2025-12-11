@@ -345,6 +345,12 @@ export { createShoppingTools } from './shopping.js';
 export { createTaskTools } from './tasks.js';
 export { createTravelTools } from './travel.js';
 
+// Alexa/Siri-like Quick Utilities (new)
+export { createFlightTools, getAirportInfo, getFlightStatus } from './flights.js';
+export { createRestaurantTools, searchRestaurants } from './restaurants.js';
+export { activateScene, controlDevice, createSmartHomeTools, getAllDevices } from './smart-home.js';
+export { createTrafficTools, getDirections, getTrafficTime } from './traffic.js';
+
 // ============================================================================
 // TOOL ORCHESTRATION (Human-Level Conversation)
 // ============================================================================

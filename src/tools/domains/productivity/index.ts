@@ -72,7 +72,7 @@ function getTaskToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getTasks',
       'Get Tasks',
-      'Get list of tasks filtered by status, category, or due date. Also shows upcoming and overdue items.',
+      'Get list of tasks filtered by status, category, or due date. Also shows upcoming items and anything waiting for attention.',
       legacyTools.getTasks,
       ['tasks', 'list', 'summary']
     ),

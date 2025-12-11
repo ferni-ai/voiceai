@@ -156,7 +156,7 @@ describe('PersistenceMetrics', () => {
         'test-operation',
         async () => {
           await new Promise((resolve) => {
-            setTimeout(resolve, 10);
+            setTimeout(resolve, 15);
           });
           return 'result';
         },
@@ -165,6 +165,7 @@ describe('PersistenceMetrics', () => {
         }
       );
 
+      // Allow for small timing variations (setTimeout isn't perfectly precise)
       expect(recordedDuration).toBeGreaterThanOrEqual(10);
     });
 

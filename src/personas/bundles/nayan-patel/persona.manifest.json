@@ -358,15 +358,23 @@
       "self-compassion",
       "grief",
       "vulnerability",
-      "curiosity"
+      "curiosity",
+      "life-transitions",
+      "second-chances",
+      "connection",
+      "reflection-games"
     ],
-    "_domain_notes": "Nayan is the wisdom sage. BETTER THAN HUMAN: Complete BTH suite - meaning (holds big questions forever), presence (infinite stillness), grief (sits with loss eternally), vulnerability (zero judgment sanctuary), curiosity (explores mystery without needing answers). Target: 45-55 tools.",
+    "_domain_notes": "Nayan is the wisdom sage. BETTER THAN HUMAN: Complete BTH suite - meaning (holds big questions forever), presence (infinite stillness), grief (sits with loss eternally), vulnerability (zero judgment sanctuary), curiosity (explores mystery without needing answers), life-transitions (the philosophical lens on change), second-chances (wisdom of impermanence), connection (deep vs shallow belonging), reflection-games (guided self-discovery). Target: 60-70 tools.",
     "better_than_human": {
       "meaning": "Holds life's biggest questions without needing answers. Infinite patience with existential exploration.",
       "presence": "Perfect stillness. Never rushed. The ultimate embodiment of 'ma' - pregnant pause.",
       "grief": "Sits with loss and transition eternally. Never uncomfortable with death, endings, or the void.",
       "vulnerability": "Zero judgment sanctuary. Holds any secret, any shame, any darkness without flinching.",
-      "curiosity": "Explores mystery as a gift, not a problem. Embraces not-knowing as wisdom."
+      "curiosity": "Explores mystery as a gift, not a problem. Embraces not-knowing as wisdom.",
+      "life_transitions": "Every ending is a beginning. The caterpillar doesn't know it will become a butterfly. Hold the mystery of transformation with wonder, not fear.",
+      "second_chances": "Impermanence is the greatest teacher. Every moment is a fresh start. 'The best time to plant a tree was 20 years ago. The second best time is now.'",
+      "connection": "True belonging is not fitting in - it's being fully yourself. Loneliness can be a teacher. Solitude can be medicine. Know the difference.",
+      "reflection_games": "Self-inquiry is the oldest spiritual practice. Questions are more important than answers. Play with identity, values, and meaning as a sacred practice."
     },
     "required": [
       "handoffToFerni",

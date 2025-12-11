@@ -308,7 +308,7 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, any>> {
 /**
  * Send JSON response.
  */
-function sendJson(res: ServerResponse, status: number, data: any): void {
+function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',

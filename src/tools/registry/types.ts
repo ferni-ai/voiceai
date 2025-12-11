@@ -60,7 +60,14 @@ export type ToolDomain =
   | 'creativity' // Hobbies, creative projects, artistic pursuits
   | 'community' // Volunteering, giving, civic engagement
   | 'legal-admin' // Documents, estate planning, insurance
-  | 'games'; // Interactive music games, Name That Tune, etc.
+  | 'games' // Interactive music games, Name That Tune, etc.
+  | 'cameo' // Team member pop-in cameos during conversations
+  | 'second-chances' // Fresh starts, reinvention, rebuilding after setbacks
+  | 'connection' // Loneliness, friendship, belonging, community
+  | 'difficult-conversations' // Preparing for and having hard conversations
+  | 'life-transitions' // Emotional journey through major life changes
+  | 'reflection-games' // Deep coaching games for self-discovery
+  | 'quiet-growth'; // Anti-hustle growth: rest, seasons, plateaus, sufficiency
 
 /**
  * All available tool domains
@@ -106,6 +113,13 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'community',
   'legal-admin',
   'games',
+  'cameo',
+  'second-chances',
+  'connection',
+  'difficult-conversations',
+  'life-transitions',
+  'reflection-games',
+  'quiet-growth',
 ] as const;
 
 // ============================================================================
@@ -169,6 +183,13 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   community: 'lifestyle',
   'legal-admin': 'productivity',
   games: 'entertainment',
+  cameo: 'core', // Team cameos should be available to coordinators
+  'second-chances': 'lifestyle', // Core to Ferni's identity - fresh starts and rebuilding
+  connection: 'lifestyle', // Loneliness, friendship, belonging - epidemic-level need
+  'difficult-conversations': 'lifestyle', // Preparing for and having hard conversations with grace
+  'life-transitions': 'lifestyle', // Emotional journey through major life changes
+  'reflection-games': 'lifestyle', // Deep coaching games for self-discovery
+  'quiet-growth': 'lifestyle', // Anti-hustle growth: rest, seasons, plateaus, sufficiency
 };
 
 // ============================================================================
@@ -201,6 +222,9 @@ export type ExternalService =
 export interface ToolContext {
   /** Current user ID */
   userId: string;
+
+  /** Current session ID (for stateful operations like cameos) */
+  sessionId?: string;
 
   /** Agent ID using this tool */
   agentId: string;

@@ -558,22 +558,283 @@ let isLoading = false;
 // API
 // ============================================================================
 
+/** API response format from /api/wellbeing/dashboard */
+interface ApiDashboardResponse {
+  userId: string;
+  currentState: {
+    mood: number;
+    energy: number;
+    anxiety: number;
+    connection: number;
+    purpose: number;
+    sleep: number;
+    lastUpdated: string;
+  };
+  trends: {
+    period: 'week' | 'month';
+    direction: 'improving' | 'stable' | 'declining';
+    changedDimensions: string[];
+  };
+  insights: Array<{
+    type: 'pattern' | 'suggestion' | 'celebration';
+    message: string;
+    dimension?: string;
+  }>;
+  warnings: Array<{
+    type: string;
+    severity: 'watch' | 'concern' | 'urgent';
+    message: string;
+  }>;
+  streaks: {
+    currentDays: number;
+    bestDays: number;
+    lastCheckIn: string;
+  };
+}
+
+/** API response format from /api/wellbeing/trends */
+interface ApiTrendsResponse {
+  userId: string;
+  period: 'week' | 'month' | 'quarter';
+  dataPoints: Array<{
+    date: string;
+    mood: number | null;
+    energy: number | null;
+    anxiety: number | null;
+    connection: number | null;
+    purpose: number | null;
+    sleep: number | null;
+  }>;
+  averages: {
+    mood: number;
+    energy: number;
+    anxiety: number;
+    connection: number;
+    purpose: number;
+    sleep: number;
+  };
+}
+
+/** Color mapping for dimensions */
+const DIMENSION_COLORS: Record<string, string> = {
+  mood: 'var(--color-ferni, #4a6741)',
+  energy: 'var(--color-jack, #9a7b5a)',
+  anxiety: 'var(--color-maya, #a67a6a)',
+  connection: 'var(--color-peter, #3a6b73)',
+  purpose: 'var(--color-nayan, #b8956a)',
+  sleep: 'var(--color-alex, #5a6b8a)',
+};
+
+/** Get insight message for a dimension based on score */
+function getDimensionInsight(
+  dimension: string,
+  score: number,
+  _trend: 'up' | 'stable' | 'down'
+): string {
+  const insights: Record<string, Record<string, string>> = {
+    mood: {
+      high: 'Your mood has been consistently positive!',
+      medium: 'Mood is steady. Small wins add up.',
+      low: "Some heavier days lately. That's okay.",
+    },
+    energy: {
+      high: 'Energy levels are strong!',
+      medium: 'Maintaining balance.',
+      low: 'Energy has been lower. Rest matters.',
+    },
+    anxiety: {
+      high: 'Some tension lately. Breathing helps.',
+      medium: 'Managing stress reasonably well.',
+      low: 'Feeling calm and centered.',
+    },
+    connection: {
+      high: 'Strong sense of connection!',
+      medium: 'Some good moments with others.',
+      low: 'Feeling a bit isolated. Reach out.',
+    },
+    purpose: {
+      high: 'Feeling aligned with what matters.',
+      medium: 'Finding meaning in the routine.',
+      low: "Searching for direction. That's growth.",
+    },
+    sleep: {
+      high: 'Rest is going well!',
+      medium: 'Sleep could be better.',
+      low: 'Sleep quality needs attention.',
+    },
+  };
+
+  const level = score >= 0.7 ? 'high' : score >= 0.4 ? 'medium' : 'low';
+  // Invert for anxiety (high anxiety = low score interpretation)
+  const effectiveLevel =
+    dimension === 'anxiety' ? (score >= 0.7 ? 'low' : score >= 0.4 ? 'medium' : 'high') : level;
+
+  return insights[dimension]?.[effectiveLevel] || 'Keep tracking for insights.';
+}
+
+/** Transform API response into UI expected format */
+function transformApiResponse(
+  dashboardData: ApiDashboardResponse,
+  trendsData: ApiTrendsResponse | null
+): DashboardData {
+  const { currentState, trends, insights } = dashboardData;
+
+  // Calculate overall score as weighted average of dimensions
+  // Invert anxiety for the calculation (lower anxiety = better)
+  const dimensionScores = [
+    currentState.mood,
+    currentState.energy,
+    1 - currentState.anxiety, // Invert anxiety
+    currentState.connection,
+    currentState.purpose,
+    currentState.sleep,
+  ];
+  const overallScore = Math.round(
+    (dimensionScores.reduce((a, b) => a + b, 0) / dimensionScores.length) * 100
+  );
+
+  // Build dimension cards
+  const dimensions: DimensionCard[] = [
+    { dimension: 'mood', displayName: 'Mood', currentScore: currentState.mood },
+    { dimension: 'energy', displayName: 'Energy', currentScore: currentState.energy },
+    { dimension: 'anxiety', displayName: 'Anxiety', currentScore: currentState.anxiety },
+    { dimension: 'connection', displayName: 'Connection', currentScore: currentState.connection },
+    { dimension: 'purpose', displayName: 'Purpose', currentScore: currentState.purpose },
+    { dimension: 'sleep', displayName: 'Sleep', currentScore: currentState.sleep },
+  ].map((dim) => {
+    // Determine trend for this dimension
+    const isTrending = trends.changedDimensions.includes(dim.dimension);
+    let trend: 'up' | 'stable' | 'down' = 'stable';
+    if (isTrending) {
+      // For anxiety, "improving" means going down
+      if (dim.dimension === 'anxiety') {
+        trend =
+          trends.direction === 'improving'
+            ? 'down'
+            : trends.direction === 'declining'
+              ? 'up'
+              : 'stable';
+      } else {
+        trend =
+          trends.direction === 'improving'
+            ? 'up'
+            : trends.direction === 'declining'
+              ? 'down'
+              : 'stable';
+      }
+    }
+
+    // Build sparkline from trends data
+    const sparkline =
+      trendsData?.dataPoints
+        .map((dp) => dp[dim.dimension as keyof typeof dp] as number | null)
+        .filter((v): v is number => v !== null) || Array(7).fill(dim.currentScore); // Fallback to flat line
+
+    return {
+      ...dim,
+      trend,
+      sparkline,
+      insight: getDimensionInsight(dim.dimension, dim.currentScore, trend),
+      color: DIMENSION_COLORS[dim.dimension] || 'var(--color-text-secondary)',
+    };
+  });
+
+  // Build calendar from trends data points
+  const calendar: MoodCalendarEntry[] =
+    trendsData?.dataPoints
+      .filter((dp) => dp.mood !== null)
+      .map((dp) => ({
+        date: dp.date,
+        score: dp.mood || 0.5,
+      })) || [];
+
+  // Build achievements from insights
+  const achievements: Achievement[] = insights
+    .filter((i) => i.type === 'celebration')
+    .map((i, idx) => ({
+      id: `achievement-${idx}`,
+      title: i.dimension ? DIMENSION_NAMES[i.dimension] || i.dimension : 'Milestone',
+      description: i.message,
+      earnedAt: currentState.lastUpdated,
+      icon: i.dimension === 'mood' ? '😊' : i.dimension === 'anxiety' ? '😌' : '⭐',
+    }));
+
+  // Build prediction from insights
+  const riskFactors = insights
+    .filter(
+      (i) =>
+        i.type === 'pattern' || (i.type === 'suggestion' && i.message.toLowerCase().includes('low'))
+    )
+    .map((i) => i.message);
+  const protectiveFactors = insights.filter((i) => i.type === 'celebration').map((i) => i.message);
+
+  const prediction: Prediction | null =
+    riskFactors.length > 0 || protectiveFactors.length > 0
+      ? {
+          nextWeekForecast:
+            trends.direction === 'improving'
+              ? 'Things are looking up! Keep the momentum going.'
+              : trends.direction === 'declining'
+                ? 'Some challenges ahead. Be gentle with yourself.'
+                : 'Steady week ahead. Small consistent actions help.',
+          riskFactors: riskFactors.length > 0 ? riskFactors : ['Nothing major to watch for'],
+          protectiveFactors:
+            protectiveFactors.length > 0 ? protectiveFactors : ['Your consistency in checking in'],
+        }
+      : null;
+
+  return {
+    overall: {
+      overallScore,
+      trend: trends.direction,
+      comparisonToLastMonth:
+        trends.direction === 'improving' ? 5 : trends.direction === 'declining' ? -5 : 0,
+    },
+    dimensions,
+    calendar,
+    achievements,
+    prediction,
+    lastUpdated: currentState.lastUpdated,
+  };
+}
+
 async function fetchDashboardData(): Promise<DashboardData | null> {
   try {
     const userId = localStorage.getItem('ferni_user_id');
-    const response = await fetch('/api/wellbeing/dashboard', {
-      headers: userId ? { 'X-User-ID': userId } : {},
-    });
+    const headers: HeadersInit = userId ? { 'X-User-ID': userId } : {};
 
-    if (!response.ok) {
-      // Return null - UI will show empty state
+    // Fetch dashboard and trends in parallel
+    const [dashboardResponse, trendsResponse] = await Promise.all([
+      fetch(`/api/wellbeing/dashboard${userId ? `?userId=${userId}` : ''}`, { headers }),
+      fetch(`/api/wellbeing/trends?period=month${userId ? `&userId=${userId}` : ''}`, { headers }),
+    ]);
+
+    if (!dashboardResponse.ok) {
+      log.warn('Dashboard API returned error:', dashboardResponse.status);
       return null;
     }
 
-    return await response.json();
+    const dashboardData: ApiDashboardResponse = await dashboardResponse.json();
+    const trendsData: ApiTrendsResponse | null = trendsResponse.ok
+      ? await trendsResponse.json()
+      : null;
+
+    // Check if there's meaningful data
+    const hasData =
+      dashboardData.currentState &&
+      (dashboardData.streaks.currentDays > 0 ||
+        dashboardData.currentState.lastUpdated !== new Date().toISOString().split('T')[0]);
+
+    if (!hasData) {
+      // Return null to show empty state for new users
+      log.debug('No meaningful wellbeing data yet');
+      return null;
+    }
+
+    // Transform API response to UI format
+    return transformApiResponse(dashboardData, trendsData);
   } catch (error) {
     log.warn('Failed to fetch wellbeing data:', error);
-    // Return null - UI will show empty state
     return null;
   }
 }
@@ -660,7 +921,9 @@ function createModal(): void {
     </div>
   `;
 
-  modal.querySelector('.wellbeing-modal-backdrop')?.addEventListener('click', hideWellbeingDashboard);
+  modal
+    .querySelector('.wellbeing-modal-backdrop')
+    ?.addEventListener('click', hideWellbeingDashboard);
   modal.querySelector('.wellbeing-modal__close')?.addEventListener('click', hideWellbeingDashboard);
   modal.querySelector('[data-action="close"]')?.addEventListener('click', hideWellbeingDashboard);
 
@@ -715,14 +978,22 @@ function renderContent(): void {
     ${renderDimensions(data.dimensions)}
     <h3 class="wellbeing-section-title">Last 4 Weeks</h3>
     ${renderCalendar(data.calendar)}
-    ${data.achievements.length > 0 ? `
+    ${
+      data.achievements.length > 0
+        ? `
       <h3 class="wellbeing-section-title">Achievements</h3>
       ${renderAchievements(data.achievements)}
-    ` : ''}
-    ${data.prediction ? `
+    `
+        : ''
+    }
+    ${
+      data.prediction
+        ? `
       <h3 class="wellbeing-section-title">Looking Ahead</h3>
       ${renderPrediction(data.prediction)}
-    ` : ''}
+    `
+        : ''
+    }
   `;
 }
 
@@ -731,18 +1002,25 @@ function renderScoreSection(overall: WellbeingData): string {
   const progress = (overall.overallScore / 100) * circumference;
   const offset = circumference - progress;
 
-  const color = overall.overallScore >= 70
-    ? 'var(--color-ferni, #4a6741)'
-    : overall.overallScore >= 50
-      ? 'var(--color-jack, #9a7b5a)'
-      : 'var(--color-maya, #a67a6a)';
+  const color =
+    overall.overallScore >= 70
+      ? 'var(--color-ferni, #4a6741)'
+      : overall.overallScore >= 50
+        ? 'var(--color-jack, #9a7b5a)'
+        : 'var(--color-maya, #a67a6a)';
 
-  const trendIcon = overall.trend === 'improving' ? ICONS.trendUp : overall.trend === 'declining' ? ICONS.trendDown : '';
-  const trendText = overall.trend === 'improving'
-    ? `+${overall.comparisonToLastMonth}% from last month`
-    : overall.trend === 'declining'
-      ? `${overall.comparisonToLastMonth}% from last month`
-      : 'Stable';
+  const trendIcon =
+    overall.trend === 'improving'
+      ? ICONS.trendUp
+      : overall.trend === 'declining'
+        ? ICONS.trendDown
+        : '';
+  const trendText =
+    overall.trend === 'improving'
+      ? `+${overall.comparisonToLastMonth}% from last month`
+      : overall.trend === 'declining'
+        ? `${overall.comparisonToLastMonth}% from last month`
+        : 'Stable';
 
   return `
     <div class="wellbeing-score-section">
@@ -813,11 +1091,13 @@ function renderSparkline(data: number[], color: string): string {
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  const points = data.map((value, index) => {
-    const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
-    const y = height - padding - ((value - min) / range) * (height - 2 * padding);
-    return `${x},${y}`;
-  }).join(' ');
+  const points = data
+    .map((value, index) => {
+      const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+      const y = height - padding - ((value - min) / range) * (height - 2 * padding);
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   return `
     <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
@@ -853,18 +1133,20 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
     <div class="wellbeing-calendar-section">
       <div class="wellbeing-calendar">
         ${days.map((d) => `<div class="wellbeing-calendar__day-label">${d}</div>`).join('')}
-        ${paddedCalendar.map((entry) => {
-          if (!entry) {
-            return '<div class="wellbeing-calendar__cell wellbeing-calendar__cell--empty"></div>';
-          }
-          return `
+        ${paddedCalendar
+          .map((entry) => {
+            if (!entry) {
+              return '<div class="wellbeing-calendar__cell wellbeing-calendar__cell--empty"></div>';
+            }
+            return `
             <div
               class="wellbeing-calendar__cell"
               style="background: ${getColor(entry.score)}"
               title="${new Date(entry.date).toLocaleDateString()}: ${Math.round(entry.score * 100)}%"
             ></div>
           `;
-        }).join('')}
+          })
+          .join('')}
       </div>
     </div>
   `;
@@ -873,12 +1155,16 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
 function renderAchievements(achievements: Achievement[]): string {
   return `
     <div class="wellbeing-achievements">
-      ${achievements.map((a) => `
+      ${achievements
+        .map(
+          (a) => `
         <div class="wellbeing-achievement" title="${a.description}">
           <span class="wellbeing-achievement__icon">${a.icon}</span>
           <span class="wellbeing-achievement__title">${a.title}</span>
         </div>
-      `).join('')}
+      `
+        )
+        .join('')}
     </div>
   `;
 }
@@ -893,9 +1179,13 @@ function renderPrediction(prediction: Prediction): string {
             Watch For
           </div>
           <ul class="wellbeing-prediction__factor-list">
-            ${prediction.riskFactors.map((f) => `
+            ${prediction.riskFactors
+              .map(
+                (f) => `
               <li class="wellbeing-prediction__factor-item">• ${f}</li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
         </div>
         <div class="wellbeing-prediction__factor-group">
@@ -903,9 +1193,13 @@ function renderPrediction(prediction: Prediction): string {
             Helping You
           </div>
           <ul class="wellbeing-prediction__factor-list">
-            ${prediction.protectiveFactors.map((f) => `
+            ${prediction.protectiveFactors
+              .map(
+                (f) => `
               <li class="wellbeing-prediction__factor-item">• ${f}</li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
         </div>
       </div>
@@ -933,5 +1227,3 @@ export const wellbeingDashboard = {
 };
 
 export default wellbeingDashboard;
-
-

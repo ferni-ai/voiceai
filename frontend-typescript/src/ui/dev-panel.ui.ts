@@ -67,6 +67,12 @@ import {
 
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
+// Ferni Milestones - Relationship celebrations
+import {
+  ferniMilestones,
+  getMilestones,
+  type MilestoneType,
+} from './ferni-milestones.ui.js';
 
 // Real Ambient Effects - Canvas-based particles and aurora
 import {
@@ -894,6 +900,70 @@ function createPanel(): HTMLElement {
             <button class="dev-expression-btn" data-moment="breathe" title="Deep breath">Breathe</button>
             <button class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">Shiver</button>
             <button class="dev-expression-btn" data-moment="fan" title="Hot/fan">Hot</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ferni Milestones - Relationship Celebrations -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.heart} Ferni Milestones</h3>
+        <p class="dev-section__desc">Warm relationship celebrations (${ferniMilestones.getCelebratedCount()}/${ferniMilestones.getTotalMilestonesCount()} unlocked)</p>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Relationship</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-milestone="first-hello" title="First conversation">First Hello</button>
+            <button class="dev-expression-btn" data-milestone="week-together" title="7 days">Week</button>
+            <button class="dev-expression-btn" data-milestone="month-of-growth" title="30 days">Month</button>
+            <button class="dev-expression-btn" data-milestone="welcome-back" title="Returned after absence">Welcome Back</button>
+            <button class="dev-expression-btn" data-milestone="streak-7" title="7-day streak">Streak 7</button>
+            <button class="dev-expression-btn" data-milestone="streak-30" title="30-day streak">Streak 30</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Team Connection</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-milestone="full-circle" title="Met all personas">Full Circle</button>
+            <button class="dev-expression-btn" data-milestone="found-your-person" title="Deep connection">Found Person</button>
+            <button class="dev-expression-btn" data-milestone="team-player" title="Natural handoff">Team Player</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Conversation</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-milestone="deep-dive" title="10+ min conversation">Deep Dive</button>
+            <button class="dev-expression-btn" data-milestone="quick-checkin" title="Brief chat">Quick Check</button>
+            <button class="dev-expression-btn" data-milestone="night-talk" title="Late night">Night Talk</button>
+            <button class="dev-expression-btn" data-milestone="early-riser" title="Early morning">Early Riser</button>
+            <button class="dev-expression-btn" data-milestone="hundred-conversations" title="100 talks">100 Talks</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Discovery</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-milestone="explorer" title="5 easter eggs">Explorer</button>
+            <button class="dev-expression-btn" data-milestone="secret-keeper" title="All easter eggs">Secrets</button>
+            <button class="dev-expression-btn" data-milestone="theme-seeker" title="All themes">Themes</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Sweet Moments</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-milestone="gratitude" title="Grateful heart">Gratitude</button>
+            <button class="dev-expression-btn" data-milestone="celebration" title="Shared good news">Good News</button>
+            <button class="dev-expression-btn" data-milestone="brave" title="Talked about hard things">Brave</button>
+            <button class="dev-expression-btn" data-milestone="consistent" title="Regular check-ins">Consistent</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Actions</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--danger" data-action="reset-milestones" title="Reset all milestone progress">Reset All</button>
           </div>
         </div>
       </section>
@@ -2228,6 +2298,23 @@ function createPanel(): HTMLElement {
         log.info({ moment }, '🎭 Ferni moment triggered');
       }
     });
+  });
+
+  // 🎉 Ferni Milestones buttons
+  container.querySelectorAll('[data-milestone]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const milestone = (btn as HTMLElement).dataset.milestone as MilestoneType;
+      if (milestone) {
+        ferniMilestones.triggerMilestone(milestone);
+        log.info({ milestone }, '🎉 Ferni milestone triggered');
+      }
+    });
+  });
+
+  // Reset milestones button
+  container.querySelector('[data-action="reset-milestones"]')?.addEventListener('click', () => {
+    ferniMilestones.resetMilestones();
+    log.info('🗑️ All milestones reset');
   });
 
   // Roster buttons

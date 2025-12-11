@@ -309,15 +309,15 @@ const clarifyCareerGoalsDef: ToolDefinition = {
 };
 
 const identifySkillGapsDef: ToolDefinition = {
-  id: 'identifySkillGaps',
-  name: 'Identify Skill Gaps',
-  description: 'Identify skills to develop for career growth',
+  id: 'exploreGrowthAreas',
+  name: 'Explore Growth Areas',
+  description: 'Explore skills and areas for professional growth',
   domain: 'career',
-  tags: ['career', 'skills', 'development', 'gaps'],
+  tags: ['career', 'skills', 'development', 'growth'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user identify skill gaps between their current state and career goals.',
+      description: 'Help user explore areas for growth and development in their career journey.',
       parameters: z.object({
         currentRole: z.string().optional().describe('Current role'),
         targetRole: z.string().optional().describe('Role they aspire to'),
@@ -326,16 +326,16 @@ const identifySkillGapsDef: ToolDefinition = {
       execute: async ({ currentRole, targetRole, currentSkills }) => {
         getLogger().info(
           { agentId: ctx.agentId, currentRole, targetRole },
-          'Identifying skill gaps'
+          'Exploring growth areas'
         );
 
-        let response = `**Skill Gap Analysis**\n\n`;
+        let response = `**Growth Exploration**\n\n`;
 
         if (currentRole && targetRole) {
           response += `Current: ${currentRole} → Target: ${targetRole}\n\n`;
         }
 
-        response += `**Framework for identifying gaps:**\n\n`;
+        response += `**Areas to explore for your growth:**\n\n`;
 
         response += `**1. Technical Skills**\n`;
         response += `- What technical abilities does your target role require?\n`;

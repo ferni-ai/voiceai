@@ -78,10 +78,20 @@ import {
 } from './decision-tools.js';
 
 // Timer tools
-import { setTimerDef, cancelTimerDef, timerToolDefinitions } from './timer-tools.js';
+import { cancelTimerDef, setTimerDef, timerToolDefinitions } from './timer-tools.js';
 
 // Notes tools
 import { clearNotesDef, notesToolDefinitions, quickNoteDef, recallNoteDef } from './notes-tools.js';
+
+// Translation tools
+import {
+  culturalContextDef,
+  detectLanguageDef,
+  learnPhrasesDef,
+  pronounceDef,
+  translateDef,
+  translationToolDefinitions,
+} from './translation-tools.js';
 
 // Proactive tools - DISABLED pending implementation
 // import {
@@ -183,10 +193,14 @@ export {
   dateToolDefinitions,
   decisionToolDefinitions,
   mathToolDefinitions,
-  timerToolDefinitions,
   notesToolDefinitions,
+  timerToolDefinitions,
   timezoneToolDefinitions,
+  translationToolDefinitions,
 };
+
+// Translation tools
+export { culturalContextDef, detectLanguageDef, learnPhrasesDef, pronounceDef, translateDef };
 
 // ============================================================================
 // DOMAIN EXPORT
@@ -220,6 +234,12 @@ const simpleUtilitiesTools: ToolDefinition[] = [
   quickNoteDef,
   recallNoteDef,
   clearNotesDef,
+  // Translation & Language
+  translateDef,
+  pronounceDef,
+  learnPhrasesDef,
+  detectLanguageDef,
+  culturalContextDef,
   // Proactive - DISABLED
   // getUtilitySuggestionsDef,
   // checkTimerStatusDef,

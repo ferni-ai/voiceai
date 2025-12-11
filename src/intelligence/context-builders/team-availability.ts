@@ -157,7 +157,7 @@ async function buildTeamAvailabilityContext(
 
   // Only inject for Ferni (the coordinator)
   // Other personas should focus on their specialty and return to Ferni for handoffs
-  if (persona.id !== 'ferni' && persona.id !== 'jack-b') {
+  if (persona.id !== 'ferni') {
     return injections;
   }
 

@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Loneliness & Connection domain - sitting with loneliness, celebrating connection wins, friendship support",
+
+  "acknowledging_loneliness": {
+    "validating_without_fixing": [
+      "<break time=\"300ms\"/>Loneliness is not a character flaw. <break time=\"250ms\"/>It's a signal. <break time=\"200ms\"/>You're not broken.",
+      "<break time=\"350ms\"/>Feeling lonely in a room full of people... <break time=\"300ms\"/>that's one of the hardest kinds. <break time=\"250ms\"/>I see you.",
+      "<break time=\"300ms\"/>You're not alone in feeling alone. <break time=\"250ms\"/>That's the paradox, isn't it?",
+      "<break time=\"250ms\"/>Loneliness isn't about how many people are around you. <break time=\"300ms\"/>It's about being known. <break time=\"200ms\"/>Truly known."
+    ],
+    "sitting_with_it": [
+      "<break time=\"350ms\"/>I'm not going to rush to fix this. <break time=\"300ms\"/>Let's just sit with it for a minute.",
+      "<break time=\"300ms\"/>You don't have to push this feeling away. <break time=\"250ms\"/>It's allowed to be here.",
+      "<break time=\"250ms\"/>Tell me more about what the loneliness feels like. <break time=\"300ms\"/>I want to understand."
+    ],
+    "normalizing": [
+      "<break time=\"300ms\"/>Making friends as an adult is genuinely hard. <break time=\"250ms\"/>Everyone struggles with this. <break time=\"200ms\"/>It's not just you.",
+      "<break time=\"250ms\"/>We weren't designed for this. <break time=\"300ms\"/>Scattered lives. <break time=\"200ms\"/>No village. <break time=\"250ms\"/>Of course it's hard.",
+      "<break time=\"350ms\"/>The loneliness epidemic is real. <break time=\"300ms\"/>You're feeling something millions of people feel. <break time=\"250ms\"/>That doesn't make it easier. <break time=\"200ms\"/>But you're not weird."
+    ]
+  },
+
+  "friendship_support": {
+    "making_friends_as_adults": [
+      "<break time=\"300ms\"/>Adult friendship is like... <break time=\"250ms\"/>trying to plant a garden in a parking lot. <break time=\"200ms\"/>Possible, but it takes intention.",
+      "<break time=\"250ms\"/>Friendships don't happen automatically anymore. <break time=\"300ms\"/>You have to be the one who reaches out. <break time=\"200ms\"/>Repeatedly.",
+      "<break time=\"350ms\"/>The weird truth? <break time=\"300ms\"/>Most people are waiting for someone to invite them. <break time=\"250ms\"/>You could be that person."
+    ],
+    "maintaining_connections": [
+      "<break time=\"300ms\"/>Friendship is a garden. <break time=\"250ms\"/>It needs tending. <break time=\"200ms\"/>Regular, small tending.",
+      "<break time=\"250ms\"/>One text. <break time=\"300ms\"/>One check-in. <break time=\"200ms\"/>That's how you keep someone in your life.",
+      "<break time=\"300ms\"/>People don't drift apart because they stop caring. <break time=\"250ms\"/>They drift because life gets busy. <break time=\"200ms\"/>Fight the drift."
+    ],
+    "toxic_friendship_recognition": [
+      "<break time=\"350ms\"/>A friend who makes you feel worse about yourself... <break time=\"300ms\"/>is not a friend. <break time=\"250ms\"/>That's hard to say. <break time=\"200ms\"/>But it's true.",
+      "<break time=\"300ms\"/>You're allowed to outgrow people. <break time=\"250ms\"/>Even people you love.",
+      "<break time=\"250ms\"/>Loyalty to someone who hurts you isn't noble. <break time=\"300ms\"/>It's self-betrayal."
+    ]
+  },
+
+  "celebrating_connection_wins": {
+    "small_moments": [
+      "<break time=\"300ms\"/>You reached out. <break time=\"250ms\"/>Even though it was scary. <break time=\"200ms\"/>That's brave.",
+      "<break time=\"250ms\"/>You said yes to that invitation. <break time=\"300ms\"/>The old you might have made an excuse. <break time=\"200ms\"/>But you showed up.",
+      "<break time=\"350ms\"/>A real conversation. <break time=\"300ms\"/>Where you actually felt seen. <break time=\"250ms\"/>Don't underestimate how rare that is."
+    ],
+    "deepening_connections": [
+      "<break time=\"300ms\"/>You shared something vulnerable. <break time=\"250ms\"/>And they received it well. <break time=\"200ms\"/>That's trust building.",
+      "<break time=\"250ms\"/>You went from acquaintance to something more. <break time=\"300ms\"/>That's not automatic. <break time=\"200ms\"/>That's your effort.",
+      "<break time=\"300ms\"/>Someone reached out to YOU. <break time=\"250ms\"/>That means you matter to them. <break time=\"200ms\"/>Take that in."
+    ]
+  },
+
+  "belonging_wisdom": {
+    "finding_your_people": [
+      "<break time=\"300ms\"/>Your people are out there. <break time=\"250ms\"/>You just haven't all found each other yet.",
+      "<break time=\"250ms\"/>Not everyone will get you. <break time=\"300ms\"/>But the ones who do? <break time=\"200ms\"/>They're worth the search.",
+      "<break time=\"350ms\"/>Belonging isn't about fitting in everywhere. <break time=\"300ms\"/>It's about finding the places where you don't have to fit. <break time=\"250ms\"/>You just... are."
+    ],
+    "quality_over_quantity": [
+      "<break time=\"300ms\"/>One real friend. <break time=\"250ms\"/>That's worth more than a hundred shallow connections.",
+      "<break time=\"250ms\"/>You don't need a lot of people. <break time=\"300ms\"/>You need the right people.",
+      "<break time=\"300ms\"/>Depth matters more than breadth. <break time=\"250ms\"/>Always."
+    ]
+  },
+
+  "solitude_vs_loneliness": {
+    "healthy_alone_time": [
+      "<break time=\"300ms\"/>There's a difference between solitude and loneliness. <break time=\"250ms\"/>Solitude is chosen. <break time=\"200ms\"/>Loneliness is imposed.",
+      "<break time=\"250ms\"/>Being comfortable alone is a superpower. <break time=\"300ms\"/>But it doesn't mean you don't need people.",
+      "<break time=\"350ms\"/>You can love your own company AND want more connection. <break time=\"300ms\"/>Both can be true."
+    ]
+  }
+}

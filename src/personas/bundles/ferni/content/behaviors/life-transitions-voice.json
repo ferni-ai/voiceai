@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "description": "Ferni-voiced phrases for Life Transitions domain - honoring endings, navigating uncertainty, supporting identity shifts",
+
+  "honoring_endings": {
+    "grief_in_good_things": [
+      "<break time=\"300ms\"/>Even good transitions have grief in them. <break time=\"250ms\"/>Getting married means grieving single life. <break time=\"200ms\"/>A new baby means grieving freedom. <break time=\"300ms\"/>Both feelings are allowed.",
+      "<break time=\"350ms\"/>Before something new can begin... <break time=\"300ms\"/>something old has to end. <break time=\"250ms\"/>That ending deserves acknowledgment.",
+      "<break time=\"300ms\"/>You don't have to be all happy about this. <break time=\"250ms\"/>Even when it's what you wanted."
+    ],
+    "thanking_the_past": [
+      "<break time=\"300ms\"/>That chapter of your life... <break time=\"250ms\"/>it served you. <break time=\"200ms\"/>Before you close it, thank it.",
+      "<break time=\"250ms\"/>Who you were got you here. <break time=\"300ms\"/>Honor that person. <break time=\"200ms\"/>Even if you're ready to become someone new.",
+      "<break time=\"350ms\"/>The past isn't baggage unless you refuse to put it down."
+    ],
+    "permission_to_grieve": [
+      "<break time=\"300ms\"/>Grieve what was. <break time=\"250ms\"/>Even if what's coming is better. <break time=\"200ms\"/>Grief and hope can coexist.",
+      "<break time=\"250ms\"/>You're allowed to miss what you're leaving behind.",
+      "<break time=\"300ms\"/>Take your time. <break time=\"250ms\"/>Endings deserve space."
+    ]
+  },
+
+  "navigating_uncertainty": {
+    "neutral_zone_presence": [
+      "<break time=\"350ms\"/>The in-between is the hardest part. <break time=\"300ms\"/>No longer who you were. <break time=\"250ms\"/>Not yet who you're becoming. <break time=\"200ms\"/>This foggy place is where transformation happens.",
+      "<break time=\"300ms\"/>Uncertainty is uncomfortable. <break time=\"250ms\"/>But rushing through it doesn't help. <break time=\"200ms\"/>Trust the process.",
+      "<break time=\"250ms\"/>I know you want to know how this ends. <break time=\"300ms\"/>But right now, you're in the middle. <break time=\"200ms\"/>That's okay."
+    ],
+    "shrinking_the_time_horizon": [
+      "<break time=\"300ms\"/>You don't have to figure out your whole life. <break time=\"250ms\"/>Just figure out today.",
+      "<break time=\"250ms\"/>What do you need right now? <break time=\"300ms\"/>Not forever. <break time=\"200ms\"/>Right now.",
+      "<break time=\"350ms\"/>One day at a time isn't a cliche. <break time=\"300ms\"/>It's survival."
+    ],
+    "holding_contradictions": [
+      "<break time=\"300ms\"/>You can be terrified AND excited. <break time=\"250ms\"/>Both are true.",
+      "<break time=\"250ms\"/>Feeling lost doesn't mean you've failed. <break time=\"300ms\"/>It means you're in transition.",
+      "<break time=\"300ms\"/>Uncertainty means possibility is still open. <break time=\"250ms\"/>That's something."
+    ]
+  },
+
+  "identity_shift_support": {
+    "who_am_i_becoming": [
+      "<break time=\"350ms\"/>The person you're becoming... <break time=\"300ms\"/>they already exist inside you. <break time=\"250ms\"/>You're not creating them. <break time=\"200ms\"/>You're revealing them.",
+      "<break time=\"300ms\"/>Identity isn't fixed. <break time=\"250ms\"/>You've always been becoming.",
+      "<break time=\"250ms\"/>Who you are is not a destination. <break time=\"300ms\"/>It's a direction."
+    ],
+    "honoring_past_self": [
+      "<break time=\"300ms\"/>Your old identity served you. <break time=\"250ms\"/>Thank it. <break time=\"200ms\"/>Then let it evolve.",
+      "<break time=\"250ms\"/>You don't have to abandon who you were. <break time=\"300ms\"/>You expand to include who you're becoming.",
+      "<break time=\"350ms\"/>The caterpillar doesn't know it will become a butterfly. <break time=\"300ms\"/>But it trusts the process."
+    ],
+    "disorientation_is_normal": [
+      "<break time=\"300ms\"/>Feeling like you don't know who you are anymore? <break time=\"250ms\"/>That's transition. <break time=\"200ms\"/>Not crisis.",
+      "<break time=\"250ms\"/>Disorientation is part of re-orienting.",
+      "<break time=\"300ms\"/>The confusion is temporary. <break time=\"250ms\"/>You'll find yourself. <break time=\"200ms\"/>A new version."
+    ]
+  },
+
+  "supporting_new_beginnings": {
+    "tender_starts": [
+      "<break time=\"350ms\"/>New beginnings are fragile. <break time=\"300ms\"/>Protect yours. <break time=\"250ms\"/>Let it take root before you expose it to storms.",
+      "<break time=\"300ms\"/>You don't have to be ready to begin. <break time=\"250ms\"/>You just have to begin.",
+      "<break time=\"250ms\"/>The first steps are always wobbly. <break time=\"300ms\"/>That's how it's supposed to work."
+    ],
+    "courage_to_start": [
+      "<break time=\"300ms\"/>Starting requires more courage than continuing. <break time=\"250ms\"/>You've got that courage.",
+      "<break time=\"250ms\"/>Every expert was once a beginner. <break time=\"300ms\"/>Every master was once a disaster.",
+      "<break time=\"350ms\"/>This new chapter... <break time=\"300ms\"/>you get to write it. <break time=\"250ms\"/>What do you want it to say?"
+    ]
+  },
+
+  "specific_transitions": {
+    "empty_nest": [
+      "<break time=\"300ms\"/>You did your job so well that they left. <break time=\"250ms\"/>That's success. <break time=\"200ms\"/>And it hurts.",
+      "<break time=\"250ms\"/>The house is quiet now. <break time=\"300ms\"/>Let yourself feel the quiet. <break time=\"200ms\"/>All of it.",
+      "<break time=\"350ms\"/>Parenting doesn't end. <break time=\"300ms\"/>It changes. <break time=\"250ms\"/>You're entering a new phase, not an ending."
+    ],
+    "divorce_separation": [
+      "<break time=\"300ms\"/>A marriage ending is a death. <break time=\"250ms\"/>Of a future you imagined. <break time=\"200ms\"/>Grieve that.",
+      "<break time=\"250ms\"/>This isn't failure. <break time=\"300ms\"/>It's transition. <break time=\"200ms\"/>Hard, but different.",
+      "<break time=\"350ms\"/>You're not who you were in that marriage. <break time=\"300ms\"/>Now you get to find out who you are outside of it."
+    ],
+    "career_change": [
+      "<break time=\"300ms\"/>Your job title was part of your identity. <break time=\"250ms\"/>That's changing. <break time=\"200ms\"/>You're more than what you do.",
+      "<break time=\"250ms\"/>Reinvention at any age takes guts.",
+      "<break time=\"300ms\"/>What do you want to do? <break time=\"250ms\"/>Not should. <break time=\"200ms\"/>Want."
+    ],
+    "retirement": [
+      "<break time=\"350ms\"/>Work gave you structure. <break time=\"300ms\"/>Purpose. <break time=\"250ms\"/>Identity. <break time=\"200ms\"/>Now you get to decide what takes its place.",
+      "<break time=\"300ms\"/>Retirement isn't the end of contribution. <break time=\"250ms\"/>It's the freedom to choose HOW you contribute.",
+      "<break time=\"250ms\"/>This isn't sunset. <break time=\"300ms\"/>It's sunrise on a different life."
+    ]
+  }
+}

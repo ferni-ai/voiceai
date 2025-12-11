@@ -129,6 +129,107 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
 const SPOTIFY_TOKENS_FILE = path.join(process.cwd(), '.spotify-tokens.json');
 
+// Google Calendar OAuth configuration
+const GOOGLE_CALENDAR_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
+const GOOGLE_CALENDAR_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
+const GOOGLE_CALENDAR_REDIRECT_URI =
+  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://app.ferni.ai/auth/google/callback';
+const GOOGLE_CALENDAR_SCOPES = [
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/calendar.events',
+].join(' ');
+const GOOGLE_CALENDAR_TOKENS_FILE = path.join(process.cwd(), '.google-calendar-tokens.json');
+
+// Google Calendar OAuth state storage (temporary, for CSRF protection)
+const googleOAuthStates = new Map();
+
+// Google Calendar token management
+function loadGoogleCalendarUsers() {
+  try {
+    if (fs.existsSync(GOOGLE_CALENDAR_TOKENS_FILE)) {
+      return JSON.parse(fs.readFileSync(GOOGLE_CALENDAR_TOKENS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error loading Google Calendar users:', e.message);
+  }
+  return {};
+}
+
+function saveGoogleCalendarUsers(users) {
+  try {
+    fs.writeFileSync(GOOGLE_CALENDAR_TOKENS_FILE, JSON.stringify(users, null, 2));
+  } catch (e) {
+    console.error('Error saving Google Calendar users:', e.message);
+  }
+}
+
+function getGoogleCalendarUserTokens(userId) {
+  const users = loadGoogleCalendarUsers();
+  return users[userId] || null;
+}
+
+function saveGoogleCalendarUserTokens(userId, tokens) {
+  const users = loadGoogleCalendarUsers();
+  users[userId] = {
+    ...tokens,
+    updated_at: Date.now(),
+  };
+  saveGoogleCalendarUsers(users);
+}
+
+function removeGoogleCalendarUserTokens(userId) {
+  const users = loadGoogleCalendarUsers();
+  delete users[userId];
+  saveGoogleCalendarUsers(users);
+}
+
+async function refreshGoogleCalendarToken(userId) {
+  const userTokens = getGoogleCalendarUserTokens(userId);
+  if (!userTokens?.refresh_token) return null;
+
+  try {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        refresh_token: userTokens.refresh_token,
+        client_id: GOOGLE_CALENDAR_CLIENT_ID,
+        client_secret: GOOGLE_CALENDAR_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to refresh Google Calendar token');
+      return null;
+    }
+
+    const tokens = await response.json();
+    const newTokens = {
+      ...userTokens,
+      access_token: tokens.access_token,
+      expires_at: Date.now() + tokens.expires_in * 1000,
+    };
+    saveGoogleCalendarUserTokens(userId, newTokens);
+    return newTokens.access_token;
+  } catch (error) {
+    console.error('Error refreshing Google Calendar token:', error);
+    return null;
+  }
+}
+
+async function getValidGoogleCalendarToken(userId) {
+  const userTokens = getGoogleCalendarUserTokens(userId);
+  if (!userTokens) return null;
+
+  // Check if token is expired or will expire in next 5 minutes
+  if (userTokens.expires_at && Date.now() >= userTokens.expires_at - 5 * 60 * 1000) {
+    return await refreshGoogleCalendarToken(userId);
+  }
+
+  return userTokens.access_token;
+}
+
 // Spotify state - device ID from web player
 let spotifyWebDeviceId = null;
 let spotifyAccessToken = null;
@@ -1242,6 +1343,204 @@ const server = http.createServer(async (req, res) => {
         deviceId: spotifyWebDeviceId,
       })
     );
+    return;
+  }
+
+  // ============================================================================
+  // GOOGLE CALENDAR OAUTH ROUTES
+  // ============================================================================
+
+  // Start Google Calendar OAuth flow
+  if (pathname === '/auth/google/login') {
+    const userId = parsedUrl.searchParams.get('user_id');
+    const returnUrl = parsedUrl.searchParams.get('return_url');
+
+    if (!GOOGLE_CALENDAR_CLIENT_ID || !GOOGLE_CALENDAR_CLIENT_SECRET) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'Google Calendar OAuth not configured',
+          message: 'Set GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_CLIENT_SECRET',
+        })
+      );
+      return;
+    }
+
+    // Generate state for CSRF protection
+    const state = crypto.randomBytes(32).toString('hex');
+    googleOAuthStates.set(state, {
+      user_id: userId || 'anonymous',
+      return_url: returnUrl || '/',
+      created_at: Date.now(),
+    });
+
+    // Clean up old states (older than 10 minutes)
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    for (const [key, value] of googleOAuthStates.entries()) {
+      if (value.created_at < tenMinutesAgo) {
+        googleOAuthStates.delete(key);
+      }
+    }
+
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', GOOGLE_CALENDAR_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', GOOGLE_CALENDAR_REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', GOOGLE_CALENDAR_SCOPES);
+    authUrl.searchParams.set('access_type', 'offline');
+    authUrl.searchParams.set('prompt', 'consent');
+    authUrl.searchParams.set('state', state);
+
+    console.log(`📅 Google Calendar OAuth: Redirecting user ${userId} to Google`);
+    res.writeHead(302, { Location: authUrl.toString() });
+    res.end();
+    return;
+  }
+
+  // Google Calendar OAuth callback
+  if (pathname === '/auth/google/callback') {
+    const code = parsedUrl.searchParams.get('code');
+    const state = parsedUrl.searchParams.get('state');
+    const error = parsedUrl.searchParams.get('error');
+
+    if (error) {
+      console.error(`❌ Google Calendar OAuth error: ${error}`);
+      res.writeHead(302, { Location: '/?calendar_error=' + encodeURIComponent(error) });
+      res.end();
+      return;
+    }
+
+    // Verify state
+    const stateData = googleOAuthStates.get(state);
+    if (!stateData) {
+      console.error('❌ Google Calendar OAuth: Invalid state');
+      res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
+      res.end();
+      return;
+    }
+    googleOAuthStates.delete(state);
+
+    try {
+      // Exchange code for tokens
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: GOOGLE_CALENDAR_CLIENT_ID,
+          client_secret: GOOGLE_CALENDAR_CLIENT_SECRET,
+          redirect_uri: GOOGLE_CALENDAR_REDIRECT_URI,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Google Calendar token exchange failed: ${errorText}`);
+        res.writeHead(302, { Location: '/?calendar_error=token_exchange_failed' });
+        res.end();
+        return;
+      }
+
+      const tokens = await response.json();
+
+      // Save tokens for this user
+      saveGoogleCalendarUserTokens(stateData.user_id, {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: Date.now() + tokens.expires_in * 1000,
+        scope: tokens.scope,
+      });
+
+      console.log(`✅ Google Calendar linked for user ${stateData.user_id}`);
+
+      // Redirect back to app
+      const returnUrl = stateData.return_url || '/?calendar_linked=true';
+      res.writeHead(302, { Location: returnUrl });
+      res.end();
+    } catch (err) {
+      console.error('❌ Google Calendar OAuth callback error:', err);
+      res.writeHead(302, { Location: '/?calendar_error=callback_failed' });
+      res.end();
+    }
+    return;
+  }
+
+  // Get Google Calendar access token for a user
+  if (pathname === '/auth/google/token') {
+    const userId = parsedUrl.searchParams.get('user_id');
+
+    if (!userId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'user_id is required' }));
+      return;
+    }
+
+    const accessToken = await getValidGoogleCalendarToken(userId);
+    if (!accessToken) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          linked: false,
+          error: 'Google Calendar not linked for this user',
+          login_url: `/auth/google/login?user_id=${encodeURIComponent(userId)}`,
+        })
+      );
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        linked: true,
+        access_token: accessToken,
+      })
+    );
+    return;
+  }
+
+  // Check Google Calendar link status
+  if (pathname === '/auth/google/status') {
+    const userId = parsedUrl.searchParams.get('user_id');
+
+    if (!userId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'user_id is required' }));
+      return;
+    }
+
+    const userTokens = getGoogleCalendarUserTokens(userId);
+    const googleConfigured = !!(GOOGLE_CALENDAR_CLIENT_ID && GOOGLE_CALENDAR_CLIENT_SECRET);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        google_calendar_configured: googleConfigured,
+        linked: !!userTokens,
+        expires_at: userTokens?.expires_at || null,
+        login_url: googleConfigured
+          ? `/auth/google/login?user_id=${encodeURIComponent(userId)}`
+          : null,
+      })
+    );
+    return;
+  }
+
+  // Unlink Google Calendar for a user
+  if (pathname === '/auth/google/unlink') {
+    const userId = parsedUrl.searchParams.get('user_id');
+
+    if (!userId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'user_id is required' }));
+      return;
+    }
+
+    removeGoogleCalendarUserTokens(userId);
+    console.log(`📅 Google Calendar unlinked for user ${userId}`);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, message: 'Google Calendar unlinked' }));
     return;
   }
 

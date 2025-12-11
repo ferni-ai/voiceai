@@ -10,9 +10,16 @@
 import type { PersonaConfig } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
+// Logger interface for safe logging
+interface SimpleLogger {
+  debug: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+}
+
 // Safe logger that returns a no-op if not initialized yet (module load time)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cachedLog: any = null;
+let cachedLog: SimpleLogger | null = null;
 const getLogger = () => {
   if (cachedLog) return cachedLog;
   // Return no-op logger for synchronous access
@@ -29,7 +36,14 @@ const getLogger = () => {
 void (async () => {
   try {
     const agents = await import('@livekit/agents');
-    cachedLog = agents.log();
+    const agentLog = agents.log();
+    // Wrap the agent logger to match our SimpleLogger interface
+    cachedLog = {
+      debug: (...args: unknown[]) => agentLog.debug(String(args[0]), ...(args.slice(1) as [])),
+      info: (...args: unknown[]) => agentLog.info(String(args[0]), ...(args.slice(1) as [])),
+      warn: (...args: unknown[]) => agentLog.warn(String(args[0]), ...(args.slice(1) as [])),
+      error: (...args: unknown[]) => agentLog.error(String(args[0]), ...(args.slice(1) as [])),
+    };
   } catch {
     // Logger not available
   }

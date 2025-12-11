@@ -1,37 +1,27 @@
 /**
  * Frontend Signal Service
  *
- * Provides a way for lower layers (tools, services) to send signals to the
- * frontend without directly importing from the agents layer.
+ * Provides a way for lower-level services to send signals to the frontend
+ * without directly importing the realtime publisher.
  *
- * The agents layer initializes this service with the actual publisher.
+ * This decouples services from the LiveKit room initialization order.
  *
- * @module services/frontend-signal
+ * @module FrontendSignal
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 
-const log = getLogger().child({ module: 'FrontendSignal' });
+const log = getLogger().child({ module: 'frontend-signal' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Type for the signal sender callback
+type SignalSender = (type: string, data?: Record<string, unknown>) => Promise<void>;
 
-export type SignalSender = (type: string, data?: Record<string, unknown>) => Promise<void>;
-
-// ============================================================================
-// STATE
-// ============================================================================
-
+// The callback set by voice-agent after publisher is initialized
 let signalSender: SignalSender | null = null;
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
 /**
- * Initialize the frontend signal service with a sender function.
- * Called by the agents layer after setting up the frontend publisher.
+ * Initialize the frontend signal service with a sender callback.
+ * Called by voice-agent after the frontend publisher is ready.
  */
 export function initFrontendSignal(sender: SignalSender): void {
   signalSender = sender;
@@ -39,43 +29,33 @@ export function initFrontendSignal(sender: SignalSender): void {
 }
 
 /**
- * Clear the signal sender (for cleanup)
- */
-export function clearFrontendSignal(): void {
-  signalSender = null;
-  log.debug('Frontend signal service cleared');
-}
-
-// ============================================================================
-// SIGNAL SENDING
-// ============================================================================
-
-/**
  * Send a signal to the frontend.
- * Returns true if sent successfully, false if service not initialized.
+ * Returns true if the signal was sent, false if not initialized.
+ *
+ * @param type - The signal type (e.g., 'wrap_up', 'mood_shift')
+ * @param data - Optional data payload
  */
 export async function sendFrontendSignal(
   type: string,
   data?: Record<string, unknown>
 ): Promise<boolean> {
   if (!signalSender) {
-    log.debug('Frontend signal service not initialized, signal not sent');
+    log.debug({ type }, 'Frontend signal service not initialized, signal not sent');
     return false;
   }
 
   try {
     await signalSender(type, data);
-    log.debug({ type }, 'Frontend signal sent');
     return true;
   } catch (error) {
-    log.debug({ type, error }, 'Failed to send frontend signal');
+    log.warn({ error, type }, 'Failed to send frontend signal');
     return false;
   }
 }
 
 /**
- * Check if the frontend signal service is available
+ * Check if the frontend signal service is ready.
  */
-export function isFrontendSignalAvailable(): boolean {
+export function isFrontendSignalReady(): boolean {
   return signalSender !== null;
 }

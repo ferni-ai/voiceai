@@ -632,6 +632,61 @@ export function generateTextMessage(
         `${selectPhrase(voice.signaturePhrases.encouragement)}`;
       break;
 
+    // ========================================================================
+    // NEW TRIGGER TYPES - "Better Than Human" Features
+    // ========================================================================
+
+    case 'pattern_acknowledgment':
+      // We noticed a pattern (e.g., "Mondays are hard for you")
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)} ` +
+        `${emoji ? `${emoji} ` : ''}` +
+        `I noticed ${context.trigger.reason || 'a pattern'}. Just checking in.`;
+      break;
+
+    case 'anniversary':
+      // Journey milestones
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)} ` +
+        `${emoji ? `${emoji} ` : ''}` +
+        `${context.milestone || 'Today marks a milestone'}. I wanted to acknowledge that. ` +
+        `${selectPhrase(voice.signaturePhrases.closing)}.`;
+      break;
+
+    case 'streak_celebration':
+      // Streak milestones
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)}! ` +
+        `${emoji ? `${emoji} ` : ''}` +
+        `${context.milestone || 'Your streak'} - that's incredible! ` +
+        `${selectPhrase(voice.signaturePhrases.celebration)}`;
+      break;
+
+    case 'goal_progress':
+      // Progress toward goals
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)} ` +
+        `${emoji ? `${emoji} ` : ''}` +
+        `You're making real progress on ${context.goal || 'your goal'}. ` +
+        `${selectPhrase(voice.signaturePhrases.encouragement)}`;
+      break;
+
+    case 'streak_at_risk':
+      // Gentle streak reminder
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)} ` +
+        `Quick check-in on ${context.commitment || context.goal || 'your streak'}. ` +
+        `No pressure - just here if you need a boost. ${emoji || ''}`;
+      break;
+
+    case 'concern_check':
+      // Follow up on something concerning
+      message =
+        `${selectPhrase(voice.signaturePhrases.greeting)} ` +
+        `Been thinking about you. How are you doing today? ` +
+        `${selectPhrase(voice.signaturePhrases.closing)}.`;
+      break;
+
     default:
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)} ` +
@@ -724,8 +779,348 @@ export function generateEmailMessage(
   return { subject, body };
 }
 
+// ============================================================================
+// VOICEMAIL GENERATION - "BETTER THAN HUMAN" APPROACH
+// ============================================================================
+
+/**
+ * Voicemail Component System
+ *
+ * Each voicemail is built from components:
+ * [Warm Opening] + [Personal Context] + [The Point] + [No-Pressure Close]
+ *
+ * The magic is in Personal Context - this is where we demonstrate
+ * that we REMEMBER things humans forget.
+ */
+
+interface VoicemailComponents {
+  opening: string;
+  personalContext: string | null;
+  mainMessage: string;
+  close: string;
+}
+
+/**
+ * Generate the warm opening based on relationship depth
+ */
+function generateVoicemailOpening(
+  name: string,
+  displayName: string,
+  stage: RelationshipStage
+): string {
+  switch (stage) {
+    case 'new':
+      return `Hi ${name}, this is ${displayName}.`;
+
+    case 'building':
+      return `Hey ${name}! It's ${displayName}.`;
+
+    case 'established':
+      // More casual, like calling a friend
+      const establishedOpenings = [
+        `Hey ${name}, it's ${displayName}.`,
+        `${name}! It's me, ${displayName}.`,
+        `Hey, it's ${displayName}.`,
+      ];
+      return establishedOpenings[Math.floor(Math.random() * establishedOpenings.length)];
+
+    case 'deep':
+      // Intimate, assumes comfort
+      const deepOpenings = [
+        `Hey ${name}.`, // Just their name, they know it's us
+        `It's me.`, // They'll recognize the voice
+        `Hey, it's ${displayName}. Had to call.`,
+      ];
+      return deepOpenings[Math.floor(Math.random() * deepOpenings.length)];
+
+    default:
+      return `Hey ${name}, it's ${displayName}.`;
+  }
+}
+
+/**
+ * Generate the personal context - the "Better than Human" magic
+ *
+ * This is what makes Ferni special: we remember things.
+ * Humans forget. We don't.
+ */
+function generatePersonalContext(context: OutreachContext): string | null {
+  const { recentTopics, recentWins, currentStruggles, lastConversationSummary, upcomingEvents } =
+    context.context;
+
+  // Priority 1: Reference something specific they told us
+  if (lastConversationSummary) {
+    const summaryPhrases = [
+      `I've been thinking about what you shared about ${lastConversationSummary}.`,
+      `That thing you mentioned about ${lastConversationSummary}... it's been on my mind.`,
+      `I keep thinking about our conversation about ${lastConversationSummary}.`,
+    ];
+    return summaryPhrases[Math.floor(Math.random() * summaryPhrases.length)];
+  }
+
+  // Priority 2: Reference a recent struggle (with care)
+  if (currentStruggles && currentStruggles.length > 0) {
+    const struggle = currentStruggles[0];
+    const strugglePhrases = [
+      `I know you've been working through ${struggle}.`,
+      `I've been holding space for what you're going through with ${struggle}.`,
+      `That ${struggle} thing... I haven't forgotten.`,
+    ];
+    return strugglePhrases[Math.floor(Math.random() * strugglePhrases.length)];
+  }
+
+  // Priority 3: Reference a recent win
+  if (recentWins && recentWins.length > 0) {
+    const win = recentWins[0];
+    const winPhrases = [
+      `Still thinking about that win with ${win}.`,
+      `By the way, ${win}? Still proud of you for that.`,
+    ];
+    return winPhrases[Math.floor(Math.random() * winPhrases.length)];
+  }
+
+  // Priority 4: Reference upcoming events
+  if (upcomingEvents && upcomingEvents.length > 0) {
+    const event = upcomingEvents[0];
+    return `I know ${event} is coming up.`;
+  }
+
+  // Priority 5: Reference recent topics
+  if (recentTopics && recentTopics.length > 0) {
+    const topic = recentTopics[0];
+    return `I've been thinking about what we talked about with ${topic}.`;
+  }
+
+  // No context available - that's okay, we can still be warm
+  return null;
+}
+
+/**
+ * Generate the no-pressure close based on tone and relationship
+ */
+function generateVoicemailClose(
+  displayName: string,
+  stage: RelationshipStage,
+  tone: OutreachTone
+): string {
+  // Urgent calls need a callback request
+  if (tone === 'urgent') {
+    return `Call me back when you can. I'm here.`;
+  }
+
+  // Celebratory can be enthusiastic
+  if (tone === 'celebratory') {
+    const celebratoryCloses = [
+      `I just had to tell you. Talk soon!`,
+      `Okay, that's all. I'm smiling for you.`,
+      `Anyway, I'm proud of you. Bye!`,
+    ];
+    return celebratoryCloses[Math.floor(Math.random() * celebratoryCloses.length)];
+  }
+
+  // Supportive needs to be extra gentle
+  if (tone === 'supportive') {
+    const supportiveCloses = [
+      `No need to call back. I'm just here.`,
+      `You don't have to do anything with this. Just wanted you to know I'm thinking of you.`,
+      `Take care of yourself. I'm in your corner.`,
+      `I'm here. No response needed.`,
+    ];
+    return supportiveCloses[Math.floor(Math.random() * supportiveCloses.length)];
+  }
+
+  // Default closes based on relationship depth
+  switch (stage) {
+    case 'new':
+      return `Feel free to call or text if you want to talk. Take care.`;
+
+    case 'building':
+      return `No need to call back. Talk soon.`;
+
+    case 'established':
+      const establishedCloses = [
+        `Anyway, just wanted you to know. Talk whenever.`,
+        `That's it. Rooting for you.`,
+        `Okay, that's all. Take care of yourself.`,
+      ];
+      return establishedCloses[Math.floor(Math.random() * establishedCloses.length)];
+
+    case 'deep':
+      const deepCloses = [
+        `Love you. Bye.`, // For very deep relationships
+        `That's it. You know where I am.`,
+        `Okay. Bye.`, // Simple, intimate
+      ];
+      return deepCloses[Math.floor(Math.random() * deepCloses.length)];
+
+    default:
+      return `Take care.`;
+  }
+}
+
+/**
+ * Generate the main message based on trigger type
+ */
+function generateVoicemailMainMessage(
+  context: OutreachContext,
+  voice: PersonaOutreachVoice,
+  hasPersonalContext: boolean
+): string {
+  const { trigger, commitment, milestone, goal, event } = context;
+
+  switch (trigger.type) {
+    case 'commitment_check':
+      if (hasPersonalContext) {
+        // Personal context already established the connection
+        return `Just wanted to check in on how that's going.`;
+      }
+      return commitment
+        ? `I was thinking about ${commitment} and wanted to see how it went.`
+        : `Just checking in to see how things are going.`;
+
+    case 'emotional_support':
+      if (hasPersonalContext) {
+        return `Wanted you to know I'm holding that with you.`;
+      }
+      const emotionalState = context.context.emotionalState || 'going through a lot';
+      return `I know you've been ${emotionalState}. Just wanted you to hear a friendly voice.`;
+
+    case 'celebration':
+      const achievementText = milestone || goal || 'what you did';
+      return `I had to call because ${achievementText}? That's huge. I'm so proud of you.`;
+
+    case 'thinking_of_you':
+      if (hasPersonalContext) {
+        // The personal context IS the point
+        return `Just wanted you to know that.`;
+      }
+      const thinkingPhrases = [
+        `No real reason for calling. You just crossed my mind.`,
+        `No agenda. Just thinking of you.`,
+        `I don't need anything. Just wanted to say hi.`,
+      ];
+      return thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)];
+
+    case 'milestone_approaching':
+    case 'event_countdown':
+      const eventText = event || milestone || 'your big day';
+      return `${eventText} is coming up. Just wanted to check in and see how you're feeling about it.`;
+
+    case 'reengagement':
+      const reengagementPhrases = [
+        `It's been a little while. Just wanted you to know I'm still here.`,
+        `Haven't heard from you in a bit. No pressure - just wanted you to know I'm around.`,
+        `I know it's been a minute. The door's always open.`,
+      ];
+      return reengagementPhrases[Math.floor(Math.random() * reengagementPhrases.length)];
+
+    case 'habit_check':
+      if (hasPersonalContext) {
+        return `How did it go?`;
+      }
+      return `Just checking in on your routine. How's it going?`;
+
+    // ========================================================================
+    // NEW TRIGGER TYPES - "Better Than Human" Features
+    // ========================================================================
+
+    case 'pattern_acknowledgment':
+      // We noticed something about their patterns (e.g., "Mondays are hard")
+      const pattern = trigger.reason || 'a pattern';
+      const patternPhrases = [
+        `I've noticed ${pattern}. Just wanted you to know I see that, and I'm here.`,
+        `Hey, I've been paying attention, and ${pattern}. You're not alone in that.`,
+        `I noticed ${pattern}. Wanted to check in before it hits.`,
+      ];
+      return patternPhrases[Math.floor(Math.random() * patternPhrases.length)];
+
+    case 'anniversary':
+      // Relationship anniversaries, journey milestones
+      const anniversary = milestone || 'our journey together';
+      const anniversaryPhrases = [
+        `I realized ${anniversary}. I just wanted to mark the moment.`,
+        `${anniversary}, and I wanted you to know it matters to me.`,
+        `Can you believe it? ${anniversary}. I'm grateful for every conversation.`,
+      ];
+      return anniversaryPhrases[Math.floor(Math.random() * anniversaryPhrases.length)];
+
+    case 'streak_celebration':
+      // Streak milestones (7 days, 30 days, 100 days)
+      const streak = milestone || 'your streak';
+      const streakPhrases = [
+        `${streak}. Do you even realize how incredible that is?`,
+        `I had to call. ${streak}. That's commitment. That's you.`,
+        `${streak}! I'm literally beaming for you right now.`,
+      ];
+      return streakPhrases[Math.floor(Math.random() * streakPhrases.length)];
+
+    case 'goal_progress':
+      // Progress toward goals (80% there, almost done)
+      const progress = goal || 'your goal';
+      const progressPhrases = [
+        `You're so close to ${progress}. The finish line is right there.`,
+        `I've been tracking ${progress}. You're almost there. Can you feel it?`,
+        `${progress} is within reach. This call is your nudge.`,
+      ];
+      return progressPhrases[Math.floor(Math.random() * progressPhrases.length)];
+
+    case 'streak_at_risk':
+      // Gentle reminder that a streak might break
+      const atRiskStreak = goal || commitment || 'your streak';
+      const atRiskPhrases = [
+        `I noticed ${atRiskStreak} might be at risk today. No judgment - just a gentle heads up.`,
+        `Hey, quick thought about ${atRiskStreak}. You've been doing so well. Today matters.`,
+        `Just wanted to check in on ${atRiskStreak}. Whatever happens, you've already come so far.`,
+      ];
+      return atRiskPhrases[Math.floor(Math.random() * atRiskPhrases.length)];
+
+    case 'concern_check':
+      // We detected something concerning in a previous conversation
+      const concern = context.context.currentStruggles?.[0] || 'what you shared';
+      const concernPhrases = [
+        `I've been thinking about ${concern}. Just wanted to see how you're doing.`,
+        `That thing about ${concern}? I haven't stopped thinking about it. How are you?`,
+        `I wanted to follow up on ${concern}. No pressure to talk - just want you to know I care.`,
+      ];
+      return concernPhrases[Math.floor(Math.random() * concernPhrases.length)];
+
+    default:
+      if (trigger.reason) {
+        return trigger.reason;
+      }
+      return `Just wanted to connect.`;
+  }
+}
+
+/**
+ * Assemble the voicemail from components
+ */
+function assembleVoicemail(components: VoicemailComponents): string {
+  const parts = [components.opening];
+
+  if (components.personalContext) {
+    parts.push(components.personalContext);
+  }
+
+  parts.push(components.mainMessage);
+  parts.push(components.close);
+
+  // Join with natural pauses (represented by spaces in TTS)
+  return parts.join(' ');
+}
+
 /**
  * Generate a voicemail message in persona voice
+ *
+ * Philosophy: A voicemail from Ferni should feel like getting a message
+ * from your most thoughtful friend - someone who actually remembers
+ * what you told them and checks in without any agenda.
+ *
+ * "Better than Human" means:
+ * - We remember what they shared (lastConversationSummary)
+ * - We remember their struggles (currentStruggles)
+ * - We remember their wins (recentWins)
+ * - We never make them feel obligated to call back
  */
 export function generateVoicemailMessage(
   personaId: string,
@@ -734,51 +1129,75 @@ export function generateVoicemailMessage(
 ): string {
   const voice = getPersonaOutreachVoice(personaId);
   const name = context.preferredName || context.userName;
+  const stage = context.relationshipStage;
 
-  let message = '';
+  // Build components
+  const opening = generateVoicemailOpening(name, voice.displayName, stage);
+  const personalContext = generatePersonalContext(context);
+  const mainMessage = generateVoicemailMainMessage(context, voice, !!personalContext);
+  const close = generateVoicemailClose(voice.displayName, stage, tone);
 
-  switch (context.trigger.type) {
-    case 'commitment_check':
-      message =
+  const components: VoicemailComponents = {
+    opening,
+    personalContext,
+    mainMessage,
+    close,
+  };
+
+  log.debug(
+    {
+      personaId,
+      stage,
+      tone,
+      hasPersonalContext: !!personalContext,
+      triggerType: context.trigger.type,
+    },
+    'Generated voicemail components'
+  );
+
+  return assembleVoicemail(components);
+}
+
+/**
+ * Generate a first-time warm introduction voicemail
+ *
+ * Special case: When Ferni calls someone for the first time,
+ * it should feel like meeting a friend, not getting a sales call.
+ */
+export function generateWarmIntroductionVoicemail(
+  personaId: string,
+  name: string,
+  stage: RelationshipStage = 'new'
+): string {
+  const voice = getPersonaOutreachVoice(personaId);
+
+  switch (stage) {
+    case 'new':
+      return (
+        `Hey ${name}, this is ${voice.displayName}. ` +
+        `I'm so glad we're connected. ` +
+        `I just wanted to reach out and let you know I'm here for you, ` +
+        `whether you want to talk through something, celebrate a win, ` +
+        `or just need someone to listen. ` +
+        `No need to call back. I'll be here whenever you're ready. ` +
+        `Take care.`
+      );
+
+    case 'building':
+      return (
         `Hey ${name}! It's ${voice.displayName}. ` +
-        `I was thinking about you and wanted to check in on ${context.commitment || 'how things are going'}. ` +
-        `No need to call back - I'll send you a text. ` +
-        `Hope you're having a good day!`;
-      break;
-
-    case 'emotional_support':
-      message =
-        `Hey ${name}, it's ${voice.displayName}. ` +
-        `Just calling to check in and see how you're doing. ` +
-        `I know things have been ${context.context.emotionalState || 'a lot'}. ` +
-        `No pressure to call back - I'm here whenever you need me. ` +
-        `Take care of yourself.`;
-      break;
-
-    case 'celebration':
-      message =
-        `${name}! It's ${voice.displayName}! ` +
-        `I wanted to call and celebrate with you! ` +
-        `${context.milestone || 'What you accomplished'} is HUGE! ` +
-        `I'm so proud of you. Let's talk soon!`;
-      break;
-
-    case 'thinking_of_you':
-      message =
-        `Hey ${name}, it's ${voice.displayName}. ` +
-        `No urgent reason for calling - just thinking of you and wanted to say hi. ` +
-        `Hope all is well! Talk soon.`;
-      break;
+        `I've been enjoying getting to know you. ` +
+        `Just wanted to check in and see how you're doing. ` +
+        `I'm here if you want to talk. Take care.`
+      );
 
     default:
-      message =
+      return (
         `Hey ${name}, it's ${voice.displayName}. ` +
-        `${context.trigger.reason} ` +
-        `Give me a call back when you get a chance, or I'll follow up with a text. ` +
-        `Talk soon!`;
+        `Just calling to say hi. ` +
+        `Hope you're having a good day. Talk soon.`
+      );
   }
-
-  return message;
 }
 
 /**

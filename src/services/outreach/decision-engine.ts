@@ -33,6 +33,8 @@ export type OutreachTriggerType =
   | 'commitment_check' // User said they'd do something
   | 'goal_milestone' // Progress toward a goal
   | 'streak_at_risk' // About to break a streak
+  | 'streak_celebration' // Hit a streak milestone (7, 30, 100 days)
+  | 'goal_progress' // Making progress toward goal (80% there)
   | 'habit_check' // Routine/habit check-in
   | 'appointment_reminder' // Upcoming appointment
   | 'event_countdown' // Event approaching
@@ -41,6 +43,7 @@ export type OutreachTriggerType =
   // Emotional triggers
   | 'emotional_support' // Detected stress/struggle
   | 'celebration' // Achievement unlocked
+  | 'concern_check' // Follow up on something concerning
 
   // Connection triggers
   | 'reengagement' // Haven't heard from user
@@ -52,10 +55,13 @@ export type OutreachTriggerType =
   | 'content_share' // Relevant content found
   | 'insight_discovery' // AI noticed something helpful
 
+  // Pattern-based triggers ("Better than Human")
+  | 'pattern_acknowledgment' // "Mondays seem hard for you"
+
   // Time-based triggers
   | 'scheduled' // User requested specific time
   | 'seasonal' // Holiday/season check-in
-  | 'anniversary'; // Relationship milestone
+  | 'anniversary'; // Relationship milestone (30 days, 100 conversations)
 
 export type OutreachPriority = 'low' | 'medium' | 'high' | 'urgent';
 

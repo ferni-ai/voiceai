@@ -9,13 +9,13 @@
  * Integrates with proactive outreach to enable follow-ups.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import {
-  setUserContactInfo,
   getUserContactInfo,
+  setUserContactInfo,
   type UserContactInfo,
 } from '../tools/proactive-outreach.js';
-import { setPreferences, getPreferences } from './outreach-intelligence.js';
+import { getLogger } from '../utils/safe-logger.js';
+import { setPreferences } from './outreach-intelligence.js';
 
 // ============================================================================
 // TYPES
@@ -253,28 +253,70 @@ export async function shouldPromptForContact(userId: string, turnCount: number):
 
 /**
  * Get contextual prompt for asking for contact info
+ *
+ * Philosophy: Ferni asks like a friend wanting to stay in touch, not like
+ * a service requesting permissions. The ask should feel:
+ * - Natural, like something a caring friend would say
+ * - Connected to what they just shared
+ * - Opt-in feeling, no pressure
+ * - Warm, not transactional
  */
-export function getContactPrompt(context: 'commitment' | 'goal' | 'reminder' | 'general'): string {
+export function getContactPrompt(
+  context: 'commitment' | 'goal' | 'reminder' | 'general' | 'emotional' | 'celebration'
+): string {
   const prompts: Record<string, string[]> = {
+    // When they've made a commitment
     commitment: [
-      "I'd love to check in with you about this! Would you like me to text you a reminder?",
-      'Want me to follow up with you on this? I can send you a text to see how it went.',
-      'I can text you tomorrow to see how this goes - would that help?',
+      "You know what? I'd love to check in on how this goes. " +
+        "If you want, give me your number and I'll shoot you a text.",
+      'I really want to know how this turns out for you. ' +
+        "Want me to text you about it? What's your number?",
+      'This sounds important to you. I could text you to see how it went - would that help?',
     ],
+
+    // When they're working toward a goal
     goal: [
-      'I can help keep you accountable! Want me to text you check-ins on your progress?',
-      'Would you like me to send you encouragement as you work toward this goal?',
-      "I'd love to celebrate with you when you hit this goal! Can I text you?",
+      "I'm genuinely rooting for you on this. " +
+        "Can I text you sometimes to cheer you on? What's your number?",
+      'I want to be in your corner on this journey. ' +
+        'If you give me your number, I can check in and celebrate the wins with you.',
+      'This matters to you, which means it matters to me. ' +
+        'Would it help if I texted you encouragement along the way?',
     ],
+
+    // When they explicitly want a reminder
     reminder: [
-      "I can definitely remind you! What's the best number to text you at?",
-      'Happy to send you a reminder! Should I text or email you?',
-      "I'll make sure you don't forget - just need your phone number or email.",
+      "I've got you. What's the best number to text you at?",
+      "Consider it done. Just need your number and I'll make sure you don't forget.",
+      "I'll remember so you don't have to. What's your number?",
     ],
+
+    // When they've shared something emotional
+    emotional: [
+      'Thank you for sharing that with me. ' +
+        "Sometimes it helps to have someone check in - want me to text you tomorrow to see how you're doing?",
+      "I hear you, and I'm not going to forget this. " +
+        "If you want, I can reach out in a few days to see how you're holding up. What's your number?",
+      "That's a lot to carry. I'd like to check in on you. Can I text you?",
+    ],
+
+    // When there's something to celebrate
+    celebration: [
+      'This is huge! I want to celebrate this with you properly. ' +
+        "Can I text you? I might just randomly send you a 'still proud of you' message.",
+      "I'm so happy for you. " +
+        'Give me your number so I can check in and see how things keep going!',
+    ],
+
+    // Natural conversation - most casual
     general: [
-      "By the way, if you'd like me to follow up with you between our chats, I can text or email you. Would that be helpful?",
-      'I can send you reminders and check-ins if you share your phone number or email. No pressure though!',
-      'Want to stay connected between sessions? I can text you motivational check-ins!',
+      'Hey, I really enjoy our conversations. ' +
+        "If you ever want me to reach out between chats - just to check in or share something I think you'd like - I can do that. " +
+        'Just need your number. No pressure though.',
+      "You know, I think about the people I talk to even when we're not chatting. " +
+        'If you want, give me your number and I can actually reach out when you cross my mind.',
+      "I'd love to stay more connected between our conversations. " +
+        'Would you be open to me texting you sometimes?',
     ],
   };
 
@@ -283,48 +325,74 @@ export function getContactPrompt(context: 'commitment' | 'goal' | 'reminder' | '
 }
 
 /**
+ * Get a warm Ferni-style opener to the phone ask based on conversation flow
+ * This makes the ask feel natural, not like a system prompt
+ */
+export function getPhoneAskOpener(
+  relationshipStage: 'new' | 'building' | 'established' | 'deep'
+): string {
+  const openers: Record<string, string[]> = {
+    new: ['Oh, one thing -', 'Hey, random question -', 'By the way -'],
+    building: [
+      'You know what I was thinking?',
+      'Oh, this just occurred to me -',
+      'Actually, I have an idea -',
+    ],
+    established: [
+      'Hey, can I ask you something?',
+      "I've been meaning to mention -",
+      "So here's a thought -",
+    ],
+    deep: [
+      'Okay, real talk -',
+      'You know what would be nice?',
+      'I was thinking about us staying more connected -',
+    ],
+  };
+
+  const options = openers[relationshipStage] || openers.new;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+/**
  * Generate confirmation message when contact info is saved
+ *
+ * Ferni style: Warm, personal, makes them feel good about sharing
+ * Not: "Your preferences have been saved to our database"
+ * Yes: "I'm really glad we can stay connected"
  */
 export function getConfirmationMessage(contactInfo: UserContactInfo): string {
-  const parts: string[] = [];
+  // Simple, warm confirmations
+  const warmConfirmations = [
+    "Got it. I'm really glad we can stay connected now.",
+    "Perfect. I'll only reach out when it matters.",
+    'Awesome. This means a lot to me, being able to check in on you.',
+    "Great. I promise I'll only text when I have something meaningful to say.",
+  ];
 
+  const phoneConfirmations = [
+    "Got your number. I'll text you, but only when there's a reason to - like when I'm thinking of you or there's something to celebrate.",
+    "Perfect. Now I can actually reach out when you cross my mind. I'll use it wisely.",
+    "Got it. I won't spam you - I'll just check in when it matters.",
+  ];
+
+  const emailConfirmations = [
+    "Got your email. I'll write you sometimes - real letters, not marketing stuff.",
+    'Perfect. I might send you something thoughtful now and then.',
+  ];
+
+  // If they gave a phone number
   if (contactInfo.phone) {
-    const maskedPhone = `${contactInfo.phone.slice(0, -4)}****`;
-    parts.push(`text you at ${maskedPhone}`);
+    return phoneConfirmations[Math.floor(Math.random() * phoneConfirmations.length)];
   }
 
+  // If they gave an email
   if (contactInfo.email) {
-    const [local, domain] = contactInfo.email.split('@');
-    const maskedEmail = `${local.slice(0, 2)}***@${domain}`;
-    parts.push(`email you at ${maskedEmail}`);
+    return emailConfirmations[Math.floor(Math.random() * emailConfirmations.length)];
   }
 
-  if (parts.length === 0) {
-    return "Got it! I'll remember that.";
-  }
-
-  const methodStr = parts.join(' or ');
-  const extras: string[] = [];
-
-  if (contactInfo.preferredMethod === 'sms') {
-    extras.push("I'll default to texting");
-  } else if (contactInfo.preferredMethod === 'email') {
-    extras.push("I'll default to email");
-  }
-
-  if (contactInfo.timezone) {
-    extras.push(`and I'll respect your ${contactInfo.timezone.split('/')[1]} timezone`);
-  }
-
-  let message = `Perfect! I can now ${methodStr} for reminders, check-ins, and celebrations.`;
-
-  if (extras.length > 0) {
-    message += ` ${extras.join(', ')}.`;
-  }
-
-  message += " I won't spam you - just helpful stuff! 💪";
-
-  return message;
+  // Generic
+  return warmConfirmations[Math.floor(Math.random() * warmConfirmations.length)];
 }
 
 // ============================================================================

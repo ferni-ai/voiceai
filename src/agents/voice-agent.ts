@@ -16,16 +16,28 @@
  */
 
 // ============================================================================
+// CRITICAL: First line of executable code - log before ANY imports
+// This helps debug child process import hangs
+// Use process.stderr.write for immediate, unbuffered output
+// ============================================================================
+const _startInfo = JSON.stringify({
+  msg: 'MODULE START',
+  pid: process.pid,
+  isChild: !!process.send,
+  ppid: process.ppid,
+  time: new Date().toISOString(),
+});
+process.stderr.write(`[voice-agent] ${_startInfo}\n`);
+console.log('[voice-agent] MODULE START', {
+  pid: process.pid,
+  isChild: !!process.send,
+  time: new Date().toISOString(),
+});
+
+// ============================================================================
 // EARLY STARTUP LOGGING
 // Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
-import { DEBUG_STARTUP, earlyLog } from './shared/early-logger.js';
-
-earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
-  nodeVersion: process.version,
-  personaId: process.env['PERSONA_ID'] || '(default)',
-});
-
 import { Modality } from '@google/genai';
 import {
   WorkerOptions,
@@ -45,6 +57,22 @@ import { ReadableStream } from 'node:stream/web';
 import { fileURLToPath } from 'node:url';
 import { TextDecoder, TextEncoder } from 'node:util';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+import { DEBUG_STARTUP, earlyLog } from './shared/early-logger.js';
+
+console.log('[voice-agent] After early-logger import', { pid: process.pid });
+
+earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
+  nodeVersion: process.version,
+  personaId: process.env['PERSONA_ID'] || '(default)',
+});
+
+console.log('[voice-agent] Importing @google/genai...', { pid: process.pid });
+console.log('[voice-agent] Importing @livekit/agents...', { pid: process.pid });
+console.log('[voice-agent] Importing google plugin...', { pid: process.pid });
+console.log('[voice-agent] Importing silero plugin...', { pid: process.pid });
+console.log('[voice-agent] Importing noise-cancellation...', { pid: process.pid });
+console.log('[voice-agent] Importing dotenv...', { pid: process.pid });
+console.log('[voice-agent] Core imports complete', { pid: process.pid });
 // Voice authentication - speaker change detection (available for future integration)
 import {
   getSpeakerChangeDetector,
@@ -1960,6 +1988,12 @@ IMPORTANT:
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
+    // CRITICAL: Immediate logging before anything else
+    // This helps debug if prewarm is even being called in child processes
+    process.stderr.write(
+      `[voice-agent] PREWARM CALLED pid=${process.pid} ppid=${process.ppid} time=${new Date().toISOString()}\n`
+    );
+
     const startTime = Date.now();
     diag.section('PREWARM CALLED');
     diag.prewarm('Starting prewarm', {
@@ -5514,6 +5548,12 @@ if (!process.send) {
     new WorkerOptions({
       agent: fileURLToPath(import.meta.url),
       agentName,
+      // Enable production mode for proper settings (port, load thresholds)
+      production: true,
+      // Disable process pooling/prewarming - spawn processes on-demand only
+      // This avoids fork() issues in Cloud Run and reduces idle resource usage
+      // Jobs will initialize child processes when they arrive
+      numIdleProcesses: 0,
       // Increase timeout for heavy initialization (bundles + startup + services)
       // The prewarm function calls startup() which does 10+ async operations:
       // - memory system (Firestore), services, bundles, schedulers,

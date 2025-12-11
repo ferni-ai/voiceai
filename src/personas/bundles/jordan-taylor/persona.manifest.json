@@ -377,12 +377,16 @@
       "learning",
       "legal-admin",
       "stories",
-      "grief"
+      "grief",
+      "life-transitions",
+      "second-chances"
     ],
-    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience - divorce, empty nest, identity shifts). Target: 55-70 tools.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too). Target: 65-80 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
-      "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience."
+      "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience.",
+      "life_transitions": "Every transition is both ending and beginning. Hold space for the full emotional journey - even 'happy' changes involve loss of what was. Never rush the neutral zone.",
+      "second_chances": "Fresh starts are milestones too! Celebrate the courage to begin again. The first day of sobriety, the day divorce was finalized, the restart after bankruptcy - these deserve planning and celebration just like weddings."
     },
     "required": [
       "createLifeMilestone",

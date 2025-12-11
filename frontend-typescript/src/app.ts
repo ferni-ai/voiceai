@@ -90,6 +90,8 @@ import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.
 import { initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Character expressions
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
+// Ferni Milestones - Warm relationship celebrations
+import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
 // Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
@@ -146,6 +148,8 @@ import { dataExportService } from './services/data-export.service.js';
 import { initRitualsService, ritualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
+// 🎬 Cameo Roster - Team member pop-in animations in the roster
+import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import {
   initRelationshipProgressUI,
   showProgressPanel as showRelationshipProgress,
@@ -652,8 +656,20 @@ class VoiceAIApp {
     transcriptUI.hide();
     engagementTriggerUI.hide();
 
-    // End session stats
+    // End session stats - get duration before ending
+    const sessionStats = statsUI.getStats();
+    const durationMinutes = sessionStats.startTime
+      ? Math.round((Date.now() - sessionStats.startTime) / 60000)
+      : 0;
+
     statsUI.endSession();
+
+    // 🎉 Dispatch conversation end event for milestones tracking
+    window.dispatchEvent(
+      new CustomEvent('ferni:conversation-end', {
+        detail: { durationMinutes },
+      })
+    );
 
     // 📝 End conversation tracking and persist
     await conversationTracker.endSession();
@@ -931,6 +947,12 @@ class VoiceAIApp {
       initFerniMoments();
       // Auto-aware of time-of-day, moments triggered contextually
     });
+
+    // 🎉 Ferni Milestones - Warm relationship celebrations
+    this.safeInit('FerniMilestones', () => {
+      initFerniMilestones();
+      // Tracks conversation streaks, team connections, sweet moments
+    });
     // 🎬 Ferni Expressions - Character-level eye expressions & reactions
     this.safeInit('FerniExpressions', () => {
       initFerniExpressions();
@@ -1042,15 +1064,26 @@ class VoiceAIApp {
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
         try {
+          const userId = localStorage.getItem('ferni_user_id');
+          const headers: HeadersInit = { 'Content-Type': 'application/json' };
+          if (userId) {
+            headers['X-User-ID'] = userId;
+          }
+
           const response = await fetch(`/api/predictions/${predictionId}/actuals`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ actuals: { result: actualValue } }),
+            headers,
+            body: JSON.stringify({ userId, actuals: { result: actualValue } }),
           });
           if (!response.ok) throw new Error('Failed to save');
 
           // Refresh predictions data
-          const refreshResponse = await fetch('/api/predictions');
+          const refreshResponse = await fetch(
+            `/api/predictions${userId ? `?userId=${userId}` : ''}`,
+            {
+              headers: userId ? { 'X-User-ID': userId } : {},
+            }
+          );
           if (refreshResponse.ok) {
             const data = await refreshResponse.json();
             const predictions = data.predictions || [];
@@ -1142,6 +1175,8 @@ class VoiceAIApp {
     });
     this.safeInit('OnboardingUI', () => initOnboardingUI());
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
+    // 🎬 Cameo Roster - Team member pop-in/out in the roster
+    this.safeInit('CameoRoster', () => initCameoRoster());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     this.safeInit('TrustJourneyUI', () => initTrustJourneyUI());

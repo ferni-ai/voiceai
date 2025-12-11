@@ -5,7 +5,7 @@
  * These tasks collect information while maintaining Jack's persona.
  */
 
-import { llm, log } from '@livekit/agents';
+import { type voice, llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { AgentTask, TaskGroup } from './agent-task.js';
@@ -236,7 +236,7 @@ export function createOnboardingFlow(): TaskGroup {
 /**
  * Run the complete onboarding flow and get typed results
  */
-export async function runOnboarding(session: any): Promise<OnboardingResult> {
+export async function runOnboarding(session: voice.AgentSession<unknown>): Promise<OnboardingResult> {
   const group = createOnboardingFlow();
   const results = await group.start(session);
 

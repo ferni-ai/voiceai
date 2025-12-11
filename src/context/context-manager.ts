@@ -75,7 +75,7 @@ export class ContextManager {
   private userProfile?: UserProfile;
   private sessionId: string;
   private startedAt: Date;
-  private currentPersona = 'jack-b';
+  private currentPersona = 'ferni';
   private previousPersona?: string;
 
   constructor(sessionId: string, userProfile?: UserProfile) {

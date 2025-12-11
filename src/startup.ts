@@ -107,6 +107,33 @@ export async function startup(): Promise<AppConfig> {
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
   logger.info('✓ Schedulers running');
 
+  // Start Intelligent Outreach Decision Engine
+  // This powers "Better Than Human" proactive check-ins, commitment follow-ups,
+  // and context-aware outreach based on conversation extractions
+  logger.info('Starting Intelligent Outreach Engine...');
+  try {
+    const { startOutreachDecisionEngine } = await import('./services/outreach/decision-engine.js');
+    startOutreachDecisionEngine();
+    logger.info('✓ Intelligent Outreach Engine running');
+
+    // Schedule daily outreach job (runs at 10am server time daily)
+    // This evaluates all users for "Thinking of You" and growth reflection outreach
+    const { processScheduledTriggers } = await import('./services/outreach/daily-outreach-job.js');
+
+    // Run scheduled trigger check every 30 minutes
+    setInterval(
+      () => {
+        processScheduledTriggers().catch((err) => {
+          logger.debug({ error: String(err) }, 'Scheduled triggers check failed (non-fatal)');
+        });
+      },
+      30 * 60 * 1000
+    );
+    logger.info('✓ Outreach trigger scheduler running (30min intervals)');
+  } catch (outreachErr) {
+    logger.warn(`Intelligent Outreach Engine startup failed (non-fatal): ${outreachErr}`);
+  }
+
   // PARALLELIZED INITIALIZATION - Run independent operations concurrently
   // This significantly reduces cold start time
   logger.info('Initializing services in parallel...');

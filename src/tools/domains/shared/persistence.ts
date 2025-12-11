@@ -61,15 +61,19 @@ export interface InsightData {
   confidence?: number;
 }
 
+// Core moment types used by the learning engine
+export type CoreMomentType =
+  | 'breakthrough'
+  | 'milestone'
+  | 'concern'
+  | 'celebration'
+  | 'decision'
+  | 'shared_vulnerability';
+
 export interface KeyMomentData {
   domain: string;
-  type:
-    | 'breakthrough'
-    | 'milestone'
-    | 'concern'
-    | 'celebration'
-    | 'decision'
-    | 'shared_vulnerability';
+  /** Extended type - will be mapped to core type for learning engine */
+  type: CoreMomentType | string;
   summary: string;
   emotionalWeight?: 'light' | 'medium' | 'heavy';
   topics?: string[];
@@ -144,10 +148,23 @@ export function persistKeyMoment(toolCtx: ToolCtxWithUserData, moment: KeyMoment
   }
 
   try {
+    // Map extended types to core types for the learning engine
+    const coreTypes: CoreMomentType[] = [
+      'breakthrough',
+      'milestone',
+      'concern',
+      'celebration',
+      'decision',
+      'shared_vulnerability',
+    ];
+    const coreType: CoreMomentType = coreTypes.includes(moment.type as CoreMomentType)
+      ? (moment.type as CoreMomentType)
+      : 'milestone'; // Default extended types to milestone
+
     services.learningEngine.captureExternalKeyMoment({
       id: `${moment.domain}_${moment.type}_${Date.now()}`,
       timestamp: new Date(),
-      type: moment.type,
+      type: coreType,
       summary: moment.summary,
       emotionalWeight: moment.emotionalWeight ?? 'medium',
       topics: moment.topics ?? [moment.domain],

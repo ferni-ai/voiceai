@@ -20,6 +20,7 @@ import {
   getAliveEntranceForHandoff,
 } from '../../personas/alive-entrances.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
+import { isCoach } from '../../personas/persona-ids.js';
 import {
   getCanonicalPersonaId,
   getPersonaDisplayName,
@@ -306,8 +307,8 @@ export async function executeHandoff(
   }
 
   // Team unlock validation - check if this persona is available for the user
-  // Skip check for Ferni (coordinator is always available) or if explicitly skipped
-  if (!options.skipUnlockCheck && canonicalTargetId !== 'ferni' && canonicalTargetId !== 'jack-b') {
+  // Skip check for coach (coordinator is always available) or if explicitly skipped
+  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId)) {
     const tier = options.subscriptionTier || 'free';
     const targetName = getPersonaDisplayName(canonicalTargetId);
 

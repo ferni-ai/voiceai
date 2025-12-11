@@ -419,6 +419,9 @@ class AudioService {
       'handoff-to-jordan': AUDIO.SOUNDS.HANDOFF_TO_JORDAN,
       'handoff-to-nayan': AUDIO.SOUNDS.HANDOFF_TO_NAYAN,
       'dramatic-entrance': AUDIO.SOUNDS.DRAMATIC_ENTRANCE,
+      // Cameo sounds - team member pop-in transitions
+      'cameo-arrive': AUDIO.SOUNDS.CAMEO_ARRIVE,
+      'cameo-return': AUDIO.SOUNDS.CAMEO_RETURN,
     };
 
     const LOAD_TIMEOUT_MS = 2000; // Don't wait more than 2 seconds per sound

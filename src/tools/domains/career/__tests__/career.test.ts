@@ -393,9 +393,9 @@ describe('Career Domain Tools', () => {
   // Skill Development
   // --------------------------------------------------------------------------
 
-  describe('identifySkillGaps', () => {
+  describe('exploreGrowthAreas', () => {
     it('should identify skill gaps', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'identifySkillGaps');
+      const toolDef = toolDefinitions.find((t) => t.id === 'exploreGrowthAreas');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({

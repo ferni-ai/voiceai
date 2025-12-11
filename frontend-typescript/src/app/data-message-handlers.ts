@@ -26,6 +26,7 @@ import {
   normalizeMusicMessage,
 } from '../types/events.js';
 
+import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
 import { engagementService, handoffService, moodService } from '../services/index.js';
@@ -78,6 +79,12 @@ export function setShowTeamHuddleCallback(callback: () => void): void {
 export function handleDataMessage(message: DataMessage): void {
   // Try to process as handoff (async - fire and forget)
   void handoffService.processDataMessage(message);
+
+  // 🎬 Try to process as cameo (team member pop-in)
+  if (cameoService.processDataMessage(message)) {
+    log.info('🎬 Cameo message processed:', { type: (message as { type?: string }).type });
+    return;
+  }
 
   // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.)
   // This is the bridge that makes Ferni feel truly human

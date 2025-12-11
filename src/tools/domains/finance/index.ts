@@ -138,9 +138,9 @@ function getPersonalFinanceToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'budgetPlanner',
       'Budget Planner',
-      'Create a budget using the 50/30/20 rule (needs/wants/savings), or calculate your FIRE number (financial independence target). Modes: "budget" (allocate income) or "fire" (calculate retirement goal).',
+      'Create a budget using the 50/30/20 rule (needs/wants/savings), or explore what financial security might look like for you. Modes: "budget" (allocate income) or "security" (explore your personal financial freedom target).',
       legacyTools.calculate5030Budget,
-      { tags: ['budget', '50-30-20', 'fire', 'independence', 'planning'] }
+      { tags: ['budget', '50-30-20', 'security', 'freedom', 'planning'] }
     ),
     wrapLegacyTool(
       'financeEducation',

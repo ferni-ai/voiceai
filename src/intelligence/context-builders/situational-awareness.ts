@@ -178,7 +178,7 @@ async function buildSituationalAwareness(input: ContextBuilderInput): Promise<Co
 
   // Available capabilities
   let capabilitiesInfo = '';
-  if (persona?.id === 'ferni' || persona?.id === 'jack-b') {
+  if (persona?.id === 'ferni') {
     capabilitiesInfo = `
 - CAPABILITIES: You can help with:
   • Play music to set the mood

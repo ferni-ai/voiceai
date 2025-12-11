@@ -45,6 +45,8 @@
  *   domains/creativity/    - Hobbies, creative projects, artistic pursuits
  *   domains/community/     - Volunteering, giving, civic engagement
  *   domains/legal-admin/   - Documents, estate planning, insurance
+ *   domains/second-chances/ - Fresh starts, reinvention, rebuilding
+ *   domains/connection/     - Loneliness, friendship, belonging, community
  */
 
 // ============================================================================
@@ -176,16 +178,34 @@ export { getToolDefinitions as getCommunityToolDefinitions } from './community/i
 // Legal-Admin domain - documents, estate planning, insurance
 export { getToolDefinitions as getLegalAdminToolDefinitions } from './legal-admin/index.js';
 
+// Second Chances domain - fresh starts, reinvention, rebuilding after setbacks
+export { getToolDefinitions as getSecondChancesToolDefinitions } from './second-chances/index.js';
+
+// Connection domain - loneliness, friendship, belonging, community
+export { getToolDefinitions as getConnectionToolDefinitions } from './connection/index.js';
+
+// Difficult Conversations domain - preparing for and having hard conversations
+export { getToolDefinitions as getDifficultConversationsToolDefinitions } from './difficult-conversations/index.js';
+
+// Life Transitions domain - emotional journey through major life changes
+export { getToolDefinitions as getLifeTransitionsToolDefinitions } from './life-transitions/index.js';
+
+// Reflection Games domain - deep coaching games for self-discovery
+export { getToolDefinitions as getReflectionGamesToolDefinitions } from './reflection-games/index.js';
+
+// Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus, sufficiency
+export { getToolDefinitions as getQuietGrowthToolDefinitions } from './quiet-growth/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
 // ============================================================================
 
+export * from './agent.js';
+export * from './banking.js';
+export * from './conversation.js';
 export * from './financial.js';
 export * from './human-connection.js';
-export * from './conversation.js';
-export * from './banking.js';
-export * from './agent.js';
 export * from './personas.js';
 
 // NOTE: communication.js, information.js, entertainment.js, life-planning.js
@@ -248,6 +268,17 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./creativity/index.js').then(async (m) => m.getToolDefinitions()),
     import('./community/index.js').then(async (m) => m.getToolDefinitions()),
     import('./legal-admin/index.js').then(async (m) => m.getToolDefinitions()),
+    // Second Chances domain - fresh starts, reinvention, rebuilding
+    import('./second-chances/index.js').then(async (m) => m.getToolDefinitions()),
+    // Connection domain - loneliness, friendship, belonging
+    import('./connection/index.js').then(async (m) => m.getToolDefinitions()),
+    // Difficult Conversations domain - preparing for and having hard conversations
+    import('./difficult-conversations/index.js').then(async (m) => m.getToolDefinitions()),
+    // Life Transitions domain - emotional journey through major life changes
+    import('./life-transitions/index.js').then(async (m) => m.getToolDefinitions()),
+    // Note: reflection-games has a different export format and is loaded separately
+    // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus
+    import('./quiet-growth/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -499,6 +530,44 @@ export const DOMAIN_METADATA = {
     name: 'Legal & Administrative',
     description: 'Document organization, estate planning, insurance review, tax prep',
     icon: '📋',
+    status: 'active',
+  },
+  'second-chances': {
+    name: 'Second Chances',
+    description:
+      'Fresh starts, reinvention, rebuilding after setbacks - because second chances are sacred',
+    icon: '🌅',
+    status: 'active',
+  },
+  connection: {
+    name: 'Loneliness & Connection',
+    description: 'Loneliness support, adult friendship, belonging, and community building',
+    icon: '🤗',
+    status: 'active',
+  },
+  'difficult-conversations': {
+    name: 'Difficult Conversations',
+    description: 'Preparing for, practicing, and recovering from hard conversations',
+    icon: '💬',
+    status: 'active',
+  },
+  'life-transitions': {
+    name: 'Life Transitions',
+    description: 'Emotional support for navigating major life changes and identity shifts',
+    icon: '🦋',
+    status: 'active',
+  },
+  'reflection-games': {
+    name: 'Reflection Games',
+    description:
+      'Deep coaching games for self-discovery - Letters to Future Self, Values Auction, Rose/Thorn/Bud',
+    icon: '🎯',
+    status: 'active',
+  },
+  'quiet-growth': {
+    name: 'Quiet Growth',
+    description: 'Anti-hustle growth: rest, seasons, plateaus, and sufficiency. Growth without comparison or urgency.',
+    icon: '🌱',
     status: 'active',
   },
 } as const;

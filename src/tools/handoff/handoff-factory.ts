@@ -23,6 +23,7 @@
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
+import { isCoach } from '../../personas/persona-ids.js';
 import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -402,7 +403,7 @@ export async function buildHandoffTools(
     // FIX: Previously the condition was `if (userProfile || subscriptionTier !== 'free')`
     // which SKIPPED filtering for free users without a profile. This caused Ferni to
     // try handoffs to locked members. Now we ALWAYS filter.
-    const isTargetCoordinator = def.agentId === 'ferni' || def.agentId === 'jack-b';
+    const isTargetCoordinator = isCoach(def.agentId);
     if (
       !isTargetCoordinator &&
       !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
@@ -494,10 +495,10 @@ This is NOT a full handoff - you remain the active speaker.`,
         (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
         subscriptionTier;
 
-      // Find a locked teammate who matches the specialty
+      // Find a locked teammate who matches the specialty (exclude coach)
       const lockedTeammates = TEAM_MEMBERS.filter(
         (m) =>
-          m.memberId !== 'ferni' &&
+          !isCoach(m.memberId) &&
           !isTeamMemberUnlocked(m.memberId, runtimeUserProfile, runtimeTier)
       );
 

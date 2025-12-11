@@ -14,6 +14,20 @@ import { getLogger } from '../utils/safe-logger.js';
 // ============================================================================
 
 export const PERSONA_EXPRESSIONS = {
+  'ferni': {
+    signature: '🌱',
+    available: ['🌱', '💚', '🌿', '☀️', '🌸', '✨', '💫', '🤗'],
+    descriptions: {
+      '🌱': 'Growth, new beginnings',
+      '💚': 'Care, support',
+      '🌿': 'Calm, grounded',
+      '☀️': 'Warmth, positivity',
+      '🌸': 'Gentle moment',
+      '✨': 'Sparkle, magic',
+      '💫': 'Wonder, possibility',
+      '🤗': 'Comfort, embrace',
+    },
+  },
   'jack-b': {
     signature: '☕',
     available: ['☕', '💡', '🎯', '🤝', '⭐', '🌟', '👋', '💪'],
@@ -106,7 +120,7 @@ type PersonaId = keyof typeof PERSONA_EXPRESSIONS;
 // EXPRESSION TOOL
 // ============================================================================
 
-let currentAgentId: PersonaId = 'jack-b';
+let currentAgentId: PersonaId = 'ferni';
 
 /**
  * Set the current agent for expression context.

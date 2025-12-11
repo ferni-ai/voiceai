@@ -104,6 +104,11 @@ import { valueCapture } from '../../services/monetization/value-capture.js';
 // Personal theme tracking (prevents "always talks about Wyoming")
 import { extractPersonalThemes } from '../session/session-state.js';
 
+// Intelligent Outreach - Extract context for proactive check-ins
+// This feeds the "Better Than Human" outreach system with commitments,
+// emotions, life events, wins, and struggles from conversations
+import { extractAndProcess as extractOutreachContext } from '../../services/outreach/conversation-extractor.js';
+
 // ============================================================================
 // CACHED IMPORTS - Lazy loaded once for performance
 // ============================================================================
@@ -1657,6 +1662,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             acknowledged: true,
           }
         : undefined,
+    });
+  }
+
+  // 13. INTELLIGENT OUTREACH: Extract commitments, emotions, life events
+  // This feeds the "Better Than Human" proactive outreach system
+  // Runs async to not block the response - outreach happens later anyway
+  const userId = services.userId;
+  if (userId && userText.length > 10) {
+    // Fire and forget - don't await
+    extractOutreachContext(userId, userText).catch((outreachErr) => {
+      // Non-fatal - outreach extraction should never block conversation
+      diag.debug('Outreach extraction skipped', { error: String(outreachErr) });
     });
   }
 
