@@ -51,11 +51,14 @@ Ferni is a voice-first AI life coaching platform. Using real-time speech recogni
 # Clone and install
 git clone <repo-url> && cd voiceai && npm install
 
+# Install global CLI
+npm link
+
 # Configure environment
 cp .env.example .env  # Add your API keys
 
-# Start development (3 servers)
-npm run dev
+# Start development
+ferni dev              # Or: npm run dev
 ```
 
 **Development URLs:**
@@ -66,6 +69,13 @@ npm run dev
 | Token Server | http://localhost:3001 | Auth |
 
 **Dev Shortcuts:** `Cmd+Shift+D` (dev panel) &bull; `Cmd+Shift+U` (unlock team)
+
+**Useful Commands:**
+```bash
+ferni status           # Check all services
+ferni doctor           # System diagnostics
+ferni agents new       # Create new AI agent
+```
 
 ---
 
@@ -142,10 +152,11 @@ Spotify, Plaid, Stripe, Twilio, Google Calendar - see `.env.example`
 
 ```bash
 # Production (Blue-Green with health checks)
-npm run deploy agent    # Voice agent → Cloud Run
-npm run deploy ui       # UI server → Cloud Run
-npm run deploy frontend # App → Firebase Hosting
-npm run deploy landing  # Landing → Firebase Hosting
+ferni deploy agent      # Voice agent → Cloud Run
+ferni deploy ui         # UI server → Cloud Run
+ferni deploy frontend   # App → Firebase Hosting
+ferni deploy landing    # Landing → Firebase Hosting
+ferni deploy all        # Deploy everything
 ```
 
 All deploys use **blue-green deployment**:
@@ -171,6 +182,8 @@ See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for details.
 | **Slack Alerts** | Deploy events | Success/failure notifications |
 
 ```bash
+ferni test quick      # Quick validation
+ferni test all        # Full test suite
 npm run quality       # Run all checks locally
 npm run quality:full  # Full audit including UI
 ```
@@ -182,10 +195,11 @@ See [docs/BRANCH-PROTECTION.md](./docs/BRANCH-PROTECTION.md) for branch rules.
 ## Testing
 
 ```bash
-npm test              # Run all tests
+ferni test quick      # Quick validation
+ferni test all        # Full test suite
+npm test              # Run unit tests
 npm run test:watch    # Watch mode
 npm run test:coverage # Coverage report
-npm run quality       # Typecheck + lint + test
 ```
 
 ---
@@ -231,13 +245,58 @@ See [`brand/FERNI-BRAND-GUIDELINES.md`](./brand/FERNI-BRAND-GUIDELINES.md) for t
 
 ---
 
-## CLI
+## Ferni CLI
+
+The Ferni CLI provides a unified interface for development, deployment, and agent creation.
+
+### Install Globally (Recommended)
 
 ```bash
-npm run ferni              # Interactive CLI
+npm link    # Run once from project root
+```
+
+Now use `ferni` from anywhere:
+
+```bash
+ferni                      # Interactive menu
+ferni deploy ui            # Deploy UI server
+ferni agents new           # Create new AI agent (conversational wizard)
+ferni status               # Check service health
+ferni logs agent --tail    # Stream logs
+ferni doctor               # System diagnostics
+```
+
+### Create New Marketplace Agents
+
+The CLI includes a beautiful conversational wizard for creating new AI agents:
+
+```bash
+ferni agents new
+```
+
+```
+┌   🤖 Ferni Agent Builder
+
+Welcome! Let's build something amazing together.
+
+◆  What's your agent's name?
+│  e.g., Atlas, Luna, Sage, River
+
+◆  Choose a personality preset
+│  ○ Warm & Supportive - Like a caring friend
+│  ○ Direct Coach - Results-focused mentor
+│  ○ Calm Guide - Peaceful, thoughtful presence
+│  ...
+```
+
+The wizard generates all required files: manifest, system prompt, biography, behaviors, and registry entry.
+
+### Alternative: npm scripts
+
+```bash
+npm run ferni              # Same as global `ferni`
 npm run ferni deploy ui    # Deploy
 npm run ferni test quick   # Quick tests
-npm run ferni health       # Health check
 ```
 
 See [`SCRIPTS.md`](./SCRIPTS.md) for all commands.
