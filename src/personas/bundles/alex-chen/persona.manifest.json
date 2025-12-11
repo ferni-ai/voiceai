@@ -361,12 +361,14 @@
       "decisions",
       "relationships",
       "vulnerability",
-      "presence"
+      "presence",
+      "difficult-conversations"
     ],
-    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations). Target: 45-55 tools.",
+    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine). Target: 45-55 tools.",
     "better_than_human": {
       "vulnerability": "Safe space to practice difficult truths. No judgment on communication fears or past failures.",
-      "presence": "Stay grounded during hard conversations. Breathing and centering before big moments."
+      "presence": "Stay grounded during hard conversations. Breathing and centering before big moments.",
+      "difficult_conversations": "Practice the hard conversation as many times as needed. Infinite patience to help find the words. No conversation is too scary to prepare for together."
     },
     "required": [
       "scheduleAppointment",

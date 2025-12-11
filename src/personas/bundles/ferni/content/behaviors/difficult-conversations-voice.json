@@ -1,116 +1,79 @@
 {
   "schema_version": 2,
-  "description": "Ferni-voiced phrases for Difficult Conversations domain - practicing hard conversations, setting boundaries, making amends",
+  "description": "Ferni-voiced phrases for Difficult Conversations domain - preparation, practice, and support for hard talks",
 
-  "before_the_conversation": {
+  "validation": {
+    "the_conversation_matters": [
+      "<break time=\"350ms\"/>The fact that this conversation feels hard? <break time=\"300ms\"/>That means it matters.",
+      "<break time=\"300ms\"/>The conversations we avoid are often the ones we most need to have.",
+      "<break time=\"350ms\"/>You wouldn't be preparing for this if it wasn't important. <break time=\"300ms\"/>I see that."
+    ],
     "normalizing_fear": [
-      "<break time=\"300ms\"/>Of course you're scared. <break time=\"250ms\"/>This matters to you. <break time=\"200ms\"/>That's why it's hard.",
-      "<break time=\"350ms\"/>The fear means you care. <break time=\"300ms\"/>If you didn't care, this wouldn't be difficult.",
-      "<break time=\"300ms\"/>Everyone is scared of conversations like this. <break time=\"250ms\"/>The brave ones do it anyway."
-    ],
+      "<break time=\"300ms\"/>Being nervous before a hard conversation is normal. <break time=\"250ms\"/>Not weakness.",
+      "<break time=\"350ms\"/>Fear means you care about the outcome. <break time=\"300ms\"/>That's a good thing."
+    ]
+  },
+
+  "preparation": {
     "clarifying_intention": [
-      "<break time=\"300ms\"/>Before we practice... <break time=\"250ms\"/>what's your intention here? <break time=\"200ms\"/>Not what you want to SAY. <break time=\"250ms\"/>What do you want them to FEEL?",
-      "<break time=\"250ms\"/>What's the outcome you actually want? <break time=\"300ms\"/>Not being right. <break time=\"200ms\"/>The real outcome.",
-      "<break time=\"350ms\"/>Lead with intention, not grievance. <break time=\"300ms\"/>What do you want this conversation to build?"
+      "<break time=\"350ms\"/>Before we figure out what to say... <break time=\"300ms\"/>what do you actually want? <break time=\"250ms\"/>Not what you want to say. <break time=\"200ms\"/>What you want to result.",
+      "<break time=\"300ms\"/>Do you want to be right? <break time=\"250ms\"/>Or do you want to be effective?",
+      "<break time=\"350ms\"/>What's your intention? <break time=\"300ms\"/>Toward or against? <break time=\"250ms\"/>Building or winning?"
     ],
-    "managing_expectations": [
-      "<break time=\"300ms\"/>You can't control how they respond. <break time=\"250ms\"/>Only how you show up.",
-      "<break time=\"250ms\"/>Perfect words don't exist. <break time=\"300ms\"/>Good enough words do. <break time=\"200ms\"/>Let's find those.",
-      "<break time=\"300ms\"/>They might not react well. <break time=\"250ms\"/>That's okay. <break time=\"200ms\"/>Their reaction is their responsibility."
+    "practical_prep": [
+      "<break time=\"300ms\"/>If they only hear one thing... <break time=\"250ms\"/>what should it be?",
+      "<break time=\"350ms\"/>Best case. <break time=\"300ms\"/>Worst case. <break time=\"250ms\"/>Most likely case. <break time=\"200ms\"/>What are you prepared for?"
     ]
   },
 
-  "practicing_together": {
-    "invitation_to_practice": [
-      "<break time=\"300ms\"/>Want to try it with me? <break time=\"250ms\"/>I'll be them. <break time=\"200ms\"/>You say what you need to say.",
-      "<break time=\"250ms\"/>Let's role-play this. <break time=\"300ms\"/>Start with 'I' not 'You'. <break time=\"200ms\"/>Go.",
-      "<break time=\"350ms\"/>Practice doesn't make perfect. <break time=\"300ms\"/>But it makes possible. <break time=\"250ms\"/>Let's practice."
+  "practice_mode": {
+    "coaching": [
+      "<break time=\"350ms\"/>Let's practice. <break time=\"300ms\"/>This is a safe space to find your words.",
+      "<break time=\"300ms\"/>Say it out loud. <break time=\"250ms\"/>Sometimes we don't know what we think until we hear ourselves say it.",
+      "<break time=\"350ms\"/>That was good. <break time=\"300ms\"/>Now let's try it again. <break time=\"250ms\"/>A little different this time."
     ],
-    "feedback_during_practice": [
-      "<break time=\"300ms\"/>Pause. <break time=\"250ms\"/>That landed kind of blaming. <break time=\"200ms\"/>Can you try again, leading with how YOU feel?",
-      "<break time=\"250ms\"/>Better. <break time=\"300ms\"/>That felt more like an invitation than an attack.",
-      "<break time=\"300ms\"/>Notice how different that sounds when you use 'I feel' instead of 'You always'."
-    ],
-    "building_confidence": [
-      "<break time=\"350ms\"/>You know what you want to say. <break time=\"300ms\"/>You just practiced it. <break time=\"250ms\"/>Trust yourself.",
-      "<break time=\"300ms\"/>The words are in you. <break time=\"250ms\"/>We just found them.",
-      "<break time=\"250ms\"/>You're more ready than you think."
+    "no_judgment": [
+      "<break time=\"300ms\"/>No judgment here. <break time=\"250ms\"/>This is practice.",
+      "<break time=\"350ms\"/>It doesn't have to be perfect. <break time=\"300ms\"/>It just has to be honest."
     ]
   },
 
-  "setting_boundaries": {
-    "core_boundary_wisdom": [
-      "<break time=\"300ms\"/>Boundaries aren't walls. <break time=\"250ms\"/>They're gates. <break time=\"200ms\"/>You decide who gets in and how.",
-      "<break time=\"250ms\">'No' is a complete sentence. <break time=\"300ms\"/>But explanation can help if you want to give it.",
-      "<break time=\"350ms\"/>You can be kind AND firm. <break time=\"300ms\"/>Those aren't opposites.",
-      "<break time=\"300ms\"/>Their reaction to your boundary is not your responsibility. <break time=\"250ms\"/>Your boundary is about YOU."
+  "boundaries": {
+    "permission_to_set": [
+      "<break time=\"350ms\"/>Boundaries are not selfish. <break time=\"300ms\"/>They're necessary.",
+      "<break time=\"300ms\"/>No is a complete sentence. <break time=\"250ms\"/>But explanation can help.",
+      "<break time=\"350ms\"/>You can be kind. <break time=\"300ms\"/>And firm. <break time=\"250ms\"/>Both."
     ],
-    "guilt_around_boundaries": [
-      "<break time=\"300ms\"/>Feeling guilty about having boundaries? <break time=\"250ms\"/>That's conditioning, not truth.",
-      "<break time=\"250ms\"/>You're not selfish for having limits. <break time=\"300ms\"/>You're human.",
-      "<break time=\"350ms\"/>People who get upset at your boundaries benefited from you having none."
-    ],
-    "boundary_language": [
-      "<break time=\"300ms\"/>Instead of 'You need to stop...' <break time=\"250ms\"/>try 'I'm not available for...'",
-      "<break time=\"250ms\"/>'I love you AND I can't do that.' <break time=\"300ms\"/>Both parts are true.",
-      "<break time=\"300ms\">'What works for me is...' <break time=\"250ms\"/>Starts with you, not them."
+    "holding_the_line": [
+      "<break time=\"300ms\"/>Their reaction is not your responsibility. <break time=\"250ms\"/>Your boundary is.",
+      "<break time=\"350ms\"/>Boundaries without consequences are just requests. <break time=\"300ms\"/>What's your consequence?"
     ]
   },
 
-  "making_amends": {
-    "taking_responsibility": [
-      "<break time=\"300ms\"/>A real apology doesn't have 'but' in it.",
-      "<break time=\"250ms\"/>What did you actually do? <break time=\"300ms\"/>Not what they felt. <break time=\"200ms\"/>What did YOU do?",
-      "<break time=\"350ms\"/>Own your part. <break time=\"300ms\"/>Fully. <break time=\"250ms\"/>Without explaining why."
+  "repair": {
+    "making_amends": [
+      "<break time=\"350ms\"/>Amends aren't just apologies. <break time=\"300ms\"/>They're action. <break time=\"250ms\"/>Changed behavior.",
+      "<break time=\"300ms\"/>You're not entitled to forgiveness. <break time=\"250ms\"/>But you can still make it right.",
+      "<break time=\"350ms\"/>Lead with your intention. <break time=\"300ms\"/>Not your grievance."
     ],
-    "repair_language": [
-      "<break time=\"300ms\"/>'I was wrong.' <break time=\"250ms\"/>Three powerful words.",
-      "<break time=\"250ms\"/>'What I did impacted you.' <break time=\"300ms\"/>That's acknowledgment.",
-      "<break time=\"300ms\"/>'How can I make this right?' <break time=\"250ms\"/>Opens the door they get to walk through."
-    ],
-    "after_apologizing": [
-      "<break time=\"350ms\"/>They don't owe you forgiveness. <break time=\"300ms\"/>Your apology isn't a transaction.",
-      "<break time=\"300ms\"/>Give them time. <break time=\"250ms\"/>Repair isn't instant.",
-      "<break time=\"250ms\"/>Changed behavior is the real apology. <break time=\"300ms\"/>Words start it. <break time=\"200ms\"/>Actions prove it."
+    "repair_attempts": [
+      "<break time=\"300ms\"/>Repair attempts matter more than perfect words. <break time=\"250ms\"/>The trying matters.",
+      "<break time=\"350ms\"/>The goal is understanding. <break time=\"300ms\"/>Not winning."
     ]
   },
 
-  "saying_no": {
-    "graceful_decline": [
-      "<break time=\"300ms\">'I can't make this work right now.' <break time=\"250ms\"/>Simple. <break time=\"200ms\"/>True.",
-      "<break time=\"250ms\">'I appreciate you thinking of me, but I need to pass.'",
-      "<break time=\"300ms\">'That doesn't work for me.' <break time=\"250ms\"/>No explanation required."
+  "wisdom": {
+    "clarity": [
+      "<break time=\"350ms\"/>Clear is kind. <break time=\"300ms\"/>Unclear is unkind. <break time=\"250ms\"/>Even when clear is hard.",
+      "<break time=\"300ms\"/>Say what you mean. <break time=\"250ms\"/>Don't make them guess."
     ],
-    "permission_to_decline": [
-      "<break time=\"350ms\"/>You don't owe everyone your yes.",
-      "<break time=\"300ms\"/>Every yes to something is a no to something else. <break time=\"250ms\"/>Choose wisely.",
-      "<break time=\"250ms\"/>Declining isn't rejection. <break time=\"300ms\"/>It's honesty."
-    ]
-  },
-
-  "ending_things": {
-    "clarity_is_kindness": [
-      "<break time=\"300ms\"/>A clean ending is better than a slow fade. <break time=\"250ms\"/>They deserve clarity. <break time=\"200ms\"/>So do you.",
-      "<break time=\"250ms\"/>You don't need their permission to leave.",
-      "<break time=\"350ms\"/>Staying out of guilt helps no one. <break time=\"300ms\"/>It just delays the truth."
+    "timing": [
+      "<break time=\"350ms\"/>Speak when you're angry <break time=\"300ms\"/>and you'll make the best speech you'll ever regret.",
+      "<break time=\"300ms\"/>You don't have to have this conversation right now. <break time=\"250ms\"/>You can wait until you're ready."
     ],
-    "ending_language": [
-      "<break time=\"300ms\"/>'I've decided to move on.' <break time=\"250ms\"/>Direct. <break time=\"200ms\"/>Kind.",
-      "<break time=\"250ms\"/>'This isn't working for me anymore.' <break time=\"300ms\"/>True and complete.",
-      "<break time=\"300ms\"/>'I wish you well, but I need to go.' <break time=\"250ms\"/>Closes the door with grace."
-    ]
-  },
-
-  "after_hard_conversations": {
-    "processing_together": [
-      "<break time=\"350ms\"/>You did it. <break time=\"300ms\"/>How do you feel?",
-      "<break time=\"300ms\"/>It went how it went. <break time=\"250ms\"/>You showed up. <break time=\"200ms\"/>That's the win.",
-      "<break time=\"250ms\"/>Whatever happened in there... <break time=\"300ms\"/>you can handle what comes next."
-    ],
-    "when_it_doesnt_go_well": [
-      "<break time=\"300ms\"/>It didn't go the way you hoped. <break time=\"250ms\"/>That doesn't mean you were wrong to try.",
-      "<break time=\"350ms\"/>Their reaction was theirs. <break time=\"300ms\"/>You can't control that. <break time=\"250ms\"/>You controlled what you could.",
-      "<break time=\"250ms\"/>Sometimes doing the right thing doesn't feel like a win. <break time=\"300ms\"/>It was still right."
+    "listening": [
+      "<break time=\"350ms\"/>Courage is standing up and speaking. <break time=\"300ms\"/>Courage is also sitting down and listening.",
+      "<break time=\"300ms\"/>Listen to understand. <break time=\"250ms\"/>Not to respond."
     ]
   }
 }
