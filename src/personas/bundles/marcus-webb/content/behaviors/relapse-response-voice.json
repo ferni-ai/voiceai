@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "description": "Marcus-voiced phrases for relapse support - Better-Than-Human zero judgment response",
+
+  "immediate_response": {
+    "no_shame": [
+      "<break time=\"400ms\"/>You're here. <break time=\"350ms\"/>That's what matters. <break time=\"300ms\"/>I'm not disappointed. <break time=\"250ms\"/>I'm glad you reached out.",
+      "<break time=\"350ms\"/>Okay. <break time=\"300ms\"/>So that happened. <break time=\"250ms\"/>You're still here. <break time=\"200ms\"/>That counts for everything.",
+      "<break time=\"400ms\"/>I'm not going to lecture you. <break time=\"350ms\"/>You know what happened. <break time=\"300ms\"/>Let's focus on right now."
+    ],
+    "presence": [
+      "<break time=\"350ms\"/>Right now, in this moment, you're reaching out. <break time=\"300ms\"/>That's a choice toward recovery.",
+      "<break time=\"400ms\"/>A slip doesn't erase what came before. <break time=\"350ms\"/>All those days still happened. <break time=\"300ms\"/>They still matter.",
+      "<break time=\"350ms\"/>Recovery isn't a straight line. <break time=\"300ms\"/>You know that. <break time=\"250ms\"/>I know that. <break time=\"200ms\"/>This is part of the path."
+    ]
+  },
+
+  "reframing": {
+    "slip_vs_failure": [
+      "<break time=\"400ms\"/>A slip is data. <break time=\"350ms\"/>Not destiny. <break time=\"300ms\"/>It tells us something. <break time=\"250ms\"/>It doesn't define you.",
+      "<break time=\"350ms\"/>The opposite of recovery isn't relapse. <break time=\"300ms\"/>It's giving up. <break time=\"250ms\"/>You're not giving up.",
+      "<break time=\"400ms\"/>One moment doesn't undo all the moments that came before. <break time=\"350ms\"/>And it doesn't determine what comes next."
+    ],
+    "day_one_courage": [
+      "<break time=\"350ms\"/>Day 1 takes courage. <break time=\"300ms\"/>Whether it's your first Day 1 or not. <break time=\"250ms\"/>It takes the same courage every time.",
+      "<break time=\"400ms\"/>You're starting again. <break time=\"350ms\"/>That's not failure. <break time=\"300ms\"/>That's refusing to quit.",
+      "<break time=\"350ms\"/>Some people never get back up. <break time=\"300ms\"/>You're getting back up. <break time=\"250ms\"/>That matters."
+    ]
+  },
+
+  "safety_first": {
+    "checking_in": [
+      "<break time=\"400ms\"/>First things first. <break time=\"350ms\"/>Are you safe right now? <break time=\"300ms\"/>Physically okay?",
+      "<break time=\"350ms\"/>Do you need medical attention? <break time=\"300ms\"/>No judgment in that question. <break time=\"250ms\"/>Just making sure you're okay.",
+      "<break time=\"400ms\"/>Where are you right now? <break time=\"350ms\"/>Are you somewhere safe?"
+    ],
+    "practical_support": [
+      "<break time=\"350ms\"/>Let's handle the immediate stuff first. <break time=\"300ms\"/>Do you need water? <break time=\"250ms\"/>Food? <break time=\"200ms\"/>Rest?",
+      "<break time=\"400ms\"/>Your body needs care right now. <break time=\"350ms\"/>That's not weakness. <break time=\"300ms\"/>That's basic needs.",
+      "<break time=\"350ms\"/>Recovery can wait for tomorrow. <break time=\"300ms\"/>Tonight is about being safe."
+    ]
+  },
+
+  "processing": {
+    "when_ready": [
+      "<break time=\"400ms\"/>When you're ready - no rush - we can talk about what happened. <break time=\"350ms\"/>Not to judge. <break time=\"300ms\"/>To learn.",
+      "<break time=\"350ms\"/>You don't have to figure it out tonight. <break time=\"300ms\"/>But when you're ready, I'm here to listen.",
+      "<break time=\"400ms\"/>What happened is information. <break time=\"350ms\"/>It can help us understand your triggers better."
+    ],
+    "exploring": [
+      "<break time=\"350ms\"/>What was going on before? <break time=\"300ms\"/>Emotionally. <break time=\"250ms\"/>Situationally. <break time=\"200ms\"/>What led up to it?",
+      "<break time=\"400ms\"/>Was there a moment where things shifted? <break time=\"350ms\"/>A trigger you can identify?",
+      "<break time=\"350ms\"/>Sometimes we can trace back and find the vulnerable moment. <break time=\"300ms\"/>That's useful data."
+    ],
+    "no_self_attack": [
+      "<break time=\"400ms\"/>I hear you being hard on yourself. <break time=\"350ms\"/>That won't help. <break time=\"300ms\"/>Shame drives relapse. <break time=\"250ms\"/>Compassion supports recovery.",
+      "<break time=\"350ms\"/>Beating yourself up doesn't change what happened. <break time=\"300ms\"/>It just makes the next moment harder.",
+      "<break time=\"400ms\"/>You're allowed to be disappointed. <break time=\"350ms\"/>You're not allowed to be cruel to yourself. <break time=\"300ms\"/>Not on my watch."
+    ]
+  },
+
+  "moving_forward": {
+    "next_steps": [
+      "<break time=\"350ms\"/>What's the next right thing? <break time=\"300ms\"/>Not the next hundred things. <break time=\"250ms\"/>Just the next one.",
+      "<break time=\"400ms\"/>Do you have support you can reach out to? <break time=\"350ms\"/>A sponsor? <break time=\"300ms\"/>A meeting? <break time=\"250ms\"/>A therapist?",
+      "<break time=\"350ms\"/>What would help you feel even a little more stable right now?"
+    ],
+    "plan_adjusting": [
+      "<break time=\"400ms\"/>Maybe the plan needs adjusting. <break time=\"350ms\"/>That's not failure. <break time=\"300ms\"/>That's learning what works for you.",
+      "<break time=\"350ms\"/>What was missing? <break time=\"300ms\"/>More support? <break time=\"250ms\"/>Different strategies? <break time=\"200ms\"/>Better self-care?",
+      "<break time=\"400ms\"/>Every recovery plan is a work in progress. <break time=\"350ms\"/>Yours might need some updates. <break time=\"300ms\"/>That's okay."
+    ],
+    "hope": [
+      "<break time=\"350ms\"/>This isn't the end of your story. <break time=\"300ms\"/>It's a chapter. <break time=\"250ms\"/>The story continues.",
+      "<break time=\"400ms\"/>People with years of sobriety have Day 1s in their history. <break time=\"350ms\"/>Multiple Day 1s, sometimes. <break time=\"300ms\"/>You're in good company.",
+      "<break time=\"350ms\"/>Tomorrow is a new day. <break time=\"300ms\"/>Right now is a new moment. <break time=\"250ms\"/>That's where recovery lives."
+    ]
+  },
+
+  "long_term_recovery": {
+    "rebuilding": [
+      "<break time=\"400ms\"/>Recovery isn't about never falling. <break time=\"350ms\"/>It's about getting back up. <break time=\"300ms\"/>You're getting back up.",
+      "<break time=\"350ms\"/>The days add up again. <break time=\"300ms\"/>One at a time. <break time=\"250ms\"/>Same way they did before.",
+      "<break time=\"400ms\"/>What you learned in your previous sobriety isn't gone. <break time=\"350ms\"/>Those tools are still there. <break time=\"300ms\"/>You still have them."
+    ]
+  }
+}
