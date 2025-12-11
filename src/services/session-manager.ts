@@ -139,8 +139,10 @@ import { persistenceMetrics } from './persistence-metrics.js';
 const activeSessions = new Map<string, SessionServices>();
 
 // Initialize extracted modules with reference to active sessions
+// Cast needed: access module expects branded SessionId but we use string internally
 initializeCleanup(activeSessions);
-initializeAccess(activeSessions);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+initializeAccess(activeSessions as any);
 
 /**
  * Start periodic cleanup of orphaned sessions

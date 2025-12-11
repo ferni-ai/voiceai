@@ -35,7 +35,7 @@ let pulseAnimation: Animation | null = null;
 
 // Track connection state for external queries
 export function getConnectionState(): ConnectionState {
-  return currentState;
+  return currentState ?? 'disconnected';
 }
 
 // ============================================================================
@@ -136,7 +136,9 @@ function create(): void {
 // ============================================================================
 
 function setState(state: ConnectionState): void {
-  if (!indicator || currentState === state) return;
+  if (!indicator) return;
+  // Skip if already in this state (but allow first initialization when currentState is null)
+  if (currentState === state) return;
 
   const oldState = currentState;
   currentState = state;

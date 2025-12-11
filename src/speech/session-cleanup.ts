@@ -294,8 +294,8 @@ export function emergencySpeechCleanup(): void {
 
   // Import and call reset-all functions dynamically to avoid circular deps
   // Note: These functions clear ALL instances, not just specific sessions
-
-  // Core speech services
+  // Fire-and-forget pattern is intentional for emergency cleanup - promises are not awaited
+  /* eslint-disable @typescript-eslint/no-floating-promises */
   safeClearAll('audioProsody', () => {
     import('./audio-prosody.js').then((m) => {
       if ('resetAllAudioProsodyAnalyzers' in m) {
@@ -381,6 +381,7 @@ export function emergencySpeechCleanup(): void {
       m.clearAllContexts();
     });
   });
+  /* eslint-enable @typescript-eslint/no-floating-promises */
 
   // Clear session registry
   activeSessions.clear();
