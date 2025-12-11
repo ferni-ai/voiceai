@@ -10,12 +10,12 @@
  * @module scripts/seed-web-experiments
  */
 
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // Initialize Firebase
-if (admin.apps.length === 0) {
-  admin.initializeApp({ projectId: 'johnb-2025' });
+if (getApps().length === 0) {
+  initializeApp({ projectId: 'johnb-2025' });
 }
 
 const db = getFirestore();
