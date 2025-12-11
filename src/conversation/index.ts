@@ -312,22 +312,14 @@ export {
 // Session Intelligence Orchestrator - Real-time within-session intelligence
 // (For cross-session relationship features, see superhuman/ module)
 export {
-  // New names
   clearSessionIntelligence,
-  // Backwards compatibility (deprecated)
-  clearSuperhumanIntelligence,
   getSessionIntelligence,
-  getSuperhumanIntelligence,
   resetSessionIntelligence,
-  resetSuperhumanIntelligence,
   SessionIntelligenceOrchestrator,
-  SuperhumanIntelligenceOrchestrator,
   type ResponseGuidance,
   type ResponseModification,
   type SessionIntelligenceContext,
   type SessionIntelligenceInsight,
-  type SuperhumanContext,
-  type SuperhumanInsight,
 } from './session-intelligence.js';
 
 // ============================================================================

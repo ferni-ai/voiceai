@@ -167,13 +167,6 @@ export class ConversationHumanizer {
   }
 
   /**
-   * @deprecated Use getLastSessionInsight
-   */
-  getLastSuperhumanInsight(): SessionIntelligenceInsight | null {
-    return this.lastSessionInsight;
-  }
-
-  /**
    * Get the last Better Than Human insight (for external use)
    */
   getLastBetterThanHumanInsight(): BetterThanHumanInsight | null {

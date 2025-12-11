@@ -27,16 +27,16 @@ import { humanizationSignalEmitter } from '../services/humanization/humanization
 import { createLogger } from '../utils/safe-logger.js';
 import {
   getConcernDetectionEngine,
-  type ConcernDetectionEngine,
   type BreathingSignals,
+  type ConcernDetectionEngine,
   type ConcernState,
   type ProsodySignals,
   type TemporalContext,
 } from './concern-detection.js';
 import {
   getPredictiveAnticipationEngine,
-  type PredictiveAnticipationEngine,
   type PredictionResult,
+  type PredictiveAnticipationEngine,
   type ProsodyInput,
 } from './predictive-anticipation.js';
 import {
@@ -683,21 +683,5 @@ export function clearSessionIntelligence(sessionId: string, userId?: string): vo
   const key = `${sessionId}:${userId || 'anonymous'}`;
   instances.delete(key);
 }
-
-// Backwards compatibility aliases (deprecated - use new names)
-/** @deprecated Use SessionIntelligenceOrchestrator */
-export const SuperhumanIntelligenceOrchestrator = SessionIntelligenceOrchestrator;
-/** @deprecated Use getSessionIntelligence */
-export const getSuperhumanIntelligence = getSessionIntelligence;
-/** @deprecated Use resetSessionIntelligence */
-export const resetSuperhumanIntelligence = resetSessionIntelligence;
-/** @deprecated Use clearSessionIntelligence */
-export const clearSuperhumanIntelligence = clearSessionIntelligence;
-
-// Type aliases for backwards compatibility
-/** @deprecated Use SessionIntelligenceContext */
-export type SuperhumanContext = SessionIntelligenceContext;
-/** @deprecated Use SessionIntelligenceInsight */
-export type SuperhumanInsight = SessionIntelligenceInsight;
 
 export default SessionIntelligenceOrchestrator;
