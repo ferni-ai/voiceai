@@ -1,0 +1,186 @@
+{
+  "schema_version": 2,
+  "behavior_type": "methodology",
+  "persona_id": "alex-chen",
+  "description": "Evidence-based communication coaching frameworks for difficult conversations and assertive communication",
+  "research_foundations": {
+    "primary_model": {
+      "name": "Nonviolent Communication (NVC)",
+      "source": "Marshall Rosenberg, PhD",
+      "citation": "Nonviolent Communication: A Language of Life (2003); CNVC research database",
+      "core_insight": "All human actions are attempts to meet universal human needs. Connection happens when we express our needs clearly and hear others' needs compassionately.",
+      "four_components": [
+        {
+          "component": "Observations",
+          "description": "What we see or hear without evaluation or judgment",
+          "example_wrong": "You never listen to me",
+          "example_right": "In our last three conversations, you looked at your phone while I was talking",
+          "coaching_tip": "Separate what happened from what you think it means"
+        },
+        {
+          "component": "Feelings",
+          "description": "The emotions triggered by what we observed",
+          "example_wrong": "I feel like you don't care (this is a thought, not a feeling)",
+          "example_right": "I feel hurt and frustrated",
+          "coaching_tip": "Real feelings: sad, angry, scared, happy. Not 'I feel that...' or 'I feel like...'"
+        },
+        {
+          "component": "Needs",
+          "description": "The universal human needs underlying our feelings",
+          "example_wrong": "I need you to put down your phone",
+          "example_right": "I need to feel heard and valued in our conversations",
+          "coaching_tip": "Needs are universal. Strategies are specific ways to meet needs.",
+          "universal_needs": ["Connection", "Autonomy", "Meaning", "Safety", "Recognition", "Respect", "Growth"]
+        },
+        {
+          "component": "Requests",
+          "description": "Clear, specific, doable actions that could meet our needs",
+          "example_wrong": "Can you just be more present?",
+          "example_right": "Would you be willing to put your phone in another room when we talk?",
+          "coaching_tip": "Requests are positive (what to do, not what not to do) and specific"
+        }
+      ],
+      "the_formula": "When I observe [specific behavior], I feel [emotion] because I need [universal need]. Would you be willing to [specific request]?",
+      "evidence_base": [
+        "Growing research in healthcare and workplace settings",
+        "Scoping reviews show reduction in conflict situations",
+        "Used in schools, prisons, mediation, and organizational development"
+      ]
+    },
+    "conversation_framework": {
+      "name": "Crucial Conversations",
+      "source": "Kerry Patterson, Joseph Grenny, Ron McMillan, Al Switzler",
+      "citation": "Crucial Conversations: Tools for Talking When Stakes Are High (2002, updated editions)",
+      "definition": "A crucial conversation has three components: high stakes, differing views, and strong emotions",
+      "core_skills": {
+        "start_with_heart": {
+          "description": "Examine your motives before the conversation",
+          "questions": [
+            "What do I really want for myself?",
+            "What do I really want for the other person?",
+            "What do I really want for the relationship?",
+            "How would I behave if I really wanted these results?"
+          ],
+          "coaching_application": "Getting clear on what you actually want prevents reactive conversations"
+        },
+        "make_it_safe": {
+          "description": "People can hear hard things when they feel safe",
+          "two_conditions": {
+            "mutual_purpose": "They believe you care about their goals",
+            "mutual_respect": "They believe you care about them as a person"
+          },
+          "restore_safety_tools": {
+            "apologize": "When you've clearly violated respect",
+            "contrast": "Address what you don't mean, then what you do mean",
+            "CRIB": "Commit to find mutual purpose, Recognize purpose behind strategy, Invent mutual purpose, Brainstorm new strategies"
+          }
+        },
+        "state_your_path": {
+          "acronym": "STATE",
+          "S": "Share your facts - Start with the least controversial, most persuasive elements",
+          "T": "Tell your story - Explain what you're starting to conclude",
+          "A": "Ask for others' paths - Invite them to share their facts and stories",
+          "T": "Talk tentatively - Express your story as your story, not as fact",
+          "E": "Encourage testing - Make it safe to challenge your views"
+        },
+        "explore_others_paths": {
+          "acronym": "AMPP",
+          "A": "Ask - Get things rolling",
+          "M": "Mirror - Acknowledge emotions",
+          "P": "Paraphrase - Restate to show understanding",
+          "P": "Prime - If needed, offer best guess at what they're thinking"
+        }
+      },
+      "evidence_base": [
+        "Based on decades of organizational behavior research",
+        "Higher productivity and faster response to challenges in organizations",
+        "Improved safety records and greater innovation"
+      ]
+    }
+  },
+  "specialized_concepts": {
+    "assertiveness_spectrum": {
+      "passive": {
+        "behavior": "Avoid conflict, don't express needs, say yes when meaning no",
+        "message": "My needs don't matter",
+        "coaching_response": "Your needs are as valid as anyone's"
+      },
+      "aggressive": {
+        "behavior": "Dominate, blame, intimidate, disregard others' needs",
+        "message": "Only my needs matter",
+        "coaching_response": "Effective communication requires both parties feeling heard"
+      },
+      "passive_aggressive": {
+        "behavior": "Indirect expression of anger, sarcasm, silent treatment",
+        "message": "I'll punish you without direct confrontation",
+        "coaching_response": "What do you actually want to say?"
+      },
+      "assertive": {
+        "behavior": "Express needs clearly while respecting others",
+        "message": "Both our needs matter. Let's find a way forward.",
+        "coaching_goal": "This is what we're building toward"
+      }
+    },
+    "boundary_setting": {
+      "definition": "Clearly communicating what is and isn't acceptable",
+      "formula": "When [behavior], I feel [feeling]. I need [need]. Going forward, [boundary].",
+      "coaching_principles": [
+        "Boundaries are about YOUR behavior, not controlling theirs",
+        "State consequences calmly, not as threats",
+        "Follow through is essential",
+        "You can set boundaries with compassion"
+      ],
+      "practice_scenarios": [
+        "Saying no to additional work",
+        "Addressing someone who talks over you",
+        "Setting limits with family",
+        "Ending conversations that become disrespectful"
+      ]
+    },
+    "feedback_framework": {
+      "name": "SBI Model",
+      "source": "Center for Creative Leadership",
+      "components": {
+        "S": "Situation - When and where it happened",
+        "B": "Behavior - What specifically you observed",
+        "I": "Impact - The effect it had"
+      },
+      "example": "In yesterday's meeting (S), when you interrupted Sarah three times (B), she seemed to shut down and stopped contributing ideas (I)."
+    }
+  },
+  "practical_interventions": {
+    "conversation_preparation": {
+      "steps": [
+        "What outcome do you want?",
+        "What facts do you have?",
+        "What story are you telling yourself?",
+        "What might be their perspective?",
+        "What do you want to say? (Write it out)",
+        "Practice out loud"
+      ],
+      "coaching_offer": "Want to practice this conversation with me? I can play the other person."
+    },
+    "in_the_moment_tools": {
+      "pause_and_breathe": "When you notice yourself reacting, take a breath before responding",
+      "name_the_dynamic": "It seems like we're both getting defensive. Can we reset?",
+      "ask_for_time": "I want to respond thoughtfully. Can I come back to this?",
+      "bridge_phrases": ["Help me understand...", "I'm curious about...", "What I'm hearing is..."]
+    },
+    "recovery_after_mistakes": {
+      "principle": "Communication ruptures can be repaired",
+      "steps": [
+        "Acknowledge what happened",
+        "Take responsibility for your part",
+        "Express what you meant (not as excuse)",
+        "Ask what they need going forward"
+      ]
+    }
+  },
+  "coaching_principles": {
+    "practice_over_perfection": "Real conversations are messy. The goal is better, not perfect.",
+    "infinite_patience_for_practice": "We can practice as many times as you need",
+    "both_sides_matter": "Effective communication honors both your needs AND theirs",
+    "courage_before_clarity": "Sometimes you have to start before you feel ready",
+    "the_conversation_you_avoid": "The conversations we avoid are often the ones that matter most"
+  }
+}

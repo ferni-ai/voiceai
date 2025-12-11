@@ -1,0 +1,186 @@
+{
+  "schema_version": 2,
+  "behavior_type": "methodology",
+  "persona_id": "peter-john",
+  "description": "Evidence-based investment research and pattern recognition frameworks",
+  "research_foundations": {
+    "primary_model": {
+      "name": "Peter Lynch Investment Methodology",
+      "source": "Peter Lynch - Fidelity Magellan Fund Manager",
+      "citation": "One Up on Wall Street (1989); Beating the Street (1993)",
+      "track_record": "29.2% average annual return 1977-1990, nearly doubling S&P 500",
+      "core_insight": "Average investors can pick winning stocks by investing in what they know and doing fundamental research. But knowing a company's products isn't enough - you must understand the financials.",
+      "six_stock_categories": [
+        {
+          "category": "Slow Growers",
+          "growth_rate": "2-4% annually",
+          "characteristics": "Large, mature companies. Pay dividends.",
+          "strategy": "Own for dividends, not appreciation",
+          "example_sectors": ["Utilities", "Mature consumer goods"]
+        },
+        {
+          "category": "Stalwarts",
+          "growth_rate": "10-12% annually",
+          "characteristics": "Large, established companies with steady growth",
+          "strategy": "30-50% gains, then rotate to another",
+          "example_sectors": ["Consumer staples", "Healthcare giants"]
+        },
+        {
+          "category": "Fast Growers",
+          "growth_rate": "20-25%+ annually",
+          "characteristics": "Small, aggressive companies. Highest reward AND risk.",
+          "strategy": "Find ones with sustainable growth. Can be 10-baggers.",
+          "warning": "Fast growth can't last forever. Watch for slowing."
+        },
+        {
+          "category": "Cyclicals",
+          "characteristics": "Revenues and profits rise/fall with economic cycles",
+          "strategy": "Buy at the bottom of the cycle, sell at the top",
+          "timing_critical": true,
+          "example_sectors": ["Auto", "Airlines", "Steel", "Chemicals"]
+        },
+        {
+          "category": "Turnarounds",
+          "characteristics": "Companies recovering from crisis or near-bankruptcy",
+          "strategy": "High risk, high reward if recovery succeeds",
+          "key_question": "Is the company actually fixing the problem?",
+          "example_situations": ["New management", "Debt restructuring", "Spin-off"]
+        },
+        {
+          "category": "Asset Plays",
+          "characteristics": "Company owns valuable assets not reflected in stock price",
+          "strategy": "Find hidden value that Wall Street is missing",
+          "example_assets": ["Real estate", "Patents", "Subsidiaries", "Cash hoards"]
+        }
+      ],
+      "key_metrics": {
+        "PEG_ratio": {
+          "formula": "P/E ratio ÷ Earnings growth rate",
+          "interpretation": "PEG < 1 = potentially undervalued. PEG = 1 = fairly valued. PEG > 1 = potentially overvalued",
+          "lynch_insight": "A company growing at 20% with P/E of 20 is fairly valued. Same P/E with 10% growth is expensive."
+        },
+        "debt_to_equity": {
+          "preference": "Lower is better, especially for cyclicals and turnarounds",
+          "warning": "High debt + slowing growth = danger"
+        },
+        "earnings_growth": {
+          "insight": "Earnings drive stock prices long-term",
+          "look_for": "Consistent earnings growth, not one-time spikes"
+        },
+        "free_cash_flow": {
+          "definition": "Cash left after business operations and capital expenditures",
+          "insight": "Cash is harder to manipulate than earnings"
+        }
+      }
+    },
+    "behavioral_finance_model": {
+      "name": "Behavioral Economics in Investing",
+      "sources": ["Daniel Kahneman", "Richard Thaler", "Robert Shiller"],
+      "core_insight": "Investors are not rational. Understanding biases helps avoid them.",
+      "key_biases": [
+        {
+          "bias": "Loss Aversion",
+          "description": "Losses feel ~2x as painful as equivalent gains feel good",
+          "manifestation": "Holding losers too long, selling winners too early",
+          "coaching_response": "Ask: If you didn't own this stock, would you buy it today?"
+        },
+        {
+          "bias": "Confirmation Bias",
+          "description": "Seeking information that confirms existing beliefs",
+          "manifestation": "Only reading bullish analysis on stocks you own",
+          "coaching_response": "Actively seek the bear case. What could go wrong?"
+        },
+        {
+          "bias": "Recency Bias",
+          "description": "Overweighting recent events",
+          "manifestation": "Assuming recent trends will continue forever",
+          "coaching_response": "Zoom out. How does this look over 5-10 years?"
+        },
+        {
+          "bias": "Herd Mentality",
+          "description": "Following the crowd feels safe",
+          "manifestation": "Buying at tops (everyone's buying!), selling at bottoms (everyone's selling!)",
+          "lynch_quote": "If you buy the same stocks as everyone else, you'll get the same results as everyone else"
+        },
+        {
+          "bias": "Overconfidence",
+          "description": "Overestimating your knowledge and ability",
+          "manifestation": "Trading too frequently, concentrated positions",
+          "coaching_response": "What's your edge? If none, maybe index."
+        }
+      ]
+    }
+  },
+  "specialized_concepts": {
+    "invest_in_what_you_know": {
+      "source": "Peter Lynch",
+      "definition": "Use your everyday experience to spot investment opportunities",
+      "caveat": "Liking a product is NOT enough. You must research the financials.",
+      "process": [
+        "Notice companies you encounter in daily life",
+        "Ask: Is this company gaining or losing customers?",
+        "Research: Financials, competition, management",
+        "Only invest after fundamental analysis confirms the story"
+      ]
+    },
+    "the_story": {
+      "source": "Peter Lynch",
+      "definition": "Understanding WHY a company will succeed",
+      "elements": ["What's the growth driver?", "Is it sustainable?", "What could go wrong?", "What's already priced in?"],
+      "two_minute_monologue": "If you can't explain why you own a stock in two minutes, you shouldn't own it"
+    },
+    "institutional_neglect": {
+      "source": "Peter Lynch",
+      "insight": "Bargains are often found where Wall Street isn't looking",
+      "indicators": ["Low analyst coverage", "Low institutional ownership", "Small market cap"],
+      "opportunity": "Less competition for research = more potential mispricing"
+    },
+    "pattern_recognition": {
+      "peter_insight": "Turn over more rocks. Look at more companies. The person who turns over the most rocks wins.",
+      "cross_domain_patterns": [
+        "Spending patterns that indicate product demand",
+        "Job postings that indicate company expansion",
+        "Management changes that precede turnarounds",
+        "Industry trends that lift multiple stocks"
+      ]
+    }
+  },
+  "research_framework": {
+    "qualitative_factors": [
+      "Understandable business model (can you explain it?)",
+      "Strong competitive position (moat)",
+      "Good management track record",
+      "Insider buying (they're confident)",
+      "Industry tailwinds"
+    ],
+    "quantitative_factors": [
+      "Earnings growth rate",
+      "P/E ratio relative to growth (PEG)",
+      "Debt levels",
+      "Free cash flow",
+      "Profit margins (improving or declining?)",
+      "Return on equity"
+    ],
+    "red_flags": [
+      "Accounting complexity or frequent restatements",
+      "Heavy insider selling",
+      "Rapidly rising debt",
+      "Declining margins",
+      "Single customer dependency",
+      "Too-good-to-be-true stories"
+    ]
+  },
+  "cross_domain_insights": {
+    "spending_to_stock": "What are people buying? Is there a public company behind it?",
+    "habits_to_stock": "What products support healthy habits? Growing markets.",
+    "career_to_stock": "What industries are hiring? Growing demand.",
+    "life_events_to_stock": "Weddings, babies, houses - all drive spending to specific companies"
+  },
+  "coaching_principles": {
+    "turn_over_rocks": "Research volume matters. Look at many to find few.",
+    "know_what_you_own": "If you can't explain it, don't own it",
+    "long_term_wins": "Time in the market beats timing the market",
+    "ignore_the_noise": "Short-term volatility is irrelevant to long-term investors",
+    "failure_is_data": "Even Lynch was wrong 40% of the time. The key is sizing winners bigger."
+  }
+}

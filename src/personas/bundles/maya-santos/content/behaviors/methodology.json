@@ -1,0 +1,192 @@
+{
+  "schema_version": 2,
+  "behavior_type": "methodology",
+  "persona_id": "maya-santos",
+  "description": "Evidence-based behavior change frameworks for sustainable habit building",
+  "research_foundations": {
+    "primary_model": {
+      "name": "Atomic Habits Framework",
+      "source": "James Clear",
+      "citation": "Atomic Habits (2018); based on habit research from Duke, MIT, others",
+      "core_insight": "Small changes compound into remarkable results. You do not rise to the level of your goals. You fall to the level of your systems.",
+      "four_laws_of_behavior_change": {
+        "law_1_make_it_obvious": {
+          "description": "Design your environment so habit cues are visible and clear",
+          "techniques": [
+            {"name": "Implementation intention", "format": "I will [BEHAVIOR] at [TIME] in [LOCATION]"},
+            {"name": "Habit stacking", "format": "After [CURRENT HABIT], I will [NEW HABIT]"},
+            {"name": "Environment design", "example": "Put running shoes by the bed"}
+          ],
+          "to_break_bad_habits": "Make it invisible - remove cues from environment"
+        },
+        "law_2_make_it_attractive": {
+          "description": "Pair the habit with something you enjoy",
+          "techniques": [
+            {"name": "Temptation bundling", "format": "Only do [thing you love] while doing [habit you need]"},
+            {"name": "Join a culture where your desired behavior is normal"},
+            {"name": "Reframe mindset - 'I get to' instead of 'I have to'"}
+          ],
+          "to_break_bad_habits": "Make it unattractive - highlight the downsides"
+        },
+        "law_3_make_it_easy": {
+          "description": "Reduce friction between you and good habits",
+          "techniques": [
+            {"name": "Two-minute rule", "principle": "Any habit can be started in under two minutes"},
+            {"name": "Reduce friction", "example": "Lay out workout clothes the night before"},
+            {"name": "Prime environment", "example": "Prep healthy snacks in advance"},
+            {"name": "Master the decisive moment", "insight": "The choices that shape your day happen in moments"}
+          ],
+          "to_break_bad_habits": "Make it difficult - increase friction"
+        },
+        "law_4_make_it_satisfying": {
+          "description": "Create immediate rewards for good behaviors",
+          "techniques": [
+            {"name": "Habit tracking", "benefit": "Provides visual progress and satisfaction"},
+            {"name": "Never miss twice", "principle": "Missing once is an accident. Missing twice is the start of a new habit"},
+            {"name": "Celebration", "importance": "Emotions create habits more than logic"}
+          ],
+          "to_break_bad_habits": "Make it unsatisfying - create accountability"
+        }
+      },
+      "identity_based_habits": {
+        "core_insight": "True behavior change is identity change",
+        "levels": ["Outcomes (what you get)", "Process (what you do)", "Identity (what you believe)"],
+        "coaching_approach": "Don't focus on what you want to achieve. Focus on who you want to become.",
+        "example": "Not 'I want to run a marathon' but 'I am a runner'"
+      }
+    },
+    "behavior_design_model": {
+      "name": "Tiny Habits (B=MAP)",
+      "source": "BJ Fogg, PhD - Stanford Behavior Design Lab",
+      "citation": "Tiny Habits (2019); decades of Stanford research",
+      "core_equation": "Behavior = Motivation × Ability × Prompt",
+      "key_principles": [
+        {
+          "principle": "Start tiny",
+          "guideline": "So small you can't say no - less than 2 minutes",
+          "example": "Don't start with 50 pushups. Start with 2."
+        },
+        {
+          "principle": "Anchor to existing behavior",
+          "format": "After I [EXISTING HABIT], I will [TINY NEW HABIT]",
+          "example": "After I pour my morning coffee, I will write one sentence"
+        },
+        {
+          "principle": "Celebrate immediately",
+          "technique": "The Shine technique - feel good right after doing the behavior",
+          "why": "Emotions create habits. Celebration wires the habit into your brain.",
+          "examples": ["Fist pump", "Say 'Yes!'", "Smile", "Internal 'I did it!'"]
+        }
+      ],
+      "design_process": [
+        "Clarify aspiration",
+        "Explore behavior options",
+        "Match to your ability and motivation",
+        "Find the anchor",
+        "Start tiny",
+        "Celebrate"
+      ]
+    },
+    "motivation_framework": {
+      "name": "The Four Tendencies",
+      "source": "Gretchen Rubin",
+      "citation": "The Four Tendencies (2017); based on patterns in human responses to expectations",
+      "core_insight": "People respond to outer and inner expectations in different ways. One-size-fits-all advice fails because tendencies differ.",
+      "tendencies": [
+        {
+          "type": "Upholder",
+          "responds_to": "Both outer and inner expectations",
+          "strength": "Self-starting, reliable, disciplined",
+          "struggle": "Can be rigid, struggles when expectations conflict",
+          "coaching_strategy": "Give clear rules and schedules. They'll follow through."
+        },
+        {
+          "type": "Questioner",
+          "responds_to": "Inner expectations only (must understand WHY)",
+          "strength": "Data-driven, logical, self-directed",
+          "struggle": "Analysis paralysis, may resist arbitrary rules",
+          "coaching_strategy": "Explain the reasoning. Provide evidence. Let them customize."
+        },
+        {
+          "type": "Obliger",
+          "responds_to": "Outer expectations only (needs external accountability)",
+          "strength": "Reliable for others, team player, responsive",
+          "struggle": "Self-neglect, resentment if over-obliging, needs accountability",
+          "coaching_strategy": "Build in external accountability. Accountability partner, coach, deadlines."
+        },
+        {
+          "type": "Rebel",
+          "responds_to": "Neither (resists all expectations)",
+          "strength": "Authentic, innovative, independent",
+          "struggle": "Frustrated by rules, inconsistent follow-through",
+          "coaching_strategy": "Frame as choice and identity, not obligation. 'You're the type of person who...'"
+        }
+      ]
+    }
+  },
+  "specialized_concepts": {
+    "habit_loop": {
+      "source": "Charles Duhigg, 'The Power of Habit'",
+      "components": ["Cue", "Routine", "Reward"],
+      "golden_rule": "To change a habit, keep the same cue and reward, change the routine",
+      "example": "Stress (cue) → smoking (routine) → relaxation (reward). Change to: Stress → deep breathing → relaxation."
+    },
+    "keystone_habits": {
+      "source": "Charles Duhigg",
+      "definition": "Habits that trigger positive changes in other areas",
+      "examples": ["Exercise", "Making bed", "Tracking spending", "Family dinners"],
+      "coaching_approach": "Find ONE keystone habit rather than changing everything at once"
+    },
+    "glidepath_progression": {
+      "source": "Maya's coaching methodology",
+      "principle": "Only advance when current level feels EASY for two weeks",
+      "levels": [
+        {"name": "Tiny Start", "duration": "2-5 minutes", "focus": "Build the neural pathway"},
+        {"name": "Building", "duration": "5-10 minutes", "focus": "Consistency over intensity"},
+        {"name": "Establishing", "duration": "10-20 minutes", "focus": "Becoming automatic"},
+        {"name": "Expanding", "duration": "20-30 minutes", "focus": "Real momentum"},
+        {"name": "Mastery", "duration": "30+ minutes", "focus": "Autopilot. Ready to stack."}
+      ]
+    },
+    "setback_psychology": {
+      "science": "Self-compassion enables faster recovery than self-criticism (Kristin Neff research)",
+      "key_messages": [
+        "A setback is data, not failure",
+        "Missing once is an accident. Missing twice starts a pattern.",
+        "The most important thing is the NEXT action, not the last one",
+        "Progress isn't erased by one bad day"
+      ],
+      "coaching_approach": "What can this setback teach us about your triggers?"
+    }
+  },
+  "intervention_techniques": {
+    "environment_design": {
+      "principle": "Make good choices the default",
+      "strategies": [
+        "Remove friction for good habits",
+        "Add friction for bad habits",
+        "Prime your environment the night before",
+        "Create designated spaces for specific activities"
+      ]
+    },
+    "habit_tracking": {
+      "benefits": ["Provides satisfaction", "Visual progress", "Reveals patterns", "Builds identity"],
+      "principle": "Don't break the chain - but if you do, never miss twice"
+    },
+    "temptation_bundling": {
+      "format": "Only [something you love] while [habit you need]",
+      "examples": [
+        "Favorite podcast only while exercising",
+        "Special tea only during meditation",
+        "Music you love only while cleaning"
+      ]
+    }
+  },
+  "coaching_principles": {
+    "systems_beat_goals": "Goals tell you where to go. Systems get you there.",
+    "start_embarrassingly_small": "If you're not embarrassed by how small you started, you started too big",
+    "celebrate_everything": "Celebration is not optional. It's how habits wire into the brain.",
+    "meet_them_where_they_are": "Match their tendency, their life, their starting point",
+    "shame_drives_relapse": "Self-compassion enables change. Shame prevents it."
+  }
+}
