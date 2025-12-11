@@ -4,7 +4,7 @@
  * Unified cleanup function for all speech-related session state.
  * Call this when a voice session ends to prevent memory leaks.
  *
- * This consolidates cleanup across ALL 27+ session-scoped services:
+ * This consolidates cleanup across ALL 30+ session-scoped services:
  * - Audio prosody analyzers
  * - WPM trackers
  * - Backchanneling systems
@@ -29,6 +29,9 @@
  * - Realtime preemptive processor
  * - Cartesia context
  * - Session voice manager
+ * - Conversation momentum tracker
+ * - Mid-response tangent state
+ * - Self-awareness feedback loop
  */
 
 import { getLogger } from '../utils/safe-logger.js';
@@ -77,6 +80,11 @@ import { resetSessionCatchphraseTracker } from './response-naturalness.js';
 
 // Unified backchanneling
 import { resetBackchanneling } from './backchanneling/index.js';
+
+// Conversation awareness trackers
+import { resetTangentState } from '../conversation/mid-response-tangents.js';
+import { resetMomentumTracker } from '../conversation/momentum-tracker.js';
+import { resetSelfAwarenessTracker } from '../conversation/self-awareness-loop.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -217,6 +225,14 @@ export function cleanupSpeechSession(
   safeCleanup('enhancedBackchanneling', () => resetEnhancedBackchannelingEngine(sessionId));
   safeCleanup('catchphraseTracker', () => resetSessionCatchphraseTracker(sessionId));
 
+  // ============================================================================
+  // CONVERSATION AWARENESS TRACKERS
+  // ============================================================================
+
+  safeCleanup('momentumTracker', () => resetMomentumTracker(sessionId));
+  safeCleanup('tangentState', () => resetTangentState(sessionId));
+  safeCleanup('selfAwareness', () => resetSelfAwarenessTracker(sessionId));
+
   // Remove from active sessions
   activeSessions.delete(sessionId);
 
@@ -255,19 +271,127 @@ export function cleanupAllSpeechSessions(reason: 'shutdown' | 'test' = 'shutdown
 }
 
 /**
- * Emergency cleanup - clears all state without session tracking.
+ * Emergency cleanup - clears ALL state from ALL services.
  * Use only for emergency recovery or testing.
+ *
+ * This properly clears all internal Maps to prevent memory leaks.
  */
 export function emergencySpeechCleanup(): void {
-  log.warn('⚠️ Emergency speech cleanup initiated');
+  log.warn('⚠️ Emergency speech cleanup initiated - clearing all service state');
+
+  const clearResults: Record<string, boolean> = {};
+
+  // Helper to safely run clear-all with error handling
+  const safeClearAll = (name: string, fn: () => void): void => {
+    try {
+      fn();
+      clearResults[name] = true;
+    } catch (error) {
+      clearResults[name] = false;
+      log.error({ error: String(error) }, `Failed to clear ${name}`);
+    }
+  };
+
+  // Import and call reset-all functions dynamically to avoid circular deps
+  // Note: These functions clear ALL instances, not just specific sessions
+
+  // Core speech services
+  safeClearAll('audioProsody', () => {
+    import('./audio-prosody.js').then((m) => {
+      if ('resetAllAudioProsodyAnalyzers' in m) {
+        (m as { resetAllAudioProsodyAnalyzers: () => void }).resetAllAudioProsodyAnalyzers();
+      }
+    });
+  });
+
+  safeClearAll('humanListening', () => {
+    import('./human-listening-pipeline.js').then((m) => {
+      m.resetAllHumanListeningPipelines();
+    });
+  });
+
+  safeClearAll('voiceHumanization', () => {
+    import('./voice-humanization.js').then((m) => {
+      m.resetAllVoiceHumanization();
+    });
+  });
+
+  safeClearAll('emotionalContagion', () => {
+    import('./emotional-contagion.js').then((m) => {
+      m.resetAllEmotionalContagion();
+    });
+  });
+
+  safeClearAll('voiceTremor', () => {
+    import('./voice-tremor.js').then((m) => {
+      m.resetAllVoiceTremorDetectors();
+    });
+  });
+
+  safeClearAll('volumeDynamics', () => {
+    import('./volume-dynamics.js').then((m) => {
+      m.resetAllVolumeDynamicsTrackers();
+    });
+  });
+
+  safeClearAll('energyDynamics', () => {
+    import('./energy-dynamics.js').then((m) => {
+      m.resetAllEnergyDynamicsTrackers();
+    });
+  });
+
+  safeClearAll('fluencyAnalyzer', () => {
+    import('./fluency-analysis.js').then((m) => {
+      m.resetAllFluencyAnalyzers();
+    });
+  });
+
+  safeClearAll('fillerAnalyzer', () => {
+    import('./filler-analysis.js').then((m) => {
+      m.resetAllFillerAnalyzers();
+    });
+  });
+
+  safeClearAll('breathDetector', () => {
+    import('./breath-detection.js').then((m) => {
+      m.resetAllBreathDetectors();
+    });
+  });
+
+  safeClearAll('voiceManager', () => {
+    import('./voice-manager.js').then((m) => {
+      m.resetAllSessionVoiceManagers();
+    });
+  });
+
+  safeClearAll('backchanneling', () => {
+    import('./backchanneling/index.js').then((m) => {
+      m.resetAllBackchanneling();
+    });
+  });
+
+  safeClearAll('catchphraseTracker', () => {
+    import('./response-naturalness.js').then((m) => {
+      m.resetAllCatchphraseTrackers();
+    });
+  });
+
+  safeClearAll('cartesiaContexts', () => {
+    import('./cartesia-context-patch.js').then((m) => {
+      m.clearAllContexts();
+    });
+  });
 
   // Clear session registry
   activeSessions.clear();
 
-  // Note: This doesn't clean individual sessions, but clears the tracking.
-  // Individual service Maps will need their own clear-all functions if needed.
+  const successCount = Object.values(clearResults).filter(Boolean).length;
+  const totalCount = Object.keys(clearResults).length;
 
-  log.warn('⚠️ Emergency speech cleanup complete - session tracking cleared');
+  log.warn(
+    { successCount, totalCount },
+    `⚠️ Emergency speech cleanup complete (${successCount}/${totalCount} services cleared)`
+  );
 }
 
 // ============================================================================

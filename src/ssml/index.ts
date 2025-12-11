@@ -36,6 +36,9 @@ export {
   sanitizeSsml,
 } from './core.js';
 
+// Re-export thinking time types for consumers
+export type { ThinkingContext, ThinkingInjection } from '../conversation/thinking-time-injector.js';
+
 // Regex cache for performance optimization
 const regexCacheMap = new Map<string, RegExp>();
 

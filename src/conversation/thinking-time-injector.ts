@@ -104,8 +104,44 @@ const FERNI_THINKING_SOUNDS: ThinkingSoundProfile = {
   soundProbability: 0.45, // Ferni is more contemplative
 };
 
+// Maya Santos - Warm, encouraging, action-oriented
+const MAYA_THINKING_SOUNDS: ThinkingSoundProfile = {
+  consideration: ['Hmm.', "Let's think about this.", 'Okay, so.', "That's interesting."],
+  emotional: ['I hear you.', 'Yeah.', "That's real.", 'I get that.'],
+  processing: ['So.', 'Okay.', 'Right.', 'Alright then.'],
+  acknowledgment: ['Love that.', 'Got it.', 'Makes sense.', 'I see.'],
+  soundProbability: 0.35, // Maya is more action-oriented
+};
+
+// Alex Chen - Efficient, professional, dry wit
+const ALEX_THINKING_SOUNDS: ThinkingSoundProfile = {
+  consideration: ['Hmm.', 'Let me think.', 'Okay.', 'Interesting.'],
+  emotional: ['I hear you.', 'Yeah.', 'Got it.', 'Understood.'],
+  processing: ['Right.', 'So.', 'Okay.', 'Alright.'],
+  acknowledgment: ['Got it.', 'I see.', 'Makes sense.', 'Understood.'],
+  soundProbability: 0.25, // Alex is more efficient, fewer fillers
+};
+
+// Peter John - Analytical, thoughtful, research-focused
+const PETER_THINKING_SOUNDS: ThinkingSoundProfile = {
+  consideration: [
+    'Hmm.',
+    "That's an interesting question.",
+    'Let me think about that.',
+    'Fascinating.',
+    "There's something here.",
+  ],
+  emotional: ['I see.', 'Yeah.', 'I get that.', 'Understandable.'],
+  processing: ['So.', 'Right.', "Let's see.", 'Now.'],
+  acknowledgment: ['Interesting.', 'I see.', 'Got it.', 'Makes sense.'],
+  soundProbability: 0.4, // Peter is contemplative about analysis
+};
+
 const THINKING_SOUND_PROFILES: Record<string, ThinkingSoundProfile> = {
   ferni: FERNI_THINKING_SOUNDS,
+  'maya-santos': MAYA_THINKING_SOUNDS,
+  'alex-chen': ALEX_THINKING_SOUNDS,
+  'peter-john': PETER_THINKING_SOUNDS,
 };
 
 // ============================================================================

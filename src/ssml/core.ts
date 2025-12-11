@@ -11,6 +11,12 @@ import {
   type BreathGroupConfig,
   type FillerConfig,
 } from '../speech/advanced-humanization.js';
+import {
+  calculateThinkingTime,
+  applyThinkingTimeSSML,
+  type ThinkingContext,
+  type ThinkingInjection,
+} from '../conversation/thinking-time-injector.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
@@ -491,6 +497,20 @@ interface SsmlTagOptions {
 
   /** Breath group config */
   breathConfig?: BreathGroupConfig;
+
+  // ============================================================================
+  // THINKING TIME OPTIONS (awareness-based contextual pauses)
+  // See src/conversation/thinking-time-injector.ts
+  // ============================================================================
+
+  /** Enable thinking time injection - default: false (must provide context) */
+  thinkingTime?: boolean;
+
+  /** Context for thinking time calculation (required if thinkingTime is true) */
+  thinkingContext?: ThinkingContext;
+
+  /** Pre-calculated thinking injection (if already computed by awareness system) */
+  thinkingInjection?: ThinkingInjection;
 }
 
 /**
@@ -519,6 +539,9 @@ export function tagTextWithSsmlPersonaAware(
     breathGroupPacing = true, // Enabled by default
     fillerConfig,
     breathConfig,
+    thinkingTime = false,
+    thinkingContext,
+    thinkingInjection: providedThinkingInjection,
   } = options;
 
   if (!text || text.trim().length === 0) {
@@ -576,6 +599,23 @@ export function tagTextWithSsmlPersonaAware(
 
   if (hasLaughter || (emotion === 'affectionate' && (laughterCount ?? 0) > 0)) {
     tagged += '<break time="200ms"/>';
+  }
+
+  // ============================================================================
+  // THINKING TIME - Awareness-based contextual pauses
+  // See src/conversation/thinking-time-injector.ts
+  // ============================================================================
+
+  // Apply thinking time pauses/sounds if enabled
+  if (thinkingTime && (providedThinkingInjection || thinkingContext)) {
+    // Use provided injection or calculate from context
+    const injection =
+      providedThinkingInjection ||
+      (thinkingContext ? calculateThinkingTime(thinkingContext) : null);
+
+    if (injection) {
+      processedText = applyThinkingTimeSSML(processedText, injection);
+    }
   }
 
   // ============================================================================

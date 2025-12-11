@@ -155,8 +155,114 @@ const FERNI_PROFILE: MomentumProfile = {
   },
 };
 
+// Maya's momentum profile - encouraging, action-oriented, celebrates progress
+const MAYA_PROFILE: MomentumProfile = {
+  energyMatchSpeed: 0.7, // Quick to match enthusiasm
+  stallThreshold: 3, // More proactive about re-engagement
+  topicContinuityWeight: 0.5, // Balance between depth and progress
+  emotionalWeight: 0.6, // Tuned into emotions
+  cues: {
+    building: [
+      "You're building something here.",
+      'Keep that momentum!',
+      "Let's explore this.",
+      'I like where this is going.',
+    ],
+    cruising: ['Nice.', 'Great.', 'Love it.', 'Yes.'],
+    peaking: [
+      'This is a breakthrough!',
+      "You've got this!",
+      'Look at you go!',
+      'That clarity is beautiful.',
+    ],
+    winding_down: [
+      'Good work today.',
+      'Celebrate this progress.',
+      'Rest is part of the journey.',
+      'Let this integrate.',
+    ],
+    stalled: [
+      'What would feel good right now?',
+      "What's one tiny step?",
+      "Let's find the smallest win.",
+      'Progress, not perfection.',
+    ],
+    intimate: [
+      'I hear you.',
+      'That takes courage to share.',
+      'Thank you for trusting me with this.',
+      "You're not alone in this.",
+    ],
+  },
+};
+
+// Alex's momentum profile - efficient, task-focused, supportive
+const ALEX_PROFILE: MomentumProfile = {
+  energyMatchSpeed: 0.8, // Quick to match - efficiency matters
+  stallThreshold: 2, // Don't let things drag
+  topicContinuityWeight: 0.3, // More focused on getting things done
+  emotionalWeight: 0.4, // Less emotional focus, more practical
+  cues: {
+    building: ['Let\'s keep going.', 'Good direction.', "We're making progress.", 'Keep that focus.'],
+    cruising: ['Got it.', 'Right.', 'Okay.', 'Makes sense.'],
+    peaking: ["You're nailing this.", 'Perfect.', 'Exactly right.', "That's the move."],
+    winding_down: ["We've covered a lot.", 'Solid progress.', "Let's wrap this up.", 'Good work.'],
+    stalled: [
+      'What do you need next?',
+      "Let's refocus.",
+      'What would help most right now?',
+      'Shall we try a different approach?',
+    ],
+    intimate: ['I understand.', "That's real.", 'Thanks for sharing that context.', 'I hear you.'],
+  },
+};
+
+// Peter's momentum profile - analytical, patient, thorough
+const PETER_PROFILE: MomentumProfile = {
+  energyMatchSpeed: 0.5, // Patient, methodical
+  stallThreshold: 4, // Patient with analysis time
+  topicContinuityWeight: 0.7, // Values depth and thoroughness
+  emotionalWeight: 0.4, // More analytical than emotional
+  cues: {
+    building: [
+      'Interesting angle.',
+      "There's something here.",
+      "Let's dig deeper.",
+      'The data is pointing somewhere.',
+    ],
+    cruising: ['I see.', 'Right.', 'Makes sense.', 'Interesting.'],
+    peaking: [
+      "Now we're getting somewhere.",
+      'The thesis is coming together.',
+      'This is a key insight.',
+      "You've found the signal.",
+    ],
+    winding_down: [
+      'Good analysis.',
+      "We've built a solid framework.",
+      'Let this thesis develop.',
+      'The research continues.',
+    ],
+    stalled: [
+      'What are we missing?',
+      'Where should we look next?',
+      "Let's examine the data again.",
+      'What does the evidence tell us?',
+    ],
+    intimate: [
+      'I appreciate your thinking here.',
+      "That's a meaningful insight.",
+      'Thank you for walking me through that.',
+      'This matters to you.',
+    ],
+  },
+};
+
 const PERSONA_PROFILES: Record<string, MomentumProfile> = {
   ferni: FERNI_PROFILE,
+  'maya-santos': MAYA_PROFILE,
+  'alex-chen': ALEX_PROFILE,
+  'peter-john': PETER_PROFILE,
 };
 
 // ============================================================================

@@ -100,6 +100,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // COGNITIVE - Cognitive intelligence
   [BuilderCategory.COGNITIVE]: [
+    'awareness', // Momentum, thinking time, tangents, self-awareness (priority 55)
     'cognitive',
     'cognitive-quirks',
     'cognitive-distortions',
