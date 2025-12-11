@@ -1,0 +1,311 @@
+name: Incident Response
+
+# Automated incident response playbook
+# Triggers on manual dispatch or from other workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      incident_type:
+        description: 'Type of incident'
+        required: true
+        type: choice
+        options:
+          - outage
+          - high_errors
+          - security
+          - performance
+      service:
+        description: 'Affected service'
+        required: true
+        type: choice
+        options:
+          - voice-agent
+          - ui-server
+          - app
+          - landing
+          - all
+      severity:
+        description: 'Severity level'
+        required: true
+        type: choice
+        options:
+          - critical
+          - high
+          - medium
+          - low
+
+env:
+  GCP_REGION: us-central1
+
+jobs:
+  triage:
+    name: Incident Triage
+    runs-on: ubuntu-latest
+    outputs:
+      action: ${{ steps.triage.outputs.action }}
+
+    steps:
+      - name: Log incident
+        run: |
+          echo "🚨 INCIDENT OPENED"
+          echo "Type: ${{ inputs.incident_type }}"
+          echo "Service: ${{ inputs.service }}"
+          echo "Severity: ${{ inputs.severity }}"
+          echo "Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Determine response action
+        id: triage
+        run: |
+          TYPE="${{ inputs.incident_type }}"
+          SEVERITY="${{ inputs.severity }}"
+
+          case "$TYPE" in
+            outage)
+              echo "action=restart" >> $GITHUB_OUTPUT
+              ;;
+            high_errors)
+              echo "action=rollback" >> $GITHUB_OUTPUT
+              ;;
+            security)
+              echo "action=isolate" >> $GITHUB_OUTPUT
+              ;;
+            performance)
+              echo "action=scale" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Create incident channel notification
+        run: |
+          SEVERITY="${{ inputs.severity }}"
+          if [ "$SEVERITY" == "critical" ]; then
+            EMOJI="🔴"
+          elif [ "$SEVERITY" == "high" ]; then
+            EMOJI="🟠"
+          else
+            EMOJI="🟡"
+          fi
+
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"$EMOJI *INCIDENT: ${{ inputs.incident_type }}*\n\nService: \`${{ inputs.service }}\`\nSeverity: ${{ inputs.severity }}\nRunbook: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Response>\n\n@oncall please acknowledge\"
+            }"
+
+  respond:
+    name: Execute Response
+    needs: triage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ======================================================================
+      # RESTART ACTION
+      # ======================================================================
+      - name: "Action: Restart service"
+        if: needs.triage.outputs.action == 'restart'
+        run: |
+          SERVICE="${{ inputs.service }}"
+          echo "🔄 Restarting $SERVICE..."
+
+          if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --update-env-vars="RESTART_TIMESTAMP=$(date +%s)" \
+              --project=${{ secrets.GCP_PROJECT_ID }} || echo "Voice agent restart failed"
+          fi
+
+          if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --update-env-vars="RESTART_TIMESTAMP=$(date +%s)" \
+              --project=${{ secrets.GCP_PROJECT_ID }} || echo "UI server restart failed"
+          fi
+
+          echo "✅ Restart command issued"
+
+      # ======================================================================
+      # ROLLBACK ACTION
+      # ======================================================================
+      - name: "Action: Rollback to previous version"
+        if: needs.triage.outputs.action == 'rollback'
+        run: |
+          SERVICE="${{ inputs.service }}"
+          echo "⏪ Rolling back $SERVICE..."
+
+          if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
+            # Get previous revision
+            PREV_REV=$(gcloud run revisions list \
+              --service=voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --limit=2 \
+              --project=${{ secrets.GCP_PROJECT_ID }} | tail -1)
+
+            if [ -n "$PREV_REV" ]; then
+              gcloud run services update-traffic voiceai-agent \
+                --region=${{ env.GCP_REGION }} \
+                --to-revisions="$PREV_REV=100" \
+                --project=${{ secrets.GCP_PROJECT_ID }}
+              echo "✅ Rolled back voice-agent to $PREV_REV"
+            fi
+          fi
+
+          if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
+            PREV_REV=$(gcloud run revisions list \
+              --service=john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --limit=2 \
+              --project=${{ secrets.GCP_PROJECT_ID }} | tail -1)
+
+            if [ -n "$PREV_REV" ]; then
+              gcloud run services update-traffic john-bogle-ui \
+                --region=${{ env.GCP_REGION }} \
+                --to-revisions="$PREV_REV=100" \
+                --project=${{ secrets.GCP_PROJECT_ID }}
+              echo "✅ Rolled back ui-server to $PREV_REV"
+            fi
+          fi
+
+      # ======================================================================
+      # SCALE ACTION
+      # ======================================================================
+      - name: "Action: Scale up service"
+        if: needs.triage.outputs.action == 'scale'
+        run: |
+          SERVICE="${{ inputs.service }}"
+          echo "📈 Scaling up $SERVICE..."
+
+          if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --min-instances=2 \
+              --max-instances=50 \
+              --project=${{ secrets.GCP_PROJECT_ID }}
+            echo "✅ Scaled voice-agent: min=2, max=50"
+          fi
+
+          if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --min-instances=2 \
+              --max-instances=20 \
+              --project=${{ secrets.GCP_PROJECT_ID }}
+            echo "✅ Scaled ui-server: min=2, max=20"
+          fi
+
+      # ======================================================================
+      # ISOLATE ACTION (Security)
+      # ======================================================================
+      - name: "Action: Isolate service (security)"
+        if: needs.triage.outputs.action == 'isolate'
+        run: |
+          SERVICE="${{ inputs.service }}"
+          echo "🔒 Isolating $SERVICE for security review..."
+
+          # For security incidents, scale to 0 to stop traffic
+          if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --max-instances=0 \
+              --project=${{ secrets.GCP_PROJECT_ID }} || true
+            echo "⚠️ Voice agent isolated (max-instances=0)"
+          fi
+
+          if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
+            gcloud run services update john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --max-instances=0 \
+              --project=${{ secrets.GCP_PROJECT_ID }} || true
+            echo "⚠️ UI server isolated (max-instances=0)"
+          fi
+
+          echo ""
+          echo "🔴 SERVICES ISOLATED - Manual review required before restoring"
+
+  verify:
+    name: Verify Resolution
+    needs: [triage, respond]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for changes to propagate
+        run: sleep 30
+
+      - name: Health check
+        id: health
+        run: |
+          SERVICE="${{ inputs.service }}"
+          ALL_HEALTHY=true
+
+          check_service() {
+            URL=$1
+            NAME=$2
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+            if [ "$STATUS" == "200" ]; then
+              echo "✅ $NAME: UP"
+            else
+              echo "❌ $NAME: DOWN ($STATUS)"
+              ALL_HEALTHY=false
+            fi
+          }
+
+          if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
+            check_service "https://voiceai-agent-667305022191.us-central1.run.app/health" "Voice Agent"
+          fi
+
+          if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
+            check_service "https://john-bogle-ui-667305022191.us-central1.run.app/health" "UI Server"
+          fi
+
+          if [ "$SERVICE" == "app" ] || [ "$SERVICE" == "all" ]; then
+            check_service "https://app.ferni.ai" "App"
+          fi
+
+          if [ "$SERVICE" == "landing" ] || [ "$SERVICE" == "all" ]; then
+            check_service "https://ferni.ai" "Landing"
+          fi
+
+          echo "healthy=$ALL_HEALTHY" >> $GITHUB_OUTPUT
+
+      - name: Report resolution
+        run: |
+          HEALTHY="${{ steps.health.outputs.healthy }}"
+          ACTION="${{ needs.triage.outputs.action }}"
+
+          if [ "$HEALTHY" == "true" ]; then
+            STATUS="✅ RESOLVED"
+            COLOR="good"
+          else
+            STATUS="⚠️ NEEDS ATTENTION"
+            COLOR="warning"
+          fi
+
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"$STATUS\n\nIncident: ${{ inputs.incident_type }}\nAction taken: $ACTION\nService: ${{ inputs.service }}\n\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\"
+            }"
+
+      - name: Summary
+        run: |
+          echo "## 🚨 Incident Response Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Type | ${{ inputs.incident_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | ${{ inputs.service }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | ${{ inputs.severity }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Action | ${{ needs.triage.outputs.action }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ steps.health.outputs.healthy == 'true' && '✅ Resolved' || '⚠️ Needs attention' }} |" >> $GITHUB_STEP_SUMMARY

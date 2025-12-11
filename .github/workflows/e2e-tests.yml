@@ -1,0 +1,207 @@
+name: E2E Tests
+
+# Runs Playwright end-to-end tests against the frontend
+# Runs on PRs and after production deploys
+
+on:
+  pull_request:
+    paths:
+      - 'frontend-typescript/**'
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to test (default: staging)'
+        required: false
+        default: 'https://ferni-prod.web.app'
+
+env:
+  # Default test URL
+  TEST_URL: ${{ inputs.url || 'https://ferni-prod.web.app' }}
+
+jobs:
+  e2e:
+    name: Playwright Tests
+    runs-on: ubuntu-latest
+    # Only run on successful deployments or manual/PR triggers
+    if: |
+      github.event_name != 'deployment_status' ||
+      github.event.deployment_status.state == 'success'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          cd frontend-typescript && npm ci
+
+      - name: Install Playwright
+        run: |
+          cd frontend-typescript
+          npx playwright install --with-deps chromium
+
+      - name: Create E2E test file if not exists
+        run: |
+          mkdir -p frontend-typescript/e2e
+
+          # Create basic E2E tests
+          cat > frontend-typescript/e2e/app.spec.ts << 'EOF'
+          import { test, expect } from '@playwright/test';
+
+          const BASE_URL = process.env.TEST_URL || 'https://ferni-prod.web.app';
+
+          test.describe('Ferni App', () => {
+            test('homepage loads successfully', async ({ page }) => {
+              await page.goto(BASE_URL);
+              await expect(page).toHaveTitle(/Ferni/i);
+            });
+
+            test('app shell renders', async ({ page }) => {
+              await page.goto(BASE_URL);
+              // Wait for app to hydrate
+              await page.waitForLoadState('networkidle');
+              // Check that main content area exists
+              const main = page.locator('main, #app, .app-container').first();
+              await expect(main).toBeVisible({ timeout: 10000 });
+            });
+
+            test('no console errors on load', async ({ page }) => {
+              const errors: string[] = [];
+              page.on('console', msg => {
+                if (msg.type() === 'error') {
+                  errors.push(msg.text());
+                }
+              });
+
+              await page.goto(BASE_URL);
+              await page.waitForLoadState('networkidle');
+
+              // Filter out known acceptable errors
+              const criticalErrors = errors.filter(e =>
+                !e.includes('favicon') &&
+                !e.includes('analytics') &&
+                !e.includes('third-party')
+              );
+
+              expect(criticalErrors).toHaveLength(0);
+            });
+
+            test('responsive layout works', async ({ page }) => {
+              // Mobile
+              await page.setViewportSize({ width: 375, height: 667 });
+              await page.goto(BASE_URL);
+              await expect(page.locator('body')).toBeVisible();
+
+              // Tablet
+              await page.setViewportSize({ width: 768, height: 1024 });
+              await page.reload();
+              await expect(page.locator('body')).toBeVisible();
+
+              // Desktop
+              await page.setViewportSize({ width: 1920, height: 1080 });
+              await page.reload();
+              await expect(page.locator('body')).toBeVisible();
+            });
+
+            test('critical assets load', async ({ page }) => {
+              const failedRequests: string[] = [];
+
+              page.on('requestfailed', request => {
+                failedRequests.push(request.url());
+              });
+
+              await page.goto(BASE_URL);
+              await page.waitForLoadState('networkidle');
+
+              // Filter out non-critical failures
+              const criticalFailures = failedRequests.filter(url =>
+                url.includes('.js') ||
+                url.includes('.css') ||
+                url.includes('api/')
+              );
+
+              expect(criticalFailures).toHaveLength(0);
+            });
+          });
+
+          test.describe('Landing Page', () => {
+            test('landing page loads', async ({ page }) => {
+              await page.goto('https://ferni.ai');
+              await expect(page).toHaveTitle(/Ferni/i);
+            });
+
+            test('CTA button is visible', async ({ page }) => {
+              await page.goto('https://ferni.ai');
+              // Look for common CTA patterns
+              const cta = page.locator('a[href*="app"], button:has-text("Start"), button:has-text("Try")').first();
+              await expect(cta).toBeVisible({ timeout: 10000 });
+            });
+          });
+          EOF
+
+          # Create Playwright config if not exists
+          cat > frontend-typescript/playwright.config.ts << 'EOF'
+          import { defineConfig, devices } from '@playwright/test';
+
+          export default defineConfig({
+            testDir: './e2e',
+            fullyParallel: true,
+            forbidOnly: !!process.env.CI,
+            retries: process.env.CI ? 2 : 0,
+            workers: process.env.CI ? 1 : undefined,
+            reporter: [['html'], ['github']],
+            use: {
+              baseURL: process.env.TEST_URL || 'https://ferni-prod.web.app',
+              trace: 'on-first-retry',
+              screenshot: 'only-on-failure',
+            },
+            projects: [
+              {
+                name: 'chromium',
+                use: { ...devices['Desktop Chrome'] },
+              },
+            ],
+          });
+          EOF
+
+      - name: Run E2E tests
+        run: |
+          cd frontend-typescript
+          npx playwright test --reporter=github
+        env:
+          TEST_URL: ${{ env.TEST_URL }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend-typescript/playwright-report/
+          retention-days: 7
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ E2E tests failed. [View report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})'
+            });
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🎭 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Test URL: ${{ env.TEST_URL }}" >> $GITHUB_STEP_SUMMARY

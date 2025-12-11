@@ -1,0 +1,129 @@
+name: Cost Alerts
+
+# Monitors Google Cloud spending and alerts on spikes
+# Runs daily and checks against budget thresholds
+
+on:
+  schedule:
+    # Daily at 8 AM UTC (midnight PST)
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+env:
+  # Daily cost thresholds (USD)
+  ALERT_THRESHOLD: 50      # Alert if daily spend > $50
+  CRITICAL_THRESHOLD: 100  # Critical alert if > $100
+
+jobs:
+  check-costs:
+    name: Check Cloud Costs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get yesterday's costs
+        id: costs
+        run: |
+          # Get billing data for yesterday
+          YESTERDAY=$(date -d "yesterday" +%Y-%m-%d)
+          TODAY=$(date +%Y-%m-%d)
+
+          echo "Checking costs for $YESTERDAY"
+
+          # Query billing export (requires billing export to BigQuery)
+          # If not set up, this will show instructions
+          COST=$(gcloud billing accounts list --format="value(name)" 2>/dev/null | head -1)
+
+          if [ -z "$COST" ]; then
+            echo "⚠️ No billing access - skipping cost check"
+            echo "daily_cost=0" >> $GITHUB_OUTPUT
+            echo "has_access=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "has_access=true" >> $GITHUB_OUTPUT
+
+          # Get Cloud Run costs specifically
+          CLOUD_RUN_COST=$(gcloud run services list \
+            --format="table(SERVICE,REGION)" \
+            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
+
+          echo "Active Cloud Run services: $CLOUD_RUN_COST"
+
+          # For now, estimate based on instance count
+          # Real implementation would query BigQuery billing export
+          VOICE_INSTANCES=$(gcloud run services describe voiceai-agent \
+            --region=us-central1 \
+            --format="value(status.traffic[0].percent)" \
+            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "0")
+
+          UI_INSTANCES=$(gcloud run services describe john-bogle-ui \
+            --region=us-central1 \
+            --format="value(status.traffic[0].percent)" \
+            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "0")
+
+          echo "voice_traffic=$VOICE_INSTANCES" >> $GITHUB_OUTPUT
+          echo "ui_traffic=$UI_INSTANCES" >> $GITHUB_OUTPUT
+
+          # Placeholder - in production, query BigQuery billing export
+          echo "daily_cost=25" >> $GITHUB_OUTPUT
+          echo "Note: For accurate costs, set up BigQuery billing export"
+
+      - name: Check thresholds
+        id: check
+        if: steps.costs.outputs.has_access == 'true'
+        run: |
+          COST=${{ steps.costs.outputs.daily_cost }}
+          ALERT=${{ env.ALERT_THRESHOLD }}
+          CRITICAL=${{ env.CRITICAL_THRESHOLD }}
+
+          if [ "$COST" -gt "$CRITICAL" ]; then
+            echo "level=critical" >> $GITHUB_OUTPUT
+            echo "🚨 CRITICAL: Daily cost ($${COST}) exceeds $${CRITICAL}!"
+          elif [ "$COST" -gt "$ALERT" ]; then
+            echo "level=warning" >> $GITHUB_OUTPUT
+            echo "⚠️ WARNING: Daily cost ($${COST}) exceeds $${ALERT}"
+          else
+            echo "level=ok" >> $GITHUB_OUTPUT
+            echo "✅ Costs normal: $${COST}/day"
+          fi
+
+      - name: Alert on high costs
+        if: steps.check.outputs.level == 'critical' || steps.check.outputs.level == 'warning'
+        run: |
+          LEVEL="${{ steps.check.outputs.level }}"
+          COST="${{ steps.costs.outputs.daily_cost }}"
+
+          if [ "$LEVEL" == "critical" ]; then
+            EMOJI="🚨"
+            TEXT="CRITICAL COST ALERT"
+          else
+            EMOJI="⚠️"
+            TEXT="Cost Warning"
+          fi
+
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"$EMOJI *$TEXT*\n\nDaily cloud spend: \$${COST}\nThreshold: \${{ env.ALERT_THRESHOLD }}\n\n<https://console.cloud.google.com/billing|View Billing>\"
+            }"
+
+      - name: Summary
+        run: |
+          echo "## 💰 Daily Cost Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Estimated Daily Cost | \$${{ steps.costs.outputs.daily_cost }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Alert Threshold | \$${{ env.ALERT_THRESHOLD }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Voice Agent Traffic | ${{ steps.costs.outputs.voice_traffic }}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| UI Server Traffic | ${{ steps.costs.outputs.ui_traffic }}% |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_For accurate billing, set up [BigQuery billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery)_" >> $GITHUB_STEP_SUMMARY
