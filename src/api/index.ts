@@ -14,6 +14,7 @@ export { handleFeatureFlagsRoutes } from './feature-flags-routes.js';
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleGDPRRoutes } from './gdpr-routes.js';
+export { handlePerformanceRoutes } from './performance-routes.js';
 export {
   handleSubscriptionRequest,
   isSubscriptionRoute,

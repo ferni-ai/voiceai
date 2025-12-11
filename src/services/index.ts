@@ -106,6 +106,18 @@ export {
 
 export { performanceProfiler, Timed, withTiming } from './performance-profiler.js';
 
+// Performance instrumentation (memory & startup timing)
+export {
+  perfInstrumentation,
+  PerformanceInstrumentation,
+  type MemoryAlert,
+  type MemoryAlertConfig,
+  type MemorySnapshot,
+  type PerformanceReport,
+  type PhaseTimng,
+  type ToolLoadMetrics,
+} from './performance-instrumentation.js';
+
 // ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
@@ -263,7 +275,7 @@ export {
 // ============================================================================
 
 export {
-  getMayaGamificationStore,
+  getGamificationStore,
   initializeMayaGamificationStore,
   type BehaviorToolUsage,
   type ChallengeProgress,
@@ -272,7 +284,7 @@ export {
   type GamificationProfile,
   type LeaderboardEntry,
   type MoodLog,
-} from './maya-gamification-store.js';
+} from './gamification-store.js';
 
 // ============================================================================
 // MAYA NOTIFICATIONS
@@ -281,11 +293,11 @@ export {
 export {
   getMayaNotificationService,
   initializeMayaNotificationService,
-  shutdownMayaNotificationService,
+  shutdownEngagementNotificationService,
   type MayaNotificationPreferences,
   type MayaNotificationRequest,
   type MayaNotificationType,
-} from './maya-notification-service.js';
+} from './engagement-notification-service.js';
 
 // ============================================================================
 // MEMORY MANAGEMENT

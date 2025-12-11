@@ -187,10 +187,15 @@ import {
 import {
   buildAgentTools,
   buildEssentialTools,
+  getLoadedDomains,
   initializeTools,
   isToolRegistryInitialized,
+  loadToolDomainsLazy,
   type Tool,
 } from '../tools/index.js';
+
+// Performance instrumentation
+import { perfInstrumentation } from '../services/performance-instrumentation.js';
 
 // Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
 import { abTestingService } from '../tools/ab-testing.js';
@@ -490,29 +495,71 @@ class VoiceAgent extends voice.Agent<UserData> {
     const logger = log();
 
     // =========================================================================
-    // TOOL LOADING - Using new registry-based system
+    // TOOL LOADING - Using new registry-based system with LAZY LOADING
     // =========================================================================
     //
     // The new system builds tools from agent manifests:
     // - Each agent's manifest defines which tool domains they need
     // - Tools are registered by capability, not by agent
     // - Forbidden tools are automatically filtered
+    // - LAZY LOADING: Only essential domains load at startup, others on-demand
     //
     // Benefits:
     // - Single source of truth for agent capabilities (manifest)
     // - No hard-coded agent names in tool code
     // - Easier to add new agents or modify existing ones
+    // - Reduced memory footprint through lazy loading
     // =========================================================================
 
+    perfInstrumentation.startPhase('tool-loading');
+
     // Initialize the tool registry if not already done
+    // Now uses lazy loading by default - only essential domains at startup
     if (!isToolRegistryInitialized()) {
-      await initializeTools({ parallel: true });
+      perfInstrumentation.startPhase('tool-registry-init');
+      const initResult = await initializeTools({
+        parallel: true,
+        // lazyLoading: true is now the default
+      });
+      perfInstrumentation.endPhase('tool-registry-init', {
+        domainsLoaded: Object.keys(initResult.byDomain).length,
+        totalTools: initResult.loaded,
+        lazyLoading: initResult.lazyLoadingEnabled,
+      });
+      logger.info(
+        {
+          domainsLoaded: Object.keys(initResult.byDomain).length,
+          remainingDomains: initResult.remainingDomains.length,
+          lazyLoading: initResult.lazyLoadingEnabled,
+        },
+        '🚀 Tool registry initialized with lazy loading'
+      );
     }
 
     // Build tools using registry-based system
     // Each agent's manifest defines exactly which domains/tools they need
     // This keeps tool count manageable (40-60 per agent) for optimal Gemini performance
     logger.info({ personaId: persona.id }, 'Building tools from agent manifest');
+
+    // Get persona's required domains and lazy-load any that aren't yet loaded
+    const personaManifest = persona as { tools?: { domains?: string[] } };
+    const requiredDomains = personaManifest?.tools?.domains || [];
+    if (requiredDomains.length > 0) {
+      const loadedDomains = getLoadedDomains();
+      const missingDomains = requiredDomains.filter((d) => !loadedDomains.includes(d as never));
+      if (missingDomains.length > 0) {
+        perfInstrumentation.startPhase('lazy-load-domains');
+        const lazyLoaded = await loadToolDomainsLazy(missingDomains as never[]);
+        perfInstrumentation.endPhase('lazy-load-domains', {
+          domains: missingDomains,
+          toolsLoaded: lazyLoaded,
+        });
+        logger.info(
+          { domains: missingDomains, toolsLoaded: lazyLoaded },
+          '🔄 Lazy-loaded additional domains for persona'
+        );
+      }
+    }
 
     // Build tools for the current persona based on their manifest
     // The manifest specifies domains, required, optional, and forbidden tools
@@ -546,8 +593,12 @@ class VoiceAgent extends voice.Agent<UserData> {
       );
     }
 
+    perfInstrumentation.endPhase('tool-loading');
+    perfInstrumentation.snapshotMemory('after-tool-loading');
+
     // Log final tool count - should be 40-60 per agent for optimal Gemini performance
     const toolNames = Object.keys(toolsForAgent);
+    const perfSummary = perfInstrumentation.getSummary();
     logger.info(
       {
         personaId: persona.id,
@@ -556,9 +607,17 @@ class VoiceAgent extends voice.Agent<UserData> {
         finalToolCount: toolNames.length,
         forbiddenCount: forbiddenTools.length,
         sampleTools: toolNames.slice(0, 10),
+        // Performance metrics
+        domainsLoaded: perfSummary.domainsLoaded,
+        lazyLoadedDomains: perfSummary.lazyLoadedDomains,
+        heapUsedMB: perfSummary.heapUsedMB,
       },
-      'Tools loaded for agent (optimized for Gemini)'
+      '📊 Tools loaded for agent (with performance metrics)'
     );
+
+    // Start automatic memory monitoring with alerts
+    // This will log warnings at 1GB and critical alerts at 1.5GB
+    perfInstrumentation.startAutoMonitoring();
 
     return new VoiceAgent(persona, {
       instructions: persona.systemPrompt,
@@ -1988,89 +2047,96 @@ IMPORTANT:
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
-    // CRITICAL: Immediate logging before anything else
-    // This helps debug if prewarm is even being called in child processes
+    // =========================================================================
+    // ULTRA-LIGHTWEIGHT PREWARM
+    // =========================================================================
+    // CRITICAL: This function is NOT awaited by the LiveKit SDK!
+    // The SDK calls prewarm(proc) and immediately sends initializeResponse.
+    // Therefore, this function must return INSTANTLY and do work in background.
+    //
+    // Previous implementation did heavy work here (startup(), Firestore, etc.)
+    // which could block if external services were slow, causing crash loops.
+    // Now we just set minimal state and let entry() handle initialization.
+    // =========================================================================
+
+    // Immediate logging to stderr (unbuffered) - this is the ONLY sync work we do
+    const startTime = Date.now();
     process.stderr.write(
-      `[voice-agent] PREWARM CALLED pid=${process.pid} ppid=${process.ppid} time=${new Date().toISOString()}\n`
+      `[voice-agent] PREWARM pid=${process.pid} time=${new Date().toISOString()}\n`
     );
 
-    const startTime = Date.now();
-    diag.section('PREWARM CALLED');
-    diag.prewarm('Starting prewarm', {
-      pid: process.pid,
-      persona: PERSONA.id,
-    });
-
-    // LIGHTWEIGHT PREWARM - avoid heavy Firestore/external calls that can timeout
-    // Heavy initialization is done on first job in entry() if needed
-
-    // Set a 20 second timeout for prewarm to avoid indefinite hangs
-    const PREWARM_TIMEOUT = 20_000;
-
-    try {
-      // Race startup against timeout
-      const startupPromise = (async () => {
-        diag.prewarm('Importing startup module...');
-        const t1 = Date.now();
-        const { startup, registerShutdownHandlers } = await import('../startup.js');
-        diag.prewarm('Startup module imported', { elapsed: Date.now() - t1 });
-
-        registerShutdownHandlers();
-
-        diag.prewarm('Running startup()...');
-        const t2 = Date.now();
-        await startup();
-        diag.prewarm('startup() complete', { elapsed: Date.now() - t2 });
-        return true;
-      })();
-
-      const timeoutPromise = new Promise<false>((resolve) => {
-        setTimeout(() => {
-          diag.warn('Prewarm startup timeout - continuing with minimal init');
-          resolve(false);
-        }, PREWARM_TIMEOUT);
-      });
-
-      const completed = await Promise.race([startupPromise, timeoutPromise]);
-      if (!completed) {
-        // Startup timed out, do minimal init
-        diag.prewarm('Using minimal initialization due to timeout');
-        try {
-          await initializeServices();
-        } catch {
-          diag.warn('Minimal init failed, continuing anyway');
-        }
-      }
-    } catch (error) {
-      diag.error('Startup failed', { error: String(error) });
-      // Fall back to basic initialization
-      try {
-        diag.prewarm('Falling back to basic initialization...');
-        await initializeServices();
-      } catch (fallbackError) {
-        diag.error('Fallback initialization also failed', { error: String(fallbackError) });
-      }
-    }
-
-    // Preload commonly used modules (skip if already taking too long)
-    const elapsed = Date.now() - startTime;
-    if (elapsed < PREWARM_TIMEOUT) {
-      try {
-        diag.prewarm('Preloading common modules...');
-        const t3 = Date.now();
-        const { preloadCommonModules } = await import('./shared/cached-imports.js');
-        await preloadCommonModules();
-        diag.prewarm('Common modules preloaded', { elapsed: Date.now() - t3 });
-      } catch (preloadError) {
-        diag.warn('Module preload failed (non-fatal)', { error: String(preloadError) });
-      }
-    } else {
-      diag.warn('Skipping module preload due to time constraints');
-    }
-
+    // Set minimal process state - this is synchronous and fast
     proc.userData.vadLoaded = false;
+    proc.userData.prewarmStarted = true;
+    proc.userData.prewarmComplete = false;
 
-    diag.prewarm('Prewarm complete', { totalElapsed: Date.now() - startTime });
+    // Fire off background initialization (non-blocking)
+    // This runs AFTER we return, so SDK gets its initializeResponse immediately
+    const backgroundInit = async () => {
+      try {
+        // Wrap in hard timeout to prevent runaway initialization
+        const BACKGROUND_TIMEOUT = 30_000; // 30 seconds max for background init
+
+        await Promise.race([
+          (async () => {
+            // Defer diagnostic logging to not block
+            process.nextTick(() => {
+              try {
+                diag.section('PREWARM BACKGROUND');
+                diag.prewarm('Starting background init', { pid: process.pid });
+              } catch {
+                // Ignore diagnostic errors
+              }
+            });
+
+            // Import startup module dynamically
+            const { startup, registerShutdownHandlers } = await import('../startup.js');
+            registerShutdownHandlers();
+
+            // Run startup with its own internal timeout
+            await startup();
+
+            // Preload commonly used modules
+            try {
+              const { preloadCommonModules } = await import('./shared/cached-imports.js');
+              await preloadCommonModules();
+            } catch {
+              // Non-fatal
+            }
+
+            proc.userData.prewarmComplete = true;
+            process.stderr.write(
+              `[voice-agent] PREWARM COMPLETE pid=${process.pid} elapsed=${Date.now() - startTime}ms\n`
+            );
+          })(),
+          new Promise<void>((_, reject) => {
+            setTimeout(
+              () => reject(new Error('Background init timeout')),
+              BACKGROUND_TIMEOUT
+            );
+          }),
+        ]);
+      } catch (error) {
+        // Background init failed - entry() will retry initialization
+        process.stderr.write(
+          `[voice-agent] PREWARM BACKGROUND FAILED pid=${process.pid} error=${error}\n`
+        );
+        proc.userData.prewarmComplete = false;
+      }
+    };
+
+    // Schedule background init to run after this function returns
+    // Using setTimeout(0) ensures we return control to the SDK first
+    setTimeout(() => {
+      backgroundInit().catch((e) => {
+        process.stderr.write(`[voice-agent] Background init error: ${e}\n`);
+      });
+    }, 0);
+
+    // Return immediately - SDK needs initializeResponse ASAP
+    process.stderr.write(
+      `[voice-agent] PREWARM RETURNING pid=${process.pid} elapsed=${Date.now() - startTime}ms\n`
+    );
   },
 
   entry: async (ctx: JobContext) => {
@@ -2085,6 +2151,31 @@ export default defineAgent({
     });
 
     const sessionId = ctx.room?.name || `session-${Date.now()}`;
+
+    // ===============================================
+    // ENSURE INITIALIZATION COMPLETED
+    // ===============================================
+    // Prewarm runs initialization in background. If it hasn't completed,
+    // we need to ensure services are initialized before handling the job.
+    const prewarmComplete = (ctx.proc?.userData as { prewarmComplete?: boolean })?.prewarmComplete;
+    if (!prewarmComplete) {
+      diag.entry('Prewarm incomplete, running fallback initialization');
+      process.stderr.write(
+        `[voice-agent] ENTRY: Prewarm incomplete, initializing now pid=${process.pid}\n`
+      );
+      try {
+        // Minimal initialization - just services, not full startup
+        // This ensures we can handle the job even if prewarm failed
+        await initializeServices(true);
+        diag.entry('Fallback initialization complete');
+      } catch (initError) {
+        diag.warn('Fallback initialization failed, continuing anyway', {
+          error: String(initError),
+        });
+      }
+    } else {
+      diag.entry('Prewarm complete, proceeding with job');
+    }
 
     try {
       // ===============================================

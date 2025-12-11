@@ -25,15 +25,25 @@ import { initializeTeamHandlerRegistry } from '../services/team-handler-registry
 /**
  * Initialize the tool registry with all available domains
  * Call this early during app startup before loading any agents
+ *
+ * Now supports lazy loading (enabled by default):
+ * - Only essential domains load at startup
+ * - Other domains are loaded on-demand
  */
 export async function initializeTools(options?: {
   domains?: ToolDomain[];
   skipDomains?: ToolDomain[];
   parallel?: boolean;
+  /** Enable lazy loading (default: true) */
+  lazyLoading?: boolean;
+  /** Also load high-priority domains at startup */
+  loadHighPriority?: boolean;
 }): Promise<{
   loaded: number;
   byDomain: Record<ToolDomain, number>;
   errors: string[];
+  lazyLoadingEnabled: boolean;
+  remainingDomains: ToolDomain[];
 }> {
   getLogger().info('🔧 Initializing tool registry...');
 
@@ -41,6 +51,8 @@ export async function initializeTools(options?: {
     parallel: options?.parallel ?? true,
     domains: options?.domains,
     skipDomains: options?.skipDomains,
+    lazyLoading: options?.lazyLoading,
+    loadHighPriority: options?.loadHighPriority,
   });
 
   if (result.errors.length > 0) {
@@ -51,8 +63,12 @@ export async function initializeTools(options?: {
     {
       totalTools: result.loaded,
       domains: Object.keys(result.byDomain).length,
+      lazyLoading: result.lazyLoadingEnabled,
+      remainingDomains: result.remainingDomains.length,
     },
-    '🔧 Tool registry initialized'
+    result.lazyLoadingEnabled
+      ? '🚀 Tool registry initialized (lazy loading enabled)'
+      : '🔧 Tool registry initialized'
   );
 
   return result;

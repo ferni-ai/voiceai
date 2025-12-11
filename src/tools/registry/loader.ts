@@ -4,19 +4,71 @@
  * Auto-discovers and loads tools from the domains/ directory.
  * Each domain folder should have an index.ts that exports tool definitions.
  *
+ * LAZY LOADING:
+ * By default, only essential domains are loaded at startup.
+ * Other domains are loaded on-demand when requested.
+ *
  * USAGE:
  *
- * // At startup
+ * // At startup (loads only essential domains by default)
  * await initializeToolRegistry();
  *
- * // Or load specific domains
+ * // Load all domains (legacy behavior)
+ * await initializeToolRegistry({ lazyLoading: false });
+ *
+ * // Or load specific domains on-demand
  * await loadToolDomain('calendar');
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { perfInstrumentation } from '../../services/performance-instrumentation.js';
 
 import { toolRegistry } from './index.js';
 import { ALL_TOOL_DOMAINS, type ToolDomain, type ToolDefinition } from './types.js';
+
+// ============================================================================
+// LAZY LOADING CONFIGURATION
+// ============================================================================
+
+/**
+ * Essential domains that are always loaded at startup.
+ * These are needed for basic agent functionality.
+ */
+export const ESSENTIAL_DOMAINS: ToolDomain[] = [
+  'memory', // Core memory operations
+  'handoff', // Agent switching
+  'awareness', // Time/context awareness
+  'simple-utilities', // Timers, conversions, etc.
+];
+
+/**
+ * High-priority domains loaded shortly after essential.
+ * These are commonly used but can be slightly delayed.
+ */
+export const HIGH_PRIORITY_DOMAINS: ToolDomain[] = [
+  'information', // News, weather, search
+  'productivity', // Tasks, notes
+  'entertainment', // Music
+];
+
+/**
+ * Track which domains have been loaded
+ */
+const loadedDomains = new Set<ToolDomain>();
+
+/**
+ * Check if a domain has been loaded
+ */
+export function isDomainLoaded(domain: ToolDomain): boolean {
+  return loadedDomains.has(domain);
+}
+
+/**
+ * Get list of loaded domains
+ */
+export function getLoadedDomains(): ToolDomain[] {
+  return Array.from(loadedDomains);
+}
 
 // ============================================================================
 // DOMAIN LOADERS
@@ -41,9 +93,23 @@ export function registerDomainLoader(
 
 /**
  * Load tools from a specific domain
+ * @param domain The domain to load
+ * @param options.isLazy Whether this is a lazy load (for metrics)
  */
-export async function loadToolDomain(domain: ToolDomain): Promise<number> {
+export async function loadToolDomain(
+  domain: ToolDomain,
+  options: { isLazy?: boolean } = {}
+): Promise<number> {
+  // Skip if already loaded
+  if (loadedDomains.has(domain)) {
+    getLogger().debug({ domain }, 'Domain already loaded, skipping');
+    return toolRegistry.getByDomain(domain).length;
+  }
+
+  const startTime = Date.now();
   const loader = domainLoaders[domain];
+  let toolCount = 0;
+
   if (!loader) {
     getLogger().debug({ domain }, 'No loader registered for domain, attempting dynamic import');
 
@@ -53,75 +119,162 @@ export async function loadToolDomain(domain: ToolDomain): Promise<number> {
       if (module.getToolDefinitions) {
         const definitions = await module.getToolDefinitions();
         toolRegistry.registerAll(definitions);
+        toolCount = definitions.length;
         getLogger().info(
           { domain, count: definitions.length },
           'Domain tools loaded via dynamic import'
         );
-        return definitions.length;
       } else if (module.default && Array.isArray(module.default)) {
         toolRegistry.registerAll(module.default);
+        toolCount = module.default.length;
         getLogger().info(
           { domain, count: module.default.length },
           'Domain tools loaded via default export'
         );
-        return module.default.length;
       }
     } catch (error) {
       // Domain not implemented yet - this is fine
       getLogger().debug({ domain, error }, 'Could not load domain (may not be implemented yet)');
-      return 0;
     }
+  } else {
+    try {
+      const definitions = await loader();
+      toolRegistry.registerAll(definitions);
+      toolCount = definitions.length;
+      getLogger().info({ domain, count: definitions.length }, 'Domain tools loaded');
+    } catch (error) {
+      getLogger().error({ domain, error }, 'Failed to load domain tools');
+    }
+  }
 
+  // Track metrics
+  const loadTimeMs = Date.now() - startTime;
+  if (toolCount > 0) {
+    loadedDomains.add(domain);
+    perfInstrumentation.recordToolLoad(domain, toolCount, loadTimeMs, options.isLazy ?? false);
+  }
+
+  return toolCount;
+}
+
+/**
+ * Load a domain lazily (on-demand)
+ * This is the preferred method for loading domains after startup.
+ */
+export async function loadToolDomainLazy(domain: ToolDomain): Promise<number> {
+  if (loadedDomains.has(domain)) {
+    return toolRegistry.getByDomain(domain).length;
+  }
+
+  getLogger().info({ domain }, '🔄 Lazy loading domain on-demand');
+  return loadToolDomain(domain, { isLazy: true });
+}
+
+/**
+ * Load multiple domains lazily
+ */
+export async function loadToolDomainsLazy(domains: ToolDomain[]): Promise<number> {
+  const unloadedDomains = domains.filter((d) => !loadedDomains.has(d));
+  if (unloadedDomains.length === 0) {
     return 0;
   }
 
-  try {
-    const definitions = await loader();
-    toolRegistry.registerAll(definitions);
-    getLogger().info({ domain, count: definitions.length }, 'Domain tools loaded');
-    return definitions.length;
-  } catch (error) {
-    getLogger().error({ domain, error }, 'Failed to load domain tools');
-    return 0;
-  }
+  getLogger().info({ domains: unloadedDomains }, '🔄 Lazy loading multiple domains');
+
+  const results = await Promise.allSettled(
+    unloadedDomains.map((d) => loadToolDomain(d, { isLazy: true }))
+  );
+
+  return results.reduce((sum, r) => sum + (r.status === 'fulfilled' ? r.value : 0), 0);
 }
 
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
+export interface InitializeToolRegistryOptions {
+  /** Specific domains to load (overrides lazyLoading) */
+  domains?: ToolDomain[];
+  /** Domains to skip */
+  skipDomains?: ToolDomain[];
+  /** Load domains in parallel */
+  parallel?: boolean;
+  /**
+   * Enable lazy loading (default: true)
+   * When true, only essential domains are loaded at startup.
+   * Other domains are loaded on-demand.
+   */
+  lazyLoading?: boolean;
+  /**
+   * Also load high-priority domains at startup (only with lazyLoading)
+   * Default: true
+   */
+  loadHighPriority?: boolean;
+}
+
 /**
- * Initialize the tool registry by loading all domains
+ * Initialize the tool registry
+ *
+ * By default, uses lazy loading which only loads essential domains at startup.
+ * Set lazyLoading: false for legacy behavior (load all domains).
  */
-export async function initializeToolRegistry(
-  options: {
-    domains?: ToolDomain[];
-    skipDomains?: ToolDomain[];
-    parallel?: boolean;
-  } = {}
-): Promise<{
+export async function initializeToolRegistry(options: InitializeToolRegistryOptions = {}): Promise<{
   loaded: number;
   byDomain: Record<ToolDomain, number>;
   errors: string[];
+  lazyLoadingEnabled: boolean;
+  remainingDomains: ToolDomain[];
 }> {
+  perfInstrumentation.startPhase('tool-registry-init');
   const startTime = Date.now();
-  const domainsToLoad = options.domains || [...ALL_TOOL_DOMAINS];
+
+  // Determine if we're using lazy loading
+  const lazyLoading = options.lazyLoading ?? true;
+  const loadHighPriority = options.loadHighPriority ?? true;
+
+  // Determine which domains to load
+  let domainsToLoad: ToolDomain[];
+  if (options.domains) {
+    // Explicit domains override everything
+    domainsToLoad = options.domains;
+  } else if (lazyLoading) {
+    // Lazy loading: start with essential, optionally add high-priority
+    domainsToLoad = [...ESSENTIAL_DOMAINS];
+    if (loadHighPriority) {
+      domainsToLoad.push(...HIGH_PRIORITY_DOMAINS);
+    }
+  } else {
+    // Legacy: load all domains
+    domainsToLoad = [...ALL_TOOL_DOMAINS];
+  }
+
   const skipSet = new Set(options.skipDomains || []);
   const byDomain: Record<string, number> = {};
   const errors: string[] = [];
 
-  getLogger().info({ domains: domainsToLoad.length }, 'Initializing tool registry...');
+  // Remove duplicates and skipped domains
+  domainsToLoad = [...new Set(domainsToLoad)].filter((d) => !skipSet.has(d));
+
+  getLogger().info(
+    {
+      domainsToLoad: domainsToLoad.length,
+      lazyLoading,
+      totalAvailable: ALL_TOOL_DOMAINS.length,
+    },
+    'Initializing tool registry...'
+  );
+
+  // Take memory snapshot before loading
+  perfInstrumentation.snapshotMemory('before-tool-load');
 
   // Load domains
-  if (options.parallel) {
-    // Load all domains in parallel
+  if (options.parallel !== false) {
+    // Load all domains in parallel (default)
     const results = await Promise.allSettled(
-      domainsToLoad
-        .filter((d) => !skipSet.has(d))
-        .map(async (domain) => {
-          const count = await loadToolDomain(domain);
-          return { domain, count };
-        })
+      domainsToLoad.map(async (domain) => {
+        const count = await loadToolDomain(domain, { isLazy: false });
+        return { domain, count };
+      })
     );
 
     for (const result of results) {
@@ -134,10 +287,8 @@ export async function initializeToolRegistry(
   } else {
     // Load domains sequentially
     for (const domain of domainsToLoad) {
-      if (skipSet.has(domain)) continue;
-
       try {
-        const count = await loadToolDomain(domain);
+        const count = await loadToolDomain(domain, { isLazy: false });
         byDomain[domain] = count;
       } catch (error) {
         errors.push(`${domain}: ${error}`);
@@ -145,26 +296,44 @@ export async function initializeToolRegistry(
     }
   }
 
+  // Take memory snapshot after loading
+  perfInstrumentation.snapshotMemory('after-tool-load');
+
   // Mark initialized
   toolRegistry.markInitialized();
 
   const totalLoaded = Object.values(byDomain).reduce((sum, n) => sum + n, 0);
   const elapsed = Date.now() - startTime;
 
+  // Calculate remaining domains for lazy loading
+  const remainingDomains = ALL_TOOL_DOMAINS.filter((d) => !loadedDomains.has(d));
+
+  perfInstrumentation.endPhase('tool-registry-init', {
+    totalTools: totalLoaded,
+    domainsLoaded: Object.keys(byDomain).length,
+    lazyLoading,
+  });
+
   getLogger().info(
     {
       totalTools: totalLoaded,
-      domains: Object.keys(byDomain).length,
+      domainsLoaded: Object.keys(byDomain).length,
+      remainingDomains: remainingDomains.length,
+      lazyLoading,
       elapsed,
       errors: errors.length,
     },
-    'Tool registry initialization complete'
+    lazyLoading
+      ? '🚀 Tool registry initialized (lazy loading enabled)'
+      : '🔧 Tool registry initialization complete'
   );
 
   return {
     loaded: totalLoaded,
     byDomain: byDomain as Record<ToolDomain, number>,
     errors,
+    lazyLoadingEnabled: lazyLoading,
+    remainingDomains,
   };
 }
 
@@ -292,9 +461,22 @@ export function createDomainExport(
 // ============================================================================
 
 export default {
+  // Initialization
   initializeToolRegistry,
+
+  // Domain loading
   loadToolDomain,
+  loadToolDomainLazy,
+  loadToolDomainsLazy,
   registerDomainLoader,
+
+  // Domain status
+  isDomainLoaded,
+  getLoadedDomains,
+  ESSENTIAL_DOMAINS,
+  HIGH_PRIORITY_DOMAINS,
+
+  // Legacy helpers
   convertLegacyTools,
   registerLegacyTools,
   createDomainExport,

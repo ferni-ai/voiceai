@@ -56,10 +56,17 @@ export {
 export {
   convertLegacyTools,
   createDomainExport,
+  ESSENTIAL_DOMAINS,
+  getLoadedDomains,
+  HIGH_PRIORITY_DOMAINS,
   initializeToolRegistry,
+  isDomainLoaded,
   loadToolDomain,
+  loadToolDomainLazy,
+  loadToolDomainsLazy,
   registerDomainLoader,
   registerLegacyTools,
+  type InitializeToolRegistryOptions,
 } from './registry/loader.js';
 
 // ============================================================================

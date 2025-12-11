@@ -45,6 +45,9 @@ import { handleFeatureFlagsRoutes } from './dist/api/feature-flags-routes.js';
 // Monitoring routes (P11)
 import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 
+// Performance monitoring routes (lazy loading, memory, tools)
+import { handlePerformanceRoutes } from './dist/api/performance-routes.js';
+
 // Relationship Health Dashboard routes
 import { relationshipHealthRoutes } from './dist/api/routes/relationship-health-routes.js';
 
@@ -834,6 +837,12 @@ const server = http.createServer(async (req, res) => {
     // Monitoring routes (P11)
     if (pathname.startsWith('/api/monitoring')) {
       const handled = await handleMonitoringRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Performance monitoring routes (lazy loading, memory, tools)
+    if (pathname.startsWith('/api/performance')) {
+      const handled = await handlePerformanceRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 
