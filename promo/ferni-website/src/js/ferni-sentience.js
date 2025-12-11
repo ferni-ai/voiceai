@@ -804,6 +804,137 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // MOBILE TOUCH OPTIMIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const MobileOptimization = {
+    isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+    supportsHaptics: 'vibrate' in navigator,
+    touchStartTime: 0,
+
+    init() {
+      if (!this.isMobile) return;
+
+      // Touch-based sentiment signals
+      document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+      document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+
+      // Mobile scroll momentum detection
+      this.initMobileScroll();
+
+      // Adjust nudge positioning for mobile
+      this.adjustNudgePositioning();
+    },
+
+    handleTouchStart(e) {
+      this.touchStartTime = Date.now();
+
+      // Track touch on interactive elements
+      const target = e.target.closest('.btn, .team-card, .persona-card, .faq-item');
+      if (target) {
+        state.interactionCount++;
+      }
+    },
+
+    handleTouchEnd(e) {
+      const touchDuration = Date.now() - this.touchStartTime;
+      const target = e.target.closest('.btn--primary, .btn--secondary');
+
+      // Long press = strong intent
+      if (touchDuration > 500 && target) {
+        SentimentColors.adjustSentiment('ctaHover');
+        this.hapticFeedback('light');
+      }
+
+      // Quick tap on CTA = engagement
+      if (touchDuration < 300 && target) {
+        SentimentColors.adjustSentiment('ctaHover');
+        this.hapticFeedback('medium');
+      }
+
+      // Track demo widget interaction
+      if (e.target.closest('.ferni-demo-trigger')) {
+        this.hapticFeedback('heavy');
+      }
+    },
+
+    hapticFeedback(intensity) {
+      if (!this.supportsHaptics || CONFIG.respectsReducedMotion) return;
+
+      const patterns = {
+        light: [10],
+        medium: [20],
+        heavy: [30, 10, 30],
+        success: [10, 50, 20],
+      };
+
+      try {
+        navigator.vibrate(patterns[intensity] || [10]);
+      } catch (e) {
+        // Haptics not supported
+      }
+    },
+
+    initMobileScroll() {
+      let lastTouchY = 0;
+      let scrollVelocity = 0;
+
+      document.addEventListener(
+        'touchmove',
+        (e) => {
+          const touch = e.touches[0];
+          const deltaY = Math.abs(touch.clientY - lastTouchY);
+          scrollVelocity = deltaY;
+
+          // Fast flick = scanning
+          if (scrollVelocity > 30) {
+            SentimentColors.adjustSentiment('fastScroll');
+          }
+
+          lastTouchY = touch.clientY;
+        },
+        { passive: true }
+      );
+
+      // Scroll stop = reading
+      let scrollStopTimer;
+      document.addEventListener(
+        'scroll',
+        () => {
+          clearTimeout(scrollStopTimer);
+          scrollStopTimer = setTimeout(() => {
+            if (scrollVelocity < 5) {
+              SentimentColors.adjustSentiment('scrollPause');
+            }
+            scrollVelocity = 0;
+          }, 150);
+        },
+        { passive: true }
+      );
+    },
+
+    adjustNudgePositioning() {
+      // Nudges should appear above mobile nav on phones
+      const style = document.createElement('style');
+      style.textContent = `
+        @media (max-width: 768px) {
+          .ferni-soft-nudge {
+            bottom: 140px !important;
+            right: 16px !important;
+            left: 16px !important;
+            max-width: none !important;
+          }
+          
+          .ferni-soft-nudge__message {
+            font-size: 13px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // INITIALIZATION
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -817,6 +948,7 @@
     PredictivePresence.init();
     ScrollTracker.init();
     InteractionTracker.init();
+    MobileOptimization.init();
 
     // Expose for debugging
     window.FerniSentience = {
@@ -825,6 +957,8 @@
       mood: () => state.ferniMood,
       attention: () => AttentionAwareness.getMostAttended(),
       adjustSentiment: (signal) => SentimentColors.adjustSentiment(signal),
+      isMobile: () => MobileOptimization.isMobile,
+      haptic: (type) => MobileOptimization.hapticFeedback(type),
     };
 
     console.log('%c🧠 Ferni Sentience loaded', 'color: #4a6741; font-weight: bold;');
@@ -834,6 +968,9 @@
     console.log('%c  3. Emotional Contagion', 'color: #756a5e; font-size: 10px;');
     console.log('%c  4. Attention Awareness', 'color: #756a5e; font-size: 10px;');
     console.log('%c  5. Predictive Presence', 'color: #756a5e; font-size: 10px;');
+    if (MobileOptimization.isMobile) {
+      console.log('%c  📱 Mobile optimizations active', 'color: #756a5e; font-size: 10px;');
+    }
   }
 
   // Start when DOM is ready
