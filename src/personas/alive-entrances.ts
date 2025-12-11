@@ -616,6 +616,8 @@ export async function generateAliveEntrance(
     relationshipStage?: EntranceContext['relationshipStage'];
     referringAgent?: string;
     userName?: string;
+    /** Session ID for variety tracking - prevents repetitive quirks */
+    sessionId?: string;
   } = {}
 ): Promise<AliveEntranceResult | null> {
   // Load config from bundle (v2) or fall back to hardcoded
@@ -694,10 +696,11 @@ export async function generateAliveEntrance(
   }
 
   // Priority 7: "Caught doing" moment using quirks (35% chance if runtime available)
+  // Pass sessionId for variety tracking - prevents repetitive quirks
   if (runtime && Math.random() < 0.35) {
     try {
       await runtime.loadInnerWorld();
-      const caughtDoing = runtime.getCaughtDoing();
+      const caughtDoing = runtime.getCaughtDoing(options.sessionId);
       if (caughtDoing) {
         getLogger().debug({ personaId, caughtDoing }, 'Using caught-moment entrance');
         return generateCaughtMomentEntrance(config, ctx, caughtDoing);

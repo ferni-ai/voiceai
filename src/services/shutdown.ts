@@ -199,6 +199,15 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error shutting down cognitive WebSocket');
   }
 
+  // Disconnect MCP servers
+  try {
+    const { cleanupMCPConnections } = await import('../personas/bundles/mcp-integration.js');
+    await cleanupMCPConnections();
+    getLogger().info('🔌 MCP connections disconnected');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error disconnecting MCP servers');
+  }
+
   // Reset global state
   void resetGlobalServices();
 

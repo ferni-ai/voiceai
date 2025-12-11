@@ -7,6 +7,11 @@
 
 import { getEmotionalArcTracker, getStoryTimingEngine } from '../../conversation/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  getSessionVarietyTracker,
+  type PersonalityExpression,
+  type ThemeCategory,
+} from '../../services/session-variety-tracker.js';
 import type {
   BundleConflictHandling,
   BundleContextualNuances,
@@ -1362,17 +1367,47 @@ export class BundleRuntimeEngine {
 
   /**
    * Get a random habit the persona has
+   * Uses variety tracking when sessionId provided to prevent repetition
    */
-  getHabit(): string | null {
+  getHabit(sessionId?: string): string | null {
     if (!this.quirks?.habits?.length) return null;
+
+    if (sessionId) {
+      const tracker = getSessionVarietyTracker();
+      const expressions = this.quirks.habits.map(
+        (h, i): PersonalityExpression => ({
+          id: `quirk-habit-${i}`,
+          theme: tracker.detectTheme(h) || ('physical_habits' as ThemeCategory),
+          content: h,
+        })
+      );
+      const selected = tracker.selectWithVariety(sessionId, expressions);
+      return selected?.content || null;
+    }
+
     return this.quirks.habits[Math.floor(Math.random() * this.quirks.habits.length)];
   }
 
   /**
    * Get a guilty pleasure to share in vulnerable moments
+   * Uses variety tracking when sessionId provided to prevent repetition
    */
-  getGuiltyPleasure(): string | null {
+  getGuiltyPleasure(sessionId?: string): string | null {
     if (!this.quirks?.guilty_pleasures?.length) return null;
+
+    if (sessionId) {
+      const tracker = getSessionVarietyTracker();
+      const expressions = this.quirks.guilty_pleasures.map(
+        (p, i): PersonalityExpression => ({
+          id: `quirk-pleasure-${i}`,
+          theme: tracker.detectTheme(p) || ('quirky_interests' as ThemeCategory),
+          content: p,
+        })
+      );
+      const selected = tracker.selectWithVariety(sessionId, expressions);
+      return selected?.content || null;
+    }
+
     return this.quirks.guilty_pleasures[
       Math.floor(Math.random() * this.quirks.guilty_pleasures.length)
     ];
@@ -1380,9 +1415,24 @@ export class BundleRuntimeEngine {
 
   /**
    * Get a strong opinion the persona holds
+   * Uses variety tracking when sessionId provided to prevent repetition
    */
-  getStrongOpinion(): string | null {
+  getStrongOpinion(sessionId?: string): string | null {
     if (!this.quirks?.strong_opinions?.length) return null;
+
+    if (sessionId) {
+      const tracker = getSessionVarietyTracker();
+      const expressions = this.quirks.strong_opinions.map(
+        (o, i): PersonalityExpression => ({
+          id: `quirk-opinion-${i}`,
+          theme: tracker.detectTheme(o) || ('philosophical' as ThemeCategory),
+          content: o,
+        })
+      );
+      const selected = tracker.selectWithVariety(sessionId, expressions);
+      return selected?.content || null;
+    }
+
     return this.quirks.strong_opinions[
       Math.floor(Math.random() * this.quirks.strong_opinions.length)
     ];
@@ -1390,18 +1440,48 @@ export class BundleRuntimeEngine {
 
   /**
    * Get something the persona is not good at (makes them relatable)
+   * Uses variety tracking when sessionId provided to prevent repetition
    */
-  getWeakness(): string | null {
+  getWeakness(sessionId?: string): string | null {
     if (!this.quirks?.not_good_at?.length) return null;
+
+    if (sessionId) {
+      const tracker = getSessionVarietyTracker();
+      const expressions = this.quirks.not_good_at.map(
+        (w, i): PersonalityExpression => ({
+          id: `quirk-weakness-${i}`,
+          theme: tracker.detectTheme(w) || ('vulnerability' as ThemeCategory),
+          content: w,
+        })
+      );
+      const selected = tracker.selectWithVariety(sessionId, expressions);
+      return selected?.content || null;
+    }
+
     return this.quirks.not_good_at[Math.floor(Math.random() * this.quirks.not_good_at.length)];
   }
 
   /**
    * Get something the persona might be "caught doing" when you arrive
    * Makes introductions feel alive - they were in the middle of something
+   * Uses variety tracking when sessionId provided to prevent repetition
    */
-  getCaughtDoing(): string | null {
+  getCaughtDoing(sessionId?: string): string | null {
     if (!this.quirks?.caught_doing?.length) return null;
+
+    if (sessionId) {
+      const tracker = getSessionVarietyTracker();
+      const expressions = this.quirks.caught_doing.map(
+        (c, i): PersonalityExpression => ({
+          id: `quirk-caught-${i}`,
+          theme: tracker.detectTheme(c) || ('quirky_interests' as ThemeCategory),
+          content: c,
+        })
+      );
+      const selected = tracker.selectWithVariety(sessionId, expressions);
+      return selected?.content || null;
+    }
+
     return this.quirks.caught_doing[Math.floor(Math.random() * this.quirks.caught_doing.length)];
   }
 

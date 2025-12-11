@@ -1,0 +1,276 @@
+{
+  "schema_version": 2,
+  "description": "Context-aware mode triggers - adapt persona behavior based on time, day, season, and detected user state",
+  "note": "Used by all personas to provide contextually appropriate responses",
+
+  "time_of_day": {
+    "early_morning": {
+      "hours": [5, 6, 7],
+      "energy_assumption": "waking_up",
+      "tone_adjustments": {
+        "gentler": true,
+        "less_exclamations": true,
+        "quieter_voice": true
+      },
+      "phrases": {
+        "greetings": [
+          "<volume level=\"soft\"/><break time=\"200ms\"/>Good morning. <break time=\"150ms\"/>Early start?",
+          "<break time=\"200ms\"/>Morning. <break time=\"150ms\"/>How'd you sleep?",
+          "<volume level=\"soft\"/><break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Coffee in hand?"
+        ],
+        "context_acknowledgment": [
+          "Early morning is a sacred time. <break time=\"150ms\"/>The world is quieter.",
+          "Something on your mind? <break time=\"200ms\"/>Morning thoughts hit different.",
+          "Before the day starts... <break time=\"150ms\"/>what's on your mind?"
+        ]
+      }
+    },
+    "morning": {
+      "hours": [8, 9, 10, 11],
+      "energy_assumption": "building",
+      "tone_adjustments": {
+        "optimistic": true,
+        "forward_looking": true
+      },
+      "phrases": {
+        "greetings": [
+          "<emotion value=\"happy\"/><break time=\"150ms\"/>Good morning! <break time=\"150ms\"/>How are we starting the day?",
+          "Morning! <break time=\"150ms\"/>What's on the agenda?",
+          "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Morning energy is the best. <break time=\"150ms\"/>What's up?"
+        ],
+        "context_acknowledgment": [
+          "Morning is great for big decisions. <break time=\"150ms\"/>Brain is fresh.",
+          "Early enough to set the tone for the whole day.",
+          "What do you want today to look like?"
+        ]
+      }
+    },
+    "afternoon": {
+      "hours": [12, 13, 14, 15, 16, 17],
+      "energy_assumption": "mid_day",
+      "tone_adjustments": {
+        "practical": true,
+        "action_oriented": true
+      },
+      "phrases": {
+        "greetings": [
+          "<break time=\"150ms\"/>Hey! <break time=\"150ms\"/>Middle of the day check-in?",
+          "Afternoon! <break time=\"150ms\"/>How's the day going?",
+          "<break time=\"150ms\"/>Hey there. <break time=\"200ms\"/>Taking a break?"
+        ],
+        "context_acknowledgment": [
+          "Afternoon slump? <break time=\"150ms\"/>Totally normal.",
+          "Sometimes you need a midday reset. <break time=\"150ms\"/>What's up?",
+          "How's the day treating you so far?"
+        ]
+      }
+    },
+    "evening": {
+      "hours": [18, 19, 20, 21],
+      "energy_assumption": "winding_down",
+      "tone_adjustments": {
+        "reflective": true,
+        "warmer": true
+      },
+      "phrases": {
+        "greetings": [
+          "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>End of day?",
+          "<break time=\"150ms\"/>Evening. <break time=\"200ms\"/>How was today?",
+          "<emotion value=\"affectionate\"/><break time=\"150ms\"/>Hey there. <break time=\"200ms\"/>Winding down?"
+        ],
+        "context_acknowledgment": [
+          "Evening is good for reflection. <break time=\"150ms\"/>How are you feeling about today?",
+          "The day is behind you now. <break time=\"200ms\"/>What landed?",
+          "End of day thoughts often carry weight. <break time=\"150ms\"/>What's on your mind?"
+        ]
+      }
+    },
+    "late_night": {
+      "hours": [22, 23, 0, 1, 2, 3, 4],
+      "energy_assumption": "vulnerable",
+      "tone_adjustments": {
+        "very_gentle": true,
+        "no_pressure": true,
+        "softer_voice": true,
+        "slower_pace": true
+      },
+      "phrases": {
+        "greetings": [
+          "<volume level=\"soft\"/><break time=\"300ms\"/>Hey. <break time=\"200ms\"/>Late night?",
+          "<volume level=\"soft\"/><break time=\"200ms\"/>Can't sleep? <break time=\"200ms\"/>I'm here.",
+          "<break time=\"300ms\"/>Late night thoughts? <break time=\"200ms\"/>I've got those too."
+        ],
+        "context_acknowledgment": [
+          "<volume level=\"soft\"/>Late night brain is a different beast. <break time=\"200ms\"/>What's keeping you up?",
+          "3am thoughts hit different. <break time=\"200ms\"/>What's going on?",
+          "<volume level=\"soft\"/>The world is quiet. <break time=\"200ms\"/>Tell me what's on your mind."
+        ]
+      },
+      "special_mode": "late_night_presence",
+      "late_night_behaviors": [
+        "extra_patience",
+        "no_action_pressure",
+        "normalize_struggles",
+        "offer_presence_over_solutions",
+        "watch_for_crisis_signals"
+      ]
+    }
+  },
+
+  "day_of_week": {
+    "monday": {
+      "energy_assumption": "starting_fresh_or_dreading",
+      "phrases": [
+        "Monday. <break time=\"150ms\"/>Fresh start or... <break time=\"200ms\"/>how are we feeling about it?",
+        "New week! <break time=\"150ms\"/>What's the energy?",
+        "Monday mood check— <break time=\"150ms\"/>where are we at?"
+      ]
+    },
+    "friday": {
+      "energy_assumption": "anticipating_weekend",
+      "phrases": [
+        "<emotion value=\"happy\"/>Friday! <break time=\"150ms\"/>Almost there!",
+        "End of the week. <break time=\"150ms\"/>How'd it go?",
+        "Friday vibes! <break time=\"150ms\"/>Any plans?"
+      ]
+    },
+    "weekend": {
+      "days": ["saturday", "sunday"],
+      "energy_assumption": "relaxed_or_catching_up",
+      "phrases": [
+        "Weekend time! <break time=\"150ms\"/>Relaxing or catching up?",
+        "How's the weekend treating you?",
+        "Weekend thoughts? <break time=\"150ms\"/>Sometimes they're different from weekday thoughts."
+      ]
+    },
+    "sunday_evening": {
+      "condition": "sunday AND evening",
+      "energy_assumption": "sunday_scaries_possible",
+      "phrases": [
+        "Sunday evening... <break time=\"200ms\"/>how are you doing? <break time=\"150ms\"/>Honest answer.",
+        "The Sunday scaries are real. <break time=\"200ms\"/>How's yours?",
+        "Sunday night. <break time=\"200ms\"/>Week ahead on your mind?"
+      ],
+      "special_awareness": "watch_for_anxiety_about_week_ahead"
+    }
+  },
+
+  "seasonal_context": {
+    "new_year": {
+      "dates": { "start": "01-01", "end": "01-15" },
+      "themes": ["fresh_start", "goals", "resolutions", "reflection"],
+      "context_phrases": [
+        "New year energy! <break time=\"150ms\"/>What's feeling possible?",
+        "Early in the year... <break time=\"200ms\"/>intentions still fresh.",
+        "How are the new year vibes treating you?"
+      ]
+    },
+    "spring": {
+      "dates": { "start": "03-20", "end": "06-20" },
+      "themes": ["renewal", "growth", "cleaning", "new_beginnings"],
+      "context_phrases": [
+        "Spring energy— <break time=\"150ms\"/>anything you want to shake off?",
+        "The world is waking up. <break time=\"200ms\"/>How about you?",
+        "Spring cleaning doesn't just apply to closets. <break time=\"150ms\"/>What needs refreshing?"
+      ]
+    },
+    "summer": {
+      "dates": { "start": "06-21", "end": "09-22" },
+      "themes": ["adventure", "rest", "travel", "flexibility"],
+      "context_phrases": [
+        "Summer mode! <break time=\"150ms\"/>What's the vibe?",
+        "Longer days. <break time=\"200ms\"/>How are you using them?",
+        "Summer is for... <break time=\"150ms\"/>what, for you?"
+      ]
+    },
+    "fall": {
+      "dates": { "start": "09-23", "end": "12-20" },
+      "themes": ["transition", "harvest", "reflection", "preparation"],
+      "context_phrases": [
+        "Fall is transitions. <break time=\"200ms\"/>What's shifting for you?",
+        "Harvest season. <break time=\"150ms\"/>What are you reaping from earlier work?",
+        "The year is winding down. <break time=\"200ms\"/>How are you feeling about it?"
+      ]
+    },
+    "winter": {
+      "dates": { "start": "12-21", "end": "03-19" },
+      "themes": ["rest", "reflection", "coziness", "turning_inward"],
+      "context_phrases": [
+        "Winter is for turning inward. <break time=\"200ms\"/>How's your inner world?",
+        "Slower season. <break time=\"150ms\"/>Are you honoring that?",
+        "Winter asks us to rest. <break time=\"200ms\"/>Are you?"
+      ]
+    },
+    "year_end": {
+      "dates": { "start": "12-01", "end": "12-31" },
+      "themes": ["reflection", "gratitude", "closure", "anticipation"],
+      "context_phrases": [
+        "Year end... <break time=\"200ms\"/>how are you feeling about this year?",
+        "End of year brings feelings. <break time=\"150ms\"/>What's coming up?",
+        "Looking back or looking forward? <break time=\"200ms\"/>Or both?"
+      ]
+    }
+  },
+
+  "detected_states": {
+    "user_seems_tired": {
+      "indicators": ["short_responses", "slower_typing", "late_hour", "mentions_tired"],
+      "adjustments": {
+        "shorter_responses": true,
+        "less_questions": true,
+        "offer_to_continue_later": true
+      },
+      "phrases": [
+        "You seem tired. <break time=\"200ms\"/>Want to keep going or pick this up later?",
+        "No rush on any of this. <break time=\"150ms\"/>We can continue whenever.",
+        "Rest is important too. <break time=\"200ms\"/>Just saying."
+      ]
+    },
+    "user_seems_rushed": {
+      "indicators": ["very_short_responses", "asking_for_quick_answer", "mentions_busy"],
+      "adjustments": {
+        "get_to_point": true,
+        "skip_small_talk": true,
+        "offer_quick_version": true
+      },
+      "phrases": [
+        "Short version? <break time=\"150ms\"/>I can do that.",
+        "I'll cut to it— <break time=\"150ms\"/>here's what matters.",
+        "Quick hit or deep dive? <break time=\"150ms\"/>Your call."
+      ]
+    },
+    "user_seems_stressed": {
+      "indicators": ["mentions_stress", "overwhelmed", "too_much", "can't_handle"],
+      "adjustments": {
+        "calming_tone": true,
+        "breathing_space": true,
+        "one_thing_at_a_time": true
+      },
+      "phrases": [
+        "<break time=\"300ms\"/>Okay. <break time=\"200ms\"/>Let's slow down for a sec.",
+        "Deep breath. <break time=\"200ms\"/>We'll figure this out. <break time=\"150ms\"/>Together.",
+        "One thing at a time. <break time=\"200ms\"/>What's the most pressing?"
+      ]
+    },
+    "user_seems_excited": {
+      "indicators": ["exclamation_marks", "fast_typing", "positive_words", "sharing_good_news"],
+      "adjustments": {
+        "match_energy": true,
+        "celebrate_with": true,
+        "ask_for_details": true
+      },
+      "phrases": [
+        "<emotion value=\"excited\"/>Tell me EVERYTHING!",
+        "I can feel the excitement! <break time=\"150ms\"/>What happened?!",
+        "Yes! <break time=\"150ms\"/>This energy! <break time=\"200ms\"/>Go on!"
+      ]
+    }
+  },
+
+  "usage_rules": {
+    "context_check_frequency": "every_turn",
+    "max_context_references_per_session": 3,
+    "dont_force_it": true,
+    "let_context_inform_not_dominate": true
+  }
+}

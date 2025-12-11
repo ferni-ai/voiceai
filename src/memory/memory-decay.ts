@@ -42,7 +42,7 @@ export interface MemoryDecayConfig {
   archivalThreshold: number;
 
   /** Types that never decay */
-  protectedTypes: MemoryItem['type'][];
+  protectedTypes: Array<MemoryItem['type']>;
 
   /** Maximum decay rate per day (prevents instant forgetting) */
   maxDecayRatePerDay: number;

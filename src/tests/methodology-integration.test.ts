@@ -9,7 +9,14 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { loadBundleById } from '../personas/bundles/loader.js';
 
 // Test personas - both core and marketplace
-const CORE_PERSONAS = ['ferni', 'maya-santos', 'alex-chen', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+const CORE_PERSONAS = [
+  'ferni',
+  'maya-santos',
+  'alex-chen',
+  'peter-john',
+  'jordan-taylor',
+  'nayan-patel',
+];
 
 describe('Methodology Loading', () => {
   describe('Core Personas', () => {
@@ -27,7 +34,7 @@ describe('Methodology Loading', () => {
     it('should have research foundations with primary model', async () => {
       const bundle = await loadBundleById('ferni');
       const behaviors = await bundle!.getBehaviors();
-      const methodology = behaviors.methodology;
+      const { methodology } = behaviors;
 
       expect(methodology.research_foundations.primary_model).toBeDefined();
       expect(methodology.research_foundations.primary_model.name).toBeDefined();
@@ -37,7 +44,7 @@ describe('Methodology Loading', () => {
     it('should have coaching principles', async () => {
       const bundle = await loadBundleById('maya-santos');
       const behaviors = await bundle!.getBehaviors();
-      const methodology = behaviors.methodology;
+      const { methodology } = behaviors;
 
       expect(methodology.coaching_principles).toBeDefined();
       expect(Object.keys(methodology.coaching_principles).length).toBeGreaterThan(0);
@@ -47,7 +54,7 @@ describe('Methodology Loading', () => {
       // Maya Santos has intervention_techniques
       const bundle = await loadBundleById('maya-santos');
       const behaviors = await bundle!.getBehaviors();
-      const methodology = behaviors.methodology;
+      const { methodology } = behaviors;
 
       expect(methodology.intervention_techniques).toBeDefined();
       expect(Object.keys(methodology.intervention_techniques).length).toBeGreaterThan(0);
@@ -114,10 +121,7 @@ describe('Methodology Loading', () => {
     });
 
     it('should detect multiple triggers', () => {
-      const triggers = detectMethodologyTriggers(
-        "I lost my job and can't sleep",
-        []
-      );
+      const triggers = detectMethodologyTriggers("I lost my job and can't sleep", []);
       expect(triggers).toContain('grief');
       expect(triggers).toContain('sleep');
     });

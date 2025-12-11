@@ -577,23 +577,27 @@ function injectAdminPortalStyles(): void {
 
     .admin-portal {
       display: flex;
-      min-height: 100vh;
+      height: 100vh; /* Fixed height for flex scroll pattern */
+      max-height: 100vh; /* Prevent overflow */
       background: var(--admin-bg) !important;
       color: var(--admin-text-primary) !important;
       font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
       /* Ensure admin portal is on top */
       position: relative;
       z-index: 100;
+      overflow: hidden; /* Contain all scrolling within children */
     }
 
     /* Sidebar */
     .admin-sidebar {
       width: 260px;
       min-width: 260px;
+      height: 100%; /* Fill parent height */
       background: var(--admin-bg-elevated) !important;
       border-right: 1px solid var(--admin-border);
       display: flex;
       flex-direction: column;
+      overflow: hidden; /* Contain nav scroll */
       transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD}),
                   min-width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
     }
@@ -759,6 +763,8 @@ function injectAdminPortalStyles(): void {
     /* Main Content */
     .admin-main {
       flex: 1;
+      height: 100%; /* Fill parent height */
+      min-height: 0; /* Allow shrinking for flex scroll pattern */
       display: flex;
       flex-direction: column;
       overflow: hidden;

@@ -7,8 +7,8 @@
  * - Laughter conversion
  */
 
-import { describe, it, expect } from 'vitest';
-import { hasSsmlTags, stripSsmlTags, sanitizeSsml } from '../ssml/core.js';
+import { describe, expect, it } from 'vitest';
+import { hasSsmlTags, sanitizeSsml, stripSsmlTags } from '../ssml/core.js';
 
 describe('SSML Core Functions', () => {
   describe('hasSsmlTags', () => {
@@ -154,6 +154,29 @@ describe('SSML Core Functions', () => {
       it('should remove sighs', () => {
         expect(sanitizeSsml('sighs. Alright.')).not.toContain('sighs');
         expect(sanitizeSsml('He sighs heavily. Fine.')).not.toContain('sighs');
+      });
+
+      it('should remove teasing and related tone descriptors', () => {
+        expect(sanitizeSsml('Teasing. Oh, you know exactly what I mean.')).not.toContain('Teasing');
+        expect(sanitizeSsml('*teasing* Well hello there!')).not.toContain('teasing');
+        expect(sanitizeSsml('Teasingly, she replied.')).not.toContain('Teasingly');
+      });
+
+      it('should remove "with a smile" phrases', () => {
+        const result = sanitizeSsml("With a warm smile, I'd say you're doing great.");
+        expect(result).not.toContain('smile');
+        expect(result).toContain("I'd say you're doing great");
+      });
+
+      it('should remove adjective + smile/tone phrases', () => {
+        expect(sanitizeSsml('Teasing smile. Got you!')).not.toContain('smile');
+        expect(sanitizeSsml('Playful grin. Nice one!')).not.toContain('grin');
+        expect(sanitizeSsml('Knowing smile. I see.')).not.toContain('smile');
+      });
+
+      it('should remove smirks', () => {
+        expect(sanitizeSsml('He smirks. That was predictable.')).not.toContain('smirks');
+        expect(sanitizeSsml('Smirking, she turned away.')).not.toContain('Smirking');
       });
 
       it('should preserve [laughter] while removing other bracketed actions', () => {

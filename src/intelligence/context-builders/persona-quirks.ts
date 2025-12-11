@@ -24,6 +24,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { recordTurnComplete } from '../../personas/bundles/ferni/dynamic-personality.js';
 
 const log = createLogger({ module: 'PersonaQuirks' });
 
@@ -151,9 +152,12 @@ function formatGuiltyPleasureReveal(pleasure: string, personaName: string): stri
 // ============================================================================
 
 async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { userText, bundleRuntime, persona, userProfile, userData } = input;
+  const { userText, bundleRuntime, persona, userProfile, userData, services } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
+
+  // Get sessionId for variety tracking
+  const sessionId = services?.sessionId || userData.userName || 'anonymous';
 
   // Need bundleRuntime for quirks
   if (!bundleRuntime) {
@@ -190,19 +194,19 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
     switch (trigger.quirkType) {
       case 'habit':
-        quirk = bundleRuntime.getHabit();
+        quirk = bundleRuntime.getHabit(sessionId);
         if (quirk) formatted = formatHabitReveal(quirk, personaName);
         break;
       case 'strong_opinion':
-        quirk = bundleRuntime.getStrongOpinion();
+        quirk = bundleRuntime.getStrongOpinion(sessionId);
         if (quirk) formatted = formatOpinionReveal(quirk, personaName);
         break;
       case 'weakness':
-        quirk = bundleRuntime.getWeakness();
+        quirk = bundleRuntime.getWeakness(sessionId);
         if (quirk) formatted = formatWeaknessReveal(quirk, personaName);
         break;
       case 'guilty_pleasure':
-        quirk = bundleRuntime.getGuiltyPleasure();
+        quirk = bundleRuntime.getGuiltyPleasure(sessionId);
         if (quirk) formatted = formatGuiltyPleasureReveal(quirk, personaName);
         break;
     }
@@ -243,19 +247,19 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
       switch (selectedType) {
         case 'habit':
-          quirk = bundleRuntime.getHabit();
+          quirk = bundleRuntime.getHabit(sessionId);
           if (quirk) formatted = formatHabitReveal(quirk, personaName);
           break;
         case 'strong_opinion':
-          quirk = bundleRuntime.getStrongOpinion();
+          quirk = bundleRuntime.getStrongOpinion(sessionId);
           if (quirk) formatted = formatOpinionReveal(quirk, personaName);
           break;
         case 'weakness':
-          quirk = bundleRuntime.getWeakness();
+          quirk = bundleRuntime.getWeakness(sessionId);
           if (quirk) formatted = formatWeaknessReveal(quirk, personaName);
           break;
         case 'guilty_pleasure':
-          quirk = bundleRuntime.getGuiltyPleasure();
+          quirk = bundleRuntime.getGuiltyPleasure(sessionId);
           if (quirk) formatted = formatGuiltyPleasureReveal(quirk, personaName);
           break;
       }
@@ -285,6 +289,11 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
     );
   }
 
+  // Record turn completion for variety tracking
+  if (injections.length > 0) {
+    recordTurnComplete(sessionId);
+  }
+
   return injections;
 }
 
@@ -292,6 +301,11 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 // REGISTER
 // ============================================================================
 
-registerContextBuilder('persona_quirks', buildPersonaQuirksContext);
+registerContextBuilder({
+  name: 'persona_quirks',
+  description: 'Surfaces quirks, habits, and personality traits naturally throughout conversation',
+  priority: 65, // After ferni-personality (60), before engagement builders
+  build: buildPersonaQuirksContext,
+});
 
 export { buildPersonaQuirksContext };

@@ -617,11 +617,75 @@ export interface IGameImplementation {
 }
 
 // ============================================================================
-// SINGLETON
+// SESSION-SCOPED INSTANCES
+// ============================================================================
+
+/**
+ * Session-scoped game engines to prevent state mixing between concurrent sessions.
+ * Each session gets its own GameEngine instance.
+ */
+const sessionGameEngines = new Map<string, GameEngine>();
+
+/**
+ * Get or create a GameEngine for a specific session.
+ * This prevents persona/state mixing between concurrent sessions.
+ *
+ * @param sessionId - The session ID (required for proper isolation)
+ * @param personaId - Optional persona ID for the engine
+ */
+export function getSessionGameEngine(sessionId: string, personaId?: string): GameEngine {
+  let engine = sessionGameEngines.get(sessionId);
+  if (!engine) {
+    engine = new GameEngine(personaId);
+    sessionGameEngines.set(sessionId, engine);
+  } else if (personaId) {
+    engine.setPersonaId(personaId);
+  }
+  return engine;
+}
+
+/**
+ * Reset and remove a session's GameEngine.
+ * Call this when a session ends to prevent memory leaks.
+ */
+export function resetSessionGameEngine(sessionId: string): void {
+  const engine = sessionGameEngines.get(sessionId);
+  if (engine) {
+    if (engine.isGameActive()) {
+      engine.endGame();
+    }
+    sessionGameEngines.delete(sessionId);
+  }
+}
+
+/**
+ * Get count of active session game engines (for monitoring).
+ */
+export function getActiveGameEngineCount(): number {
+  return sessionGameEngines.size;
+}
+
+/**
+ * Reset all game engines (for testing only).
+ */
+export function resetAllGameEngines(): void {
+  for (const [sessionId, engine] of sessionGameEngines) {
+    if (engine.isGameActive()) {
+      engine.endGame();
+    }
+  }
+  sessionGameEngines.clear();
+}
+
+// ============================================================================
+// LEGACY SINGLETON (DEPRECATED)
 // ============================================================================
 
 let gameEngineInstance: GameEngine | null = null;
 
+/**
+ * @deprecated Use getSessionGameEngine(sessionId) instead to prevent state mixing.
+ */
 export function getGameEngine(personaId?: string): GameEngine {
   if (!gameEngineInstance) {
     gameEngineInstance = new GameEngine(personaId);
@@ -631,6 +695,9 @@ export function getGameEngine(personaId?: string): GameEngine {
   return gameEngineInstance;
 }
 
+/**
+ * @deprecated Use resetSessionGameEngine(sessionId) instead.
+ */
 export function resetGameEngine(): void {
   if (gameEngineInstance?.isGameActive()) {
     gameEngineInstance.endGame();

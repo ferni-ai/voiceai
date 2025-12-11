@@ -34,17 +34,49 @@ const log = getLogger().child({ module: 'BackchannelEngine' });
 // ============================================================================
 
 /**
+ * Adaptive mode configuration
+ * Defines when to switch between modes
+ */
+interface AdaptiveModeConfig {
+  /** Switch to live mode when user is emotional */
+  useLineForEmotional: boolean;
+  /** Emotional threshold for live mode (0-1) */
+  emotionalThreshold: number;
+  /** Switch to enhanced for heavy topics */
+  useEnhancedForHeavy: boolean;
+  /** Use standard for early conversation */
+  useStandardForEarly: boolean;
+  /** Turn threshold for "early" conversation */
+  earlyTurnThreshold: number;
+}
+
+const DEFAULT_ADAPTIVE_CONFIG: AdaptiveModeConfig = {
+  useLineForEmotional: true,
+  emotionalThreshold: 0.6,
+  useEnhancedForHeavy: true,
+  useStandardForEarly: true,
+  earlyTurnThreshold: 3,
+};
+
+/**
  * Unified backchanneling decision engine
  *
  * Consolidates logic from:
  * - BackchannelingSystem (backchanneling.ts)
  * - EnhancedBackchannelingEngine (enhanced-backchanneling.ts)
  * - LiveBackchannelingService (live-backchanneling/)
+ *
+ * New adaptive mode automatically switches between modes based on:
+ * - Conversation turn count (early = standard)
+ * - Topic weight (heavy = enhanced)
+ * - Emotional intensity (high = live)
+ * - Breath pause availability (available = live)
  */
 export class BackchannelEngine {
-  private readonly mode: BackchannelMode;
+  private readonly configuredMode: BackchannelMode;
   private readonly baseTiming: BackchannelTiming;
   private readonly personaId: string;
+  private readonly adaptiveConfig: AdaptiveModeConfig;
 
   private lastBackchannelTime = 0;
   private backchannelCount = 0;
@@ -53,20 +85,78 @@ export class BackchannelEngine {
     category: BackchannelCategory;
     phrase: string;
     time: number;
+    mode: BackchannelMode;
   }> = [];
   private readonly maxHistorySize = 20;
 
+  // Adaptive mode tracking
+  private modeHistory: BackchannelMode[] = [];
+  private lastAdaptiveMode: BackchannelMode = 'standard';
+
   constructor(options: BackchannelEngineOptions) {
-    this.mode = options.mode;
+    this.configuredMode = options.mode;
     this.personaId = normalizePersonaId(options.personaId ?? 'ferni');
+    this.adaptiveConfig = { ...DEFAULT_ADAPTIVE_CONFIG };
 
     // Get base timing for mode and merge with custom
-    const baseTiming = getTimingForMode(options.mode);
+    // For adaptive mode, use enhanced as the default base timing
+    const baseMode = options.mode === 'adaptive' ? 'enhanced' : options.mode;
+    const baseTiming = getTimingForMode(baseMode);
     this.baseTiming = options.customTiming
       ? mergeTimingConfig(baseTiming, options.customTiming)
       : baseTiming;
 
-    log.debug({ mode: this.mode, personaId: this.personaId }, 'BackchannelEngine initialized');
+    log.debug({ mode: this.configuredMode, personaId: this.personaId }, 'BackchannelEngine initialized');
+  }
+
+  /**
+   * Get the current effective mode (for adaptive, this can change per context)
+   */
+  get mode(): BackchannelMode {
+    return this.configuredMode === 'adaptive' ? this.lastAdaptiveMode : this.configuredMode;
+  }
+
+  /**
+   * Determine the best mode for the current context (adaptive mode logic)
+   */
+  private determineAdaptiveMode(context: BackchannelContext): BackchannelMode {
+    // If not in adaptive mode, return configured mode
+    if (this.configuredMode !== 'adaptive') {
+      return this.configuredMode;
+    }
+
+    // Early conversation → use standard (less intrusive)
+    if (
+      this.adaptiveConfig.useStandardForEarly &&
+      context.turnCount <= this.adaptiveConfig.earlyTurnThreshold
+    ) {
+      return 'standard';
+    }
+
+    // Breath pause available → can use live mode
+    if (context.isBreathPause === true) {
+      // High emotional intensity → live mode for immediate support
+      if (
+        this.adaptiveConfig.useLineForEmotional &&
+        (context.userEmotion.distressLevel > this.adaptiveConfig.emotionalThreshold ||
+          context.userEmotion.intensity > this.adaptiveConfig.emotionalThreshold)
+      ) {
+        return 'live';
+      }
+    }
+
+    // Heavy topic → enhanced mode (more thoughtful)
+    if (this.adaptiveConfig.useEnhancedForHeavy && context.topicWeight === 'heavy') {
+      return 'enhanced';
+    }
+
+    // Emotional moment → enhanced for better phrase selection
+    if (context.isEmotionalMoment) {
+      return 'enhanced';
+    }
+
+    // Default to enhanced (best balance)
+    return 'enhanced';
   }
 
   // ==========================================================================

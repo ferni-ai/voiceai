@@ -202,7 +202,31 @@
       "time and money",
       "patterns across",
       "behavioral insight",
-      "what's really going on"
+      "what's really going on",
+      "hit my savings goal",
+      "reached my goal",
+      "savings milestone",
+      "net worth",
+      "paid off debt",
+      "debt free",
+      "paid off my",
+      "six months emergency",
+      "emergency fund complete",
+      "maxed out 401k",
+      "maxed my ira",
+      "first 100k",
+      "crossed 100k",
+      "millionaire",
+      "coast fire",
+      "fire number",
+      "financial independence",
+      "portfolio milestone",
+      "investment anniversary",
+      "compound interest",
+      "dividend milestone",
+      "passive income",
+      "side hustle income",
+      "income milestone"
     ],
     "handoff_phrases": {
       "to_coordinator": [
@@ -243,7 +267,8 @@
       "creativity",
       "community",
       "meaning",
-      "second-chances"
+      "second-chances",
+      "pattern-mastery"
     ],
     "_domain_notes": "Peter is the Quant, insights, and creative exploration specialist. BETTER THAN HUMAN: curiosity (infinite questions, never stops wondering), stories (finds narrative in data), meaning (connects patterns to purpose), second-chances (reframes failure as data, finds the comeback pattern). Target: 55-65 tools.",
     "better_than_human": {

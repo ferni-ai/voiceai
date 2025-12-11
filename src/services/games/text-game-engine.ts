@@ -426,11 +426,75 @@ export class TextGameEngine implements TextGameEngineContract {
 }
 
 // ============================================================================
-// SINGLETON
+// SESSION-SCOPED INSTANCES
+// ============================================================================
+
+/**
+ * Session-scoped text game engines to prevent state mixing between concurrent sessions.
+ * Each session gets its own TextGameEngine instance.
+ */
+const sessionTextGameEngines = new Map<string, TextGameEngine>();
+
+/**
+ * Get or create a TextGameEngine for a specific session.
+ * This prevents persona/state mixing between concurrent sessions.
+ *
+ * @param sessionId - The session ID (required for proper isolation)
+ * @param personaId - Optional persona ID for the engine
+ */
+export function getSessionTextGameEngine(sessionId: string, personaId?: string): TextGameEngine {
+  let engine = sessionTextGameEngines.get(sessionId);
+  if (!engine) {
+    engine = new TextGameEngine(personaId);
+    sessionTextGameEngines.set(sessionId, engine);
+  } else if (personaId) {
+    engine.setPersonaId(personaId);
+  }
+  return engine;
+}
+
+/**
+ * Reset and remove a session's TextGameEngine.
+ * Call this when a session ends to prevent memory leaks.
+ */
+export function resetSessionTextGameEngine(sessionId: string): void {
+  const engine = sessionTextGameEngines.get(sessionId);
+  if (engine) {
+    if (engine.isGameActive()) {
+      engine.endGame();
+    }
+    sessionTextGameEngines.delete(sessionId);
+  }
+}
+
+/**
+ * Get count of active session text game engines (for monitoring).
+ */
+export function getActiveTextGameEngineCount(): number {
+  return sessionTextGameEngines.size;
+}
+
+/**
+ * Reset all text game engines (for testing only).
+ */
+export function resetAllTextGameEngines(): void {
+  for (const [sessionId, engine] of sessionTextGameEngines) {
+    if (engine.isGameActive()) {
+      engine.endGame();
+    }
+  }
+  sessionTextGameEngines.clear();
+}
+
+// ============================================================================
+// LEGACY SINGLETON (DEPRECATED)
 // ============================================================================
 
 let textGameEngineInstance: TextGameEngine | null = null;
 
+/**
+ * @deprecated Use getSessionTextGameEngine(sessionId) instead to prevent state mixing.
+ */
 export function getTextGameEngine(personaId?: string): TextGameEngine {
   if (!textGameEngineInstance) {
     textGameEngineInstance = new TextGameEngine(personaId);
@@ -440,6 +504,9 @@ export function getTextGameEngine(personaId?: string): TextGameEngine {
   return textGameEngineInstance;
 }
 
+/**
+ * @deprecated Use resetSessionTextGameEngine(sessionId) instead.
+ */
 export function resetTextGameEngine(): void {
   if (textGameEngineInstance?.isGameActive()) {
     textGameEngineInstance.endGame();

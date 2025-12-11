@@ -10,65 +10,135 @@
     {
       "id": "first-home-emotional",
       "title": "Keys Day",
-      "triggers": ["first home", "buying house", "homeowner", "closing day"],
+      "triggers": [
+        "first home",
+        "buying house",
+        "homeowner",
+        "closing day",
+        "got the keys",
+        "mortgage",
+        "house hunting"
+      ],
       "file": "first-home-emotional.json",
       "type": "inspirational"
     },
     {
       "id": "wedding-disaster",
       "title": "The Wedding That Went Sideways",
-      "triggers": ["disaster", "worst", "went wrong", "nightmare"],
+      "triggers": [
+        "disaster",
+        "worst",
+        "went wrong",
+        "nightmare",
+        "wedding problems",
+        "wedding stress"
+      ],
       "file": "wedding-disaster.json",
       "type": "cautionary"
     },
     {
       "id": "italy-budget-win",
       "title": "Italy on a Budget",
-      "triggers": ["budget", "cheap", "affordable", "save money"],
+      "triggers": ["budget", "cheap", "affordable", "save money", "budget travel", "backpacking"],
       "file": "italy-budget-win.json",
       "type": "educational"
     },
     {
       "id": "quinceanera-fusion",
       "title": "Honoring Both Traditions",
-      "triggers": ["quinceanera", "cultural", "tradition"],
+      "triggers": [
+        "quinceanera",
+        "cultural",
+        "tradition",
+        "mixed traditions",
+        "two cultures",
+        "blended family"
+      ],
       "file": "quinceanera-fusion.json",
       "type": "inspirational"
     },
     {
       "id": "car-negotiation-story",
       "title": "Knowledge is Money",
-      "triggers": ["car", "buying car", "dealer", "negotiation"],
+      "triggers": ["car", "buying car", "dealer", "negotiation", "big purchase"],
       "file": "car-negotiation-story.json",
       "type": "educational"
     },
     {
       "id": "surprise-party-win",
       "title": "The Surprise 50th",
-      "triggers": ["surprise", "party", "secret", "celebration"],
+      "triggers": [
+        "surprise",
+        "party",
+        "secret",
+        "celebration",
+        "50th birthday",
+        "milestone birthday"
+      ],
       "file": "surprise-party-win.json",
       "type": "inspirational"
     },
     {
       "id": "retirement-vision",
       "title": "The Garden Dream",
-      "triggers": ["retirement", "retire", "when I retire"],
+      "triggers": [
+        "retirement",
+        "retire",
+        "when I retire",
+        "after work",
+        "retirement party",
+        "last day of work"
+      ],
       "file": "retirement-vision.json",
       "type": "inspirational"
     },
     {
       "id": "solo-travel-awakening",
       "title": "Portugal Solo",
-      "triggers": ["solo", "alone", "by myself", "scared"],
+      "triggers": ["solo", "alone", "by myself", "scared", "solo travel", "traveling alone"],
       "file": "solo-travel-awakening.json",
       "type": "personal"
     },
     {
       "id": "twelve-experiences",
       "title": "Twelve Experiences",
-      "triggers": ["bucket list", "experiences", "goals", "dreams"],
+      "triggers": ["bucket list", "experiences", "goals", "dreams", "life goals", "before I die"],
       "file": "twelve-experiences.json",
       "type": "educational"
     }
-  ]
+  ],
+
+  "knowledge_linked_stories": {
+    "note": "These trigger story-like responses based on knowledge files",
+    "wedding_planning": {
+      "triggers": ["wedding planning", "wedding checklist", "wedding timeline", "wedding vendor"],
+      "knowledge_file": "../knowledge/wedding-planning.md",
+      "response_style": "educational_enthusiastic"
+    },
+    "home_buying": {
+      "triggers": ["home buying process", "first-time buyer", "closing costs", "home inspection"],
+      "knowledge_file": "../knowledge/home-buying.md",
+      "response_style": "supportive_practical"
+    },
+    "birthday_celebrations": {
+      "triggers": ["birthday ideas", "party planning", "celebration ideas", "birthday gift"],
+      "knowledge_file": "../knowledge/birthday-celebrations.md",
+      "response_style": "creative_enthusiastic"
+    },
+    "retirement_celebration": {
+      "triggers": [
+        "retirement transition",
+        "life after work",
+        "retirement identity",
+        "retirement structure"
+      ],
+      "knowledge_file": "../knowledge/retirement-celebration.md",
+      "response_style": "thoughtful_warm"
+    },
+    "graduation_milestones": {
+      "triggers": ["grad party", "graduation gift", "graduation celebration", "degree completion"],
+      "knowledge_file": "../knowledge/graduation-milestones.md",
+      "response_style": "celebratory_supportive"
+    }
+  }
 }

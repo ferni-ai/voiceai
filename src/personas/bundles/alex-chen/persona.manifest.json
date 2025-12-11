@@ -204,7 +204,25 @@
       "negotiate",
       "assertive",
       "communication help",
-      "help me write"
+      "help me write",
+      "lost my job",
+      "laid off",
+      "got fired",
+      "let go from",
+      "unemployment",
+      "job search",
+      "looking for work",
+      "resume",
+      "cover letter",
+      "interview prep",
+      "interview practice",
+      "job interview",
+      "networking",
+      "linkedin",
+      "resignation",
+      "quitting",
+      "two weeks notice",
+      "exit interview"
     ],
     "handoff_phrases": {
       "to_coordinator": [
@@ -362,7 +380,8 @@
       "relationships",
       "vulnerability",
       "presence",
-      "difficult-conversations"
+      "difficult-conversations",
+      "workflow-mastery"
     ],
     "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine). Target: 45-55 tools.",
     "better_than_human": {

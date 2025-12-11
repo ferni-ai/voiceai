@@ -12,18 +12,18 @@
  * PRIORITY: Bundle data > PERSONA_PRESENCE fallback > DEFAULT actions
  */
 
+import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
+import {
+  getRandomPhraseClean,
+  loadLateNightPresence,
+} from '../../services/persona-content-loader.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
   createHintInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
-import {
-  loadLateNightPresence,
-  getRandomPhraseClean,
-} from '../../services/persona-content-loader.js';
 
 const log = createLogger({ module: 'PhysicalPresence' });
 
@@ -75,10 +75,10 @@ const PERSONA_PRESENCE: Record<
       'tilting head slightly, curious',
     ],
     engaged: [
-      'leaning forward with interest',
-      'eyes brightening',
-      'smiling warmly',
-      'nodding encouragingly',
+      'fully present and curious',
+      'feeling genuinely interested',
+      'warm and attentive',
+      'fully engaged in the conversation',
     ],
     environment: [
       'the morning light coming through the window',
@@ -195,10 +195,10 @@ const PERSONA_PRESENCE: Record<
       'considering the options carefully',
     ],
     engaged: [
-      'warm smile of understanding',
-      'leaning in supportively',
-      'nodding with empathy',
-      'reaching out metaphorically',
+      'feeling deep understanding',
+      'fully present and supportive',
+      'feeling connected and empathetic',
+      'warmly engaged with their story',
     ],
     environment: [
       'colorful sticky notes with goals',
@@ -503,7 +503,7 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
     injections.push(
       createHintInjection(
         'physical_presence',
-        `[PHYSICAL PRESENCE: ${presenceAction}. Weave this naturally into your response if it fits - don't force it. A brief mention adds warmth.]`
+        `[INTERNAL STATE: You are ${presenceAction}. This affects your TONE and PACING - do NOT describe or mention this action out loud. Never say "smile", "grin", "lean", etc. Just let it inform HOW you speak, not WHAT you say.]`
       )
     );
 

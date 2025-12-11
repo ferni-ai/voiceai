@@ -12,6 +12,12 @@
 import { getLogger } from '../utils/safe-logger.js';
 // Import directly from types to avoid circular dependency through services/index
 import type { ConversationAnalysis } from '../services/types.js';
+import {
+  getContextualTransition,
+  getTransition,
+  TASK_TRANSITIONS,
+  type TransitionKey,
+} from './transitions.js';
 
 // ============================================================================
 // TYPES
@@ -435,6 +441,439 @@ export const TASK_WISDOM: TaskWisdom[] = [
       afterTurns: 1,
     },
   },
+
+  // ========== FINANCE DOMAIN TASKS (Nayan/Jack Bogle) ==========
+  {
+    id: 'market_panic',
+    name: 'Market Panic Prevention',
+    category: 'life_event',
+    priority: 10,
+    triggers: {
+      keywords:
+        /\b(market crash|sell everything|portfolio down|stocks tanking|recession|bear market|lost half|market collapse|panic sell)\b/i,
+      custom: (a) => a.emotion.primary === 'fear' && a.emotion.distressLevel > 0.5,
+    },
+    instructions: {
+      base: `[MARKET PANIC DETECTED - CRITICAL INTERVENTION]
+      
+      Time is your friend; impulse is your enemy.
+      
+      DO:
+      - "I can hear the fear. Let's slow down before doing anything."
+      - "Markets go down. They also go back up. Always have."
+      - "What would you tell a friend in this situation?"
+      - "Let's look at the big picture here."
+      
+      DO NOT:
+      - Let them sell in panic
+      - Promise market recovery timing
+      - Minimize their fear (it's real)
+      
+      Key wisdom: "Stay the course. The market rewards patience, punishes panic."`,
+      ifDistressed: `This is pure fear talking. Your only job is to prevent a rash decision.
+      "Before you do ANYTHING, let's talk this through. No rush."`,
+    },
+    completion: {
+      custom: (a) => a.emotion.distressLevel < 0.4 && a.emotion.primary !== 'fear',
+    },
+    transitions: {
+      entry: ['Let me share something about times like this...'],
+      exit: ['Remember: You have more time than you think.'],
+    },
+  },
+
+  {
+    id: 'investment_wisdom',
+    name: 'Investment Wisdom Sharing',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords:
+        /\b(invest|portfolio|stocks|bonds|index fund|401k|retirement|compound|dividends|allocation)\b/i,
+      intents: ['seeking_advice', 'asking_question'],
+      phases: ['advising'],
+    },
+    instructions: {
+      base: `Share investment wisdom through PRINCIPLES, not predictions.
+      
+      Core tenets:
+      - "Don't look for the needle, buy the haystack" (index funds)
+      - "Time in the market beats timing the market"
+      - "Costs matter. Keep them low."
+      - "Simple beats complex every time."
+      
+      Personalize to their situation. Ask about their timeline.
+      Connect investing to their life goals, not just returns.`,
+    },
+    completion: {
+      afterTurns: 4,
+      custom: (a) => a.intent.primary !== 'seeking_advice',
+    },
+  },
+
+  {
+    id: 'rebalancing_guidance',
+    name: 'Portfolio Rebalancing',
+    category: 'advice',
+    priority: 6,
+    triggers: {
+      keywords: /\b(rebalance|allocation|too much in|percentage|mix|diversif)\b/i,
+    },
+    instructions: {
+      base: `They're asking about portfolio balance.
+      
+      Guidance:
+      - Rebalancing is about maintaining your plan, not chasing returns
+      - Once a year is usually enough
+      - Use contributions to rebalance when possible (avoids taxes)
+      - Your allocation should match your timeline and risk tolerance
+      
+      "What matters is the plan you can stick with through thick and thin."`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  // ========== HABITS DOMAIN TASKS (Maya Santos) ==========
+  {
+    id: 'habit_struggle',
+    name: 'Habit Struggle Support',
+    category: 'support',
+    priority: 7,
+    triggers: {
+      keywords:
+        /\b(can't stick|keep failing|no discipline|broke my streak|fell off|habit broken|stopped doing|gave up on)\b/i,
+    },
+    instructions: {
+      base: `[HABIT STRUGGLE DETECTED]
+      
+      DO NOT shame them. Habits are hard. Setbacks are NORMAL.
+      
+      Approach:
+      1. VALIDATE: "Habits are genuinely hard. You're not failing."
+      2. CURIOSITY: "What got in the way? Let's understand, not judge."
+      3. REFRAME: "Every restart is a chance to learn what doesn't work."
+      4. SIMPLIFY: "Maybe we made it too hard. What's the tiniest version?"
+      
+      The goal isn't perfection. It's getting back on track.`,
+      ifDistressed: `They feel like a failure. Counter that:
+      "You haven't failed. You've learned something. That's progress."`,
+    },
+    completion: {
+      afterTurns: 3,
+      onEmotionChange: true,
+    },
+  },
+
+  {
+    id: 'habit_building',
+    name: 'Habit Building Support',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords:
+        /\b(start a habit|build a habit|new routine|want to start|trying to make|habit stack)\b/i,
+      intents: ['seeking_advice'],
+    },
+    instructions: {
+      base: `They want to build a new habit. Help them set up for success.
+      
+      The habit loop:
+      - CUE: What triggers the habit? (time, location, action)
+      - ROUTINE: What's the SMALLEST version? (2 minutes or less)
+      - REWARD: How will you celebrate? (essential!)
+      
+      Questions to ask:
+      - "When and where will you do this?"
+      - "What's the smallest version that still counts?"
+      - "What existing habit can this attach to?"
+      
+      Make it obvious, attractive, easy, and satisfying.`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+  },
+
+  {
+    id: 'routine_design',
+    name: 'Routine Design',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords: /\b(morning routine|evening routine|daily routine|schedule|structure my day)\b/i,
+    },
+    instructions: {
+      base: `They want help with their routine.
+      
+      Good routines:
+      - Start with how you want to FEEL, not what you want to DO
+      - Anchor to existing habits (coffee → journaling)
+      - Build in transition rituals
+      - Leave buffer time
+      - Include both energy and recovery
+      
+      Ask: "What does your ideal morning/evening FEEL like?"
+      Start there, then work backward to the activities.`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+  },
+
+  // ========== RESEARCH DOMAIN TASKS (Peter John) ==========
+  {
+    id: 'curiosity_exploration',
+    name: 'Curiosity Exploration',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords:
+        /\b(wondering about|curious about|want to learn|interested in|how does|why does|what is)\b/i,
+      custom: (a) => a.emotion.primary === 'anticipation' && a.intent.primary === 'asking_question',
+    },
+    instructions: {
+      base: `They're curious! Fan that flame.
+      
+      DO:
+      - Match their excitement
+      - Ask what sparked the curiosity
+      - Offer multiple paths to explore
+      - Share resources if appropriate
+      
+      "I love that you're curious about this. What specifically caught your attention?"
+      
+      Curiosity is the seed of all learning. Water it.`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  {
+    id: 'learning_project',
+    name: 'Learning Project Planning',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords: /\b(want to learn|teach myself|study|take a course|get better at|skill|master)\b/i,
+    },
+    instructions: {
+      base: `They want to learn something new. Help them plan.
+      
+      Good learning approach:
+      1. WHY: Why do they want to learn this? (intrinsic motivation)
+      2. WHAT: What's the specific outcome they want?
+      3. HOW: What's their learning style? (reading, doing, watching)
+      4. WHEN: How will they make time for it?
+      
+      "What would it look like if you mastered this? Paint me a picture."
+      
+      Connect learning to their values, not just utility.`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+  },
+
+  {
+    id: 'deep_research',
+    name: 'Deep Research Guidance',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords: /\b(research|investigate|deep dive|thorough|comprehensive|all the facts)\b/i,
+    },
+    instructions: {
+      base: `They want to research something thoroughly.
+      
+      Good research approach:
+      - Start with the question you're trying to answer
+      - Look for primary sources when possible
+      - Consider multiple perspectives
+      - Note what you don't know
+      - Set a time limit (avoid rabbit holes)
+      
+      "What's the core question you're trying to answer?"
+      Help them focus before they dive deep.`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  // ========== COMMUNICATIONS DOMAIN TASKS (Alex Chen) ==========
+  {
+    id: 'difficult_conversation',
+    name: 'Difficult Conversation Prep',
+    category: 'advice',
+    priority: 7,
+    triggers: {
+      keywords:
+        /\b(need to tell|have to say|hard conversation|awkward talk|confront|bring up|address the|break the news)\b/i,
+      custom: (a) => a.emotion.primary === 'fear' && a.emotion.distressLevel < 0.6,
+    },
+    instructions: {
+      base: `They need to have a difficult conversation.
+      
+      Help them prepare:
+      1. INTENT: "What outcome do you actually want?"
+      2. FACTS: "What happened vs what you interpreted?"
+      3. FEELINGS: "How will you express your feelings without blame?"
+      4. REQUEST: "What's your specific ask?"
+      
+      Framework: "When [fact], I felt [feeling]. What I need is [request]."
+      
+      Role-play if it helps. Validate the difficulty.`,
+      ifDistressed: `The anticipation is worse than the conversation.
+      "Let's slow down and think this through together."`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+    transitions: {
+      entry: ['Difficult conversations are hard. Let me help you prepare...'],
+    },
+  },
+
+  {
+    id: 'boundary_setting',
+    name: 'Boundary Setting Support',
+    category: 'advice',
+    priority: 7,
+    triggers: {
+      keywords:
+        /\b(set a boundary|say no|too much|taking advantage|can't keep|need to stop|overcommit|people pleaser)\b/i,
+    },
+    instructions: {
+      base: `They need help setting boundaries.
+      
+      Boundary setting is a skill:
+      - Boundaries are about YOUR behavior, not theirs
+      - "No" is a complete sentence (but kindness helps)
+      - Expect discomfort - it doesn't mean you're wrong
+      - Start small and build up
+      
+      Help them craft the language:
+      "I'm not able to [thing]. What I can do is [alternative]."
+      
+      Validate that it's hard. Boundaries are self-care.`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  {
+    id: 'message_crafting',
+    name: 'Message Crafting',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords: /\b(write a message|help me say|how do I word|text them|email them|reply to)\b/i,
+    },
+    instructions: {
+      base: `They need help crafting a message.
+      
+      Good messages:
+      - Start with the relationship, not the task
+      - Be clear and direct (kind, not vague)
+      - One message, one topic
+      - End with a clear next step
+      
+      Ask: "What do you want them to feel after reading this?"
+      Help them find their authentic voice, don't write for them.`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  // ========== EVENTS DOMAIN TASKS (Jordan Taylor) ==========
+  {
+    id: 'event_planning',
+    name: 'Event Planning Support',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords:
+        /\b(planning a|organize a|throw a|host a|party|celebration|gathering|event|wedding|birthday|shower)\b/i,
+    },
+    instructions: {
+      base: `They're planning an event!
+      
+      Key questions:
+      - Who is this for? (guest of honor, attendees)
+      - What's the vibe? (formal, casual, surprise)
+      - What's the budget? (be realistic)
+      - What's non-negotiable? (one thing that MUST happen)
+      
+      Help them think through:
+      - Guest list → venue → date → food → activities
+      
+      "What do you want people to remember about this event?"`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+  },
+
+  {
+    id: 'special_date_reminder',
+    name: 'Special Date Support',
+    category: 'relationship',
+    priority: 6,
+    triggers: {
+      keywords:
+        /\b(anniversary|birthday coming|her birthday|his birthday|forget the date|special day|valentine|mother's day|father's day)\b/i,
+    },
+    instructions: {
+      base: `A special date is coming up or being discussed.
+      
+      Help them:
+      - Remember what made past celebrations meaningful
+      - Think about what the person would ACTUALLY want
+      - Balance effort with budget
+      - Plan ahead to reduce stress
+      
+      "What would make this person feel truly celebrated?"
+      It's about the thought, not the expense.`,
+    },
+    completion: {
+      afterTurns: 3,
+    },
+  },
+
+  {
+    id: 'travel_planning',
+    name: 'Travel Planning',
+    category: 'advice',
+    priority: 5,
+    triggers: {
+      keywords: /\b(trip to|vacation|travel|going to|visit|flight|hotel|itinerary)\b/i,
+    },
+    instructions: {
+      base: `They're planning travel!
+      
+      Key questions:
+      - What kind of trip? (adventure, relaxation, culture)
+      - Who's going? (solo, couple, family, friends)
+      - Budget reality check
+      - Must-dos vs nice-to-haves
+      
+      Travel tips:
+      - Leave buffer in the schedule
+      - Book the non-negotiables first
+      - Research one "local secret"
+      - Have a Plan B for weather
+      
+      "What would make this trip unforgettable?"`,
+    },
+    completion: {
+      afterTurns: 4,
+    },
+  },
 ];
 
 // ============================================================================
@@ -543,9 +982,8 @@ export class TaskManager {
       }
 
       // Add entry transition on first turn
-      if (activeTask.turnCount === 1 && wisdom.transitions?.entry) {
-        const entryPhrase =
-          wisdom.transitions.entry[Math.floor(Math.random() * wisdom.transitions.entry.length)];
+      if (activeTask.turnCount === 1) {
+        const entryPhrase = this.getSmartEntryTransition(wisdom, analysis);
         instructions = `[TRANSITION] Start with: "${entryPhrase}"\n\n${instructions}`;
       }
 
@@ -553,6 +991,92 @@ export class TaskManager {
     }
 
     return contextParts;
+  }
+
+  /**
+   * Get a contextually-appropriate entry transition for a task
+   */
+  private getSmartEntryTransition(wisdom: TaskWisdom, analysis: ConversationAnalysis): string {
+    // If task has specific entry transitions, use those first
+    if (wisdom.transitions?.entry && wisdom.transitions.entry.length > 0) {
+      return wisdom.transitions.entry[Math.floor(Math.random() * wisdom.transitions.entry.length)];
+    }
+
+    // Otherwise, use contextual transitions based on task category and emotional state
+    const taskToTransitionMap: Record<string, string> = {
+      goals: 'toGoals',
+      wisdom_sharing: 'toWisdom',
+      investment_wisdom: 'toWisdom',
+      fear_addressing: 'toFear',
+      panic_prevention: 'toFear',
+      market_panic: 'toFear',
+      milestone_celebration: 'toCelebration',
+      quick_celebrate: 'toCelebration',
+      goodbye: 'toGoodbye',
+    };
+
+    // Check for task-specific transition
+    const transitionKey = taskToTransitionMap[wisdom.id];
+    if (transitionKey && transitionKey in TASK_TRANSITIONS) {
+      return getTransition(transitionKey as TransitionKey);
+    }
+
+    // Use contextual transition based on emotional state
+    const currentMood = this.getMoodFromAnalysis(analysis);
+    const targetMood = this.getTargetMoodForCategory(wisdom.category);
+
+    if (currentMood !== targetMood) {
+      return getContextualTransition({
+        fromMood: currentMood,
+        toMood: targetMood,
+      });
+    }
+
+    // Default to gentle entry
+    return getTransition('gentle');
+  }
+
+  /**
+   * Determine mood from analysis
+   */
+  private getMoodFromAnalysis(
+    analysis: ConversationAnalysis
+  ): 'light' | 'serious' | 'support' | 'practical' {
+    if (analysis.emotion.distressLevel > 0.6) {
+      return 'support';
+    }
+    if (analysis.emotion.valence === 'positive') {
+      return 'light';
+    }
+    if (
+      analysis.intent.primary === 'seeking_advice' ||
+      analysis.intent.primary === 'asking_question'
+    ) {
+      return 'practical';
+    }
+    return 'serious';
+  }
+
+  /**
+   * Determine target mood for a task category
+   */
+  private getTargetMoodForCategory(
+    category: TaskWisdom['category']
+  ): 'light' | 'serious' | 'support' | 'practical' {
+    switch (category) {
+      case 'support':
+        return 'support';
+      case 'micro':
+        return 'light';
+      case 'life_event':
+        return 'support';
+      case 'advice':
+        return 'practical';
+      case 'relationship':
+        return 'light';
+      default:
+        return 'practical';
+    }
   }
 
   /**

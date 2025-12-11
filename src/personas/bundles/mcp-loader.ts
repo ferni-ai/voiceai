@@ -1,0 +1,424 @@
+/**
+ * Agent MCP Configuration Loader
+ *
+ * Loads MCP (Model Context Protocol) server configurations.
+ * MCP allows agents to connect to external tool servers for
+ * extended functionality without bundling tools directly.
+ *
+ * Configuration in mcp.json:
+ * ```json
+ * {
+ *   "servers": [
+ *     {
+ *       "id": "my-tools",
+ *       "name": "My Custom Tools",
+ *       "transport": "stdio",
+ *       "command": "node",
+ *       "args": ["./mcp-server.js"],
+ *       "autoConnect": true
+ *     },
+ *     {
+ *       "id": "external-api",
+ *       "name": "External API Server",
+ *       "transport": "http",
+ *       "url": "https://api.example.com/mcp",
+ *       "timeout": 30000
+ *     }
+ *   ]
+ * }
+ * ```
+ *
+ * @module personas/bundles/mcp-loader
+ */
+
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { readFile, stat } from 'fs/promises';
+import { join } from 'path';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
+
+const log = getLogger();
+
+// ============================================================================
+// MCP LOADER
+// ============================================================================
+
+/**
+ * Load MCP configuration from mcp.json
+ */
+export async function loadMCPConfig(bundlePath: string): Promise<BundleMCPConfig | null> {
+  try {
+    const mcpPath = join(bundlePath, 'mcp.json');
+    const mcpStat = await stat(mcpPath).catch(() => null);
+
+    if (!mcpStat?.isFile()) {
+      return null;
+    }
+
+    const content = await readFile(mcpPath, 'utf-8');
+    const config = JSON.parse(content) as BundleMCPConfig;
+
+    // Validate servers
+    if (!config.servers || !Array.isArray(config.servers)) {
+      log.warn({ bundlePath }, 'Invalid MCP config: missing servers array');
+      return null;
+    }
+
+    // Validate each server
+    const validServers: BundleMCPServer[] = [];
+    for (const server of config.servers) {
+      if (!server.id || !server.transport) {
+        log.warn({ server }, 'Invalid MCP server: missing id or transport');
+        continue;
+      }
+
+      const validTransports = ['stdio', 'http', 'websocket'];
+      if (!validTransports.includes(server.transport)) {
+        log.warn({ server }, 'Invalid MCP server: unknown transport');
+        continue;
+      }
+
+      // Validate transport-specific requirements
+      if (server.transport === 'stdio' && !server.command) {
+        log.warn({ server }, 'Invalid MCP server: stdio transport requires command');
+        continue;
+      }
+
+      if ((server.transport === 'http' || server.transport === 'websocket') && !server.url) {
+        log.warn({ server }, 'Invalid MCP server: http/websocket transport requires url');
+        continue;
+      }
+
+      validServers.push(server);
+    }
+
+    if (validServers.length === 0) {
+      return null;
+    }
+
+    log.info(
+      { bundlePath, serverCount: validServers.length },
+      'Loaded MCP configuration'
+    );
+
+    return { servers: validServers };
+  } catch (error) {
+    log.error({ error, bundlePath }, 'Failed to load MCP config');
+    return null;
+  }
+}
+
+// ============================================================================
+// MCP CONFIG CACHE
+// ============================================================================
+
+const mcpConfigCache = new Map<string, BundleMCPConfig | null>();
+
+/**
+ * Get MCP config for a bundle (with caching)
+ */
+export async function getMCPConfig(
+  bundlePath: string,
+  forceReload = false
+): Promise<BundleMCPConfig | null> {
+  if (!forceReload && mcpConfigCache.has(bundlePath)) {
+    return mcpConfigCache.get(bundlePath) ?? null;
+  }
+
+  const config = await loadMCPConfig(bundlePath);
+  mcpConfigCache.set(bundlePath, config);
+  return config;
+}
+
+/**
+ * Clear MCP config cache for a bundle
+ */
+export function clearMCPConfigCache(bundlePath?: string): void {
+  if (bundlePath) {
+    mcpConfigCache.delete(bundlePath);
+  } else {
+    mcpConfigCache.clear();
+  }
+}
+
+// ============================================================================
+// MCP CONNECTION HELPERS
+// ============================================================================
+
+/**
+ * Get servers that should auto-connect
+ */
+export function getAutoConnectServers(config: BundleMCPConfig | null): BundleMCPServer[] {
+  if (!config) return [];
+  return config.servers.filter((s) => s.autoConnect !== false);
+}
+
+/**
+ * Find a server by ID
+ */
+export function findServer(
+  config: BundleMCPConfig | null,
+  serverId: string
+): BundleMCPServer | null {
+  if (!config) return null;
+  return config.servers.find((s) => s.id === serverId) || null;
+}
+
+/**
+ * Get all server IDs
+ */
+export function getServerIds(config: BundleMCPConfig | null): string[] {
+  if (!config) return [];
+  return config.servers.map((s) => s.id);
+}
+
+// ============================================================================
+// MCP SERVER CONNECTION - Using @modelcontextprotocol/sdk
+// ============================================================================
+
+export interface MCPConnection {
+  serverId: string;
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  tools?: Array<{ name: string; description: string; inputSchema?: unknown }>;
+  error?: string;
+  client?: Client;
+  transport?: StdioClientTransport | SSEClientTransport;
+}
+
+/**
+ * Active MCP connections by server ID
+ */
+const activeConnections = new Map<string, MCPConnection>();
+
+/**
+ * Connect to an MCP server using the Model Context Protocol SDK
+ *
+ * Supports:
+ * - stdio: Spawns a child process running the MCP server
+ * - http/websocket: Connects via SSE transport
+ */
+export async function connectToMCPServer(
+  server: BundleMCPServer
+): Promise<MCPConnection> {
+  log.info({ serverId: server.id, transport: server.transport }, 'Connecting to MCP server');
+
+  // Check if already connected
+  if (activeConnections.has(server.id)) {
+    const existing = activeConnections.get(server.id)!;
+    if (existing.status === 'connected') {
+      log.debug({ serverId: server.id }, 'Already connected to MCP server');
+      return existing;
+    }
+  }
+
+  const connection: MCPConnection = {
+    serverId: server.id,
+    status: 'connecting',
+  };
+
+  try {
+    let transport: StdioClientTransport | SSEClientTransport;
+
+    if (server.transport === 'stdio') {
+      // Create stdio transport for local process
+      if (!server.command) {
+        throw new Error('stdio transport requires command');
+      }
+
+      // Build env with only defined values
+      let envRecord: Record<string, string> | undefined = undefined;
+      if (server.env) {
+        envRecord = { ...server.env };
+        // Also include relevant process.env vars, filtering out undefined
+        for (const [key, value] of Object.entries(process.env)) {
+          if (value !== undefined && !(key in envRecord)) {
+            envRecord[key] = value;
+          }
+        }
+      }
+
+      transport = new StdioClientTransport({
+        command: server.command,
+        args: server.args || [],
+        env: envRecord,
+      });
+    } else if (server.transport === 'http' || server.transport === 'websocket') {
+      // Create SSE transport for HTTP/WebSocket
+      if (!server.url) {
+        throw new Error('http/websocket transport requires url');
+      }
+
+      // SSE transport uses URL constructor
+      transport = new SSEClientTransport(new URL(server.url));
+    } else {
+      throw new Error(`Unsupported transport: ${server.transport}`);
+    }
+
+    // Create MCP client
+    const client = new Client(
+      {
+        name: `ferni-agent-${server.id}`,
+        version: '1.0.0',
+      },
+      {
+        capabilities: {},
+      }
+    );
+
+    // Connect to the server
+    await client.connect(transport);
+
+    // List available tools
+    const toolsResult = await client.listTools();
+    const tools = toolsResult.tools.map((t) => ({
+      name: t.name,
+      description: t.description || '',
+      inputSchema: t.inputSchema,
+    }));
+
+    connection.status = 'connected';
+    connection.client = client;
+    connection.transport = transport;
+    connection.tools = tools;
+
+    activeConnections.set(server.id, connection);
+
+    log.info(
+      { serverId: server.id, toolCount: tools.length },
+      'Connected to MCP server'
+    );
+
+    return connection;
+  } catch (error) {
+    connection.status = 'error';
+    connection.error = error instanceof Error ? error.message : String(error);
+
+    log.error(
+      { serverId: server.id, error: connection.error },
+      'Failed to connect to MCP server'
+    );
+
+    activeConnections.set(server.id, connection);
+    return connection;
+  }
+}
+
+/**
+ * Disconnect from an MCP server
+ */
+export async function disconnectFromMCPServer(serverId: string): Promise<void> {
+  log.info({ serverId }, 'Disconnecting from MCP server');
+
+  const connection = activeConnections.get(serverId);
+  if (!connection) {
+    log.debug({ serverId }, 'No active connection to disconnect');
+    return;
+  }
+
+  try {
+    if (connection.client) {
+      await connection.client.close();
+    }
+  } catch (error) {
+    log.error({ serverId, error: String(error) }, 'Error closing MCP connection');
+  }
+
+  activeConnections.delete(serverId);
+  log.info({ serverId }, 'Disconnected from MCP server');
+}
+
+/**
+ * Disconnect all MCP servers
+ */
+export async function disconnectAllMCPServers(): Promise<void> {
+  const serverIds = Array.from(activeConnections.keys());
+  await Promise.all(serverIds.map((id) => disconnectFromMCPServer(id)));
+}
+
+/**
+ * Get an active MCP connection
+ */
+export function getMCPConnection(serverId: string): MCPConnection | null {
+  return activeConnections.get(serverId) || null;
+}
+
+/**
+ * List tools available on an MCP server
+ */
+export async function listMCPTools(
+  serverId: string
+): Promise<Array<{ name: string; description: string; inputSchema?: unknown }>> {
+  const connection = activeConnections.get(serverId);
+  if (!connection || connection.status !== 'connected' || !connection.client) {
+    return [];
+  }
+
+  try {
+    const result = await connection.client.listTools();
+    return result.tools.map((t) => ({
+      name: t.name,
+      description: t.description || '',
+      inputSchema: t.inputSchema,
+    }));
+  } catch (error) {
+    log.error({ serverId, error: String(error) }, 'Failed to list MCP tools');
+    return [];
+  }
+}
+
+/**
+ * Call a tool on an MCP server
+ */
+export async function callMCPTool(
+  serverId: string,
+  toolName: string,
+  params: Record<string, unknown>
+): Promise<unknown> {
+  log.info({ serverId, toolName }, 'Calling MCP tool');
+
+  const connection = activeConnections.get(serverId);
+  if (!connection || connection.status !== 'connected' || !connection.client) {
+    throw new Error(`MCP server not connected: ${serverId}`);
+  }
+
+  try {
+    const result = await connection.client.callTool({
+      name: toolName,
+      arguments: params,
+    });
+
+    log.info({ serverId, toolName }, 'MCP tool call completed');
+
+    // Return the content from the result
+    if (result.content && Array.isArray(result.content)) {
+      // MCP returns content as an array of content blocks
+      const textBlocks = result.content.filter((c): c is { type: 'text'; text: string } => c.type === 'text');
+      if (textBlocks.length === 1) {
+        return textBlocks[0].text;
+      }
+      return textBlocks.map((b) => b.text).join('\n');
+    }
+
+    return result;
+  } catch (error) {
+    log.error({ serverId, toolName, error: String(error) }, 'MCP tool call failed');
+    throw error;
+  }
+}
+
+export default {
+  loadMCPConfig,
+  getMCPConfig,
+  clearMCPConfigCache,
+  getAutoConnectServers,
+  findServer,
+  getServerIds,
+  connectToMCPServer,
+  disconnectFromMCPServer,
+  disconnectAllMCPServers,
+  getMCPConnection,
+  listMCPTools,
+  callMCPTool,
+};

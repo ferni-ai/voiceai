@@ -5,14 +5,17 @@
  * for emotion-aware, context-aware, and adaptive task execution.
  */
 
-import { type llm, type voice, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
-import { z } from 'zod';
-import { AgentTask, TaskRegressionError } from './agent-task.js';
-import type { SessionServices, ConversationAnalysis } from '../services/index.js';
+import { type llm, type voice } from '@livekit/agents';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
-import type { ConversationState } from '../intelligence/conversation-state.js';
+import type { ConversationAnalysis, SessionServices } from '../services/index.js';
+import { getLogger } from '../utils/safe-logger.js';
+import { AgentTask, TaskRegressionError } from './agent-task.js';
+import {
+  assessDistress,
+  shouldSkipTaskDueToDistress,
+  type DistressAssessment,
+} from './constants.js';
 
 // ============================================================================
 // TYPES
@@ -191,6 +194,26 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
   }
 
   /**
+   * Get comprehensive distress assessment using shared utilities
+   */
+  protected assessUserDistress(
+    sensitivityLevel: 'normal' | 'sensitive' | 'crisis' = 'normal'
+  ): DistressAssessment | null {
+    const emotion = this._context.lastAnalysis?.emotion;
+    if (!emotion) return null;
+
+    return assessDistress(
+      {
+        primary: emotion.primary,
+        valence: emotion.valence,
+        intensity: emotion.intensity,
+        distressLevel: emotion.distressLevel,
+      },
+      sensitivityLevel
+    );
+  }
+
+  /**
    * Get user's current emotion
    */
   protected getUserEmotion(): EmotionResult | null {
@@ -288,9 +311,14 @@ export class IntelligentTaskGroup {
 
       if (!taskInfo) continue;
 
-      // Check if we should skip this task in distress mode
-      if (supportModeActive && taskInfo.skipIfDistressed) {
-        getLogger().info(`Skipping task "${taskId}" due to user distress`);
+      // Use shared distress assessment to determine if we should skip
+      const distressLevel = this._context.lastAnalysis?.emotion?.distressLevel ?? 0;
+      const taskPriority = taskInfo.priority ?? 5;
+
+      if (shouldSkipTaskDueToDistress(distressLevel, taskPriority, taskInfo.skipIfDistressed)) {
+        getLogger().info(
+          `Skipping task "${taskId}" due to user distress (level: ${distressLevel})`
+        );
         continue;
       }
 
@@ -304,13 +332,23 @@ export class IntelligentTaskGroup {
         const result = await task.start(session);
         results[taskId] = result;
 
-        // Check if emotional state changed
-        if (
-          this._context.lastAnalysis?.emotion?.distressLevel &&
-          this._context.lastAnalysis.emotion.distressLevel > 0.6
-        ) {
-          if (!supportModeActive && this._supportTaskFactory) {
-            getLogger().info('IntelligentTaskGroup: Triggering support task');
+        // Check if emotional state changed using shared assessment
+        const emotion = this._context.lastAnalysis?.emotion;
+        if (emotion) {
+          const assessment = assessDistress(
+            {
+              primary: emotion.primary,
+              valence: emotion.valence,
+              intensity: emotion.intensity,
+              distressLevel: emotion.distressLevel,
+            },
+            'normal'
+          );
+
+          if (assessment.needsImmediateSupport && !supportModeActive && this._supportTaskFactory) {
+            getLogger().info(
+              `IntelligentTaskGroup: Triggering support task (severity: ${assessment.severity})`
+            );
             supportModeActive = true;
 
             // Insert support task at front

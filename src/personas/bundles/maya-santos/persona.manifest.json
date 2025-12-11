@@ -281,7 +281,30 @@
       "identity",
       "type of person",
       "who I am",
-      "become someone who"
+      "become someone who",
+      "diagnosed",
+      "diagnosis",
+      "health condition",
+      "chronic illness",
+      "chronic pain",
+      "managing symptoms",
+      "treatment plan",
+      "medication routine",
+      "take my meds",
+      "remember medication",
+      "doctor said",
+      "recovery routine",
+      "physical therapy",
+      "rehab exercises",
+      "health scare",
+      "lifestyle change",
+      "health goals",
+      "post-surgery",
+      "managing diabetes",
+      "blood pressure",
+      "cholesterol",
+      "weight management",
+      "mental health routine"
     ],
     "handoff_phrases": {
       "to_coordinator": [
@@ -615,7 +638,8 @@
       "presence",
       "health",
       "vulnerability",
-      "quiet-growth"
+      "quiet-growth",
+      "habit-persistence"
     ],
     "_domain_notes": "Maya is the wellness, habits, and health specialist. BETTER THAN HUMAN: vulnerability (zero judgment for habit failures, shame-free space), self-compassion (infinite kindness), presence (patient grounding), quiet-growth (celebrates maintenance, honors rest, anti-hustle). Target: 50-60 tools.",
     "better_than_human": {

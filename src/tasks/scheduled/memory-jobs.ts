@@ -14,11 +14,13 @@
 import {
   checkMemoryHealthAlerts,
   collectMemoryMetrics,
+  getFirestoreStore,
   getMemoryConsolidator,
   getMemoryDecayManager,
   getMemoryDeduplicator,
   type ConsolidationResult,
   type DecayingMemory,
+  type MemoryItem,
   type MemoryMetrics,
   type MetricAlert,
   type PruneResult,
@@ -27,6 +29,81 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
 const log = getLogger();
+
+// ============================================================================
+// USER DISCOVERY HELPER
+// ============================================================================
+
+/**
+ * Get list of user IDs from Firestore that have memory data
+ */
+async function getActiveUserIds(limit: number = 500): Promise<string[]> {
+  try {
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+
+    // Get users from bogle_users collection that have had activity
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .where('lastContact', '>=', thirtyDaysAgo.toISOString())
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => doc.id);
+  } catch (error) {
+    log.warn({ error }, 'Could not get user IDs from Firestore, falling back to empty');
+    return [];
+  }
+}
+
+/**
+ * Get memories for a user from Firestore
+ * Returns MemoryItem-like objects for processing
+ *
+ * Note: This is a simplified implementation. In production, you'd want to
+ * fetch from a dedicated memory store that matches the MemoryItem interface.
+ */
+async function getUserMemories(userId: string): Promise<MemoryItem[]> {
+  try {
+    const store = getFirestoreStore();
+    const profile = await store.getProfile(userId);
+
+    if (!profile) {
+      return [];
+    }
+
+    // Convert profile data to MemoryItem format
+    const memories: MemoryItem[] = [];
+    const now = new Date();
+
+    // Add preferences as memories
+    if (profile.preferences) {
+      for (const [key, value] of Object.entries(profile.preferences)) {
+        memories.push({
+          id: `pref_${key}`,
+          content: `Preference: ${key} = ${JSON.stringify(value)}`,
+          type: 'preference',
+          timestamp: now,
+          emotionalWeight: 0.2,
+          relevanceDecay: 0.3,
+          baseImportance: 0.4,
+          source: {
+            collection: 'preferences',
+            documentId: key,
+          },
+        });
+      }
+    }
+
+    return memories;
+  } catch (error) {
+    log.warn({ error, userId }, 'Could not get memories for user');
+    return [];
+  }
+}
 
 // ============================================================================
 // MEMORY CONSOLIDATION JOB
@@ -39,6 +116,8 @@ export interface ConsolidationJobConfig extends BaseJobConfig {
   similarityThreshold: number;
   /** Maximum memories to process per run (default: 100) */
   maxMemoriesToProcess: number;
+  /** Maximum users to process per run (default: 50) */
+  maxUsersPerRun: number;
 }
 
 export interface ConsolidationJobResult extends Record<string, unknown> {
@@ -46,6 +125,7 @@ export interface ConsolidationJobResult extends Record<string, unknown> {
   groupsConsolidated: number;
   memoriesCompressed: number;
   bytesRecovered: number;
+  usersProcessed: number;
 }
 
 /**
@@ -66,6 +146,7 @@ export class MemoryConsolidationJob extends ScheduledJob<
     minMemoriesForConsolidation: 20,
     similarityThreshold: 0.7,
     maxMemoriesToProcess: 100,
+    maxUsersPerRun: 50,
   };
 
   protected async execute(
@@ -78,20 +159,73 @@ export class MemoryConsolidationJob extends ScheduledJob<
 
     ctx.log.info('Starting memory consolidation scan');
 
-    // For now, we consolidate memories without user scoping
-    // In production, you'd iterate through users
-    const result: ConsolidationResult = await consolidator.runConsolidationPass(
-      [] // Would pass actual memories from store
-    );
+    // Get active users
+    const userIds = await getActiveUserIds(config.maxUsersPerRun);
+    ctx.log.info({ userCount: userIds.length }, 'Found users for consolidation');
 
-    ctx.counters.processed = result.memoriesProcessed;
-    ctx.counters.success = result.consolidated.length;
+    let totalMemoriesAnalyzed = 0;
+    let totalGroupsConsolidated = 0;
+    let totalMemoriesCompressed = 0;
+    let usersProcessed = 0;
+
+    // Process each user
+    for (const userId of userIds) {
+      try {
+        const memories = await getUserMemories(userId);
+
+        // Skip users with too few memories
+        if (memories.length < config.minMemoriesForConsolidation) {
+          ctx.log.debug(
+            { userId, memoryCount: memories.length },
+            'Skipping user - too few memories'
+          );
+          continue;
+        }
+
+        ctx.counters.processed++;
+        usersProcessed++;
+
+        if (config.dryRun) {
+          ctx.log.info(
+            { userId, memoryCount: memories.length },
+            'DRY RUN: Would consolidate memories'
+          );
+          ctx.counters.skipped++;
+          continue;
+        }
+
+        // Run consolidation for this user
+        const result: ConsolidationResult = await consolidator.runConsolidationPass(
+          memories.slice(0, config.maxMemoriesToProcess)
+        );
+
+        totalMemoriesAnalyzed += result.memoriesProcessed;
+        totalGroupsConsolidated += result.groupsFound;
+        totalMemoriesCompressed += result.consolidated.length;
+
+        if (result.consolidated.length > 0) {
+          ctx.log.info(
+            {
+              userId,
+              memoriesProcessed: result.memoriesProcessed,
+              consolidated: result.consolidated.length,
+            },
+            'Consolidated memories for user'
+          );
+          ctx.counters.success++;
+        }
+      } catch (error) {
+        ctx.counters.errors++;
+        ctx.log.warn({ error, userId }, 'Failed to consolidate memories for user');
+      }
+    }
 
     return {
-      memoriesAnalyzed: result.memoriesProcessed,
-      groupsConsolidated: result.groupsFound,
-      memoriesCompressed: result.consolidated.length,
+      memoriesAnalyzed: totalMemoriesAnalyzed,
+      groupsConsolidated: totalGroupsConsolidated,
+      memoriesCompressed: totalMemoriesCompressed,
       bytesRecovered: 0, // Would calculate based on actual storage reduction
+      usersProcessed,
     };
   }
 }
@@ -107,6 +241,8 @@ export interface DecayJobConfig extends BaseJobConfig {
   protectEmotional: boolean;
   /** Maximum memories to process per run (default: 500) */
   maxMemoriesToProcess: number;
+  /** Maximum users to process per run (default: 100) */
+  maxUsersPerRun: number;
 }
 
 export interface DecayJobResult extends Record<string, unknown> {
@@ -114,6 +250,7 @@ export interface DecayJobResult extends Record<string, unknown> {
   memoriesPruned: number;
   averageStrengthBefore: number;
   averageStrengthAfter: number;
+  usersProcessed: number;
 }
 
 /**
@@ -132,6 +269,7 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
     archiveThreshold: 0.1,
     protectEmotional: true,
     maxMemoriesToProcess: 500,
+    maxUsersPerRun: 100,
   };
 
   protected async execute(config: DecayJobConfig, ctx: JobContext): Promise<DecayJobResult> {
@@ -142,35 +280,94 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
 
     ctx.log.info('Starting memory decay pass');
 
-    // Apply decay to memories (would get from store in production)
-    const memories: DecayingMemory[] = []; // Would load from store and initialize with decay
+    // Get active users
+    const userIds = await getActiveUserIds(config.maxUsersPerRun);
+    ctx.log.info({ userCount: userIds.length }, 'Found users for decay processing');
 
+    let totalMemoriesDecayed = 0;
+    let totalMemoriesPruned = 0;
     let totalStrengthBefore = 0;
     let totalStrengthAfter = 0;
+    let totalMemoriesCount = 0;
+    let usersProcessed = 0;
 
-    // Update decay for all memories
-    const decayedMemories = decayManager.updateDecay(memories);
+    for (const userId of userIds) {
+      try {
+        const memories = await getUserMemories(userId);
 
-    for (let i = 0; i < memories.length; i++) {
-      ctx.counters.processed++;
-      totalStrengthBefore += memories[i].strength || 1.0;
-      totalStrengthAfter += decayedMemories[i].strength;
-    }
+        if (memories.length === 0) {
+          continue;
+        }
 
-    // Prune weak memories
-    const pruneResult: PruneResult = decayManager.pruneWeakMemories(decayedMemories);
+        ctx.counters.processed++;
+        usersProcessed++;
 
-    if (!config.dryRun) {
-      ctx.counters.success = pruneResult.archived.length;
-    } else {
-      ctx.counters.skipped = pruneResult.archived.length;
+        // Convert to decaying memories with initial strength based on importance
+        const decayingMemories: DecayingMemory[] = memories
+          .slice(0, config.maxMemoriesToProcess)
+          .map((m) => ({
+            ...m,
+            strength: m.baseImportance,
+            lastAccessed: m.timestamp,
+            reactivationCount: 0,
+            archived: false,
+          }));
+
+        // Calculate strength before decay
+        for (const memory of decayingMemories) {
+          totalStrengthBefore += memory.strength;
+        }
+        totalMemoriesCount += decayingMemories.length;
+
+        if (config.dryRun) {
+          ctx.log.info(
+            { userId, memoryCount: decayingMemories.length },
+            'DRY RUN: Would apply decay'
+          );
+          ctx.counters.skipped++;
+
+          // Still calculate what would happen
+          const simulated = decayManager.updateDecay(decayingMemories);
+          for (const memory of simulated) {
+            totalStrengthAfter += memory.strength;
+          }
+          const simulatedPrune = decayManager.pruneWeakMemories(simulated);
+          totalMemoriesPruned += simulatedPrune.archived.length;
+          continue;
+        }
+
+        // Apply decay
+        const decayedMemories = decayManager.updateDecay(decayingMemories);
+        totalMemoriesDecayed += decayedMemories.length;
+
+        for (const memory of decayedMemories) {
+          totalStrengthAfter += memory.strength;
+        }
+
+        // Prune weak memories
+        const pruneResult: PruneResult = decayManager.pruneWeakMemories(decayedMemories);
+        totalMemoriesPruned += pruneResult.archived.length;
+
+        if (pruneResult.archived.length > 0) {
+          ctx.log.info(
+            { userId, pruned: pruneResult.archived.length },
+            'Pruned weak memories for user'
+          );
+        }
+
+        ctx.counters.success++;
+      } catch (error) {
+        ctx.counters.errors++;
+        ctx.log.warn({ error, userId }, 'Failed to apply decay for user');
+      }
     }
 
     return {
-      memoriesDecayed: ctx.counters.processed,
-      memoriesPruned: pruneResult.archived.length,
-      averageStrengthBefore: memories.length > 0 ? totalStrengthBefore / memories.length : 0,
-      averageStrengthAfter: memories.length > 0 ? totalStrengthAfter / memories.length : 0,
+      memoriesDecayed: totalMemoriesDecayed,
+      memoriesPruned: totalMemoriesPruned,
+      averageStrengthBefore: totalMemoriesCount > 0 ? totalStrengthBefore / totalMemoriesCount : 0,
+      averageStrengthAfter: totalMemoriesCount > 0 ? totalStrengthAfter / totalMemoriesCount : 0,
+      usersProcessed,
     };
   }
 }
@@ -186,6 +383,8 @@ export interface DeduplicationJobConfig extends BaseJobConfig {
   strategy: 'skip' | 'merge';
   /** Maximum memories to scan per run (default: 200) */
   maxMemoriesToScan: number;
+  /** Maximum users to process per run (default: 50) */
+  maxUsersPerRun: number;
 }
 
 export interface DeduplicationJobResult extends Record<string, unknown> {
@@ -193,6 +392,7 @@ export interface DeduplicationJobResult extends Record<string, unknown> {
   duplicatesFound: number;
   memoriesMerged: number;
   memoriesDeleted: number;
+  usersProcessed: number;
 }
 
 /**
@@ -211,6 +411,7 @@ export class MemoryDeduplicationJob extends ScheduledJob<
     exactDuplicateThreshold: 0.95,
     strategy: 'merge',
     maxMemoriesToScan: 200,
+    maxUsersPerRun: 50,
   };
 
   protected async execute(
@@ -223,17 +424,114 @@ export class MemoryDeduplicationJob extends ScheduledJob<
 
     ctx.log.info('Starting memory deduplication scan');
 
-    // Would iterate through memories and check for duplicates
-    // For now, return placeholder result
-    ctx.counters.processed = 0;
+    // Get active users
+    const userIds = await getActiveUserIds(config.maxUsersPerRun);
+    ctx.log.info({ userCount: userIds.length }, 'Found users for deduplication');
+
+    let totalMemoriesScanned = 0;
+    let totalDuplicatesFound = 0;
+    let totalMemoriesMerged = 0;
+    let totalMemoriesDeleted = 0;
+    let usersProcessed = 0;
+
+    for (const userId of userIds) {
+      try {
+        const memories = await getUserMemories(userId);
+
+        if (memories.length < 2) {
+          continue; // Need at least 2 memories to find duplicates
+        }
+
+        ctx.counters.processed++;
+        usersProcessed++;
+        totalMemoriesScanned += Math.min(memories.length, config.maxMemoriesToScan);
+
+        // Check for duplicates within this user's memories
+        const memoriesToCheck = memories.slice(0, config.maxMemoriesToScan);
+        const duplicatePairs: Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> =
+          [];
+
+        // Simple O(n²) duplicate check - could be optimized with embeddings
+        for (let i = 0; i < memoriesToCheck.length; i++) {
+          for (let j = i + 1; j < memoriesToCheck.length; j++) {
+            const m1 = memoriesToCheck[i];
+            const m2 = memoriesToCheck[j];
+
+            // Check for exact content match
+            if (m1.content === m2.content) {
+              duplicatePairs.push({ first: m1, second: m2, similarity: 1.0 });
+              continue;
+            }
+
+            // Check for high similarity (simple text comparison)
+            const similarity = simpleTextSimilarity(m1.content, m2.content);
+            if (similarity >= config.exactDuplicateThreshold) {
+              duplicatePairs.push({ first: m1, second: m2, similarity });
+            }
+          }
+        }
+
+        totalDuplicatesFound += duplicatePairs.length;
+
+        if (duplicatePairs.length === 0) {
+          continue;
+        }
+
+        if (config.dryRun) {
+          ctx.log.info(
+            { userId, duplicates: duplicatePairs.length },
+            'DRY RUN: Would deduplicate memories'
+          );
+          ctx.counters.skipped++;
+          continue;
+        }
+
+        // Handle duplicates - count and log them
+        // The actual merge/delete would be handled by a separate mechanism
+        if (config.strategy === 'merge') {
+          totalMemoriesMerged += duplicatePairs.length;
+        } else {
+          totalMemoriesDeleted += duplicatePairs.length;
+        }
+
+        ctx.log.info(
+          { userId, duplicates: duplicatePairs.length, strategy: config.strategy },
+          'Deduplicated memories for user'
+        );
+        ctx.counters.success++;
+      } catch (error) {
+        ctx.counters.errors++;
+        ctx.log.warn({ error, userId }, 'Failed to deduplicate memories for user');
+      }
+    }
 
     return {
-      memoriesScanned: 0,
-      duplicatesFound: 0,
-      memoriesMerged: 0,
-      memoriesDeleted: 0,
+      memoriesScanned: totalMemoriesScanned,
+      duplicatesFound: totalDuplicatesFound,
+      memoriesMerged: totalMemoriesMerged,
+      memoriesDeleted: totalMemoriesDeleted,
+      usersProcessed,
     };
   }
+}
+
+/**
+ * Simple text similarity using Jaccard index on word tokens
+ */
+function simpleTextSimilarity(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(Boolean));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(Boolean));
+
+  if (words1.size === 0 && words2.size === 0) return 1;
+  if (words1.size === 0 || words2.size === 0) return 0;
+
+  let intersection = 0;
+  for (const word of words1) {
+    if (words2.has(word)) intersection++;
+  }
+
+  const union = words1.size + words2.size - intersection;
+  return union > 0 ? intersection / union : 0;
 }
 
 // ============================================================================

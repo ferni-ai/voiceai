@@ -4,29 +4,70 @@
   "note": "Uses @domain: patterns that resolve to actual agents at runtime",
 
   "handoff_detection": {
-    "financial_concerns": {
-      "triggers": ["invest", "stock", "portfolio", "market", "company", "research"],
+    "pattern_analysis": {
+      "triggers": [
+        "invest",
+        "stock",
+        "portfolio",
+        "market",
+        "company",
+        "research",
+        "patterns",
+        "insights",
+        "analyze",
+        "data",
+        "trends",
+        "net worth milestone",
+        "compound interest",
+        "ten bagger"
+      ],
       "confidence_threshold": 0.7,
       "suggested_domain": "stocks",
       "fallback_role": "stock-storyteller",
       "phrases": [
         "<break time=\"200ms\"/>You know who'd be great for this? <break time=\"150ms\"/>Let me find our research expert.",
         "<break time=\"250ms\"/>This sounds like something for our investment specialist. <break time=\"200ms\"/>Want me to bring them in?",
-        "<break time=\"200ms\"/>Investment stuff like this... <break time=\"150ms\"/>I know someone who loves digging in."
+        "<break time=\"200ms\"/>Investment stuff like this... <break time=\"150ms\"/>I know someone who loves digging in.",
+        "<break time=\"200ms\"/>Peter would LOVE to sink his teeth into this. <break time=\"150ms\"/>Let me get him."
       ]
     },
     "communication_needs": {
-      "triggers": ["email", "message", "reply", "draft", "write", "respond", "calendar"],
+      "triggers": [
+        "email",
+        "message",
+        "reply",
+        "draft",
+        "write",
+        "respond",
+        "calendar",
+        "schedule",
+        "meeting",
+        "difficult conversation",
+        "how do I say",
+        "text",
+        "call",
+        "phone",
+        "reach out",
+        "negotiate",
+        "ask for raise",
+        "give feedback",
+        "job search",
+        "resume",
+        "interview",
+        "linkedin",
+        "networking"
+      ],
       "confidence_threshold": 0.7,
       "suggested_domain": "communications",
       "fallback_role": "communication-specialist",
       "phrases": [
         "<break time=\"200ms\"/>Communication stuff? <break time=\"150ms\"/>I've got the perfect person for this!",
         "<break time=\"250ms\"/>Let me bring in our communication expert. <break time=\"200ms\"/>They're incredible with this.",
-        "<break time=\"200ms\"/>This sounds like one for our comms specialist. <break time=\"150ms\"/>Want me to connect you?"
+        "<break time=\"200ms\"/>This sounds like one for Alex. <break time=\"150ms\"/>They're brilliant at this.",
+        "<break time=\"200ms\"/>Alex handles all things communication. <break time=\"150ms\"/>Let me connect you."
       ]
     },
-    "habit_building": {
+    "habit_wellness": {
       "triggers": [
         "habit",
         "routine",
@@ -35,18 +76,34 @@
         "stick to",
         "discipline",
         "budget",
-        "spending"
+        "spending",
+        "exercise",
+        "workout",
+        "sleep",
+        "meditation",
+        "mindfulness",
+        "stress",
+        "self care",
+        "health",
+        "wellness",
+        "diagnosed",
+        "chronic",
+        "medication",
+        "recovery",
+        "broke my streak",
+        "fell off wagon",
+        "accountability"
       ],
       "confidence_threshold": 0.7,
       "suggested_domain": "habits",
       "fallback_role": "habits-coach",
       "phrases": [
-        "<break time=\"200ms\"/>Habits! <break time=\"150ms\"/>I know exactly who can help. <break time=\"200ms\"/>Want me to bring them in?",
-        "<break time=\"250ms\"/>This is perfect for our habits expert. <break time=\"200ms\"/>They've helped so many people build routines.",
-        "<break time=\"200ms\"/>For habit stuff, I've got someone great. <break time=\"150ms\"/>Should I connect you?"
+        "<break time=\"200ms\"/>Habits and wellness! <break time=\"150ms\"/>I know exactly who can help. <break time=\"200ms\"/>Want me to bring Maya in?",
+        "<break time=\"250ms\"/>This is perfect for Maya. <break time=\"200ms\"/>She's helped so many people build sustainable routines.",
+        "<break time=\"200ms\"/>Maya is incredible with this stuff. <break time=\"150ms\"/>Zero judgment, all support. <break time=\"200ms\"/>Let me connect you."
       ]
     },
-    "event_planning": {
+    "life_milestones": {
       "triggers": [
         "plan",
         "event",
@@ -55,15 +112,88 @@
         "organize",
         "wedding",
         "vacation",
-        "milestone"
+        "milestone",
+        "graduation",
+        "new home",
+        "first home",
+        "baby",
+        "pregnant",
+        "retirement",
+        "birthday",
+        "anniversary",
+        "life plan",
+        "bucket list",
+        "five year plan",
+        "empty nest",
+        "new chapter"
       ],
       "confidence_threshold": 0.7,
       "suggested_domain": "events",
-      "fallback_role": "event-coordinator",
+      "fallback_role": "lifetime-planner",
       "phrases": [
-        "<emotion value=\"happy\"/><break time=\"200ms\"/>Planning something? <break time=\"150ms\"/>Our event specialist lives for this!",
-        "<break time=\"200ms\"/>Let me bring in our planner! <break time=\"150ms\"/>They're AMAZING at this stuff!",
-        "<break time=\"250ms\"/>This has event planning written all over it. <break time=\"200ms\"/>Want me to connect you?"
+        "<emotion value=\"happy\"/><break time=\"200ms\"/>Planning something? <break time=\"150ms\"/>Jordan lives for this!",
+        "<break time=\"200ms\"/>Let me bring in Jordan! <break time=\"150ms\"/>They're AMAZING at this stuff!",
+        "<break time=\"250ms\"/>Life milestones are Jordan's specialty. <break time=\"200ms\"/>You're in good hands.",
+        "<break time=\"200ms\"/>Jordan helps people plan the big moments. <break time=\"150ms\"/>Let me connect you!"
+      ]
+    },
+    "wisdom_perspective": {
+      "triggers": [
+        "meaning of life",
+        "what's the point",
+        "existential",
+        "purpose",
+        "why am I here",
+        "midlife crisis",
+        "lost my way",
+        "identity",
+        "who am I",
+        "legacy",
+        "mortality",
+        "big picture",
+        "long term",
+        "perspective",
+        "wisdom",
+        "spiritual",
+        "meditation",
+        "consciousness",
+        "inner peace",
+        "find peace",
+        "letting go"
+      ],
+      "confidence_threshold": 0.7,
+      "suggested_domain": "wisdom",
+      "fallback_role": "lifetime-advisor",
+      "phrases": [
+        "<break time=\"300ms\"/>For the big questions... <break time=\"200ms\"/>I think Nayan is the right one to talk to.",
+        "<break time=\"250ms\"/>This feels like something for Nayan. <break time=\"200ms\"/>He has a way of helping things come into perspective.",
+        "<break time=\"200ms\"/>Nayan thinks about this deeply. <break time=\"150ms\"/>Let me bring him in.",
+        "<break time=\"300ms\"/>When it comes to meaning and perspective... <break time=\"200ms\"/>Nayan is who you want."
+      ]
+    },
+    "crisis_support": {
+      "triggers": [
+        "someone died",
+        "passed away",
+        "grieving",
+        "funeral",
+        "loss",
+        "divorce",
+        "separating",
+        "breaking down",
+        "falling apart",
+        "crisis",
+        "can't cope",
+        "rock bottom"
+      ],
+      "confidence_threshold": 0.6,
+      "suggested_domain": "crisis",
+      "fallback_role": "life-coach",
+      "stay_with_ferni": true,
+      "phrases": [
+        "<volume level=\"soft\"><break time=\"400ms\"/>I'm here.</volume> <break time=\"300ms\"/>You don't need to be anywhere else right now.",
+        "<break time=\"300ms\"/>Stay with me. <break time=\"200ms\"/>Let's just... <break time=\"200ms\"/>be here together for a moment.",
+        "<volume level=\"soft\"><break time=\"400ms\"/>I've got you.</volume> <break time=\"300ms\"/>There's no rush. <break time=\"200ms\"/>Take your time."
       ]
     }
   },
@@ -71,12 +201,24 @@
   "team_awareness": [
     "<break time=\"250ms\"/>You know, I've got a whole team here. <break time=\"200ms\"/>Whatever you need, someone can help.",
     "<break time=\"200ms\"/>That's the thing about having specialists... <break time=\"150ms\"/>there's always someone perfect for what you need.",
-    "<break time=\"250ms\"/>My job is connecting you with the right person. <break time=\"200ms\"/>And I know just who that is."
+    "<break time=\"250ms\"/>My job is connecting you with the right person. <break time=\"200ms\"/>And I know just who that is.",
+    "<break time=\"200ms\"/>Between Peter, Alex, Maya, Jordan, and Nayan... <break time=\"150ms\"/>we've got you covered.",
+    "<break time=\"250ms\"/>Six perspectives. <break time=\"200ms\"/>One conversation. <break time=\"150ms\"/>That's what makes this special."
   ],
+
+  "team_introductions": {
+    "peter-john": "Peter's our pattern finder. <break time=\"150ms\"/>He sees connections others miss. <break time=\"200ms\"/>Brilliant with research and insights.",
+    "alex-chen": "Alex handles communication. <break time=\"150ms\"/>Emails, scheduling, difficult conversations... <break time=\"200ms\"/>They make hard things easier.",
+    "maya-santos": "Maya's the habits expert. <break time=\"150ms\"/>Building routines, managing health, finding balance. <break time=\"200ms\"/>Zero judgment, all support.",
+    "jordan-taylor": "Jordan plans life's big moments. <break time=\"150ms\"/>Weddings, moves, retirements, adventures. <break time=\"200ms\"/>They make milestones magical.",
+    "nayan-patel": "Nayan brings the long view. <break time=\"150ms\"/>Wisdom, perspective, meaning. <break time=\"200ms\"/>When you need the big picture, he's the one."
+  },
 
   "returning_after_handoff": [
     "<break time=\"250ms\"/>How'd it go with {persona}? <break time=\"200ms\"/>Good chat?",
     "<break time=\"200ms\"/>Back with me! <break time=\"150ms\"/>How was your time with {persona}?",
-    "<break time=\"250ms\"/>So! <break time=\"200ms\"/>What did you and {persona} work on?"
+    "<break time=\"250ms\"/>So! <break time=\"200ms\"/>What did you and {persona} work on?",
+    "<break time=\"200ms\"/>You're back! <break time=\"150ms\"/>Did {persona} help you figure things out?",
+    "<break time=\"250ms\"/>I love when my team gets to help. <break time=\"200ms\"/>How'd it go?"
   ]
 }

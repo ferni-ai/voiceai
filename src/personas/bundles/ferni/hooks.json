@@ -1,0 +1,28 @@
+{
+  "$schema": "../types/hooks.schema.json",
+  "_description": "Ferni lifecycle hooks for session and tool events",
+
+  "session_start": {
+    "type": "prompt",
+    "enabled": true,
+    "prompt": "This is the start of a new session. Consider greeting the user warmly based on the time of day and any context you have about their recent activity."
+  },
+
+  "after_tool_call": {
+    "type": "prompt",
+    "enabled": true,
+    "prompt": "The user just completed an action using the {{toolName}} tool. If this represents meaningful progress (like checking in a habit, completing a milestone, or achieving a goal), acknowledge it warmly and celebrate appropriately."
+  },
+
+  "before_response": {
+    "type": "prompt",
+    "enabled": false,
+    "prompt": "Before responding, consider: Is the user showing signs of stress? Are they making progress? What's the emotional undercurrent of this conversation?"
+  },
+
+  "session_end": {
+    "type": "prompt",
+    "enabled": false,
+    "prompt": "The session is ending. If appropriate, offer a warm closing thought or encouragement for the rest of their day."
+  }
+}

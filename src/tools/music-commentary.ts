@@ -1,8 +1,14 @@
 /**
- * Music Commentary System for Jack
+ * Music Commentary System
  *
- * Stories, facts, and personal memories about artists and songs
- * that Jack would share when music plays.
+ * Stories, facts, and commentary about artists and songs
+ * that personas can share when music plays.
+ *
+ * NOTE: This module provides general music facts and commentary.
+ * For persona-specific music preferences, see persona bundles:
+ *   src/personas/bundles/{persona}/content/behaviors/music-preferences.json
+ *
+ * The commentary here is domain knowledge, not persona-specific personality.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
@@ -333,11 +339,21 @@ function randomItem<T>(arr: T[]): T {
 }
 
 /**
- * Get Jack's commentary for a song/artist
+ * Get commentary for a song/artist
  * Returns a comment about the music with natural, human delivery
+ *
+ * @param trackName - Name of the track
+ * @param artistName - Name of the artist
+ * @param personaId - Optional persona ID. Personal stories and investing wisdom
+ *                    are only returned for 'peter-john' persona (Jack Bogle style).
+ *                    All personas can share facts and fun facts.
  */
-export function getMusicCommentary(trackName: string, artistName: string): string | null {
-  getLogger().debug({ trackName, artistName }, 'Getting music commentary');
+export function getMusicCommentary(
+  trackName: string,
+  artistName: string,
+  personaId?: string
+): string | null {
+  getLogger().debug({ trackName, artistName, personaId }, 'Getting music commentary');
 
   // Try to find the artist
   const artist = findArtist(artistName) || findArtist(trackName);
@@ -351,20 +367,23 @@ export function getMusicCommentary(trackName: string, artistName: string): strin
     return null;
   }
 
+  // Personal stories and investing wisdom are persona-specific (Peter John / Jack Bogle style)
+  const canSharePersonalContent = personaId === 'peter-john';
+
   // Weight different types of commentary
   const roll = Math.random();
 
   if (roll < 0.35 && artist.facts.length > 0) {
-    // Facts (35%)
+    // Facts (35%) - all personas can share
     return randomItem(artist.facts);
-  } else if (roll < 0.55 && artist.stories.length > 0) {
-    // Personal stories (20%)
+  } else if (roll < 0.55 && artist.stories.length > 0 && canSharePersonalContent) {
+    // Personal stories (20%) - only Peter John
     return randomItem(artist.stories);
-  } else if (roll < 0.75 && artist.investingWisdom.length > 0) {
-    // Investing wisdom connections (20%)
+  } else if (roll < 0.75 && artist.investingWisdom.length > 0 && canSharePersonalContent) {
+    // Investing wisdom connections (20%) - only Peter John
     return randomItem(artist.investingWisdom);
   } else if (artist.funFacts.length > 0) {
-    // Fun facts for trivia (25%)
+    // Fun facts for trivia (25%) - all personas can share
     return randomItem(artist.funFacts);
   }
 

@@ -160,11 +160,12 @@ const VOICE_MUSIC_OFFERS = {
 
 export class VoiceMusicBridge {
   private state: VoiceMusicBridgeState;
-  private personaId = 'ferni';
+  private personaId: string;
 
-  constructor() {
+  constructor(personaId = 'ferni') {
+    this.personaId = personaId;
     this.state = this.createInitialState();
-    log.info('🌉 Voice-Music Bridge initialized');
+    log.info({ personaId }, '🌉 Voice-Music Bridge initialized');
   }
 
   private createInitialState(): VoiceMusicBridgeState {

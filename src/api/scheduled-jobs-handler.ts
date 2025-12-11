@@ -122,6 +122,62 @@ async function runPredictiveInsights(res: ServerResponse): Promise<void> {
 }
 
 // ============================================================================
+// MEMORY SYSTEM JOBS
+// ============================================================================
+
+async function runMemoryConsolidation(res: ServerResponse): Promise<void> {
+  try {
+    const { MemoryConsolidationJob } = await import('../tasks/scheduled/memory-jobs.js');
+    const job = new MemoryConsolidationJob();
+    const result = await job.run({});
+    log.info({ result }, 'Memory consolidation completed');
+    sendJson(res, 200, { success: true, job: 'memoryConsolidation', result });
+  } catch (error) {
+    log.error({ error }, 'Memory consolidation failed');
+    sendJson(res, 500, { success: false, job: 'memoryConsolidation', error: String(error) });
+  }
+}
+
+async function runMemoryDecay(res: ServerResponse): Promise<void> {
+  try {
+    const { MemoryDecayJob } = await import('../tasks/scheduled/memory-jobs.js');
+    const job = new MemoryDecayJob();
+    const result = await job.run({});
+    log.info({ result }, 'Memory decay completed');
+    sendJson(res, 200, { success: true, job: 'memoryDecay', result });
+  } catch (error) {
+    log.error({ error }, 'Memory decay failed');
+    sendJson(res, 500, { success: false, job: 'memoryDecay', error: String(error) });
+  }
+}
+
+async function runMemoryDeduplication(res: ServerResponse): Promise<void> {
+  try {
+    const { MemoryDeduplicationJob } = await import('../tasks/scheduled/memory-jobs.js');
+    const job = new MemoryDeduplicationJob();
+    const result = await job.run({});
+    log.info({ result }, 'Memory deduplication completed');
+    sendJson(res, 200, { success: true, job: 'memoryDeduplication', result });
+  } catch (error) {
+    log.error({ error }, 'Memory deduplication failed');
+    sendJson(res, 500, { success: false, job: 'memoryDeduplication', error: String(error) });
+  }
+}
+
+async function runMemoryHealthCheck(res: ServerResponse): Promise<void> {
+  try {
+    const { MemoryHealthCheckJob } = await import('../tasks/scheduled/memory-jobs.js');
+    const job = new MemoryHealthCheckJob();
+    const result = await job.run({});
+    log.info({ result }, 'Memory health check completed');
+    sendJson(res, 200, { success: true, job: 'memoryHealthCheck', result });
+  } catch (error) {
+    log.error({ error }, 'Memory health check failed');
+    sendJson(res, 500, { success: false, job: 'memoryHealthCheck', error: String(error) });
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -175,6 +231,30 @@ export async function handleScheduledJobsRoutes(
   // POST /api/jobs/predictive-insights
   if (pathname === '/api/jobs/predictive-insights' && req.method === 'POST') {
     await runPredictiveInsights(res);
+    return true;
+  }
+
+  // POST /api/jobs/memory-consolidation
+  if (pathname === '/api/jobs/memory-consolidation' && req.method === 'POST') {
+    await runMemoryConsolidation(res);
+    return true;
+  }
+
+  // POST /api/jobs/memory-decay
+  if (pathname === '/api/jobs/memory-decay' && req.method === 'POST') {
+    await runMemoryDecay(res);
+    return true;
+  }
+
+  // POST /api/jobs/memory-deduplication
+  if (pathname === '/api/jobs/memory-deduplication' && req.method === 'POST') {
+    await runMemoryDeduplication(res);
+    return true;
+  }
+
+  // POST /api/jobs/memory-health-check
+  if (pathname === '/api/jobs/memory-health-check' && req.method === 'POST') {
+    await runMemoryHealthCheck(res);
     return true;
   }
 

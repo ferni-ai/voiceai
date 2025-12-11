@@ -67,7 +67,12 @@ export type ToolDomain =
   | 'difficult-conversations' // Preparing for and having hard conversations
   | 'life-transitions' // Emotional journey through major life changes
   | 'reflection-games' // Deep coaching games for self-discovery
-  | 'quiet-growth'; // Anti-hustle growth: rest, seasons, plateaus, sufficiency
+  | 'quiet-growth' // Anti-hustle growth: rest, seasons, plateaus, sufficiency
+  | 'pattern-mastery' // Pattern recognition, behavioral insights, habit formation
+  | 'timeless-perspective' // Wisdom from history, philosophy, and long-term thinking
+  | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
+  | 'habit-persistence' // Habit tracking persistence and behavioral insights
+  | 'milestone-mastery'; // Milestone tracking and achievement recognition
 
 /**
  * All available tool domains
@@ -120,6 +125,11 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'life-transitions',
   'reflection-games',
   'quiet-growth',
+  'pattern-mastery',
+  'timeless-perspective',
+  'workflow-mastery',
+  'habit-persistence',
+  'milestone-mastery',
 ] as const;
 
 // ============================================================================
@@ -190,6 +200,11 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'life-transitions': 'lifestyle', // Emotional journey through major life changes
   'reflection-games': 'lifestyle', // Deep coaching games for self-discovery
   'quiet-growth': 'lifestyle', // Anti-hustle growth: rest, seasons, plateaus, sufficiency
+  'pattern-mastery': 'information', // Pattern recognition and insights
+  'timeless-perspective': 'information', // Wisdom and philosophy
+  'workflow-mastery': 'productivity', // Process optimization
+  'habit-persistence': 'lifestyle', // Habit tracking persistence
+  'milestone-mastery': 'lifestyle', // Achievement tracking
 };
 
 // ============================================================================

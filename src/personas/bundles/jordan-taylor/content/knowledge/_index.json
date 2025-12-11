@@ -24,6 +24,36 @@
       "topic": "Annual Life Planning",
       "file": "annual-planning.md",
       "domains": ["goals", "planning", "quarterly-reviews", "life-portfolio"]
+    },
+    {
+      "id": "wedding-planning",
+      "topic": "Wedding Planning Guide",
+      "file": "wedding-planning.md",
+      "domains": ["wedding", "marriage", "celebration", "milestone", "party-planning"]
+    },
+    {
+      "id": "home-buying",
+      "topic": "Home Buying as Life Milestone",
+      "file": "home-buying.md",
+      "domains": ["home", "real-estate", "milestone", "moving", "first-home"]
+    },
+    {
+      "id": "birthday-celebrations",
+      "topic": "Birthday & Celebration Planning",
+      "file": "birthday-celebrations.md",
+      "domains": ["birthday", "celebration", "party", "milestone-birthdays", "gifts"]
+    },
+    {
+      "id": "retirement-celebration",
+      "topic": "Retirement as Life Milestone",
+      "file": "retirement-celebration.md",
+      "domains": ["retirement", "career-end", "transition", "celebration", "new-chapter"]
+    },
+    {
+      "id": "graduation-milestones",
+      "topic": "Graduation & Achievement Milestones",
+      "file": "graduation-milestones.md",
+      "domains": ["graduation", "achievement", "education", "celebration", "career-achievement"]
     }
   ]
 }

@@ -394,7 +394,7 @@ export class MemoryConsolidator {
     if (firstSentence.length <= 100) {
       return firstSentence.trim();
     }
-    return content.slice(0, 100).trim() + '...';
+    return `${content.slice(0, 100).trim()}...`;
   }
 
   /**

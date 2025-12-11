@@ -33,7 +33,7 @@ const log = getLogger().child({ module: 'SessionService' });
  */
 export interface SessionService {
   /** Reset internal state (called before removal) */
-  reset?(): void;
+  reset?: () => void;
 }
 
 /**
@@ -46,22 +46,22 @@ export type ServiceFactory<T extends SessionService> = (sessionId: string) => T;
  */
 export interface SessionServiceManager<T extends SessionService> {
   /** Get or create a service instance for a session */
-  get(sessionId: string): T;
+  get: (sessionId: string) => T;
 
   /** Reset and remove a session's service instance */
-  reset(sessionId: string): void;
+  reset: (sessionId: string) => void;
 
   /** Reset all service instances */
-  resetAll(): void;
+  resetAll: () => void;
 
   /** Get count of active sessions */
-  getActiveCount(): number;
+  getActiveCount: () => number;
 
   /** Get all active session IDs */
-  getActiveSessions(): string[];
+  getActiveSessions: () => string[];
 
   /** Check if a session has an active instance */
-  has(sessionId: string): boolean;
+  has: (sessionId: string) => boolean;
 }
 
 // ============================================================================

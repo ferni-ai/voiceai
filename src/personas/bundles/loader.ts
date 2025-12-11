@@ -839,6 +839,40 @@ export async function loadBundle(
       reloadCallbacks.add(callback);
       return () => reloadCallbacks.delete(callback);
     },
+
+    // ========================================================================
+    // AGENT EXTENSIBILITY (Phase 1-5)
+    // ========================================================================
+
+    async getCommands() {
+      // Lazy import to avoid circular dependencies
+      const { getCommands } = await import('./command-loader.js');
+      return getCommands(bundlePath);
+    },
+
+    async getLocalTools() {
+      // Lazy import to avoid circular dependencies
+      const { getLocalTools } = await import('./local-tools-loader.js');
+      return getLocalTools(bundlePath);
+    },
+
+    async getAssets() {
+      // Lazy import to avoid circular dependencies
+      const { getAssets } = await import('./assets-loader.js');
+      return getAssets(bundlePath);
+    },
+
+    async getHooks() {
+      // Lazy import to avoid circular dependencies
+      const { getHooks } = await import('./hooks-loader.js');
+      return getHooks(bundlePath);
+    },
+
+    async getMCPConfig() {
+      // Lazy import to avoid circular dependencies
+      const { getMCPConfig } = await import('./mcp-loader.js');
+      return getMCPConfig(bundlePath);
+    },
   };
 
   // Preload content if requested

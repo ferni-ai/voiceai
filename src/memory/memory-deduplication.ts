@@ -119,7 +119,7 @@ export class MemoryDeduplicator {
    */
   async checkDuplicate(
     newMemory: MemoryItem | VectorDocument,
-    existingMemories: (MemoryItem | VectorDocument)[]
+    existingMemories: Array<MemoryItem | VectorDocument>
   ): Promise<Result<DuplicateCheckResult, MemoryError>> {
     this.stats.checksPerformed++;
 
@@ -235,7 +235,7 @@ export class MemoryDeduplicator {
       // Merge content
       let mergedContent = existing.content;
       if (newDetails.length > 0) {
-        mergedContent += '\n\nAdditional details:\n' + newDetails.join('\n');
+        mergedContent += `\n\nAdditional details:\n${newDetails.join('\n')}`;
       }
 
       // Merge topics

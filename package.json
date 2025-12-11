@@ -193,6 +193,7 @@
     "@livekit/agents-plugin-openai": "^1.0.22",
     "@livekit/agents-plugin-silero": "^1.0.0",
     "@livekit/noise-cancellation-node": "^0.1.9",
+    "@modelcontextprotocol/sdk": "^1.24.3",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "^10.29.0",
     "dotenv": "^16.4.0",

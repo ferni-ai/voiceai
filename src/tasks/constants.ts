@@ -201,3 +201,170 @@ export type IntentType = (typeof INTENTS)[keyof typeof INTENTS];
 export function exceedsDistressThreshold(distressLevel: number, threshold: DistressLevel): boolean {
   return distressLevel > DISTRESS_THRESHOLDS[threshold];
 }
+
+// ============================================================================
+// DISTRESS DETECTION UTILITIES
+// ============================================================================
+
+/**
+ * Emotion analysis input for distress detection
+ */
+export interface EmotionAnalysis {
+  primary: string;
+  valence: 'positive' | 'negative' | 'neutral';
+  intensity: number;
+  distressLevel: number;
+}
+
+/**
+ * Result of distress assessment
+ */
+export interface DistressAssessment {
+  /** Current distress level (0-1) */
+  level: number;
+  /** Categorized severity */
+  severity: 'none' | 'minimal' | 'low' | 'moderate' | 'high' | 'critical' | 'severe';
+  /** Whether immediate support is needed */
+  needsImmediateSupport: boolean;
+  /** Whether support mode should be activated */
+  shouldActivateSupportMode: boolean;
+  /** Suggested response approach */
+  suggestedApproach: 'normal' | 'gentle' | 'supportive' | 'crisis';
+}
+
+/**
+ * Unified distress detection used by both TaskManager and IntelligentTaskGroup.
+ * This ensures consistent distress handling across the entire task system.
+ *
+ * @param emotion - Emotion analysis from conversation
+ * @param sensitivityLevel - How sensitive to be (default: 'normal')
+ * @returns Comprehensive distress assessment
+ */
+export function assessDistress(
+  emotion: EmotionAnalysis,
+  sensitivityLevel: 'normal' | 'sensitive' | 'crisis' = 'normal'
+): DistressAssessment {
+  const { distressLevel, primary, valence } = emotion;
+
+  // Determine threshold based on sensitivity
+  const thresholdOffset =
+    sensitivityLevel === 'crisis' ? -0.2 : sensitivityLevel === 'sensitive' ? -0.1 : 0;
+
+  // Categorize severity
+  let severity: DistressAssessment['severity'];
+  if (distressLevel < DISTRESS_THRESHOLDS.MINIMAL + thresholdOffset) {
+    severity = 'none';
+  } else if (distressLevel < DISTRESS_THRESHOLDS.LOW + thresholdOffset) {
+    severity = 'minimal';
+  } else if (distressLevel < DISTRESS_THRESHOLDS.MODERATE + thresholdOffset) {
+    severity = 'low';
+  } else if (distressLevel < DISTRESS_THRESHOLDS.HIGH + thresholdOffset) {
+    severity = 'moderate';
+  } else if (distressLevel < DISTRESS_THRESHOLDS.CRITICAL + thresholdOffset) {
+    severity = 'high';
+  } else if (distressLevel < DISTRESS_THRESHOLDS.SEVERE + thresholdOffset) {
+    severity = 'critical';
+  } else {
+    severity = 'severe';
+  }
+
+  // Determine if immediate support is needed
+  const needsImmediateSupport =
+    severity === 'critical' ||
+    severity === 'severe' ||
+    (severity === 'high' && (primary === 'fear' || primary === 'sadness'));
+
+  // Determine if support mode should be activated
+  const supportModeThreshold =
+    sensitivityLevel === 'crisis'
+      ? CRISIS_EMOTION_THRESHOLD
+      : sensitivityLevel === 'sensitive'
+        ? SENSITIVE_EMOTION_THRESHOLD
+        : DEFAULT_EMOTION_THRESHOLD;
+
+  const shouldActivateSupportMode = distressLevel > supportModeThreshold;
+
+  // Suggest response approach
+  let suggestedApproach: DistressAssessment['suggestedApproach'];
+  if (severity === 'severe' || severity === 'critical') {
+    suggestedApproach = 'crisis';
+  } else if (severity === 'high' || severity === 'moderate') {
+    suggestedApproach = 'supportive';
+  } else if (severity === 'low' || severity === 'minimal') {
+    suggestedApproach = 'gentle';
+  } else {
+    suggestedApproach = 'normal';
+  }
+
+  return {
+    level: distressLevel,
+    severity,
+    needsImmediateSupport,
+    shouldActivateSupportMode,
+    suggestedApproach,
+  };
+}
+
+/**
+ * Check if distress has improved enough to consider a support task complete
+ */
+export function hasDistressImproved(
+  initialDistress: number,
+  currentDistress: number,
+  threshold: number = DISTRESS_IMPROVEMENT_THRESHOLD
+): boolean {
+  return initialDistress - currentDistress >= threshold;
+}
+
+/**
+ * Get the appropriate emotion threshold for a task type
+ */
+export function getEmotionThresholdForTask(
+  taskCategory: 'micro' | 'support' | 'advice' | 'relationship' | 'life_event'
+): number {
+  switch (taskCategory) {
+    case 'support':
+      return SENSITIVE_EMOTION_THRESHOLD;
+    case 'life_event':
+      return SENSITIVE_EMOTION_THRESHOLD;
+    case 'micro':
+      return DEFAULT_EMOTION_THRESHOLD;
+    case 'advice':
+      return DEFAULT_EMOTION_THRESHOLD;
+    case 'relationship':
+      return DEFAULT_EMOTION_THRESHOLD;
+    default:
+      return DEFAULT_EMOTION_THRESHOLD;
+  }
+}
+
+/**
+ * Determine if a task should be skipped due to user distress
+ */
+export function shouldSkipTaskDueToDistress(
+  distressLevel: number,
+  taskPriority: number,
+  skipIfDistressed = false
+): boolean {
+  // If task explicitly skips during distress
+  if (skipIfDistressed && distressLevel > DISTRESS_THRESHOLDS.MODERATE) {
+    return true;
+  }
+
+  // High priority tasks (8+) never skip
+  if (taskPriority >= 8) {
+    return false;
+  }
+
+  // Medium priority tasks (5-7) skip at high distress
+  if (taskPriority >= 5 && distressLevel > DISTRESS_THRESHOLDS.HIGH) {
+    return true;
+  }
+
+  // Low priority tasks (1-4) skip at moderate distress
+  if (taskPriority < 5 && distressLevel > DISTRESS_THRESHOLDS.MODERATE) {
+    return true;
+  }
+
+  return false;
+}

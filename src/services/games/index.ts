@@ -55,14 +55,52 @@
 export type { IGameImplementation } from './game-engine.js';
 export type * from './text-game-types.js';
 export type * from './types.js';
-export { GameEngine, getGameEngine, resetGameEngine };
 
 // Game Engine - import first so we can use it locally
-import { GameEngine, getGameEngine, resetGameEngine } from './game-engine.js';
+import {
+  GameEngine,
+  getGameEngine,
+  resetGameEngine,
+  // Session-scoped (preferred)
+  getSessionGameEngine,
+  resetSessionGameEngine,
+  getActiveGameEngineCount,
+  resetAllGameEngines,
+} from './game-engine.js';
+
+export {
+  GameEngine,
+  getGameEngine,
+  resetGameEngine,
+  // Session-scoped (preferred)
+  getSessionGameEngine,
+  resetSessionGameEngine,
+  getActiveGameEngineCount,
+  resetAllGameEngines,
+};
 
 // Text Game Engine
-import { TextGameEngine, getTextGameEngine, resetTextGameEngine } from './text-game-engine.js';
-export { TextGameEngine, getTextGameEngine, resetTextGameEngine };
+import {
+  TextGameEngine,
+  getTextGameEngine,
+  resetTextGameEngine,
+  // Session-scoped (preferred)
+  getSessionTextGameEngine,
+  resetSessionTextGameEngine,
+  getActiveTextGameEngineCount,
+  resetAllTextGameEngines,
+} from './text-game-engine.js';
+
+export {
+  TextGameEngine,
+  getTextGameEngine,
+  resetTextGameEngine,
+  // Session-scoped (preferred)
+  getSessionTextGameEngine,
+  resetSessionTextGameEngine,
+  getActiveTextGameEngineCount,
+  resetAllTextGameEngines,
+};
 
 // Music Games
 export { getMusicGameImplementation, setGameMemoryForGames } from './music-games.js';
@@ -101,8 +139,9 @@ export {
 // ============================================================================
 
 /**
- * Check if a music game is currently active
+ * Check if a music game is currently active (legacy singleton)
  * Used by silence handler to avoid interrupting games
+ * @deprecated Use isSessionGameActive(sessionId) instead
  */
 export function isGameCurrentlyActive(): boolean {
   try {
@@ -114,7 +153,8 @@ export function isGameCurrentlyActive(): boolean {
 }
 
 /**
- * Check if a text game is currently active
+ * Check if a text game is currently active (legacy singleton)
+ * @deprecated Use isSessionTextGameActive(sessionId) instead
  */
 export function isTextGameCurrentlyActive(): boolean {
   try {
@@ -126,14 +166,16 @@ export function isTextGameCurrentlyActive(): boolean {
 }
 
 /**
- * Check if ANY game (music or text) is currently active
+ * Check if ANY game (music or text) is currently active (legacy singleton)
+ * @deprecated Use isAnySessionGameActive(sessionId) instead
  */
 export function isAnyGameActive(): boolean {
   return isGameCurrentlyActive() || isTextGameCurrentlyActive();
 }
 
 /**
- * Get current game type (if active)
+ * Get current game type (if active) (legacy singleton)
+ * @deprecated Use getSessionGameType(sessionId) instead
  */
 export function getCurrentGameType(): string | null {
   try {
@@ -145,7 +187,8 @@ export function getCurrentGameType(): string | null {
 }
 
 /**
- * Get current text game type (if active)
+ * Get current text game type (if active) (legacy singleton)
+ * @deprecated Use getSessionTextGameType(sessionId) instead
  */
 export function getCurrentTextGameType(): string | null {
   try {
@@ -157,7 +200,8 @@ export function getCurrentTextGameType(): string | null {
 }
 
 /**
- * Get game context for silence handler
+ * Get game context for silence handler (legacy singleton)
+ * @deprecated Use getSessionGameContext(sessionId) instead
  */
 export function getGameContextForSilence(): {
   isGameActive: boolean;
@@ -169,6 +213,85 @@ export function getGameContextForSilence(): {
   return {
     isGameActive: musicGame || textGame,
     activeGameType: musicGame ? getCurrentGameType() : textGame ? getCurrentTextGameType() : null,
+  };
+}
+
+// ============================================================================
+// SESSION-SCOPED GAME STATE HELPERS (preferred)
+// ============================================================================
+
+/**
+ * Check if a music game is active for a specific session
+ */
+export function isSessionGameActive(sessionId: string): boolean {
+  try {
+    const engine = getSessionGameEngine(sessionId);
+    return engine.isGameActive();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a text game is active for a specific session
+ */
+export function isSessionTextGameActive(sessionId: string): boolean {
+  try {
+    const engine = getSessionTextGameEngine(sessionId);
+    return engine.isGameActive();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if ANY game is active for a specific session
+ */
+export function isAnySessionGameActive(sessionId: string): boolean {
+  return isSessionGameActive(sessionId) || isSessionTextGameActive(sessionId);
+}
+
+/**
+ * Get current game type for a specific session
+ */
+export function getSessionGameType(sessionId: string): string | null {
+  try {
+    const engine = getSessionGameEngine(sessionId);
+    return engine.getCurrentGameType();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get current text game type for a specific session
+ */
+export function getSessionTextGameType(sessionId: string): string | null {
+  try {
+    const engine = getSessionTextGameEngine(sessionId);
+    return engine.getCurrentGameType();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get game context for a specific session (for silence handler)
+ */
+export function getSessionGameContext(sessionId: string): {
+  isGameActive: boolean;
+  activeGameType: string | null;
+} {
+  const musicGame = isSessionGameActive(sessionId);
+  const textGame = isSessionTextGameActive(sessionId);
+
+  return {
+    isGameActive: musicGame || textGame,
+    activeGameType: musicGame
+      ? getSessionGameType(sessionId)
+      : textGame
+        ? getSessionTextGameType(sessionId)
+        : null,
   };
 }
 

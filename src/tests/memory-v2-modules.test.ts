@@ -211,7 +211,7 @@ describe('Memory Result Type', () => {
   describe('allSettled function', () => {
     it('should separate successes and errors', () => {
       const error = memoryError('generic', 'error');
-      const results: Result<number, MemoryError>[] = [ok(1), err(error), ok(2)];
+      const results: Array<Result<number, MemoryError>> = [ok(1), err(error), ok(2)];
       const { successes, errors } = allSettled(results);
 
       expect(successes).toEqual([1, 2]);

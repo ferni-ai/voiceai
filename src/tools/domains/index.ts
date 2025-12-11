@@ -197,6 +197,25 @@ export { getToolDefinitions as getReflectionGamesToolDefinitions } from './refle
 export { getToolDefinitions as getQuietGrowthToolDefinitions } from './quiet-growth/index.js';
 
 // ============================================================================
+// PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS
+// ============================================================================
+
+// Pattern Mastery domain (Peter John) - superhuman pattern recognition
+export { getToolDefinitions as getPatternMasteryToolDefinitions } from './pattern-mastery/index.js';
+
+// Workflow Mastery domain (Alex Chen) - superhuman organization and communication
+export { getToolDefinitions as getWorkflowMasteryToolDefinitions } from './workflow-mastery/index.js';
+
+// Milestone Mastery domain (Jordan Taylor) - superhuman celebration and event planning
+export { getToolDefinitions as getMilestoneMasteryToolDefinitions } from './milestone-mastery/index.js';
+
+// Habit Persistence domain (Maya Santos) - superhuman patience for behavior change
+export { getToolDefinitions as getHabitPersistenceToolDefinitions } from './habit-persistence/index.js';
+
+// Timeless Perspective domain (Nayan Patel) - superhuman long view and wisdom
+export { getToolDefinitions as getTimelessPerspectiveToolDefinitions } from './timeless-perspective/index.js';
+
+// ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
 // ============================================================================
@@ -279,6 +298,12 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     // Note: reflection-games has a different export format and is loaded separately
     // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus
     import('./quiet-growth/index.js').then(async (m) => m.getToolDefinitions()),
+    // Persona-specific "Better Than Human" domains
+    import('./pattern-mastery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./workflow-mastery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./milestone-mastery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./habit-persistence/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./timeless-perspective/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -569,6 +594,42 @@ export const DOMAIN_METADATA = {
     description:
       'Anti-hustle growth: rest, seasons, plateaus, and sufficiency. Growth without comparison or urgency.',
     icon: '🌱',
+    status: 'active',
+  },
+  // Persona-specific "Better Than Human" Domains
+  'pattern-mastery': {
+    name: 'Pattern Mastery',
+    description:
+      "Peter John's specialty: superhuman pattern recognition, cross-domain connections, and data insights",
+    icon: '🔬',
+    status: 'active',
+  },
+  'workflow-mastery': {
+    name: 'Workflow Mastery',
+    description:
+      "Alex Chen's specialty: superhuman organization, communication clarity, and calendar optimization",
+    icon: '📋',
+    status: 'active',
+  },
+  'milestone-mastery': {
+    name: 'Milestone Mastery',
+    description:
+      "Jordan Taylor's specialty: superhuman celebration, event anticipation, and life milestone navigation",
+    icon: '🎉',
+    status: 'active',
+  },
+  'habit-persistence': {
+    name: 'Habit Persistence',
+    description:
+      "Maya Santos's specialty: superhuman patience for behavior change, compassionate coaching, and gentle accountability",
+    icon: '🌿',
+    status: 'active',
+  },
+  'timeless-perspective': {
+    name: 'Timeless Perspective',
+    description:
+      "Nayan Patel's specialty: superhuman patience, wisdom across decades, and the long view that transcends current struggles",
+    icon: '🏔️',
     status: 'active',
   },
 } as const;

@@ -157,3 +157,31 @@ export type {
   BundleDiscoveryResult,
   ExtendedLoadedBundle,
 } from './loaded.js';
+
+// Command types (Phase 1: Agent Commands)
+export type {
+  BundleCommand,
+  BundleCommandArgument,
+  BundleCommandIndex,
+  BundleCommandRef,
+  BundleCommandFrontmatter,
+  CommandExecutionContext,
+  CommandExecutionResult,
+  // Hooks types (Phase 4)
+  BundleAgentHooks,
+  BundleHook,
+  HookEventType,
+  HookExecutionContext,
+  HookExecutionResult,
+  // Local tools types (Phase 2)
+  BundleLocalTool,
+  BundleLocalToolsIndex,
+  BundleLocalToolRef,
+  // Theme types (Phase 3)
+  BundleTheme,
+  BundleSounds,
+  BundleAssets,
+  // MCP types (Phase 5)
+  BundleMCPConfig,
+  BundleMCPServer,
+} from './commands.js';

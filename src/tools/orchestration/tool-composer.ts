@@ -105,7 +105,9 @@ export interface ComposeOptions {
  * Predefined tool chains for common conversation patterns
  */
 export const TOOL_CHAINS: Record<string, ToolChain> = {
-  // Memory tools often lead to follow-up conversations
+  // ========================================================================
+  // MEMORY DOMAIN
+  // ========================================================================
   rememberAboutUser: {
     primary: 'rememberAboutUser',
     suggestedFollowers: ['checkIn', 'setGoal', 'suggestRelevantTopic'],
@@ -117,6 +119,194 @@ export const TOOL_CHAINS: Record<string, ToolChain> = {
     suggestedFollowers: ['circleBack', 'shareStory', 'checkGoalProgress'],
     contextKeys: ['topic', 'recalledInfo'],
     typicalEmotion: 'neutral',
+  },
+
+  // ========================================================================
+  // CAREER DOMAIN - Job Search Journey
+  // ========================================================================
+  clarifyCareerGoals: {
+    primary: 'clarifyCareerGoals',
+    suggestedFollowers: ['exploreGrowthAreas', 'createLearningPath', 'assessCareerSatisfaction'],
+    contextKeys: ['timeHorizon', 'clarity', 'values'],
+    typicalEmotion: 'empathetic',
+  },
+  exploreGrowthAreas: {
+    primary: 'exploreGrowthAreas',
+    suggestedFollowers: ['createLearningPath', 'trackJobApplication', 'expandNetwork'],
+    contextKeys: ['currentRole', 'targetRole', 'gaps'],
+    typicalEmotion: 'neutral',
+  },
+  trackJobApplication: {
+    primary: 'trackJobApplication',
+    suggestedFollowers: ['practiceInterview', 'prepareSTARStories', 'researchSalary'],
+    contextKeys: ['company', 'role', 'status'],
+    typicalEmotion: 'neutral',
+  },
+  practiceInterview: {
+    primary: 'practiceInterview',
+    suggestedFollowers: ['prepareSTARStories', 'trackJobApplication', 'rolePlayNegotiation'],
+    contextKeys: ['interviewType', 'role', 'feedback'],
+    typicalEmotion: 'empathetic',
+  },
+  assessBurnout: {
+    primary: 'assessBurnout',
+    suggestedFollowers: ['setWorkBoundary', 'planCareerTransition', 'companionInGrief'],
+    contextKeys: ['symptoms', 'level', 'duration'],
+    typicalEmotion: 'concerned',
+  },
+  researchSalary: {
+    primary: 'researchSalary',
+    suggestedFollowers: ['rolePlayNegotiation', 'trackJobApplication'],
+    contextKeys: ['role', 'range', 'target'],
+    typicalEmotion: 'neutral',
+  },
+  rolePlayNegotiation: {
+    primary: 'rolePlayNegotiation',
+    suggestedFollowers: ['trackJobApplication', 'celebrateMilestone'],
+    contextKeys: ['scenario', 'offer', 'target'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // GRIEF DOMAIN - Support Journey
+  // ========================================================================
+  processGrief: {
+    primary: 'processGrief',
+    suggestedFollowers: ['navigateGriefWave', 'companionInGrief', 'rememberLoved'],
+    contextKeys: ['lossType', 'whereTheyAre', 'whatWasLost'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateGriefWave: {
+    primary: 'navigateGriefWave',
+    suggestedFollowers: ['companionInGrief', 'validateGrief', 'processGrief'],
+    contextKeys: ['intensity', 'trigger'],
+    typicalEmotion: 'empathetic',
+  },
+  acknowledgeLoss: {
+    primary: 'acknowledgeLoss',
+    suggestedFollowers: ['validateGrief', 'companionInGrief', 'rememberLoved'],
+    contextKeys: ['loss', 'recognized'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateTransition: {
+    primary: 'navigateTransition',
+    suggestedFollowers: ['processEnding', 'embraceNewIdentity', 'companionInGrief'],
+    contextKeys: ['transition', 'stage'],
+    typicalEmotion: 'empathetic',
+  },
+  anniversarySupport: {
+    primary: 'anniversarySupport',
+    suggestedFollowers: ['rememberLoved', 'companionInGrief', 'processGrief'],
+    contextKeys: ['occasion', 'howLongAgo'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // CRISIS DOMAIN - Safety Journey
+  // ========================================================================
+  assessCrisis: {
+    primary: 'assessCrisis',
+    suggestedFollowers: ['groundingExercise', 'createSafetyPlan', 'findCrisisResources'],
+    contextKeys: ['severity', 'type', 'immediate'],
+    typicalEmotion: 'concerned',
+  },
+  groundingExercise: {
+    primary: 'groundingExercise',
+    suggestedFollowers: ['checkIn', 'companionInGrief', 'createSafetyPlan'],
+    contextKeys: ['technique', 'effectiveness'],
+    typicalEmotion: 'empathetic',
+  },
+  createSafetyPlan: {
+    primary: 'createSafetyPlan',
+    suggestedFollowers: ['findCrisisResources', 'scheduleFollowUp', 'rememberAboutUser'],
+    contextKeys: ['triggers', 'copingStrategies', 'contacts'],
+    typicalEmotion: 'concerned',
+  },
+
+  // ========================================================================
+  // ENGAGEMENT DOMAIN - Daily Rituals
+  // ========================================================================
+  morningSkyCheck: {
+    primary: 'morningSkyCheck',
+    suggestedFollowers: ['questionOfTheWeek', 'streakTracker', 'teamHuddle'],
+    contextKeys: ['mood', 'energy'],
+    typicalEmotion: 'empathetic',
+  },
+  streakTracker: {
+    primary: 'streakTracker',
+    suggestedFollowers: ['celebrationMoment', 'quickChallenges', 'awardBadge'],
+    contextKeys: ['streak', 'domain'],
+    typicalEmotion: 'happy',
+  },
+  celebrationMoment: {
+    primary: 'celebrationMoment',
+    suggestedFollowers: ['streakTracker', 'reflectionPrompts', 'teamHuddle'],
+    contextKeys: ['achievement', 'celebrationType'],
+    typicalEmotion: 'celebratory',
+  },
+
+  // ========================================================================
+  // DECISIONS DOMAIN
+  // ========================================================================
+  helpMeDecide: {
+    primary: 'helpMeDecide',
+    suggestedFollowers: ['questionBeneath', 'clarifyCareerGoals', 'rememberAboutUser'],
+    contextKeys: ['decision', 'options', 'choice'],
+    typicalEmotion: 'neutral',
+  },
+  questionBeneath: {
+    primary: 'questionBeneath',
+    suggestedFollowers: ['helpMeDecide', 'clarifyCareerGoals', 'processGrief'],
+    contextKeys: ['surfaceQuestion', 'deeperQuestion'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // SIMPLE UTILITIES - Quick Help
+  // ========================================================================
+  setTimer: {
+    primary: 'setTimer',
+    suggestedFollowers: ['quickNote', 'checkTimerStatus'],
+    contextKeys: ['duration', 'label'],
+    typicalEmotion: 'neutral',
+  },
+  calculateTip: {
+    primary: 'calculateTip',
+    suggestedFollowers: ['splitBill', 'quickNote'],
+    contextKeys: ['amount', 'tip'],
+    typicalEmotion: 'neutral',
+  },
+
+  // ========================================================================
+  // HEALTH DOMAIN
+  // ========================================================================
+  trackExercise: {
+    primary: 'trackExercise',
+    suggestedFollowers: ['logHabit', 'streakTracker', 'celebrationMoment'],
+    contextKeys: ['activity', 'duration', 'intensity'],
+    typicalEmotion: 'happy',
+  },
+  assessSleepQuality: {
+    primary: 'assessSleepQuality',
+    suggestedFollowers: ['setGoal', 'logHabit', 'assessBurnout'],
+    contextKeys: ['quality', 'hours', 'issues'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // ========================================================================
+  // RELATIONSHIPS DOMAIN
+  // ========================================================================
+  prepareConversation: {
+    primary: 'prepareConversation',
+    suggestedFollowers: ['practiceConversation', 'draftDifficultMessage', 'rememberAboutUser'],
+    contextKeys: ['topic', 'person', 'goal'],
+    typicalEmotion: 'empathetic',
+  },
+  navigateConflict: {
+    primary: 'navigateConflict',
+    suggestedFollowers: ['prepareConversation', 'validateGrief', 'companionInGrief'],
+    contextKeys: ['conflict', 'parties', 'needs'],
+    typicalEmotion: 'empathetic',
   },
 
   // Goal tools chain naturally

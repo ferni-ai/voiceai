@@ -21,36 +21,36 @@
 
 export {
   AgentTask,
-  TaskGroup,
-  TaskRegressionError,
   // Prebuilt basic tasks
   CollectConsentTask,
-  CollectNameTask,
   CollectEmailTask,
+  CollectNameTask,
+  TaskGroup,
+  TaskRegressionError,
 } from './agent-task.js';
 
-export type { TaskGroupResult, ConsentResult, NameResult, EmailResult } from './agent-task.js';
+export type { ConsentResult, EmailResult, NameResult, TaskGroupResult } from './agent-task.js';
 
 // ============================================================================
 // MICRO TASKS - Quick, natural moments
 // ============================================================================
 
 export {
-  QuickAcknowledgeTask,
-  QuickCelebrateTask,
-  QuickValidateTask,
-  QuickCuriosityTask,
   ActiveListeningTask,
   PauseTask,
+  QuickAcknowledgeTask,
+  QuickCelebrateTask,
+  QuickCuriosityTask,
+  QuickValidateTask,
 } from './micro-tasks.js';
 
 export type {
   AcknowledgeResult,
-  QuickCelebrateResult,
-  ValidateResult,
   CuriosityResult,
   ListeningResult,
   PauseResult,
+  QuickCelebrateResult,
+  ValidateResult,
 } from './micro-tasks.js';
 
 // ============================================================================
@@ -58,18 +58,18 @@ export type {
 // ============================================================================
 
 export {
-  LifeChangeTask,
-  PanicPreventionTask,
   GriefSupportTask,
+  LifeChangeTask,
   MilestoneTask,
+  PanicPreventionTask,
 } from './life-events.js';
 
 export type {
-  LifeEventType,
-  LifeChangeResult,
-  PanicPreventionResult,
   GriefSupportResult,
+  LifeChangeResult,
+  LifeEventType,
   MilestoneResult,
+  PanicPreventionResult,
 } from './life-events.js';
 
 // ============================================================================
@@ -77,44 +77,44 @@ export type {
 // ============================================================================
 
 export {
+  createAdaptiveResponse,
   IntelligentTask,
   IntelligentTaskGroup,
-  createAdaptiveResponse,
 } from './intelligent-task.js';
 
-export type { TaskContext, AdaptiveInstructions } from './intelligent-task.js';
+export type { AdaptiveInstructions, TaskContext } from './intelligent-task.js';
 
 // ============================================================================
 // SUPPORT TASKS
 // ============================================================================
 
 export {
-  EmotionalSupportTask,
   CheckInTask,
   ComfortTask,
   CrisisDetectionTask,
+  EmotionalSupportTask,
 } from './support-tasks.js';
 
-export type { SupportResult, CheckInResult, ComfortResult, CrisisResult } from './support-tasks.js';
+export type { CheckInResult, ComfortResult, CrisisResult, SupportResult } from './support-tasks.js';
 
 // ============================================================================
 // RELATIONSHIP TASKS
 // ============================================================================
 
 export {
-  FollowUpTask,
-  StorytellingTask,
-  DeepDiveTask,
-  GoodbyeTask,
   CelebrationTask,
+  DeepDiveTask,
+  FollowUpTask,
+  GoodbyeTask,
+  StorytellingTask,
 } from './relationship-tasks.js';
 
 export type {
-  FollowUpResult,
-  StoryResult,
-  DeepDiveResult,
-  GoodbyeResult,
   CelebrationResult,
+  DeepDiveResult,
+  FollowUpResult,
+  GoodbyeResult,
+  StoryResult,
 } from './relationship-tasks.js';
 
 // ============================================================================
@@ -122,17 +122,17 @@ export type {
 // ============================================================================
 
 export {
-  WisdomSharingTask,
   DecisionSupportTask,
   FearAddressingTask,
   GoalSettingTask,
+  WisdomSharingTask,
 } from './advice-tasks.js';
 
 export type {
-  WisdomResult,
   DecisionResult,
   FearResult,
   GoalSettingResult,
+  WisdomResult,
 } from './advice-tasks.js';
 
 // ============================================================================
@@ -141,81 +141,81 @@ export type {
 
 // Finance Tasks (Nayan/Jack Bogle domain)
 export {
-  InvestmentWisdomTask,
-  MarketPanicTask,
-  RebalancingTask,
   FinancialGoalTask,
+  InvestmentWisdomTask,
   MarketFearTask,
+  MarketPanicTask,
   // Legacy aliases
   RebalancingTask as RebalancingGuidanceTask,
+  RebalancingTask,
 } from './finance-tasks.js';
 
 export type {
+  FinancialGoalResult,
   InvestmentWisdomResult,
+  MarketFearResult,
   MarketPanicResult,
   RebalancingResult,
-  FinancialGoalResult,
-  MarketFearResult,
 } from './finance-tasks.js';
 
 // Habits Tasks (Maya Santos domain)
 export {
-  HabitTrackingTask,
   HabitBuildingTask,
   HabitStruggleTask,
+  HabitTrackingTask,
   RoutineDesignTask,
 } from './habits-tasks.js';
 
 export type {
-  HabitTrackingResult,
   HabitBuildingResult,
   HabitStruggleResult,
+  HabitTrackingResult,
   RoutineDesignResult,
 } from './habits-tasks.js';
 
 // Research Tasks (Peter John domain)
 export {
   CuriosityExplorationTask,
-  LearningProjectTask,
   DeepResearchTask,
   ExpertiseDevelopmentTask,
+  LearningProjectTask,
 } from './research-tasks.js';
 
 export type {
   CuriosityExplorationResult,
-  LearningProjectResult,
   DeepResearchResult,
   ExpertiseDevelopmentResult,
+  LearningProjectResult,
 } from './research-tasks.js';
 
 // Communications Tasks (Alex Chen domain)
 export {
+  BoundarySettingTask,
   DifficultConversationTask,
   MessageCraftingTask,
-  BoundarySettingTask,
   SchedulingTask,
 } from './communications-tasks.js';
 
 export type {
+  BoundarySettingResult,
   DifficultConversationResult,
   MessageCraftingResult,
-  BoundarySettingResult,
   SchedulingResult,
 } from './communications-tasks.js';
 
 // Events Tasks (Jordan Taylor domain)
 export {
   EventPlanningTask,
+  LifeMilestoneTask,
   SpecialDateTask,
   TravelPlanningTask,
-  LifeMilestoneTask,
 } from './events-tasks.js';
 
 export type {
   EventPlanningResult,
+  LifeMilestoneResult,
   SpecialDateResult,
   TravelPlanningResult,
-  LifeMilestoneResult,
 } from './events-tasks.js';
 
 // ============================================================================
@@ -223,35 +223,35 @@ export type {
 // ============================================================================
 
 export {
-  WelcomeTask,
-  SituationAssessmentTask,
+  createOnboardingFlow,
   FinancialSituationTask, // Legacy alias
   GoalsTask,
-  createOnboardingFlow,
   runOnboarding,
+  SituationAssessmentTask,
+  WelcomeTask,
 } from './onboarding.js';
 
 export type {
-  WelcomeResult,
-  SituationResult,
   FinancialSituationResult, // Legacy alias
   GoalsResult as OnboardingGoalsResult,
   OnboardingResult,
+  SituationResult,
+  WelcomeResult,
 } from './onboarding.js';
 
 // ============================================================================
 // TASK FLOW BUILDERS
 // ============================================================================
 
+import { FearAddressingTask, GoalSettingTask, WisdomSharingTask } from './advice-tasks.js';
 import {
   IntelligentTaskGroup,
   type IntelligentTask,
   type TaskContext,
 } from './intelligent-task.js';
-import { EmotionalSupportTask, CheckInTask } from './support-tasks.js';
-import { FollowUpTask, GoodbyeTask, DeepDiveTask } from './relationship-tasks.js';
-import { WisdomSharingTask, GoalSettingTask, FearAddressingTask } from './advice-tasks.js';
-import { WelcomeTask, SituationAssessmentTask, GoalsTask } from './onboarding.js';
+import { GoalsTask, SituationAssessmentTask, WelcomeTask } from './onboarding.js';
+import { DeepDiveTask, FollowUpTask, GoodbyeTask } from './relationship-tasks.js';
+import { CheckInTask, EmotionalSupportTask } from './support-tasks.js';
 
 /**
  * Create an intelligent onboarding flow that adapts to user emotions
@@ -452,12 +452,12 @@ export function createWrapUpFlow(): IntelligentTaskGroup {
 // ============================================================================
 
 export {
+  EMOTIONAL_TRANSITIONS,
+  getContextualTransition,
+  getTransition,
+  TASK_TRANSITIONS,
   TOPIC_ENTRY_TRANSITIONS,
   TOPIC_EXIT_TRANSITIONS,
-  EMOTIONAL_TRANSITIONS,
-  TASK_TRANSITIONS,
-  getTransition,
-  getContextualTransition,
   wrapWithTransitions,
 } from './transitions.js';
 
@@ -466,13 +466,83 @@ export {
 // ============================================================================
 
 export {
-  TaskManager,
   getTaskManager,
   resetTaskManager,
   TASK_WISDOM,
-  type TaskWisdom,
+  TaskManager,
   type ActiveTask,
+  type TaskWisdom,
 } from './task-manager.js';
+
+// ============================================================================
+// TASK PERSISTENCE - Firestore-backed task history
+// ============================================================================
+
+export {
+  createTaskRecordFromActiveTask,
+  getRecentTasksByType,
+  getTaskEffectivenessStats,
+  getTaskHistory,
+  getUnderperformingTasks,
+  getUserTaskHistory,
+  getUserTaskSummary,
+  saveTaskRecord,
+  taskPersistence,
+  type TaskHistoryQuery,
+  type TaskRecord,
+  type UserTaskSummary,
+} from './task-persistence.js';
+
+// ============================================================================
+// TASK METRICS - Analytics and monitoring
+// ============================================================================
+
+export {
+  checkForAlerts,
+  generateTaskReport,
+  getActiveAlerts,
+  getAllTaskTypeMetrics,
+  getSystemHealthMetrics,
+  getTaskTypeMetrics,
+  taskMetricsService,
+  type RealtimeMetrics,
+  type SystemHealthMetrics,
+  type TaskAlert,
+  type TaskTypeMetrics,
+} from './task-metrics.service.js';
+
+// ============================================================================
+// CONSTANTS - Shared configuration
+// ============================================================================
+
+export {
+  assessDistress,
+  CONVERSATION_PHASES,
+  CRISIS_EMOTION_THRESHOLD,
+  DEFAULT_EMOTION_THRESHOLD,
+  DISTRESS_IMPROVEMENT_THRESHOLD,
+  DISTRESS_THRESHOLDS,
+  EMOTIONS,
+  exceedsDistressThreshold,
+  getEmotionThresholdForTask,
+  hasDistressImproved,
+  INTENTS,
+  KEYWORD_PATTERNS,
+  METRICS_THRESHOLDS,
+  SENSITIVE_EMOTION_THRESHOLD,
+  shouldSkipTaskDueToDistress,
+  TASK_PRIORITIES,
+  TASK_TURN_COUNTS,
+  VALENCE,
+  type DistressAssessment,
+  type DistressLevel,
+  type EmotionAnalysis,
+  type EmotionType,
+  type IntentType,
+  type TaskPriority,
+  type TaskTurnCount,
+  type ValenceType,
+} from './constants.js';
 
 // ============================================================================
 // DOCUMENTATION

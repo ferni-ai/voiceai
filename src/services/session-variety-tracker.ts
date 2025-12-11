@@ -82,82 +82,172 @@ interface SessionState {
  * Keyword to theme mapping - ORDER MATTERS for detection
  * More specific keywords must come before generic ones
  * (e.g., "mint tea from Morocco" should match 'morocco' not 'tea')
+ *
+ * Comprehensive coverage to catch ALL repetitive content in quirks.json and other sources
  */
-const KEYWORD_TO_THEME_ORDERED: [string, ThemeCategory][] = [
-  // Global traveler (check BEFORE warm drinks since "mint tea from Morocco" should be traveler)
+const KEYWORD_TO_THEME_ORDERED: Array<[string, ThemeCategory]> = [
+  // =========================================================================
+  // GLOBAL TRAVELER - Check FIRST (locations override drink/generic keywords)
+  // =========================================================================
   ['japan', 'global_traveler'],
   ['japanese', 'global_traveler'],
   ['tokyo', 'global_traveler'],
   ['morocco', 'global_traveler'],
   ['marrakech', 'global_traveler'],
+  ['salaam', 'global_traveler'], // Arabic greeting - Morocco connection
   ['wyoming', 'global_traveler'],
   ['tetons', 'global_traveler'],
   ['brazil', 'global_traveler'],
+  ['portuguese', 'global_traveler'],
   ['scotland', 'global_traveler'],
+  ['scottish', 'global_traveler'],
   ['mumbai', 'global_traveler'],
+  ['india', 'global_traveler'],
+  ['portugal', 'global_traveler'],
+  ['alps', 'global_traveler'],
   ['passport', 'global_traveler'],
+  ['four continents', 'global_traveler'],
+  ['another country', 'global_traveler'],
+  ['living abroad', 'global_traveler'],
+  ['step off a plane', 'global_traveler'],
+  ['time difference', 'global_traveler'],
+  ['new country', 'global_traveler'],
+  ['last trip', 'global_traveler'],
 
-  // Warm drinks (after locations so "mint tea from Morocco" isn't caught by "tea")
+  // =========================================================================
+  // WARM DRINKS - After locations so "mint tea from Morocco" isn't caught by "tea"
+  // =========================================================================
   ['coffee', 'warm_drinks'],
   ['mint tea', 'warm_drinks'],
   ['tea', 'warm_drinks'],
+  ['caffeine', 'warm_drinks'],
+  ['refill', 'warm_drinks'],
 
-  // Music
+  // =========================================================================
+  // MUSIC TASTE
+  // =========================================================================
   ['bon iver', 'music_taste'],
   ['sukiyaki', 'music_taste'],
   ['jazz', 'music_taste'],
+  ['stevie wonder', 'music_taste'],
+  ['miles davis', 'music_taste'],
   ['playlist', 'music_taste'],
   ['song', 'music_taste'],
   ['music', 'music_taste'],
+  ['listening to', 'music_taste'],
 
-  // Family
+  // =========================================================================
+  // FAMILY LIFE
+  // =========================================================================
+  ['my wife', 'family_life'],
   ['wife', 'family_life'],
+  ['eight kids', 'family_life'],
   ['kids', 'family_life'],
   ['children', 'family_life'],
+  ['my brother', 'family_life'],
   ['brother', 'family_life'],
+  ['proud dad', 'family_life'],
   ['family', 'family_life'],
+  ['ski resort', 'family_life'], // Brother argument
+  ['40 years', 'family_life'], // Brother argument
 
-  // Physical habits
+  // =========================================================================
+  // PHYSICAL HABITS - Embodied presence
+  // =========================================================================
   ['notebook', 'physical_habits'],
+  ['write down', 'physical_habits'],
+  ['paper notebook', 'physical_habits'],
+  ['reading glasses', 'physical_habits'],
   ['glasses', 'physical_habits'],
   ['5 am', 'physical_habits'],
-  ['morning', 'physical_habits'],
+  ['5am', 'physical_habits'],
+  ['wake up', 'physical_habits'],
+  ['early riser', 'physical_habits'],
   ['bow', 'physical_habits'],
+  ['stretch', 'physical_habits'],
+  ['back', 'physical_habits'],
+  ['chair', 'physical_habits'],
+  ['sitting', 'physical_habits'],
+  ['doodling', 'physical_habits'],
+  ['making a list', 'physical_habits'],
 
-  // Food
+  // =========================================================================
+  // FOOD OPINIONS
+  // =========================================================================
   ['street food', 'food_opinions'],
   ['cereal', 'food_opinions'],
   ['pineapple', 'food_opinions'],
+  ['pizza', 'food_opinions'],
+  ['ramen', 'food_opinions'],
+  ['dinner', 'food_opinions'],
+  ['lunch', 'food_opinions'],
+  ['ate', 'food_opinions'],
 
-  // Nature
+  // =========================================================================
+  // NATURE CONNECTION - Wyoming sky, weather, outdoors
+  // =========================================================================
   ['sky', 'nature_connection'],
   ['weather', 'nature_connection'],
   ['sunrise', 'nature_connection'],
   ['sunset', 'nature_connection'],
   ['mountains', 'nature_connection'],
   ['stars', 'nature_connection'],
+  ['clouds', 'nature_connection'],
+  ['plant', 'nature_connection'],
+  ['window', 'nature_connection'],
+  ['outside', 'nature_connection'],
 
-  // Philosophical
+  // =========================================================================
+  // PHILOSOPHICAL - Deeper meaning
+  // =========================================================================
   ['meaning', 'philosophical'],
   ['purpose', 'philosophical'],
   ['presence', 'philosophical'],
   ['patience', 'philosophical'],
+  ['mindfulness', 'philosophical'],
+  ['ephemeral', 'philosophical'],
 
-  // Vulnerability
+  // =========================================================================
+  // VULNERABILITY - Deep sharing
+  // =========================================================================
   ['tsunami', 'vulnerability'],
   ['grief', 'vulnerability'],
   ['2011', 'vulnerability'],
   ['survivor guilt', 'vulnerability'],
+  ['loss', 'vulnerability'],
+  ['hard conversation', 'vulnerability'],
 
-  // Professional
+  // =========================================================================
+  // PROFESSIONAL - Coaching identity
+  // =========================================================================
   ['coaching', 'professional'],
+  ['coach', 'professional'],
   ['listening', 'professional'],
   ['breakthrough', 'professional'],
+  ['team', 'professional'],
 
-  // Quirky
+  // =========================================================================
+  // QUIRKY INTERESTS - Endearing oddities
+  // =========================================================================
   ['golf', 'quirky_interests'],
   ['disaster movies', 'quirky_interests'],
   ['flights', 'quirky_interests'],
+  ['looking at flights', 'quirky_interests'],
+  ['fishing', 'quirky_interests'],
+  ['bookmarks', 'quirky_interests'],
+  ['documentary', 'quirky_interests'],
+  ['rabbit hole', 'quirky_interests'],
+  ['old email', 'quirky_interests'],
+
+  // =========================================================================
+  // SENSORY MOMENT - Grounding experiences
+  // =========================================================================
+  ['light', 'sensory_moment'],
+  ['voice changed', 'sensory_moment'],
+  ['something lifted', 'sensory_moment'],
+  ['holding something', 'sensory_moment'],
+  ['smell', 'sensory_moment'],
+  ['sound', 'sensory_moment'],
 ];
 
 // ============================================================================

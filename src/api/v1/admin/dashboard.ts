@@ -16,54 +16,47 @@ import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
+import {
+  initializeActivityLog,
+  recordActivity as recordActivityToStore,
+  getRecentActivity as getRecentActivityFromStore,
+  getActivityByType,
+  type ActivityEvent,
+} from '../../../services/admin-activity.js';
 
 const log = createLogger({ module: 'AdminDashboardAPI' });
 
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/dashboard';
 
-// ============================================================================
-// ACTIVITY LOG SYSTEM
-// ============================================================================
+// Re-export types for consumers
+export type { ActivityEvent };
 
-export interface ActivityEvent {
-  id: string;
-  type: 'handoff' | 'evalops' | 'trust' | 'agent' | 'flag' | 'user' | 'system';
-  action: string;
-  description: string;
-  metadata?: Record<string, unknown>;
-  timestamp: Date;
+// Initialize activity log on module load
+let activityLogInitialized = false;
+async function ensureActivityLogInitialized(): Promise<void> {
+  if (!activityLogInitialized) {
+    await initializeActivityLog();
+    activityLogInitialized = true;
+  }
 }
 
-// In-memory activity log (in production, use Firestore)
-const activityLog: ActivityEvent[] = [];
-const MAX_ACTIVITY_EVENTS = 200;
-
 /**
- * Record an activity event
+ * Record an activity event (async wrapper for Firestore persistence)
  */
 export function recordActivity(event: Omit<ActivityEvent, 'id' | 'timestamp'>): void {
-  const newEvent: ActivityEvent = {
-    ...event,
-    id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    timestamp: new Date(),
-  };
-
-  activityLog.unshift(newEvent); // Add to front (most recent first)
-
-  // Trim to max size
-  if (activityLog.length > MAX_ACTIVITY_EVENTS) {
-    activityLog.pop();
-  }
-
-  log.debug({ event: newEvent }, 'Activity recorded');
+  // Fire-and-forget to not block callers
+  ensureActivityLogInitialized()
+    .then(() => recordActivityToStore(event))
+    .catch((error) => log.error({ error }, 'Failed to record activity'));
 }
 
 /**
- * Get recent activity events
+ * Get recent activity events (async)
  */
-export function getRecentActivity(limit = 20): ActivityEvent[] {
-  return activityLog.slice(0, limit);
+export async function getRecentActivity(limit = 20): Promise<ActivityEvent[]> {
+  await ensureActivityLogInitialized();
+  return getRecentActivityFromStore(limit);
 }
 
 // ============================================================================
@@ -118,7 +111,8 @@ export async function handleAdminDashboardRoutes(
     // RECENT ACTIVITY
     // ========================================================================
     if (subPath === '/activity' && method === 'GET') {
-      const activity = getRecentActivity(20).map((e) => ({
+      const recentEvents = await getRecentActivity(20);
+      const activity = recentEvents.map((e) => ({
         ...e,
         timestamp: formatTimestamp(e.timestamp),
       }));
@@ -140,14 +134,12 @@ export async function handleAdminDashboardRoutes(
     // FILTERED ACTIVITY (by type)
     // ========================================================================
     if (subPath.startsWith('/activity/') && method === 'GET') {
-      const type = subPath.slice('/activity/'.length);
-      const filtered = activityLog
-        .filter((e) => e.type === type)
-        .slice(0, 20)
-        .map((e) => ({
-          ...e,
-          timestamp: formatTimestamp(e.timestamp),
-        }));
+      const type = subPath.slice('/activity/'.length) as ActivityEvent['type'];
+      const filteredEvents = await getActivityByType(type, 20);
+      const filtered = filteredEvents.map((e) => ({
+        ...e,
+        timestamp: formatTimestamp(e.timestamp),
+      }));
 
       sendJSON(res, { activity: filtered, count: filtered.length, type });
       return true;
@@ -275,13 +267,18 @@ async function getSystemStats(): Promise<{
     const { getAverageLatency } = await import('../../../services/latency-tracker.js');
     const avgLatency = getAverageLatency();
 
+    // Get recent user events to estimate active sessions
+    const recentUserEvents = await getActivityByType('user', 100);
+    const oneHourAgo = Date.now() - 3600000;
+    const activeSessions = recentUserEvents.filter(
+      (e) => e.timestamp.getTime() > oneHourAgo
+    ).length;
+
     return {
       uptime: process.uptime(),
       responseTime: avgLatency > 0 ? avgLatency : 0,
       errorRate: 0.02, // Would need to track actual errors
-      activeSessions: activityLog.filter(
-        (e) => e.type === 'user' && Date.now() - e.timestamp.getTime() < 3600000
-      ).length,
+      activeSessions,
     };
   } catch {
     return {

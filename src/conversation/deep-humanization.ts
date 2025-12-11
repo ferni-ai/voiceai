@@ -964,10 +964,8 @@ export const detectAdviceGiving = sharedDetectAdviceGiving;
  * Classify topic weight
  * @see {@link sharedClassifyTopicWeight} - Uses shared detection utilities
  */
-export const classifyTopicWeight: (
-  userMessage: string,
-  detectedEmotion?: string
-) => TopicWeight = sharedClassifyTopicWeight;
+export const classifyTopicWeight: (userMessage: string, detectedEmotion?: string) => TopicWeight =
+  sharedClassifyTopicWeight;
 
 /**
  * Detect if user seems disengaged based on message content

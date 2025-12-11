@@ -353,6 +353,8 @@ export async function generateCompositionalGreeting(
     userName?: string;
     isReturningUser?: boolean;
     relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+    /** Session ID for variety tracking - prevents repetitive quirks */
+    sessionId?: string;
   } = {}
 ): Promise<string | null> {
   // Get time context
@@ -381,11 +383,12 @@ export async function generateCompositionalGreeting(
   const atoms = (await loadPersonaAtoms(persona.id, bundlePath)) || DEFAULT_ATOMS;
 
   // Get caught doing from runtime if available
+  // Pass sessionId for variety tracking - prevents repetitive quirks
   let caughtDoing: string | undefined;
   if (runtime) {
     try {
       await runtime.loadInnerWorld();
-      caughtDoing = runtime.getCaughtDoing() || undefined;
+      caughtDoing = runtime.getCaughtDoing(options.sessionId) || undefined;
     } catch {
       // Ignore - caughtDoing is optional
     }

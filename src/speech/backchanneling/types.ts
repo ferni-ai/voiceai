@@ -18,8 +18,12 @@ import type { BackchannelCategory, BackchannelEmotionType } from '../persona-phr
 
 /**
  * Backchanneling mode determines timing and behavior
+ * - standard: Basic verbal nods (5-8s triggers)
+ * - enhanced: Context-aware, research-backed (3-5s triggers)
+ * - live: Real-time during speech (breath-pause detection)
+ * - adaptive: Automatically switches between modes based on context
  */
-export type BackchannelMode = 'standard' | 'enhanced' | 'live';
+export type BackchannelMode = 'standard' | 'enhanced' | 'live' | 'adaptive';
 
 // ============================================================================
 // UNIFIED CONTEXT

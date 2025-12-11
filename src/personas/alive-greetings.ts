@@ -32,6 +32,8 @@ export interface AliveGreetingContext {
   dayOfWeek: string;
   isWeekend: boolean;
   usedGreetings?: string[];
+  /** Session ID for variety tracking - prevents repetitive quirks across greetings */
+  sessionId?: string;
 }
 
 export interface AliveGreetingResult {
@@ -80,7 +82,8 @@ function generateCaughtMomentGreeting(
   runtime: BundleRuntimeEngine,
   ctx: AliveGreetingContext
 ): AliveGreetingResult | null {
-  const caughtDoing = runtime.getCaughtDoing();
+  // Pass sessionId for variety tracking - prevents repetitive quirks
+  const caughtDoing = runtime.getCaughtDoing(ctx.sessionId);
   if (!caughtDoing) return null;
 
   const name = ctx.userName || '';
@@ -243,8 +246,9 @@ function generateCuriousStrangerGreeting(
 ): AliveGreetingResult | null {
   if (ctx.isReturningUser) return null;
 
-  const strongOpinion = runtime.getStrongOpinion();
-  const caughtDoing = runtime.getCaughtDoing();
+  // Pass sessionId for variety tracking
+  const strongOpinion = runtime.getStrongOpinion(ctx.sessionId);
+  const caughtDoing = runtime.getCaughtDoing(ctx.sessionId);
 
   const strangerGreetings = [
     // Surprised but welcoming

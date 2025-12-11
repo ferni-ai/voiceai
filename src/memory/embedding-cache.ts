@@ -115,8 +115,8 @@ export class EmbeddingCache {
    * Get or compute multiple embeddings with batching optimization
    */
   async getBatch(texts: string[]): Promise<Result<number[][], MemoryError>> {
-    const results: (number[] | null)[] = new Array(texts.length).fill(null);
-    const uncached: { index: number; text: string; hash: string }[] = [];
+    const results: Array<number[] | null> = new Array(texts.length).fill(null);
+    const uncached: Array<{ index: number; text: string; hash: string }> = [];
 
     // Check cache for each text
     for (let i = 0; i < texts.length; i++) {

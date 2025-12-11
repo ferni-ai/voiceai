@@ -196,29 +196,56 @@ export function sanitizeSsml(text: string): string {
     'breathing',
     // Expressions
     'smile',
+    'smiling',
     'grin',
+    'grinning',
     'frown',
+    'frowning',
     'nod',
+    'nodding',
     'wink',
+    'winking',
     'blink',
+    'blinking',
+    'smirk',
+    'smirking',
     // Actions
     'pause',
+    'pausing',
     'think',
+    'thinking',
     'clear',
     'cough',
     'shift',
     'lean',
+    'leaning',
     'settle',
+    'settling',
     'focus',
     'attention',
     'shrug',
+    'shrugging',
     // Physical presence
     'warm',
+    'warmly',
     'steady',
     'gentle',
+    'gently',
     'soft',
+    'softly',
     'present',
     'presence',
+    // Tone/manner descriptors (often used as stage directions)
+    'teasing',
+    'teasingly',
+    'playful',
+    'playfully',
+    'mischievous',
+    'mischievously',
+    'knowing',
+    'knowingly',
+    'affectionate',
+    'affectionately',
     // Energy
     'perk',
     'energy',
@@ -227,6 +254,7 @@ export function sanitizeSsml(text: string): string {
     "chef's kiss",
     'taking a breath',
     'visible',
+    'visibly',
   ];
 
   // Build regex pattern for stage directions
@@ -257,14 +285,32 @@ export function sanitizeSsml(text: string): string {
     ''
   );
 
+  // Remove "with a [adjective] smile/tone/voice" phrases
+  result = result.replace(
+    /\bwith\s+a\s+(?:warm|gentle|soft|teasing|playful|knowing|mischievous|affectionate|slight|small|big|wide)?\s*(?:smile|grin|smirk|tone|voice|look|expression)\b[,.!?:;—–-]?\s*/gi,
+    ''
+  );
+
+  // Remove "[adjective] smile/tone" at start of sentence or standalone
+  result = result.replace(
+    /\b(?:teasing|playful|knowing|mischievous|warm|gentle|affectionate)\s+(?:smile|grin|smirk|tone|voice)\b[,.!?:;—–-]?\s*/gi,
+    ''
+  );
+
   // NUCLEAR OPTION for action verbs - standalone words
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsmiling\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bgrinning\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bnods?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bnodding\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bwinks?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bwinking\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsighs?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bexhales?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\binhales?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bteasing(ly)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsmirk(s|ing)?\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags

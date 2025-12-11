@@ -20,6 +20,13 @@ import type {
   BundleInnerWorld,
   BundleSensoryWorld,
 } from './extensions.js';
+import type {
+  BundleCommand,
+  BundleLocalTool,
+  BundleAssets,
+  BundleAgentHooks,
+  BundleMCPConfig,
+} from './commands.js';
 
 // ============================================================================
 // LOADED BUNDLE TYPES
@@ -48,6 +55,25 @@ export interface LoadedPersonaBundle {
   getContextualNuances?: () => Promise<BundleContextualNuances | null>;
   getConflictHandling?: () => Promise<BundleConflictHandling | null>;
   getPromptAssembly?: () => Promise<BundlePromptAssembly | null>;
+
+  // ========================================================================
+  // AGENT EXTENSIBILITY (Phase 1-5)
+  // ========================================================================
+
+  /** Phase 1: Agent Commands - slash commands specific to this agent */
+  getCommands?: () => Promise<BundleCommand[]>;
+
+  /** Phase 2: Local Tools - agent-specific tools bundled with the agent */
+  getLocalTools?: () => Promise<BundleLocalTool[]>;
+
+  /** Phase 3: Theme & Assets - custom theme, sounds, and visual assets */
+  getAssets?: () => Promise<BundleAssets | null>;
+
+  /** Phase 4: Hooks - lifecycle event handlers */
+  getHooks?: () => Promise<BundleAgentHooks | null>;
+
+  /** Phase 5: MCP Config - external tool server configuration */
+  getMCPConfig?: () => Promise<BundleMCPConfig | null>;
 
   // Hot reload support
   reload: () => Promise<void>;

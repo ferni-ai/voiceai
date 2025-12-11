@@ -1,4 +1,4 @@
-# Tool Development
+# Tool Development Guide
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
@@ -6,96 +6,580 @@ Tools give our AI the ability to take meaningful action in users' lives. Every t
 
 ---
 
-## Reference Docs
-- Full guide: `docs/AGENT-AGNOSTIC-ARCHITECTURE.md`
-- Examples: See existing tools in this directory
+## Quick Reference
+
+| What             | Where                            |
+| ---------------- | -------------------------------- |
+| Tool Registry    | `registry/index.ts`              |
+| Domain Tools     | `domains/*/index.ts`             |
+| Tool Builder     | `builder.ts`                     |
+| Orchestration    | `orchestration/tool-composer.ts` |
+| Validation       | `validation.ts`                  |
+| Test Utils       | `__tests__/test-utils.ts`        |
+| Advanced Systems | `advanced/index.ts`              |
+
+---
+
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [Architecture Overview](#architecture-overview)
+3. [Tool Domains](#tool-domains)
+4. [Creating Tools](#creating-tools)
+5. [Tool Wrapper Utilities](#tool-wrapper-utilities)
+6. [Testing Tools](#testing-tools)
+7. [Tool Orchestration](#tool-orchestration)
+8. [Advanced Systems](#advanced-systems)
+9. [Best Practices](#best-practices)
+
+---
 
 ## Quick Start
 
 ### 1. Name by Domain (Not Persona)
+
 ```
-habit-coaching.ts     # Correct - domain name
-maya-habit-coach.ts   # Wrong - persona-specific
+habit-coaching.ts     # ✅ Correct - domain name
+maya-habit-coach.ts   # ❌ Wrong - persona-specific
 ```
 
 ### 2. Tool Structure
+
 ```typescript
 import { z } from 'zod';
-import { defineTool } from './builder.js';
-import { createLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
+import { createDomainExport } from '../../registry/loader.js';
+import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'tools:my-domain' });
+const log = getLogger();
 
-export const myTool = defineTool({
-  name: 'tool_name',
+const myToolDef: ToolDefinition = {
+  id: 'myTool',
+  name: 'My Tool',
   description: 'Clear description of what this tool does',
+  domain: 'career', // or other domain
+  tags: ['career', 'assessment'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: 'Description for the LLM',
+      parameters: z.object({
+        userId: z.string().describe('The user ID'),
+        query: z.string().optional().describe('Optional search query'),
+      }),
+      execute: async (params) => {
+        try {
+          log.info({ agentId: ctx.agentId }, 'Executing tool');
+          const result = await doSomething(params);
+          return result;
+        } catch (error) {
+          log.error({ error: String(error) }, 'Tool execution failed');
+          return 'Sorry, something went wrong.';
+        }
+      },
+    });
+  },
+};
+
+// Export for domain registration
+export const { getToolDefinitions, domain, definitions } = createDomainExport('career', [
+  myToolDef,
+]);
+```
+
+### 3. Register the Tool
+
+Tools are automatically registered when added to a domain's `index.ts` and included in `domains/index.ts`.
+
+---
+
+## Architecture Overview
+
+```
+tools/
+├── __tests__/                 # Shared test utilities & E2E tests
+│   ├── test-utils.ts         # Mock factories, assertions
+│   └── e2e-tool-chains.test.ts # User journey tests
+├── advanced/                  # Advanced optimization systems
+│   ├── index.ts              # Re-exports all advanced systems
+│   └── tool-lifecycle.ts     # A/B testing, semantic routing integration
+├── domains/                   # Domain-specific tool collections
+│   ├── career/               # Career tools
+│   │   ├── index.ts          # Domain export
+│   │   └── __tests__/        # Domain tests
+│   ├── grief/                # Grief support tools
+│   ├── memory/               # Memory persistence tools
+│   └── ...                   # 40+ domains
+├── orchestration/            # Tool composition & chaining
+│   ├── index.ts
+│   └── tool-composer.ts      # TOOL_CHAINS, emotion detection
+├── registry/                 # Central tool registry
+│   ├── index.ts              # ToolRegistry class
+│   ├── loader.ts             # Lazy loading, domain registration
+│   └── types.ts              # Type definitions
+├── utils/                    # Shared utilities
+│   ├── index.ts              # formatters, ID generation
+│   ├── tool-helpers.ts       # Common tool utilities
+│   └── tool-wrapper.ts       # Validation, analytics, error handling
+├── builder.ts                # Builds tools from manifests
+├── validation.ts             # Input validation utilities
+├── CLAUDE.md                 # This file
+└── index.ts                  # Main exports
+```
+
+---
+
+## Tool Domains
+
+### Functional Domains
+
+| Domain          | Description                        | Agent  |
+| --------------- | ---------------------------------- | ------ |
+| `memory`        | User memory, recall, relationships | All    |
+| `calendar`      | Appointments, scheduling, contacts | Alex   |
+| `communication` | Email, SMS, messaging              | Alex   |
+| `habits`        | Habit tracking, gamification       | Maya   |
+| `finance`       | Banking, budgeting, calculators    | Maya   |
+| `research`      | Stock research, market analysis    | Peter  |
+| `productivity`  | Tasks, notes, routines             | Alex   |
+| `life-planning` | Goals, milestones, events          | Jordan |
+| `wellness`      | Health tracking, medications       | All    |
+| `entertainment` | Music, media                       | All    |
+| `information`   | News, weather, search              | All    |
+| `wisdom`        | Quotes, principles                 | Nayan  |
+| `handoff`       | Agent switching                    | All    |
+| `telephony`     | Phone calls, callbacks             | All    |
+
+### Deep Human Engagement Domains
+
+| Domain            | Description                           |
+| ----------------- | ------------------------------------- |
+| `grief`           | Loss, transition, endings             |
+| `meaning`         | Purpose, values, spirituality         |
+| `relationships`   | Connection, conflict resolution       |
+| `stories`         | Life story, legacy, narrative         |
+| `vulnerability`   | Shame, authenticity, self-forgiveness |
+| `curiosity`       | Wonder, exploration                   |
+| `dreams`          | Aspirations, imagination              |
+| `self-compassion` | Inner critic, self-kindness           |
+| `play`            | Joy, fun, playfulness                 |
+| `presence`        | Grounding, mindfulness, flow          |
+
+### Life Coaching Domains
+
+| Domain           | Description                           |
+| ---------------- | ------------------------------------- |
+| `crisis`         | Crisis resources, safety planning     |
+| `health`         | Exercise, nutrition, sleep            |
+| `career`         | Job search, interviews, development   |
+| `decisions`      | Decision frameworks, values alignment |
+| `family`         | Parenting, family dynamics            |
+| `home`           | Maintenance, organization             |
+| `learning`       | Education, skill development          |
+| `creativity`     | Hobbies, creative projects            |
+| `community`      | Volunteering, civic engagement        |
+| `legal-admin`    | Documents, estate planning            |
+| `second-chances` | Fresh starts, reinvention             |
+| `connection`     | Loneliness, friendship, belonging     |
+
+---
+
+## Creating Tools
+
+### Basic Tool Definition
+
+```typescript
+const myToolDef: ToolDefinition = {
+  id: 'myToolId', // Unique identifier (camelCase)
+  name: 'My Tool Name', // Human-readable name
+  description: 'What this tool does', // For documentation
+  domain: 'career', // Primary domain
+  additionalDomains: ['decisions'], // Optional secondary domains
+  tags: ['assessment', 'career'], // For searching/filtering
+  experimental: false, // Beta feature flag
+  deprecated: false, // Deprecation flag
+  deprecationMessage: '', // If deprecated, why
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: 'Description shown to LLM',
+      parameters: z.object({
+        /* Zod schema */
+      }),
+      execute: async (params) => {
+        /* implementation */
+      },
+    });
+  },
+};
+```
+
+### Using the Tool Wrapper (Recommended)
+
+The tool wrapper adds validation, analytics, and error handling automatically:
+
+```typescript
+import { wrapToolDefinition } from '../utils/tool-wrapper.js';
+
+const wrappedTool = wrapToolDefinition(myToolDef, {
+  enableAnalytics: true, // Track usage metrics
+  enableValidation: true, // Input sanitization
+  enableErrorHandling: true, // Result type errors
+  sanitizeFields: ['userInput'], // Fields to sanitize
+});
+```
+
+### Enhanced Tool Factory
+
+For new tools, use the enhanced factory:
+
+```typescript
+import { createEnhancedTool } from '../utils/tool-wrapper.js';
+
+const myTool = createEnhancedTool({
+  id: 'myTool',
+  name: 'My Tool',
+  description: 'Description',
+  domain: 'career',
+  llmDescription: 'Description for LLM',
   parameters: z.object({
-    userId: z.string().describe('The user ID'),
-    query: z.string().optional().describe('Optional search query'),
+    /* schema */
   }),
-  execute: async (params, context) => {
-    try {
-      const result = await doSomething(params);
-      return { success: true, data: result };
-    } catch (error) {
-      log.error({ error: String(error) }, 'Tool execution failed');
-      return { success: false, error: 'Failed to execute' };
-    }
+
+  execute: async (params, ctx, execContext) => {
+    // Your implementation
+    return 'Result string';
+  },
+
+  wrapperOptions: {
+    enableAnalytics: true,
+    sanitizeFields: ['query'],
   },
 });
 ```
 
-### 3. Register the Tool
-```typescript
-import { registerTool } from './registry.js';
+---
 
-registerTool(myTool);
+## Tool Wrapper Utilities
+
+Located in `utils/tool-wrapper.ts`:
+
+### Result Type
+
+```typescript
+import { success, failure, type ToolResult } from '../utils/tool-wrapper.js';
+
+// Success
+return success({ data: 'value' });
+
+// Failure
+return failure('Error message', 'ERROR_CODE');
 ```
 
-## Rules
+### Wrapper Options
 
-### Do
-- Return structured results `{ success: boolean, data?: T, error?: string }`
+```typescript
+interface WrapperOptions {
+  enableAnalytics?: boolean; // Track tool usage
+  enableValidation?: boolean; // Input validation
+  enableErrorHandling?: boolean; // Catch errors → Result type
+  enablePerformanceTracking?: boolean; // Log slow executions
+  enableDeprecationWarnings?: boolean; // Warn about deprecated tools
+  sanitizeFields?: string[]; // Fields to sanitize
+  slowExecutionThresholdMs?: number; // Default: 2000ms
+  customValidator?: (params) => { valid: boolean; error?: string };
+}
+```
+
+---
+
+## Testing Tools
+
+### Test File Location
+
+```
+domains/career/__tests__/career.test.ts
+```
+
+### Standard Test Structure
+
+```typescript
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Standard mocks
+vi.mock('../../../../utils/safe-logger.js', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  }),
+}));
+
+vi.mock('@livekit/agents', () => ({
+  llm: {
+    tool: vi.fn((config) => ({
+      description: config.description,
+      parameters: config.parameters,
+      execute: config.execute,
+    })),
+  },
+}));
+
+// Import after mocks
+import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
+import { getToolDefinitions } from '../index.js';
+
+function createMockContext(): ToolContext {
+  return {
+    userId: 'test-user-123',
+    agentId: 'ferni',
+    agentDisplayName: 'Ferni',
+    services: {
+      has: () => false,
+      get: () => {
+        throw new Error('Not available');
+      },
+      getOptional: () => undefined,
+    },
+  };
+}
+
+describe('My Domain Tools', () => {
+  let toolDefinitions: ToolDefinition[];
+  let mockContext: ToolContext;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    toolDefinitions = await getToolDefinitions();
+    mockContext = createMockContext();
+  });
+
+  describe('Tool Loading', () => {
+    it('should load all tool definitions', async () => {
+      expect(toolDefinitions.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Tool Execution', () => {
+    it('should execute tool successfully', async () => {
+      const toolDef = toolDefinitions.find((t) => t.id === 'myTool');
+      const tool = toolDef!.create(mockContext);
+      const result = await tool.execute({ param: 'value' });
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('Content Validation', () => {
+    it('should not contain placeholder text', async () => {
+      const tool = toolDefinitions[0].create(mockContext);
+      const result = await tool.execute({});
+      expect(result).not.toContain('TODO');
+      expect(result).not.toContain('placeholder');
+    });
+  });
+});
+```
+
+### E2E Tool Chain Tests
+
+```typescript
+// __tests__/e2e-tool-chains.test.ts
+describe('Career Journey', () => {
+  it('should chain: goals → gaps → application → interview', async () => {
+    const chain = [
+      { toolId: 'clarifyCareerGoals', params: { timeHorizon: '1-year' } },
+      { toolId: 'exploreGrowthAreas', params: { currentRole: 'Junior Dev' } },
+      { toolId: 'trackJobApplication', params: { company: 'Tech Corp' } },
+      { toolId: 'practiceInterview', params: { interviewType: 'behavioral' } },
+    ];
+
+    const result = await runToolChain(chain, careerTools, ctx);
+    expect(result.success).toBe(true);
+  });
+});
+```
+
+---
+
+## Tool Orchestration
+
+### Tool Chains
+
+Tool chains define natural conversation flows:
+
+```typescript
+// orchestration/tool-composer.ts
+export const TOOL_CHAINS: Record<string, ToolChain> = {
+  // Career journey
+  clarifyCareerGoals: {
+    primary: 'clarifyCareerGoals',
+    suggestedFollowers: ['exploreGrowthAreas', 'createLearningPath'],
+    contextKeys: ['timeHorizon', 'clarity', 'values'],
+    typicalEmotion: 'empathetic',
+  },
+
+  // Grief journey
+  processGrief: {
+    primary: 'processGrief',
+    suggestedFollowers: ['navigateGriefWave', 'companionInGrief'],
+    contextKeys: ['lossType', 'whereTheyAre'],
+    typicalEmotion: 'empathetic',
+  },
+};
+```
+
+### Using the Composer
+
+```typescript
+import { createToolComposer } from './orchestration/index.js';
+
+const composer = createToolComposer(sessionId, userId, agentId);
+
+// Compose a tool result
+const composed = composer.compose('processGrief', result, {
+  shareContext: true,
+  extractFacts: true,
+});
+
+console.log(composed.suggestedNext); // ['navigateGriefWave', 'companionInGrief']
+console.log(composed.emotion); // 'empathetic'
+
+// Check if we should wrap up
+const { should, reasons } = composer.shouldWrapUp();
+```
+
+---
+
+## Advanced Systems
+
+Located in `advanced/`:
+
+### A/B Testing
+
+```typescript
+import { abTestingService } from './ab-testing.js';
+
+// Assign user to variant
+const assignment = abTestingService.assignVariant(userId, 'tool_v2_test');
+
+// Track result
+abTestingService.recordMetric(userId, experimentId, 'success_rate', 1);
+```
+
+### Semantic Routing
+
+```typescript
+import { semanticRouter } from './semantic-router.js';
+
+// Route request to best tool
+const matches = await semanticRouter.findMatches(userIntent, {
+  threshold: 0.6,
+  maxResults: 5,
+});
+```
+
+### Deprecation Service
+
+```typescript
+import { deprecationService } from './deprecation.js';
+
+// Check if deprecated
+if (deprecationService.isDeprecated(toolId)) {
+  const replacement = deprecationService.getReplacement(toolId);
+}
+```
+
+### Tool Lifecycle Integration
+
+```typescript
+import { initializeToolLifecycle, selectBestTool } from './advanced/tool-lifecycle.js';
+
+// Initialize at startup
+await initializeToolLifecycle({
+  buildSemanticIndex: true,
+  checkDeprecations: true,
+  toolDefinitions: allTools,
+});
+
+// Select best tool considering all factors
+const selection = await selectBestTool(userIntent, availableTools, { userId });
+// Returns: { toolId, reason, alternatives, warnings }
+```
+
+---
+
+## Best Practices
+
+### Do ✅
+
+- Return meaningful, human-readable responses
 - Validate inputs with Zod schemas
-- Log errors with context
+- Log errors with context using `getLogger()`
 - Keep tools focused (single responsibility)
-- Use `readonly` for input params that shouldn't be mutated
+- Use `readonly` for input params
+- Use the tool wrapper for consistency
+- Write tests for all tools
+- Follow tool chains for natural conversation flow
 
-### Don't
+### Don't ❌
+
 - Create persona-specific tools (use context for personalization)
 - Use `as any` - properly type parameters
 - Forget error handling - wrap in try/catch
 - Make tools > 200 lines (split into helpers)
-- Call other tools directly (use the orchestration layer)
+- Call other tools directly (use orchestration layer)
+- Use `console.log` - use `getLogger()` instead
+- Return raw JSON to users - format for speech
 
-## Tool Categories
-```
-tools/
-├── domains/
-│   ├── memory/       # remember, recall, search
-│   ├── finance/      # calculators, market data
-│   └── wellness/     # habits, mood, health
-├── scheduling.ts     # Calendar, reminders
-├── handoff.ts        # Agent switching
-└── builder.ts        # Tool factory (don't modify)
-```
+### Tool Naming
 
-## Testing Tools
 ```typescript
-// src/tests/tools/my-tool.test.ts
-import { describe, it, expect } from 'vitest';
-import { myTool } from '../../tools/my-domain.js';
+// ✅ Good - action + object
+clarifyCareerGoals;
+trackJobApplication;
+assessBurnout;
 
-describe('myTool', () => {
-  it('should return success with valid input', async () => {
-    const result = await myTool.execute({ userId: '123' }, mockContext);
-    expect(result.success).toBe(true);
-  });
-
-  it('should handle errors gracefully', async () => {
-    const result = await myTool.execute({ userId: '' }, mockContext);
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-  });
-});
+// ❌ Bad - vague or persona-specific
+doCareerStuff;
+mayaHabitTool;
+processData;
 ```
+
+### Error Messages
+
+```typescript
+// ✅ Good - helpful to user
+return "I couldn't find any job applications matching that company. Would you like to add one?";
+
+// ❌ Bad - technical error
+return `Error: ENOENT: no such file or directory`;
+```
+
+---
+
+## Running Tests
+
+```bash
+# Run all tool tests
+npx vitest run src/tools
+
+# Run specific domain tests
+npx vitest run src/tools/domains/career/__tests__/career.test.ts
+
+# Run E2E tool chain tests
+npx vitest run src/tools/__tests__/e2e-tool-chains.test.ts
+
+# Watch mode
+npx vitest src/tools
+```
+
+---
+
+## Reference Docs
+
+- Full architecture: `docs/AGENT-AGNOSTIC-ARCHITECTURE.md`
+- Tool migration guide: `docs/TOOL_MIGRATION.md`
+- Core principles: `CORE-PRINCIPLES.md`

@@ -383,7 +383,7 @@ export class RetrievalExplainer {
    */
   private extractSummary(content: string): string {
     const firstSentence = content.split(/[.!?]/)[0];
-    return firstSentence.length > 50 ? firstSentence.slice(0, 50) + '...' : firstSentence;
+    return firstSentence.length > 50 ? `${firstSentence.slice(0, 50)}...` : firstSentence;
   }
 
   /**

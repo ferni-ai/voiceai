@@ -171,7 +171,7 @@ export function isErr<T, E>(result: Result<T, E>): result is { ok: false; error:
  * Combine multiple results into a single result
  * Returns first error if any fail, otherwise array of values
  */
-export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
+export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
   const values: T[] = [];
   for (const result of results) {
     if (!result.ok) {
@@ -185,7 +185,7 @@ export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
 /**
  * Combine results, collecting all errors
  */
-export function allSettled<T, E>(results: Result<T, E>[]): { successes: T[]; errors: E[] } {
+export function allSettled<T, E>(results: Array<Result<T, E>>): { successes: T[]; errors: E[] } {
   const successes: T[] = [];
   const errors: E[] = [];
 

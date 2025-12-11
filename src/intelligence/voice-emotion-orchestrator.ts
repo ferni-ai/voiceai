@@ -174,7 +174,7 @@ class VoiceEmotionOrchestratorImpl {
 
     // Get emotional trend
     const state = SessionStateManager.get(sessionId);
-    const trend = state.emotionalTrajectory.trend;
+    const { trend } = state.emotionalTrajectory;
 
     // Generate guidance
     const guidance = this.generateGuidance(mergedDistress, stressIndicators, voiceInput, trend);

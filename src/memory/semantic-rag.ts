@@ -25,6 +25,7 @@ import { embed } from './embeddings.js';
 import { embedCached, getEmbeddingCache } from './embedding-cache.js';
 import { getMemoryMetricsCollector } from './memory-metrics.js';
 import { isOk } from './result.js';
+import { getRetrievalExplainer } from './retrieval-explanations.js';
 
 // Type for any vector store implementation
 type AnyVectorStore = VectorStore | FirestoreVectorStore;
@@ -79,6 +80,23 @@ export interface RAGContext {
   results: RAGResult[];
   formattedContext: string;
   queryEmbedding?: number[];
+}
+
+/**
+ * RAG result with natural language explanation
+ */
+export interface ExplainedRAGResult extends RAGResult {
+  /** Natural language explanation of why this was retrieved */
+  explanation?: string;
+  /** Suggested way to reference this in conversation */
+  suggestedReference?: string;
+}
+
+/**
+ * Enhanced RAG context with explanations
+ */
+export interface ExplainedRAGContext extends RAGContext {
+  explainedResults: ExplainedRAGResult[];
 }
 
 // ============================================================================
@@ -324,6 +342,105 @@ export async function getRAGContext(
     formattedContext,
     queryEmbedding,
   };
+}
+
+/**
+ * Get RAG context with natural language explanations for why each result was retrieved.
+ *
+ * This is useful for:
+ * - Making the AI's memory retrieval more transparent
+ * - Providing suggested ways to reference past context naturally
+ * - Understanding why certain memories surfaced
+ *
+ * @param query - The search query
+ * @param options - Search options
+ * @param explanationContext - Context for generating explanations
+ * @returns Enhanced RAG context with explanations
+ */
+export async function getExplainedRAGContext(
+  query: string,
+  options?: {
+    topK?: number;
+    includePersona?: boolean;
+    includeConversations?: boolean;
+    userId?: string;
+    minScore?: number;
+  },
+  explanationContext?: {
+    currentTopic?: string;
+    currentEmotion?: string;
+    personaId?: string;
+  }
+): Promise<ExplainedRAGContext> {
+  // Get base RAG context
+  const ragContext = await getRAGContext(query, options);
+
+  // Get the explainer
+  const explainer = getRetrievalExplainer();
+
+  // Build retrieval context for explanations
+  const retrievalContext = {
+    query,
+    currentTopic: explanationContext?.currentTopic || extractTopicFromQuery(query),
+    currentEmotion: explanationContext?.currentEmotion,
+    personaId: explanationContext?.personaId,
+  };
+
+  // Explain each result
+  const explainedResults: ExplainedRAGResult[] = ragContext.results.map((result) => {
+    // Convert RAGResult to a format the explainer understands
+    const mockRetrievedMemory = {
+      item: {
+        id: result.source,
+        type: 'summary' as const,
+        content: result.content,
+        timestamp: new Date(),
+        emotionalWeight: 0.5,
+        relevanceDecay: 0.5,
+        baseImportance: result.score,
+        topics: result.category ? [result.category] : [],
+        source: {
+          collection: result.source,
+          documentId: result.source,
+        },
+      },
+      score: result.score,
+      scoreBreakdown: {
+        semantic: result.score,
+        temporal: 0.3,
+        emotional: 0.3,
+        contextual: 0.3,
+      },
+      reason: `Retrieved for query: ${query}`,
+    };
+
+    const explained = explainer.explain(mockRetrievedMemory, retrievalContext);
+
+    return {
+      ...result,
+      explanation: explained.naturalExplanation,
+      suggestedReference: explained.suggestedReference,
+    };
+  });
+
+  getLogger().debug(`Explained ${explainedResults.length} RAG results`);
+
+  return {
+    ...ragContext,
+    explainedResults,
+  };
+}
+
+/**
+ * Extract a topic from a query (simple heuristic)
+ */
+function extractTopicFromQuery(query: string): string {
+  // Simple extraction - could be enhanced with NLP
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  return words.slice(0, 3).join(' ') || 'general';
 }
 
 /**

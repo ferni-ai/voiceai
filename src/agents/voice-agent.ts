@@ -1789,6 +1789,19 @@ class VoiceAgent extends voice.Agent<UserData> {
       return;
     }
 
+    // ================================================================
+    // EXTENSIBILITY: Slash command detection
+    // Check if user is invoking a slash command like "/daily-check-in"
+    // Note: We don't return early - the LLM still needs to respond based on injected context
+    // ================================================================
+    const trimmedText = userText.trim();
+    let isSlashCommand = false;
+    if (trimmedText.startsWith('/')) {
+      isSlashCommand = await this.handleSlashCommand(trimmedText, turnCtx);
+      // If it's a valid command, context was injected. Continue to let LLM respond.
+      // If not valid, continue normal processing.
+    }
+
     const userData = this.getUserDataFromContext();
     // FIX: Remove race-condition-prone global fallback
     // Services should always be available from the session's userData
@@ -1862,6 +1875,47 @@ class VoiceAgent extends voice.Agent<UserData> {
 
       // Inject context into LLM
       injectTurnContext(turnCtx, result);
+
+      // ================================================================
+      // EXTENSIBILITY: before_response hook
+      // Allow marketplace agents to inject custom context before response
+      // ================================================================
+      try {
+        const { onBeforeResponse } =
+          await import('../personas/bundles/extensibility-integration.js');
+        const beforeResponsePrompt = await onBeforeResponse({
+          personaId: this.persona.id,
+          userId: services.userId,
+          sessionId: services.sessionId,
+        });
+
+        if (beforeResponsePrompt) {
+          turnCtx.addMessage({
+            role: 'system',
+            content: `[AGENT EXTENSIBILITY - RESPONSE GUIDANCE]\n${beforeResponsePrompt}`,
+          });
+          this.logger.info(
+            { personaId: this.persona.id },
+            'Extensibility before_response hook injected'
+          );
+        }
+
+        // Also check for session_start prompt that wasn't used yet
+        const extSessionPrompt = (userData as Record<string, unknown>)
+          .extensibilitySessionPrompt as string | null;
+        if (extSessionPrompt && (userData.turnCount ?? 0) <= 1) {
+          turnCtx.addMessage({
+            role: 'system',
+            content: `[AGENT EXTENSIBILITY - SESSION CONTEXT]\n${extSessionPrompt}`,
+          });
+          this.logger.info(
+            { personaId: this.persona.id },
+            'Extensibility session_start context injected'
+          );
+        }
+      } catch (extHookErr) {
+        this.logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
+      }
 
       // ================================================================
       // HUMAN-FIRST 2FA: Check for phone ask opportunity
@@ -1960,6 +2014,89 @@ IMPORTANT:
 
       // Don't throw - we've handled it gracefully
       // The LLM will still generate a response (without our context injections)
+    }
+  }
+
+  // ============================================================================
+  // EXTENSIBILITY: SLASH COMMAND HANDLING
+  // ============================================================================
+
+  /**
+   * Handle slash commands like "/daily-check-in" or "/weekly-review"
+   * Returns true if the command was handled, false if not a valid command
+   */
+  private async handleSlashCommand(text: string, turnCtx: llm.ChatContext): Promise<boolean> {
+    try {
+      // Parse command: "/command-name arg1 arg2" -> commandName, args
+      const match = text.match(/^\/([a-zA-Z0-9_-]+)(?:\s+(.*))?$/);
+      if (!match) {
+        return false; // Not a valid command format
+      }
+
+      const commandId = match[1];
+      const argsString = match[2] || '';
+
+      // Get user context
+      const userData = this.getUserDataFromContext();
+      const services = userData?.services;
+
+      if (!services) {
+        this.logger.warn('No services available for command execution');
+        return false;
+      }
+
+      // Execute the command via extensibility integration
+      const { executeCommand, getCommands } =
+        await import('../personas/bundles/extensibility-integration.js');
+
+      // Check if this persona has this command
+      const commands = await getCommands(this.persona.id);
+      const command = commands.find(
+        (c) => c.id === commandId || c.name.toLowerCase() === commandId.toLowerCase()
+      );
+
+      if (!command) {
+        // Not a valid command for this persona - let normal processing handle it
+        return false;
+      }
+
+      // Parse arguments (simple key=value format for now)
+      const args: Record<string, string> = {};
+      const argMatches = argsString.matchAll(/(\w+)=["']?([^"'\s]+)["']?/g);
+      for (const argMatch of argMatches) {
+        args[argMatch[1]] = argMatch[2];
+      }
+
+      this.logger.info({ commandId, args, personaId: this.persona.id }, 'Executing slash command');
+
+      const result = await executeCommand(this.persona.id, commandId, args, {
+        userId: services.userId,
+        sessionId: services.sessionId,
+      });
+
+      if (!result.success) {
+        this.logger.error({ error: result.error, commandId }, 'Command execution failed');
+        // Inject error message as context for LLM to handle gracefully
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[COMMAND ERROR] The user invoked /${commandId} but it failed: ${result.error}. Please acknowledge the issue gracefully and offer to help another way.`,
+        });
+        return true; // Still handled - LLM will respond about the error
+      }
+
+      // Inject the command's rendered prompt as context
+      if (result.prompt) {
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[SLASH COMMAND: /${commandId}]\n${result.prompt}`,
+        });
+      }
+
+      this.logger.info({ commandId }, 'Slash command executed successfully');
+      return true; // Command was handled, LLM will respond based on injected context
+    } catch (error) {
+      this.logger.error({ error: String(error), text }, 'Error handling slash command');
+      return false; // Let normal processing handle it
     }
   }
 
@@ -2790,6 +2927,34 @@ export default defineAgent({
           preemptiveGeneration: true,
         },
       });
+
+      // ===============================================
+      // STEP 4b: AGENT EXTENSIBILITY - SESSION START HOOK
+      // Execute session_start hook if the persona has one defined
+      // This allows marketplace agents to inject custom behavior
+      // ===============================================
+      let extensibilitySessionPrompt: string | null = null;
+      try {
+        const { onSessionStart } = await import('../personas/bundles/extensibility-integration.js');
+        extensibilitySessionPrompt = await onSessionStart({
+          personaId: sessionPersona.id,
+          userId,
+          sessionId,
+        });
+        if (extensibilitySessionPrompt) {
+          diag.session('Extensibility session_start hook executed', {
+            personaId: sessionPersona.id,
+            hasPrompt: true,
+          });
+        }
+      } catch (extErr) {
+        diag.warn('Extensibility session_start hook failed (non-fatal)', {
+          error: String(extErr),
+        });
+      }
+
+      // Store in userData for use in context injection
+      (userData as Record<string, unknown>).extensibilitySessionPrompt = extensibilitySessionPrompt;
 
       // ===============================================
       // STEP 5: EVENT LISTENERS

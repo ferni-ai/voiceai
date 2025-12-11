@@ -738,7 +738,7 @@ async function getConfig(): Promise<ResponseContext> {
  * Get subscription metrics for admin dashboard
  */
 async function getMetrics(_ctx: RequestContext): Promise<ResponseContext> {
-  const metrics = getMetricsForApi();
+  const metrics = await getMetricsForApi();
   return {
     status: 200,
     headers: { 'Content-Type': 'application/json' },

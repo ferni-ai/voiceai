@@ -189,7 +189,7 @@ export function resetAllCatchphraseTrackers(): void {
 }
 
 // Overload: Session-scoped version (4 args)
-// eslint-disable-next-line no-redeclare
+
 export function shouldInjectCatchphrase(
   sessionId: string,
   personaId: string,

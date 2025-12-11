@@ -524,6 +524,19 @@ export {
 } from './health-checks.js';
 
 // ============================================================================
+// MCP INTEGRATION (Model Context Protocol)
+// ============================================================================
+
+export {
+  buildMCPTools,
+  cleanupMCPConnections,
+  getMCPConnectionStatus,
+  initializeMCPConnections,
+  loadMCPToolsForPersona,
+  type MCPToolDefinition,
+} from '../personas/bundles/mcp-integration.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

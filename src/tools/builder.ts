@@ -236,6 +236,119 @@ async function buildHandoffToolsForAgent(
 }
 
 // ============================================================================
+// LOCAL TOOLS FROM EXTENSIBILITY BUNDLES
+// ============================================================================
+
+/**
+ * Build local tools from agent extensibility bundles.
+ * These are custom tools defined in the agent's tools/ directory.
+ *
+ * Local tools can be:
+ * - prompt: Injects a prompt into the conversation
+ * - webhook: Calls an external HTTP endpoint
+ * - script: Runs a local script (not yet implemented)
+ * - mcp: Delegates to an MCP server (uses mcp-integration)
+ */
+async function buildLocalToolsForAgent(
+  agentId: string,
+  ctx: ToolContext
+): Promise<Record<string, Tool>> {
+  try {
+    const { loadBundleById } = await import('../personas/bundles/loader.js');
+    const bundle = await loadBundleById(agentId);
+
+    if (!bundle?.getLocalTools) {
+      return {};
+    }
+
+    const localToolDefs = await bundle.getLocalTools();
+    if (!localToolDefs || localToolDefs.length === 0) {
+      return {};
+    }
+
+    const { llm } = await import('@livekit/agents');
+    const { z } = await import('zod');
+    const { executeLocalTool } = await import('../personas/bundles/extensibility-integration.js');
+
+    const tools: Record<string, Tool> = {};
+
+    for (const toolDef of localToolDefs) {
+      // Convert JSON Schema parameters to Zod schema (simplified)
+      // For now, we use a generic object schema and validate at runtime
+      const paramSchema = z.object({}).passthrough();
+
+      tools[toolDef.name] = llm.tool({
+        description: toolDef.description,
+        parameters: paramSchema,
+        execute: async (params: Record<string, unknown>) => {
+          const result = await executeLocalTool(agentId, toolDef.name, params, {
+            userId: ctx.userId,
+            sessionId: undefined,
+          });
+
+          if (!result.success) {
+            return `Error: ${result.error || 'Unknown error'}`;
+          }
+
+          // For prompt-type tools, the result is the prompt to inject
+          if (typeof result.result === 'string') {
+            return result.result;
+          }
+
+          return JSON.stringify(result.result || 'Tool executed successfully');
+        },
+      });
+    }
+
+    getLogger().info(
+      { agentId, localToolCount: Object.keys(tools).length },
+      'Local tools loaded from extensibility bundle'
+    );
+
+    return tools;
+  } catch (error) {
+    getLogger().warn(
+      { agentId, error: String(error) },
+      'Failed to load local tools from extensibility bundle'
+    );
+    return {};
+  }
+}
+
+// ============================================================================
+// MCP TOOLS FROM EXTENSIBILITY BUNDLES
+// ============================================================================
+
+/**
+ * Build MCP tools from agent extensibility bundles.
+ * These are tools provided by MCP servers configured in the agent's mcp.json.
+ *
+ * MCP (Model Context Protocol) allows agents to connect to external tool servers
+ * for extended functionality without bundling tools directly.
+ */
+async function buildMCPToolsForAgent(agentId: string): Promise<Record<string, Tool>> {
+  try {
+    const { buildMCPTools } = await import('../personas/bundles/mcp-integration.js');
+    const mcpTools = await buildMCPTools(agentId);
+
+    if (Object.keys(mcpTools).length > 0) {
+      getLogger().info(
+        { agentId, mcpToolCount: Object.keys(mcpTools).length },
+        'MCP tools loaded from extensibility bundle'
+      );
+    }
+
+    return mcpTools as Record<string, Tool>;
+  } catch (error) {
+    getLogger().warn(
+      { agentId, error: String(error) },
+      'Failed to load MCP tools from extensibility bundle'
+    );
+    return {};
+  }
+}
+
+// ============================================================================
 // MAIN BUILDER FUNCTION
 // ============================================================================
 
@@ -312,10 +425,18 @@ export async function buildAgentTools(
   // Add handoff tools if enabled
   const handoffTools = await buildHandoffToolsForAgent(manifest, ctx);
 
-  // Merge tools
+  // Add local tools from extensibility bundles (marketplace agents)
+  const localTools = await buildLocalToolsForAgent(agentId, ctx);
+
+  // Add MCP tools from extensibility bundles (MCP server integration)
+  const mcpTools = await buildMCPToolsForAgent(agentId);
+
+  // Merge tools (MCP and local tools can override if needed)
   const allTools = {
     ...result.tools,
     ...handoffTools,
+    ...localTools,
+    ...mcpTools,
   };
 
   const elapsed = Date.now() - startTime;
