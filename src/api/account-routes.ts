@@ -11,16 +11,16 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { getDefaultStore } from '../memory/index.js';
+import { deleteFirebaseUser, getFirebaseUser } from '../services/firebase-auth.js';
+import { recordSecurityEvent } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { sendError, sendJSON, parseBody } from './helpers.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { parseBody, sendError, sendJSON } from './helpers.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
 const parseJsonBody = parseBody;
-import { requireAuth, rateLimit } from './auth-middleware.js';
-import { recordSecurityEvent } from '../services/security-events.js';
-import { deleteFirebaseUser, getFirebaseUser } from '../services/firebase-auth.js';
-import { getDefaultStore } from '../memory/index.js';
 
 const log = createLogger({ module: 'AccountRoutes' });
 
