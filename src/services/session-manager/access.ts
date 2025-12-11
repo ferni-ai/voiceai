@@ -2,6 +2,7 @@
  * Session Access Functions
  *
  * Functions for accessing and managing active sessions.
+ * Uses branded SessionId type for type-safe session identification.
  *
  * @module session-manager/access
  */
@@ -9,28 +10,44 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { SessionServices } from '../types.js';
 import { SHUTDOWN_TIMEOUT_MS } from './constants.js';
+import type { SessionId } from '../../types/branded.js';
+import { createSessionId } from '../../types/branded.js';
 
 // Reference to active sessions map (injected from main module)
-let activeSessionsRef: Map<string, SessionServices> | null = null;
+let activeSessionsRef: Map<SessionId, SessionServices> | null = null;
 
 /**
  * Initialize access module with reference to active sessions map
  */
-export function initializeAccess(sessions: Map<string, SessionServices>): void {
+export function initializeAccess(sessions: Map<SessionId, SessionServices>): void {
   activeSessionsRef = sessions;
 }
 
 /**
- * Get existing session services
+ * Get existing session services by session ID
+ *
+ * @param sessionId - Session identifier (string or branded SessionId)
+ * @returns Session services if session exists
  */
-export function getSessionServices(sessionId: string): SessionServices | undefined {
-  return activeSessionsRef?.get(sessionId);
+export function getSessionServices(sessionId: string | SessionId): SessionServices | undefined {
+  if (!activeSessionsRef) return undefined;
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+  return activeSessionsRef.get(brandedId);
+}
+
+/**
+ * Check if a session exists
+ */
+export function hasSession(sessionId: string | SessionId): boolean {
+  if (!activeSessionsRef) return false;
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+  return activeSessionsRef.has(brandedId);
 }
 
 /**
  * Get all active session IDs
  */
-export function getActiveSessionIds(): string[] {
+export function getActiveSessionIds(): SessionId[] {
   return activeSessionsRef ? Array.from(activeSessionsRef.keys()) : [];
 }
 
@@ -44,6 +61,8 @@ export function getActiveSessionCount(): number {
 /**
  * Clear all active sessions (for shutdown)
  * Properly ends each session before clearing to prevent data loss
+ *
+ * @returns Number of sessions that were cleared
  */
 export async function clearAllSessions(): Promise<number> {
   if (!activeSessionsRef) {
@@ -56,19 +75,20 @@ export async function clearAllSessions(): Promise<number> {
     return 0;
   }
 
-  getLogger().info({ count }, 'Ending all active sessions');
+  const log = getLogger();
+  log.info({ count }, 'Ending all active sessions');
 
   // End all sessions in parallel with timeout to prevent blocking shutdown
   const endPromises: Array<Promise<void>> = [];
 
   for (const [sessionId, services] of activeSessionsRef) {
     const endPromise = Promise.race([
-      services.endSession().catch((err) => {
-        getLogger().warn({ sessionId, error: String(err) }, 'Error ending session during shutdown');
+      services.endSession().catch((err: unknown) => {
+        log.warn({ sessionId, error: String(err) }, 'Error ending session during shutdown');
       }),
       new Promise<void>((resolve) => {
         setTimeout(() => {
-          getLogger().warn({ sessionId }, 'Session end timed out during shutdown');
+          log.warn({ sessionId }, 'Session end timed out during shutdown');
           resolve();
         }, SHUTDOWN_TIMEOUT_MS);
       }),
@@ -79,6 +99,6 @@ export async function clearAllSessions(): Promise<number> {
   await Promise.all(endPromises);
   activeSessionsRef.clear();
 
-  getLogger().info({ count }, 'All sessions ended');
+  log.info({ count }, 'All sessions ended');
   return count;
 }
