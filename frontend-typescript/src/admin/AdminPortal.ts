@@ -136,6 +136,14 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/FlagsSection.js')).render(),
   },
   {
+    id: 'operations',
+    name: 'Operations',
+    icon: ICON_CHART,
+    description: 'Infrastructure health & metrics',
+    badge: 'NEW',
+    component: async () => (await import('./sections/OperationsSection.js')).render(),
+  },
+  {
     id: 'diagnostics',
     name: 'Diagnostics',
     icon: ICON_DIAGNOSTICS,

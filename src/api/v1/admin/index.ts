@@ -14,6 +14,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { requireAdmin } from '../../auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleAdminAgentsRoutes } from './agents.js';
 import { handleAdminDashboardRoutes } from './dashboard.js';
@@ -21,6 +22,7 @@ import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
 import { handleAdminExperimentsRoutes } from './experiments.js';
 import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
+import { handleAdminOperationsRoutes } from './operations.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
@@ -43,6 +45,13 @@ export async function handleAdminRoutes(
   }
 
   log.debug({ pathname, method: req.method }, 'Admin API request');
+
+  // SECURITY: Require admin authentication for all admin routes
+  const auth = await requireAdmin(req, res);
+  if (!auth) {
+    // requireAdmin already sent 401/403 response
+    return true;
+  }
 
   // Route to specific admin handlers
   // Dashboard aggregation
@@ -75,6 +84,11 @@ export async function handleAdminRoutes(
     return handleAdminExperimentsRoutes(req, res, pathname, parsedUrl);
   }
 
+  // Operations & Infrastructure monitoring
+  if (pathname.startsWith(`${BASE_PATH}/operations`)) {
+    return handleAdminOperationsRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Route not matched
   return false;
 }
@@ -93,3 +107,4 @@ export {
   recordListeningEvent,
   updateLiveSession,
 } from './human-listening.js';
+export { handleAdminOperationsRoutes } from './operations.js';

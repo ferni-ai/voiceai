@@ -23,6 +23,7 @@ export {
 export { render as renderFlags } from './FlagsSection.js';
 export { render as renderHumanListening } from './HumanListeningSection.js';
 export { render as renderMoreDashboards } from './MoreDashboardsSection.js';
+export { render as renderOperations } from './OperationsSection.js';
 export { render as renderTrust } from './TrustSection.js';
 export {
   render as renderBusinessMetrics,
