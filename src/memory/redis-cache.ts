@@ -17,7 +17,12 @@
  * - REDIS_PASSWORD: Redis password (if required)
  */
 
+import { gzip, gunzip } from 'zlib';
+import { promisify } from 'util';
 import { getLogger } from '../utils/safe-logger.js';
+
+const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
 
 /**
  * Session cache data structure
@@ -579,6 +584,93 @@ export class RedisCache {
       );
       return false;
     }
+  }
+
+  // ============================================================================
+  // COMPRESSED OPERATIONS (for large payloads)
+  // ============================================================================
+
+  /**
+   * Set a value with gzip compression
+   * Useful for large JSON payloads (embeddings, conversation history, etc.)
+   * Fails silently if Redis unavailable
+   */
+  async setCompressed(key: string, value: unknown, ttlSeconds?: number): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
+
+    try {
+      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+      const compressed = await gzipAsync(Buffer.from(serialized));
+      const base64 = compressed.toString('base64');
+
+      if (ttlSeconds) {
+        await this.client.setex(key, ttlSeconds, base64);
+      } else {
+        await this.client.set(key, base64);
+      }
+
+      getLogger().debug({
+        key,
+        originalSize: serialized.length,
+        compressedSize: base64.length,
+        ratio: (base64.length / serialized.length).toFixed(2),
+      }, 'Stored compressed value');
+
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to set compressed cache value (non-blocking)');
+      return false;
+    }
+  }
+
+  /**
+   * Get a compressed value and decompress
+   * Returns null if Redis unavailable or decompression fails
+   */
+  async getCompressed<T = unknown>(key: string): Promise<T | null> {
+    if (!this.client) {
+      return null;
+    }
+
+    try {
+      const base64 = await this.client.get(key);
+      if (!base64) return null;
+
+      const compressed = Buffer.from(base64, 'base64');
+      const decompressed = await gunzipAsync(compressed);
+      const serialized = decompressed.toString('utf8');
+
+      try {
+        return JSON.parse(serialized) as T;
+      } catch {
+        return serialized as unknown as T;
+      }
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to get compressed cache value (non-blocking)');
+      return null;
+    }
+  }
+
+  /**
+   * Set session data with compression (for large session payloads)
+   * Fails silently if Redis unavailable
+   */
+  async setSessionCompressed(
+    sessionId: string,
+    data: SessionCacheData,
+    ttlSeconds?: number
+  ): Promise<boolean> {
+    return this.setCompressed(`session:${sessionId}:compressed`, data, ttlSeconds || this.SESSION_TTL);
+  }
+
+  /**
+   * Get compressed session data
+   * Returns null if Redis unavailable
+   */
+  async getSessionCompressed(sessionId: string): Promise<SessionCacheData | null> {
+    return this.getCompressed<SessionCacheData>(`session:${sessionId}:compressed`);
   }
 
   /**

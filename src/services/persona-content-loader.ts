@@ -272,24 +272,194 @@ export interface QuietGrowthVoice {
 }
 
 // ============================================================================
-// CACHE
+// CACHE WITH LRU EVICTION
 // ============================================================================
 
-const behaviorCache = new Map<string, BundleBehaviors>();
-const contentCache = new Map<string, unknown>();
+interface CacheEntry<T> {
+  value: T;
+  accessedAt: number;
+  createdAt: number;
+}
+
+interface ContentCacheConfig {
+  /** Maximum number of behavior entries (default: 50) */
+  maxBehaviorEntries: number;
+  /** Maximum number of content entries (default: 500) */
+  maxContentEntries: number;
+  /** TTL in milliseconds (default: 24 hours) */
+  ttlMs: number;
+}
+
+const CACHE_CONFIG: ContentCacheConfig = {
+  maxBehaviorEntries: 50,
+  maxContentEntries: 500,
+  ttlMs: 24 * 60 * 60 * 1000, // 24 hours
+};
+
+// LRU caches with access tracking
+const behaviorCache = new Map<string, CacheEntry<BundleBehaviors>>();
+const contentCache = new Map<string, CacheEntry<unknown>>();
+
+// Stats for monitoring
+const cacheStats = {
+  behaviorHits: 0,
+  behaviorMisses: 0,
+  behaviorEvictions: 0,
+  contentHits: 0,
+  contentMisses: 0,
+  contentEvictions: 0,
+};
+
+/**
+ * Check if a cache entry is expired
+ */
+function isExpired<T>(entry: CacheEntry<T>): boolean {
+  return Date.now() - entry.createdAt > CACHE_CONFIG.ttlMs;
+}
+
+/**
+ * Evict least recently used entry from a cache
+ */
+function evictLRU<T>(cache: Map<string, CacheEntry<T>>): void {
+  let oldest: { key: string; accessedAt: number } | null = null;
+
+  for (const [key, entry] of cache.entries()) {
+    if (!oldest || entry.accessedAt < oldest.accessedAt) {
+      oldest = { key, accessedAt: entry.accessedAt };
+    }
+  }
+
+  if (oldest) {
+    cache.delete(oldest.key);
+  }
+}
+
+/**
+ * Get from cache with LRU tracking
+ */
+function getFromCache<T>(
+  cache: Map<string, CacheEntry<T>>,
+  key: string,
+  statsKey: 'behavior' | 'content'
+): T | null {
+  const entry = cache.get(key);
+
+  if (!entry) {
+    if (statsKey === 'behavior') cacheStats.behaviorMisses++;
+    else cacheStats.contentMisses++;
+    return null;
+  }
+
+  if (isExpired(entry)) {
+    cache.delete(key);
+    if (statsKey === 'behavior') cacheStats.behaviorMisses++;
+    else cacheStats.contentMisses++;
+    return null;
+  }
+
+  // Update access time (LRU)
+  entry.accessedAt = Date.now();
+  if (statsKey === 'behavior') cacheStats.behaviorHits++;
+  else cacheStats.contentHits++;
+
+  return entry.value;
+}
+
+/**
+ * Set in cache with LRU eviction
+ */
+function setInCache<T>(
+  cache: Map<string, CacheEntry<T>>,
+  key: string,
+  value: T,
+  maxSize: number,
+  statsKey: 'behavior' | 'content'
+): void {
+  // Evict if at capacity
+  if (cache.size >= maxSize) {
+    evictLRU(cache);
+    if (statsKey === 'behavior') cacheStats.behaviorEvictions++;
+    else cacheStats.contentEvictions++;
+  }
+
+  const now = Date.now();
+  cache.set(key, {
+    value,
+    accessedAt: now,
+    createdAt: now,
+  });
+}
+
+/**
+ * Get cache statistics for monitoring
+ */
+export function getContentCacheStats(): {
+  behaviors: { size: number; hits: number; misses: number; evictions: number; hitRate: number };
+  content: { size: number; hits: number; misses: number; evictions: number; hitRate: number };
+} {
+  const behaviorTotal = cacheStats.behaviorHits + cacheStats.behaviorMisses;
+  const contentTotal = cacheStats.contentHits + cacheStats.contentMisses;
+
+  return {
+    behaviors: {
+      size: behaviorCache.size,
+      hits: cacheStats.behaviorHits,
+      misses: cacheStats.behaviorMisses,
+      evictions: cacheStats.behaviorEvictions,
+      hitRate: behaviorTotal > 0 ? cacheStats.behaviorHits / behaviorTotal : 0,
+    },
+    content: {
+      size: contentCache.size,
+      hits: cacheStats.contentHits,
+      misses: cacheStats.contentMisses,
+      evictions: cacheStats.contentEvictions,
+      hitRate: contentTotal > 0 ? cacheStats.contentHits / contentTotal : 0,
+    },
+  };
+}
+
+/**
+ * Prune expired entries from caches
+ */
+export function pruneExpiredContent(): { behaviors: number; content: number } {
+  let behaviorsPruned = 0;
+  let contentPruned = 0;
+
+  for (const [key, entry] of behaviorCache.entries()) {
+    if (isExpired(entry)) {
+      behaviorCache.delete(key);
+      behaviorsPruned++;
+    }
+  }
+
+  for (const [key, entry] of contentCache.entries()) {
+    if (isExpired(entry)) {
+      contentCache.delete(key);
+      contentPruned++;
+    }
+  }
+
+  if (behaviorsPruned > 0 || contentPruned > 0) {
+    log.info({ behaviorsPruned, contentPruned }, 'Pruned expired content cache entries');
+  }
+
+  return { behaviors: behaviorsPruned, content: contentPruned };
+}
 
 // ============================================================================
 // LOADER FUNCTIONS
 // ============================================================================
 
 /**
- * Load all behaviors for a persona (cached)
+ * Load all behaviors for a persona (cached with LRU eviction)
  */
 export async function loadPersonaBehaviors(personaId: string): Promise<BundleBehaviors | null> {
   const cacheKey = `behaviors:${personaId}`;
 
-  if (behaviorCache.has(cacheKey)) {
-    return behaviorCache.get(cacheKey) || null;
+  // Check cache with LRU tracking
+  const cached = getFromCache(behaviorCache, cacheKey, 'behavior');
+  if (cached) {
+    return cached;
   }
 
   try {
@@ -300,7 +470,9 @@ export async function loadPersonaBehaviors(personaId: string): Promise<BundleBeh
     }
 
     const behaviors = await bundle.getBehaviors();
-    behaviorCache.set(cacheKey, behaviors);
+
+    // Store with LRU eviction
+    setInCache(behaviorCache, cacheKey, behaviors, CACHE_CONFIG.maxBehaviorEntries, 'behavior');
 
     log.debug(
       { personaId, behaviorCount: Object.keys(behaviors).length },
@@ -323,7 +495,7 @@ export async function loadFerniContent<T>(behaviorName: keyof BundleBehaviors): 
 }
 
 /**
- * Load specific behavior content for ANY persona
+ * Load specific behavior content for ANY persona (cached with LRU eviction)
  * This is the primary way to access persona-specific 200% content
  */
 export async function loadPersonaContent<T>(
@@ -332,8 +504,10 @@ export async function loadPersonaContent<T>(
 ): Promise<T | null> {
   const cacheKey = `${personaId}:${behaviorName}`;
 
-  if (contentCache.has(cacheKey)) {
-    return contentCache.get(cacheKey) as T;
+  // Check cache with LRU tracking
+  const cached = getFromCache(contentCache, cacheKey, 'content');
+  if (cached !== null) {
+    return cached as T;
   }
 
   const behaviors = await loadPersonaBehaviors(personaId);
@@ -343,7 +517,8 @@ export async function loadPersonaContent<T>(
 
   const content = behaviors[behaviorName] as T | undefined;
   if (content) {
-    contentCache.set(cacheKey, content);
+    // Store with LRU eviction
+    setInCache(contentCache, cacheKey, content, CACHE_CONFIG.maxContentEntries, 'content');
   }
 
   return content || null;
@@ -564,6 +739,13 @@ export function getRandomPhraseClean(phrases: string[] | undefined): string | nu
 export function clearContentCache(): void {
   behaviorCache.clear();
   contentCache.clear();
+  // Reset stats
+  cacheStats.behaviorHits = 0;
+  cacheStats.behaviorMisses = 0;
+  cacheStats.behaviorEvictions = 0;
+  cacheStats.contentHits = 0;
+  cacheStats.contentMisses = 0;
+  cacheStats.contentEvictions = 0;
 }
 
 export default {
@@ -585,4 +767,7 @@ export default {
   getRandomPhraseClean,
   stripSsml,
   clearContentCache,
+  // Cache monitoring
+  getContentCacheStats,
+  pruneExpiredContent,
 };

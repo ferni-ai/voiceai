@@ -13,6 +13,7 @@
  * @module intelligence/context-builders
  */
 
+import { createHash } from 'crypto';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -26,6 +27,164 @@ import {
 } from './metrics.js';
 
 const log = createLogger({ module: 'context-builders' });
+
+// ============================================================================
+// CONTEXT OUTPUT CACHE
+// ============================================================================
+
+interface ContextOutputCacheEntry {
+  injections: ContextInjection[];
+  createdAt: number;
+  accessedAt: number;
+  inputHash: string;
+}
+
+const CONTEXT_OUTPUT_CACHE_CONFIG = {
+  /** Maximum entries in the cache */
+  maxEntries: 100,
+  /** TTL in milliseconds (5 minutes) */
+  ttlMs: 5 * 60 * 1000,
+  /** Minimum text length change to invalidate cache */
+  textChangeThreshold: 50,
+};
+
+const contextOutputCache = new Map<string, ContextOutputCacheEntry>();
+
+const contextCacheStats = {
+  hits: 0,
+  misses: 0,
+  evictions: 0,
+};
+
+/**
+ * Generate a cache key for context builder output
+ * Based on session, turn count, emotion, and text hash
+ */
+function generateContextCacheKey(input: ContextBuilderInput): string {
+  const keyParts = [
+    input.services.sessionId,
+    input.userData.turnCount?.toString() || '0',
+    input.analysis.emotion.primary,
+    Math.round(input.analysis.emotion.intensity * 10).toString(),
+    input.persona.identity.id,
+  ];
+  return keyParts.join(':');
+}
+
+/**
+ * Generate a hash of the input for cache validation
+ */
+function generateInputHash(input: ContextBuilderInput): string {
+  const hashData = {
+    text: input.userText.slice(0, 200), // First 200 chars
+    emotion: input.analysis.emotion,
+    intent: input.analysis.intent.primary,
+    topics: input.analysis.topics.detected.slice(0, 3),
+  };
+  return createHash('md5').update(JSON.stringify(hashData)).digest('hex').slice(0, 16);
+}
+
+/**
+ * Check if cached context is still valid
+ */
+function isContextCacheValid(entry: ContextOutputCacheEntry, inputHash: string): boolean {
+  // Check TTL
+  if (Date.now() - entry.createdAt > CONTEXT_OUTPUT_CACHE_CONFIG.ttlMs) {
+    return false;
+  }
+
+  // Check input hash matches
+  return entry.inputHash === inputHash;
+}
+
+/**
+ * Get cached context output if valid
+ */
+function getCachedContextOutput(input: ContextBuilderInput): ContextInjection[] | null {
+  const cacheKey = generateContextCacheKey(input);
+  const inputHash = generateInputHash(input);
+
+  const entry = contextOutputCache.get(cacheKey);
+  if (!entry) {
+    contextCacheStats.misses++;
+    return null;
+  }
+
+  if (!isContextCacheValid(entry, inputHash)) {
+    contextOutputCache.delete(cacheKey);
+    contextCacheStats.misses++;
+    return null;
+  }
+
+  // Update access time
+  entry.accessedAt = Date.now();
+  contextCacheStats.hits++;
+
+  log.debug({ cacheKey, injectionCount: entry.injections.length }, 'Context cache hit');
+  return entry.injections;
+}
+
+/**
+ * Cache context output
+ */
+function cacheContextOutput(input: ContextBuilderInput, injections: ContextInjection[]): void {
+  const cacheKey = generateContextCacheKey(input);
+  const inputHash = generateInputHash(input);
+
+  // Evict LRU if at capacity
+  if (contextOutputCache.size >= CONTEXT_OUTPUT_CACHE_CONFIG.maxEntries) {
+    let oldest: { key: string; accessedAt: number } | null = null;
+    for (const [key, entry] of contextOutputCache.entries()) {
+      if (!oldest || entry.accessedAt < oldest.accessedAt) {
+        oldest = { key, accessedAt: entry.accessedAt };
+      }
+    }
+    if (oldest) {
+      contextOutputCache.delete(oldest.key);
+      contextCacheStats.evictions++;
+    }
+  }
+
+  const now = Date.now();
+  contextOutputCache.set(cacheKey, {
+    injections,
+    createdAt: now,
+    accessedAt: now,
+    inputHash,
+  });
+
+  log.debug({ cacheKey, injectionCount: injections.length }, 'Cached context output');
+}
+
+/**
+ * Get context output cache statistics
+ */
+export function getContextOutputCacheStats(): {
+  size: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+  hitRate: number;
+} {
+  const total = contextCacheStats.hits + contextCacheStats.misses;
+  return {
+    size: contextOutputCache.size,
+    hits: contextCacheStats.hits,
+    misses: contextCacheStats.misses,
+    evictions: contextCacheStats.evictions,
+    hitRate: total > 0 ? contextCacheStats.hits / total : 0,
+  };
+}
+
+/**
+ * Clear context output cache (for testing)
+ */
+export function clearContextOutputCache(): void {
+  contextOutputCache.clear();
+  contextCacheStats.hits = 0;
+  contextCacheStats.misses = 0;
+  contextCacheStats.evictions = 0;
+}
 
 // ============================================================================
 // TYPES
@@ -215,13 +374,30 @@ export {
 } from './metrics.js';
 
 // ============================================================================
-// REGISTRY
+// REGISTRY WITH INDEXING
 // ============================================================================
 
 const builders = new Map<string, ContextBuilder>();
 
+/** Pre-computed index of builders by category for O(1) lookup */
+const buildersByCategory = new Map<BuilderCategory, Set<string>>();
+
+/** Cached sorted array of all builders (invalidated on registration) */
+let sortedBuildersCache: ContextBuilder[] | null = null;
+
+/** Cached sorted arrays by category (invalidated on registration) */
+const sortedByCategoryCache = new Map<BuilderCategory, ContextBuilder[]>();
+
 /** Track duplicate registration attempts */
 const registrationWarnings = new Set<string>();
+
+/**
+ * Invalidate all caches (called when builders change)
+ */
+function invalidateCaches(): void {
+  sortedBuildersCache = null;
+  sortedByCategoryCache.clear();
+}
 
 /**
  * Register a context builder.
@@ -279,24 +455,77 @@ export function registerContextBuilder(
     }
   }
 
+  // Remove from old category index if overwriting
+  if (builders.has(builder.name)) {
+    const oldBuilder = builders.get(builder.name)!;
+    const oldCategory = oldBuilder.category || getBuilderCategory(oldBuilder.name);
+    const oldCategorySet = buildersByCategory.get(oldCategory);
+    if (oldCategorySet) {
+      oldCategorySet.delete(builder.name);
+    }
+  }
+
+  // Add to builders map
   builders.set(builder.name, builder);
-  log.debug({ builder: builder.name, priority: builder.priority }, 'Registered context builder');
+
+  // Add to category index
+  const category = builder.category || getBuilderCategory(builder.name);
+  if (!buildersByCategory.has(category)) {
+    buildersByCategory.set(category, new Set());
+  }
+  buildersByCategory.get(category)!.add(builder.name);
+
+  // Invalidate caches
+  invalidateCaches();
+
+  log.debug({ builder: builder.name, priority: builder.priority, category }, 'Registered context builder');
 }
 
 /**
  * Get all registered builders, sorted by priority (highest first)
+ * Uses cached sorted array for O(1) repeated access
  */
 export function getRegisteredBuilders(): ContextBuilder[] {
-  return Array.from(builders.values()).sort((a, b) => b.priority - a.priority);
+  if (sortedBuildersCache) {
+    return sortedBuildersCache;
+  }
+
+  sortedBuildersCache = Array.from(builders.values()).sort((a, b) => b.priority - a.priority);
+  return sortedBuildersCache;
 }
 
 /**
- * Get builders by category
+ * Get builders by category using pre-computed index
+ * O(k) where k = builders in category, instead of O(n) filtering all builders
  */
 export function getBuildersByCategory(category: BuilderCategory): ContextBuilder[] {
-  return Array.from(builders.values())
-    .filter((b) => b.category === category || getBuilderCategory(b.name) === category)
-    .sort((a, b) => b.priority - a.priority);
+  // Check cache first
+  const cached = sortedByCategoryCache.get(category);
+  if (cached) {
+    return cached;
+  }
+
+  // Use index for O(1) lookup of builder names in category
+  const builderNames = buildersByCategory.get(category);
+  if (!builderNames || builderNames.size === 0) {
+    return [];
+  }
+
+  // Build sorted array from index
+  const result: ContextBuilder[] = [];
+  for (const name of builderNames) {
+    const builder = builders.get(name);
+    if (builder) {
+      result.push(builder);
+    }
+  }
+
+  result.sort((a, b) => b.priority - a.priority);
+
+  // Cache the result
+  sortedByCategoryCache.set(category, result);
+
+  return result;
 }
 
 /**
@@ -311,6 +540,29 @@ export function isBuilderRegistered(name: string): boolean {
  */
 export function getBuilderCount(): number {
   return builders.size;
+}
+
+/**
+ * Get registry statistics for monitoring
+ */
+export function getRegistryStats(): {
+  totalBuilders: number;
+  byCategory: Record<string, number>;
+  cacheStatus: { sortedAll: boolean; sortedByCategory: number };
+} {
+  const byCategory: Record<string, number> = {};
+  for (const [category, names] of buildersByCategory.entries()) {
+    byCategory[category] = names.size;
+  }
+
+  return {
+    totalBuilders: builders.size,
+    byCategory,
+    cacheStatus: {
+      sortedAll: sortedBuildersCache !== null,
+      sortedByCategory: sortedByCategoryCache.size,
+    },
+  };
 }
 
 // ============================================================================
@@ -456,6 +708,7 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
  * Build conversation context from all registered builders
  *
  * Features:
+ * - Output caching with 5-minute TTL
  * - Parallel execution for performance
  * - Per-builder metrics tracking
  * - Error isolation (one failing builder doesn't break others)
@@ -464,6 +717,12 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
 export async function buildConversationContext(
   input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
+  // Check cache first (5-minute TTL)
+  const cached = getCachedContextOutput(input);
+  if (cached) {
+    return cached;
+  }
+
   // Ensure all builder modules are loaded (lazy loading)
   await ensureBuildersLoaded();
 
@@ -556,6 +815,9 @@ export async function buildConversationContext(
   const sessionId = input.services.sessionId || 'unknown';
   const turnNumber = input.userData.turnCount || 0;
   recordTurnMetrics(sessionId, turnNumber, builderResults);
+
+  // Cache the result for future lookups
+  cacheContextOutput(input, injections);
 
   return injections;
 }

@@ -94,12 +94,107 @@ export interface TaskHistoryQuery {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE
+// IN-MEMORY CACHE & DEDUPLICATION
 // ============================================================================
 
 // In-memory cache for recent task records (for performance)
 const recentTaskCache = new Map<string, TaskRecord>();
 const MAX_CACHE_SIZE = 1000;
+
+// Deduplication tracking: key = userId:taskType, value = { timestamp, hash }
+interface DedupeEntry {
+  timestamp: number;
+  contentHash: string;
+}
+const dedupeIndex = new Map<string, DedupeEntry>();
+const DEDUPE_WINDOW_MS = 60 * 1000; // 1 minute deduplication window
+const MAX_DEDUPE_ENTRIES = 500;
+
+/**
+ * Generate a content hash for deduplication
+ * Uses key fields that define task uniqueness
+ */
+function generateTaskContentHash(record: TaskRecord): string {
+  // Hash based on the fields that would indicate a duplicate
+  const hashInput = [
+    record.taskType,
+    record.userId,
+    record.category,
+    Math.round(record.initialDistress * 10),
+    Math.round(record.finalDistress * 10),
+    record.turnsToComplete,
+    record.triggerReason || '',
+  ].join(':');
+
+  // Simple hash (not cryptographic, just for deduplication)
+  let hash = 0;
+  for (let i = 0; i < hashInput.length; i++) {
+    const char = hashInput.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Check if this task is a duplicate (same user, type, and content within time window)
+ */
+function isDuplicateTask(record: TaskRecord): boolean {
+  const dedupeKey = `${record.userId}:${record.taskType}`;
+  const contentHash = generateTaskContentHash(record);
+  const existing = dedupeIndex.get(dedupeKey);
+
+  if (existing) {
+    const age = Date.now() - existing.timestamp;
+    // Duplicate if same content within time window
+    if (age < DEDUPE_WINDOW_MS && existing.contentHash === contentHash) {
+      log.debug({
+        userId: record.userId,
+        taskType: record.taskType,
+        ageMs: age,
+      }, 'Skipping duplicate task record');
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Mark a task as recorded for deduplication
+ */
+function markTaskRecorded(record: TaskRecord): void {
+  const dedupeKey = `${record.userId}:${record.taskType}`;
+  const contentHash = generateTaskContentHash(record);
+
+  dedupeIndex.set(dedupeKey, {
+    timestamp: Date.now(),
+    contentHash,
+  });
+
+  // Clean up old entries if over limit
+  if (dedupeIndex.size > MAX_DEDUPE_ENTRIES) {
+    const now = Date.now();
+    const cutoff = now - DEDUPE_WINDOW_MS * 2;
+
+    for (const [key, entry] of dedupeIndex.entries()) {
+      if (entry.timestamp < cutoff) {
+        dedupeIndex.delete(key);
+      }
+    }
+
+    // If still over limit, remove oldest
+    if (dedupeIndex.size > MAX_DEDUPE_ENTRIES) {
+      const entries = Array.from(dedupeIndex.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+      const toRemove = entries.slice(0, entries.length - MAX_DEDUPE_ENTRIES);
+      for (const [key] of toRemove) {
+        dedupeIndex.delete(key);
+      }
+    }
+  }
+}
 
 function addToCache(record: TaskRecord): void {
   recentTaskCache.set(record.id, record);
@@ -113,6 +208,17 @@ function addToCache(record: TaskRecord): void {
   }
 }
 
+/**
+ * Get deduplication stats for monitoring
+ */
+export function getDedupeStats(): { entries: number; maxEntries: number; windowMs: number } {
+  return {
+    entries: dedupeIndex.size,
+    maxEntries: MAX_DEDUPE_ENTRIES,
+    windowMs: DEDUPE_WINDOW_MS,
+  };
+}
+
 // ============================================================================
 // FIRESTORE OPERATIONS
 // ============================================================================
@@ -122,8 +228,14 @@ const SUMMARIES_COLLECTION = 'task_summaries';
 
 /**
  * Save a task record to Firestore
+ * Returns empty string if record is a duplicate (deduped)
  */
 export async function saveTaskRecord(record: TaskRecord): Promise<string> {
+  // Check for duplicates before saving
+  if (isDuplicateTask(record)) {
+    return ''; // Return empty string to indicate deduplication
+  }
+
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -145,6 +257,9 @@ export async function saveTaskRecord(record: TaskRecord): Promise<string> {
 
     // Add to cache
     addToCache(recordWithId);
+
+    // Mark as recorded for deduplication
+    markTaskRecorded(recordWithId);
 
     log.debug({ taskId: docId, taskType: record.taskType }, 'Saved task record');
 
@@ -489,6 +604,7 @@ export const taskPersistence = {
   createTaskRecordFromActiveTask,
   getTaskEffectivenessStats,
   getUnderperformingTasks,
+  getDedupeStats,
 };
 
 export default taskPersistence;
