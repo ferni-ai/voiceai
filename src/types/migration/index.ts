@@ -7,20 +7,20 @@
  */
 
 export {
-  // Detection
-  detectProfileFormat,
-  needsMigration,
-  type ProfileFormat,
-  // Full migration
-  migrateToComposite,
-  migrateToLegacy,
   // Unified adapter
   UnifiedProfileAdapter,
   createUnifiedProfile,
-  // Batch utilities
-  migrateProfileBatch,
-  type BatchMigrationResult,
+  // Detection
+  detectProfileFormat,
+  diffProfiles,
   // Helpers
   mergeProfileUpdate,
-  diffProfiles,
+  // Batch utilities
+  migrateProfileBatch,
+  // Full migration
+  migrateToComposite,
+  migrateToLegacy,
+  needsMigration,
+  type BatchMigrationResult,
+  type ProfileFormat,
 } from './profile-migrator.js';

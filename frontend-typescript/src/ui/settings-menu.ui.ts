@@ -40,6 +40,7 @@ export interface SettingsMenuUICallbacks {
   onAnalyticsClick?: () => void;
   onCognitiveClick?: () => void;
   onRitualBuilderClick?: () => void;
+  onCommandsClick?: () => void;
   onPredictionTrackerClick?: () => void;
   onExportDataClick?: () => void;
   onOnboardingClick?: () => void;
@@ -82,6 +83,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.54"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.54"/></svg>',
   ritual:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  commands:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
   target:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
   download:
@@ -391,6 +394,7 @@ class SettingsMenuUI {
             </button>
             ${this.renderMenuItem('accent-settings', ICONS.globe, 'Voice Accent')}
             ${this.renderMenuItem('ritual', ICONS.ritual, 'Create a Practice')}
+            ${this.renderMenuItem('commands', ICONS.commands, 'Start a Practice')}
             ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
             ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, 'Link Calendar')}
@@ -460,6 +464,9 @@ class SettingsMenuUI {
         break;
       case 'ritual':
         this.callbacks.onRitualBuilderClick?.();
+        break;
+      case 'commands':
+        this.callbacks.onCommandsClick?.();
         break;
       case 'predictions':
         this.callbacks.onPredictionTrackerClick?.();

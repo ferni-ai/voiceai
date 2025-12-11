@@ -26,20 +26,13 @@
  */
 
 import type { z } from 'zod';
-import type {
-  UserId,
-  SessionId,
-  PersonaId,
-  GoalId,
-  MemoryId,
-  OrganizationId,
-} from '../branded.js';
+import type { GoalId, MemoryId, OrganizationId, PersonaId, SessionId, UserId } from '../branded.js';
 import {
-  unsafeAsUserId,
-  unsafeAsSessionId,
   unsafeAsGoalId,
   unsafeAsMemoryId,
   unsafeAsOrganizationId,
+  unsafeAsSessionId,
+  unsafeAsUserId,
 } from '../branded.js';
 
 // ============================================================================
@@ -103,7 +96,13 @@ export interface ConverterOptions {
 /**
  * Branded ID type mapping
  */
-type BrandedIdType = 'UserId' | 'SessionId' | 'PersonaId' | 'GoalId' | 'MemoryId' | 'OrganizationId';
+type BrandedIdType =
+  | 'UserId'
+  | 'SessionId'
+  | 'PersonaId'
+  | 'GoalId'
+  | 'MemoryId'
+  | 'OrganizationId';
 
 // ============================================================================
 // TIMESTAMP CONVERSION
@@ -397,10 +396,7 @@ export function createPartialUpdate<T extends Record<string, unknown>>(
  * const update = createNestedUpdate('communication', { style: 'casual' });
  * // Results in: { 'communication.style': 'casual' }
  */
-export function createNestedUpdate(
-  path: string,
-  update: Record<string, unknown>
-): FirestoreData {
+export function createNestedUpdate(path: string, update: Record<string, unknown>): FirestoreData {
   const result: FirestoreData = {};
 
   for (const [key, value] of Object.entries(update)) {

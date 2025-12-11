@@ -7,6 +7,12 @@
  */
 
 export {
+  // Builder
+  OpenAPIDocumentBuilder,
+  // Helpers
+  createStandardResponses,
+  jsonContent,
+  schemaRef,
   // Core conversion
   zodToOpenAPI,
   // Types
@@ -15,10 +21,4 @@ export {
   type OpenAPIParameter,
   type OpenAPIPathItem,
   type OpenAPISchema,
-  // Builder
-  OpenAPIDocumentBuilder,
-  // Helpers
-  createStandardResponses,
-  jsonContent,
-  schemaRef,
 } from './schema-generator.js';

@@ -45,6 +45,12 @@ import { handleFeatureFlagsRoutes } from './dist/api/feature-flags-routes.js';
 // Brand System routes (AI-powered brand management)
 import { handleBrandRoutes } from './dist/api/brand-routes.js';
 
+// Commands API routes (persona slash commands)
+import { handleCommandsRoutes } from './dist/api/commands-routes.js';
+
+// Widget SDK routes (embeddable widget for third-party hosting)
+import { handleWidgetRoutes } from './dist/api/widget-routes.js';
+
 // Monitoring routes (P11)
 import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 
@@ -857,6 +863,18 @@ const server = http.createServer(async (req, res) => {
     // Brand System routes (AI-powered brand management)
     if (pathname.startsWith('/api/brand')) {
       const handled = await handleBrandRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Commands API routes (persona slash commands)
+    if (pathname.startsWith('/api/commands')) {
+      const handled = await handleCommandsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Widget SDK routes (embeddable widget for third-party hosting)
+    if (pathname.startsWith('/api/widget')) {
+      const handled = await handleWidgetRoutes(req, res, pathname);
       if (handled) return;
     }
 

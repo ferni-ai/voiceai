@@ -13,17 +13,17 @@
  * @module types/migration/profile-migrator
  */
 
-import type { UserProfile } from '../user-profile.js';
 import type { CompositeUserProfile, LifeStage, PersonaMemoryItem } from '../profile/index.js';
 import {
-  createUserIdentity,
   createCommunicationProfile,
-  createRelationshipContext,
-  createFinancialProfile,
   createConversationMemory,
   createEntertainmentProfile,
+  createFinancialProfile,
   createIntelligenceProfile,
+  createRelationshipContext,
+  createUserIdentity,
 } from '../profile/index.js';
+import type { UserProfile } from '../user-profile.js';
 
 // ============================================================================
 // MIGRATION DETECTION
@@ -459,13 +459,13 @@ export function migrateProfileBatch(
         migrated.push(migrateToComposite(profile as UserProfile));
       } else {
         errors.push({
-          id: (profile as unknown as Record<string, unknown>).id as string || 'unknown',
+          id: ((profile as unknown as Record<string, unknown>).id as string) || 'unknown',
           error: 'Unknown profile format',
         });
       }
     } catch (error) {
       errors.push({
-        id: (profile as unknown as Record<string, unknown>).id as string || 'unknown',
+        id: ((profile as unknown as Record<string, unknown>).id as string) || 'unknown',
         error: error instanceof Error ? error.message : String(error),
       });
     }

@@ -20,12 +20,12 @@
  * @module conversation/mid-response-tangents
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { getMomentumTracker } from './momentum-tracker.js';
 import {
   getSessionVarietyTracker,
   type ThemeCategory,
 } from '../services/session-variety-tracker.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { getMomentumTracker } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'tangents' });
 
@@ -417,4 +417,4 @@ export function resetAllTangentStates(): void {
 // EXPORTS
 // ============================================================================
 
-export { TANGENT_PROFILES, DEFAULT_TANGENT_PROFILE, FERNI_TANGENT_PROFILE };
+export { DEFAULT_TANGENT_PROFILE, FERNI_TANGENT_PROFILE, TANGENT_PROFILES };

@@ -14,18 +14,18 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  getVectorStore,
-  type VectorStore,
-  type VectorDocument,
-  type VectorFilter,
-} from './vector-store.js';
-import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
+import { embedCached } from './embedding-cache.js';
 import { embed } from './embeddings.js';
-import { embedCached, getEmbeddingCache } from './embedding-cache.js';
+import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
 import { getMemoryMetricsCollector } from './memory-metrics.js';
 import { isOk } from './result.js';
 import { getRetrievalExplainer } from './retrieval-explanations.js';
+import {
+  getVectorStore,
+  type VectorDocument,
+  type VectorFilter,
+  type VectorStore,
+} from './vector-store.js';
 
 // Type for any vector store implementation
 type AnyVectorStore = VectorStore | FirestoreVectorStore;

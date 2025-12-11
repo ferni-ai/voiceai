@@ -368,6 +368,7 @@ export {
 
 // Full profile migration with adapter pattern
 export {
+  UnifiedProfileAdapter,
   createUnifiedProfile,
   detectProfileFormat,
   diffProfiles,
@@ -376,7 +377,6 @@ export {
   migrateToComposite,
   migrateToLegacy,
   needsMigration,
-  UnifiedProfileAdapter,
   type BatchMigrationResult,
   type ProfileFormat,
 } from './migration/index.js';
@@ -386,9 +386,9 @@ export {
 // ============================================================================
 
 export {
+  OpenAPIDocumentBuilder,
   createStandardResponses,
   jsonContent,
-  OpenAPIDocumentBuilder,
   schemaRef,
   zodToOpenAPI,
   type OpenAPIDocument,

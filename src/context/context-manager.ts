@@ -4,6 +4,11 @@
  * Manages conversation context for prompt injection.
  * Handles rolling summaries, relationship context, and cross-session continuity.
  *
+ * Enhanced with speech insights:
+ * - Emotional contagion continuity (prosody hints)
+ * - Human listening analysis (cognitive load, hedging, self-soothing)
+ * - Dynamic speed recommendations
+ *
  * @module context/context-manager
  */
 
@@ -20,6 +25,11 @@ import {
 } from '../personas/shared/index.js';
 import type { SessionId, PersonaId, UserId } from '../types/branded.js';
 import { createSessionId, isValidPersonaId } from '../types/branded.js';
+
+// Speech insights imports
+import type { HumanListeningResult } from '../speech/human-listening-pipeline/types.js';
+import type { EmotionalMomentum, ProsodyContinuityHints } from '../speech/emotional-contagion.js';
+import type { SpeedControlResult } from '../speech/adaptive-ssml/dynamic-speed-control.js';
 
 // ============================================================================
 // TYPES
@@ -59,6 +69,35 @@ export interface PromptContext {
 
   // Combined formatted context
   formattedForPrompt: string;
+
+  // Speech insights (optional - available when speech pipeline is active)
+  speechInsights?: SpeechInsightsContext;
+}
+
+/**
+ * Speech-derived insights for context enhancement
+ */
+export interface SpeechInsightsContext {
+  /** Current emotional momentum (valence, arousal, warmth trend) */
+  emotionalMomentum?: EmotionalMomentum;
+
+  /** Prosody continuity hints for TTS */
+  prosodyContinuityHints?: ProsodyContinuityHints;
+
+  /** Human listening analysis results */
+  humanListeningResult?: HumanListeningResult;
+
+  /** Recommended speech speed adjustments */
+  speedControl?: SpeedControlResult;
+
+  /** Whether user appears to be in distress (voice + text signals) */
+  voiceDistressSignals: boolean;
+
+  /** User's cognitive load estimate from speech */
+  estimatedCognitiveLoad: number;
+
+  /** Speech-derived guidance for response */
+  speechGuidance: string;
 }
 
 /**
@@ -566,6 +605,163 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
   clear(): void {
     this.turns = [];
     this.rollingSummary = '';
+  }
+
+  // ==========================================================================
+  // SPEECH INSIGHTS INTEGRATION
+  // ==========================================================================
+
+  /**
+   * Build speech insights context from available speech pipeline data
+   *
+   * This integrates data from:
+   * - Human listening pipeline (cognitive load, hedging, self-soothing)
+   * - Emotional contagion (momentum, continuity hints)
+   * - Dynamic speed control
+   *
+   * @param options - Speech data from various pipeline components
+   * @returns Speech insights context for prompt injection
+   */
+  buildSpeechInsightsContext(options: {
+    humanListeningResult?: HumanListeningResult;
+    emotionalMomentum?: EmotionalMomentum;
+    prosodyContinuityHints?: ProsodyContinuityHints;
+    speedControl?: SpeedControlResult;
+  }): SpeechInsightsContext {
+    const {
+      humanListeningResult,
+      emotionalMomentum,
+      prosodyContinuityHints,
+      speedControl,
+    } = options;
+
+    // Determine distress signals from voice
+    let voiceDistressSignals = false;
+    if (humanListeningResult) {
+      voiceDistressSignals =
+        humanListeningResult.possibleDistress ||
+        (humanListeningResult.audio?.tremor?.detected ?? false);
+    }
+
+    // Estimate cognitive load from complex type
+    let estimatedCognitiveLoad = 0.3; // Default
+    if (humanListeningResult) {
+      // CognitiveLoadState has level and confidence properties
+      const cognitiveLevel = humanListeningResult.text.cognitiveLoad?.level;
+      const textLoadScore =
+        cognitiveLevel === 'overloaded'
+          ? 1.0
+          : cognitiveLevel === 'high'
+            ? 0.8
+            : cognitiveLevel === 'medium'
+              ? 0.5
+              : 0.3;
+      // HedgingAnalysisResult has hedgingDensity
+      const hedgingDensity = humanListeningResult.text.hedging?.hedgingDensity ?? 0;
+      estimatedCognitiveLoad = Math.min(1, textLoadScore + Math.min(hedgingDensity / 20, 0.5));
+    }
+
+    // Build speech-derived guidance
+    const speechGuidance = this.buildSpeechGuidance({
+      humanListeningResult,
+      emotionalMomentum,
+      speedControl,
+      voiceDistressSignals,
+      estimatedCognitiveLoad,
+    });
+
+    return {
+      emotionalMomentum,
+      prosodyContinuityHints,
+      humanListeningResult,
+      speedControl,
+      voiceDistressSignals,
+      estimatedCognitiveLoad,
+      speechGuidance,
+    };
+  }
+
+  /**
+   * Build speech-derived guidance for prompt injection
+   */
+  private buildSpeechGuidance(options: {
+    humanListeningResult?: HumanListeningResult;
+    emotionalMomentum?: EmotionalMomentum;
+    speedControl?: SpeedControlResult;
+    voiceDistressSignals: boolean;
+    estimatedCognitiveLoad: number;
+  }): string {
+    const {
+      humanListeningResult,
+      emotionalMomentum,
+      speedControl,
+      voiceDistressSignals,
+      estimatedCognitiveLoad,
+    } = options;
+
+    const guidance: string[] = [];
+
+    // Voice distress signals (highest priority)
+    if (voiceDistressSignals) {
+      guidance.push('🔴 Voice shows distress signals - prioritize emotional support');
+    }
+
+    // Cognitive load
+    if (estimatedCognitiveLoad > 0.7) {
+      guidance.push('User is processing heavily - use simpler language, shorter sentences');
+    } else if (estimatedCognitiveLoad > 0.5) {
+      guidance.push('User showing moderate cognitive load - be clear and concise');
+    }
+
+    // Emotional momentum from voice
+    if (emotionalMomentum) {
+      if (emotionalMomentum.warmth === 'high') {
+        guidance.push('Maintain warm, supportive tone (momentum: high warmth)');
+      }
+      if (emotionalMomentum.trend === 'building') {
+        guidance.push('Energy is building - match the increasing momentum');
+      } else if (emotionalMomentum.trend === 'dissipating') {
+        guidance.push('Energy is settling - use calm, grounding language');
+      }
+    }
+
+    // Human listening signals
+    if (humanListeningResult) {
+      const text = humanListeningResult.text;
+
+      if (text.selfSoothing?.detected && text.selfSoothing.confidence > 0.5) {
+        guidance.push('User is self-soothing - they need validation, not advice');
+      }
+
+      // HedgingAnalysisResult has 'elevated' and 'shouldProbe' flags
+      if (text.hedging?.elevated && text.hedging.shouldProbe) {
+        guidance.push('User hedging significantly - gently explore what they really mean');
+      }
+
+      if (humanListeningResult.shouldSlowDown) {
+        guidance.push('Slow down - user needs processing time');
+      }
+    }
+
+    // Speed control reason
+    if (speedControl && speedControl.reason !== 'normal pace') {
+      guidance.push(`Speech pacing: ${speedControl.reason}`);
+    }
+
+    return guidance.length > 0
+      ? `[VOICE INSIGHTS]\n${guidance.join('\n')}`
+      : '';
+  }
+
+  /**
+   * Format speech insights for LLM prompt injection
+   */
+  formatSpeechInsightsForPrompt(insights: SpeechInsightsContext): string {
+    if (!insights.speechGuidance) {
+      return '';
+    }
+
+    return insights.speechGuidance;
   }
 }
 

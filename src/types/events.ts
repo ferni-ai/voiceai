@@ -14,7 +14,14 @@
  * @module types/events
  */
 
-import { createEventId, type EventId, type PersonaId, type SessionId, type ToolId, type UserId } from './branded.js';
+import {
+  createEventId,
+  type EventId,
+  type PersonaId,
+  type SessionId,
+  type ToolId,
+  type UserId,
+} from './branded.js';
 import type { RelationshipStage } from './relationship-stages.js';
 
 // ============================================================================
@@ -679,11 +686,7 @@ export type MemoryEvent = MemoryCreatedEvent | MemoryReferencedEvent;
 /**
  * All habit events
  */
-export type HabitEvent =
-  | HabitCreatedEvent
-  | HabitLoggedEvent
-  | HabitStreakEvent
-  | HabitBrokenEvent;
+export type HabitEvent = HabitCreatedEvent | HabitLoggedEvent | HabitStreakEvent | HabitBrokenEvent;
 
 /**
  * All wellness events
