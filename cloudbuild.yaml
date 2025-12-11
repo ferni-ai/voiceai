@@ -37,7 +37,7 @@ steps:
 
   # Build the container image with caching
   - name: 'gcr.io/cloud-builders/docker'
-    args: 
+    args:
       - 'build'
       - '--cache-from'
       - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
@@ -51,7 +51,7 @@ steps:
     waitFor: ['pull-cache']
     env:
       - 'DOCKER_BUILDKIT=1'
-  
+
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest']

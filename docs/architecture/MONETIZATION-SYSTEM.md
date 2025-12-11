@@ -290,33 +290,35 @@ support Ferni. But I only recommend things I genuinely think could help.)"
 
 ## Tier Structure
 
-| Tier        | Monthly   | Session Time | Team Members | Personalization  |
-| ----------- | --------- | ------------ | ------------ | ---------------- |
-| **Free**    | $0        | 15 min/convo | Ferni only   | Basic            |
-| **Friend**  | $9.99/mo  | Unlimited    | Core team    | Full access      |
-| **Partner** | $19.99/mo | Unlimited    | Full team    | Priority support |
+| Tier        | Monthly   | Session Time  | Team Members | Personalization  |
+| ----------- | --------- | ------------- | ------------ | ---------------- |
+| **Free**    | $0        | 7 min/convo\* | Ferni only   | Basic            |
+| **Friend**  | $9.99/mo  | Unlimited     | Core team    | Full access      |
+| **Partner** | $19.99/mo | Unlimited     | Full team    | Priority support |
+
+\*Session time is configurable via `FREE_SESSION_MINUTES` env var for A/B testing.
 
 ### Free Tier: "Ferni Forever"
 
-- ✅ **Unlimited conversations** with Ferni
-- ⏱️ **15-minute sessions** - Complete but focused
-- 💾 **Memory persists** - Ferni remembers everything across sessions
-- 🎨 **Basic personalization** - Default styles
+- **Unlimited conversations** with Ferni
+- **7-minute heart-to-hearts** - Like a Fortnite match, complete but focused
+- **Full memory** — I remember everything across sessions
+- **Avatar & theme customization** - Basic personalization
 
 ### Friend Tier: "Your Life Coach"
 
-- ♾️ **Unlimited session time** - Talk as long as you want
-- 👥 **Core team access** - Maya, Peter, Alex, Jordan
-- 🎨 **Full personalization** - Themes, sounds, styles
-- 🔄 **Cross-device sync** - Same Ferni everywhere
+- **Talk as long as you need** - No session time limits
+- **Meet the whole team** - Maya, Peter, Alex, Jordan
+- **Cosmetics shop access** - Themes, sounds, styles
+- **Sync across all your devices** - Same Ferni everywhere
 
 ### Partner Tier: "Partner in Growth"
 
-- Everything in Friend, plus:
-- 🌟 **Full team** - Including Nayan (premium mentor)
-- ✨ **Exclusive styles** - Partner-only personalization
-- 🚀 **Priority queue** - Faster responses
-- 👨‍👩‍👧‍👦 **Family sharing** - Share with loved ones
+- Everything in Life Coach, plus:
+- **Full team access** - Including Nayan (premium mentor)
+- **Exclusive looks and themes** - Partner-only personalization
+- **Priority when you need us most** - Faster responses
+- **Share with your family** - Family sharing included
 
 ## Architecture Overview
 

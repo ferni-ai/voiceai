@@ -35,7 +35,7 @@ steps:
     secretEnv: ['GITHUB_PAT']
     env:
       - 'DOCKER_BUILDKIT=1'
-  
+
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/john-bogle-ui:latest']
