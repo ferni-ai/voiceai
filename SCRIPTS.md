@@ -224,44 +224,87 @@ Miscellaneous utilities
 | `npm run tools:route` | `npx tsx src/cli/tools-report.ts route` |
 | `npm run tools:versions` | `npx tsx src/cli/tools-report.ts versions` |
 
-## 🎯 Unified CLI Reference
+## 🎯 Unified CLI Reference (v2.0)
 
-The `ferni` CLI provides interactive access to all commands:
+The `ferni` CLI provides interactive access to all commands with enhanced UX:
 
 ```bash
-# Interactive mode
+# Interactive mode (recommended)
 npm run ferni
 
 # Direct commands
-npm run ferni deploy ui
-npm run ferni test quick
-npm run ferni setup local
-npm run ferni generate all
-npm run ferni health
+npm run ferni deploy ui       # Deploy UI server
+npm run ferni status          # Check service health
+npm run ferni logs agent      # View agent logs
+npm run ferni doctor          # System diagnostics
+npm run ferni env check       # Validate environment
 ```
 
-### Available CLI Modules
+### Development Commands
 
-| Module | Description | Example |
-|--------|-------------|---------|
-| `deploy` | Deploy services | `ferni deploy ui` |
-| `setup` | Configure environment | `ferni setup local` |
-| `test` | Run tests | `ferni test quick` |
-| `validate` | Run validations | `ferni validate all` |
-| `audit` | Code audits | `ferni audit quality` |
-| `build` | Build apps | `ferni build apps` |
-| `generate` | Generate code/assets | `ferni generate all` |
-| `rollout` | Feature rollouts | `ferni rollout status` |
-| `health` | System health check | `ferni health` |
+| Command | Subcommands | Description |
+|---------|-------------|-------------|
+| `ferni deploy` | ui, agent, frontend, landing, all | Deploy to Cloud Run |
+| `ferni build` | frontend, electron, ios, android, apps | Build applications |
+| `ferni test` | unit, e2e, storage, quick, all | Run test suites |
+| `ferni setup` | local, icons, firestore, github, all | Configure environment |
+
+### Operations Commands
+
+| Command | Subcommands | Description |
+|---------|-------------|-------------|
+| `ferni status` | services, revisions, traffic, all | Check deployment status with health checks |
+| `ferni logs` | agent, ui, all, errors | View Cloud Run logs (--tail for streaming) |
+| `ferni doctor` | all, apis, env | System diagnostics |
+| `ferni db` | status, backup, migrate, query | Database operations |
+| `ferni env` | list, diff, check, secrets | Environment variable management |
+
+### Agents & Quality Commands
+
+| Command | Subcommands | Description |
+|---------|-------------|-------------|
+| `ferni agents` | list, show, create, validate, install | Manage AI agents |
+| `ferni validate` | voices, humanization, integrations, all | Run validations |
+| `ferni generate` | personas, env, design-system, all | Generate code/assets |
+| `ferni rollout` | start, status, advance, rollback | Feature rollouts |
+| `ferni audit` | quality, architecture, legacy, a11y | Code audits |
+
+### Examples
+
+```bash
+# Check all services and health
+npm run ferni status
+
+# Stream live logs
+npm run ferni logs agent --tail
+
+# Full system diagnostics
+npm run ferni doctor
+
+# Compare .env with .env.example
+npm run ferni env diff
+
+# Check required environment variables
+npm run ferni env check
+
+# View database status
+npm run ferni db status
+
+# List all AI agents
+npm run ferni agents list
+
+# Create a new agent
+npm run ferni agents create my-coach --template sage
+```
 
 ---
 
 ## 📚 Additional Resources
 
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Development Setup](./docs/DEVELOPMENT.md)
-- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [Deployment Guide](./DEPLOYMENT.md)
+- [Onboarding](./ONBOARDING.md)
+- [Contributing](./CONTRIBUTING.md)
 
 ---
 
-*Generated on 2025-12-07*
+*Last updated: 2025-12-11*
