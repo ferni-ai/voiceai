@@ -8,90 +8,91 @@
  */
 
 // Route handlers
-export { handleEngagementRoutes } from './engagement-routes.js';
+export { handleBrandRoutes } from './brand-routes.js';
 export { handleDORARoutes } from './dora-routes.js';
+export { handleEngagementRoutes } from './engagement-routes.js';
 export { handleFeatureFlagsRoutes } from './feature-flags-routes.js';
-export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
-export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleGDPRRoutes } from './gdpr-routes.js';
-export { handlePerformanceRoutes } from './performance-routes.js';
+export {
+  clearDashboardCache,
+  getDashboardHtml,
+  getDashboardPage,
+  getHandoffFailures,
+  getHandoffMetrics,
+  getHandoffTrace,
+  getInProgressHandoffs,
+  getRecentHandoffs,
+  handleDiagnosticsRoutes,
+  setupHandoffDiagnosticsRoutes,
+} from './handoff-diagnostics.js';
+export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleOptimizerRoutes } from './optimizer-routes.js';
+export { handlePerformanceRoutes } from './performance-routes.js';
 export {
   handleSubscriptionRequest,
   isSubscriptionRoute,
   routeSubscriptionRequest,
 } from './subscription-routes.js';
-export {
-  getHandoffMetrics,
-  getRecentHandoffs,
-  getHandoffFailures,
-  getInProgressHandoffs,
-  getHandoffTrace,
-  setupHandoffDiagnosticsRoutes,
-  handleDiagnosticsRoutes,
-  getDashboardPage,
-  getDashboardHtml,
-  clearDashboardCache,
-} from './handoff-diagnostics.js';
+export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 
 // Helpers
 export {
-  parseBody,
+  getCorsHeaders,
   getUserId,
+  handleCorsPreflightIfNeeded,
+  parseBody,
+  parsePositiveInt,
   requireUserId,
+  sendError,
   sendJSON,
   sendJSONCached,
-  sendError,
-  getCorsHeaders,
-  handleCorsPreflightIfNeeded,
-  parsePositiveInt,
   type RouteHandler,
 } from './helpers.js';
 
 // Authentication
 export {
   authenticate,
-  requireAuth,
-  requireAdmin,
-  optionalAuth,
-  getAuthenticatedUserId,
   checkRateLimit,
+  getAuthenticatedUserId,
+  optionalAuth,
   rateLimit,
-  type AuthContext,
+  requireAdmin,
+  requireAuth,
   type AuthConfig,
+  type AuthContext,
 } from './auth-middleware.js';
 
 // Validators
 export {
-  validateBody,
-  validateQuery,
-  // Common schemas
-  UserIdSchema,
-  LimitSchema,
-  ISODateSchema,
-  PositiveNumberSchema,
-  // Ritual schemas
-  WeatherSchema,
-  CreateRitualSchema,
   CompleteRitualSchema,
-  // Prediction schemas
-  UpdatePredictionActualsSchema,
-  // Export schemas
-  ExportDataSchema,
+  // Subscription schemas
+  CreateCheckoutSchema,
+  // Feature flag schemas
+  CreateFeatureFlagSchema,
+  CreatePortalSchema,
+  CreateRitualSchema,
   DeleteAllDataSchema,
   // Memory schemas
   DeleteMemoryParamsSchema,
-  // Subscription schemas
-  CreateCheckoutSchema,
-  CreatePortalSchema,
+  // Export schemas
+  ExportDataSchema,
+  ISODateSchema,
+  LimitSchema,
+  PositiveNumberSchema,
   RecordConversationSchema,
   // DORA schemas
   RecordDeploymentSchema,
   RecordIncidentSchema,
   ResolveIncidentSchema,
-  // Feature flag schemas
-  CreateFeatureFlagSchema,
   UpdateFeatureFlagSchema,
+  // Prediction schemas
+  UpdatePredictionActualsSchema,
   // Voice presence schemas
   UpdateVoicePresenceConfigSchema,
+  // Common schemas
+  UserIdSchema,
+  // Ritual schemas
+  WeatherSchema,
+  validateBody,
+  validateQuery,
 } from './validators.js';

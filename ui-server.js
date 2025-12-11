@@ -42,6 +42,9 @@ import { handleTrustSystemsRoutes } from './dist/api/trust-systems-routes.js';
 // Feature Flags routes (P7)
 import { handleFeatureFlagsRoutes } from './dist/api/feature-flags-routes.js';
 
+// Brand System routes (AI-powered brand management)
+import { handleBrandRoutes } from './dist/api/brand-routes.js';
+
 // Monitoring routes (P11)
 import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 
@@ -676,6 +679,17 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
 
   // ============================================================================
+  // GLOBAL RATE LIMITING (applied to all API routes)
+  // ============================================================================
+  // Skip rate limiting for health checks and static files
+  if (pathname.startsWith('/api/') && pathname !== '/api/health') {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+      // Rate limited - response already sent
+      return;
+    }
+  }
+
+  // ============================================================================
   // ENGAGEMENT API ROUTES (conversations, analytics, predictions, rituals, etc.)
   // ============================================================================
   try {
@@ -834,6 +848,12 @@ const server = http.createServer(async (req, res) => {
     // Feature Flags routes (P7)
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Brand System routes (AI-powered brand management)
+    if (pathname.startsWith('/api/brand')) {
+      const handled = await handleBrandRoutes(req, res, pathname);
       if (handled) return;
     }
 
