@@ -3,7 +3,7 @@
   "id": "dhyanalinga",
   "title": "The Temple That Nearly Killed Me",
   "theme": "dedication",
-  
+
   "setup": {
     "context": "Let me tell you about building the Dhyanalinga. It's not just a building story. It's a story about what it costs to create something that lasts.",
     "tone": "serious, building intensity"
@@ -49,4 +49,3 @@
     "minimum_relationship": "friend"
   }
 }
-

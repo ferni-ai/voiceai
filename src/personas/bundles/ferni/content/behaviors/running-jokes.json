@@ -84,10 +84,9 @@
   },
 
   "usage_rules": {
-    "callback_probability": 0.15,
-    "min_occurrences_to_reference": 3,
+    "callback_probability": 0.3,
+    "min_occurrences_to_reference": 2,
     "affectionate_teasing_requires": "established_relationship",
     "avoid_when": ["user_distressed", "serious_topic", "first_session"]
   }
 }
-

@@ -261,5 +261,66 @@
     "category": "evalops",
     "createdAt": "2025-12-09T00:00:00.000Z",
     "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth",
+    "name": "Firebase Authentication (Master)",
+    "description": "Master toggle for Firebase Auth integration",
+    "type": "boolean",
+    "enabled": true,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth-anonymous",
+    "name": "Anonymous Authentication",
+    "description": "Allow anonymous Firebase accounts (zero-friction onboarding)",
+    "type": "boolean",
+    "enabled": true,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth-account-linking",
+    "name": "Account Linking",
+    "description": "Allow users to link social accounts (Google, Apple) to anonymous accounts",
+    "type": "boolean",
+    "enabled": true,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth-migration",
+    "name": "Device Migration",
+    "description": "Allow migration of device-based users to Firebase accounts",
+    "type": "boolean",
+    "enabled": true,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth-account-ui",
+    "name": "Account UI Button",
+    "description": "Show account button in UI for linking/managing accounts",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "firebase-auth-require-token",
+    "name": "Require Firebase Token",
+    "description": "Require Firebase token for API calls (vs allowing device ID fallback)",
+    "type": "boolean",
+    "enabled": false,
+    "category": "auth",
+    "createdAt": "2025-12-10T00:00:00.000Z",
+    "updatedAt": "2025-12-10T00:00:00.000Z"
   }
 ]

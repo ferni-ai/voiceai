@@ -212,6 +212,15 @@ export interface TurnProcessorResult {
     type: string;
     response: string;
   };
+  /** Value capture event for monetization (optional contribution prompt) */
+  valueCapture?: {
+    /** Type of value detected (e.g., 'habit_milestone', 'financial_gain') */
+    type: string;
+    /** ID of the value event for contribution tracking */
+    eventId: string;
+    /** Whether to prompt for contribution post-conversation */
+    shouldPrompt: boolean;
+  };
 }
 
 // ============================================================================

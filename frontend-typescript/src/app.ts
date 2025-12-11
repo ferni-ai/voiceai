@@ -129,6 +129,7 @@ import {
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
+import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
@@ -1225,6 +1226,7 @@ class VoiceAIApp {
         },
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => growthJourneyUI.open(),
+        onAccentSettingsClick: () => accentSettingsUI.open(),
       });
 
       // Wire up Spotify state changes to menu

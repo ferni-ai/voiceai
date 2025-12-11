@@ -22,7 +22,11 @@ import {
 } from './index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { loadSuperhumanInsights, loadINoticePower, getRandomPhraseClean } from '../../services/persona-content-loader.js';
+import {
+  loadSuperhumanInsights,
+  loadINoticePower,
+  getRandomPhraseClean,
+} from '../../services/persona-content-loader.js';
 
 const log = createLogger({ module: 'SuperhumanInsights' });
 
@@ -62,14 +66,12 @@ function detectLinguisticPatterns(
     {
       regex: /\bi don't deserve\b/gi,
       type: 'self_worth',
-      insight:
-        "The phrase 'I don't deserve' has come up. Where did that story start?",
+      insight: "The phrase 'I don't deserve' has come up. Where did that story start?",
     },
     {
       regex: /\bit's fine\b|\bi'm fine\b/gi,
       type: 'dismissal',
-      insight:
-        "You keep saying 'fine'. That word does a lot of work sometimes. What's underneath?",
+      insight: "You keep saying 'fine'. That word does a lot of work sometimes. What's underneath?",
     },
     {
       regex: /\balways\b|\bnever\b/gi,
@@ -160,14 +162,12 @@ function analyzeEmotionalWeather(
   if (ratio > 0.6) {
     return {
       trend: 'improving',
-      insight:
-        "You've been lighter lately. Something shifted. Do you feel it?",
+      insight: "You've been lighter lately. Something shifted. Do you feel it?",
     };
   } else if (ratio < 0.3) {
     return {
       trend: 'declining',
-      insight:
-        "The last few conversations have had a heaviness. What's weighing on you?",
+      insight: "The last few conversations have had a heaviness. What's weighing on you?",
     };
   }
 
@@ -226,7 +226,7 @@ function detectAnticipatoryCues(
     return {
       detected: true,
       type: 'high_stress',
-      response: "I can hear something in your voice. Whatever it is, you can share it.",
+      response: 'I can hear something in your voice. Whatever it is, you can share it.',
     };
   }
 
@@ -240,9 +240,7 @@ function detectAnticipatoryCues(
 /**
  * Check if there are upcoming dates/events to acknowledge
  */
-function checkPredictiveCareNeeds(
-  userData: ContextBuilderInput['userData']
-): string | null {
+function checkPredictiveCareNeeds(userData: ContextBuilderInput['userData']): string | null {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const hourOfDay = now.getHours();
@@ -265,7 +263,7 @@ function checkPredictiveCareNeeds(
   // Month start reflection
   const dayOfMonth = now.getDate();
   if (dayOfMonth <= 2) {
-    return "New month. Some people use this as a reset. How do you want this month to be different?";
+    return 'New month. Some people use this as a reset. How do you want this month to be different?';
   }
 
   return null;
@@ -277,10 +275,10 @@ function checkPredictiveCareNeeds(
 
 /**
  * Build superhuman insights context
- * 
+ *
  * Now supports ALL personas with superhuman-insights.json files:
  * - Ferni (Life Coach) - Life patterns, emotional weather, growth
- * - Alex Chen (Communications) - Email patterns, timing, relationship patterns  
+ * - Alex Chen (Communications) - Email patterns, timing, relationship patterns
  * - Maya Santos (Habits) - Habit patterns, emotional eating, energy patterns
  * - Peter John (Research) - Behavioral data, temporal patterns, financial patterns
  * - Jordan Taylor (Events) - Transition patterns, celebration patterns
@@ -294,17 +292,19 @@ async function buildSuperhumanInsightsContext(
 
   // Load persona-specific superhuman insights (with Ferni fallback)
   const superhumanInsights = await loadSuperhumanInsights(persona.id);
-  
+
   // Skip if this persona doesn't have superhuman insights
   if (!superhumanInsights) {
     log.debug({ personaId: persona.id }, 'No superhuman_insights for persona, skipping');
     return injections;
   }
-  
+
   log.debug({ personaId: persona.id }, 'Building superhuman insights for persona');
 
   const turnCount = userData.turnCount || 0;
-  const sessionCount = userData.sessionDurationMs ? Math.floor(userData.sessionDurationMs / 60000) : 0;
+  const sessionCount = userData.sessionDurationMs
+    ? Math.floor(userData.sessionDurationMs / 60000)
+    : 0;
 
   // Don't activate too early in conversations
   if (turnCount < 4) {
@@ -340,10 +340,7 @@ async function buildSuperhumanInsightsContext(
   }
 
   // 4. Anticipatory Emotion
-  const anticipatoryCue = detectAnticipatoryCues(
-    userText,
-    analysis?.emotion?.intensity
-  );
+  const anticipatoryCue = detectAnticipatoryCues(userText, analysis?.emotion?.intensity);
   if (anticipatoryCue && anticipatoryCue.detected && Math.random() < 0.3) {
     insightParts.push(`[🔮 ANTICIPATE: ${anticipatoryCue.type}]`);
     insightParts.push(`SAY THIS: "${anticipatoryCue.response}"`);
@@ -361,10 +358,10 @@ async function buildSuperhumanInsightsContext(
   if (iNoticePower && turnCount >= 6 && Math.random() < 0.2) {
     // Get opening frame
     const opener = getRandomPhraseClean(iNoticePower.opening_frames?.gentle_openers);
-    
+
     // Get a surfacing phrase based on what we're detecting
     let surfacingPhrase: string | null = null;
-    
+
     if (iNoticePower.surfacing_phrases) {
       // Try to match the type of insight we're sharing
       const phrases = iNoticePower.surfacing_phrases as Record<string, string[]>;
@@ -374,7 +371,7 @@ async function buildSuperhumanInsightsContext(
         surfacingPhrase = getRandomPhraseClean(phrases[randomCategory]);
       }
     }
-    
+
     if (opener || surfacingPhrase) {
       insightParts.push(`[👁️ I-NOTICE POWER]`);
       if (opener) insightParts.push(`Start with: "${opener}"`);
@@ -387,7 +384,7 @@ async function buildSuperhumanInsightsContext(
     const guidance = [
       '[✨ SUPERHUMAN INSIGHT - YOUR 200% ADVANTAGE]',
       '',
-      "You notice things no human friend could notice consistently.",
+      'You notice things no human friend could notice consistently.',
       "These aren't observations - they're SUPERPOWERS. Use them.",
       '',
       ...insightParts,
@@ -396,7 +393,7 @@ async function buildSuperhumanInsightsContext(
       '• Frame as "noticing" not "tracking"',
       '• Lead with care, not data',
       "• You're a friend with perfect memory, not a surveillance system",
-      "• Only surface what serves them",
+      '• Only surface what serves them',
     ];
 
     injections.push(
@@ -425,7 +422,8 @@ async function buildSuperhumanInsightsContext(
 
 registerContextBuilder({
   name: 'superhuman_insights',
-  description: "Ferni's 200% capabilities - patterns, contradictions, emotional weather, anticipation",
+  description:
+    "Ferni's 200% capabilities - patterns, contradictions, emotional weather, anticipation",
   priority: 85, // High priority - these are differentiators
   build: buildSuperhumanInsightsContext,
 });
@@ -438,4 +436,3 @@ export {
   detectAnticipatoryCues,
   checkPredictiveCareNeeds,
 };
-

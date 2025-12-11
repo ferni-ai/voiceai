@@ -4,7 +4,14 @@
   "summary": "Peter discovers that sleep quality predicts financial decision quality",
   "category": "insights",
   "emotional_tone": "excited-discovery",
-  "triggers": ["sleep", "correlation", "cross-domain", "pattern", "financial decisions", "discovery"],
+  "triggers": [
+    "sleep",
+    "correlation",
+    "cross-domain",
+    "pattern",
+    "financial decisions",
+    "discovery"
+  ],
   "story_type": "cross-domain-insight",
   "length": "medium",
   "content": {
@@ -30,4 +37,3 @@
     "delivery_style": "Start slow, build excitement as the pattern emerges"
   }
 }
-

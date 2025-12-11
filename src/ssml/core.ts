@@ -5,6 +5,12 @@
  * These are the primary exports used throughout the application.
  */
 
+import {
+  addBreathGroupPauses,
+  injectNaturalFillers,
+  type BreathGroupConfig,
+  type FillerConfig,
+} from '../speech/advanced-humanization.js';
 import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
@@ -76,72 +82,127 @@ export function stripSsmlTags(text: string): string {
 /**
  * Sanitize malformed SSML output
  * Fixes corrupted tags and removes stage directions like "*chuckles*"
+ *
+ * CRITICAL: This is the safety net that prevents stage directions from being spoken.
+ * Any text in *asterisks* or [brackets] that isn't valid SSML should be stripped.
  */
 export function sanitizeSsml(text: string): string {
   let result = text;
 
   // ================================================
-  // FIRST: CONVERT laugh/chuckle to [laughter]
+  // FIRST: CONVERT laugh/chuckle/giggle to [laughter]
   // Cartesia Sonic-3 supports [laughter] for actual laugh sounds
   // ================================================
 
-  result = result.replace(/\*[^*]*(?:chuckle|laugh)[^*]*\*/gi, '[laughter]');
-  result = result.replace(/\([^)]*(?:chuckle|laugh)[^)]*\)/gi, '[laughter]');
-  result = result.replace(/\[chuckles?\]/gi, '[laughter]');
+  // Asterisk format: *chuckles*, *laughs softly*, etc.
+  result = result.replace(/\*[^*]*(?:chuckle|laugh|giggle)[^*]*\*/gi, '[laughter]');
+  // Parenthesis format: (laughs), (chuckles softly), etc.
+  result = result.replace(/\([^)]*(?:chuckle|laugh|giggle)[^)]*\)/gi, '[laughter]');
+  // Bracket format: [chuckles], [laughs warmly], [soft laughter], [gentle giggle], [warm chuckle]
+  result = result.replace(/\[[^\]]*(?:chuckle|laugh|giggle|laughter)[^\]]*\]/gi, '[laughter]');
+  // Standalone words with modifiers
   result = result.replace(
-    /(?<!\[)\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    /(?<!\[)\b(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
     '[laughter] '
   );
   result = result.replace(
-    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
     '[laughter] '
   );
   result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
 
+  // Nuclear option: If "chuckle" still appears, remove it
   if (/chuckle/i.test(result)) {
     result = result.replace(/\bchuckles?\b/gi, '');
   }
 
+  // Clean up multiple [laughter] tags in a row
   result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
 
   // ================================================
-  // THEN: Remove stage directions
+  // COMPREHENSIVE STAGE DIRECTION REMOVAL
+  // Remove ALL non-verbal actions that LLMs might generate
   // ================================================
 
-  // Remove parenthetical actions
-  result = result.replace(/\([^)]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^)]*\)/gi, '');
+  // Comprehensive list of stage direction keywords
+  const stageDirectionKeywords = [
+    // Breathing/physical
+    'sigh',
+    'breath',
+    'exhale',
+    'inhale',
+    'breathing',
+    // Expressions
+    'smile',
+    'grin',
+    'frown',
+    'nod',
+    'wink',
+    'blink',
+    // Actions
+    'pause',
+    'think',
+    'clear',
+    'cough',
+    'shift',
+    'lean',
+    'settle',
+    'focus',
+    'attention',
+    'shrug',
+    // Physical presence
+    'warm',
+    'steady',
+    'gentle',
+    'soft',
+    'present',
+    'presence',
+    // Energy
+    'perk',
+    'energy',
+    'relief',
+    // Misc stage directions
+    "chef's kiss",
+    'taking a breath',
+    'visible',
+  ];
 
-  // Remove bracketed actions (except [laughter])
+  // Build regex pattern for stage directions
+  const keywordPattern = stageDirectionKeywords.join('|');
+
+  // Remove asterisk-wrapped stage directions: *exhale*, *settles in*, *warm*, etc.
+  result = result.replace(new RegExp(`\\*[^*]*(?:${keywordPattern})[^*]*\\*`, 'gi'), '');
+
+  // Remove parenthesis-wrapped stage directions: (sighs), (takes a breath), etc.
+  result = result.replace(new RegExp(`\\([^)]*(?:${keywordPattern})[^)]*\\)`, 'gi'), '');
+
+  // Remove bracket-wrapped stage directions (except [laughter]): [pauses], [smiles], etc.
+  result = result.replace(new RegExp(`\\[[^\\]]*(?:${keywordPattern})[^\\]]*\\]`, 'gi'), '');
+
+  // Remove common standalone stage direction phrases
   result = result.replace(
-    /\[[^\]]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^\]]*\]/gi,
+    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat|takes a breath|taking a breath)\b/gi,
     ''
   );
 
-  // Remove asterisk actions
-  result = result.replace(/\*[^*]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^*]*\*/gi, '');
-
-  // Remove common standalone stage directions
+  // Remove non-audio action verbs with modifiers
   result = result.replace(
-    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi,
-    ''
-  );
-
-  // Remove non-audio action verbs
-  result = result.replace(
-    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?|exhales?|inhales?|shifts?|leans?|settles?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly|in|down|up|back)?\s*\.?\s*/gi,
     ''
   );
   result = result.replace(
-    /\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    /\b(he|she|jack|ferni|maya|jordan|alex|peter|i)\s+(sighs?|smiles?|grins?|pauses?|nods?|exhales?|shifts?|leans?|settles?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
     ''
   );
 
-  // Nuclear option for remaining action verbs
+  // Nuclear option for remaining action verbs - standalone words
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bnods?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bwinks?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsighs?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bexhales?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\binhales?\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags
@@ -182,6 +243,23 @@ interface SsmlTagOptions {
   baseSpeed?: number;
   baseVolume?: number;
   humanize?: boolean;
+
+  // ============================================================================
+  // ADVANCED HUMANIZATION OPTIONS (research-backed natural speech)
+  // See docs/VOICE-HUMANIZATION-RESEARCH.md
+  // ============================================================================
+
+  /** Enable natural filler injection ("um", "well", etc.) - default: true */
+  naturalFillers?: boolean;
+
+  /** Enable breath group pacing (pauses at phrase boundaries) - default: true */
+  breathGroupPacing?: boolean;
+
+  /** Filler injection config */
+  fillerConfig?: FillerConfig;
+
+  /** Breath group config */
+  breathConfig?: BreathGroupConfig;
 }
 
 /**
@@ -198,9 +276,19 @@ export function tagTextWithSsmlPersonaAware(
   text: string,
   optionsOrPersonaId?: string | SsmlTagOptions
 ): string {
-  // Extract personaId from either form
-  const personaId =
-    typeof optionsOrPersonaId === 'string' ? optionsOrPersonaId : optionsOrPersonaId?.personaId;
+  // Extract options
+  const options: SsmlTagOptions =
+    typeof optionsOrPersonaId === 'string'
+      ? { personaId: optionsOrPersonaId }
+      : (optionsOrPersonaId ?? {});
+
+  const {
+    personaId,
+    naturalFillers = true, // Enabled by default
+    breathGroupPacing = true, // Enabled by default
+    fillerConfig,
+    breathConfig,
+  } = options;
 
   if (!text || text.trim().length === 0) {
     return text;
@@ -240,7 +328,24 @@ export function tagTextWithSsmlPersonaAware(
     tagged += '<break time="200ms"/>';
   }
 
-  // Add natural pauses at sentence boundaries
+  // ============================================================================
+  // ADVANCED HUMANIZATION - Research-backed natural speech
+  // See docs/VOICE-HUMANIZATION-RESEARCH.md
+  // ============================================================================
+
+  // Step 1: Inject natural fillers ("um", "well", "you know")
+  // This adds spontaneity and makes speech feel less robotic
+  if (naturalFillers) {
+    processedText = injectNaturalFillers(processedText, fillerConfig, personaId);
+  }
+
+  // Step 2: Add breath group pacing (pauses at natural phrase boundaries)
+  // Mimics human breathing patterns during speech
+  if (breathGroupPacing) {
+    processedText = addBreathGroupPauses(processedText, breathConfig);
+  }
+
+  // Add natural pauses at sentence boundaries (basic pauses)
   processedText = addBasicPauses(processedText);
 
   // Remove protection markers

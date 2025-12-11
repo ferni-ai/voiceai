@@ -91,8 +91,12 @@ export {
   getAcknowledgmentPrefix,
   getCatchphraseWithSsml,
   getResponseEnhancements,
+  // Session-scoped catchphrase tracking
+  getSessionCatchphraseTracker,
   getThinkingFiller,
+  resetAllCatchphraseTrackers,
   resetCatchphraseTracking,
+  resetSessionCatchphraseTracker,
   shouldAddPrefix,
   shouldInjectCatchphrase,
   type ResponseEnhancement,
@@ -238,7 +242,13 @@ export {
   VOICES,
   createDynamicTTS,
   createPersonaAwareTTS,
+  // Session-scoped managers (production-ready)
+  getSessionVoiceManager,
+  getSessionVoiceManagerCount,
+  // Legacy global manager (deprecated)
   getVoiceManager,
+  resetAllSessionVoiceManagers,
+  resetSessionVoiceManager,
   resetVoiceManager,
   type VoiceAgentId,
   type VoiceConfig,
@@ -411,3 +421,65 @@ export {
   type FillerPosition,
   type FillerType,
 } from './filler-analysis.js';
+
+// ============================================================================
+// FFT ANALYZER (Spectral Analysis)
+// ============================================================================
+
+export {
+  FFTAnalyzerService,
+  analyzeLaughterSpectral,
+  analyzeSpectrum,
+  classifyEnvironment,
+  getFFTAnalyzer,
+  resetFFTAnalyzer,
+  type LaughterSpectralFeatures,
+  type SpectralAnalysis,
+  type SpectralEnvironment,
+} from './fft-analyzer.js';
+
+// ============================================================================
+// ADVANCED HUMANIZATION (Research-backed natural speech)
+// See docs/VOICE-HUMANIZATION-RESEARCH.md for research basis
+// ============================================================================
+
+export {
+  // Emotion mapping (50+ Cartesia emotions)
+  ALL_CARTESIA_EMOTIONS,
+  CARTESIA_EMOTIONS,
+  // Breath group pacing
+  addBreathGroupPauses,
+  // Speech rhythm variation
+  analyzeRhythm,
+  applyRhythmVariations,
+  getEmotionTransition,
+  // Main pipeline
+  humanizeText,
+  // Natural fillers ("um", "well", etc.)
+  injectNaturalFillers,
+  mapContextToEmotion,
+  type BreathGroupConfig,
+  type CartesiaEmotion,
+  type EmotionContext,
+  type FillerConfig,
+  type HumanizationOptions,
+  type RhythmVariation,
+} from './advanced-humanization.js';
+
+// ============================================================================
+// ENHANCED BACKCHANNELING (Active Listening)
+// Research-backed: faster response, context-aware, persona-specific
+// ============================================================================
+
+export {
+  BACKCHANNEL_LIBRARY,
+  EnhancedBackchannelingEngine,
+  PERSONA_BACKCHANNEL_STYLE,
+  getEnhancedBackchannelingEngine,
+  getQuickBackchannel,
+  removeEnhancedBackchannelingEngine,
+  type BackchannelDecision,
+  type BackchannelTiming,
+  type BackchannelType,
+  type EnhancedBackchannelContext,
+} from './enhanced-backchanneling.js';

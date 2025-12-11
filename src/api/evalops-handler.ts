@@ -47,6 +47,7 @@ import {
   getRecentEvaluations,
   getFlaggedEvaluations,
   getSuiteResults,
+  getDimensionAverages,
   type EvalOpsFeatureFlags,
 } from '../services/evalops/automation.js';
 
@@ -164,6 +165,12 @@ export async function handleEvalOpsRoutes(
       resetEvalMetrics();
       log.info('Evaluation metrics reset via API');
       sendJSON(res, { success: true, message: 'Metrics reset' });
+      return true;
+    }
+
+    if (pathname === '/api/evalops/dimensions' && method === 'GET') {
+      const dimensions = getDimensionAverages();
+      sendJSON(res, { success: true, dimensions });
       return true;
     }
 

@@ -337,7 +337,7 @@ export class SlackNotificationService {
       message,
       severity: 'error',
       metadata: {
-        userId: details.userId.slice(0, 8) + '...', // Privacy: truncated
+        userId: `${details.userId.slice(0, 8)}...`, // Privacy: truncated
         crisisType: details.crisisType,
         severity: details.severity,
         resourcesProvided: details.resourcesProvided,

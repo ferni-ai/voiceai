@@ -10,7 +10,12 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import { recordUsage, generateInsight, getTimerFollowUp, getUserPatterns } from './pattern-intelligence.js';
+import {
+  recordUsage,
+  generateInsight,
+  getTimerFollowUp,
+  getUserPatterns,
+} from './pattern-intelligence.js';
 import { updateTimerPreferences } from './persistence.js';
 import { onTimerComplete } from './voice-callbacks.js';
 import { activeTimers } from './shared-state.js';
@@ -151,17 +156,10 @@ const cancelTimerDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const timerToolDefinitions: ToolDefinition[] = [
-  setTimerDef,
-  cancelTimerDef,
-];
+export const timerToolDefinitions: ToolDefinition[] = [setTimerDef, cancelTimerDef];
 
-export {
-  setTimerDef,
-  cancelTimerDef,
-};
+export { setTimerDef, cancelTimerDef };

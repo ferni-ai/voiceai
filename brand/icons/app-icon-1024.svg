@@ -53,12 +53,12 @@
   <rect x="112" y="112" width="800" height="800" rx="180" ry="180" 
         fill="url(#appShine)" opacity="0.6"/>
   
-  <!-- FN Monogram -->
+  <!-- FE Monogram -->
   <text x="512" y="580" 
         font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" 
         font-size="380" 
         font-weight="800" 
         fill="white" 
         text-anchor="middle" 
-        letter-spacing="-0.02em">FN</text>
+        letter-spacing="-0.02em">FE</text>
 </svg>

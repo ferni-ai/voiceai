@@ -534,7 +534,7 @@ function setupEventListeners(overlay: HTMLElement): void {
   // Item actions
   overlay.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const actionBtn = target.closest('[data-action]') as HTMLElement | null;
+    const actionBtn = target.closest('[data-action]');
     if (!actionBtn) return;
 
     const action = actionBtn.getAttribute('data-action');

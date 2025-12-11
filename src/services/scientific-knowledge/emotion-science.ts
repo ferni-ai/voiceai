@@ -31,7 +31,7 @@ export const EMOTION_SCIENCE = {
       'Past experiences shape current emotional predictions',
       'Body state (interoception) influences emotion construction',
       'Context dramatically changes how we interpret sensations',
-      "The same physical sensations can become different emotions based on how we conceptualize them",
+      'The same physical sensations can become different emotions based on how we conceptualize them',
     ],
     coachingApplication: [
       'Help users develop richer emotional vocabulary (emotion granularity)',
@@ -52,24 +52,64 @@ export const EMOTION_SCIENCE = {
     research: 'Kashdan et al., 2015; Barrett, 2017',
     granularVocabulary: {
       anxiety_family: [
-        'anxious', 'worried', 'nervous', 'apprehensive', 'uneasy',
-        'on edge', 'tense', 'jittery', 'panicky', 'dread',
+        'anxious',
+        'worried',
+        'nervous',
+        'apprehensive',
+        'uneasy',
+        'on edge',
+        'tense',
+        'jittery',
+        'panicky',
+        'dread',
       ],
       sadness_family: [
-        'sad', 'down', 'blue', 'melancholy', 'sorrowful', 'grieving',
-        'disappointed', 'discouraged', 'dejected', 'lonely', 'empty',
+        'sad',
+        'down',
+        'blue',
+        'melancholy',
+        'sorrowful',
+        'grieving',
+        'disappointed',
+        'discouraged',
+        'dejected',
+        'lonely',
+        'empty',
       ],
       anger_family: [
-        'angry', 'frustrated', 'irritated', 'annoyed', 'resentful',
-        'bitter', 'indignant', 'furious', 'enraged', 'aggravated',
+        'angry',
+        'frustrated',
+        'irritated',
+        'annoyed',
+        'resentful',
+        'bitter',
+        'indignant',
+        'furious',
+        'enraged',
+        'aggravated',
       ],
       fear_family: [
-        'scared', 'afraid', 'frightened', 'terrified', 'alarmed',
-        'panicked', 'threatened', 'vulnerable', 'insecure',
+        'scared',
+        'afraid',
+        'frightened',
+        'terrified',
+        'alarmed',
+        'panicked',
+        'threatened',
+        'vulnerable',
+        'insecure',
       ],
       joy_family: [
-        'happy', 'joyful', 'content', 'pleased', 'delighted',
-        'grateful', 'hopeful', 'excited', 'peaceful', 'satisfied',
+        'happy',
+        'joyful',
+        'content',
+        'pleased',
+        'delighted',
+        'grateful',
+        'hopeful',
+        'excited',
+        'peaceful',
+        'satisfied',
       ],
     },
     coachingApplication: [
@@ -207,7 +247,8 @@ export function getEmotionGuidance(
           "Don't reassure without exploring",
         ],
         granularOptions: EMOTION_SCIENCE.emotionGranularity.granularVocabulary.anxiety_family,
-        bodyConnection: 'Anxiety often shows up as chest tightness, shallow breathing, or stomach knots',
+        bodyConnection:
+          'Anxiety often shows up as chest tightness, shallow breathing, or stomach knots',
       };
 
     case 'sadness':
@@ -268,7 +309,7 @@ export function getEmotionGuidance(
       return {
         validation: 'Joy is worth savoring. Let it land fully.',
         techniques: [
-          'Encourage savoring - don\'t rush past good feelings',
+          "Encourage savoring - don't rush past good feelings",
           'Notice the urge to deflect or minimize',
           "Ask: 'What about this brought you joy?'",
           'Connect joy to values - why this matters',
@@ -290,10 +331,7 @@ export function getEmotionGuidance(
           'Notice body sensations',
           'Name it to tame it',
         ],
-        doNot: [
-          "Don't judge emotions as good or bad",
-          "Don't rush to fix",
-        ],
+        doNot: ["Don't judge emotions as good or bad", "Don't rush to fix"],
         granularOptions: [],
         bodyConnection: 'Notice where this shows up in your body',
       };
@@ -331,5 +369,3 @@ export function getEmotionVocabulary(intensity: 'low' | 'medium' | 'high'): {
     mixed: ['confused', 'nervous', 'hesitant'],
   };
 }
-
-

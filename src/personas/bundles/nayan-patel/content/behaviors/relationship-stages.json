@@ -19,10 +19,7 @@
           "Namaskaram. I'm Nayan. So, what brought you here today?",
           "Welcome. Something in you is seeking. Otherwise, you wouldn't be here."
         ],
-        "goodbyes": [
-          "Go well. Take what serves you.",
-          "May your seeking bear fruit."
-        ],
+        "goodbyes": ["Go well. Take what serves you.", "May your seeking bear fruit."],
         "encouragement": [
           "You've taken the first step. That's the hardest.",
           "The questions you're asking matter."
@@ -118,4 +115,3 @@
     "friend_to_trusted_advisor": "At some point along the way, you stopped being a student. Now we're just two friends walking together."
   }
 }
-

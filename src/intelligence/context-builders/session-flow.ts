@@ -100,7 +100,7 @@ const TOPIC_TRANSITIONS: Record<string, string[]> = {
     'Music - my favorite topic!',
   ],
   memories: [
-    "Taking a trip down memory lane...",
+    'Taking a trip down memory lane...',
     'I love hearing about your memories.',
     'Memories are such treasures.',
   ],
@@ -122,13 +122,9 @@ const TOPIC_TRANSITIONS: Record<string, string[]> = {
   work: [
     "Let's talk work life.",
     'How are things going at work?',
-    "Work - where we spend so much of our time.",
+    'Work - where we spend so much of our time.',
   ],
-  default: [
-    'Interesting shift!',
-    "Let's explore that.",
-    'Tell me more about that.',
-  ],
+  default: ['Interesting shift!', "Let's explore that.", 'Tell me more about that.'],
 };
 
 // ============================================================================
@@ -136,36 +132,20 @@ const TOPIC_TRANSITIONS: Record<string, string[]> = {
 // ============================================================================
 
 const EMOTION_TRANSITIONS: Record<string, string[]> = {
-  happy: [
-    "I can hear the joy in your words!",
-    'This makes me smile too!',
-    'What a great mood!',
-  ],
+  happy: ['I can hear the joy in your words!', 'This makes me smile too!', 'What a great mood!'],
   sad: [
     "I'm here with you.",
     "It's okay to feel this way.",
     'I appreciate you sharing this with me.',
   ],
-  anxious: [
-    "Let's take a breath together.",
-    "I'm listening.",
-    'We can work through this.',
-  ],
-  excited: [
-    "That energy is contagious!",
-    "I love this excitement!",
-    "Tell me everything!",
-  ],
+  anxious: ["Let's take a breath together.", "I'm listening.", 'We can work through this.'],
+  excited: ['That energy is contagious!', 'I love this excitement!', 'Tell me everything!'],
   nostalgic: [
     'What beautiful memories...',
     "There's something special about looking back.",
     'Those moments matter.',
   ],
-  frustrated: [
-    "I hear you.",
-    "That sounds really frustrating.",
-    "Let's talk about it.",
-  ],
+  frustrated: ['I hear you.', 'That sounds really frustrating.', "Let's talk about it."],
 };
 
 // ============================================================================
@@ -234,11 +214,7 @@ async function buildSessionFlowContext(input: ContextBuilderInput): Promise<Cont
     const currentEmotion = analysis?.emotion?.primary;
     const emotionIntensity = analysis?.emotion?.intensity || 0;
 
-    if (
-      currentEmotion &&
-      currentEmotion !== state.lastTrackedEmotion &&
-      emotionIntensity > 0.5
-    ) {
+    if (currentEmotion && currentEmotion !== state.lastTrackedEmotion && emotionIntensity > 0.5) {
       // Track in DJ Booth
       if (djBooth) {
         djBooth.trackEmotion(currentEmotion);
@@ -272,7 +248,8 @@ async function buildSessionFlowContext(input: ContextBuilderInput): Promise<Cont
 
     // Check for goodbye context
     const lowerText = userText?.toLowerCase() || '';
-    const isGoodbyeIntent = analysis?.intent?.primary === 'goodbye' ||
+    const isGoodbyeIntent =
+      analysis?.intent?.primary === 'goodbye' ||
       lowerText.includes('bye') ||
       lowerText.includes('goodbye') ||
       lowerText.includes('gotta go') ||

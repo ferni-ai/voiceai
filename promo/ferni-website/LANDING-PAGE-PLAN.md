@@ -18,39 +18,39 @@
 
 ### What's Already Complete ✅
 
-| Section | Status | Brand Compliance |
-|---------|--------|------------------|
-| Navigation | ✅ Complete | ✅ Ferni green, Plus Jakarta Sans |
-| Hero | ✅ Complete | ✅ Paper Cream bg, "Better than human." |
-| Stats Bar | ✅ Complete | ✅ Ferni green stats |
-| Product Showcase | ✅ Complete | ✅ Phone mockup with chat |
-| Promise Quote | ✅ Complete | ✅ Warm philosophy |
-| Use Cases (6) | ✅ Complete | ✅ Earthy icons, warm copy |
-| Team Section | ✅ Complete | ✅ All 6 personas with colors |
-| How It Works | ✅ Complete | ✅ 3 steps: Call/Text/Web |
-| Features (6) | ✅ Complete | ✅ Voice-first, Memory, etc. |
-| Comparison | ✅ Complete | ✅ "Other AI" vs "Ferni" |
-| Testimonials | ✅ Complete | ✅ 4 testimonials from data |
-| FAQ (7) | ✅ Complete | ✅ Accordion with key questions |
-| Pricing | ✅ Complete | ✅ Free/Friend/Partner tiers |
-| Final CTA | ✅ Complete | ✅ "Ready to feel heard?" |
-| Footer | ✅ Complete | ✅ Links, social, legal |
-| Mobile CTA | ✅ Complete | ✅ Sticky bottom bar |
-| Scroll Animations | ✅ Complete | ✅ Reveal, stagger effects |
+| Section           | Status      | Brand Compliance                        |
+| ----------------- | ----------- | --------------------------------------- |
+| Navigation        | ✅ Complete | ✅ Ferni green, Plus Jakarta Sans       |
+| Hero              | ✅ Complete | ✅ Paper Cream bg, "Better than human." |
+| Stats Bar         | ✅ Complete | ✅ Ferni green stats                    |
+| Product Showcase  | ✅ Complete | ✅ Phone mockup with chat               |
+| Promise Quote     | ✅ Complete | ✅ Warm philosophy                      |
+| Use Cases (6)     | ✅ Complete | ✅ Earthy icons, warm copy              |
+| Team Section      | ✅ Complete | ✅ All 6 personas with colors           |
+| How It Works      | ✅ Complete | ✅ 3 steps: Call/Text/Web               |
+| Features (6)      | ✅ Complete | ✅ Voice-first, Memory, etc.            |
+| Comparison        | ✅ Complete | ✅ "Other AI" vs "Ferni"                |
+| Testimonials      | ✅ Complete | ✅ 4 testimonials from data             |
+| FAQ (7)           | ✅ Complete | ✅ Accordion with key questions         |
+| Pricing           | ✅ Complete | ✅ Free/Friend/Partner tiers            |
+| Final CTA         | ✅ Complete | ✅ "Ready to feel heard?"               |
+| Footer            | ✅ Complete | ✅ Links, social, legal                 |
+| Mobile CTA        | ✅ Complete | ✅ Sticky bottom bar                    |
+| Scroll Animations | ✅ Complete | ✅ Reveal, stagger effects              |
 
 ### What Needs Enhancement 🔧
 
-| Feature | Current State | Target State | Priority |
-|---------|--------------|--------------|----------|
-| Hero Background | Plain gradient | Subtle video/particles | P1 |
-| OG Meta Tags | Basic | Full social cards | P1 |
-| Favicon | Missing logo.svg | Proper favicon set | P1 |
-| Analytics | Not integrated | GA4 + events | P1 |
-| Form Handling | No JS | Working newsletter/CTA | P2 |
-| Live Demo Widget | Not present | Interactive chat demo | P2 |
-| Press Logos | Not present | "As seen in" section | P3 |
-| Security Badges | Not present | SOC2/Privacy icons | P3 |
-| Cookie Banner | Not present | GDPR compliant | P2 |
+| Feature          | Current State    | Target State           | Priority |
+| ---------------- | ---------------- | ---------------------- | -------- |
+| Hero Background  | Plain gradient   | Subtle video/particles | P1       |
+| OG Meta Tags     | Basic            | Full social cards      | P1       |
+| Favicon          | Missing logo.svg | Proper favicon set     | P1       |
+| Analytics        | Not integrated   | GA4 + events           | P1       |
+| Form Handling    | No JS            | Working newsletter/CTA | P2       |
+| Live Demo Widget | Not present      | Interactive chat demo  | P2       |
+| Press Logos      | Not present      | "As seen in" section   | P3       |
+| Security Badges  | Not present      | SOC2/Privacy icons     | P3       |
+| Cookie Banner    | Not present      | GDPR compliant         | P2       |
 
 ---
 
@@ -103,13 +103,16 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2JXL8SQPF2"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
+  function gtag() {
+    dataLayer.push(arguments);
+  }
   gtag('js', new Date());
   gtag('config', 'G-2JXL8SQPF2');
 </script>
 ```
 
 ### Deliverables
+
 - [ ] Full meta tags in layout
 - [ ] Favicon files in place
 - [ ] Analytics snippet added
@@ -122,24 +125,32 @@
 ### 2.1 Subtle Animated Background
 
 Option A: **CSS Gradient Animation** (lightweight)
+
 ```css
 .hero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse 60% 40% at 80% 80%, rgba(74, 103, 65, 0.05) 0%, transparent 50%);
   animation: heroGlow 8s ease-in-out infinite alternate;
 }
 
 @keyframes heroGlow {
-  from { opacity: 0.6; transform: scale(1); }
-  to { opacity: 1; transform: scale(1.05); }
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 ```
 
 Option B: **Video Background** (premium feel)
+
 ```njk
 <section class="hero">
   <video class="hero__video" autoplay muted loop playsinline poster="/images/hero-fallback.jpg">
@@ -153,12 +164,13 @@ Option B: **Video Background** (premium feel)
 ### 2.2 Living Avatar Integration
 
 Add the animated Ferni orb to hero:
+
 ```njk
 <div class="hero__avatar">
   <div class="persona-avatar persona-avatar--lg persona-avatar--ferni">
     <div class="persona-avatar__ring"></div>
     <div class="persona-avatar__orb">
-      <span class="persona-avatar__text">FN</span>
+      <span class="persona-avatar__text">FE</span>
     </div>
   </div>
 </div>
@@ -184,6 +196,7 @@ Add the animated Ferni orb to hero:
 ```
 
 ### Deliverables
+
 - [ ] Animated hero background (CSS or video)
 - [ ] Living avatar in hero
 - [ ] Trust badges row
@@ -211,11 +224,12 @@ Add the animated Ferni orb to hero:
 ### 3.2 Live Demo Widget
 
 Interactive mini-chat in showcase section:
+
 ```njk
 <div class="demo-widget">
   <div class="demo-widget__header">
     <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
-      <span class="persona-avatar__text">FN</span>
+      <span class="persona-avatar__text">FE</span>
     </div>
     <span>Try talking to Ferni</span>
   </div>
@@ -238,7 +252,7 @@ Interactive mini-chat in showcase section:
       <p class="section__eyebrow">Your Privacy</p>
       <h2 class="section__title">Your conversations stay yours</h2>
     </div>
-    
+
     <div class="security-grid">
       <div class="security-card">
         <svg><!-- shield --></svg>
@@ -273,6 +287,7 @@ Interactive mini-chat in showcase section:
 ```
 
 ### Deliverables
+
 - [ ] Press logos section (placeholder or real)
 - [ ] Demo widget (static or interactive)
 - [ ] Security section
@@ -311,19 +326,33 @@ Interactive mini-chat in showcase section:
 ```css
 /* Mobile First */
 @media (max-width: 639px) {
-  .hero__headline { font-size: 42px; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .team-grid { grid-template-columns: 1fr; }
+  .hero__headline {
+    font-size: 42px;
+  }
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 640px) and (max-width: 767px) {
-  .hero__headline { font-size: 56px; }
-  .team-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero__headline {
+    font-size: 56px;
+  }
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-  .hero__headline { font-size: 72px; }
-  .pricing-grid { grid-template-columns: repeat(3, 1fr); }
+  .hero__headline {
+    font-size: 72px;
+  }
+  .pricing-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 ```
 
@@ -339,7 +368,9 @@ Interactive mini-chat in showcase section:
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
@@ -347,6 +378,7 @@ Interactive mini-chat in showcase section:
 ```
 
 ### Deliverables
+
 - [ ] Mobile hamburger menu working
 - [ ] All breakpoints tested (320, 375, 768, 1024, 1440px)
 - [ ] Accessibility audit passed
@@ -378,9 +410,9 @@ npm run marketing:optimize:images
     .nav { ... }
     .hero { ... }
   </style>
-  
+
   <!-- Full CSS async -->
-  <link rel="preload" href="/css/story-brand.css" as="style" onload="this.rel='stylesheet'">
+  <link rel="preload" href="/css/story-brand.css" as="style" onload="this.rel='stylesheet'" />
 </head>
 ```
 
@@ -388,23 +420,24 @@ npm run marketing:optimize:images
 
 ```html
 <!-- Below-fold images -->
-<img loading="lazy" src="/images/testimonial-1.jpg" alt="...">
+<img loading="lazy" src="/images/testimonial-1.jpg" alt="..." />
 
 <!-- Video poster + lazy -->
-<video poster="/images/hero-poster.jpg" preload="none">
+<video poster="/images/hero-poster.jpg" preload="none"></video>
 ```
 
 ### 5.4 Performance Targets
 
-| Metric | Target | Tool |
-|--------|--------|------|
-| Lighthouse Performance | ≥ 90 | Chrome DevTools |
-| First Contentful Paint | < 1.5s | PageSpeed Insights |
+| Metric                   | Target | Tool               |
+| ------------------------ | ------ | ------------------ |
+| Lighthouse Performance   | ≥ 90   | Chrome DevTools    |
+| First Contentful Paint   | < 1.5s | PageSpeed Insights |
 | Largest Contentful Paint | < 2.5s | PageSpeed Insights |
-| Cumulative Layout Shift | < 0.1 | PageSpeed Insights |
-| Total Page Weight | < 1MB | DevTools Network |
+| Cumulative Layout Shift  | < 0.1  | PageSpeed Insights |
+| Total Page Weight        | < 1MB  | DevTools Network   |
 
 ### Deliverables
+
 - [ ] All images optimized
 - [ ] Critical CSS extracted
 - [ ] Lazy loading implemented
@@ -417,6 +450,7 @@ npm run marketing:optimize:images
 ### 6.1 Pre-Deploy Checklist
 
 **Content**
+
 - [ ] All copy proofread
 - [ ] Phone number correct: 1 (484) 481-3081
 - [ ] App URL correct: https://app.ferni.ai
@@ -424,6 +458,7 @@ npm run marketing:optimize:images
 - [ ] Copyright year: 2024 → 2025
 
 **Technical**
+
 - [ ] No console errors
 - [ ] All forms submit correctly
 - [ ] Analytics events firing
@@ -431,6 +466,7 @@ npm run marketing:optimize:images
 - [ ] Mobile menu works
 
 **Brand Compliance**
+
 - [ ] No purple colors anywhere
 - [ ] Ferni green (#4a6741) as primary accent
 - [ ] Paper Cream (#F5F1E8) background
@@ -486,11 +522,13 @@ npm run deploy
 ## 📋 Complete Task Breakdown
 
 ### Immediate (Today)
+
 - [x] Audit story-brand page completeness
 - [ ] Review brand guidelines one more time
 - [ ] Start Phase 1 meta tags
 
 ### This Week
+
 - [ ] Phase 1: Meta & Analytics (1 day)
 - [ ] Phase 2: Hero enhancement (1-2 days)
 - [ ] Phase 3: Missing sections (1-2 days)
@@ -499,6 +537,7 @@ npm run deploy
 - [ ] Phase 6: Deploy (1 day)
 
 ### Post-Launch
+
 - [ ] A/B test different hero headlines
 - [ ] Add more testimonials as they come in
 - [ ] Implement interactive demo widget
@@ -509,23 +548,26 @@ npm run deploy
 ## 🎨 Brand Quick Reference
 
 ### Colors
-| Name | Hex | Use |
-|------|-----|-----|
-| Paper Cream | #F5F1E8 | Primary background |
-| Natural Ink | #2C2520 | Primary text |
-| Ferni Green | #4a6741 | Primary accent/CTA |
-| Forest Green | #3D5A45 | Secondary accent |
-| Text Secondary | #5C544A | Body text |
+
+| Name           | Hex     | Use                |
+| -------------- | ------- | ------------------ |
+| Paper Cream    | #F5F1E8 | Primary background |
+| Natural Ink    | #2C2520 | Primary text       |
+| Ferni Green    | #4a6741 | Primary accent/CTA |
+| Forest Green   | #3D5A45 | Secondary accent   |
+| Text Secondary | #5C544A | Body text          |
 
 ### Typography
-| Element | Font | Weight | Size |
-|---------|------|--------|------|
-| Display | Plus Jakarta Sans | 800 | 96px |
-| Headline | Plus Jakarta Sans | 700 | 48px |
-| Body | Inter | 400 | 17px |
-| Button | Plus Jakarta Sans | 600 | 17px |
+
+| Element  | Font              | Weight | Size |
+| -------- | ----------------- | ------ | ---- |
+| Display  | Plus Jakarta Sans | 800    | 96px |
+| Headline | Plus Jakarta Sans | 700    | 48px |
+| Body     | Inter             | 400    | 17px |
+| Button   | Plus Jakarta Sans | 600    | 17px |
 
 ### Never Use
+
 - ❌ Purple (#8b5cf6)
 - ❌ Dark backgrounds (#08080c)
 - ❌ Neon colors
@@ -545,6 +587,5 @@ npm run deploy
 
 ---
 
-*Created: December 8, 2025*
-*Owner: Ferni Engineering*
-
+_Created: December 8, 2025_
+_Owner: Ferni Engineering_

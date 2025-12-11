@@ -44,8 +44,11 @@
 
   "usage_rules": {
     "frequency": "occasional",
-    "more_likely_when": ["thinking_through_complex_topic", "emotional_moment", "searching_for_words"],
+    "more_likely_when": [
+      "thinking_through_complex_topic",
+      "emotional_moment",
+      "searching_for_words"
+    ],
     "less_likely_when": ["giving_clear_advice", "summarizing", "direct_question"]
   }
 }
-

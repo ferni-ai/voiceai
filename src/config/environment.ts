@@ -31,6 +31,26 @@ export function isGoogleCloud(): boolean {
   return !!(process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT);
 }
 
+/**
+ * Get the GCP project ID from any of the common env var names
+ * Handles: GOOGLE_CLOUD_PROJECT, GCLOUD_PROJECT, GCP_PROJECT_ID, FIREBASE_PROJECT_ID
+ */
+export function getGCPProjectId(): string | undefined {
+  return (
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT_ID ||
+    process.env.FIREBASE_PROJECT_ID
+  );
+}
+
+/**
+ * Get the Firestore database ID (defaults to '(default)')
+ */
+export function getFirestoreDatabase(): string {
+  return process.env.FIRESTORE_DATABASE || '(default)';
+}
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -70,10 +90,26 @@ export interface AppConfig {
     cartesiaApiKey: string;
   };
 
+  // Payments
+  payments: {
+    stripeSecretKey?: string;
+    stripeWebhookSecret?: string;
+  };
+
+  // URLs
+  urls: {
+    webhookBaseUrl?: string;
+    dashboardUrl?: string;
+  };
+
   // Optional integrations
   integrations: {
     alphaVantage?: string;
     sendgrid?: string;
+    resend?: string;
+    hume?: string;
+    openai?: string;
+    slackAlertsWebhook?: string;
     twilio?: {
       accountSid: string;
       authToken: string;
@@ -93,6 +129,15 @@ export interface AppConfig {
       uberClientId?: string;
       uberClientSecret?: string;
     };
+    sip?: {
+      trunkId: string;
+      domain: string;
+    };
+  };
+
+  // Cloud Storage
+  cloudStorage: {
+    voiceBucket?: string;
   };
 }
 
@@ -151,9 +196,23 @@ export function loadConfig(): AppConfig {
       cartesiaApiKey: process.env.CARTESIA_API_KEY || '',
     },
 
+    payments: {
+      stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    },
+
+    urls: {
+      webhookBaseUrl: process.env.WEBHOOK_BASE_URL,
+      dashboardUrl: process.env.DASHBOARD_URL,
+    },
+
     integrations: {
       alphaVantage: process.env.ALPHA_VANTAGE_API_KEY,
       sendgrid: process.env.SENDGRID_API_KEY,
+      resend: process.env.RESEND_API_KEY,
+      hume: process.env.HUME_API_KEY,
+      openai: process.env.OPENAI_API_KEY,
+      slackAlertsWebhook: process.env.SLACK_ALERTS_WEBHOOK_URL,
       twilio: process.env.TWILIO_ACCOUNT_SID
         ? {
             accountSid: process.env.TWILIO_ACCOUNT_SID,
@@ -180,6 +239,17 @@ export function loadConfig(): AppConfig {
               uberClientSecret: process.env.UBER_CLIENT_SECRET,
             }
           : undefined,
+      sip:
+        process.env.SIP_TRUNK_ID && process.env.SIP_DOMAIN
+          ? {
+              trunkId: process.env.SIP_TRUNK_ID,
+              domain: process.env.SIP_DOMAIN,
+            }
+          : undefined,
+    },
+
+    cloudStorage: {
+      voiceBucket: process.env.GCS_VOICE_BUCKET,
     },
   };
 
@@ -303,4 +373,6 @@ export default {
   detectEnvironment,
   isGoogleCloud,
   isMusicEnabled,
+  getGCPProjectId,
+  getFirestoreDatabase,
 };

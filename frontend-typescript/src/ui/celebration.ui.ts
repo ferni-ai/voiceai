@@ -212,7 +212,7 @@ export class CelebrationUI {
     await this.celebrate({ 
       type: 'streak', 
       title: `${count} day streak!`,
-      subtitle: "You're on fire 🔥",
+      subtitle: "You're on a roll!",
     });
   }
   

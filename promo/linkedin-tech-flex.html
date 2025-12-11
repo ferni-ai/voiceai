@@ -1,414 +1,524 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ferni - LinkedIn Promo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ferni - LinkedIn Promo</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #08080c;
-      min-height: 100vh;
-      overflow: hidden;
-    }
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #08080c;
+        min-height: 100vh;
+        overflow: hidden;
+      }
 
-    /* LinkedIn 1200x627 aspect ratio container */
-    .promo-container {
-      width: 1200px;
-      height: 627px;
-      background: linear-gradient(135deg, #08080c 0%, #0f0f14 40%, #16161d 100%);
-      position: relative;
-      overflow: hidden;
-      margin: 0 auto;
-    }
-    
-    html, body {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-width: 1200px;
-    }
+      /* LinkedIn 1200x627 aspect ratio container */
+      .promo-container {
+        width: 1200px;
+        height: 627px;
+        background: linear-gradient(135deg, #08080c 0%, #0f0f14 40%, #16161d 100%);
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto;
+      }
 
-    /* Animated grid background */
-    .grid-bg {
-      position: absolute;
-      inset: 0;
-      background-image: 
-        linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
-      background-size: 50px 50px;
-      animation: gridMove 20s linear infinite;
-    }
+      html,
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-width: 1200px;
+      }
 
-    @keyframes gridMove {
-      0% { transform: translate(0, 0); }
-      100% { transform: translate(50px, 50px); }
-    }
+      /* Animated grid background */
+      .grid-bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: gridMove 20s linear infinite;
+      }
 
-    /* Glowing orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.5;
-    }
+      @keyframes gridMove {
+        0% {
+          transform: translate(0, 0);
+        }
+        100% {
+          transform: translate(50px, 50px);
+        }
+      }
 
-    .orb-1 {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
-      top: -100px;
-      right: -100px;
-      animation: float 8s ease-in-out infinite;
-    }
+      /* Glowing orbs */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.5;
+      }
 
-    .orb-2 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, #6366f1 0%, transparent 70%);
-      bottom: -50px;
-      left: 100px;
-      animation: float 10s ease-in-out infinite reverse;
-    }
+      .orb-1 {
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+        top: -100px;
+        right: -100px;
+        animation: float 8s ease-in-out infinite;
+      }
 
-    .orb-3 {
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, #a855f7 0%, transparent 70%);
-      top: 50%;
-      left: 30%;
-      animation: float 6s ease-in-out infinite;
-    }
+      .orb-2 {
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+        bottom: -50px;
+        left: 100px;
+        animation: float 10s ease-in-out infinite reverse;
+      }
 
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(30px, -30px) scale(1.1); }
-    }
+      .orb-3 {
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, #a855f7 0%, transparent 70%);
+        top: 50%;
+        left: 30%;
+        animation: float 6s ease-in-out infinite;
+      }
 
-    /* Main content */
-    .content {
-      position: relative;
-      z-index: 10;
-      height: 100%;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      padding: 50px 60px;
-      gap: 40px;
-    }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(30px, -30px) scale(1.1);
+        }
+      }
 
-    .left-side {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
+      /* Main content */
+      .content {
+        position: relative;
+        z-index: 10;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        padding: 50px 60px;
+        gap: 40px;
+      }
 
-    /* Tech badge - Apple-style minimal */
-    .tech-badge {
-      display: inline-flex;
-      align-items: center;
-      background: transparent;
-      border: none;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      font-size: 17px;
-      font-weight: 600;
-      color: #8b5cf6;
-      width: fit-content;
-      margin-bottom: 16px;
-      letter-spacing: -0.01em;
-    }
+      .left-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
 
-    /* Headline */
-    .headline {
-      font-family: 'Manrope', -apple-system, sans-serif;
-      font-size: 54px;
-      font-weight: 800;
-      line-height: 1.1;
-      color: #fafafa;
-      margin-bottom: 20px;
-      letter-spacing: -0.025em;
-    }
+      /* Tech badge - Apple-style minimal */
+      .tech-badge {
+        display: inline-flex;
+        align-items: center;
+        background: transparent;
+        border: none;
+        padding: 0;
+        font-family: 'Inter', sans-serif;
+        font-size: 17px;
+        font-weight: 600;
+        color: #8b5cf6;
+        width: fit-content;
+        margin-bottom: 16px;
+        letter-spacing: -0.01em;
+      }
 
-    .headline .highlight {
-      background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #d946ef 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+      /* Headline */
+      .headline {
+        font-family:
+          'Manrope',
+          -apple-system,
+          sans-serif;
+        font-size: 54px;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #fafafa;
+        margin-bottom: 20px;
+        letter-spacing: -0.025em;
+      }
 
-    /* Subheadline */
-    .subheadline {
-      font-family: 'Inter', sans-serif;
-      font-size: 18px;
-      font-weight: 500;
-      color: #9ca3af;
-      line-height: 1.6;
-      margin-bottom: 32px;
-      max-width: 460px;
-    }
+      .headline .highlight {
+        background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #d946ef 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
 
-    /* Tech stack pills - matching Ferni app style */
-    .tech-stack {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+      /* Subheadline */
+      .subheadline {
+        font-family: 'Inter', sans-serif;
+        font-size: 18px;
+        font-weight: 500;
+        color: #9ca3af;
+        line-height: 1.6;
+        margin-bottom: 32px;
+        max-width: 460px;
+      }
 
-    .tech-pill {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 9999px;
-      padding: 10px 18px;
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-      box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
+      /* Tech stack pills - matching Ferni app style */
+      .tech-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
 
-    .tech-pill:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.1);
-      transform: translateY(-1px);
-    }
+      .tech-pill {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 9999px;
+        padding: 10px 18px;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
 
-    .tech-pill .icon {
-      font-size: 15px;
-    }
+      .tech-pill:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+      }
 
-    /* Right side - Visual showcase */
-    .right-side {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
+      .tech-pill .icon {
+        font-size: 15px;
+      }
 
-    /* Central orb with waveform */
-    .voice-orb {
-      width: 240px;
-      height: 240px;
-      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 
-        0 0 60px rgba(139, 92, 246, 0.4),
-        0 0 120px rgba(139, 92, 246, 0.2),
-        inset 0 0 60px rgba(255, 255, 255, 0.1);
-      animation: orbPulse 3s ease-in-out infinite;
-    }
+      /* Right side - Visual showcase */
+      .right-side {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
 
-    @keyframes orbPulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(139, 92, 246, 0.4), 0 0 120px rgba(139, 92, 246, 0.2); }
-      50% { transform: scale(1.02); box-shadow: 0 0 80px rgba(139, 92, 246, 0.5), 0 0 160px rgba(139, 92, 246, 0.3); }
-    }
+      /* Central orb with waveform */
+      .voice-orb {
+        width: 240px;
+        height: 240px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow:
+          0 0 60px rgba(139, 92, 246, 0.4),
+          0 0 120px rgba(139, 92, 246, 0.2),
+          inset 0 0 60px rgba(255, 255, 255, 0.1);
+        animation: orbPulse 3s ease-in-out infinite;
+      }
 
-    .voice-orb::before {
-      content: '';
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      border: 2px solid rgba(139, 92, 246, 0.3);
-      animation: ringPulse 3s ease-in-out infinite;
-    }
+      @keyframes orbPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow:
+            0 0 60px rgba(139, 92, 246, 0.4),
+            0 0 120px rgba(139, 92, 246, 0.2);
+        }
+        50% {
+          transform: scale(1.02);
+          box-shadow:
+            0 0 80px rgba(139, 92, 246, 0.5),
+            0 0 160px rgba(139, 92, 246, 0.3);
+        }
+      }
 
-    .voice-orb::after {
-      content: '';
-      position: absolute;
-      inset: -20px;
-      border-radius: 50%;
-      border: 1px solid rgba(139, 92, 246, 0.15);
-      animation: ringPulse 3s ease-in-out infinite 0.5s;
-    }
+      .voice-orb::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px solid rgba(139, 92, 246, 0.3);
+        animation: ringPulse 3s ease-in-out infinite;
+      }
 
-    @keyframes ringPulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.5; }
-    }
+      .voice-orb::after {
+        content: '';
+        position: absolute;
+        inset: -20px;
+        border-radius: 50%;
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        animation: ringPulse 3s ease-in-out infinite 0.5s;
+      }
 
-    /* Waveform inside orb */
-    .waveform {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      height: 80px;
-    }
+      @keyframes ringPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.5;
+        }
+      }
 
-    .wave-bar {
-      width: 6px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 3px;
-      animation: wave 1s ease-in-out infinite;
-    }
+      /* Waveform inside orb */
+      .waveform {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 80px;
+      }
 
-    .wave-bar:nth-child(1) { height: 20px; animation-delay: 0s; }
-    .wave-bar:nth-child(2) { height: 40px; animation-delay: 0.1s; }
-    .wave-bar:nth-child(3) { height: 60px; animation-delay: 0.2s; }
-    .wave-bar:nth-child(4) { height: 80px; animation-delay: 0.3s; }
-    .wave-bar:nth-child(5) { height: 60px; animation-delay: 0.4s; }
-    .wave-bar:nth-child(6) { height: 40px; animation-delay: 0.5s; }
-    .wave-bar:nth-child(7) { height: 20px; animation-delay: 0.6s; }
-    .wave-bar:nth-child(8) { height: 50px; animation-delay: 0.7s; }
-    .wave-bar:nth-child(9) { height: 70px; animation-delay: 0.8s; }
-    .wave-bar:nth-child(10) { height: 45px; animation-delay: 0.9s; }
-    .wave-bar:nth-child(11) { height: 25px; animation-delay: 1s; }
+      .wave-bar {
+        width: 6px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 3px;
+        animation: wave 1s ease-in-out infinite;
+      }
 
-    @keyframes wave {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.5); }
-    }
+      .wave-bar:nth-child(1) {
+        height: 20px;
+        animation-delay: 0s;
+      }
+      .wave-bar:nth-child(2) {
+        height: 40px;
+        animation-delay: 0.1s;
+      }
+      .wave-bar:nth-child(3) {
+        height: 60px;
+        animation-delay: 0.2s;
+      }
+      .wave-bar:nth-child(4) {
+        height: 80px;
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(5) {
+        height: 60px;
+        animation-delay: 0.4s;
+      }
+      .wave-bar:nth-child(6) {
+        height: 40px;
+        animation-delay: 0.5s;
+      }
+      .wave-bar:nth-child(7) {
+        height: 20px;
+        animation-delay: 0.6s;
+      }
+      .wave-bar:nth-child(8) {
+        height: 50px;
+        animation-delay: 0.7s;
+      }
+      .wave-bar:nth-child(9) {
+        height: 70px;
+        animation-delay: 0.8s;
+      }
+      .wave-bar:nth-child(10) {
+        height: 45px;
+        animation-delay: 0.9s;
+      }
+      .wave-bar:nth-child(11) {
+        height: 25px;
+        animation-delay: 1s;
+      }
 
-    /* Persona avatars orbiting */
-    .persona-orbit {
-      position: absolute;
-      width: 380px;
-      height: 380px;
-      border: 1px dashed rgba(139, 92, 246, 0.2);
-      border-radius: 50%;
-      animation: orbitSpin 30s linear infinite;
-    }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.5);
+        }
+      }
 
-    @keyframes orbitSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+      /* Persona avatars orbiting */
+      .persona-orbit {
+        position: absolute;
+        width: 380px;
+        height: 380px;
+        border: 1px dashed rgba(139, 92, 246, 0.2);
+        border-radius: 50%;
+        animation: orbitSpin 30s linear infinite;
+      }
 
-    .persona {
-      position: absolute;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 16px;
-      color: white;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      animation: orbitSpin 30s linear infinite reverse;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-    }
+      @keyframes orbitSpin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .persona-ferni { background: linear-gradient(135deg, #8b5cf6, #7c3aed); top: -28px; left: 50%; transform: translateX(-50%); }
-    .persona-jack { background: linear-gradient(135deg, #dc2626, #b91c1c); top: 15%; right: -28px; }
-    .persona-peter { background: linear-gradient(135deg, #059669, #047857); top: 50%; right: -28px; transform: translateY(-50%); }
-    .persona-alex { background: linear-gradient(135deg, #0891b2, #0e7490); bottom: 15%; right: -28px; }
-    .persona-maya { background: linear-gradient(135deg, #7c3aed, #6d28d9); bottom: -28px; left: 50%; transform: translateX(-50%); }
-    .persona-jordan { background: linear-gradient(135deg, #be185d, #9d174d); top: 50%; left: -28px; transform: translateY(-50%); }
+      .persona {
+        position: absolute;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 16px;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        animation: orbitSpin 30s linear infinite reverse;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      }
 
-    /* URL badge */
-    .url-badge {
-      position: absolute;
-      bottom: 25px;
-      left: 60px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 9999px;
-      padding: 12px 22px;
-      font-family: 'Inter', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      color: #fafafa;
-      box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
+      .persona-ferni {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .persona-jack {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        top: 15%;
+        right: -28px;
+      }
+      .persona-peter {
+        background: linear-gradient(135deg, #059669, #047857);
+        top: 50%;
+        right: -28px;
+        transform: translateY(-50%);
+      }
+      .persona-alex {
+        background: linear-gradient(135deg, #0891b2, #0e7490);
+        bottom: 15%;
+        right: -28px;
+      }
+      .persona-maya {
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        bottom: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .persona-jordan {
+        background: linear-gradient(135deg, #be185d, #9d174d);
+        top: 50%;
+        left: -28px;
+        transform: translateY(-50%);
+      }
 
-    .url-badge .arrow {
-      color: #8b5cf6;
-      font-size: 18px;
-    }
+      /* URL badge */
+      .url-badge {
+        position: absolute;
+        bottom: 25px;
+        left: 60px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 9999px;
+        padding: 12px 22px;
+        font-family: 'Inter', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        color: #fafafa;
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
 
-    /* Floating labels near personas */
-    .persona-label {
-      position: absolute;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
-      font-family: 'JetBrains Mono', monospace;
-      white-space: nowrap;
-    }
+      .url-badge .arrow {
+        color: #8b5cf6;
+        font-size: 18px;
+      }
 
-    .label-ferni { top: 45px; right: 60px; }
-    .label-jack { top: 100px; right: 15px; }
-  </style>
-</head>
-<body>
-  <div class="promo-container">
-    <!-- Background effects -->
-    <div class="grid-bg"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
+      /* Floating labels near personas */
+      .persona-label {
+        position: absolute;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap;
+      }
 
-    <!-- Main content -->
-    <div class="content">
-      <div class="left-side">
-        <div class="tech-badge">Introducing Ferni</div>
-        <h1 class="headline">
-          Your personal<br>
-          <span class="highlight">AI life coach.</span>
-        </h1>
-        <p class="subheadline">
-          Six AI specialists. One conversation. 
-          Just talk—they'll handle the rest.
-        </p>
-      </div>
+      .label-ferni {
+        top: 45px;
+        right: 60px;
+      }
+      .label-jack {
+        top: 100px;
+        right: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="promo-container">
+      <!-- Background effects -->
+      <div class="grid-bg"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
 
-      <div class="right-side">
-        <div class="persona-orbit">
-          <div class="persona persona-ferni">FN</div>
-          <div class="persona persona-jack">JB</div>
-          <div class="persona persona-peter">PL</div>
-          <div class="persona persona-alex">AX</div>
-          <div class="persona persona-maya">MY</div>
-          <div class="persona persona-jordan">JD</div>
+      <!-- Main content -->
+      <div class="content">
+        <div class="left-side">
+          <div class="tech-badge">Introducing Ferni</div>
+          <h1 class="headline">
+            Your personal<br />
+            <span class="highlight">AI life coach.</span>
+          </h1>
+          <p class="subheadline">
+            Six AI specialists. One conversation. Just talk—they'll handle the rest.
+          </p>
         </div>
-        <div class="voice-orb">
-          <div class="waveform">
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
-            <div class="wave-bar"></div>
+
+        <div class="right-side">
+          <div class="persona-orbit">
+            <div class="persona persona-ferni">FE</div>
+            <div class="persona persona-jack">JB</div>
+            <div class="persona persona-peter">PL</div>
+            <div class="persona persona-alex">AX</div>
+            <div class="persona persona-maya">MY</div>
+            <div class="persona persona-jordan">JD</div>
+          </div>
+          <div class="voice-orb">
+            <div class="waveform">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- URL badge -->
-    <div class="url-badge">
-      <span class="arrow">→</span> app.ferni.ai
+      <!-- URL badge -->
+      <div class="url-badge"><span class="arrow">→</span> app.ferni.ai</div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
-

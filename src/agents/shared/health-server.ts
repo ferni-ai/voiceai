@@ -15,11 +15,15 @@
  * - GET /api/metrics/sessions - Active sessions only
  */
 
-import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createLogger } from '../../utils/safe-logger.js';
 
 // Debug flag for startup logging
 const DEBUG_STARTUP =
   process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
+
+// Safe logger that works during early startup
+const log = createLogger({ module: 'health-server' });
 
 // Lazy imports to avoid circular dependencies
 let cognitiveBroadcast:
@@ -61,10 +65,10 @@ async function initWebSocketServer(httpServer: Server) {
       cognitiveWebSocket = module;
       module.initCognitiveWebSocket(httpServer);
       if (DEBUG_STARTUP) {
-        console.log('[health-server] Cognitive WebSocket server initialized');
+        log.info('Cognitive WebSocket server initialized');
       }
     } catch (err) {
-      console.warn('[health-server] Could not initialize WebSocket server:', err);
+      log.warn({ error: String(err) }, 'Could not initialize WebSocket server');
     }
   }
 }
@@ -232,9 +236,9 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
   });
 
   server.listen(port, '0.0.0.0', () => {
-    // Use console here since diag may not be imported yet
-    if (DEBUG_STARTUP)
-      console.log(`[${serviceName}] Health check server listening on port ${port}`);
+    if (DEBUG_STARTUP) {
+      log.info({ serviceName, port }, 'Health check server listening');
+    }
 
     // Initialize WebSocket server for real-time cognitive updates
     void initWebSocketServer(server);
@@ -243,7 +247,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
   server.on('error', (err: Error) => {
     // If port is already in use, LiveKit's server is running - that's fine
     if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') {
-      console.error(`[${serviceName}] Health check server error:`, err);
+      log.error({ serviceName, error: String(err) }, 'Health check server error');
     }
   });
 }

@@ -4,24 +4,70 @@
  * Unified cleanup function for all speech-related session state.
  * Call this when a voice session ends to prevent memory leaks.
  *
- * This consolidates cleanup across:
+ * This consolidates cleanup across ALL 27+ session-scoped services:
  * - Audio prosody analyzers
  * - WPM trackers
  * - Backchanneling systems
  * - Cognitive speech state
  * - TTS context
  * - Pronunciation memory
- * - Live backchanneling
+ * - Voice humanization
+ * - Human listening pipeline
+ * - Enhanced turn prediction
+ * - Emotional contagion
+ * - Voice tremor detection
+ * - Volume dynamics
+ * - Energy dynamics
+ * - Fluency analysis
+ * - Filler analysis
+ * - FFT analyzer
+ * - Multi-signal laughter
+ * - Word timing rhythm
+ * - Response anticipation
+ * - Ambient awareness
+ * - Breath detection
+ * - Realtime preemptive processor
+ * - Cartesia context
+ * - Session voice manager
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+
+// Core speech services
 import { removeSessionAudioProsodyAnalyzer } from './audio-prosody.js';
-import { removeSessionWPMTracker } from './speech-context.js';
 import { removeSessionBackchannelingSystem } from './backchanneling.js';
-import { clearCognitiveSpeechState } from './cognitive-speech-integration.js';
-import { getTtsContextService } from './tts-context.js';
-import { resetPronunciationMemory } from './pronunciation-memory.js';
 import { clearSessionContextId } from './cartesia-context-patch.js';
+import { clearCognitiveSpeechState } from './cognitive-speech-integration.js';
+import { resetPronunciationMemory } from './pronunciation-memory.js';
+import { removeSessionWPMTracker } from './speech-context.js';
+import { getTtsContextService } from './tts-context.js';
+
+// Human listening & analysis services
+import { resetEmotionalContagion } from './emotional-contagion.js';
+import { resetEnhancedTurnPredictor } from './enhanced-turn-prediction.js';
+import { resetHumanListeningPipeline } from './human-listening-pipeline.js';
+import { resetVoiceHumanization } from './voice-humanization.js';
+
+// Audio analysis services
+import { resetBreathDetector } from './breath-detection.js';
+import { resetEnergyDynamicsTracker } from './energy-dynamics.js';
+import { resetFFTAnalyzer } from './fft-analyzer.js';
+import { resetFillerAnalyzer } from './filler-analysis.js';
+import { resetFluencyAnalyzer } from './fluency-analysis.js';
+import { resetMultiSignalLaughterDetector } from './multi-signal-laughter.js';
+import { resetVoiceTremorDetector } from './voice-tremor.js';
+import { resetVolumeDynamicsTracker } from './volume-dynamics.js';
+
+// Timing & rhythm services
+import { resetResponseAnticipationService } from './response-anticipation.js';
+import { resetWordTimingRhythmService } from './word-timing-rhythm.js';
+
+// Context & environment services
+import { resetAmbientAwareness } from './ambient-awareness.js';
+import { resetRealtimePreemptiveProcessor } from './realtime-preemptive-patch.js';
+
+// Voice manager
+import { resetSessionVoiceManager } from './voice-manager.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -89,69 +135,70 @@ export function cleanupSpeechSession(
 
   const cleanupResults: Record<string, boolean> = {};
 
-  // 1. Audio prosody analyzer
-  try {
-    removeSessionAudioProsodyAnalyzer(sessionId);
-    cleanupResults['audioProsody'] = true;
-  } catch (error) {
-    cleanupResults['audioProsody'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup audio prosody analyzer');
-  }
+  // Helper to safely run cleanup with error handling
+  const safeCleanup = (name: string, fn: () => void): void => {
+    try {
+      fn();
+      cleanupResults[name] = true;
+    } catch (error) {
+      cleanupResults[name] = false;
+      log.warn({ sessionId, error: String(error) }, `Failed to cleanup ${name}`);
+    }
+  };
 
-  // 2. WPM tracker
-  try {
-    removeSessionWPMTracker(sessionId);
-    cleanupResults['wpmTracker'] = true;
-  } catch (error) {
-    cleanupResults['wpmTracker'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup WPM tracker');
-  }
+  // ============================================================================
+  // CORE SPEECH SERVICES
+  // ============================================================================
 
-  // 3. Backchanneling system
-  try {
-    removeSessionBackchannelingSystem(sessionId);
-    cleanupResults['backchanneling'] = true;
-  } catch (error) {
-    cleanupResults['backchanneling'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup backchanneling system');
-  }
+  safeCleanup('audioProsody', () => removeSessionAudioProsodyAnalyzer(sessionId));
+  safeCleanup('wpmTracker', () => removeSessionWPMTracker(sessionId));
+  safeCleanup('backchanneling', () => removeSessionBackchannelingSystem(sessionId));
+  safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));
+  safeCleanup('ttsContext', () => getTtsContextService().clearSession(sessionId));
+  safeCleanup('pronunciationMemory', () => resetPronunciationMemory(sessionId));
+  safeCleanup('cartesiaContext', () => clearSessionContextId(sessionId));
 
-  // 4. Cognitive speech state
-  try {
-    clearCognitiveSpeechState(sessionId);
-    cleanupResults['cognitiveSpeech'] = true;
-  } catch (error) {
-    cleanupResults['cognitiveSpeech'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup cognitive speech state');
-  }
+  // ============================================================================
+  // HUMAN LISTENING & ANALYSIS SERVICES
+  // ============================================================================
 
-  // 5. TTS context
-  try {
-    getTtsContextService().clearSession(sessionId);
-    cleanupResults['ttsContext'] = true;
-  } catch (error) {
-    cleanupResults['ttsContext'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup TTS context');
-  }
+  safeCleanup('humanListening', () => resetHumanListeningPipeline(sessionId));
+  safeCleanup('voiceHumanization', () => resetVoiceHumanization(sessionId));
+  safeCleanup('turnPrediction', () => resetEnhancedTurnPredictor(sessionId));
+  safeCleanup('emotionalContagion', () => resetEmotionalContagion(sessionId));
 
-  // 6. Pronunciation memory
-  try {
-    resetPronunciationMemory(sessionId);
-    cleanupResults['pronunciationMemory'] = true;
-  } catch (error) {
-    cleanupResults['pronunciationMemory'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to cleanup pronunciation memory');
-  }
+  // ============================================================================
+  // AUDIO ANALYSIS SERVICES
+  // ============================================================================
 
-  // 7. Cartesia context ID (if this session was using it)
-  try {
-    // Only clear if this session was the one using the context
-    clearSessionContextId();
-    cleanupResults['cartesiaContext'] = true;
-  } catch (error) {
-    cleanupResults['cartesiaContext'] = false;
-    log.warn({ sessionId, error: String(error) }, 'Failed to clear Cartesia context ID');
-  }
+  safeCleanup('voiceTremor', () => resetVoiceTremorDetector(sessionId));
+  safeCleanup('volumeDynamics', () => resetVolumeDynamicsTracker(sessionId));
+  safeCleanup('energyDynamics', () => resetEnergyDynamicsTracker(sessionId));
+  safeCleanup('fluencyAnalyzer', () => resetFluencyAnalyzer(sessionId));
+  safeCleanup('fillerAnalyzer', () => resetFillerAnalyzer(sessionId));
+  safeCleanup('fftAnalyzer', () => resetFFTAnalyzer(sessionId));
+  safeCleanup('laughterDetector', () => resetMultiSignalLaughterDetector(sessionId));
+  safeCleanup('breathDetector', () => resetBreathDetector(sessionId));
+
+  // ============================================================================
+  // TIMING & RHYTHM SERVICES
+  // ============================================================================
+
+  safeCleanup('wordTiming', () => resetWordTimingRhythmService(sessionId));
+  safeCleanup('responseAnticipation', () => resetResponseAnticipationService(sessionId));
+
+  // ============================================================================
+  // CONTEXT & ENVIRONMENT SERVICES
+  // ============================================================================
+
+  safeCleanup('ambientAwareness', () => resetAmbientAwareness(sessionId));
+  safeCleanup('realtimePreemptive', () => resetRealtimePreemptiveProcessor(sessionId));
+
+  // ============================================================================
+  // VOICE MANAGER (Session-Scoped)
+  // ============================================================================
+
+  safeCleanup('voiceManager', () => resetSessionVoiceManager(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);
@@ -168,7 +215,6 @@ export function cleanupSpeechSession(
         durationMs,
         successCount,
         totalCount,
-        cleanupResults,
         remainingSessions: activeSessions.size,
       },
       `🧹 Speech session cleanup complete (${successCount}/${totalCount} services)`

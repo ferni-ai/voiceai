@@ -1799,18 +1799,17 @@ Use when:
   };
 }
 
-
-
 // ============================================================================
 // HELPER
 // ============================================================================
 
 function getEncouragement(avgStreak: number, wins: number): string {
-  if (avgStreak > 30 && wins > 5) return "You're absolutely crushing it! Your consistency is inspiring.";
+  if (avgStreak > 30 && wins > 5)
+    return "You're absolutely crushing it! Your consistency is inspiring.";
   if (avgStreak > 14) return "Incredible momentum! You're building real staying power.";
   if (avgStreak > 7) return "You're on a roll! Each day is strengthening these habits.";
-  if (wins > 0) return "Love seeing those wins! Every small victory matters.";
-  return "Every journey starts with a single step. Keep going!";
+  if (wins > 0) return 'Love seeing those wins! Every small victory matters.';
+  return 'Every journey starts with a single step. Keep going!';
 }
 
 // ============================================================================

@@ -6,7 +6,7 @@
   "phone": "1 (484) 481-3081",
   "phoneRaw": "+14844813081",
   "email": "hello@ferni.ai",
-  
+
   "hero": {
     "eyebrow": "Meet Your AI Coach",
     "headline": "Better than",
@@ -14,23 +14,26 @@
     "subhead": "Finally, someone who actually listens.",
     "subheadLine2": "And remembers everything.",
     "cta": {
-      "primary": { "text": "Start Free", "url": "https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage" },
+      "primary": {
+        "text": "Start Free",
+        "url": "https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage"
+      },
       "secondary": { "text": "Call Ferni", "url": "tel:+14844813081" }
     }
   },
-  
+
   "stats": [
     { "value": "10,000+", "label": "Conversations" },
     { "value": "<500ms", "label": "Response Time" },
     { "value": "∞", "label": "Memory" },
     { "value": "24/7", "label": "Always There" }
   ],
-  
+
   "team": [
     {
       "id": "ferni",
       "name": "Ferni",
-      "initials": "FN",
+      "initials": "FE",
       "role": "Life Coach",
       "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
       "sampleQuote": "I noticed you said 'fine' three times this week. What's actually going on?",
@@ -88,7 +91,7 @@
       "color": "#c4856a"
     }
   ],
-  
+
   "testimonials": [
     {
       "quote": "I called Ferni at 2am when I couldn't sleep because of work stress. Having someone to talk through my thoughts with—no judgment, just guidance—was exactly what I needed.",
@@ -116,7 +119,7 @@
       "featured": true
     }
   ],
-  
+
   "faq": [
     {
       "question": "Is Ferni really free?",
@@ -143,7 +146,7 @@
       "answer": "Your therapist has other patients. Your friend has their own problems. Ferni is always available, remembers everything, never judges, and brings six specialized perspectives. We fill the gaps when your people can't be there."
     }
   ],
-  
+
   "social": {
     "twitter": "https://twitter.com/ferniAI",
     "linkedin": "https://linkedin.com/company/ferni",
@@ -151,7 +154,7 @@
     "tiktok": "https://tiktok.com/@ferni.ai",
     "youtube": "https://youtube.com/@ferniAI"
   },
-  
+
   "navigation": {
     "main": [
       { "title": "Features", "url": "/#features" },
@@ -199,7 +202,7 @@
       ]
     }
   },
-  
+
   "analytics": {
     "gaId": "G-2JXL8SQPF2"
   }

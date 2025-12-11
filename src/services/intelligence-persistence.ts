@@ -9,8 +9,8 @@
  * collect valuable data but don't persist it reliably.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // Import metrics for observability
 import { persistenceMetrics } from './persistence-metrics.js';
@@ -55,8 +55,8 @@ import {
 import {
   getConversationPatternAnalyzer,
   removeConversationPatternAnalyzer,
-  type LearnedConversationPatterns,
   type ConversationSession,
+  type LearnedConversationPatterns,
 } from '../intelligence/conversation-pattern-analyzer.js';
 
 import {
@@ -65,6 +65,9 @@ import {
   type OpenThread,
   type PromisedFollowUp,
 } from '../intelligence/cross-session-threader.js';
+
+// 🌟 Better Than Human capabilities
+import { getBetterThanHuman } from '../conversation/superhuman/index.js';
 
 // ============================================================================
 // TYPES
@@ -125,6 +128,19 @@ export interface IntelligenceState {
   threads?: {
     openThreads: OpenThread[];
     promisedFollowUps: PromisedFollowUp[];
+  };
+
+  // 🌟 Better Than Human capabilities
+  betterThanHuman?: {
+    emotionalBond: unknown;
+    anticipation: unknown;
+    linguistic: unknown;
+    jokes: unknown;
+    team: unknown;
+    temporal: unknown;
+    metaRelationship: unknown;
+    observations: unknown;
+    sessionCount: number;
   };
 }
 
@@ -268,6 +284,23 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
     getLogger().debug({ error, userId }, 'No cross-session thread data');
   }
 
+  // 🌟 Better Than Human capabilities
+  try {
+    // Note: We need a sessionId to get the orchestrator, but for export
+    // we export from any active session for this user
+    // The orchestrator persists per userId anyway
+    const bthOrchestrator = getBetterThanHuman(userId, `export-${Date.now()}`, 'ferni', 0);
+    const bthState = bthOrchestrator.export();
+    state.betterThanHuman = bthState;
+    engineCount++;
+    getLogger().debug(
+      { userId, sessionCount: bthState.sessionCount },
+      'Exported Better Than Human state'
+    );
+  } catch (error) {
+    getLogger().debug({ error, userId }, 'No Better Than Human data');
+  }
+
   // Record metrics
   const durationMs = Date.now() - startTime;
   persistenceMetrics.recordIntelligenceExport(userId, engineCount, durationMs);
@@ -337,6 +370,26 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
   // preferences are calculated fresh from observations during the session.
   // We only persist the preferences (learned outcomes), not the raw observations.
   // This is intentional - we want fresh calculations each session.
+
+  // 🌟 Better Than Human capabilities - restore emotional bonds, jokes, etc.
+  try {
+    if (state.betterThanHuman) {
+      const bthOrchestrator = getBetterThanHuman(
+        userId,
+        `import-${Date.now()}`,
+        'ferni',
+        state.betterThanHuman.sessionCount || 0
+      );
+      bthOrchestrator.import(state.betterThanHuman as ReturnType<typeof bthOrchestrator.export>);
+      engineCount++;
+      getLogger().debug(
+        { userId, sessionCount: state.betterThanHuman.sessionCount },
+        'Imported Better Than Human state'
+      );
+    }
+  } catch (error) {
+    getLogger().warn({ error, userId }, 'Failed to import Better Than Human state');
+  }
 
   // Record metrics
   const durationMs = Date.now() - startTime;

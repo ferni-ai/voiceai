@@ -3,7 +3,7 @@
   "id": "sculptors-stone",
   "title": "The Sculptor and the Stone",
   "theme": "potential",
-  
+
   "setup": {
     "context": "Someone once asked Michelangelo how he created his David from a block of marble...",
     "tone": "thoughtful, building"
@@ -57,4 +57,3 @@
     "teaching_weight": "high"
   }
 }
-

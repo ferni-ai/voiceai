@@ -3,7 +3,7 @@
   "id": "two-birds",
   "title": "The Two Birds on a Branch",
   "theme": "consciousness",
-  
+
   "setup": {
     "context": "There's an ancient image from the Upanishads... two birds on a branch of the same tree.",
     "tone": "mystical, building"
@@ -57,4 +57,3 @@
     "teaching_weight": "very high"
   }
 }
-

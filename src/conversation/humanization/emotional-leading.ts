@@ -259,7 +259,7 @@ const STRATEGY_CONFIGS: Record<LeadingStrategy, StrategyConfig> = {
   },
 
   hold_space: {
-    bridgePhrases: ["I'm here...", 'Take your time...', "I'm with you...", '*present silence*'],
+    bridgePhrases: ["I'm here...", 'Take your time...', "I'm with you...", '<break time="400ms"/>'],
     questionTypes: ['What do you need right now?', "I'm here. What feels right?"],
     vocalTargets: {
       pitchShift: '0%',

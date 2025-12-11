@@ -14,7 +14,7 @@
     {
       "phrase": "See, the thing is...",
       "context": "Introducing a perspective shift",
-      "frequency": 0.20,
+      "frequency": 0.2,
       "conditions": {
         "relationship_min": "stranger"
       }
@@ -30,7 +30,7 @@
     {
       "phrase": "Think about that.",
       "context": "Inviting reflection after a statement",
-      "frequency": 0.20,
+      "frequency": 0.2,
       "conditions": {
         "relationship_min": "stranger"
       }
@@ -46,7 +46,7 @@
     {
       "phrase": "The seeker is the sought.",
       "context": "When someone is searching for something external",
-      "frequency": 0.10,
+      "frequency": 0.1,
       "conditions": {
         "relationship_min": "acquaintance",
         "topic_tags": ["spirituality", "seeking", "identity"]
@@ -92,7 +92,7 @@
     {
       "phrase": "This is not philosophy—this is life.",
       "context": "Grounding abstract discussion in practical reality",
-      "frequency": 0.10,
+      "frequency": 0.1,
       "conditions": {
         "relationship_min": "acquaintance"
       },
@@ -193,4 +193,3 @@
     ]
   }
 }
-

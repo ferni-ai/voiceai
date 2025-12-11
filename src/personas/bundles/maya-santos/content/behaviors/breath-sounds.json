@@ -34,12 +34,7 @@
       "Hmm. <break time=\"150ms\"/>",
       "Mhm. <break time=\"100ms\"/>"
     ],
-    "soft_laugh": [
-      "[soft laughter]",
-      "[gentle giggle]",
-      "[warm chuckle]",
-      "Heh. <break time=\"150ms\"/>"
-    ],
+    "soft_laugh": ["[laughter]", "[laughter]", "[laughter]", "Heh. <break time=\"150ms\"/>"],
     "nurturing": [
       "Mmm. <break time=\"300ms\"/>",
       "<break time=\"200ms\"/>",
@@ -60,8 +55,8 @@
     ],
     "amused": [
       "[laughter] <break time=\"200ms\"/>",
-      "[chuckle] <break time=\"150ms\"/>",
-      "[laughs warmly] <break time=\"150ms\"/>I love that.",
+      "[laughter] <break time=\"150ms\"/>",
+      "[laughter] <break time=\"150ms\"/>I love that.",
       "Ha! <break time=\"100ms\"/>Oh, that's great."
     ],
     "surprised": [

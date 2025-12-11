@@ -3,11 +3,18 @@
  *
  * Provides authentication and authorization for API endpoints.
  *
- * AUTHENTICATION STRATEGIES:
+ * AUTHENTICATION STRATEGIES (in order of precedence):
  * 1. API Key (X-API-Key header) - For server-to-server calls
- * 2. JWT Token (Authorization: Bearer) - For frontend/app calls
- * 3. User ID (X-User-Id header) - For authenticated user context
- * 4. Dev Mode (admin_key: 'dev-mode') - For development/testing
+ * 2. Firebase ID Token (Authorization: Bearer) - Primary for frontend/app calls
+ * 3. Legacy JWT Token (Authorization: Bearer) - Fallback for non-Firebase tokens
+ * 4. User ID (X-User-Id header) - For device-based auth (migration period)
+ * 5. Dev Mode (admin_key: 'dev-mode') - For development/testing
+ *
+ * Firebase Auth Integration:
+ * - Frontend sends Firebase ID token in Authorization: Bearer header
+ * - Backend verifies token using Firebase Admin SDK
+ * - User ID is the Firebase UID (not device ID)
+ * - Anonymous Firebase users are supported (zero-friction onboarding)
  *
  * USAGE:
  *   import { requireAuth, requireAdmin, optionalAuth } from './auth-middleware.js';
@@ -18,18 +25,19 @@
  *   const userId = auth.userId;
  */
 
-import type { IncomingMessage, ServerResponse } from 'http';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { createLogger } from '../utils/safe-logger.js';
-import { sendError } from './helpers.js';
-import { API_ERRORS } from './error-messages.js';
+import type { IncomingMessage, ServerResponse } from 'http';
+import { verifyFirebaseToken } from '../services/firebase-auth.js';
 import {
-  trackFailedAuth,
-  isLockedOut,
-  recordSuccessfulAuth,
-  recordSecurityEvent,
   detectAnomalies,
+  isLockedOut,
+  recordSecurityEvent,
+  recordSuccessfulAuth,
+  trackFailedAuth,
 } from '../services/security-events.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { API_ERRORS } from './error-messages.js';
+import { sendError } from './helpers.js';
 
 const log = createLogger({ module: 'AuthMiddleware' });
 
@@ -38,10 +46,20 @@ const log = createLogger({ module: 'AuthMiddleware' });
 // ============================================================================
 
 export interface AuthContext {
+  /** Primary user identifier (Firebase UID or legacy device ID) */
   userId: string;
+  /** Firebase UID if authenticated via Firebase */
+  firebaseUid?: string;
+  /** Whether user is an admin */
   isAdmin: boolean;
+  /** Whether running in dev mode */
   isDevMode: boolean;
-  authMethod: 'api_key' | 'jwt' | 'user_id' | 'dev_mode';
+  /** Which auth method was used */
+  authMethod: 'api_key' | 'firebase' | 'jwt' | 'user_id' | 'dev_mode';
+  /** User's email (if available from Firebase) */
+  email?: string;
+  /** Whether Firebase user is anonymous */
+  isAnonymous?: boolean;
 }
 
 export interface AuthConfig {
@@ -258,10 +276,17 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     return null;
   }
 
-  // 2. Check JWT Bearer token
+  // 2. Check Bearer token (Firebase ID token or legacy JWT)
   const authHeader = getHeader(req, 'Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
+
+    // Store pending Firebase verification for async handling
+    // We'll check this in requireAuth which can be async
+    (req as IncomingMessage & { _pendingFirebaseToken?: string })._pendingFirebaseToken = token;
+
+    // Try legacy JWT verification first (sync)
+    // Firebase verification is async and will be done in requireAuth
     const verified = verifyJWT(token);
     if (verified) {
       return {
@@ -271,22 +296,41 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
         authMethod: 'jwt',
       };
     }
-    // Invalid JWT - track failure with error logging
-    const payload = decodeJWTPayload(token);
-    const failureType =
-      payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
-    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType).catch((e) =>
-      log.error({ error: String(e) }, 'Failed to track auth failure')
-    );
-    void recordSecurityEvent({
-      type: failureType,
-      actorId: payload?.sub,
-      ip,
-      userAgent,
-      action: `JWT ${failureType === 'jwt_expired' ? 'expired' : 'invalid'}`,
-      outcome: 'failure',
-    }).catch((e) => log.error({ error: String(e) }, 'Failed to record security event'));
-    return null;
+
+    // Token didn't verify as legacy JWT, might be a Firebase token
+    // Don't return null yet - let requireAuth try Firebase verification
+    // But if it looks like a JWT (has 3 parts), it's probably invalid
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      // Looks like a JWT - check if it's a Firebase token by header
+      try {
+        const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+        // Firebase tokens use RS256, legacy JWTs use HS256
+        if (header.alg === 'RS256') {
+          // This is a Firebase token - don't fail yet, let requireAuth verify it
+          return null; // Will be handled async in requireAuth
+        }
+      } catch {
+        // Invalid header
+      }
+
+      // Invalid legacy JWT - track failure
+      const payload = decodeJWTPayload(token);
+      const failureType =
+        payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
+      void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType).catch((e) =>
+        log.error({ error: String(e) }, 'Failed to track auth failure')
+      );
+      void recordSecurityEvent({
+        type: failureType,
+        actorId: payload?.sub,
+        ip,
+        userAgent,
+        action: `JWT ${failureType === 'jwt_expired' ? 'expired' : 'invalid'}`,
+        outcome: 'failure',
+      }).catch((e) => log.error({ error: String(e) }, 'Failed to record security event'));
+      return null;
+    }
   }
 
   // 3. Check User ID header
@@ -351,18 +395,49 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
 }
 
 /**
+ * Try to verify a pending Firebase token from the request.
+ * Returns AuthContext if valid Firebase token, null otherwise.
+ */
+async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null> {
+  const token = (req as IncomingMessage & { _pendingFirebaseToken?: string })._pendingFirebaseToken;
+  if (!token) return null;
+
+  try {
+    const verified = await verifyFirebaseToken(token);
+    if (!verified) return null;
+
+    return {
+      userId: verified.uid,
+      firebaseUid: verified.uid,
+      isAdmin: verified.claims.admin === true,
+      isDevMode: false,
+      authMethod: 'firebase',
+      email: verified.email,
+      isAnonymous: verified.isAnonymous,
+    };
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Firebase token verification failed');
+    return null;
+  }
+}
+
+/**
  * Require authentication. Returns AuthContext or sends 401 and returns null.
  *
  * Enhanced with:
+ * - Firebase ID token verification (async)
  * - Lockout checking (blocks requests from locked out users/IPs)
  * - Success tracking (clears failed attempt counters)
  * - Anomaly detection (flags unusual patterns)
+ *
+ * Note: This function is async to support Firebase token verification.
+ * For sync usage, use authenticateSync() directly.
  */
-export function requireAuth(
+export async function requireAuth(
   req: IncomingMessage,
   res: ServerResponse,
   config: AuthConfig = {}
-): AuthContext | null {
+): Promise<AuthContext | null> {
   const { optional = false, requireAdmin = false, allowDevMode = true } = config;
   const ip = getClientIP(req);
   const userAgent = getHeader(req, 'User-Agent');
@@ -384,7 +459,13 @@ export function requireAuth(
     return null;
   }
 
-  const auth = authenticate(req);
+  // Try sync authentication first
+  let auth = authenticate(req);
+
+  // If no sync auth and we have a pending Firebase token, try async Firebase auth
+  if (!auth) {
+    auth = await tryFirebaseAuth(req);
+  }
 
   // No auth found
   if (!auth) {
@@ -431,7 +512,12 @@ export function requireAuth(
   // Authentication successful - record and clear any failed attempts (fire and forget)
   void recordSuccessfulAuth({
     userId: auth.userId,
-    method: auth.authMethod === 'api_key' ? 'api_key' : 'jwt',
+    method:
+      auth.authMethod === 'api_key'
+        ? 'api_key'
+        : auth.authMethod === 'firebase'
+          ? 'firebase'
+          : 'jwt',
     ip,
     userAgent,
   });
@@ -448,26 +534,118 @@ export function requireAuth(
 }
 
 /**
- * Require admin authentication.
+ * Sync version of requireAuth for backwards compatibility.
+ * Does NOT verify Firebase tokens (use requireAuth for that).
  */
-export function requireAdmin(req: IncomingMessage, res: ServerResponse): AuthContext | null {
+export function requireAuthSync(
+  req: IncomingMessage,
+  res: ServerResponse,
+  config: AuthConfig = {}
+): AuthContext | null {
+  const { optional = false, requireAdmin = false, allowDevMode = true } = config;
+  const ip = getClientIP(req);
+  const userAgent = getHeader(req, 'User-Agent');
+
+  // Check if IP is locked out
+  const ipLockout = isLockedOut(`ip:${ip}`);
+  if (ipLockout.locked) {
+    res.writeHead(429, {
+      'Content-Type': 'application/json',
+      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+    });
+    res.end(
+      JSON.stringify({
+        error: 'Too many failed attempts. Please try again later.',
+        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      })
+    );
+    return null;
+  }
+
+  const auth = authenticate(req);
+
+  if (!auth) {
+    if (optional) return null;
+    sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
+    return null;
+  }
+
+  if (auth.isDevMode && !allowDevMode && !IS_DEV) {
+    sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
+    return null;
+  }
+
+  if (requireAdmin && !auth.isAdmin) {
+    sendError(res, 'Admin access required', 403);
+    return null;
+  }
+
+  void recordSuccessfulAuth({
+    userId: auth.userId,
+    method: auth.authMethod === 'api_key' ? 'api_key' : 'jwt',
+    ip,
+    userAgent,
+  });
+
+  return auth;
+}
+
+/**
+ * Require admin authentication (async - supports Firebase).
+ */
+export async function requireAdmin(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<AuthContext | null> {
   return requireAuth(req, res, { requireAdmin: true });
 }
 
 /**
+ * Require admin authentication (sync - no Firebase).
+ */
+export function requireAdminSync(req: IncomingMessage, res: ServerResponse): AuthContext | null {
+  return requireAuthSync(req, res, { requireAdmin: true });
+}
+
+/**
  * Optional authentication - returns auth context if present, null otherwise.
- * Never sends error response.
+ * Never sends error response. Uses sync authentication only.
  */
 export function optionalAuth(req: IncomingMessage): AuthContext | null {
   return authenticate(req);
 }
 
 /**
- * Get user ID from request (with authentication).
+ * Optional authentication with Firebase support (async).
+ */
+export async function optionalAuthAsync(req: IncomingMessage): Promise<AuthContext | null> {
+  let auth = authenticate(req);
+  if (!auth) {
+    auth = await tryFirebaseAuth(req);
+  }
+  return auth;
+}
+
+/**
+ * Get user ID from request (with authentication, async).
  * Returns userId or sends 401 and returns null.
  */
-export function getAuthenticatedUserId(req: IncomingMessage, res: ServerResponse): string | null {
-  const auth = requireAuth(req, res);
+export async function getAuthenticatedUserId(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<string | null> {
+  const auth = await requireAuth(req, res);
+  return auth?.userId || null;
+}
+
+/**
+ * Get user ID from request (sync, no Firebase).
+ */
+export function getAuthenticatedUserIdSync(
+  req: IncomingMessage,
+  res: ServerResponse
+): string | null {
+  const auth = requireAuthSync(req, res);
   return auth?.userId || null;
 }
 

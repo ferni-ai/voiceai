@@ -89,14 +89,22 @@ const MUSIC_HELPFUL_EMOTIONS = [
  */
 const EMOTION_INDICATORS: Record<string, string[]> = {
   sad: ['sad', 'down', 'depressed', 'blue', 'crying', 'tears', 'heartbroken', 'grief'],
-  anxious: ['anxious', 'worried', 'nervous', 'stressed', 'panic', 'overwhelmed', 'can\'t stop thinking'],
+  anxious: [
+    'anxious',
+    'worried',
+    'nervous',
+    'stressed',
+    'panic',
+    'overwhelmed',
+    "can't stop thinking",
+  ],
   tired: ['tired', 'exhausted', 'drained', 'sleepy', 'worn out', 'no energy', 'need rest'],
   frustrated: ['frustrated', 'annoyed', 'irritated', 'angry', 'mad', 'ugh', 'so done'],
   happy: ['happy', 'great', 'amazing', 'wonderful', 'excited', 'fantastic', 'best day'],
-  excited: ['excited', 'can\'t wait', 'pumped', 'thrilled', 'hyped', 'stoked'],
+  excited: ['excited', "can't wait", 'pumped', 'thrilled', 'hyped', 'stoked'],
   nostalgic: ['remember when', 'miss', 'back then', 'used to', 'good old days', 'memories'],
   lonely: ['lonely', 'alone', 'no one', 'by myself', 'miss having', 'isolated'],
-  overwhelmed: ['overwhelmed', 'too much', 'can\'t handle', 'drowning', 'buried', 'so much'],
+  overwhelmed: ['overwhelmed', 'too much', "can't handle", 'drowning', 'buried', 'so much'],
   bored: ['bored', 'nothing to do', 'boring', 'meh', 'blah', 'dull'],
   focused: ['need to focus', 'concentrate', 'working on', 'studying', 'project'],
 };

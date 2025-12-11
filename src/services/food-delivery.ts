@@ -17,9 +17,9 @@
  * - Send order link to user's phone to complete payment
  */
 
+import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
-import { getConfig } from '../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================
@@ -476,8 +476,8 @@ async function getFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      projectId: getGCPProjectId(),
+      databaseId: getFirestoreDatabase(),
     });
     getLogger().info('Food delivery service Firestore initialized');
     return db;

@@ -97,9 +97,8 @@ export async function handleIntegrationsRoutes(
       }
 
       // Get status from all integration services
-      const { hasCalendarConnected } = await import(
-        '../../../services/context-awareness/location-calendar.js'
-      );
+      const { hasCalendarConnected } =
+        await import('../../../services/context-awareness/location-calendar.js');
       const { hasLinkedAccounts } = await import('../../../tools/plaid.js');
       const { getImportantPeople } = await import('../../../services/social-graph/index.js');
 
@@ -173,7 +172,14 @@ export async function handleIntegrationsRoutes(
       }
 
       // Note: 'terra' is recommended for web apps - aggregates Apple Health + 300 other wearables
-      const validPlatforms: BiometricPlatform[] = ['healthkit', 'googlefit', 'oura', 'whoop', 'fitbit', 'terra'];
+      const validPlatforms: BiometricPlatform[] = [
+        'healthkit',
+        'googlefit',
+        'oura',
+        'whoop',
+        'fitbit',
+        'terra',
+      ];
       if (!validPlatforms.includes(platform)) {
         sendJson(res, 400, {
           error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,

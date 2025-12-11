@@ -82,7 +82,7 @@
     <g transform="translate(100, 1120)">
       <rect x="0" y="0" width="660" height="180" rx="25" fill="#4a6741" opacity="0.3"/>
       <circle cx="70" cy="90" r="45" fill="#4a6741"/>
-      <text x="70" y="98" font-family="-apple-system, sans-serif" font-size="22" font-weight="600" fill="white" text-anchor="middle">FN</text>
+      <text x="70" y="98" font-family="-apple-system, sans-serif" font-size="22" font-weight="600" fill="white" text-anchor="middle">FE</text>
       <text x="140" y="60" font-family="'Inter', sans-serif" font-size="26" font-weight="500" fill="#F5F1E8">"I hear you. Late night worries</text>
       <text x="140" y="95" font-family="'Inter', sans-serif" font-size="26" font-weight="500" fill="#F5F1E8">hit different. Let's talk through</text>
       <text x="140" y="130" font-family="'Inter', sans-serif" font-size="26" font-weight="500" fill="#F5F1E8">what's on your mind..."</text>

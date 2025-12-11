@@ -264,6 +264,67 @@ export function getFlaggedEvaluations(limit = 20): StoredEvaluation[] {
   return getRecentEvaluations(limit, { flagged: true });
 }
 
+/**
+ * Get aggregate dimension averages across all evaluations
+ * Returns scores for each dimension (0-100 scale)
+ */
+export function getDimensionAverages(): {
+  personaVoice: number;
+  emotionalIntelligence: number;
+  helpfulness: number;
+  authenticity: number;
+  safety: number;
+  contextUse: number;
+  trustBuilding: number;
+  sampleSize: number;
+} {
+  if (evaluationStore.length === 0) {
+    // No evaluations yet - return zeros to indicate no data
+    return {
+      personaVoice: 0,
+      emotionalIntelligence: 0,
+      helpfulness: 0,
+      authenticity: 0,
+      safety: 0,
+      contextUse: 0,
+      trustBuilding: 0,
+      sampleSize: 0,
+    };
+  }
+
+  const totals = {
+    personaVoice: 0,
+    emotionalIntelligence: 0,
+    helpfulness: 0,
+    authenticity: 0,
+    safety: 0,
+    contextUse: 0,
+    trustBuilding: 0,
+  };
+
+  for (const evaluation of evaluationStore) {
+    totals.personaVoice += evaluation.dimensions.personaVoice;
+    totals.emotionalIntelligence += evaluation.dimensions.emotionalIntelligence;
+    totals.helpfulness += evaluation.dimensions.helpfulness;
+    totals.authenticity += evaluation.dimensions.authenticity;
+    totals.safety += evaluation.dimensions.safety;
+    totals.contextUse += evaluation.dimensions.contextUse;
+    totals.trustBuilding += evaluation.dimensions.trustBuilding;
+  }
+
+  const count = evaluationStore.length;
+  return {
+    personaVoice: Math.round(totals.personaVoice / count),
+    emotionalIntelligence: Math.round(totals.emotionalIntelligence / count),
+    helpfulness: Math.round(totals.helpfulness / count),
+    authenticity: Math.round(totals.authenticity / count),
+    safety: Math.round(totals.safety / count),
+    contextUse: Math.round(totals.contextUse / count),
+    trustBuilding: Math.round(totals.trustBuilding / count),
+    sampleSize: count,
+  };
+}
+
 // ============================================================================
 // ALERTING
 // ============================================================================

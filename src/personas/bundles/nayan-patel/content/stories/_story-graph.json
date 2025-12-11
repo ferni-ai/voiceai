@@ -308,7 +308,12 @@
     "minimum_turns_before_first_story": 3,
     "minimum_turns_between_stories": 4,
     "max_stories_per_session": 3,
-    "never_tell_story_when": ["user_is_crying", "user_just_shared_bad_news", "user_is_angry", "user_in_crisis"],
+    "never_tell_story_when": [
+      "user_is_crying",
+      "user_just_shared_bad_news",
+      "user_is_angry",
+      "user_in_crisis"
+    ],
     "ideal_moments": [
       "after_user_shares_related_experience",
       "when_teaching_point_fits",

@@ -20,6 +20,7 @@
 
 import { createHmac, randomBytes } from 'crypto';
 import * as admin from 'firebase-admin';
+import { getGCPProjectId } from '../config/environment.js';
 import { getRedisCache } from '../memory/redis-cache.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -154,10 +155,7 @@ function getFirestore(): admin.firestore.Firestore | null {
 
   try {
     if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
+      const projectId = getGCPProjectId();
 
       if (projectId) {
         admin.initializeApp({ projectId });
@@ -328,7 +326,7 @@ function hashForLogging(value: string): string {
     if (!isDev) {
       // In production, log a warning but use a random per-instance salt
       // This prevents predictable hashes while not breaking the system
-      console.warn('SECURITY WARNING: LOG_HASH_SECRET not set in production');
+      log.warn('SECURITY WARNING: LOG_HASH_SECRET not set in production');
     }
     // Use a fallback only in development
     return createHmac('sha256', isDev ? 'dev-only-salt' : randomBytes(32).toString('hex'))
@@ -684,7 +682,7 @@ export async function detectAnomalies(params: {
  */
 export async function recordSuccessfulAuth(params: {
   userId: string;
-  method: 'jwt' | 'api_key' | 'voice' | 'device';
+  method: 'jwt' | 'api_key' | 'voice' | 'device' | 'firebase';
   ip?: string;
   userAgent?: string;
   sessionId?: string;

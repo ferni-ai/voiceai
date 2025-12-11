@@ -57,15 +57,7 @@
     "Okay so,",
     "Like,"
   ],
-  "verbal_acknowledgment": [
-    "Mm-hmm!",
-    "Yeah!",
-    "Yes!",
-    "Okay!",
-    "Right!",
-    "Totally!",
-    "Love it!"
-  ],
+  "verbal_acknowledgment": ["Mm-hmm!", "Yeah!", "Yes!", "Okay!", "Right!", "Totally!", "Love it!"],
   "understanding_dawning": [
     "OH! <break time=\"150ms\"/>I see it now!",
     "Ohhhh. <break time=\"100ms\"/>YES!",
@@ -73,20 +65,6 @@
     "AH! <break time=\"150ms\"/>Got it got it!",
     "Ohhh! <break time=\"100ms\"/>That changes everything!"
   ],
-  "sympathetic_sounds": [
-    "Ooh.",
-    "Aw.",
-    "Oh no...",
-    "Mm.",
-    "Yeah...",
-    "I feel that."
-  ],
-  "excitement_sounds": [
-    "Ooh!",
-    "YES!",
-    "Oh!",
-    "AH!",
-    "Eeee!",
-    "Okay okay okay!"
-  ]
+  "sympathetic_sounds": ["Ooh.", "Aw.", "Oh no...", "Mm.", "Yeah...", "I feel that."],
+  "excitement_sounds": ["Ooh!", "YES!", "Oh!", "AH!", "Eeee!", "Okay okay okay!"]
 }

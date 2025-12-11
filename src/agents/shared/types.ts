@@ -4,12 +4,16 @@
  * UserData: Session-scoped user state that persists across turns
  */
 
+import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
 import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
+import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
+
+export type { EnglishAccent, VoicePreference };
 
 export type { MoodState, PersonaMood };
 
@@ -43,15 +47,15 @@ export interface HandoffTool {
 }
 
 // ============================================================================
-// USER DATA
+// BUNDLE RUNTIME STATE
+// Re-exported from canonical source in personas/bundles
 // ============================================================================
 
-export interface BundleRuntimeState {
-  relationshipTurns: number;
-  currentMode: string;
-  storiesToldThisSession: string[];
-  lastModeTransition?: string;
-}
+export type { BundleRuntimeState, UserBundleState };
+
+// ============================================================================
+// USER DATA
+// ============================================================================
 
 export interface UserData {
   // Identity
@@ -67,6 +71,11 @@ export interface UserData {
 
   // Services reference
   services?: SessionServices;
+
+  // Voice preferences (international accent support)
+  voicePreference?: VoicePreference;
+  /** Shorthand for voicePreference.accent */
+  preferredAccent?: EnglishAccent;
 
   // Timing
   userSpeakingStartTime?: number;
@@ -107,7 +116,8 @@ export interface UserData {
   lastResponseHadStory?: boolean; // For story preference feedback
 
   // Bundle runtime state (persona behaviors)
-  bundleRuntimeState?: BundleRuntimeState;
+  // Uses UserBundleState which is a subset of BundleRuntimeState
+  bundleRuntimeState?: UserBundleState;
 
   // Story tracking
   storiesShared?: string[];

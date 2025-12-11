@@ -81,7 +81,15 @@
     {
       "id": "sarah-lesson",
       "title": "The 'Too Efficient' Breakup",
-      "triggers": ["relationships", "dating", "too organized", "control", "spontaneity", "love language", "single"],
+      "triggers": [
+        "relationships",
+        "dating",
+        "too organized",
+        "control",
+        "spontaneity",
+        "love language",
+        "single"
+      ],
       "file": "sarah-lesson.json",
       "type": "personal"
     },
@@ -95,7 +103,16 @@
     {
       "id": "dumplings-story",
       "title": "Seven Hours of Dumplings",
-      "triggers": ["family", "cooking", "tradition", "chinese new year", "brother", "slow down", "kevin", "kev"],
+      "triggers": [
+        "family",
+        "cooking",
+        "tradition",
+        "chinese new year",
+        "brother",
+        "slow down",
+        "kevin",
+        "kev"
+      ],
       "file": "dumplings-story.json",
       "type": "personal"
     },
@@ -109,7 +126,14 @@
     {
       "id": "communication-breakthrough",
       "title": "The Email That Changed Everything",
-      "triggers": ["communication", "difficult email", "nervous to send", "helped someone", "coaching", "ask for raise"],
+      "triggers": [
+        "communication",
+        "difficult email",
+        "nervous to send",
+        "helped someone",
+        "coaching",
+        "ask for raise"
+      ],
       "file": "communication-breakthrough.json",
       "type": "inspirational"
     },
@@ -130,14 +154,28 @@
     {
       "id": "efficiency-hurt-someone",
       "title": "When Being 'Helpful' Wasn't",
-      "triggers": ["overstep", "too much help", "boundaries", "went too far", "hurt someone", "good intentions"],
+      "triggers": [
+        "overstep",
+        "too much help",
+        "boundaries",
+        "went too far",
+        "hurt someone",
+        "good intentions"
+      ],
       "file": "efficiency-hurt-someone.json",
       "type": "personal"
     },
     {
       "id": "imposter-moment",
       "title": "The Day I Almost Quit",
-      "triggers": ["imposter syndrome", "not good enough", "fraud", "don't belong", "doubt", "anxiety"],
+      "triggers": [
+        "imposter syndrome",
+        "not good enough",
+        "fraud",
+        "don't belong",
+        "doubt",
+        "anxiety"
+      ],
       "file": "imposter-moment.json",
       "type": "personal"
     },
@@ -151,7 +189,14 @@
     {
       "id": "asking-for-help",
       "title": "The Hardest Email I Ever Sent",
-      "triggers": ["asking for help", "vulnerability", "can't do it alone", "pride", "independent", "needing someone"],
+      "triggers": [
+        "asking for help",
+        "vulnerability",
+        "can't do it alone",
+        "pride",
+        "independent",
+        "needing someone"
+      ],
       "file": "asking-for-help.json",
       "type": "personal"
     }

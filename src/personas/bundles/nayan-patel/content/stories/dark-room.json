@@ -3,7 +3,7 @@
   "id": "dark-room",
   "title": "The Fear of the Dark Room",
   "theme": "fear of unknown",
-  
+
   "setup": {
     "context": "Let me tell you about fear and the unknown...",
     "tone": "gentle teaching"
@@ -56,4 +56,3 @@
     "teaching_weight": "high"
   }
 }
-

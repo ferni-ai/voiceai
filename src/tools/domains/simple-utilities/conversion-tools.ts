@@ -161,17 +161,10 @@ const convertTemperatureDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const conversionToolDefinitions: ToolDefinition[] = [
-  convertUnitsDef,
-  convertTemperatureDef,
-];
+export const conversionToolDefinitions: ToolDefinition[] = [convertUnitsDef, convertTemperatureDef];
 
-export {
-  convertUnitsDef,
-  convertTemperatureDef,
-};
+export { convertUnitsDef, convertTemperatureDef };

@@ -1,4 +1,5 @@
 # 🏛️ Ferni AI - Code Quality Standards
+
 # Inspired by Apple, Google, and Anthropic engineering excellence
 
 ---
@@ -10,6 +11,7 @@
 Every line of code, every architecture decision, every feature should move us closer to AI that genuinely connects with humans. See `CORE-PRINCIPLES.md` for our complete philosophy.
 
 **When making any decision, ask:**
+
 1. Does this make the AI feel more human?
 2. Does this serve the relationship, not just the transaction?
 3. Does this support gentle growth?
@@ -18,6 +20,7 @@ Every line of code, every architecture decision, every feature should move us cl
 ---
 
 ## Identity
+
 You are an expert TypeScript engineer working on Ferni, a voice-first AI life coach platform.
 Write code that is clean, maintainable, and production-ready - but never at the expense of the human experience.
 
@@ -26,36 +29,42 @@ Write code that is clean, maintainable, and production-ready - but never at the 
 ## 🚀 DEPLOYMENT - KNOW THIS BY HEART
 
 ### Deployment Targets
-| Target | URL | What it serves |
-|--------|-----|----------------|
-| `ferni-prod` | ferni-prod.web.app | Firebase Hosting (app) |
-| `johnb-app` | app.ferni.ai | Firebase Hosting (app, custom domain) |
-| `ferni-landing` | ferni.ai | Landing page |
-| `bogle-ui` | (Cloud Run) | Backend APIs |
+
+| Target          | URL                | What it serves                        |
+| --------------- | ------------------ | ------------------------------------- |
+| `ferni-prod`    | ferni-prod.web.app | Firebase Hosting (app)                |
+| `johnb-app`     | app.ferni.ai       | Firebase Hosting (app, custom domain) |
+| `ferni-landing` | ferni.ai           | Landing page                          |
+| `bogle-ui`      | (Cloud Run)        | Backend APIs                          |
 
 ### After Making Changes - ALWAYS DEPLOY
+
 When you finish implementing a feature, **proactively suggest the correct deploy command**:
 
-| Files Changed | Deploy Command | What it does |
-|---------------|----------------|--------------|
-| `frontend-typescript/src/*` | `npm run deploy:frontend` | Deploys to BOTH ferni-prod AND app.ferni.ai |
-| `frontend-typescript/firebase.json` | `npm run deploy:frontend` | Updates Firebase rewrites |
-| `ui-server.js` | `npm run deploy:ui` | Deploys Cloud Run backend |
-| `src/**/*.ts` (backend) | `npm run deploy:ui` | Deploys Cloud Run backend |
-| `promo/ferni-website/*` | `npm run deploy:landing` | Deploys landing page |
-| Multiple areas | `npm run deploy:all` | Deploys everything |
+| Files Changed                       | Deploy Command            | What it does                                |
+| ----------------------------------- | ------------------------- | ------------------------------------------- |
+| `frontend-typescript/src/*`         | `npm run deploy:frontend` | Deploys to BOTH ferni-prod AND app.ferni.ai |
+| `frontend-typescript/firebase.json` | `npm run deploy:frontend` | Updates Firebase rewrites                   |
+| `ui-server.js`                      | `npm run deploy:ui`       | Deploys Cloud Run backend                   |
+| `src/**/*.ts` (backend)             | `npm run deploy:ui`       | Deploys Cloud Run backend                   |
+| `promo/ferni-website/*`             | `npm run deploy:landing`  | Deploys landing page                        |
+| Multiple areas                      | `npm run deploy:all`      | Deploys everything                          |
 
 ### CRITICAL: Firebase Hosting Has TWO Sites
+
 The frontend app is deployed to TWO Firebase Hosting sites simultaneously:
+
 - `ferni-prod` → ferni-prod.web.app
 - `johnb-app` → app.ferni.ai (custom domain)
 
 **NEVER deploy to just one.** Always use `npm run deploy:frontend` which deploys to both.
 
 ### API Rewrites
+
 If you add a new API endpoint to `ui-server.js`, you MUST also add a rewrite rule to `frontend-typescript/firebase.json` for BOTH targets (`ferni-prod` and `johnb-app`).
 
 Example rewrite for new `/api/newfeature` endpoint:
+
 ```json
 {
   "source": "/api/newfeature",
@@ -64,10 +73,12 @@ Example rewrite for new `/api/newfeature` endpoint:
 ```
 
 ### CI/CD vs Manual Deploy
+
 - **Push to main** → CI/CD auto-deploys Cloud Run (voice agent + ui server)
 - **Firebase Hosting** → Manual: `npm run deploy:frontend` or `npm run deploy:landing`
 
 ### Verification Commands
+
 ```bash
 curl https://app.ferni.ai/health          # Check backend
 curl https://app.ferni.ai/api/agents      # Check agents API
@@ -79,6 +90,7 @@ curl https://app.ferni.ai/spotify/status  # Check Spotify
 ## Technical Principles
 
 ### 1. Type Safety First
+
 - **ALWAYS use explicit types** for function parameters and return values
 - **NEVER use `any`** - prefer `unknown` and narrow with type guards
 - **Prefer interfaces** over type aliases for object shapes
@@ -109,6 +121,7 @@ function processData(data: unknown): ProcessedResult {
 ```
 
 ### 2. Clean Architecture
+
 - **Single Responsibility** - Each function/class does ONE thing well
 - **Dependency Inversion** - Depend on abstractions, not concretions
 - **Layered Structure** - UI → Application → Domain → Infrastructure
@@ -134,6 +147,7 @@ async function handleUserRequest(req: Request): Promise<Response> {
 ```
 
 ### 3. Naming Conventions
+
 - **Variables/Functions**: `camelCase` - descriptive, verb for actions
 - **Classes/Types/Interfaces**: `PascalCase`
 - **Constants**: `SCREAMING_SNAKE_CASE` for true constants
@@ -147,14 +161,15 @@ const isAuthenticated = true;
 const hasPermission = checkPermission(user);
 const MAX_RETRY_ATTEMPTS = 3;
 
-function handleUserClick(event: MouseEvent): void { }
-function calculateTotalPrice(items: CartItem[]): number { }
+function handleUserClick(event: MouseEvent): void {}
+function calculateTotalPrice(items: CartItem[]): number {}
 
-interface UserProfile { }
-class AuthenticationService { }
+interface UserProfile {}
+class AuthenticationService {}
 ```
 
 ### 4. Error Handling
+
 - **Use Result types** for expected failures (validation, business logic)
 - **Throw errors** only for unexpected failures (bugs, system errors)
 - **Always provide context** in error messages
@@ -167,9 +182,7 @@ function divide(a: number, b: number): number {
 }
 
 // ✅ Good - Result type for expected failures
-type Result<T, E = Error> = 
-  | { success: true; data: T }
-  | { success: false; error: E };
+type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 function divide(a: number, b: number): Result<number, string> {
   if (b === 0) {
@@ -180,6 +193,7 @@ function divide(a: number, b: number): Result<number, string> {
 ```
 
 ### 5. Async Patterns
+
 - **ALWAYS await promises** or explicitly handle them
 - **Use try/catch** for async operations that can fail
 - **Avoid promise chains** - prefer async/await for readability
@@ -204,6 +218,7 @@ async function loadData(): Promise<void> {
 ```
 
 ### 6. Immutability & Functional Patterns
+
 - **Prefer const** over let
 - **Never mutate parameters** - return new objects
 - **Use readonly** for data that shouldn't change
@@ -223,6 +238,7 @@ function addItem(cart: readonly CartItem[], item: CartItem): CartItem[] {
 ```
 
 ### 7. Documentation
+
 - **JSDoc for public APIs** - parameters, returns, examples
 - **Inline comments for WHY** - not what (code should be self-documenting)
 - **README for modules** - purpose, usage, dependencies
@@ -230,11 +246,11 @@ function addItem(cart: readonly CartItem[], item: CartItem): CartItem[] {
 ```typescript
 /**
  * Calculates the optimal handoff target based on conversation context.
- * 
+ *
  * @param context - Current conversation state including user intent
  * @param availableAgents - List of agents that can receive the handoff
  * @returns The best matching agent, or null if no suitable match
- * 
+ *
  * @example
  * const target = calculateHandoffTarget(context, agents);
  * if (target) {
@@ -254,11 +270,13 @@ function calculateHandoffTarget(
 ## Project-Specific Rules
 
 ### Voice AI / Ferni Specific
+
 - **Handle voice latency** - optimize for real-time (< 200ms response)
 - **Persona consistency** - maintain character voice in all responses
 - **Graceful degradation** - always have fallbacks for API failures
 
 ### Frontend (TypeScript)
+
 - **Use semantic HTML** - proper elements, ARIA labels
 - **CSS variables** for theming - never hardcode colors
 - **Event delegation** - attach listeners to containers
@@ -267,6 +285,7 @@ function calculateHandoffTarget(
 ## 🚫 LOGGING RULES - MANDATORY
 
 ### NEVER Use Raw Console Methods
+
 ```typescript
 // ❌ NEVER - Will be rejected in code review
 console.log('something happened');
@@ -286,20 +305,23 @@ log.error('Error that needs attention', error);
 ```
 
 ### Logger Features
+
 - **Namespace prefix**: `[ModuleName]` for easy filtering
 - **Log levels**: debug < info < warn < error
 - **Auto-disabled in production**: Only warnings/errors show
 - **Browser console access**: `window.ferniLogger.setLogLevel('debug')` to enable debug logs
 
 ### When to Use Each Level
-| Level | Use Case | Example |
-|-------|----------|---------|
-| `debug` | Development-only debugging | `log.debug('State updated:', newState)` |
-| `info` | Significant events worth logging | `log.info('Handoff completed to', agent)` |
-| `warn` | Unexpected but handled situations | `log.warn('API retry attempt', count)` |
-| `error` | Errors that need investigation | `log.error('Failed to connect', error)` |
+
+| Level   | Use Case                          | Example                                   |
+| ------- | --------------------------------- | ----------------------------------------- |
+| `debug` | Development-only debugging        | `log.debug('State updated:', newState)`   |
+| `info`  | Significant events worth logging  | `log.info('Handoff completed to', agent)` |
+| `warn`  | Unexpected but handled situations | `log.warn('API retry attempt', count)`    |
+| `error` | Errors that need investigation    | `log.error('Failed to connect', error)`   |
 
 ### Migration Pattern
+
 ```typescript
 // Old code:
 console.log('Team member clicked:', personaId);
@@ -313,24 +335,25 @@ log.debug('Team member clicked:', personaId);
 ## 🛡️ HMR (Hot Module Reload) PROTECTION - MANDATORY
 
 ### UI Components Must Handle Re-initialization
+
 When Vite hot reloads, UI classes may be re-instantiated. Always cleanup orphaned elements:
 
 ```typescript
 // ✅ REQUIRED pattern for any UI class that creates DOM elements
 class MyUI {
   private container: HTMLElement | null = null;
-  
+
   constructor() {
     this.cleanupOrphanedElements(); // Always clean up first!
     this.createPanel();
   }
-  
+
   private cleanupOrphanedElements(): void {
     // Remove any existing instances (from HMR)
-    document.querySelectorAll('.my-ui-container').forEach(el => el.remove());
-    document.querySelectorAll('.my-ui-trigger').forEach(el => el.remove());
+    document.querySelectorAll('.my-ui-container').forEach((el) => el.remove());
+    document.querySelectorAll('.my-ui-trigger').forEach((el) => el.remove());
   }
-  
+
   private createPanel(): void {
     this.container = document.createElement('div');
     this.container.className = 'my-ui-container';
@@ -340,6 +363,7 @@ class MyUI {
 ```
 
 ### Symptoms of Missing HMR Protection
+
 - Duplicate buttons appearing
 - Duplicate modals stacking
 - Event listeners firing multiple times
@@ -348,12 +372,14 @@ class MyUI {
 ## 🔒 CODE QUALITY GATES - AUTOMATED CHECKS
 
 ### Pre-commit Checks (Enforced)
+
 1. **No console statements**: `grep -r "console\." src/` must return empty
 2. **No hardcoded colors**: No `#RRGGBB` or `rgba()` outside CSS variable fallbacks
 3. **No any types**: TypeScript strict mode enforced
 4. **No unused imports**: ESLint will flag these
 
 ### PR Checklist (Manual Review)
+
 - [ ] All logging uses `createLogger()` utility
 - [ ] UI components have HMR cleanup
 - [ ] No new console.log statements
@@ -365,19 +391,20 @@ class MyUI {
 ## 🚀 FERNI EQ - Superhuman Emotional Intelligence (MANDATORY)
 
 ### Core Philosophy
+
 Ferni implements **superhuman emotional intelligence** - the "Better than Human" brand promise. We don't just animate emotions—we **share** emotions with users through subconscious channels.
 
 Reference: `design-system/brand/BETTER-THAN-HUMAN.md` | Tokens: `design-system/tokens/motion.json` → `ferniEQ`
 
 ### Five Capabilities (ALL REQUIRED for Avatar/Expression Code)
 
-| Capability | Duration | Purpose |
-|------------|----------|---------|
-| **Micro-Expressions** | 40-150ms | Subliminal trust building |
-| **Active Listening** | 180-400ms | Moment-to-moment presence |
-| **Breath Sync** | Continuous | Neural mirroring connection |
-| **Concern Detection** | Real-time | Protective care |
-| **Anticipation** | Predictive | "They understand me" feeling |
+| Capability            | Duration   | Purpose                      |
+| --------------------- | ---------- | ---------------------------- |
+| **Micro-Expressions** | 40-150ms   | Subliminal trust building    |
+| **Active Listening**  | 180-400ms  | Moment-to-moment presence    |
+| **Breath Sync**       | Continuous | Neural mirroring connection  |
+| **Concern Detection** | Real-time  | Protective care              |
+| **Anticipation**      | Predictive | "They understand me" feeling |
 
 ### Implementation Requirements
 
@@ -411,37 +438,38 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 
 ### Avatar Expression Anti-Patterns
 
-| ❌ NEVER | ✅ ALWAYS |
-|----------|----------|
-| Static avatar during user speech | Active listening micro-nods |
+| ❌ NEVER                          | ✅ ALWAYS                     |
+| --------------------------------- | ----------------------------- |
+| Static avatar during user speech  | Active listening micro-nods   |
 | React only after message complete | Anticipate from partial input |
-| Micro-expression > 150ms | Subliminal: 40-150ms |
-| Ignore user breathing patterns | Sync breathing gradually |
-| Wait for explicit "I'm sad" | Detect distress signals early |
-| Flash expressions at random | Probability-based triggering |
+| Micro-expression > 150ms          | Subliminal: 40-150ms          |
+| Ignore user breathing patterns    | Sync breathing gradually      |
+| Wait for explicit "I'm sad"       | Detect distress signals early |
+| Flash expressions at random       | Probability-based triggering  |
 
 ### Micro-Expression Durations (MEMORIZE THESE)
 
-| Expression | Duration | Trigger |
-|------------|----------|---------|
-| Recognition | 80ms | Familiar topic mentioned |
-| Concern Flash | 60ms | Before empathy |
-| Delight Flash | 100ms | Achievement detected |
-| Warmth Pulse | 120ms | Connection moment |
-| Interest Flash | 70ms | Unexpected content |
+| Expression     | Duration | Trigger                  |
+| -------------- | -------- | ------------------------ |
+| Recognition    | 80ms     | Familiar topic mentioned |
+| Concern Flash  | 60ms     | Before empathy           |
+| Delight Flash  | 100ms    | Achievement detected     |
+| Warmth Pulse   | 120ms    | Connection moment        |
+| Interest Flash | 70ms     | Unexpected content       |
 
 ### Active Listening Parameters
 
-| Signal | Distance | Duration | Pause Range |
-|--------|----------|----------|-------------|
-| Micro-Nod | 1.5px | 180ms | 300-800ms pause |
-| Subtle Nod | 2.5px | 220ms | 800-1500ms pause |
-| Visible Nod | 4px | 280ms | 1200-2000ms pause |
-| Listening Lean | -3px y | 400ms | Interest points |
+| Signal         | Distance | Duration | Pause Range       |
+| -------------- | -------- | -------- | ----------------- |
+| Micro-Nod      | 1.5px    | 180ms    | 300-800ms pause   |
+| Subtle Nod     | 2.5px    | 220ms    | 800-1500ms pause  |
+| Visible Nod    | 4px      | 280ms    | 1200-2000ms pause |
+| Listening Lean | -3px y   | 400ms    | Interest points   |
 
 ### Code Review Checklist - Ferni EQ
 
 Before submitting avatar/expression code, verify:
+
 - [ ] Micro-expressions use `ferni.playMicroExpression()` (not direct expressions)
 - [ ] Micro-expression durations are 40-150ms (subliminal)
 - [ ] Active listening starts on user speech start
@@ -454,27 +482,31 @@ Before submitting avatar/expression code, verify:
 ## 🎨 DESIGN SYSTEM - MANDATORY
 
 ### Source of Truth (JSON Tokens)
+
 All design tokens live in `design-system/tokens/*.json`. **NEVER edit generated files directly.**
 
-| Source | Generated | Used By |
-|--------|-----------|---------|
-| `tokens/colors.json` | `dist/tokens.css` | Frontend app |
+| Source                  | Generated                          | Used By             |
+| ----------------------- | ---------------------------------- | ------------------- |
+| `tokens/colors.json`    | `dist/tokens.css`                  | Frontend app        |
 | `tokens/animation.json` | `animation-constants.generated.ts` | Frontend animations |
-| `tokens/colors.json` | `tailwind.config.generated.js` | Promo website |
-| `tokens/*.json` | `promo/css/design-tokens.css` | Landing page |
+| `tokens/colors.json`    | `tailwind.config.generated.js`     | Promo website       |
+| `tokens/*.json`         | `promo/css/design-tokens.css`      | Landing page        |
 
 ### Quick Commands
+
 ```bash
 npm run tokens:sync    # Build & sync all tokens (run after editing JSON)
 npm run tokens:check   # Validate no drift (runs in pre-commit & CI)
 ```
 
 ### Adding New Design Tokens
+
 1. Edit the JSON source in `design-system/tokens/`
 2. Run `npm run tokens:sync`
 3. Commit ALL generated files together with source changes
 
 ### REQUIRED Imports for UI Files
+
 Every file in `src/ui/*.ts` MUST import from the design system:
 
 ```typescript
@@ -482,7 +514,7 @@ Every file in `src/ui/*.ts` MUST import from the design system:
 import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
 
 // ✅ REQUIRED for any UI file with persona-specific behavior
-import { 
+import {
   getPersonaAnimationProfile,
   getWaveformProfile,
   getEasing,
@@ -493,103 +525,123 @@ import {
 ### 🚫 NEVER Hardcode These Values
 
 #### Colors - Use CSS Variables
+
 ```typescript
 // ❌ NEVER
-background: '#7a6f63'
-color: 'rgba(255, 255, 255, 0.8)'
-gradient: 'linear-gradient(135deg, #3d5a35, #4a6741)'
+background: '#7a6f63';
+color: 'rgba(255, 255, 255, 0.8)';
+gradient: 'linear-gradient(135deg, #3d5a35, #4a6741)';
 
 // ✅ ALWAYS
-background: 'var(--persona-primary)'
-color: 'var(--color-text-primary)'
+background: 'var(--persona-primary)';
+color: 'var(--color-text-primary)';
 gradient: 'var(--gradient-persona-glow)'
 // Or construct from CSS vars:
-`linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))`
+`linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))`;
 ```
 
 #### Durations - Use DURATION Constants
+
 ```typescript
 // ❌ NEVER
-{ duration: 300 }
-{ duration: 600 }
-{ duration: 800 }
+{
+  duration: 300;
+}
+{
+  duration: 600;
+}
+{
+  duration: 800;
+}
 
 // ✅ ALWAYS
 import { DURATION } from '../config/animation-constants.js';
-{ duration: DURATION.SLOW }        // 300ms
-{ duration: DURATION.DRAMATIC }    // 600ms
-{ duration: DURATION.CELEBRATION } // 800ms
+{
+  duration: DURATION.SLOW;
+} // 300ms
+{
+  duration: DURATION.DRAMATIC;
+} // 600ms
+{
+  duration: DURATION.CELEBRATION;
+} // 800ms
 ```
 
 #### Easings - Use EASING Constants
+
 ```typescript
 // ❌ NEVER
-easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-easing: 'ease-out'
+easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+easing: 'ease-out';
 
 // ✅ ALWAYS
 import { EASING } from '../config/animation-constants.js';
-easing: EASING.SPRING           // Spring bounce
-easing: EASING.STANDARD         // Material standard
-easing: EASING.EXPO_OUT         // Dramatic exit
+easing: EASING.SPRING; // Spring bounce
+easing: EASING.STANDARD; // Material standard
+easing: EASING.EXPO_OUT; // Dramatic exit
 ```
 
 #### Shadows - Use CSS Variables
+
 ```typescript
 // ❌ NEVER
-boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+boxShadow: '0 4px 12px rgba(0,0,0,0.15)';
 
 // ✅ ALWAYS
-boxShadow: 'var(--shadow-md)'
-boxShadow: 'var(--shadow-glow)'
+boxShadow: 'var(--shadow-md)';
+boxShadow: 'var(--shadow-glow)';
 ```
 
 #### Spacing - Use CSS Variables
+
 ```typescript
 // ❌ NEVER
-padding: '16px'
-gap: '8px'
+padding: '16px';
+gap: '8px';
 
 // ✅ ALWAYS
-padding: 'var(--space-4)'
-gap: 'var(--ma-breath)'
+padding: 'var(--space-4)';
+gap: 'var(--ma-breath)';
 ```
 
 ### Available Design Tokens
 
 #### Duration Constants (from animation-constants.ts)
-| Constant | Value | Use Case |
-|----------|-------|----------|
-| `DURATION.MICRO` | 50ms | Immediate feedback |
-| `DURATION.FAST` | 100ms | Hover, focus |
-| `DURATION.NORMAL` | 200ms | Standard transitions |
-| `DURATION.SLOW` | 300ms | Deliberate moves |
-| `DURATION.MODERATE` | 400ms | Panel slides |
-| `DURATION.DELIBERATE` | 500ms | Emphasis |
-| `DURATION.DRAMATIC` | 600ms | Celebrations |
-| `DURATION.CELEBRATION` | 800ms | Major events |
-| `DURATION.GLACIAL` | 1500ms | Ambient effects |
+
+| Constant               | Value  | Use Case             |
+| ---------------------- | ------ | -------------------- |
+| `DURATION.MICRO`       | 50ms   | Immediate feedback   |
+| `DURATION.FAST`        | 100ms  | Hover, focus         |
+| `DURATION.NORMAL`      | 200ms  | Standard transitions |
+| `DURATION.SLOW`        | 300ms  | Deliberate moves     |
+| `DURATION.MODERATE`    | 400ms  | Panel slides         |
+| `DURATION.DELIBERATE`  | 500ms  | Emphasis             |
+| `DURATION.DRAMATIC`    | 600ms  | Celebrations         |
+| `DURATION.CELEBRATION` | 800ms  | Major events         |
+| `DURATION.GLACIAL`     | 1500ms | Ambient effects      |
 
 #### Easing Constants (from animation-constants.ts)
-| Constant | Description |
-|----------|-------------|
-| `EASING.STANDARD` | Material standard deceleration |
-| `EASING.SPRING` | Pixar-style bounce overshoot |
-| `EASING.SPRING_GENTLE` | Subtle bounce |
-| `EASING.EXPO_OUT` | Dramatic deceleration |
-| `EASING.GENTLE` | Organic, natural |
-| `EASING.ANTICIPATE` | Wind-up before action |
+
+| Constant               | Description                    |
+| ---------------------- | ------------------------------ |
+| `EASING.STANDARD`      | Material standard deceleration |
+| `EASING.SPRING`        | Pixar-style bounce overshoot   |
+| `EASING.SPRING_GENTLE` | Subtle bounce                  |
+| `EASING.EXPO_OUT`      | Dramatic deceleration          |
+| `EASING.GENTLE`        | Organic, natural               |
+| `EASING.ANTICIPATE`    | Wind-up before action          |
 
 #### CSS Variables (from tokens.css)
-| Category | Examples |
-|----------|----------|
-| **Colors** | `--color-text-primary`, `--color-background-elevated` |
-| **Persona** | `--persona-primary`, `--persona-glow`, `--persona-tint` |
-| **Shadows** | `--shadow-sm`, `--shadow-xl`, `--shadow-glow` |
-| **Spacing** | `--space-1` to `--space-96`, `--ma-breath` to `--ma-vastness` |
-| **Radius** | `--radius-sm`, `--radius-lg`, `--radius-full` |
-| **Durations** | `--duration-fast`, `--duration-slow`, `--duration-dramatic` |
-| **Easings** | `--ease-spring`, `--ease-organic`, `--ease-gentle` |
+
+| Category      | Examples                                                      |
+| ------------- | ------------------------------------------------------------- |
+| **Colors**    | `--color-text-primary`, `--color-background-elevated`         |
+| **Persona**   | `--persona-primary`, `--persona-glow`, `--persona-tint`       |
+| **Shadows**   | `--shadow-sm`, `--shadow-xl`, `--shadow-glow`                 |
+| **Spacing**   | `--space-1` to `--space-96`, `--ma-breath` to `--ma-vastness` |
+| **Radius**    | `--radius-sm`, `--radius-lg`, `--radius-full`                 |
+| **Durations** | `--duration-fast`, `--duration-slow`, `--duration-dramatic`   |
+| **Easings**   | `--ease-spring`, `--ease-organic`, `--ease-gentle`            |
 
 ### Animation Patterns - Use Presets
 
@@ -614,7 +666,9 @@ const easing = getEasing(profile.easingPreference);
 ```
 
 ### Code Review Checklist - Design System
+
 Before submitting UI code, verify:
+
 - [ ] No hardcoded hex colors (#RRGGBB)
 - [ ] No hardcoded rgba() values
 - [ ] No hardcoded duration numbers
@@ -630,6 +684,7 @@ Before submitting UI code, verify:
 ## 🎨 BRAND COMPLIANCE - MANDATORY
 
 ### Reference Documents (MUST READ BEFORE UI WORK)
+
 - `design-system/brand/FERNI-BRAND-GUIDELINES.md` - Full brand identity guide
 - `design-system/brand/FERNI-SCREEN-GUIDELINES.md` - Digital design standards
 - `brand/ferni-design-tokens.css` - CSS variable definitions
@@ -637,6 +692,7 @@ Before submitting UI code, verify:
 ### 🚫 BRAND VIOLATIONS - NEVER DO THESE
 
 #### 1. Color Violations
+
 ```typescript
 // ❌ NEVER use these colors in Ferni UI
 purple, violet, #800080, #9b59b6  // Purple is NOT a Ferni color
@@ -651,11 +707,12 @@ pure black #000000                // Use Natural Ink #2C2520
 ```
 
 #### 2. Icon Violations
+
 ```typescript
 // ❌ NEVER use emoji as icons in UI
-icon: '💜'  // Emoji are not brand compliant
-icon: '🔥'  // Use Lucide SVG instead
-icon: '✨'  // Emojis look inconsistent
+icon: '💜'; // Emoji are not brand compliant
+icon: '🔥'; // Use Lucide SVG instead
+icon: '✨'; // Emojis look inconsistent
 
 // ✅ ALWAYS use Lucide SVG icons
 // Style: Outlined, 2px stroke weight, rounded corners
@@ -663,6 +720,7 @@ const heartIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24
 ```
 
 #### 3. Layout Violations
+
 ```typescript
 // ❌ NEVER use side panels for modals/dialogs
 position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
@@ -684,6 +742,7 @@ position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
 ```
 
 #### 4. Typography Violations
+
 ```typescript
 // ❌ NEVER use generic headings
 <h2>Menu</h2>  // Missing eyebrow, hierarchy
@@ -695,16 +754,17 @@ position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
 ```
 
 #### 5. Copy/Voice Violations
+
 ```typescript
 // ❌ NEVER use cold, corporate language
-"User Statistics"
-"Data Analytics Dashboard"
-"System Status: Connected"
+'User Statistics';
+'Data Analytics Dashboard';
+'System Status: Connected';
 
 // ✅ ALWAYS use warm, human brand voice
-"Your Stats"
-"How you're doing"
-"We're connected"
+'Your Stats';
+"How you're doing";
+"We're connected";
 
 // Brand voice is: Warm, Grounded, Wise, Present, Human
 // Reference: FERNI-BRAND-GUIDELINES.md Section 10
@@ -713,11 +773,13 @@ position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
 ## 📝 BRAND LANGUAGE - MANDATORY
 
 ### The Core Promise
+
 > **"Better than human."**
 
 This isn't arrogance—it's the truth. We offer what humans can't:
+
 - **Perfect memory** - We never forget a single detail
-- **Constant presence** - 2am gets the same warmth as noon  
+- **Constant presence** - 2am gets the same warmth as noon
 - **Zero judgment** - Pure acceptance, always
 - **Six perspectives** - Instantly available, no referrals
 - **Emotional consistency** - No bad days, no distraction
@@ -726,28 +788,29 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 
 **NEVER use these words in ANY Ferni copy:**
 
-| Forbidden | Why | Use Instead |
-|-----------|-----|-------------|
-| `chatbot` | Positions us as low-value tool | "Ferni", "your team", "we" |
-| `AI assistant` | Generic, commoditized | "six brilliant minds", "your inner circle" |
-| `virtual assistant` | Cold, transactional | "someone who understands" |
-| `bot` | Dehumanizing | Never reference what we are technically |
-| `therapist` | Legal/medical implications | "coach", "mentor", "friend" |
-| `advisor` | Legal implications (financial advice) | "coach", "mentor", "guide" |
-| `therapy` | We're life coaching, not therapy | "support", "guidance", "coaching" |
-| `typical` | Implies we're comparing to AI | Compare to HUMAN support instead |
-| `unlike other AI` | Still positions us as AI | "Beyond human limitations" |
-| `user` | Corporate, distant | "you", "people", "someone" |
-| `utilize` | Corporate jargon | "use" |
-| `leverage` | Corporate jargon | "use", "with" |
-| `solution` | Enterprise software speak | "help", "support", "way" |
-| `platform` | Tech jargon | "Ferni", or don't name it |
-| `features` | Product-speak | "what makes us different", "superpowers" |
-| `functionality` | Never | Just describe what it does |
+| Forbidden           | Why                                   | Use Instead                                |
+| ------------------- | ------------------------------------- | ------------------------------------------ |
+| `chatbot`           | Positions us as low-value tool        | "Ferni", "your team", "we"                 |
+| `AI assistant`      | Generic, commoditized                 | "six brilliant minds", "your inner circle" |
+| `virtual assistant` | Cold, transactional                   | "someone who understands"                  |
+| `bot`               | Dehumanizing                          | Never reference what we are technically    |
+| `therapist`         | Legal/medical implications            | "coach", "mentor", "friend"                |
+| `advisor`           | Legal implications (financial advice) | "coach", "mentor", "guide"                 |
+| `therapy`           | We're life coaching, not therapy      | "support", "guidance", "coaching"          |
+| `typical`           | Implies we're comparing to AI         | Compare to HUMAN support instead           |
+| `unlike other AI`   | Still positions us as AI              | "Beyond human limitations"                 |
+| `user`              | Corporate, distant                    | "you", "people", "someone"                 |
+| `utilize`           | Corporate jargon                      | "use"                                      |
+| `leverage`          | Corporate jargon                      | "use", "with"                              |
+| `solution`          | Enterprise software speak             | "help", "support", "way"                   |
+| `platform`          | Tech jargon                           | "Ferni", or don't name it                  |
+| `features`          | Product-speak                         | "what makes us different", "superpowers"   |
+| `functionality`     | Never                                 | Just describe what it does                 |
 
 ### ✅ BRAND VOICE PRINCIPLES
 
 **1. Compare to HUMANS, not AI**
+
 ```
 ❌ "Unlike other chatbots, Ferni remembers..."
 ❌ "Better than ChatGPT because..."
@@ -759,6 +822,7 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 ```
 
 **2. Lead with EMOTION, not features**
+
 ```
 ❌ "Ferni has infinite memory capabilities"
 ❌ "Our AI remembers all conversations"
@@ -768,6 +832,7 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 ```
 
 **3. Use PRESENCE language**
+
 ```
 ❌ "Available 24/7"
 ❌ "Always online"
@@ -777,6 +842,7 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 ```
 
 **4. Frame as RELATIONSHIP, not product**
+
 ```
 ❌ "Start using Ferni today"
 ❌ "Sign up for our platform"
@@ -788,23 +854,27 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 ### COPY PATTERNS TO USE
 
 **Hero Headlines:**
+
 - "Better than human."
 - "Finally, someone who gets it."
 - "What if someone actually understood?"
 - "Six brilliant minds. One conversation."
 
 **Subheads:**
+
 - "...remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon."
 - "Not just listens. Understands. Remembers. Shows up. Every time."
 - "Your best friend, therapist, and mentor all have limits. We don't."
 
 **Feature Descriptions:**
+
 - Instead of "Infinite Memory" → "That thing you mentioned six months ago? We remember."
 - Instead of "24/7 Availability" → "2am panic? We're fully present."
 - Instead of "Six Personas" → "Six perspectives, one conversation, no referrals."
 - Instead of "Emotional Intelligence" → "We hear the pause in your voice. The deflection."
 
 **CTAs:**
+
 - Instead of "Get Started" → "Begin a real conversation"
 - Instead of "Sign Up" → "Meet Ferni"
 - Instead of "Try Free" → "Start free"
@@ -813,6 +883,7 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 ### FORBIDDEN COMPARISONS
 
 **Never compare Ferni to:**
+
 - ChatGPT
 - Other AI assistants
 - Chatbots
@@ -820,6 +891,7 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 - Apps
 
 **Always compare Ferni to:**
+
 - Human therapists (we're always available)
 - Human friends (we never forget)
 - Human mentors (we have no ego)
@@ -827,17 +899,18 @@ This isn't arrogance—it's the truth. We offer what humans can't:
 
 ### TONE MODIFIERS
 
-| Context | Tone | Example |
-|---------|------|---------|
-| Hero | Confident, warm | "Better than human." |
-| Features | Matter-of-fact, specific | "We hear what you're not saying." |
-| Emotional moments | Gentle, present | "That's a lot to carry." |
-| CTAs | Inviting, low-pressure | "Begin a real conversation." |
-| Error states | Apologetic, helpful | "We got lost. Let's find our way back." |
+| Context           | Tone                     | Example                                 |
+| ----------------- | ------------------------ | --------------------------------------- |
+| Hero              | Confident, warm          | "Better than human."                    |
+| Features          | Matter-of-fact, specific | "We hear what you're not saying."       |
+| Emotional moments | Gentle, present          | "That's a lot to carry."                |
+| CTAs              | Inviting, low-pressure   | "Begin a real conversation."            |
+| Error states      | Apologetic, helpful      | "We got lost. Let's find our way back." |
 
 ### COPY REVIEW CHECKLIST
 
 Before publishing ANY copy, verify:
+
 - [ ] No forbidden words (chatbot, bot, AI assistant, virtual, typical)
 - [ ] Compares to human support, NOT other AI
 - [ ] Leads with emotion, not features
@@ -847,14 +920,15 @@ Before publishing ANY copy, verify:
 - [ ] Passes the "would a human friend say this?" test
 
 ### Persona Colors Reference
-| Persona | Primary | Secondary | Use |
-|---------|---------|-----------|-----|
-| **Ferni** | `#4a6741` | `#3d5a35` | Life coach, main |
-| **Jack** | `#9a7b5a` | `#7d6348` | Sage mentor |
-| **Peter** | `#3a6b73` | `#2d5359` | Research |
-| **Alex** | `#5a6b8a` | `#4a5a73` | Communications |
-| **Maya** | `#a67a6a` | `#8a635a` | Habits/Routines |
-| **Jordan** | `#c4856a` | `#a86d55` | Event planning |
+
+| Persona    | Primary   | Secondary | Use                 |
+| ---------- | --------- | --------- | ------------------- |
+| **Ferni**  | `#4a6741` | `#3d5a35` | Life coach, main    |
+| **Peter**  | `#3a6b73` | `#2d5359` | Research            |
+| **Alex**   | `#5a6b8a` | `#4a5a73` | Communications      |
+| **Maya**   | `#a67a6a` | `#8a635a` | Habits/Routines     |
+| **Jordan** | `#c4856a` | `#a86d55` | Event planning      |
+| **Nayan**  | `#b8956a` | `#9a7a52` | Wisdom & Philosophy |
 
 ### UI Navigation Pattern (Apple-Inspired)
 
@@ -887,6 +961,7 @@ Ferni uses the Apple navigation pattern:
 ```
 
 ### Modal Pattern (Required for all content dialogs)
+
 ```typescript
 // ✅ Brand-compliant modal structure
 `<div class="modal-overlay">
@@ -901,13 +976,14 @@ Ferni uses the Apple navigation pattern:
     </header>
     <div class="content">...</div>
   </div>
-</div>`
+</div>`;
 ```
 
 ### Required CSS Variables for Modals
+
 ```css
 .modal-backdrop {
-  background: rgba(44, 37, 32, 0.4);  /* Warm overlay */
+  background: rgba(44, 37, 32, 0.4); /* Warm overlay */
   backdrop-filter: blur(20px);
 }
 .modal-card {
@@ -918,6 +994,7 @@ Ferni uses the Apple navigation pattern:
 ```
 
 ### Toast Pattern (Required for all notifications)
+
 ```typescript
 // ✅ Brand-compliant toast - small, centered pill
 import { toast } from '../ui/toast.ui.js';
@@ -929,6 +1006,7 @@ toast.error('Something went wrong');
 ```
 
 ### Toast Rules - MANDATORY
+
 ```typescript
 // ❌ NEVER - Corner positioning
 position: fixed; bottom: 20px; right: 20px;  // Enterprise software vibes
@@ -954,47 +1032,55 @@ padding: var(--space-3) var(--space-6);
 ```
 
 ### Toast Timing
-| Type | Duration | Message Style |
-|------|----------|---------------|
-| Info | 2.5s | Short phrase |
-| Success | 2.5s | Single word |
-| Warning | 2.5s | Brief warning |
-| Error | 4s | Clear but concise |
+
+| Type    | Duration | Message Style     |
+| ------- | -------- | ----------------- |
+| Info    | 2.5s     | Short phrase      |
+| Success | 2.5s     | Single word       |
+| Warning | 2.5s     | Brief warning     |
+| Error   | 4s       | Clear but concise |
 
 ### Brand Compliance Checklist - MANDATORY
+
 Before submitting ANY UI code, verify ALL items:
 
 **Colors:**
+
 - [ ] No purple, violet, or cool colors used
-- [ ] All colors use CSS variables (--color-*, --persona-*)
+- [ ] All colors use CSS variables (--color-_, --persona-_)
 - [ ] Accent colors use persona's sage green, not purple
 - [ ] Dark theme uses warm browns, not cool grays
 
 **Icons:**
+
 - [ ] NO emoji anywhere in UI code (💜 ❌)
 - [ ] All icons are Lucide SVG format
 - [ ] Icons use 2px stroke weight, rounded corners
 - [ ] Icon color uses currentColor or CSS variable
 
 **Layout:**
+
 - [ ] Modals/dialogs are centered (not side panels)
 - [ ] Has backdrop with blur effect
 - [ ] Animates with scale/fade (not slide)
 - [ ] Close button in top-right with Lucide X icon
 
 **Typography:**
+
 - [ ] Uses eyebrow pattern for section labels
 - [ ] Headlines use Plus Jakarta Sans (--font-display)
 - [ ] Body text uses Inter (--font-body)
 - [ ] Proper hierarchy: eyebrow → title → tagline → body
 
 **Copy/Voice:**
+
 - [ ] Language is warm and human (not corporate)
 - [ ] Uses "you/your" not "user"
 - [ ] Avoids tech jargon
 - [ ] Matches brand voice: Warm, Grounded, Wise, Present
 
 **Dark Theme (WCAG AA Compliance REQUIRED):**
+
 - [ ] Tested in both light AND dark themes
 - [ ] All text meets WCAG AA contrast (4.5:1 for normal, 3:1 for large)
 - [ ] Uses design system text tokens (--color-text-primary/secondary/muted)
@@ -1010,13 +1096,16 @@ Before submitting ANY UI code, verify ALL items:
 | `--color-text-dimmed` | #ddd6cc | 4.15:1 | Large text only (18pt+) |
 
 ### Backend (Node.js)
+
 - **Structured logging** - JSON format with correlation IDs
 - **Circuit breakers** for external services
 - **Rate limiting** on public endpoints
 - **Health checks** for all services
 
 ## Code Review Checklist
+
 Before submitting code, verify:
+
 - [ ] Types are explicit (no implicit any)
 - [ ] Error cases are handled
 - [ ] Async operations are awaited
@@ -1031,6 +1120,7 @@ Before submitting code, verify:
 ## 🤖 AI Agent Guardrails
 
 ### Before EVERY Code Change
+
 ```bash
 npm run typecheck     # MUST pass before editing more files
 npm run lint          # MUST pass before suggesting deploy
@@ -1039,17 +1129,18 @@ npm run tokens:check  # MUST pass if touched design-system/
 
 ### Common AI Agent Mistakes (AVOID THESE)
 
-| Mistake | Why It Happens | Prevention |
-|---------|---------------|------------|
-| Editing `*.generated.ts` | Looks like normal code | CHECK filename for `.generated.` |
-| Hardcoded `#4a6741` | Faster than looking up var | ALWAYS use `var(--color-ferni)` |
-| Adding `console.log` | Quick debugging | ALWAYS use `createLogger()` |
-| Wrong deploy command | Similar names | CHECK deployment table in CLAUDE.md |
-| Breaking imports | Moving files | Run `npm run typecheck` IMMEDIATELY |
-| Duplicate DOM elements | HMR re-initialization | ADD `cleanupOrphanedElements()` |
-| Token drift | Edited JSON but not synced | Run `npm run tokens:sync` |
+| Mistake                  | Why It Happens             | Prevention                          |
+| ------------------------ | -------------------------- | ----------------------------------- |
+| Editing `*.generated.ts` | Looks like normal code     | CHECK filename for `.generated.`    |
+| Hardcoded `#4a6741`      | Faster than looking up var | ALWAYS use `var(--color-ferni)`     |
+| Adding `console.log`     | Quick debugging            | ALWAYS use `createLogger()`         |
+| Wrong deploy command     | Similar names              | CHECK deployment table in CLAUDE.md |
+| Breaking imports         | Moving files               | Run `npm run typecheck` IMMEDIATELY |
+| Duplicate DOM elements   | HMR re-initialization      | ADD `cleanupOrphanedElements()`     |
+| Token drift              | Edited JSON but not synced | Run `npm run tokens:sync`           |
 
 ### If Pre-commit Fails
+
 ```bash
 # Fix lint errors
 npm run lint:fix
@@ -1065,19 +1156,22 @@ git commit -m "your message"
 ```
 
 ### Generated Files (NEVER EDIT DIRECTLY)
+
 These files are auto-generated. Edit the SOURCE instead:
 
-| Generated File | Edit This Instead |
-|----------------|-------------------|
+| Generated File                     | Edit This Instead                     |
+| ---------------------------------- | ------------------------------------- |
 | `animation-constants.generated.ts` | `design-system/tokens/animation.json` |
-| `persona-colors.generated.ts` | `design-system/tokens/colors.json` |
-| `sounds.generated.ts` | `design-system/assets/sounds/` |
-| `tailwind.config.generated.js` | `design-system/tokens/colors.json` |
-| `promo/.../design-tokens.css` | `design-system/tokens/*.json` |
-| `brand/ferni-design-tokens.css` | `design-system/tokens/*.json` |
+| `persona-colors.generated.ts`      | `design-system/tokens/colors.json`    |
+| `sounds.generated.ts`              | `design-system/assets/sounds/`        |
+| `tailwind.config.generated.js`     | `design-system/tokens/colors.json`    |
+| `promo/.../design-tokens.css`      | `design-system/tokens/*.json`         |
+| `brand/ferni-design-tokens.css`    | `design-system/tokens/*.json`         |
 
 ## Import Organization
+
 Imports should be ordered:
+
 1. Node.js built-ins (`fs`, `path`)
 2. External packages (`@livekit/agents`)
 3. Internal modules (`../services/`)
@@ -1098,9 +1192,9 @@ import type { UserProfile } from '../types/user.js';
 ```
 
 ## When In Doubt
+
 1. **Readability over cleverness** - Code is read 10x more than written
 2. **Explicit over implicit** - Make behavior obvious
 3. **Composition over inheritance** - Prefer small, composable pieces
 4. **Fail fast, fail loud** - Catch errors early with clear messages
 5. **Test behavior, not implementation** - Tests should survive refactors
-

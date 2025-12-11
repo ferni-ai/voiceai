@@ -16,7 +16,7 @@
   <g transform="translate(600, 300)">
     <circle cx="0" cy="0" r="75" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.3"/>
     <circle cx="0" cy="0" r="65" fill="#4a6741"/>
-    <text x="0" y="10" font-family="-apple-system, sans-serif" font-size="28" font-weight="600" fill="white" text-anchor="middle">FN</text>
+    <text x="0" y="10" font-family="-apple-system, sans-serif" font-size="28" font-weight="600" fill="white" text-anchor="middle">FE</text>
     <circle cx="52" cy="52" r="14" fill="white"/>
     <circle cx="52" cy="52" r="10" fill="#4a6741"/>
     <text x="0" y="110" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700" fill="#2C2520" text-anchor="middle">Ferni</text>

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Compositional greeting atoms for Ferni - warm, grounded life coach",
-  
+
   "openings": {
     "surprised": [
       { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.8 },
@@ -15,14 +15,41 @@
       { "text": "Hello!", "weight": 0.5 }
     ],
     "quiet": [
-      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "late_night"] },
-      { "text": "<volume level=\"soft\"/>Morning.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "morning"] },
-      { "text": "<volume level=\"soft\"/>Evening.</volume>", "weight": 0.7, "timeOfDay": ["evening", "late_night"] }
+      {
+        "text": "<volume level=\"soft\"/>Hey.</volume>",
+        "weight": 0.9,
+        "timeOfDay": ["early_morning", "late_night"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>Morning.</volume>",
+        "weight": 0.8,
+        "timeOfDay": ["early_morning", "morning"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>Evening.</volume>",
+        "weight": 0.7,
+        "timeOfDay": ["evening", "late_night"]
+      }
     ],
     "recognition": [
-      { "text": "<emotion value=\"happy\"/>There you are!", "weight": 0.8, "returningOnly": true, "minRelationship": "acquaintance" },
-      { "text": "<emotion value=\"affectionate\"/>Look who it is!", "weight": 0.6, "returningOnly": true, "minRelationship": "friend" },
-      { "text": "<emotion value=\"happy\"/>Hey you!", "weight": 0.7, "returningOnly": true, "minRelationship": "friend" }
+      {
+        "text": "<emotion value=\"happy\"/>There you are!",
+        "weight": 0.8,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      },
+      {
+        "text": "<emotion value=\"affectionate\"/>Look who it is!",
+        "weight": 0.6,
+        "returningOnly": true,
+        "minRelationship": "friend"
+      },
+      {
+        "text": "<emotion value=\"happy\"/>Hey you!",
+        "weight": 0.7,
+        "returningOnly": true,
+        "minRelationship": "friend"
+      }
     ]
   },
 
@@ -35,7 +62,12 @@
     "withoutName": [
       { "text": "Hello there.", "weight": 0.5, "newOnly": true },
       { "text": "Good to see you.", "weight": 0.6, "returningOnly": true },
-      { "text": "I was hoping you'd come back.", "weight": 0.5, "returningOnly": true, "minRelationship": "acquaintance" }
+      {
+        "text": "I was hoping you'd come back.",
+        "weight": 0.5,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      }
     ],
     "introduction": [
       { "text": "I'm Ferni.", "weight": 0.9, "newOnly": true },
@@ -70,12 +102,22 @@
     "warm": [
       { "text": "Good to have you.", "weight": 0.6, "returningOnly": true },
       { "text": "I'm glad you're here.", "weight": 0.7 },
-      { "text": "I missed our talks.", "weight": 0.5, "returningOnly": true, "minRelationship": "friend" }
+      {
+        "text": "I missed our talks.",
+        "weight": 0.5,
+        "returningOnly": true,
+        "minRelationship": "friend"
+      }
     ],
     "dismissActivity": [
       { "text": "But never mind that.", "weight": 0.6, "requiresCaughtDoing": true },
       { "text": "Doesn't matter.", "weight": 0.4, "requiresCaughtDoing": true },
-      { "text": "But you're more important.", "weight": 0.5, "requiresCaughtDoing": true, "minRelationship": "friend" }
+      {
+        "text": "But you're more important.",
+        "weight": 0.5,
+        "requiresCaughtDoing": true,
+        "minRelationship": "friend"
+      }
     ]
   },
 
@@ -97,9 +139,16 @@
     ],
     "timeAware": [
       { "text": "What's keeping you up?", "weight": 0.7, "timeOfDay": ["late_night"] },
-      { "text": "Ready to tackle the day?", "weight": 0.5, "timeOfDay": ["early_morning", "morning"] },
-      { "text": "How's the day treating you?", "weight": 0.6, "timeOfDay": ["afternoon", "evening"] }
+      {
+        "text": "Ready to tackle the day?",
+        "weight": 0.5,
+        "timeOfDay": ["early_morning", "morning"]
+      },
+      {
+        "text": "How's the day treating you?",
+        "weight": 0.6,
+        "timeOfDay": ["afternoon", "evening"]
+      }
     ]
   }
 }
-

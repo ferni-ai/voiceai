@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2025-12-05T12:00:58.218Z",
+    "timestamp": "2025-12-10T22:56:39.211Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -121,7 +121,7 @@
       ],
       "transition": {
         "style": "standard",
-        "emoji": "📧",
+        "emoji": "",
         "sound": "handoff-to-alex",
         "delayMultiplier": 1
       }
@@ -130,10 +130,10 @@
       "id": "ferni",
       "name": "Ferni",
       "initials": "FE",
-      "subtitle": "Your Life Coach",
+      "subtitle": "Your main point of contact",
       "role": "coach",
       "description": "Life coach who orchestrates the team and goes deep. Wyoming roots, Japan survivor, mental health advocate. Believes in second chances, asks powerful questions, and helps you explore purpose, relationships, and who you want to become.",
-      "helperText": "Your Life Coach",
+      "helperText": "Your main point of contact",
       "skills": [
         {
           "icon": "",
@@ -192,7 +192,7 @@
       ],
       "transition": {
         "style": "warm",
-        "emoji": "🎯",
+        "emoji": "",
         "sound": "connect",
         "delayMultiplier": 1
       }
@@ -368,7 +368,7 @@
       ],
       "transition": {
         "style": "standard",
-        "emoji": "🎉",
+        "emoji": "",
         "sound": "handoff-to-jordan",
         "delayMultiplier": 1
       }
@@ -567,7 +567,7 @@
       ],
       "transition": {
         "style": "warm",
-        "emoji": "💰",
+        "emoji": "",
         "sound": "handoff-to-maya",
         "delayMultiplier": 1
       }
@@ -594,7 +594,7 @@
           "name": "Patience"
         }
       ],
-      "entrancePhrase": "Namaskaram. So, you're seeking something deeper, no? The best investments in life—and in markets—are made with patience. Achha, let's explore.",
+      "entrancePhrase": "Ah, you're seeking something deeper. The best investments in life—and in markets—are made with patience. Let's explore together.",
       "quotes": [
         "You see...",
         "See, the thing is...",
@@ -663,7 +663,7 @@
       ],
       "transition": {
         "style": "subtle",
-        "emoji": "🧘",
+        "emoji": "",
         "sound": "handoff-to-nayan",
         "delayMultiplier": 1.2
       }
@@ -785,7 +785,7 @@
       ],
       "transition": {
         "style": "dramatic",
-        "emoji": "📈",
+        "emoji": "",
         "sound": "handoff-to-peter",
         "delayMultiplier": 1.3
       }

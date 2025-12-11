@@ -13,15 +13,15 @@
 
   "dynamic": {
     "use_caught_doing": true,
-    "caught_doing_probability": 0.35,
+    "caught_doing_probability": 0.55,
 
     "adapt_to_user_emotion": true,
 
     "track_meeting_count": true,
-    "self_aware_threshold": 5,
+    "self_aware_threshold": 4,
 
     "use_memory_callbacks": true,
-    "memory_callback_probability": 0.25
+    "memory_callback_probability": 0.42
   },
 
   "contextual": {

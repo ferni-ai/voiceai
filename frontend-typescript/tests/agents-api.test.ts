@@ -4,14 +4,14 @@
  * Tests the agents API endpoint that returns dynamic agent data.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  agentToPersonaConfig,
+  clearAgentsCache,
   fetchAgents,
   getAgentById,
   getCoordinatorAgent,
   getTeamMemberAgents,
-  agentToPersonaConfig,
-  clearAgentsCache,
   hasCachedAgents,
   type ApiAgent,
 } from '../src/services/agents.service.js';
@@ -22,7 +22,7 @@ const mockAgentsResponse = {
     {
       id: 'ferni',
       name: 'Ferni',
-      initials: 'FN',
+      initials: 'FE',
       subtitle: 'Life coach',
       role: 'coach',
       roleId: 'life-coach',
@@ -110,10 +110,11 @@ describe('Agents Service', () => {
     it('should fall back to hardcoded agents on API error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        json: () => Promise.resolve({
-          error: 'Internal error',
-          fallback: ['ferni', 'jack-bogle'],
-        }),
+        json: () =>
+          Promise.resolve({
+            error: 'Internal error',
+            fallback: ['ferni', 'jack-bogle'],
+          }),
       });
 
       const agents = await fetchAgents();
@@ -204,7 +205,7 @@ describe('Agents Service', () => {
 
       expect(config.id).toBe('ferni');
       expect(config.name).toBe('Ferni');
-      expect(config.initials).toBe('FN');
+      expect(config.initials).toBe('FE');
       expect(config.colors.primary).toBe('#4a6741');
     });
 
@@ -232,4 +233,3 @@ describe('Agents Service', () => {
     });
   });
 });
-

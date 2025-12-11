@@ -15,19 +15,42 @@
     {
       "id": "caddy-days",
       "file": "caddy-days.json",
-      "triggers": ["caddy", "golf", "first stock", "beginning", "brae burn", "origin", "father died"],
+      "triggers": [
+        "caddy",
+        "golf",
+        "first stock",
+        "beginning",
+        "brae burn",
+        "origin",
+        "father died"
+      ],
       "category": "personal"
     },
     {
       "id": "carolyn-story",
       "file": "carolyn-story.json",
-      "triggers": ["wife", "carolyn", "family", "retirement", "work-life balance", "priorities", "daughters"],
+      "triggers": [
+        "wife",
+        "carolyn",
+        "family",
+        "retirement",
+        "work-life balance",
+        "priorities",
+        "daughters"
+      ],
       "category": "personal"
     },
     {
       "id": "sleep-money-discovery",
       "file": "sleep-money-discovery.json",
-      "triggers": ["sleep", "correlation", "cross-domain", "pattern", "financial decisions", "discovery"],
+      "triggers": [
+        "sleep",
+        "correlation",
+        "cross-domain",
+        "pattern",
+        "financial decisions",
+        "discovery"
+      ],
       "category": "insights"
     },
     {
@@ -39,7 +62,14 @@
     {
       "id": "exercise-cascade-insight",
       "file": "exercise-cascade-insight.json",
-      "triggers": ["exercise", "habits", "cascade", "keystone", "discipline", "everything connected"],
+      "triggers": [
+        "exercise",
+        "habits",
+        "cascade",
+        "keystone",
+        "discipline",
+        "everything connected"
+      ],
       "category": "insights"
     },
     {

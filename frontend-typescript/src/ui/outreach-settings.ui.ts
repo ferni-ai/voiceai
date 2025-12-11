@@ -184,21 +184,21 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-sms" ${currentPreferences.channels.sms ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
-                  <span class="outreach-settings-channel-icon">📱</span>
+                  <span class="outreach-settings-channel-icon"></span>
                   <span class="outreach-settings-channel-name">Text (SMS)</span>
                 </div>
               </label>
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-email" ${currentPreferences.channels.email ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
-                  <span class="outreach-settings-channel-icon">📧</span>
+                  <span class="outreach-settings-channel-icon"></span>
                   <span class="outreach-settings-channel-name">Email</span>
                 </div>
               </label>
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-call" ${currentPreferences.channels.call ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
-                  <span class="outreach-settings-channel-icon">📞</span>
+                  <span class="outreach-settings-channel-icon"></span>
                   <span class="outreach-settings-channel-name">Phone Call</span>
                 </div>
               </label>

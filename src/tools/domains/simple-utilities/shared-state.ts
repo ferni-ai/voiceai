@@ -8,7 +8,10 @@
  */
 
 // Active timers by user
-export const activeTimers = new Map<string, { timeout: NodeJS.Timeout; label: string; endTime: Date }>();
+export const activeTimers = new Map<
+  string,
+  { timeout: NodeJS.Timeout; label: string; endTime: Date }
+>();
 
 // Quick notes by user (transient, session-only)
 export const quickNotes = new Map<string, Array<{ note: string; createdAt: Date }>>();

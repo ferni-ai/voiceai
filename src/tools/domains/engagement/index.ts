@@ -50,11 +50,7 @@ import {
 } from './life-planning-games.js';
 
 // Wisdom engagement (Nayan's games)
-import {
-  paradoxOfTheDayDef,
-  questionBeneathDef,
-  wisdomGameDefinitions,
-} from './wisdom-games.js';
+import { paradoxOfTheDayDef, questionBeneathDef, wisdomGameDefinitions } from './wisdom-games.js';
 
 // Analytics engagement (Peter's games)
 import {

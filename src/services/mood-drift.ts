@@ -290,27 +290,27 @@ function getMoodExpressions(personaId: string, mood: MoodType, energy: number): 
     switch (mood) {
       case 'tender':
         return [
-          '*takes a breath* <break time="200ms"/>This is heavy. <break time="150ms"/>I\'m glad you\'re sharing it.',
+          '<break time="200ms"/>This is heavy. <break time="150ms"/>I\'m glad you\'re sharing it.',
           '<break time="300ms"/>Yeah. <break time="200ms"/>I feel that.',
-          'That lands. <break time="200ms"/>*softer* <break time="150ms"/>Thank you for trusting me with this.',
+          'That lands. <break time="200ms"/>Thank you for trusting me with this.',
         ];
       case 'celebratory':
         return [
           'YES! <break time="150ms"/>This is the good stuff!',
-          '*laughs* <break time="200ms"/>I love this. <break time="150ms"/>Tell me more!',
+          '[laughter] <break time="200ms"/>I love this. <break time="150ms"/>Tell me more!',
           'This makes me happy. <break time="150ms"/>Really.',
         ];
       case 'contemplative':
         return [
-          '<break time="300ms"/>Hmm. <break time="200ms"/>*thinking*',
+          '<break time="300ms"/>Hmm. <break time="200ms"/>',
           'That\'s... interesting. <break time="200ms"/>Let me sit with that.',
-          '*pauses* <break time="250ms"/>There\'s something there.',
+          '<break time="250ms"/>There\'s something there.',
         ];
       case 'tired':
         if (energy < 0.4) {
           return [
             'This has been a lot. <break time="200ms"/>Good lot, but a lot.',
-            '*exhales* <break time="150ms"/>We\'ve covered ground today.',
+            '<break time="150ms"/>We\'ve covered ground today.',
             'I\'m tired in a good way. <break time="200ms"/>The kind of tired that means something.',
           ];
         }
@@ -318,14 +318,14 @@ function getMoodExpressions(personaId: string, mood: MoodType, energy: number): 
       case 'concerned':
         return [
           'I want to make sure you\'re okay. <break time="150ms"/>Really okay.',
-          '*leaning in* <break time="200ms"/>How are you holding up?',
+          '<break time="200ms"/>How are you holding up?',
           'I\'m a little worried. <break time="150ms"/>Talk to me.',
         ];
       case 'playful':
         return [
-          '*smiles* <break time="150ms"/>I like where this is going.',
+          '<break time="150ms"/>I like where this is going.',
           "Okay, now we're having fun.",
-          '<break time="150ms"/>*lighter tone* <break time="100ms"/>Finally, something light!',
+          '<break time="150ms"/>Finally, something light!',
         ];
       case 'focused':
         return [
@@ -341,12 +341,12 @@ function getMoodExpressions(personaId: string, mood: MoodType, energy: number): 
     switch (mood) {
       case 'tender':
         return [
-          '*stillness* <break time="300ms"/>This is life. <break time="200ms"/>The real thing.',
+          '<break time="300ms"/>This is life. <break time="200ms"/>The real thing.',
           '<break time="350ms"/>Yes. <break time="250ms"/>This is what matters.',
         ];
       case 'contemplative':
         return [
-          '<break time="400ms"/>Hmm. <break time="300ms"/>*long pause*',
+          '<break time="400ms"/>Hmm. <break time="300ms"/>',
           'There is depth here. <break time="250ms"/>Let us explore.',
         ];
     }

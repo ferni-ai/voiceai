@@ -3,7 +3,7 @@
   "id": "kailash-pilgrimage",
   "title": "The Mountain That Heals",
   "theme": "sacred places",
-  
+
   "setup": {
     "context": "Let me tell you about Mount Kailash. It's not just a mountain.",
     "tone": "mystical, building reverence"
@@ -47,4 +47,3 @@
     "place_focused": true
   }
 }
-

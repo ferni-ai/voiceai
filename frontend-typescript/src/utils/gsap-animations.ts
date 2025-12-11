@@ -1,18 +1,18 @@
 /**
  * GSAP Animation Utilities
- * 
+ *
  * Leverages GSAP for complex, high-performance animations that benefit from:
  * - GPU acceleration (automatic with transforms)
  * - Smart batching and auto-optimization
  * - Timeline sequencing with scrubbing
  * - Advanced easing and physics
- * 
+ *
  * All durations use centralized DURATION constants from animation-constants.ts
  */
 
 // Import gsap from our setup file to ensure plugins are registered
-import { gsap } from './gsap-setup.js';
 import { DURATION, STAGGER } from '../config/animation-constants.js';
+import { gsap } from './gsap-setup.js';
 
 // ============================================================================
 // GSAP Duration Helpers (converts ms to seconds for GSAP)
@@ -28,11 +28,11 @@ const toSeconds = (ms: number) => ms / 1000;
  * Force GPU layer promotion for an element
  * Call this on elements that will animate frequently
  * NOTE: willChange removed - causes visible box bug in Safari
- * GSAP's force3D handles GPU acceleration internally
+ * GSAP's force3D config handles GPU acceleration globally
  */
 export function promoteToGPU(_element: HTMLElement): void {
   // NOTE: GPU promotion disabled - Safari shows visible containment boxes
-  // GSAP's force3D:'auto' default handles GPU when needed
+  // GSAP's force3D config (set in initGSAP) handles GPU when needed
 }
 
 /**
@@ -40,8 +40,7 @@ export function promoteToGPU(_element: HTMLElement): void {
  */
 export function demoteFromGPU(element: HTMLElement): void {
   gsap.set(element, {
-    force3D: 'auto',
-    willChange: 'auto'
+    willChange: 'auto',
   });
 }
 
@@ -51,7 +50,7 @@ export function demoteFromGPU(element: HTMLElement): void {
  */
 export function promoteAllToGPU(_selector: string): void {
   // NOTE: GPU promotion disabled - Safari shows visible containment boxes
-  // GSAP's force3D:'auto' default handles GPU when needed
+  // GSAP's force3D config (set in initGSAP) handles GPU when needed
 }
 
 // ============================================================================
@@ -67,7 +66,6 @@ export function animateButtonPress(button: HTMLElement): gsap.core.Tween {
     scale: 0.95,
     duration: toSeconds(DURATION.FAST_PRESS),
     ease: 'power2.out',
-    force3D: true
   });
 }
 
@@ -79,7 +77,6 @@ export function animateButtonRelease(button: HTMLElement): gsap.core.Tween {
     scale: 1,
     duration: toSeconds(DURATION.STANDARD),
     ease: 'elastic.out(1, 0.5)',
-    force3D: true
   });
 }
 
@@ -92,33 +89,36 @@ export function animatePersonaSwitch(
   onComplete?: () => void
 ): gsap.core.Timeline {
   const tl = gsap.timeline({
-    onComplete
+    onComplete,
   });
 
   // Outgoing persona fades and shrinks
   if (outgoing) {
-    tl.to(outgoing, {
-      scale: 0.9,
-      opacity: 0.3,
-      duration: toSeconds(DURATION.NORMAL),
-      ease: 'power2.in',
-      force3D: true
-    }, 0);
+    tl.to(
+      outgoing,
+      {
+        scale: 0.9,
+        opacity: 0.3,
+        duration: toSeconds(DURATION.NORMAL),
+        ease: 'power2.in',
+      },
+      0
+    );
   }
 
   // Incoming persona grows and brightens
-  tl.fromTo(incoming, 
-    { 
-      scale: 0.85, 
-      opacity: 0.5 
+  tl.fromTo(
+    incoming,
+    {
+      scale: 0.85,
+      opacity: 0.5,
     },
     {
       scale: 1,
       opacity: 1,
       duration: toSeconds(DURATION.SLOW),
       ease: 'back.out(1.7)',
-      force3D: true
-    }, 
+    },
     outgoing ? toSeconds(DURATION.FAST) : 0
   );
 
@@ -130,12 +130,13 @@ export function animatePersonaSwitch(
  */
 export function animateTeamReveal(members: HTMLElement[]): gsap.core.Timeline {
   const tl = gsap.timeline();
-  
-  tl.fromTo(members,
+
+  tl.fromTo(
+    members,
     {
       y: 20,
       opacity: 0,
-      scale: 0.8
+      scale: 0.8,
     },
     {
       y: 0,
@@ -145,9 +146,8 @@ export function animateTeamReveal(members: HTMLElement[]): gsap.core.Timeline {
       ease: 'back.out(1.4)',
       stagger: {
         each: toSeconds(STAGGER.RELAXED),
-        from: 'start'
+        from: 'start',
       },
-      force3D: true
     }
   );
 
@@ -165,9 +165,8 @@ export function createWaveformAnimation(bars: HTMLElement[]): gsap.core.Tween {
     stagger: {
       each: toSeconds(STAGGER.TIGHT),
       repeat: -1,
-      yoyo: true
+      yoyo: true,
     },
-    force3D: true
   });
 }
 
@@ -181,7 +180,6 @@ export function createBreathingAnimation(avatar: HTMLElement): gsap.core.Tween {
     ease: 'sine.inOut',
     repeat: -1,
     yoyo: true,
-    force3D: true
   });
 }
 
@@ -189,7 +187,7 @@ export function createBreathingAnimation(avatar: HTMLElement): gsap.core.Tween {
  * Pixar-style reaction - squash and stretch
  */
 export function animateReaction(
-  element: HTMLElement, 
+  element: HTMLElement,
   type: 'nod' | 'shake' | 'bounce' | 'curious'
 ): gsap.core.Timeline {
   const tl = gsap.timeline();
@@ -202,24 +200,24 @@ export function animateReaction(
         y: 3,
         rotation: 3,
         duration: toSeconds(DURATION.FAST),
-        ease: 'power2.out'
+        ease: 'power2.out',
       })
-      .to(element, {
-        scaleY: 1.05,
-        scaleX: 0.95,
-        y: -5,
-        rotation: -2,
-        duration: toSeconds(DURATION.FAST_RELEASE),
-        ease: 'power2.out'
-      })
-      .to(element, {
-        scaleY: 1,
-        scaleX: 1,
-        y: 0,
-        rotation: 0,
-        duration: toSeconds(DURATION.STANDARD),
-        ease: 'elastic.out(1, 0.5)'
-      });
+        .to(element, {
+          scaleY: 1.05,
+          scaleX: 0.95,
+          y: -5,
+          rotation: -2,
+          duration: toSeconds(DURATION.FAST_RELEASE),
+          ease: 'power2.out',
+        })
+        .to(element, {
+          scaleY: 1,
+          scaleX: 1,
+          y: 0,
+          rotation: 0,
+          duration: toSeconds(DURATION.STANDARD),
+          ease: 'elastic.out(1, 0.5)',
+        });
       break;
 
     case 'shake':
@@ -227,26 +225,26 @@ export function animateReaction(
         x: -4,
         rotation: -2,
         scaleX: 0.98,
-        duration: toSeconds(DURATION.FAST_PRESS)
+        duration: toSeconds(DURATION.FAST_PRESS),
       })
-      .to(element, {
-        x: 4,
-        rotation: 2,
-        scaleX: 1.02,
-        duration: toSeconds(DURATION.FAST_PRESS)
-      })
-      .to(element, {
-        x: -2,
-        rotation: -1,
-        duration: toSeconds(DURATION.FAST_PRESS)
-      })
-      .to(element, {
-        x: 0,
-        rotation: 0,
-        scaleX: 1,
-        duration: toSeconds(DURATION.FAST_RELEASE),
-        ease: 'power2.out'
-      });
+        .to(element, {
+          x: 4,
+          rotation: 2,
+          scaleX: 1.02,
+          duration: toSeconds(DURATION.FAST_PRESS),
+        })
+        .to(element, {
+          x: -2,
+          rotation: -1,
+          duration: toSeconds(DURATION.FAST_PRESS),
+        })
+        .to(element, {
+          x: 0,
+          rotation: 0,
+          scaleX: 1,
+          duration: toSeconds(DURATION.FAST_RELEASE),
+          ease: 'power2.out',
+        });
       break;
 
     case 'bounce':
@@ -256,29 +254,29 @@ export function animateReaction(
         scaleY: 0.92,
         y: 2,
         duration: toSeconds(DURATION.FAST),
-        ease: 'power2.in'
+        ease: 'power2.in',
       })
-      .to(element, {
-        scaleX: 0.94,
-        scaleY: 1.08,
-        y: -15,
-        duration: toSeconds(DURATION.NORMAL),
-        ease: 'power2.out'
-      })
-      .to(element, {
-        scaleX: 1.1,
-        scaleY: 0.9,
-        y: 0,
-        duration: toSeconds(DURATION.FAST_RELEASE),
-        ease: 'power2.in'
-      })
-      .to(element, {
-        scaleX: 1,
-        scaleY: 1,
-        y: 0,
-        duration: toSeconds(DURATION.SLOW),
-        ease: 'elastic.out(1, 0.3)'
-      });
+        .to(element, {
+          scaleX: 0.94,
+          scaleY: 1.08,
+          y: -15,
+          duration: toSeconds(DURATION.NORMAL),
+          ease: 'power2.out',
+        })
+        .to(element, {
+          scaleX: 1.1,
+          scaleY: 0.9,
+          y: 0,
+          duration: toSeconds(DURATION.FAST_RELEASE),
+          ease: 'power2.in',
+        })
+        .to(element, {
+          scaleX: 1,
+          scaleY: 1,
+          y: 0,
+          duration: toSeconds(DURATION.SLOW),
+          ease: 'elastic.out(1, 0.3)',
+        });
       break;
 
     case 'curious':
@@ -287,13 +285,12 @@ export function animateReaction(
         rotation: -8,
         y: -3,
         duration: toSeconds(DURATION.SLOW),
-        ease: 'power2.out'
-      })
-      .to(element, {
+        ease: 'power2.out',
+      }).to(element, {
         rotation: 0,
         y: 0,
         duration: toSeconds(DURATION.DELIBERATE),
-        ease: 'elastic.out(1, 0.5)'
+        ease: 'elastic.out(1, 0.5)',
       });
       break;
   }
@@ -310,7 +307,7 @@ export function animateEnergyTransfer(
   color: string
 ): gsap.core.Timeline {
   const tl = gsap.timeline();
-  
+
   // Create particle effect
   const particle = document.createElement('div');
   particle.style.cssText = `
@@ -331,7 +328,7 @@ export function animateEnergyTransfer(
 
   gsap.set(particle, {
     x: fromRect.left + fromRect.width / 2,
-    y: fromRect.top + fromRect.height / 2
+    y: fromRect.top + fromRect.height / 2,
   });
 
   tl.to(particle, {
@@ -339,34 +336,40 @@ export function animateEnergyTransfer(
     y: toRect.top + toRect.height / 2,
     scale: 1.5,
     duration: toSeconds(DURATION.MODERATE),
-    ease: 'power2.inOut'
-  })
-  .to(particle, {
+    ease: 'power2.inOut',
+  }).to(particle, {
     scale: 0,
     opacity: 0,
     duration: toSeconds(DURATION.NORMAL),
     ease: 'power2.in',
-    onComplete: () => particle.remove()
+    onComplete: () => particle.remove(),
   });
 
   // Pulse outgoing
-  tl.to(from, {
-    scale: 0.95,
-    filter: 'brightness(0.8)',
-    duration: toSeconds(DURATION.NORMAL)
-  }, 0);
+  tl.to(
+    from,
+    {
+      scale: 0.95,
+      filter: 'brightness(0.8)',
+      duration: toSeconds(DURATION.NORMAL),
+    },
+    0
+  );
 
   // Pulse incoming
-  tl.to(to, {
-    scale: 1.1,
-    filter: 'brightness(1.3)',
-    duration: toSeconds(DURATION.NORMAL)
-  }, toSeconds(DURATION.NORMAL))
-  .to(to, {
+  tl.to(
+    to,
+    {
+      scale: 1.1,
+      filter: 'brightness(1.3)',
+      duration: toSeconds(DURATION.NORMAL),
+    },
+    toSeconds(DURATION.NORMAL)
+  ).to(to, {
     scale: 1,
     filter: 'brightness(1)',
     duration: toSeconds(DURATION.SLOW),
-    ease: 'power2.out'
+    ease: 'power2.out',
   });
 
   return tl;
@@ -381,36 +384,31 @@ export const GSAP_PRESETS = {
   micro: {
     duration: toSeconds(DURATION.MICRO),
     ease: 'power2.out',
-    force3D: true
   },
-  
+
   // Standard UI feedback
   feedback: {
     duration: toSeconds(DURATION.FAST),
     ease: 'power2.out',
-    force3D: true
   },
-  
+
   // Spring animation
   spring: {
     duration: toSeconds(DURATION.STANDARD),
     ease: 'elastic.out(1, 0.5)',
-    force3D: true
   },
-  
+
   // Deliberate transition
   transition: {
     duration: toSeconds(DURATION.DELIBERATE),
     ease: 'power3.inOut',
-    force3D: true
   },
-  
+
   // Dramatic entrance
   entrance: {
     duration: toSeconds(DURATION.DRAMATIC),
     ease: 'back.out(1.7)',
-    force3D: true
-  }
+  },
 } as const;
 
 // ============================================================================
@@ -475,17 +473,17 @@ export function resumeAllAnimations(): void {
  * Initialize GSAP with optimal settings
  */
 export function initGSAP(): void {
-  // Set global defaults
-  // NOTE: force3D: true for GPU acceleration, but willChange is NOT set (Safari bug)
+  // Set global defaults for tweens
   gsap.defaults({
     overwrite: 'auto',
-    force3D: true // GPU acceleration via transforms - this is fine, willChange was the issue
   });
 
-  // Optimize for transforms (GPU accelerated)
+  // Configure GSAP global settings
+  // NOTE: force3D is a CONFIG option in GSAP 3, not a tween property
   gsap.config({
     autoSleep: 60,
-    nullTargetWarn: false
+    nullTargetWarn: false,
+    force3D: true, // GPU acceleration via 3D transforms
   });
 
   // Handle visibility changes

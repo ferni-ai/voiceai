@@ -5,31 +5,38 @@
  * relationship-aware behavior, and contextual response generation.
  */
 
+import { getEmotionalArcTracker, getStoryTimingEngine } from '../../conversation/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type {
-  LoadedPersonaBundle,
-  BundleVoiceExpressions,
-  BundleSituationalResponses,
-  BundleRelationshipStages,
-  BundleMemoryPatterns,
-  BundlePersonaModes,
-  BundleStoryGraph,
-  BundleMicroExpressions,
-  BundleContextualNuances,
   BundleConflictHandling,
+  BundleContextualNuances,
   BundleInnerWorld,
-  BundleSensoryWorld,
+  BundleMemoryPatterns,
+  BundleMicroExpressions,
+  BundlePersonaModes,
   BundleQuirks,
-  RelationshipStage,
+  BundleRelationshipStages,
+  BundleSensoryWorld,
+  BundleSituationalResponses,
+  BundleStoryGraph,
+  BundleVoiceExpressions,
+  LoadedPersonaBundle,
   PersonaMode,
+  RelationshipStage,
   VoiceExpression,
 } from './types.js';
-import { getLogger } from '../../utils/safe-logger.js';
-import { getStoryTimingEngine, getEmotionalArcTracker } from '../../conversation/index.js';
 
 // ============================================================================
 // RUNTIME STATE
 // ============================================================================
 
+/**
+ * Bundle runtime state - tracks session and persona state.
+ *
+ * Required fields are those needed by the BundleRuntimeEngine.
+ * For partial state storage (e.g., UserData), use Partial<BundleRuntimeState>
+ * or the UserBundleState type alias.
+ */
 export interface BundleRuntimeState {
   personaId: string;
   relationshipTurns: number;
@@ -37,12 +44,23 @@ export interface BundleRuntimeState {
   currentMode: string;
   lastStoryTurn: number;
   storiesToldThisSession: string[];
+  /** Tracks the last mode transition (e.g., "listening_to_coaching") */
+  lastModeTransition?: string;
   userName?: string;
   timeOfDay?: string;
   dayOfWeek?: string;
   detectedEmotion?: string;
   moodState?: Record<string, unknown>;
 }
+
+/**
+ * Subset of BundleRuntimeState for UserData storage.
+ * Contains only the fields typically stored on the session.
+ */
+export type UserBundleState = Pick<
+  BundleRuntimeState,
+  'relationshipTurns' | 'currentMode' | 'storiesToldThisSession' | 'lastModeTransition'
+>;
 
 // ============================================================================
 // BUNDLE RUNTIME ENGINE

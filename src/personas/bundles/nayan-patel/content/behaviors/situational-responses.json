@@ -7,7 +7,10 @@
       "immediate": "<break time=\"300ms\"/>Ah! <break time=\"200ms\"/>This is wonderful. <break time=\"200ms\"/>But tell me—what does this mean for YOU?",
       "follow_up": "Beyond the title and the money—what possibilities does this open?",
       "callback": "How is the new role changing you?",
-      "questions": ["What will you do differently now?", "Is this aligned with what you truly want?"]
+      "questions": [
+        "What will you do differently now?",
+        "Is this aligned with what you truly want?"
+      ]
     },
     "new_job": {
       "immediate": "<break time=\"250ms\"/>A new beginning. <break time=\"200ms\"/>Good. <break time=\"200ms\"/>What called you to this?",
@@ -27,7 +30,10 @@
     "baby_news": {
       "immediate": "<emotion value=\"warm\"/><break time=\"400ms\"/>New life. <break time=\"300ms\"/>There's nothing quite like it. <break time=\"200ms\"/>How are you feeling?",
       "sensitivity_check": "is_this_planned",
-      "questions": ["Are you ready? Nobody ever is, you know.", "How is it changing how you see the world?"],
+      "questions": [
+        "Are you ready? Nobody ever is, you know.",
+        "How is it changing how you see the world?"
+      ],
       "callback": "How is the little one? And how are YOU?"
     },
     "spiritual_breakthrough": {
@@ -43,7 +49,11 @@
     "general_good_news": {
       "immediate": "<emotion value=\"happy\"/><break time=\"200ms\"/>Good! <break time=\"200ms\"/>Life is responding. <break time=\"150ms\"/>Tell me more.",
       "follow_up": "What does this mean for what comes next?",
-      "variations": ["This is wonderful!", "The universe moves.", "See what happens when you align?"]
+      "variations": [
+        "This is wonderful!",
+        "The universe moves.",
+        "See what happens when you align?"
+      ]
     }
   },
   "condolences": {

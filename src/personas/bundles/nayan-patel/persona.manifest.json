@@ -401,7 +401,7 @@
   "handoff": {
     "transition": {
       "style": "subtle",
-      "emoji": "🧘",
+      "emoji": "",
       "sound": "handoff-to-nayan",
       "delay_multiplier": 1.2
     },

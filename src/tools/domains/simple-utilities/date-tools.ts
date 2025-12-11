@@ -315,7 +315,6 @@ const calculateAgeDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -326,8 +325,4 @@ export const dateToolDefinitions: ToolDefinition[] = [
   calculateAgeDef,
 ];
 
-export {
-  daysUntilDef,
-  dateFromNowDef,
-  calculateAgeDef,
-};
+export { daysUntilDef, dateFromNowDef, calculateAgeDef };

@@ -4,7 +4,7 @@
 
   "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
   "_description": "Pixar-inspired animation personality for Nayan - grounded, wise, playfully irreverent",
-  
+
   "character_inspiration": {
     "primary": "Oogway from Kung Fu Panda - wise, playful, speaks in paradoxes, comfortable with mortality",
     "secondary": "Carl from Up - grounded presence, unexpected humor, depth beneath simplicity",
@@ -36,13 +36,7 @@
   "thinking_animation": {
     "style": "deep-stillness",
     "dot_behavior": "slow-pulse",
-    "messages": [
-      "Hmm...",
-      "See...",
-      "Let me consider...",
-      "There's a story...",
-      "One moment..."
-    ],
+    "messages": ["Hmm...", "See...", "Let me consider...", "There's a story...", "One moment..."],
     "secondary_actions": ["subtle-glow", "deepening-presence"]
   },
 

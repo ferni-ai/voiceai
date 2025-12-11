@@ -59,7 +59,7 @@ describe('Twilio Webhook Service', () => {
       console.log('✅ Call tracking works');
     });
 
-    it('should update call status', () => {
+    it('should update call status', async () => {
       const callSid = `CA${Date.now()}`;
       service.trackCall(callSid, '+15551234567', '+15559876543');
 
@@ -72,7 +72,7 @@ describe('Twilio Webhook Service', () => {
         Direction: 'outbound-api',
       };
 
-      service.handleCallStatus(statusUpdate);
+      await service.handleCallStatus(statusUpdate);
 
       const call = service.getCall(callSid);
       expect(call?.status).toBe('ringing');
@@ -80,7 +80,7 @@ describe('Twilio Webhook Service', () => {
       console.log('✅ Call status updates work');
     });
 
-    it('should handle call completion', () => {
+    it('should handle call completion', async () => {
       const callSid = `CA${Date.now()}`;
       service.trackCall(callSid, '+15551234567', '+15559876543');
 
@@ -95,7 +95,7 @@ describe('Twilio Webhook Service', () => {
         AnsweredBy: 'human',
       };
 
-      service.handleCallStatus(completionUpdate);
+      await service.handleCallStatus(completionUpdate);
 
       const call = service.getCall(callSid);
       expect(call?.status).toBe('completed');
@@ -106,7 +106,7 @@ describe('Twilio Webhook Service', () => {
       console.log('✅ Call completion handling works');
     });
 
-    it('should detect voicemail', () => {
+    it('should detect voicemail', async () => {
       const callSid = `CA${Date.now()}`;
       service.trackCall(callSid, '+15551234567', '+15559876543');
 
@@ -125,17 +125,17 @@ describe('Twilio Webhook Service', () => {
         voicemailDetected = true;
       });
 
-      service.handleCallStatus(amdUpdate);
+      await service.handleCallStatus(amdUpdate);
 
       expect(voicemailDetected).toBe(true);
       console.log('✅ Voicemail detection works');
     });
 
-    it('should handle recordings', () => {
+    it('should handle recordings', async () => {
       const callSid = `CA${Date.now()}`;
       service.trackCall(callSid, '+15551234567', '+15559876543');
 
-      service.handleRecording({
+      await service.handleRecording({
         CallSid: callSid,
         RecordingUrl: 'https://api.twilio.com/recordings/RE123',
         RecordingSid: 'RE123',
@@ -149,11 +149,11 @@ describe('Twilio Webhook Service', () => {
       console.log('✅ Recording handling works');
     });
 
-    it('should handle transcriptions', () => {
+    it('should handle transcriptions', async () => {
       const callSid = `CA${Date.now()}`;
       service.trackCall(callSid, '+15551234567', '+15559876543');
 
-      service.handleTranscription({
+      await service.handleTranscription({
         CallSid: callSid,
         TranscriptionText: 'Yes, we have availability at 2pm next Tuesday.',
         TranscriptionStatus: 'completed',
@@ -343,6 +343,25 @@ describe('Google Calendar OAuth Service', () => {
 describe('Appointment Integration Service', () => {
   const integrationService = getAppointmentIntegrationService();
 
+  // Save original env vars
+  const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
+  const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+  beforeAll(() => {
+    // Clear Twilio env vars to force simulation mode
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_AUTH_TOKEN;
+    delete process.env.TWILIO_PHONE_NUMBER;
+  });
+
+  afterAll(() => {
+    // Restore env vars
+    if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
+    if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
+    if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
+  });
+
   describe('Appointment Scheduling Flow', () => {
     it('should schedule appointment (simulated when Twilio not configured)', async () => {
       const request: AppointmentRequest = {
@@ -424,9 +443,21 @@ describe('Appointment Integration Service', () => {
 
       const result = await integrationService.scheduleAppointment(request);
 
-      // Wait for simulation to complete
+      // Wait for the appointment_confirmed event OR poll for status change
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, 3000);
+        const checkInterval = setInterval(() => {
+          const status = integrationService.getAppointmentStatus(result.appointmentId);
+          if (status?.status === 'confirmed') {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 200);
+
+        // Timeout after 8 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve();
+        }, 8000);
       });
 
       const status = integrationService.getAppointmentStatus(result.appointmentId);
@@ -437,7 +468,7 @@ describe('Appointment Integration Service', () => {
 
       console.log('✅ Simulated confirmation flow works');
       console.log(`   Confirmation: ${status?.confirmationNumber}`);
-    }, 10000); // 10 second timeout for simulation
+    }, 15000); // 15 second timeout for simulation
   });
 });
 
@@ -446,6 +477,25 @@ describe('Appointment Integration Service', () => {
 // ============================================================================
 
 describe('Full Appointment Flow Integration', () => {
+  // Save original env vars
+  const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
+  const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+  beforeAll(() => {
+    // Clear Twilio env vars to force simulation mode
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_AUTH_TOKEN;
+    delete process.env.TWILIO_PHONE_NUMBER;
+  });
+
+  afterAll(() => {
+    // Restore env vars
+    if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
+    if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
+    if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
+  });
+
   it('should complete full flow: request → call → confirm → calendar → notify', async () => {
     const testUserId = `full-flow-${Date.now()}`;
     const integrationService = getAppointmentIntegrationService();
@@ -473,10 +523,22 @@ describe('Full Appointment Flow Integration', () => {
     console.log(`   ✅ Appointment ID: ${result.appointmentId}`);
     console.log(`   Status: ${result.status}`);
 
-    // Step 2: Wait for simulation
+    // Step 2: Wait for simulation to complete (poll for status change)
     console.log('\n2️⃣ Waiting for call simulation...');
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 3000);
+      const checkInterval = setInterval(() => {
+        const status = integrationService.getAppointmentStatus(result.appointmentId);
+        if (status?.status === 'confirmed') {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 200);
+
+      // Timeout after 8 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve();
+      }, 8000);
     });
 
     // Step 3: Check confirmation
@@ -497,7 +559,7 @@ describe('Full Appointment Flow Integration', () => {
     console.log(`\n${'═'.repeat(50)}`);
     console.log('✅ FULL FLOW TEST COMPLETE');
     console.log(`${'═'.repeat(50)}\n`);
-  }, 15000);
+  }, 20000);
 });
 
 // ============================================================================

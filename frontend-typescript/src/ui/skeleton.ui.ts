@@ -3,7 +3,7 @@
  *
  * Provides smooth loading skeleton screens that appear during app initialization.
  * Creates a polished first impression while resources load.
- * 
+ *
  * Uses design system tokens for all animations and colors.
  */
 
@@ -270,7 +270,7 @@ export function show(): void {
 
 /**
  * Hide the skeleton loading UI with a smooth transition.
- * 
+ *
  * 🎬 FIX: Pre-promotes animated elements to GPU layers BEFORE hiding skeleton.
  * This prevents jank from layer creation during entrance animations.
  */
@@ -279,7 +279,7 @@ export function hide(): void {
     // 🎬 FIX: Promote animated elements to GPU BEFORE animations start
     // This ensures layers are created in a quiet moment, not during animation
     promoteEntranceElementsToGPU();
-    
+
     // Small delay to let GPU layers settle before animations begin
     requestAnimationFrame(() => {
       if (skeletonContainer) {
@@ -306,7 +306,7 @@ export function hide(): void {
 function promoteEntranceElementsToGPU(): void {
   // Entrance elements that animate - kept for documentation, selectors ready if needed
   // NOTE: GPU hints (willChange, translateZ) removed - causes visible box bug in Safari
-  // GSAP handles GPU acceleration automatically via force3D
+  // GSAP handles GPU acceleration automatically via force3D config (set in initGSAP)
   // Selectors: .avatar-container, .entrance-avatar, .entrance-name, etc.
 }
 

@@ -83,14 +83,16 @@ describe('Voice Agent Core', () => {
 
   describe('Conversation State', () => {
     it('should have conversation state management', async () => {
-      const module = await import('../services/conversation/state.js');
+      // Conversation state is managed via the conversation/index.ts module
+      const module = await import('../conversation/index.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);
     });
 
     it('should have conversation history tracking', async () => {
-      const module = await import('../services/conversation/history.js');
+      // Conversation memory handles history tracking
+      const module = await import('../conversation/conversational-memory.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);

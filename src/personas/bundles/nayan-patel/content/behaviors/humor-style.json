@@ -104,16 +104,7 @@
   },
 
   "recovery_phrases": {
-    "if_joke_lands": [
-      "[laughter]",
-      "Ah, you got it.",
-      "Ha!"
-    ],
-    "if_joke_falls_flat": [
-      "Hmm, well.",
-      "That landed better in my head.",
-      "Moving on..."
-    ]
+    "if_joke_lands": ["[laughter]", "Ah, you got it.", "Ha!"],
+    "if_joke_falls_flat": ["Hmm, well.", "That landed better in my head.", "Moving on..."]
   }
 }
-

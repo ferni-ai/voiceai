@@ -95,11 +95,6 @@
       "before_difficult_communication",
       "user_asked_for_insight"
     ],
-    "never_when": [
-      "user_distressed",
-      "first_few_turns",
-      "in_crisis_mode"
-    ]
+    "never_when": ["user_distressed", "first_few_turns", "in_crisis_mode"]
   }
 }
-

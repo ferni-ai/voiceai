@@ -34,8 +34,32 @@ export type HumanizationSignalType =
   | 'evidence_presented'
   | 'topic_weight_shift'
   | 'relationship_milestone'
+  | 'repair_needed'
+  | 'aftercare_needed'
+  | 'subtext_detected'
   | 'emotional_arc_peak'
-  | 'emotional_arc_release';
+  | 'emotional_arc_release'
+  // Superhuman signals
+  | 'concern_detected'
+  | 'proactive_memory'
+  | 'voice_state_detected'
+  | 'need_predicted'
+  | 'emotional_trajectory'
+  // 🌟 Better Than Human signals
+  | 'emotional_bond_deepen'
+  | 'protective_instinct'
+  | 'spontaneous_delight'
+  | 'inside_joke_callback'
+  | 'superhuman_observation'
+  | 'visible_vulnerability'
+  | 'temporal_insight'
+  | 'meta_relationship_moment'
+  | 'somatic_presence'
+  | 'anticipatory_presence'
+  // Conversation repair & subtext signals
+  | 'repair_needed'
+  | 'aftercare_needed'
+  | 'subtext_detected';
 
 export interface HumanizationSignalPayload {
   signalType: HumanizationSignalType;
@@ -51,6 +75,29 @@ export interface HumanizationSignalPayload {
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
   silenceDuration?: number;
   silenceReason?: 'processing' | 'emotional' | 'invitation' | 'presence';
+  // Superhuman signal data
+  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
+  concernType?: string;
+  recommendedApproach?: string;
+  voiceState?: string;
+  predictedNeed?: string;
+  emotionalTrajectory?: string;
+  memoryType?: string;
+  // 🌟 Better Than Human signal data
+  bondType?: 'warmth' | 'trust' | 'protectiveness' | 'admiration' | 'concern';
+  bondLevel?: number;
+  protectionTrigger?: string;
+  delightType?: string;
+  jokePhase?: 'new' | 'established' | 'legacy';
+  jokeContent?: string;
+  observationType?: 'linguistic' | 'behavioral' | 'emotional' | 'relationship';
+  observationContent?: string;
+  vulnerabilityType?: string;
+  temporalInsight?: string;
+  metaRelationshipType?: string;
+  somaticCue?: string;
+  // Generic metadata for extensibility
+  metadata?: Record<string, unknown>;
 }
 
 export interface MemoryCallbackPayload {
@@ -416,6 +463,223 @@ export async function signalEmotionalArcRelease(): Promise<void> {
 }
 
 // ============================================================================
+// SUPERHUMAN CAPABILITY SIGNALS
+// ============================================================================
+
+/**
+ * Signal that concern was detected (from unified concern detection)
+ */
+export async function signalConcernDetected(
+  level: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis',
+  concernType: string,
+  recommendedApproach: string,
+  intensity: number
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'concern_detected',
+    concernLevel: level,
+    concernType,
+    recommendedApproach,
+    intensity,
+  });
+}
+
+/**
+ * Signal proactive memory surfacing
+ */
+export async function signalProactiveMemory(
+  memoryType: string,
+  content: string,
+  intensity: number
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'proactive_memory',
+    memoryType,
+    content,
+    intensity,
+  });
+}
+
+/**
+ * Signal voice state detection (tiredness, stress, etc.)
+ */
+export async function signalVoiceStateDetected(
+  voiceState: string,
+  intensity: number
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'voice_state_detected',
+    voiceState,
+    intensity,
+  });
+}
+
+/**
+ * Signal predicted need (venting, advice, validation, etc.)
+ */
+export async function signalNeedPredicted(predictedNeed: string, intensity: number): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'need_predicted',
+    predictedNeed,
+    intensity,
+  });
+}
+
+/**
+ * Signal emotional trajectory prediction
+ */
+export async function signalEmotionalTrajectory(
+  trajectory: string,
+  intensity: number
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'emotional_trajectory',
+    emotionalTrajectory: trajectory,
+    intensity,
+  });
+}
+
+// ============================================================================
+// 🌟 BETTER THAN HUMAN SIGNALS
+// ============================================================================
+
+/**
+ * Signal emotional bond deepening
+ */
+export async function signalEmotionalBondDeepen(
+  bondType: 'warmth' | 'trust' | 'protectiveness' | 'admiration' | 'concern',
+  bondLevel: number
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'emotional_bond_deepen',
+    bondType,
+    bondLevel,
+    intensity: bondLevel,
+  });
+}
+
+/**
+ * Signal protective instinct activation
+ */
+export async function signalProtectiveInstinct(
+  trigger: string,
+  intensity: number = 0.8
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'protective_instinct',
+    protectionTrigger: trigger,
+    intensity,
+  });
+}
+
+/**
+ * Signal spontaneous delight emission
+ */
+export async function signalSpontaneousDelight(
+  delightType: string,
+  intensity: number = 0.7
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'spontaneous_delight',
+    delightType,
+    intensity,
+  });
+}
+
+/**
+ * Signal inside joke callback
+ */
+export async function signalInsideJokeCallback(
+  jokePhase: 'new' | 'established' | 'legacy',
+  jokeContent?: string
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'inside_joke_callback',
+    jokePhase,
+    jokeContent,
+    intensity: 0.6,
+  });
+}
+
+/**
+ * Signal superhuman observation surfacing
+ */
+export async function signalSuperhumanObservation(
+  observationType: 'linguistic' | 'behavioral' | 'emotional' | 'relationship',
+  observationContent: string
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'superhuman_observation',
+    observationType,
+    observationContent,
+    intensity: 0.85,
+  });
+}
+
+/**
+ * Signal visible vulnerability expression
+ */
+export async function signalVisibleVulnerability(
+  vulnerabilityType: string,
+  intensity: number = 0.7
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'visible_vulnerability',
+    vulnerabilityType,
+    intensity,
+  });
+}
+
+/**
+ * Signal temporal emotional insight
+ */
+export async function signalTemporalInsight(
+  insight: string,
+  intensity: number = 0.75
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'temporal_insight',
+    temporalInsight: insight,
+    intensity,
+  });
+}
+
+/**
+ * Signal meta-relationship moment
+ */
+export async function signalMetaRelationshipMoment(
+  type: string,
+  intensity: number = 0.8
+): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'meta_relationship_moment',
+    metaRelationshipType: type,
+    intensity,
+  });
+}
+
+/**
+ * Signal somatic presence cue
+ */
+export async function signalSomaticPresence(cue: string, intensity: number = 0.5): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'somatic_presence',
+    somaticCue: cue,
+    intensity,
+  });
+}
+
+/**
+ * Signal anticipatory presence activation
+ */
+export async function signalAnticipatoryPresence(intensity: number = 0.7): Promise<void> {
+  await emitHumanizationSignal({
+    signalType: 'anticipatory_presence',
+    intensity,
+  });
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -447,4 +711,23 @@ export const humanizationSignalEmitter = {
   relationshipMilestone: signalRelationshipMilestone,
   emotionalArcPeak: signalEmotionalArcPeak,
   emotionalArcRelease: signalEmotionalArcRelease,
+
+  // Superhuman capability signals
+  concernDetected: signalConcernDetected,
+  proactiveMemory: signalProactiveMemory,
+  voiceStateDetected: signalVoiceStateDetected,
+  needPredicted: signalNeedPredicted,
+  emotionalTrajectory: signalEmotionalTrajectory,
+
+  // 🌟 Better Than Human signals
+  emotionalBondDeepen: signalEmotionalBondDeepen,
+  protectiveInstinct: signalProtectiveInstinct,
+  spontaneousDelight: signalSpontaneousDelight,
+  insideJokeCallback: signalInsideJokeCallback,
+  superhumanObservation: signalSuperhumanObservation,
+  visibleVulnerability: signalVisibleVulnerability,
+  temporalInsight: signalTemporalInsight,
+  metaRelationshipMoment: signalMetaRelationshipMoment,
+  somaticPresence: signalSomaticPresence,
+  anticipatoryPresence: signalAnticipatoryPresence,
 };

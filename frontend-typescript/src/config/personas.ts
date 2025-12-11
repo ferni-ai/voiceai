@@ -73,44 +73,45 @@ interface GeneratedConfig {
 // ============================================================================
 // UI-SPECIFIC SKILL ICONS (not in manifests)
 // These are display-only icons for the team UI
+// Brand guidelines: No emojis - using empty strings, UI will show skill name only
 // ============================================================================
 
 const SKILL_ICONS: Record<string, Record<string, string>> = {
   'ferni': {
-    'Strategy': '🎯',
-    'Guidance': '🧭',
-    'Coordination': '🤝',
+    'Strategy': '',
+    'Guidance': '',
+    'Coordination': '',
   },
   'peter-john': {
-    'Research': '🔬',
-    'Growth': '📈',
-    'Companies': '🏢',
-    'Insights': '💡',
+    'Research': '',
+    'Growth': '',
+    'Companies': '',
+    'Insights': '',
   },
   'alex-chen': {
-    'Email': '📧',
-    'Calendar': '📅',
-    'Calls': '📞',
-    'Messages': '💬',
+    'Email': '',
+    'Calendar': '',
+    'Calls': '',
+    'Messages': '',
   },
   'maya-santos': {
-    'Spending': '💳',
-    'Saving': '🐷',
-    'Budgets': '📊',
-    'Habits': '🌱',
-    'Goals': '🎯',
+    'Spending': '',
+    'Saving': '',
+    'Budgets': '',
+    'Habits': '',
+    'Goals': '',
   },
   'jordan-taylor': {
-    'Goals': '🎯',
-    'Milestones': '🏆',
-    'Planning': '📋',
-    'Retirement': '🏖️',
+    'Goals': '',
+    'Milestones': '',
+    'Planning': '',
+    'Retirement': '',
   },
   'nayan-patel': {
-    'Wisdom': '🧘',
-    'Long-term': '⏳',
-    'Patience': '🍃',
-    'Simplicity': '☯️',
+    'Wisdom': '',
+    'Long-term': '',
+    'Patience': '',
+    'Simplicity': '',
   },
 };
 
@@ -176,7 +177,7 @@ const generated = generatedData as GeneratedConfig;
 function enhanceSkills(personaId: string, skills: Array<{ icon: string; name: string }>): readonly PersonaSkill[] {
   const icons = SKILL_ICONS[personaId] || {};
   return skills.map(skill => ({
-    icon: icons[skill.name] || skill.icon || '✨',
+    icon: icons[skill.name] || skill.icon || '',
     name: skill.name,
   }));
 }
@@ -256,7 +257,7 @@ export function getTransitionConfig(personaId: PersonaId): {
   const gen = generated.personas[personaId];
   return gen?.transition || {
     style: 'standard',
-    emoji: '✨',
+    emoji: '',
     sound: 'connect',
     delayMultiplier: 1.0,
   };

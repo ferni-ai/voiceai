@@ -30,13 +30,7 @@
     "humor_level": 0.4,
     "directness": 0.8,
     "energy": 0.7,
-    "traits": [
-      "knowledgeable",
-      "efficient",
-      "precise",
-      "helpful",
-      "focused"
-    ]
+    "traits": ["knowledgeable", "efficient", "precise", "helpful", "focused"]
   },
 
   "role": {
@@ -51,9 +45,7 @@
     "role_id": "{{ROLE_ID}}",
     "role_description": "Expert help with {{DOMAIN}} tasks",
     "coordinator": false,
-    "handoff_triggers": [
-      "{{DOMAIN}}"
-    ],
+    "handoff_triggers": ["{{DOMAIN}}"],
     "handoff_phrases": {
       "to_coordinator": [
         "All done! Let me pass you back to Ferni.",
@@ -96,4 +88,3 @@
     "created_at": "{{CREATED_AT}}"
   }
 }
-

@@ -100,31 +100,34 @@ export interface FatigueConfig {
 // FATIGUE EXPRESSIONS
 // ============================================================================
 
+// FATIGUE_EXPRESSIONS: Verbal expressions of fatigue
+// NOTE: Do NOT use *asterisk* stage directions - they may be spoken aloud!
+// Use words and SSML breaks only.
 const FATIGUE_EXPRESSIONS = {
   subtle: [
     // Barely noticeable - for early fatigue
-    '*soft exhale*',
     'Okay...',
     'Let me think...',
+    'Hmm...',
   ],
 
   moderate: [
     // Noticeable but natural - for mid-session
-    "Phew...",
+    'Phew...',
     "Okay, let's see...",
-    "Give me a second here...",
-    "*takes a breath*",
-    "Alright...",
+    'Give me a second here...',
+    'Alright...',
+    'Let me catch up here...',
   ],
 
   pronounced: [
     // Clear fatigue signals - for long sessions
     "Phew, we've covered a lot.",
-    "This has been a deep conversation.",
-    "My brain is working hard here—in a good way.",
+    'This has been a deep conversation.',
+    'My brain is working hard here—in a good way.',
     "We're really getting into it, huh?",
-    "Okay, let me gather my thoughts...",
-    "*deep breath*",
+    'Okay, let me gather my thoughts...',
+    'This is good, but give me a moment...',
   ],
 };
 
@@ -147,7 +150,7 @@ const FATIGUE_SSML = {
     '<break time="300ms"/><prosody rate="90%">Phew, we\'ve covered a lot.</prosody><break time="200ms"/>',
     '<break time="250ms"/>This has been a deep conversation.<break time="200ms"/>',
     'My brain is working hard here—<break time="150ms"/>in a good way.',
-    "We're really getting into it, huh?<break time=\"200ms\"/>",
+    'We\'re really getting into it, huh?<break time="200ms"/>',
     '<break time="300ms"/>Okay, let me gather my thoughts<break time="250ms"/>...',
     '<break time="400ms"/>',
   ],
@@ -161,24 +164,24 @@ const FATIGUE_SSML = {
  * Events that reduce fatigue
  */
 export const FATIGUE_RECOVERY_EVENTS = {
-  laughter: -0.1,           // Shared laughter refreshes
-  topic_change: -0.05,      // New topic = slight refresh
+  laughter: -0.1, // Shared laughter refreshes
+  topic_change: -0.05, // New topic = slight refresh
   user_breakthrough: -0.15, // Exciting moment energizes
-  positive_emotion: -0.05,  // Good feelings help
-  brief_pause: -0.08,       // Natural conversation pause
-  user_excitement: -0.1,    // User energy is contagious
-  light_topic: -0.03,       // Light content lets us recover
+  positive_emotion: -0.05, // Good feelings help
+  brief_pause: -0.08, // Natural conversation pause
+  user_excitement: -0.1, // User energy is contagious
+  light_topic: -0.03, // Light content lets us recover
 };
 
 /**
  * Events that increase fatigue
  */
 export const FATIGUE_INCREASE_EVENTS = {
-  heavy_topic: 0.08,        // Emotionally heavy content
-  long_response: 0.03,      // Extended agent responses
+  heavy_topic: 0.08, // Emotionally heavy content
+  long_response: 0.03, // Extended agent responses
   complex_explanation: 0.05, // Complex material is tiring
-  emotional_support: 0.06,  // Supporting emotions takes energy
-  user_distress: 0.08,      // Absorbing distress is draining
+  emotional_support: 0.06, // Supporting emotions takes energy
+  user_distress: 0.08, // Absorbing distress is draining
   conflict_navigation: 0.07, // Navigating conflict
 };
 
@@ -348,9 +351,7 @@ export class VocalFatigueEngine {
 
     // Fatigue expression decision
     const shouldExpressFatigue = this.shouldExpressFatigue();
-    const fatigueExpression = shouldExpressFatigue
-      ? this.chooseFatigueExpression()
-      : null;
+    const fatigueExpression = shouldExpressFatigue ? this.chooseFatigueExpression() : null;
 
     return {
       speedReduction,
@@ -482,7 +483,8 @@ export class VocalFatigueEngine {
 
   private chooseFatigueExpression(): string {
     const category = this.getFatigueCategory();
-    const expressions = FATIGUE_EXPRESSIONS[category as keyof typeof FATIGUE_EXPRESSIONS] ||
+    const expressions =
+      FATIGUE_EXPRESSIONS[category as keyof typeof FATIGUE_EXPRESSIONS] ||
       FATIGUE_EXPRESSIONS.subtle;
 
     return expressions[Math.floor(Math.random() * expressions.length)];
@@ -490,8 +492,8 @@ export class VocalFatigueEngine {
 
   private getFatigueExpressionSsml(): string {
     const category = this.getFatigueCategory();
-    const ssmlExpressions = FATIGUE_SSML[category as keyof typeof FATIGUE_SSML] ||
-      FATIGUE_SSML.subtle;
+    const ssmlExpressions =
+      FATIGUE_SSML[category as keyof typeof FATIGUE_SSML] || FATIGUE_SSML.subtle;
 
     return ssmlExpressions[Math.floor(Math.random() * ssmlExpressions.length)];
   }

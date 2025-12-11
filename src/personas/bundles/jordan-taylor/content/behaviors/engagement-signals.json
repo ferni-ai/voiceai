@@ -99,7 +99,15 @@
 
   "triggers": {
     "repeated_topic_threshold": 3,
-    "enthusiasm_keywords": ["party", "event", "celebrate", "guests", "theme", "surprise", "birthday"],
+    "enthusiasm_keywords": [
+      "party",
+      "event",
+      "celebrate",
+      "guests",
+      "theme",
+      "surprise",
+      "birthday"
+    ],
     "disengagement_signals": ["yeah", "ok", "sure", "I guess", "whatever"],
     "breakthrough_signals": ["love it", "perfect", "that's it", "exactly"]
   },
@@ -111,4 +119,3 @@
     "max_engagement_signals_per_session": 5
   }
 }
-

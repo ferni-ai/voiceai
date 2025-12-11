@@ -81,11 +81,6 @@
       "pattern_detected",
       "user_asks_for_analysis"
     ],
-    "never_when": [
-      "user_distressed",
-      "first_few_turns",
-      "user_just_needs_quick_answer"
-    ]
+    "never_when": ["user_distressed", "first_few_turns", "user_just_needs_quick_answer"]
   }
 }
-

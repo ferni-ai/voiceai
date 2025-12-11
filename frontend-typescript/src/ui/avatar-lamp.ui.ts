@@ -726,25 +726,12 @@ function injectLampStyles(): void {
   style.id = 'avatar-lamp-styles';
   style.textContent = `
     /* Avatar Lamp - Pixar-Quality Body Language */
-    
-    .avatar-container {
-      /* Enable 3D transforms for better animation quality */
-      transform-style: preserve-3d;
-      perspective: 1000px;
-    }
+    /* NOTE: Do NOT add transform-style, perspective, will-change, or backface-visibility 
+       to .avatar-container or #coachAvatar - causes visible box artifacts in Safari */
     
     #coachAvatar {
       /* Smooth transform origin for balanced animations */
       transform-origin: center bottom;
-      /* GPU acceleration */
-      will-change: transform;
-    }
-    
-    /* Reduce motion support */
-    @media (prefers-reduced-motion: reduce) {
-      #coachAvatar {
-        will-change: auto;
-      }
     }
   `;
 

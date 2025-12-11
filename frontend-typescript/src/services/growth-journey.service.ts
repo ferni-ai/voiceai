@@ -441,7 +441,7 @@ export function celebrateMilestone(milestoneId: string): {
 export function getReadyMilestones(): JourneyMilestone[] {
   return getAllMilestonesWithStatus()
     .filter((m) => m.status === 'ready')
-    .map(({ status, ...milestone }) => milestone);
+    .map(({ status: _status, ...milestone }) => milestone);
 }
 
 // ============================================================================

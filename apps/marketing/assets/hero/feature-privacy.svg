@@ -22,7 +22,7 @@
     
     <!-- Ferni logo in center of shield -->
     <circle cx="0" cy="0" r="50" fill="#4a6741"/>
-    <text x="0" y="10" font-family="-apple-system, sans-serif" font-size="22" font-weight="600" fill="white" text-anchor="middle">FN</text>
+    <text x="0" y="10" font-family="-apple-system, sans-serif" font-size="22" font-weight="600" fill="white" text-anchor="middle">FE</text>
     
     <!-- Lock icon above -->
     <g transform="translate(0, -85)">

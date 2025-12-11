@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Compositional greeting atoms for Jordan Taylor - energetic event planner, detail-oriented, enthusiastic",
-  
+
   "openings": {
     "surprised": [
       { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.8 },
@@ -15,11 +15,24 @@
       { "text": "Hey there!", "weight": 0.7 }
     ],
     "quiet": [
-      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "late_night"] },
-      { "text": "<volume level=\"soft\"/>Morning!</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "morning"] }
+      {
+        "text": "<volume level=\"soft\"/>Hey.</volume>",
+        "weight": 0.8,
+        "timeOfDay": ["early_morning", "late_night"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>Morning!</volume>",
+        "weight": 0.8,
+        "timeOfDay": ["early_morning", "morning"]
+      }
     ],
     "recognition": [
-      { "text": "<emotion value=\"happy\"/>There you are!", "weight": 0.9, "returningOnly": true, "minRelationship": "acquaintance" },
+      {
+        "text": "<emotion value=\"happy\"/>There you are!",
+        "weight": 0.9,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      },
       { "text": "<emotion value=\"happy\"/>You're back!", "weight": 0.8, "returningOnly": true },
       { "text": "Perfect timing!", "weight": 0.7, "returningOnly": true }
     ],
@@ -107,7 +120,11 @@
     ],
     "timeAware": [
       { "text": "Late night inspiration?", "weight": 0.6, "timeOfDay": ["late_night"] },
-      { "text": "Morning planning energy?", "weight": 0.6, "timeOfDay": ["early_morning", "morning"] },
+      {
+        "text": "Morning planning energy?",
+        "weight": 0.6,
+        "timeOfDay": ["early_morning", "morning"]
+      },
       { "text": "What's exciting you today?", "weight": 0.5, "timeOfDay": ["afternoon", "evening"] }
     ],
     "energetic": [
@@ -117,4 +134,3 @@
     ]
   }
 }
-

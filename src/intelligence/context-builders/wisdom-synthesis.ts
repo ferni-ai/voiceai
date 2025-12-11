@@ -98,7 +98,9 @@ function detectSituation(input: ContextBuilderInput): SituationType | null {
 
   // Check for relationship/conflict signals
   if (
-    topics.some((t) => t.includes('relationship') || t.includes('partner') || t.includes('family')) ||
+    topics.some(
+      (t) => t.includes('relationship') || t.includes('partner') || t.includes('family')
+    ) ||
     userTextLower.includes('fight') ||
     userTextLower.includes('argument') ||
     userTextLower.includes('conflict')
@@ -209,10 +211,7 @@ const wisdomSynthesisBuilder: ContextBuilder = {
           })
         );
 
-        log.debug(
-          { situation: situation.subcategory, userId },
-          'Wisdom context injected'
-        );
+        log.debug({ situation: situation.subcategory, userId }, 'Wisdom context injected');
       }
 
       // Also add population insights as a hint for transparency

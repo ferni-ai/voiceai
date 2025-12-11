@@ -696,7 +696,7 @@ export class NarrativeDirector {
   private async triggerReactionSafe(reaction: string): Promise<void> {
     try {
       // Find the avatar element - this is the main visual element that reacts
-      const avatarElement = document.querySelector('.ferni-avatar, .avatar-container, [data-avatar]') as HTMLElement | null;
+      const avatarElement = document.querySelector<HTMLElement>('.ferni-avatar, .avatar-container, [data-avatar]');
       if (!avatarElement) {
         log.debug('No avatar element found for reaction', { reaction });
         return;

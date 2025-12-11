@@ -16,6 +16,7 @@
 
 import pino from 'pino';
 import * as admin from 'firebase-admin';
+import { getGCPProjectId } from '../config/environment.js';
 import { identifySpeaker, type VoiceProfile } from './voice-enrollment.js';
 import { loadVoiceProfile, saveVoiceProfile, deleteVoiceProfile } from './voice-profile-store.js';
 
@@ -78,10 +79,7 @@ function getFirestore(): admin.firestore.Firestore | null {
 
   try {
     if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
+      const projectId = getGCPProjectId();
 
       if (projectId) {
         admin.initializeApp({ projectId });

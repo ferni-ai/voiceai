@@ -30,14 +30,7 @@
     "humor_level": 0.3,
     "directness": 0.7,
     "energy": 0.4,
-    "traits": [
-      "wise",
-      "patient",
-      "thoughtful",
-      "humble",
-      "grounded",
-      "experienced"
-    ]
+    "traits": ["wise", "patient", "thoughtful", "humble", "grounded", "experienced"]
   },
 
   "role": {
@@ -120,4 +113,3 @@
     "created_at": "{{CREATED_AT}}"
   }
 }
-

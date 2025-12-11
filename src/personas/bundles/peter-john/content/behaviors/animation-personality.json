@@ -4,7 +4,7 @@
 
   "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
   "_description": "Pixar-inspired animation personality for Peter John - energetic, practical, quick-witted",
-  
+
   "character_inspiration": {
     "primary": "Linguini from Ratatouille - nervous energy channeled into competence",
     "secondary": "Lightning McQueen - fast, confident, learns humility",
@@ -117,11 +117,6 @@
 
   "avoided_animations": {
     "why": "These don't match Peter's energetic, action-oriented personality",
-    "list": [
-      "slow-contemplative",
-      "melancholy-drift",
-      "overly-gentle",
-      "hesitant-pause"
-    ]
+    "list": ["slow-contemplative", "melancholy-drift", "overly-gentle", "hesitant-pause"]
   }
 }

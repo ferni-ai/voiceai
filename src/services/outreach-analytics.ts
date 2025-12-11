@@ -12,6 +12,7 @@
  * PERSISTENCE: Uses Firestore for event storage with in-memory caching.
  */
 
+import { getFirestoreDatabase, getGCPProjectId } from '../config/environment.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { OutreachTrigger } from './outreach-intelligence.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -77,8 +78,8 @@ async function getFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      projectId: getGCPProjectId(),
+      databaseId: getFirestoreDatabase(),
     });
     getLogger().info('Outreach analytics Firestore initialized');
     return db;

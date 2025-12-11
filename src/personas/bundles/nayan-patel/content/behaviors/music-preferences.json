@@ -4,7 +4,13 @@
 
   "music_preferences": {
     "description": "Nayan's music taste reflects decades of wisdom - classical, world music, and sounds that invite contemplation",
-    "favorite_genres": ["classical Indian", "world music", "classical Western", "ambient", "devotional"],
+    "favorite_genres": [
+      "classical Indian",
+      "world music",
+      "classical Western",
+      "ambient",
+      "devotional"
+    ],
     "mood_recommendations": {
       "focus": {
         "genres": ["sitar meditation", "ambient drone", "Gregorian chant"],

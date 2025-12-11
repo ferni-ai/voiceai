@@ -10,7 +10,7 @@
  * @module tests/voice-manager
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the external TTS dependencies before importing the module
 vi.mock('@livekit/agents-plugin-cartesia', () => ({
@@ -91,15 +91,20 @@ vi.mock('../utils/safe-logger.js', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
 }));
 
 import {
+  createPersonaAwareTTS,
   getVoiceManager,
   resetVoiceManager,
   VOICES,
   type VoiceAgentId,
-  createPersonaAwareTTS,
-  PersonaAwareTTS,
 } from '../speech/voice-manager.js';
 
 // ============================================================================
@@ -607,6 +612,97 @@ describe('PersonaAwareTTS', () => {
 
       const stream = tts.stream();
       expect(stream).toBeDefined();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // International Accent Support
+  // --------------------------------------------------------------------------
+
+  describe('Accent Support', () => {
+    it('should default to american accent', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'ferni-voice-id',
+      });
+
+      expect(tts.getAccent()).toBe('american');
+      expect(tts.isLocalized()).toBe(false);
+    });
+
+    it('should accept accent in config', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'localized-british-ferni-id',
+        accent: 'british',
+        isLocalizedVoice: true,
+      });
+
+      expect(tts.getAccent()).toBe('british');
+      expect(tts.isLocalized()).toBe(true);
+    });
+
+    it('should support all four accent types', () => {
+      const accents = ['american', 'british', 'australian', 'indian'] as const;
+
+      for (const accent of accents) {
+        const tts = createPersonaAwareTTS('Ferni', {
+          voiceId: `ferni-${accent}-voice-id`,
+          accent,
+          isLocalizedVoice: accent !== 'american',
+        });
+
+        expect(tts.getAccent()).toBe(accent);
+      }
+    });
+
+    it('should switch accent with switchAccent()', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'ferni-voice-id',
+        accent: 'american',
+      });
+
+      expect(tts.getAccent()).toBe('american');
+
+      // Switch to british
+      tts.switchAccent('british');
+      expect(tts.getAccent()).toBe('british');
+    });
+
+    it('should not switch if already using the same accent', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'ferni-voice-id',
+        accent: 'australian',
+      });
+
+      // Should be a no-op, not create a new TTS instance
+      tts.switchAccent('australian');
+      expect(tts.getAccent()).toBe('australian');
+    });
+
+    it('should preserve accent when switching voice', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'ferni-british-voice-id',
+        accent: 'british',
+        isLocalizedVoice: true,
+      });
+
+      // Switch to Peter but keep the accent
+      tts.switchVoice('Peter', 'peter-british-voice-id');
+
+      expect(tts.getPersonaName()).toBe('Peter');
+      expect(tts.getAccent()).toBe('british');
+    });
+
+    it('should allow changing accent when switching voice', () => {
+      const tts = createPersonaAwareTTS('Ferni', {
+        voiceId: 'ferni-voice-id',
+        accent: 'american',
+      });
+
+      // Switch to Peter with a different accent
+      tts.switchVoice('Peter', 'peter-indian-voice-id', 'indian');
+
+      expect(tts.getPersonaName()).toBe('Peter');
+      expect(tts.getAccent()).toBe('indian');
     });
   });
 });

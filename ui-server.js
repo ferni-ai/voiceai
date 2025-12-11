@@ -3,8 +3,8 @@
  * Serves the frontend UI, provides LiveKit token generation, and handles Plaid OAuth flow
  */
 
-import 'dotenv/config';
 import crypto from 'crypto';
+import 'dotenv/config';
 import fs from 'fs';
 import http from 'http';
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
@@ -81,6 +81,9 @@ import { handleStoryJourneyRoutes } from './dist/api/story-journey-routes.js';
 // Subscription routes (Stripe checkout, billing portal, usage tracking)
 import { handleSubscriptionRequest, isSubscriptionRoute } from './dist/api/subscription-routes.js';
 
+// User Analytics routes (DAU/WAU/MAU, session tracking, concurrent users)
+import { handleAnalyticsRoutes } from './dist/api/user-analytics-routes.js';
+
 // Monetization routes (tip jar, value capture, ferni fund, B2B, partnerships)
 import { handleMonetizationRequest, isMonetizationRoute } from './dist/api/monetization-routes.js';
 
@@ -89,6 +92,12 @@ import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
 // API v1 Routes (new unified admin API)
 import { handleV1Routes } from './dist/api/v1/index.js';
+
+// Migration routes (device ID to Firebase UID)
+import handleMigrationRoutes from './dist/api/migration-routes.js';
+
+// Account routes (profile, deletion)
+import handleAccountRoutes from './dist/api/account-routes.js';
 
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -129,19 +138,22 @@ const DEMO_CONFIG = {
 };
 
 // Cleanup old rate limit entries hourly
-setInterval(() => {
-  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [ip, data] of demoRateLimits.entries()) {
-    if (data.lastSession < dayAgo) {
-      demoRateLimits.delete(ip);
+setInterval(
+  () => {
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    for (const [ip, data] of demoRateLimits.entries()) {
+      if (data.lastSession < dayAgo) {
+        demoRateLimits.delete(ip);
+      }
     }
-  }
-}, 60 * 60 * 1000);
+  },
+  60 * 60 * 1000
+);
 
 function getDemoRateLimit(ip) {
   const dayStart = new Date().setHours(0, 0, 0, 0);
   let data = demoRateLimits.get(ip);
-  
+
   if (!data || data.dayStart !== dayStart) {
     data = { dayStart, sessionCount: 0, lastSession: 0 };
     demoRateLimits.set(ip, data);
@@ -152,25 +164,25 @@ function getDemoRateLimit(ip) {
 function checkDemoAllowed(ip) {
   const data = getDemoRateLimit(ip);
   const now = Date.now();
-  
+
   if (data.sessionCount >= DEMO_CONFIG.maxSessionsPerDay) {
-    return { 
-      allowed: false, 
+    return {
+      allowed: false,
       reason: 'daily_limit',
-      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`
+      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`,
     };
   }
-  
+
   const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
-  if (data.lastSession && (now - data.lastSession) < cooldownMs) {
+  if (data.lastSession && now - data.lastSession < cooldownMs) {
     const retryIn = Math.ceil((cooldownMs - (now - data.lastSession)) / 1000);
     return {
       allowed: false,
       reason: 'cooldown',
-      message: `Please wait ${retryIn} seconds before starting another demo.`
+      message: `Please wait ${retryIn} seconds before starting another demo.`,
     };
   }
-  
+
   return { allowed: true, sessionsRemaining: DEMO_CONFIG.maxSessionsPerDay - data.sessionCount };
 }
 
@@ -580,6 +592,30 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ============================================================================
+  // MIGRATION ROUTES (device ID to Firebase UID)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/auth/migrat')) {
+      const handled = await handleMigrationRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Migration route error:', err);
+  }
+
+  // ============================================================================
+  // ACCOUNT ROUTES (profile, deletion)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/account')) {
+      const handled = await handleAccountRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Account route error:', err);
+  }
+
+  // ============================================================================
   // DORA, VOICE PRESENCE, OBSERVABILITY ROUTES
   // ============================================================================
   try {
@@ -718,6 +754,12 @@ const server = http.createServer(async (req, res) => {
     // Story journey persistence
     if (pathname.startsWith('/api/story-journey')) {
       const handled = await handleStoryJourneyRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // User Analytics routes (DAU/WAU/MAU, sessions, concurrent users)
+    if (pathname.startsWith('/api/analytics')) {
+      const handled = await handleAnalyticsRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -2043,18 +2085,21 @@ const server = http.createServer(async (req, res) => {
 
   // Demo token endpoint - for landing page try-without-signup
   if (pathname === '/demo-token') {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-               req.headers['x-real-ip'] || 
-               req.socket.remoteAddress || 
-               'unknown';
-    
+    const ip =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.headers['x-real-ip'] ||
+      req.socket.remoteAddress ||
+      'unknown';
+
     const rateCheck = checkDemoAllowed(ip);
     if (!rateCheck.allowed) {
       res.writeHead(429, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        error: rateCheck.reason,
-        message: rateCheck.message
-      }));
+      res.end(
+        JSON.stringify({
+          error: rateCheck.reason,
+          message: rateCheck.message,
+        })
+      );
       return;
     }
 
@@ -2062,10 +2107,42 @@ const server = http.createServer(async (req, res) => {
       const demoId = `demo-${crypto.randomBytes(8).toString('hex')}`;
       const roomName = `demo-${crypto.randomBytes(12).toString('hex')}`;
       const username = 'Visitor';
-      
+
       const token = await createToken(roomName, username);
-      
+
+      // 🌍 INTERNATIONAL ACCENT SUPPORT
+      // Detect user's accent from HTTP headers for demo users too!
+      let geoData = {
+        locale: 'en-US',
+        locales: ['en-US'],
+        detectedAccent: 'american',
+        countryCode: undefined,
+      };
+
+      try {
+        const { detectGeoFromRequest } = await import('./dist/services/geo-detection.js');
+        // Enable IP geolocation for more accurate accent detection
+        // Uses ip-api.com with 2s timeout (free tier, no API key needed)
+        const geo = await detectGeoFromRequest(req, {
+          enableIpLookup: true,
+          ipLookupTimeout: 2000,
+        });
+        geoData = {
+          locale: geo.primaryLanguage || 'en-US',
+          locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
+          detectedAccent: geo.accent,
+          countryCode: geo.countryCode,
+        };
+        console.log(
+          `🌍 Demo geo detected: ${geoData.detectedAccent} accent from ${geo.countryCode || 'unknown'} (source: ${geo.source})`
+        );
+      } catch (geoErr) {
+        // Geo detection is optional - continue without it
+        console.log('🌍 Geo detection skipped:', geoErr.message);
+      }
+
       // Dispatch agent with demo metadata
+      // 🌍 Now includes accent detection data!
       try {
         await agentDispatch.createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify({
@@ -2073,28 +2150,40 @@ const server = http.createServer(async (req, res) => {
             device_id: demoId,
             persona_id: 'ferni',
             is_demo: true,
-            source: 'landing_page'
+            source: 'landing_page',
+            // 🌍 International accent support
+            locale: geoData.locale,
+            locales: geoData.locales,
+            preferredAccent: geoData.detectedAccent,
+            countryCode: geoData.countryCode,
           }),
         });
-        console.log(`🎯 Demo session created: ${roomName} (IP: ${ip.substring(0, 10)}...)`);
+        console.log(
+          `🎯 Demo session created: ${roomName} (IP: ${ip.substring(0, 10)}..., accent: ${geoData.detectedAccent})`
+        );
       } catch (dispatchError) {
         console.log(`ℹ️ Demo dispatch note: ${dispatchError.message}`);
       }
-      
+
       recordDemoSession(ip);
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        token,
-        url: LIVEKIT_URL,
-        room: roomName,
-        username,
-        persona_id: 'ferni',
-        is_demo: true,
-        session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
-        sessions_remaining: rateCheck.sessionsRemaining - 1,
-        upgrade_url: 'https://app.ferni.ai'
-      }));
+      res.end(
+        JSON.stringify({
+          token,
+          url: LIVEKIT_URL,
+          room: roomName,
+          username,
+          persona_id: 'ferni',
+          is_demo: true,
+          session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
+          sessions_remaining: rateCheck.sessionsRemaining - 1,
+          upgrade_url: 'https://app.ferni.ai',
+          // 🌍 Include accent info in response
+          accent: geoData.detectedAccent,
+          countryCode: geoData.countryCode,
+        })
+      );
     } catch (error) {
       console.error('❌ Demo token error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -2114,6 +2203,8 @@ const server = http.createServer(async (req, res) => {
     const username = parsedUrl.searchParams.get('username');
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
+    // Allow frontend to override accent detection
+    const preferred_accent = parsedUrl.searchParams.get('accent');
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2128,20 +2219,83 @@ const server = http.createServer(async (req, res) => {
     // Default to jack-b persona if not specified
     const selectedPersona = persona_id || 'jack-b';
 
+    // 🔐 FIREBASE AUTH: Try to verify Firebase token for user identification
+    // This is the primary user identifier now. Device ID is kept for migration.
+    let firebaseUid = null;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const { verifyFirebaseToken } = await import('./dist/services/firebase-auth.js');
+        const firebaseToken = authHeader.slice(7);
+        const verified = await verifyFirebaseToken(firebaseToken);
+        if (verified) {
+          firebaseUid = verified.uid;
+          console.log(`🔐 Firebase auth: ${firebaseUid.substring(0, 8)}...`);
+        }
+      } catch (firebaseErr) {
+        // Firebase auth optional - continue with device ID
+        console.log(`🔐 Firebase auth note: ${firebaseErr.message}`);
+      }
+    }
+
     createToken(room, username)
       .then(async (token) => {
+        // 🌍 INTERNATIONAL ACCENT SUPPORT
+        // Detect user's accent from HTTP headers (Accept-Language, cloud geo headers)
+        let geoData = {
+          locale: 'en-US',
+          locales: ['en-US'],
+          detectedAccent: 'american',
+          countryCode: undefined,
+          geoSource: 'default',
+          geoConfidence: 'low',
+        };
+
+        try {
+          const { detectGeoFromRequest } = await import('./dist/services/geo-detection.js');
+          // Enable IP geolocation for more accurate accent detection
+          // Uses ip-api.com with 2s timeout (free tier, no API key needed)
+          const geo = await detectGeoFromRequest(req, {
+            enableIpLookup: true,
+            ipLookupTimeout: 2000,
+          });
+          geoData = {
+            locale: geo.primaryLanguage || 'en-US',
+            locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
+            detectedAccent: preferred_accent || geo.accent, // Allow frontend override
+            countryCode: geo.countryCode,
+            geoSource: geo.source,
+            geoConfidence: geo.confidence,
+          };
+          console.log(
+            `🌍 Geo detected: ${geoData.detectedAccent} accent from ${geo.countryCode || 'unknown'} (source: ${geoData.geoSource}, confidence: ${geoData.geoConfidence})`
+          );
+        } catch (geoErr) {
+          console.log(`🌍 Geo detection note: ${geoErr.message}`);
+        }
+
         console.log(
-          `✅ Generated token for user "${username}" in room "${room}" (persona: ${selectedPersona})${device_id ? ` (device: ${device_id})` : ''}`
+          `✅ Generated token for user "${username}" in room "${room}" (persona: ${selectedPersona}, accent: ${geoData.detectedAccent})${firebaseUid ? ` (firebase: ${firebaseUid.substring(0, 8)}...)` : device_id ? ` (device: ${device_id})` : ''}`
         );
 
         // Dispatch the agent to the room with persona metadata
         // The agent will read persona_id from metadata and load the appropriate persona
+        // 🔐 Now includes Firebase UID for user identification!
+        // 🌍 Also includes accent detection data!
         try {
           const agentMetadata = {
             user_name: username,
-            device_id: device_id || undefined, // Pass device ID for user identification
+            // 🔐 PRIMARY: Firebase UID (preferred)
+            firebase_uid: firebaseUid || undefined,
+            // 🔐 FALLBACK: Device ID (for migration period)
+            device_id: device_id || undefined,
             persona_id: selectedPersona, // Pass persona selection!
             source: 'web', // Mark as web connection
+            // 🌍 International accent support
+            locale: geoData.locale,
+            locales: geoData.locales,
+            preferredAccent: geoData.detectedAccent,
+            countryCode: geoData.countryCode,
           };
           await agentDispatch.createDispatch(room, AGENT_NAME, {
             metadata: JSON.stringify(agentMetadata),
@@ -2163,7 +2317,11 @@ const server = http.createServer(async (req, res) => {
             room,
             username,
             device_id,
+            firebase_uid: firebaseUid, // Include in response for frontend
             persona_id: selectedPersona,
+            // 🌍 Include accent info in response (for frontend display)
+            accent: geoData.detectedAccent,
+            countryCode: geoData.countryCode,
           })
         );
       })

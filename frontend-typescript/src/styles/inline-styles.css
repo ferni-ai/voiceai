@@ -644,11 +644,10 @@ body {
 
 @keyframes zenAvatarPulse {
   0% {
-    box-shadow: 0 0 0 0 var(--persona-glow);
     filter: brightness(1);
   }
   50% {
-    box-shadow: 0 0 20px 8px var(--persona-glow);
+    /* Subtle brightness instead of harsh glow per brand guidelines */
     filter: brightness(1.03);
   }
   100% {
@@ -914,15 +913,22 @@ html.theme-transitioning *::after {
   }
 }
 
-/* Team roster entrance - staggered cascade */
+/* Team roster entrance - staggered cascade with gentle spring */
 @keyframes entranceTeamMember {
   0% {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.85) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-2px);
+  }
+  80% {
+    transform: scale(0.98) translateY(1px);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -1451,6 +1457,14 @@ html.theme-transitioning *::after {
   transform: scale(0.98);
 }
 
+.landing-submit:focus-visible {
+  outline: none;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 0 3px white,
+    0 0 0 5px var(--persona-primary);
+}
+
 .landing-skip {
   background: none;
   border: none;
@@ -1463,6 +1477,13 @@ html.theme-transitioning *::after {
 
 .landing-skip:hover {
   color: rgba(0, 0, 0, 0.6);
+}
+
+.landing-skip:focus-visible {
+  outline: none;
+  color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 2px var(--persona-primary);
+  border-radius: 4px;
 }
 
 /* Feature pills */
@@ -2008,6 +2029,7 @@ body {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height - fixes mobile address bar shift */
   line-height: 1.6;
   overflow-x: hidden;
   font-feature-settings: 'cv11', 'ss01'; /* Modern Inter features */
@@ -2237,13 +2259,8 @@ body {
          Creates visual weight and presence - our "WALL-E" character */
   width: 120px;
   height: 120px;
-  /* NOTE: Do NOT add will-change, transform, translateZ, contain, or outline here - causes visible box in Safari */
+  /* NOTE: Do NOT add will-change, transform, translateZ, contain, outline, or backface-visibility here - causes visible box in Safari */
   transform-origin: center center;
-  -webkit-transform-style: flat;
-  transform-style: flat;
-  /* Force GPU compositing without visible artifacts */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
 /* Reaction animations applied via JS classes */
@@ -2375,45 +2392,38 @@ body {
 }
 
 @keyframes avatarPulse {
-  /* Warm acknowledgment pulse - like a heartbeat */
+  /* Warm acknowledgment pulse - like a heartbeat (no harsh glows) */
   0% {
     transform: scale3d(1, 1, 1);
-    box-shadow: 0 0 0 0 var(--persona-glow);
     filter: brightness(1);
   }
   /* Quick expansion */
   25% {
     transform: scale3d(1.05, 1.05, 1);
-    box-shadow: 0 0 25px 6px var(--persona-glow);
     filter: brightness(1.08);
   }
   /* Slight overshoot */
   35% {
     transform: scale3d(1.06, 1.06, 1);
-    box-shadow: 0 0 30px 8px var(--persona-glow);
     filter: brightness(1.1);
   }
   /* Contract back */
   55% {
     transform: scale3d(0.98, 0.98, 1);
-    box-shadow: 0 0 15px 3px var(--persona-glow);
     filter: brightness(1.03);
   }
   /* Second smaller pulse */
   70% {
     transform: scale3d(1.02, 1.02, 1);
-    box-shadow: 0 0 10px 2px var(--persona-glow);
     filter: brightness(1.02);
   }
   /* Settle */
   85% {
     transform: scale3d(0.995, 0.995, 1);
-    box-shadow: 0 0 3px 1px var(--persona-glow);
     filter: brightness(1);
   }
   100% {
     transform: scale3d(1, 1, 1);
-    box-shadow: 0 0 0 0 var(--persona-glow);
     filter: brightness(1);
   }
 }
@@ -2424,29 +2434,26 @@ body {
   inset: -8px;
   border-radius: var(--radius-full);
   background: transparent;
-  border: 1px solid var(--persona-primary);
-  opacity: 0.15;
+  border: 1.5px solid var(--persona-primary);
+  opacity: 0.2;
   transition: all var(--transition-slow);
-  /* Force GPU compositing without visible artifacts */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
-/* Connected: subtle warm glow, not tech ring */
+/* Connected: subtle border accent, no harsh glow */
 #coach.is-connected #avatarRing {
-  opacity: 0.25;
+  opacity: 0.35;
   border-color: var(--persona-primary);
-  box-shadow: 0 0 20px -5px var(--persona-glow);
+  /* Removed harsh glow per brand guidelines - use border opacity instead */
 }
 
 /* Human-like breathing - natural rhythm, not mechanical pulse
        The avatar breathes like a real person - gentle, organic, alive */
 #coach.is-connected:not(.is-speaking):not(.is-thinking):not(.is-listening) #coachAvatar {
-  animation: humanBreathing 4.5s ease-in-out infinite;
+  animation: humanBreathing 6s ease-in-out infinite;
 }
 
 #coach.is-connected:not(.is-speaking):not(.is-thinking):not(.is-listening) #avatarRing {
-  animation: humanBreathingRing 4.5s ease-in-out infinite;
+  animation: humanBreathingRing 6s ease-in-out infinite;
 }
 
 @keyframes humanBreathing {
@@ -2455,26 +2462,26 @@ body {
     transform: scale(1) translateY(0);
   }
   40% {
-    transform: scale(1.02) translateY(-1px);
+    transform: scale(1.015) translateY(-0.5px);
   }
   60% {
-    transform: scale(1.02) translateY(-1px);
+    transform: scale(1.015) translateY(-0.5px);
   }
 }
 
 @keyframes humanBreathingRing {
   0%,
   100% {
-    opacity: 0.2;
+    opacity: 0.25;
     transform: scale(1);
   }
   40% {
-    opacity: 0.3;
-    transform: scale(1.01);
+    opacity: 0.32;
+    transform: scale(1.008);
   }
   60% {
-    opacity: 0.3;
-    transform: scale(1.01);
+    opacity: 0.32;
+    transform: scale(1.008);
   }
 }
 
@@ -2500,27 +2507,27 @@ body {
 /* Emotion states - earthy warm color shifts from design tokens */
 #coach.emotion-happy #avatarRing {
   border-color: var(--color-highlight, #c4a265);
-  opacity: 0.6;
+  opacity: 0.45;
 }
 #coach.emotion-excited #avatarRing {
   border-color: var(--color-jordan, #c4856a);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 #coach.emotion-calm #avatarRing {
   border-color: var(--color-ferni, #4a6741);
-  opacity: 0.6;
+  opacity: 0.45;
 }
 #coach.emotion-anxious #avatarRing {
   border-color: var(--color-warning, #a6854a);
-  opacity: 0.6;
+  opacity: 0.45;
 }
 #coach.emotion-sad #avatarRing {
   border-color: var(--color-peter, #3a6b73);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 #coach.emotion-frustrated #avatarRing {
   border-color: var(--color-error, #a65a52);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 /* ========================================================================
@@ -2529,11 +2536,11 @@ body {
        NO LAYOUT SHIFT - everything is absolutely positioned
        ======================================================================== */
 
-/* 🆕 THINKING: More subtle, contemplative animation 
+/* 🆕 THINKING: Subtle, contemplative animation
        Like Ferni is actually pondering, not beaming energy */
 #coach.is-thinking #avatarRing {
-  opacity: 0.45;
-  animation: thinkingRingBreath 3s ease-in-out infinite;
+  opacity: 0.4;
+  animation: thinkingRingBreath 4s ease-in-out infinite;
 }
 
 @keyframes thinkingRingBreath {
@@ -2543,8 +2550,8 @@ body {
     transform: scale(1);
   }
   50% {
-    opacity: 0.5;
-    transform: scale(1.03);
+    opacity: 0.45;
+    transform: scale(1.02);
   }
 }
 
@@ -2721,28 +2728,28 @@ body {
   height: 5px;
   background: var(--persona-primary, #4a6741);
   border-radius: 50%;
-  animation: floatDotPulse 1.2s ease-in-out infinite;
+  animation: floatDotPulse 1.6s ease-in-out infinite;
 }
 
 .thinking-float .thinking-dot:nth-child(1) {
   animation-delay: 0s;
 }
 .thinking-float .thinking-dot:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.2s;
 }
 .thinking-float .thinking-dot:nth-child(3) {
-  animation-delay: 0.3s;
+  animation-delay: 0.4s;
 }
 
 @keyframes floatDotPulse {
   0%,
   100% {
-    opacity: 0.3;
-    transform: scale(0.9);
+    opacity: 0.4;
+    transform: scale(0.95);
   }
   50% {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
 }
 
@@ -2865,9 +2872,6 @@ body {
   /* Smooth transitions - transforms handled by JS */
   transition: filter var(--transition-base);
   transform-origin: center center;
-  /* Force GPU compositing without visible artifacts */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -3335,10 +3339,10 @@ body {
 #statusIndicator.status-connected {
   background: var(--color-success);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  animation: presenceHeartbeat 3s ease-in-out infinite;
+  animation: presenceHeartbeat 5s ease-in-out infinite;
 }
 
-/* Human-like presence indicator - subtle heartbeat, not tech beacon */
+/* Human-like presence indicator - barely perceptible pulse */
 @keyframes presenceHeartbeat {
   0%,
   100% {
@@ -3346,8 +3350,8 @@ body {
     opacity: 1;
   }
   50% {
-    transform: scale(1.05);
-    opacity: 0.95;
+    transform: scale(1.02);
+    opacity: 0.97;
   }
 }
 
@@ -3571,6 +3575,46 @@ body {
   border-radius: 100px;
   transition: background 0.3s ease;
   will-change: height;
+}
+
+/* 🫁 IDLE BREATHING - Ferni is alive even when quiet
+   Subtle pulse shows continuous presence without being distracting.
+   Each bar breathes slightly offset for organic, human-like rhythm.
+   Active when waveform is on but not speaking/listening/thinking. */
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar {
+  animation: waveformIdleBreath 6s ease-in-out infinite;
+}
+
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(1) { animation-delay: 0s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(2) { animation-delay: 0.4s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(3) { animation-delay: 0.8s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(4) { animation-delay: 1.2s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(5) { animation-delay: 1.6s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(6) { animation-delay: 1.2s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(7) { animation-delay: 0.8s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(8) { animation-delay: 0.4s; }
+#waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar:nth-child(9) { animation-delay: 0s; }
+
+@keyframes waveformIdleBreath {
+  0%, 100% {
+    transform: scaleY(1);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scaleY(1.08);
+    opacity: 0.6;
+  }
+  60% {
+    transform: scaleY(1.08);
+    opacity: 0.6;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #waveformContainer.active:not(.speaking):not(.listening):not(.thinking):not(.transitioning):not(.music-playing) .waveform-bar {
+    animation: none;
+  }
 }
 
 /* Speaking state - slightly brighter */
@@ -4205,6 +4249,35 @@ body {
 }
 
 /* ========================================================================
+       REDUCED MOTION - Accessibility for vestibular disorders
+       Keep functional feedback, remove decorative animations
+       ======================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable decorative breathing */
+  .btn-primary:not(:disabled) {
+    animation: none;
+  }
+
+  /* Keep spinner but make it simpler - just opacity pulse */
+  .btn-connecting::before {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  /* Disable spring entrances */
+  #disconnectBtn:not([style*='display: none']) {
+    animation: none;
+  }
+
+  /* Instant transitions instead of animated */
+  #connectBtn,
+  #disconnectBtn,
+  .btn-content {
+    transition: none;
+  }
+}
+
+/* ========================================================================
        BUTTON SWAP ANIMATION - Smooth crossfade between connect/disconnect
        No jarring pop-in, feels like a natural morph
        ======================================================================== */
@@ -4352,6 +4425,18 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* Focus state - accessible keyboard navigation */
+.btn-secondary:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 3px var(--color-bg-primary),
+    0 0 0 5px var(--persona-primary),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
 /* ========================================================================
        WRAP-UP STATE - Warm goodbye styling
        When the agent is wrapping up, the disconnect becomes a warm farewell
@@ -4388,6 +4473,15 @@ body {
     0 0 50px rgba(184, 149, 106, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.2) inset,
     0 1px 0 rgba(255, 255, 255, 0.3) inset !important;
+}
+
+.btn-wrap-up:focus-visible {
+  outline: none;
+  box-shadow:
+    0 6px 16px rgba(184, 149, 106, 0.4),
+    0 0 0 3px var(--color-bg-primary),
+    0 0 0 5px #b8956a,
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
 }
 
 /* Zen theme wrap-up styling */
@@ -4636,9 +4730,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-1, 6px); /* Tight grouping - team feels unified */
   margin-top: var(--space-md);
-  padding: 8px 12px;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
   background: var(--color-bg-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -4724,8 +4818,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 4px; /* Tight gap between avatar and name */
+  padding: 6px 8px;
   border-radius: var(--radius-lg);
   background: transparent;
   cursor: pointer;
@@ -4740,7 +4834,7 @@ body {
   /* FIX: Prevent layout shifts - stable dimensions */
   flex-shrink: 0;
   flex-grow: 0;
-  min-width: 56px;
+  min-width: 52px; /* Slightly smaller for tighter grouping */
   box-sizing: border-box;
 }
 
@@ -4770,8 +4864,8 @@ body {
 /* Avatar container for positioning the selection ring */
 .team-avatar-container {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4803,8 +4897,8 @@ body {
 }
 
 .team-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   background: var(--persona-gradient, var(--gradient-orb));
   display: flex;
@@ -4835,6 +4929,59 @@ body {
     0 4px 16px rgba(0, 0, 0, 0.2),
     0 0 20px -8px var(--member-color),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* 🎬 PIXAR HOVER - Enhanced hover from magnetic pull animation (JS adds this class) */
+.team-member.pixar-hover {
+  z-index: 10; /* Float above siblings during hover */
+}
+
+.team-member.pixar-hover .team-avatar {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 30px -8px var(--member-color),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+}
+
+.team-member.pixar-hover .team-avatar-ring {
+  opacity: 0.6;
+  transform: scale(1);
+  border-color: var(--member-color);
+}
+
+.team-member.pixar-hover .team-name {
+  color: var(--color-text-primary);
+}
+
+/* 🌬️ ACTIVE MEMBER BREATHING - Very subtle idle animation */
+.team-member.active:not(.switching-to):not(.switching-from) {
+  animation: teamMemberBreathing 6s ease-in-out infinite;
+}
+
+@keyframes teamMemberBreathing {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+/* ✨ ACTIVE RING SHIMMER - Very subtle glow pulse on selected member */
+.team-member.active .team-avatar-ring {
+  animation: activeRingShimmer 5s ease-in-out infinite;
+}
+
+@keyframes activeRingShimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+    /* Barely perceptible pulse - almost static */
+  }
 }
 
 .team-name {
@@ -4877,44 +5024,72 @@ body {
 /* Marketplace button - Add more agents */
 .team-member--marketplace {
   --member-color: var(--color-text-muted, #a89d90);
-  border: 1px dashed var(--color-border, rgba(92, 84, 74, 0.2));
   background: transparent;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .team-member--marketplace:hover {
-  opacity: 0.8;
-  border-color: var(--color-text-muted, #5c544a);
-  background: rgba(92, 84, 74, 0.06);
+  opacity: 0.9;
+  background: transparent;
 }
 
 .marketplace-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-text-muted, #a89d90) !important;
+  background: var(--color-text-dimmed, #b8ad9f) !important;
   color: white;
 }
 
 .marketplace-avatar svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.5;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  opacity: 0.9;
 }
 
 .marketplace-ring {
   border-style: dashed;
-  border-color: var(--color-text-muted, #a89d90);
-  opacity: 0.4;
+  border-width: 1.5px;
+  border-color: var(--color-text-dimmed, #b8ad9f);
+  opacity: 0.6;
 }
 
 .team-member--marketplace:hover .marketplace-ring {
-  opacity: 0.7;
-  border-color: var(--color-text-muted, #5c544a);
+  opacity: 1;
+  border-color: var(--color-text-muted, #a89d90);
 }
 
 .team-member--marketplace:hover .marketplace-avatar {
-  background: var(--color-text-secondary, #5c544a) !important;
+  background: var(--color-text-muted, #a89d90) !important;
+}
+
+/* 💫 MARKETPLACE INVITATION - Subtle pulse to invite exploration */
+.team-member--marketplace .marketplace-ring {
+  animation: marketplaceInvite 4s ease-in-out infinite;
+  animation-delay: 2s; /* Wait for entrance animations to complete */
+}
+
+@keyframes marketplaceInvite {
+  0%,
+  85%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  90% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+  95% {
+    transform: scale(1.04);
+    opacity: 0.75;
+  }
+}
+
+/* Pause invitation animation on hover - user is already engaged */
+.team-member--marketplace:hover .marketplace-ring {
+  animation: none;
 }
 
 /* Installed marketplace agents */
@@ -5047,17 +5222,17 @@ body {
   0% {
     transform: scale(0.8);
     opacity: 0;
-    box-shadow: 0 0 0 0 var(--persona-glow);
   }
   50% {
     transform: scale(1.1);
     opacity: 1;
-    box-shadow: 0 0 20px 5px var(--persona-glow);
+    filter: brightness(1.1);
   }
   100% {
     transform: scale(1);
     opacity: 1;
-    box-shadow: 0 0 10px 2px var(--persona-glow);
+    filter: brightness(1);
+    /* Using brightness instead of harsh glow */
   }
 }
 
@@ -5147,15 +5322,16 @@ body {
   }
 }
 
+/* Coach avatar - same size as regular team members for consistent alignment */
 .team-member--coach .team-avatar {
-  width: 34px;
-  height: 34px;
-  font-size: var(--text-xs);
+  width: 40px;
+  height: 40px;
+  font-size: var(--text-sm);
 }
 
 .team-member--coach .team-avatar-container {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
 }
 
 .team-member--coach .team-avatar-ring {
@@ -5609,8 +5785,8 @@ body {
 
   /* Team roster - horizontal scroll if needed */
   #teamRoster {
-    gap: 0;
-    padding: 6px 8px;
+    gap: 4px; /* Tight mobile spacing */
+    padding: 6px 10px;
     margin-top: var(--space-md);
     max-width: 100%;
     overflow-x: auto;
@@ -5631,20 +5807,20 @@ body {
   }
 
   .team-member {
-    padding: 6px 8px;
-    min-width: 48px;
+    padding: 4px 6px;
+    min-width: 46px;
     flex-shrink: 0;
   }
 
   .team-avatar-container {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
 
   .team-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 11px;
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
     font-weight: 600;
   }
 
@@ -5656,7 +5832,7 @@ body {
   .team-name {
     font-size: 10px;
     font-weight: 500;
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   /* Waveform - mobile */
@@ -5887,14 +6063,14 @@ body {
   }
 
   .team-avatar-container {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   .team-avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 10px;
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
   }
 
   .team-name {
@@ -6265,16 +6441,17 @@ body {
 
 @keyframes connectionWarmth {
   0% {
-    box-shadow: 0 0 0 0 var(--color-semantic-success-glow);
     transform: scale(1);
+    filter: brightness(1);
   }
   40% {
-    box-shadow: 0 0 35px 12px var(--color-semantic-success-glow);
     transform: scale(1.02);
+    filter: brightness(1.08);
+    /* Subtle brightness instead of harsh glow */
   }
   100% {
-    box-shadow: 0 0 0 0 var(--color-semantic-success-glow);
     transform: scale(1);
+    filter: brightness(1);
   }
 }
 
@@ -6301,7 +6478,7 @@ body {
 /* Milestone toast - clean, minimal */
 .milestone-toast {
   position: fixed;
-  bottom: 100px;
+  bottom: max(100px, calc(100px + env(safe-area-inset-bottom)));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: var(--color-bg-elevated);
@@ -6878,19 +7055,19 @@ body {
 }
 
 #coachAvatar.presence-listening::after {
-  /* Receptive glow when listening */
-  animation: presenceGlowListening 3000ms var(--ease-in-out) infinite;
+  /* Receptive glow when listening - subtle presence */
+  animation: presenceGlowListening 4500ms var(--ease-in-out) infinite;
 }
 
 @keyframes presenceGlowListening {
   0%,
   100% {
-    opacity: 0.18;
+    opacity: 0.15;
     transform: scale(1);
   }
   50% {
-    opacity: 0.25;
-    transform: scale(1.04);
+    opacity: 0.22;
+    transform: scale(1.02);
   }
 }
 

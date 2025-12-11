@@ -47,6 +47,64 @@ export interface ConversationMemory {
   lastSummary?: string;
   openQuestions: string[];
   pendingFollowUps: PendingFollowUp[];
+
+  // 🧠 SUPERHUMAN INTELLIGENCE - Cross-session data
+  superhumanMemories?: SuperhumanMemoryData[];
+  superhumanPatterns?: SuperhumanPatternData[];
+  superhumanLearning?: SuperhumanLearningData;
+}
+
+/**
+ * Proactive memory data for persistence
+ */
+export interface SuperhumanMemoryData {
+  id: string;
+  type:
+    | 'event'
+    | 'goal'
+    | 'person'
+    | 'pattern'
+    | 'struggle'
+    | 'milestone'
+    | 'preference'
+    | 'achievement';
+  content: string;
+  context?: string;
+  topics: string[];
+  people: string[];
+  mentionedAt: Date;
+  expectedFollowUpAt?: Date;
+  emotionalWeight: 'light' | 'medium' | 'heavy';
+  wasVulnerable: boolean;
+}
+
+/**
+ * Pattern data for persistence
+ */
+export interface SuperhumanPatternData {
+  type: 'temporal' | 'topic_recurring' | 'emotional_cycle' | 'relationship';
+  description: string;
+  confidence: number;
+  evidence: string[];
+  detectedAt: Date;
+}
+
+/**
+ * Learning data for predictive anticipation
+ */
+export interface SuperhumanLearningData {
+  topicTransitions: Array<{
+    from: string;
+    to: string;
+    count: number;
+  }>;
+  baseline: {
+    avgValence: number;
+    avgArousal: number;
+    preferredNeed: string;
+    speechRateBaseline: number;
+    energyBaseline: number;
+  };
 }
 
 // ============================================================================
@@ -61,5 +119,9 @@ export function createConversationMemory(): ConversationMemory {
     summaries: [],
     openQuestions: [],
     pendingFollowUps: [],
+    // 🧠 Superhuman intelligence data
+    superhumanMemories: [],
+    superhumanPatterns: [],
+    superhumanLearning: undefined,
   };
 }

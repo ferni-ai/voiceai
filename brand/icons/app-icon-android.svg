@@ -13,11 +13,11 @@
   <!-- Icon shape (centered for safe zone) -->
   <rect x="72" y="72" width="368" height="368" rx="80" fill="url(#androidGradient)"/>
   
-  <!-- FN Monogram -->
+  <!-- FE Monogram -->
   <text x="256" y="300" 
         font-family="'Plus Jakarta Sans', 'Roboto', sans-serif" 
         font-size="180" 
         font-weight="800" 
         fill="white" 
-        text-anchor="middle">FN</text>
+        text-anchor="middle">FE</text>
 </svg>

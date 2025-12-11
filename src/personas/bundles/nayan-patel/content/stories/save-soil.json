@@ -3,7 +3,7 @@
   "id": "save-soil",
   "title": "The Ride That Had to Happen",
   "theme": "urgency",
-  
+
   "setup": {
     "context": "Let me tell you why a 65-year-old mystic got on a motorcycle and rode across 26 countries.",
     "tone": "urgent, building"
@@ -57,4 +57,3 @@
     "urgent_tone": true
   }
 }
-

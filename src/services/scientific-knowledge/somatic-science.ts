@@ -87,13 +87,13 @@ export const SOMATIC_SCIENCE = {
 
     neuroception: {
       definition: 'Unconscious detection of safety or danger',
-      implication: "The body decides safety before the mind knows",
+      implication: 'The body decides safety before the mind knows',
       cues_of_safety: [
         'Prosodic voice (melodic, not monotone)',
         'Soft eye contact',
         'Open, relaxed posture',
         'Slow movements',
-        "Warmth (temperature and emotional)",
+        'Warmth (temperature and emotional)',
       ],
     },
 
@@ -112,7 +112,7 @@ export const SOMATIC_SCIENCE = {
 
     coregulation: {
       principle: "We regulate each other's nervous systems",
-      implication: 'Ferni\'s calm presence helps users regulate',
+      implication: "Ferni's calm presence helps users regulate",
       technique: 'Model calm, slow speech when user is dysregulated',
     },
   },
@@ -239,8 +239,12 @@ export const SOMATIC_SCIENCE = {
 
     disrupted_interoception: {
       conditions: ['Trauma', 'Anxiety disorders', 'Eating disorders'],
-      signs: ['Difficulty identifying emotions', 'Not noticing hunger/fullness', 'Disconnection from body'],
-      approach: 'Build slowly, don\'t push past tolerance',
+      signs: [
+        'Difficulty identifying emotions',
+        'Not noticing hunger/fullness',
+        'Disconnection from body',
+      ],
+      approach: "Build slowly, don't push past tolerance",
     },
   },
 
@@ -372,14 +376,11 @@ export function getSomaticTechnique(
         ],
         voiceGuidance: [
           'What are you noticing in your body right now?',
-          'Let\'s anchor into this moment together',
+          "Let's anchor into this moment together",
           'What sounds can you hear?',
           'Feel the weight of your body being held',
         ],
-        doNot: [
-          "Don't skip sensory engagement",
-          "Don't rush through it",
-        ],
+        doNot: ["Don't skip sensory engagement", "Don't rush through it"],
         duration: '3-5 minutes',
       };
 
@@ -394,9 +395,9 @@ export function getSomaticTechnique(
         ],
         voiceGuidance: [
           'Speak very slowly, lower pitch',
-          'Let your eyes close when they\'re ready',
+          "Let your eyes close when they're ready",
           'With each exhale, let yourself sink deeper',
-          'There\'s nothing you need to do right now',
+          "There's nothing you need to do right now",
         ],
         doNot: [
           "Don't introduce stimulating content",
@@ -416,7 +417,7 @@ export function getSomaticTechnique(
           'TIPP from DBT: Temperature, Intense exercise, Paced breathing, Progressive relaxation',
         ],
         voiceGuidance: [
-          'Anger makes sense—let\'s help your body settle',
+          "Anger makes sense—let's help your body settle",
           'Can you shake your hands out for me?',
           'Take a big breath in... and let it whoosh out',
           'Notice where the anger lives in your body',
@@ -434,9 +435,13 @@ export function getSomaticTechnique(
 /**
  * Get breath guidance for voice delivery.
  */
-export function getBreathGuidance(
-  pattern: 'calming' | 'energizing' | 'balancing'
-): { inhale: number; hold?: number; exhale: number; cycles: number; voiceCue: string } {
+export function getBreathGuidance(pattern: 'calming' | 'energizing' | 'balancing'): {
+  inhale: number;
+  hold?: number;
+  exhale: number;
+  cycles: number;
+  voiceCue: string;
+} {
   switch (pattern) {
     case 'calming':
       return {
@@ -499,5 +504,3 @@ export function assessNervousSystemState(signals: {
   // Default to ventral (safe and social)
   return 'ventral';
 }
-
-

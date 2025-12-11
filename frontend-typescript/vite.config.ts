@@ -63,7 +63,13 @@ export default defineConfig({
       drop: ['console', 'debugger'],
     },
     rollupOptions: {
+      // Treat gsap as external - use window.gsap from CDN
+      external: ['gsap'],
       output: {
+        // Map gsap imports to the global
+        globals: {
+          gsap: 'gsap',
+        },
         // Smart chunking strategy for optimal loading
         manualChunks(id) {
           // Vendor libraries - separate chunks for parallel loading

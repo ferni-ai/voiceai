@@ -14,11 +14,11 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { maskEmail, maskPhoneNumber, stripPII } from '../services/privacy-crypto.js';
+import { recordDataAccess, recordSecurityEvent } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { requireAuth, rateLimit } from './auth-middleware.js';
-import { sendJSON, sendError, parseBody, handleCorsPreflightIfNeeded } from './helpers.js';
-import { recordSecurityEvent, recordDataAccess } from '../services/security-events.js';
-import { maskPhoneNumber, maskEmail, stripPII } from '../services/privacy-crypto.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -577,8 +577,10 @@ async function handleAccountDeletion(
         }
       } catch (firebaseErr) {
         // Firebase deletion is best-effort - don't fail the whole request
-        log.warn({ error: String(firebaseErr), userId: userId.substring(0, 8) + '...' }, 
-          'Firebase user deletion failed (non-fatal)');
+        log.warn(
+          { error: String(firebaseErr), userId: userId.substring(0, 8) + '...' },
+          'Firebase user deletion failed (non-fatal)'
+        );
       }
     }
 

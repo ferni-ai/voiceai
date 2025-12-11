@@ -59,50 +59,19 @@ class ScrollRevealSystem {
   }
 
   addStyles() {
+    // Progressive enhancement: CSS in story-brand.css handles visibility
+    // This JS just adds .js-animate to enable animations and .is-visible when scrolled
+    // No dynamic opacity:0 injection - content is visible by default without JS
+
     const style = document.createElement('style');
     style.textContent = `
-      /* Reveal base state */
-      .reveal {
-        opacity: 0;
-        transform: translateY(32px);
-        transition: opacity ${DURATION.CINEMATIC}ms ${EASING.EXPO_OUT},
-                    transform ${DURATION.CINEMATIC}ms ${EASING.EXPO_OUT};
-      }
-      
-      .reveal.is-visible {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      /* Stagger children (Pixar follow-through) */
-      .reveal-stagger > * {
-        opacity: 0;
-        transform: translateY(24px);
-        transition: opacity ${DURATION.DRAMATIC}ms ${EASING.EXPO_OUT},
-                    transform ${DURATION.DRAMATIC}ms ${EASING.EXPO_OUT};
-      }
-      
-      .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
-      .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 80ms; }
-      .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 160ms; }
-      .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 240ms; }
-      .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 320ms; }
-      .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 400ms; }
-      
-      .reveal-stagger.is-visible > * {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      /* Reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        .reveal,
-        .reveal-stagger > * {
-          opacity: 1;
-          transform: none;
-          transition: none;
-        }
-      }
+      /* Stagger timing for reveal children */
+      .js-animate .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+      .js-animate .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 80ms; }
+      .js-animate .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 160ms; }
+      .js-animate .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 240ms; }
+      .js-animate .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 320ms; }
+      .js-animate .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 400ms; }
     `;
     document.head.appendChild(style);
   }

@@ -154,29 +154,69 @@ export function isGreetingsV2(
 // ============================================================================
 
 export interface BundleVulnerability {
-  admitting_uncertainty?: { dont_know?: string[]; at_my_limits?: string[]; wrong_before?: string[] };
-  coaching_honesty?: { when_its_hard?: string[]; limits_of_coaching?: string[]; growth_is_messy?: string[] };
-  emotional_honesty?: { when_user_shares_something_hard?: string[]; genuine_care?: string[]; celebrating_them?: string[] };
+  admitting_uncertainty?: {
+    dont_know?: string[];
+    at_my_limits?: string[];
+    wrong_before?: string[];
+  };
+  coaching_honesty?: {
+    when_its_hard?: string[];
+    limits_of_coaching?: string[];
+    growth_is_messy?: string[];
+  };
+  emotional_honesty?: {
+    when_user_shares_something_hard?: string[];
+    genuine_care?: string[];
+    celebrating_them?: string[];
+  };
   personal_struggles_shared?: { own_journey?: string[]; work_in_progress?: string[] };
   when_frustrated?: { with_situation?: string[]; honest_pushback?: string[] };
 }
 
 export interface BundleCulturalMoments {
-  chinese_american_identity?: { family_expressions?: string[]; food_as_language?: string[]; restaurant_wisdom?: string[]; navigating_two_worlds?: string[] };
+  chinese_american_identity?: {
+    family_expressions?: string[];
+    food_as_language?: string[];
+    restaurant_wisdom?: string[];
+    navigating_two_worlds?: string[];
+  };
   family_updates?: { parents?: string[]; kevin?: string[]; restaurant?: string[] };
-  cultural_references_in_advice?: { immigrant_hustle?: string[]; cross_cultural_communication?: string[] };
+  cultural_references_in_advice?: {
+    immigrant_hustle?: string[];
+    cross_cultural_communication?: string[];
+  };
 }
 
 export interface BundleMicroMoments {
-  small_thoughtful_touches?: { remembering_details?: string[]; noticing_changes?: string[]; unprompted_care?: string[] };
-  human_transitions?: { starting_conversations?: string[]; ending_conversations?: string[]; check_ins_mid_conversation?: string[] };
-  personal_asides?: { life_updates?: string[]; in_the_moment_reactions?: string[]; random_opinions?: string[] };
-  self_deprecating_humor?: { about_efficiency?: string[]; about_own_advice?: string[]; about_personal_life?: string[] };
+  small_thoughtful_touches?: {
+    remembering_details?: string[];
+    noticing_changes?: string[];
+    unprompted_care?: string[];
+  };
+  human_transitions?: {
+    starting_conversations?: string[];
+    ending_conversations?: string[];
+    check_ins_mid_conversation?: string[];
+  };
+  personal_asides?: {
+    life_updates?: string[];
+    in_the_moment_reactions?: string[];
+    random_opinions?: string[];
+  };
+  self_deprecating_humor?: {
+    about_efficiency?: string[];
+    about_own_advice?: string[];
+    about_personal_life?: string[];
+  };
 }
 
 export interface BundleOffDuty {
   description?: string;
-  casual_mode?: { conversation_starters?: string[]; interests_to_share?: string[]; curious_about_them?: string[] };
+  casual_mode?: {
+    conversation_starters?: string[];
+    interests_to_share?: string[];
+    curious_about_them?: string[];
+  };
   weekend_alex?: { saturday_routine?: string[]; sunday_ritual?: string[]; evening_mode?: string[] };
   non_work_opinions?: { food?: string[]; life_stuff?: string[]; random_takes?: string[] };
   movie_night_alex?: { preferences?: string[]; watching_habits?: string[] };
@@ -186,8 +226,16 @@ export interface BundleOffDuty {
 export interface BundleSensoryMoments {
   description?: string;
   what_alex_notices?: { environment_cues?: string[]; in_others?: string[] };
-  physical_habits_in_conversation?: { thinking?: string[]; processing_emotions?: string[]; task_mode?: string[] };
-  sensory_anchors?: { comfort_sensations?: string[]; discomfort_sensations?: string[]; peak_moments?: string[] };
+  physical_habits_in_conversation?: {
+    thinking?: string[];
+    processing_emotions?: string[];
+    task_mode?: string[];
+  };
+  sensory_anchors?: {
+    comfort_sensations?: string[];
+    discomfort_sensations?: string[];
+    peak_moments?: string[];
+  };
   body_memories?: { restaurant_childhood?: string[]; learned_responses?: string[] };
   current_state_awareness?: { energy_check?: string[]; emotional_weather?: string[] };
   shared_moments?: { celebrating_together?: string[]; sitting_with_difficulty?: string[] };
@@ -396,7 +444,10 @@ export interface DetailCallback {
 export interface BundlePersonaModes {
   modes: Record<string, PersonaMode>;
   mode_transitions: Record<string, ModeTransition>;
-  mode_detection?: { keywords?: Record<string, string[]>; emotional_signals?: Record<string, string[]> };
+  mode_detection?: {
+    keywords?: Record<string, string[]>;
+    emotional_signals?: Record<string, string[]>;
+  };
 }
 
 export interface PersonaMode {
@@ -662,7 +713,11 @@ export interface BundleLateNightPresence {
   relationship_gate?: string;
   late_night_greetings?: string[];
   holding_space_in_darkness?: string[];
-  cant_sleep_patterns?: { anxiety?: string[]; heavy_thoughts?: string[]; processing_day?: string[] };
+  cant_sleep_patterns?: {
+    anxiety?: string[];
+    heavy_thoughts?: string[];
+    processing_day?: string[];
+  };
   tsunami_wisdom_at_night?: string[];
   grounding_exercises?: string[];
   morning_will_come_hope?: string[];
@@ -680,10 +735,22 @@ export interface BundleSuperhumanInsights {
   schema_version?: number;
   description?: string;
   relationship_gate?: string;
-  pattern_surfacing?: { behavioral_patterns?: string[]; linguistic_patterns?: string[]; emotional_patterns?: string[] };
-  the_mirror?: { reflecting_past_phrases?: string[]; contradiction_call_outs?: string[]; unconscious_motivations?: string[] };
+  pattern_surfacing?: {
+    behavioral_patterns?: string[];
+    linguistic_patterns?: string[];
+    emotional_patterns?: string[];
+  };
+  the_mirror?: {
+    reflecting_past_phrases?: string[];
+    contradiction_call_outs?: string[];
+    unconscious_motivations?: string[];
+  };
   emotional_weather_reports?: { monthly_summary?: string[]; long_term_trajectory?: string[] };
-  predictive_care?: { before_hard_dates?: string[]; anticipating_struggle?: string[]; proactive_resource_offer?: string[] };
+  predictive_care?: {
+    before_hard_dates?: string[];
+    anticipating_struggle?: string[];
+    proactive_resource_offer?: string[];
+  };
   cross_session_arc_tracking?: { long_term_growth?: string[]; unseen_progress?: string[] };
   superhuman_memory_flex?: { phrases?: string[] };
 }

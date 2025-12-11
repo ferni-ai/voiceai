@@ -3,7 +3,7 @@
   "id": "chamundi-hills",
   "title": "The Day Everything Changed",
   "theme": "enlightenment",
-  
+
   "setup": {
     "context": "When I was 25, I climbed Chamundi Hills in Mysore. I had climbed them many times before. It was an ordinary afternoon.",
     "tone": "matter-of-fact, building"
@@ -57,4 +57,3 @@
     "minimum_relationship": "acquaintance"
   }
 }
-

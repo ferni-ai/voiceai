@@ -3,7 +3,7 @@
   "id": "bamboo-farmer",
   "title": "The Chinese Bamboo",
   "theme": "patience",
-  
+
   "setup": {
     "context": "Do you know about Chinese bamboo? Let me tell you...",
     "tone": "teaching story, building"
@@ -61,4 +61,3 @@
     "teaching_weight": "high"
   }
 }
-

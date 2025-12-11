@@ -13,7 +13,7 @@
 
   "dynamic": {
     "use_caught_doing": true,
-    "caught_doing_probability": 0.30,
+    "caught_doing_probability": 0.3,
 
     "adapt_to_user_emotion": true,
 
@@ -21,7 +21,7 @@
     "self_aware_threshold": 4,
 
     "use_memory_callbacks": true,
-    "memory_callback_probability": 0.30
+    "memory_callback_probability": 0.3
   },
 
   "contextual": {
@@ -80,4 +80,3 @@
     "Let's explore together."
   ]
 }
-

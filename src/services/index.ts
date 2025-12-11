@@ -425,6 +425,38 @@ export { ragLookup as semanticRagLookup, type ConversationTurn } from '../memory
 export { buildSpeechContext, tagTextWithSsmlAdaptive } from '../speech/index.js';
 
 // ============================================================================
+// GEO DETECTION (International Accent Support)
+// ============================================================================
+
+export {
+  buildMetadataWithGeo,
+  detectGeoFromRequest,
+  extractCloudGeoHeaders,
+  geoDetectionMiddleware,
+  getClientIP,
+  lookupIPCountry,
+  parseAcceptLanguage,
+  type GeoDetectionOptions,
+  type GeoDetectionResult,
+} from './geo-detection.js';
+
+// ============================================================================
+// CARTESIA VOICE LOCALIZATION (International Accents)
+// ============================================================================
+
+export {
+  clearLocalizationCache,
+  getLocalizationCacheStats,
+  getLocalizedVoiceId,
+  getLocalizedVoiceIdSync,
+  initializeLocalizationService,
+  isVoiceCached,
+  preWarmLocalizedVoices,
+  type LocalizationResult,
+  type LocalizedVoice,
+} from './cartesia-voice-localization.js';
+
+// ============================================================================
 // HEALTH CHECKS
 // ============================================================================
 

@@ -73,7 +73,7 @@ export function initAvatarFeedback(): void {
   createStatusWhisperElement();
 
   // 🎬 NOTE: GPU hints removed - causes visible box bug in Safari
-  // GSAP handles GPU acceleration automatically with force3D
+  // GSAP handles GPU acceleration automatically via force3D config
   // The clip-path: circle(50%) on #coachAvatar provides clipping without the bug
 
   // 🎬 FIX: DON'T start idle behaviors immediately
@@ -960,6 +960,56 @@ export function isAvatarDancing(): boolean {
 type ReactionType = 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise';
 
 /**
+ * Pixar-style reaction type - uses CSS keyframe animations
+ * with proper squash & stretch defined in inline-styles.css
+ */
+type PixarReactionType = 'nod' | 'shake' | 'bounce' | 'pulse';
+
+/**
+ * Play a Pixar-quality reaction using CSS keyframe animations.
+ *
+ * These use the squash & stretch keyframes defined in inline-styles.css:
+ * - 'nod': WALL-E style acknowledgment with vertical squash/stretch
+ * - 'shake': Gentle disagreement with horizontal squash on direction changes
+ * - 'bounce': Luxo Jr. style excited bounce with full squash/stretch
+ * - 'pulse': Warm heartbeat acknowledgment with scale pulses
+ *
+ * Each animation follows Pixar's 3-part structure:
+ * 1. Anticipation (wind-up)
+ * 2. Action (main movement)
+ * 3. Follow-through & Settle
+ *
+ * @param type - The Pixar reaction type to play
+ */
+export function playPixarReaction(type: PixarReactionType): void {
+  if (!avatarContainer) return;
+
+  // Duration map for each reaction type
+  const durations: Record<PixarReactionType, number> = {
+    nod: 400,
+    shake: 400,
+    bounce: 500,
+    pulse: 600,
+  };
+
+  // Remove any existing Pixar reaction classes
+  avatarContainer.classList.remove('react-nod', 'react-shake', 'react-bounce', 'react-pulse');
+
+  // Force reflow to restart animation
+  void avatarContainer.offsetWidth;
+
+  // Add the reaction class to trigger CSS animation
+  avatarContainer.classList.add(`react-${type}`);
+
+  log.debug(`🎬 Pixar reaction: ${type}`);
+
+  // Remove class after animation completes
+  setTimeout(() => {
+    avatarContainer?.classList.remove(`react-${type}`);
+  }, durations[type] + 50);
+}
+
+/**
  * Trigger a fun micro-reaction on the avatar.
  * These are short, delightful animations for special moments.
  *
@@ -1289,6 +1339,8 @@ export const avatarFeedback = {
   // 🎉 Fun micro-reactions for delightful moments
   react: triggerReaction,
   reactRandom: triggerRandomReaction,
+  // 🎬 Pixar-quality reactions with squash & stretch
+  pixarReact: playPixarReaction,
 };
 
 export default avatarFeedback;

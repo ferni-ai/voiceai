@@ -5,6 +5,7 @@
  * preferences, relationship history, and financial context.
  */
 
+import type { PersonalJourneyData } from '../services/personal-journey/types.js';
 import type { SubscriptionData } from './subscription.js';
 
 // ============================================================================
@@ -300,6 +301,16 @@ export interface UserPreferences {
   preferredGreeting?: string;
   wantsProactiveAdvice: boolean;
   financialPrivacyLevel: 'open' | 'moderate' | 'private';
+
+  // 🌍 International Voice Preferences
+  /** Preferred English accent for TTS (american, british, australian, indian) */
+  preferredAccent?: 'american' | 'british' | 'australian' | 'indian';
+  /** Primary language code (e.g., 'en-US', 'en-GB') - auto-detected or manually set */
+  locale?: string;
+  /** All detected/preferred languages (from browser Accept-Language) */
+  locales?: string[];
+  /** Whether the accent was auto-detected or manually set by user */
+  accentAutoDetected?: boolean;
 }
 
 /**
@@ -1104,6 +1115,19 @@ export interface UserProfile {
   /** Subscription tier and usage tracking */
   subscription?: SubscriptionData;
 
+  // ============================================================================
+  // PERSONAL JOURNEY AWARENESS
+  // "Better Than Human" - Ferni remembers YOUR journey
+  // ============================================================================
+
+  /**
+   * Personal journey awareness data for celebrating user milestones,
+   * tracking rhythm patterns, seasonal memories, and life chapters.
+   * This makes Ferni "superhuman" at remembering and honoring
+   * each user's unique journey.
+   */
+  personalJourney?: Partial<PersonalJourneyData>;
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -1162,6 +1186,9 @@ export function createUserProfile(id: string, name?: string): UserProfile {
       topicsToAvoid: [],
       wantsProactiveAdvice: true,
       financialPrivacyLevel: 'moderate',
+      // Voice preferences - defaults to American, can be auto-detected or user-set
+      preferredAccent: 'american',
+      accentAutoDetected: true,
     },
 
     conversationSummaries: [],

@@ -14,8 +14,8 @@
  * ONCE per session unless the user specifically asks about it.
  */
 
-import { extractPersonalThemes, type PersonalTheme } from '../../types/personal-themes.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
+import { extractPersonalThemes, type PersonalTheme } from '../../types/personal-themes.js';
 
 // ============================================================================
 // TYPES
@@ -317,16 +317,41 @@ const TRANSITION_PHRASES: Record<InnerWorldInjection['depth'], string[]> = {
  * This allows overriding the theme-blocking for direct questions
  */
 function userAskedAboutTheme(userMessage: string, theme: PersonalTheme): boolean {
-  const askPatterns: Record<PersonalTheme, RegExp[]> = {
+  // PIXAR ENHANCEMENT: Expanded to cover all new personal themes
+  const askPatterns: Partial<Record<PersonalTheme, RegExp[]>> = {
+    // Major backstory
     wyoming: [/tell me about wyoming/i, /where.*from/i, /your childhood/i],
     japan: [/tell me about japan/i, /the tsunami/i, /what happened in japan/i],
     book: [/your book/i, /writing/i, /how's the book/i, /attempt five/i],
     childhood: [/growing up/i, /when you were.*kid/i, /your childhood/i],
     family: [/your wife/i, /your kids/i, /your family/i],
     notebook: [/your notebook/i, /write everything down/i],
+
+    // Daily life
+    coffee: [/coffee/i, /your morning/i, /how much coffee/i],
+    morning_routine: [/your morning/i, /what time.*up/i, /morning routine/i],
+    flights: [/travel/i, /flights/i, /where.*go/i],
+    ski_argument: [/your brother/i, /skiing/i, /alta/i],
+    mint_tea: [/tea/i, /mint tea/i, /morocco/i],
+    bad_movies: [/movies/i, /disaster movies/i, /what.*watch/i],
+
+    // Travel/culture
+    brazil: [/brazil/i, /carnaval/i, /south america/i],
+    morocco: [/morocco/i, /marrakech/i],
+    india: [/india/i, /service/i],
+    scotland: [/scotland/i, /resilience/i],
+
+    // Wisdom themes
+    net_worth_self_worth: [/worth/i, /value/i],
+    second_chances: [/second chance/i, /redemption/i],
+    questions_over_answers: [/questions/i, /right question/i],
+    patience_lesson: [/patience/i, /stay the course/i],
+
+    // Generic emotional
     mortality: [/death/i, /dying/i, /what keeps you up/i],
     regret: [/any regrets/i, /what do you regret/i],
     fear: [/what scares you/i, /what are you afraid of/i],
+    vulnerability: [/vulnerable/i, /open up/i],
   };
 
   const patterns = askPatterns[theme] || [];

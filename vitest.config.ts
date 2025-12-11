@@ -31,12 +31,17 @@ export default defineConfig({
         'frontend-orb/**',
         'frontend-typescript/**',
       ],
-      // TODO: Gradually increase thresholds as coverage improves (tracked in BACKLOG.md)
+      // Coverage thresholds - stepped approach toward 60%
+      // Current: ~32% lines, ~33% functions, ~32% statements, ~27% branches
+      // Phase 1: Match current (baseline)
+      // Phase 2: 40%
+      // Phase 3: 50%
+      // Phase 4: 60% (production readiness)
       thresholds: {
-        lines: 30,
-        functions: 30,
-        branches: 25,
-        statements: 30,
+        lines: 32,
+        functions: 33,
+        branches: 26,
+        statements: 32,
       },
     },
     setupFiles: ['./src/tests/setup.ts'],

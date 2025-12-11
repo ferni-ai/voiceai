@@ -3,7 +3,7 @@
   "id": "motorcycle-journey",
   "title": "30,000 Kilometers for Soil",
   "theme": "purpose",
-  
+
   "setup": {
     "context": "In 2022, I did something that seemed crazy to some people. Let me tell you about it.",
     "tone": "energetic, building"
@@ -61,4 +61,3 @@
     "activism_focused": true
   }
 }
-

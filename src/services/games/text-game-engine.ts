@@ -12,6 +12,10 @@ import type {
   TextGameState,
   TextGameType,
   TicTacToeState,
+  TwentyQuestionsState,
+  WordAssociationState,
+  WouldYouRatherState,
+  StoryBuilderState,
 } from './text-game-types.js';
 import {
   createInitialState as createTicTacToeState,
@@ -21,6 +25,30 @@ import {
   makeMove,
   processUserMove as processTicTacToeMove,
 } from './tic-tac-toe.js';
+import {
+  createInitialState as createTwentyQuestionsState,
+  processInput as processTwentyQuestionsInput,
+  describeStateForVoice as describeTwentyQuestionsState,
+  getStartResult as getTwentyQuestionsStart,
+} from './twenty-questions.js';
+import {
+  createInitialState as createWordAssociationState,
+  processInput as processWordAssociationInput,
+  describeStateForVoice as describeWordAssociationState,
+  getStartResult as getWordAssociationStart,
+} from './word-association.js';
+import {
+  createInitialState as createWouldYouRatherState,
+  processInput as processWouldYouRatherInput,
+  describeStateForVoice as describeWouldYouRatherState,
+  getStartResult as getWouldYouRatherStart,
+} from './would-you-rather.js';
+import {
+  createInitialState as createStoryBuilderState,
+  processInput as processStoryBuilderInput,
+  describeStateForVoice as describeStoryBuilderState,
+  getStartResult as getStoryBuilderStart,
+} from './story-builder.js';
 
 const log = getLogger();
 
@@ -71,18 +99,21 @@ export class TextGameEngine implements TextGameEngineContract {
         return Promise.resolve(this.startTicTacToe(config));
 
       case '20-questions':
+        return Promise.resolve(this.startTwentyQuestions(config));
+
       case 'word-association':
+        return Promise.resolve(this.startWordAssociation());
+
       case 'would-you-rather':
+        return Promise.resolve(this.startWouldYouRather(config));
+
       case 'story-builder':
-        // Placeholder for future games
-        return Promise.resolve({
-          message: `${gameType} is coming soon! For now, let's play tic-tac-toe. Say "tic tac toe" to start!`,
-          gameOver: false,
-        });
+        return Promise.resolve(this.startStoryBuilder(config));
 
       default:
         return Promise.resolve({
-          message: 'I don\'t know that game. Try "tic-tac-toe"!',
+          message:
+            'I don\'t know that game. Try "tic-tac-toe", "20 questions", "word association", "would you rather", or "story builder"!',
           gameOver: false,
         });
     }
@@ -102,6 +133,18 @@ export class TextGameEngine implements TextGameEngineContract {
       case 'tic-tac-toe':
         return Promise.resolve(this.handleTicTacToeMove(input));
 
+      case '20-questions':
+        return Promise.resolve(this.handleTwentyQuestionsMove(input));
+
+      case 'word-association':
+        return Promise.resolve(this.handleWordAssociationMove(input));
+
+      case 'would-you-rather':
+        return Promise.resolve(this.handleWouldYouRatherMove(input));
+
+      case 'story-builder':
+        return Promise.resolve(this.handleStoryBuilderMove(input));
+
       default:
         return Promise.resolve({
           message: "Something went wrong. Let's start a new game.",
@@ -119,6 +162,26 @@ export class TextGameEngine implements TextGameEngineContract {
       case 'tic-tac-toe': {
         const ticTacToeState = this.state.gameData as TicTacToeState;
         return describeBoardForVoice(ticTacToeState);
+      }
+
+      case '20-questions': {
+        const twentyQuestionsState = this.state.gameData as TwentyQuestionsState;
+        return describeTwentyQuestionsState(twentyQuestionsState);
+      }
+
+      case 'word-association': {
+        const wordAssociationState = this.state.gameData as WordAssociationState;
+        return describeWordAssociationState(wordAssociationState);
+      }
+
+      case 'would-you-rather': {
+        const wouldYouRatherState = this.state.gameData as WouldYouRatherState;
+        return describeWouldYouRatherState(wouldYouRatherState);
+      }
+
+      case 'story-builder': {
+        const storyBuilderState = this.state.gameData as StoryBuilderState;
+        return describeStoryBuilderState(storyBuilderState);
       }
 
       default:
@@ -199,6 +262,165 @@ export class TextGameEngine implements TextGameEngineContract {
       gameOver: result.gameOver,
       winner: result.winner,
       aiShouldMove: result.aiShouldMove,
+    };
+  }
+
+  // ============================================================================
+  // 20 QUESTIONS IMPLEMENTATION
+  // ============================================================================
+
+  private startTwentyQuestions(config?: Record<string, unknown>): TextGameResult {
+    const category = config?.category as TwentyQuestionsState['category'] | undefined;
+    const gameData = createTwentyQuestionsState(category);
+
+    this.state = {
+      gameType: '20-questions',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getTwentyQuestionsStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleTwentyQuestionsMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as TwentyQuestionsState;
+    const result = processTwentyQuestionsInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+      winner: result.winner,
+    };
+  }
+
+  // ============================================================================
+  // WORD ASSOCIATION IMPLEMENTATION
+  // ============================================================================
+
+  private startWordAssociation(): TextGameResult {
+    const gameData = createWordAssociationState();
+
+    this.state = {
+      gameType: 'word-association',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getWordAssociationStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleWordAssociationMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as WordAssociationState;
+    const result = processWordAssociationInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+      winner: result.winner,
+    };
+  }
+
+  // ============================================================================
+  // WOULD YOU RATHER IMPLEMENTATION
+  // ============================================================================
+
+  private startWouldYouRather(config?: Record<string, unknown>): TextGameResult {
+    const category = config?.category as WouldYouRatherState['currentCategory'] | undefined;
+    const gameData = createWouldYouRatherState(category);
+
+    this.state = {
+      gameType: 'would-you-rather',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getWouldYouRatherStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleWouldYouRatherMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as WouldYouRatherState;
+    const result = processWouldYouRatherInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+      winner: result.winner,
+    };
+  }
+
+  // ============================================================================
+  // STORY BUILDER IMPLEMENTATION
+  // ============================================================================
+
+  private startStoryBuilder(config?: Record<string, unknown>): TextGameResult {
+    const genre = config?.genre as StoryBuilderState['genre'] | undefined;
+    const gameData = createStoryBuilderState(genre);
+
+    this.state = {
+      gameType: 'story-builder',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getStoryBuilderStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleStoryBuilderMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as StoryBuilderState;
+    const result = processStoryBuilderInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+      winner: result.winner,
     };
   }
 }

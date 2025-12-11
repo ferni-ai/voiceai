@@ -96,11 +96,6 @@
       "before_predictable_challenge",
       "user_asked_for_insight"
     ],
-    "never_when": [
-      "user_distressed",
-      "first_few_turns",
-      "celebrating_a_win"
-    ]
+    "never_when": ["user_distressed", "first_few_turns", "celebrating_a_win"]
   }
 }
-

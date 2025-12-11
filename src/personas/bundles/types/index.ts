@@ -57,10 +57,7 @@ export type {
 } from './content.js';
 
 // Cognitive types
-export type {
-  BundleCognitiveProfile,
-  BundleMusicPreferences,
-} from './cognitive.js';
+export type { BundleCognitiveProfile, BundleMusicPreferences } from './cognitive.js';
 
 // Extension types (V2, humanizing, Ferni 200%)
 export type {

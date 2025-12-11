@@ -12,8 +12,9 @@
  * - engagement_profiles/{userId}/team_huddles/{huddleId} - Team huddle history
  */
 
+import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { UserRitualProfile, RitualStreak, EmotionalWeather } from '../daily-rituals.js';
+import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 
 // ============================================================================
 // TYPES
@@ -155,8 +156,8 @@ export class EngagementStore {
     try {
       const { Firestore } = await import('@google-cloud/firestore');
       this.db = new Firestore({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        projectId: getGCPProjectId(),
+        databaseId: getFirestoreDatabase(),
       }) as unknown as Firestore;
       getLogger().info('Engagement store initialized with Firestore');
     } catch (error) {

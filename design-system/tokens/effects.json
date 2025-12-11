@@ -171,12 +171,13 @@
   },
 
   "glows": {
-    "soft": "0 0 40px -10px",
-    "medium": "0 0 60px -15px",
-    "large": "0 0 100px -20px",
-    "personaRing": "0 0 30px 0 var(--persona-glow), inset 0 0 20px 0 var(--persona-tint)",
-    "connection": "0 0 40px 0 var(--color-semantic-success-glow)",
-    "thinking": "0 0 30px 5px var(--color-accent-glow)"
+    "_philosophy": "Glows should be felt, not seen. Subliminal warmth, not visible effects.",
+    "soft": "0 0 16px -8px",
+    "medium": "0 0 24px -12px",
+    "large": "0 0 40px -20px",
+    "personaRing": "none",
+    "connection": "0 0 16px 0 var(--color-semantic-success-glow)",
+    "thinking": "0 0 12px 2px var(--color-accent-glow)"
   },
 
   "depth": {

@@ -124,8 +124,8 @@
     "relationship_gate_for_contradictions": "acquaintance",
     "relationship_gate_for_patterns": "stranger",
     "never_surface_if_user_is_distressed": true,
-    "probability_per_eligible_turn": 0.25,
+    "probability_per_eligible_turn": 0.38,
     "first_turn_noticing_enabled": true,
-    "first_turn_probability": 0.4
+    "first_turn_probability": 0.55
   }
 }

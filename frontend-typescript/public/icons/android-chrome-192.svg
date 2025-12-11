@@ -1,17 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <!-- Ferni Eye Logo - 192x192 -->
-  <rect width="192" height="192" rx="36" fill="#F5F1E8"/>
-  <g>
-    <!-- Outer Stone: Body -->
-    <circle cx="96" cy="96" r="62.400000000000006" fill="#4a6741"/>
-    <!-- White foundation -->
-    <circle cx="96" cy="96" r="24.960000000000004" fill="white"/>
-    <!-- Iris ring -->
-    <circle cx="96" cy="96" r="16.648320000000005" fill="#5a8060"/>
-    <!-- Pupil -->
-    <circle cx="96" cy="96" r="8.324160000000003" fill="#2c2520"/>
+  <!-- Ferni Orb Logo - 192x192 -->
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="40%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
     
-    <circle cx="92.67033599999999" cy="92.67033599999999" r="2.497248000000001" fill="white" opacity="0.9"/>
+    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7.68" result="blur"/>
+      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="192" height="192" rx="36" fill="#F5F1E8"/>
   
+    <circle cx="96" cy="96" r="79.28064" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
+    <circle cx="96" cy="96" r="71.60832000000002" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
+
+  <!-- Main orb -->
+  <circle cx="96" cy="96" r="63.93600000000001" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
+
+  <!-- Top highlight -->
+  <circle cx="96" cy="96" r="63.93600000000001" fill="url(#orbHighlight)"/>
+
+  <!-- Waveform bars -->
+  <g>
+    <rect x="63" y="91.2048" width="2" height="9.590400000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="71" y="88.8072" width="2" height="14.385600000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="79" y="86.4096" width="2" height="19.180800000000005" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="87" y="84.8112" width="2" height="22.377600000000005" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="95" y="83.2128" width="2" height="25.574400000000004" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="103" y="84.8112" width="2" height="22.377600000000005" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="111" y="86.4096" width="2" height="19.180800000000005" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="119" y="88.8072" width="2" height="14.385600000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="127" y="91.2048" width="2" height="9.590400000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
   </g>
 </svg>

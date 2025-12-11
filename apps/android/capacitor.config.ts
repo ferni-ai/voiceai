@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.sethdford.voiceai',
   appName: 'Voice AI',
   webDir: '../../frontend-typescript/dist',
-  bundledWebRuntime: false,
   
   // Server configuration for development
   server: {

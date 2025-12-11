@@ -266,45 +266,17 @@ function deriveTransitionStyle(manifest: PersonaManifest): 'standard' | 'dramati
 }
 
 /**
- * Derive emoji from manifest or domains
+ * Derive emoji from manifest
+ * Brand guidelines: NO EMOJIS in UI - return empty string by default
  */
 function deriveEmoji(manifest: PersonaManifest): string {
-  // Explicit config takes priority
-  if (manifest.handoff?.transition?.emoji) {
+  // If explicitly set (even to empty string), use that value
+  if (manifest.handoff?.transition?.emoji !== undefined) {
     return manifest.handoff.transition.emoji;
   }
 
-  // Marketplace icon
-  if (manifest.marketplace?.icon) {
-    return manifest.marketplace.icon;
-  }
-
-  // Coach gets target emoji
-  if (manifest.team?.coordinator) {
-    return '🎯';
-  }
-
-  // Derive from domains
-  const domains = manifest.role?.domains || [];
-  const domainLower = domains.map(d => d.toLowerCase());
-
-  if (domainLower.some(d => d.includes('research') || d.includes('invest') || d.includes('stock'))) {
-    return '📈';
-  }
-  if (domainLower.some(d => d.includes('wisdom') || d.includes('philosophy'))) {
-    return '🧘';
-  }
-  if (domainLower.some(d => d.includes('communication') || d.includes('email'))) {
-    return '📧';
-  }
-  if (domainLower.some(d => d.includes('budget') || d.includes('spend') || d.includes('habit'))) {
-    return '💰';
-  }
-  if (domainLower.some(d => d.includes('planning') || d.includes('milestone'))) {
-    return '🎉';
-  }
-
-  return '✨';
+  // Brand guidelines: no emojis by default
+  return '';
 }
 
 /**

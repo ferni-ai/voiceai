@@ -11,16 +11,24 @@
  * PERSISTENCE: Team status persists to Firestore for cross-session awareness.
  */
 
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   getAgentBus,
+  type AgentId,
   type ToolExecutionRequest,
   type ToolExecutionResult,
-  type AgentId,
 } from '../../agent-bus.js';
 import { registerTeamHandler, teamHandlerRegistry } from '../index.js';
-import type { TeamHandlerDefinition } from '../types.js';
-import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import type { HandlerCapability, TeamHandlerDefinition } from '../types.js';
+import { ALL_HANDLER_CAPABILITIES } from '../types.js';
+
+/**
+ * Type guard to check if a string is a valid HandlerCapability
+ */
+function isHandlerCapability(value: string): value is HandlerCapability {
+  return ALL_HANDLER_CAPABILITIES.includes(value as HandlerCapability);
+}
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -465,16 +473,25 @@ const requestSpecialistHandler: TeamHandlerDefinition = {
     const activeAgents = teamHandlerRegistry.getActiveAgents();
     const capableAgents: AgentId[] = [];
 
+    // Validate capability is a known HandlerCapability
+    if (!isHandlerCapability(capability)) {
+      return {
+        success: false,
+        error: `Unknown capability: ${capability}`,
+        executedBy: 'ferni',
+      };
+    }
+
     for (const agentId of activeAgents) {
       const config = teamHandlerRegistry.getAgentConfig(agentId);
-      if (config?.capabilities.includes(capability as any)) {
+      if (config?.capabilities.includes(capability)) {
         capableAgents.push(agentId);
       }
     }
 
     if (capableAgents.length === 0) {
       // Check handlers by capability
-      const handlers = teamHandlerRegistry.getByCapability(capability as any);
+      const handlers = teamHandlerRegistry.getByCapability(capability);
       if (handlers.length === 0) {
         return {
           success: false,
@@ -531,12 +548,12 @@ export function registerCoordinationHandlers(agentId: AgentId = 'ferni'): void {
 // ============================================================================
 
 export {
-  getTeamStatusHandler,
-  getAgentSummaryHandler,
-  shareContextHandler,
   coordinateTeamHandler,
+  getAgentSummaryHandler,
+  getTeamStatusHandler,
   handleEscalationHandler,
   requestSpecialistHandler,
+  shareContextHandler,
   teamStatus,
 };
 

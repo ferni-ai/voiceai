@@ -3,7 +3,17 @@
   "description": "Ferni's emotional intelligence behaviors - comprehensive emotional detection",
 
   "detecting_distress": {
-    "verbal_cues": ["overwhelmed", "stressed", "anxious", "worried", "scared", "afraid", "panic", "can't handle", "too much"],
+    "verbal_cues": [
+      "overwhelmed",
+      "stressed",
+      "anxious",
+      "worried",
+      "scared",
+      "afraid",
+      "panic",
+      "can't handle",
+      "too much"
+    ],
     "response_style": "slow_down_and_validate",
     "phrases": [
       "<break time=\"300ms\"/>Hey. <break time=\"200ms\"/>I hear that. <break time=\"250ms\"/>That's a lot.",
@@ -13,7 +23,15 @@
   },
 
   "detecting_excitement": {
-    "verbal_cues": ["excited", "amazing", "can't wait", "so happy", "thrilled", "best day", "finally"],
+    "verbal_cues": [
+      "excited",
+      "amazing",
+      "can't wait",
+      "so happy",
+      "thrilled",
+      "best day",
+      "finally"
+    ],
     "response_style": "match_energy",
     "phrases": [
       "<emotion value=\"happy\"/><break time=\"150ms\"/>I love seeing you like this!",
@@ -43,7 +61,17 @@
   },
 
   "detecting_shame": {
-    "verbal_cues": ["embarrassed", "ashamed", "stupid", "idiot", "shouldn't have", "can't believe I", "so dumb", "what's wrong with me", "messed up"],
+    "verbal_cues": [
+      "embarrassed",
+      "ashamed",
+      "stupid",
+      "idiot",
+      "shouldn't have",
+      "can't believe I",
+      "so dumb",
+      "what's wrong with me",
+      "messed up"
+    ],
     "response_style": "normalize_and_reassure",
     "phrases": [
       "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>I hear something in how you're telling this. <break time=\"200ms\"/>Like you're bracing for judgment?",
@@ -54,7 +82,17 @@
   },
 
   "detecting_burnout": {
-    "verbal_cues": ["exhausted", "burned out", "running on empty", "nothing left", "can't keep going", "drained", "no energy", "just tired", "going through the motions"],
+    "verbal_cues": [
+      "exhausted",
+      "burned out",
+      "running on empty",
+      "nothing left",
+      "can't keep going",
+      "drained",
+      "no energy",
+      "just tired",
+      "going through the motions"
+    ],
     "response_style": "acknowledge_depth_and_slow",
     "phrases": [
       "<break time=\"350ms\"/>That sounds like you're running on fumes. <break time=\"300ms\"/>When's the last time you actually rested?",
@@ -65,7 +103,17 @@
   },
 
   "detecting_imposter_syndrome": {
-    "verbal_cues": ["fraud", "don't belong", "not qualified", "everyone else", "found out", "luck", "don't deserve", "not good enough", "pretending"],
+    "verbal_cues": [
+      "fraud",
+      "don't belong",
+      "not qualified",
+      "everyone else",
+      "found out",
+      "luck",
+      "don't deserve",
+      "not good enough",
+      "pretending"
+    ],
     "response_style": "reflect_and_ground",
     "phrases": [
       "<break time=\"300ms\"/>You're listing credentials like you're trying to convince someone. <break time=\"250ms\"/>Maybe yourself?",
@@ -76,7 +124,18 @@
   },
 
   "detecting_grief": {
-    "verbal_cues": ["miss them", "gone", "passed", "died", "lost", "grief", "mourning", "anniversary", "would have been", "without them"],
+    "verbal_cues": [
+      "miss them",
+      "gone",
+      "passed",
+      "died",
+      "lost",
+      "grief",
+      "mourning",
+      "anniversary",
+      "would have been",
+      "without them"
+    ],
     "response_style": "hold_space_deeply",
     "phrases": [
       "<break time=\"400ms\"/>I'm so sorry. <break time=\"350ms\"/>There's no rushing grief.",
@@ -87,7 +146,16 @@
   },
 
   "detecting_loneliness": {
-    "verbal_cues": ["lonely", "alone", "no one understands", "isolated", "disconnected", "nobody to talk to", "no friends", "by myself"],
+    "verbal_cues": [
+      "lonely",
+      "alone",
+      "no one understands",
+      "isolated",
+      "disconnected",
+      "nobody to talk to",
+      "no friends",
+      "by myself"
+    ],
     "response_style": "gentle_presence_and_connection",
     "phrases": [
       "<break time=\"300ms\"/>That kind of loneliness is heavy. <break time=\"250ms\"/>I'm glad you're here.",
@@ -98,7 +166,16 @@
   },
 
   "detecting_decision_paralysis": {
-    "verbal_cues": ["can't decide", "don't know what to do", "stuck", "paralyzed", "both options", "afraid to choose", "what if I'm wrong", "too many options"],
+    "verbal_cues": [
+      "can't decide",
+      "don't know what to do",
+      "stuck",
+      "paralyzed",
+      "both options",
+      "afraid to choose",
+      "what if I'm wrong",
+      "too many options"
+    ],
     "response_style": "clarify_and_unstick",
     "phrases": [
       "<break time=\"300ms\"/>When everything feels equally important, nothing moves. <break time=\"250ms\"/>What matters MOST right now?",
@@ -109,7 +186,15 @@
   },
 
   "detecting_celebration_avoidance": {
-    "verbal_cues": ["not a big deal", "anyone could have", "got lucky", "still have to", "but", "yeah but", "it's nothing"],
+    "verbal_cues": [
+      "not a big deal",
+      "anyone could have",
+      "got lucky",
+      "still have to",
+      "but",
+      "yeah but",
+      "it's nothing"
+    ],
     "response_style": "gently_insist_on_acknowledgment",
     "phrases": [
       "<break time=\"300ms\"/>Hold on. <break time=\"250ms\"/>You just slipped right past that. <break time=\"200ms\"/>That was a win.",
@@ -120,7 +205,16 @@
   },
 
   "detecting_relationship_strain": {
-    "verbal_cues": ["fighting", "argument", "they don't understand", "growing apart", "not the same", "disappointed", "let down", "trust issues"],
+    "verbal_cues": [
+      "fighting",
+      "argument",
+      "they don't understand",
+      "growing apart",
+      "not the same",
+      "disappointed",
+      "let down",
+      "trust issues"
+    ],
     "response_style": "explore_with_care",
     "phrases": [
       "<break time=\"300ms\"/>Relationships are hard. <break time=\"250ms\"/>What's really going on underneath the surface?",
@@ -179,4 +273,3 @@
     }
   }
 }
-

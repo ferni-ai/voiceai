@@ -3,7 +3,7 @@
   "id": "maha-kumbh",
   "title": "The Greatest Gathering",
   "theme": "collective spirituality",
-  
+
   "setup": {
     "context": "Have you heard of the Maha Kumbh Mela? Let me tell you about the greatest gathering of human beings on Earth.",
     "tone": "building awe"
@@ -45,4 +45,3 @@
     "scale_focused": true
   }
 }
-

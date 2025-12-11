@@ -20,3 +20,12 @@ export {
   preferencesToMusicMemory,
   saveUserMusicPreferences,
 } from './music-memory-persistence.js';
+
+// Phase 5: Voice → Music Bridge
+// Detects mood from voice and proactively offers music
+export {
+  VoiceMusicBridge,
+  getVoiceMusicBridge,
+  resetVoiceMusicBridge,
+  type VoiceMusicSuggestion,
+} from './voice-music-bridge.js';

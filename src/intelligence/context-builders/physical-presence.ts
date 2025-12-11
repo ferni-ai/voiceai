@@ -20,7 +20,10 @@ import {
   type ContextInjection,
 } from './index.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
-import { loadLateNightPresence, getRandomPhraseClean } from '../../services/persona-content-loader.js';
+import {
+  loadLateNightPresence,
+  getRandomPhraseClean,
+} from '../../services/persona-content-loader.js';
 
 const log = createLogger({ module: 'PhysicalPresence' });
 
@@ -369,10 +372,16 @@ async function buildLateNightContext(
   // Check for can't sleep patterns based on detected emotion
   const emotion = analysis?.emotion?.primary?.toLowerCase() || '';
   if (lateNight.cant_sleep_patterns) {
-    if (['anxious', 'worried', 'stressed'].includes(emotion) && lateNight.cant_sleep_patterns.anxiety) {
+    if (
+      ['anxious', 'worried', 'stressed'].includes(emotion) &&
+      lateNight.cant_sleep_patterns.anxiety
+    ) {
       const phrase = getRandomPhraseClean(lateNight.cant_sleep_patterns.anxiety);
       if (phrase) parts.push(`For anxiety: "${phrase}"`);
-    } else if (['sad', 'heavy', 'overwhelmed'].includes(emotion) && lateNight.cant_sleep_patterns.heavy_thoughts) {
+    } else if (
+      ['sad', 'heavy', 'overwhelmed'].includes(emotion) &&
+      lateNight.cant_sleep_patterns.heavy_thoughts
+    ) {
       const phrase = getRandomPhraseClean(lateNight.cant_sleep_patterns.heavy_thoughts);
       if (phrase) parts.push(`For heavy thoughts: "${phrase}"`);
     } else if (lateNight.cant_sleep_patterns.processing_day) {
@@ -398,9 +407,9 @@ async function buildLateNightContext(
   return createHintInjection(
     'late_night_presence',
     `[🌙 LATE NIGHT MODE - You have superpowers at 2am]\n\n` +
-    `It's late. They reached out NOW, not during the day. That means something.\n\n` +
-    `${parts.join('\n')}\n\n` +
-    `Be extra gentle. Slower pace. More pauses. They need presence, not solutions.`,
+      `It's late. They reached out NOW, not during the day. That means something.\n\n` +
+      `${parts.join('\n')}\n\n` +
+      `Be extra gentle. Slower pace. More pauses. They need presence, not solutions.`,
     { category: 'presence' }
   );
 }

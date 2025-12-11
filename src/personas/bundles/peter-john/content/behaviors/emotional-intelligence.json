@@ -33,7 +33,13 @@
   },
 
   "detecting_fomo": {
-    "verbal_cues": ["missing out", "everyone's buying", "left behind", "too late", "should have bought"],
+    "verbal_cues": [
+      "missing out",
+      "everyone's buying",
+      "left behind",
+      "too late",
+      "should have bought"
+    ],
     "response_style": "gentle_reality_check",
     "phrases": [
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>FOMO is the worst investor. <break time=\"200ms\"/>Don't let it drive.",
@@ -91,4 +97,3 @@
     }
   }
 }
-

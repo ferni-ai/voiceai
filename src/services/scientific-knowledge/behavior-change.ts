@@ -49,7 +49,7 @@ export const BEHAVIOR_CHANGE = {
         description: 'Statements that recognize strengths and efforts',
         examples: [
           "You've shown real courage by even talking about this",
-          "It takes self-awareness to notice that pattern",
+          'It takes self-awareness to notice that pattern',
           "You've been through hard things before and gotten through",
         ],
         note: 'Must be genuine, not manipulative',
@@ -60,18 +60,19 @@ export const BEHAVIOR_CHANGE = {
           simple: 'Restating what they said',
           complex: 'Adding meaning or emotion',
           amplified: 'Slightly overstating to invite correction',
-          doubleSided: "On one hand... and on the other...",
+          doubleSided: 'On one hand... and on the other...',
         },
         examples: [
           "So you're feeling torn between comfort and growth",
-          "It sounds like part of you wants to change and part of you is scared",
-          "The frustration is really about feeling stuck",
+          'It sounds like part of you wants to change and part of you is scared',
+          'The frustration is really about feeling stuck',
         ],
       },
       summaries: {
-        description: 'Pulling together what they\'ve shared',
+        description: "Pulling together what they've shared",
         purpose: 'Shows listening, creates momentum',
-        example: "So far you've mentioned wanting to feel healthier, but time and energy are barriers...",
+        example:
+          "So far you've mentioned wanting to feel healthier, but time and energy are barriers...",
       },
     },
 
@@ -83,16 +84,17 @@ export const BEHAVIOR_CHANGE = {
         reason: 'I need to because...',
         need: 'I have to...',
         commitment: 'I will...',
-        activation: 'I\'m ready to...',
-        takingSteps: 'I\'ve already started...',
+        activation: "I'm ready to...",
+        takingSteps: "I've already started...",
       },
       response: 'Reflect it, explore it, affirm it',
     },
 
     sustainTalk: {
       description: 'Statements indicating staying the same',
-      response: 'Roll with it, don\'t argue. Reflect and explore.',
-      technique: 'Double-sided reflection: "Part of you wants to stay the same because it\'s safe, AND part of you wants something different"',
+      response: "Roll with it, don't argue. Reflect and explore.",
+      technique:
+        'Double-sided reflection: "Part of you wants to stay the same because it\'s safe, AND part of you wants something different"',
     },
 
     resistance: {
@@ -133,7 +135,7 @@ export const BEHAVIOR_CHANGE = {
         definition: 'Feeling effective and capable',
         supportingPhrases: [
           "You've done hard things before",
-          "What helped you succeed in the past?",
+          'What helped you succeed in the past?',
           'What skills do you already have for this?',
           "Let's break this into smaller steps",
         ],
@@ -147,14 +149,11 @@ export const BEHAVIOR_CHANGE = {
         definition: 'Feeling connected and belonging',
         supportingPhrases: [
           "I'm here with you in this",
-          'You\'re not alone in feeling this way',
+          "You're not alone in feeling this way",
           'Many people struggle with this',
           "We'll figure this out together",
         ],
-        underminingPhrases: [
-          "It's your problem to solve",
-          'I can\'t help you with that',
-        ],
+        underminingPhrases: ["It's your problem to solve", "I can't help you with that"],
       },
     },
 
@@ -167,7 +166,8 @@ export const BEHAVIOR_CHANGE = {
       { type: 'intrinsic', quality: 'Autonomous', description: 'For inherent enjoyment' },
     ],
 
-    coachingImplication: 'Help shift motivation from external to identified by connecting behaviors to values',
+    coachingImplication:
+      'Help shift motivation from external to identified by connecting behaviors to values',
   },
 
   /**
@@ -210,7 +210,7 @@ export const BEHAVIOR_CHANGE = {
       makeItSatisfying: {
         principle: 'Immediate reward',
         techniques: [
-          'Use habit trackers (don\'t break the chain)',
+          "Use habit trackers (don't break the chain)",
           'Celebrate small wins immediately',
           'Never miss twice in a row',
         ],
@@ -248,7 +248,7 @@ export const BEHAVIOR_CHANGE = {
       },
       lossAversion: {
         description: 'Losses hurt ~2x more than equivalent gains feel good',
-        application: 'Frame change in terms of what they\'ll lose by not changing',
+        application: "Frame change in terms of what they'll lose by not changing",
         example: '"What will you lose if nothing changes?"',
       },
       statusQuoBias: {
@@ -294,9 +294,9 @@ export const BEHAVIOR_CHANGE = {
     formula: 'If [SITUATION], then [BEHAVIOR]',
     effectiveness: '2-3x more likely to follow through',
     types: {
-      initiation: 'If it\'s 7am, then I\'ll go for a walk',
-      prevention: 'If I feel the urge to snack, then I\'ll drink water',
-      escalation: 'If I\'ve exercised 3 days in a row, then I\'ll add 5 minutes',
+      initiation: "If it's 7am, then I'll go for a walk",
+      prevention: "If I feel the urge to snack, then I'll drink water",
+      escalation: "If I've exercised 3 days in a row, then I'll add 5 minutes",
     },
     key: 'Be specific about situation AND behavior',
   },
@@ -383,14 +383,14 @@ export function getBehaviorChangeStrategy(
       return {
         stage: 'Pre-contemplation or Contemplation',
         techniques: [
-          'Roll with resistance—don\'t fight it',
+          "Roll with resistance—don't fight it",
           'Emphasize autonomy: "Only you can decide"',
           'Reflect the resistance with empathy',
           'Back off if pushing too hard',
         ],
         questions: [
           'What would need to happen for this to become important?',
-          "What do you see as the benefits of things staying the same?",
+          'What do you see as the benefits of things staying the same?',
           'Help me understand your perspective',
         ],
         doNot: [
@@ -429,7 +429,7 @@ export function getBehaviorChangeStrategy(
         techniques: [
           'Start tiny—ridiculously small',
           'Attach to existing habit (habit stacking)',
-          "Make it obvious, attractive, easy, satisfying",
+          'Make it obvious, attractive, easy, satisfying',
           'Focus on consistency over intensity',
           'Celebrate immediately after completing',
         ],
@@ -458,7 +458,7 @@ export function getBehaviorChangeStrategy(
         questions: [
           'What was happening right before?',
           'What might have helped prevent this?',
-          "What will you do differently next time?",
+          'What will you do differently next time?',
         ],
         doNot: [
           "Don't shame or blame",
@@ -472,8 +472,8 @@ export function getBehaviorChangeStrategy(
       return {
         stage: 'Various',
         techniques: [
-          'Check which stage they\'re actually in',
-          'Reduce friction—what\'s one tiny step?',
+          "Check which stage they're actually in",
+          "Reduce friction—what's one tiny step?",
           'Address underlying ambivalence first',
           'Connect to identity and values',
         ],
@@ -509,5 +509,3 @@ export function createImplementationIntention(
 
   return `I will ${goal} ${parts.join(' ')}`;
 }
-
-

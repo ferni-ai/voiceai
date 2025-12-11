@@ -30,7 +30,7 @@ export async function shareInsight(insight: {
   description: string;
   category?: string;
 }): Promise<boolean> {
-  const text = `💡 ${insight.title}\n\n${insight.description}`;
+  const text = `${insight.title}\n\n${insight.description}`;
   
   return share({
     title: 'Ferni Insight',
@@ -44,7 +44,7 @@ export async function shareInsight(insight: {
  * Share a streak milestone.
  */
 export async function shareStreak(days: number): Promise<boolean> {
-  const text = `🔥 I'm on a ${days}-day streak with Ferni, my AI life coach! Every conversation helps me grow.`;
+  const text = `I'm on a ${days}-day streak with Ferni, my AI life coach. Every conversation helps me grow.`;
   
   return share({
     title: 'Ferni Streak',

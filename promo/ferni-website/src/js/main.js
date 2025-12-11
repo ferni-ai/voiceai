@@ -583,6 +583,8 @@
         }));
   }
   function M() {
+    // Enable JS-only animations (progressive enhancement)
+    document.documentElement.classList.add('js-animate');
     (I(),
       _(),
       C(),

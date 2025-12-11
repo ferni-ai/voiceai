@@ -9,6 +9,7 @@
  * @module CoachingPersistence
  */
 
+import { getGCPProjectId } from '../../config/environment.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CoachingPersistence' });
@@ -220,7 +221,7 @@ async function initializeFirestore(): Promise<boolean> {
     if (admin.apps.length === 0) {
       try {
         admin.initializeApp({
-          projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+          projectId: getGCPProjectId(),
         });
       } catch {
         log.warn('Firebase not configured - using in-memory storage for coaching');

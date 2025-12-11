@@ -1,11 +1,11 @@
 /**
  * Configuration - Central Export
- * 
+ *
  * Application configuration and constants.
  */
 
-export * from './personas.js';
 export * from './persona-colors.js';
+export * from './personas.js';
 
 // ============================================================================
 // API ENDPOINTS
@@ -27,8 +27,10 @@ export const STORAGE_KEYS = {
   USER_NAME: 'voiceai_userName',
   DEVICE_ID: 'voiceai_deviceId',
   SELECTED_PERSONA: 'voiceai_selectedPersona',
-  /** User ID for API calls - derived from device ID for consistency */
+  /** User ID for API calls - Firebase UID or device:{uuid} for legacy */
   USER_ID: 'ferni_user_id',
+  /** Firebase UID (if authenticated) */
+  FIREBASE_UID: 'ferni_firebase_uid',
 } as const;
 
 // ============================================================================
@@ -100,16 +102,15 @@ export const AUDIO = {
    * Value of 1.0 = normal, 0.5 = half volume, 1.5 = 50% louder
    */
   SOUND_VOLUME_MULTIPLIERS: {
-    'connect': 1.0,
-    'disconnect': 1.0,
-    'handoff-to-ferni': 1.0,    // Life coach - warm welcoming chime
+    connect: 1.0,
+    disconnect: 1.0,
+    'handoff-to-ferni': 1.0, // Life coach - warm welcoming chime
     'handoff-to-peter': 1.0,
     'handoff-to-jack': 1.0,
-    'handoff-to-alex': 0.85,    // Alex sound is slightly louder
-    'handoff-to-maya': 0.85,    // Maya sound is slightly louder
-    'handoff-to-jordan': 0.85,  // Jordan sound is slightly louder
+    'handoff-to-alex': 0.85, // Alex sound is slightly louder
+    'handoff-to-maya': 0.85, // Maya sound is slightly louder
+    'handoff-to-jordan': 0.85, // Jordan sound is slightly louder
     'handoff-to-nayan': 1.0,
-    'dramatic-entrance': 0.8,   // Dramatic sounds tend to be louder
+    'dramatic-entrance': 0.8, // Dramatic sounds tend to be louder
   } as Record<string, number>,
 } as const;
-

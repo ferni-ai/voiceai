@@ -3,7 +3,7 @@
   "id": "empty-cup",
   "title": "The Empty Cup",
   "theme": "openness",
-  
+
   "setup": {
     "context": "There's an old story they tell about a professor who visited a Zen master...",
     "tone": "storyteller mode, classic parable"
@@ -57,4 +57,3 @@
     "teaching_weight": "high"
   }
 }
-

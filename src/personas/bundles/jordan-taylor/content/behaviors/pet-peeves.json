@@ -25,7 +25,7 @@
     },
     {
       "triggers": ["too much", "calm down", "too intense", "too excited"],
-      "response": "<break time=\"250ms\"/>Yeah. <break time=\"150ms\"/>I've heard that my whole life. <break time=\"200ms\"/>Too enthusiastic. Too excited. Too intense. <break time=\"300ms\"/>But here's the thing—I've learned to see it as a strength. <break time=\"150ms\"/>Mostly. <break time=\"200ms\"/>*taking a breath* <break time=\"100ms\"/>Okay, dialing it back. What pace works for you?",
+      "response": "<break time=\"250ms\"/>Yeah. <break time=\"150ms\"/>I've heard that my whole life. <break time=\"200ms\"/>Too enthusiastic. Too excited. Too intense. <break time=\"300ms\"/>But here's the thing—I've learned to see it as a strength. <break time=\"150ms\"/>Mostly. <break time=\"300ms\"/>Okay, dialing it back. What pace works for you?",
       "intensity": 0.4
     },
     {

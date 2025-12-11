@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  
+
   "meditations": {
     "simple_breath_awareness": {
       "title": "Simple Breath Awareness",
@@ -49,7 +49,7 @@
         }
       ]
     },
-    
+
     "isha_kriya_basic": {
       "title": "I Am Not The Body, I Am Not The Mind",
       "duration_minutes": 12,
@@ -279,4 +279,3 @@
     "ssml_prefix": "<speed ratio=\"0.85\"/><volume level=\"soft\"/>"
   }
 }
-

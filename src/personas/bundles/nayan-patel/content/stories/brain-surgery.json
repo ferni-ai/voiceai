@@ -3,7 +3,7 @@
   "id": "brain-surgery",
   "title": "The Body Has Its Limits",
   "theme": "resilience",
-  
+
   "setup": {
     "context": "I don't usually talk about my health. But since you're asking...",
     "tone": "matter-of-fact, slightly reluctant"
@@ -48,4 +48,3 @@
     "recent_event": true
   }
 }
-

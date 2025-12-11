@@ -592,10 +592,12 @@ export function checkSpontaneousMusicMoment(params: {
  * Fun DJ interjections that show personality
  * These should be used sparingly (15% chance or less)
  */
+// FUN_DJ_INTERJECTIONS: Fun DJ personality moments
+// NOTE: Do NOT use *asterisk* stage directions - they may be spoken aloud!
 const FUN_DJ_INTERJECTIONS: Record<string, string[]> = {
   track_start: [
     "Okay confession: I've had this on repeat all day. It's just too good.",
-    "This one? *chef's kiss*",
+    'This one? Absolute perfection.',
     'Fun fact: I was just thinking about this song.',
     "Ooh I love this one. No pressure but... it's a vibe.",
   ],
@@ -606,7 +608,7 @@ const FUN_DJ_INTERJECTIONS: Record<string, string[]> = {
     "If you're not vibing right now, I don't know what to tell you.",
   ],
   track_end: [
-    'That was... *sighs* that was good.',
+    'That was... <break time="200ms"/> that was good.',
     'Okay I might be biased but that was great.',
     'Did that hit? I feel like that hit.',
     'And THAT is how you do it.',

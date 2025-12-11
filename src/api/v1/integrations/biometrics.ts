@@ -64,7 +64,13 @@ router.get('/connect/:platform', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    const validPlatforms: BiometricPlatform[] = ['healthkit', 'googlefit', 'oura', 'whoop', 'fitbit'];
+    const validPlatforms: BiometricPlatform[] = [
+      'healthkit',
+      'googlefit',
+      'oura',
+      'whoop',
+      'fitbit',
+    ];
     if (!validPlatforms.includes(platform)) {
       return res.status(400).json({
         error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,

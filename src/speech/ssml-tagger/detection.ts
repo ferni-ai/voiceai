@@ -85,7 +85,11 @@ export function detectPacing(text: string): { speed: number; reason: string } {
 /**
  * Detect volume with nuanced analysis
  */
-export function detectVolume(text: string): { volume: number; hasEmphasis: boolean; hasWhisper: boolean } {
+export function detectVolume(text: string): {
+  volume: number;
+  hasEmphasis: boolean;
+  hasWhisper: boolean;
+} {
   const lowerText = text.toLowerCase();
 
   const hasEmphasis = EMPHASIS_KEYWORDS.some((kw) => lowerText.includes(kw));

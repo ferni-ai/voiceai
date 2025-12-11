@@ -105,7 +105,6 @@ const checkTimerStatusDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -115,7 +114,4 @@ export const proactiveToolDefinitions: ToolDefinition[] = [
   checkTimerStatusDef,
 ];
 
-export {
-  getUtilitySuggestionsDef,
-  checkTimerStatusDef,
-};
+export { getUtilitySuggestionsDef, checkTimerStatusDef };

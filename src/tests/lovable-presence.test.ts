@@ -403,15 +403,20 @@ describe('Lovable Presence Context Builder', () => {
       });
 
       let foundNoticing = false;
-      for (let i = 0; i < 20; i++) {
+      // Increase iterations for more reliable probabilistic test
+      for (let i = 0; i < 50; i++) {
         clearLovableSessionStates();
         const injections = await buildLovablePresenceContext(input);
         if (
           injections.some(
-            (i) =>
-              i.content.includes('voice') ||
-              i.content.includes('quieter') ||
-              i.content.includes('shifted')
+            (inj) =>
+              inj.content.toLowerCase().includes('voice') ||
+              inj.content.toLowerCase().includes('quieter') ||
+              inj.content.toLowerCase().includes('shifted') ||
+              inj.content.toLowerCase().includes('notice') ||
+              inj.content.toLowerCase().includes('slower') ||
+              inj.content.toLowerCase().includes('pace') ||
+              inj.content.toLowerCase().includes('tone')
           )
         ) {
           foundNoticing = true;

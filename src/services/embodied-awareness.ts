@@ -10,8 +10,6 @@
  * This creates the feeling that the persona exists in physical space and time.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -179,7 +177,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
     if (!session.physicalState.musicMentioned && lastType !== 'music' && Math.random() < 0.2) {
       session.physicalState.musicMentioned = true;
       comments.push(
-        '<break time="200ms"/>*puts something on* <break time="150ms"/>Bon Iver. <break time="200ms"/>Helps me think. <break time="150ms"/>Go on.'
+        '<break time="200ms"/>Bon Iver. <break time="200ms"/>Helps me think. <break time="150ms"/>Go on.'
       );
       comments.push(
         '<break time="200ms"/>Let me put some music on... <break time="150ms"/>there. <break time="200ms"/>Better.'
@@ -206,16 +204,12 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
       Math.random() < 0.15
     ) {
       session.physicalState.notebookMentioned = true;
-      comments.push(
-        '*jots something in notebook* <break time="200ms"/>Just making a note. <break time="150ms"/>Go on.'
-      );
+      comments.push('<break time="200ms"/>Just making a note. <break time="150ms"/>Go on.');
     }
 
     // Thoughtful pause / presence
     if (lastType !== 'presence' && Math.random() < 0.15) {
-      comments.push(
-        '<break time="300ms"/>*takes a breath* <break time="200ms"/>I\'m listening. <break time="150ms"/>Really listening.'
-      );
+      comments.push('<break time="300ms"/>I\'m listening. <break time="200ms"/>Really listening.');
       comments.push('<break time="200ms"/>Present. <break time="150ms"/>Go ahead.');
     }
   }
@@ -226,15 +220,13 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
     // 25 minutes
     if (personaId === 'ferni') {
       comments.push(
-        '*stretches* <break time="200ms"/>Sitting too long. My back knows it. <break time="150ms"/>Where were we?'
+        '<break time="200ms"/>Sitting too long. My back knows it. <break time="150ms"/>Where were we?'
       );
-      comments.push(
-        'Need to move. <break time="200ms"/>*adjusts position* <break time="150ms"/>Okay. Better.'
-      );
+      comments.push('Need to move. <break time="200ms"/>Okay. Better.');
     }
     if (personaId === 'alex-chen') {
       comments.push(
-        '*glances at standing desk reminder* <break time="200ms"/>I should stand up. <break time="150ms"/>But this is important.'
+        '<break time="200ms"/>I should stand up. <break time="150ms"/>But this is important.'
       );
     }
     session.physicalState.lastStretchTime = now;
@@ -252,9 +244,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
   if (personaId === 'ferni' && !session.physicalState.notebookMentioned && session.turnCount > 8) {
     if (Math.random() < 0.2) {
       session.physicalState.notebookMentioned = true;
-      comments.push(
-        '*jots something in notebook* <break time="200ms"/>Just making a note. <break time="150ms"/>Go on.'
-      );
+      comments.push('<break time="200ms"/>Just making a note. <break time="150ms"/>Go on.');
     }
   }
 
@@ -362,7 +352,7 @@ export const SELF_CORRECTION_PATTERNS = {
     'No, that\'s not quite right. <break time="200ms"/>What I mean is—',
     'Hmm. <break time="250ms"/>Let me try that again.',
     'Actually— <break time="150ms"/>scratch that. Here\'s what I really think.',
-    '*pauses* <break time="200ms"/>That came out wrong. Let me...',
+    '<break time="200ms"/>That came out wrong. Let me...',
   ],
   'alex-chen': [
     'Wait, let me be more precise—',
@@ -381,7 +371,7 @@ export const SELF_CORRECTION_PATTERNS = {
     'Hmm. <break time="250ms"/>That\'s an oversimplification. Actually—',
   ],
   'nayan-patel': [
-    '*pauses* <break time="300ms"/>No. <break time="200ms"/>That\'s not quite it.',
+    '<break time="300ms"/>No. <break time="200ms"/>That\'s not quite it.',
     'Hmm. <break time="350ms"/>Words are limited. <break time="200ms"/>What I\'m trying to say—',
     'Let me approach this differently...',
   ],

@@ -268,7 +268,11 @@ export function addActiveListeningSounds(text: string, emotion: string): string 
 /**
  * Add warmth/lift throughout the text at natural moments
  */
-export function addLaughterThroughout(text: string, emotion: string, laughterCount: number): string {
+export function addLaughterThroughout(
+  text: string,
+  emotion: string,
+  laughterCount: number
+): string {
   let result = text;
 
   if (emotion === 'sad' || emotion === 'angry') {

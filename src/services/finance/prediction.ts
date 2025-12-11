@@ -195,9 +195,7 @@ export async function detectBills(userId: string): Promise<Bill[]> {
 
       // Determine frequency
       const avgInterval =
-        intervals.length > 0
-          ? intervals.reduce((a, b) => a + b, 0) / intervals.length
-          : 0;
+        intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 0;
 
       let frequency: Bill['frequency'] | null = null;
       let confidence = 0;
@@ -218,8 +216,7 @@ export async function detectBills(userId: string): Promise<Bill[]> {
 
       if (frequency && confidence >= 0.6) {
         // Calculate average amount
-        const avgAmount =
-          txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
+        const avgAmount = txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
 
         // Predict next due date
         const lastDate = txns[txns.length - 1].date;
@@ -297,8 +294,7 @@ export async function detectIncome(userId: string): Promise<IncomeSource[]> {
     // Look for deposits (negative amounts in Plaid = money in)
     const deposits = transactions.filter((t) => t.amount < 0);
 
-    const sourceGroups: Record<string, Array<{ amount: number; date: Date }>> =
-      {};
+    const sourceGroups: Record<string, Array<{ amount: number; date: Date }>> = {};
 
     for (const txn of deposits) {
       const key = (txn.merchant_name || txn.name).toLowerCase();
@@ -327,9 +323,7 @@ export async function detectIncome(userId: string): Promise<IncomeSource[]> {
       }
 
       const avgInterval =
-        intervals.length > 0
-          ? intervals.reduce((a, b) => a + b, 0) / intervals.length
-          : 0;
+        intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 0;
 
       let frequency: IncomeSource['frequency'] | null = null;
       let confidence = 0;
@@ -346,8 +340,7 @@ export async function detectIncome(userId: string): Promise<IncomeSource[]> {
       }
 
       if (frequency && confidence >= 0.5) {
-        const avgAmount =
-          txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
+        const avgAmount = txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
 
         const lastDate = txns[txns.length - 1].date;
         const nextExpected = new Date(lastDate);
@@ -682,10 +675,7 @@ export async function detectSubscriptionCreep(userId: string): Promise<Subscript
     );
 
     // Find recurring small charges (likely subscriptions)
-    const merchantGroups: Record<
-      string,
-      Array<{ amount: number; date: Date }>
-    > = {};
+    const merchantGroups: Record<string, Array<{ amount: number; date: Date }>> = {};
 
     for (const txn of transactions) {
       if (txn.amount <= 0 || txn.amount > 200) continue; // Skip income and large purchases
@@ -723,13 +713,10 @@ export async function detectSubscriptionCreep(userId: string): Promise<Subscript
       }
 
       const avgInterval =
-        intervals.length > 0
-          ? intervals.reduce((a, b) => a + b, 0) / intervals.length
-          : 0;
+        intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 0;
 
       if (avgInterval >= 25 && avgInterval <= 35) {
-        const avgAmount =
-          txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
+        const avgAmount = txns.reduce((sum, t) => sum + t.amount, 0) / txns.length;
         const firstSeen = txns[0].date;
 
         const sub = {
@@ -768,9 +755,10 @@ export async function detectSubscriptionCreep(userId: string): Promise<Subscript
       );
     }
 
-    const potentialSavings = streamingServices.length > 3
-      ? streamingServices.slice(2).reduce((sum, s) => sum + s.amount, 0)
-      : 0;
+    const potentialSavings =
+      streamingServices.length > 3
+        ? streamingServices.slice(2).reduce((sum, s) => sum + s.amount, 0)
+        : 0;
 
     const result: SubscriptionCreep = {
       totalMonthly: Math.round(totalMonthly * 100) / 100,
@@ -869,14 +857,10 @@ function calculateGoalProgress(goal: SavingsGoal): GoalProgress {
 
   // Project completion based on current contribution rate
   const monthsToComplete =
-    goal.monthlyContribution > 0
-      ? remaining / goal.monthlyContribution
-      : Infinity;
+    goal.monthlyContribution > 0 ? remaining / goal.monthlyContribution : Infinity;
 
   const projectedCompletion = new Date();
-  projectedCompletion.setMonth(
-    projectedCompletion.getMonth() + Math.ceil(monthsToComplete)
-  );
+  projectedCompletion.setMonth(projectedCompletion.getMonth() + Math.ceil(monthsToComplete));
 
   const surplus = goal.monthlyContribution - monthlyNeeded;
 
@@ -935,7 +919,7 @@ export async function generateFinancialInsight(userId: string): Promise<Financia
       insight: anomaly.description,
       suggestion:
         anomaly.type === 'category_increase'
-          ? 'Want to talk about what\'s driving this?'
+          ? "Want to talk about what's driving this?"
           : undefined,
       data: { anomaly },
     };
@@ -966,9 +950,7 @@ export function generateSuperhumanMoment(userId: string): string | null {
 
   // Upcoming bill awareness
   const upcomingBills = state.bills.filter((b) => {
-    const daysUntil = Math.ceil(
-      (b.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    );
+    const daysUntil = Math.ceil((b.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return daysUntil > 0 && daysUntil <= 3;
   });
 
@@ -1034,7 +1016,20 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function formatDate(date: Date): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
 }
 

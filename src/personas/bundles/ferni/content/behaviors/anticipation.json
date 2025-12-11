@@ -92,10 +92,9 @@
   },
 
   "usage_rules": {
-    "opening_anticipation_probability": 0.4,
-    "topic_callback_probability": 0.25,
-    "future_looking_probability": 0.2,
+    "opening_anticipation_probability": 0.6,
+    "topic_callback_probability": 0.4,
+    "future_looking_probability": 0.32,
     "requires_previous_session_data": true
   }
 }
-

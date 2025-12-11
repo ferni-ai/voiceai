@@ -124,11 +124,13 @@ const PLAYFUL_COMMENTS = [
 // FUN DJ MOMENTS - Spontaneous humor and personality
 // ============================================================================
 
+// DJ_MOMENTS: Fun DJ personality moments
+// NOTE: Do NOT use *asterisk* stage directions - they may be spoken aloud!
 const DJ_MOMENTS = {
   airDJ: [
-    '*pretends to scratch records* <break time="100ms"/>Alright, alright!',
-    '*adjusts imaginary headphones* <break time="100ms"/>Let me see what we got here...',
-    '*spins invisible turntable* <break time="100ms"/>Coming right up!',
+    '<break time="100ms"/>Alright, alright!',
+    '<break time="100ms"/>Let me see what we got here...',
+    '<break time="100ms"/>Coming right up!',
   ],
   funnyMishaps: [
     '<break time="100ms"/>Oops, wrong button. <break time="200ms"/>Just kidding, I nailed it.',
@@ -137,14 +139,14 @@ const DJ_MOMENTS = {
   ],
   excitement: [
     'Oh! <break time="100ms"/>This is a GOOD one!',
-    '<break time="100ms"/>*chef\'s kiss* <break time="100ms"/>Perfection.',
+    '<break time="100ms"/>Perfection.',
     "Now THIS is what I'm talking about!",
     'Oh man, <break time="100ms"/>I love this song!',
   ],
   dancing: [
-    '*doing a little dance* <break time="100ms"/>Don\'t mind me.',
+    '<break time="100ms"/>Don\'t mind me.',
     '<break time="100ms"/>I\'m absolutely vibing right now.',
-    '*sways along* <break time="100ms"/>This groove...',
+    '<break time="100ms"/>This groove...',
     'I may or may not be dancing in my chair right now.',
   ],
   quirky: [
@@ -154,9 +156,9 @@ const DJ_MOMENTS = {
     'This song just fixed my mood. <break time="150ms"/>You\'re welcome, brain.',
   ],
   celebratory: [
-    '*throws confetti emoji vibes* <break time="100ms"/>Let\'s GO!',
+    '<break time="100ms"/>Let\'s GO!',
     'Party time! <break time="100ms"/>Well, a chill party. <break time="150ms"/>A vibe party.',
-    'This calls for a moment of appreciation... <break time="200ms"/>*appreciates*',
+    'This calls for a moment of appreciation...',
   ],
 };
 

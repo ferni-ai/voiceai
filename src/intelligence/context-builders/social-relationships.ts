@@ -72,10 +72,16 @@ export const socialRelationshipsBuilder: ContextBuilder = {
       mentionedThisSession.add(name.toLowerCase());
 
       // Estimate sentiment from conversation analysis
-      const sentiment = analysis.emotion.primary === 'joy' ? 0.5 :
-                       analysis.emotion.primary === 'sadness' ? -0.5 :
-                       analysis.emotion.primary === 'anger' ? -0.3 :
-                       analysis.emotion.primary === 'anxiety' ? -0.2 : 0;
+      const sentiment =
+        analysis.emotion.primary === 'joy'
+          ? 0.5
+          : analysis.emotion.primary === 'sadness'
+            ? -0.5
+            : analysis.emotion.primary === 'anger'
+              ? -0.3
+              : analysis.emotion.primary === 'anxiety'
+                ? -0.2
+                : 0;
 
       // Record the mention
       recordMention(

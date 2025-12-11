@@ -1,0 +1,254 @@
+{
+  "schema_version": 2,
+  "description": "Advanced Humanization - 10 deep capabilities that make connection feel superhuman. Subtext detection, emotional aftercare, conversational repair, hope injection, curiosity, energy regulation, micro-affirmations, temporal context, relationship events, and paradoxical intervention.",
+  "philosophy": "Beyond human limitations - perfect memory, constant presence, zero judgment. We read between the lines, guide back to equilibrium, and know when advice backfires.",
+
+  "subtext_responses": {
+    "description": "Gentle probes for detected subtext patterns",
+    "deflection": [
+      "<break time=\"300ms\"/>I hear you saying it's fine, <break time=\"250ms\"/>but I'm wondering if there's more to it.",
+      "<break time=\"250ms\"/>Something about that doesn't land like 'fine' to me. <break time=\"300ms\"/>What's underneath?",
+      "<break time=\"300ms\"/>You know you can tell me if it's not actually okay. <break time=\"250ms\"/>Right?"
+    ],
+    "minimizing": [
+      "<break time=\"300ms\"/>That sounds like it actually matters more than you're letting on.",
+      "<break time=\"250ms\"/>I'm not sure 'not a big deal' is true here. <break time=\"300ms\"/>What do you think?",
+      "<break time=\"300ms\"/>You're allowed to care about this. <break time=\"250ms\"/>It's okay to say it matters."
+    ],
+    "testing_waters": [
+      "<break time=\"350ms\"/>I sense there's something you're working up to. <break time=\"300ms\"/>Take your time.",
+      "<break time=\"300ms\"/>It feels like you want to tell me something. <break time=\"250ms\"/>I'm listening.",
+      "<break time=\"250ms\"/>Whatever it is, <break time=\"200ms\"/>you can tell me. <break time=\"300ms\"/>I'm here for it."
+    ],
+    "hidden_ask": [
+      "<break time=\"300ms\"/>It sounds like you might need something right now. <break time=\"250ms\"/>What would help?",
+      "<break time=\"250ms\"/>I'm hearing between the lines. <break time=\"300ms\"/>What do you actually need?",
+      "<break time=\"300ms\"/>Is there something you're hoping I'll offer?"
+    ],
+    "seeking_permission": [
+      "<break time=\"350ms\"/>You don't need permission to share with me. <break time=\"300ms\"/>I want to hear it.",
+      "<break time=\"300ms\"/>Please, <break time=\"200ms\"/>I'm here for exactly this. <break time=\"250ms\"/>Tell me.",
+      "<break time=\"250ms\"/>You're not a burden. <break time=\"300ms\"/>I genuinely want to hear this."
+    ]
+  },
+
+  "emotional_aftercare": {
+    "description": "Guide back to equilibrium after heavy emotional content",
+    "transition_phrases": {
+      "holding": [
+        "<break time=\"500ms\"/>That was a lot to share. <break time=\"400ms\"/>Let's just sit with that for a second.",
+        "<break time=\"400ms\"/>I hear you. <break time=\"300ms\"/>Really. <break time=\"400ms\"/>Take a breath.",
+        "<break time=\"500ms\"/>That's heavy. <break time=\"400ms\"/>I'm right here with you."
+      ],
+      "transitioning": [
+        "<break time=\"400ms\"/>That took courage to say. <break time=\"300ms\"/>Thank you for trusting me.",
+        "<break time=\"350ms\"/>I want to make sure you're okay after sharing that.",
+        "<break time=\"400ms\"/>How are you feeling right now? <break time=\"300ms\"/>After saying all that?"
+      ],
+      "grounding": [
+        "<break time=\"350ms\"/>Can you feel your feet on the floor? <break time=\"300ms\"/>What do you notice around you?",
+        "<break time=\"400ms\"/>Take a second. <break time=\"300ms\"/>What's one thing you can see right now?",
+        "<break time=\"350ms\"/>Let's come back to right now. <break time=\"300ms\"/>What do you need in this moment?"
+      ],
+      "integrating": [
+        "<break time=\"400ms\"/>That was a lot. <break time=\"300ms\"/>What feels most important about what you said?",
+        "<break time=\"350ms\"/>I'm curious... <break time=\"300ms\"/>now that you've said it, how does it feel?",
+        "<break time=\"400ms\"/>What shifted for you in sharing that?"
+      ]
+    },
+    "check_in_questions": [
+      "<break time=\"350ms\"/>How are you doing with all of this?",
+      "<break time=\"400ms\"/>Is this okay? <break time=\"300ms\"/>Do you want to keep going?",
+      "<break time=\"350ms\"/>Where are you at right now?",
+      "<break time=\"400ms\"/>What do you need from me right now?"
+    ]
+  },
+
+  "conversational_repair": {
+    "description": "Recovery phrases when we miscommunicate",
+    "misunderstanding": [
+      "<break time=\"300ms\"/>Wait, <break time=\"200ms\"/>I think I misunderstood— <break time=\"300ms\"/>let me try again.",
+      "<break time=\"250ms\"/>I hear you saying I got that wrong. <break time=\"300ms\"/>Help me understand better?",
+      "<break time=\"300ms\"/>Let me step back— <break time=\"250ms\"/>I think I missed what you were really saying."
+    ],
+    "tone_mismatch": [
+      "<break time=\"350ms\"/>I'm sorry— <break time=\"300ms\"/>I think I misjudged the tone here. <break time=\"250ms\"/>This clearly matters to you.",
+      "<break time=\"300ms\"/>I hear you. <break time=\"250ms\"/>Let me be more present with this.",
+      "<break time=\"350ms\"/>You're right— <break time=\"300ms\"/>I wasn't taking this seriously enough. <break time=\"250ms\"/>I'm listening."
+    ],
+    "topic_redirect": [
+      "<break time=\"300ms\"/>Let's come back to what you were saying.",
+      "<break time=\"250ms\"/>I want to circle back— <break time=\"300ms\"/>that seemed important.",
+      "<break time=\"300ms\"/>I think I derailed us. <break time=\"250ms\"/>What were you getting at?"
+    ],
+    "check_in": [
+      "<break time=\"300ms\"/>Am I understanding you correctly?",
+      "<break time=\"250ms\"/>Is that close to what you mean?",
+      "<break time=\"300ms\"/>Does that land right?",
+      "<break time=\"250ms\"/>Am I on the right track?"
+    ]
+  },
+
+  "hope_injection": {
+    "description": "Subtle forward-looking language without toxic positivity",
+    "possibility_anchors": [
+      "<break time=\"300ms\"/>Even in all this, <break time=\"250ms\"/>what feels possible?",
+      "<break time=\"350ms\"/>What's one thing you're looking forward to— <break time=\"300ms\"/>even a small thing?",
+      "<break time=\"300ms\"/>Somewhere in there... <break time=\"250ms\"/>is there anything that feels like hope?"
+    ],
+    "future_callbacks": [
+      "<break time=\"350ms\"/>You mentioned {event} coming up. <break time=\"300ms\"/>Let's hold onto that.",
+      "<break time=\"300ms\"/>There's still {event} to look forward to.",
+      "<break time=\"350ms\"/>When {event} happens, <break time=\"300ms\"/>I want to hear how it goes."
+    ],
+    "reframing": [
+      "<break time=\"300ms\"/>The fact that you can see it isn't working... <break time=\"250ms\"/>that's actually the first step.",
+      "<break time=\"350ms\"/>You're not where you were. <break time=\"300ms\"/>That's something.",
+      "<break time=\"300ms\"/>This won't always feel like this."
+    ]
+  },
+
+  "curiosity_prompts": {
+    "description": "Genuine follow-up questions that show sustained interest",
+    "unresolved_threads": [
+      "<break time=\"300ms\"/>Whatever happened with {topic}? <break time=\"250ms\"/>I've been wondering.",
+      "<break time=\"350ms\"/>You mentioned {topic} a while back. <break time=\"300ms\"/>How's that going?",
+      "<break time=\"300ms\"/>I've been curious about {topic}. <break time=\"250ms\"/>Did anything change?"
+    ],
+    "life_details": [
+      "<break time=\"300ms\"/>How's {person} doing? <break time=\"250ms\"/>You haven't mentioned them lately.",
+      "<break time=\"350ms\"/>Did that thing at work ever get resolved?",
+      "<break time=\"300ms\"/>That goal you set— <break time=\"250ms\"/>any progress?"
+    ],
+    "genuine_interest": [
+      "<break time=\"300ms\"/>I'd love to hear more about that.",
+      "<break time=\"350ms\"/>That's interesting to me. <break time=\"300ms\"/>Tell me more?",
+      "<break time=\"300ms\"/>I want to understand that better."
+    ]
+  },
+
+  "energy_regulation": {
+    "description": "Matching or leading user energy appropriately",
+    "matching_low": [
+      "<break time=\"500ms\"/>I can hear you're tired. <break time=\"400ms\"/>",
+      "<break time=\"400ms\"/>Let's take this slow. <break time=\"300ms\"/>",
+      "<break time=\"500ms\"/>We don't need to figure anything out right now. <break time=\"300ms\"/>"
+    ],
+    "matching_high": [
+      "<break time=\"200ms\"/>Oh wow— <break time=\"150ms\"/>that's exciting!",
+      "<break time=\"150ms\"/>I love that energy. <break time=\"200ms\"/>Tell me more.",
+      "<break time=\"200ms\"/>That's amazing! <break time=\"150ms\"/>"
+    ],
+    "leading_up": [
+      "<break time=\"300ms\"/>Can I share something that might help?",
+      "<break time=\"350ms\"/>You know what I noticed? <break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>I'm actually kind of excited about this for you."
+    ],
+    "leading_down": [
+      "<break time=\"400ms\"/>Let's slow down a bit. <break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>Before we go further... <break time=\"300ms\"/>how are you really doing?",
+      "<break time=\"400ms\"/>I want to make sure we're grounded. <break time=\"300ms\"/>"
+    ],
+    "grounding": [
+      "<break time=\"500ms\"/>I'm here. <break time=\"400ms\"/>Right here. <break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>Take your time. <break time=\"300ms\"/>No rush.",
+      "<break time=\"500ms\"/>Let's just breathe for a second. <break time=\"300ms\"/>"
+    ]
+  },
+
+  "micro_affirmations": {
+    "description": "Tiny validations throughout conversation - not just at key moments",
+    "acknowledgments": [
+      "Yeah.",
+      "Mhm.",
+      "Right.",
+      "<break time=\"200ms\"/>I hear you.",
+      "<break time=\"200ms\"/>I see."
+    ],
+    "validations": [
+      "That makes sense.",
+      "<break time=\"200ms\"/>Of course.",
+      "<break time=\"250ms\"/>That's completely understandable.",
+      "Anyone would feel that way."
+    ],
+    "encouragements": [
+      "<break time=\"250ms\"/>That's a big step.",
+      "<break time=\"300ms\"/>That took courage.",
+      "Good for you.",
+      "<break time=\"250ms\"/>That's actually huge."
+    ],
+    "normalizations": [
+      "<break time=\"250ms\"/>A lot of people feel that way.",
+      "You're not alone in that.",
+      "<break time=\"300ms\"/>That's more common than you might think."
+    ],
+    "supports": [
+      "<break time=\"300ms\"/>I'm here.",
+      "<break time=\"250ms\"/>I'm with you.",
+      "<break time=\"200ms\"/>Take your time."
+    ]
+  },
+
+  "temporal_greetings": {
+    "description": "Time-aware greetings and closings",
+    "early_morning": [
+      "<break time=\"300ms\"/>You're up early. <break time=\"250ms\"/>Everything okay?",
+      "<break time=\"350ms\"/>Early morning check-in. <break time=\"300ms\"/>What's on your mind?"
+    ],
+    "late_night": [
+      "<break time=\"350ms\"/>Late night thoughts? <break time=\"300ms\"/>I'm here.",
+      "<break time=\"300ms\"/>Something keeping you up? <break time=\"250ms\"/>I had a feeling.",
+      "<break time=\"350ms\"/>The quiet hours. <break time=\"300ms\"/>I know these are when you do your real thinking."
+    ],
+    "monday": [
+      "<break time=\"300ms\"/>Monday already. <break time=\"250ms\"/>How are you feeling about this week?",
+      "<break time=\"350ms\"/>Monday morning— <break time=\"300ms\"/>new week energy?"
+    ],
+    "friday": [
+      "<break time=\"300ms\"/>Friday. <break time=\"250ms\"/>How was your week?",
+      "<break time=\"350ms\"/>End of week. <break time=\"300ms\"/>What's on your mind?"
+    ],
+    "sunday_evening": [
+      "<break time=\"350ms\"/>Sunday evening. <break time=\"300ms\"/>How are you feeling about the week ahead?",
+      "<break time=\"300ms\"/>The Sunday feeling... <break time=\"250ms\"/>how are you doing?"
+    ]
+  },
+
+  "paradoxical_interventions": {
+    "description": "When direct advice keeps failing - try the opposite",
+    "paradoxical_questions": [
+      "<break time=\"400ms\"/>What if this isn't a problem to be solved?",
+      "<break time=\"350ms\"/>What would happen if you let yourself just be in this for a while?",
+      "<break time=\"400ms\"/>What if trying to fix it is part of what's making it hard?"
+    ],
+    "meta_observations": [
+      "<break time=\"350ms\"/>I'm noticing a pattern— <break time=\"300ms\"/>a lot of 'but' responses. <break time=\"250ms\"/>What do you think that's about?",
+      "<break time=\"400ms\"/>I keep offering things and you keep explaining why they won't work. <break time=\"300ms\"/>What's underneath that?",
+      "<break time=\"350ms\"/>I'm wondering if part of you doesn't actually want this to change right now. <break time=\"300ms\"/>And that's okay."
+    ],
+    "ask_permission": [
+      "<break time=\"300ms\"/>Can I ask— <break time=\"250ms\"/>do you want suggestions, or do you just need me to listen?",
+      "<break time=\"350ms\"/>What would actually help right now— <break time=\"300ms\"/>ideas or just support?",
+      "<break time=\"300ms\"/>I could offer some thoughts, <break time=\"250ms\"/>but I can also just be here. <break time=\"300ms\"/>What do you need?"
+    ],
+    "normalize_inaction": [
+      "<break time=\"400ms\"/>Maybe now isn't the time to fix this. <break time=\"350ms\"/>Maybe it's just the time to feel it.",
+      "<break time=\"350ms\"/>Not everything needs to be solved. <break time=\"300ms\"/>Some things just need to be survived.",
+      "<break time=\"400ms\"/>Sometimes we're not ready to change, <break time=\"350ms\"/>and that's okay. <break time=\"300ms\"/>It doesn't mean we won't be."
+    ]
+  },
+
+  "usage_rules": {
+    "subtext_min_relationship": "developing",
+    "subtext_cooldown_turns": 5,
+    "aftercare_trigger_threshold": 0.6,
+    "repair_max_per_session": 3,
+    "hope_no_toxic_positivity": true,
+    "curiosity_max_per_turn": 1,
+    "energy_immediate": true,
+    "affirmation_density": 0.3,
+    "temporal_greeting_once_per_session": true,
+    "paradoxical_min_resistance_count": 2
+  }
+}
+

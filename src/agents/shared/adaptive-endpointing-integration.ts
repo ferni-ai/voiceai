@@ -57,7 +57,7 @@ const HEAVY_TOPIC_PATTERNS = [
 // Signals user is still thinking/formulating
 const THINKING_INDICATORS = [
   /^(um+|uh+|hmm+|like|so|well|I mean)/i,
-  /\.{3,}$/,  // Trailing dots
+  /\.{3,}$/, // Trailing dots
   /I don't know how to/i,
   /let me think/i,
   /it's hard to explain/i,
@@ -73,9 +73,7 @@ const THINKING_INDICATORS = [
  * This can be called during conversation to get recommended settings.
  * The voice agent can use these to adjust behavior.
  */
-export function getAdaptiveEndpointingSettings(
-  context: EndpointingContext
-): EndpointingSettings {
+export function getAdaptiveEndpointingSettings(context: EndpointingContext): EndpointingSettings {
   const { userText, emotionalIntensity = 0.5, conversationPhase = 'exploring' } = context;
 
   // Start with defaults
@@ -175,7 +173,8 @@ export function createEndpointingContext(params: {
   return {
     userText: params.userText,
     emotionalIntensity: params.emotionalAnalysis?.intensity,
-    conversationPhase: params.userData?.conversationPhase as EndpointingContext['conversationPhase'],
+    conversationPhase: params.userData
+      ?.conversationPhase as EndpointingContext['conversationPhase'],
     turnNumber: params.turnNumber,
     personaId: params.userData?.personaId,
   };
@@ -193,4 +192,3 @@ export const adaptiveEndpointing = {
 };
 
 export default adaptiveEndpointing;
-

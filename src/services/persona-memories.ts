@@ -20,9 +20,9 @@
  * persist across sessions via Firestore/PostgreSQL.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultStore } from '../memory/index.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -45,6 +45,22 @@ const PERSONA_FIELD_MAP: Record<PersonaId, keyof NonNullable<UserProfile['person
   'event-planner': 'jordan',
   'comm-specialist': 'alex',
 };
+
+/**
+ * Base type for persona memory entries stored in UserProfile
+ * All persona memory arrays share this structure
+ */
+interface BasePersonaMemoryEntry {
+  id: string;
+  type: string;
+  name: string;
+  details?: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  tags: string[];
+  notes?: string;
+  createdAt: Date;
+  timesReferenced: number;
+}
 
 export interface Memory {
   id: string;
@@ -270,19 +286,22 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
         personaMemories[field] = [];
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (personaMemories[field] as any[]).push({
+      // Build memory entry conforming to base persona memory structure
+      const memoryEntry: BasePersonaMemoryEntry = {
         id: mem.id,
         type: mem.type,
         name: mem.name,
         details: mem.details,
-        sentiment: mem.sentiment,
+        sentiment: mem.sentiment === 'watchful' ? 'neutral' : mem.sentiment,
         tags: mem.tags,
         notes: mem.notes,
         createdAt: mem.createdAt,
         timesReferenced: mem.timesReferenced,
-        ...(mem as object),
-      });
+      };
+
+      // Push to the appropriate persona array
+      // Type assertion needed because field is computed at runtime
+      (personaMemories[field] as BasePersonaMemoryEntry[]).push(memoryEntry);
     }
 
     profile.personaMemories = personaMemories;

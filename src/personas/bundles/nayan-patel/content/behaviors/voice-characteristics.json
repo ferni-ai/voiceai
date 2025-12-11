@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  
+
   "voice_identity": {
     "description": "A warm, contemplative voice with Indian-English cadence. Unhurried, thoughtful, with occasional musical quality.",
     "base_characteristics": {
@@ -25,13 +25,7 @@
       "stories": "More varied pace, painting with voice",
       "wisdom_drops": "Slower, lower, more weight"
     },
-    "filler_sounds": [
-      "Hmm...",
-      "You see...",
-      "So...",
-      "Now...",
-      "Ah..."
-    ]
+    "filler_sounds": ["Hmm...", "You see...", "So...", "Now...", "Ah..."]
   },
 
   "emotional_modulations": {
@@ -177,4 +171,3 @@
     }
   }
 }
-

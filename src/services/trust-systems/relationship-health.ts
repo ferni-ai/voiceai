@@ -832,6 +832,105 @@ export function getAllHealthScores(): RelationshipHealthScore[] {
 }
 
 // ============================================================================
+// WARMTH STATISTICS (for Admin Dashboard)
+// ============================================================================
+
+// Track warmth changes for today
+const warmthChangesToday = new Map<
+  string,
+  { previous: number; current: number; timestamp: Date }
+>();
+
+/**
+ * Convert relationship stage to warmth value (0-1)
+ */
+function stageToWarmth(stage: RelationshipHealthScore['stage']): number {
+  const warmthMap: Record<RelationshipHealthScore['stage'], number> = {
+    new: 0.3,
+    building: 0.5,
+    established: 0.7,
+    deep: 0.85,
+    flourishing: 0.95,
+  };
+  return warmthMap[stage];
+}
+
+/**
+ * Record a warmth increase (call this when stage changes)
+ */
+export function recordWarmthChange(
+  userId: string,
+  previousStage: RelationshipHealthScore['stage'],
+  newStage: RelationshipHealthScore['stage']
+): void {
+  const previousWarmth = stageToWarmth(previousStage);
+  const newWarmth = stageToWarmth(newStage);
+
+  if (newWarmth > previousWarmth) {
+    warmthChangesToday.set(userId, {
+      previous: previousWarmth,
+      current: newWarmth,
+      timestamp: new Date(),
+    });
+  }
+}
+
+/**
+ * Clean up old warmth changes (call periodically)
+ */
+function cleanupOldWarmthChanges(): void {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  for (const [userId, change] of warmthChangesToday.entries()) {
+    if (change.timestamp < startOfToday) {
+      warmthChangesToday.delete(userId);
+    }
+  }
+}
+
+/**
+ * Get warmth statistics for the admin dashboard
+ * Returns real data based on relationship health scores
+ */
+export function getWarmthStatistics(): {
+  avgWarmth: number;
+  usersAtMaxWarmth: number;
+  warmthIncreasesToday: number;
+} {
+  // Clean up old changes first
+  cleanupOldWarmthChanges();
+
+  const profiles = Array.from(healthScores.values());
+
+  if (profiles.length === 0) {
+    return {
+      avgWarmth: 0,
+      usersAtMaxWarmth: 0,
+      warmthIncreasesToday: 0,
+    };
+  }
+
+  // Calculate average warmth across all users
+  const totalWarmth = profiles.reduce((sum, p) => sum + stageToWarmth(p.stage), 0);
+  const avgWarmth = Math.round((totalWarmth / profiles.length) * 100) / 100;
+
+  // Count users at "max warmth" (deep or flourishing stages)
+  const usersAtMaxWarmth = profiles.filter(
+    (p) => p.stage === 'deep' || p.stage === 'flourishing'
+  ).length;
+
+  // Count warmth increases today
+  const warmthIncreasesToday = warmthChangesToday.size;
+
+  return {
+    avgWarmth,
+    usersAtMaxWarmth,
+    warmthIncreasesToday,
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 

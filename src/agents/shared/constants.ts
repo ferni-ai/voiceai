@@ -5,23 +5,24 @@
  */
 
 // ============================================================================
-// HANDOFF TRANSITION DELAYS
-// These control the delay before transitioning to a new agent
+// HANDOFF TIMING
+// NOTE: Canonical source is src/config/handoff-timing.ts
+// Re-exported here for convenience but prefer importing directly from source
 // ============================================================================
 
-export const HANDOFF_DELAYS = {
-  /** User tapped to switch - be snappy and responsive (Apple-style) */
-  USER_INITIATED: 200, // Was 600ms - too slow for user-initiated!
+// Re-export handoff timing from canonical source
+export {
+  HANDOFF_TIMING,
+  getTransitionDelay,
+  isHandoffAllowed,
+  type TransitionStyle,
+} from '../../config/handoff-timing.js';
 
-  /** First time meeting this agent - brief theatrical pause */
-  FIRST_MEETING: 400, // Was 1400ms - way too theatrical!
-
-  /** Coming back to the coach - warm, familiar transition */
-  RETURNING_TO_COACH: 300, // Was 1000ms - should feel instant
-
-  /** Standard agent-suggested handoff */
-  STANDARD: 350, // Was 1200ms - too slow!
-} as const;
+/**
+ * @deprecated Use HANDOFF_TIMING from ../../config/handoff-timing.js instead
+ * This alias maintains backward compatibility
+ */
+export { HANDOFF_TIMING as HANDOFF_DELAYS } from '../../config/handoff-timing.js';
 
 // ============================================================================
 // SILENCE DETECTION
@@ -127,8 +128,8 @@ export const AUDIO = {
 } as const;
 
 export default {
-  HANDOFF_DELAYS,
   SILENCE_THRESHOLDS,
+  PROCESSING_TIMEOUTS,
   API_TIMEOUTS,
   RATE_LIMITS,
   CONVERSATION,

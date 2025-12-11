@@ -29,7 +29,15 @@
       ]
     },
     "relationship_anxiety": {
-      "detection_cues": ["text", "respond", "friend", "family", "relationship", "said", "conversation"],
+      "detection_cues": [
+        "text",
+        "respond",
+        "friend",
+        "family",
+        "relationship",
+        "said",
+        "conversation"
+      ],
       "responses": [
         "<break time=\"400ms\"/>Replaying a conversation? <break time=\"300ms\"/>I do that too. <break time=\"250ms\"/>What part keeps looping?",
         "<break time=\"350ms\"/>Late night is when we rewrite conversations in our heads. <break time=\"300ms\"/>What would you say if you could say it again?",
@@ -115,4 +123,3 @@
     ]
   }
 }
-

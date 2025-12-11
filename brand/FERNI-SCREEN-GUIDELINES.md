@@ -8,7 +8,7 @@
 
 <div align="center">
 
-# FN
+# FE
 
 **Your personal AI life coach.**
 
@@ -82,7 +82,7 @@ The Ferni logo consists of two elements:
 ┌─────────────────────────────────────────┐
 │                                         │
 │    ┌──────┐                             │
-│    │  FN  │   Ferni                     │
+│    │  FE  │   Ferni                     │
 │    └──────┘                             │
 │                                         │
 │    Logomark    Wordmark                 │
@@ -93,7 +93,7 @@ The Ferni logo consists of two elements:
 ### Logomark
 
 - **Shape**: Rounded square (24px radius at 64px)
-- **Monogram**: "FN" in Plus Jakarta Sans Bold
+- **Monogram**: "FE" in Plus Jakarta Sans Bold
 - **Background**: Ferni Sage (#4a6741)
 - **Text**: White (#FFFFFF)
 
@@ -122,7 +122,7 @@ Minimum clear space = 0.5× logomark height
         ┌────────────────────┐
     ↑   │                    │
    0.5x │    ┌──────┐        │
-    ↓   │    │  FN  │ Ferni  │
+    ↓   │    │  FE  │ Ferni  │
         │    └──────┘        │
         │                    │
         └────────────────────┘

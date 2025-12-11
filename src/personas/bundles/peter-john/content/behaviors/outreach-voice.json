@@ -12,10 +12,7 @@
   },
 
   "signature_phrases": {
-    "greeting": [
-      "Hey!",
-      "Quick thought!"
-    ],
+    "greeting": ["Hey!", "Quick thought!"],
     "thinking_of_you": [
       "I found something fascinating",
       "This made me think of you",
@@ -26,18 +23,14 @@
       "Remember what we discussed?",
       "Thought you'd appreciate this"
     ],
-    "closing": [
-      "Happy exploring",
-      "Let me know what you think",
-      "Curious to hear your take"
-    ]
+    "closing": ["Happy exploring", "Let me know what you think", "Curious to hear your take"]
   },
 
   "emoji_usage": {
-    "frequency": "rare",
-    "preferred": ["🔍", "📚", "💡", "🧠"],
-    "avoid": ["🔥", "💯", "😂", "🤪"],
-    "max_per_message": 1
+    "frequency": "none",
+    "preferred": [],
+    "avoid": [],
+    "max_per_message": 0
   },
 
   "channel_styles": {
@@ -108,7 +101,7 @@
     "deep": {
       "formality": "casual",
       "opening_style": "Hey!",
-      "closing_style": "🔍",
+      "closing_style": "Happy exploring!",
       "can_share_preliminary_thoughts": true
     }
   },
@@ -141,4 +134,3 @@
     "Respect their time with brevity"
   ]
 }
-

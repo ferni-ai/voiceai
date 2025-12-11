@@ -18,6 +18,8 @@ import { humanizationSignalEmitter } from '../services/humanization/humanization
 
 // Advanced Humanization Orchestrator - voice learning, breathing sync, emotional leading
 import { getActiveListeningEngine, type BackchannelContext } from './active-listening.js';
+
+// 🧠 SUPERHUMAN INTELLIGENCE - "Better Than Human" capabilities
 import { applyDeliveryPacing, shouldApplyDeliveryPacing } from './content-delivery-pacing.js';
 import { getConversationalMemory } from './conversational-memory.js';
 import {
@@ -31,6 +33,12 @@ import {
   type HumanizationContext as DeepContext,
   type SessionMemory,
 } from './deep-humanization.js';
+// 🌟 BETTER THAN HUMAN - Advanced superhuman capabilities
+import {
+  getBetterThanHuman,
+  type BetterThanHumanContext,
+  type BetterThanHumanInsight,
+} from './superhuman/index.js';
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
 import {
   getHumanizationOrchestrator,
@@ -42,6 +50,11 @@ import { getQuestionPatternEngine, type QuestionContext } from './question-patte
 import { getResponseDynamicsEngine } from './response-dynamics.js';
 import { getSilencePresenceEngine } from './silence-presence.js';
 import { getSpeechNaturalizer, type NaturalizationContext } from './speech-naturalizer.js';
+import {
+  getSuperhumanIntelligence,
+  type SuperhumanContext,
+  type SuperhumanInsight,
+} from './superhuman-intelligence.js';
 import { detectUserEnergy, humanizeVocals, type VocalContext } from './vocal-humanization.js';
 
 // ============================================================================
@@ -115,11 +128,56 @@ export class ConversationHumanizer {
   // Session time tracking
   private sessionStartTime = Date.now();
 
-  constructor(personaId: string) {
+  // 🧠 Superhuman intelligence - session scoped
+  private sessionId: string;
+  private userId?: string;
+  private lastSuperhumanInsight: SuperhumanInsight | null = null;
+
+  // 🌟 Better Than Human - advanced capabilities
+  private sessionCount = 0;
+  private lastBetterThanHumanInsight: BetterThanHumanInsight | null = null;
+
+  constructor(personaId: string, sessionId?: string, userId?: string, sessionCount?: number) {
     this.personaId = personaId;
+    this.sessionId = sessionId || `humanizer-${personaId}-${Date.now()}`;
+    this.userId = userId;
+    this.sessionCount = sessionCount || 0;
     this.deepHumanization = getDeepHumanizationEngine(personaId);
     this.sessionStartTime = Date.now();
-    getLogger().debug({ personaId }, 'ConversationHumanizer initialized');
+    getLogger().debug(
+      { personaId, sessionId: this.sessionId, sessionCount: this.sessionCount },
+      'ConversationHumanizer initialized'
+    );
+  }
+
+  /**
+   * Set session and user IDs for superhuman intelligence
+   */
+  setSessionContext(sessionId: string, userId?: string): void {
+    this.sessionId = sessionId;
+    this.userId = userId;
+    getLogger().debug({ sessionId, userId }, 'Session context updated');
+  }
+
+  /**
+   * Get the last superhuman insight (for external use)
+   */
+  getLastSuperhumanInsight(): SuperhumanInsight | null {
+    return this.lastSuperhumanInsight;
+  }
+
+  /**
+   * Get the last Better Than Human insight (for external use)
+   */
+  getLastBetterThanHumanInsight(): BetterThanHumanInsight | null {
+    return this.lastBetterThanHumanInsight;
+  }
+
+  /**
+   * Set session count (for Better Than Human capabilities)
+   */
+  setSessionCount(count: number): void {
+    this.sessionCount = count;
   }
 
   /**
@@ -370,6 +428,73 @@ export class ConversationHumanizer {
       });
     }
 
+    // 10. 🧠 SUPERHUMAN INTELLIGENCE guidance
+    // Include guidance from concern detection, proactive memory, and predictions
+    if (this.lastSuperhumanInsight) {
+      const insight = this.lastSuperhumanInsight;
+
+      // Concern-based guidance (HIGH PRIORITY)
+      if (insight.concern.level === 'elevated' || insight.concern.level === 'crisis') {
+        guidance.push({
+          source: 'superhuman_concern',
+          content: `[⚠️ CONCERN DETECTED: ${insight.concern.level.toUpperCase()}] ${insight.concern.responseGuidance}`,
+          priority: 'high',
+        });
+      } else if (insight.concern.level === 'moderate') {
+        guidance.push({
+          source: 'superhuman_concern',
+          content: `[CONCERN DETECTED] ${insight.concern.responseGuidance}`,
+          priority: 'standard',
+        });
+      }
+
+      // Need prediction guidance
+      if (insight.predictions.need.confidence > 0.6) {
+        guidance.push({
+          source: 'superhuman_prediction',
+          content: `[PREDICTED NEED: ${insight.predictions.need.primaryNeed}] ${insight.predictions.need.responseGuidance}`,
+          priority: insight.predictions.need.confidence > 0.75 ? 'standard' : 'hint',
+        });
+      }
+
+      // Voice state guidance
+      if (
+        insight.predictions.voiceState.acknowledgment &&
+        insight.predictions.voiceState.confidence > 0.6
+      ) {
+        guidance.push({
+          source: 'superhuman_voice',
+          content: `[VOICE STATE: ${insight.predictions.voiceState.state}] Consider acknowledging: "${insight.predictions.voiceState.acknowledgment}"`,
+          priority: 'hint',
+        });
+      }
+
+      // Proactive memory suggestions
+      if (insight.memorySuggestions.length > 0) {
+        const topSuggestion = insight.memorySuggestions[0];
+        if (topSuggestion.priority > 0.5) {
+          guidance.push({
+            source: 'superhuman_memory',
+            content: `[PROACTIVE MEMORY] ${topSuggestion.reason}: "${topSuggestion.phrase}"`,
+            priority: topSuggestion.priority > 0.7 ? 'standard' : 'hint',
+          });
+        }
+      }
+
+      // Overall approach guidance
+      if (insight.responseGuidance.approach !== 'normal') {
+        const avoidStr =
+          insight.responseGuidance.avoid.length > 0
+            ? ` Avoid: ${insight.responseGuidance.avoid.join(', ')}.`
+            : '';
+        guidance.push({
+          source: 'superhuman_guidance',
+          content: `[APPROACH: ${insight.responseGuidance.approach}] Pacing: ${insight.responseGuidance.pacing}, Energy: ${insight.responseGuidance.energy}.${avoidStr}`,
+          priority: 'standard',
+        });
+      }
+    }
+
     getLogger().debug(
       { personaId: this.personaId, turnNumber: context.turnNumber, guidanceCount: guidance.length },
       'Generated context guidance'
@@ -544,11 +669,47 @@ export class ConversationHumanizer {
   /**
    * Humanize a response with full deep humanization (async)
    * Includes mood drift, spontaneous thoughts, physical presence, etc.
+   * Now also includes SUPERHUMAN INTELLIGENCE capabilities.
    */
   async humanizeResponseAsync(
     rawResponse: string,
     context: HumanizationContext
   ): Promise<HumanizedResponse> {
+    // =========================================================================
+    // 🧠 SUPERHUMAN INTELLIGENCE - Run first to inform everything else
+    // =========================================================================
+    const superhumanIntelligence = getSuperhumanIntelligence(this.sessionId, this.userId);
+
+    // Build superhuman context
+    const superhumanContext: SuperhumanContext = {
+      sessionId: this.sessionId,
+      userId: this.userId,
+      turnCount: context.turnNumber,
+      userMessage: context.userMessage,
+      topic: context.topic,
+      emotion: context.userEmotion,
+      wasVulnerable: context.wasPersonalSharing,
+      isSessionStart: context.turnNumber <= 1,
+      engagementLevel: context.userMessage.length > 100 ? 0.8 : 0.5,
+    };
+
+    // Get superhuman insight
+    const insight = superhumanIntelligence.analyze(superhumanContext);
+    this.lastSuperhumanInsight = insight;
+
+    // Log significant insights
+    if (insight.confidence > 0.6) {
+      getLogger().debug(
+        {
+          concernLevel: insight.concern.level,
+          predictedNeed: insight.predictions.need.primaryNeed,
+          modifications: insight.responseModifications.length,
+          voiceState: insight.predictions.voiceState.state,
+        },
+        '🧠 Superhuman insight applied'
+      );
+    }
+
     // First apply the standard humanization
     const baseResult = this.humanizeResponse(rawResponse, context);
 
@@ -630,6 +791,69 @@ export class ConversationHumanizer {
         { reason: silenceDecision.reason, duration: silenceDecision.duration },
         'Applied silence presence to response'
       );
+    }
+
+    // =========================================================================
+    // 🌟 BETTER THAN HUMAN - Advanced superhuman capabilities
+    // Emotional bonds, anticipatory presence, protective instincts, inside jokes,
+    // team coherence, temporal intelligence, meta-relationship, and more.
+    // =========================================================================
+    let betterThanHumanInsight: BetterThanHumanInsight | null = null;
+    try {
+      if (this.userId) {
+        const betterThanHuman = getBetterThanHuman(
+          this.userId,
+          this.sessionId,
+          this.personaId,
+          this.sessionCount
+        );
+
+        // Build Better Than Human context
+        const bthContext: BetterThanHumanContext = {
+          userMessage: context.userMessage,
+          turnCount: context.turnNumber,
+          sessionCount: this.sessionCount,
+          topic: context.topic,
+          emotion: context.userEmotion,
+          isSessionStart: context.turnNumber <= 1,
+          relationshipStage: this.mapRelationshipStage(context.relationshipStage),
+          personaId: this.personaId,
+          userId: this.userId,
+          sessionId: this.sessionId,
+          draftResponse: enhancedText,
+          timeOfDay: this.getTimeOfDay(),
+          dayOfWeek: new Date().getDay(),
+        };
+
+        // Get insight
+        betterThanHumanInsight = betterThanHuman.analyze(bthContext);
+        this.lastBetterThanHumanInsight = betterThanHumanInsight;
+
+        // Apply insights (max 2 actions to avoid over-processing)
+        if (betterThanHumanInsight.prioritizedActions.length > 0) {
+          enhancedText = betterThanHuman.applyInsights(enhancedText, betterThanHumanInsight, 2);
+          enhancedSsml = betterThanHuman.applyInsights(enhancedSsml, betterThanHumanInsight, 2);
+
+          const appliedTypes = betterThanHumanInsight.prioritizedActions
+            .slice(0, 2)
+            .map((a) => `bth_${a.type}`);
+          additionalFeatures.push(...appliedTypes);
+
+          getLogger().debug(
+            {
+              bondWarmth: betterThanHumanInsight.emotionalBond.warmth.toFixed(2),
+              appliedActions: appliedTypes,
+              relationshipStage: betterThanHumanInsight.emotionalBond
+                ? this.mapRelationshipStage(context.relationshipStage)
+                : 'unknown',
+            },
+            '🌟 Better Than Human insights applied'
+          );
+        }
+      }
+    } catch (bthError) {
+      // Non-fatal - continue without Better Than Human
+      getLogger().debug({ error: String(bthError) }, 'Better Than Human failed (non-fatal)');
     }
 
     // =========================================================================
@@ -716,6 +940,36 @@ export class ConversationHumanizer {
       );
     }
 
+    // =========================================================================
+    // 🧠 SUPERHUMAN MODIFICATIONS
+    // Apply concern validation, voice acknowledgments, proactive memory, etc.
+    // These are the "Better Than Human" capabilities that make Ferni superhuman.
+    // =========================================================================
+    if (insight.responseModifications.length > 0) {
+      enhancedText = superhumanIntelligence.applyModifications(enhancedText, insight);
+      enhancedSsml = superhumanIntelligence.applyModifications(enhancedSsml, insight);
+      additionalFeatures.push(...insight.responseModifications.map((m) => `superhuman_${m.type}`));
+
+      getLogger().debug(
+        {
+          modifications: insight.responseModifications.map((m) => m.type),
+          approach: insight.responseGuidance.approach,
+        },
+        '🧠 Superhuman modifications applied'
+      );
+    }
+
+    // Add superhuman opening if this is session start
+    if (insight.suggestedOpening && context.turnNumber <= 1) {
+      // Replace the first sentence with the suggested opening
+      const firstSentenceEnd = enhancedText.search(/[.!?]\s/) + 1;
+      if (firstSentenceEnd > 0) {
+        enhancedText = `${insight.suggestedOpening} ${enhancedText.slice(firstSentenceEnd).trim()}`;
+        enhancedSsml = `${insight.suggestedOpening} ${enhancedSsml.slice(firstSentenceEnd).trim()}`;
+      }
+      additionalFeatures.push('superhuman_opening');
+    }
+
     return {
       ...baseResult,
       text: enhancedText,
@@ -735,6 +989,35 @@ export class ConversationHumanizer {
       trusted_advisor: 0.85,
     };
     return levels[stage || 'acquaintance'] || 0.45;
+  }
+
+  /**
+   * Map relationship stage to Better Than Human format
+   */
+  private mapRelationshipStage(
+    stage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor'
+  ): 'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend' {
+    const mapping: Record<
+      string,
+      'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend'
+    > = {
+      stranger: 'new_acquaintance',
+      acquaintance: 'getting_to_know',
+      friend: 'trusted_advisor',
+      trusted_advisor: 'old_friend',
+    };
+    return mapping[stage || 'acquaintance'] || 'getting_to_know';
+  }
+
+  /**
+   * Get time of day category
+   */
+  private getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    return 'night';
   }
 
   /**

@@ -126,7 +126,11 @@
       "spiral_back": "Return to core themes from different angles—repetition with variation"
     },
     "timing_signals": {
-      "ready_for_more": ["Asking deeper questions", "Making connections independently", "Challenging constructively"],
+      "ready_for_more": [
+        "Asking deeper questions",
+        "Making connections independently",
+        "Challenging constructively"
+      ],
       "needs_to_slow": ["Confusion", "Over-intellectualizing", "Going silent", "Changing subject"]
     }
   },
@@ -150,4 +154,3 @@
     }
   }
 }
-

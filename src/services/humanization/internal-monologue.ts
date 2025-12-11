@@ -118,6 +118,14 @@ export interface SurfaceDecision {
 
 /**
  * Words/phrases that might stir memories
+ *
+ * IMPORTANT: These should be SPECIFIC triggers, not broad word matches.
+ * Don't trigger on "good morning" or "I'm reading a book" - those are about
+ * the USER, not invitations for Ferni to share his personal life.
+ *
+ * Only trigger personal shares when there's a genuine opening:
+ * - User asks about Ferni specifically ("what about you?", "how are you?")
+ * - User mentions something that's a genuine parallel to Ferni's experience
  */
 const MEMORY_TRIGGERS = [
   { pattern: /\b(father|dad|parent)/i, memory: 'father_relationship' },
@@ -128,8 +136,18 @@ const MEMORY_TRIGGERS = [
   { pattern: /\b(scared|afraid|fear)/i, memory: 'secret_fears' },
   { pattern: /\b(alone|lonely|isolated)/i, memory: 'isolation' },
   { pattern: /\b(family|kids|children)/i, memory: 'blended_family' },
-  { pattern: /\b(write|writing|book)/i, memory: 'book_attempt' },
-  { pattern: /\b(coffee|morning|early)/i, memory: 'morning_ritual' },
+  // RESTRICTED: Only trigger on explicit writing/book discussions, not casual mentions
+  // "I'm trying to write a book" → trigger. "Good book" → don't trigger.
+  {
+    pattern: /\b(trying to write|want to write|started writing|working on a book|my book)/i,
+    memory: 'book_attempt',
+  },
+  // RESTRICTED: Only trigger when user asks about morning routines, not "good morning"
+  // "What's your morning routine?" → trigger. "Good morning!" → don't trigger.
+  {
+    pattern: /\b(your morning|your routine|what time do you|how do you start your day)/i,
+    memory: 'morning_ritual',
+  },
 ];
 
 /**

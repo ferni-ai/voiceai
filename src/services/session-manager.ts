@@ -9,74 +9,90 @@
  * Every session is a new opportunity to connect with someone as a real person,
  * not just another API call. We maintain context, remember history, and bring
  * genuine continuity to each conversation.
+ *
+ * @see ./session-manager/cleanup.ts - Session cleanup/TTL management
+ * @see ./session-manager/constants.ts - Configuration constants
+ * @see ./session-manager/validation.ts - User ID validation
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
 import type { SpeechCharacteristics } from '../personas/types.js';
+import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Extracted session-manager modules
+import {
+  clearAllSessions as clearAll,
+  getActiveSessionCount as getActiveCount,
+  getActiveSessionIds as getActiveIds,
+  getSessionServices as getSession,
+  initializeAccess,
+} from './session-manager/access.js';
+import {
+  initializeCleanup,
+  startSessionCleanup as startCleanup,
+  stopSessionCleanup as stopCleanup,
+} from './session-manager/cleanup.js';
+import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './session-manager/constants.js';
+import { withTimeout } from './session-manager/utils.js';
+import { validateUserId } from './session-manager/validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from './realtime-memory.js';
 
 // Voice authentication - household identification
-import {
-  identifyHouseholdSpeaker,
-  getActiveSession,
-  startHouseholdSession,
-} from './voice-household.js';
+import { getActiveSession, startHouseholdSession } from './voice-household.js';
 
 // Cross-persona insights - load team intelligence for new sessions
 import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';
 
 // Unified persistence - session lifecycle hooks
-import { onSessionStartUnified, onSessionEndUnified } from './trust-systems/unified-persistence.js';
+import { onSessionEndUnified, onSessionStartUnified } from './trust-systems/unified-persistence.js';
 
 // Memory imports
 import {
-  getHistoryTracker,
-  removeHistoryTracker,
-  type ConversationTurn,
-  setCurrentSessionMomentsGetter,
   clearCurrentSessionMomentsGetter,
-  semanticSearch,
-  ragLookup as semanticRagLookup,
-  summarizeConversation,
+  getHistoryTracker,
   indexConversationSummary,
-  type MemoryStore,
+  removeHistoryTracker,
+  ragLookup as semanticRagLookup,
+  semanticSearch,
+  setCurrentSessionMomentsGetter,
+  summarizeConversation,
+  type ConversationTurn,
 } from '../memory/index.js';
 
 // Intelligence imports
 import {
   analyzeMessage,
-  resetIntelligence,
-  getEmotionDetector,
-  getTopicTracker,
-  getStateMachine,
-  getLearningEngine,
-  resetLearningEngine,
-  UserLearningEngine,
-  // Advanced Intelligence Engines
-  getResponseQualityTracker,
-  removeResponseQualityTracker,
+  getCommunicationMirroring,
   getConversationPatternAnalyzer,
-  removeConversationPatternAnalyzer,
-  getProactiveInsightEngine,
-  removeProactiveInsightEngine,
-  getFinancialJourneyTracker,
-  removeFinancialJourneyTracker,
   getCrossSessionThreader,
-  removeCrossSessionThreader,
-  getVoicePaceAdapter,
-  removeVoicePaceAdapter,
+  getEmotionalMemory,
+  getEmotionDetector,
+  getFinancialJourneyTracker,
   // Human-Level Interaction Engines
   getHumorCalibration,
-  removeHumorCalibration,
+  getLearningEngine,
+  getProactiveInsightEngine,
+  // Advanced Intelligence Engines
+  getResponseQualityTracker,
+  getStateMachine,
   getStoryPreference,
-  removeStoryPreference,
-  getCommunicationMirroring,
+  getTopicTracker,
+  getVoicePaceAdapter,
   removeCommunicationMirroring,
-  getEmotionalMemory,
+  removeConversationPatternAnalyzer,
+  removeCrossSessionThreader,
   removeEmotionalMemory,
+  removeFinancialJourneyTracker,
+  removeHumorCalibration,
+  removeProactiveInsightEngine,
+  removeResponseQualityTracker,
+  removeStoryPreference,
+  removeVoicePaceAdapter,
+  resetIntelligence,
+  resetLearningEngine,
+  UserLearningEngine,
 } from '../intelligence/index.js';
 
 // Context imports
@@ -85,29 +101,28 @@ import { getContextManager, removeContextManager } from '../context/index.js';
 // Speech imports - using session-scoped WPM tracking
 import {
   buildSpeechContext,
-  tagTextWithSsmlAdaptive,
   getSessionWPMTracker,
-  tagSupportResponse,
   tagAdvice,
   tagStory,
+  tagSupportResponse,
+  tagTextWithSsmlAdaptive,
   tagWrapUp,
 } from '../speech/index.js';
 
 // Local imports
 import { getGlobalServices } from './global-services.js';
-import { getPersonalizer } from './profile-personalizer.js';
-import type { SessionServices, CreateSessionOptions } from './types.js';
 import type { HumanizingStateUpdate } from './humanizing-state.js';
+import { getPersonalizer } from './profile-personalizer.js';
+import type { CreateSessionOptions, SessionServices } from './types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
-  exportIntelligenceState,
   applyIntelligenceToProfile,
-  loadIntelligenceFromProfile,
   cleanupIntelligenceEngines,
+  loadIntelligenceFromProfile,
   startAutoSave,
   stopAutoSave,
 } from './intelligence-persistence.js';
@@ -121,86 +136,23 @@ import { persistenceMetrics } from './persistence-metrics.js';
 
 const activeSessions = new Map<string, SessionServices>();
 
-// Session TTL cleanup - prevent memory leaks from orphaned sessions
-const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours max session age
-const SESSION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // Check every 15 minutes
-let sessionCleanupInterval: NodeJS.Timeout | null = null;
+// Initialize extracted modules with reference to active sessions
+initializeCleanup(activeSessions);
+initializeAccess(activeSessions);
 
 /**
  * Start periodic cleanup of orphaned sessions
  * Sessions older than SESSION_MAX_AGE_MS are automatically ended
  */
 export function startSessionCleanup(): void {
-  if (sessionCleanupInterval) {
-    return; // Already running
-  }
-
-  sessionCleanupInterval = setInterval(() => {
-    void cleanupOrphanedSessions();
-  }, SESSION_CLEANUP_INTERVAL_MS);
-
-  getLogger().info('🧹 Session cleanup scheduler started');
+  startCleanup();
 }
 
 /**
  * Stop periodic session cleanup (for shutdown)
  */
 export function stopSessionCleanup(): void {
-  if (sessionCleanupInterval) {
-    clearInterval(sessionCleanupInterval);
-    sessionCleanupInterval = null;
-    getLogger().info('🧹 Session cleanup scheduler stopped');
-  }
-}
-
-/**
- * Clean up sessions that have exceeded their maximum age
- * This prevents memory leaks from clients that disconnect without properly ending sessions
- */
-async function cleanupOrphanedSessions(): Promise<number> {
-  const now = Date.now();
-  let cleanedCount = 0;
-  const orphanedSessions: Array<{ sessionId: string; ageMinutes: number }> = [];
-
-  for (const [sessionId, services] of activeSessions) {
-    const sessionAge = now - services.sessionStartTime;
-    if (sessionAge > SESSION_MAX_AGE_MS) {
-      orphanedSessions.push({
-        sessionId,
-        ageMinutes: Math.round(sessionAge / 60000),
-      });
-    }
-  }
-
-  if (orphanedSessions.length === 0) {
-    return 0;
-  }
-
-  getLogger().warn(
-    { orphanedCount: orphanedSessions.length, sessions: orphanedSessions },
-    '🧹 Cleaning up orphaned sessions'
-  );
-
-  for (const { sessionId } of orphanedSessions) {
-    const services = activeSessions.get(sessionId);
-    if (services) {
-      try {
-        await services.endSession();
-        cleanedCount++;
-      } catch (error) {
-        // Force removal if endSession fails
-        getLogger().error(
-          { sessionId, error: String(error) },
-          'Error ending orphaned session, force removing'
-        );
-        activeSessions.delete(sessionId);
-        cleanedCount++;
-      }
-    }
-  }
-
-  getLogger().info({ cleanedCount }, '🧹 Orphaned session cleanup complete');
-  return cleanedCount;
+  stopCleanup();
 }
 
 // ============================================================================
@@ -258,24 +210,10 @@ export async function createSessionServices(
   // Track humanizing state updates during session
   const humanizingStateUpdates: HumanizingStateUpdate[] = [];
 
-  // FIX BUG #session-13: Validate userId format before profile operations
-  const isValidUserId = (id: string | undefined): id is string => {
-    if (!id) return false;
-    // Must be non-empty string
-    if (typeof id !== 'string' || id.trim().length === 0) return false;
-    // Reasonable length (typical UUIDs are 36 chars, Firebase UIDs are ~28)
-    if (id.length > 128 || id.length < 4) return false;
-    // Only allow alphanumeric, dashes, underscores, and common ID characters
-    if (!/^[a-zA-Z0-9_\-.:@]+$/.test(id)) {
-      getLogger().warn({ userId: id.slice(0, 20) }, 'Invalid userId format');
-      return false;
-    }
-    return true;
-  };
-
   // Load or create user profile
+  // FIX BUG #session-13: Validate userId format before profile operations
   let userProfile: UserProfile | null = null;
-  const validatedUserId = isValidUserId(userId) ? userId : undefined;
+  const validatedUserId = validateUserId(userId);
   if (validatedUserId) {
     userProfile = await global.store.getProfile(validatedUserId);
     if (!userProfile) {
@@ -1091,8 +1029,6 @@ export async function createSessionServices(
      * FIX BUG #session-8: Limit array growth to prevent memory issues
      */
     updateHumanizingState: (update: HumanizingStateUpdate) => {
-      const MAX_HUMANIZING_UPDATES = 100; // Reasonable limit for a single session
-
       if (humanizingStateUpdates.length >= MAX_HUMANIZING_UPDATES) {
         // Remove oldest updates when limit reached
         humanizingStateUpdates.shift();
@@ -1195,28 +1131,6 @@ export async function createSessionServices(
       getLogger().info(`Ending session: ${sessionId}`);
       const sessionEndStartTime = Date.now();
 
-      // FIX BUG #session-6: Timeout for summarization to prevent blocking cleanup
-      const SUMMARIZE_TIMEOUT_MS = 10000; // 10 seconds
-
-      const withTimeout = async <T>(
-        promise: Promise<T>,
-        timeoutMs: number,
-        name: string
-      ): Promise<T | null> => {
-        return Promise.race([
-          promise,
-          new Promise<null>((resolve) => {
-            setTimeout(() => {
-              getLogger().warn(
-                { sessionId, operation: name },
-                'Operation timed out during session end'
-              );
-              resolve(null);
-            }, timeoutMs);
-          }),
-        ]);
-      };
-
       if (validatedUserId && userProfile) {
         try {
           const turns = historyTracker.getSimpleTurns();
@@ -1261,7 +1175,8 @@ export async function createSessionServices(
               summary = await withTimeout(
                 summarizeWithLLM(sessionId, turns, llmCaller),
                 SUMMARIZE_TIMEOUT_MS,
-                'summarizeWithLLM'
+                'summarizeWithLLM',
+                sessionId
               );
 
               if (summary) {
@@ -1284,7 +1199,8 @@ export async function createSessionServices(
                 summary = await withTimeout(
                   summarizeConversation(sessionId, turns),
                   SUMMARIZE_TIMEOUT_MS,
-                  'summarizeConversation'
+                  'summarizeConversation',
+                  sessionId
                 );
                 if (summary) {
                   getLogger().info(
@@ -1485,6 +1401,68 @@ export async function createSessionServices(
           }
 
           // ================================================================
+          // 🌟 PERSONAL JOURNEY: Persist journey awareness data
+          // Milestones, streaks, seasonal memories, life chapters
+          // ================================================================
+          try {
+            const { getPersonalJourneyForPersistence, updateJourneyFromConversation } =
+              await import('./personal-journey/session-integration.js');
+
+            // Update chapter detection and seasonal memory from conversation
+            if (summary) {
+              await updateJourneyFromConversation(validatedUserId, {
+                topics: summary.mainTopics || [],
+                emotions: summary.emotionalArc ? [summary.emotionalArc] : [],
+                keyMoments: summary.keyPoints?.slice(0, 3),
+                wins: summary.keyPoints?.filter((kp) =>
+                  /achieved|completed|succeeded|won|accomplished/i.test(kp)
+                ),
+                struggles: summary.keyPoints?.filter((kp) =>
+                  /struggled|difficult|hard|worried|anxious|stressed/i.test(kp)
+                ),
+              });
+            }
+
+            // Get journey data for persistence
+            const journeyData = getPersonalJourneyForPersistence(validatedUserId);
+            if (
+              journeyData &&
+              (journeyData.rhythm || journeyData.seasonal || journeyData.chapters)
+            ) {
+              updatedProfile.personalJourney = journeyData;
+              getLogger().info(
+                {
+                  userId: validatedUserId,
+                  hasRhythm: !!journeyData.rhythm,
+                  hasSeasonal: !!journeyData.seasonal,
+                  hasChapters: !!journeyData.chapters,
+                  deliveryRecords: journeyData.deliveryHistory?.length || 0,
+                },
+                '🌟 Personal journey data persisted to profile'
+              );
+            }
+
+            // Capture seasonal snapshot if needed (end of season)
+            const { captureSeasonalSnapshotIfNeeded } =
+              await import('./personal-journey/session-integration.js');
+            if (summary) {
+              const captured = await captureSeasonalSnapshotIfNeeded(validatedUserId, {
+                emotionalState: summary.emotionalArc || 'neutral',
+                activeThemes: summary.mainTopics || [],
+                keyMoments: summary.keyPoints || [],
+              });
+              if (captured) {
+                getLogger().info({ userId: validatedUserId }, '🌸 Seasonal snapshot captured');
+              }
+            }
+          } catch (journeyError) {
+            getLogger().warn(
+              { error: String(journeyError), userId: validatedUserId },
+              'Failed to persist personal journey data (non-fatal)'
+            );
+          }
+
+          // ================================================================
           // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt
           // are all handled by updateProfileFromSession() inside saveProfile().
           // We MUST NOT increment here or we'll double-count!
@@ -1601,6 +1579,28 @@ export async function createSessionServices(
 
       getLogger().info({ userId: validatedUserId }, 'Intelligence engines cleaned up');
 
+      // 🌱 BETTER-THAN-HUMAN: Capture growth snapshot at session end
+      if (validatedUserId) {
+        try {
+          const { getGrowthVisibilityEngine } = await import('./growth-visibility-engine.js');
+          const growthEngine = getGrowthVisibilityEngine(validatedUserId);
+          growthEngine.captureSnapshot();
+
+          // Export growth data to profile if we have one
+          if (services.userProfile) {
+            const growthData = growthEngine.exportForProfile();
+            services.userProfile.customData = {
+              ...services.userProfile.customData,
+              growthSnapshots: growthData.snapshots,
+              growthInsights: growthData.insights,
+            };
+          }
+          getLogger().debug({ userId: validatedUserId }, '🌱 Growth snapshot captured');
+        } catch (error) {
+          getLogger().debug({ error }, 'Growth snapshot capture failed (non-blocking)');
+        }
+      }
+
       activeSessions.delete(sessionId);
 
       // Clear life data cache
@@ -1665,65 +1665,10 @@ export async function createSessionServices(
 }
 
 // ============================================================================
-// SESSION ACCESS
+// SESSION ACCESS (Re-exported from ./session-manager/access.ts)
 // ============================================================================
 
-/**
- * Get existing session services
- */
-export function getSessionServices(sessionId: string): SessionServices | undefined {
-  return activeSessions.get(sessionId);
-}
-
-/**
- * Get all active session IDs
- */
-export function getActiveSessionIds(): string[] {
-  return Array.from(activeSessions.keys());
-}
-
-/**
- * Get count of active sessions
- */
-export function getActiveSessionCount(): number {
-  return activeSessions.size;
-}
-
-/**
- * Clear all active sessions (for shutdown)
- * FIX BUG #session-15: Properly end each session before clearing to prevent data loss
- */
-export async function clearAllSessions(): Promise<number> {
-  const count = activeSessions.size;
-
-  if (count === 0) {
-    return 0;
-  }
-
-  getLogger().info({ count }, 'Ending all active sessions');
-
-  // End all sessions in parallel with timeout to prevent blocking shutdown
-  const SHUTDOWN_TIMEOUT_MS = 5000;
-  const endPromises: Array<Promise<void>> = [];
-
-  for (const [sessionId, services] of activeSessions) {
-    const endPromise = Promise.race([
-      services.endSession().catch((err) => {
-        getLogger().warn({ sessionId, error: String(err) }, 'Error ending session during shutdown');
-      }),
-      new Promise<void>((resolve) => {
-        setTimeout(() => {
-          getLogger().warn({ sessionId }, 'Session end timed out during shutdown');
-          resolve();
-        }, SHUTDOWN_TIMEOUT_MS);
-      }),
-    ]) as Promise<void>;
-    endPromises.push(endPromise);
-  }
-
-  await Promise.all(endPromises);
-  activeSessions.clear();
-
-  getLogger().info({ count }, 'All sessions ended');
-  return count;
-}
+export const getSessionServices = getSession;
+export const getActiveSessionIds = getActiveIds;
+export const getActiveSessionCount = getActiveCount;
+export const clearAllSessions = clearAll;

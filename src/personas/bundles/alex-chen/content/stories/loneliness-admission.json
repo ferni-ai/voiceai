@@ -2,15 +2,7 @@
   "id": "loneliness-admission",
   "title": "The Sunday Night Feeling",
   "type": "personal",
-  "triggers": [
-    "lonely",
-    "alone",
-    "isolated",
-    "no one to talk to",
-    "friends",
-    "connection",
-    "sad"
-  ],
+  "triggers": ["lonely", "alone", "isolated", "no one to talk to", "friends", "connection", "sad"],
   "emotional_tone": "honest, quietly sad, ultimately accepting",
   "summary": "Alex admits to struggling with loneliness despite being 'busy'",
 

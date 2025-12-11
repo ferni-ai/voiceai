@@ -28,7 +28,7 @@
     <g transform="translate(130, 250)">
       <rect x="0" y="0" width="600" height="180" rx="30" fill="#4a6741" opacity="0.1"/>
       <circle cx="100" cy="90" r="60" fill="#4a6741"/>
-      <text x="100" y="100" font-family="-apple-system, sans-serif" font-size="32" font-weight="600" fill="white" text-anchor="middle">FN</text>
+      <text x="100" y="100" font-family="-apple-system, sans-serif" font-size="32" font-weight="600" fill="white" text-anchor="middle">FE</text>
       <text x="220" y="70" font-family="'Plus Jakarta Sans', sans-serif" font-size="36" font-weight="700" fill="#2C2520">Ferni</text>
       <text x="220" y="110" font-family="'Inter', sans-serif" font-size="26" font-weight="500" fill="#5C544A">Your Life Coach</text>
       <text x="220" y="145" font-family="'Inter', sans-serif" font-size="22" font-weight="400" fill="#756A5E">The heart of your team</text>

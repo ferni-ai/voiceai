@@ -37,6 +37,9 @@ const ICONS = {
   // 💚 "Our Song" heart - filled to indicate shared memory
   ourSong:
     '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  // ✖️ Close/dismiss button
+  close:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
 };
 
 // ============================================================================
@@ -81,11 +84,14 @@ class NowPlayingUI {
   private absoluteMaxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   // 🎧 Auto-collapse timer - collapses to compact mode after showing full info
   private autoCollapseTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // Default track duration fallback (32 seconds - just longer than typical 30s preview)
+  // Default track duration fallback (35 seconds - just over typical 30s preview)
   // Tighter timing so card hides promptly when 'stopped' message is missed
-  private static readonly SAFETY_HIDE_DELAY_MS = 32000;
-  // 🎧 Maximum time the card can stay visible (1 minute absolute max)
-  private static readonly ABSOLUTE_MAX_VISIBLE_MS = 60000;
+  private static readonly SAFETY_HIDE_DELAY_MS = 35000;
+  // 🎧 Maximum time the card can stay visible (40 seconds absolute max)
+  // Most Spotify previews are 30s, so 40s is generous but not excessive
+  private static readonly ABSOLUTE_MAX_VISIBLE_MS = 40000;
+  // 🎧 Shorter timeout for ambient music (auto-plays, less important to show long)
+  private static readonly AMBIENT_SAFETY_DELAY_MS = 33000;
   // 🎧 Auto-collapse delay - show full info for 4 seconds, then collapse
   private static readonly AUTO_COLLAPSE_DELAY_MS = 4000;
 
@@ -131,7 +137,8 @@ class NowPlayingUI {
 
     // 🎧 FIX: Reset safety timer whenever card is shown
     // This ensures the card auto-hides even if backend doesn't send 'stopped'
-    this.resetSafetyTimer(track.duration);
+    // Use shorter timeout for ambient music (less important to show long)
+    this.resetSafetyTimer(track.duration, track.isAmbient);
 
     // 🎧 Set absolute max timer (1 minute) - card can never stay visible longer
     this.resetAbsoluteMaxTimer();
@@ -293,7 +300,7 @@ class NowPlayingUI {
         this.resumeWaveform();
         // 🎧 FIX: Reset safety timer when playing resumes (from pause or new track)
         if (previousState === 'paused') {
-          this.resetSafetyTimer(this.currentTrack?.duration);
+          this.resetSafetyTimer(this.currentTrack?.duration, this.currentTrack?.isAmbient);
         }
         break;
       case 'stopped':
@@ -332,20 +339,33 @@ class NowPlayingUI {
    * This is a fallback to auto-hide the card if the backend never sends 'stopped'.
    *
    * @param trackDuration - Track duration in ms (optional, uses default if not provided)
+   * @param isAmbient - If true, use shorter ambient timeout
    */
-  private resetSafetyTimer(trackDuration?: number): void {
+  private resetSafetyTimer(trackDuration?: number, isAmbient?: boolean): void {
     // Clear existing safety timer
     if (this.safetyHideTimeoutId) {
       clearTimeout(this.safetyHideTimeoutId);
       this.safetyHideTimeoutId = null;
     }
 
-    // Calculate delay: track duration + 5s buffer, or default safety delay
-    const delay = trackDuration
-      ? trackDuration + 5000 // Track duration + 5 second buffer
-      : NowPlayingUI.SAFETY_HIDE_DELAY_MS;
+    // Calculate delay:
+    // - If we have track duration: duration + 3s buffer
+    // - For ambient music: use shorter ambient delay
+    // - Otherwise: use default safety delay
+    let delay: number;
+    if (trackDuration) {
+      delay = trackDuration + 3000; // Track duration + 3 second buffer (tighter)
+    } else if (isAmbient) {
+      delay = NowPlayingUI.AMBIENT_SAFETY_DELAY_MS;
+    } else {
+      delay = NowPlayingUI.SAFETY_HIDE_DELAY_MS;
+    }
 
-    log.debug('Safety timer set', { delay: Math.round(delay / 1000) + 's' });
+    log.debug('Safety timer set', {
+      delay: Math.round(delay / 1000) + 's',
+      isAmbient,
+      hasDuration: !!trackDuration,
+    });
 
     this.safetyHideTimeoutId = setTimeout(() => {
       if (this.isVisible) {
@@ -777,6 +797,119 @@ class NowPlayingUI {
         background: var(--color-background-elevated, #3d3530);
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
       }
+      
+      /* ✖️ Dismiss button - appears on hover */
+      .now-playing__dismiss {
+        display: none;
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-background-elevated);
+        color: var(--color-text-muted);
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+        transition: transform var(--duration-fast) ease,
+                    background var(--duration-fast) ease,
+                    color var(--duration-fast) ease;
+        z-index: 1;
+      }
+      
+      .now-playing__dismiss svg {
+        width: 12px;
+        height: 12px;
+      }
+      
+      .now-playing:hover .now-playing__dismiss {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .now-playing__dismiss:hover {
+        background: var(--color-text-muted);
+        color: var(--color-background-elevated);
+        transform: scale(1.1);
+      }
+      
+      .now-playing__dismiss:active {
+        transform: scale(0.95);
+      }
+      
+      /* 🎵 MINIMAL AMBIENT MODE - tiny pulsing indicator */
+      .now-playing--ambient-minimal {
+        max-width: 40px !important;
+        padding: var(--space-2) !important;
+        gap: 0 !important;
+        border-radius: var(--radius-full) !important;
+      }
+      
+      .now-playing--ambient-minimal .now-playing__info,
+      .now-playing--ambient-minimal .now-playing__our-song,
+      .now-playing--ambient-minimal .now-playing__progress,
+      .now-playing--ambient-minimal .now-playing__waveform {
+        display: none !important;
+      }
+      
+      .now-playing--ambient-minimal .now-playing__icon {
+        width: 24px;
+        height: 24px;
+        background: transparent;
+        animation: ambient-pulse 3s ease-in-out infinite;
+      }
+      
+      .now-playing--ambient-minimal .now-playing__icon svg {
+        width: 14px;
+        height: 14px;
+        color: var(--color-text-muted);
+      }
+      
+      @keyframes ambient-pulse {
+        0%, 100% { 
+          opacity: 0.5;
+          transform: scale(1);
+        }
+        50% { 
+          opacity: 0.8;
+          transform: scale(1.05);
+        }
+      }
+      
+      /* Ambient minimal hover - show tooltip hint */
+      .now-playing--ambient-minimal::after {
+        content: attr(data-ambient-hint);
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: var(--space-2);
+        padding: var(--space-1) var(--space-2);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-md);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        font-size: 0.6875rem;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--duration-fast) ease;
+      }
+      
+      .now-playing--ambient-minimal:hover::after {
+        opacity: 1;
+      }
+      
+      /* Hide dismiss button in minimal mode (just tap to dismiss) */
+      .now-playing--ambient-minimal .now-playing__dismiss {
+        display: none !important;
+      }
+      
+      .now-playing--ambient-minimal:hover .now-playing__dismiss {
+        display: none !important;
+      }
     `;
     document.head.appendChild(styles);
     this.styleElement = styles;
@@ -790,6 +923,9 @@ class NowPlayingUI {
     this.container.setAttribute('aria-label', 'Now playing');
 
     this.container.innerHTML = `
+      <button class="now-playing__dismiss" aria-label="Dismiss" title="Dismiss">
+        ${ICONS.close}
+      </button>
       <div class="now-playing__icon">
         ${ICONS.music}
       </div>
@@ -830,14 +966,28 @@ class NowPlayingUI {
       }
     });
 
-    // Touch support
-    this.container.addEventListener('click', () => {
+    // Touch support - tap to expand (but not on dismiss button)
+    this.container.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      // Don't expand if clicking the dismiss button
+      if (target.closest('.now-playing__dismiss')) return;
+
       if (this.isCollapsed) {
         this.expand();
         // Re-start collapse timer after showing info
         this.startAutoCollapseTimer();
       }
     });
+
+    // ✖️ Dismiss button - hide the card
+    const dismissBtn = this.container.querySelector('.now-playing__dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger expand
+        log.debug('Now Playing dismissed by user');
+        this.hide();
+      });
+    }
 
     document.body.appendChild(this.container);
   }
@@ -882,11 +1032,15 @@ class NowPlayingUI {
       }
     }
 
-    // Toggle ambient mode
+    // 🎵 AMBIENT MUSIC: Show minimal UI (tiny pulsing icon) instead of full card
+    // This is less intrusive for background/thinking music
     if (this.currentTrack.isAmbient) {
-      this.container.classList.add('now-playing--ambient');
+      this.container.classList.add('now-playing--ambient', 'now-playing--ambient-minimal');
+      // Set tooltip hint for hover
+      this.container.setAttribute('data-ambient-hint', 'Thinking music...');
     } else {
-      this.container.classList.remove('now-playing--ambient');
+      this.container.classList.remove('now-playing--ambient', 'now-playing--ambient-minimal');
+      this.container.removeAttribute('data-ambient-hint');
     }
   }
 

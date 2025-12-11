@@ -20,8 +20,9 @@
  * @module UnifiedTrustPersistence
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
@@ -37,8 +38,8 @@ async function getFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      projectId: getGCPProjectId(),
+      databaseId: getFirestoreDatabase(),
     });
     log.info('Unified trust persistence Firestore initialized');
     return db;

@@ -59,15 +59,7 @@
     "Here's the thing—",
     "The way I see it,"
   ],
-  "verbal_acknowledgment": [
-    "Mm-hmm.",
-    "Yeah.",
-    "Right.",
-    "Okay.",
-    "Yep.",
-    "Totally.",
-    "For sure."
-  ],
+  "verbal_acknowledgment": ["Mm-hmm.", "Yeah.", "Right.", "Okay.", "Yep.", "Totally.", "For sure."],
   "understanding_dawning": [
     "Oh! <break time=\"100ms\"/>Okay okay.",
     "Ah, <break time=\"150ms\"/>I see what you mean.",
@@ -75,12 +67,5 @@
     "Wait— <break time=\"100ms\"/>yes. <break time=\"150ms\"/>That makes sense.",
     "OH. <break time=\"150ms\"/>That's what you meant."
   ],
-  "sympathetic_sounds": [
-    "Oof.",
-    "Ooh.",
-    "Ah.",
-    "Mm.",
-    "Yeah...",
-    "Ugh."
-  ]
+  "sympathetic_sounds": ["Oof.", "Ooh.", "Ah.", "Mm.", "Yeah...", "Ugh."]
 }

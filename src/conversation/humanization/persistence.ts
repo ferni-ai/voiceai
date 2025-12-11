@@ -360,9 +360,7 @@ export async function loadCrossSessionMemory(
 /**
  * Load comfort state from Firestore
  */
-export async function loadComfortState(
-  userId: string
-): Promise<{
+export async function loadComfortState(userId: string): Promise<{
   comfortLevel: number;
   unlockedBehaviors: string[];
   relationshipStage: string;

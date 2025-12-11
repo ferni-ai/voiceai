@@ -78,7 +78,11 @@ export const financialPredictionBuilder: ContextBuilder = {
       if (insight) {
         // Map severity to priority
         const priority =
-          insight.severity === 'alert' ? 'high' : insight.severity === 'warning' ? 'standard' : 'hint';
+          insight.severity === 'alert'
+            ? 'high'
+            : insight.severity === 'warning'
+              ? 'standard'
+              : 'hint';
 
         injections.push({
           id: `financial-${insight.type}`,
@@ -117,14 +121,10 @@ export const financialPredictionBuilder: ContextBuilder = {
         /money|budget|spend|save|bill|debt|finance|afford/.test(t.toLowerCase())
       ) ||
       analysis.emotion.primary === 'anxiety' ||
-      analysis.state.distressLevel && analysis.state.distressLevel > 0.5;
+      (analysis.state.distressLevel && analysis.state.distressLevel > 0.5);
 
     // Superhuman moments after turn 2 if topic is relevant
-    if (
-      turnCount >= 2 &&
-      isFinancialTopic &&
-      Date.now() - lastMoment > MOMENT_COOLDOWN_MS
-    ) {
+    if (turnCount >= 2 && isFinancialTopic && Date.now() - lastMoment > MOMENT_COOLDOWN_MS) {
       const moment = generateSuperhumanMoment(userId);
 
       if (moment) {

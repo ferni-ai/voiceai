@@ -42,168 +42,165 @@ import {
   getOutreachDecisionEngine,
   startOutreachDecisionEngine,
   stopOutreachDecisionEngine,
+  type OutreachDecision,
   type OutreachDecisionEngine,
+  type OutreachPriority,
   type OutreachTrigger,
   type OutreachTriggerType,
-  type OutreachPriority,
-  type OutreachDecision,
   type UserOutreachState,
 } from './decision-engine.js';
 
 import {
+  generateCallOpening,
+  generateEmailMessage,
   generateOutreach,
   generateTextMessage,
-  generateEmailMessage,
   generateVoicemailMessage,
-  generateCallOpening,
-  selectPersonaForOutreach,
   getPersonaOutreachVoice,
   personaOutreachVoices,
+  selectPersonaForOutreach,
+  type GeneratedOutreach,
   type OutreachChannel,
   type OutreachContext,
-  type RelationshipStage,
   type OutreachTone,
-  type GeneratedOutreach,
   type PersonaOutreachVoice,
+  type RelationshipStage,
 } from './persona-voice-generator.js';
 
 import {
   getThinkingOfYouEngine,
-  startThinkingOfYouEngine,
-  stopThinkingOfYouEngine,
-  getCurrentSeason,
-  isSeasonTransition,
-  type ThinkingOfYouEngine,
+  ThinkingOfYouEngine,
+  type ThinkingOfYouOutreach,
   type ThinkingOfYouTrigger,
 } from './thinking-of-you.js';
 
 import {
   getConversationalCallService,
-  makeConversationalCall,
   isConversationalCallsConfigured,
-  type ConversationalCallService,
-  type OutboundCallContext,
-  type OutboundCall,
+  makeConversationalCall,
   type CallStatus,
+  type ConversationalCallService,
+  type OutboundCall,
+  type OutboundCallContext,
 } from './conversational-calls.js';
 
 import {
-  getTimingProfile,
-  updateTimingPreferences,
-  addNeverDuringRule,
   addBusyPeriod,
+  addNeverDuringRule,
   addRecurringEvent,
-  setWorkSchedule,
-  setSleepPattern,
-  recordInteraction as recordTimingInteraction,
   calculateOptimalTime,
-  isGoodTimeForOutreach,
   clearUserTimingData,
-  type TimingProfile,
-  type TimingDecision,
-  type TimingContext,
-  type NeverDuringRule,
+  getTimingProfile,
+  isGoodTimeForOutreach,
+  recordInteraction as recordTimingInteraction,
+  setSleepPattern,
+  setWorkSchedule,
+  updateTimingPreferences,
   type BusyPeriod,
+  type NeverDuringRule,
   type RecurringEvent,
-  type WorkSchedule,
   type SleepPattern,
+  type TimingContext,
+  type TimingDecision,
+  type TimingProfile,
+  type WorkSchedule,
 } from './timing-intelligence.js';
 
 import {
-  getUserContext,
-  recordConversation,
   addCommitment,
-  updateCommitmentStatus,
-  addOpenLoop,
-  resolveOpenLoop,
-  updateEmotionalState,
+  addInsideJoke,
   addLifeEvent,
   addOngoingEvent,
-  addWin,
-  addStruggle,
-  resolveStruggle,
+  addOpenLoop,
   addSignificantMoment,
-  addInsideJoke,
-  updatePersonalInfo,
-  getContextForOutreach,
-  needsSupport,
-  getFollowUpItems,
+  addStruggle,
+  addWin,
   clearUserContext,
+  getContextForOutreach,
+  getFollowUpItems,
+  getUserContext,
+  needsSupport,
   pruneOldData,
-  type UserLifeContext,
-  type ConversationSummary,
+  recordConversation,
+  resolveOpenLoop,
+  resolveStruggle,
+  updateCommitmentStatus,
+  updateEmotionalState,
+  updatePersonalInfo,
   type Commitment,
+  type ConversationSummary,
   type EmotionalState,
   type LifeEvent,
-  type Win,
   type Struggle,
+  type UserLifeContext,
+  type Win,
 } from './context-aggregator.js';
 
 import {
-  getChannelProfile,
-  updateChannelPreferences,
-  updateContactAvailability,
-  updateRelationshipStage as updateChannelRelationshipStage,
-  recordOutreachOutcome,
-  selectChannel,
-  getContentTypeFromTrigger,
-  getTimeOfDay,
-  isWorkHours,
-  getRecommendedSequence,
   CHANNEL_SEQUENCES,
   clearUserChannelData,
-  type ChannelProfile,
+  getChannelProfile,
+  getContentTypeFromTrigger,
+  getRecommendedSequence,
+  getTimeOfDay,
+  isWorkHours,
+  recordOutreachOutcome,
+  selectChannel,
+  updateChannelPreferences,
+  updateRelationshipStage as updateChannelRelationshipStage,
+  updateContactAvailability,
   type ChannelContext,
   type ChannelDecision,
-  type ContentType,
+  type ChannelProfile,
   type ChannelSequence,
+  type ContentType,
 } from './channel-selector.js';
 
 import {
-  getRelationshipProfile,
-  calculateStage,
-  updateStage,
-  recordConversation as recordRelationshipConversation,
-  addInsideJoke as addRelationshipInsideJoke,
-  addNickname,
-  addSharedReference,
-  recordSignificantMoment,
-  updateCommunicationStyle,
-  getToneAdjustment,
-  getMessageAdjustment,
   adaptMessage,
-  getRandomReference,
-  getReferenceableMoment,
+  addNickname,
+  addInsideJoke as addRelationshipInsideJoke,
+  addSharedReference,
+  calculateStage,
   canDoAction,
   clearRelationshipData,
-  type RelationshipProfile,
-  type ToneAdjustment,
+  getMessageAdjustment,
+  getRandomReference,
+  getReferenceableMoment,
+  getRelationshipProfile,
+  getToneAdjustment,
+  recordConversation as recordRelationshipConversation,
+  recordSignificantMoment,
+  updateCommunicationStyle,
+  updateStage,
   type MessageAdjustment,
   type SignificantMoment as RelationshipMoment,
+  type RelationshipProfile,
+  type ToneAdjustment,
 } from './relationship-adapter.js';
 
 // Session Integration
 import {
-  analyzeSessionForOutreach,
   analyzeMessageForContext,
-  extractCommitments,
+  analyzeSessionForOutreach,
   detectEmotionalState,
+  extractCommitments,
   extractWinsAndStruggles,
-  type SessionEndData,
   type ExtractedCommitment,
   type EmotionalState as ExtractedEmotionalState,
+  type SessionEndData,
 } from './session-integration.js';
 
 // Maintenance
 import {
-  startMaintenanceScheduler,
-  stopMaintenanceScheduler,
-  resetWeeklyCounters,
   cleanupDeadTriggers,
+  getMaintenanceStats,
   pruneOutreachHistory,
   resetUserData,
+  resetWeeklyCounters,
+  startMaintenanceScheduler,
+  stopMaintenanceScheduler,
   updateMaintenanceConfig,
-  getMaintenanceStats,
   type MaintenanceConfig,
   type MaintenanceStats,
 } from './maintenance.js';
@@ -211,140 +208,140 @@ import {
 // Analytics & Learning
 import {
   analytics,
-  recordOutreachEvent,
-  recordResponseEvent,
-  calculateUserAnalytics,
   calculateGlobalAnalytics,
+  calculateUserAnalytics,
+  clearUserAnalyticsData,
+  exportAnalyticsData,
   getRecommendations,
   predictResponseLikelihood,
-  exportAnalyticsData,
   pruneOldAnalyticsData,
-  clearUserAnalyticsData,
+  recordOutreachEvent,
+  recordResponseEvent,
+  type GlobalAnalytics,
   type OutreachEvent,
   type ResponseEvent,
   type UserAnalytics,
-  type GlobalAnalytics,
 } from './analytics.js';
 
 // Voice Synthesis
 import {
-  voiceSynthesis,
+  cleanupOldVoiceMessages,
+  generateCallGreeting,
+  generateVoicemail,
+  generateVoiceMessage,
   initializeVoiceSynthesis,
   isVoiceSynthesisAvailable,
-  generateVoiceMessage,
-  generateVoicemail,
-  generateCallGreeting,
-  cleanupOldVoiceMessages,
-  type VoiceSynthesisConfig,
-  type VoiceMessage,
+  voiceSynthesis,
   type PersonaVoiceProfile,
+  type VoiceMessage,
+  type VoiceSynthesisConfig,
 } from './voice-synthesis.js';
 
 // SIP Bridge (Twilio → LiveKit)
 import {
-  sipBridge,
-  initializeSIPBridge,
-  isSIPBridgeAvailable,
-  initiateConversationalCall,
+  createOutboundCallRoom,
+  endCall,
   generateCallConnectTwiML,
   generateVoicemailTwiML,
+  getActiveSessions,
+  getCallSession,
   handleCallStatus,
   handleMachineDetection,
-  getCallSession,
-  getActiveSessions,
+  initializeSIPBridge,
+  initiateConversationalCall,
+  isSIPBridgeAvailable,
   markSessionInConversation,
-  endCall,
-  createOutboundCallRoom,
-  type SIPBridgeConfig,
-  type OutboundCallOptions,
+  sipBridge,
   type CallSession,
+  type OutboundCallOptions,
+  type SIPBridgeConfig,
 } from './sip-bridge.js';
 
 // Firestore Persistence
 import {
+  cleanupOldTriggers,
+  deleteAllUserOutreachData,
+  deleteOutreachProfile,
+  deleteTrigger,
+  deleteUserContext,
+  deleteUserHistory,
+  getOutreachStats,
   initializeFirestore,
   isFirestoreAvailable,
-  saveOutreachProfile,
+  loadAllPendingTriggers,
+  loadContext,
+  loadHistory,
   loadOutreachProfile,
-  deleteOutreachProfile,
+  loadPendingTriggers,
+  saveContext,
+  saveOutreachProfile,
+  saveToHistory,
   saveTrigger,
   updateTriggerStatus,
-  loadPendingTriggers,
-  loadAllPendingTriggers,
-  deleteTrigger,
-  cleanupOldTriggers,
-  saveToHistory,
-  loadHistory,
-  deleteUserHistory,
-  saveContext,
-  loadContext,
-  deleteUserContext,
-  deleteAllUserOutreachData,
-  getOutreachStats,
+  type OutreachHistoryDocument,
   type OutreachProfileDocument,
   type OutreachTriggerDocument,
-  type OutreachHistoryDocument,
 } from './firestore-persistence.js';
 
 // Delivery Services
 import {
-  initializeDeliveryServices,
-  shutdownDeliveryServices,
-  smsDelivery,
-  emailDelivery,
-  pushNotifications,
+  calculateDeliveryStats,
   deliveryTracker,
-  sendSMS,
-  sendSMSWithRetry,
+  emailDelivery,
+  initializeDeliveryServices,
+  pushNotifications,
+  queueDelivery,
   sendEmail,
   sendEmailWithRetry,
   sendPushNotification,
-  queueDelivery,
-  calculateDeliveryStats,
-  type SMSDeliveryConfig,
-  type EmailDeliveryConfig,
-  type PushNotificationConfig,
+  sendSMS,
+  sendSMSWithRetry,
+  shutdownDeliveryServices,
+  smsDelivery,
+  type DeliveryChannel,
   type DeliveryConfig,
-  type SMSMessage,
+  type DeliveryStatus,
+  type EmailDeliveryConfig,
   type EmailMessage,
   type PushNotification,
-  type DeliveryChannel,
-  type DeliveryStatus,
+  type PushNotificationConfig,
+  type SMSDeliveryConfig,
+  type SMSMessage,
   type UnifiedDeliveryRecord,
 } from './delivery/index.js';
 
 // Webhook Handlers
 import {
-  initializeWebhooks,
-  twilioWebhooks,
   emailWebhooks,
+  initializeWebhooks,
   onInboundMessage,
-  type WebhooksConfig,
-  type InboundMessage,
+  twilioWebhooks,
   type EmailTrackingEvent,
+  type InboundMessage,
+  type WebhooksConfig,
 } from './webhooks/index.js';
 
 // A/B Testing
 import {
   abTesting,
-  createTest,
-  startTest,
-  pauseTest,
-  completeTest,
-  getTest,
-  getAllTests,
-  getVariantForUser,
-  recordConversion,
   calculateTestResults,
-  createMessageTest,
-  createTimingTest,
+  completeTest,
   createChannelTest,
+  createMessageTest,
   createPersonaTest,
+  createTest,
+  createTimingTest,
+  getAllTests,
+  getTest,
+  getVariantForUser,
+  pauseTest,
+  recordConversion,
+  startTest,
   type ABTest,
-  type ABTestVariant,
   type ABTestResults,
-  type TestType,
+  type ABTestVariant,
   type TestStatus,
+  type TestType,
 } from './ab-testing/index.js';
 
 // ============================================================================
@@ -493,8 +490,7 @@ export async function initializeOutreachSystem(): Promise<void> {
   // Start the decision engine
   startOutreachDecisionEngine();
 
-  // Start the thinking-of-you engine
-  startThinkingOfYouEngine();
+  // ThinkingOfYou engine is on-demand, no startup needed
 
   // Start the maintenance scheduler (hourly checks)
   startMaintenanceScheduler();
@@ -514,7 +510,7 @@ export async function initializeOutreachSystem(): Promise<void> {
  */
 export function shutdownOutreachSystem(): void {
   stopOutreachDecisionEngine();
-  stopThinkingOfYouEngine();
+  // ThinkingOfYou engine is on-demand, no shutdown needed
   stopMaintenanceScheduler();
   shutdownDeliveryServices();
   initialized = false;
@@ -738,18 +734,15 @@ export function updateUserContext(
   const engine = getOutreachDecisionEngine();
   engine.updateUserContext(userId, context);
 
-  // Also update thinking-of-you context
-  const toyEngine = getThinkingOfYouEngine();
-  toyEngine.updateUserContext(userId, context);
+  // ThinkingOfYou engine uses profile-based context, updated via orchestrator
 }
 
 /**
  * Register a user for proactive outreach
  */
-export function registerUserForOutreach(userId: string, relationshipStartDate?: Date): void {
-  // Register with thinking-of-you engine
-  const toyEngine = getThinkingOfYouEngine();
-  toyEngine.registerUser(userId, relationshipStartDate);
+export function registerUserForOutreach(userId: string, _relationshipStartDate?: Date): void {
+  // User registration is handled automatically by the outreach orchestrator
+  // when evaluating users for ThinkingOfYou outreach
 }
 
 /**
@@ -778,14 +771,21 @@ export function getOutreachHistory(userId: string, limit = 20): OutreachDecision
 
 /**
  * Manually trigger a "thinking of you" outreach
+ * Use the OutreachOrchestrator for full-featured outreach triggering
  */
 export async function triggerThinkingOfYou(
   userId: string,
-  trigger?: ThinkingOfYouTrigger,
+  _trigger?: ThinkingOfYouTrigger,
   reason?: string
 ): Promise<void> {
-  const engine = getThinkingOfYouEngine();
-  await engine.triggerKindness(userId, trigger, reason);
+  // Trigger via decision engine
+  const engine = getOutreachDecisionEngine();
+  engine.addTrigger({
+    type: 'thinking_of_you',
+    userId,
+    priority: 'low',
+    reason: reason || 'Manual thinking of you trigger',
+  });
 }
 
 // ============================================================================
@@ -795,183 +795,176 @@ export async function triggerThinkingOfYou(
 // Decision Engine
 export {
   getOutreachDecisionEngine,
+  OutreachDecisionEngine,
   startOutreachDecisionEngine,
   stopOutreachDecisionEngine,
-  OutreachDecisionEngine,
 };
 
 export type {
+  OutreachDecision,
+  OutreachPriority,
   OutreachTrigger,
   OutreachTriggerType,
-  OutreachPriority,
-  OutreachDecision,
   UserOutreachState,
 };
 
 // Persona Voice Generator
 export {
+  generateCallOpening,
+  generateEmailMessage,
   generateOutreach,
   generateTextMessage,
-  generateEmailMessage,
   generateVoicemailMessage,
-  generateCallOpening,
-  selectPersonaForOutreach,
   getPersonaOutreachVoice,
   personaOutreachVoices,
+  selectPersonaForOutreach,
 };
 
 export type {
+  GeneratedOutreach,
   OutreachChannel,
   OutreachContext,
-  RelationshipStage,
   OutreachTone,
-  GeneratedOutreach,
   PersonaOutreachVoice,
+  RelationshipStage,
 };
 
 // Thinking of You
-export {
-  getThinkingOfYouEngine,
-  startThinkingOfYouEngine,
-  stopThinkingOfYouEngine,
-  ThinkingOfYouEngine,
-  getCurrentSeason,
-  isSeasonTransition,
-};
+export { getThinkingOfYouEngine, ThinkingOfYouEngine };
 
-export type { ThinkingOfYouTrigger };
+export type { ThinkingOfYouOutreach, ThinkingOfYouTrigger };
 
 // Conversational Calls
 export {
-  getConversationalCallService,
-  makeConversationalCall,
-  isConversationalCallsConfigured,
   ConversationalCallService,
+  getConversationalCallService,
+  isConversationalCallsConfigured,
+  makeConversationalCall,
 };
 
-export type { OutboundCallContext, OutboundCall, CallStatus };
+export type { CallStatus, OutboundCall, OutboundCallContext };
 
 // Timing Intelligence
 export {
-  getTimingProfile,
-  updateTimingPreferences,
-  addNeverDuringRule,
   addBusyPeriod,
+  addNeverDuringRule,
   addRecurringEvent,
-  setWorkSchedule,
-  setSleepPattern,
-  recordTimingInteraction,
   calculateOptimalTime,
-  isGoodTimeForOutreach,
   clearUserTimingData,
+  getTimingProfile,
+  isGoodTimeForOutreach,
+  recordTimingInteraction,
+  setSleepPattern,
+  setWorkSchedule,
+  updateTimingPreferences,
 };
 
 export type {
-  TimingProfile,
-  TimingDecision,
-  TimingContext,
-  NeverDuringRule,
   BusyPeriod,
+  NeverDuringRule,
   RecurringEvent,
-  WorkSchedule,
   SleepPattern,
+  TimingContext,
+  TimingDecision,
+  TimingProfile,
+  WorkSchedule,
 };
 
 // Context Aggregator
 export {
-  getUserContext,
-  recordConversation,
   addCommitment,
-  updateCommitmentStatus,
-  addOpenLoop,
-  resolveOpenLoop,
-  updateEmotionalState,
+  addInsideJoke,
   addLifeEvent,
   addOngoingEvent,
-  addWin,
-  addStruggle,
-  resolveStruggle,
+  addOpenLoop,
   addSignificantMoment,
-  addInsideJoke,
-  updatePersonalInfo,
-  getContextForOutreach,
-  needsSupport,
-  getFollowUpItems,
+  addStruggle,
+  addWin,
   clearUserContext,
+  getContextForOutreach,
+  getFollowUpItems,
+  getUserContext,
+  needsSupport,
   pruneOldData,
+  recordConversation,
+  resolveOpenLoop,
+  resolveStruggle,
+  updateCommitmentStatus,
+  updateEmotionalState,
+  updatePersonalInfo,
 };
 
 export type {
-  UserLifeContext,
-  ConversationSummary,
   Commitment,
+  ConversationSummary,
   EmotionalState,
   LifeEvent,
-  Win,
   Struggle,
+  UserLifeContext,
+  Win,
 };
 
 // Channel Selector
 export {
-  getChannelProfile,
-  updateChannelPreferences,
-  updateContactAvailability,
-  updateChannelRelationshipStage,
-  recordOutreachOutcome,
-  selectChannel,
-  getContentTypeFromTrigger,
-  getTimeOfDay,
-  isWorkHours,
-  getRecommendedSequence,
   CHANNEL_SEQUENCES,
   clearUserChannelData,
+  getChannelProfile,
+  getContentTypeFromTrigger,
+  getRecommendedSequence,
+  getTimeOfDay,
+  isWorkHours,
+  recordOutreachOutcome,
+  selectChannel,
+  updateChannelPreferences,
+  updateChannelRelationshipStage,
+  updateContactAvailability,
 };
 
-export type { ChannelProfile, ChannelContext, ChannelDecision, ContentType, ChannelSequence };
+export type { ChannelContext, ChannelDecision, ChannelProfile, ChannelSequence, ContentType };
 
 // Relationship Adapter
 export {
-  getRelationshipProfile,
-  calculateStage,
-  updateStage,
-  recordRelationshipConversation,
-  addRelationshipInsideJoke,
-  addNickname,
-  addSharedReference,
-  recordSignificantMoment,
-  updateCommunicationStyle,
-  getToneAdjustment,
-  getMessageAdjustment,
   adaptMessage,
-  getRandomReference,
-  getReferenceableMoment,
+  addNickname,
+  addRelationshipInsideJoke,
+  addSharedReference,
+  calculateStage,
   canDoAction,
   clearRelationshipData,
+  getMessageAdjustment,
+  getRandomReference,
+  getReferenceableMoment,
+  getRelationshipProfile,
+  getToneAdjustment,
+  recordRelationshipConversation,
+  recordSignificantMoment,
+  updateCommunicationStyle,
+  updateStage,
 };
 
-export type { RelationshipProfile, ToneAdjustment, MessageAdjustment, RelationshipMoment };
+export type { MessageAdjustment, RelationshipMoment, RelationshipProfile, ToneAdjustment };
 
 // Session Integration
 export {
-  analyzeSessionForOutreach,
   analyzeMessageForContext,
-  extractCommitments,
+  analyzeSessionForOutreach,
   detectEmotionalState,
+  extractCommitments,
   extractWinsAndStruggles,
 };
 
-export type { SessionEndData, ExtractedCommitment, ExtractedEmotionalState };
+export type { ExtractedCommitment, ExtractedEmotionalState, SessionEndData };
 
 // Maintenance
 export {
-  startMaintenanceScheduler,
-  stopMaintenanceScheduler,
-  resetWeeklyCounters,
   cleanupDeadTriggers,
+  getMaintenanceStats,
   pruneOutreachHistory,
   resetUserData,
+  resetWeeklyCounters,
+  startMaintenanceScheduler,
+  stopMaintenanceScheduler,
   updateMaintenanceConfig,
-  getMaintenanceStats,
 };
 
 export type { MaintenanceConfig, MaintenanceStats };
@@ -979,130 +972,142 @@ export type { MaintenanceConfig, MaintenanceStats };
 // Analytics & Learning
 export {
   analytics,
-  recordOutreachEvent,
-  recordResponseEvent,
-  calculateUserAnalytics,
   calculateGlobalAnalytics,
+  calculateUserAnalytics,
+  clearUserAnalyticsData,
+  exportAnalyticsData,
   getRecommendations,
   predictResponseLikelihood,
-  exportAnalyticsData,
   pruneOldAnalyticsData,
-  clearUserAnalyticsData,
+  recordOutreachEvent,
+  recordResponseEvent,
 };
 
-export type { OutreachEvent, ResponseEvent, UserAnalytics, GlobalAnalytics };
+export type { GlobalAnalytics, OutreachEvent, ResponseEvent, UserAnalytics };
 
 // Voice Synthesis
 export {
-  voiceSynthesis,
+  cleanupOldVoiceMessages,
+  generateCallGreeting,
+  generateVoicemail,
+  generateVoiceMessage,
   initializeVoiceSynthesis,
   isVoiceSynthesisAvailable,
-  generateVoiceMessage,
-  generateVoicemail,
-  generateCallGreeting,
-  cleanupOldVoiceMessages,
+  voiceSynthesis,
 };
 
-export type { VoiceSynthesisConfig, VoiceMessage, PersonaVoiceProfile };
+export type { PersonaVoiceProfile, VoiceMessage, VoiceSynthesisConfig };
 
 // SIP Bridge
 export {
-  sipBridge,
-  initializeSIPBridge,
-  isSIPBridgeAvailable,
-  initiateConversationalCall,
+  createOutboundCallRoom,
+  endCall,
   generateCallConnectTwiML,
   generateVoicemailTwiML,
+  getActiveSessions,
+  getCallSession,
   handleCallStatus,
   handleMachineDetection,
-  getCallSession,
-  getActiveSessions,
+  initializeSIPBridge,
+  initiateConversationalCall,
+  isSIPBridgeAvailable,
   markSessionInConversation,
-  endCall,
-  createOutboundCallRoom,
+  sipBridge,
 };
 
-export type { SIPBridgeConfig, OutboundCallOptions, CallSession };
+export type { CallSession, OutboundCallOptions, SIPBridgeConfig };
 
 // Firestore Persistence
 export {
+  cleanupOldTriggers,
+  deleteAllUserOutreachData,
+  deleteOutreachProfile,
+  deleteTrigger,
+  deleteUserContext,
+  deleteUserHistory,
+  getOutreachStats,
   initializeFirestore,
   isFirestoreAvailable,
-  saveOutreachProfile,
+  loadAllPendingTriggers,
+  loadContext,
+  loadHistory,
   loadOutreachProfile,
-  deleteOutreachProfile,
+  loadPendingTriggers,
+  saveContext,
+  saveOutreachProfile,
+  saveToHistory,
   saveTrigger,
   updateTriggerStatus,
-  loadPendingTriggers,
-  loadAllPendingTriggers,
-  deleteTrigger,
-  cleanupOldTriggers,
-  saveToHistory,
-  loadHistory,
-  deleteUserHistory,
-  saveContext,
-  loadContext,
-  deleteUserContext,
-  deleteAllUserOutreachData,
-  getOutreachStats,
 };
 
-export type { OutreachProfileDocument, OutreachTriggerDocument, OutreachHistoryDocument };
+export type { OutreachHistoryDocument, OutreachProfileDocument, OutreachTriggerDocument };
 
 // Delivery Services
 export {
-  initializeDeliveryServices,
-  shutdownDeliveryServices,
-  smsDelivery,
-  emailDelivery,
-  pushNotifications,
+  calculateDeliveryStats,
   deliveryTracker,
-  sendSMS,
-  sendSMSWithRetry,
+  emailDelivery,
+  initializeDeliveryServices,
+  pushNotifications,
+  queueDelivery,
   sendEmail,
   sendEmailWithRetry,
   sendPushNotification,
-  queueDelivery,
-  calculateDeliveryStats,
+  sendSMS,
+  sendSMSWithRetry,
+  shutdownDeliveryServices,
+  smsDelivery,
 };
 
 export type {
-  SMSDeliveryConfig,
-  EmailDeliveryConfig,
-  PushNotificationConfig,
+  DeliveryChannel,
   DeliveryConfig,
-  SMSMessage,
+  DeliveryStatus,
+  EmailDeliveryConfig,
   EmailMessage,
   PushNotification,
-  DeliveryChannel,
-  DeliveryStatus,
+  PushNotificationConfig,
+  SMSDeliveryConfig,
+  SMSMessage,
   UnifiedDeliveryRecord,
 };
 
 // Webhook Handlers
-export { initializeWebhooks, twilioWebhooks, emailWebhooks, onInboundMessage };
+export { emailWebhooks, initializeWebhooks, onInboundMessage, twilioWebhooks };
 
-export type { WebhooksConfig, InboundMessage, EmailTrackingEvent };
+export type { EmailTrackingEvent, InboundMessage, WebhooksConfig };
 
 // A/B Testing
 export {
   abTesting,
-  createTest,
-  startTest,
-  pauseTest,
-  completeTest,
-  getTest,
-  getAllTests,
-  getVariantForUser,
-  recordConversion,
   calculateTestResults,
-  createMessageTest,
-  createTimingTest,
+  completeTest,
   createChannelTest,
+  createMessageTest,
   createPersonaTest,
+  createTest,
+  createTimingTest,
+  getAllTests,
+  getTest,
+  getVariantForUser,
+  pauseTest,
+  recordConversion,
+  startTest,
 };
 
-export type { ABTest, ABTestVariant, ABTestResults, TestType, TestStatus };
+export type { ABTest, ABTestResults, ABTestVariant, TestStatus, TestType };
+
+// 🧠 Superhuman Intelligence Integration
+export {
+  checkForMemoryBasedOutreach,
+  convertToOutreachTrigger,
+  processConcernForOutreach,
+  scheduleSuperhunmanOutreach,
+  superhumanOutreach,
+  syncMemoriesToOutreachContext,
+} from './superhuman-outreach-integration.js';
+
+export type { SuperhumanOutreachTrigger } from './superhuman-outreach-integration.js';
 
 // ============================================================================
 // DEFAULT EXPORT

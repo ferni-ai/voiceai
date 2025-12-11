@@ -122,38 +122,39 @@ export interface TwentyQuestionsState {
 
 export interface WordAssociationState {
   /** Chain of words so far */
-  wordChain: string[];
+  chain: string[];
   /** Current word to respond to */
   currentWord: string;
   /** Who's turn */
   isUserTurn: boolean;
-  /** Number of valid associations */
-  chainLength: number;
-  /** Did someone break the chain? */
-  chainBroken: boolean;
+  /** Turn count */
+  turnCount: number;
+  /** Last valid word in the chain */
+  lastValidWord: string;
 }
 
 // ============================================================================
 // WOULD YOU RATHER
 // ============================================================================
 
-export interface WouldYouRatherChoice {
+export interface WouldYouRatherDilemma {
   optionA: string;
   optionB: string;
-  chose: 'A' | 'B';
-  reasoning?: string;
+  chosen?: 'A' | 'B';
 }
 
 export interface WouldYouRatherState {
-  /** Current scenario */
-  currentScenario: {
+  /** Current dilemma */
+  currentDilemma: {
     optionA: string;
     optionB: string;
-  } | null;
-  /** User's choices */
-  choices: WouldYouRatherChoice[];
-  /** Round number */
-  roundNumber: number;
+  };
+  /** Current category */
+  currentCategory: 'fun' | 'thoughtful' | 'creative' | 'adventure';
+  /** Questions answered */
+  questionsAnswered: number;
+  /** History of choices */
+  choiceHistory: WouldYouRatherDilemma[];
 }
 
 // ============================================================================
@@ -161,15 +162,16 @@ export interface WouldYouRatherState {
 // ============================================================================
 
 export interface StoryBuilderState {
-  /** The story so far */
-  sentences: Array<{
-    text: string;
-    author: 'user' | 'ai';
-  }>;
-  /** Genre/theme */
-  genre?: string;
-  /** Is the story complete? */
-  isComplete: boolean;
+  /** The story parts so far */
+  storyParts: string[];
+  /** Genre of the story */
+  genre: 'adventure' | 'mystery' | 'fantasy' | 'scifi' | 'slice-of-life';
+  /** Turn count */
+  turnCount: number;
+  /** Is it user's turn */
+  isUserTurn: boolean;
+  /** Current chapter number */
+  currentChapter: number;
 }
 
 // ============================================================================

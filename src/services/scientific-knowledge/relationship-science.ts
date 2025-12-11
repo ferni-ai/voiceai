@@ -34,7 +34,8 @@ export const RELATIONSHIP_SCIENCE = {
           definition: 'Attacking character rather than behavior',
           example: '"You always forget things. You\'re so selfish."',
           antidote: 'Gentle startup: "I" statements about specific behavior',
-          antidoteExample: '"I felt hurt when the appointment was forgotten. Can we find a system?"',
+          antidoteExample:
+            '"I felt hurt when the appointment was forgotten. Can we find a system?"',
         },
         contempt: {
           definition: 'Superiority, mockery, disgust',
@@ -64,15 +65,17 @@ export const RELATIONSHIP_SCIENCE = {
         'Showing affection',
         'Apologizing',
         "Acknowledging partner's feelings",
-        "Taking a break",
+        'Taking a break',
       ],
-      keyFinding: 'Successful repair attempts predict relationship success more than avoiding conflict',
-      implication: "Help users make and receive repair attempts",
+      keyFinding:
+        'Successful repair attempts predict relationship success more than avoiding conflict',
+      implication: 'Help users make and receive repair attempts',
     },
 
     magicRatio: {
       finding: '5:1 positive to negative interactions in stable relationships',
-      duringConflict: 'Even during arguments, successful couples have 5 positives for every negative',
+      duringConflict:
+        'Even during arguments, successful couples have 5 positives for every negative',
       application: 'Build positive deposits before making withdrawals',
     },
 
@@ -95,7 +98,8 @@ export const RELATIONSHIP_SCIENCE = {
     softStartup: {
       description: 'How you begin a conversation predicts how it ends',
       harshStartup: '"You never listen to me!"',
-      softStartup: '"I need to talk about something that\'s been bothering me. Is now a good time?"',
+      softStartup:
+        '"I need to talk about something that\'s been bothering me. Is now a good time?"',
       elements: [
         'Choose timing carefully',
         'Express feelings without blame',
@@ -137,7 +141,7 @@ export const RELATIONSHIP_SCIENCE = {
       },
       avoidant: {
         percentage: '~25% of population',
-        beliefs: ['I can only rely on myself', "Closeness threatens freedom"],
+        beliefs: ['I can only rely on myself', 'Closeness threatens freedom'],
         behaviors: [
           'Values independence highly',
           'Uncomfortable with too much closeness',
@@ -179,7 +183,7 @@ export const RELATIONSHIP_SCIENCE = {
 
     coachingImplication: [
       'Help users understand their patterns without shame',
-      "Normalize attachment as adaptation, not dysfunction",
+      'Normalize attachment as adaptation, not dysfunction',
       'Encourage communication of core needs',
     ],
   },
@@ -202,8 +206,14 @@ export const RELATIONSHIP_SCIENCE = {
       needs: {
         description: 'Universal human needs underlying feelings',
         examples: [
-          'Connection', 'Understanding', 'Respect', 'Autonomy',
-          'Safety', 'Consideration', 'To be seen', 'To matter',
+          'Connection',
+          'Understanding',
+          'Respect',
+          'Autonomy',
+          'Safety',
+          'Consideration',
+          'To be seen',
+          'To matter',
         ],
         expression: '"I need to feel like I matter to you"',
       },
@@ -215,7 +225,8 @@ export const RELATIONSHIP_SCIENCE = {
       },
     },
 
-    fullExpression: '"When I see [observation], I feel [feeling] because I need [need]. Would you be willing to [request]?"',
+    fullExpression:
+      '"When I see [observation], I feel [feeling] because I need [need]. Would you be willing to [request]?"',
 
     empathicListening: {
       description: 'Reflecting back feelings and needs',
@@ -245,7 +256,12 @@ export const RELATIONSHIP_SCIENCE = {
 
     flooding: {
       definition: 'Physiological overwhelm during conflict',
-      signs: ['Heart rate > 100 bpm', 'Tunnel vision', 'Can\'t think clearly', 'Fight/flight activation'],
+      signs: [
+        'Heart rate > 100 bpm',
+        'Tunnel vision',
+        "Can't think clearly",
+        'Fight/flight activation',
+      ],
       solution: '20-minute minimum break to self-soothe (not ruminate)',
       research: 'Flooded people cannot hear or process—conflict will escalate',
     },
@@ -265,14 +281,20 @@ export interface RelationshipGuidance {
 }
 
 export function getRelationshipGuidance(
-  situation: 'conflict' | 'communication' | 'attachment_anxiety' | 'attachment_avoidance' | 'repair' | 'connection'
+  situation:
+    | 'conflict'
+    | 'communication'
+    | 'attachment_anxiety'
+    | 'attachment_avoidance'
+    | 'repair'
+    | 'connection'
 ): RelationshipGuidance {
   switch (situation) {
     case 'conflict':
       return {
         situation: 'Navigating relationship conflict',
         techniques: [
-          'Check if you\'re flooded—take break if needed',
+          "Check if you're flooded—take break if needed",
           'Soft startup: timing + "I" statements',
           'Look for the underlying need, not the position',
           'Accept influence—find part you can agree with',
@@ -288,7 +310,8 @@ export function getRelationshipGuidance(
           "Don't use 'always' or 'never'",
           "Don't try to win—try to understand",
         ],
-        research: 'Gottman: How couples fight predicts relationship success better than what they fight about',
+        research:
+          'Gottman: How couples fight predicts relationship success better than what they fight about',
       };
 
     case 'communication':
@@ -341,8 +364,8 @@ export function getRelationshipGuidance(
         situation: 'Supporting someone with avoidant attachment',
         techniques: [
           'Respect need for space without taking it personally',
-          'Approach slowly—don\'t overwhelm with intimacy',
-          'Appreciate expressions of closeness (they\'re big steps)',
+          "Approach slowly—don't overwhelm with intimacy",
+          "Appreciate expressions of closeness (they're big steps)",
           'Understand withdrawal as self-protection, not rejection',
         ],
         scripts: [
@@ -433,7 +456,9 @@ export function detectFourHorsemen(
   }
 
   // Defensiveness patterns
-  if (/it's not my fault|you're the one who|what about when you|I wouldn't have if you/i.test(text)) {
+  if (
+    /it's not my fault|you're the one who|what about when you|I wouldn't have if you/i.test(text)
+  ) {
     results.push({
       horseman: 'defensiveness',
       detected: true,
@@ -444,5 +469,3 @@ export function detectFourHorsemen(
 
   return results;
 }
-
-

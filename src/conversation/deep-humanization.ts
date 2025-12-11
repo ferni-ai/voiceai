@@ -78,6 +78,7 @@ export type HumanizationType =
   | 'breath_sound'
   | 'anticipation'
   | 'contradiction'
+  | 'first_turn_notice' // 🌟 "They see me" moment
   | 'none';
 
 export interface HumanizationInjection {
@@ -264,13 +265,15 @@ export class DeepHumanizationEngine {
    * Get spontaneous thought if appropriate
    */
   async getSpontaneousThought(context: HumanizationContext): Promise<HumanizationInjection | null> {
-    if (!this.canInject('spontaneous_thought', 5, 2)) return null;
-    if (context.turnCount < 4) return null; // Not too early
+    // PIXAR BOOST: Increased max from 2→4, reduced cooldown from 5→4
+    if (!this.canInject('spontaneous_thought', 4, 4)) return null;
+    if (context.turnCount < 3) return null; // Allow slightly earlier
 
     const content = await loadBehaviorContent(this.personaId, 'spontaneous-thoughts');
     if (!content) return null;
 
-    const probability = 0.08;
+    // PIXAR BOOST: Increased from 0.08 to 0.18 (more spontaneous moments!)
+    const probability = 0.18;
     if (Math.random() > probability) return null;
 
     // Choose type of spontaneous thought
@@ -298,7 +301,8 @@ export class DeepHumanizationEngine {
    * Get physical presence cue if appropriate
    */
   async getPhysicalPresence(context: HumanizationContext): Promise<HumanizationInjection | null> {
-    if (!this.canInject('physical_presence', 10, 2)) return null;
+    // PIXAR BOOST: Increased max from 2→3, reduced cooldown from 10→7
+    if (!this.canInject('physical_presence', 7, 3)) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'physical-presence');
     if (!content) return null;
@@ -314,7 +318,8 @@ export class DeepHumanizationEngine {
     for (const [, config] of Object.entries(timeEmbodiment)) {
       if (config.hours.includes(context.currentHour)) {
         phrases = config.phrases;
-        probability = 0.15;
+        // PIXAR BOOST: Increased from 0.15 to 0.28
+        probability = 0.28;
         break;
       }
     }
@@ -322,14 +327,16 @@ export class DeepHumanizationEngine {
     // Settling in at session start
     if (context.turnCount <= 2) {
       phrases = (content.settling_in as string[]) ?? [];
-      probability = 0.3;
+      // PIXAR BOOST: Increased from 0.3 to 0.45
+      probability = 0.45;
     }
 
     // Physical reactions during emotional moments
     if (this.mood.inEmotionalMoment) {
       const reactions = content.physical_reactions as Record<string, string[]>;
       phrases = reactions?.resonance ?? [];
-      probability = 0.2;
+      // PIXAR BOOST: Increased from 0.2 to 0.35
+      probability = 0.35;
     }
 
     if (phrases.length === 0 || Math.random() > probability) return null;
@@ -355,13 +362,15 @@ export class DeepHumanizationEngine {
     context: HumanizationContext,
     userPresentedEvidence: boolean
   ): Promise<HumanizationInjection | null> {
-    if (!this.canInject('mind_change', 8, 2)) return null;
+    // PIXAR BOOST: Increased max from 2→3, reduced cooldown from 8→6
+    if (!this.canInject('mind_change', 6, 3)) return null;
     if (!userPresentedEvidence) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'mind-changing');
     if (!content) return null;
 
-    const probability = 0.35;
+    // PIXAR BOOST: Increased from 0.35 to 0.50
+    const probability = 0.5;
     if (Math.random() > probability) return null;
 
     const types = ['mind_change_signals', 'reconsidering', 'acknowledging_user_influence'];
@@ -391,13 +400,15 @@ export class DeepHumanizationEngine {
     context: HumanizationContext,
     isBreakthroughMoment: boolean
   ): Promise<HumanizationInjection | null> {
-    if (!this.canInject('excitement_interruption', 6, 3)) return null;
+    // PIXAR BOOST: Increased max from 3→5, reduced cooldown from 6→4
+    if (!this.canInject('excitement_interruption', 4, 5)) return null;
     if (!isBreakthroughMoment) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'excitement-interruptions');
     if (!content) return null;
 
-    const probability = 0.25;
+    // PIXAR BOOST: Increased from 0.25 to 0.45
+    const probability = 0.45;
     if (Math.random() > probability) return null;
 
     const types = ['excitement_breaks', 'capturing_insight', 'enthusiastic_agreement'];
@@ -424,7 +435,8 @@ export class DeepHumanizationEngine {
    * Get breath/somatic sound if appropriate
    */
   async getBreathSound(context: HumanizationContext): Promise<HumanizationInjection | null> {
-    if (!this.canInject('breath_sound', 4, 4)) return null;
+    // PIXAR BOOST: Increased max from 4→6, reduced cooldown from 4→3
+    if (!this.canInject('breath_sound', 3, 6)) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'breath-sounds');
     if (!content) return null;
@@ -439,13 +451,17 @@ export class DeepHumanizationEngine {
     // Choose based on context
     if (this.mood.inEmotionalMoment) {
       phrases = breathSounds?.processing_heavy ?? [];
-      probability = 0.25;
+      // PIXAR BOOST: Increased from 0.25 to 0.40
+      probability = 0.4;
     } else if (this.mood.engagement > 0.8) {
       phrases = emotionalSounds?.amused ?? microSounds?.recognition ?? [];
-      probability = 0.15;
-    } else if (context.turnCount % 5 === 0) {
+      // PIXAR BOOST: Increased from 0.15 to 0.28
+      probability = 0.28;
+    } else if (context.turnCount % 4 === 0) {
+      // PIXAR BOOST: More frequent periodic sounds (every 4 turns instead of 5)
       phrases = microSounds?.content_acknowledgment ?? [];
-      probability = 0.2;
+      // PIXAR BOOST: Increased from 0.2 to 0.32
+      probability = 0.32;
     }
 
     if (phrases.length === 0 || Math.random() > probability) return null;
@@ -464,7 +480,8 @@ export class DeepHumanizationEngine {
    * Get anticipation/callback if we have session memory
    */
   async getAnticipation(context: HumanizationContext): Promise<HumanizationInjection | null> {
-    if (!this.canInject('anticipation', 15, 2)) return null;
+    // PIXAR BOOST: Increased max from 2→3, reduced cooldown from 15→10
+    if (!this.canInject('anticipation', 10, 3)) return null;
     if (!context.sessionData) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'anticipation');
@@ -478,12 +495,13 @@ export class DeepHumanizationEngine {
     if (context.turnCount === 1 && (context.sessionData.sessionCount ?? 0) > 1) {
       const sessionAnticipation = content.session_anticipation as Record<string, string[]>;
       phrases = sessionAnticipation?.opening_warmth ?? [];
-      probability = 0.4;
+      // PIXAR BOOST: Increased from 0.4 to 0.6
+      probability = 0.6;
     }
 
     // Pending item callback
     if (
-      context.turnCount > 3 &&
+      context.turnCount > 2 && // PIXAR BOOST: Earlier callback (from 3 to 2)
       context.sessionData.pendingItems &&
       context.sessionData.pendingItems.length > 0
     ) {
@@ -494,7 +512,8 @@ export class DeepHumanizationEngine {
         const goalTemplates = pendingItems?.goal_tracking ?? [];
         template = goalTemplates[Math.floor(Math.random() * goalTemplates.length)] ?? '';
         template = template.replace('{goal}', item.content);
-        probability = 0.25;
+        // PIXAR BOOST: Increased from 0.25 to 0.40
+        probability = 0.4;
       } else if (item.type === 'topic') {
         const topicTemplates = (content.looking_forward_to_topic as string[]) ?? [];
         template = topicTemplates[Math.floor(Math.random() * topicTemplates.length)] ?? '';
@@ -600,11 +619,19 @@ export class DeepHumanizationEngine {
   /**
    * Get first-turn "I notice" moment - the instant "they see me" experience
    * Detects hesitation, deflection, or surface-level responses in early turns
+   *
+   * 🌟 "FEEL ALIVE" FEATURE: This is THE moment that creates connection.
+   * When someone says "I'm fine" and Ferni says "You hesitated. What's underneath?" -
+   * that's when they realize this is different. This is real.
    */
   async getFirstTurnNoticing(context: HumanizationContext): Promise<HumanizationInjection | null> {
-    // Only works in first few turns
+    // Only works in first few turns - the magic window
     if (context.turnCount > 3) return null;
-    if (!this.canInject('engagement_signal', 0, 2)) return null; // Use engagement_signal type
+
+    // Use separate tracking to not conflict with regular engagement signals
+    // First-turn noticing is too important to be blocked by other features
+    const lastFirstTurnNotice = this.lastInjectionTurn.get('first_turn_notice') ?? -999;
+    if (this.turnCount - lastFirstTurnNotice < 3) return null; // Only once per conversation start
 
     const content = await loadBehaviorContent(this.personaId, 'i-notice-power');
     if (!content) return null;
@@ -620,44 +647,67 @@ export class DeepHumanizationEngine {
     // Detect hesitation signals in user message
     const userMessage = context.userMessage.toLowerCase();
     const hesitationSignals = [
-      // Deflection
-      /^(fine|okay|good|not bad|alright)\.?$/i,
-      /^(i'?m? )?fine/i,
-      /nothing (much|really)/i,
-      /just (wanted to|thought i'd)/i,
-      // Minimizing
+      // Deflection - the classic "I'm fine" response
+      /^(fine|okay|good|not bad|alright|ok)\.?$/i,
+      /^(i'?m? )?(doing )?(fine|okay|good|alright)/i,
+      /nothing (much|really|special)/i,
+      /just (wanted to|thought i'd|checking in)/i,
+      // Minimizing - downplaying something important
       /not that (big|important|bad)/i,
       /no big deal/i,
       /it'?s? (nothing|fine|whatever)/i,
-      // Hedging
+      /doesn'?t (matter|bother)/i,
+      // Hedging - uncertainty markers
       /i guess/i,
       /maybe i/i,
-      /i don'?t know/i,
+      /i don'?t (really )?know/i,
       /sort of/i,
       /kind of/i,
-      // Ellipsis/trailing off
+      /probably/i,
+      // Trailing off
       /\.\.\./,
-      // Very short responses
+      /anyway\s*\.?$/i,
+      // Vague responses
+      /^(um|uh|hmm)/i,
+      /^just.*$/i,
     ];
 
     const hasHesitation = hesitationSignals.some((pattern) => pattern.test(userMessage));
     const isVeryShort = userMessage.split(' ').length <= 5;
-    const shouldNotice = hasHesitation || (isVeryShort && context.turnCount >= 1);
+    const hasLowEnergy = userMessage.length < 20;
+
+    // Be more aggressive about noticing on turn 1 - this is our shot
+    const isTurnOne = context.turnCount === 1;
+    const shouldNotice =
+      hasHesitation ||
+      (isVeryShort && !userMessage.includes('!')) || // Short without enthusiasm
+      (isTurnOne && hasLowEnergy); // First turn and low energy = something's there
 
     if (!shouldNotice) return null;
 
-    // Check probability
+    // BOOSTED probability for first turn - this is crucial for connection
     const usageRules = content.usage_rules as { first_turn_probability?: number };
-    const probability = usageRules?.first_turn_probability ?? 0.4;
+    const baseProbability = usageRules?.first_turn_probability ?? 0.55;
+    // Turn 1: 70% chance (this is our moment)
+    // Turn 2-3: Normal probability
+    const probability = isTurnOne ? Math.min(0.7, baseProbability + 0.15) : baseProbability;
+
     if (Math.random() > probability) return null;
 
     const phrases = earlyNoticing.first_turn_observations;
     const chosen = phrases[Math.floor(Math.random() * phrases.length)];
 
-    this.recordInjection('engagement_signal');
+    // Track separately so we don't conflict with engagement signals
+    this.lastInjectionTurn.set('first_turn_notice', this.turnCount);
+    this.recordInjection('engagement_signal'); // Still count for overall limits
 
-    // 🌉 Emit signal to frontend - this is a connection moment
+    // 🌉 Emit signal to frontend - this is THE connection moment
     void humanizationSignalEmitter.highEngagement(probability);
+
+    logger.info(
+      { turnCount: context.turnCount, userMessage: userMessage.slice(0, 30), probability },
+      '🌟 First-turn noticing fired - "they see me" moment!'
+    );
 
     return {
       type: 'engagement_signal', // Reuse type for compatibility

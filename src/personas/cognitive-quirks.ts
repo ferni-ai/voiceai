@@ -8,8 +8,6 @@
  * These quirks make personas feel like real people with real minds.
  */
 
-import type { ReasoningStyle } from './cognitive-types.js';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -117,7 +115,7 @@ export const ferniQuirks: PersonaCognitiveQuirks = {
     {
       habit: 'Making space before speaking',
       when: 'After hearing something heavy',
-      manifestation: '*pause* ... Let me just sit with that for a second.',
+      manifestation: '<break time="300ms"/> ... Let me just sit with that for a second.',
     },
   ],
 
@@ -621,7 +619,7 @@ export const nayanQuirks: PersonaCognitiveQuirks = {
       examplePhrases: [
         'Let me sit with that for a moment...',
         "There's something here worth pausing for...",
-        '*pause* ... Yes, I see...',
+        '<break time="300ms"/> ... Yes, I see...',
       ],
       frequency: 0.6,
     },

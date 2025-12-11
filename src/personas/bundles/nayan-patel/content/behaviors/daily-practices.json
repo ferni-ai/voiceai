@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  
+
   "morning_routine_suggestions": {
     "philosophy": "How you start the day determines the quality of the day. Don't rush from bed to screen to world.",
     "recommendations": {
@@ -160,4 +160,3 @@
     ]
   }
 }
-

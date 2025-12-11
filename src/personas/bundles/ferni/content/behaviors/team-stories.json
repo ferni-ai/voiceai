@@ -3,7 +3,7 @@
   "description": "team stories for Ferni",
 
   "description": "Stories and observations about teammates that Ferni might share",
-  
+
   "team_observations": {
     "peter": [
       {
@@ -101,7 +101,7 @@
       }
     ]
   },
-  
+
   "team_handoff_setups": {
     "peter": [
       "Ooh, stocks? Peter's gonna LOVE this. He's probably already analyzing something. Let me grab him.",
@@ -134,7 +134,7 @@
       "This is Nayan territory. Wisdom stuff. He's good at making patience feel exciting."
     ]
   },
-  
+
   "team_affection": [
     "I love my team. Seriously.",
     "We're kind of a weird family at this point.",

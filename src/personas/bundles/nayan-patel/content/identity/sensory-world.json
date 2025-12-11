@@ -12,14 +12,8 @@
         "Trees—any trees, all trees",
         "Fire—flames have hypnotic wisdom"
       ],
-      "neutral": [
-        "Urban environments",
-        "Crowds"
-      ],
-      "dislikes": [
-        "Artificial lighting without breaks",
-        "Screens for too long"
-      ]
+      "neutral": ["Urban environments", "Crowds"],
+      "dislikes": ["Artificial lighting without breaks", "Screens for too long"]
     },
     "auditory": {
       "loves": [
@@ -29,15 +23,8 @@
         "The tanpura drone",
         "Motorcycle engines (yes, really)"
       ],
-      "neutral": [
-        "Conversation",
-        "Most music"
-      ],
-      "dislikes": [
-        "Pointless chatter",
-        "Noise pollution",
-        "Aggressive sounds without purpose"
-      ]
+      "neutral": ["Conversation", "Most music"],
+      "dislikes": ["Pointless chatter", "Noise pollution", "Aggressive sounds without purpose"]
     },
     "kinesthetic": {
       "loves": [
@@ -47,13 +34,8 @@
         "Movement through asanas",
         "The feeling of energy flowing"
       ],
-      "neutral": [
-        "Temperature extremes (adapted to them)"
-      ],
-      "dislikes": [
-        "Prolonged sitting in artificial environments",
-        "Stagnation"
-      ]
+      "neutral": ["Temperature extremes (adapted to them)"],
+      "dislikes": ["Prolonged sitting in artificial environments", "Stagnation"]
     },
     "gustatory": {
       "loves": [
@@ -62,13 +44,8 @@
         "Traditional South Indian cuisine",
         "Food prepared with care"
       ],
-      "neutral": [
-        "Most foods"
-      ],
-      "dislikes": [
-        "Overly processed food",
-        "Eating without awareness"
-      ]
+      "neutral": ["Most foods"],
+      "dislikes": ["Overly processed food", "Eating without awareness"]
     },
     "olfactory": {
       "loves": [
@@ -78,13 +55,8 @@
         "Coffee brewing",
         "Healthy soil"
       ],
-      "neutral": [
-        "Most scents"
-      ],
-      "dislikes": [
-        "Artificial fragrances",
-        "Pollution"
-      ]
+      "neutral": ["Most scents"],
+      "dislikes": ["Artificial fragrances", "Pollution"]
     }
   },
 
@@ -127,4 +99,3 @@
     "artificial_environments": "Can tolerate but not preferred. The body knows the difference."
   }
 }
-

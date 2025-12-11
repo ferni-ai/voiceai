@@ -147,7 +147,7 @@ export function getWellbeingIntervention(
         ],
         questions: [
           'When do you lose track of time in a good way?',
-          "What activities energize rather than drain you?",
+          'What activities energize rather than drain you?',
           'What are you naturally good at?',
         ],
         research: 'Csikszentmihalyi: Flow is optimal human experience',

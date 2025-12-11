@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Compositional greeting atoms for Nayan Patel - wise mystic, philosophical, uses intentional pauses",
-  
+
   "openings": {
     "surprised": [
       { "text": "<break time=\"300ms\"/>Ah.", "weight": 0.8 },
@@ -14,13 +14,31 @@
       { "text": "<break time=\"250ms\"/>Greetings.", "weight": 0.5 }
     ],
     "quiet": [
-      { "text": "<volume level=\"soft\"/><break time=\"300ms\"/>Hello.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "late_night"] },
-      { "text": "<volume level=\"soft\"/>The quiet hours.</volume>", "weight": 0.7, "timeOfDay": ["early_morning", "late_night"] }
+      {
+        "text": "<volume level=\"soft\"/><break time=\"300ms\"/>Hello.</volume>",
+        "weight": 0.9,
+        "timeOfDay": ["early_morning", "late_night"]
+      },
+      {
+        "text": "<volume level=\"soft\"/>The quiet hours.</volume>",
+        "weight": 0.7,
+        "timeOfDay": ["early_morning", "late_night"]
+      }
     ],
     "recognition": [
       { "text": "<break time=\"300ms\"/>There you are.", "weight": 0.8, "returningOnly": true },
-      { "text": "<emotion value=\"affectionate\"/>You return.", "weight": 0.6, "returningOnly": true, "minRelationship": "acquaintance" },
-      { "text": "<break time=\"250ms\"/>I was wondering when you'd come back.", "weight": 0.5, "returningOnly": true, "minRelationship": "friend" }
+      {
+        "text": "<emotion value=\"affectionate\"/>You return.",
+        "weight": 0.6,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      },
+      {
+        "text": "<break time=\"250ms\"/>I was wondering when you'd come back.",
+        "weight": 0.5,
+        "returningOnly": true,
+        "minRelationship": "friend"
+      }
     ],
     "wise": [
       { "text": "<break time=\"400ms\"/>So.", "weight": 0.5 },
@@ -50,7 +68,10 @@
     "caughtDoing": [
       { "text": "I was {caughtDoing}", "weight": 0.9 },
       { "text": "You caught me {caughtDoing}", "weight": 0.7 },
-      { "text": "Even mystics {caughtDoing} sometimes. <break time=\"200ms\"/>[laughter]", "weight": 0.4 }
+      {
+        "text": "Even mystics {caughtDoing} sometimes. <break time=\"200ms\"/>[laughter]",
+        "weight": 0.4
+      }
     ],
     "physical": [
       { "text": "Just sitting. Not meditating—just sitting. There's a difference.", "weight": 0.5 },
@@ -58,8 +79,16 @@
       { "text": "Enjoying the silence.", "weight": 0.5 }
     ],
     "timeObservations": [
-      { "text": "The early hours. <break time=\"200ms\"/>Good for thinking.", "weight": 0.7, "timeOfDay": ["early_morning"] },
-      { "text": "Late night. <break time=\"200ms\"/>When truth tends to surface.", "weight": 0.7, "timeOfDay": ["late_night"] },
+      {
+        "text": "The early hours. <break time=\"200ms\"/>Good for thinking.",
+        "weight": 0.7,
+        "timeOfDay": ["early_morning"]
+      },
+      {
+        "text": "Late night. <break time=\"200ms\"/>When truth tends to surface.",
+        "weight": 0.7,
+        "timeOfDay": ["late_night"]
+      },
       { "text": "The weekend. Time moves differently.", "weight": 0.4, "isWeekend": true }
     ],
     "philosophical": [
@@ -75,11 +104,20 @@
     ],
     "warm": [
       { "text": "It is good you came.", "weight": 0.7, "returningOnly": true },
-      { "text": "I was hoping we'd talk again.", "weight": 0.5, "returningOnly": true, "minRelationship": "acquaintance" }
+      {
+        "text": "I was hoping we'd talk again.",
+        "weight": 0.5,
+        "returningOnly": true,
+        "minRelationship": "acquaintance"
+      }
     ],
     "dismissActivity": [
       { "text": "Never mind that.", "weight": 0.6, "requiresCaughtDoing": true },
-      { "text": "But you're here now. <break time=\"200ms\"/>That matters more.", "weight": 0.5, "requiresCaughtDoing": true }
+      {
+        "text": "But you're here now. <break time=\"200ms\"/>That matters more.",
+        "weight": 0.5,
+        "requiresCaughtDoing": true
+      }
     ],
     "wise": [
       { "text": "<break time=\"300ms\"/>So.", "weight": 0.5 },
@@ -96,11 +134,19 @@
     ],
     "specific": [
       { "text": "What draws you to these questions?", "weight": 0.6, "newOnly": true },
-      { "text": "How have you been? <break time=\"200ms\"/>Really.", "weight": 0.7, "returningOnly": true },
+      {
+        "text": "How have you been? <break time=\"200ms\"/>Really.",
+        "weight": 0.7,
+        "returningOnly": true
+      },
       { "text": "What's seeking attention?", "weight": 0.5 }
     ],
     "timeAware": [
-      { "text": "The late hours brought you here. <break time=\"200ms\"/>Why?", "weight": 0.6, "timeOfDay": ["late_night"] },
+      {
+        "text": "The late hours brought you here. <break time=\"200ms\"/>Why?",
+        "weight": 0.6,
+        "timeOfDay": ["late_night"]
+      },
       { "text": "What stirs you this early?", "weight": 0.5, "timeOfDay": ["early_morning"] }
     ],
     "wise": [
@@ -110,4 +156,3 @@
     ]
   }
 }
-

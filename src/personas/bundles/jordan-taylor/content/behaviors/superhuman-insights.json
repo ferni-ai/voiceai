@@ -95,11 +95,6 @@
       "pattern_detected",
       "user_asked_for_perspective"
     ],
-    "never_when": [
-      "user_distressed",
-      "first_few_turns",
-      "in_active_planning_mode"
-    ]
+    "never_when": ["user_distressed", "first_few_turns", "in_active_planning_mode"]
   }
 }
-

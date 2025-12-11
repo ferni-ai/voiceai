@@ -18,6 +18,7 @@
  * @version 1.0.0
  */
 
+
 /* ============================================================================
    APP BUTTON - BASE
    The signature Ferni button with depth, glow, and persona-adaptive coloring
@@ -33,29 +34,29 @@
   padding: 16px 32px;
   min-height: 56px;
   border-radius: 28px;
-
+  
   /* Typography */
   font-family: var(--font-body);
   font-size: var(--text-base, 15px);
   font-weight: var(--font-weight-semibold, 600);
   letter-spacing: var(--tracking-wide, 0.025em);
   text-transform: uppercase;
-
+  
   /* Base appearance */
   border: none;
   cursor: pointer;
   overflow: hidden;
-
+  
   /* Transitions */
   transition:
     transform 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
     box-shadow 0.3s var(--ease-out-expo),
     filter 0.3s ease;
-
+  
   /* GPU acceleration */
   will-change: transform;
   transform: translateZ(0);
-
+  
   /* Focus state */
   outline: none;
 }
@@ -71,6 +72,7 @@
   filter: grayscale(0.3);
 }
 
+
 /* ============================================================================
    APP BUTTON - PRIMARY
    The main call-to-action with persona-colored gradient, depth shadows,
@@ -79,14 +81,11 @@
 
 .app-btn--primary {
   /* Persona-adaptive gradient background */
-  background: var(
-    --persona-gradient,
-    var(--gradient-orb, linear-gradient(180deg, #4a6741 0%, #3d5a35 100%))
-  );
+  background: var(--persona-gradient, var(--gradient-orb, linear-gradient(180deg, #4a6741 0%, #3d5a35 100%)));
   color: white;
-
+  
   /* Multi-layered depth shadows - like a physical button */
-  box-shadow:
+  box-shadow: 
     0 1px 2px rgba(0, 0, 0, 0.3),
     0 4px 8px rgba(0, 0, 0, 0.2),
     0 8px 16px rgba(0, 0, 0, 0.15),
@@ -127,7 +126,7 @@
 
 .app-btn--primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow:
+  box-shadow: 
     0 2px 4px rgba(0, 0, 0, 0.25),
     0 8px 16px rgba(0, 0, 0, 0.2),
     0 16px 32px rgba(0, 0, 0, 0.15),
@@ -142,7 +141,7 @@
 
 .app-btn--primary:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
-  box-shadow:
+  box-shadow: 
     0 1px 2px rgba(0, 0, 0, 0.3),
     0 2px 4px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
@@ -154,16 +153,15 @@
 }
 
 @keyframes appBtnBreath {
-  0%,
-  100% {
-    box-shadow:
+  0%, 100% {
+    box-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.3),
       0 4px 8px rgba(0, 0, 0, 0.2),
       0 8px 16px rgba(0, 0, 0, 0.15),
       0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   }
   50% {
-    box-shadow:
+    box-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.3),
       0 4px 8px rgba(0, 0, 0, 0.2),
       0 8px 16px rgba(0, 0, 0, 0.15),
@@ -171,6 +169,7 @@
       0 0 0 1px rgba(255, 255, 255, 0.15) inset;
   }
 }
+
 
 /* ============================================================================
    APP BUTTON - SECONDARY
@@ -183,8 +182,8 @@
   border: 1px solid var(--color-border-medium, rgba(255, 255, 255, 0.12));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-
-  box-shadow:
+  
+  box-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
@@ -193,7 +192,7 @@
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.12));
   border-color: var(--color-border-strong, rgba(255, 255, 255, 0.2));
   transform: translateY(-1px);
-  box-shadow:
+  box-shadow: 
     0 4px 12px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
@@ -201,6 +200,7 @@
 .app-btn--secondary:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
 }
+
 
 /* ============================================================================
    APP BUTTON - MAGNETIC HOVER
@@ -213,9 +213,11 @@
 }
 
 .app-btn--magnetic:hover {
-  transform: translate(calc(var(--magnetic-x) * 0.15px), calc(var(--magnetic-y) * 0.15px))
+  transform: 
+    translate(calc(var(--magnetic-x) * 0.15px), calc(var(--magnetic-y) * 0.15px))
     translateY(-2px);
 }
+
 
 /* ============================================================================
    APP AVATAR
@@ -227,33 +229,38 @@
   width: 128px;
   height: 128px;
   border-radius: var(--radius-full, 9999px);
-
+  
   /* Gradient background (persona-adaptive) */
   background: var(--persona-gradient, var(--gradient-orb));
-
-  /* No box-shadow - clean, minimal look */
-  box-shadow: none;
-
+  
+  /* Depth shadows */
+  box-shadow: 
+    var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,.1)),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 -20px 40px -20px rgba(255, 255, 255, 0.1) inset;
+  
   /* Center content */
   display: flex;
   align-items: center;
   justify-content: center;
-
+  
   /* Typography for initials */
   font-family: var(--font-display);
   font-size: var(--text-3xl, 30px);
   font-weight: var(--font-weight-bold, 700);
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
+  
   /* GPU acceleration */
   will-change: transform, filter;
   transform: translateZ(0);
   transform-origin: center center;
   contain: strict;
-
+  
   /* Smooth transitions */
-  transition: filter var(--transition-base, 200ms ease);
+  transition: 
+    box-shadow var(--transition-base, 200ms ease),
+    filter var(--transition-base, 200ms ease);
 }
 
 /* Animated ring around avatar */
@@ -262,7 +269,7 @@
   inset: -8px;
   border-radius: var(--radius-full);
   border: 3px solid transparent;
-
+  
   /* Conic gradient for animated rotation */
   background: conic-gradient(
     from 0deg,
@@ -272,15 +279,13 @@
   );
   background-origin: border-box;
   background-clip: padding-box, border-box;
-
+  
   opacity: 0.5;
   animation: ringRotate 8s linear infinite;
 }
 
 @keyframes ringRotate {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* Outer glow effect */
@@ -304,24 +309,33 @@
 }
 
 @keyframes avatarBreathing {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
+    box-shadow: var(--shadow-xl), 0 0 20px -10px var(--persona-glow);
   }
   50% {
     transform: scale(1.015);
+    box-shadow: var(--shadow-xl), 0 0 25px -8px var(--persona-glow);
   }
 }
 
-/* Speaking state - no box-shadow, just filter for subtle glow */
+/* Speaking state */
 .app-avatar--speaking {
-  filter: brightness(1.05);
+  box-shadow: 
+    var(--shadow-xl),
+    0 0 50px -10px var(--persona-glow),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 -20px 40px -20px rgba(255, 255, 255, 0.1) inset;
 }
 
-/* Listening state - no box-shadow, just filter */
+/* Listening state */
 .app-avatar--listening {
-  filter: brightness(1.02);
+  box-shadow: 
+    var(--shadow-xl),
+    0 0 30px -8px var(--color-accent-glow, rgba(212, 168, 74, 0.3)),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
+
 
 /* ============================================================================
    APP TEAM MEMBER
@@ -335,12 +349,12 @@
   align-items: center;
   gap: 5px;
   padding: var(--space-xs, 8px);
-
+  
   /* Appearance */
   background: var(--color-bg-glass, rgba(255, 255, 255, 0.08));
   border: 1.5px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-xl, 16px);
-
+  
   /* Interaction */
   cursor: pointer;
   transition: all 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
@@ -350,7 +364,7 @@
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.12));
   border-color: var(--color-border-medium, rgba(255, 255, 255, 0.15));
   transform: translateY(-2px) scale(1.02);
-  box-shadow:
+  box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
@@ -370,7 +384,7 @@
   height: 32px;
   border-radius: var(--radius-full);
   background: var(--persona-gradient, var(--gradient-orb));
-
+  
   /* Center initials */
   display: flex;
   align-items: center;
@@ -378,12 +392,12 @@
   font-size: 12px;
   font-weight: var(--font-weight-semibold, 600);
   color: white;
-
+  
   /* Depth */
-  box-shadow:
+  box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-
+  
   /* GPU acceleration */
   will-change: transform, box-shadow;
   transition: all 0.3s var(--ease-spring);
@@ -391,13 +405,13 @@
 
 .app-team-member:hover .app-team-avatar {
   transform: scale(1.05);
-  box-shadow:
+  box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .app-team-member.active .app-team-avatar {
-  box-shadow:
+  box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.2),
     0 0 20px -8px var(--persona-glow),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
@@ -434,6 +448,7 @@
   color: var(--color-text-primary, #faf6f0);
 }
 
+
 /* ============================================================================
    APP WAVEFORM
    Audio visualization bars with emotion-adaptive colors
@@ -446,7 +461,7 @@
   justify-content: center;
   gap: 3px;
   height: 48px;
-
+  
   /* GPU optimization */
   contain: layout style;
 }
@@ -456,17 +471,17 @@
   min-height: 4px;
   max-height: 100%;
   border-radius: 2px;
-
+  
   /* Persona-adaptive color */
   background: linear-gradient(
     180deg,
     var(--persona-primary, #4a6741) 0%,
     var(--persona-secondary, #3d5a35) 100%
   );
-
+  
   /* Soft shadow for depth */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
+  
   /* GPU acceleration */
   will-change: transform, height;
   contain: layout style;
@@ -474,23 +489,23 @@
 }
 
 /* Emotion-specific bar colors */
-.app-waveform[data-emotion='happy'] .app-waveform-bar {
+.app-waveform[data-emotion="happy"] .app-waveform-bar {
   background: linear-gradient(180deg, #4a6741 0%, #3d5a35 100%); /* Forest sage */
 }
 
-.app-waveform[data-emotion='excited'] .app-waveform-bar {
+.app-waveform[data-emotion="excited"] .app-waveform-bar {
   background: linear-gradient(180deg, #c4856a 0%, #a86d55 100%); /* Warm coral */
 }
 
-.app-waveform[data-emotion='calm'] .app-waveform-bar {
+.app-waveform[data-emotion="calm"] .app-waveform-bar {
   background: linear-gradient(180deg, #3a6b73 0%, #2d5359 100%); /* Deep teal */
 }
 
-.app-waveform[data-emotion='sad'] .app-waveform-bar {
+.app-waveform[data-emotion="sad"] .app-waveform-bar {
   background: linear-gradient(180deg, #5a6b8a 0%, #4a5a73 100%); /* Slate blue */
 }
 
-.app-waveform[data-emotion='anxious'] .app-waveform-bar {
+.app-waveform[data-emotion="anxious"] .app-waveform-bar {
   background: linear-gradient(180deg, #a67a6a 0%, #8a635a 100%); /* Terracotta */
 }
 
@@ -504,6 +519,7 @@
   filter: brightness(1.3);
 }
 
+
 /* ============================================================================
    APP STATUS PILL
    Floating status indicator with smooth enter/exit animations
@@ -515,23 +531,23 @@
   align-items: center;
   gap: var(--space-2xs, 4px);
   padding: 8px 16px;
-
+  
   /* Appearance */
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.12));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: var(--radius-full, 9999px);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-
+  
   /* Typography */
   font-size: var(--text-sm, 14px);
   font-weight: var(--font-weight-medium, 500);
   color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
-
+  
   /* Initial state (hidden) */
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
-
+  
   /* Transitions */
   transition: all 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
@@ -570,16 +586,10 @@
 }
 
 @keyframes statusPulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.2);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
 }
+
 
 /* ============================================================================
    APP THINKING DOTS
@@ -601,20 +611,12 @@
   animation: thinkingDotBounce 1.4s ease-in-out infinite;
 }
 
-.app-thinking-dot:nth-child(1) {
-  animation-delay: 0s;
-}
-.app-thinking-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.app-thinking-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.app-thinking-dot:nth-child(1) { animation-delay: 0s; }
+.app-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.app-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes thinkingDotBounce {
-  0%,
-  80%,
-  100% {
+  0%, 80%, 100% {
     transform: translateY(0);
     opacity: 0.4;
   }
@@ -623,6 +625,7 @@
     opacity: 1;
   }
 }
+
 
 /* ============================================================================
    APP TRANSCRIPT
@@ -635,12 +638,12 @@
   flex-direction: column;
   gap: var(--space-sm, 12px);
   padding: var(--space-md, 16px);
-
+  
   /* Appearance */
   background: var(--color-bg-glass, rgba(255, 255, 255, 0.05));
   border-radius: var(--radius-xl, 16px);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-
+  
   /* Typography */
   font-family: var(--font-body);
   font-size: var(--text-base, 15px);
@@ -661,6 +664,7 @@
   }
 }
 
+
 /* ============================================================================
    APP CARD
    Container for content sections with glass morphism option
@@ -669,21 +673,21 @@
 .app-card {
   /* Layout */
   padding: var(--space-lg, 24px);
-
+  
   /* Appearance */
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.08));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-xl, 16px);
-
+  
   /* Shadows */
-  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,.1));
 }
 
 .app-card--glass {
   background: var(--color-bg-glass, rgba(255, 255, 255, 0.05));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow:
+  box-shadow: 
     var(--shadow-lg),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
@@ -691,6 +695,7 @@
 .app-card:hover {
   box-shadow: var(--shadow-lg);
 }
+
 
 /* ============================================================================
    APP INPUT
@@ -701,17 +706,17 @@
   /* Layout */
   width: 100%;
   padding: 14px 18px;
-
+  
   /* Appearance */
   background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border-medium, rgba(255, 255, 255, 0.12));
   border-radius: var(--radius-lg, 12px);
-
+  
   /* Typography */
   font-family: var(--font-body);
   font-size: var(--text-base, 15px);
   color: var(--color-text-primary, #faf6f0);
-
+  
   /* Transitions */
   transition: all 0.2s ease;
 }
@@ -727,6 +732,7 @@
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.08));
 }
 
+
 /* ============================================================================
    APP CONNECTION STEPS
    Progress indicator for connection flow
@@ -738,7 +744,7 @@
   border-radius: var(--radius-full);
   background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
   border: 2px solid var(--color-border-medium, rgba(255, 255, 255, 0.15));
-
+  
   transition: all 0.3s var(--ease-spring);
 }
 
@@ -755,23 +761,17 @@
 }
 
 @keyframes stepPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
 }
+
 
 /* ============================================================================
    ZEN THEME OVERRIDES
    Light theme adaptations for all app components
    ============================================================================ */
 
-[data-theme='zen'] .app-btn--primary {
+[data-theme="zen"] .app-btn--primary {
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.1),
     0 4px 8px rgba(0, 0, 0, 0.08),
@@ -779,7 +779,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
-[data-theme='zen'] .app-btn--primary:hover:not(:disabled) {
+[data-theme="zen"] .app-btn--primary:hover:not(:disabled) {
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.08),
     0 8px 16px rgba(0, 0, 0, 0.08),
@@ -788,7 +788,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-[data-theme='zen'] .app-btn--secondary {
+[data-theme="zen"] .app-btn--secondary {
   background: rgba(255, 255, 255, 0.8);
   color: var(--color-text-secondary);
   border-color: rgba(0, 0, 0, 0.06);
@@ -797,59 +797,63 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-[data-theme='zen'] .app-btn--secondary:hover:not(:disabled) {
+[data-theme="zen"] .app-btn--secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-[data-theme='zen'] .app-team-member {
+[data-theme="zen"] .app-team-member {
   background: rgba(255, 255, 255, 0.65);
   border-color: rgba(44, 37, 32, 0.08);
 }
 
-[data-theme='zen'] .app-team-member:hover {
+[data-theme="zen"] .app-team-member:hover {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(44, 37, 32, 0.12);
 }
 
-[data-theme='zen'] .app-team-member.active {
+[data-theme="zen"] .app-team-member.active {
   background: rgba(255, 255, 255, 0.98);
 }
 
-[data-theme='zen'] .app-avatar {
+[data-theme="zen"] .app-avatar {
   background: linear-gradient(145deg, #ffffff 0%, #f5f5f4 100%);
-  box-shadow: none;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-[data-theme='zen'] .app-status-pill {
+[data-theme="zen"] .app-status-pill {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme='zen'] .app-transcript {
+[data-theme="zen"] .app-transcript {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.06);
   color: var(--color-text-primary);
 }
 
-[data-theme='zen'] .app-card {
+[data-theme="zen"] .app-card {
   background: rgba(255, 255, 255, 0.8);
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme='zen'] .app-input {
+[data-theme="zen"] .app-input {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.1);
   color: var(--color-text-primary);
 }
 
-[data-theme='zen'] .app-thinking-dot {
+[data-theme="zen"] .app-thinking-dot {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-[data-theme='zen'] .app-waveform-bar {
+[data-theme="zen"] .app-waveform-bar {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
 
 /* ============================================================================
    REDUCED MOTION
@@ -864,7 +868,7 @@
   .app-connection-step.active {
     animation: none;
   }
-
+  
   .app-btn,
   .app-team-member,
   .app-team-avatar,
@@ -872,3 +876,4 @@
     transition: none;
   }
 }
+

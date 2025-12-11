@@ -191,11 +191,7 @@ export const advancedVoiceEmotionBuilder: ContextBuilder = {
 
     // Voice brightening detection (positive moments)
     const points = timeline.points;
-    if (
-      latestEmotion.valence > 0.3 &&
-      latestEmotion.primary === 'joy' &&
-      points.length > 1
-    ) {
+    if (latestEmotion.valence > 0.3 && latestEmotion.primary === 'joy' && points.length > 1) {
       const previousPoint = points[points.length - 2];
       if (previousPoint.valence <= 0) {
         injections.push({

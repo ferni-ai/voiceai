@@ -269,12 +269,22 @@ describe('Emoji Usage Constraints', () => {
       expect(max).toBeLessThanOrEqual(5);
     });
 
-    it('should have preferred emojis', () => {
-      expect(config?.emoji_usage.preferred.length).toBeGreaterThan(0);
+    it('should have preferred emojis (or none if frequency is "none")', () => {
+      // If frequency is "none", empty array is valid
+      if (config?.emoji_usage.frequency === 'none') {
+        expect(config?.emoji_usage.preferred.length).toBeGreaterThanOrEqual(0);
+      } else {
+        expect(config?.emoji_usage.preferred.length).toBeGreaterThan(0);
+      }
     });
 
-    it('should have emojis to avoid', () => {
-      expect(config?.emoji_usage.avoid.length).toBeGreaterThan(0);
+    it('should have emojis to avoid (or none if frequency is "none")', () => {
+      // If frequency is "none", empty array is valid
+      if (config?.emoji_usage.frequency === 'none') {
+        expect(config?.emoji_usage.avoid.length).toBeGreaterThanOrEqual(0);
+      } else {
+        expect(config?.emoji_usage.avoid.length).toBeGreaterThan(0);
+      }
     });
 
     it('should not overlap preferred and avoid lists', () => {

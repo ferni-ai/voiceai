@@ -228,19 +228,22 @@ function startSnow(weatherContainer: HTMLElement): void {
   const createFlake = () => {
     const flake = document.createElement('div');
     flake.className = 'weather-flake';
-    flake.textContent = '❄';
-    
+
     const startX = 20 + Math.random() * 60; // % across container
-    const size = 10 + Math.random() * 8;
+    const size = 6 + Math.random() * 4;
     const duration = 3000 + Math.random() * 2000;
     const drift = (Math.random() - 0.5) * 30;
-    
+
+    // CSS snowflake shape instead of emoji
     flake.style.cssText = `
       position: absolute;
       top: -20px;
       left: ${startX}%;
-      font-size: ${size}px;
-      opacity: 0.7;
+      width: ${size}px;
+      height: ${size}px;
+      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 70%, transparent 100%);
+      border-radius: 50%;
+      opacity: 0.8;
       filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
     `;
     
@@ -295,24 +298,29 @@ function startRain(weatherContainer: HTMLElement): void {
 }
 
 function startLeaves(weatherContainer: HTMLElement): void {
-  const leafEmojis = ['🍂', '🍁', '🍃'];
-  
+  // Autumn leaf colors instead of emojis
+  const leafColors = ['#c0392b', '#e67e22', '#d35400', '#8b4513'];
+
   const createLeaf = () => {
     const leaf = document.createElement('div');
     leaf.className = 'weather-leaf';
-    leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)] ?? '🍂';
-    
+    const color = leafColors[Math.floor(Math.random() * leafColors.length)] ?? '#c0392b';
+
     const startX = Math.random() * 100;
-    const size = 14 + Math.random() * 10;
+    const size = 8 + Math.random() * 6;
     const duration = 4000 + Math.random() * 2000;
     const drift = (Math.random() - 0.5) * 60;
     const rotation = Math.random() * 720 - 360;
-    
+
+    // CSS leaf shape instead of emoji
     leaf.style.cssText = `
       position: absolute;
       top: -30px;
       left: ${startX}%;
-      font-size: ${size}px;
+      width: ${size}px;
+      height: ${size * 1.2}px;
+      background: ${color};
+      border-radius: 50% 0 50% 50%;
       opacity: 0.8;
     `;
     
@@ -379,19 +387,22 @@ function startPetals(weatherContainer: HTMLElement): void {
   const createPetal = () => {
     const petal = document.createElement('div');
     petal.className = 'weather-petal';
-    petal.textContent = '🌸';
-    
+
     const startX = Math.random() * 100;
-    const size = 12 + Math.random() * 8;
+    const size = 8 + Math.random() * 5;
     const duration = 4000 + Math.random() * 2000;
     const drift = (Math.random() - 0.5) * 50;
     const rotation = Math.random() * 360;
     
+    // CSS petal shape instead of emoji
     petal.style.cssText = `
       position: absolute;
       top: -25px;
       left: ${startX}%;
-      font-size: ${size}px;
+      width: ${size}px;
+      height: ${size * 0.6}px;
+      background: linear-gradient(135deg, #ffb7c5 0%, #ff9eb5 100%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
       opacity: 0.75;
     `;
     

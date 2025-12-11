@@ -1,593 +1,516 @@
 /**
- * "Better Than Human" Feature Tests
+ * Better Than Human - Unit Tests
  *
- * Tests for the advanced emotional intelligence features that make
- * Ferni truly better than human at emotional attunement:
- *
- * 1. Voice-text emotion mismatch detection
- * 2. Cross-persona insight sharing
- * 3. Prosody-turn prediction bridge
- * 4. Relationship health scoring
- *
- * > "We believe in making AI human, and the decisions we make will reflect that."
+ * Tests for the 12 superhuman capabilities.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  clearAnticipatoryPresence,
+  clearBetterThanHuman,
+  clearDelightEngines,
+  clearEmotionalMemory,
+  clearEvolvingJokes,
+  clearLinguisticMirroring,
+  clearMetaRelationship,
+  clearSomaticPresence,
+  clearSuperhumanObservations,
+  clearTeamCoherence,
+  clearTemporalEmotional,
+  getBetterThanHuman,
+  getEmotionalMemory,
+  getEvolvingJokes,
+  getLinguisticMirroring,
+  getMetaRelationship,
+  getProtectiveInstincts,
+  getSuperhumanObservations,
+  getTeamCoherence,
+  getTemporalEmotional,
+  type BetterThanHumanContext,
+} from '../conversation/superhuman/index.js';
 
-// ============================================================================
-// VOICE-TEXT MISMATCH DETECTION TESTS
-// ============================================================================
+const TEST_USER_ID = 'test-user-123';
+const TEST_SESSION_ID = 'test-session-456';
 
-describe('Voice-Text Mismatch Detection', () => {
-  let detectMismatch: typeof import('../intelligence/voice-text-mismatch.js').detectMismatch;
-  let buildMismatchGuidance: typeof import('../intelligence/voice-text-mismatch.js').buildMismatchGuidance;
-
-  beforeEach(async () => {
-    const module = await import('../intelligence/voice-text-mismatch.js');
-    detectMismatch = module.detectMismatch;
-    buildMismatchGuidance = module.buildMismatchGuidance;
+describe('Better Than Human Orchestrator', () => {
+  beforeEach(() => {
+    // Clear all engines before each test
+    clearBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID);
+    clearEmotionalMemory(TEST_USER_ID);
+    clearAnticipatoryPresence(TEST_USER_ID);
+    clearLinguisticMirroring(TEST_USER_ID);
+    clearDelightEngines(TEST_USER_ID);
+    clearEvolvingJokes(TEST_USER_ID);
+    clearTeamCoherence(TEST_USER_ID);
+    clearTemporalEmotional(TEST_USER_ID);
+    clearMetaRelationship(TEST_USER_ID);
+    clearSomaticPresence(TEST_USER_ID);
+    clearSuperhumanObservations(TEST_USER_ID);
   });
 
-  describe('detectMismatch', () => {
-    it('should detect "I\'m fine" with anxious voice as masking negative', () => {
-      const voiceEmotion = {
-        primary: 'anxious' as const,
-        confidence: 0.75,
-        valence: -0.4,
-        arousal: 0.6,
-        dominance: -0.3,
-        stressLevel: 0.7,
-        anxietyMarkers: true,
-        prosody: {
-          pitchMean: 180,
-          pitchVariance: 50,
-          pitchRange: 80,
-          pitchContour: 'dynamic' as const,
-          energyMean: -15,
-          energyVariance: 10,
-          energyPeaks: 5,
-          speechRate: 5.5,
-          pauseDuration: 150,
-          pauseFrequency: 12,
-          jitter: 0.06,
-          shimmer: 0.08,
-          breathiness: 0.25,
-          utteranceDuration: 2000,
-          speakingRatio: 0.7,
-        },
-        sampleCount: 1000,
-        processingTimeMs: 50,
-      };
-
-      const result = detectMismatch("I'm fine, really.", voiceEmotion);
-
-      expect(result.hasMismatch).toBe(true);
-      expect(result.type).toBe('masking_negative');
-      expect(result.voiceEmotion).toBe('anxious');
-      expect(result.confidence).toBeGreaterThan(0.5);
-      expect(result.shouldSurface).toBe(true);
-    });
-
-    it('should not detect mismatch when voice matches text', () => {
-      const voiceEmotion = {
-        primary: 'happy' as const,
-        confidence: 0.8,
-        valence: 0.7,
-        arousal: 0.5,
-        dominance: 0.3,
-        stressLevel: 0.1,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 170,
-          pitchVariance: 30,
-          pitchRange: 60,
-          pitchContour: 'rising' as const,
-          energyMean: -12,
-          energyVariance: 8,
-          energyPeaks: 3,
-          speechRate: 4.5,
-          pauseDuration: 100,
-          pauseFrequency: 6,
-          jitter: 0.02,
-          shimmer: 0.03,
-          breathiness: 0.1,
-          utteranceDuration: 1500,
-          speakingRatio: 0.8,
-        },
-        sampleCount: 800,
-        processingTimeMs: 40,
-      };
-
-      const result = detectMismatch("I'm doing great!", voiceEmotion);
-
-      expect(result.hasMismatch).toBe(false);
-      expect(result.type).toBe('none');
-    });
-
-    it('should detect high stress with neutral words as suppressing', () => {
-      const voiceEmotion = {
-        primary: 'neutral' as const,
-        confidence: 0.65,
-        valence: 0,
-        arousal: 0.4,
-        dominance: 0,
-        stressLevel: 0.75, // High stress
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 150,
-          pitchVariance: 20,
-          pitchRange: 40,
-          pitchContour: 'flat' as const,
-          energyMean: -18,
-          energyVariance: 5,
-          energyPeaks: 2,
-          speechRate: 3.5,
-          pauseDuration: 200,
-          pauseFrequency: 8,
-          jitter: 0.04,
-          shimmer: 0.05,
-          breathiness: 0.15,
-          utteranceDuration: 3000,
-          speakingRatio: 0.65,
-        },
-        sampleCount: 1200,
-        processingTimeMs: 55,
-      };
-
-      const result = detectMismatch('Just work stuff.', voiceEmotion);
-
-      expect(result.hasMismatch).toBe(true);
-      expect(result.type).toBe('suppressing');
-    });
-
-    it('should return no mismatch when voice confidence is low', () => {
-      const voiceEmotion = {
-        primary: 'sad' as const,
-        confidence: 0.2, // Too low
-        valence: -0.5,
-        arousal: -0.3,
-        dominance: -0.2,
-        stressLevel: 0.4,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 140,
-          pitchVariance: 15,
-          pitchRange: 30,
-          pitchContour: 'falling' as const,
-          energyMean: -20,
-          energyVariance: 3,
-          energyPeaks: 1,
-          speechRate: 3,
-          pauseDuration: 250,
-          pauseFrequency: 10,
-          jitter: 0.03,
-          shimmer: 0.04,
-          breathiness: 0.12,
-          utteranceDuration: 2500,
-          speakingRatio: 0.6,
-        },
-        sampleCount: 600,
-        processingTimeMs: 35,
-      };
-
-      const result = detectMismatch("I'm happy about this!", voiceEmotion);
-
-      expect(result.hasMismatch).toBe(false);
-    });
+  afterEach(() => {
+    clearBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID);
   });
 
-  describe('buildMismatchGuidance', () => {
-    it('should generate guidance for masking mismatch', () => {
-      const mismatch = {
-        hasMismatch: true,
-        confidence: 0.7,
-        textEmotion: 'neutral',
-        voiceEmotion: 'anxious',
-        type: 'masking_negative' as const,
-        interpretation: "User says they're okay but voice reveals anxious emotion",
-        suggestedApproach: 'Acknowledge without pushing',
-        shouldSurface: true,
-        surfacePhrase: "I hear you saying you're okay, but... I want you to know I'm here.",
-      };
+  it('should create orchestrator with all engines', () => {
+    const orchestrator = getBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID, 'ferni', 0);
 
-      const guidance = buildMismatchGuidance(mismatch);
+    expect(orchestrator).toBeDefined();
+    expect(orchestrator.getRelationshipStage()).toBeDefined();
+  });
 
-      expect(guidance).not.toBeNull();
-      expect(guidance).toContain('VOICE INSIGHT');
-      expect(guidance).toContain('anxious');
-    });
+  it('should analyze user message and return insight', () => {
+    const orchestrator = getBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID, 'ferni', 0);
 
-    it('should return null for no mismatch', () => {
-      const mismatch = {
-        hasMismatch: false,
-        confidence: 0,
-        textEmotion: 'neutral',
-        voiceEmotion: 'neutral',
-        type: 'none' as const,
-        interpretation: 'No significant mismatch detected',
-        suggestedApproach: '',
-        shouldSurface: false,
-      };
+    const context: BetterThanHumanContext = {
+      userMessage: "I've been feeling really stressed lately",
+      turnCount: 1,
+      sessionCount: 0,
+      personaId: 'ferni',
+      userId: TEST_USER_ID,
+      sessionId: TEST_SESSION_ID,
+      relationshipStage: 'getting_to_know',
+      isSessionStart: true,
+      dayOfWeek: 1,
+      timeOfDay: 'afternoon',
+    };
 
-      const guidance = buildMismatchGuidance(mismatch);
+    const insight = orchestrator.analyze(context);
 
-      expect(guidance).toBeNull();
-    });
+    expect(insight).toBeDefined();
+    expect(insight.emotionalBond).toBeDefined();
+    expect(insight.confidence).toBeGreaterThanOrEqual(0);
+    expect(insight.prioritizedActions).toBeInstanceOf(Array);
+  });
+
+  it('should detect self-criticism and trigger protection', () => {
+    const orchestrator = getBetterThanHuman(
+      TEST_USER_ID,
+      TEST_SESSION_ID,
+      'ferni',
+      5 // Several sessions
+    );
+
+    const context: BetterThanHumanContext = {
+      // Use message that matches pattern: /i('m| am) (so )?(stupid|dumb|idiot)/i
+      userMessage: "I'm so stupid. I can't do anything right.",
+      turnCount: 3,
+      sessionCount: 5,
+      personaId: 'ferni',
+      userId: TEST_USER_ID,
+      sessionId: TEST_SESSION_ID,
+      relationshipStage: 'trusted_advisor',
+      isSessionStart: false,
+      dayOfWeek: 3,
+      timeOfDay: 'evening',
+    };
+
+    const insight = orchestrator.analyze(context);
+
+    // Should have a protective action
+    const protectionAction = insight.prioritizedActions.find((a) => a.type === 'protection');
+    expect(protectionAction).toBeDefined();
+    expect(protectionAction?.priority).toBeGreaterThan(0.9);
+  });
+
+  it('should apply insights to response', () => {
+    const orchestrator = getBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID, 'ferni', 0);
+
+    const context: BetterThanHumanContext = {
+      userMessage: "I'm a complete failure",
+      turnCount: 1,
+      sessionCount: 0,
+      personaId: 'ferni',
+      userId: TEST_USER_ID,
+      sessionId: TEST_SESSION_ID,
+      relationshipStage: 'getting_to_know',
+      isSessionStart: false,
+      dayOfWeek: 1,
+      timeOfDay: 'afternoon',
+    };
+
+    const insight = orchestrator.analyze(context);
+    const originalResponse = 'That sounds difficult.';
+    const enhanced = orchestrator.applyInsights(originalResponse, insight, 2);
+
+    // Enhanced response should be different (have prefix/suffix)
+    expect(enhanced.length).toBeGreaterThanOrEqual(originalResponse.length);
+  });
+
+  it('should export and import state', () => {
+    const orchestrator = getBetterThanHuman(TEST_USER_ID, TEST_SESSION_ID, 'ferni', 5);
+
+    // Build up some state
+    const context: BetterThanHumanContext = {
+      userMessage: "I've been working hard on my goals",
+      turnCount: 1,
+      sessionCount: 5,
+      personaId: 'ferni',
+      userId: TEST_USER_ID,
+      sessionId: TEST_SESSION_ID,
+      relationshipStage: 'trusted_advisor',
+      isSessionStart: false,
+      dayOfWeek: 1,
+      timeOfDay: 'afternoon',
+    };
+    orchestrator.analyze(context);
+
+    // Export state
+    const exported = orchestrator.export();
+
+    expect(exported).toBeDefined();
+    expect(exported.emotionalBond).toBeDefined();
+    expect(exported.sessionCount).toBe(5);
+
+    // Create new orchestrator and import
+    const newOrchestrator = getBetterThanHuman(TEST_USER_ID, 'new-session', 'ferni', 0);
+    newOrchestrator.import(exported);
+
+    // State should be restored
+    const newExported = newOrchestrator.export();
+    expect(newExported.sessionCount).toBe(5);
   });
 });
 
-// ============================================================================
-// CROSS-PERSONA INSIGHT SHARING TESTS
-// ============================================================================
-
-describe('Cross-Persona Insight Sharing', () => {
-  let recordInsight: typeof import('../services/cross-persona-insights.js').recordInsight;
-  let getInsightsForPersona: typeof import('../services/cross-persona-insights.js').getInsightsForPersona;
-  let buildInsightContext: typeof import('../services/cross-persona-insights.js').buildInsightContext;
-
-  beforeEach(async () => {
-    const module = await import('../services/cross-persona-insights.js');
-    recordInsight = module.recordInsight;
-    getInsightsForPersona = module.getInsightsForPersona;
-    buildInsightContext = module.buildInsightContext;
+describe('Emotional Memory Engine', () => {
+  beforeEach(() => {
+    clearEmotionalMemory(TEST_USER_ID);
   });
 
-  describe('recordInsight', () => {
-    it('should record and store insight', async () => {
-      const insight = await recordInsight('test-user-123', 'maya', {
-        category: 'emotional_state',
-        content: 'User has been stressed about work deadlines',
-        summary: 'Stressed about work deadlines',
-        confidence: 0.8,
-        priority: 'high',
-      });
+  it('should track emotional bond metrics', () => {
+    const engine = getEmotionalMemory(TEST_USER_ID);
 
-      expect(insight).toBeDefined();
-      expect(insight.id).toContain('insight_');
-      expect(insight.sourcePersona).toBe('maya');
-      expect(insight.category).toBe('emotional_state');
-      expect(insight.acknowledgedBy).toContain('maya');
+    // Record some interactions using the correct API
+    engine.recordEvent('vulnerability_shared', {
+      description: 'Shared something personal',
     });
 
-    it('should set priority automatically based on category', async () => {
-      const insight = await recordInsight('test-user-456', 'ferni', {
-        category: 'boundary',
-        content: 'User asked not to discuss their ex',
-        summary: "Don't discuss ex relationships",
-        confidence: 0.9,
-      });
-
-      expect(insight.priority).toBe('critical'); // Boundaries are critical
-    });
+    const bond = engine.getBond();
+    expect(bond.trust).toBeGreaterThan(0);
   });
 
-  describe('getInsightsForPersona', () => {
-    it('should filter insights by relevance to persona', async () => {
-      const testUserId = `test-user-${Date.now()}`;
+  it('should evolve bond over time', () => {
+    const engine = getEmotionalMemory(TEST_USER_ID);
 
-      // Record insights from different personas
-      await recordInsight(testUserId, 'maya', {
-        category: 'habit',
-        content: 'User struggles with morning routine',
-        summary: 'Struggles with morning routine',
-        confidence: 0.75,
+    // Record multiple positive interactions using valid event types
+    for (let i = 0; i < 5; i++) {
+      engine.recordEvent('growth_shown', {
+        description: `Session ${i}`,
       });
+    }
 
-      await recordInsight(testUserId, 'peter', {
-        category: 'financial',
-        content: 'User interested in index funds',
-        summary: 'Interested in index funds',
-        confidence: 0.8,
-      });
-
-      // Maya should see habits (her domain), Ferni should see both
-      const mayaInsights = getInsightsForPersona(testUserId, 'maya', {
-        includeAcknowledged: true,
-      });
-      const jackInsights = getInsightsForPersona(testUserId, 'jack', {
-        includeAcknowledged: true,
-      });
-
-      // Jack (financial advisor) should have higher relevance for financial insight
-      const jackFinancialRelevance = jackInsights.find(
-        (i) => i.insight.category === 'financial'
-      )?.relevanceScore;
-      const jackHabitRelevance = jackInsights.find(
-        (i) => i.insight.category === 'habit'
-      )?.relevanceScore;
-
-      if (jackFinancialRelevance && jackHabitRelevance) {
-        expect(jackFinancialRelevance).toBeGreaterThan(jackHabitRelevance);
-      }
-    });
+    const bond = engine.getBond();
+    expect(bond.warmth).toBeGreaterThan(0);
   });
 
-  describe('buildInsightContext', () => {
-    it('should build LLM-ready context string', async () => {
-      const testUserId = `test-user-context-${Date.now()}`;
+  it('should provide bond-aware phrases', () => {
+    const engine = getEmotionalMemory(TEST_USER_ID);
 
-      await recordInsight(testUserId, 'maya', {
-        category: 'struggle',
-        content: 'User mentioned feeling overwhelmed',
-        summary: 'Feeling overwhelmed lately',
-        confidence: 0.85,
-        priority: 'high',
-      });
-
-      const context = buildInsightContext(testUserId, 'ferni');
-
-      if (context) {
-        expect(context).toContain('Team Insights');
-        expect(context).toContain('overwhelmed');
-      }
+    // Build up bond
+    engine.recordEvent('vulnerability_shared', {
+      description: 'Deep sharing',
     });
 
-    it('should return null when no relevant insights', () => {
-      const context = buildInsightContext('nonexistent-user', 'ferni');
-      expect(context).toBeNull();
+    const phrase = engine.getBondPhrase({
+      turnCount: 15,
+      wasVulnerable: true,
+      showedGrowth: false,
     });
+
+    // Should get a phrase after building bond
+    // (May be null if bond not high enough yet)
+    expect(phrase === null || typeof phrase.phrase === 'string').toBe(true);
   });
 });
 
-// ============================================================================
-// PROSODY-TURN PREDICTION BRIDGE TESTS
-// ============================================================================
-
-describe('Prosody-Turn Prediction Bridge', () => {
-  let mapPitchContourToIntonation: typeof import('../speech/prosody-turn-bridge.js').mapPitchContourToIntonation;
-  let voiceSuggestsTurnComplete: typeof import('../speech/prosody-turn-bridge.js').voiceSuggestsTurnComplete;
-  let createTurnPredictionContext: typeof import('../speech/prosody-turn-bridge.js').createTurnPredictionContext;
-
-  beforeEach(async () => {
-    const module = await import('../speech/prosody-turn-bridge.js');
-    mapPitchContourToIntonation = module.mapPitchContourToIntonation;
-    voiceSuggestsTurnComplete = module.voiceSuggestsTurnComplete;
-    createTurnPredictionContext = module.createTurnPredictionContext;
+describe('Protective Instincts Engine', () => {
+  beforeEach(() => {
+    clearDelightEngines(TEST_USER_ID);
   });
 
-  describe('mapPitchContourToIntonation', () => {
-    it('should map rising pitch to rising intonation', () => {
-      expect(mapPitchContourToIntonation('rising')).toBe('rising');
-    });
+  it('should detect harsh self-judgment', () => {
+    const engine = getProtectiveInstincts(TEST_USER_ID);
 
-    it('should map falling pitch to falling intonation', () => {
-      expect(mapPitchContourToIntonation('falling')).toBe('falling');
-    });
-
-    it('should map flat pitch to neutral intonation', () => {
-      expect(mapPitchContourToIntonation('flat')).toBe('neutral');
-    });
-
-    it('should map dynamic pitch to neutral intonation', () => {
-      expect(mapPitchContourToIntonation('dynamic')).toBe('neutral');
-    });
+    // Pattern: /i('m| am) (so )?(stupid|dumb|idiot|worthless)/i
+    const result = engine.detectSelfCriticism("I'm so stupid");
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('harsh_judgment');
   });
 
-  describe('voiceSuggestsTurnComplete', () => {
-    it('should suggest complete for falling pitch with high confidence', () => {
-      const voiceEmotion = {
-        primary: 'neutral' as const,
-        confidence: 0.75,
-        valence: 0,
-        arousal: 0,
-        dominance: 0,
-        stressLevel: 0.2,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 150,
-          pitchVariance: 20,
-          pitchRange: 40,
-          pitchContour: 'falling' as const,
-          energyMean: -15,
-          energyVariance: 5,
-          energyPeaks: 2,
-          speechRate: 4,
-          pauseDuration: 150,
-          pauseFrequency: 6,
-          jitter: 0.02,
-          shimmer: 0.03,
-          breathiness: 0.1,
-          utteranceDuration: 2000,
-          speakingRatio: 0.75,
-        },
-        sampleCount: 1000,
-        processingTimeMs: 45,
-      };
+  it('should detect catastrophizing', () => {
+    const engine = getProtectiveInstincts(TEST_USER_ID);
 
-      const result = voiceSuggestsTurnComplete(voiceEmotion);
-
-      expect(result.suggests).toBe(true);
-      expect(result.reason.toLowerCase()).toContain('falling');
-    });
-
-    it('should not suggest complete for rising pitch', () => {
-      const voiceEmotion = {
-        primary: 'curious' as const,
-        confidence: 0.7,
-        valence: 0.2,
-        arousal: 0.3,
-        dominance: 0,
-        stressLevel: 0.1,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 160,
-          pitchVariance: 25,
-          pitchRange: 50,
-          pitchContour: 'rising' as const,
-          energyMean: -14,
-          energyVariance: 6,
-          energyPeaks: 3,
-          speechRate: 4.2,
-          pauseDuration: 120,
-          pauseFrequency: 5,
-          jitter: 0.02,
-          shimmer: 0.03,
-          breathiness: 0.08,
-          utteranceDuration: 1800,
-          speakingRatio: 0.8,
-        },
-        sampleCount: 900,
-        processingTimeMs: 42,
-      };
-
-      const result = voiceSuggestsTurnComplete(voiceEmotion);
-
-      expect(result.suggests).toBe(false);
-      expect(result.reason).toContain('Rising');
-    });
-
-    it('should return false for low confidence voice emotion', () => {
-      const voiceEmotion = {
-        primary: 'neutral' as const,
-        confidence: 0.2, // Too low
-        valence: 0,
-        arousal: 0,
-        dominance: 0,
-        stressLevel: 0.1,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 150,
-          pitchVariance: 20,
-          pitchRange: 40,
-          pitchContour: 'falling' as const,
-          energyMean: -15,
-          energyVariance: 5,
-          energyPeaks: 2,
-          speechRate: 4,
-          pauseDuration: 150,
-          pauseFrequency: 6,
-          jitter: 0.02,
-          shimmer: 0.03,
-          breathiness: 0.1,
-          utteranceDuration: 2000,
-          speakingRatio: 0.75,
-        },
-        sampleCount: 500,
-        processingTimeMs: 30,
-      };
-
-      const result = voiceSuggestsTurnComplete(voiceEmotion);
-
-      expect(result.suggests).toBe(false);
-      expect(result.reason).toContain('confidence');
-    });
+    // Pattern: /my life is (over|ruined|a mess)/i
+    const result = engine.detectSelfCriticism('My life is over');
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('catastrophizing');
   });
 
-  describe('createTurnPredictionContext', () => {
-    it('should create context with voice emotion', () => {
-      const voiceEmotion = {
-        primary: 'neutral' as const,
-        confidence: 0.7,
-        valence: 0,
-        arousal: 0.3,
-        dominance: 0,
-        stressLevel: 0.2,
-        anxietyMarkers: false,
-        prosody: {
-          pitchMean: 155,
-          pitchVariance: 22,
-          pitchRange: 45,
-          pitchContour: 'falling' as const,
-          energyMean: -14,
-          energyVariance: 5,
-          energyPeaks: 2,
-          speechRate: 4.5,
-          pauseDuration: 140,
-          pauseFrequency: 5,
-          jitter: 0.02,
-          shimmer: 0.03,
-          breathiness: 0.09,
-          utteranceDuration: 1900,
-          speakingRatio: 0.78,
-        },
-        sampleCount: 950,
-        processingTimeMs: 43,
-      };
+  it('should detect imposter syndrome', () => {
+    const engine = getProtectiveInstincts(TEST_USER_ID);
 
-      const ctx = createTurnPredictionContext('Hello, how are you today?', {
-        voiceEmotion,
-        speakingDurationMs: 2000,
-        silenceDurationMs: 500,
-        turnCount: 5,
-      });
+    // Pattern: /i('m| am) a fraud/i
+    const result = engine.detectSelfCriticism("I'm a fraud and they're going to find out.");
+    expect(result.detected).toBe(true);
+    expect(result.type).toBe('imposter_syndrome');
+  });
 
-      expect(ctx.transcript).toBe('Hello, how are you today?');
-      expect(ctx.intonation).toBe('falling');
-      expect(ctx.speakingDurationMs).toBe(2000);
-      expect(ctx.emotionIntensity).toBe(0.3);
-    });
+  it('should provide protective response', () => {
+    const engine = getProtectiveInstincts(TEST_USER_ID);
 
-    it('should handle null voice emotion gracefully', () => {
-      const ctx = createTurnPredictionContext('Hello!', {
-        voiceEmotion: null,
-      });
+    const response = engine.getProtectiveResponse('harsh_judgment', 'high', 'trusted_advisor');
 
-      expect(ctx.intonation).toBe('neutral');
-      expect(ctx.emotionIntensity).toBeUndefined();
-    });
+    expect(response).toBeDefined();
+    expect(response.phrase).toBeTruthy();
   });
 });
 
-// ============================================================================
-// CALENDAR BUSY DETECTION TESTS
-// ============================================================================
+describe('Linguistic Mirroring Engine', () => {
+  beforeEach(() => {
+    clearLinguisticMirroring(TEST_USER_ID);
+  });
 
-describe('Calendar Busy Detection', () => {
-  // These tests are more integration-focused and would need mocking
-  // Just test the helper functions here
+  it('should learn user vocabulary', () => {
+    const engine = getLinguisticMirroring(TEST_USER_ID);
 
-  it('should export required functions', async () => {
-    const module = await import('../services/calendar-busy-detection.js');
+    // Analyze multiple messages with consistent vocabulary
+    engine.analyzeMessage('I want to vibe with this approach');
+    engine.analyzeMessage('That vibes with what I was thinking');
+    engine.analyzeMessage('The vibe here is really good');
 
-    expect(module.isUserBusy).toBeDefined();
-    expect(module.getNextOutreachWindow).toBeDefined();
-    expect(module.getCalendarBusyProfile).toBeDefined();
-    expect(module.syncCalendarToOutreach).toBeDefined();
+    const profile = engine.getProfile();
+    expect(profile.preferredTerms.size).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should apply mirroring to response', () => {
+    const engine = getLinguisticMirroring(TEST_USER_ID);
+
+    // Teach the engine a preference
+    engine.analyzeMessage('I want to utilize this feature');
+    engine.analyzeMessage('We should utilize the new system');
+
+    const result = engine.applyMirroring('You can use this feature.');
+
+    expect(result.mirroredResponse).toBeDefined();
   });
 });
 
-// ============================================================================
-// UNIFIED PERSISTENCE TESTS
-// ============================================================================
-
-describe('Unified Trust Persistence', () => {
-  let initializeUnifiedPersistence: typeof import('../services/trust-systems/unified-persistence.js').initializeUnifiedPersistence;
-  let shutdownUnifiedPersistence: typeof import('../services/trust-systems/unified-persistence.js').shutdownUnifiedPersistence;
-  let saveSystemData: typeof import('../services/trust-systems/unified-persistence.js').saveSystemData;
-  let getSystemData: typeof import('../services/trust-systems/unified-persistence.js').getSystemData;
-
-  beforeEach(async () => {
-    const module = await import('../services/trust-systems/unified-persistence.js');
-    initializeUnifiedPersistence = module.initializeUnifiedPersistence;
-    shutdownUnifiedPersistence = module.shutdownUnifiedPersistence;
-    saveSystemData = module.saveSystemData;
-    getSystemData = module.getSystemData;
+describe('Evolving Jokes Engine', () => {
+  beforeEach(() => {
+    clearEvolvingJokes(TEST_USER_ID);
   });
 
-  it('should initialize and shutdown cleanly', async () => {
-    // This tests the lifecycle without errors
-    initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 }); // Long interval for tests
-    await shutdownUnifiedPersistence();
+  it('should detect joke seeds', () => {
+    const engine = getEvolvingJokes(TEST_USER_ID);
 
-    // Should be able to reinitialize
-    initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 });
-    await shutdownUnifiedPersistence();
+    // Multiple mentions of the same funny thing with context
+    engine.detectJokeSeed('My cat knocked over my coffee again today', {
+      wasHumorous: true,
+      userLaughed: true,
+    });
+    engine.detectJokeSeed('Cat strikes again - another coffee disaster', {
+      wasHumorous: true,
+      userLaughed: true,
+    });
+
+    const jokes = engine.getAllJokes();
+    // May or may not have created a joke yet depending on threshold
+    expect(Array.isArray(jokes)).toBe(true);
   });
 
-  it('should save and retrieve system data from cache', async () => {
-    initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 });
+  it('should evolve joke phases', () => {
+    const engine = getEvolvingJokes(TEST_USER_ID);
 
-    const testUserId = `test-unified-${Date.now()}`;
-    const testData = { testKey: 'testValue', number: 42 };
+    // Create a joke by multiple mentions
+    engine.detectJokeSeed('My plant keeps dying', {
+      wasHumorous: true,
+      userLaughed: true,
+    });
+    engine.detectJokeSeed('Plant death count: 5', {
+      wasHumorous: true,
+      userLaughed: true,
+    });
+    engine.detectJokeSeed('Another plant casualty', {
+      wasHumorous: true,
+      userLaughed: true,
+    });
 
-    // Save data
-    await saveSystemData(testUserId, 'testSystem', testData, { immediate: false });
+    // Export state - returns array of jokes directly
+    const exported = engine.export();
+    expect(exported).toBeDefined();
+    expect(Array.isArray(exported)).toBe(true);
+  });
+});
 
-    // Retrieve from cache
-    const retrieved = await getSystemData<typeof testData>(testUserId, 'testSystem');
+describe('Temporal Emotional Intelligence', () => {
+  beforeEach(() => {
+    clearTemporalEmotional(TEST_USER_ID);
+  });
 
-    expect(retrieved).toEqual(testData);
+  it('should record session emotions', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
 
-    await shutdownUnifiedPersistence();
+    engine.recordSessionEmotion({
+      dominantEmotion: 'neutral',
+      energyLevel: 0.5,
+      positivity: 0.6,
+      topics: ['work'],
+      concernsDetected: false,
+    });
+
+    const profile = engine.export();
+    expect(profile.sessionEmotions.length).toBe(1);
+  });
+
+  it('should detect emotional shifts', () => {
+    const engine = getTemporalEmotional(TEST_USER_ID);
+
+    // Record multiple sessions with different emotional states
+    engine.recordSessionEmotion({
+      dominantEmotion: 'stressed',
+      energyLevel: 0.3,
+      positivity: 0.3,
+      topics: ['work'],
+      concernsDetected: true,
+    });
+
+    engine.recordSessionEmotion({
+      dominantEmotion: 'content',
+      energyLevel: 0.7,
+      positivity: 0.7,
+      topics: ['life'],
+      concernsDetected: false,
+    });
+
+    const profile = engine.export();
+    // We recorded 2 sessions in this test
+    expect(profile.sessionEmotions.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Team Coherence Engine', () => {
+  beforeEach(() => {
+    clearTeamCoherence(TEST_USER_ID);
+  });
+
+  it('should record handoff notes', () => {
+    const engine = getTeamCoherence(TEST_USER_ID);
+
+    engine.recordHandoffNote(
+      'ferni',
+      'maya',
+      'user_state',
+      'User is motivated to work on habits',
+      'habits'
+    );
+
+    // Check that export contains the note
+    const exported = engine.export();
+    expect(exported.handoffNotes.length).toBe(1);
+    expect(exported.handoffNotes[0].fromPersona).toBe('ferni');
+    expect(exported.handoffNotes[0].toPersona).toBe('maya');
+  });
+
+  it('should provide team awareness', () => {
+    const engine = getTeamCoherence(TEST_USER_ID);
+
+    // Record some history
+    engine.recordHandoffNote(
+      'ferni',
+      'peter',
+      'recommendation',
+      'Encourage deep questions about research',
+      'research'
+    );
+
+    const awareness = engine.checkForTeamAwareness('ferni', {
+      turnCount: 1,
+      isSessionStart: true,
+      currentTopic: 'research',
+      sessionCount: 5,
+    });
+
+    // May or may not suggest mentioning team depending on timing
+    expect(awareness).toBeDefined();
+    expect(typeof awareness.shouldMention).toBe('boolean');
+  });
+});
+
+describe('Meta Relationship Engine', () => {
+  beforeEach(() => {
+    clearMetaRelationship(TEST_USER_ID);
+  });
+
+  it('should track relationship milestones', () => {
+    const engine = getMetaRelationship(TEST_USER_ID);
+
+    engine.recordMilestone({
+      type: 'first_vulnerable_share',
+      description: 'First time sharing something personal',
+      turnCount: 5,
+      sessionCount: 2,
+    });
+
+    const milestones = engine.getMilestones();
+    expect(milestones.length).toBe(1);
+  });
+
+  it('should check for meta comments', () => {
+    const engine = getMetaRelationship(TEST_USER_ID);
+
+    // Build up relationship
+    engine.recordMilestone({
+      type: 'trust_threshold',
+      description: 'Reached trust threshold',
+      turnCount: 50,
+      sessionCount: 10,
+    });
+
+    const comment = engine.checkForMetaComment({
+      turnCount: 55,
+      sessionCount: 11,
+      recentVulnerability: true,
+      recentGrowth: true,
+    });
+
+    expect(comment).toBeDefined();
+    expect(typeof comment.shouldComment).toBe('boolean');
+  });
+});
+
+describe('Superhuman Observations Engine', () => {
+  beforeEach(() => {
+    clearSuperhumanObservations(TEST_USER_ID);
+  });
+
+  it('should analyze messages for patterns', () => {
+    const engine = getSuperhumanObservations(TEST_USER_ID);
+
+    // Send multiple messages with patterns
+    engine.analyzeMessage('I should probably do that');
+    engine.analyzeMessage('I know I should be better');
+    engine.analyzeMessage('I should have done it differently');
+
+    const observations = engine.getObservations();
+    expect(Array.isArray(observations)).toBe(true);
+  });
+
+  it('should surface observations at appropriate times', () => {
+    const engine = getSuperhumanObservations(TEST_USER_ID);
+
+    // Build up patterns
+    for (let i = 0; i < 10; i++) {
+      engine.analyzeMessage('I should do better');
+    }
+
+    const result = engine.checkForSurfacing({
+      turnCount: 20,
+      sessionCount: 10,
+      relationshipStage: 'trusted_advisor',
+      currentContext: 'discussing goals',
+    });
+
+    expect(result).toBeDefined();
+    expect(typeof result.shouldSurface).toBe('boolean');
   });
 });

@@ -32,7 +32,12 @@
       "session_threshold": 1,
       "warmth_multiplier": 1.0,
       "story_frequency": "occasional",
-      "behaviors": ["validate_progress", "share_relatable_struggles", "gentle_encouragement", "celebrate_tiny_wins"],
+      "behaviors": [
+        "validate_progress",
+        "share_relatable_struggles",
+        "gentle_encouragement",
+        "celebrate_tiny_wins"
+      ],
       "communication_style": {
         "formality": 0.25,
         "humor_frequency": "low",
@@ -51,18 +56,19 @@
           "I see you showing up. That matters."
         ]
       },
-      "unlocked_features": [
-        "one_pushup_story",
-        "basic_habit_suggestions",
-        "glidepath_introduction"
-      ]
+      "unlocked_features": ["one_pushup_story", "basic_habit_suggestions", "glidepath_introduction"]
     },
     "friend": {
       "turn_threshold": 60,
       "session_threshold": 5,
       "warmth_multiplier": 1.15,
       "story_frequency": "natural",
-      "behaviors": ["celebrate_all_wins", "share_deeper_struggles", "hold_accountable_gently", "remember_their_goals"],
+      "behaviors": [
+        "celebrate_all_wins",
+        "share_deeper_struggles",
+        "hold_accountable_gently",
+        "remember_their_goals"
+      ],
       "communication_style": {
         "formality": 0.2,
         "humor_frequency": "medium",
@@ -100,7 +106,12 @@
       "session_threshold": 15,
       "warmth_multiplier": 1.25,
       "story_frequency": "meaningful",
-      "behaviors": ["deep_habit_archaeology", "tough_love_when_needed", "celebrate_transformation", "remember_their_journey"],
+      "behaviors": [
+        "deep_habit_archaeology",
+        "tough_love_when_needed",
+        "celebrate_transformation",
+        "remember_their_journey"
+      ],
       "communication_style": {
         "formality": 0.15,
         "humor_frequency": "natural",
@@ -192,10 +203,6 @@
       "life_stage",
       "keystone_habits"
     ],
-    "recall_in_greetings": [
-      "last_habit_discussed",
-      "recent_wins",
-      "ongoing_challenges"
-    ]
+    "recall_in_greetings": ["last_habit_discussed", "recent_wins", "ongoing_challenges"]
   }
 }

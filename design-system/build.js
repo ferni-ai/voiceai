@@ -18,9 +18,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load token files
 const colors = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/colors.json'), 'utf8'));
-const typography = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/typography.json'), 'utf8'));
+const typography = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'tokens/typography.json'), 'utf8')
+);
 const spacing = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/spacing.json'), 'utf8'));
-const animation = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/animation.json'), 'utf8'));
+const animation = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'tokens/animation.json'), 'utf8')
+);
 const effects = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/effects.json'), 'utf8'));
 
 // ============================================================================
@@ -343,19 +347,77 @@ function generateAnimationCSS(animation) {
 
   lines.push('}');
 
-  // Keyframes
+  // Keyframes - Filter out documentation keys (starting with _)
   lines.push('');
   lines.push('/* Keyframe Animations */');
   for (const [name, frames] of Object.entries(animation.keyframes)) {
+    // Skip documentation markers
+    if (name.startsWith('_')) continue;
+
     lines.push(`@keyframes ${name} {`);
     for (const [frame, properties] of Object.entries(frames)) {
+      // Skip description fields within keyframes
+      if (frame.startsWith('_')) continue;
+
       const props = Object.entries(properties)
         .map(([prop, val]) => `${camelToKebab(prop)}: ${val}`)
         .join('; ');
       lines.push(`  ${frame} { ${props}; }`);
     }
     lines.push('}');
+    lines.push('');
   }
+
+  // Generate Pixar-inspired utility classes
+  lines.push('/* ========================================================================');
+  lines.push('   PIXAR-INSPIRED ANIMATION CLASSES');
+  lines.push('   Use these classes to trigger Pixar-quality squash & stretch animations');
+  lines.push('   ======================================================================== */');
+  lines.push('');
+
+  // Pixar reaction classes that use the keyframes
+  lines.push(
+    '.pixar-bounce { animation: pixarBounce 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }'
+  );
+  lines.push(
+    '.pixar-anticipate { animation: pixarAnticipate 200ms cubic-bezier(0.38, -0.4, 0.88, 0.65) forwards; }'
+  );
+  lines.push(
+    '.pixar-settle { animation: pixarSettle 300ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }'
+  );
+  lines.push('.pixar-thinking-tilt { animation: pixarThinkingTilt 2s ease-in-out infinite; }');
+  lines.push(
+    '.pixar-joy-bounce { animation: pixarJoyBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }'
+  );
+  lines.push(
+    '.pixar-sad-slump { animation: pixarSadSlump 800ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }'
+  );
+  lines.push(
+    '.pixar-attention { animation: pixarAttention 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }'
+  );
+  lines.push('.pixar-breathe { animation: pixarBreathe 5s ease-in-out infinite; }');
+  lines.push('.pixar-float { animation: pixarFloat 6s ease-in-out infinite; }');
+  lines.push('');
+
+  // Avatar reaction classes
+  lines.push('/* Avatar Reaction Classes - Pixar-quality squash & stretch */');
+  lines.push('.avatar-nod { animation: avatarNod 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }');
+  lines.push(
+    '.avatar-shake { animation: avatarShake 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }'
+  );
+  lines.push(
+    '.avatar-bounce { animation: avatarBounce 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }'
+  );
+  lines.push(
+    '.avatar-pulse { animation: avatarPulse 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }'
+  );
+  lines.push(
+    '.avatar-curious-tilt { animation: avatarCuriousTilt 600ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }'
+  );
+  lines.push(
+    '.avatar-attentive-lean { animation: avatarAttentiveLean 800ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }'
+  );
+  lines.push('');
 
   return lines.join('\n');
 }
@@ -468,7 +530,8 @@ function generateEffectsCSS(effects) {
 }
 
 .glow-persona {
-  box-shadow: var(--glow-persona-ring);
+  /* Removed: harsh glow effects break warm, grounded aesthetic */
+  /* Use subtle borders or tints instead */
 }
 
 .glow-connection {
@@ -625,7 +688,7 @@ function generateEffectsCSS(effects) {
   backdrop-filter: blur(var(--glass-blur-strong));
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
   border: var(--glass-border-medium);
-  box-shadow: var(--glass-inner-glow), var(--glass-outer-glow);
+  box-shadow: var(--glass-inner-glow);
 }
 `);
 
@@ -2025,7 +2088,7 @@ function generateTypeScript() {
   const anticipation = animation.anticipation || {};
   const organicTextures = animation.organicTextures || {};
   const voiceEmotionGlow = animation.voiceEmotionGlow || {};
-  
+
   // Filter out _documentation fields
   const avatarSquashStretch = Object.fromEntries(
     Object.entries(rawAvatarSquashStretch).filter(([key]) => !key.startsWith('_'))
@@ -2050,8 +2113,8 @@ function generateTypeScript() {
  * DO NOT EDIT DIRECTLY.
  */
 
-export type ThemeName = ${themeNames.map(t => `'${t}'`).join(' | ')};
-export type PersonaId = ${personaIds.map(p => `'${p}'`).join(' | ')};
+export type ThemeName = ${themeNames.map((t) => `'${t}'`).join(' | ')};
+export type PersonaId = ${personaIds.map((p) => `'${p}'`).join(' | ')};
 
 export interface ThemeMeta {
   name: string;
@@ -2060,9 +2123,7 @@ export interface ThemeMeta {
 }
 
 export const THEMES: Record<ThemeName, ThemeMeta> = ${JSON.stringify(
-    Object.fromEntries(
-      Object.entries(colors.themes).map(([k, v]) => [k, v.meta])
-    ),
+    Object.fromEntries(Object.entries(colors.themes).map(([k, v]) => [k, v.meta])),
     null,
     2
   )};
@@ -2084,34 +2145,46 @@ export const PHI_INVERSE = ${goldenRatioTiming.phiInverse || 0.618033988749895};
  * Fibonacci-based timing for natural rhythm.
  * Each duration is approximately φ × the previous.
  */
-export const FIBONACCI_TIMING = ${JSON.stringify(goldenRatioTiming.fibonacci || {
-  f8: '233ms',
-  f9: '377ms', 
-  f10: '610ms',
-  f11: '987ms',
-  f12: '1597ms',
-  f13: '2584ms'
-}, null, 2)};
+export const FIBONACCI_TIMING = ${JSON.stringify(
+    goldenRatioTiming.fibonacci || {
+      f8: '233ms',
+      f9: '377ms',
+      f10: '610ms',
+      f11: '987ms',
+      f12: '1597ms',
+      f13: '2584ms',
+    },
+    null,
+    2
+  )};
 
 /**
  * Avatar breathing animation durations by state.
  */
-export const AVATAR_BREATH_TIMING = ${JSON.stringify(goldenRatioTiming.avatarBreath || {
-  idle: '5000ms',
-  connected: '4500ms',
-  speaking: '3000ms',
-  listening: '4000ms'
-}, null, 2)};
+export const AVATAR_BREATH_TIMING = ${JSON.stringify(
+    goldenRatioTiming.avatarBreath || {
+      idle: '5000ms',
+      connected: '4500ms',
+      speaking: '3000ms',
+      listening: '4000ms',
+    },
+    null,
+    2
+  )};
 
 /**
  * Pixar reaction animation phases.
  * Every action has: Anticipation → Action → Follow-through
  */
-export const REACTION_PHASES = ${JSON.stringify(goldenRatioTiming.reactionPhases || {
-  anticipation: '80ms',
-  action: '400ms',
-  followThrough: '150ms'
-}, null, 2)};
+export const REACTION_PHASES = ${JSON.stringify(
+    goldenRatioTiming.reactionPhases || {
+      anticipation: '80ms',
+      action: '400ms',
+      followThrough: '150ms',
+    },
+    null,
+    2
+  )};
 
 /**
  * Avatar squash & stretch parameters.
@@ -2150,7 +2223,9 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = ${Object.keys(personaAnimationProfiles).map(p => `'${p}'`).join(' | ')};
+export type PersonaAnimationId = ${Object.keys(personaAnimationProfiles)
+    .map((p) => `'${p}'`)
+    .join(' | ')};
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -2371,7 +2446,7 @@ export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = ${JSON.
     Object.fromEntries(
       Object.entries(voiceEmotionGlow.emotions || {}).map(([key, value]) => [
         key,
-        Object.fromEntries(Object.entries(value).filter(([k]) => !k.startsWith('_')))
+        Object.fromEntries(Object.entries(value).filter(([k]) => !k.startsWith('_'))),
       ])
     ),
     null,
@@ -2383,7 +2458,9 @@ export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = ${JSON.
  */
 export const SPEAKING_INTENSITY: Record<SpeakingIntensity, SpeakingIntensityConfig> = ${JSON.stringify(
     Object.fromEntries(
-      Object.entries(voiceEmotionGlow.speakingIntensity || {}).filter(([key]) => !key.startsWith('_'))
+      Object.entries(voiceEmotionGlow.speakingIntensity || {}).filter(
+        ([key]) => !key.startsWith('_')
+      )
     ),
     null,
     2
@@ -2843,7 +2920,10 @@ function generateTailwindConfig() {
         ),
         fontWeight: typography.fontWeights,
         lineHeight: Object.fromEntries(
-          Object.entries(typography.lineHeights).map(([key, value]) => [camelToKebab(key), String(value)])
+          Object.entries(typography.lineHeights).map(([key, value]) => [
+            camelToKebab(key),
+            String(value),
+          ])
         ),
         letterSpacing: Object.fromEntries(
           Object.entries(typography.letterSpacing).map(([key, value]) => [camelToKebab(key), value])
@@ -2896,22 +2976,24 @@ export default ${JSON.stringify(config, null, 2)};
 // ACCESSIBILITY VALIDATION (WCAG 2.1 AA/AAA)
 // ============================================================================
 
-const WCAG_AA_NORMAL = 4.5;      // Normal text (< 18pt)
-const WCAG_AA_LARGE = 3.0;       // Large text (>= 18pt or >= 14pt bold)
-const WCAG_AAA_NORMAL = 7.0;     // Enhanced contrast
-const WCAG_AAA_LARGE = 4.5;      // Enhanced large text
+const WCAG_AA_NORMAL = 4.5; // Normal text (< 18pt)
+const WCAG_AA_LARGE = 3.0; // Large text (>= 18pt or >= 14pt bold)
+const WCAG_AAA_NORMAL = 7.0; // Enhanced contrast
+const WCAG_AAA_LARGE = 4.5; // Enhanced large text
 
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
 }
 
 function getLuminance(r, g, b) {
-  const [rs, gs, bs] = [r, g, b].map(c => {
+  const [rs, gs, bs] = [r, g, b].map((c) => {
     c = c / 255;
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });
@@ -2952,12 +3034,30 @@ function validateAccessibility(strict = false) {
         { color: colors.themes.midnight.background.elevated, name: 'bg-elevated' },
       ],
       textColors: [
-        { color: colors.themes.midnight.text.primary, name: 'text-primary', minRatio: WCAG_AA_NORMAL },
-        { color: colors.themes.midnight.text.secondary, name: 'text-secondary', minRatio: WCAG_AA_NORMAL },
+        {
+          color: colors.themes.midnight.text.primary,
+          name: 'text-primary',
+          minRatio: WCAG_AA_NORMAL,
+        },
+        {
+          color: colors.themes.midnight.text.secondary,
+          name: 'text-secondary',
+          minRatio: WCAG_AA_NORMAL,
+        },
         { color: colors.themes.midnight.text.muted, name: 'text-muted', minRatio: WCAG_AA_NORMAL },
-        { color: colors.themes.midnight.text.dimmed, name: 'text-dimmed', minRatio: WCAG_AA_LARGE, largeOnly: true },
-        { color: colors.themes.midnight.accent.text, name: 'accent-text', minRatio: WCAG_AA_LARGE, largeOnly: true },
-      ]
+        {
+          color: colors.themes.midnight.text.dimmed,
+          name: 'text-dimmed',
+          minRatio: WCAG_AA_LARGE,
+          largeOnly: true,
+        },
+        {
+          color: colors.themes.midnight.accent.text,
+          name: 'accent-text',
+          minRatio: WCAG_AA_LARGE,
+          largeOnly: true,
+        },
+      ],
     },
     zen: {
       backgrounds: [
@@ -2967,36 +3067,52 @@ function validateAccessibility(strict = false) {
       ],
       textColors: [
         { color: colors.themes.zen.text.primary, name: 'text-primary', minRatio: WCAG_AA_NORMAL },
-        { color: colors.themes.zen.text.secondary, name: 'text-secondary', minRatio: WCAG_AA_NORMAL },
+        {
+          color: colors.themes.zen.text.secondary,
+          name: 'text-secondary',
+          minRatio: WCAG_AA_NORMAL,
+        },
         { color: colors.themes.zen.text.muted, name: 'text-muted', minRatio: WCAG_AA_NORMAL },
-        { color: colors.themes.zen.text.dimmed, name: 'text-dimmed', minRatio: WCAG_AA_LARGE, largeOnly: true },
-        { color: colors.themes.zen.accent.text, name: 'accent-text', minRatio: WCAG_AA_LARGE, largeOnly: true },
-      ]
-    }
+        {
+          color: colors.themes.zen.text.dimmed,
+          name: 'text-dimmed',
+          minRatio: WCAG_AA_LARGE,
+          largeOnly: true,
+        },
+        {
+          color: colors.themes.zen.accent.text,
+          name: 'accent-text',
+          minRatio: WCAG_AA_LARGE,
+          largeOnly: true,
+        },
+      ],
+    },
   };
 
   Object.entries(textContrastTests).forEach(([themeName, config]) => {
     console.log(`\n  ${themeName.toUpperCase()} Theme:`);
-    
-    config.backgrounds.forEach(bg => {
-      config.textColors.forEach(text => {
+
+    config.backgrounds.forEach((bg) => {
+      config.textColors.forEach((text) => {
         const ratio = getContrastRatio(text.color, bg.color);
         if (ratio) {
           const pass = ratio >= text.minRatio;
           const icon = pass ? '✅' : '❌';
           const note = text.largeOnly ? ' (large text)' : '';
-          
+
           if (!pass) {
             errors.push({
               theme: themeName,
               test: `${text.name} on ${bg.name}`,
               ratio: ratio.toFixed(2),
               required: text.minRatio,
-              colors: { text: text.color, bg: bg.color }
+              colors: { text: text.color, bg: bg.color },
             });
           }
-          
-          console.log(`    ${icon} ${text.name} on ${bg.name}: ${ratio.toFixed(2)}:1 (need ${text.minRatio}:1)${note}`);
+
+          console.log(
+            `    ${icon} ${text.name} on ${bg.name}: ${ratio.toFixed(2)}:1 (need ${text.minRatio}:1)${note}`
+          );
         }
       });
     });
@@ -3017,7 +3133,7 @@ function validateAccessibility(strict = false) {
       backgrounds: [
         colors.themes.midnight.background.primary,
         colors.themes.midnight.background.elevated,
-      ]
+      ],
     }));
 
   personaTextTests.forEach(({ name, color, backgrounds }) => {
@@ -3030,9 +3146,11 @@ function validateAccessibility(strict = false) {
           color,
           bg,
           ratio: ratio.toFixed(2),
-          message: `${name} primary (${color}) has ${ratio.toFixed(2)}:1 contrast on dark bg - DO NOT use as text`
+          message: `${name} primary (${color}) has ${ratio.toFixed(2)}:1 contrast on dark bg - DO NOT use as text`,
         });
-        console.log(`    ⚠️  ${name} (${color}): ${ratio.toFixed(2)}:1 on dark bg → PROHIBITED for text`);
+        console.log(
+          `    ⚠️  ${name} (${color}): ${ratio.toFixed(2)}:1 on dark bg → PROHIBITED for text`
+        );
       }
     });
   });
@@ -3056,11 +3174,11 @@ function validateAccessibility(strict = false) {
       element: 'Border (strong)',
       fg: 'rgba(44, 37, 32, 0.18)',
       bg: colors.themes.zen.background.primary,
-    }
+    },
   ];
 
   // For rgba, we can't easily compute contrast, so we skip with a note
-  uiContrastTests.forEach(test => {
+  uiContrastTests.forEach((test) => {
     console.log(`    ℹ️  ${test.theme}: ${test.element} - manual verification needed (rgba)`);
   });
 
@@ -3076,7 +3194,7 @@ function validateAccessibility(strict = false) {
     passed: errors.length === 0,
     errors: errors.length,
     warnings: warnings.length,
-    details: { errors, warnings }
+    details: { errors, warnings },
   };
 
   // Write report to file

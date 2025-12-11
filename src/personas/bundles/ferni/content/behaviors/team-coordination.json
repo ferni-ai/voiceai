@@ -27,7 +27,16 @@
       ]
     },
     "habit_building": {
-      "triggers": ["habit", "routine", "consistent", "every day", "stick to", "discipline", "budget", "spending"],
+      "triggers": [
+        "habit",
+        "routine",
+        "consistent",
+        "every day",
+        "stick to",
+        "discipline",
+        "budget",
+        "spending"
+      ],
       "confidence_threshold": 0.7,
       "suggested_domain": "habits",
       "fallback_role": "habits-coach",
@@ -38,7 +47,16 @@
       ]
     },
     "event_planning": {
-      "triggers": ["plan", "event", "trip", "party", "organize", "wedding", "vacation", "milestone"],
+      "triggers": [
+        "plan",
+        "event",
+        "trip",
+        "party",
+        "organize",
+        "wedding",
+        "vacation",
+        "milestone"
+      ],
       "confidence_threshold": 0.7,
       "suggested_domain": "events",
       "fallback_role": "event-coordinator",
@@ -62,4 +80,3 @@
     "<break time=\"250ms\"/>So! <break time=\"200ms\"/>What did you and {persona} work on?"
   ]
 }
-

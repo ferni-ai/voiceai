@@ -80,7 +80,7 @@ interface DashboardState {
 
 let container: HTMLElement | null = null;
 let isVisible = false;
-let state: DashboardState = {
+const state: DashboardState = {
   activeTab: 'overview',
   personaHealth: [],
   scenarioResults: [],
@@ -114,6 +114,10 @@ const ICONS = {
   chart: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
   trendUp: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`,
   trendDown: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg>`,
+  download: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+  mic: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
+  search: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+  target: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
 };
 
 // ============================================================================
@@ -241,7 +245,7 @@ function createDashboardHTML(): string {
       <header class="evalops-header">
         <div class="header-left">
           <span class="eyebrow">QUALITY ASSURANCE</span>
-          <h2>🎯 EvalOps Dashboard</h2>
+          <h2>EvalOps Dashboard</h2>
         </div>
         <div class="header-actions">
           <button class="refresh-btn" title="Refresh data">
@@ -282,7 +286,7 @@ function createDashboardHTML(): string {
       
       <footer class="evalops-footer">
         <span class="status-text">
-          ${state.config.enabled ? '🟢 Evaluation active' : '🔴 Evaluation paused'}
+          ${state.config.enabled ? 'Evaluation active' : 'Evaluation paused'}
           • ${state.config.sampleRate}% sample rate
           ${state.lastRefresh ? `• Last refresh: ${state.lastRefresh.toLocaleTimeString()}` : ''}
         </span>
@@ -417,7 +421,7 @@ function renderOverviewTab(): string {
             ${ICONS.play} Run Full Suite
           </button>
           <button class="action-btn" data-action="export">
-            📊 Export Report
+            ${ICONS.download} Export Report
           </button>
         </div>
       </div>
@@ -459,10 +463,10 @@ function renderPersonasTab(): string {
             
             <div class="persona-actions">
               <button class="persona-action-btn" data-action="test-voice" data-persona="${p.personaId}">
-                🎯 Test Voice
+                ${ICONS.mic} Test Voice
               </button>
               <button class="persona-action-btn" data-action="view-fingerprint" data-persona="${p.personaId}">
-                🔍 View Fingerprint
+                ${ICONS.search} View Fingerprint
               </button>
             </div>
           </div>

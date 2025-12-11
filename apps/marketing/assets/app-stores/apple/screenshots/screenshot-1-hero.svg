@@ -74,7 +74,7 @@
     <!-- Team chips at bottom -->
     <g transform="translate(100, 1450)">
       <circle cx="50" cy="40" r="40" fill="#4a6741"/>
-      <text x="50" y="48" font-family="-apple-system, sans-serif" font-size="24" font-weight="600" fill="white" text-anchor="middle">FN</text>
+      <text x="50" y="48" font-family="-apple-system, sans-serif" font-size="24" font-weight="600" fill="white" text-anchor="middle">FE</text>
       <text x="50" y="105" font-family="'Inter', sans-serif" font-size="22" font-weight="500" fill="#5C544A" text-anchor="middle">Ferni</text>
       
       <circle cx="170" cy="40" r="40" fill="#9a7b5a" opacity="0.4"/>

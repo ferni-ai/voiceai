@@ -47,10 +47,15 @@ function getFirestore(): admin.firestore.Firestore | null {
 // CONFIGURATION
 // ============================================================================
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
-const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL || 'https://api.ferni.ai/webhooks/twilio';
+// Read at runtime for testability
+function getTwilioConfig() {
+  return {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || '',
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
+    webhookBaseUrl: process.env.WEBHOOK_BASE_URL || 'https://api.ferni.ai/webhooks/twilio',
+  };
+}
 
 // ============================================================================
 // TYPES
@@ -192,7 +197,7 @@ class AppointmentIntegrationService extends EventEmitter {
     const followUpService = getAppointmentFollowUpService();
     const parsedDate = this.parseRequestedDateTime(request.requestedDate, request.requestedTime);
 
-    const trackedAppointment = followUpService.trackAppointment({
+    const _trackedAppointment = followUpService.trackAppointment({
       id: appointmentId,
       userId: request.userId,
       type: request.appointmentType === 'restaurant' ? 'restaurant' : 'service',
@@ -246,6 +251,7 @@ class AppointmentIntegrationService extends EventEmitter {
     appointmentId: string,
     request: AppointmentRequest
   ): Promise<AppointmentResult> {
+    const config = getTwilioConfig();
     const twiml = generateAppointmentTwiML({
       businessName: request.businessName,
       requestedDate: request.requestedDate,
@@ -253,26 +259,26 @@ class AppointmentIntegrationService extends EventEmitter {
       partySize: request.partySize,
       specialRequests: request.specialRequests,
       callerName: 'my client',
-      callbackUrl: WEBHOOK_BASE_URL,
+      callbackUrl: config.webhookBaseUrl,
     });
 
     const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`,
+      `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Calls.json`,
       {
         method: 'POST',
         headers: {
-          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
+          Authorization: `Basic ${Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
           To: request.businessPhone,
-          From: TWILIO_PHONE_NUMBER,
+          From: config.phoneNumber,
           Twiml: twiml,
-          StatusCallback: `${WEBHOOK_BASE_URL}/call-status`,
+          StatusCallback: `${config.webhookBaseUrl}/call-status`,
           StatusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'].join(' '),
           MachineDetection: 'DetectMessageEnd',
           AsyncAmd: 'true',
-          AsyncAmdStatusCallback: `${WEBHOOK_BASE_URL}/amd-status`,
+          AsyncAmdStatusCallback: `${config.webhookBaseUrl}/amd-status`,
         }),
         signal: AbortSignal.timeout(30000),
       }
@@ -287,7 +293,7 @@ class AppointmentIntegrationService extends EventEmitter {
 
     // Track the call
     const webhookService = getTwilioWebhookService();
-    webhookService.trackCall(data.sid, request.businessPhone, TWILIO_PHONE_NUMBER, appointmentId);
+    webhookService.trackCall(data.sid, request.businessPhone, config.phoneNumber, appointmentId);
 
     // Update appointment status
     const followUpService = getAppointmentFollowUpService();
@@ -321,32 +327,42 @@ class AppointmentIntegrationService extends EventEmitter {
     // Simulate a successful call after a brief delay
     setTimeout(() => {
       void (async () => {
-        // Simulate getting confirmation
-        const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
-        const confirmedDate = this.parseRequestedDateTime(
-          request.requestedDate,
-          request.requestedTime
-        );
+        try {
+          // Simulate getting confirmation
+          const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
+          const confirmedDate = this.parseRequestedDateTime(
+            request.requestedDate,
+            request.requestedTime
+          );
 
-        followUpService.recordCallAttempt(appointmentId, 'connected');
-        followUpService.updateStatus(appointmentId, 'confirmed', {
-          confirmationNumber,
-          confirmedDateTime: confirmedDate,
-          note: 'Simulated confirmation (Twilio not configured)',
-        });
+          getLogger().info({ appointmentId }, '🎭 Simulation: Processing confirmation');
 
-        // Create calendar event
-        await this.createCalendarEventForAppointment(appointmentId, request, confirmedDate);
+          followUpService.recordCallAttempt(appointmentId, 'connected');
+          followUpService.updateStatus(appointmentId, 'confirmed', {
+            confirmationNumber,
+            confirmedDateTime: confirmedDate,
+            note: 'Simulated confirmation (Twilio not configured)',
+          });
 
-        // Notify user
-        await this.notifyUserOfConfirmation(
-          appointmentId,
-          request,
-          confirmationNumber,
-          confirmedDate
-        );
+          getLogger().info({ appointmentId, status: 'confirmed' }, '🎭 Simulation: Status updated');
 
-        this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
+          // Create calendar event (non-blocking)
+          this.createCalendarEventForAppointment(appointmentId, request, confirmedDate).catch(
+            (err) => getLogger().warn({ err, appointmentId }, 'Calendar event creation failed')
+          );
+
+          // Notify user (non-blocking)
+          this.notifyUserOfConfirmation(
+            appointmentId,
+            request,
+            confirmationNumber,
+            confirmedDate
+          ).catch((err) => getLogger().warn({ err, appointmentId }, 'User notification failed'));
+
+          this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
+        } catch (error) {
+          getLogger().error({ error, appointmentId }, '🎭 Simulation failed');
+        }
       })();
     }, 2000);
 
@@ -712,7 +728,8 @@ class AppointmentIntegrationService extends EventEmitter {
    * Check if Twilio is configured
    */
   private isTwilioConfigured(): boolean {
-    return !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER);
+    const config = getTwilioConfig();
+    return !!(config.accountSid && config.authToken && config.phoneNumber);
   }
 
   /**

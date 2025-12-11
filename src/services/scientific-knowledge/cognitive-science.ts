@@ -195,7 +195,7 @@ export const COGNITIVE_SCIENCE = {
     definition: 'Awareness and understanding of own thought processes',
 
     skills: {
-      monitoring: 'Noticing what you\'re thinking',
+      monitoring: "Noticing what you're thinking",
       evaluating: 'Assessing whether thoughts are helpful/accurate',
       regulating: 'Choosing where to direct attention',
     },
@@ -255,7 +255,13 @@ export interface CognitiveIntervention {
 }
 
 export function getCognitiveIntervention(
-  situation: 'anxiety' | 'depression' | 'rumination' | 'decision' | 'self_criticism' | 'perfectionism'
+  situation:
+    | 'anxiety'
+    | 'depression'
+    | 'rumination'
+    | 'decision'
+    | 'self_criticism'
+    | 'perfectionism'
 ): CognitiveIntervention {
   switch (situation) {
     case 'anxiety':
@@ -314,7 +320,7 @@ export function getCognitiveIntervention(
         ],
         questions: [
           'Is this thinking solving a problem or just spinning?',
-          "What would happen if you let this thought go for now?",
+          'What would happen if you let this thought go for now?',
           'What could you do right now instead of thinking about this?',
         ],
         doNot: [
@@ -381,7 +387,7 @@ export function getCognitiveIntervention(
         questions: [
           "What's the cost of this standard?",
           'What would be good enough?',
-          'What are you afraid will happen if you\'re not perfect?',
+          "What are you afraid will happen if you're not perfect?",
         ],
         doNot: [
           "Don't say 'nobody's perfect'",
@@ -401,28 +407,26 @@ export function getGrowthMindsetReframe(
 ): { fixed: string; growth: string; bridgePhrase: string } {
   const reframes = {
     failure: {
-      fixed: 'I failed because I\'m not good enough',
-      growth: 'I haven\'t succeeded YET—what can I learn?',
+      fixed: "I failed because I'm not good enough",
+      growth: "I haven't succeeded YET—what can I learn?",
       bridgePhrase: 'Failure is information, not identity',
     },
     criticism: {
-      fixed: 'They think I\'m incompetent',
+      fixed: "They think I'm incompetent",
       growth: 'There might be something useful here for my growth',
       bridgePhrase: 'Feedback is a gift, even when it stings',
     },
     comparison: {
-      fixed: 'They\'re better than me—I\'ll never catch up',
-      growth: 'Their success shows what\'s possible—what can I learn from them?',
+      fixed: "They're better than me—I'll never catch up",
+      growth: "Their success shows what's possible—what can I learn from them?",
       bridgePhrase: "Someone else's success doesn't diminish your potential",
     },
     difficulty: {
-      fixed: "If I have to struggle, I must not be cut out for this",
-      growth: "Struggle is the feeling of my brain growing",
+      fixed: 'If I have to struggle, I must not be cut out for this',
+      growth: 'Struggle is the feeling of my brain growing',
       bridgePhrase: "Hard doesn't mean impossible—it means you're learning",
     },
   };
 
   return reframes[situation];
 }
-
-

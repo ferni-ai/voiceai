@@ -118,19 +118,10 @@ const clearNotesDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const notesToolDefinitions: ToolDefinition[] = [
-  quickNoteDef,
-  recallNoteDef,
-  clearNotesDef,
-];
+export const notesToolDefinitions: ToolDefinition[] = [quickNoteDef, recallNoteDef, clearNotesDef];
 
-export {
-  quickNoteDef,
-  recallNoteDef,
-  clearNotesDef,
-};
+export { quickNoteDef, recallNoteDef, clearNotesDef };

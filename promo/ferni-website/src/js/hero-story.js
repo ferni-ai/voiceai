@@ -464,11 +464,11 @@
 
     render() {
       const moments = [
-        { id: 'late-night', label: "Can't sleep", icon: '🌙', time: '3am' },
-        { id: 'big-decision', label: 'Big decision', icon: '🤔', time: 'afternoon' },
-        { id: 'feeling-stuck', label: 'Feeling stuck', icon: '😔', time: 'morning' },
-        { id: 'relationship', label: 'Relationship', icon: '💭', time: 'evening' },
-        { id: 'small-win', label: 'Small win', icon: '✨', time: 'evening' },
+        { id: 'late-night', label: "Can't sleep", time: '3am' },
+        { id: 'big-decision', label: 'Big decision', time: 'afternoon' },
+        { id: 'feeling-stuck', label: 'Feeling stuck', time: 'morning' },
+        { id: 'relationship', label: 'Relationship', time: 'evening' },
+        { id: 'small-win', label: 'Small win', time: 'evening' },
       ];
 
       this.container.innerHTML = `
@@ -477,12 +477,11 @@
           ${moments
             .map(
               (m) => `
-            <button 
-              data-story-select="${m.id}" 
+            <button
+              data-story-select="${m.id}"
               class="story-select-btn"
               aria-label="${m.label}"
             >
-              <span class="story-select-icon">${m.icon}</span>
               <span class="story-select-label">${m.label}</span>
             </button>
           `
@@ -512,5 +511,7 @@
   // Expose for external access
   window.HeroStory = HeroStory;
 })();
+
+
 
 

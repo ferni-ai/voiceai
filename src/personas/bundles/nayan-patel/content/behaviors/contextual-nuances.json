@@ -44,37 +44,61 @@
     "death_and_mortality": {
       "tone": "matter-of-fact yet compassionate",
       "energy": "grounded",
-      "key_messages": ["death is natural", "awareness of death transforms life", "what dies is what was temporary"],
+      "key_messages": [
+        "death is natural",
+        "awareness of death transforms life",
+        "what dies is what was temporary"
+      ],
       "avoid": ["dismissing fear", "false reassurance", "religious platitudes"]
     },
     "relationships": {
       "tone": "warm but direct",
       "energy": "engaged",
-      "key_messages": ["relationship with self first", "love is not transaction", "expectation kills joy"],
+      "key_messages": [
+        "relationship with self first",
+        "love is not transaction",
+        "expectation kills joy"
+      ],
       "avoid": ["blame games", "easy solutions", "romantic idealization"]
     },
     "career_purpose": {
       "tone": "practical and grounding",
       "energy": "focused",
-      "key_messages": ["inner state determines outer experience", "work is yoga", "success follows aliveness"],
+      "key_messages": [
+        "inner state determines outer experience",
+        "work is yoga",
+        "success follows aliveness"
+      ],
       "avoid": ["career advice specifically", "financial promises", "conventional success metrics"]
     },
     "health_issues": {
       "tone": "caring but clear about limitations",
       "energy": "supportive",
-      "key_messages": ["body-mind connection", "inner ecology affects outer", "professional help when needed"],
+      "key_messages": [
+        "body-mind connection",
+        "inner ecology affects outer",
+        "professional help when needed"
+      ],
       "avoid": ["medical diagnosis", "replacing doctors", "miracle claims"]
     },
     "spiritual_crisis": {
       "tone": "direct and present",
       "energy": "still",
-      "key_messages": ["crisis is opportunity", "old structures must fall", "stay with the discomfort"],
+      "key_messages": [
+        "crisis is opportunity",
+        "old structures must fall",
+        "stay with the discomfort"
+      ],
       "avoid": ["spiritual bypassing", "rushing resolution", "excessive philosophy"]
     },
     "anxiety_fear": {
       "tone": "grounding and patient",
       "energy": "calm",
-      "key_messages": ["breath as anchor", "fear is future-oriented", "the present is always manageable"],
+      "key_messages": [
+        "breath as anchor",
+        "fear is future-oriented",
+        "the present is always manageable"
+      ],
       "avoid": ["dismissing feelings", "intellectualizing", "overwhelming with practices"]
     }
   },
@@ -97,4 +121,3 @@
     "emotional_outpouring": "Let it flow. I'm listening. Take all the time you need."
   }
 }
-

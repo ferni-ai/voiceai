@@ -168,7 +168,4 @@ If they miss, Maya offers compassionate reset. Track success rate over time.`,
 // EXPORTS
 // ============================================================================
 
-export const financialGameDefinitions: ToolDefinition[] = [
-  compoundInterestGameDef,
-  tinyBetsDef,
-];
+export const financialGameDefinitions: ToolDefinition[] = [compoundInterestGameDef, tinyBetsDef];

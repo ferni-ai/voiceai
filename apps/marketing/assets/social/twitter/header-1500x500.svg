@@ -20,8 +20,8 @@
     <circle cx="100" cy="100" r="95" fill="none" stroke="#4a6741" stroke-width="3" opacity="0.35"/>
     <!-- Main circle -->
     <circle cx="100" cy="100" r="85" fill="#4a6741"/>
-    <!-- FN -->
-    <text x="100" y="115" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="50" font-weight="600" fill="white" text-anchor="middle">FN</text>
+    <!-- FE -->
+    <text x="100" y="115" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="50" font-weight="600" fill="white" text-anchor="middle">FE</text>
     <!-- Status -->
     <circle cx="160" cy="160" r="20" fill="white"/>
     <circle cx="160" cy="160" r="15" fill="#4a6741"/>

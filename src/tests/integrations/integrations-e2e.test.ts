@@ -74,9 +74,8 @@ describe('Banking Integration API', () => {
 
   describe('Financial Data (Simulated)', () => {
     it('GET /balances - should handle balance requests', async () => {
-      const { getAccountBalances, getTokenData, hasLinkedAccounts } = await import(
-        '../../tools/plaid.js'
-      );
+      const { getAccountBalances, getTokenData, hasLinkedAccounts } =
+        await import('../../tools/plaid.js');
 
       if (!hasLinkedAccounts(testUserId)) {
         console.log('⚠️ Balance check skipped (no linked account)');
@@ -93,9 +92,8 @@ describe('Banking Integration API', () => {
     });
 
     it('GET /transactions - should handle transaction requests', async () => {
-      const { getTransactions, getTokenData, hasLinkedAccounts } = await import(
-        '../../tools/plaid.js'
-      );
+      const { getTransactions, getTokenData, hasLinkedAccounts } =
+        await import('../../tools/plaid.js');
 
       if (!hasLinkedAccounts(testUserId)) {
         console.log('⚠️ Transaction check skipped (no linked account)');
@@ -123,18 +121,36 @@ describe('Banking Integration API', () => {
     it('GET /spending-analysis - should analyze spending', async () => {
       const { analyzeSpending } = await import('../../tools/plaid.js');
 
-      // Test with mock transactions (need name or merchant_name field)
+      // Test with mock transactions (need name or merchant_name field and pending: false)
       const mockTransactions = [
-        { amount: 50, name: 'Chipotle', category: ['Food', 'Restaurants'], date: '2024-01-15' },
-        { amount: 100, name: 'Best Buy', category: ['Shopping', 'Electronics'], date: '2024-01-16' },
-        { amount: 25, name: 'Trader Joes', category: ['Food', 'Groceries'], date: '2024-01-17' },
+        {
+          amount: 50,
+          name: 'Chipotle',
+          category: ['Food', 'Restaurants'],
+          date: '2024-01-15',
+          pending: false,
+        },
+        {
+          amount: 100,
+          name: 'Best Buy',
+          category: ['Shopping', 'Electronics'],
+          date: '2024-01-16',
+          pending: false,
+        },
+        {
+          amount: 25,
+          name: 'Trader Joes',
+          category: ['Food', 'Groceries'],
+          date: '2024-01-17',
+          pending: false,
+        },
       ];
 
       const analysis = analyzeSpending(mockTransactions as Parameters<typeof analyzeSpending>[0]);
 
       expect(analysis).toBeDefined();
-      expect(typeof analysis.total).toBe('number');
-      console.log(`✅ Spending analysis works (total: $${analysis.total})`);
+      expect(typeof analysis.totalSpending).toBe('number');
+      console.log(`✅ Spending analysis works (total: $${analysis.totalSpending})`);
     });
   });
 
@@ -199,9 +215,8 @@ describe('Banking Integration API', () => {
     });
 
     it('PATCH /goals/:goalId - should update goal progress', async () => {
-      const { createSavingsGoal, updateGoalProgress } = await import(
-        '../../services/finance/prediction.js'
-      );
+      const { createSavingsGoal, updateGoalProgress } =
+        await import('../../services/finance/prediction.js');
 
       // Create a goal first
       const goal = createSavingsGoal(testUserId, 'Test Goal', 1000, new Date('2025-06-30'), 100);
@@ -211,8 +226,9 @@ describe('Banking Integration API', () => {
 
       // If progress is returned, verify it - otherwise just verify no errors
       if (progress) {
-        expect(progress.currentAmount).toBe(250);
-        console.log(`✅ Goal progress updated: ${progress.progressPercent.toFixed(1)}%`);
+        // GoalProgress has { goal: SavingsGoal, percentComplete: number, ... }
+        expect(progress.goal.currentAmount).toBe(250);
+        console.log(`✅ Goal progress updated: ${progress.percentComplete.toFixed(1)}%`);
       } else {
         // Goal update may return null if not found (implementation detail)
         console.log('✅ Goal progress update flow works (goal may expire from memory)');
@@ -227,7 +243,9 @@ describe('Banking Integration API', () => {
 
       // May return null if no data
       expect(insight === null || typeof insight === 'object').toBe(true);
-      console.log(`✅ Financial insights ${insight ? `generated: ${insight.type}` : 'skipped (no data)'}`);
+      console.log(
+        `✅ Financial insights ${insight ? `generated: ${insight.type}` : 'skipped (no data)'}`
+      );
     });
   });
 });
@@ -241,9 +259,8 @@ describe('Biometrics Integration API', () => {
 
   describe('Connection Flow', () => {
     it('GET /status - should return biometrics status', async () => {
-      const { hasBiometricsConnected, getConnectedPlatform, getCurrentBiometrics } = await import(
-        '../../services/biometrics/index.js'
-      );
+      const { hasBiometricsConnected, getConnectedPlatform, getCurrentBiometrics } =
+        await import('../../services/biometrics/index.js');
 
       const connected = hasBiometricsConnected(testUserId);
       const platform = getConnectedPlatform(testUserId);
@@ -268,9 +285,8 @@ describe('Biometrics Integration API', () => {
     });
 
     it('POST /sync - should handle sync requests', async () => {
-      const { syncBiometrics, hasBiometricsConnected } = await import(
-        '../../services/biometrics/index.js'
-      );
+      const { syncBiometrics, hasBiometricsConnected } =
+        await import('../../services/biometrics/index.js');
 
       if (!hasBiometricsConnected(testUserId)) {
         console.log('⚠️ Sync skipped (no connected platform)');
@@ -294,9 +310,8 @@ describe('Biometrics Integration API', () => {
     });
 
     it('DELETE /disconnect - should handle disconnect', async () => {
-      const { disconnectBiometrics, getConnectedPlatform } = await import(
-        '../../services/biometrics/index.js'
-      );
+      const { disconnectBiometrics, getConnectedPlatform } =
+        await import('../../services/biometrics/index.js');
 
       disconnectBiometrics(testUserId);
 
@@ -330,9 +345,8 @@ describe('Calendar Integration API', () => {
 
   describe('Connection Flow', () => {
     it('GET /status - should return calendar status', async () => {
-      const { hasCalendarConnected, getUpcomingEvents, getCurrentLocation } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { hasCalendarConnected, getUpcomingEvents, getCurrentLocation } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       const connected = hasCalendarConnected(testUserId);
       const events = connected ? getUpcomingEvents(testUserId) : [];
@@ -343,9 +357,8 @@ describe('Calendar Integration API', () => {
     });
 
     it('GET /connect - should generate auth URL', async () => {
-      const { getCalendarAuthUrl } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { getCalendarAuthUrl } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       const authUrl = getCalendarAuthUrl(testUserId);
 
@@ -355,9 +368,8 @@ describe('Calendar Integration API', () => {
     });
 
     it('GET /events - should fetch upcoming events', async () => {
-      const { fetchUpcomingEvents, hasCalendarConnected } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { fetchUpcomingEvents, hasCalendarConnected } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       if (!hasCalendarConnected(testUserId)) {
         console.log('⚠️ Events fetch skipped (no calendar connected)');
@@ -373,9 +385,8 @@ describe('Calendar Integration API', () => {
 
   describe('Location Management', () => {
     it('POST /location - should update current location', async () => {
-      const { updateLocation, getCurrentLocation } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { updateLocation, getCurrentLocation } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       // Update location (San Francisco coordinates)
       updateLocation(testUserId, 37.7749, -122.4194, 10);
@@ -386,9 +397,8 @@ describe('Calendar Integration API', () => {
     });
 
     it('POST /location/save - should save named location', async () => {
-      const { saveLocation, getCurrentLocation, updateLocation } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { saveLocation, getCurrentLocation, updateLocation } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       // Save home location
       saveLocation(testUserId, 'Home', 'home', 37.7749, -122.4194);
@@ -404,9 +414,8 @@ describe('Calendar Integration API', () => {
     });
 
     it('DELETE /disconnect - should disconnect calendar', async () => {
-      const { disconnectCalendar, hasCalendarConnected } = await import(
-        '../../services/context-awareness/location-calendar.js'
-      );
+      const { disconnectCalendar, hasCalendarConnected } =
+        await import('../../services/context-awareness/location-calendar.js');
 
       disconnectCalendar(testUserId);
 
@@ -459,9 +468,8 @@ describe('Social Graph Integration API', () => {
     });
 
     it('POST /person/:personId/confirm - should confirm importance', async () => {
-      const { confirmImportantPerson, recordMention, getImportantPeople } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { confirmImportantPerson, recordMention, getImportantPeople } =
+        await import('../../services/social-graph/index.js');
 
       // Create a person
       recordMention(testUserId, 'Mike', 'friend', 0.7);
@@ -477,9 +485,8 @@ describe('Social Graph Integration API', () => {
 
   describe('Important Dates', () => {
     it('POST /person/:personId/date - should add important date', async () => {
-      const { addImportantDate, recordMention } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { addImportantDate, recordMention } =
+        await import('../../services/social-graph/index.js');
 
       // Create a person
       recordMention(testUserId, 'Mom', 'parent', 0.9);
@@ -492,9 +499,8 @@ describe('Social Graph Integration API', () => {
     });
 
     it('GET /dates - should return upcoming dates', async () => {
-      const { getUpcomingDates, addImportantDate, recordMention } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { getUpcomingDates, addImportantDate, recordMention } =
+        await import('../../services/social-graph/index.js');
 
       // Create a person with a date
       recordMention(testUserId, 'Sister', 'sibling', 0.8);
@@ -515,9 +521,8 @@ describe('Social Graph Integration API', () => {
 
   describe('Relationship Insights', () => {
     it('GET /insights - should return relationship insights', async () => {
-      const { detectWithdrawal, detectSentimentPatterns, recordMention } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { detectWithdrawal, detectSentimentPatterns, recordMention } =
+        await import('../../services/social-graph/index.js');
 
       // Create some mentions
       recordMention(testUserId, 'Partner', 'partner', 0.9);
@@ -528,13 +533,14 @@ describe('Social Graph Integration API', () => {
 
       expect(Array.isArray(withdrawals)).toBe(true);
       expect(Array.isArray(patterns)).toBe(true);
-      console.log(`✅ Relationship insights work (${withdrawals.length} withdrawals, ${patterns.length} patterns)`);
+      console.log(
+        `✅ Relationship insights work (${withdrawals.length} withdrawals, ${patterns.length} patterns)`
+      );
     });
 
     it('GET /frequency - should return mention frequency', async () => {
-      const { getMentionFrequency, recordMention } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { getMentionFrequency, recordMention } =
+        await import('../../services/social-graph/index.js');
 
       // Add multiple mentions
       recordMention(testUserId, 'BestFriend', 'friend', 0.8);
@@ -550,9 +556,8 @@ describe('Social Graph Integration API', () => {
 
   describe('Data Management', () => {
     it('DELETE /clear - should clear social graph', async () => {
-      const { clearSocialGraph, getImportantPeople, recordMention } = await import(
-        '../../services/social-graph/index.js'
-      );
+      const { clearSocialGraph, getImportantPeople, recordMention } =
+        await import('../../services/social-graph/index.js');
 
       // Add some data
       recordMention(testUserId, 'John', 'friend', 0.7);
@@ -577,9 +582,8 @@ describe('Wellbeing Dashboard API', () => {
 
   describe('Dashboard Data', () => {
     it('GET /dashboard - should return dashboard data', async () => {
-      const { getWellbeingProfile, getRecentSnapshots } = await import(
-        '../../services/wellbeing-tracking/index.js'
-      );
+      const { getWellbeingProfile, getRecentSnapshots } =
+        await import('../../services/wellbeing-tracking/index.js');
 
       const profile = getWellbeingProfile(testUserId);
       const snapshots = getRecentSnapshots(testUserId, 7);
@@ -590,9 +594,8 @@ describe('Wellbeing Dashboard API', () => {
     });
 
     it('GET /trends - should return trend data', async () => {
-      const { getRecentSnapshots, recordSnapshot } = await import(
-        '../../services/wellbeing-tracking/index.js'
-      );
+      const { getRecentSnapshots, recordSnapshot } =
+        await import('../../services/wellbeing-tracking/index.js');
 
       // Add some test snapshots
       recordSnapshot(testUserId, { mood: 0.7, energy: 0.6 }, { source: 'test' });
@@ -617,9 +620,8 @@ describe('Wellbeing Dashboard API', () => {
 
   describe('Check-ins', () => {
     it('POST /snapshot - should record wellbeing snapshot', async () => {
-      const { recordSnapshot, getRecentSnapshots } = await import(
-        '../../services/wellbeing-tracking/index.js'
-      );
+      const { recordSnapshot, getRecentSnapshots } =
+        await import('../../services/wellbeing-tracking/index.js');
 
       const snapshot = recordSnapshot(
         testUserId,
@@ -647,9 +649,8 @@ describe('Wellbeing Dashboard API', () => {
   describe('Early Warnings', () => {
     it('should detect early warning signs', async () => {
       const { checkWarnings } = await import('../../services/wellbeing-tracking/early-warning.js');
-      const { getWellbeingProfile, recordSnapshot } = await import(
-        '../../services/wellbeing-tracking/index.js'
-      );
+      const { getWellbeingProfile, recordSnapshot } =
+        await import('../../services/wellbeing-tracking/index.js');
 
       // Record concerning patterns
       for (let i = 0; i < 5; i++) {
@@ -717,14 +718,17 @@ describe('Household Management API', () => {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
 
-        await db.collection('households').doc(testUserId).set(
-          {
-            userId: testUserId,
-            settings: { privacyMode: 'individual' },
-            updatedAt: new Date(),
-          },
-          { merge: true }
-        );
+        await db
+          .collection('households')
+          .doc(testUserId)
+          .set(
+            {
+              userId: testUserId,
+              settings: { privacyMode: 'individual' },
+              updatedAt: new Date(),
+            },
+            { merge: true }
+          );
 
         const doc = await db.collection('households').doc(testUserId).get();
         expect(doc.data()?.settings?.privacyMode).toBe('individual');
@@ -740,13 +744,16 @@ describe('Household Management API', () => {
         const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
 
-        await db.collection('households').doc(testUserId).set(
-          {
-            settings: { voiceIdentification: false },
-            updatedAt: new Date(),
-          },
-          { merge: true }
-        );
+        await db
+          .collection('households')
+          .doc(testUserId)
+          .set(
+            {
+              settings: { voiceIdentification: false },
+              updatedAt: new Date(),
+            },
+            { merge: true }
+          );
 
         console.log('✅ Household settings update works');
       } catch {
@@ -852,11 +859,21 @@ describe('Integration Status Summary', () => {
     console.log('  Total: 45 endpoints tested');
 
     console.log('\nProduction Readiness:');
-    console.log(`  ${plaidConfigured ? '✅' : '⚠️ '} Plaid Banking ${plaidConfigured ? '' : '(not configured)'}`);
-    console.log(`  ${googleConfigured ? '✅' : '⚠️ '} Google Calendar ${googleConfigured ? '' : '(not configured)'}`);
-    console.log(`  ${ouraConfigured ? '✅' : '⚠️ '} Oura Ring ${ouraConfigured ? '' : '(not configured)'}`);
-    console.log(`  ${terraConfigured ? '✅' : '⚠️ '} Terra (300+ wearables) ${terraConfigured ? '' : '(not configured)'}`);
-    console.log(`  ${slackConfigured ? '✅' : '⚠️ '} Slack Safety Alerts ${slackConfigured ? '' : '(not configured)'}`);
+    console.log(
+      `  ${plaidConfigured ? '✅' : '⚠️ '} Plaid Banking ${plaidConfigured ? '' : '(not configured)'}`
+    );
+    console.log(
+      `  ${googleConfigured ? '✅' : '⚠️ '} Google Calendar ${googleConfigured ? '' : '(not configured)'}`
+    );
+    console.log(
+      `  ${ouraConfigured ? '✅' : '⚠️ '} Oura Ring ${ouraConfigured ? '' : '(not configured)'}`
+    );
+    console.log(
+      `  ${terraConfigured ? '✅' : '⚠️ '} Terra (300+ wearables) ${terraConfigured ? '' : '(not configured)'}`
+    );
+    console.log(
+      `  ${slackConfigured ? '✅' : '⚠️ '} Slack Safety Alerts ${slackConfigured ? '' : '(not configured)'}`
+    );
 
     if (!plaidConfigured || !googleConfigured || !ouraConfigured) {
       console.log('\nTo enable production features:');

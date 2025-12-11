@@ -12,37 +12,32 @@ export type { PronunciationEntry, TaggingContext } from './types.js';
 
 // Re-export constants for external use
 export {
-  FINANCIAL_PRONUNCIATIONS,
   EMOTION_KEYWORDS,
-  SLOW_PACE_KEYWORDS,
-  FAST_PACE_KEYWORDS,
   EMPHASIS_KEYWORDS,
+  FAST_PACE_KEYWORDS,
+  FINANCIAL_PRONUNCIATIONS,
+  SLOW_PACE_KEYWORDS,
   WHISPER_KEYWORDS,
 } from './constants.js';
 
 // Import internal dependencies
-import { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
+import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { applyFinancialPronunciations, removeProtectionMarkers } from './financial.js';
 import {
-  clampSpeed,
-  clampVolume,
-  addThinkingSounds,
-  addNaturalPauses,
-} from './processors.js';
-import {
+  addActiveListeningSounds,
   addCatchphraseEmphasis,
   addHistoricalYearGravity,
-  addWisdomCadence,
-  addStorytellingMode,
   addHumbleDeflection,
-  addTricolonCadence,
-  addQuotationVoiceShift,
-  addNameWarmth,
-  addActiveListeningSounds,
   addLaughterThroughout,
-  addWordFindingPauses,
+  addNameWarmth,
+  addQuotationVoiceShift,
   addSelfCorrections,
+  addStorytellingMode,
+  addTricolonCadence,
+  addWisdomCadence,
+  addWordFindingPauses,
 } from './jack-bogle.js';
+import { addNaturalPauses, addThinkingSounds, clampSpeed, clampVolume } from './processors.js';
 
 /**
  * Main SSML tagging function (LEGACY - Jack Bogle optimized)
@@ -147,24 +142,31 @@ export function tagTextWithSsml(text: string): string {
  * Sanitize malformed SSML output
  * Fixes corrupted tags where content was inserted into attribute values
  * Also removes stage directions like "*chuckles*" that LLMs generate
+ *
+ * CRITICAL: This is the safety net that prevents stage directions from being spoken.
+ * Any text in *asterisks* or [brackets] that isn't valid SSML should be stripped.
  */
 export function sanitizeSsml(text: string): string {
   let result = text;
 
   // ================================================
-  // FIRST: CONVERT laugh/chuckle to [laughter]
+  // FIRST: CONVERT laugh/chuckle/giggle to [laughter]
   // Cartesia Sonic-3 supports [laughter] for actual laugh sounds!
   // ================================================
 
-  result = result.replace(/\*[^*]*(?:chuckle|laugh)[^*]*\*/gi, '[laughter]');
-  result = result.replace(/\([^)]*(?:chuckle|laugh)[^)]*\)/gi, '[laughter]');
-  result = result.replace(/\[chuckles?\]/gi, '[laughter]');
+  // Asterisk format: *chuckles*, *laughs softly*, etc.
+  result = result.replace(/\*[^*]*(?:chuckle|laugh|giggle)[^*]*\*/gi, '[laughter]');
+  // Parenthesis format: (laughs), (chuckles softly), etc.
+  result = result.replace(/\([^)]*(?:chuckle|laugh|giggle)[^)]*\)/gi, '[laughter]');
+  // Bracket format: [chuckles], [laughs warmly], [soft laughter], [gentle giggle], [warm chuckle]
+  result = result.replace(/\[[^\]]*(?:chuckle|laugh|giggle|laughter)[^\]]*\]/gi, '[laughter]');
+  // Standalone words with modifiers
   result = result.replace(
-    /(?<!\[)\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    /(?<!\[)\b(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
     '[laughter] '
   );
   result = result.replace(
-    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
     '[laughter] '
   );
 
@@ -180,34 +182,89 @@ export function sanitizeSsml(text: string): string {
   result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
 
   // ================================================
-  // THEN: Remove stage directions that LLM might generate
+  // COMPREHENSIVE STAGE DIRECTION REMOVAL
+  // Remove ALL non-verbal actions that LLMs might generate
   // ================================================
 
-  result = result.replace(/\([^)]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^)]*\)/gi, '');
+  // Comprehensive list of stage direction keywords
+  const stageDirectionKeywords = [
+    // Breathing/physical
+    'sigh',
+    'breath',
+    'exhale',
+    'inhale',
+    'breathing',
+    // Expressions
+    'smile',
+    'grin',
+    'frown',
+    'nod',
+    'wink',
+    'blink',
+    // Actions
+    'pause',
+    'think',
+    'clear',
+    'cough',
+    'shift',
+    'lean',
+    'settle',
+    'focus',
+    'attention',
+    'shrug',
+    // Physical presence
+    'warm',
+    'steady',
+    'gentle',
+    'soft',
+    'present',
+    'presence',
+    // Energy
+    'perk',
+    'energy',
+    'relief',
+    // Misc stage directions
+    "chef's kiss",
+    'taking a breath',
+    'visible',
+  ];
+
+  // Build regex pattern for stage directions
+  const keywordPattern = stageDirectionKeywords.join('|');
+
+  // Remove asterisk-wrapped stage directions: *exhale*, *settles in*, *warm*, etc.
+  result = result.replace(new RegExp(`\\*[^*]*(?:${keywordPattern})[^*]*\\*`, 'gi'), '');
+
+  // Remove parenthesis-wrapped stage directions: (sighs), (takes a breath), etc.
+  result = result.replace(new RegExp(`\\([^)]*(?:${keywordPattern})[^)]*\\)`, 'gi'), '');
+
+  // Remove bracket-wrapped stage directions (except [laughter]): [pauses], [smiles], etc.
+  result = result.replace(new RegExp(`\\[[^\\]]*(?:${keywordPattern})[^\\]]*\\]`, 'gi'), '');
+
+  // Remove common standalone stage direction phrases
   result = result.replace(
-    /\[[^\]]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^\]]*\]/gi,
-    ''
-  );
-  result = result.replace(/\*[^*]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^*]*\*/gi, '');
-  result = result.replace(
-    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi,
-    ''
-  );
-  result = result.replace(
-    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
-    ''
-  );
-  result = result.replace(
-    /\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat|takes a breath|taking a breath)\b/gi,
     ''
   );
 
-  // NUCLEAR OPTION for action verbs
+  // Remove non-audio action verbs with modifiers
+  result = result.replace(
+    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?|exhales?|inhales?|shifts?|leans?|settles?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly|in|down|up|back)?\s*\.?\s*/gi,
+    ''
+  );
+  result = result.replace(
+    /\b(he|she|jack|ferni|maya|jordan|alex|peter|i)\s+(sighs?|smiles?|grins?|pauses?|nods?|exhales?|shifts?|leans?|settles?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    ''
+  );
+
+  // NUCLEAR OPTION for action verbs - standalone words
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bnods?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bwinks?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsighs?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bexhales?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\binhales?\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags
@@ -241,7 +298,7 @@ export function tagTextFragments(fragments: string[]): string[] {
 }
 
 // Re-export detection functions for external use
-export { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
+export { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 
 // Re-export processor utilities
 export { clampSpeed, clampVolume, mapToCartesiaEmotion } from './processors.js';

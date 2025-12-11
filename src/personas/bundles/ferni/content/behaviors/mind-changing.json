@@ -63,10 +63,9 @@
   },
 
   "usage_rules": {
-    "probability_when_triggered": 0.35,
-    "max_per_session": 2,
-    "min_turns_between": 8,
+    "probability_when_triggered": 0.5,
+    "max_per_session": 3,
+    "min_turns_between": 6,
     "requires_user_substantive_input": true
   }
 }
-

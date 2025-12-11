@@ -4,7 +4,7 @@
 
   "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
   "_description": "Pixar-inspired animation personality for Maya Santos - organized, practical, steady problem-solver",
-  
+
   "character_inspiration": {
     "primary": "EVE from WALL-E - focused, efficient, elegant precision",
     "secondary": "Colette from Ratatouille - competent, no-nonsense, secretly warm",
@@ -116,11 +116,6 @@
 
   "avoided_animations": {
     "why": "These don't match Maya's organized, practical personality",
-    "list": [
-      "chaotic-bounce",
-      "unpredictable-timing",
-      "overly-dramatic",
-      "scattered-movement"
-    ]
+    "list": ["chaotic-bounce", "unpredictable-timing", "overly-dramatic", "scattered-movement"]
   }
 }

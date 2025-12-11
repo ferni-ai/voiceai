@@ -33,7 +33,7 @@
   },
 
   "memory_callbacks": {
-    "probability": 0.30,
+    "probability": 0.3,
     "min_sessions_for_callback": 2,
     "priority_topics": ["struggles", "breakthroughs", "questions", "practices", "relationships"]
   },
@@ -60,4 +60,3 @@
     "The same principle applies to what you mentioned about {topic}..."
   ]
 }
-

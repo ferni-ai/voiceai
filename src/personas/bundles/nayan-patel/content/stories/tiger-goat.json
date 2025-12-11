@@ -3,7 +3,7 @@
   "id": "tiger-goat",
   "title": "The Tiger Raised by Goats",
   "theme": "identity",
-  
+
   "setup": {
     "context": "Let me tell you about a tiger who thought he was a goat...",
     "tone": "storyteller, building"
@@ -61,4 +61,3 @@
     "teaching_weight": "very high"
   }
 }
-

@@ -4,9 +4,10 @@
 
 ---
 
-##  Platform Setup Checklist
+## Platform Setup Checklist
 
 ### X (Twitter) — @ferniAI
+
 - [ ] Create account at twitter.com
 - [ ] Username: `ferniAI` (or `ferni_ai` if taken)
 - [ ] Upload profile photo
@@ -18,10 +19,11 @@
 - [ ] Enable professional account features
 
 ### LinkedIn — Ferni (Company Page)
+
 - [ ] Create company page at linkedin.com/company/setup
 - [ ] Company name: `Ferni`
 - [ ] Add logo
-- [ ] Add cover image  
+- [ ] Add cover image
 - [ ] Add tagline (see below)
 - [ ] Write About section
 - [ ] Add website: `https://ferni.ai`
@@ -30,6 +32,7 @@
 - [ ] Headquarters: Park City, Utah
 
 ### Instagram — @ferni.ai
+
 - [ ] Create account (business/creator preferred)
 - [ ] Username: `ferni.ai`
 - [ ] Upload profile photo
@@ -39,6 +42,7 @@
 - [ ] Prepare 9 initial posts for grid
 
 ### TikTok — @ferni.ai
+
 - [ ] Create account at tiktok.com
 - [ ] Username: `ferni.ai` (or `ferniAI`)
 - [ ] Upload profile photo
@@ -46,6 +50,7 @@
 - [ ] Add website link
 
 ### YouTube — @ferniAI
+
 - [ ] Create channel at youtube.com
 - [ ] Channel name: Ferni
 - [ ] Handle: `@ferniAI`
@@ -56,27 +61,30 @@
 
 ---
 
-##  Bios by Platform
+## Bios by Platform
 
 ### X (Twitter) — 160 characters max
 
 **Option 1 (Recommended):**
+
 ```
-Your AI life coach. Six specialists. One conversation. Just talk. 
+Your AI life coach. Six specialists. One conversation. Just talk.
 
 Call: (484) 481-3081 | Try free at ferni.ai
 ```
 
 **Option 2 (More playful):**
-```
-Finally, someone who actually listens. Your personal AI coaching team—available 24/7, remembers everything. 
 
-Try free  ferni.ai 
+```
+Finally, someone who actually listens. Your personal AI coaching team—available 24/7, remembers everything.
+
+Try free  ferni.ai
 ```
 
 **Option 3 (Punchy):**
+
 ```
-Talk to your AI team anytime. No judgment. Just guidance. 
+Talk to your AI team anytime. No judgment. Just guidance.
 
 ferni.ai | Call: (484) 481-3081
 ```
@@ -86,11 +94,13 @@ ferni.ai | Call: (484) 481-3081
 ### LinkedIn — 120 character tagline + 2,000 character About
 
 **Tagline:**
+
 ```
 Your personal AI life coach. Six specialists. One conversation.
 ```
 
 **About Section:**
+
 ```
 Ferni is the first AI-native company—built by AI, run by AI, for humans.
 
@@ -125,39 +135,44 @@ Made in Park City, Utah.
 ### Instagram — 150 characters max
 
 **Option 1 (Recommended):**
+
 ```
-Your AI life coach team 
+Your AI life coach team
 Six specialists. One conversation.
 Just talk  ferni.ai
  (484) 481-3081
 ```
 
 **Option 2 (Minimalist):**
+
 ```
-Talk. We listen. 
+Talk. We listen.
 Your personal AI coaching team.
-Try free 
+Try free
 ```
 
 **Story Highlight Covers to Create:**
--  About
--  FAQ
--  Team
--  Features
--  App
+
+- About
+- FAQ
+- Team
+- Features
+- App
 
 ---
 
 ### TikTok — 80 characters max
 
 **Option 1:**
+
 ```
 Your AI life coach  Just talk  ferni.ai
 ```
 
 **Option 2:**
+
 ```
-6 AI coaches. 1 conversation. Try free 
+6 AI coaches. 1 conversation. Try free
 ```
 
 ---
@@ -165,12 +180,13 @@ Your AI life coach  Just talk  ferni.ai
 ### YouTube — 1,000 characters max
 
 **Channel Description:**
+
 ```
 Ferni is your personal AI life coach—a team of six specialists working together to help you navigate life.
 
  What we share here:
 • Quick tips for personal growth
-• Behind-the-scenes of AI development  
+• Behind-the-scenes of AI development
 • Deep dives on habits, planning, and decision-making
 • Real conversations with Ferni and the team
 
@@ -178,7 +194,7 @@ Our team includes:
 • Ferni — Life Coach (CEO)
 • Peter — Research & Insights
 • Alex — Communication Coach
-• Maya — Habits Specialist  
+• Maya — Habits Specialist
 • Jordan — Life Planner
 • Nayan — Wisdom & Mentorship
 
@@ -192,105 +208,119 @@ Follow us:
 • TikTok: @ferni.ai
 • LinkedIn: /company/ferni
 
-Made in Park City, Utah 
+Made in Park City, Utah
 ```
 
 ---
 
-##  Visual Assets Needed
+## Visual Assets Needed
 
 ### Profile Photo (All Platforms)
+
 - **Concept:** The Ferni orb/avatar
-- **Specs:** 
+- **Specs:**
   - 400x400px minimum (square)
   - PNG with transparent background (for flexibility)
   - Also save as JPG for platforms that don't support transparency
-- **Style:** The green gradient orb with "FN" or just the breathing orb animation frame
+- **Style:** The green gradient orb with "FE" or just the breathing orb animation frame
 
 ### Banner Images
 
 **X (Twitter):** 1500 x 500px
+
 - Clean, minimal
 - Tagline: "Your AI life coach"
 - Maybe show the team avatars
 - Forest green gradient background
 
 **LinkedIn:** 1128 x 191px
+
 - Professional but warm
 - "Six specialists. One conversation."
 - Show team lineup
 
 **YouTube:** 2560 x 1440px
+
 - Full branding
 - Show all team members
 - Include call-to-action
 
 ### Instagram Grid (First 9 Posts)
+
 Plan a cohesive 3x3 grid for launch:
 
-| Row | Post 1 | Post 2 | Post 3 |
-|-----|--------|--------|--------|
-| 1 | Meet Ferni (intro) | "Just talk" quote | Meet Peter |
-| 2 | App screenshot | "No judgment" quote | Meet Maya |
-| 3 | Meet Alex | Phone number CTA | Meet Jordan & Nayan |
+| Row | Post 1             | Post 2              | Post 3              |
+| --- | ------------------ | ------------------- | ------------------- |
+| 1   | Meet Ferni (intro) | "Just talk" quote   | Meet Peter          |
+| 2   | App screenshot     | "No judgment" quote | Meet Maya           |
+| 3   | Meet Alex          | Phone number CTA    | Meet Jordan & Nayan |
 
 ---
 
-##  Content Pillars
+## Content Pillars
 
 ### 1. **Product/Features** (30%)
+
 - How Ferni works
 - Team introductions
 - New feature announcements
 - App tips & tricks
 
 ### 2. **Value/Tips** (40%)
+
 - Life coaching wisdom
 - Habit-building tips
 - Decision-making frameworks
 - Productivity advice
 
 ### 3. **Behind the Scenes** (15%)
+
 - AI development stories
 - Team "personality" content
 - Day-in-the-life style posts
 
 ### 4. **Community/Social Proof** (15%)
+
 - User testimonials
 - Conversation highlights (anonymized)
 - Milestones and celebrations
 
 ---
 
-##  Posting Schedule Suggestions
+## Posting Schedule Suggestions
 
 ### X (Twitter)
+
 - **Frequency:** 1-3 tweets per day
 - **Best times:** 8am, 12pm, 5pm ET
 - **Mix:** 60% value content, 30% product, 10% engagement
 
 ### LinkedIn
+
 - **Frequency:** 3-5 posts per week
 - **Best times:** Tuesday-Thursday, 8-10am ET
 - **Mix:** Thought leadership, company updates, team spotlights
 
 ### Instagram
+
 - **Frequency:** 4-5 posts per week + daily stories
 - **Best times:** 11am-1pm, 7-9pm ET
 - **Mix:** Carousel posts, quotes, team features, app screenshots
 
 ### TikTok
+
 - **Frequency:** 1-2 videos per day (start with 3-4/week)
 - **Best times:** 7-9am, 12-3pm, 7-11pm ET
 - **Mix:** Quick tips, AI demos, trend participation
 
 ### YouTube
+
 - **Frequency:** 1-2 videos per week
 - **Types:** Short demos, deep dives, team Q&As
 
 ---
 
-##  Launch Day Posts
+## Launch Day Posts
 
 ### X (Twitter) Launch Thread
 
@@ -311,7 +341,7 @@ Ferni is relational. We remember everything. Your goals from 6 months ago. That 
 
 • Ferni — Life Coach (CEO)
 • Peter — Research & Insights
-• Alex — Communication  
+• Alex — Communication
 • Maya — Habits
 • Jordan — Planning
 • Nayan — Wisdom
@@ -338,7 +368,7 @@ No scheduling. No waiting.
 ```
 5/ We're private.
 
-Your conversations are encrypted. We never sell your data. We never use it to train AI models. 
+Your conversations are encrypted. We never sell your data. We never use it to train AI models.
 
 You can delete everything anytime.
 ```
@@ -405,7 +435,7 @@ What would you talk to an AI life coach about?
 
 ### Instagram Launch Post (Carousel)
 
-**Slide 1:** 
+**Slide 1:**
 "Meet your AI team" (visual of all 6 avatars)
 
 **Slide 2:**
@@ -433,8 +463,9 @@ app.ferni.ai
 (484) 481-3081"
 
 **Caption:**
+
 ```
-We're live 
+We're live
 
 Meet Ferni—your personal AI life coaching team.
 
@@ -450,7 +481,7 @@ Try free: link in bio
 
 ---
 
-##  Account Credentials Template
+## Account Credentials Template
 
 Save these securely (password manager recommended):
 
@@ -467,7 +498,7 @@ Company Page URL: linkedin.com/company/ferni
 Admin Email: [admin email]
 Password: [secure password]
 
-Platform: Instagram  
+Platform: Instagram
 Username: @ferni.ai
 Email: [social@ferni.ai]
 Password: [secure password]
@@ -487,26 +518,26 @@ Password: [secure password]
 
 ---
 
-##  Quick Links Reference
+## Quick Links Reference
 
 After setup, your social links will be:
 
-| Platform | URL |
-|----------|-----|
-| Website | https://ferni.ai |
-| Web App | https://app.ferni.ai |
-| Link Page | https://ferni.ai/links |
-| X (Twitter) | https://twitter.com/ferniAI |
-| LinkedIn | https://linkedin.com/company/ferni |
-| Instagram | https://instagram.com/ferni.ai |
-| TikTok | https://tiktok.com/@ferni.ai |
-| YouTube | https://youtube.com/@ferniAI |
-| Phone | tel:+14844813081 |
-| Email | hello@ferni.ai |
+| Platform    | URL                                |
+| ----------- | ---------------------------------- |
+| Website     | https://ferni.ai                   |
+| Web App     | https://app.ferni.ai               |
+| Link Page   | https://ferni.ai/links             |
+| X (Twitter) | https://twitter.com/ferniAI        |
+| LinkedIn    | https://linkedin.com/company/ferni |
+| Instagram   | https://instagram.com/ferni.ai     |
+| TikTok      | https://tiktok.com/@ferni.ai       |
+| YouTube     | https://youtube.com/@ferniAI       |
+| Phone       | tel:+14844813081                   |
+| Email       | hello@ferni.ai                     |
 
 ---
 
-##  Post-Setup Checklist
+## Post-Setup Checklist
 
 After creating all accounts:
 
@@ -521,5 +552,4 @@ After creating all accounts:
 
 ---
 
-*Last updated: December 2025*
-
+_Last updated: December 2025_

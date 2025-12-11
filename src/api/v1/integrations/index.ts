@@ -34,12 +34,10 @@ router.get('/status', async (req, res) => {
     }
 
     // Import services dynamically to avoid circular dependencies
-    const { hasBiometricsConnected, getConnectedPlatform } = await import(
-      '../../../services/biometrics/index.js'
-    );
-    const { hasCalendarConnected } = await import(
-      '../../../services/context-awareness/location-calendar.js'
-    );
+    const { hasBiometricsConnected, getConnectedPlatform } =
+      await import('../../../services/biometrics/index.js');
+    const { hasCalendarConnected } =
+      await import('../../../services/context-awareness/location-calendar.js');
     const { hasLinkedAccounts } = await import('../../../tools/plaid.js');
     const { getImportantPeople } = await import('../../../services/social-graph/index.js');
 

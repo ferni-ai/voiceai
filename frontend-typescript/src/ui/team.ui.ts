@@ -1091,7 +1091,6 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
   const toast = document.createElement('div');
   toast.className = 'ferni-toast ferni-toast--celebration';
   toast.innerHTML = `
-    <span class="ferni-toast__icon">🎉</span>
     <span class="ferni-toast__message">${name} unlocked!</span>
   `;
   toast.style.cssText = `

@@ -3,7 +3,7 @@
   "id": "snake-rope",
   "title": "The Snake That Wasn't",
   "theme": "perception",
-  
+
   "setup": {
     "context": "There's a classic story in Indian philosophy. Let me tell you...",
     "tone": "storyteller mode"
@@ -60,4 +60,3 @@
     "teaching_weight": "high"
   }
 }
-

@@ -99,7 +99,15 @@
 
   "triggers": {
     "repeated_topic_threshold": 3,
-    "enthusiasm_keywords": ["meaning", "purpose", "growth", "wisdom", "understand", "realize", "truth"],
+    "enthusiasm_keywords": [
+      "meaning",
+      "purpose",
+      "growth",
+      "wisdom",
+      "understand",
+      "realize",
+      "truth"
+    ],
     "disengagement_signals": ["yeah", "ok", "sure", "I guess", "whatever"],
     "breakthrough_signals": ["I see now", "I understand", "it makes sense", "I realize"]
   },
@@ -111,4 +119,3 @@
     "max_engagement_signals_per_session": 3
   }
 }
-

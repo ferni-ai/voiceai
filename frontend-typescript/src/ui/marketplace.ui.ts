@@ -51,8 +51,14 @@ function getPersonaGradient(personaId: string): string {
 /**
  * Get glow color for avatar shadows using CSS variables.
  */
-function getPersonaGlow(_personaId: string): string {
-  return 'var(--persona-glow)';
+function getPersonaGlow(personaId: string): string {
+  // External AI companies have their own brand glow colors
+  const externalGlows: Record<string, string> = {
+    claude: 'rgba(217, 119, 87, 0.35)',
+    gemini: 'rgba(66, 133, 244, 0.35)',
+    gpt: 'rgba(16, 163, 127, 0.35)',
+  };
+  return externalGlows[personaId] || 'var(--persona-glow)';
 }
 
 // ============================================================================
@@ -507,14 +513,14 @@ function renderTeamNarrative(): string {
               <span class="employee-role">Research</span>
             </div>
             <div class="employee-card" data-persona="alex-chen">
-              <div class="employee-avatar" style="${getAvatarStyle('alex-chen')}">AX</div>
+              <div class="employee-avatar" style="${getAvatarStyle('alex-chen')}">AC</div>
               <span class="employee-name">Alex</span>
               <span class="employee-role">Communication</span>
             </div>
             <div class="employee-card" data-persona="maya-santos">
-              <div class="employee-avatar" style="${getAvatarStyle('maya-santos')}">MY</div>
+              <div class="employee-avatar" style="${getAvatarStyle('maya-santos')}">MS</div>
               <span class="employee-name">Maya</span>
-              <span class="employee-role">Wellness</span>
+              <span class="employee-role">Habits</span>
             </div>
             <div class="employee-card" data-persona="jordan-taylor">
               <div class="employee-avatar" style="${getAvatarStyle('jordan-taylor')}">JD</div>
@@ -522,7 +528,7 @@ function renderTeamNarrative(): string {
               <span class="employee-role">Planning</span>
             </div>
             <div class="employee-card" data-persona="nayan-patel">
-              <div class="employee-avatar" style="${getAvatarStyle('nayan-patel')}">NP</div>
+              <div class="employee-avatar" style="${getAvatarStyle('nayan-patel')}">NA</div>
               <span class="employee-name">Nayan</span>
               <span class="employee-role">Wisdom</span>
             </div>
@@ -753,7 +759,7 @@ function getCategoryLabel(category: string): string {
     lifestyle: 'Lifestyle',
     education: 'Education',
     entertainment: 'Entertainment',
-    custom: '🔧 Custom',
+    custom: 'Custom',
   };
   return labels[category] || category;
 }
@@ -775,6 +781,13 @@ function debounce<T extends (...args: unknown[]) => void>(
 
 function getMarketplaceStyles(): string {
   return `
+    /* External AI Company Brand Colors */
+    :root {
+      --gradient-claude: linear-gradient(135deg, #CC785C 0%, #D97757 100%);
+      --gradient-gemini: linear-gradient(135deg, #4285F4 0%, #8AB4F8 100%);
+      --gradient-gpt: linear-gradient(135deg, #0D9373 0%, #10A37F 100%);
+    }
+    
     .marketplace-modal {
       position: fixed;
       inset: 0;

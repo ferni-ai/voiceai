@@ -16,6 +16,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
 import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
+import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
 import { resetEnhancedTurnPredictor } from '../../speech/enhanced-turn-prediction.js';
 import { resetFFTAnalyzer } from '../../speech/fft-analyzer.js';
 import { resetMultiSignalLaughterDetector } from '../../speech/multi-signal-laughter.js';
@@ -223,6 +224,12 @@ function cleanupVoiceHumanization(
   // Advanced voice humanization services cleanup
   try {
     recordSessionEnd(sessionId);
+
+    // User Analytics: Record session end for DAU/WAU/MAU metrics
+    void recordUserSessionEnd(sessionId).catch((err) =>
+      diag.warn('📊 User analytics session end failed', { error: String(err) })
+    );
+
     resetFFTAnalyzer(sessionId);
     resetEnhancedTurnPredictor(sessionId);
     resetMultiSignalLaughterDetector(sessionId);

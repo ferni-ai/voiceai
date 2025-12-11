@@ -4,7 +4,14 @@
       "id": "lifetime-planning",
       "topic": "Lifetime Planning Guide",
       "file": "lifes-firsts.md",
-      "domains": ["lifetime-planning", "life-stages", "milestones", "transitions", "celebrations", "goals"]
+      "domains": [
+        "lifetime-planning",
+        "life-stages",
+        "milestones",
+        "transitions",
+        "celebrations",
+        "goals"
+      ]
     },
     {
       "id": "vacation-planning",

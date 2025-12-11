@@ -236,9 +236,4 @@ export const mathToolDefinitions: ToolDefinition[] = [
   quickMathDef,
 ];
 
-export {
-  calculateTipDef,
-  splitBillDef,
-  calculatePercentageDef,
-  quickMathDef,
-};
+export { calculateTipDef, splitBillDef, calculatePercentageDef, quickMathDef };

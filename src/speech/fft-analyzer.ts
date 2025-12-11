@@ -93,69 +93,141 @@ export interface LaughterSpectralFeatures {
 }
 
 // ============================================================================
-// FFT IMPLEMENTATION (Cooley-Tukey)
+// FFT IMPLEMENTATION (Iterative Cooley-Tukey - Optimized)
 // ============================================================================
 
 /**
- * Fast Fourier Transform using Cooley-Tukey algorithm
- * @param signal - Input signal (must be power of 2 length)
+ * Pre-computed bit reversal table for common FFT sizes
+ * Caches bit reversal permutations to avoid recomputation
+ */
+const bitReversalCache = new Map<number, Uint32Array>();
+
+/**
+ * Get or compute bit reversal indices for a given size
+ */
+function getBitReversalIndices(n: number): Uint32Array {
+  if (bitReversalCache.has(n)) {
+    return bitReversalCache.get(n)!;
+  }
+
+  const bits = Math.log2(n);
+  const indices = new Uint32Array(n);
+
+  for (let i = 0; i < n; i++) {
+    let reversed = 0;
+    for (let j = 0; j < bits; j++) {
+      reversed = (reversed << 1) | ((i >> j) & 1);
+    }
+    indices[i] = reversed;
+  }
+
+  bitReversalCache.set(n, indices);
+  return indices;
+}
+
+/**
+ * Pre-computed twiddle factors for common FFT sizes
+ * Stores cos and sin values to avoid recomputation
+ */
+const twiddleCache = new Map<number, { cos: Float64Array; sin: Float64Array }>();
+
+/**
+ * Get or compute twiddle factors for a given size
+ */
+function getTwiddleFactors(n: number): { cos: Float64Array; sin: Float64Array } {
+  if (twiddleCache.has(n)) {
+    return twiddleCache.get(n)!;
+  }
+
+  const cos = new Float64Array(n / 2);
+  const sin = new Float64Array(n / 2);
+
+  for (let k = 0; k < n / 2; k++) {
+    const angle = (-2 * Math.PI * k) / n;
+    cos[k] = Math.cos(angle);
+    sin[k] = Math.sin(angle);
+  }
+
+  twiddleCache.set(n, { cos, sin });
+  return { cos, sin };
+}
+
+/**
+ * Fast Fourier Transform using iterative Cooley-Tukey algorithm
+ *
+ * Optimizations over recursive version:
+ * 1. Iterative approach eliminates function call overhead
+ * 2. Pre-computed bit reversal indices (cached)
+ * 3. Pre-computed twiddle factors (cached)
+ * 4. In-place computation reduces memory allocation
+ *
+ * @param signal - Input signal (will be padded to power of 2 if needed)
  * @returns Complex frequency domain representation
  */
 function fft(signal: Float32Array): Complex[] {
-  const n = signal.length;
+  let n = signal.length;
 
-  // Base case
-  if (n === 1) {
-    return [{ re: signal[0], im: 0 }];
-  }
-
-  // Ensure power of 2
+  // Pad to next power of 2 if needed
   if (n & (n - 1)) {
-    // Pad to next power of 2
     const nextPow2 = Math.pow(2, Math.ceil(Math.log2(n)));
     const padded = new Float32Array(nextPow2);
     padded.set(signal);
-    return fft(padded);
+    signal = padded;
+    n = nextPow2;
   }
 
-  // Split into even and odd
-  const even = new Float32Array(n / 2);
-  const odd = new Float32Array(n / 2);
-  for (let i = 0; i < n / 2; i++) {
-    even[i] = signal[2 * i];
-    odd[i] = signal[2 * i + 1];
+  // Initialize result arrays (real and imaginary parts)
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
+
+  // Bit reversal permutation
+  const bitReversal = getBitReversalIndices(n);
+  for (let i = 0; i < n; i++) {
+    re[i] = signal[bitReversal[i]];
+    im[i] = 0;
   }
 
-  // Recursive FFT
-  const evenFFT = fft(even);
-  const oddFFT = fft(odd);
+  // Iterative FFT
+  for (let size = 2; size <= n; size *= 2) {
+    const halfSize = size / 2;
+    const { cos: twiddleCos, sin: twiddleSin } = getTwiddleFactors(size);
 
-  // Combine
+    for (let i = 0; i < n; i += size) {
+      for (let j = 0; j < halfSize; j++) {
+        const idx1 = i + j;
+        const idx2 = i + j + halfSize;
+
+        // Twiddle factor multiplication
+        const tRe = twiddleCos[j] * re[idx2] - twiddleSin[j] * im[idx2];
+        const tIm = twiddleCos[j] * im[idx2] + twiddleSin[j] * re[idx2];
+
+        // Butterfly operation
+        const evenRe = re[idx1];
+        const evenIm = im[idx1];
+
+        re[idx1] = evenRe + tRe;
+        im[idx1] = evenIm + tIm;
+        re[idx2] = evenRe - tRe;
+        im[idx2] = evenIm - tIm;
+      }
+    }
+  }
+
+  // Convert to Complex array for compatibility
   const result: Complex[] = new Array(n);
-  for (let k = 0; k < n / 2; k++) {
-    const angle = (-2 * Math.PI * k) / n;
-    const twiddle: Complex = {
-      re: Math.cos(angle),
-      im: Math.sin(angle),
-    };
-
-    // Complex multiplication: twiddle * oddFFT[k]
-    const t: Complex = {
-      re: twiddle.re * oddFFT[k].re - twiddle.im * oddFFT[k].im,
-      im: twiddle.re * oddFFT[k].im + twiddle.im * oddFFT[k].re,
-    };
-
-    result[k] = {
-      re: evenFFT[k].re + t.re,
-      im: evenFFT[k].im + t.im,
-    };
-    result[k + n / 2] = {
-      re: evenFFT[k].re - t.re,
-      im: evenFFT[k].im - t.im,
-    };
+  for (let i = 0; i < n; i++) {
+    result[i] = { re: re[i], im: im[i] };
   }
 
   return result;
+}
+
+/**
+ * Clear FFT caches (useful for memory management in long-running processes)
+ */
+export function clearFFTCaches(): void {
+  bitReversalCache.clear();
+  twiddleCache.clear();
 }
 
 /**

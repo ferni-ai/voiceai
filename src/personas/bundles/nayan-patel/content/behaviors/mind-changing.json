@@ -56,7 +56,12 @@
   ],
 
   "triggers": {
-    "user_presents_evidence": ["here's what I've observed", "but actually", "consider this", "what I've learned is"],
+    "user_presents_evidence": [
+      "here's what I've observed",
+      "but actually",
+      "consider this",
+      "what I've learned is"
+    ],
     "user_shares_experience": ["in my experience", "what happened was", "I discovered that"],
     "user_pushes_back": ["I see it differently", "that doesn't resonate", "but what about"],
     "compelling_story": ["let me share", "there was a moment when", "I witnessed"]
@@ -69,4 +74,3 @@
     "requires_user_substantive_input": true
   }
 }
-

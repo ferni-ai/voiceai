@@ -13,10 +13,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import {
-  getDailyRitualsService,
-  type EmotionalWeather,
-} from '../../../services/daily-rituals.js';
+import { getDailyRitualsService, type EmotionalWeather } from '../../../services/daily-rituals.js';
 import { generateWeatherInsight } from './helpers.js';
 
 // ============================================================================

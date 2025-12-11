@@ -17,6 +17,7 @@
 import crypto from 'crypto';
 import * as admin from 'firebase-admin';
 import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getGCPProjectId } from '../../config/environment.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WebExperiments' });
@@ -31,7 +32,7 @@ function getDb(): Firestore {
   if (!db) {
     // Initialize Firebase if not already done
     if (admin.apps.length === 0) {
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+      const projectId = getGCPProjectId();
       if (projectId) {
         admin.initializeApp({ projectId });
       } else {

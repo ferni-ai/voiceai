@@ -27,6 +27,7 @@
  * @module ThinkingOfYou
  */
 
+import { getAnticipatoryPresence } from '../../conversation/superhuman/anticipatory-presence.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -483,6 +484,110 @@ export class ThinkingOfYouEngine {
     if (month === 11 && day >= 20) return true;
 
     return false;
+  }
+
+  // ==========================================================================
+  // 🌟 BETTER THAN HUMAN INTEGRATION
+  // ==========================================================================
+
+  /**
+   * Check if we should reach out based on learned patterns from BetterThanHuman
+   * Uses anticipatory presence engine to detect optimal timing
+   */
+  shouldReachOutWithPatterns(
+    userId: string,
+    context: UserOutreachContext
+  ): {
+    shouldSend: boolean;
+    trigger?: ThinkingOfYouTrigger;
+    persona?: PersonaId;
+    reason?: string;
+    learnedPattern?: string;
+  } {
+    // First check standard logic
+    const baseDecision = this.shouldReachOut(context);
+
+    // If base logic says no, check if learned patterns override
+    if (!baseDecision.shouldSend) {
+      try {
+        const anticipation = getAnticipatoryPresence(userId);
+        const hour = new Date().getHours();
+        const dayOfWeek = new Date().getDay();
+
+        // Get anticipation based on learned patterns
+        const anticipationResult = anticipation.getAnticipation({
+          hour,
+          dayOfWeek,
+          isReturningUser: context.daysSinceLastContact > 0,
+          sessionCount: 0,
+          currentTopic: undefined,
+          detectedMood: context.emotionalState === 'struggling' ? 'low' : undefined,
+        });
+
+        // If learned patterns suggest this is a good time, boost probability
+        if (anticipationResult.shouldAnticipate && anticipationResult.confidence > 0.7) {
+          // Override base decision based on learned patterns
+          return {
+            shouldSend: true,
+            trigger: this.mapAnticipationToTrigger(anticipationResult.type),
+            persona: 'ferni',
+            reason: `Learned pattern: ${anticipationResult.type} (${(anticipationResult.confidence * 100).toFixed(0)}% confidence)`,
+            learnedPattern: anticipationResult.type,
+          };
+        }
+      } catch (err) {
+        log.debug({ error: err, userId }, 'Failed to check learned patterns');
+      }
+    }
+
+    return baseDecision;
+  }
+
+  /**
+   * Map anticipation type to outreach trigger
+   */
+  private mapAnticipationToTrigger(anticipationType: string | undefined): ThinkingOfYouTrigger {
+    if (!anticipationType) return 'random_kindness';
+
+    const mapping: Record<string, ThinkingOfYouTrigger> = {
+      temporal: 'random_kindness',
+      emotional: 'appreciation',
+      topic_associated: 'relevant_content',
+      energy_pattern: 'random_kindness',
+      thinking_of_you: 'random_kindness',
+    };
+
+    return mapping[anticipationType] || 'random_kindness';
+  }
+
+  /**
+   * Get optimal outreach time based on learned patterns
+   */
+  getOptimalOutreachTime(userId: string): {
+    patternDescription: string;
+    confidence: number;
+  } | null {
+    try {
+      const anticipation = getAnticipatoryPresence(userId);
+      const profile = anticipation.export();
+
+      // Find the temporal pattern with highest confidence
+      let bestPattern: { patternDescription: string; confidence: number } | null = null;
+
+      for (const pattern of profile.temporalPatterns) {
+        if (!bestPattern || pattern.confidence > bestPattern.confidence) {
+          bestPattern = {
+            patternDescription: pattern.pattern,
+            confidence: pattern.confidence,
+          };
+        }
+      }
+
+      return bestPattern;
+    } catch (err) {
+      log.debug({ error: err, userId }, 'Failed to get optimal outreach time');
+      return null;
+    }
   }
 
   // ==========================================================================

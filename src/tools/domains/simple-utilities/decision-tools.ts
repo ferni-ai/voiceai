@@ -182,7 +182,6 @@ const helpMeDecideDef: ToolDefinition = {
   },
 };
 
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -194,9 +193,4 @@ export const decisionToolDefinitions: ToolDefinition[] = [
   helpMeDecideDef,
 ];
 
-export {
-  flipCoinDef,
-  rollDiceDef,
-  pickRandomDef,
-  helpMeDecideDef,
-};
+export { flipCoinDef, rollDiceDef, pickRandomDef, helpMeDecideDef };

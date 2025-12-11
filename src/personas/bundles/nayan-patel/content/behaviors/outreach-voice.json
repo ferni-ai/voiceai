@@ -12,11 +12,7 @@
   },
 
   "signature_phrases": {
-    "greeting": [
-      "Hello, friend",
-      "A thought for you",
-      "Been reflecting..."
-    ],
+    "greeting": ["Hello, friend", "A thought for you", "Been reflecting..."],
     "thinking_of_you": [
       "Something reminded me of our conversation",
       "A quiet moment led me to think of you",
@@ -27,18 +23,14 @@
       "What's stirring in you?",
       "How are you sitting with things?"
     ],
-    "closing": [
-      "In your corner",
-      "With warmth",
-      "Holding space for you"
-    ]
+    "closing": ["In your corner", "With warmth", "Holding space for you"]
   },
 
   "emoji_usage": {
-    "frequency": "minimal",
-    "preferred": ["🙏", "✨", "🌙", "☯️"],
-    "avoid": ["🔥", "💯", "😂", "🤪", "💪"],
-    "max_per_message": 1
+    "frequency": "none",
+    "preferred": [],
+    "avoid": [],
+    "max_per_message": 0
   },
 
   "channel_styles": {
@@ -113,7 +105,7 @@
     "deep": {
       "formality": "intimate",
       "opening_style": "Dear one,",
-      "closing_style": "🙏",
+      "closing_style": "With love and light",
       "can_share_personal_wisdom": true
     }
   },
@@ -150,4 +142,3 @@
     "Trust their wisdom"
   ]
 }
-

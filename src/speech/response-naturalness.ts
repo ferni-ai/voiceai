@@ -14,7 +14,6 @@
  * transform a response into a conversation.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { breakTag } from '../ssml/cartesia.js';
 
 // ============================================================================
@@ -471,37 +470,97 @@ export class CatchphraseTracker {
   }
 }
 
-// Global tracker for backward compatibility (will be deprecated)
-const globalCatchphraseUsage = new Map<string, { lastUsed: number; count: number }>();
+// ============================================================================
+// SESSION-SCOPED CATCHPHRASE MANAGEMENT
+// ============================================================================
+
+const sessionTrackers = new Map<string, CatchphraseTracker>();
 
 /**
- * Should we inject a catchphrase?
- * @deprecated Use CatchphraseTracker for session-scoped tracking
+ * Get or create a session-scoped catchphrase tracker.
+ * This prevents catchphrase state from leaking between sessions.
  */
+export function getSessionCatchphraseTracker(sessionId: string): CatchphraseTracker {
+  let tracker = sessionTrackers.get(sessionId);
+  if (!tracker) {
+    tracker = new CatchphraseTracker();
+    sessionTrackers.set(sessionId, tracker);
+  }
+  return tracker;
+}
+
+/**
+ * Reset catchphrase tracker for a session
+ */
+export function resetSessionCatchphraseTracker(sessionId: string): void {
+  const tracker = sessionTrackers.get(sessionId);
+  if (tracker) {
+    tracker.reset();
+    sessionTrackers.delete(sessionId);
+  }
+}
+
+/**
+ * Reset all session catchphrase trackers
+ */
+export function resetAllCatchphraseTrackers(): void {
+  sessionTrackers.clear();
+}
+
+/**
+ * Should we inject a catchphrase? (Session-scoped version)
+ * Uses session-scoped tracking to prevent state leakage.
+ *
+ * @param sessionId - The session ID for tracking
+ * @param personaId - The persona ID
+ * @param turnCount - Current turn number
+ * @param isPositiveMoment - Whether this is a positive moment
+ */
+
+export function shouldInjectCatchphrase(
+  sessionId: string,
+  personaId: string,
+  turnCount: number,
+  isPositiveMoment: boolean
+): boolean;
+
+/**
+ * Should we inject a catchphrase? (Legacy signature - uses default session)
+ * @deprecated Use the 4-argument version with sessionId for session-scoped tracking
+ */
+// eslint-disable-next-line no-redeclare -- Function overload signatures
 export function shouldInjectCatchphrase(
   personaId: string,
   turnCount: number,
   isPositiveMoment: boolean
+): boolean;
+
+// Implementation handles both signatures
+// eslint-disable-next-line no-redeclare -- Function overload implementation
+export function shouldInjectCatchphrase(
+  sessionIdOrPersonaId: string,
+  personaIdOrTurnCount: string | number,
+  turnCountOrIsPositive: number | boolean,
+  isPositiveMoment?: boolean
 ): boolean {
-  const usage = globalCatchphraseUsage.get(personaId) || { lastUsed: -10, count: 0 };
-
-  // FIX BUG #voice-16: Use configurable constants instead of magic numbers
-  if (usage.count >= CATCHPHRASE_CONFIG.maxPerSession) return false;
-  if (turnCount - usage.lastUsed < CATCHPHRASE_CONFIG.minTurnsBetween) return false;
-
-  const chance = isPositiveMoment
-    ? CATCHPHRASE_CONFIG.positiveChance
-    : CATCHPHRASE_CONFIG.defaultChance;
-
-  if (Math.random() < chance) {
-    globalCatchphraseUsage.set(personaId, {
-      lastUsed: turnCount,
-      count: usage.count + 1,
-    });
-    return true;
+  // Detect which signature is being used
+  if (typeof personaIdOrTurnCount === 'number') {
+    // Legacy 3-arg signature: (personaId, turnCount, isPositive)
+    const personaId = sessionIdOrPersonaId;
+    const turnCount = personaIdOrTurnCount;
+    const isPositive = turnCountOrIsPositive as boolean;
+    // Use a default session for backward compatibility
+    const tracker = getSessionCatchphraseTracker('__default__');
+    return tracker.shouldInject(personaId, turnCount, isPositive);
+  } else {
+    // New 4-arg signature: (sessionId, personaId, turnCount, isPositive)
+    const sessionId = sessionIdOrPersonaId;
+    const personaId = personaIdOrTurnCount;
+    const turnCount = turnCountOrIsPositive as number;
+    const isPositive = isPositiveMoment ?? false;
+    const tracker = getSessionCatchphraseTracker(sessionId);
+    return tracker.shouldInject(personaId, turnCount, isPositive);
   }
-
-  return false;
 }
 
 /**
@@ -519,10 +578,10 @@ export function getCatchphraseWithSsml(personaId: string): string | null {
 
 /**
  * Reset catchphrase tracking (for new session)
- * @deprecated Use CatchphraseTracker.reset() for session-scoped tracking
+ * Clears all session trackers and the default tracker.
  */
 export function resetCatchphraseTracking(): void {
-  globalCatchphraseUsage.clear();
+  resetAllCatchphraseTrackers();
 }
 
 // ============================================================================

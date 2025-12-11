@@ -21,14 +21,20 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 describe('emotion-matching', () => {
   // Mock dependencies
-  vi.mock('../utils/safe-logger.js', () => ({
-    getLogger: () => ({
+  vi.mock('../utils/safe-logger.js', () => {
+    const mockLogger = {
       debug: vi.fn(),
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-    }),
-  }));
+      child: () => mockLogger,
+    };
+    return {
+      getLogger: () => mockLogger,
+      createLogger: () => mockLogger,
+      safeLog: () => mockLogger,
+    };
+  });
 
   let emotionMatching: typeof import('../speech/emotion-matching.js');
 

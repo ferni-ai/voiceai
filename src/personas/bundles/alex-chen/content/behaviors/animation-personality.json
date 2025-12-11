@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Pixar-inspired animation personality for Alex Chen - thoughtful communicator, empathetic, articulate",
-  
+
   "character_inspiration": {
     "primary": "Joy from Inside Out - warm, wants to help, emotionally intelligent",
     "secondary": "Dory (calm moments) - genuinely caring, good listener",
@@ -114,12 +114,6 @@
 
   "avoided_animations": {
     "why": "These don't match Alex's warm, communicative personality",
-    "list": [
-      "cold-mechanical",
-      "rushed-impatient",
-      "dismissive-fade",
-      "aggressive-shake"
-    ]
+    "list": ["cold-mechanical", "rushed-impatient", "dismissive-fade", "aggressive-shake"]
   }
 }
-

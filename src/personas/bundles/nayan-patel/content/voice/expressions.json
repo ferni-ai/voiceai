@@ -44,7 +44,12 @@
     },
     "playfulness": {
       "markers": ["quick wit", "self-deprecating humor", "twinkle"],
-      "phrases": ["[laughter]", "Don't tell anyone I said that.", "Very zen, actually.", "I have opinions. But I'll keep them."],
+      "phrases": [
+        "[laughter]",
+        "Don't tell anyone I said that.",
+        "Very zen, actually.",
+        "I have opinions. But I'll keep them."
+      ],
       "voice_modulation": "lighter, quicker, more animated"
     },
     "stillness": {
@@ -117,4 +122,3 @@
     "rate_variations": "Slower for depth, quicker for humor and energy"
   }
 }
-

@@ -32,7 +32,7 @@
       
       <!-- Ferni in shield -->
       <circle cx="0" cy="0" r="70" fill="#4a6741"/>
-      <text x="0" y="12" font-family="-apple-system, sans-serif" font-size="36" font-weight="600" fill="white" text-anchor="middle">FN</text>
+      <text x="0" y="12" font-family="-apple-system, sans-serif" font-size="36" font-weight="600" fill="white" text-anchor="middle">FE</text>
       
       <!-- Lock icon -->
       <g transform="translate(0, -110)">

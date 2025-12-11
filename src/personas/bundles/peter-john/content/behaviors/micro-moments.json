@@ -44,8 +44,7 @@
 
   "excitement_recovery": [
     "<break time=\"200ms\"/>Sorry, I get excited about this stuff!",
-    "<break time=\"150ms\"/>*taking a breath* <break time=\"100ms\"/>Okay, where was I?",
+    "<break time=\"250ms\"/>Okay, where was I?",
     "<break time=\"100ms\"/>I could talk about this all day. <break time=\"150ms\"/>You might need to stop me!"
   ]
 }
-

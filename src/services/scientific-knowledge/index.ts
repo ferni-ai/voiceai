@@ -67,7 +67,9 @@ export function getScientificGuidance(context: {
     const somatic = getSomaticTechnique('acute_distress');
     guidance.primaryApproach = 'somatic_regulation';
     guidance.techniques.push(...somatic.techniques);
-    guidance.researchBasis.push('Porges Polyvagal Theory: Regulate body state before cognitive processing');
+    guidance.researchBasis.push(
+      'Porges Polyvagal Theory: Regulate body state before cognitive processing'
+    );
     guidance.doNot.push("Don't try to problem-solve while they're dysregulated");
   }
 
@@ -75,7 +77,9 @@ export function getScientificGuidance(context: {
   if (userState === 'anxious') {
     const cognitive = getCognitiveIntervention('anxiety');
     guidance.techniques.push(...cognitive.techniques);
-    guidance.researchBasis.push('CBT: Anxiety maintained by catastrophic interpretations (Beck, 1976)');
+    guidance.researchBasis.push(
+      'CBT: Anxiety maintained by catastrophic interpretations (Beck, 1976)'
+    );
     guidance.doNot.push("Don't reassure too quickly - explore the worry first");
   }
 
@@ -83,7 +87,9 @@ export function getScientificGuidance(context: {
   if (userState === 'sad') {
     const emotion = getEmotionGuidance('sadness');
     guidance.techniques.push(...emotion.techniques);
-    guidance.researchBasis.push('Behavioral Activation: Small actions precede mood change (Jacobson, 2001)');
+    guidance.researchBasis.push(
+      'Behavioral Activation: Small actions precede mood change (Jacobson, 2001)'
+    );
     guidance.doNot.push("Don't rush to cheer them up - sadness needs acknowledgment");
   }
 
@@ -91,7 +97,9 @@ export function getScientificGuidance(context: {
   if (userState === 'stuck' || userState === 'unmotivated') {
     const behavior = getBehaviorChangeStrategy('ambivalence');
     guidance.techniques.push(...behavior.techniques);
-    guidance.researchBasis.push('MI: Explore ambivalence without pushing (Miller & Rollnick, 2012)');
+    guidance.researchBasis.push(
+      'MI: Explore ambivalence without pushing (Miller & Rollnick, 2012)'
+    );
     guidance.doNot.push("Don't give advice they haven't asked for - elicit their own motivation");
   }
 
@@ -127,7 +135,9 @@ export function getScientificContextInjection(context: {
   emotionIntensity?: number;
 }): string {
   const guidance = getScientificGuidance({
-    userState: context.userState as ScientificGuidance['primaryApproach'] extends string ? 'neutral' : 'neutral',
+    userState: context.userState as ScientificGuidance['primaryApproach'] extends string
+      ? 'neutral'
+      : 'neutral',
     emotionIntensity: context.emotionIntensity,
   });
 
@@ -137,13 +147,22 @@ export function getScientificContextInjection(context: {
 ${guidance.primaryApproach ? `Primary: ${guidance.primaryApproach}` : ''}
 
 Research says:
-${guidance.researchBasis.slice(0, 2).map((r) => `• ${r}`).join('\n')}
+${guidance.researchBasis
+  .slice(0, 2)
+  .map((r) => `• ${r}`)
+  .join('\n')}
 
 Techniques to consider:
-${guidance.techniques.slice(0, 3).map((t) => `• ${t}`).join('\n')}
+${guidance.techniques
+  .slice(0, 3)
+  .map((t) => `• ${t}`)
+  .join('\n')}
 
 Avoid:
-${guidance.doNot.slice(0, 2).map((d) => `• ${d}`).join('\n')}`;
+${guidance.doNot
+  .slice(0, 2)
+  .map((d) => `• ${d}`)
+  .join('\n')}`;
 }
 
 // ============================================================================
@@ -158,5 +177,3 @@ export {
   RELATIONSHIP_SCIENCE,
   WELLBEING_SCIENCE,
 };
-
-

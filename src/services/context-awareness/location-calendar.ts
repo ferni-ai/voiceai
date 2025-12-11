@@ -157,10 +157,7 @@ export function getCalendarAuthUrl(userId: string): string {
 /**
  * Exchange authorization code for tokens
  */
-export async function exchangeCalendarCode(
-  code: string,
-  userId: string
-): Promise<boolean> {
+export async function exchangeCalendarCode(code: string, userId: string): Promise<boolean> {
   try {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -279,10 +276,7 @@ export async function fetchUpcomingEvents(
   }
 }
 
-function classifyEventType(
-  title: string,
-  description?: string
-): CalendarEvent['eventType'] {
+function classifyEventType(title: string, description?: string): CalendarEvent['eventType'] {
   const text = `${title} ${description || ''}`.toLowerCase();
 
   if (/meet|call|sync|standup|review|interview/.test(text)) return 'meeting';
@@ -346,11 +340,7 @@ export function updateLocation(
 /**
  * Classify location based on saved places
  */
-function classifyLocation(
-  userId: string,
-  lat: number,
-  lng: number
-): LocationType {
+function classifyLocation(userId: string, lat: number, lng: number): LocationType {
   const state = userStates.get(userId);
   if (!state) return 'unknown';
 
@@ -394,12 +384,7 @@ export function saveLocation(
 /**
  * Haversine distance between two points in km
  */
-function haversineDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -508,9 +493,7 @@ export async function detectStressPatterns(userId: string): Promise<StressTrigge
 /**
  * Generate anticipation insights for context injection
  */
-export async function generateAnticipationInsights(
-  userId: string
-): Promise<AnticipationInsight[]> {
+export async function generateAnticipationInsights(userId: string): Promise<AnticipationInsight[]> {
   const state = userStates.get(userId);
   if (!state) return [];
 
@@ -594,13 +577,11 @@ export function generateSuperhumanMoment(userId: string): string | null {
   }
 
   // Extra time due to cancelled event
-  const cancelledTime = state.upcomingEvents.find(
-    (e) => e.title.toLowerCase().includes('cancelled')
+  const cancelledTime = state.upcomingEvents.find((e) =>
+    e.title.toLowerCase().includes('cancelled')
   );
   if (cancelledTime) {
-    moments.push(
-      `Looks like you have some unexpected free time - grounding exercise?`
-    );
+    moments.push(`Looks like you have some unexpected free time - grounding exercise?`);
   }
 
   // Pattern-based insight

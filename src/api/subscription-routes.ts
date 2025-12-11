@@ -25,7 +25,17 @@ import {
   recordConversation,
   verifyWebhook,
 } from '../services/stripe-subscription.js';
+import {
+  getMetricsForApi,
+  initializeSubscriptionMetrics,
+  trackStripeEvent,
+} from '../services/subscription-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
+
+// Initialize subscription metrics on module load
+initializeSubscriptionMetrics().catch(() => {
+  // Non-fatal initialization - metrics will work on first request
+});
 
 const log = createLogger({ module: 'SubscriptionAPI' });
 
@@ -414,6 +424,16 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
     const event = await verifyWebhook(ctx.body, signature);
     await handleWebhookEvent(event);
 
+    // Track event for metrics dashboard
+    const eventData = event.data.object as unknown as Record<string, unknown>;
+    const metadata = (eventData.metadata ?? {}) as Record<string, string>;
+    await trackStripeEvent(event.type, {
+      userId: metadata.ferni_user_id,
+      subscriptionId: eventData.id as string,
+      tier: metadata.tier,
+      amount: eventData.amount_total as number | undefined,
+    }).catch((err) => log.warn({ err }, 'Failed to track subscription event'));
+
     return {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -629,6 +649,10 @@ async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseConte
 /**
  * GET /api/subscription/config
  * Get public subscription configuration (for frontend)
+ *
+ * NEW: "Ferni Free Forever" model
+ * - Free tier: Unlimited conversations with Ferni, 7-min sessions
+ * - Premium: Longer sessions, team access, cosmetics
  */
 async function getConfig(): Promise<ResponseContext> {
   const isConfigured = isStripeConfigured();
@@ -638,43 +662,64 @@ async function getConfig(): Promise<ResponseContext> {
     headers: { 'Content-Type': 'application/json' },
     body: {
       enabled: isConfigured,
+      model: 'ferni-free-forever', // New monetization model identifier
       tiers: [
         {
           id: 'free',
-          name: 'Getting Started',
-          description: "We're just beginning our journey together",
+          name: 'Ferni Forever',
+          description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
           priceInCents: 0,
-          conversationsPerMonth: 5,
-          features: ['5 conversations/month', 'Basic memory', 'Single device'],
+          conversationsPerMonth: null, // UNLIMITED with Ferni!
+          sessionMinutes: 7, // 7-minute sessions
+          teamAccess: 'ferni-only',
+          features: [
+            '✅ Unlimited Ferni conversations',
+            '⏱️ 7-minute sessions',
+            '💾 Full memory (Ferni remembers everything)',
+            '🎨 Basic avatar & theme',
+          ],
         },
         {
           id: 'friend',
           name: 'Your Life Coach',
-          description: "I'm here whenever you need me",
+          description: 'Unlimited time with Ferni + meet the whole team',
           priceInCents: 999,
           conversationsPerMonth: null,
+          sessionMinutes: null, // Unlimited session time
+          teamAccess: 'core-team',
           features: [
-            'Unlimited conversations',
-            'Full memory persistence',
-            'Cross-device sync',
-            'Early access to new features',
+            '♾️ Unlimited session time',
+            '👥 Core team (Maya, Peter, Alex, Jordan)',
+            '🛍️ Cosmetics shop access',
+            '🔄 Cross-device sync',
           ],
           popular: true,
         },
         {
           id: 'partner',
           name: 'Partner in Growth',
-          description: 'Together for the long haul',
+          description: 'Full team access + exclusive cosmetics + priority',
           priceInCents: 1999,
           conversationsPerMonth: null,
+          sessionMinutes: null,
+          teamAccess: 'full-team',
           features: [
-            'Everything in Friend',
-            'Priority responses',
-            'Family sharing (up to 4)',
-            'Exclusive partner features',
+            'Everything in Friend, plus:',
+            '🌟 Full team (including Nayan)',
+            '✨ Exclusive cosmetics',
+            '🚀 Priority responses',
+            '👨‍👩‍👧‍👦 Family sharing',
           ],
         },
       ],
+      // Additional monetization options
+      monetization: {
+        tipJar: true,
+        valueCapture: true,
+        ferniFund: true,
+        b2bAvailable: true,
+        partnerships: true,
+      },
     },
   };
 }
@@ -687,6 +732,19 @@ async function getConfig(): Promise<ResponseContext> {
  * Routes support both /subscription/* and /api/subscription/* for flexibility
  * Frontend uses /subscription/*, firebase rewrites use /subscription/**
  */
+/**
+ * GET /api/subscription/metrics
+ * Get subscription metrics for admin dashboard
+ */
+async function getMetrics(_ctx: RequestContext): Promise<ResponseContext> {
+  const metrics = getMetricsForApi();
+  return {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: metrics,
+  };
+}
+
 const routes: Record<string, Record<string, RouteHandler>> = {
   GET: {
     // With /api prefix (for API consistency)
@@ -695,12 +753,14 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     '/api/subscription/config': getConfig,
     '/api/subscription/verify-session': verifyCheckoutSession,
     '/api/subscription/trial': getTrialStatus,
+    '/api/subscription/metrics': getMetrics,
     // Without /api prefix (frontend calls these directly)
     '/subscription/status': getStatus,
     '/subscription/can-start': checkCanStart,
     '/subscription/config': getConfig,
     '/subscription/verify-session': verifyCheckoutSession,
     '/subscription/trial': getTrialStatus,
+    '/subscription/metrics': getMetrics,
   },
   POST: {
     // With /api prefix

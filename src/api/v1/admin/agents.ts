@@ -304,10 +304,7 @@ Created from the "${body.template}" template.
               },
               {
                 context: 'returning_user',
-                phrases: [
-                  `Welcome back! Great to see you again.`,
-                  `Hey there! How have you been?`,
-                ],
+                phrases: [`Welcome back! Great to see you again.`, `Hey there! How have you been?`],
               },
             ],
           };

@@ -17,17 +17,32 @@
 
 // Import reset functions for local use
 import { resetActiveListeningEngine as _resetActiveListening } from './active-listening.js';
+import { resetAdvancedHumanization as _resetAdvancedHumanization } from './advanced-humanization.js';
+import { resetConcernDetectionEngine as _resetConcernDetection } from './concern-detection.js';
 import { resetConversationRhythmTracker as _resetConversationRhythm } from './conversation-rhythm.js';
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory.js';
+import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
+import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
 import { resetDeepHumanizationEngine as _resetDeepHumanization } from './deep-humanization.js';
+import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
+import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
+import { resetHopeInjectionEngine as _resetHopeInjection } from './hope-injection.js';
 import { resetConversationHumanizer as _resetHumanizer } from './humanizer.js';
 import { resetInterruptionHandler as _resetInterruption } from './interruption-handler.js';
+import { resetMicroAffirmationEngine as _resetMicroAffirmation } from './micro-affirmations.js';
+import { resetParadoxicalInterventionEngine as _resetParadoxicalIntervention } from './paradoxical-intervention.js';
+import { resetPredictiveAnticipationEngine as _resetPredictiveAnticipation } from './predictive-anticipation.js';
+import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive-memory.js';
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns.js';
+import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
 import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
+import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
+import { resetSuperhumanIntelligence as _resetSuperhumanIntelligence } from './superhuman-intelligence.js';
+import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
 // Emotional Arc Tracking
@@ -245,6 +260,68 @@ export {
 } from './engagement-scoring.js';
 
 // ============================================================================
+// SUPERHUMAN CAPABILITIES - "Better Than Human" Features
+// ============================================================================
+
+// Unified Concern Detection - Detect distress before explicit mention
+export {
+  ConcernDetectionEngine,
+  getConcernDetectionEngine,
+  resetAllConcernDetectionEngines,
+  resetConcernDetectionEngine,
+  type BreathingSignals,
+  type ConcernApproach,
+  type ConcernLevel,
+  type ConcernSignal,
+  type ConcernState,
+  type ConcernType,
+  type ProsodySignals,
+  type TemporalContext,
+} from './concern-detection.js';
+
+// Proactive Memory Surfacing - Surface memories before user mentions them
+export {
+  clearProactiveMemoryEngine,
+  getProactiveMemoryEngine,
+  ProactiveMemoryEngine,
+  resetProactiveMemoryEngine,
+  type MemoryType,
+  type PatternDetection,
+  type ProactiveMemorySuggestion,
+  type StoredMemory,
+} from './proactive-memory.js';
+
+// Predictive Anticipation - Know what they need before they say it
+export {
+  clearPredictiveAnticipationEngine,
+  getPredictiveAnticipationEngine,
+  PredictiveAnticipationEngine,
+  resetPredictiveAnticipationEngine,
+  type EmotionalHistoryEntry,
+  type EmotionalPrediction,
+  type EmotionalTrajectory,
+  type NeedPrediction,
+  type PredictedNeed,
+  type PredictionResult,
+  type ProsodyInput,
+  type TopicSequencePrediction,
+  type UserBaseline,
+  type VoiceStatePrediction,
+} from './predictive-anticipation.js';
+
+// Superhuman Intelligence Orchestrator - Coordinates all "Better Than Human" capabilities
+export {
+  clearSuperhumanIntelligence,
+  getSuperhumanIntelligence,
+  resetSuperhumanIntelligence,
+  SuperhumanIntelligenceOrchestrator,
+  type ResponseGuidance,
+  type ResponseModification,
+  type SuperhumanContext,
+  type SuperhumanInsight,
+} from './superhuman-intelligence.js';
+
+// ============================================================================
 // CONTENT DELIVERY PACING - Human-like reading of long content
 // ============================================================================
 
@@ -284,13 +361,184 @@ export {
 } from './vocal-humanization.js';
 
 // ============================================================================
+// ADVANCED HUMANIZATION - Deep Connection Features
+// ============================================================================
+
+// Subtext Detection - Read between the lines
+export {
+  clearSubtextDetectionEngine,
+  getSubtextDetectionEngine,
+  resetSubtextDetectionEngine,
+  SubtextDetectionEngine,
+  type SubtextContext,
+  type SubtextDetection,
+  type SubtextType,
+} from './subtext-detection.js';
+
+// Emotional Aftercare - Guide back to equilibrium after heavy moments
+export {
+  clearEmotionalAftercareEngine,
+  EmotionalAftercareEngine,
+  getEmotionalAftercareEngine,
+  resetEmotionalAftercareEngine,
+  type AftercareGuidance,
+  type AftercarePhase,
+  type AftercarePriority,
+  type AftercareState,
+  type EmotionalEvent,
+  type EmotionalIntensity,
+} from './emotional-aftercare.js';
+
+// Conversational Repair - Recover from miscommunication
+export {
+  clearConversationalRepairEngine,
+  ConversationalRepairEngine,
+  getConversationalRepairEngine,
+  resetConversationalRepairEngine,
+  type MiscueSignal,
+  type MiscueType,
+  type RepairDecision,
+  type RepairStrategy,
+} from './conversational-repair.js';
+
+// Hope Injection - Subtle forward-looking language without toxic positivity
+export {
+  clearHopeInjectionEngine,
+  getHopeInjectionEngine,
+  HopeInjectionEngine,
+  resetHopeInjectionEngine,
+  type FutureAnchor,
+  type HopeContext,
+  type HopeGuidance,
+  type HopeInjection,
+  type HopeType,
+} from './hope-injection.js';
+
+// Curiosity Engine - Genuine interest in user's life story
+export {
+  clearCuriosityEngine,
+  CuriosityEngine,
+  getCuriosityEngine,
+  resetCuriosityEngine,
+  type CuriosityPrompt,
+  type CuriosityState,
+  type ConversationThread as CuriosityThread,
+  type LifeDetail,
+} from './curiosity-engine.js';
+
+// Energy Regulation - Lead vs match energy
+export {
+  clearEnergyRegulationEngine,
+  EnergyRegulationEngine,
+  getEnergyRegulationEngine,
+  resetEnergyRegulationEngine,
+  type EnergyGuidance,
+  type EnergyHistory,
+  type EnergyLevel as EnergyRegulationLevel,
+  type EnergyState,
+  type EnergyValence,
+  type RegulationDecision,
+  type RegulationStrategy,
+} from './energy-regulation.js';
+
+// Micro-Affirmations - Tiny validations throughout conversation
+export {
+  clearMicroAffirmationEngine,
+  getMicroAffirmationEngine,
+  MicroAffirmationEngine,
+  resetMicroAffirmationEngine,
+  type AffirmationContext,
+  type AffirmationDecision,
+  type AffirmationDensityConfig,
+  type AffirmationType,
+  type MicroAffirmation,
+} from './micro-affirmations.js';
+
+// Temporal Context - Life rhythm awareness (time of day, day of week)
+export {
+  clearTemporalContextEngine,
+  getTemporalContextEngine,
+  resetTemporalContextEngine,
+  TemporalContextEngine,
+  type DayType,
+  type TemporalGuidance,
+  type TemporalMood,
+  type TemporalState,
+  type TimeOfDay,
+  type UpcomingEvent,
+} from './temporal-context.js';
+
+// Relationship Events - Track and celebrate relationship milestones
+export {
+  clearRelationshipEventsEngine,
+  getRelationshipEventsEngine,
+  RelationshipEventsEngine,
+  resetRelationshipEventsEngine,
+  type MilestoneOpportunity,
+  type MilestoneType,
+  type RelationshipMilestone,
+  type RelationshipState,
+  type SharedMemory,
+} from './relationship-events.js';
+
+// Paradoxical Intervention - Know when direct advice backfires
+export {
+  clearParadoxicalInterventionEngine,
+  getParadoxicalInterventionEngine,
+  ParadoxicalInterventionEngine,
+  resetParadoxicalInterventionEngine,
+  type AdviceHistory,
+  type InterventionDecision,
+  type InterventionType as ParadoxicalInterventionType,
+  type ResistanceDetection,
+  type ResistanceType,
+} from './paradoxical-intervention.js';
+
+// ============================================================================
+// ADVANCED HUMANIZATION ORCHESTRATOR
+// ============================================================================
+
+// Unified orchestrator for all advanced humanization capabilities
+export {
+  AdvancedHumanizationOrchestrator,
+  clearAdvancedHumanization,
+  getAdvancedHumanization,
+  resetAdvancedHumanization,
+  type AdvancedHumanizationContext,
+  type AdvancedHumanizationResult,
+  type SessionStartResult,
+} from './advanced-humanization.js';
+
+// Advanced Humanization Voice Agent Integration
+export {
+  addSharedMemory as addAdvancedSharedMemory,
+  addSignificantDate as addAdvancedSignificantDate,
+  cleanupAdvancedHumanization,
+  getAdvancedHumanizationState,
+  getClosingGuidance as getAdvancedClosingGuidance,
+  getResponseModifications as getAdvancedResponseModifications,
+  initAdvancedHumanization,
+  processAdvancedTurn,
+  recordAdviceGiven as recordAdvancedAdviceGiven,
+  recordAgentResponse as recordAdvancedAgentResponse,
+  recordMilestone as recordAdvancedMilestone,
+  type AdvancedHumanizationSessionConfig,
+  type ResponseModification as AdvancedResponseModification,
+  type TurnGuidance,
+} from './advanced-humanization-integration.js';
+
+// ============================================================================
 // CONVENIENCE: Reset all conversation state
 // ============================================================================
 
 /**
  * Reset all conversation tracking for a new session
  */
-export function resetAllConversationState(personaId?: string): void {
+export function resetAllConversationState(
+  personaId?: string,
+  sessionId?: string,
+  userId?: string
+): void {
   _resetEmotionalArc();
   _resetResponseDynamics();
   _resetInterruption();
@@ -305,5 +553,31 @@ export function resetAllConversationState(personaId?: string): void {
   _resetConversationRhythm();
   if (personaId) {
     _resetDeepHumanization(personaId);
+  }
+  // Superhuman capabilities (session-scoped)
+  if (sessionId) {
+    _resetConcernDetection(sessionId);
+    _resetProactiveMemory(sessionId);
+    _resetPredictiveAnticipation(sessionId);
+    _resetSuperhumanIntelligence(sessionId);
+    // Advanced humanization (session-scoped)
+    _resetSubtextDetection(sessionId);
+    _resetEmotionalAftercare(sessionId);
+    _resetConversationalRepair(sessionId);
+    _resetHopeInjection(sessionId);
+    _resetEnergyRegulation(sessionId);
+    _resetMicroAffirmation(sessionId);
+    _resetParadoxicalIntervention(sessionId);
+  }
+  // User-scoped engines (persist across sessions)
+  if (userId) {
+    _resetCuriosity(userId);
+    _resetTemporalContext(userId);
+    _resetRelationshipEvents(userId);
+  }
+
+  // Advanced humanization orchestrator
+  if (sessionId && userId) {
+    _resetAdvancedHumanization(sessionId, userId);
   }
 }

@@ -2,20 +2,15 @@
  * Voice Agent Types
  *
  * Type definitions specific to the voice agent.
+ *
+ * NOTE: UserData is exported from shared/types.ts - this file contains
+ * additional types specific to voice agent operations.
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
 
-/**
- * User data stored on the job process and agent session
- */
-export interface UserData {
-  vadLoaded?: boolean;
-  userId?: string;
-  userName?: string;
-  subscriptionTier?: string;
-  isReturningUser?: boolean;
-}
+// Re-export UserData from the canonical source
+export type { UserData } from '../shared/types.js';
 
 /**
  * Persona switch request from frontend
@@ -57,28 +52,11 @@ export interface DataMessage {
   timestamp: number;
 }
 
-/**
- * Room reference for data publishing
- */
-export interface RoomReference {
-  localParticipant?: {
-    publishData: (data: Uint8Array, opts: { reliable: boolean }) => Promise<void>;
-  };
-}
+// Re-export RoomRef from frontend-publisher (canonical source)
+export type { RoomRef as RoomReference } from '../realtime/frontend-publisher.js';
 
-/**
- * Startup diagnostic logging
- */
-export interface DiagnosticLogger {
-  section: (message: string) => void;
-  prewarm: (message: string, data?: Record<string, unknown>) => void;
-  session: (message: string, data?: Record<string, unknown>) => void;
-  entry: (message: string, data?: Record<string, unknown>) => void;
-  user: (message: string, data?: Record<string, unknown>) => void;
-  warn: (message: string, data?: Record<string, unknown>) => void;
-  error: (message: string, data?: Record<string, unknown>) => void;
-  debug: (message: string, data?: Record<string, unknown>) => void;
-}
+// Re-export DiagnosticLogger from diagnostic-logger (canonical source)
+export type { DiagnosticLogger } from '../../services/diagnostic-logger.js';
 
 /**
  * Health check result

@@ -83,11 +83,6 @@
       "long_term_pattern_visible",
       "user_seeking_wisdom"
     ],
-    "never_when": [
-      "user_in_crisis",
-      "first_few_turns",
-      "user_needs_practical_help"
-    ]
+    "never_when": ["user_in_crisis", "first_few_turns", "user_needs_practical_help"]
   }
 }
-

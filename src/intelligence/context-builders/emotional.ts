@@ -19,7 +19,10 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { loadEmotionalIntelligence, getRandomPhraseClean } from '../../services/persona-content-loader.js';
+import {
+  loadEmotionalIntelligence,
+  getRandomPhraseClean,
+} from '../../services/persona-content-loader.js';
 
 const log = createLogger({ module: 'EmotionalContext' });
 
@@ -54,10 +57,10 @@ interface ExtendedUserData {
 async function buildEmotionalContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, analysis, userData, persona } = input;
   const injections: ContextInjection[] = [];
-  
+
   // Load persona-specific emotional intelligence (if available)
   const emotionalIntelligence = await loadEmotionalIntelligence(persona.id);
-  
+
   // Merge voice emotion with text emotion if available
   const textDistress = analysis.emotion.distressLevel ?? 0;
   let mergedDistress = textDistress;
@@ -105,19 +108,17 @@ If they need silence, give them silence.`
       },
       'HIGH DISTRESS DETECTED'
     );
-    
+
     // Add persona-specific distress response if available
     if (emotionalIntelligence) {
       const eiContent = emotionalIntelligence as Record<string, unknown>;
-      const distressResponses = (eiContent.detecting_distress as Record<string, unknown>)?.responses as Record<string, string[]>;
+      const distressResponses = (eiContent.detecting_distress as Record<string, unknown>)
+        ?.responses as Record<string, string[]>;
       if (distressResponses?.immediate_validation) {
         const phrase = getRandomPhraseClean(distressResponses.immediate_validation);
         if (phrase) {
           injections.push(
-            createHintInjection(
-              'persona_ei_distress',
-              `[PERSONA VOICE for distress]: "${phrase}"`
-            )
+            createHintInjection('persona_ei_distress', `[PERSONA VOICE for distress]: "${phrase}"`)
           );
         }
       }

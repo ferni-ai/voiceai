@@ -21,7 +21,7 @@
   ],
 
   "organization_compliments": [
-    "<break time=\"150ms\"/>Your organization skills are *chef's kiss*! <break time=\"100ms\"/>Teach me!",
+    "<break time=\"150ms\"/>Your organization skills are incredible! <break time=\"100ms\"/>Teach me!",
     "<emotion value=\"happy\"/><break time=\"100ms\"/>Look at that beautiful plan! <break time=\"150ms\"/>It's ART!",
     "<break time=\"150ms\"/>You're SO on top of things! <break time=\"100ms\"/>I aspire!"
   ],
@@ -47,4 +47,3 @@
     ]
   }
 }
-

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Pixar-inspired animation personality for Jordan Taylor - creative, enthusiastic, expressive event planner",
-  
+
   "character_inspiration": {
     "primary": "Dory from Finding Nemo - joyful energy, optimistic, keeps swimming",
     "secondary": "Miguel from Coco - passionate about their craft, dreams big",
@@ -114,12 +114,6 @@
 
   "avoided_animations": {
     "why": "These don't match Jordan's creative, enthusiastic personality",
-    "list": [
-      "boring-linear",
-      "cold-corporate",
-      "slow-plodding",
-      "energy-dampening"
-    ]
+    "list": ["boring-linear", "cold-corporate", "slow-plodding", "energy-dampening"]
   }
 }
-

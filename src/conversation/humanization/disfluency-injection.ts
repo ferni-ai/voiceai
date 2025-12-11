@@ -37,11 +37,11 @@ const logger = createLogger({ module: 'DisfluencyInjection' });
 // ============================================================================
 
 export type DisfluencyType =
-  | 'filled_pause'     // "um", "uh"
+  | 'filled_pause' // "um", "uh"
   | 'discourse_marker' // "so", "well", "you know"
-  | 'lengthening'      // "thiiiink", "maaaybe"
-  | 'false_start'      // "I—I think", "that—that's"
-  | 'repetition';      // "that's, that's interesting"
+  | 'lengthening' // "thiiiink", "maaaybe"
+  | 'false_start' // "I—I think", "that—that's"
+  | 'repetition'; // "that's, that's interesting"
 
 export interface DisfluencyConfig {
   /** Base probability */
@@ -68,13 +68,16 @@ export interface DisfluencyResult extends HumanizationInjection {
 // DISFLUENCY PATTERNS
 // ============================================================================
 
-const DISFLUENCY_PATTERNS: Record<DisfluencyType, {
-  patterns: string[];
-  ssmlPatterns: string[];
-  probability: number;
-  placement: InjectionPlacement;
-  contexts: string[]; // When this type is appropriate
-}> = {
+const DISFLUENCY_PATTERNS: Record<
+  DisfluencyType,
+  {
+    patterns: string[];
+    ssmlPatterns: string[];
+    probability: number;
+    placement: InjectionPlacement;
+    contexts: string[]; // When this type is appropriate
+  }
+> = {
   filled_pause: {
     patterns: ['Um', 'Uh', 'Hmm'],
     ssmlPatterns: [
@@ -117,8 +120,8 @@ const DISFLUENCY_PATTERNS: Record<DisfluencyType, {
     patterns: ['I—I', "That's—that's", "It's—it's"],
     ssmlPatterns: [
       'I—<break time="80ms"/>I',
-      "That's—<break time=\"80ms\"/>that's",
-      "It's—<break time=\"80ms\"/>it's",
+      'That\'s—<break time="80ms"/>that\'s',
+      'It\'s—<break time="80ms"/>it\'s',
     ],
     probability: 0.08,
     placement: 'opening',
@@ -138,12 +141,15 @@ const DISFLUENCY_PATTERNS: Record<DisfluencyType, {
 // PERSONA-SPECIFIC PREFERENCES
 // ============================================================================
 
-const PERSONA_DISFLUENCY_PREFERENCES: Record<string, {
-  preferredTypes: DisfluencyType[];
-  filledPauseStyle: string[];
-  discourseMarkers: string[];
-  probabilityMultiplier: number;
-}> = {
+const PERSONA_DISFLUENCY_PREFERENCES: Record<
+  string,
+  {
+    preferredTypes: DisfluencyType[];
+    filledPauseStyle: string[];
+    discourseMarkers: string[];
+    probabilityMultiplier: number;
+  }
+> = {
   ferni: {
     preferredTypes: ['discourse_marker', 'filled_pause'],
     filledPauseStyle: ['Um', 'Hmm'],
@@ -243,7 +249,10 @@ function detectContexts(context: HumanizationContext): string[] {
   }
 
   // Thinking/processing
-  if (context.responseText.includes('...') || /\b(let me think|hmm)\b/i.test(context.responseText)) {
+  if (
+    context.responseText.includes('...') ||
+    /\b(let me think|hmm)\b/i.test(context.responseText)
+  ) {
     contexts.push('thinking');
   }
 
@@ -394,7 +403,7 @@ export class DisfluencyEngine {
     let probability = patternConfig.probability * personaPrefs.probabilityMultiplier;
 
     // Adjust for context appropriateness
-    const contextMatch = patternConfig.contexts.some(c => contexts.includes(c));
+    const contextMatch = patternConfig.contexts.some((c) => contexts.includes(c));
     if (!contextMatch) {
       probability *= 0.5;
     }
@@ -499,11 +508,11 @@ export class DisfluencyEngine {
 
   private chooseDisfluencyType(
     context: HumanizationContext,
-    personaPrefs: typeof PERSONA_DISFLUENCY_PREFERENCES['ferni'],
+    personaPrefs: (typeof PERSONA_DISFLUENCY_PREFERENCES)['ferni'],
     contexts: string[]
   ): DisfluencyType | null {
     // Filter to enabled and preferred types
-    const availableTypes = this.config.enabledTypes.filter(t =>
+    const availableTypes = this.config.enabledTypes.filter((t) =>
       personaPrefs.preferredTypes.includes(t)
     );
 
@@ -513,7 +522,7 @@ export class DisfluencyEngine {
 
     // Avoid repeating same type too often
     const recentType = this.state.recentTypes[this.state.recentTypes.length - 1];
-    const filteredTypes = availableTypes.filter(t => t !== recentType);
+    const filteredTypes = availableTypes.filter((t) => t !== recentType);
     const typesToChooseFrom = filteredTypes.length > 0 ? filteredTypes : availableTypes;
 
     // Choose based on context
@@ -543,16 +552,17 @@ export class DisfluencyEngine {
 
   private choosePattern(
     type: DisfluencyType,
-    personaPrefs: typeof PERSONA_DISFLUENCY_PREFERENCES['ferni'],
+    personaPrefs: (typeof PERSONA_DISFLUENCY_PREFERENCES)['ferni'],
     _context: HumanizationContext
   ): { pattern: string; ssml: string } {
     const patternConfig = DISFLUENCY_PATTERNS[type];
 
     // Use persona-specific patterns when available
     if (type === 'filled_pause' && personaPrefs.filledPauseStyle.length > 0) {
-      const pattern = personaPrefs.filledPauseStyle[
-        Math.floor(Math.random() * personaPrefs.filledPauseStyle.length)
-      ];
+      const pattern =
+        personaPrefs.filledPauseStyle[
+          Math.floor(Math.random() * personaPrefs.filledPauseStyle.length)
+        ];
       return {
         pattern,
         ssml: `<break time="150ms"/>${pattern}<break time="200ms"/>`,
@@ -560,9 +570,10 @@ export class DisfluencyEngine {
     }
 
     if (type === 'discourse_marker' && personaPrefs.discourseMarkers.length > 0) {
-      const pattern = personaPrefs.discourseMarkers[
-        Math.floor(Math.random() * personaPrefs.discourseMarkers.length)
-      ];
+      const pattern =
+        personaPrefs.discourseMarkers[
+          Math.floor(Math.random() * personaPrefs.discourseMarkers.length)
+        ];
       return {
         pattern,
         ssml: `${pattern},<break time="100ms"/>`,

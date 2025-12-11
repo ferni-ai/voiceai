@@ -13,23 +13,22 @@
  * - Seamless integration with DJ Booth
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { getMusicPlayer } from '../../audio/music-player.js';
 import { getDJBooth } from '../../audio/dj-booth.js';
 import {
   getGameMusicConfig,
   getGameMusicPhrase,
   type GameMusicConfig,
 } from '../../audio/dj-enhancements.js';
+import { getMusicPlayer } from '../../audio/music-player.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { playGameTrack, searchSong, searchSongForMood, stopGameTrack } from './game-music.js';
 import {
+  playGameEndSound,
   playGameSound,
   playGameStartSound,
-  playGameEndSound,
   playRoundStartSound,
-  getVerbalSoundEffect,
 } from './game-sounds.js';
-import { searchSongForMood, searchSong, playGameTrack, stopGameTrack } from './game-music.js';
-import type { GameType, GameResult } from './types.js';
+import type { GameResult, GameType } from './types.js';
 
 const log = getLogger();
 
@@ -360,9 +359,11 @@ class GameMusicController {
 
   /**
    * Update intensity based on game state
+   * 🎵 "FEEL ALIVE" FEATURE: Dynamic music intensity
    */
   private updateIntensity(): void {
     const streak = this.state.currentStreak;
+    const previousIntensity = this.state.intensity;
 
     if (streak >= STREAK_THRESHOLDS.climax) {
       this.state.intensity = 'climax';
@@ -374,8 +375,41 @@ class GameMusicController {
       this.state.intensity = 'low';
     }
 
+    // 🎵 DYNAMIC MUSIC: Adjust volume based on intensity
+    // This makes the music feel alive and responsive to game performance
+    if (previousIntensity !== this.state.intensity && this.state.backgroundMusicPlaying) {
+      this.adjustMusicForIntensity(this.state.intensity);
+    }
+
     // Notify DJ Booth of intensity change (for potential music adjustments)
     void this.notifyDJBooth();
+  }
+
+  /**
+   * 🎵 "FEEL ALIVE" FEATURE: Adjust music volume/energy based on game intensity
+   * Makes the music respond to how well the player is doing
+   */
+  private adjustMusicForIntensity(intensity: GameMusicState['intensity']): void {
+    const player = getMusicPlayer();
+
+    // Volume mapping based on intensity
+    // Higher intensity = slightly louder, more presence
+    const volumeMap: Record<GameMusicState['intensity'], number> = {
+      low: 0.25, // Subtle background
+      medium: 0.35, // Building engagement
+      high: 0.45, // Exciting!
+      climax: 0.55, // Peak excitement
+    };
+
+    const targetVolume = volumeMap[intensity];
+
+    // Fade to new volume smoothly
+    player.setVolume(targetVolume);
+
+    log.debug(
+      { intensity, targetVolume },
+      '🎮🎵 Game music intensity adjusted - music responding to streak!'
+    );
   }
 
   /**

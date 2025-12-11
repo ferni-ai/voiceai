@@ -46,7 +46,7 @@ export const EVENT_ACKNOWLEDGMENTS = {
   // Birthday messages
   birthday: {
     user: [
-      'Hey! <break time="200ms"/>Happy birthday! <break time="150ms"/>🎂 Hope you\'re doing something special today!',
+      'Hey! <break time="200ms"/>Happy birthday! <break time="150ms"/>Hope you\'re doing something special today.',
       'Happy birthday! <break time="200ms"/>I hope your day is amazing!',
       'It\'s your birthday! <break time="200ms"/>Wishing you the best day!',
       'Happy birthday! <break time="200ms"/>How does it feel to be another year wiser?',

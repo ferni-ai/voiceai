@@ -40,12 +40,44 @@ async function getAvatarSoul() {
 const log = createLogger('FerniEQ');
 
 // ============================================================================
+// MICRO-EXPRESSION TIMING ENFORCEMENT
+// Brand requirement: 40-150ms for subliminal trust building
+// ============================================================================
+
+/** Minimum micro-expression duration (ms) - below this is imperceptible */
+const MICRO_EXPRESSION_MIN_MS = 40;
+
+/** Maximum micro-expression duration (ms) - above this is consciously noticeable */
+const MICRO_EXPRESSION_MAX_MS = 150;
+
+/**
+ * Enforce micro-expression timing within brand guidelines (40-150ms)
+ * This ensures expressions are subliminal - felt but not consciously seen
+ */
+function enforceMicroExpressionTiming(requestedDuration: number): number {
+  const enforced = Math.max(
+    MICRO_EXPRESSION_MIN_MS,
+    Math.min(MICRO_EXPRESSION_MAX_MS, requestedDuration)
+  );
+
+  if (requestedDuration !== enforced) {
+    log.debug('Micro-expression timing enforced:', {
+      requested: requestedDuration,
+      enforced,
+      reason: requestedDuration < MICRO_EXPRESSION_MIN_MS ? 'too_short' : 'too_long',
+    });
+  }
+
+  return enforced;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
 interface MicroExpression {
   expression: EmotionalExpression;
-  duration: number; // 40-150ms (subliminal)
+  duration: number; // 40-150ms (subliminal) - ENFORCED
   intensity: number; // 0-1 how visible
   probability: number; // 0-1 chance of occurring
 }
@@ -261,6 +293,9 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
  * Play a micro-expression - subliminal emotional flash.
  * These are intentionally barely perceptible but affect trust building.
  *
+ * TIMING ENFORCEMENT: All micro-expressions are clamped to 40-150ms
+ * as required by brand guidelines for subliminal trust building.
+ *
  * Now integrated with Avatar Soul for enhanced visual feedback:
  * - Pupil dilation for interest/concern
  * - Iris shimmer flash for recognition
@@ -273,8 +308,19 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
   // Probability check
   if (Math.random() > micro.probability) return;
 
-  // Play the micro-expression with intensity scaling
-  ferniExpressions.setExpression(micro.expression, micro.duration / 3);
+  // 🎯 ENFORCE TIMING: Micro-expressions MUST be 40-150ms (subliminal)
+  const enforcedDuration = enforceMicroExpressionTiming(micro.duration);
+
+  // 📊 Telemetry: Track micro-expression activation
+  document.dispatchEvent(
+    new CustomEvent('ferni:telemetry', {
+      detail: { type: 'micro_expression', expressionType: type, duration: enforcedDuration },
+    })
+  );
+
+  // Play the micro-expression with enforced timing
+  // The /3 factor ensures expression transition is subliminal
+  ferniExpressions.setExpression(micro.expression, enforcedDuration / 3);
 
   // ✨ Avatar Soul integration - enhance with visual effects
   void (async () => {
@@ -330,7 +376,7 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
     }
   })();
 
-  // Quick return to previous state
+  // Quick return to previous state after enforced micro-expression duration
   setTimeout(() => {
     const currentEmotion = emotionState.emotion.id;
     const expressionMap: Record<EmotionId, EmotionalExpression> = {
@@ -373,7 +419,7 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
       shifting: 'present',
       settling: 'neutral',
     };
-    ferniExpressions.setExpression(expressionMap[currentEmotion] || 'neutral', micro.duration);
+    ferniExpressions.setExpression(expressionMap[currentEmotion] || 'neutral', enforcedDuration);
 
     // Reset avatar soul state after micro-expression
     void (async () => {
@@ -383,9 +429,9 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
         soul.setGlowBleed(0.1);
       }
     })();
-  }, micro.duration);
+  }, enforcedDuration);
 
-  log.debug('Micro-expression:', type, micro.duration + 'ms');
+  log.debug('Micro-expression:', type, `${enforcedDuration}ms (enforced from ${micro.duration}ms)`);
 }
 
 /**
@@ -615,6 +661,13 @@ export function startActiveListening(): void {
   activeListening.isListening = true;
   activeListening.pauseCount = 0;
   log.debug('Active listening started');
+
+  // 📊 Telemetry: Track active listening activation
+  document.dispatchEvent(
+    new CustomEvent('ferni:telemetry', {
+      detail: { type: 'active_listening', action: 'start' },
+    })
+  );
 }
 
 /**
@@ -719,6 +772,15 @@ export function setBreathSyncEnabled(enabled: boolean): void {
   if (!enabled) {
     // Reset to default breathing
     breathSync.userBreathRate = 15;
+  }
+
+  // 📊 Telemetry: Track breath sync activation
+  if (enabled) {
+    document.dispatchEvent(
+      new CustomEvent('ferni:telemetry', {
+        detail: { type: 'breath_sync', action: 'enabled' },
+      })
+    );
   }
 }
 
@@ -832,6 +894,13 @@ export function analyzeConcern(content: {
   // If level increased, trigger response
   if (level !== 'none') {
     respondToConcern(level, triggers);
+
+    // 📊 Telemetry: Track concern detection
+    document.dispatchEvent(
+      new CustomEvent('ferni:telemetry', {
+        detail: { type: 'concern_detected', level, triggers, score: concernScore },
+      })
+    );
   }
 
   return level;
@@ -946,6 +1015,13 @@ export function anticipateEmotion(partial: {
     setTimeout(() => {
       ferniExpressions.setExpression(expression, duration);
     }, 150); // Matches ANTICIPATION_LEAD_TIME
+
+    // 📊 Telemetry: Track anticipation activation
+    document.dispatchEvent(
+      new CustomEvent('ferni:telemetry', {
+        detail: { type: 'anticipation', emotion, expression },
+      })
+    );
   };
 
   // "I've been thinking about..." + falling tone = reflective/sad
@@ -1004,6 +1080,290 @@ export function anticipateEmotion(partial: {
 }
 
 // ============================================================================
+// 🌟 BETTER THAN HUMAN SIGNAL HANDLERS
+// These respond to signals from the backend superhuman capabilities
+// ============================================================================
+
+/**
+ * Better Than Human signal types from backend
+ */
+type BetterThanHumanSignalType =
+  | 'emotional_bond_deepen'
+  | 'protective_instinct'
+  | 'spontaneous_delight'
+  | 'inside_joke_callback'
+  | 'superhuman_observation'
+  | 'visible_vulnerability'
+  | 'temporal_insight'
+  | 'meta_relationship_moment'
+  | 'somatic_presence'
+  | 'anticipatory_presence';
+
+interface BetterThanHumanSignal {
+  signalType: BetterThanHumanSignalType;
+  intensity?: number;
+  bondType?: string;
+  bondLevel?: number;
+  delightType?: string;
+  jokePhase?: string;
+  observationType?: string;
+  observationContent?: string;
+  vulnerabilityType?: string;
+  temporalInsight?: string;
+  metaRelationshipType?: string;
+  somaticCue?: string;
+}
+
+/**
+ * Handle Better Than Human signals from backend
+ */
+function handleBetterThanHumanSignal(signal: BetterThanHumanSignal): void {
+  log.debug('Better Than Human signal received:', signal.signalType);
+
+  switch (signal.signalType) {
+    case 'emotional_bond_deepen':
+      handleEmotionalBondSignal(signal);
+      break;
+    case 'protective_instinct':
+      handleProtectiveInstinctSignal(signal);
+      break;
+    case 'spontaneous_delight':
+      handleSpontaneousDelightSignal(signal);
+      break;
+    case 'inside_joke_callback':
+      handleInsideJokeSignal(signal);
+      break;
+    case 'superhuman_observation':
+      handleSuperhumanObservationSignal(signal);
+      break;
+    case 'visible_vulnerability':
+      handleVisibleVulnerabilitySignal(signal);
+      break;
+    case 'temporal_insight':
+      handleTemporalInsightSignal(signal);
+      break;
+    case 'meta_relationship_moment':
+      handleMetaRelationshipSignal(signal);
+      break;
+    case 'somatic_presence':
+      handleSomaticPresenceSignal(signal);
+      break;
+    case 'anticipatory_presence':
+      handleAnticipatoryPresenceSignal(signal);
+      break;
+  }
+}
+
+/**
+ * Emotional bond deepening - warmth/trust/protectiveness
+ */
+async function handleEmotionalBondSignal(signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+  const bondLevel = signal.bondLevel || 0.7;
+
+  // Warm glow intensifies with bond level
+  if (soul) {
+    soul.setGlowBleed(0.2 + bondLevel * 0.2, 'rgba(196, 162, 101, 0.5)');
+    soul.setPupilDilation('CONNECTED', 'slow');
+  }
+
+  // Warmth expression
+  ferniExpressions.setExpression('warm', 400);
+  playMicroExpression('warmth_pulse');
+}
+
+/**
+ * Protective instinct - defending user from self-criticism
+ */
+async function handleProtectiveInstinctSignal(signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.8;
+
+  if (soul) {
+    // Protective mode - attentive, slightly larger
+    soul.setPupilDilation('CONNECTED', 'fast');
+    if (intensity > 0.8) {
+      soul.enterProtectiveMode();
+    }
+  }
+
+  // Show protective concern
+  ferniExpressions.setExpression('attentive', 300);
+  playMicroExpression('protective');
+}
+
+/**
+ * Spontaneous delight - appreciation/gratitude/joy
+ */
+async function handleSpontaneousDelightSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Bright, joyful response
+    soul.flashShimmer(1.0);
+    soul.setPupilDilation('DILATED', 'fast');
+    soul.setGlowBleed(0.35, 'rgba(196, 162, 101, 0.6)');
+  }
+
+  // Play delight expression
+  ferniExpressions.setExpression('pleased', 400);
+  playMicroExpression('delight_flash');
+}
+
+/**
+ * Inside joke callback - shared humor
+ */
+async function handleInsideJokeSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Knowing look - warm shimmer
+    soul.flashShimmer(0.8);
+    soul.setPupilDilation('INTERESTED', 'fast');
+  }
+
+  // Play insider recognition
+  ferniExpressions.setExpression('warm', 300);
+  playMicroExpression('insider');
+}
+
+/**
+ * Superhuman observation - pattern surfacing
+ */
+async function handleSuperhumanObservationSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Thoughtful, noticing state
+    soul.setPupilDilation('CONTRACTED', 'slow');
+    soul.glanceAway(300); // Brief look away as if accessing memory
+  }
+
+  // Show noticing expression
+  ferniExpressions.setExpression('noticing', 400);
+  playMicroExpression('noticing');
+}
+
+/**
+ * Visible vulnerability - showing uncertainty
+ */
+async function handleVisibleVulnerabilitySignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Softer, more open state
+    soul.setPupilDilation('NEUTRAL', 'slow');
+    soul.setGlowBleed(0.15, 'rgba(154, 123, 90, 0.4)');
+  }
+
+  // Show contemplative vulnerability
+  ferniExpressions.setExpression('contemplative', 500);
+}
+
+/**
+ * Temporal insight - cross-session comparison
+ */
+async function handleTemporalInsightSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Memory recall effect
+    soul.triggerMemorySpark();
+    soul.setPupilDilation('CONNECTED', 'slow');
+  }
+
+  // Show remembering expression
+  ferniExpressions.setExpression('remembering', 400);
+  playMicroExpression('memory_spark');
+}
+
+/**
+ * Meta-relationship moment - commenting on the relationship
+ */
+async function handleMetaRelationshipSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Deep connection glow
+    soul.setPupilDilation('CONNECTED', 'slow');
+    soul.setGlowBleed(0.3, 'rgba(196, 162, 101, 0.5)');
+    soul.startComfortPulse();
+  }
+
+  // Show warm, connected expression
+  ferniExpressions.setExpression('warm', 500);
+  playMicroExpression('warmth_pulse');
+}
+
+/**
+ * Somatic presence - physical embodiment cues
+ */
+async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promise<void> {
+  // Somatic cues are subtle body language
+  if (!avatarContainer) return;
+
+  const cue = signal.somaticCue || '';
+
+  if (cue.includes('settling') || cue.includes('breath')) {
+    // Settling animation
+    avatarContainer.animate(
+      [
+        { transform: 'translateY(0)' },
+        { transform: 'translateY(2px)' },
+        { transform: 'translateY(0)' },
+      ],
+      {
+        duration: 800,
+        easing: EASING.GENTLE,
+      }
+    );
+  } else if (cue.includes('processing') || cue.includes('heavy')) {
+    // Processing heavy content - slight lean back
+    ferniExpressions.setExpression('contemplative', 600);
+  }
+}
+
+/**
+ * Anticipatory presence - "thinking of you"
+ */
+async function handleAnticipatoryPresenceSignal(_signal: BetterThanHumanSignal): Promise<void> {
+  const soul = await getAvatarSoul();
+
+  if (soul) {
+    // Warm welcome state
+    soul.setPupilDilation('INTERESTED', 'slow');
+    soul.setGlowBleed(0.25, 'rgba(196, 162, 101, 0.45)');
+  }
+
+  // Show welcoming expression
+  ferniExpressions.setExpression('warm', 400);
+  playMicroExpression('recognition');
+}
+
+/**
+ * Initialize Better Than Human signal handlers
+ */
+function initBetterThanHumanSignalHandlers(): void {
+  // Listen for humanization signals from backend
+  document.addEventListener('humanization_signal', ((event: CustomEvent) => {
+    const signal = event.detail as BetterThanHumanSignal;
+    if (signal && signal.signalType) {
+      handleBetterThanHumanSignal(signal);
+    }
+  }) as EventListener);
+
+  // Also listen via custom event channel (for WebSocket messages)
+  document.addEventListener('ferni:humanization-signal', ((event: CustomEvent) => {
+    const signal = event.detail as BetterThanHumanSignal;
+    if (signal && signal.signalType) {
+      handleBetterThanHumanSignal(signal);
+    }
+  }) as EventListener);
+
+  log.info('Better Than Human signal handlers initialized');
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -1027,6 +1387,10 @@ export function initFerniEQ(): void {
   document.addEventListener('ferni:user-speech-pause', ((e: CustomEvent) => {
     onUserSpeechPause(e.detail?.duration || 0);
   }) as EventListener);
+
+  // 🌟 BETTER THAN HUMAN SIGNAL HANDLERS
+  // These respond to signals from the backend superhuman capabilities
+  initBetterThanHumanSignalHandlers();
 
   // Periodic breath sync
   setInterval(() => {
@@ -1079,6 +1443,9 @@ export const ferni = {
 
   // Anticipation
   anticipateEmotion,
+
+  // 🌟 Better Than Human signals
+  handleBetterThanHumanSignal,
 
   // Lifecycle
   init: initFerniEQ,

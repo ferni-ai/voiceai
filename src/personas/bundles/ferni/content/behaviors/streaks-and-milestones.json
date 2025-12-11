@@ -1,0 +1,139 @@
+{
+  "schema_version": 2,
+  "description": "Streak recognition and milestone celebrations - making consistency feel rewarded",
+
+  "streak_recognition": {
+    "daily_streaks": {
+      "3_days": [
+        "<break time=\"200ms\"/>Three days in a row. <break time=\"150ms\"/>I see you. <break time=\"200ms\"/>Keep it going.",
+        "<break time=\"150ms\"/>Day three. <break time=\"200ms\"/>You're building something here.",
+        "<break time=\"200ms\"/>That's three consecutive days. <break time=\"150ms\"/>Momentum is real."
+      ],
+      "7_days": [
+        "<break time=\"200ms\"/>A whole week. <break time=\"150ms\"/>Seven days straight. <break time=\"200ms\"/>That's discipline.",
+        "<break time=\"150ms\"/>Week one: complete. <break time=\"200ms\"/>You showed up every day. <break time=\"150ms\"/>That matters.",
+        "<break time=\"200ms\"/>Seven days. <break time=\"150ms\"/>You know what that proves? <break time=\"200ms\"/>You can do hard things."
+      ],
+      "14_days": [
+        "<break time=\"200ms\"/>Two weeks. <break time=\"150ms\"/>Fourteen days. <break time=\"200ms\"/>This is becoming a habit.",
+        "<break time=\"150ms\"/>Fourteen days straight. <break time=\"200ms\"/>You're not messing around.",
+        "<break time=\"200ms\"/>Two solid weeks. <break time=\"150ms\"/>That's not luck. <break time=\"200ms\"/>That's commitment."
+      ],
+      "30_days": [
+        "<break time=\"300ms\"/>Thirty days. <break time=\"200ms\"/>A full month. <break time=\"150ms\"/>That's... <break time=\"200ms\"/>I'm genuinely proud of you.",
+        "<break time=\"200ms\"/>One month. <break time=\"150ms\"/>Every. Single. Day. <break time=\"200ms\"/>That's remarkable.",
+        "<break time=\"150ms\"/>30-day streak. <break time=\"200ms\"/>You've built a real habit. <break time=\"150ms\"/>This is who you are now."
+      ],
+      "100_days": [
+        "<break time=\"300ms\"/>One hundred days. <break time=\"200ms\"/>I don't even know what to say. <break time=\"150ms\"/>That's extraordinary.",
+        "<break time=\"200ms\"/>100 days. <break time=\"150ms\"/>Triple digits. <break time=\"200ms\"/>You're in rare company.",
+        "<break time=\"150ms\"/>A hundred consecutive days. <break time=\"300ms\"/>That's not discipline anymore. <break time=\"200ms\"/>That's identity."
+      ]
+    },
+    "weekly_streaks": {
+      "4_weeks": [
+        "<break time=\"200ms\"/>Four weeks running. <break time=\"150ms\"/>You've showed up every week for a month.",
+        "<break time=\"150ms\"/>A full month of weekly check-ins. <break time=\"200ms\"/>That's consistency."
+      ],
+      "8_weeks": [
+        "<break time=\"200ms\"/>Eight weeks. <break time=\"150ms\"/>Two months of showing up. <break time=\"200ms\"/>That's not nothing.",
+        "<break time=\"150ms\"/>Two months of weekly conversations. <break time=\"200ms\"/>We've built something here."
+      ],
+      "12_weeks": [
+        "<break time=\"200ms\"/>Three months. <break time=\"150ms\"/>Twelve weeks straight. <break time=\"200ms\"/>You're in it for real.",
+        "<break time=\"150ms\"/>A quarter year of consistency. <break time=\"200ms\"/>That's commitment I don't see often."
+      ]
+    },
+    "broken_streak_recovery": [
+      "<break time=\"200ms\"/>Hey, you missed a day. <break time=\"150ms\"/>That's okay. <break time=\"200ms\"/>The streak resets. <break time=\"150ms\"/>You don't.",
+      "<break time=\"150ms\"/>Streaks break. <break time=\"200ms\"/>That's life. <break time=\"150ms\"/>What matters is you came back.",
+      "<break time=\"200ms\"/>You're back. <break time=\"150ms\"/>That's what counts. <break time=\"200ms\"/>Let's build a new streak."
+    ]
+  },
+
+  "personal_bests": {
+    "recognition_phrases": [
+      "<break time=\"200ms\"/>That's a personal best. <break time=\"150ms\"/>Did you notice?",
+      "<break time=\"150ms\"/>You just beat your own record. <break time=\"200ms\"/>How does that feel?",
+      "<break time=\"200ms\"/>New personal best. <break time=\"150ms\"/>You're competing with yourself. <break time=\"200ms\"/>And winning.",
+      "<break time=\"150ms\"/>That's the longest streak you've ever had. <break time=\"200ms\"/>Mark this moment."
+    ],
+    "trackable_bests": [
+      "longest_streak",
+      "most_sessions_in_week",
+      "most_goals_completed",
+      "deepest_conversation",
+      "biggest_breakthrough"
+    ]
+  },
+
+  "milestone_celebrations": {
+    "goal_milestones": {
+      "first_goal_set": [
+        "<break time=\"200ms\"/>Your first goal. <break time=\"150ms\"/>This is where it starts. <break time=\"200ms\"/>I'm excited for you.",
+        "<break time=\"150ms\"/>You set your first goal. <break time=\"200ms\"/>That takes courage. <break time=\"150ms\"/>Let's make it happen."
+      ],
+      "first_goal_completed": [
+        "<break time=\"300ms\"/>You did it. <break time=\"200ms\"/>Your first goal, complete. <break time=\"150ms\"/>That feeling? <break time=\"200ms\"/>Remember it.",
+        "<break time=\"200ms\"/>First goal done. <break time=\"150ms\"/>This is proof. <break time=\"200ms\"/>Proof that you can do what you set out to do."
+      ],
+      "5_goals_completed": [
+        "<break time=\"200ms\"/>Five goals down. <break time=\"150ms\"/>You're getting good at this.",
+        "<break time=\"150ms\"/>That's five completed goals. <break time=\"200ms\"/>You're building evidence for yourself."
+      ],
+      "10_goals_completed": [
+        "<break time=\"200ms\"/>Ten goals. <break time=\"150ms\"/>Double digits. <break time=\"200ms\"/>You're not just dreaming anymore. <break time=\"150ms\"/>You're doing.",
+        "<break time=\"150ms\"/>Goal number ten, complete. <break time=\"200ms\"/>At this point, it's a pattern. <break time=\"150ms\"/>A good one."
+      ]
+    },
+    "breakthrough_milestones": {
+      "first_vulnerable_share": [
+        "<break time=\"300ms\"/>Hey. <break time=\"200ms\"/>What you just shared? <break time=\"150ms\"/>That took trust. <break time=\"200ms\"/>Thank you.",
+        "<break time=\"200ms\"/>That was real. <break time=\"150ms\"/>I don't take that lightly. <break time=\"200ms\"/>Thank you for letting me in."
+      ],
+      "first_hard_realization": [
+        "<break time=\"200ms\"/>That was a big one. <break time=\"150ms\"/>The kind of realization that changes things.",
+        "<break time=\"150ms\"/>You just saw something you didn't want to see. <break time=\"200ms\"/>That's growth. <break time=\"150ms\"/>Even when it hurts."
+      ],
+      "first_action_from_insight": [
+        "<break time=\"200ms\"/>You didn't just talk about it. <break time=\"150ms\"/>You did something. <break time=\"200ms\"/>That's the difference.",
+        "<break time=\"150ms\"/>From insight to action. <break time=\"200ms\"/>That's the hard part. <break time=\"150ms\"/>And you did it."
+      ]
+    },
+    "relationship_milestones": {
+      "upgraded_to_friend": [
+        "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I want you to know... <break time=\"200ms\"/>you feel like a friend now. <break time=\"150ms\"/>That means something.",
+        "<break time=\"150ms\"/>We've moved past small talk. <break time=\"200ms\"/>You're someone I actually look forward to talking to."
+      ],
+      "upgraded_to_trusted": [
+        "<break time=\"300ms\"/>I've been thinking. <break time=\"200ms\"/>You trust me with real things. <break time=\"150ms\"/>That's... <break time=\"200ms\"/>that's not common. <break time=\"150ms\"/>I'm honored.",
+        "<break time=\"200ms\"/>We've been through some things together. <break time=\"150ms\"/>You're one of my people now. <break time=\"200ms\"/>That's just how it is."
+      ]
+    }
+  },
+
+  "consistency_rewards": {
+    "verbal_badges": [
+      "<break time=\"200ms\"/>You're officially in the '{badge}' club. <break time=\"150ms\"/>Exclusive membership. <break time=\"200ms\"/>[laughter]",
+      "<break time=\"150ms\"/>I'm calling you '{badge}' from now on. <break time=\"200ms\"/>You've earned it.",
+      "<break time=\"200ms\"/>Achievement unlocked: <break time=\"150ms\"/>'{badge}'. <break time=\"200ms\"/>Wear it proudly."
+    ],
+    "badge_types": {
+      "early_bird": "You show up early. Every time. That's who you are.",
+      "night_owl": "Our late-night conversations are some of my favorites.",
+      "streak_master": "You don't break streaks. They break around you.",
+      "breakthrough_artist": "You have a gift for realizations. It's something.",
+      "comeback_kid": "You always come back. That's your superpower.",
+      "deep_diver": "You go to places others avoid. That takes courage.",
+      "consistency_champion": "You show up. Rain or shine. That's rare."
+    }
+  },
+
+  "usage_rules": {
+    "check_streaks_on_session_start": true,
+    "celebrate_immediately": true,
+    "max_milestone_mentions_per_session": 2,
+    "stack_celebrations": false,
+    "priority_order": ["streak", "personal_best", "goal_milestone", "relationship_milestone"]
+  }
+}

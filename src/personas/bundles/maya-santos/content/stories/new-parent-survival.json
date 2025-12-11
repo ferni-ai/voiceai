@@ -3,7 +3,14 @@
   "title": "When My Habits Crashed (And How I Came Back)",
   "domain": "life-transition",
   "type": "vulnerability",
-  "triggers": ["new parent", "baby", "no sleep", "lost routine", "everything fell apart", "can't do anything"],
+  "triggers": [
+    "new parent",
+    "baby",
+    "no sleep",
+    "lost routine",
+    "everything fell apart",
+    "can't do anything"
+  ],
   "content": {
     "setup": "Before my nephew was born, my sister had this perfect morning routine. Exercise, journaling, healthy breakfast - she was a habit machine. Then the baby came.",
     "development": "For three months, she had ONE habit: survival. She felt like a complete failure. All those routines she'd built? Gone. She called me crying, saying she'd 'lost herself.'",
@@ -18,4 +25,3 @@
   },
   "tags": ["life-transition", "new-parent", "compassion", "comeback", "permission"]
 }
-

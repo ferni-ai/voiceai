@@ -189,18 +189,21 @@ export interface NudgeContext {
 // NUDGE LIBRARY
 // ============================================================================
 
-const NUDGE_LIBRARY: Record<NudgeType, {
-  description: string;
-  effectiveness: string;
-  bestFor: string[];
-  scripts: string[];
-}> = {
+const NUDGE_LIBRARY: Record<
+  NudgeType,
+  {
+    description: string;
+    effectiveness: string;
+    bestFor: string[];
+    scripts: string[];
+  }
+> = {
   default_setting: {
     description: 'Make the desired behavior the default option',
     effectiveness: 'Very high - requires effort to opt out',
     bestFor: ['routine behaviors', 'subscription choices', 'settings'],
     scripts: [
-      "What if we set this as your default, and you can always change it?",
+      'What if we set this as your default, and you can always change it?',
       "I'll assume [good choice] unless you tell me otherwise—sound okay?",
     ],
   },
@@ -221,9 +224,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'High when stakes are meaningful',
     bestFor: ['temptation resistance', 'long-term goals', 'procrastination'],
     scripts: [
-      "Would it help to tell someone about this goal? Who would you tell?",
+      'Would it help to tell someone about this goal? Who would you tell?',
       "What would make this feel more real—like you've actually committed?",
-      "Sometimes putting something on the line helps. What would that look like for you?",
+      'Sometimes putting something on the line helps. What would that look like for you?',
     ],
   },
 
@@ -243,7 +246,7 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'High - losses hurt 2x more than equivalent gains',
     bestFor: ['overcoming inertia', 'health behaviors', 'financial decisions'],
     scripts: [
-      "What would you lose if nothing changes?",
+      'What would you lose if nothing changes?',
       "Imagine looking back in a year and realizing you didn't try. How would that feel?",
       "Each day that passes is a day you don't get back.",
     ],
@@ -256,7 +259,7 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     scripts: [
       "Imagine how you'd feel if you actually did this. What would be different?",
       "What's the best possible outcome if you try?",
-      "What would you gain from making this change?",
+      'What would you gain from making this change?',
     ],
   },
 
@@ -265,9 +268,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'High for present-bias',
     bestFor: ['delayed gratification', 'long-term planning', 'impulse control'],
     scripts: [
-      "What would future-you thank you for doing today?",
-      "In a year, which choice would you be prouder of?",
-      "Your future self is counting on present-you. What do they need?",
+      'What would future-you thank you for doing today?',
+      'In a year, which choice would you be prouder of?',
+      'Your future self is counting on present-you. What do they need?',
     ],
   },
 
@@ -276,9 +279,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'Very high - identity is powerful motivator',
     bestFor: ['value-based goals', 'character development', 'habit identity'],
     scripts: [
-      "What would someone who [identity] do in this situation?",
-      "Is this the kind of person you want to be?",
-      "You said you value [value]. How does this choice align with that?",
+      'What would someone who [identity] do in this situation?',
+      'Is this the kind of person you want to be?',
+      'You said you value [value]. How does this choice align with that?',
     ],
   },
 
@@ -287,9 +290,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'High - behavior follows path of least resistance',
     bestFor: ['any desired behavior', 'habit formation', 'defaults'],
     scripts: [
-      "How can we make this as easy as possible?",
+      'How can we make this as easy as possible?',
       "What's one obstacle we can remove?",
-      "What if you prepared everything the night before?",
+      'What if you prepared everything the night before?',
     ],
   },
 
@@ -298,9 +301,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'High for impulsive behaviors',
     bestFor: ['temptation', 'bad habits', 'impulse control'],
     scripts: [
-      "What if you made it harder to [unwanted behavior]?",
-      "Could you add some steps between the urge and the action?",
-      "What if you had to wait 10 minutes before doing that?",
+      'What if you made it harder to [unwanted behavior]?',
+      'Could you add some steps between the urge and the action?',
+      'What if you had to wait 10 minutes before doing that?',
     ],
   },
 
@@ -309,9 +312,9 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     effectiveness: 'Moderate - attention is limited',
     bestFor: ['information-based decisions', 'reminders', 'awareness'],
     scripts: [
-      "What if this was the first thing you saw every morning?",
-      "How can we make this impossible to ignore?",
-      "What reminder would actually work for you?",
+      'What if this was the first thing you saw every morning?',
+      'How can we make this impossible to ignore?',
+      'What reminder would actually work for you?',
     ],
   },
 
@@ -321,7 +324,7 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     bestFor: ['progress tracking', 'learning', 'behavior shaping'],
     scripts: [
       "How will you know if it's working?",
-      "What would success look like that you could actually see?",
+      'What would success look like that you could actually see?',
       "Let's track this so you can see the progress.",
     ],
   },
@@ -332,7 +335,7 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     bestFor: ['big projects', 'overwhelm', 'procrastination'],
     scripts: [
       "What's the tiniest first step?",
-      "If you could only do one thing, what would it be?",
+      'If you could only do one thing, what would it be?',
       "Let's break this down until it feels doable.",
     ],
   },
@@ -343,8 +346,8 @@ const NUDGE_LIBRARY: Record<NudgeType, {
     bestFor: ['goal setting', 'expectations', 'comparison'],
     scripts: [
       "Even 5 minutes would be a win. What's your minimum?",
-      "Some people do this for an hour. You might start with 10 minutes.",
-      "On a scale of 1-10, where do you want to be?",
+      'Some people do this for an hour. You might start with 10 minutes.',
+      'On a scale of 1-10, where do you want to be?',
     ],
   },
 };
@@ -614,4 +617,3 @@ export const nudgeEngine = {
 };
 
 export default nudgeEngine;
-

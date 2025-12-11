@@ -574,11 +574,8 @@ export async function endIdentitySession(sessionId: string): Promise<void> {
   // If we should enroll voice and collected enough samples, create new profile
   if (!session.voiceProfile && session.shouldEnrollVoice && session.voiceSamplesCollected >= 5) {
     try {
-      const {
-        startEnrollmentSession,
-        addEnrollmentSample,
-        completeEnrollment,
-      } = await import('../voice-enrollment.js');
+      const { startEnrollmentSession, addEnrollmentSample, completeEnrollment } =
+        await import('../voice-enrollment.js');
 
       const enrollmentSession = startEnrollmentSession(session.userId, { requiredSamples: 5 });
 

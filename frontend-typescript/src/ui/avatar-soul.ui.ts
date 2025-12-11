@@ -229,19 +229,20 @@ const state: SoulState = {
 // DOM Elements
 let avatarElement: HTMLElement | null = null;
 let avatarContainer: HTMLElement | null = null;
-let pupilElement: HTMLElement | null = null;
-let irisShimmerElement: HTMLElement | null = null;
+const pupilElement: HTMLElement | null = null;
+const irisShimmerElement: HTMLElement | null = null;
 let glowBleedElement: HTMLElement | null = null;
 let grainOverlay: HTMLElement | null = null;
 let memorySparkElement: HTMLElement | null = null;
 let comfortPulseElement: HTMLElement | null = null;
 let anticipationRing: HTMLElement | null = null;
 let growthCelebrationElement: HTMLElement | null = null;
+let warmthBloomElement: HTMLElement | null = null;
 
 // Animation frames
-let animationFrame: number | null = null;
-let shimmerFrame: number | null = null;
-let glowFrame: number | null = null;
+const animationFrame: number | null = null;
+const shimmerFrame: number | null = null;
+const glowFrame: number | null = null;
 
 // Timelines
 let pupilTimeline: gsap.core.Timeline | null = null;
@@ -285,6 +286,7 @@ export function initAvatarSoul(): void {
   createComfortPulseEffect();
   createAnticipationRing();
   createGrowthCelebration();
+  createWarmthBloom();
 
   // Inject styles
   injectSoulStyles();
@@ -318,6 +320,7 @@ function cleanupOrphanedElements(): void {
     '.soul-comfort-pulse',
     '.soul-anticipation-ring',
     '.soul-growth-celebration',
+    '.soul-warmth-bloom',
     '#avatar-soul-styles',
   ];
 
@@ -434,6 +437,58 @@ function createGrowthCelebration(): void {
 
   avatarContainer.appendChild(growthCelebrationElement);
   log.debug('Growth celebration created');
+}
+
+/**
+ * Create the warmth bloom effect element.
+ * Emotional warmth radiating outward during connection moments.
+ * Inspired by Pixar's "warmth glow" that makes characters feel alive.
+ */
+function createWarmthBloom(): void {
+  if (!avatarContainer) return;
+
+  warmthBloomElement = document.createElement('div');
+  warmthBloomElement.className = 'soul-warmth-bloom';
+
+  // Insert behind other elements
+  avatarContainer.insertBefore(warmthBloomElement, avatarContainer.firstChild);
+  log.debug('Warmth bloom created');
+}
+
+/**
+ * Trigger a warmth bloom effect.
+ * Use during moments of emotional connection, understanding, or care.
+ *
+ * @param intensity - How intense the bloom should be (0.5-1.5)
+ * @param color - Optional custom color for the bloom
+ */
+export function triggerWarmthBloom(intensity: number = 1, color?: string): void {
+  if (!warmthBloomElement || state.reducedMotion) return;
+
+  // Remove any existing animation
+  warmthBloomElement.classList.remove('active');
+
+  // Apply custom color if provided
+  if (color) {
+    warmthBloomElement.style.setProperty('--warmth-color', color);
+  }
+
+  // Scale the element based on intensity
+  warmthBloomElement.style.transform = `translate(-50%, -50%) scale(${0.95 * intensity})`;
+
+  // Force reflow
+  void warmthBloomElement.offsetWidth;
+
+  // Trigger animation
+  warmthBloomElement.classList.add('active');
+
+  // Remove class after animation
+  setTimeout(() => {
+    warmthBloomElement?.classList.remove('active');
+    warmthBloomElement?.style.removeProperty('--warmth-color');
+  }, 1500);
+
+  log.debug('Warmth bloom triggered', { intensity, color });
 }
 
 // ============================================================================
@@ -1563,7 +1618,7 @@ function injectSoulStyles(): void {
       transition: background 600ms var(--ease-gentle);
     }
     
-    /* Grain Overlay */
+    /* Grain Overlay - Wabi-Sabi (侘寂) organic imperfection */
     .soul-grain-overlay {
       position: absolute;
       inset: 0;
@@ -1571,9 +1626,61 @@ function injectSoulStyles(): void {
       opacity: 0.04;
       pointer-events: none;
       z-index: 6;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 100px 100px;
       mix-blend-mode: overlay;
+      /* Subtle breathing animation - grain shifts with avatar breathing */
+      animation: grainBreath 8s ease-in-out infinite;
+    }
+    
+    @keyframes grainBreath {
+      0%, 100% { 
+        background-position: 0% 0%;
+        opacity: 0.04;
+      }
+      50% { 
+        background-position: 5% 5%;
+        opacity: 0.05;
+      }
+    }
+    
+    /* Warmth Bloom - Emotional warmth radiating outward */
+    .soul-warmth-bloom {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -3;
+      opacity: 0;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(196, 162, 101, 0.4) 0%,
+        rgba(196, 162, 101, 0.2) 40%,
+        transparent 70%
+      );
+    }
+    
+    .soul-warmth-bloom.active {
+      animation: warmthBloom 1.5s ease-out forwards;
+    }
+    
+    @keyframes warmthBloom {
+      0% { 
+        transform: translate(-50%, -50%) scale(0.95);
+        opacity: 0;
+      }
+      40% { 
+        transform: translate(-50%, -50%) scale(1.05);
+        opacity: 0.4;
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+      }
     }
     
     /* Memory Spark */
@@ -1881,6 +1988,9 @@ export const avatarSoul = {
   // Protective
   enterProtectiveMode,
   exitProtectiveMode,
+
+  // Warmth
+  triggerWarmthBloom,
 
   // State access
   getState: () => ({ ...state }),

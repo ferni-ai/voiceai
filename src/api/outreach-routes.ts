@@ -10,6 +10,12 @@
  * - POST /api/outreach/preferences - Update outreach preferences
  * - GET /api/outreach/preferences - Get outreach preferences
  * - POST /api/outreach/job - Trigger batch outreach processing (cron)
+ * - GET /api/outreach/contact - Get user's contact info (phone/email)
+ * - POST /api/outreach/contact - Set user's contact info
+ * - POST /api/outreach/test/send - Send test message via channel
+ * - POST /api/outreach/trigger - Create outreach trigger
+ * - POST /api/outreach/thinking-of-you - Queue thinking-of-you message
+ * - GET /api/outreach/history - Get outreach history
  *
  * @module OutreachRoutes
  */
@@ -350,6 +356,323 @@ export async function handleOutreachRoutes(
         ...results,
       });
       return true;
+    }
+
+    // ========================================================================
+    // DEV PANEL ENDPOINTS - For testing outreach from dev panel
+    // ========================================================================
+
+    // GET /api/outreach/contact - Get user's contact info
+    if (pathname === '/api/outreach/contact' && method === 'GET') {
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const userId = url.searchParams.get('userId');
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { error: 'userId required' });
+        return true;
+      }
+
+      const db = getFirestore();
+      if (!db) {
+        sendJsonResponse(res, 503, { error: 'Database not available' });
+        return true;
+      }
+
+      try {
+        const profile = await db.collection('profiles').doc(userId).get();
+        if (!profile.exists) {
+          sendJsonResponse(res, 404, { error: 'User not found' });
+          return true;
+        }
+
+        const data = profile.data();
+        const contactInfo = data?.contactInfo ?? {};
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          phone: contactInfo.phone ?? null,
+          email: contactInfo.email ?? null,
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId }, 'Failed to get contact info');
+        sendJsonResponse(res, 500, { error: 'Failed to get contact info' });
+        return true;
+      }
+    }
+
+    // POST /api/outreach/contact - Set user's contact info
+    if (pathname === '/api/outreach/contact' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { userId, phone, email } = body as {
+        userId: string;
+        phone?: string;
+        email?: string;
+      };
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { error: 'userId required' });
+        return true;
+      }
+
+      const db = getFirestore();
+      if (!db) {
+        sendJsonResponse(res, 503, { error: 'Database not available' });
+        return true;
+      }
+
+      try {
+        const updateData: Record<string, unknown> = {
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        if (phone !== undefined) updateData['contactInfo.phone'] = phone;
+        if (email !== undefined) updateData['contactInfo.email'] = email;
+
+        await db.collection('profiles').doc(userId).set(updateData, { merge: true });
+
+        log.info({ userId, hasPhone: !!phone, hasEmail: !!email }, 'Updated contact info');
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          phone: phone ?? null,
+          email: email ?? null,
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId }, 'Failed to set contact info');
+        sendJsonResponse(res, 500, { error: 'Failed to set contact info' });
+        return true;
+      }
+    }
+
+    // POST /api/outreach/test/send - Send test message via channel
+    if (pathname === '/api/outreach/test/send' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { userId, channel, message, subject } = body as {
+        userId: string;
+        channel: 'sms' | 'email' | 'call';
+        message: string;
+        subject?: string;
+      };
+
+      if (!userId || !channel || !message) {
+        sendJsonResponse(res, 400, { error: 'userId, channel, and message required' });
+        return true;
+      }
+
+      const db = getFirestore();
+      if (!db) {
+        sendJsonResponse(res, 503, { error: 'Database not available' });
+        return true;
+      }
+
+      try {
+        // Get user's contact info
+        const profile = await db.collection('profiles').doc(userId).get();
+        const contactInfo = profile.data()?.contactInfo ?? {};
+
+        // Build channel config
+        const channelConfig: UserChannelConfig = {
+          userId,
+          preferredChannel: channel === 'call' ? 'voice' : channel,
+          enabledChannels: [channel === 'call' ? 'voice' : channel],
+        };
+
+        if (channel === 'sms' || channel === 'call') {
+          if (!contactInfo.phone) {
+            sendJsonResponse(res, 400, { error: 'No phone number configured for user' });
+            return true;
+          }
+          channelConfig.phone = contactInfo.phone;
+        }
+
+        if (channel === 'email') {
+          if (!contactInfo.email) {
+            sendJsonResponse(res, 400, { error: 'No email configured for user' });
+            return true;
+          }
+          channelConfig.email = contactInfo.email;
+        }
+
+        // Create test outreach item with proper OutreachItem type
+        const testItem = {
+          id: `test-${Date.now()}`,
+          userId,
+          type: 'thinking_of_you' as const,
+          priority: 'medium' as const,
+          message,
+          ssml: `<speak>${message}</speak>`,
+          scheduledFor: new Date(),
+          personaId: 'ferni',
+          metadata: {
+            test: true,
+            subject: subject ?? 'Test from Ferni',
+            createdAt: new Date().toISOString(),
+          },
+        };
+
+        // Deliver
+        const result = await deliverToUser(testItem, channelConfig);
+
+        log.info({ userId, channel, success: result.success }, 'Test outreach sent');
+
+        sendJsonResponse(res, result.success ? 200 : 500, {
+          success: result.success,
+          channel: result.channel,
+          error: result.error,
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId, channel }, 'Failed to send test outreach');
+        sendJsonResponse(res, 500, { error: 'Failed to send test message' });
+        return true;
+      }
+    }
+
+    // POST /api/outreach/trigger - Create outreach trigger
+    // Simplified: directly queues a test thinking-of-you since the complex types
+    // (SmallWin, GrowthPattern) are designed for detection, not manual creation
+    if (pathname === '/api/outreach/trigger' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { userId, type, priority, reason } = body as {
+        userId: string;
+        type: 'commitment_check' | 'emotional_support' | 'celebration' | 'thinking_of_you';
+        priority?: 'low' | 'medium' | 'high';
+        reason?: string;
+      };
+
+      if (!userId || !type) {
+        sendJsonResponse(res, 400, { error: 'userId and type required' });
+        return true;
+      }
+
+      try {
+        // For dev panel testing, create a thinking-of-you moment with appropriate context
+        const testMoment = {
+          id: `trigger-${type}-${Date.now()}`,
+          type: 'thought_of_you' as const,
+          trigger: {
+            type: 'random' as const,
+            context: `${type}: ${reason ?? 'Triggered from dev panel'}`,
+          },
+          message: reason ?? `This is a test ${type} from the dev panel.`,
+          ssml: `<speak>${reason ?? `This is a test ${type} from the dev panel.`}</speak>`,
+          priority: (priority ?? 'medium') as 'low' | 'medium' | 'high',
+          suggestedTiming: new Date(),
+          sent: false,
+        };
+
+        queueThinkingOfYou(userId, testMoment);
+
+        log.info({ userId, type, priority }, 'Outreach trigger created');
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          type,
+          priority: priority ?? 'medium',
+          message: `${type} trigger queued for user`,
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId, type }, 'Failed to create trigger');
+        sendJsonResponse(res, 500, { error: 'Failed to create trigger' });
+        return true;
+      }
+    }
+
+    // POST /api/outreach/thinking-of-you - Queue thinking-of-you message
+    if (pathname === '/api/outreach/thinking-of-you' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { userId, trigger, reason } = body as {
+        userId: string;
+        trigger?: string;
+        reason?: string;
+      };
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { error: 'userId required' });
+        return true;
+      }
+
+      try {
+        // Create a proper ThinkingOfYouMoment
+        const moment = {
+          id: `toy-${Date.now()}`,
+          type: 'thought_of_you' as const,
+          trigger: {
+            type: 'random' as const,
+            context: trigger ?? 'dev_panel',
+          },
+          message: reason ?? 'Hey! Just thinking of you.',
+          ssml: `<speak>${reason ?? 'Hey! Just thinking of you.'}</speak>`,
+          priority: 'medium' as const,
+          suggestedTiming: new Date(),
+          sent: false,
+        };
+
+        queueThinkingOfYou(userId, moment);
+
+        log.info({ userId, trigger }, 'Thinking-of-you queued');
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          message: 'Thinking-of-you message queued',
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId }, 'Failed to queue thinking-of-you');
+        sendJsonResponse(res, 500, { error: 'Failed to queue message' });
+        return true;
+      }
+    }
+
+    // GET /api/outreach/history - Get outreach history
+    if (pathname === '/api/outreach/history' && method === 'GET') {
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const userId = url.searchParams.get('userId');
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10);
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { error: 'userId required' });
+        return true;
+      }
+
+      const db = getFirestore();
+      if (!db) {
+        sendJsonResponse(res, 503, { error: 'Database not available' });
+        return true;
+      }
+
+      try {
+        const snapshot = await db
+          .collection('outreach_history')
+          .where('userId', '==', userId)
+          .orderBy('sentAt', 'desc')
+          .limit(limit)
+          .get();
+
+        const history = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          count: history.length,
+          history,
+        });
+        return true;
+      } catch (error) {
+        log.error({ error, userId }, 'Failed to get outreach history');
+        // Return empty history if collection doesn't exist yet
+        sendJsonResponse(res, 200, {
+          success: true,
+          count: 0,
+          history: [],
+          note: 'No outreach history found',
+        });
+        return true;
+      }
     }
 
     return false;

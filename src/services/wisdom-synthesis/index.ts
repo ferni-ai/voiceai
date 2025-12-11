@@ -88,13 +88,18 @@ const aggregatedWisdom: ApproachPattern[] = [
   // ANXIETY
   {
     id: 'anxiety_grounding',
-    situation: { category: 'emotional', subcategory: 'anxiety', description: 'Acute anxiety or panic' },
+    situation: {
+      category: 'emotional',
+      subcategory: 'anxiety',
+      description: 'Acute anxiety or panic',
+    },
     approach: 'Somatic grounding before cognitive work',
     technique: 'Guide through 5-4-3-2-1 or breathing exercise first',
     stats: { timesUsed: 12500, helpfulCount: 10200, helpfulRate: 0.816, averageRating: 7.8 },
     worksWellWhen: ['High physiological activation', 'Racing thoughts', 'Feeling overwhelmed'],
     worksLessWellWhen: ['User prefers talking through it', 'Dissociated state'],
-    examplePhrasing: "Before we dive in, let's ground together. Can you feel your feet on the floor?",
+    examplePhrasing:
+      "Before we dive in, let's ground together. Can you feel your feet on the floor?",
   },
   {
     id: 'anxiety_externalize',
@@ -104,35 +109,49 @@ const aggregatedWisdom: ApproachPattern[] = [
     stats: { timesUsed: 8300, helpfulCount: 6400, helpfulRate: 0.771, averageRating: 7.4 },
     worksWellWhen: ['Repetitive worry', 'Self-critical thoughts', 'Established relationship'],
     worksLessWellWhen: ['New users', 'Crisis situations'],
-    examplePhrasing: "Sounds like your worry brain is being really loud right now. What's it saying?",
+    examplePhrasing:
+      "Sounds like your worry brain is being really loud right now. What's it saying?",
   },
 
   // SADNESS / DEPRESSION
   {
     id: 'sadness_validation',
-    situation: { category: 'emotional', subcategory: 'sadness', description: 'Feeling sad or down' },
+    situation: {
+      category: 'emotional',
+      subcategory: 'sadness',
+      description: 'Feeling sad or down',
+    },
     approach: 'Deep validation before problem-solving',
     technique: 'Reflect and validate for at least 2-3 exchanges before offering perspectives',
-    stats: { timesUsed: 15000, helpfulCount: 13500, helpfulRate: 0.90, averageRating: 8.2 },
+    stats: { timesUsed: 15000, helpfulCount: 13500, helpfulRate: 0.9, averageRating: 8.2 },
     worksWellWhen: ['User needs to feel heard', 'Recent loss or disappointment'],
     worksLessWellWhen: ['User explicitly asks for advice'],
     examplePhrasing: "That sounds really hard. It makes sense you'd feel that way.",
   },
   {
     id: 'sadness_small_action',
-    situation: { category: 'emotional', subcategory: 'sadness', description: 'Low motivation, stuck' },
+    situation: {
+      category: 'emotional',
+      subcategory: 'sadness',
+      description: 'Low motivation, stuck',
+    },
     approach: 'Tiny behavioral activation',
     technique: 'Suggest one tiny positive action without pressure',
     stats: { timesUsed: 9200, helpfulCount: 6900, helpfulRate: 0.75, averageRating: 7.1 },
     worksWellWhen: ['User is open to trying', 'Not in acute grief'],
     worksLessWellWhen: ['High resistance', 'Feels pushy'],
-    examplePhrasing: "Is there one tiny thing that might feel okay to do today? Even getting a glass of water counts.",
+    examplePhrasing:
+      'Is there one tiny thing that might feel okay to do today? Even getting a glass of water counts.',
   },
 
   // RELATIONSHIPS
   {
     id: 'conflict_perspective',
-    situation: { category: 'relational', subcategory: 'conflict', description: 'Relationship conflict' },
+    situation: {
+      category: 'relational',
+      subcategory: 'conflict',
+      description: 'Relationship conflict',
+    },
     approach: 'Explore the other perspective',
     technique: 'Gently ask what the other person might be experiencing',
     stats: { timesUsed: 7800, helpfulCount: 5850, helpfulRate: 0.75, averageRating: 7.3 },
@@ -142,59 +161,81 @@ const aggregatedWisdom: ApproachPattern[] = [
   },
   {
     id: 'conflict_needs',
-    situation: { category: 'relational', subcategory: 'conflict', description: 'Recurring conflict' },
+    situation: {
+      category: 'relational',
+      subcategory: 'conflict',
+      description: 'Recurring conflict',
+    },
     approach: 'Identify underlying needs',
     technique: 'Help user identify what they actually need (beyond position)',
-    stats: { timesUsed: 5400, helpfulCount: 4320, helpfulRate: 0.80, averageRating: 7.6 },
+    stats: { timesUsed: 5400, helpfulCount: 4320, helpfulRate: 0.8, averageRating: 7.6 },
     worksWellWhen: ['User is reflective', 'Pattern has repeated'],
     worksLessWellWhen: ['Acute anger'],
-    examplePhrasing: "Underneath the frustration, what do you really need from this relationship?",
+    examplePhrasing: 'Underneath the frustration, what do you really need from this relationship?',
   },
 
   // MOTIVATION / STUCK
   {
     id: 'stuck_values',
-    situation: { category: 'behavioral', subcategory: 'motivation', description: 'Feeling stuck or unmotivated' },
+    situation: {
+      category: 'behavioral',
+      subcategory: 'motivation',
+      description: 'Feeling stuck or unmotivated',
+    },
     approach: 'Connect to values',
     technique: 'Explore why this matters, connect to deeper values',
-    stats: { timesUsed: 6700, helpfulCount: 5360, helpfulRate: 0.80, averageRating: 7.5 },
+    stats: { timesUsed: 6700, helpfulCount: 5360, helpfulRate: 0.8, averageRating: 7.5 },
     worksWellWhen: ['User has lost the "why"', 'Going through the motions'],
     worksLessWellWhen: ['Burnout (needs rest first)', 'Depression'],
-    examplePhrasing: "What made this matter to you in the first place?",
+    examplePhrasing: 'What made this matter to you in the first place?',
   },
   {
     id: 'stuck_tiny',
-    situation: { category: 'behavioral', subcategory: 'motivation', description: 'Overwhelmed by goals' },
+    situation: {
+      category: 'behavioral',
+      subcategory: 'motivation',
+      description: 'Overwhelmed by goals',
+    },
     approach: 'Shrink the ask',
     technique: 'Break down until it feels ridiculously small',
     stats: { timesUsed: 11200, helpfulCount: 9500, helpfulRate: 0.848, averageRating: 8.0 },
     worksWellWhen: ['Perfectionism', 'Overwhelm', 'Procrastination'],
     worksLessWellWhen: ['User already knows this'],
-    examplePhrasing: "What if we made this so small you couldn't say no? What's the tiniest version?",
+    examplePhrasing:
+      "What if we made this so small you couldn't say no? What's the tiniest version?",
   },
 
   // SELF-CRITICISM
   {
     id: 'criticism_friend',
-    situation: { category: 'cognitive', subcategory: 'self_criticism', description: 'Harsh self-judgment' },
+    situation: {
+      category: 'cognitive',
+      subcategory: 'self_criticism',
+      description: 'Harsh self-judgment',
+    },
     approach: 'Friend perspective',
     technique: 'Ask what they would say to a friend in same situation',
-    stats: { timesUsed: 14500, helpfulCount: 11600, helpfulRate: 0.80, averageRating: 7.7 },
+    stats: { timesUsed: 14500, helpfulCount: 11600, helpfulRate: 0.8, averageRating: 7.7 },
     worksWellWhen: ['User can access compassion for others', 'Not too dissociated'],
     worksLessWellWhen: ['User says "I would tell myself the same thing"'],
-    examplePhrasing: "If your best friend was in this exact situation, what would you tell them?",
+    examplePhrasing: 'If your best friend was in this exact situation, what would you tell them?',
   },
 
   // DECISION MAKING
   {
     id: 'decision_future_self',
-    situation: { category: 'cognitive', subcategory: 'decision', description: 'Difficulty deciding' },
+    situation: {
+      category: 'cognitive',
+      subcategory: 'decision',
+      description: 'Difficulty deciding',
+    },
     approach: 'Future self perspective',
     technique: 'Ask what future self would want',
-    stats: { timesUsed: 4800, helpfulCount: 3840, helpfulRate: 0.80, averageRating: 7.6 },
+    stats: { timesUsed: 4800, helpfulCount: 3840, helpfulRate: 0.8, averageRating: 7.6 },
     worksWellWhen: ['Present bias issues', 'Short vs long term conflict'],
     worksLessWellWhen: ['Crisis decisions'],
-    examplePhrasing: "If you fast forward a year, which choice do you think future-you would be prouder of?",
+    examplePhrasing:
+      'If you fast forward a year, which choice do you think future-you would be prouder of?',
   },
 ];
 
@@ -219,9 +260,10 @@ export function getPersonalizedWisdom(
   const prefs = userPreferences.get(userId);
 
   // Find relevant approaches
-  const relevant = aggregatedWisdom.filter((w) =>
-    w.situation.category === situation.category &&
-    w.situation.subcategory === situation.subcategory
+  const relevant = aggregatedWisdom.filter(
+    (w) =>
+      w.situation.category === situation.category &&
+      w.situation.subcategory === situation.subcategory
   );
 
   // Score each approach for this user
@@ -299,7 +341,8 @@ export function contributeWisdom(contribution: WisdomContribution): void {
 
     if (contribution.userRating) {
       const currentTotal = pattern.stats.averageRating * (pattern.stats.timesUsed - 1);
-      pattern.stats.averageRating = (currentTotal + contribution.userRating) / pattern.stats.timesUsed;
+      pattern.stats.averageRating =
+        (currentTotal + contribution.userRating) / pattern.stats.timesUsed;
     }
 
     log.debug(
@@ -349,10 +392,7 @@ export function recordUserPreference(
 /**
  * Get wisdom context for LLM injection.
  */
-export function getWisdomContextInjection(
-  userId: string,
-  situation: SituationType
-): string {
+export function getWisdomContextInjection(userId: string, situation: SituationType): string {
   const wisdom = getPersonalizedWisdom(userId, situation);
 
   if (wisdom.recommendedApproaches.length === 0) {
@@ -394,9 +434,10 @@ export function getPopulationInsights(situation: SituationType): {
 
   const commonPatterns = relevant.flatMap((r) => r.worksWellWhen).slice(0, 5);
 
-  const avgHelp = relevant.length > 0
-    ? relevant.reduce((sum, r) => sum + r.stats.helpfulRate, 0) / relevant.length
-    : 0;
+  const avgHelp =
+    relevant.length > 0
+      ? relevant.reduce((sum, r) => sum + r.stats.helpfulRate, 0) / relevant.length
+      : 0;
 
   return {
     topApproaches,
@@ -417,7 +458,9 @@ function generateReasoning(
   const reasons: string[] = [];
 
   if (approach.stats.helpfulRate > 0.75) {
-    reasons.push(`High population effectiveness (${Math.round(approach.stats.helpfulRate * 100)}%)`);
+    reasons.push(
+      `High population effectiveness (${Math.round(approach.stats.helpfulRate * 100)}%)`
+    );
   }
 
   if (prefs?.preferredApproaches.includes(approach.technique)) {
@@ -427,7 +470,7 @@ function generateReasoning(
   if (prefs?.effectivenessHistory.get(approach.id)) {
     const h = prefs.effectivenessHistory.get(approach.id)!;
     if (h.helpful / h.total > 0.7) {
-      reasons.push("Has worked well for you before");
+      reasons.push('Has worked well for you before');
     }
   }
 
@@ -492,4 +535,3 @@ export const wisdomSynthesis = {
 };
 
 export default wisdomSynthesis;
-

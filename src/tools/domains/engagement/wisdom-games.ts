@@ -158,7 +158,4 @@ export const questionBeneathDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const wisdomGameDefinitions: ToolDefinition[] = [
-  paradoxOfTheDayDef,
-  questionBeneathDef,
-];
+export const wisdomGameDefinitions: ToolDefinition[] = [paradoxOfTheDayDef, questionBeneathDef];

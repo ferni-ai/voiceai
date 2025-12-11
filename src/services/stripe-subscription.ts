@@ -425,6 +425,7 @@ export async function downgradeToFree(userId: string): Promise<void> {
   const freeSubscription: SubscriptionData = {
     tier: 'free',
     status: 'active',
+    billingFrequency: 'monthly',
     inTrial: false,
     monthlyUsage: existingUsage,
     lastSyncedAt: new Date(),
@@ -487,10 +488,12 @@ export async function recordConversation(
       usage: createFreshUsage(),
       conversationsRemaining: 5,
       minutesRemaining: 30,
+      sessionLimitMinutes: 15,
       canStartConversation: true,
       statusMessage: "Something went wrong, but let's keep talking.",
       approachingLimit: false,
       atLimit: false,
+      teamAccess: 'ferni-only',
     };
   }
 
@@ -543,10 +546,12 @@ export async function getUsageStatus(userId: string): Promise<UsageStatus> {
       usage: createFreshUsage(),
       conversationsRemaining: 5,
       minutesRemaining: 30,
+      sessionLimitMinutes: 15,
       canStartConversation: true,
       statusMessage: 'Ready to meet you!',
       approachingLimit: false,
       atLimit: false,
+      teamAccess: 'ferni-only',
     };
   }
 

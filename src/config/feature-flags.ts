@@ -88,6 +88,27 @@ export interface FeatureFlags {
   };
 
   /**
+   * Personal Journey Awareness - "Better Than Human" memory features
+   * Tracks rhythms, milestones, seasonal memories, life chapters
+   */
+  personalJourney: {
+    /** Master switch for personal journey awareness */
+    enabled: boolean;
+    /** Rhythm tracking (streaks, milestones, consistency) */
+    rhythmAwareness: boolean;
+    /** Seasonal memory ("this time last year...") */
+    seasonalMemory: boolean;
+    /** Life chapter detection (career transitions, etc.) */
+    chapterDetection: boolean;
+    /** Community wisdom ("others on this journey...") */
+    communityWisdom: boolean;
+    /** Journey-enhanced greetings */
+    greetingEnhancement: boolean;
+    /** Rollout percentage (0-100) */
+    rolloutPercent: number;
+  };
+
+  /**
    * Audio/Music features
    */
   audio: {
@@ -194,6 +215,15 @@ const DEFAULT_FLAGS: FeatureFlags = {
     crossSessionThreading: true,
     proactiveInsights: true,
   },
+  personalJourney: {
+    enabled: true,
+    rhythmAwareness: true,
+    seasonalMemory: true,
+    chapterDetection: true,
+    communityWisdom: true,
+    greetingEnhancement: true,
+    rolloutPercent: 100, // Full rollout - use feature flag to disable if needed
+  },
   audio: {
     musicEnabled: true,
     ambientSounds: false,
@@ -275,6 +305,15 @@ const ENV_MAPPINGS: Record<string, string> = {
   EVALOPS_SCHEDULED_SUITES: 'evalops.scheduledSuites',
   EVALOPS_ALERTING: 'evalops.alerting',
   EVALOPS_SAMPLE_RATE: 'evalops.sampleRate',
+
+  // Personal Journey Awareness
+  PERSONAL_JOURNEY_ENABLED: 'personalJourney.enabled',
+  PERSONAL_JOURNEY_RHYTHM: 'personalJourney.rhythmAwareness',
+  PERSONAL_JOURNEY_SEASONAL: 'personalJourney.seasonalMemory',
+  PERSONAL_JOURNEY_CHAPTERS: 'personalJourney.chapterDetection',
+  PERSONAL_JOURNEY_WISDOM: 'personalJourney.communityWisdom',
+  PERSONAL_JOURNEY_GREETINGS: 'personalJourney.greetingEnhancement',
+  PERSONAL_JOURNEY_ROLLOUT: 'personalJourney.rolloutPercent',
 
   // Life Coach Domains
   LIFE_COACH_DOMAINS_ENABLED: 'lifeCoachDomains.enabled',
@@ -593,4 +632,73 @@ export function emergencyDisableLifeCoachDomain(domain: LifeCoachDomain, reason:
 
   getLogger().warn({ domain, reason }, 'Life coach domain emergency disabled');
   return true;
+}
+
+// ============================================================================
+// PERSONAL JOURNEY AWARENESS HELPERS
+// ============================================================================
+
+export type PersonalJourneyFeature =
+  | 'rhythmAwareness'
+  | 'seasonalMemory'
+  | 'chapterDetection'
+  | 'communityWisdom'
+  | 'greetingEnhancement';
+
+/**
+ * Check if Personal Journey Awareness is enabled
+ */
+export function isPersonalJourneyEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.personalJourney.enabled;
+}
+
+/**
+ * Check if a specific Personal Journey feature is enabled
+ */
+export function isPersonalJourneyFeatureEnabled(feature: PersonalJourneyFeature): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.personalJourney.enabled) return false;
+  return flags.personalJourney[feature] === true;
+}
+
+/**
+ * Check if user is in Personal Journey rollout
+ * Uses userId hash for consistent rollout assignment
+ */
+export function isUserInPersonalJourneyRollout(userId: string): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.personalJourney.enabled) return false;
+  if (flags.personalJourney.rolloutPercent >= 100) return true;
+  if (flags.personalJourney.rolloutPercent <= 0) return false;
+
+  // Hash userId to get consistent rollout assignment
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  const bucket = Math.abs(hash) % 100;
+  return bucket < flags.personalJourney.rolloutPercent;
+}
+
+/**
+ * Get Personal Journey rollout percentage
+ */
+export function getPersonalJourneyRolloutPercent(): number {
+  const flags = getFeatureFlags();
+  if (!flags.personalJourney.enabled) return 0;
+  return flags.personalJourney.rolloutPercent;
+}
+
+/**
+ * Emergency: Disable Personal Journey at runtime
+ */
+export function emergencyDisablePersonalJourney(reason: string): void {
+  const flags = getFeatureFlags();
+  flags.personalJourney.enabled = false;
+  cachedFlags = flags;
+
+  getLogger().warn({ reason }, '🚨 Personal Journey Awareness emergency disabled');
 }

@@ -11,13 +11,13 @@
  * - Cross-platform profile resolution
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 import {
   authenticateNaturally,
-  getNaturalGreeting,
   generateContextForLLM,
+  getNaturalGreeting,
   type AuthContext,
 } from './natural-auth.js';
 
@@ -118,7 +118,7 @@ export function formatPhoneForDisplay(phone: string): string {
 // ============================================================================
 
 export interface IdentificationSource {
-  type: 'phone' | 'web_auth' | 'device' | 'anonymous';
+  type: 'phone' | 'web_auth' | 'firebase' | 'device' | 'anonymous';
   identifier: string;
   metadata?: Record<string, string>;
 }
@@ -230,7 +230,15 @@ export async function identifyByWebAuth(
 }
 
 /**
- * Identify user from job metadata (flexible - works with phone or auth)
+ * Identify user from job metadata (flexible - works with Firebase, phone, or device)
+ *
+ * Priority Order:
+ * 1. Explicit user ID (from authenticated context)
+ * 2. Firebase UID (primary for web users)
+ * 3. Phone number (from SIP/telephony)
+ * 4. Auth token (legacy)
+ * 5. Device ID (fallback, for migration)
+ * 6. Anonymous session (truly unknown users)
  */
 export async function identifyFromMetadata(
   metadata: Record<string, unknown>
@@ -251,19 +259,37 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Priority 2: Phone number (from SIP/telephony)
+  // Priority 2: Firebase UID (primary identifier for web users)
+  // This is the cryptographically secure Firebase User ID
+  const firebaseUid = metadata.firebase_uid || metadata.firebaseUid;
+  if (firebaseUid && typeof firebaseUid === 'string') {
+    const store = getStore();
+    const profile = await store.getProfile(firebaseUid);
+
+    return {
+      userId: firebaseUid,
+      isNew: !profile,
+      isReturning: profile ? profile.totalConversations > 0 : false,
+      profile,
+      source: { type: 'firebase', identifier: firebaseUid },
+      linkedIdentifiers: profile ? getLinkedIdentifiers(profile) : [],
+    };
+  }
+
+  // Priority 3: Phone number (from SIP/telephony)
   const phoneNumber = metadata.caller_id || metadata.phone || metadata.from;
   if (phoneNumber && typeof phoneNumber === 'string' && isValidPhoneNumber(phoneNumber)) {
     return identifyByPhone(phoneNumber);
   }
 
-  // Priority 3: Auth token
+  // Priority 4: Auth token (legacy)
   const authToken = metadata.auth_token || metadata.token;
   if (authToken && typeof authToken === 'string') {
     return identifyByWebAuth(authToken, 'token');
   }
 
-  // Priority 4: Device ID (for anonymous but persistent identification)
+  // Priority 5: Device ID (for anonymous but persistent identification)
+  // This is the fallback during the Firebase migration period
   const deviceId = metadata.device_id || metadata.deviceId;
   if (deviceId && typeof deviceId === 'string') {
     const userId = `device:${deviceId}`;
@@ -280,7 +306,7 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Fallback: Anonymous session
+  // Priority 6: Anonymous session (truly unknown users)
   const sessionId = metadata.session_id || `anon:${Date.now()}`;
 
   return {
@@ -511,7 +537,7 @@ export function getLLMAuthContext(authContext: AuthContext): string {
 }
 
 // Re-export natural auth types
-export type { AuthContext, ConfidenceLevel, AuthAction } from './natural-auth.js';
+export type { AuthAction, AuthContext, ConfidenceLevel } from './natural-auth.js';
 
 // ============================================================================
 // EXPORTS

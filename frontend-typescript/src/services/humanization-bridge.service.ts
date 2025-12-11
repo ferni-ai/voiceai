@@ -47,7 +47,17 @@ export type HumanizationSignalType =
   | 'topic_weight_shift' // Topic became heavier/lighter
   | 'relationship_milestone' // Relationship stage progression
   | 'emotional_arc_peak' // Conversation reached emotional climax
-  | 'emotional_arc_release'; // Emotional release/resolution
+  | 'emotional_arc_release' // Emotional release/resolution
+  // 🧠 SUPERHUMAN INTELLIGENCE signals
+  | 'concern_detected' // Unified concern detection triggered
+  | 'proactive_memory' // Proactive memory surfacing
+  | 'voice_state_detected' // Voice state detection (tired, stressed, etc.)
+  | 'need_predicted' // User need prediction (venting, advice, etc.)
+  | 'emotional_trajectory' // Emotional trajectory prediction
+  // Conversation repair & subtext signals
+  | 'repair_needed' // Conversation needs repair
+  | 'aftercare_needed' // Post-emotional-moment care
+  | 'subtext_detected'; // Hidden meaning detected
 
 /**
  * Humanization signal event from backend
@@ -69,6 +79,15 @@ export interface HumanizationSignalEvent extends DataMessage {
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
   silenceDuration?: number; // For silence moments, how long in ms
   silenceReason?: 'processing' | 'emotional' | 'invitation' | 'presence';
+
+  // 🧠 SUPERHUMAN INTELLIGENCE data
+  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
+  concernType?: string; // anxiety, sadness, overwhelm, etc.
+  recommendedApproach?: string; // gentle_presence, validate_first, etc.
+  voiceState?: string; // tired, stressed, excited, etc.
+  predictedNeed?: string; // venting, advice, validation, etc.
+  emotionalTrajectory?: string; // escalating, de_escalating, etc.
+  memoryType?: string; // event, goal, person, etc.
 }
 
 /**
@@ -201,6 +220,23 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
       break;
     case 'emotional_arc_release':
       handleEmotionalArcRelease();
+      break;
+
+    // 🧠 SUPERHUMAN INTELLIGENCE SIGNALS
+    case 'concern_detected':
+      handleConcernDetected(event.concernLevel, event.concernType, event.recommendedApproach);
+      break;
+    case 'proactive_memory':
+      handleProactiveMemory(event.memoryType, event.content);
+      break;
+    case 'voice_state_detected':
+      handleVoiceStateDetected(event.voiceState, intensity);
+      break;
+    case 'need_predicted':
+      handleNeedPredicted(event.predictedNeed, intensity);
+      break;
+    case 'emotional_trajectory':
+      handleEmotionalTrajectory(event.emotionalTrajectory, intensity);
       break;
   }
 }
@@ -552,6 +588,277 @@ function handleEmotionalArcRelease(): void {
 
   // Relax breath sync
   ferni.setBreathSyncStrength(0.3);
+}
+
+// ============================================================================
+// 🧠 SUPERHUMAN INTELLIGENCE HANDLERS
+// These handle the new "Better Than Human" capability signals
+// ============================================================================
+
+/**
+ * Unified concern detection triggered
+ * This is the superhuman ability to detect distress across multiple channels
+ */
+function handleConcernDetected(
+  level?: string,
+  concernType?: string,
+  recommendedApproach?: string
+): void {
+  log.info('🧠 Concern detected:', { level, concernType, recommendedApproach });
+
+  switch (level) {
+    case 'crisis':
+      // Maximum protective response
+      emotionState.setEmotion('accompanying');
+      ferniExpressions.empathy();
+      ferni.setBreathSyncStrength(0.7); // Strong sync for grounding
+      // Dispatch for safety systems
+      document.dispatchEvent(
+        new CustomEvent('ferni:crisis-detected', {
+          detail: { concernType },
+        })
+      );
+      break;
+
+    case 'elevated':
+      // Strong protective presence
+      playMicroExpression('protective');
+      setTimeout(() => {
+        emotionState.setEmotion('holding');
+        ferniExpressions.holdSpace();
+      }, 100);
+      ferni.setBreathSyncStrength(0.6);
+      break;
+
+    case 'moderate':
+      // Visible care and attention
+      playMicroExpression('concern_flash');
+      setTimeout(() => {
+        emotionState.setEmotion('holdingSpace');
+        ferniExpressions.setExpression('empathetic', 500);
+      }, 80);
+      ferni.setBreathSyncStrength(0.5);
+      break;
+
+    case 'mild':
+      // Subtle acknowledgment
+      playMicroExpression('noticing');
+      emotionState.setEmotion('attentive');
+      break;
+  }
+
+  // Dispatch for other systems
+  document.dispatchEvent(
+    new CustomEvent('ferni:concern-level-change', {
+      detail: { level, concernType, recommendedApproach },
+    })
+  );
+}
+
+/**
+ * Proactive memory surfacing
+ * Ferni remembered something before the user mentioned it
+ */
+function handleProactiveMemory(memoryType?: string, content?: string): void {
+  log.info('🧠 Proactive memory:', { memoryType, content });
+
+  // Show the "remembering" moment - this is the magic
+  playMicroExpression('memory_spark');
+
+  setTimeout(() => {
+    // Brief recognition expression
+    emotionState.setEmotion('remembering');
+    ferniExpressions.setExpression('remembering', 400);
+  }, 80);
+
+  // Different responses based on memory type
+  setTimeout(() => {
+    switch (memoryType) {
+      case 'event':
+        // Following up on an event - show care
+        playMicroExpression('warmth_pulse');
+        break;
+      case 'goal':
+        // Checking on a goal - show encouragement
+        playMicroExpression('interest_flash');
+        break;
+      case 'person':
+        // Asking about someone - show connection
+        playMicroExpression('understanding');
+        break;
+      case 'struggle':
+        // Checking on a struggle - show support
+        playMicroExpression('protective');
+        break;
+    }
+  }, 300);
+
+  // Dispatch for UI systems
+  document.dispatchEvent(
+    new CustomEvent('ferni:proactive-memory', {
+      detail: { memoryType, content },
+    })
+  );
+}
+
+/**
+ * Voice state detection
+ * Ferni noticed tiredness, stress, excitement etc. in their voice
+ */
+function handleVoiceStateDetected(voiceState?: string, intensity?: number): void {
+  log.info('🧠 Voice state detected:', { voiceState, intensity });
+
+  // This is superhuman - we're reading their voice before they say anything about it
+  switch (voiceState) {
+    case 'tired':
+      // Show gentle awareness
+      playMicroExpression('noticing');
+      setTimeout(() => {
+        emotionState.setEmotion('warm');
+        ferniExpressions.setExpression('warm', 400);
+      }, 80);
+      // Slow down our energy to match
+      document.dispatchEvent(
+        new CustomEvent('ferni:energy-shift', {
+          detail: { level: 'low', reason: 'voice_detected_tired' },
+        })
+      );
+      break;
+
+    case 'stressed':
+      // Show recognition and grounding presence
+      playMicroExpression('concern_flash');
+      setTimeout(() => {
+        emotionState.setEmotion('holdingSpace');
+        ferniExpressions.setExpression('attentive', 400);
+      }, 60);
+      ferni.setBreathSyncStrength(0.5); // Help them breathe
+      break;
+
+    case 'excited':
+      // Match their energy!
+      playMicroExpression('delight_flash');
+      setTimeout(() => {
+        emotionState.setEmotion('excited');
+        ferniExpressions.excited();
+      }, 100);
+      break;
+
+    case 'upset':
+      // Protective care
+      playMicroExpression('protective');
+      setTimeout(() => {
+        emotionState.setEmotion('holding');
+        ferniExpressions.setExpression('empathetic', 500);
+      }, 60);
+      break;
+
+    case 'calm':
+      // Mirror their calm
+      emotionState.setEmotion('present');
+      ferniExpressions.setExpression('present', 400);
+      break;
+
+    case 'distracted':
+      // Gentle attention-getting
+      playMicroExpression('curious_lean');
+      emotionState.setEmotion('curiousLean');
+      break;
+  }
+}
+
+/**
+ * Need prediction
+ * Ferni knows what they need before they ask
+ */
+function handleNeedPredicted(predictedNeed?: string, intensity?: number): void {
+  log.info('🧠 Need predicted:', { predictedNeed, intensity });
+
+  // Adjust posture/presence based on predicted need
+  switch (predictedNeed) {
+    case 'venting':
+      // Open, receiving posture - ready to listen
+      emotionState.setEmotion('receiving');
+      ferniExpressions.setExpression('attentive', 400);
+      // Don't interrupt
+      document.dispatchEvent(new CustomEvent('ferni:prepare-for-venting'));
+      break;
+
+    case 'advice':
+      // Ready to help posture
+      emotionState.setEmotion('thinking');
+      ferniExpressions.setExpression('contemplative', 300);
+      break;
+
+    case 'validation':
+      // Warm, accepting posture
+      playMicroExpression('understanding');
+      emotionState.setEmotion('warm');
+      break;
+
+    case 'connection':
+      // Present, connected posture
+      playMicroExpression('warmth_pulse');
+      emotionState.setEmotion('accompanying');
+      break;
+
+    case 'silence':
+      // Quiet presence
+      emotionState.setEmotion('present');
+      ferniExpressions.setExpression('present', 500);
+      break;
+
+    case 'energy':
+      // Ready to match high energy
+      emotionState.setEmotion('curious');
+      break;
+
+    case 'grounding':
+      // Stable, grounding presence
+      emotionState.setEmotion('holding');
+      ferni.setBreathSyncStrength(0.6);
+      break;
+  }
+}
+
+/**
+ * Emotional trajectory prediction
+ * Ferni sees where they're emotionally heading
+ */
+function handleEmotionalTrajectory(trajectory?: string, intensity?: number): void {
+  log.info('🧠 Emotional trajectory:', { trajectory, intensity });
+
+  switch (trajectory) {
+    case 'escalating':
+      // Prepare for increasing intensity
+      // Slow down, increase grounding presence
+      ferni.setBreathSyncStrength(0.5);
+      document.dispatchEvent(
+        new CustomEvent('ferni:trajectory-escalating', {
+          detail: { intensity },
+        })
+      );
+      break;
+
+    case 'de_escalating':
+      // Support the calming
+      emotionState.setEmotion('settling');
+      ferni.setBreathSyncStrength(0.3);
+      break;
+
+    case 'building_to_something':
+      // Prepare for revelation/disclosure
+      emotionState.setEmotion('receiving');
+      playMicroExpression('interest_flash');
+      // This often precedes vulnerable shares
+      document.dispatchEvent(new CustomEvent('ferni:prepare-for-disclosure'));
+      break;
+
+    case 'cycling':
+      // Stay stable as anchor
+      emotionState.setEmotion('present');
+      break;
+  }
 }
 
 // ============================================================================

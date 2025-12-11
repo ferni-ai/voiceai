@@ -17,6 +17,7 @@
  * @module services/realtime-memory
  */
 
+import { getFirestoreDatabase, getGCPProjectId } from '../config/environment.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
@@ -97,8 +98,8 @@ async function getFirestore(): Promise<FirestoreDB | null> {
     FieldValue = firestore.FieldValue as typeof FieldValue;
 
     db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      projectId: getGCPProjectId(),
+      databaseId: getFirestoreDatabase(),
     }) as unknown as FirestoreDB;
 
     log.info('🔥 Realtime memory Firestore connected');
@@ -569,7 +570,7 @@ export async function getConversationContextForAPI(userId: string): Promise<{
   for (const turn of context.turns) {
     if (turn.role === 'user' && turn.content.includes('?')) {
       unfinishedThreads.push({
-        topic: turn.content.split('?')[0].slice(-30) + '?',
+        topic: `${turn.content.split('?')[0].slice(-30)}?`,
         lastDiscussed: turn.timestamp,
         summary: turn.content.slice(0, 100),
       });

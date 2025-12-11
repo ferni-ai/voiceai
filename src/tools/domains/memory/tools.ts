@@ -413,7 +413,8 @@ export const getRelationshipSummaryDef: ToolDefinition = {
 export const updateMemoryDef: ToolDefinition = {
   id: 'updateMemory',
   name: 'Update Memory',
-  description: 'Update an existing memory with new information when the user corrects or adds to what you remember',
+  description:
+    'Update an existing memory with new information when the user corrects or adds to what you remember',
   domain: 'memory',
   tags: ['memory', 'update', 'modification'],
 
@@ -424,7 +425,10 @@ export const updateMemoryDef: ToolDefinition = {
       parameters: z.object({
         originalFact: z.string().describe('What you currently remember that needs updating'),
         updatedFact: z.string().describe('The corrected or updated information'),
-        reason: z.string().optional().describe('Why the update was needed (correction, change, addition)'),
+        reason: z
+          .string()
+          .optional()
+          .describe('Why the update was needed (correction, change, addition)'),
       }),
       execute: async ({ originalFact, updatedFact, reason }, { ctx: toolCtx }) => {
         getLogger().info(
@@ -437,8 +441,8 @@ export const updateMemoryDef: ToolDefinition = {
 
         // Update in session memory
         if (userData.keyMoments) {
-          const index = userData.keyMoments.findIndex(
-            (m) => m.toLowerCase().includes(originalFact.toLowerCase())
+          const index = userData.keyMoments.findIndex((m) =>
+            m.toLowerCase().includes(originalFact.toLowerCase())
           );
           if (index !== -1) {
             userData.keyMoments[index] = `[updated] ${updatedFact}`;
@@ -485,7 +489,9 @@ export const forgetMemoryDef: ToolDefinition = {
         'Remove something from memory when the user explicitly asks you to forget it. Use when they say things like "Forget that", "Don\'t remember that", or "Delete that information".',
       parameters: z.object({
         whatToForget: z.string().describe('What the user wants you to forget'),
-        confirmDeletion: z.boolean().describe('Whether the user has confirmed they want this forgotten'),
+        confirmDeletion: z
+          .boolean()
+          .describe('Whether the user has confirmed they want this forgotten'),
       }),
       execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
         getLogger().info(

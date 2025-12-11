@@ -4,16 +4,16 @@
  * Tests the dynamic handoff tool generation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearHandoffToolCache,
   createHandoffTools,
+  findHandoffTarget,
+  getAgentNameFromToolName,
   getHandoffTool,
   getHandoffToolForAgent,
-  findHandoffTarget,
   getHandoffToolNames,
-  clearHandoffToolCache,
   isHandoffToolName,
-  getAgentNameFromToolName,
 } from '../../tools/handoff/handoff-factory.js';
 
 // Mock the unified registry
@@ -27,7 +27,7 @@ vi.mock('../../personas/registry/unified-registry.js', () => ({
         enabled: true,
         roleDescription: 'Life coach',
         handoffTriggers: [],
-        ui: { initials: 'FN' },
+        ui: { initials: 'FE' },
         manifest: {},
       },
       {
@@ -68,7 +68,7 @@ vi.mock('../../personas/registry/unified-registry.js', () => ({
       enabled: true,
       roleDescription: 'Life coach',
       handoffTriggers: [],
-      ui: { initials: 'FN' },
+      ui: { initials: 'FE' },
       manifest: {},
     }),
     getAgentOrNull: vi.fn().mockImplementation(async (id) => {

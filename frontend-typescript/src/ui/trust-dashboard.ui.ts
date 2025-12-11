@@ -322,7 +322,7 @@ function renderTimelineTab(data: TimelineData | null): string {
           <h4>Recent Peaks & Valleys</h4>
           ${data.peaks.map(p => `
             <div class="peak-item ${p.type}">
-              <span class="peak-type">${p.type === 'peak' ? '📈' : '📉'}</span>
+              <span class="peak-type">${p.type === 'peak' ? '↑' : '↓'}</span>
               <span class="peak-date">${new Date(p.date).toLocaleDateString()}</span>
               <span class="peak-valence">${(p.valence * 100).toFixed(0)}%</span>
             </div>
@@ -462,7 +462,7 @@ function renderInsightsTab(data: InsightsData | null): string {
       
       ${latest.wins.biggestWin ? `
         <div class="biggest-win">
-          <h4>🏆 Biggest Win</h4>
+          <h4>Biggest Win</h4>
           <p>${latest.wins.biggestWin}</p>
         </div>
       ` : ''}

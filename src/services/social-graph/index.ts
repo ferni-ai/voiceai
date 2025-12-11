@@ -426,9 +426,7 @@ export function getUpcomingDates(userId: string, daysAhead: number = 7): Importa
         thisYearDate.setFullYear(currentYear + 1);
       }
 
-      const daysUntil = Math.ceil(
-        (thisYearDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
+      const daysUntil = Math.ceil((thisYearDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysUntil >= 0 && daysUntil <= daysAhead) {
         dates.push({
@@ -498,7 +496,11 @@ export function generateSocialInsights(userId: string): SocialInsight[] {
   const dates = getUpcomingDates(userId, 3);
   for (const date of dates) {
     const dayText =
-      date.daysUntil === 0 ? 'Today' : date.daysUntil === 1 ? 'Tomorrow' : `In ${date.daysUntil} days`;
+      date.daysUntil === 0
+        ? 'Today'
+        : date.daysUntil === 1
+          ? 'Tomorrow'
+          : `In ${date.daysUntil} days`;
     insights.push({
       type: 'date',
       insight: `${dayText} is ${date.personName}'s ${date.type}${date.label ? ` (${date.label})` : ''}`,
@@ -665,9 +667,7 @@ function updateImportance(graph: UserSocialGraph, personId: string): void {
   // - User confirmation
 
   const recentMentions = graph.mentions.filter(
-    (m) =>
-      m.personId === personId &&
-      Date.now() - m.timestamp.getTime() < 30 * 24 * 60 * 60 * 1000 // Last 30 days
+    (m) => m.personId === personId && Date.now() - m.timestamp.getTime() < 30 * 24 * 60 * 60 * 1000 // Last 30 days
   );
 
   const frequencyScore = Math.min(1, recentMentions.length / 10);
@@ -724,9 +724,8 @@ export function getMentionFrequency(userId: string, personName: string, days: nu
   if (!person) return 0;
 
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  return graph.mentions.filter(
-    (m) => m.personId === person.id && m.timestamp.getTime() > cutoff
-  ).length;
+  return graph.mentions.filter((m) => m.personId === person.id && m.timestamp.getTime() > cutoff)
+    .length;
 }
 
 export function clearSocialGraph(userId: string): void {

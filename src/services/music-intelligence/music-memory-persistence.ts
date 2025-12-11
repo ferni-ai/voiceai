@@ -163,9 +163,7 @@ export async function flushMusicMemoryForSession(
  * Connect DJ Booth to music memory persistence
  * Returns a cleanup function to call when session ends
  */
-export async function connectDJBoothToPersistence(
-  userId: string
-): Promise<{
+export async function connectDJBoothToPersistence(userId: string): Promise<{
   existingPrefs: Partial<MusicPreferences> | null;
   cleanup: () => Promise<void>;
 }> {

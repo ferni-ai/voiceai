@@ -575,6 +575,19 @@ async function ensureBuildersLoaded(): Promise<void> {
       // 🧑‍🏫 LIFE COACHING CAPABILITIES
       // ============================================================================
       import('./coaching-context.js'), // Goals, actions, obstacles, values, style, journey, team
+      // ============================================================================
+      // 🎉 BETTER-THAN-HUMAN: CELEBRATION & GROWTH
+      // ============================================================================
+      import('./celebration-growth.js'), // Systematic celebration & growth visibility
+      import('./pattern-surfacing.js'), // Surface patterns user can't see about themselves
+      // ============================================================================
+      // 🌍 WORLD AWARENESS - "Better Than Human" knows the world
+      // ============================================================================
+      import('./world-awareness.js'), // Weather, news, sports, holidays - pre-fetched
+      // ============================================================================
+      // 🌟 PERSONAL JOURNEY - "Better Than Human" remembers YOUR journey
+      // ============================================================================
+      import('./personal-journey.js'), // Rhythm, milestones, seasonal memory, chapters
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);

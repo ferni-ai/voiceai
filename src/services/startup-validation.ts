@@ -8,6 +8,7 @@
  * but doesn't actually persist data.
  */
 
+import { getGCPProjectId } from '../config/environment.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -70,7 +71,7 @@ function validateGoogleCloud(): { valid: boolean; errors: string[]; warnings: st
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  const projectId = getGCPProjectId();
   const hasCredentials =
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
     process.env.GCLOUD_SERVICE_KEY ||
@@ -178,7 +179,7 @@ function validatePersistence(): {
   let storeType: 'firestore' | 'postgres' | 'memory' = 'memory';
 
   const explicitType = process.env.MEMORY_STORE_TYPE;
-  const hasFirestore = !!(process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT);
+  const hasFirestore = !!getGCPProjectId();
   const hasPostgres = !!process.env.DATABASE_URL;
 
   if (explicitType === 'firestore' && !hasFirestore) {

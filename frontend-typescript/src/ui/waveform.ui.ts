@@ -65,39 +65,44 @@ const EMOTION_SHAPES: Record<VoiceEmotion | 'speaking', EmotionShape> = {
     speed: 1,
   },
   // Happy - SMILE shape (edges up, slight dip in center)
+  // Warm delight, not saccharine - subtle lift
   happy: {
     curve: [0.9, 0.7, 0.5, 0.4, 0.35, 0.4, 0.5, 0.7, 0.9],
-    jitter: 0.1,
-    bounce: 0.3,
-    speed: 1.1,
+    jitter: 0.06,
+    bounce: 0.15,
+    speed: 1.05,
   },
-  // Excited - ALL BARS HIGH with bounce!
+  // Excited - Joyful energy, but grounded not chaotic
+  // "Subliminal over flashy" - warm enthusiasm
   excited: {
     curve: [0.85, 0.95, 1.0, 0.9, 1.0, 0.9, 1.0, 0.95, 0.85],
-    jitter: 0.25,
-    bounce: 0.5,
-    speed: 1.4,
+    jitter: 0.08,
+    bounce: 0.2,
+    speed: 1.15,
   },
   // Sad - FROWN shape (edges down, center up)
+  // Present and acknowledging, not amplifying
   sad: {
     curve: [0.2, 0.35, 0.55, 0.75, 0.85, 0.75, 0.55, 0.35, 0.2],
-    jitter: 0.05,
+    jitter: 0.03,
     bounce: 0,
     speed: 0.7,
   },
-  // Anxious - UNEVEN, jittery
+  // Anxious - GROUNDING response, NOT mirroring anxiety
+  // "Grounded, not anxious" - Ferni stays calm when user is stressed
   anxious: {
-    curve: [0.6, 0.4, 0.7, 0.5, 0.8, 0.45, 0.75, 0.35, 0.55],
-    jitter: 0.35,
-    bounce: 0.15,
-    speed: 1.3,
+    curve: [0.5, 0.55, 0.6, 0.65, 0.7, 0.65, 0.6, 0.55, 0.5],
+    jitter: 0.02,
+    bounce: 0.03,
+    speed: 0.65,
   },
-  // Frustrated - SHARP peaks, aggressive
+  // Frustrated - Steady, supportive presence
+  // "Warm" - acknowledge without amplifying negativity
   frustrated: {
-    curve: [0.3, 0.8, 0.4, 0.9, 0.5, 0.85, 0.35, 0.75, 0.25],
-    jitter: 0.2,
-    bounce: 0.1,
-    speed: 1.2,
+    curve: [0.45, 0.5, 0.6, 0.7, 0.75, 0.7, 0.6, 0.5, 0.45],
+    jitter: 0.03,
+    bounce: 0.05,
+    speed: 0.75,
   },
   // Calm - GENTLE, even wave
   calm: {

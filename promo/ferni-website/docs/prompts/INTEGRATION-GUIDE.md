@@ -1,10 +1,10 @@
-#  Asset Integration Guide
+# Asset Integration Guide
 
 Quick reference for adding generated images/videos to the Ferni website.
 
 ---
 
-##  File Structure
+## File Structure
 
 Place generated assets in these folders:
 
@@ -32,96 +32,102 @@ promo/ferni-website/
 
 ---
 
-##  Team Avatars Integration
+## Team Avatars Integration
 
 ### Current HTML (initials only):
+
 ```html
-<div class="team-avatar"><span>FN</span></div>
+<div class="team-avatar"><span>FE</span></div>
 ```
 
 ### Updated HTML (with image):
+
 ```html
 <div class="team-avatar">
-  <img src="images/avatars/ferni.png" alt="Ferni avatar" loading="lazy">
-  <span>FN</span> <!-- Fallback if image fails -->
+  <img src="images/avatars/ferni.png" alt="Ferni avatar" loading="lazy" />
+  <span>FE</span>
+  <!-- Fallback if image fails -->
 </div>
 ```
 
 ### All Team Members:
+
 ```html
 <!-- Ferni -->
 <div class="team-avatar">
-  <img src="images/avatars/ferni.png" alt="Ferni" loading="lazy">
-  <span>FN</span>
+  <img src="images/avatars/ferni.png" alt="Ferni" loading="lazy" />
+  <span>FE</span>
 </div>
 
 <!-- Jack -->
 <div class="team-avatar">
-  <img src="images/avatars/jack.png" alt="Jack" loading="lazy">
+  <img src="images/avatars/jack.png" alt="Jack" loading="lazy" />
   <span>JB</span>
 </div>
 
 <!-- Peter -->
 <div class="team-avatar">
-  <img src="images/avatars/peter.png" alt="Peter" loading="lazy">
+  <img src="images/avatars/peter.png" alt="Peter" loading="lazy" />
   <span>PL</span>
 </div>
 
 <!-- Alex -->
 <div class="team-avatar">
-  <img src="images/avatars/alex.png" alt="Alex" loading="lazy">
+  <img src="images/avatars/alex.png" alt="Alex" loading="lazy" />
   <span>AX</span>
 </div>
 
 <!-- Maya -->
 <div class="team-avatar">
-  <img src="images/avatars/maya.png" alt="Maya" loading="lazy">
+  <img src="images/avatars/maya.png" alt="Maya" loading="lazy" />
   <span>MY</span>
 </div>
 
 <!-- Jordan -->
 <div class="team-avatar">
-  <img src="images/avatars/jordan.png" alt="Jordan" loading="lazy">
+  <img src="images/avatars/jordan.png" alt="Jordan" loading="lazy" />
   <span>JD</span>
 </div>
 ```
 
 ---
 
-##  Testimonial Photos Integration
+## Testimonial Photos Integration
 
 ### Current HTML:
+
 ```html
 <div class="testimonial-avatar">SK</div>
 ```
 
 ### Updated HTML (with photo):
+
 ```html
 <div class="testimonial-avatar">
-  <img src="images/testimonials/sarah-k.jpg" alt="Sarah K." loading="lazy">
+  <img src="images/testimonials/sarah-k.jpg" alt="Sarah K." loading="lazy" />
   SK
 </div>
 ```
 
 ---
 
-##  OG/Social Image Integration
+## OG/Social Image Integration
 
 ### In `<head>` section of index.html:
 
 ```html
 <!-- Open Graph -->
-<meta property="og:image" content="https://ferni.ai/images/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image" content="https://ferni.ai/images/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 
 <!-- Twitter Card -->
-<meta name="twitter:image" content="https://ferni.ai/images/og-image.png">
+<meta name="twitter:image" content="https://ferni.ai/images/og-image.png" />
 ```
 
 ---
 
-##  Hero Video Integration (Replace Image Sequence)
+## Hero Video Integration (Replace Image Sequence)
 
 ### Option A: Video Background (Recommended)
 
@@ -131,17 +137,10 @@ Replace canvas with video element in index.html:
 <!-- Hero Section with Video Background -->
 <section class="hero-scroll-container" id="heroScrollContainer">
   <!-- Video Background -->
-  <video 
-    class="hero-video" 
-    autoplay 
-    muted 
-    loop 
-    playsinline
-    poster="images/sequence/frame-001.jpg"
-  >
-    <source src="videos/hero-bg.mp4" type="video/mp4">
+  <video class="hero-video" autoplay muted loop playsinline poster="images/sequence/frame-001.jpg">
+    <source src="videos/hero-bg.mp4" type="video/mp4" />
   </video>
-  
+
   <!-- Hero Content Layer -->
   <div class="hero-content-wrapper" id="heroContentWrapper">
     <!-- ... existing hero content ... -->
@@ -150,6 +149,7 @@ Replace canvas with video element in index.html:
 ```
 
 ### CSS for Video Background:
+
 ```css
 .hero-video {
   position: fixed;
@@ -168,27 +168,24 @@ Replace canvas with video element in index.html:
 ```
 
 ### Option B: Keep Image Sequence (Current)
+
 The current image sequence animation works well. Only switch to video if:
+
 - You have a higher quality video
 - You want smoother playback
 - File size is smaller than current images
 
 ---
 
-##  CTA Section Video Background
+## CTA Section Video Background
 
 ### Add to CTA section:
+
 ```html
 <section class="cta">
   <div class="cta-bg">
-    <video 
-      class="cta-video" 
-      autoplay 
-      muted 
-      loop 
-      playsinline
-    >
-      <source src="videos/cta-bg.mp4" type="video/mp4">
+    <video class="cta-video" autoplay muted loop playsinline>
+      <source src="videos/cta-bg.mp4" type="video/mp4" />
     </video>
     <div class="cta-orb"></div>
   </div>
@@ -197,6 +194,7 @@ The current image sequence animation works well. Only switch to video if:
 ```
 
 ### CSS:
+
 ```css
 .cta-video {
   position: absolute;
@@ -211,12 +209,12 @@ The current image sequence animation works well. Only switch to video if:
 
 ---
 
-##  Integration Checklist
+## Integration Checklist
 
 When you have generated assets ready:
 
 - [ ] Create `images/avatars/` folder
-- [ ] Create `images/testimonials/` folder  
+- [ ] Create `images/testimonials/` folder
 - [ ] Create `videos/` folder
 - [ ] Add OG image to `images/og-image.png`
 - [ ] Update meta tags in `<head>`
@@ -228,7 +226,7 @@ When you have generated assets ready:
 
 ---
 
-##  Useful Tools
+## Useful Tools
 
 - **Image Optimization:** [TinyPNG](https://tinypng.com), [Squoosh](https://squoosh.app)
 - **Video Compression:** [HandBrake](https://handbrake.fr)
@@ -237,17 +235,16 @@ When you have generated assets ready:
 
 ---
 
-##  Image Size Reference
+## Image Size Reference
 
-| Asset | Dimensions | Format | Max Size |
-|-------|-----------|--------|----------|
-| OG Image | 1200x630 | PNG/JPG | 500KB |
-| Team Avatars | 400x400 | PNG | 100KB each |
-| Testimonials | 200x200 | JPG | 50KB each |
-| Hero Video | 4K | MP4 (H.264) | 10MB |
-| CTA Video | 1080p | MP4 (H.264) | 5MB |
+| Asset        | Dimensions | Format      | Max Size   |
+| ------------ | ---------- | ----------- | ---------- |
+| OG Image     | 1200x630   | PNG/JPG     | 500KB      |
+| Team Avatars | 400x400    | PNG         | 100KB each |
+| Testimonials | 200x200    | JPG         | 50KB each  |
+| Hero Video   | 4K         | MP4 (H.264) | 10MB       |
+| CTA Video    | 1080p      | MP4 (H.264) | 5MB        |
 
 ---
 
-*Last updated: December 2024*
-
+_Last updated: December 2024_

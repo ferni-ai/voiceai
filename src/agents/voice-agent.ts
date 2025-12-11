@@ -211,6 +211,13 @@ import {
   onSessionStart as startHumanizationSession,
 } from '../conversation/humanization/index.js';
 
+// 🧠 Superhuman Intelligence Persistence - cross-session learning & memory
+import {
+  createFirestoreSuperhumanStore,
+  loadSuperhumanData,
+  saveSuperhumanData,
+} from '../services/superhuman-persistence.js';
+
 // Voice Humanization - prosody-aware turn prediction, micro-interruptions, emotional arc TTS
 import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
 import {
@@ -271,6 +278,12 @@ import {
   recordSessionEnd,
   recordSessionStart,
 } from '../services/voice-humanization-metrics.js';
+
+// User Analytics (DAU/WAU/MAU, concurrent users, session tracking)
+import {
+  recordSessionStart as recordUserSessionStart,
+  recordSessionEnd as recordUserSessionEnd,
+} from '../services/user-analytics.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
@@ -553,11 +566,21 @@ class VoiceAgent extends voice.Agent<UserData> {
             // This makes the LLM output feel more human before TTS
             // Now includes deep humanization: mood drift, spontaneous thoughts,
             // physical presence, excitement interruptions, etc.
+            // 🧠 Also includes superhuman intelligence: concern detection,
+            // proactive memory, predictive anticipation
             // ============================================================
             try {
               const humanizer = getConversationHumanizer(agent.persona.id);
               const lastUserMessage = userData?.lastUserMessage || '';
               const turnNumber = userData?.turnCount || 0;
+
+              // 🧠 Set session context for superhuman intelligence
+              const agentSessionId =
+                (userData?.sessionData as { sessionId?: string } | undefined)?.sessionId ||
+                `session-${agent.persona.id}`;
+              const agentUserId = (userData?.sessionData as { userId?: string } | undefined)
+                ?.userId;
+              humanizer.setSessionContext(agentSessionId, agentUserId);
 
               // Build humanization context (now includes deep humanization fields)
               const humanizationContext = {
@@ -2081,6 +2104,44 @@ export default defineAgent({
             // Store identity context in metadata for later use
             (metadata as Record<string, unknown>).__identityContext =
               identityResult.identityContext;
+
+            // ===============================================
+            // 🌍 WORLD AWARENESS: Pre-warm world context cache
+            // "Better Than Human" - Ferni already knows what's happening
+            // Weather, news, sports, holidays - all pre-fetched
+            // Note: User profile loaded later; interests tracked dynamically
+            // ===============================================
+            try {
+              const { initWorldAwareness } =
+                await import('../services/world-awareness/session-integration.js');
+              // Fire and forget - don't block on this
+              // identification.profile may have basic user data at this point
+              void initWorldAwareness(
+                identityResult.identityContext.userId,
+                identification.profile || null
+              );
+              diag.session('🌍 World awareness initialized');
+            } catch (worldErr) {
+              diag.debug('World awareness init failed (non-fatal)', { error: String(worldErr) });
+            }
+
+            // ===============================================
+            // 🌟 PERSONAL JOURNEY: Initialize rhythm, milestones, chapters
+            // "Better Than Human" - Ferni remembers YOUR journey
+            // Milestones, streaks, seasonal memories, life chapters
+            // ===============================================
+            try {
+              const { initPersonalJourney } =
+                await import('../services/personal-journey/session-integration.js');
+              // Fire and forget - don't block on this
+              void initPersonalJourney(
+                identityResult.identityContext.userId,
+                identification.profile || null
+              );
+              diag.session('🌟 Personal journey awareness initialized');
+            } catch (journeyErr) {
+              diag.debug('Personal journey init failed (non-fatal)', { error: String(journeyErr) });
+            }
           } catch (identityErr) {
             diag.warn('Identity session start failed (non-fatal)', { error: String(identityErr) });
           }
@@ -2163,6 +2224,49 @@ export default defineAgent({
       }
 
       // ===============================================
+      // 🌍 INTERNATIONAL ACCENT SUPPORT
+      // Detect and set user's preferred English accent for TTS
+      // ===============================================
+      let userAccent: 'american' | 'british' | 'australian' | 'indian' = 'american';
+      try {
+        if (ctx.job.metadata) {
+          const metadata = JSON.parse(ctx.job.metadata);
+          const { detectAccentFromLocale, detectAccentFromLocales, isValidAccent } =
+            await import('../config/voice-accents.js');
+
+          // Priority 1: Explicit accent preference from user settings
+          if (metadata.preferredAccent && isValidAccent(metadata.preferredAccent)) {
+            userAccent = metadata.preferredAccent;
+            diag.session('🌍 Using user-selected accent', { accent: userAccent });
+          }
+          // Priority 2: Detect from user's locale
+          else if (metadata.locale) {
+            const detection = detectAccentFromLocale(metadata.locale);
+            userAccent = detection.accent;
+            diag.session('🌍 Accent detected from locale', {
+              locale: metadata.locale,
+              accent: userAccent,
+              confidence: detection.confidence,
+            });
+          }
+          // Priority 3: Detect from browser locales array
+          else if (metadata.locales && Array.isArray(metadata.locales)) {
+            const detection = detectAccentFromLocales(metadata.locales);
+            userAccent = detection.accent;
+            diag.session('🌍 Accent detected from locales', {
+              locales: metadata.locales,
+              accent: userAccent,
+              confidence: detection.confidence,
+            });
+          }
+        }
+      } catch (accentErr) {
+        diag.debug('Accent detection failed (using default American)', {
+          error: String(accentErr),
+        });
+      }
+
+      // ===============================================
       // STEP 2: CREATE SESSION SERVICES
       // ===============================================
       diag.session('Step 2: Creating session services');
@@ -2213,6 +2317,28 @@ export default defineAgent({
           diag.session('Trust profiles loaded for user', { userId });
         } catch (trustErr) {
           diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) });
+        }
+
+        // 🧠 Load superhuman intelligence data (memories, patterns, learning)
+        try {
+          const { getFirestoreStore } = await import('../memory/firestore-store.js');
+          const superhumanStore = createFirestoreSuperhumanStore(async () => {
+            const store = getFirestoreStore();
+            if (!store) throw new Error('Firestore not initialized');
+            return store as unknown as {
+              collection: (name: string) => {
+                doc: (id: string) => {
+                  get: () => Promise<{ exists: boolean; data: () => unknown }>;
+                  set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
+                  delete: () => Promise<void>;
+                };
+              };
+            };
+          });
+          await loadSuperhumanData(userId, sessionId, superhumanStore);
+          diag.session('🧠 Superhuman intelligence loaded', { userId });
+        } catch (superhumanErr) {
+          diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
         }
       }
 
@@ -2280,6 +2406,8 @@ export default defineAgent({
         isReturningUser,
         services,
         turnCount: 0,
+        // 🌍 International accent preference
+        preferredAccent: userAccent,
         // Initialize bundle runtime state
         bundleRuntimeState: {
           relationshipTurns: services.userProfile?.totalConversations
@@ -2394,13 +2522,51 @@ export default defineAgent({
       voiceManager.initialize();
 
       // Create TTS using PersonaAwareTTS - uses the persona's specific voice
+      // 🌍 INTERNATIONAL ACCENT SUPPORT
+      // For non-American accents, we need a LOCALIZED voice from Cartesia's API
+      // The language parameter alone doesn't change the accent!
+      let effectiveVoiceId = sessionPersona.voice.voiceId;
+      let isLocalizedVoice = false;
+
+      if (userAccent !== 'american') {
+        try {
+          const { getLocalizedVoiceId } =
+            await import('../services/cartesia-voice-localization.js');
+          const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent);
+          effectiveVoiceId = localizationResult.voiceId;
+          isLocalizedVoice = localizationResult.isLocalized;
+
+          diag.tts('🌍 Voice localized for accent', {
+            persona: sessionPersona.id,
+            accent: userAccent,
+            originalVoiceId: sessionPersona.voice.voiceId,
+            localizedVoiceId: effectiveVoiceId,
+            cached: localizationResult.cached,
+          });
+        } catch (locErr) {
+          diag.warn('Voice localization failed, using original voice', {
+            error: String(locErr),
+            persona: sessionPersona.id,
+            accent: userAccent,
+          });
+          // Fall back to original voice
+        }
+      }
+
       diag.tts('Creating PersonaAwareTTS', {
         persona: sessionPersona.id,
         personaName: sessionPersona.name,
-        voiceId: sessionPersona.voice.voiceId,
+        voiceId: effectiveVoiceId,
+        accent: userAccent,
+        isLocalizedVoice,
       });
 
-      const tts = createPersonaAwareTTS(sessionPersona.name, sessionPersona.voice);
+      const tts = createPersonaAwareTTS(sessionPersona.name, {
+        ...sessionPersona.voice,
+        voiceId: effectiveVoiceId,
+        accent: userAccent,
+        isLocalizedVoice,
+      });
 
       const session = new voice.AgentSession({
         vad: vad as silero.VAD,
@@ -2496,7 +2662,10 @@ export default defineAgent({
 
           // Debug logging (can be disabled in production)
           if (DEBUG_STARTUP) {
-            console.log('🔧 [TOOLS] FunctionToolsExecuted event');
+            logger.debug(
+              { event: 'FunctionToolsExecuted' },
+              '🔧 [TOOLS] FunctionToolsExecuted event'
+            );
           }
           logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
 
@@ -2667,11 +2836,16 @@ export default defineAgent({
       // ===============================================
       // Fire "mm-hmm", "right", etc. while user is speaking long turns
       // This makes the AI feel like it's actively listening
+      //
+      // Research basis (see docs/VOICE-HUMANIZATION-RESEARCH.md):
+      // - Backchanneling signals active listening and reduces awkward pauses
+      // - Triggers after 3s (reduced from 3.5s for faster response)
+      // - Min interval 4s (reduced from 5s) for more natural conversation
       const activeListening = getActiveListeningEngine();
       let backchannelTimer: ReturnType<typeof setTimeout> | null = null;
       let lastBackchannelAt = 0;
-      const BACKCHANNEL_MIN_INTERVAL_MS = 5000; // Don't backchannel more than once per 5s
-      const BACKCHANNEL_TRIGGER_MS = 3500; // Backchannel after user speaks for 3.5s
+      const BACKCHANNEL_MIN_INTERVAL_MS = 4000; // Research: 4s feels more natural than 5s
+      const BACKCHANNEL_TRIGGER_MS = 3000; // Research: 3s better than 3.5s for responsiveness
 
       const attemptBackchannel = async () => {
         // Don't backchannel if agent is speaking
@@ -4224,6 +4398,8 @@ export default defineAgent({
               ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
               : undefined,
             conversationCount: services.userProfile?.totalConversations,
+            // 🌟 Personal Journey: Pass userId for journey-enhanced greetings
+            userId: services.userId,
           });
 
           // Track if greeting referenced last conversation (for repetition prevention)
@@ -4319,6 +4495,8 @@ export default defineAgent({
             ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
             : undefined,
           conversationCount: services.userProfile?.totalConversations,
+          // 🌟 Personal Journey: Pass userId for journey-enhanced greetings
+          userId: services.userId,
         });
 
         // Track if greeting referenced last conversation (for repetition prevention)
@@ -4488,6 +4666,14 @@ export default defineAgent({
         recordSessionStart(sessionId);
         diag.session('📊 Voice humanization metrics enabled');
       }
+
+      // User Analytics: Track session for DAU/WAU/MAU metrics
+      const visitorId = services.userId || 'anonymous';
+      const isSubscriber =
+        (services.userProfile?.subscription?.tier ?? 'free') !== 'free';
+      void recordUserSessionStart(sessionId, visitorId, sessionPersona.id, isSubscriber).catch(
+        (err) => diag.warn('📊 User analytics session start failed', { error: String(err) })
+      );
 
       // Initialize response anticipation for monitoring
       if (voiceFlags.enableResponseAnticipation) {
@@ -4946,6 +5132,11 @@ export default defineAgent({
               // Record session end in metrics
               recordSessionEnd(sessionId);
 
+              // User Analytics: Record session end for DAU/WAU/MAU metrics
+              void recordUserSessionEnd(sessionId, userData.turnCount || 0, []).catch((err) =>
+                diag.warn('📊 User analytics session end failed', { error: String(err) })
+              );
+
               // Reset all advanced services
               resetFFTAnalyzer(sessionId);
               resetEnhancedTurnPredictor(sessionId);
@@ -4967,6 +5158,30 @@ export default defineAgent({
                 diag.session('Trust profiles saved', { userId });
               } catch (trustErr) {
                 diag.warn('Trust profile save failed (non-fatal)', { error: String(trustErr) });
+              }
+
+              // 🧠 Save superhuman intelligence data (memories, patterns, learning)
+              try {
+                const { getFirestoreStore } = await import('../memory/firestore-store.js');
+                const superhumanStore = createFirestoreSuperhumanStore(async () => {
+                  const store = getFirestoreStore();
+                  if (!store) throw new Error('Firestore not initialized');
+                  return store as unknown as {
+                    collection: (name: string) => {
+                      doc: (id: string) => {
+                        get: () => Promise<{ exists: boolean; data: () => unknown }>;
+                        set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
+                        delete: () => Promise<void>;
+                      };
+                    };
+                  };
+                });
+                await saveSuperhumanData(userId, sessionId, superhumanStore);
+                diag.session('🧠 Superhuman intelligence saved', { userId });
+              } catch (superhumanErr) {
+                diag.warn('Superhuman data save failed (non-fatal)', {
+                  error: String(superhumanErr),
+                });
               }
             }
 
@@ -5035,6 +5250,36 @@ export default defineAgent({
             } catch (identityEndErr) {
               diag.warn('Identity session end failed (non-fatal)', {
                 error: String(identityEndErr),
+              });
+            }
+
+            // ================================================================
+            // 🌍 WORLD AWARENESS: Clean up cached world data
+            // ================================================================
+            try {
+              const { cleanupWorldAwareness } =
+                await import('../services/world-awareness/session-integration.js');
+              const userId = services?.userId || 'anonymous';
+              cleanupWorldAwareness(userId);
+              diag.session('🌍 World awareness cleaned up');
+            } catch (worldCleanupErr) {
+              diag.debug('World awareness cleanup failed (non-fatal)', {
+                error: String(worldCleanupErr),
+              });
+            }
+
+            // ================================================================
+            // 🌟 PERSONAL JOURNEY: Clean up cached journey data
+            // ================================================================
+            try {
+              const { cleanupPersonalJourney } =
+                await import('../services/personal-journey/session-integration.js');
+              const userId = services?.userId || 'anonymous';
+              cleanupPersonalJourney(userId);
+              diag.session('🌟 Personal journey cleaned up');
+            } catch (journeyCleanupErr) {
+              diag.debug('Personal journey cleanup failed (non-fatal)', {
+                error: String(journeyCleanupErr),
               });
             }
 

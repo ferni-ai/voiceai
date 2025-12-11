@@ -10,6 +10,7 @@
  * Data is buffered in memory and flushed periodically to reduce writes.
  */
 
+import { getGCPProjectId } from '../config/environment.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type {
   FeedbackRecord,
@@ -119,7 +120,7 @@ class OptimizationPersistenceService {
       try {
         const { Firestore } = await import('@google-cloud/firestore');
         this.db = new Firestore({
-          projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+          projectId: getGCPProjectId(),
         }) as unknown as FirestoreDB;
       } catch (error) {
         getLogger().warn(

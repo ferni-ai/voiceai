@@ -10,11 +10,11 @@ The Ferni logo represents **balance, wisdom, and presence** through the metaphor
 
 ### SVG Sources (Canonical)
 
-| File | Description |
-|------|-------------|
-| `assets/logos/ferni-logo.svg` | Primary logo with iris and catchlight |
-| `assets/logos/ferni-logo-simple.svg` | Simplified 3-circle version |
-| `assets/logos/ferni-logo-dark.svg` | Lighter variant for dark backgrounds |
+| File                                 | Description                           |
+| ------------------------------------ | ------------------------------------- |
+| `assets/logos/ferni-logo.svg`        | Primary logo with iris and catchlight |
+| `assets/logos/ferni-logo-simple.svg` | Simplified 3-circle version           |
+| `assets/logos/ferni-logo-dark.svg`   | Lighter variant for dark backgrounds  |
 
 ### PNG Exports
 
@@ -41,16 +41,16 @@ node scripts/generate-logo-pngs.js
 <svg viewBox="0 0 100 100">
   <!-- Outer Stone: Sage Green Body -->
   <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-  
+
   <!-- Middle Stone: White Eye -->
   <circle cx="50" cy="50" r="18" fill="white"/>
-  
+
   <!-- Iris: Light Sage (optional at small sizes) -->
   <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-  
+
   <!-- Inner Stone: Dark Pupil -->
   <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-  
+
   <!-- Catchlight: Life Spark (optional at small sizes) -->
   <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
 </svg>
@@ -60,24 +60,24 @@ node scripts/generate-logo-pngs.js
 
 ## Color Tokens
 
-| Element | Color | Token |
-|---------|-------|-------|
-| Outer Stone | `#4a6741` | `--persona-ferni-primary` |
-| Eye White | `#FFFFFF` | `white` |
-| Iris | `#5a8060` | `--persona-ferni-secondary` |
-| Pupil | `#2c2520` | `--color-ink` |
-| Catchlight | `#FFFFFF` @ 90% | `white` |
+| Element     | Color           | Token                       |
+| ----------- | --------------- | --------------------------- |
+| Outer Stone | `#4a6741`       | `--persona-ferni-primary`   |
+| Eye White   | `#FFFFFF`       | `white`                     |
+| Iris        | `#5a8060`       | `--persona-ferni-secondary` |
+| Pupil       | `#2c2520`       | `--color-ink`               |
+| Catchlight  | `#FFFFFF` @ 90% | `white`                     |
 
 ---
 
 ## Size Guidelines
 
-| Size | Use Case | Simplification |
-|------|----------|----------------|
-| 16-24px | Favicon, tab icon | 3 circles only |
-| 32-48px | Small UI, lists | May omit catchlight |
-| 64-128px | App icons, cards | Full detail |
-| 192px+ | Hero, marketing | Full detail with animation |
+| Size     | Use Case          | Simplification             |
+| -------- | ----------------- | -------------------------- |
+| 16-24px  | Favicon, tab icon | 3 circles only             |
+| 32-48px  | Small UI, lists   | May omit catchlight        |
+| 64-128px | App icons, cards  | Full detail                |
+| 192px+   | Hero, marketing   | Full detail with animation |
 
 ---
 
@@ -89,17 +89,17 @@ For interactive contexts, the logo can show expressions by revealing a simple li
 
 Add these classes to the SVG element:
 
-| Class | Effect |
-|-------|--------|
-| `.happy` | Eye rises, smile appears |
-| `.excited` | Bouncy eye, wide grin |
-| `.curious` | Tilted eye, small smile |
-| `.sad` | Soft eye, frown (flipped smile) |
-| `.surprised` | Wide eye, small o mouth |
-| `.thinking` | Wandering eye, no mouth |
-| `.chuckle` | Squinty eye, wobbly smile |
-| `.speaking` | Animated mouth line |
-| `.listening` | Gentle eye pulse |
+| Class        | Effect                          |
+| ------------ | ------------------------------- |
+| `.happy`     | Eye rises, smile appears        |
+| `.excited`   | Bouncy eye, wide grin           |
+| `.curious`   | Tilted eye, small smile         |
+| `.sad`       | Soft eye, frown (flipped smile) |
+| `.surprised` | Wide eye, small o mouth         |
+| `.thinking`  | Wandering eye, no mouth         |
+| `.chuckle`   | Squinty eye, wobbly smile       |
+| `.speaking`  | Animated mouth line             |
+| `.listening` | Gentle eye pulse                |
 
 ### Animation CSS
 
@@ -123,8 +123,12 @@ Add these classes to the SVG element:
   transition: opacity var(--duration-normal) ease;
 }
 
-.ferni-logo.happy .eye-group { transform: translateY(-12px); }
-.ferni-logo.happy .mouth { opacity: 1; }
+.ferni-logo.happy .eye-group {
+  transform: translateY(-12px);
+}
+.ferni-logo.happy .mouth {
+  opacity: 1;
+}
 ```
 
 ---
@@ -134,21 +138,21 @@ Add these classes to the SVG element:
 ### HTML (Static Logo)
 
 ```html
-<img src="/logos/ferni-logo.svg" alt="Ferni" width="48" height="48">
+<img src="/logos/ferni-logo.svg" alt="Ferni" width="48" height="48" />
 ```
 
 ### HTML (Inline SVG for Animation)
 
 ```html
 <svg class="ferni-logo" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+  <circle cx="50" cy="50" r="45" fill="#4a6741" />
   <g class="eye-group">
-    <circle cx="50" cy="50" r="18" fill="white"/>
-    <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-    <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-    <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+    <circle cx="50" cy="50" r="18" fill="white" />
+    <circle cx="50" cy="50" r="12" fill="#5a8060" />
+    <circle cx="50" cy="50" r="6" fill="#2c2520" />
+    <circle cx="47" cy="47" r="2" fill="white" opacity="0.9" />
   </g>
-  <path class="mouth" d="M 35 68 Q 50 78 65 68"/>
+  <path class="mouth" d="M 35 68 Q 50 78 65 68" />
 </svg>
 ```
 
@@ -171,7 +175,11 @@ logo.className = 'ferni-logo';
 Use the simplified version for favicons:
 
 ```html
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234a6741'/><circle cx='50' cy='50' r='18' fill='white'/><circle cx='50' cy='50' r='8' fill='%232c2520'/></svg>">
+<link
+  rel="icon"
+  type="image/svg+xml"
+  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234a6741'/><circle cx='50' cy='50' r='18' fill='white'/><circle cx='50' cy='50' r='8' fill='%232c2520'/></svg>"
+/>
 ```
 
 ---
@@ -203,11 +211,11 @@ frontend-typescript/public/
 
 ## Migration Notes
 
-### From Old "FN" Logo
+### From Old "FE" Logo
 
-The previous logo used an "FN" monogram. When migrating:
+The previous logo used an "FE" monogram. When migrating:
 
-1. Replace all `FN` text references with the three stones SVG
+1. Replace all `FE` text references with the three stones SVG
 2. Update favicon data URIs to use the new inline SVG
 3. Regenerate all PNG assets using `generate-logo-pngs.js`
 4. Update any hardcoded logo dimensions (new logo is circular, not square)
@@ -222,4 +230,3 @@ The previous logo used an "FN" monogram. When migrating:
 - [x] Landing page favicon updated
 - [ ] Frontend app animated logo component
 - [ ] Marketing materials review
-

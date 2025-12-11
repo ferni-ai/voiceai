@@ -3,7 +3,14 @@
   "title": "The Day I Learned I'm an Obliger",
   "domain": "behavior-science",
   "type": "personal",
-  "triggers": ["obliger", "four tendencies", "accountability", "why can't I", "work for others", "not myself"],
+  "triggers": [
+    "obliger",
+    "four tendencies",
+    "accountability",
+    "why can't I",
+    "work for others",
+    "not myself"
+  ],
   "content": {
     "setup": "I used to beat myself up constantly. I could help everyone else with their goals, but I'd completely fail at my own. I thought I was broken.",
     "development": "Then I learned about the Four Tendencies. Turns out, I'm an Obliger - I meet outer expectations easily but struggle with inner ones. It's not a flaw, it's just how I'm wired. About 40% of people are like me!",
@@ -18,4 +25,3 @@
   },
   "tags": ["four-tendencies", "obliger", "accountability", "self-discovery", "behavior-science"]
 }
-

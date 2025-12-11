@@ -14,7 +14,7 @@
 const POSITIVE_PATTERNS = [
   /\b(great|awesome|amazing|wonderful|fantastic|excellent|perfect|love|happy|excited|good|nice|thank|grateful|blessed|fortunate)\b/i,
   /\b(can't wait|looking forward|so glad|really happy|super excited)\b/i,
-  /\!{1,2}$/,  // Ends with 1-2 exclamation marks (not excessive)
+  /!{1,2}$/,  // Ends with 1-2 exclamation marks (not excessive)
 ];
 
 const NEGATIVE_PATTERNS = [
@@ -29,7 +29,7 @@ const EMOTIONAL_PATTERNS = [
   /\b(you know what|here's the thing|the truth is|to be honest)\b/i,
   /\.{3,}$/,  // Ends with ellipsis (trailing off)
   /\?{2,}$/,  // Excessive question marks
-  /\!{3,}$/,  // Excessive exclamation marks
+  /!{3,}$/,  // Excessive exclamation marks
 ];
 
 const MEMORY_PATTERNS = [
@@ -132,7 +132,7 @@ export function detectIntensityFromText(text: string): number {
   intensity += emotionalMatches * 0.1;
   
   // Punctuation analysis
-  if (/\!{2,}/.test(text)) intensity += 0.15;
+  if (/!{2,}/.test(text)) intensity += 0.15;
   if (/\?{2,}/.test(text)) intensity += 0.1;
   if (/\.{3,}/.test(text)) intensity += 0.05; // Trailing off
   

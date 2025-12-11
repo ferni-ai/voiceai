@@ -430,7 +430,7 @@
   "handoff": {
     "transition": {
       "style": "standard",
-      "emoji": "🎉",
+      "emoji": "",
       "sound": "handoff-to-jordan",
       "delay_multiplier": 1.0
     },

@@ -105,11 +105,6 @@
       "seasonal_timing_relevant",
       "extended_silence_from_user"
     ],
-    "never_when": [
-      "user_explicitly_busy",
-      "user_asked_for_space",
-      "too_soon_after_last_outreach"
-    ]
+    "never_when": ["user_explicitly_busy", "user_asked_for_space", "too_soon_after_last_outreach"]
   }
 }
-

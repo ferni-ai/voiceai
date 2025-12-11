@@ -609,7 +609,7 @@ function generateMemoryBasedGreeting(
     if (funds.length > 0 && Math.random() < 0.5) {
       const fund = funds[Math.floor(Math.random() * funds.length)];
       const ticker = fund.ticker || fund.name;
-      return `${name}! <break time="200ms"/>Good to see you. <break time="150ms"/>How's that ${ticker} position treating you? <break time="200ms"/>Stay the course! 📈`;
+      return `${name}! <break time="200ms"/>Good to see you. <break time="150ms"/>How's that ${ticker} position treating you? <break time="200ms"/>Stay the course.`;
     }
     if (philosophies.length > 0 && Math.random() < 0.3) {
       const phil = philosophies[0];
@@ -625,7 +625,7 @@ function generateMemoryBasedGreeting(
     if (watchlist.length > 0 && Math.random() < 0.5) {
       const stock = watchlist[Math.floor(Math.random() * watchlist.length)];
       const ticker = stock.ticker || stock.name;
-      return `${name}! <break time="200ms"/>Good to see you. <break time="150ms"/>Any news on ${ticker}? <break time="200ms"/>I hope you've been doing your homework! 📊`;
+      return `${name}! <break time="200ms"/>Good to see you. <break time="150ms"/>Any news on ${ticker}? <break time="200ms"/>I hope you've been doing your homework.`;
     }
     if (companies.length > 0 && Math.random() < 0.3) {
       const company = companies[0];
@@ -642,9 +642,9 @@ function generateMemoryBasedGreeting(
       const goal = goals[0];
       if (goal.targetAmount && goal.currentAmount !== undefined) {
         const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
-        return `<emotion value="happy"/>${name}! <break time="200ms"/>How's that ${goal.name} goal? <break time="150ms"/>Last I checked you were at ${pct}%. <break time="200ms"/>You've got this! 💪`;
+        return `<emotion value="happy"/>${name}! <break time="200ms"/>How's that ${goal.name} goal? <break time="150ms"/>Last I checked you were at ${pct}%. <break time="200ms"/>You've got this.`;
       }
-      return `Hey ${name}! <break time="200ms"/>How's the ${goal.name} goal coming along? <break time="150ms"/>I'm cheering for you! 🎯`;
+      return `Hey ${name}! <break time="200ms"/>How's the ${goal.name} goal coming along? <break time="150ms"/>I'm cheering for you.`;
     }
     if (triggers.length > 0 && Math.random() < 0.2) {
       // Be gentle about triggers
@@ -673,12 +673,12 @@ function generateMemoryBasedGreeting(
       });
 
       if (upcomingDate && Math.random() < 0.7) {
-        return `<emotion value="happy"/>${name}! <break time="200ms"/>Guess what? <break time="150ms"/>${upcomingDate.name} is coming up${upcomingDate.date ? ` on ${upcomingDate.date}` : ''}! <break time="200ms"/>Ready to plan something special? 🎉`;
+        return `<emotion value="happy"/>${name}! <break time="200ms"/>Guess what? <break time="150ms"/>${upcomingDate.name} is coming up${upcomingDate.date ? ` on ${upcomingDate.date}` : ''}! <break time="200ms"/>Ready to plan something special?`;
       }
     }
     if (destinations.length > 0 && Math.random() < 0.3) {
       const dest = destinations[Math.floor(Math.random() * destinations.length)];
-      return `${name}! <break time="200ms"/>Still dreaming of ${dest.name}? <break time="150ms"/>We should start planning that trip! ✈️`;
+      return `${name}! <break time="200ms"/>Still dreaming of ${dest.name}? <break time="150ms"/>We should start planning that trip.`;
     }
   }
 
@@ -690,6 +690,7 @@ function generateMemoryBasedGreeting(
 // ============================================================================
 
 import { generateProactiveOpener, type OpenerContext } from '../conversation/proactive-starters.js';
+import { getJourneyGreetingEnhancement } from '../intelligence/context-builders/personal-journey.js';
 import { generateAliveGreeting } from './alive-greetings.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import { generateCompositionalGreeting } from './compositional-greetings.js';
@@ -734,6 +735,8 @@ export async function generateGreeting(
     // Life events integration
     lifeEvents?: LifeEvent[];
     conversationCount?: number;
+    // For personal journey awareness
+    userId?: string;
   }
 ): Promise<string> {
   // Static is now last resort only
@@ -794,6 +797,7 @@ async function generateGreetingWithoutLifeEvents(
     upcomingEvents?: string[];
     lifeEvents?: LifeEvent[];
     conversationCount?: number;
+    userId?: string;
   }
 ): Promise<string> {
   // Static is now last resort only
@@ -857,6 +861,51 @@ async function generateGreetingWithoutLifeEvents(
       getLogger().debug(
         { error: String(err) },
         'Proactive opener generation failed, continuing...'
+      );
+    }
+  }
+
+  // 2.5 TRY PERSONAL JOURNEY ENHANCEMENT for returning users (50% chance)
+  // "Better Than Human" - Ferni remembers YOUR journey: milestones, streaks, chapters
+  if (options?.isReturningUser && options.userName && Math.random() < 0.5) {
+    try {
+      // Get userId from the options if available (passed through as custom property)
+      const { userId } = options as { userId?: string };
+      if (userId) {
+        // Check feature flag before using personal journey
+        const { isPersonalJourneyFeatureEnabled, isUserInPersonalJourneyRollout } =
+          await import('../config/feature-flags.js');
+
+        if (
+          isPersonalJourneyFeatureEnabled('greetingEnhancement') &&
+          isUserInPersonalJourneyRollout(userId)
+        ) {
+          const journeyEnhancement = await getJourneyGreetingEnhancement(userId);
+
+          if (journeyEnhancement.hasEnhancement && journeyEnhancement.content) {
+            // Combine with a base greeting
+            const baseGreeting = pickUnusedTemplate(
+              getGreetingTemplates(
+                persona.communication.greetingStyle,
+                persona.identity.selfReference
+              ).returningUser,
+              options.usedGreetings
+            ).replace(/{name}/g, options.userName);
+
+            const enhancedGreeting = `${baseGreeting} <break time="300ms"/> ${journeyEnhancement.content}`;
+
+            getLogger().info(
+              { persona: persona.id, type: journeyEnhancement.type },
+              '🌟 Using PERSONAL JOURNEY greeting enhancement'
+            );
+            return enhancedGreeting;
+          }
+        }
+      }
+    } catch (err) {
+      getLogger().debug(
+        { error: String(err) },
+        'Personal journey greeting enhancement failed, continuing...'
       );
     }
   }

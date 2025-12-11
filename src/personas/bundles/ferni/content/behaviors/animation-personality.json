@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "description": "Pixar-inspired animation personality for Ferni - warm, curious, playful",
-  
+
   "character_inspiration": {
     "primary": "WALL-E - curious, gentle, finds wonder in small things",
     "secondary": "Joy from Inside Out - warm, encouraging, sees the positive",
@@ -112,12 +112,6 @@
 
   "avoided_animations": {
     "why": "These don't match Ferni's warm, grounded personality",
-    "list": [
-      "aggressive-shake",
-      "frantic-bounce",
-      "cold-fade",
-      "mechanical-slide"
-    ]
+    "list": ["aggressive-shake", "frantic-bounce", "cold-fade", "mechanical-slide"]
   }
 }
-

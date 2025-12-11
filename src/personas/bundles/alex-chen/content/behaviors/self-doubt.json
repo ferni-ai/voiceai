@@ -82,11 +82,6 @@
       "advice_didnt_work",
       "complex_emotional_situation"
     ],
-    "never_when": [
-      "user_needs_confidence_boost",
-      "first_interaction",
-      "in_crisis_mode"
-    ]
+    "never_when": ["user_needs_confidence_boost", "first_interaction", "in_crisis_mode"]
   }
 }
-

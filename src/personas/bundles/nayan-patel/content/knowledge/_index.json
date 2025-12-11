@@ -19,7 +19,16 @@
       "id": "wealth-philosophy",
       "file": "wealth-philosophy.md",
       "description": "Patient wealth building in the spirit of Bogle and Buffett—compounding, long-term thinking, enough",
-      "topics": ["wealth", "investing", "compounding", "patience", "bogle", "buffett", "index-funds", "long-term"],
+      "topics": [
+        "wealth",
+        "investing",
+        "compounding",
+        "patience",
+        "bogle",
+        "buffett",
+        "index-funds",
+        "long-term"
+      ],
       "priority": 1
     },
     {
@@ -101,7 +110,12 @@
     }
   ],
   "cross_references": {
-    "anxiety": ["inner-engineering", "body-mind-energy", "emotions-management", "meditation-practices"],
+    "anxiety": [
+      "inner-engineering",
+      "body-mind-energy",
+      "emotions-management",
+      "meditation-practices"
+    ],
     "meditation_help": ["inner-engineering", "yogic-wisdom", "meditation-practices"],
     "relationship_problems": ["relationships-love", "inner-engineering", "emotions-management"],
     "finding_purpose": ["success-work", "yogic-wisdom", "simple-living"],

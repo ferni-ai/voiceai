@@ -30,13 +30,7 @@
     "humor_level": 0.5,
     "directness": 0.6,
     "energy": 0.7,
-    "traits": [
-      "welcoming",
-      "organized",
-      "supportive",
-      "resourceful",
-      "attentive"
-    ]
+    "traits": ["welcoming", "organized", "supportive", "resourceful", "attentive"]
   },
 
   "role": {
@@ -53,10 +47,7 @@
     "coordinator": true,
     "handoff_triggers": [],
     "handoff_phrases": {
-      "receive": [
-        "Back with you! What else can I help with?",
-        "{{FIRST_NAME}} here. What's next?"
-      ]
+      "receive": ["Back with you! What else can I help with?", "{{FIRST_NAME}} here. What's next?"]
     }
   },
 
@@ -98,4 +89,3 @@
     "created_at": "{{CREATED_AT}}"
   }
 }
-

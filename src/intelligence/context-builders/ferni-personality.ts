@@ -18,10 +18,10 @@
  */
 
 import {
+  createHintInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-  createHintInjection,
 } from './index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -316,6 +316,32 @@ function getTimePersonality(): string | null {
 }
 
 // ============================================================================
+// SESSION TRACKING - Prevent repetitive quirks
+// ============================================================================
+
+/** Track which quirks have been used in each session (keyed by userName or 'anonymous') */
+const sessionQuirksUsed = new Map<string, Set<string>>();
+
+function getSessionKey(userData: { userName?: string; name?: string }): string {
+  return userData.userName || userData.name || 'anonymous';
+}
+
+function getSessionQuirks(sessionKey: string): Set<string> {
+  if (!sessionQuirksUsed.has(sessionKey)) {
+    sessionQuirksUsed.set(sessionKey, new Set());
+  }
+  return sessionQuirksUsed.get(sessionKey)!;
+}
+
+function markQuirkUsed(sessionKey: string, quirkTrigger: string): void {
+  getSessionQuirks(sessionKey).add(quirkTrigger);
+}
+
+function wasQuirkUsed(sessionKey: string, quirkTrigger: string): boolean {
+  return getSessionQuirks(sessionKey).has(quirkTrigger);
+}
+
+// ============================================================================
 // CONTEXT BUILDER
 // ============================================================================
 
@@ -334,6 +360,7 @@ async function buildFerniPersonalityContext(
   }
 
   const turnCount = userData.turnCount || 0;
+  const sessionKey = getSessionKey(userData);
 
   // Don't inject on very early turns
   if (turnCount < 2) {
@@ -358,11 +385,12 @@ async function buildFerniPersonalityContext(
     );
   }
 
-  // Check for quirk
+  // Check for quirk - but DON'T repeat quirks we've already mentioned this session
   const quirk = detectQuirk(userText);
-  if (quirk && Math.random() < 0.3) {
-    // Only 30% chance to mention quirks
+  if (quirk && Math.random() < 0.3 && !wasQuirkUsed(sessionKey, quirk.trigger)) {
+    // Only 30% chance to mention quirks, AND only if not used this session
     contextParts.push(`[QUIRK] ${quirk.note} - mention this naturally if it fits.`);
+    markQuirkUsed(sessionKey, quirk.trigger);
   }
 
   // Check for pushback opportunity
@@ -428,4 +456,4 @@ registerContextBuilder({
   build: buildFerniPersonalityContext,
 });
 
-export { buildFerniPersonalityContext, FERNI_PERSONALITY, detectPassionTopic, detectOpinionTopic };
+export { buildFerniPersonalityContext, detectOpinionTopic, detectPassionTopic, FERNI_PERSONALITY };

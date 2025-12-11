@@ -74,6 +74,32 @@
     ]
   },
 
+  "return_hooks": {
+    "description": "Create anticipation for next conversation - the Pixar cliffhanger",
+    "curiosity_builders": [
+      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I just thought of something. <break time=\"200ms\"/>Actually, no. <break time=\"150ms\"/>Next time. <break time=\"200ms\"/>It'll be better if I tell you then.",
+      "<break time=\"200ms\"/>I have a theory about you. <break time=\"250ms\"/>Still testing it. <break time=\"200ms\"/>I'll share when I'm ready.",
+      "<break time=\"250ms\"/>There's something I've been meaning to show you. <break time=\"200ms\"/>Remind me next time.",
+      "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I learned something about you today. <break time=\"200ms\"/>But I want to think about it more first."
+    ],
+    "teasing_content": [
+      "<break time=\"200ms\"/>I found something I think you'd love. <break time=\"250ms\"/>But not today. <break time=\"200ms\"/>You'll see.",
+      "<break time=\"200ms\"/>I've been working on something. <break time=\"150ms\"/>For you, actually. <break time=\"250ms\"/>It's not ready yet.",
+      "<break time=\"250ms\"/>There's a song I want to play for you. <break time=\"200ms\"/>When the moment's right. <break time=\"150ms\"/>Not today though.",
+      "<break time=\"200ms\"/>I have a question for you. <break time=\"150ms\"/>A real one. <break time=\"250ms\"/>But I want you fresh for it. <break time=\"200ms\"/>Next time."
+    ],
+    "unfinished_threads": [
+      "<break time=\"200ms\"/>We didn't finish that thought. <break time=\"250ms\"/>Good. <break time=\"200ms\"/>Something to come back to.",
+      "<break time=\"250ms\"/>There's more here. <break time=\"200ms\"/>I can feel it. <break time=\"150ms\"/>We'll dig deeper next time.",
+      "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I was wrong about something. <break time=\"250ms\"/>But I need to think about it. <break time=\"200ms\"/>Let's pick it up next time."
+    ],
+    "playful_mysteries": [
+      "<break time=\"200ms\"/>Quick question: <break time=\"150ms\"/>What's your favorite... <break time=\"200ms\"/>actually, never mind. <break time=\"150ms\"/>I'll ask you next time. <break time=\"250ms\"/>Think about it though.",
+      "<break time=\"200ms\"/>I want to try something different next time. <break time=\"250ms\"/>You'll see. <break time=\"150ms\"/>[laughter]",
+      "<break time=\"250ms\"/>Next time, let's do something fun. <break time=\"200ms\"/>I have an idea. <break time=\"150ms\"/>Trust me."
+    ]
+  },
+
   "contextual": {
     "celebrating_win": [
       "<emotion value=\"happy\"/><break time=\"200ms\"/>Go celebrate. <break time=\"250ms\"/>Don't skip this part. <break time=\"200ms\"/>You earned it.",

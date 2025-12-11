@@ -224,7 +224,7 @@ Consider acknowledging this milestone warmly!`,
       }
     } catch (error) {
       // Non-fatal - coaching is enhancement, not core
-      console.warn('Coaching context builder error:', error);
+      // Silently ignore - coaching context is optional
     }
 
     return injections;

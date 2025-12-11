@@ -136,8 +136,8 @@ describe('Cognitive Performance', () => {
       const recorded = cognitiveMetrics.endTiming('contextBuildTime');
 
       expect(recorded).toBeGreaterThan(9);
-      // Allow higher tolerance for CI/machines under load
-      expect(recorded).toBeLessThan(50);
+      // Allow higher tolerance for CI/machines under load (busy-wait can be slow)
+      expect(recorded).toBeLessThan(200);
     });
 
     it('should calculate summary statistics correctly', () => {

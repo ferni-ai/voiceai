@@ -31,11 +31,11 @@ export * from './types.js';
 
 // Loader
 export {
+  clearBundleCache,
+  getBundleSearchPaths,
+  getCachedBundles,
   loadBundle,
   loadBundleById,
-  getBundleSearchPaths,
-  clearBundleCache,
-  getCachedBundles,
 } from './loader.js';
 
 // Adapter (bundle to PersonaConfig conversion)
@@ -46,14 +46,14 @@ export { convertLegacyToBundle, generateManifest } from './converter.js';
 
 // Runtime Engine
 export { BundleRuntimeEngine, createBundleRuntime } from './runtime.js';
-export type { BundleRuntimeState } from './runtime.js';
+export type { BundleRuntimeState, UserBundleState } from './runtime.js';
 
 // ============================================================================
 // BUNDLE DISCOVERY AND REGISTRATION
 // ============================================================================
 
-import { loadBundleById, getBundleSearchPaths } from './loader.js';
 import { bundleToPersonaConfig } from './adapter.js';
+import { getBundleSearchPaths, loadBundleById } from './loader.js';
 
 // Cache for discovered bundles - prevents redundant loading
 let discoveryCache: {
@@ -210,9 +210,10 @@ export async function discoverAndLoadBundlesWithPriority(
   const priorityIndex = bundleIds.indexOf(effectivePriorityId);
 
   // Reorder to put priority bundle first
-  const orderedBundleIds = priorityIndex >= 0
-    ? [effectivePriorityId, ...bundleIds.filter(id => id !== effectivePriorityId)]
-    : bundleIds;
+  const orderedBundleIds =
+    priorityIndex >= 0
+      ? [effectivePriorityId, ...bundleIds.filter((id) => id !== effectivePriorityId)]
+      : bundleIds;
 
   // Load priority bundle first (synchronously)
   if (orderedBundleIds.length > 0) {

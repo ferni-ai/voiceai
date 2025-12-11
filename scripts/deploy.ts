@@ -224,9 +224,9 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     '--cpu 4', // Increased for faster startup
     '--cpu-boost', // Extra CPU during container startup
     '--timeout 3600',
-    '--concurrency 1',
-    '--min-instances 0', // Set to 1 for warm starts (costs ~$30/month)
-    '--max-instances 20',
+    '--concurrency 10', // Handle 10 voice calls per instance (was 1)
+    '--min-instances 1', // Warm starts, eliminates cold start latency (~$30/month)
+    '--max-instances 50', // Scale to 500 concurrent calls (quota: 200 CPUs = 50 × 4 CPUs)
     `--set-env-vars "NODE_ENV=production,PERSONA_ID=${CONFIG.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
     `--set-secrets "${secrets.join(',')}"`,
     '--quiet',

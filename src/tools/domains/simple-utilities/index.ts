@@ -78,11 +78,7 @@ import {
 } from './decision-tools.js';
 
 // Timer tools
-import {
-  setTimerDef,
-  cancelTimerDef,
-  timerToolDefinitions,
-} from './timer-tools.js';
+import { setTimerDef, cancelTimerDef, timerToolDefinitions } from './timer-tools.js';
 
 // Notes tools
 import { clearNotesDef, notesToolDefinitions, quickNoteDef, recallNoteDef } from './notes-tools.js';

@@ -3,7 +3,7 @@
   "id": "simple-fisherman",
   "title": "The Fisherman and the Businessman",
   "theme": "success",
-  
+
   "setup": {
     "context": "Let me tell you a story. It's been told many ways, but it always has something to teach.",
     "tone": "storyteller mode"
@@ -60,4 +60,3 @@
     "teaching_weight": "high"
   }
 }
-

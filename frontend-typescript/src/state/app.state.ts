@@ -1,14 +1,20 @@
 /**
  * Application State Management
- * 
+ *
  * Centralized, type-safe state management for the Voice AI application.
  * Uses a simple observable pattern for state changes.
+ *
+ * Authentication Flow:
+ * - On app load, Firebase Auth initializes (anonymous if no session)
+ * - Firebase UID becomes the primary user identifier
+ * - Device ID kept for migration of existing users
  */
 
-import type { PersonaId, PersonaConfig } from '../types/persona.js';
-import type { ConnectionState, AudioState, SpotifyState } from '../types/events.js';
-import { getPersona, getCoach } from '../config/personas.js';
 import { STORAGE_KEYS } from '../config/index.js';
+import { getCoach, getPersona } from '../config/personas.js';
+import type { AuthState } from '../services/firebase-auth.service.js';
+import type { AudioState, ConnectionState, SpotifyState } from '../types/events.js';
+import type { PersonaConfig, PersonaId } from '../types/persona.js';
 
 // ============================================================================
 // STATE SHAPE
@@ -20,31 +26,40 @@ import { STORAGE_KEYS } from '../config/index.js';
 export interface AppState {
   /** Current connection status */
   readonly connection: ConnectionState;
-  
+
   /** Active persona (who's currently speaking) */
   readonly activePersona: PersonaConfig;
-  
+
   /** Selected persona (user's choice at connection time) */
   readonly selectedPersona: PersonaConfig;
-  
+
   /** Current audio activity state */
   readonly audio: AudioState;
-  
+
   /** Spotify player state */
   readonly spotify: SpotifyState;
-  
+
   /** User's display name */
   readonly userName: string | null;
-  
-  /** Device ID for session tracking */
+
+  /** Device ID for session tracking (legacy, kept for migration) */
   readonly deviceId: string;
-  
+
+  /** Firebase UID - primary user identifier */
+  readonly firebaseUid: string | null;
+
+  /** Whether user has a linked account (not just anonymous) */
+  readonly isAccountLinked: boolean;
+
+  /** User's email (if linked) */
+  readonly userEmail: string | null;
+
   /** Current message being displayed */
   readonly currentMessage: string | null;
-  
+
   /** Whether user is muted */
   readonly isMuted: boolean;
-  
+
   /** Whether the agent is wrapping up the conversation */
   readonly isWrappingUp: boolean;
 }
@@ -111,21 +126,16 @@ function loadPersistedState(): Partial<AppState> {
   const userName = safeGetItem(STORAGE_KEYS.USER_NAME);
   const deviceId = safeGetItem(STORAGE_KEYS.DEVICE_ID) ?? generateDeviceId();
   const personaId = safeGetItem(STORAGE_KEYS.SELECTED_PERSONA);
-  
+
   // Persist device ID if newly generated
   if (!safeGetItem(STORAGE_KEYS.DEVICE_ID)) {
     safeSetItem(STORAGE_KEYS.DEVICE_ID, deviceId);
   }
-  
-  // CRITICAL: Set ferni_user_id for API calls
-  // This must match the format used by backend user-identification.ts
-  // Backend creates userId as `device:${deviceId}` from metadata.device_id
-  const userId = `device:${deviceId}`;
-  const existingUserId = safeGetItem(STORAGE_KEYS.USER_ID);
-  if (!existingUserId || existingUserId !== userId) {
-    safeSetItem(STORAGE_KEYS.USER_ID, userId);
-  }
-  
+
+  // NOTE: ferni_user_id is now managed by Firebase auth
+  // We keep device ID for backward compatibility during migration
+  // The primary user ID is now the Firebase UID
+
   return {
     userName,
     deviceId,
@@ -140,12 +150,12 @@ function createInitialState(): AppState {
   const persisted = loadPersistedState();
   const coach = getCoach();
   const initialPersona = persisted.selectedPersona ?? coach;
-  
+
   // Set initial theme on document
   if (typeof document !== 'undefined') {
     document.body.setAttribute('data-persona', initialPersona.id);
   }
-  
+
   return {
     connection: 'disconnected',
     activePersona: initialPersona,
@@ -154,6 +164,9 @@ function createInitialState(): AppState {
     spotify: 'uninitialized',
     userName: persisted.userName ?? null,
     deviceId: persisted.deviceId ?? generateDeviceId(),
+    firebaseUid: null, // Set after Firebase auth initializes
+    isAccountLinked: false,
+    userEmail: null,
     currentMessage: null,
     isMuted: false,
     isWrappingUp: false,
@@ -221,10 +234,7 @@ class AppStateStore {
   /**
    * Subscribe to state changes for a specific key.
    */
-  subscribe<K extends keyof AppState>(
-    key: K,
-    callback: StateSubscriber<K>
-  ): () => void {
+  subscribe<K extends keyof AppState>(key: K, callback: StateSubscriber<K>): () => void {
     const subscription = { key, callback } as unknown as Subscription<keyof AppState>;
     this.subscriptions.push(subscription);
 
@@ -312,7 +322,7 @@ export function setConnectionState(state: ConnectionState): void {
 export function setActivePersona(personaId: PersonaId): void {
   const persona = getPersona(personaId);
   appState.set('activePersona', persona);
-  
+
   // Update document theme for CSS persona variables
   document.body.setAttribute('data-persona', personaId);
 }
@@ -324,7 +334,7 @@ export function setSelectedPersona(personaId: PersonaId): void {
   const persona = getPersona(personaId);
   appState.set('selectedPersona', persona);
   appState.set('activePersona', persona);
-  
+
   // Update document theme for CSS persona variables
   document.body.setAttribute('data-persona', personaId);
 }
@@ -371,3 +381,56 @@ export function setWrappingUp(isWrappingUp: boolean): void {
   appState.set('isWrappingUp', isWrappingUp);
 }
 
+// ============================================================================
+// FIREBASE AUTH STATE
+// ============================================================================
+
+/**
+ * Update Firebase auth state from AuthState.
+ * Called by the auth state listener after Firebase initializes.
+ */
+export function updateAuthState(authState: AuthState): void {
+  appState.update({
+    firebaseUid: authState.uid,
+    isAccountLinked: authState.isLinked,
+    userEmail: authState.email,
+    // Update display name if provided by auth and we don't have one
+    userName: authState.displayName || appState.get('userName'),
+  });
+
+  // Update ferni_user_id for API calls if we have a Firebase UID
+  if (authState.uid) {
+    safeSetItem(STORAGE_KEYS.USER_ID, authState.uid);
+  }
+}
+
+/**
+ * Get current Firebase UID.
+ * Returns null if Firebase auth hasn't initialized yet.
+ */
+export function getFirebaseUid(): string | null {
+  return appState.getState().firebaseUid;
+}
+
+/**
+ * Get the primary user ID for API calls.
+ * Prefers Firebase UID, falls back to device-based ID.
+ */
+export function getUserId(): string {
+  const state = appState.getState();
+
+  // Prefer Firebase UID
+  if (state.firebaseUid) {
+    return state.firebaseUid;
+  }
+
+  // Fallback to device-based ID for migration
+  return `device:${state.deviceId}`;
+}
+
+/**
+ * Check if user has linked their account (not just anonymous).
+ */
+export function isAccountLinked(): boolean {
+  return appState.getState().isAccountLinked;
+}

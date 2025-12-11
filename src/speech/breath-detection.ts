@@ -81,6 +81,66 @@ export interface BreathCharacteristics {
 }
 
 // ============================================================================
+// DETECTION THRESHOLDS (Tunable Constants)
+// ============================================================================
+
+/**
+ * Breath detection configuration constants.
+ * These can be tuned for different audio environments or sensitivity needs.
+ */
+export const BREATH_DETECTION_CONFIG = {
+  // Window and analysis settings
+  /** Window size in seconds for audio analysis */
+  WINDOW_SIZE_SEC: 0.05, // 50ms windows
+  /** Minimum features needed for analysis */
+  MIN_FEATURES: 5,
+  /** Maximum history events to keep */
+  MAX_HISTORY: 30,
+
+  // Sigh detection thresholds
+  /** Energy ratio threshold for sigh detection (current vs previous) */
+  SIGH_ENERGY_RATIO_PREV: 0.8,
+  /** Energy ratio threshold for sigh detection (current vs next) */
+  SIGH_ENERGY_RATIO_NEXT: 1.5,
+  /** Maximum spectral centroid for sigh (Hz) */
+  SIGH_MAX_CENTROID: 800,
+  /** Confidence for sigh detection */
+  SIGH_CONFIDENCE: 0.6,
+
+  // Gasp detection thresholds
+  /** Energy ratio threshold for gasp (current vs previous) */
+  GASP_ENERGY_RATIO_PREV: 2.0,
+  /** Energy ratio threshold for gasp (current vs next) */
+  GASP_ENERGY_RATIO_NEXT: 1.5,
+  /** Minimum spectral centroid for gasp (Hz) */
+  GASP_MIN_CENTROID: 500,
+  /** Confidence for gasp detection */
+  GASP_CONFIDENCE: 0.5,
+
+  // Held breath detection thresholds
+  /** Maximum energy for held breath detection */
+  HELD_MAX_ENERGY: 0.01,
+  /** Minimum surrounding energy for held breath */
+  HELD_MIN_SURROUNDING: 0.05,
+  /** Confidence for held breath detection */
+  HELD_CONFIDENCE: 0.55,
+
+  // Deep breath detection thresholds
+  /** Minimum peak energy for deep breath */
+  DEEP_MIN_PEAK: 0.1,
+  /** Bell curve edge ratio (edge energy < peak * ratio) */
+  DEEP_BELL_RATIO: 0.5,
+  /** Confidence for deep breath detection */
+  DEEP_CONFIDENCE: 0.5,
+
+  // Variability thresholds for breathing quality
+  /** CV threshold for consistent breathing */
+  VARIABILITY_CONSISTENT: 0.3,
+  /** CV threshold for variable breathing */
+  VARIABILITY_VARIABLE: 0.6,
+} as const;
+
+// ============================================================================
 // BREATH AUDIO SIGNATURES
 // ============================================================================
 
@@ -133,7 +193,7 @@ const BREATH_SIGNATURES = {
 
 export class BreathDetector {
   private history: BreathEvent[] = [];
-  private readonly maxHistory = 30;
+  private readonly maxHistory = BREATH_DETECTION_CONFIG.MAX_HISTORY;
 
   constructor() {
     log.debug('BreathDetector initialized');
@@ -221,8 +281,8 @@ export class BreathDetector {
     const cv = Math.sqrt(variance) / mean; // Coefficient of variation
 
     let variability: 'consistent' | 'variable' | 'erratic';
-    if (cv < 0.3) variability = 'consistent';
-    else if (cv < 0.6) variability = 'variable';
+    if (cv < BREATH_DETECTION_CONFIG.VARIABILITY_CONSISTENT) variability = 'consistent';
+    else if (cv < BREATH_DETECTION_CONFIG.VARIABILITY_VARIABLE) variability = 'variable';
     else variability = 'erratic';
 
     return { breathSpeechRatio, breathsPerMinute, variability };
@@ -255,7 +315,7 @@ export class BreathDetector {
 
   private detectBreathEvents(samples: Float32Array, sampleRate: number): BreathEvent[] {
     const events: BreathEvent[] = [];
-    const windowSize = Math.floor(sampleRate * 0.05); // 50ms windows
+    const windowSize = Math.floor(sampleRate * BREATH_DETECTION_CONFIG.WINDOW_SIZE_SEC);
     const hopSize = Math.floor(windowSize / 2);
 
     // Calculate energy and spectral features for each window
@@ -295,7 +355,7 @@ export class BreathDetector {
       });
     }
 
-    if (features.length < 5) return events;
+    if (features.length < BREATH_DETECTION_CONFIG.MIN_FEATURES) return events;
 
     // Look for breath patterns
     // Sighs: low frequency, decreasing energy over 600ms+
@@ -311,16 +371,16 @@ export class BreathDetector {
 
       // Detect sigh (decreasing energy, low freq)
       if (
-        curr.energy > prev2.energy * 0.8 &&
-        curr.energy > next2.energy * 1.5 &&
-        curr.spectralCentroid < 800
+        curr.energy > prev2.energy * BREATH_DETECTION_CONFIG.SIGH_ENERGY_RATIO_PREV &&
+        curr.energy > next2.energy * BREATH_DETECTION_CONFIG.SIGH_ENERGY_RATIO_NEXT &&
+        curr.spectralCentroid < BREATH_DETECTION_CONFIG.SIGH_MAX_CENTROID
       ) {
         events.push({
           type: 'sigh',
           durationMs: ((hopSize * 4) / sampleRate) * 1000,
           position: curr.position,
           precedesSpeech: i < features.length - 5,
-          confidence: 0.6,
+          confidence: BREATH_DETECTION_CONFIG.SIGH_CONFIDENCE,
           emotionalIndicator: 'Possible resignation, fatigue, or release',
         });
         i += 4; // Skip ahead
@@ -329,16 +389,16 @@ export class BreathDetector {
 
       // Detect gasp (sudden spike)
       if (
-        curr.energy > prev2.energy * 2 &&
-        curr.energy > next2.energy * 1.5 &&
-        curr.spectralCentroid > 500
+        curr.energy > prev2.energy * BREATH_DETECTION_CONFIG.GASP_ENERGY_RATIO_PREV &&
+        curr.energy > next2.energy * BREATH_DETECTION_CONFIG.GASP_ENERGY_RATIO_NEXT &&
+        curr.spectralCentroid > BREATH_DETECTION_CONFIG.GASP_MIN_CENTROID
       ) {
         events.push({
           type: 'gasp',
           durationMs: ((hopSize * 2) / sampleRate) * 1000,
           position: curr.position,
           precedesSpeech: i < features.length - 3,
-          confidence: 0.5,
+          confidence: BREATH_DETECTION_CONFIG.GASP_CONFIDENCE,
           emotionalIndicator: 'Surprise, shock, or sudden realization',
         });
         i += 2;
@@ -346,13 +406,17 @@ export class BreathDetector {
       }
 
       // Detect held breath (energy gap)
-      if (curr.energy < 0.01 && prev2.energy > 0.05 && next2.energy > 0.05) {
+      if (
+        curr.energy < BREATH_DETECTION_CONFIG.HELD_MAX_ENERGY &&
+        prev2.energy > BREATH_DETECTION_CONFIG.HELD_MIN_SURROUNDING &&
+        next2.energy > BREATH_DETECTION_CONFIG.HELD_MIN_SURROUNDING
+      ) {
         events.push({
           type: 'held',
           durationMs: ((hopSize * 4) / sampleRate) * 1000,
           position: curr.position,
           precedesSpeech: true,
-          confidence: 0.55,
+          confidence: BREATH_DETECTION_CONFIG.HELD_CONFIDENCE,
           emotionalIndicator: 'Bracing, anticipation, or tension',
         });
         i += 2;
@@ -366,9 +430,14 @@ export class BreathDetector {
         const peak = Math.max(...energies);
         const peakIdx = energies.indexOf(peak);
 
-        if (peakIdx > 0 && peakIdx < energies.length - 1 && peak > 0.1) {
+        if (
+          peakIdx > 0 &&
+          peakIdx < energies.length - 1 &&
+          peak > BREATH_DETECTION_CONFIG.DEEP_MIN_PEAK
+        ) {
           const isBellCurve =
-            energies[0] < peak * 0.5 && energies[energies.length - 1] < peak * 0.5;
+            energies[0] < peak * BREATH_DETECTION_CONFIG.DEEP_BELL_RATIO &&
+            energies[energies.length - 1] < peak * BREATH_DETECTION_CONFIG.DEEP_BELL_RATIO;
 
           if (isBellCurve) {
             events.push({
@@ -376,7 +445,7 @@ export class BreathDetector {
               durationMs: ((hopSize * 7) / sampleRate) * 1000,
               position: curr.position,
               precedesSpeech: i < features.length - 5,
-              confidence: 0.5,
+              confidence: BREATH_DETECTION_CONFIG.DEEP_CONFIDENCE,
               emotionalIndicator: 'Gathering courage, centering, or calming',
             });
             i += 6;

@@ -30,6 +30,18 @@ import {
 } from './index.js';
 import { getVoicePrintEngine, type VoiceSnapshot } from './voice-print.js';
 
+// Advanced Humanization Integration (10 deep capabilities)
+import {
+  initAdvancedHumanization,
+  cleanupAdvancedHumanization,
+  processAdvancedTurn,
+  getResponseModifications,
+  recordAdviceGiven,
+  recordAgentResponse,
+  type TurnGuidance,
+  type ResponseModification,
+} from '../advanced-humanization-integration.js';
+
 const logger = createLogger({ module: 'HumanizationIntegration' });
 
 // ============================================================================
@@ -46,6 +58,12 @@ interface HumanizationSessionState {
   relationshipStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
   recentTopics: string[];
   isActive: boolean;
+  /** Advanced humanization state */
+  advancedHumanization: {
+    enabled: boolean;
+    lastGuidance: TurnGuidance | null;
+    lastModifications: ResponseModification | null;
+  };
 }
 
 const sessions = new Map<string, HumanizationSessionState>();
@@ -66,8 +84,15 @@ export function onSessionStart(
     crossSessionMemory?: CrossSessionVoiceMemory;
     initialVoice?: VoiceSnapshot;
     relationshipStage?: HumanizationSessionState['relationshipStage'];
+    enableAdvancedHumanization?: boolean;
   }
-): void {
+): {
+  advancedStart?: {
+    greeting: string | null;
+    eventFollowUp: string | null;
+    milestoneAcknowledgment: string | null;
+  };
+} {
   // Create session state
   const state: HumanizationSessionState = {
     sessionId,
@@ -79,6 +104,11 @@ export function onSessionStart(
     relationshipStage: options?.relationshipStage || 'acquaintance',
     recentTopics: [],
     isActive: true,
+    advancedHumanization: {
+      enabled: options?.enableAdvancedHumanization ?? true,
+      lastGuidance: null,
+      lastModifications: null,
+    },
   };
   sessions.set(sessionId, state);
 
@@ -93,7 +123,49 @@ export function onSessionStart(
     }
   }
 
+  // Initialize advanced humanization (10 deep capabilities)
+  let advancedStart: {
+    greeting: string | null;
+    eventFollowUp: string | null;
+    milestoneAcknowledgment: string | null;
+  } | undefined;
+
+  if (state.advancedHumanization.enabled) {
+    const relationshipDepthMap: Record<
+      HumanizationSessionState['relationshipStage'],
+      'new' | 'developing' | 'established' | 'deep'
+    > = {
+      stranger: 'new',
+      acquaintance: 'developing',
+      friend: 'established',
+      trusted_advisor: 'deep',
+    };
+
+    const result = initAdvancedHumanization({
+      sessionId,
+      userId,
+      relationshipDepth: relationshipDepthMap[state.relationshipStage],
+    });
+
+    advancedStart = {
+      greeting: result.greeting,
+      eventFollowUp: result.eventFollowUp,
+      milestoneAcknowledgment: result.milestoneAcknowledgment,
+    };
+
+    logger.info(
+      {
+        sessionId,
+        hasGreeting: !!result.greeting,
+        hasMilestone: !!result.milestoneAcknowledgment,
+      },
+      '🌟 Advanced humanization initialized'
+    );
+  }
+
   logger.info({ sessionId, userId, personaId }, '🎭 Humanization session started');
+
+  return { advancedStart };
 }
 
 /**
@@ -126,6 +198,11 @@ export function onSessionEnd(
     voicePrint: voicePrint.getVoicePrint(),
     crossSessionMemory: crossSession.getMemory(),
   };
+
+  // Clean up advanced humanization
+  if (state.advancedHumanization.enabled) {
+    cleanupAdvancedHumanization(sessionId);
+  }
 
   // Clean up
   state.isActive = false;
@@ -326,6 +403,26 @@ export function processUserMessage(
     breathing.updateUserPattern(context.breathPattern);
   }
 
+  // Process through advanced humanization (10 deep capabilities)
+  if (state.advancedHumanization.enabled) {
+    const advancedGuidance = processAdvancedTurn(sessionId, message, {
+      detectedEmotion: context?.voiceEmotion?.primary,
+      topic: context?.topic,
+      prosodyHints: context?.voiceSnapshot
+        ? {
+            speechRate: context.voiceSnapshot.speechRate,
+            volume: context.voiceSnapshot.energyMean,
+            pitchVariance: context.voiceSnapshot.pitchVariance,
+          }
+        : undefined,
+    });
+
+    if (advancedGuidance) {
+      state.advancedHumanization.lastGuidance = advancedGuidance;
+      state.advancedHumanization.lastModifications = getResponseModifications(sessionId);
+    }
+  }
+
   logger.debug(
     {
       sessionId,
@@ -333,6 +430,7 @@ export function processUserMessage(
       messageLength: message.length,
       hasVoice: !!context?.voiceSnapshot,
       hasAmbient: !!context?.ambientDetection,
+      hasAdvancedGuidance: !!state.advancedHumanization.lastGuidance,
     },
     '👤 User message processed'
   );
@@ -744,8 +842,75 @@ export function simulateBreathFromEmotion(emotion: string): BreathPattern {
 }
 
 // ============================================================================
+// ADVANCED HUMANIZATION ACCESS
+// ============================================================================
+
+/**
+ * Get advanced humanization guidance from last processed turn
+ */
+export function getAdvancedGuidance(sessionId: string): TurnGuidance | null {
+  const state = sessions.get(sessionId);
+  if (!state || !state.isActive || !state.advancedHumanization.enabled) {
+    return null;
+  }
+  return state.advancedHumanization.lastGuidance;
+}
+
+/**
+ * Get response modifications from advanced humanization
+ */
+export function getAdvancedModifications(sessionId: string): ResponseModification | null {
+  const state = sessions.get(sessionId);
+  if (!state || !state.isActive || !state.advancedHumanization.enabled) {
+    return null;
+  }
+  return state.advancedHumanization.lastModifications;
+}
+
+/**
+ * Record that agent gave advice (for resistance tracking)
+ */
+export function recordAdvice(sessionId: string): void {
+  const state = sessions.get(sessionId);
+  if (!state || !state.isActive || !state.advancedHumanization.enabled) {
+    return;
+  }
+  recordAdviceGiven(sessionId);
+}
+
+/**
+ * Record agent response (for repair detection on next turn)
+ */
+export function recordResponse(sessionId: string, response: string): void {
+  const state = sessions.get(sessionId);
+  if (!state || !state.isActive || !state.advancedHumanization.enabled) {
+    return;
+  }
+  recordAgentResponse(sessionId, response);
+}
+
+/**
+ * Check if we should stop giving direct advice
+ */
+export function shouldStopAdvice(sessionId: string): boolean {
+  const state = sessions.get(sessionId);
+  if (!state || !state.isActive || !state.advancedHumanization.enabled) {
+    return false;
+  }
+  return state.advancedHumanization.lastGuidance?.stopDirectAdvice ?? false;
+}
+
+/**
+ * Get system prompt additions from advanced humanization
+ */
+export function getAdvancedSystemPromptAdditions(sessionId: string): string[] {
+  const mods = getAdvancedModifications(sessionId);
+  return mods?.systemPromptAdditions ?? [];
+}
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
 // Export only types that aren't already exported from other modules
-export type { HumanizationSessionState };
+export type { HumanizationSessionState, TurnGuidance, ResponseModification };

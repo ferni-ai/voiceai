@@ -119,10 +119,9 @@
   },
 
   "usage_rules": {
-    "settling_in_probability": 0.3,
-    "physical_reaction_probability": 0.12,
-    "time_awareness_probability": 0.15,
+    "settling_in_probability": 0.5,
+    "physical_reaction_probability": 0.25,
+    "time_awareness_probability": 0.28,
     "more_likely_when": ["session_start", "emotional_moment", "long_pause"]
   }
 }
-

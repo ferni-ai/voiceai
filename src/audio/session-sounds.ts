@@ -36,7 +36,11 @@ export type SessionSoundType =
   | 'game-end' // Game complete
   | 'high-score' // New high score!
   | 'handoff' // Generic handoff sound
-  | 'notification'; // Attention getter
+  | 'notification' // Attention getter
+  | 'milestone-fanfare' // Big achievement unlocked
+  | 'milestone-sparkle' // Small achievement
+  | 'milestone-applause' // Recognition moment
+  | 'streak-fire'; // You're on fire!
 
 // ============================================================================
 // SOUND URLs - Using design system assets
@@ -60,6 +64,10 @@ const SOUND_PATHS: Record<SessionSoundType, string> = {
   'high-score': '/design-system/sounds/high-score.mp3',
   handoff: '/design-system/sounds/connect.mp3',
   notification: '/design-system/sounds/connect.mp3',
+  'milestone-fanfare': '/design-system/sounds/dramatic-entrance.mp3', // Reuse for now
+  'milestone-sparkle': '/design-system/sounds/connect.mp3',
+  'milestone-applause': '/design-system/sounds/high-score.mp3',
+  'streak-fire': '/design-system/sounds/correct.mp3',
 };
 
 /**
@@ -74,6 +82,10 @@ const SOUND_FALLBACKS: Partial<Record<SessionSoundType, SessionSoundType>> = {
   'high-score': 'success',
   'thinking-start': 'notification',
   'thinking-end': 'notification',
+  'milestone-fanfare': 'high-score',
+  'milestone-sparkle': 'success',
+  'milestone-applause': 'high-score',
+  'streak-fire': 'correct',
 };
 
 /**
@@ -93,6 +105,10 @@ const SOUND_VOLUMES: Record<SessionSoundType, number> = {
   'high-score': 0.6,
   handoff: 0.5,
   notification: 0.3,
+  'milestone-fanfare': 0.7, // Big celebration!
+  'milestone-sparkle': 0.4,
+  'milestone-applause': 0.6,
+  'streak-fire': 0.5,
 };
 
 // ============================================================================
@@ -149,6 +165,26 @@ export const VERBAL_SOUNDS: Record<SessionSoundType, string[]> = {
   ],
   handoff: ['<break time="300ms"/>'],
   notification: ['<break time="150ms"/>'],
+  'milestone-fanfare': [
+    '<break time="200ms"/><prosody pitch="+20%" rate="fast">Achievement unlocked!</prosody><break time="200ms"/>',
+    '<break time="200ms"/><emphasis level="strong">Milestone reached!</emphasis><break time="200ms"/>',
+    '<break time="200ms"/><prosody pitch="+30%">Wow!</prosody> That\'s huge!<break time="200ms"/>',
+  ],
+  'milestone-sparkle': [
+    '<break time="100ms"/><prosody pitch="+10%">Nice!</prosody><break time="100ms"/>',
+    '<break time="100ms"/>Look at you!<break time="100ms"/>',
+    '<break time="100ms"/><prosody pitch="+15%">Sweet!</prosody><break time="100ms"/>',
+  ],
+  'milestone-applause': [
+    '<break time="200ms"/><prosody rate="slow">Im. Pressed.</prosody><break time="200ms"/>',
+    '<break time="200ms"/>Take a bow!<break time="200ms"/>',
+    '<break time="200ms"/><emphasis level="strong">Standing ovation!</emphasis><break time="200ms"/>',
+  ],
+  'streak-fire': [
+    '<break time="100ms"/><prosody pitch="+10%" rate="fast">On fire!</prosody>',
+    '<break time="100ms"/><emphasis level="strong">Hot streak!</emphasis>',
+    '<break time="100ms"/>Keep it going!',
+  ],
 };
 
 // ============================================================================

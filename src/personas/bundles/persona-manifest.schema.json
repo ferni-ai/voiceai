@@ -231,7 +231,22 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["memory", "calendar", "communication", "habits", "finance", "research", "productivity", "life-planning", "wellness", "entertainment", "information", "wisdom", "handoff", "telephony"]
+            "enum": [
+              "memory",
+              "calendar",
+              "communication",
+              "habits",
+              "finance",
+              "research",
+              "productivity",
+              "life-planning",
+              "wellness",
+              "entertainment",
+              "information",
+              "wisdom",
+              "handoff",
+              "telephony"
+            ]
           }
         },
         "required": {
@@ -299,7 +314,15 @@
         },
         "category": {
           "type": "string",
-          "enum": ["finance", "health", "productivity", "lifestyle", "education", "entertainment", "custom"]
+          "enum": [
+            "finance",
+            "health",
+            "productivity",
+            "lifestyle",
+            "education",
+            "entertainment",
+            "custom"
+          ]
         },
         "tags": {
           "type": "array",
@@ -524,4 +547,3 @@
   },
   "additionalProperties": true
 }
-

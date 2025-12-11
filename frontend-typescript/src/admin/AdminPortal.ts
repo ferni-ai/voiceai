@@ -14,6 +14,7 @@ import {
   ICON_AGENTS,
   ICON_API_DOCS,
   ICON_BACK,
+  ICON_CHART,
   ICON_DASHBOARD,
   ICON_DESIGN_SYSTEM,
   ICON_DIAGNOSTICS,
@@ -75,6 +76,14 @@ const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_DASHBOARD,
     description: 'System overview and health',
     component: async () => (await import('./sections/DashboardSection.js')).render(),
+  },
+  {
+    id: 'business-metrics',
+    name: 'Business Metrics',
+    icon: ICON_CHART,
+    description: 'DAU/WAU/MAU, MRR, churn',
+    badge: 'NEW',
+    component: async () => (await import('./sections/BusinessMetricsSection.js')).render(),
   },
   {
     id: 'agents',

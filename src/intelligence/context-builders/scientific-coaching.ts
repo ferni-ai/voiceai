@@ -115,9 +115,8 @@ export async function buildScientificCoachingContext(
     // =========================================================================
     if (enableDistortionDetection && userMessage.length > 20) {
       try {
-        const { detectDistortions, getDistortionContextInjection, recordANT } = await import(
-          '../../services/cognitive-intelligence/index.js'
-        );
+        const { detectDistortions, getDistortionContextInjection, recordANT } =
+          await import('../../services/cognitive-intelligence/index.js');
 
         const distortions = detectDistortions(userId, userMessage, {
           emotionalState,
@@ -158,12 +157,10 @@ export async function buildScientificCoachingContext(
     // =========================================================================
     if (enableWellbeingTracking && userMessage.length > 15) {
       try {
-        const { detectWellbeing, recordSnapshot, getWellbeingProfile } = await import(
-          '../../services/wellbeing-tracking/index.js'
-        );
-        const { checkWarnings, getWarningContextInjection } = await import(
-          '../../services/wellbeing-tracking/early-warning.js'
-        );
+        const { detectWellbeing, recordSnapshot, getWellbeingProfile } =
+          await import('../../services/wellbeing-tracking/index.js');
+        const { checkWarnings, getWarningContextInjection } =
+          await import('../../services/wellbeing-tracking/early-warning.js');
 
         // Detect wellbeing signals from message
         const detected = detectWellbeing(userMessage);
@@ -197,7 +194,9 @@ export async function buildScientificCoachingContext(
           if (serious.length > 0) {
             const warningInjection = getWarningContextInjection(userId);
             if (warningInjection) {
-              result.injections.push(createInjection('early_warning', warningInjection, 'critical'));
+              result.injections.push(
+                createInjection('early_warning', warningInjection, 'critical')
+              );
             }
           }
 
@@ -213,9 +212,8 @@ export async function buildScientificCoachingContext(
     // =========================================================================
     if (enableNudges && shouldOfferNudge(userMessage, topic, conversationPhase)) {
       try {
-        const { selectNudges, getNudgeContextInjection } = await import(
-          '../../services/behavioral-economics/nudge-engine.js'
-        );
+        const { selectNudges, getNudgeContextInjection } =
+          await import('../../services/behavioral-economics/nudge-engine.js');
 
         const goalType = inferGoalType(topic, userMessage);
         const stage = inferChangeStage(userMessage);
@@ -249,9 +247,8 @@ export async function buildScientificCoachingContext(
     // =========================================================================
     if (enableWisdom && turnNumber >= 3) {
       try {
-        const { getWisdomContextInjection } = await import(
-          '../../services/wisdom-synthesis/index.js'
-        );
+        const { getWisdomContextInjection } =
+          await import('../../services/wisdom-synthesis/index.js');
 
         const situationType = inferSituationType(topic, emotionalState, userMessage);
         if (situationType) {
@@ -270,9 +267,8 @@ export async function buildScientificCoachingContext(
     // 5. ADAPTIVE ENDPOINTING
     // =========================================================================
     try {
-      const { getEndpointingRecommendation } = await import(
-        '../../conversation/adaptive-endpointing.js'
-      );
+      const { getEndpointingRecommendation } =
+        await import('../../conversation/adaptive-endpointing.js');
 
       const endpointing = getEndpointingRecommendation(userMessage, {
         emotionalIntensity,
@@ -294,16 +290,18 @@ export async function buildScientificCoachingContext(
     if (personaFocus && result.injections.length < 3) {
       result.injections.push(createInjection('persona_science', personaFocus, 'hint'));
     }
-
   } catch (error) {
     log.error({ error }, 'Scientific coaching context builder failed');
   }
 
   // Sort injections by priority
-  const priorityOrder: Record<ContextPriority, number> = { critical: 0, high: 1, standard: 2, hint: 3 };
-  result.injections.sort(
-    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-  );
+  const priorityOrder: Record<ContextPriority, number> = {
+    critical: 0,
+    high: 1,
+    standard: 2,
+    hint: 3,
+  };
+  result.injections.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
   // Limit to top 3 injections to avoid overwhelming LLM
   result.injections = result.injections.slice(0, 3);
@@ -325,18 +323,24 @@ export async function buildScientificCoachingContext(
 // HELPER FUNCTIONS
 // ============================================================================
 
-function shouldOfferNudge(
-  message: string,
-  topic?: string,
-  phase?: string
-): boolean {
+function shouldOfferNudge(message: string, topic?: string, phase?: string): boolean {
   // Don't nudge in opening or if message is too short
   if (phase === 'opening' || message.length < 30) return false;
 
   // Look for behavior change signals
   const changeSignals = [
-    'want to', 'need to', 'should', 'trying to', 'goal',
-    'habit', 'change', 'start', 'stop', 'quit', 'more', 'less',
+    'want to',
+    'need to',
+    'should',
+    'trying to',
+    'goal',
+    'habit',
+    'change',
+    'start',
+    'stop',
+    'quit',
+    'more',
+    'less',
   ];
 
   return changeSignals.some((s) => message.toLowerCase().includes(s));
@@ -375,7 +379,11 @@ function inferSituationType(
   topic?: string,
   emotionalState?: string,
   message?: string
-): { category: 'emotional' | 'relational' | 'behavioral' | 'cognitive'; subcategory: string; description: string } | null {
+): {
+  category: 'emotional' | 'relational' | 'behavioral' | 'cognitive';
+  subcategory: string;
+  description: string;
+} | null {
   const text = `${topic || ''} ${emotionalState || ''} ${message || ''}`.toLowerCase();
 
   // Emotional situations
@@ -391,7 +399,11 @@ function inferSituationType(
 
   // Relational situations
   if (/conflict|fight|argument|disagree/.test(text)) {
-    return { category: 'relational', subcategory: 'conflict', description: 'Relationship conflict' };
+    return {
+      category: 'relational',
+      subcategory: 'conflict',
+      description: 'Relationship conflict',
+    };
   }
 
   // Behavioral situations
@@ -411,9 +423,11 @@ function getPersonaScientificFocus(personaId: string): string | null {
   const focuses: Record<string, string> = {
     ferni: '[Ferni uses CBT + growth mindset: Notice thoughts, challenge gently, celebrate effort]',
     maya: '[Maya uses somatic intelligence: Body-first approach, breathing, grounding, nervous system]',
-    peter: '[Peter uses cognitive science: Evidence-based analysis, Socratic questioning, research]',
+    peter:
+      '[Peter uses cognitive science: Evidence-based analysis, Socratic questioning, research]',
     alex: '[Alex uses relationship science: Gottman, attachment, communication patterns]',
-    jordan: '[Jordan uses behavioral economics: Nudges, implementation intentions, friction design]',
+    jordan:
+      '[Jordan uses behavioral economics: Nudges, implementation intentions, friction design]',
     jack: '[Jack uses wisdom traditions: Values clarification, meaning-making, perspective]',
   };
 
@@ -429,4 +443,3 @@ export const scientificCoaching = {
 };
 
 export default scientificCoaching;
-

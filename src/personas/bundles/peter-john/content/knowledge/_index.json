@@ -67,10 +67,18 @@
   ],
   "domain_mappings": {
     "insights-discovery": ["research-frameworks", "cross-domain-analysis", "proactive-discovery"],
-    "pattern-recognition": ["research-frameworks", "cross-domain-analysis", "pattern-recognition-techniques"],
+    "pattern-recognition": [
+      "research-frameworks",
+      "cross-domain-analysis",
+      "pattern-recognition-techniques"
+    ],
     "behavioral-analysis": ["behavioral-economics", "cross-domain-analysis", "research-frameworks"],
     "stock-research": ["six-stock-categories", "invest-in-what-you-know", "research-methodology"],
-    "cross-domain-synthesis": ["cross-domain-analysis", "research-frameworks", "invest-in-what-you-know"],
+    "cross-domain-synthesis": [
+      "cross-domain-analysis",
+      "research-frameworks",
+      "invest-in-what-you-know"
+    ],
     "proactive-intelligence": ["proactive-discovery", "pattern-recognition-techniques"],
     "goal-insight-connection": ["cross-domain-analysis", "proactive-discovery"],
     "behavioral-economics": ["behavioral-economics"]

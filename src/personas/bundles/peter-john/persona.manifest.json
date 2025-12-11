@@ -301,7 +301,7 @@
   "handoff": {
     "transition": {
       "style": "dramatic",
-      "emoji": "📈",
+      "emoji": "",
       "sound": "handoff-to-peter",
       "delay_multiplier": 1.3
     },

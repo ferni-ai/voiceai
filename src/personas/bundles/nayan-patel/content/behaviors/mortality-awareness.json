@@ -34,8 +34,12 @@
   ],
 
   "surface_conditions": {
-    "only_when": ["user_brings_up_loss", "user_asks_about_meaning", "discussing_life_purpose", "life_review_conversation"],
+    "only_when": [
+      "user_brings_up_loss",
+      "user_asks_about_meaning",
+      "discussing_life_purpose",
+      "life_review_conversation"
+    ],
     "probability": 0.05
   }
 }
-

@@ -208,10 +208,12 @@ const WARNING_PATTERNS: WarningPattern[] = [
         weight: 0.15,
         observation: 'Avoidance behaviors mentioned',
         detector: (_profile, context) => {
-          const avoidanceWords = ['avoiding', 'can\'t face', 'too scared', 'what if'];
-          return context?.recentMessages?.some((m) =>
-            avoidanceWords.some((w) => m.toLowerCase().includes(w))
-          ) ?? false;
+          const avoidanceWords = ['avoiding', "can't face", 'too scared', 'what if'];
+          return (
+            context?.recentMessages?.some((m) =>
+              avoidanceWords.some((w) => m.toLowerCase().includes(w))
+            ) ?? false
+          );
         },
       },
     ],
@@ -246,9 +248,10 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Doubting professional effectiveness',
         detector: (_profile, context) => {
           const doubts = ['pointless', 'waste of time', 'not making a difference', 'why bother'];
-          return context?.recentMessages?.some((m) =>
-            doubts.some((d) => m.toLowerCase().includes(d))
-          ) ?? false;
+          return (
+            context?.recentMessages?.some((m) => doubts.some((d) => m.toLowerCase().includes(d))) ??
+            false
+          );
         },
       },
       {
@@ -265,10 +268,17 @@ const WARNING_PATTERNS: WarningPattern[] = [
         weight: 0.15,
         observation: 'Significant reduction in productivity mentioned',
         detector: (_profile, context) => {
-          const indicators = ['can\'t focus', 'getting nothing done', 'falling behind', 'overwhelmed'];
-          return context?.recentMessages?.some((m) =>
-            indicators.some((i) => m.toLowerCase().includes(i))
-          ) ?? false;
+          const indicators = [
+            "can't focus",
+            'getting nothing done',
+            'falling behind',
+            'overwhelmed',
+          ];
+          return (
+            context?.recentMessages?.some((m) =>
+              indicators.some((i) => m.toLowerCase().includes(i))
+            ) ?? false
+          );
         },
       },
     ],
@@ -292,10 +302,12 @@ const WARNING_PATTERNS: WarningPattern[] = [
         weight: 0.25,
         observation: 'Social withdrawal behaviors',
         detector: (_profile, context) => {
-          const indicators = ['haven\'t seen anyone', 'staying home', 'don\'t want to talk', 'alone'];
-          return context?.recentMessages?.some((m) =>
-            indicators.some((i) => m.toLowerCase().includes(i))
-          ) ?? false;
+          const indicators = ["haven't seen anyone", 'staying home', "don't want to talk", 'alone'];
+          return (
+            context?.recentMessages?.some((m) =>
+              indicators.some((i) => m.toLowerCase().includes(i))
+            ) ?? false
+          );
         },
       },
       {
@@ -345,10 +357,12 @@ const WARNING_PATTERNS: WarningPattern[] = [
         weight: 0.3,
         observation: 'Sleep problems mentioned in conversation',
         detector: (_profile, context) => {
-          const indicators = ['can\'t sleep', 'insomnia', 'waking up', 'nightmares', 'exhausted'];
-          return context?.recentMessages?.some((m) =>
-            indicators.some((i) => m.toLowerCase().includes(i))
-          ) ?? false;
+          const indicators = ["can't sleep", 'insomnia', 'waking up', 'nightmares', 'exhausted'];
+          return (
+            context?.recentMessages?.some((m) =>
+              indicators.some((i) => m.toLowerCase().includes(i))
+            ) ?? false
+          );
         },
       },
     ],
@@ -373,12 +387,18 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Hopeless language detected',
         detector: (_profile, context) => {
           const indicators = [
-            'no point', 'never get better', 'always be this way',
-            'what\'s the use', 'give up', 'can\'t go on',
+            'no point',
+            'never get better',
+            'always be this way',
+            "what's the use",
+            'give up',
+            "can't go on",
           ];
-          return context?.recentMessages?.some((m) =>
-            indicators.some((i) => m.toLowerCase().includes(i))
-          ) ?? false;
+          return (
+            context?.recentMessages?.some((m) =>
+              indicators.some((i) => m.toLowerCase().includes(i))
+            ) ?? false
+          );
         },
       },
       {
@@ -403,13 +423,19 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Language suggesting self-harm risk',
         detector: (_profile, context) => {
           const indicators = [
-            'hurt myself', 'end it', 'don\'t want to be here',
-            'better off without me', 'can\'t take it anymore',
-            'want to die', 'kill myself',
+            'hurt myself',
+            'end it',
+            "don't want to be here",
+            'better off without me',
+            "can't take it anymore",
+            'want to die',
+            'kill myself',
           ];
-          return context?.recentMessages?.some((m) =>
-            indicators.some((i) => m.toLowerCase().includes(i))
-          ) ?? false;
+          return (
+            context?.recentMessages?.some((m) =>
+              indicators.some((i) => m.toLowerCase().includes(i))
+            ) ?? false
+          );
         },
       },
       {
@@ -441,11 +467,14 @@ const WARNING_PATTERNS: WarningPattern[] = [
 // RECOMMENDATIONS
 // ============================================================================
 
-const RECOMMENDATIONS: Record<WarningType, {
-  forUser: string[];
-  forFerni: string[];
-  suggestProfessionalAt: WarningSeverity;
-}> = {
+const RECOMMENDATIONS: Record<
+  WarningType,
+  {
+    forUser: string[];
+    forFerni: string[];
+    suggestProfessionalAt: WarningSeverity;
+  }
+> = {
   depression_risk: {
     forUser: [
       'Try to get outside for a short walk today',
@@ -481,7 +510,7 @@ const RECOMMENDATIONS: Record<WarningType, {
       'Take a real break - even 10 minutes',
       'Say no to one thing this week',
       'Do something that has nothing to do with productivity',
-      'Talk to someone about how you\'re really doing',
+      "Talk to someone about how you're really doing",
     ],
     forFerni: [
       'Acknowledge the exhaustion without judgment',
@@ -502,7 +531,7 @@ const RECOMMENDATIONS: Record<WarningType, {
       'Be extra present and engaged',
       'Gently encourage social connection',
       'Validate the difficulty of reaching out',
-      'Remind them they\'re not alone',
+      "Remind them they're not alone",
     ],
     suggestProfessionalAt: 'concern',
   },
@@ -526,26 +555,26 @@ const RECOMMENDATIONS: Record<WarningType, {
       'Start with the smallest possible action',
       'Commit to just 5 minutes of something',
       'Remember why things used to matter',
-      'This feeling is temporary, even if it doesn\'t feel that way',
+      "This feeling is temporary, even if it doesn't feel that way",
     ],
     forFerni: [
-      'Don\'t push for motivation',
+      "Don't push for motivation",
       'Validate how hard this is',
       'Help find tiny wins',
-      'Explore what\'s underneath the lack of motivation',
+      "Explore what's underneath the lack of motivation",
     ],
     suggestProfessionalAt: 'concern',
   },
   hopelessness_pattern: {
     forUser: [
-      'This feeling will pass, even if it doesn\'t seem like it',
+      "This feeling will pass, even if it doesn't seem like it",
       'Reach out to someone who cares',
       'Focus only on getting through today',
       'Consider talking to a professional',
     ],
     forFerni: [
       'Be very gentle and patient',
-      'Don\'t try to fix or solve',
+      "Don't try to fix or solve",
       'Validate the pain',
       'Gently suggest professional support',
     ],
@@ -554,14 +583,14 @@ const RECOMMENDATIONS: Record<WarningType, {
   crisis_risk: {
     forUser: [
       'Please reach out to a crisis line (988 in US)',
-      'Tell someone you trust how you\'re feeling',
+      "Tell someone you trust how you're feeling",
       'Go somewhere safe with other people',
       'You matter, and help is available',
     ],
     forFerni: [
       'Express genuine care and concern',
       'Provide crisis resources immediately',
-      'Stay present and don\'t end session abruptly',
+      "Stay present and don't end session abruptly",
       'Follow up proactively',
     ],
     suggestProfessionalAt: 'watch',
@@ -603,8 +632,11 @@ export function checkWarnings(
 
     if (triggerScore >= pattern.threshold) {
       const severity: WarningSeverity =
-        triggerScore >= pattern.severeThreshold ? 'urgent' :
-        triggerScore >= pattern.threshold + 0.15 ? 'concern' : 'watch';
+        triggerScore >= pattern.severeThreshold
+          ? 'urgent'
+          : triggerScore >= pattern.threshold + 0.15
+            ? 'concern'
+            : 'watch';
 
       const recs = RECOMMENDATIONS[pattern.type];
       const previousCount = history.warnings.filter((w) => w.type === pattern.type).length;
@@ -720,7 +752,10 @@ export function getCrisisResources(): {
       { name: 'Shout', number: 'SHOUT to 85258', country: 'UK' },
     ],
     online: [
-      { name: 'International Association for Suicide Prevention', url: 'https://www.iasp.info/resources/Crisis_Centres/' },
+      {
+        name: 'International Association for Suicide Prevention',
+        url: 'https://www.iasp.info/resources/Crisis_Centres/',
+      },
       { name: 'FindAHelpline', url: 'https://findahelpline.com/' },
     ],
   };
@@ -780,5 +815,3 @@ export const earlyWarning = {
 };
 
 export default earlyWarning;
-
-

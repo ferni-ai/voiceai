@@ -361,7 +361,7 @@
   "handoff": {
     "transition": {
       "style": "warm",
-      "emoji": "🎯",
+      "emoji": "",
       "sound": "connect",
       "delay_multiplier": 1.0
     },

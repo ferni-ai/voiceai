@@ -12,15 +12,11 @@
  * users across sessions, devices, and even voice recognition.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type {
-  UserProfile,
-  VoiceSketch,
-  KeyMoment,
-  ConversationSummary,
-} from '../types/user-profile.js';
-import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import { getGCPProjectId } from '../config/environment.js';
 import { cosineSimilarity } from '../memory/embeddings.js';
+import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import type { ConversationSummary, UserProfile, VoiceSketch } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // PHONE CACHE PERSISTENCE
@@ -46,7 +42,7 @@ export async function loadPhoneCache(): Promise<number> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      projectId: getGCPProjectId(),
     });
 
     const snapshot = await db.collection(PHONE_MAPPINGS_COLLECTION).get();
@@ -78,7 +74,7 @@ export async function savePhoneMapping(phone: string, userId: string): Promise<v
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      projectId: getGCPProjectId(),
     });
 
     await db.collection(PHONE_MAPPINGS_COLLECTION).doc(phone).set({
@@ -110,7 +106,7 @@ export async function deletePhoneMapping(phone: string): Promise<void> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      projectId: getGCPProjectId(),
     });
 
     await db.collection(PHONE_MAPPINGS_COLLECTION).doc(phone).delete();

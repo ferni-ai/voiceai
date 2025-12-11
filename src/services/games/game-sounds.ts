@@ -6,12 +6,12 @@
  * with TTS verbal fallbacks for reliability.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import {
-  playSessionSound,
   getVerbalSound,
+  playSessionSound,
   type SessionSoundType,
 } from '../../audio/session-sounds.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 
@@ -158,4 +158,57 @@ export async function playRoundStartSound(): Promise<string> {
     return '<break time="150ms"/>Next round!<break time="150ms"/>';
   }
   return '';
+}
+
+// ============================================================================
+// MILESTONE SOUNDS - "Feel Alive" celebration moments
+// ============================================================================
+
+/**
+ * Play a milestone achievement sound
+ * These are bigger celebrations than regular game sounds
+ */
+export async function playMilestoneSound(
+  soundEffect: 'fanfare' | 'sparkle' | 'applause' | 'record_scratch'
+): Promise<{ played: boolean; verbalFallback?: string }> {
+  // Map milestone sound types to session sound types
+  const typeMap: Record<string, SessionSoundType> = {
+    fanfare: 'milestone-fanfare',
+    sparkle: 'milestone-sparkle',
+    applause: 'milestone-applause',
+    record_scratch: 'notification', // Fallback for record scratch
+  };
+
+  const sessionType = typeMap[soundEffect] || 'milestone-sparkle';
+
+  try {
+    const result = await playSessionSound(sessionType);
+
+    if (result.played) {
+      log.debug({ soundEffect }, '🏆 Played milestone sound');
+    }
+
+    return result;
+  } catch (error) {
+    log.error({ error, soundEffect }, '🏆 Failed to play milestone sound');
+    return {
+      played: false,
+      verbalFallback: getVerbalSound(sessionType),
+    };
+  }
+}
+
+/**
+ * Play streak fire sound (you're on fire!)
+ */
+export async function playStreakSound(streak: number): Promise<string> {
+  // Only play for significant streaks
+  if (streak < 3) return '';
+
+  try {
+    const result = await playSessionSound('streak-fire');
+    return result.verbalFallback || '';
+  } catch {
+    return '';
+  }
 }

@@ -9,12 +9,24 @@
       "intensity": 0.8
     },
     {
-      "triggers": ["mental health is just", "it's all in your head", "just be happy", "snap out of it", "everyone gets sad"],
+      "triggers": [
+        "mental health is just",
+        "it's all in your head",
+        "just be happy",
+        "snap out of it",
+        "everyone gets sad"
+      ],
       "response": "<break time=\"300ms\"/>That... <break time=\"200ms\"/>that's not how it works. <break time=\"250ms\"/>Mental health is health. Period. <break time=\"200ms\"/>Would you tell someone with a broken leg to just walk it off? <break time=\"150ms\"/>The brain is an organ too.",
       "intensity": 0.9
     },
     {
-      "triggers": ["hustle culture", "sleep when you're dead", "grind", "no days off", "rise and grind"],
+      "triggers": [
+        "hustle culture",
+        "sleep when you're dead",
+        "grind",
+        "no days off",
+        "rise and grind"
+      ],
       "response": "<break time=\"250ms\"/>The hustle culture that treats burnout as a badge of honor? <break time=\"200ms\"/>I've seen what that does to people. <break time=\"150ms\"/>To families. <break time=\"250ms\"/>Your wellbeing matters more than any career achievement.",
       "intensity": 0.7
     },
@@ -29,7 +41,12 @@
       "intensity": 0.8
     },
     {
-      "triggers": ["executive presence", "hide your emotions", "be more professional", "too emotional"],
+      "triggers": [
+        "executive presence",
+        "hide your emotions",
+        "be more professional",
+        "too emotional"
+      ],
       "response": "<break time=\"200ms\"/>The corporate obsession with 'executive presence'... <break time=\"150ms\"/>It often just means 'hide your humanity.' <break time=\"200ms\"/>That's toxic. <break time=\"250ms\"/>People deserve to be seen as whole human beings.",
       "intensity": 0.7
     },

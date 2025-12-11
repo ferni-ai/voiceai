@@ -17,14 +17,14 @@
  * 10. Validate handoff consistency
  */
 
-import type { voice, JobContext } from '@livekit/agents';
-import { getLogger } from '../../utils/safe-logger.js';
+import type { JobContext, voice } from '@livekit/agents';
+import { getTransitionDelay } from '../../config/handoff-timing.js';
+import { AgentDirectory } from '../../personas/agent-directory.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { getCurrentAgent } from '../../tools/handoff/index.js';
-import { AgentDirectory, type HandoffDirection } from '../../personas/agent-directory.js';
-import { HANDOFF_TIMING, getTransitionDelay } from '../../config/handoff-timing.js';
-import type { UserData } from './types.js';
 import type { SessionServices } from '../../services/types.js';
+import { getCurrentAgent } from '../../tools/handoff/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { UserData } from './types.js';
 // Cross-persona banter for warm handoffs
 import { getHandoffBanter } from '../../services/team-engagement.js';
 // 🎧 DJ Integration - Enhanced "Guest DJ" handoff experience
@@ -108,6 +108,33 @@ async function getBundleFunctionsCached() {
     loadBundleById: cachedModules.loadBundleById,
     createBundleRuntime: cachedModules.createBundleRuntime,
   };
+}
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Type guard for BundleRuntimeState partial structure
+ * Used when extracting state from previous runtime during handoffs
+ */
+interface PartialBundleState {
+  relationshipTurns?: number;
+  storiesToldThisSession?: string[];
+  currentMode?: string;
+}
+
+/**
+ * Type guard to safely extract bundle state properties
+ */
+function isPartialBundleState(value: unknown): value is PartialBundleState {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  // Check that if properties exist, they're the right type
+  if ('relationshipTurns' in obj && typeof obj.relationshipTurns !== 'number') return false;
+  if ('storiesToldThisSession' in obj && !Array.isArray(obj.storiesToldThisSession)) return false;
+  if ('currentMode' in obj && typeof obj.currentMode !== 'string') return false;
+  return true;
 }
 
 // ============================================================================
@@ -595,14 +622,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             // FIX BUG #66: Get old runtime state before cleanup
             const voiceAgentRef = getVoiceAgentRef();
             const oldRuntime = voiceAgentRef?.getBundleRuntime?.();
-            // Type the old state to access BundleRuntimeState properties
-            const oldState = oldRuntime?.getState?.() as
-              | {
-                  relationshipTurns?: number;
-                  storiesToldThisSession?: string[];
-                  currentMode?: string;
-                }
-              | undefined;
+            // Use type guard to safely extract bundle state
+            const rawState = oldRuntime?.getState?.();
+            const oldState = isPartialBundleState(rawState) ? rawState : undefined;
 
             // FIX BUG #63: Preserve important state from old runtime
             const preservedState = {

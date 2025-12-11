@@ -105,10 +105,9 @@
   },
 
   "usage_rules": {
-    "enthusiasm_spike_probability": 0.2,
-    "circling_check_after_mentions": 3,
-    "low_engagement_check_after_short_responses": 3,
-    "max_engagement_signals_per_session": 4
+    "enthusiasm_spike_probability": 0.35,
+    "circling_check_after_mentions": 2,
+    "low_engagement_check_after_short_responses": 2,
+    "max_engagement_signals_per_session": 6
   }
 }
-

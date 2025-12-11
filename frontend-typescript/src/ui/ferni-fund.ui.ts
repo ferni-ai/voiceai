@@ -1,0 +1,836 @@
+/**
+ * Ferni Fund UI Component
+ *
+ * Pay-it-forward modal for contributing to the community pool.
+ * When someone contributes, their generosity sponsors conversations
+ * for others who might be going through hard times.
+ *
+ * Design principles:
+ * - Focus on the impact, not the amount
+ * - Celebrate the giver's generosity
+ * - Show community connection
+ * - Never guilt-inducing
+ */
+
+import { DURATION, EASING } from '../config/animation-constants.js';
+import {
+  contributeFund,
+  formatAmount,
+  getFundStatus,
+  loadStripe,
+} from '../services/monetization.service.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('FerniFundUI');
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const SUGGESTED_AMOUNTS = [500, 1000, 2500, 5000]; // $5, $10, $25, $50
+const COST_PER_CONVERSATION = 50; // $0.50 symbolically
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+let isOpen = false;
+let container: HTMLElement | null = null;
+let currentUserId: string | null = null;
+
+// ============================================================================
+// STYLES
+// ============================================================================
+
+const styles = `
+.ferni-fund-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+}
+
+.ferni-fund-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ferni-fund-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(44, 37, 32, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+.ferni-fund-card {
+  position: relative;
+  background: var(--color-background-elevated, #FFFDFB);
+  border-radius: var(--radius-2xl, 24px);
+  padding: var(--space-8, 32px);
+  max-width: 440px;
+  width: calc(100% - 32px);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-2xl);
+  transform: scale(0.9);
+  transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
+}
+
+.ferni-fund-overlay.open .ferni-fund-card {
+  transform: scale(1);
+}
+
+.ferni-fund-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  transition: background ${DURATION.FAST}ms;
+}
+
+.ferni-fund-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ferni-fund-header {
+  text-align: center;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.ferni-fund-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4, 16px);
+  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ferni-fund-icon svg {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.ferni-fund-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.ferni-fund-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Community Stats */
+.ferni-fund-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-6, 24px);
+  padding: var(--space-4, 16px);
+  background: rgba(74, 103, 65, 0.05);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.ferni-fund-stat {
+  text-align: center;
+}
+
+.ferni-fund-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Amount Selection */
+.ferni-fund-amounts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.ferni-fund-amount-btn {
+  padding: var(--space-4, 16px) var(--space-2, 8px);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ferni-fund-amount-btn:hover {
+  border-color: var(--persona-primary, #4a6741);
+  background: rgba(74, 103, 65, 0.05);
+}
+
+.ferni-fund-amount-btn.selected {
+  border-color: var(--persona-primary, #4a6741);
+  background: var(--persona-primary, #4a6741);
+  color: white;
+}
+
+.ferni-fund-amount-btn .impact {
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.ferni-fund-amount-btn.selected .impact {
+  opacity: 1;
+}
+
+.ferni-fund-custom-input {
+  width: 100%;
+  padding: var(--space-4, 16px);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  font-size: 1rem;
+  margin-bottom: var(--space-4, 16px);
+  text-align: center;
+}
+
+.ferni-fund-custom-input:focus {
+  outline: none;
+  border-color: var(--persona-primary, #4a6741);
+}
+
+/* Message Input */
+.ferni-fund-message-section {
+  margin-bottom: var(--space-4, 16px);
+}
+
+.ferni-fund-message-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.ferni-fund-message-input {
+  width: 100%;
+  padding: var(--space-3, 12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  resize: none;
+  font-family: inherit;
+}
+
+.ferni-fund-message-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Recurring Toggle */
+.ferni-fund-recurring {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  background: rgba(74, 103, 65, 0.05);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.ferni-fund-recurring-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background ${DURATION.FAST}ms;
+}
+
+.ferni-fund-recurring-toggle.active {
+  background: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-recurring-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+}
+
+.ferni-fund-recurring-toggle.active::after {
+  transform: translateX(20px);
+}
+
+.ferni-fund-recurring-text {
+  flex: 1;
+}
+
+.ferni-fund-recurring-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.ferni-fund-recurring-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Submit Button */
+.ferni-fund-submit-btn {
+  width: 100%;
+  padding: var(--space-4, 16px);
+  background: var(--persona-primary, #4a6741);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+}
+
+.ferni-fund-submit-btn:hover:not(:disabled) {
+  background: var(--persona-secondary, #3d5a35);
+  transform: translateY(-1px);
+}
+
+.ferni-fund-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ferni-fund-footer {
+  text-align: center;
+  margin-top: var(--space-4, 16px);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Impact Preview */
+.ferni-fund-impact {
+  text-align: center;
+  padding: var(--space-4, 16px);
+  background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(74, 103, 65, 0.05));
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.ferni-fund-impact-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-impact-text {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+/* Thank You State */
+.ferni-fund-thank-you {
+  text-align: center;
+  padding: var(--space-8, 32px) 0;
+}
+
+.ferni-fund-thank-you-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-4, 16px);
+  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fund-pulse 1s ${EASING.SPRING};
+}
+
+@keyframes fund-pulse {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.ferni-fund-thank-you-icon svg {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+.ferni-fund-thank-you-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.ferni-fund-thank-you-message {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--space-4, 16px) 0;
+}
+
+.ferni-fund-impact-summary {
+  padding: var(--space-4, 16px);
+  background: rgba(74, 103, 65, 0.08);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.ferni-fund-impact-summary-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.ferni-fund-impact-summary-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--persona-primary, #4a6741);
+}
+
+/* Loading State */
+.ferni-fund-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8, 32px) 0;
+}
+
+.ferni-fund-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--persona-primary, #4a6741);
+  border-radius: 50%;
+  animation: fund-spin 1s linear infinite;
+  margin-bottom: var(--space-4, 16px);
+}
+
+@keyframes fund-spin {
+  to { transform: rotate(360deg); }
+}
+`;
+
+// ============================================================================
+// ICONS
+// ============================================================================
+
+const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+const HANDS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`;
+
+const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+function initStyles(): void {
+  if (document.getElementById('ferni-fund-styles')) return;
+
+  const styleEl = document.createElement('style');
+  styleEl.id = 'ferni-fund-styles';
+  styleEl.textContent = styles;
+  document.head.appendChild(styleEl);
+}
+
+async function createModal(): Promise<HTMLElement> {
+  initStyles();
+
+  // Clean up any existing modals
+  document.querySelectorAll('.ferni-fund-overlay').forEach((el) => el.remove());
+
+  // Fetch fund status
+  let fundStatus = { conversationsSponsored: 0, totalContributors: 0, conversationsRemaining: 0 };
+  try {
+    fundStatus = await getFundStatus();
+  } catch (e) {
+    log.warn({ error: String(e) }, 'Failed to fetch fund status');
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ferni-fund-overlay';
+  overlay.innerHTML = `
+    <div class="ferni-fund-backdrop"></div>
+    <div class="ferni-fund-card" role="dialog" aria-labelledby="ferni-fund-title">
+      <button class="ferni-fund-close" aria-label="Close">${CLOSE_ICON}</button>
+      <div class="ferni-fund-content">
+        ${renderContributionForm(fundStatus)}
+      </div>
+    </div>
+  `;
+
+  // Event listeners
+  overlay.querySelector('.ferni-fund-backdrop')?.addEventListener('click', close);
+  overlay.querySelector('.ferni-fund-close')?.addEventListener('click', close);
+  overlay.querySelector('.ferni-fund-card')?.addEventListener('click', (e) => e.stopPropagation());
+
+  document.body.appendChild(overlay);
+
+  return overlay;
+}
+
+function renderContributionForm(fundStatus: {
+  conversationsSponsored: number;
+  totalContributors: number;
+  conversationsRemaining: number;
+}): string {
+  return `
+    <div class="ferni-fund-header">
+      <div class="ferni-fund-icon">${HANDS_ICON}</div>
+      <h2 class="ferni-fund-title" id="ferni-fund-title">Ferni Fund</h2>
+      <p class="ferni-fund-subtitle">
+        Pay it forward. Your contribution sponsors conversations for people going through hard times.
+      </p>
+    </div>
+
+    <div class="ferni-fund-stats">
+      <div class="ferni-fund-stat">
+        <div class="ferni-fund-stat-value">${fundStatus.conversationsSponsored.toLocaleString()}</div>
+        <div class="ferni-fund-stat-label">Convos Sponsored</div>
+      </div>
+      <div class="ferni-fund-stat">
+        <div class="ferni-fund-stat-value">${fundStatus.totalContributors.toLocaleString()}</div>
+        <div class="ferni-fund-stat-label">Contributors</div>
+      </div>
+      <div class="ferni-fund-stat">
+        <div class="ferni-fund-stat-value">${fundStatus.conversationsRemaining.toLocaleString()}</div>
+        <div class="ferni-fund-stat-label">Ready to Give</div>
+      </div>
+    </div>
+
+    <div class="ferni-fund-amounts">
+      ${SUGGESTED_AMOUNTS.map(
+        (amount) => `
+        <button class="ferni-fund-amount-btn" data-amount="${amount}">
+          ${formatAmount(amount)}
+          <span class="impact">${Math.floor(amount / COST_PER_CONVERSATION)} convos</span>
+        </button>
+      `
+      ).join('')}
+    </div>
+
+    <input
+      type="text"
+      class="ferni-fund-custom-input"
+      placeholder="Or enter custom amount"
+      inputmode="decimal"
+    />
+
+    <div class="ferni-fund-impact" style="display: none;">
+      <div class="ferni-fund-impact-number">0</div>
+      <div class="ferni-fund-impact-text">conversations you'll sponsor</div>
+    </div>
+
+    <div class="ferni-fund-message-section">
+      <label class="ferni-fund-message-label">Leave a message for recipients (optional)</label>
+      <textarea
+        class="ferni-fund-message-input"
+        placeholder="e.g., Everyone deserves someone to talk to. You've got this."
+        rows="2"
+      ></textarea>
+    </div>
+
+    <div class="ferni-fund-recurring">
+      <div class="ferni-fund-recurring-toggle" data-active="false"></div>
+      <div class="ferni-fund-recurring-text">
+        <div class="ferni-fund-recurring-title">Make this monthly</div>
+        <div class="ferni-fund-recurring-desc">Automatically sponsor conversations each month</div>
+      </div>
+    </div>
+
+    <button class="ferni-fund-submit-btn" disabled>
+      Sponsor Conversations
+    </button>
+
+    <p class="ferni-fund-footer">
+      Ferni is free for everyone. Your generosity helps people who need support most.
+    </p>
+  `;
+}
+
+function renderLoading(): string {
+  return `
+    <div class="ferni-fund-loading">
+      <div class="ferni-fund-spinner"></div>
+      <p>Processing your contribution...</p>
+    </div>
+  `;
+}
+
+function renderThankYou(impact: { conversationsSponsored: number; message: string }): string {
+  return `
+    <div class="ferni-fund-thank-you">
+      <div class="ferni-fund-thank-you-icon">${CHECK_ICON}</div>
+      <h2 class="ferni-fund-thank-you-title">You're Amazing</h2>
+      <p class="ferni-fund-thank-you-message">
+        ${impact.message}
+      </p>
+      <div class="ferni-fund-impact-summary">
+        <div class="ferni-fund-impact-summary-title">Your Impact</div>
+        <div class="ferni-fund-impact-summary-value">
+          ${impact.conversationsSponsored} conversation${impact.conversationsSponsored === 1 ? '' : 's'} sponsored
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setupFormListeners(): void {
+  if (!container) return;
+
+  const buttons = container.querySelectorAll('.ferni-fund-amount-btn');
+  const customInput = container.querySelector('.ferni-fund-custom-input') as HTMLInputElement;
+  const submitBtn = container.querySelector('.ferni-fund-submit-btn') as HTMLButtonElement;
+  const impactDiv = container.querySelector('.ferni-fund-impact') as HTMLElement;
+  const impactNumber = container.querySelector('.ferni-fund-impact-number') as HTMLElement;
+  const recurringToggle = container.querySelector('.ferni-fund-recurring-toggle') as HTMLElement;
+  const messageInput = container.querySelector('.ferni-fund-message-input') as HTMLTextAreaElement;
+
+  let selectedAmount = 0;
+  let isRecurring = false;
+
+  function updateImpact(amount: number): void {
+    const conversations = Math.floor(amount / COST_PER_CONVERSATION);
+    if (amount > 0 && impactDiv && impactNumber) {
+      impactDiv.style.display = 'block';
+      impactNumber.textContent = String(conversations);
+    } else if (impactDiv) {
+      impactDiv.style.display = 'none';
+    }
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      buttons.forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedAmount = parseInt(btn.getAttribute('data-amount') || '0', 10);
+      customInput.value = '';
+      submitBtn.disabled = false;
+      updateImpact(selectedAmount);
+    });
+  });
+
+  customInput.addEventListener('input', () => {
+    buttons.forEach((b) => b.classList.remove('selected'));
+    const value = customInput.value.replace(/[^0-9.]/g, '');
+    const cents = Math.round(parseFloat(value) * 100) || 0;
+    selectedAmount = cents;
+    submitBtn.disabled = cents < 100;
+    updateImpact(selectedAmount);
+  });
+
+  recurringToggle?.addEventListener('click', () => {
+    isRecurring = !isRecurring;
+    recurringToggle.classList.toggle('active', isRecurring);
+    recurringToggle.setAttribute('data-active', String(isRecurring));
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    if (selectedAmount < 100 || !currentUserId) return;
+
+    const message = messageInput?.value || '';
+    await processContribution(selectedAmount, message, isRecurring);
+  });
+}
+
+async function processContribution(
+  amountCents: number,
+  message: string,
+  isRecurring: boolean
+): Promise<void> {
+  if (!container || !currentUserId) return;
+
+  const content = container.querySelector('.ferni-fund-content');
+  if (content) {
+    content.innerHTML = renderLoading();
+  }
+
+  try {
+    const result = await contributeFund({
+      userId: currentUserId,
+      amountCents,
+      message,
+      isRecurring,
+      recurringFrequency: isRecurring ? 'monthly' : undefined,
+    });
+
+    // Load Stripe and process payment
+    const stripe = await loadStripe();
+    if (!stripe) {
+      throw new Error('Stripe not available');
+    }
+
+    // @ts-expect-error - Stripe types
+    const { error } = await stripe.confirmPayment({
+      clientSecret: result.clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}/fund/complete`,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  } catch (error) {
+    log.error({ error: String(error) }, 'Fund contribution failed');
+
+    // Show error and reset form
+    if (content) {
+      const fundStatus = await getFundStatus().catch(() => ({
+        conversationsSponsored: 0,
+        totalContributors: 0,
+        conversationsRemaining: 0,
+      }));
+      content.innerHTML = renderContributionForm(fundStatus);
+      setupFormListeners();
+    }
+
+    showToast('Payment failed. Please try again.', 'error');
+  }
+}
+
+function showToast(message: string, type: 'success' | 'error' = 'success'): void {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
+    color: white;
+    padding: 12px 24px;
+    border-radius: 999px;
+    z-index: 10001;
+    font-size: 0.9rem;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Open the Ferni Fund modal
+ */
+export async function open(userId: string): Promise<void> {
+  if (isOpen) return;
+
+  currentUserId = userId;
+  container = await createModal();
+
+  // Trigger open animation
+  requestAnimationFrame(() => {
+    container?.classList.add('open');
+    isOpen = true;
+    setupFormListeners();
+  });
+
+  log.debug({ userId }, 'Ferni Fund opened');
+}
+
+/**
+ * Close the Ferni Fund modal
+ */
+export function close(): void {
+  if (!isOpen || !container) return;
+
+  container.classList.remove('open');
+  isOpen = false;
+
+  setTimeout(() => {
+    container?.remove();
+    container = null;
+  }, DURATION.MODERATE);
+
+  log.debug('Ferni Fund closed');
+}
+
+/**
+ * Show thank you after successful contribution
+ */
+export function showThankYou(impact: { conversationsSponsored: number; message: string }): void {
+  if (!container) {
+    createModal().then((el) => {
+      container = el;
+      showThankYouContent(impact);
+    });
+    return;
+  }
+  showThankYouContent(impact);
+}
+
+function showThankYouContent(impact: { conversationsSponsored: number; message: string }): void {
+  if (!container) return;
+
+  const content = container.querySelector('.ferni-fund-content');
+  if (content) {
+    content.innerHTML = renderThankYou(impact);
+  }
+
+  container.classList.add('open');
+  isOpen = true;
+
+  // Auto-close after 6 seconds
+  setTimeout(close, 6000);
+}
+
+/**
+ * Check if modal is open
+ */
+export function isModalOpen(): boolean {
+  return isOpen;
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const ferniFundUI = {
+  open,
+  close,
+  isOpen: isModalOpen,
+  showThankYou,
+};
+
+export default ferniFundUI;

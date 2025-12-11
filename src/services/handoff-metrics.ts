@@ -407,6 +407,37 @@ class HandoffMetricsService {
     if (this.completedTraces.length > this.MAX_COMPLETED_TRACES) {
       this.completedTraces = this.completedTraces.slice(-this.MAX_COMPLETED_TRACES);
     }
+
+    // Bridge to Admin Diagnostics API for real-time dashboard visibility
+    // This populates the /api/v1/admin/diagnostics/handoff/* endpoints
+    this.sendToAdminDashboard(trace);
+  }
+
+  /**
+   * Send handoff event to Admin Diagnostics API
+   * This bridges the detailed metrics service with the admin dashboard
+   */
+  private sendToAdminDashboard(trace: HandoffTrace): void {
+    try {
+      // Lazy import to avoid circular dependencies
+      import('../api/v1/admin/diagnostics.js')
+        .then(({ recordHandoffEvent }) => {
+          recordHandoffEvent({
+            from: trace.fromAgent,
+            to: trace.toAgent,
+            trigger: trace.source,
+            duration: trace.durationMs ?? 0,
+            status: trace.success ? 'success' : 'failed',
+            userId: trace.sessionId !== 'unknown' ? trace.sessionId : undefined,
+          });
+        })
+        .catch((err) => {
+          // Non-critical - diagnostics may not be available in all environments
+          this.logger.debug({ error: String(err) }, 'Could not send to admin diagnostics');
+        });
+    } catch {
+      // Ignore - diagnostics API may not be loaded
+    }
   }
 
   private getPhaseBreakdown(trace: HandoffTrace): Record<string, number> {

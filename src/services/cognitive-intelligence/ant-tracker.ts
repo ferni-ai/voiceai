@@ -10,6 +10,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import { getGCPProjectId } from '../../config/environment.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
 
@@ -37,10 +38,7 @@ function getFirestore(): admin.firestore.Firestore | null {
 
   try {
     if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
+      const projectId = getGCPProjectId();
 
       if (projectId) {
         admin.initializeApp({ projectId });

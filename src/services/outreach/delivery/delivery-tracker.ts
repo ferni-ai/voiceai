@@ -261,9 +261,8 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
       case 'push':
         // Use FCM push notifications
         try {
-          const { sendPushNotification, isPushNotificationsAvailable } = await import(
-            './push-notifications.js'
-          );
+          const { sendPushNotification, isPushNotificationsAvailable } =
+            await import('./push-notifications.js');
 
           if (!isPushNotificationsAvailable()) {
             result = { success: false, error: 'Push notifications not configured' };
