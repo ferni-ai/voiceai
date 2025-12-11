@@ -14,7 +14,22 @@ npm run ops:logs:errors   # View error logs only
 
 ## Current Status
 
-### Working
+### Working (GCP Monitoring - Fully Automated)
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| **Uptime Checks** | Active | 5-minute health checks for Voice Agent and UI Server |
+| **Downtime Alerts** | Active | Email alerts when services go down |
+| **Error Rate Alerts** | Active | Email when error rate > 5/min |
+| **Budget Alert** | Active | $50/month with 50%, 80%, 100% thresholds |
+| **Email Notifications** | Active | seth.ford@gmail.com receives alerts |
+
+**GCP Console Links:**
+- Uptime Checks: https://console.cloud.google.com/monitoring/uptime?project=johnb-2025
+- Alert Policies: https://console.cloud.google.com/monitoring/alerting?project=johnb-2025
+- Budget: https://console.cloud.google.com/billing/budgets?project=johnb-2025
+
+### Working (Local Commands)
 
 | Feature | Command | Notes |
 |---------|---------|-------|
@@ -39,16 +54,6 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
 
 **Fix:** Update payment at https://github.com/settings/billing
 
-### Not Configured
-
-| Feature | Blocker | How to Fix |
-|---------|---------|------------|
-| Slack webhook (local) | Not in `.env` | Add `SLACK_WEBHOOK_URL=...` to `.env` |
-| GCP Uptime Checks | Not applied | Run `npm run ops:setup`, apply in GCP Console |
-| GCP Alert Policies | Not applied | Run `npm run ops:setup`, apply in GCP Console |
-| Budget Alert ($50/mo) | Not applied | Create in GCP Billing Console |
-| Firestore Backups | No Cloud Function | Deploy backup function to Cloud Functions |
-
 ---
 
 ## Backlog
@@ -57,29 +62,18 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
 
 - [ ] **Fix GitHub billing** - Re-enables all CI/CD and monitoring workflows
   - URL: https://github.com/settings/billing
-  - Impact: Blocks all automated monitoring
+  - Impact: Blocks all automated CI/CD
 
-- [ ] **Add Slack webhook to .env** - Enables local alerting
+- [ ] **Add Slack webhook to .env** - Enables local Slack alerting
   ```bash
-  # Get webhook from Slack App settings
   echo "SLACK_WEBHOOK_URL=https://hooks.slack.com/services/..." >> .env
   ```
 
 ### P1 - Important (Do This Sprint)
 
-- [ ] **Apply GCP Uptime Checks** - 5-minute health monitoring with alerting
-  1. Run `npm run ops:setup` to generate configs
-  2. Go to https://console.cloud.google.com/monitoring/uptime?project=johnb-2025
-  3. Create uptime checks using generated JSON configs in `/tmp/`
-
-- [ ] **Apply GCP Alert Policies** - Log-based alerting for errors/timeouts
-  1. Go to https://console.cloud.google.com/monitoring/alerting?project=johnb-2025
-  2. Create policies using configs from `npm run ops:setup`
-
-- [ ] **Create Budget Alert** - $50/month spending limit
-  1. Go to https://console.cloud.google.com/billing/budgets?project=johnb-2025
-  2. Create budget with 50%, 80%, 100% thresholds
-  3. Add email notification channel
+- [x] ~~**Apply GCP Uptime Checks**~~ - DONE (automated via API)
+- [x] ~~**Apply GCP Alert Policies**~~ - DONE (automated via API)
+- [x] ~~**Create Budget Alert**~~ - DONE ($50/mo with thresholds)
 
 ### P2 - Nice to Have (Do When Time Permits)
 
@@ -98,6 +92,25 @@ These GitHub Actions workflows exist but cannot run due to billing issue:
 - [ ] **Add synthetic monitoring** - E2E user flow testing
   - Test actual voice conversations periodically
   - Catch issues before users report them
+
+---
+
+## GCP Resources Created
+
+### Uptime Checks
+- `ferni-voice-agent-health-0jcICc22EtE` - Voice Agent (every 5 min)
+- `ferni-ui-server-health-vHpiLsGJgvQ` - UI Server (every 5 min)
+
+### Alert Policies
+- `Ferni Voice Agent Down` - Alerts when voice agent health fails
+- `Ferni UI Server Down` - Alerts when UI server health fails
+- `Ferni High Error Rate` - Alerts when error rate > 5/min
+
+### Notification Channels
+- Email: seth.ford@gmail.com (ID: 497418305396229287)
+
+### Budget
+- `Ferni Monthly Budget` - $50/month with alerts at 50%, 80%, 100%
 
 ---
 
