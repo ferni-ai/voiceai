@@ -69,7 +69,7 @@ const TEMPORAL_PHRASES = {
     ],
     less_open: [
       "You seem more guarded today. That's okay. I'm here when you're ready.",
-      "Taking things slower today? I respect that.",
+      'Taking things slower today? I respect that.',
       "You're holding back a bit. No pressure—take your time.",
     ],
     consistently_open: [
@@ -102,9 +102,9 @@ const TEMPORAL_PHRASES = {
     'Remember when this would have sent you spiraling? Look at you now.',
   ],
   openness_growth: [
-    "You open up more easily now than when we first started talking.",
+    'You open up more easily now than when we first started talking.',
     "I've noticed how much more comfortable you are sharing the hard stuff.",
-    "The trust you show now compared to our early conversations—that means something.",
+    'The trust you show now compared to our early conversations—that means something.',
   ],
   concern_pattern: [
     "This topic comes up a lot when you're stressed.",
