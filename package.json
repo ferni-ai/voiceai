@@ -1,9 +1,12 @@
 {
-  "name": "voiceai-gemini-cartesia",
+  "name": "ferni",
   "version": "1.0.0",
   "description": "Ferni - Better than human. Voice-first life coaching platform built on LiveKit, Gemini, and Cartesia.",
   "type": "module",
   "main": "dist/agent.js",
+  "bin": {
+    "ferni": "./bin/ferni.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:bundle": "node scripts/build-bundle.js",
@@ -206,6 +209,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
+    "@clack/prompts": "^0.11.0",
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
     "@playwright/test": "^1.57.0",

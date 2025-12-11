@@ -6,6 +6,21 @@ This document lists all available npm scripts in the Ferni project.
 
 ## 🚀 Quick Start
 
+### Global CLI Installation (Recommended)
+
+```bash
+# Install globally from this project
+npm link
+
+# Now use ferni from anywhere!
+ferni                       # Interactive menu
+ferni deploy ui             # Deploy UI server
+ferni agents new            # Create a new marketplace agent
+ferni status                # Check service health
+```
+
+### Alternative: npm scripts
+
 ```bash
 # Interactive CLI
 npm run ferni
