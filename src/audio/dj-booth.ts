@@ -61,6 +61,8 @@ export interface DJBoothConfig {
   onAgentSpeakStart?: () => void;
   /** Callback when agent finishes speaking */
   onAgentSpeakEnd?: () => void;
+  /** Callback to check if main agent is speaking (prevents double-speaking) */
+  isAgentSpeaking?: () => boolean;
 }
 
 export interface DJBoothState {
@@ -749,7 +751,8 @@ export class DJBooth {
             // 🎵 Fun interjection when user skips
             const skipComment = this.getFunInterjection('user_skipped');
             if (skipComment) {
-              this.config.speakCallback(skipComment, { allowInterruptions: true });
+              // FIX: Use safeSpeak to prevent double-speaking
+              this.safeSpeak(skipComment, { allowInterruptions: true });
             }
           } else {
             // Natural ending - do a post-music check-in (60% chance)
@@ -759,7 +762,8 @@ export class DJBooth {
               // Small delay so the silence settles
               this.scheduleTimer(() => {
                 if (this.state.musicState === 'stopped' || this.state.musicState === 'idle') {
-                  this.config.speakCallback(checkIn, { allowInterruptions: true });
+                  // FIX: Use safeSpeak to prevent double-speaking
+                  this.safeSpeak(checkIn, { allowInterruptions: true });
                 }
               }, 1500);
             }
@@ -1035,7 +1039,8 @@ export class DJBooth {
     log.info('🎧 Music stopped unexpectedly', { wasPaused });
 
     const phrase = getMusicStoppedPhrase(this.config.personaId, wasPaused);
-    this.config.speakCallback(phrase, { allowInterruptions: true });
+    // FIX: Use safeSpeak to prevent double-speaking
+    this.safeSpeak(phrase, { allowInterruptions: true });
 
     // Note: No volume restore needed - music has already stopped
   }
@@ -1198,6 +1203,35 @@ export class DJBooth {
       clearInterval(this.volumeFadeInterval);
       this.volumeFadeInterval = null;
     }
+  }
+
+  // ==========================================================================
+  // SPEECH SAFETY HELPERS
+  // ==========================================================================
+
+  /**
+   * Check if it's safe to speak (prevents double-speaking)
+   * Returns true if neither internal state nor external agent is speaking
+   */
+  private canSafelySpeak(): boolean {
+    // Check internal DJ booth state
+    if (this.state.agentSpeaking) return false;
+    // Check external agent state via callback (if provided)
+    if (this.config.isAgentSpeaking?.()) return false;
+    return true;
+  }
+
+  /**
+   * Safely speak a phrase if not already speaking
+   * Returns true if speech was initiated, false if skipped
+   */
+  private safeSpeak(phrase: string, options?: { allowInterruptions?: boolean }): boolean {
+    if (!this.canSafelySpeak()) {
+      log.debug('🎧 Skipping DJ speech - agent already speaking', { phrase: phrase.slice(0, 30) });
+      return false;
+    }
+    this.config.speakCallback(phrase, options);
+    return true;
   }
 
   // ==========================================================================

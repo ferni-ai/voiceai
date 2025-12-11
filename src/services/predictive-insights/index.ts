@@ -30,34 +30,34 @@ const log = createLogger({ module: 'PredictiveInsights' });
 // RE-EXPORTS
 // ============================================================================
 
-export * from './energy-prediction.js';
-export * from './relationship-health.js';
-export * from './goal-trajectory.js';
 export * from './burnout-prediction.js';
+export * from './data-collector.js';
 export * from './decision-timing.js';
-export * from './social-connection.js';
-export * from './seasonal-mood.js';
+export * from './energy-prediction.js';
+export * from './goal-trajectory.js';
 export * from './habit-decay.js';
 export * from './outreach-integration.js';
-export * from './data-collector.js';
+export * from './relationship-health.js';
+export * from './seasonal-mood.js';
+export * from './social-connection.js';
 export type * from './types.js';
 
 // ============================================================================
 // UNIFIED PREDICTION ENGINE
 // ============================================================================
 
+import { predictBurnoutRisk, type BurnoutPrediction } from './burnout-prediction.js';
+import { assessDecisionReadiness, type DecisionReadiness } from './decision-timing.js';
 import { predictEnergy, type EnergyPrediction } from './energy-prediction.js';
+import { projectGoalTrajectory, type GoalTrajectory } from './goal-trajectory.js';
+import { detectHabitDecay, type HabitDecayWarning } from './habit-decay.js';
 import {
   assessRelationshipHealth,
   type RelationshipHealthAssessment,
 } from './relationship-health.js';
-import { projectGoalTrajectory, type GoalTrajectory } from './goal-trajectory.js';
-import { predictBurnoutRisk, type BurnoutPrediction } from './burnout-prediction.js';
-import { assessDecisionReadiness, type DecisionReadiness } from './decision-timing.js';
-import { checkSocialConnections, type SocialConnectionAlert } from './social-connection.js';
 import { predictSeasonalMood, type SeasonalMoodPrediction } from './seasonal-mood.js';
-import { detectHabitDecay, type HabitDecayWarning } from './habit-decay.js';
-import type { PredictiveInsight, InsightPriority } from './types.js';
+import { checkSocialConnections, type SocialConnectionAlert } from './social-connection.js';
+import type { InsightPriority, PredictiveInsight } from './types.js';
 
 /**
  * Run all predictive analyses for a user

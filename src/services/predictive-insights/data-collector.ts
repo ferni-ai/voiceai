@@ -18,13 +18,13 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { EnergyLevel } from './types.js';
 
 // Import prediction modules for data recording
-import { recordEnergyObservation } from './energy-prediction.js';
-import { recordRelationshipMention } from './relationship-health.js';
-import { recordGoalProgress } from './goal-trajectory.js';
 import { recordDecisionMention, resolveDecision } from './decision-timing.js';
-import { recordPersonMention } from './social-connection.js';
-import { recordMoodEntry, addSignificantDate } from './seasonal-mood.js';
+import { recordEnergyObservation } from './energy-prediction.js';
+import { recordGoalProgress } from './goal-trajectory.js';
 import { recordHabitCompletion } from './habit-decay.js';
+import { recordRelationshipMention } from './relationship-health.js';
+import { addSignificantDate, recordMoodEntry } from './seasonal-mood.js';
+import { recordPersonMention } from './social-connection.js';
 
 const log = createLogger({ module: 'PredictiveDataCollector' });
 

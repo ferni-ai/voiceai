@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-11T01:15:31.793Z
+ * Build: 2025-12-11T12:28:27.753Z
  */
 
 /* ========================================
@@ -218,6 +218,78 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(184, 149, 106, 0.28);
   --persona-tint: rgba(184, 149, 106, 0.06);
+}
+
+/* Persona: _marketplace_description */
+[data-persona="_marketplace_description"] {
+  --persona-primary: undefined;
+  --persona-secondary: undefined;
+  --persona-text: #ffffff;
+  --persona-glow: undefined;
+  --persona-tint: undefined;
+}
+
+/* Persona: eli */
+[data-persona="eli"] {
+  --persona-primary: #6B5B95;
+  --persona-secondary: #4A4063;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(107, 91, 149, 0.28);
+  --persona-tint: rgba(107, 91, 149, 0.06);
+}
+
+/* Persona: marcus */
+[data-persona="marcus"] {
+  --persona-primary: #2D5A4A;
+  --persona-secondary: #1E3D32;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(45, 90, 74, 0.28);
+  --persona-tint: rgba(45, 90, 74, 0.06);
+}
+
+/* Persona: kenji */
+[data-persona="kenji"] {
+  --persona-primary: #2C3E50;
+  --persona-secondary: #1A252F;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(44, 62, 80, 0.28);
+  --persona-tint: rgba(44, 62, 80, 0.06);
+}
+
+/* Persona: carmen */
+[data-persona="carmen"] {
+  --persona-primary: #D4A373;
+  --persona-secondary: #A67B5B;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(212, 163, 115, 0.28);
+  --persona-tint: rgba(212, 163, 115, 0.06);
+}
+
+/* Persona: amara */
+[data-persona="amara"] {
+  --persona-primary: #7B6BA8;
+  --persona-secondary: #5A4D80;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(123, 107, 168, 0.28);
+  --persona-tint: rgba(123, 107, 168, 0.06);
+}
+
+/* Persona: sasha */
+[data-persona="sasha"] {
+  --persona-primary: #E07B53;
+  --persona-secondary: #B85C3C;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(224, 123, 83, 0.28);
+  --persona-tint: rgba(224, 123, 83, 0.06);
+}
+
+/* Persona: ray */
+[data-persona="ray"] {
+  --persona-primary: #4A5568;
+  --persona-secondary: #2D3748;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(74, 85, 104, 0.28);
+  --persona-tint: rgba(74, 85, 104, 0.06);
 }
 
 /* ========================================

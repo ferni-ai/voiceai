@@ -317,7 +317,7 @@ export function createRestaurantTools() {
           sortBy: 'rating',
         });
 
-        return response + '\n' + results;
+        return `${response}\n${results}`;
       },
     }),
   };

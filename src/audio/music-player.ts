@@ -181,6 +181,13 @@ export class CallMusicPlayer {
   // 🎧 Whether ffmpeg is available for DJ-style audio fade-out
   private ffmpegAvailable = false;
 
+  // 🐛 FIX: Backup timer for track end detection
+  // waitForPlayout() may not resolve reliably, so we use this as a fallback
+  private trackEndBackupTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // 🐛 FIX: Track if waitForPlayout has already resolved (to prevent double-firing)
+  private trackEndHandled = false;
+
   // Track current mood for mood-aware offers
   private currentUserMood: string | undefined;
 
@@ -534,6 +541,15 @@ export class CallMusicPlayer {
       const minFadeTime = Math.min(10000, trackDuration * 0.7);
       const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
+      // 🐛 FIX: Reset track end handled flag for new track
+      this.trackEndHandled = false;
+
+      // 🐛 FIX: Clear any existing backup timer
+      if (this.trackEndBackupTimer) {
+        clearTimeout(this.trackEndBackupTimer);
+        this.trackEndBackupTimer = null;
+      }
+
       // Schedule the fade notification
       const fadeTimer = setTimeout(() => {
         // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
@@ -547,30 +563,70 @@ export class CallMusicPlayer {
         }
       }, fadeOutTime);
 
+      // 🐛 FIX: Helper function to handle track end (used by both waitForPlayout and backup timer)
+      const handleTrackEnd = (source: 'waitForPlayout' | 'backupTimer') => {
+        // Prevent double-firing
+        if (this.trackEndHandled) {
+          getLogger().debug({ source, track: track.name }, '🎧 Track end already handled, skipping');
+          return;
+        }
+        this.trackEndHandled = true;
+
+        // Clear both timers
+        clearTimeout(fadeTimer);
+        if (this.trackEndBackupTimer) {
+          clearTimeout(this.trackEndBackupTimer);
+          this.trackEndBackupTimer = null;
+        }
+
+        getLogger().info(
+          { source, track: track.name, duration: trackDuration },
+          '🎧 Track ended - notifying agent'
+        );
+
+        const endedTrack = this.state.currentTrack;
+        const wasAmbient = this.state.isAmbientMode;
+
+        // 🎧 Mark track as fully played in history
+        if (!wasAmbient) {
+          this.markCurrentTrackCompleted();
+        }
+
+        this.onTrackEnded();
+
+        // Call the callback so agent can respond
+        if (endedTrack && this.onTrackEndedCallback) {
+          this.onTrackEndedCallback(endedTrack, wasAmbient);
+        }
+
+        // Clean up temp file (after callback, in case callback needs track info)
+        this.cleanupTempFile(audioPath);
+      };
+
       // Wait for playback to complete, then cleanup
       if (this.currentPlayHandle) {
         void this.currentPlayHandle.waitForPlayout().then(() => {
-          clearTimeout(fadeTimer); // Clean up timer if track ended early
-
-          const endedTrack = this.state.currentTrack;
-          const wasAmbient = this.state.isAmbientMode;
-
-          // 🎧 Mark track as fully played in history
-          if (!wasAmbient) {
-            this.markCurrentTrackCompleted();
-          }
-
-          this.onTrackEnded();
-
-          // Call the callback so agent can respond
-          if (endedTrack && this.onTrackEndedCallback) {
-            this.onTrackEndedCallback(endedTrack, wasAmbient);
-          }
-
-          // Clean up temp file (after callback, in case callback needs track info)
-          this.cleanupTempFile(audioPath);
+          handleTrackEnd('waitForPlayout');
         });
       }
+
+      // 🐛 FIX: Backup timer in case waitForPlayout never resolves
+      // Add 2 second buffer to account for any processing delays
+      const backupDelay = trackDuration + 2000;
+      this.trackEndBackupTimer = setTimeout(() => {
+        if (!this.trackEndHandled && this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+          getLogger().warn(
+            { track: track.name, expectedDuration: trackDuration },
+            '🎧 Backup timer fired - waitForPlayout did not resolve in time'
+          );
+          handleTrackEnd('backupTimer');
+        }
+      }, backupDelay);
+
+      getLogger().debug(
+        { track: track.name, fadeOutTime, backupDelay },
+        '🎧 Scheduled track timers'
+      );
 
       return true;
     } catch (error) {
@@ -722,6 +778,15 @@ export class CallMusicPlayer {
     const minFadeTime = Math.min(10000, trackDuration * 0.7);
     const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
 
+    // 🐛 FIX: Reset track end handled flag for new track
+    this.trackEndHandled = false;
+
+    // 🐛 FIX: Clear any existing backup timer
+    if (this.trackEndBackupTimer) {
+      clearTimeout(this.trackEndBackupTimer);
+      this.trackEndBackupTimer = null;
+    }
+
     const fadeTimer = setTimeout(() => {
       // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
       if (
@@ -734,27 +799,67 @@ export class CallMusicPlayer {
       }
     }, fadeOutTime);
 
+    // 🐛 FIX: Helper function to handle track end (used by both waitForPlayout and backup timer)
+    const handleTrackEnd = (source: 'waitForPlayout' | 'backupTimer') => {
+      // Prevent double-firing
+      if (this.trackEndHandled) {
+        getLogger().debug({ source, track: track.name }, '🎧 Track end already handled, skipping');
+        return;
+      }
+      this.trackEndHandled = true;
+
+      // Clear both timers
+      clearTimeout(fadeTimer);
+      if (this.trackEndBackupTimer) {
+        clearTimeout(this.trackEndBackupTimer);
+        this.trackEndBackupTimer = null;
+      }
+
+      getLogger().info(
+        { source, track: track.name, duration: trackDuration },
+        '🎧 Track ended (crossfade) - notifying agent'
+      );
+
+      const endedTrack = this.state.currentTrack;
+      const wasAmbient = this.state.isAmbientMode;
+
+      // Mark track completed in history
+      if (!wasAmbient) {
+        this.markCurrentTrackCompleted();
+      }
+
+      this.onTrackEnded();
+
+      if (endedTrack && this.onTrackEndedCallback) {
+        this.onTrackEndedCallback(endedTrack, wasAmbient);
+      }
+
+      this.cleanupTempFile(audioPath);
+    };
+
     // Handle track end
     if (this.currentPlayHandle) {
       void this.currentPlayHandle.waitForPlayout().then(() => {
-        clearTimeout(fadeTimer);
-        const endedTrack = this.state.currentTrack;
-        const wasAmbient = this.state.isAmbientMode;
-
-        // Mark track completed in history
-        if (!wasAmbient) {
-          this.markCurrentTrackCompleted();
-        }
-
-        this.onTrackEnded();
-
-        if (endedTrack && this.onTrackEndedCallback) {
-          this.onTrackEndedCallback(endedTrack, wasAmbient);
-        }
-
-        this.cleanupTempFile(audioPath);
+        handleTrackEnd('waitForPlayout');
       });
     }
+
+    // 🐛 FIX: Backup timer in case waitForPlayout never resolves
+    const backupDelay = trackDuration + 2000;
+    this.trackEndBackupTimer = setTimeout(() => {
+      if (!this.trackEndHandled && this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+        getLogger().warn(
+          { track: track.name, expectedDuration: trackDuration },
+          '🎧 Backup timer fired (crossfade) - waitForPlayout did not resolve in time'
+        );
+        handleTrackEnd('backupTimer');
+      }
+    }, backupDelay);
+
+    getLogger().debug(
+      { track: track.name, fadeOutTime, backupDelay },
+      '🎧 Scheduled track timers (crossfade)'
+    );
 
     return { success: true, previousTrack };
   }
@@ -1003,6 +1108,13 @@ export class CallMusicPlayer {
       clearTimeout(this.midSongMomentTimer);
       this.midSongMomentTimer = null;
     }
+
+    // 🐛 FIX: Clear backup timer on pause
+    if (this.trackEndBackupTimer) {
+      clearTimeout(this.trackEndBackupTimer);
+      this.trackEndBackupTimer = null;
+    }
+    this.trackEndHandled = true; // Prevent backup timer from firing
 
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
       this.currentPlayHandle.stop();

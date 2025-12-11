@@ -6,7 +6,8 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { 
+import { outreachService, type OutreachPreferences } from '../services/outreach.service.js';
+import {
   getPushNotificationsService,
   type NotificationPreferences,
 } from '../services/push-notifications.service.js';
@@ -32,6 +33,7 @@ class NotificationSettingsUI {
   private callbacks: NotificationSettingsUICallbacks = {};
   private styleElement: HTMLStyleElement | null = null;
   private localPrefs: NotificationPreferences | null = null;
+  private outreachPrefs: OutreachPreferences | null = null;
 
   initialize(): void {
     if (this.panel) return;
@@ -50,6 +52,7 @@ class NotificationSettingsUI {
     // Load current preferences
     const service = getPushNotificationsService();
     this.localPrefs = service.getPreferences();
+    this.outreachPrefs = outreachService.getPreferences();
 
     this.renderContent();
     this.panel.classList.add('notif-settings--visible');
@@ -176,6 +179,66 @@ class NotificationSettingsUI {
               </div>
             </div>
           </div>
+
+          <div class="notif-settings__group">
+            <h3>Email & SMS</h3>
+            <p class="notif-settings__group-desc">Reach beyond the app</p>
+            
+            <div class="notif-settings__row">
+              <div class="notif-settings__row-text">
+                <span class="notif-settings__label">Email Updates</span>
+                <span class="notif-settings__desc">Milestone celebrations and recaps</span>
+              </div>
+              <label class="notif-settings__toggle">
+                <input type="checkbox" data-outreach="emailEnabled" ${this.outreachPrefs?.emailEnabled ? 'checked' : ''}>
+                <span class="notif-settings__toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="notif-settings__row">
+              <div class="notif-settings__row-text">
+                <span class="notif-settings__label">SMS Messages</span>
+                <span class="notif-settings__desc">Streak reminders and celebrations</span>
+              </div>
+              <label class="notif-settings__toggle">
+                <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
+                <span class="notif-settings__toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="notif-settings__row">
+              <div class="notif-settings__row-text">
+                <span class="notif-settings__label">Milestone Celebrations</span>
+                <span class="notif-settings__desc">Email/SMS for big moments</span>
+              </div>
+              <label class="notif-settings__toggle">
+                <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
+                <span class="notif-settings__toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="notif-settings__row">
+              <div class="notif-settings__row-text">
+                <span class="notif-settings__label">Streak Reminders</span>
+                <span class="notif-settings__desc">Gentle nudges to keep going</span>
+              </div>
+              <label class="notif-settings__toggle">
+                <input type="checkbox" data-outreach="streakReminders" ${this.outreachPrefs?.streakReminders ? 'checked' : ''}>
+                <span class="notif-settings__toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="notif-settings__row">
+              <div class="notif-settings__row-text">
+                <span class="notif-settings__label">Weekly Recap</span>
+                <span class="notif-settings__desc">Summary of our conversations</span>
+              </div>
+              <label class="notif-settings__toggle">
+                <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
+                <span class="notif-settings__toggle-track"></span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <div class="notif-settings__footer">
@@ -186,24 +249,42 @@ class NotificationSettingsUI {
     `;
 
     // Bind events
-    this.panel.querySelector('.notif-settings__close')?.addEventListener('click', () => this.hide());
-    
-    this.panel.querySelectorAll('[data-pref]').forEach(input => {
+    this.panel
+      .querySelector('.notif-settings__close')
+      ?.addEventListener('click', () => this.hide());
+
+    this.panel.querySelectorAll('[data-pref]').forEach((input) => {
       input.addEventListener('change', () => this.handlePrefChange(input as HTMLInputElement));
     });
 
-    this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
+    this.panel.querySelectorAll('[data-outreach]').forEach((input) => {
+      input.addEventListener('change', () => this.handleOutreachChange(input as HTMLInputElement));
+    });
+
+    this.panel
+      .querySelector('[data-action="cancel"]')
+      ?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
 
     // Update disabled state based on master toggle
     this.updateDependentSections();
   }
 
+  private handleOutreachChange(input: HTMLInputElement): void {
+    if (!this.outreachPrefs) return;
+
+    const pref = input.dataset.outreach as keyof OutreachPreferences;
+
+    if (input.type === 'checkbox') {
+      (this.outreachPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
+    }
+  }
+
   private handlePrefChange(input: HTMLInputElement): void {
     if (!this.localPrefs) return;
 
     const pref = input.dataset.pref as keyof NotificationPreferences;
-    
+
     if (input.type === 'checkbox') {
       (this.localPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
     } else {
@@ -220,16 +301,16 @@ class NotificationSettingsUI {
     if (!this.panel || !this.localPrefs) return;
 
     const dependentGroups = this.panel.querySelectorAll('[data-requires="enabled"]');
-    dependentGroups.forEach(group => {
+    dependentGroups.forEach((group) => {
       if (this.localPrefs?.enabled) {
         group.classList.remove('notif-settings__group--disabled');
-        group.querySelectorAll('input').forEach(input => {
-          (input).disabled = false;
+        group.querySelectorAll('input').forEach((input) => {
+          input.disabled = false;
         });
       } else {
         group.classList.add('notif-settings__group--disabled');
-        group.querySelectorAll('input').forEach(input => {
-          (input).disabled = true;
+        group.querySelectorAll('input').forEach((input) => {
+          input.disabled = true;
         });
       }
     });
@@ -243,11 +324,17 @@ class NotificationSettingsUI {
 
     // Request permission if enabling
     if (this.localPrefs.enabled) {
-      void service.requestPermission().then(permission => {
+      void service.requestPermission().then((permission) => {
         if (permission !== 'granted') {
           log.warn('[NotificationSettings] Permission not granted');
         }
       });
+    }
+
+    // Save outreach preferences
+    if (this.outreachPrefs) {
+      void outreachService.updatePreferences(this.outreachPrefs);
+      log.info('Outreach preferences saved');
     }
 
     this.callbacks.onSave?.(this.localPrefs);
@@ -558,4 +645,3 @@ export function hideNotificationSettings(): void {
 }
 
 export default NotificationSettingsUI;
-

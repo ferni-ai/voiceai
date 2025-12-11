@@ -5687,10 +5687,10 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // Enable process pooling/prewarming with 1 idle process ready
-      // This ensures a pre-initialized process is available for incoming jobs,
-      // avoiding the 10-second child process initialization timeout
-      numIdleProcesses: 1,
+      // DISABLED: numIdleProcesses: 1 was causing Ferni to go silent (performance issue)
+      // Process prewarming may cause memory pressure or state issues in Cloud Run
+      // Re-enable with caution after investigating - see bug hunt 2025-12-11
+      numIdleProcesses: 0,
       // Increase timeout for heavy initialization (bundles + startup + services)
       // The prewarm function calls startup() which does 10+ async operations:
       // - memory system (Firestore), services, bundles, schedulers,

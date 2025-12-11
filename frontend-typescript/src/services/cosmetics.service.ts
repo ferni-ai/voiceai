@@ -462,15 +462,17 @@ function applyEquippedCosmetics(): void {
   if (themeId) {
     const theme = COSMETICS_CATALOG.find((c) => c.id === themeId);
     if (theme?.config) {
-      applyTheme(theme.config);
+      applyThemeConfig(theme.config);
     }
   }
 
-  // Apply avatar skin (dispatch event for avatar component)
+  // Apply avatar skin by setting CSS custom properties
   const skinId = userCosmetics.equipped['avatar-skin'];
   if (skinId) {
     const skin = COSMETICS_CATALOG.find((c) => c.id === skinId);
     if (skin?.config) {
+      applySkinConfig(skin.config);
+      // Also dispatch event for any components that want to listen
       document.dispatchEvent(
         new CustomEvent('ferni:skin-change', {
           detail: { skinId, config: skin.config },
@@ -483,9 +485,57 @@ function applyEquippedCosmetics(): void {
 }
 
 /**
- * Apply a UI theme
+ * Apply avatar skin by setting CSS custom properties
+ * Skin colors override the default persona colors
  */
-function applyTheme(config: Record<string, string>): void {
+function applySkinConfig(config: Record<string, string>): void {
+  const root = document.documentElement;
+
+  // Map skin config properties to CSS custom properties
+  if (config.primaryColor) {
+    // Check if it's a CSS variable reference or a raw color
+    if (config.primaryColor.startsWith('var(')) {
+      root.style.setProperty('--skin-primary', config.primaryColor);
+    } else {
+      root.style.setProperty('--skin-primary', config.primaryColor);
+      // Also set with alpha for glow effects
+      const glowColor = config.glowColor || `${config.primaryColor}50`;
+      root.style.setProperty('--skin-glow', glowColor);
+    }
+  }
+
+  if (config.glowColor) {
+    root.style.setProperty('--skin-glow', config.glowColor);
+  }
+
+  if (config.secondaryColor) {
+    root.style.setProperty('--skin-secondary', config.secondaryColor);
+  }
+
+  // Store effect type if present (for avatar components to use)
+  if (config.particleEffect) {
+    root.setAttribute('data-skin-effect', config.particleEffect);
+  }
+  if (config.effect) {
+    root.setAttribute('data-skin-effect', config.effect);
+  }
+
+  // For default skin, clear any custom skin variables
+  const isDefaultSkin = !config.primaryColor || config.primaryColor.startsWith('var(--color-ferni');
+  if (isDefaultSkin) {
+    root.style.removeProperty('--skin-primary');
+    root.style.removeProperty('--skin-secondary');
+    root.style.removeProperty('--skin-glow');
+    root.removeAttribute('data-skin-effect');
+  }
+
+  log.debug({ config, isDefaultSkin }, 'Applied skin config');
+}
+
+/**
+ * Apply a UI theme config (CSS custom properties)
+ */
+function applyThemeConfig(config: Record<string, string>): void {
   const root = document.documentElement;
   for (const [property, value] of Object.entries(config)) {
     if (property.startsWith('--')) {

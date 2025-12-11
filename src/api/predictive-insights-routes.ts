@@ -11,11 +11,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { runPredictiveAnalysis } from '../services/predictive-insights/index.js';
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  runPredictiveAnalysis,
-  type PredictiveInsight,
-} from '../services/predictive-insights/index.js';
 
 const log = getLogger().child({ module: 'PredictiveInsightsAPI' });
 

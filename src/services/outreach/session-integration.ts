@@ -6,14 +6,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  updateUserContext,
-  triggerOutreach,
-  recordTimingInteraction,
-  updateEmotionalState as updateContextEmotionalState,
-  type OutreachTriggerType,
-} from './index.js';
 import { onSessionEnd as recordPredictiveSignals } from '../predictive-insights/data-collector.js';
+import {
+  recordTimingInteraction,
+  triggerOutreach,
+  updateEmotionalState as updateContextEmotionalState,
+  updateUserContext,
+} from './index.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -402,8 +401,11 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
       duration: durationMinutes,
       userInitiated: true, // Assume user-initiated for voice sessions
       satisfactionSignal:
-        satisfaction === 'positive' ? 'positive' :
-        satisfaction === 'negative' ? 'negative' : 'neutral',
+        satisfaction === 'positive'
+          ? 'positive'
+          : satisfaction === 'negative'
+            ? 'negative'
+            : 'neutral',
     });
     log.debug({ userId }, '📊 Recorded predictive insight signals');
   } catch (error) {
@@ -450,9 +452,9 @@ export function analyzeMessageForContext(
 // ============================================================================
 
 export {
-  extractCommitments,
   detectEmotionalState,
+  extractCommitments,
   extractWinsAndStruggles,
+  type DetectedEmotionalState as EmotionalState,
   type ExtractedCommitment,
-  type DetectedEmotionalState as EmotionalState, // Export as EmotionalState for backward compatibility
 };

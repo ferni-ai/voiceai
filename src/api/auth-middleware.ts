@@ -25,6 +25,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { verifyFirebaseToken } from '../services/firebase-auth.js';
+import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,
   isLockedOut,
@@ -446,11 +447,6 @@ export function getAuthenticatedUserIdSync(
 // RATE LIMITING
 // ============================================================================
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
 interface RateLimitTier {
   name: string;
   maxRequests: number;
@@ -469,30 +465,28 @@ export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
   expensive: { name: 'expensive', maxRequests: 10, windowMs: 60000 },
 };
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
 /**
- * Check rate limit for a key.
+ * Check rate limit for a key (sync version for backwards compatibility).
+ * Uses in-memory store. For Redis support, use checkRateLimitAsync.
  */
 export function checkRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number
 ): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
+  return rateLimiter.checkSync(key, maxRequests, windowMs);
+}
 
-  if (!entry || entry.resetAt <= now) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: maxRequests - 1, resetAt: now + windowMs };
-  }
-
-  if (entry.count >= maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-  }
-
-  entry.count++;
-  return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt };
+/**
+ * Check rate limit for a key (async version with Redis support).
+ * Uses Redis if available, falls back to in-memory.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  return rateLimiter.check(key, maxRequests, windowMs);
 }
 
 /**
@@ -570,17 +564,4 @@ export function rateLimitExpensive(
   });
 }
 
-// Cleanup old rate limit entries periodically
-setInterval(() => {
-  const now = Date.now();
-  let cleaned = 0;
-  for (const [key, entry] of rateLimitStore) {
-    if (entry.resetAt <= now) {
-      rateLimitStore.delete(key);
-      cleaned++;
-    }
-  }
-  if (cleaned > 0) {
-    log.debug({ cleaned }, 'Cleaned expired rate limit entries');
-  }
-}, 60000);
+// Note: Rate limit cleanup is handled by the rate-limiter service

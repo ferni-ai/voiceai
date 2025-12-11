@@ -19,6 +19,20 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'FirebaseAuth' });
 
 // ============================================================================
+// ENVIRONMENT DETECTION
+// ============================================================================
+
+/**
+ * Check if we're running in production.
+ */
+function isProduction(): boolean {
+  const nodeEnv = process.env.NODE_ENV;
+  const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
+  const cloudRun = process.env.K_SERVICE;
+  return nodeEnv === 'production' || !!gcpProject || !!cloudRun;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -103,16 +117,26 @@ function ensureInitialized(): boolean {
 /**
  * Verify a Firebase ID token.
  *
+ * SECURITY: In production, this will throw if Firebase is not initialized.
+ * This prevents silent auth bypass due to misconfiguration.
+ *
  * @param idToken - The Firebase ID token from the frontend
  * @param checkRevoked - Whether to check if the token has been revoked (default: false for performance)
  * @returns Verified token info, or null if invalid
+ * @throws Error in production if Firebase is not initialized
  */
 export async function verifyFirebaseToken(
   idToken: string,
   checkRevoked = false
 ): Promise<VerifiedToken | null> {
   if (!ensureInitialized()) {
-    log.debug('Firebase Admin not initialized - token verification skipped');
+    if (isProduction()) {
+      // SECURITY: In production, fail hard if Firebase isn't initialized
+      // This prevents silent auth bypass due to misconfiguration
+      log.error('SECURITY: Firebase Admin not initialized in production - rejecting token');
+      throw new Error('Authentication service unavailable');
+    }
+    log.debug('Firebase Admin not initialized - token verification skipped (dev mode)');
     return null;
   }
 
@@ -138,7 +162,7 @@ export async function verifyFirebaseToken(
     };
 
     log.debug(
-      { uid: result.uid.substring(0, 8) + '...', isAnonymous, provider: result.signInProvider },
+      { uid: `${result.uid.substring(0, 8)}...`, isAnonymous, provider: result.signInProvider },
       'Firebase token verified'
     );
 
@@ -146,7 +170,7 @@ export async function verifyFirebaseToken(
   } catch (error) {
     // Handle specific Firebase errors
     if (error instanceof Error) {
-      const code = (error as { code?: string }).code;
+      const { code } = error as { code?: string };
 
       switch (code) {
         case 'auth/id-token-expired':
@@ -198,7 +222,7 @@ export async function setCustomClaims(
 
   try {
     await admin.auth().setCustomUserClaims(uid, claims);
-    log.info({ uid: uid.substring(0, 8) + '...', claims }, 'Set custom claims');
+    log.info({ uid: `${uid.substring(0, 8)}...`, claims }, 'Set custom claims');
     return true;
   } catch (error) {
     log.error({ error: String(error), uid }, 'Failed to set custom claims');
@@ -217,7 +241,7 @@ export async function revokeRefreshTokens(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().revokeRefreshTokens(uid);
-    log.info({ uid: uid.substring(0, 8) + '...' }, 'Revoked refresh tokens');
+    log.info({ uid: `${uid.substring(0, 8)}...` }, 'Revoked refresh tokens');
     return true;
   } catch (error) {
     log.error({ error: String(error), uid }, 'Failed to revoke refresh tokens');
@@ -236,7 +260,7 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().deleteUser(uid);
-    log.info({ uid: uid.substring(0, 8) + '...' }, 'Deleted Firebase user');
+    log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {
     log.error({ error: String(error), uid }, 'Failed to delete Firebase user');

@@ -13,7 +13,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { UserRitualProfile, RitualStreak, EmotionalWeather } from './daily-rituals.js';
+import type { EmotionalWeather, RitualStreak, UserRitualProfile } from './daily-rituals.js';
 
 // ============================================================================
 // TYPES

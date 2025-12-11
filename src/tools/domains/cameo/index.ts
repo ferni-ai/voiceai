@@ -13,8 +13,10 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import {
+  endCameo,
   executeCameo,
   getCooldownStatus,
+  getCurrentCameoPersona,
   isInCameo,
   type CameoPersonaId,
   type CameoTriggerType,
@@ -244,20 +246,122 @@ Team members available:
           '🎬 Cameo execution SUCCESS - frontend should receive cameo_start message'
         );
 
+        // FIX GAP 3: Return clear instructions to prevent double-speaking
+        // The greeting is ALREADY spoken by the handler, so we tell the LLM not to repeat it
         return {
           success: true,
           personaId,
           personaName: persona.name,
-          greeting: result.greeting,
-          insight: result.insight,
-          handback: result.handback,
-          message: `${persona.name} is popping in to share an insight about: ${context}`,
+          // IMPORTANT: Greeting has ALREADY been spoken by the voice handler
+          // The LLM should NOT speak the greeting again!
+          greetingAlreadySpoken: true,
+          // The LLM (now with cameo persona instructions) should speak this insight
+          insightToSpeak: result.insight || context,
+          // After speaking the insight, speak this handback phrase
+          handbackToSpeak: result.handback,
+          // CRITICAL: After speaking the handback, the LLM MUST call completeCameo!
+          nextStep:
+            'After speaking the handback, you MUST call the completeCameo tool to return to Ferni.',
+          message: `${persona.name} is now speaking. Speak the insight, then the handback, then call completeCameo.`,
           _sendToFrontend: {
             type: 'cameo_invoked',
             personaId,
             personaName: persona.name,
             timestamp: Date.now(),
           },
+        };
+      },
+    });
+  },
+};
+
+// ============================================================================
+// COMPLETE CAMEO TOOL - FIX GAP 1: This is how the cameo properly ends!
+// ============================================================================
+
+const completeCameoDef: ToolDefinition = {
+  id: 'completeCameo',
+  name: 'Complete Cameo',
+  description: 'Signal that you are done with your cameo and ready to hand back to Ferni',
+  domain: 'cameo',
+  tags: ['cameo', 'team', 'handback'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: `Call this tool AFTER you have spoken your insight and handback phrase.
+
+⚠️ CRITICAL: You MUST call this tool to complete a cameo!
+   - The voice will switch back to Ferni
+   - Your LLM instructions will be restored to Ferni's
+   - The cameo will be recorded as complete
+
+Without calling this tool, the cameo will time out awkwardly.
+
+Example flow:
+1. inviteCameo is called → you receive insightToSpeak and handbackToSpeak
+2. You speak the insight naturally
+3. You speak the handback (e.g., "Back to you, Ferni!")
+4. You call completeCameo → Ferni takes over`,
+      parameters: z.object({
+        finalThought: z
+          .string()
+          .optional()
+          .describe('Optional final thought before handing back (will not be spoken, just logged)'),
+      }),
+      execute: async ({ finalThought }, { ctx: toolCtx }) => {
+        // Get session ID from runtime context
+        const userData = toolCtx?.userData as
+          | {
+              services?: { sessionId?: string };
+            }
+          | undefined;
+        const sessionId = userData?.services?.sessionId || ctx.sessionId || ctx.userId;
+
+        if (!sessionId) {
+          log.warn('No session context for completeCameo');
+          return {
+            success: false,
+            error: 'Session not initialized',
+          };
+        }
+
+        log.info({ sessionId, finalThought }, '🎬 completeCameo called - ending cameo');
+
+        // Check if actually in a cameo
+        if (!isInCameo(sessionId)) {
+          log.warn({ sessionId }, 'completeCameo called but no cameo in progress');
+          return {
+            success: false,
+            error: 'No cameo in progress',
+            suggestion: 'You are not currently in a cameo',
+          };
+        }
+
+        const currentCameoPersona = getCurrentCameoPersona(sessionId);
+
+        // FIX GAP 1: Actually call endCameo to complete the cameo!
+        const result = await endCameo(sessionId);
+
+        if (!result.success) {
+          log.error({ error: result.error }, 'Failed to complete cameo');
+          return {
+            success: false,
+            error: result.error,
+          };
+        }
+
+        log.info(
+          { sessionId, personaId: currentCameoPersona, duration: result.duration },
+          '🎬 Cameo completed successfully via completeCameo tool'
+        );
+
+        return {
+          success: true,
+          message: 'Cameo complete! Ferni is back.',
+          previousSpeaker: currentCameoPersona,
+          duration: result.duration,
+          // This is returned to Ferni who can continue the conversation
+          _instruction: 'You are now Ferni again. Continue the conversation naturally.',
         };
       },
     });
@@ -364,7 +468,7 @@ Use this when you're unsure if a cameo would be appropriate. Returns a suggestio
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
-const cameoTools: ToolDefinition[] = [inviteCameoDef, checkCameoOpportunityDef];
+const cameoTools: ToolDefinition[] = [inviteCameoDef, completeCameoDef, checkCameoOpportunityDef];
 
 // ============================================================================
 // EXPORTS

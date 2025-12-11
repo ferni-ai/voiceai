@@ -37,7 +37,7 @@ let selectedCategory: CosmeticType | 'all' = 'all';
 let cosmeticsUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
-// STYLES
+// STYLES - Brand compliant, dark mode ready
 // ============================================================================
 
 const styles = `
@@ -87,7 +87,7 @@ const styles = `
 /* Header */
 .personalize-header {
   padding: var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08));
   text-align: center;
   position: relative;
 }
@@ -106,7 +106,7 @@ const styles = `
 }
 
 .personalize-close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-background-tertiary, rgba(0, 0, 0, 0.05));
 }
 
 .personalize-eyebrow {
@@ -136,7 +136,7 @@ const styles = `
   display: flex;
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-5, 20px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08));
   overflow-x: auto;
   justify-content: center;
 }
@@ -156,7 +156,7 @@ const styles = `
 
 .personalize-category-btn:hover {
   color: var(--color-text-primary);
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--color-background-tertiary, rgba(0, 0, 0, 0.03));
 }
 
 .personalize-category-btn.active {
@@ -177,10 +177,10 @@ const styles = `
   gap: var(--space-4, 16px);
 }
 
-/* Item Card */
+/* Item Card - dark mode ready */
 .personalize-item {
-  background: white;
-  border: 1px solid var(--color-border);
+  background: var(--color-background-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08));
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 16px);
   cursor: pointer;
@@ -190,7 +190,7 @@ const styles = `
 
 .personalize-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .personalize-item.owned {
@@ -200,33 +200,78 @@ const styles = `
 .personalize-item.equipped {
   border-width: 2px;
   border-color: var(--persona-primary, #4a6741);
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.03), transparent);
+  background: var(--persona-tint, rgba(74, 103, 65, 0.03));
 }
 
-/* Preview */
+/* Preview - visual representation of cosmetic */
 .personalize-preview {
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-3, 12px);
-  background: var(--color-border);
   border-radius: var(--radius-md, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  color: var(--color-text-muted);
   position: relative;
+  overflow: hidden;
 }
 
+/* Skin preview - show the actual color */
+.personalize-preview.preview-skin {
+  border-radius: 50%;
+  box-shadow: 0 4px 12px var(--preview-glow, rgba(0,0,0,0.1));
+}
+
+/* Theme preview - show a mini UI mockup */
+.personalize-preview.preview-theme {
+  background: var(--color-background-tertiary, #f0f0f0);
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.personalize-preview.preview-theme .theme-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--preview-color, var(--color-text-muted));
+  opacity: 0.6;
+}
+
+.personalize-preview.preview-theme .theme-bar:first-child {
+  width: 80%;
+  opacity: 0.8;
+}
+
+/* Sound preview - waveform icon */
+.personalize-preview.preview-sound {
+  background: var(--color-background-tertiary, #f0f0f0);
+  color: var(--color-text-muted);
+}
+
+.personalize-preview.preview-sound svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Emote preview */
+.personalize-preview.preview-emote {
+  background: var(--color-background-tertiary, #f0f0f0);
+  font-size: 1.5rem;
+  color: var(--color-text-secondary);
+}
+
+/* Equipped badge */
 .personalize-item.equipped .personalize-preview::after {
   content: '';
   position: absolute;
   bottom: -4px;
   right: -4px;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background: var(--persona-primary, #4a6741);
   border-radius: 50%;
+  border: 2px solid var(--color-background-elevated, #FFFDFB);
 }
 
 /* Info */
@@ -284,7 +329,7 @@ const styles = `
 }
 
 .personalize-item-action:disabled {
-  background: var(--color-border);
+  background: var(--color-border-medium, rgba(0,0,0,0.1));
   color: var(--color-text-muted);
   cursor: default;
 }
@@ -316,14 +361,9 @@ const styles = `
 
 const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
-// Simple text-based icons (brand compliant - no emojis)
-const TYPE_ICONS: Record<CosmeticType, string> = {
-  'avatar-skin': '◯',
-  'ui-theme': '◐',
-  'voice-pack': '♪',
-  'sound-pack': '♫',
-  emote: '~',
-};
+const SOUND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>`;
+
+const VOICE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`;
 
 const TYPE_LABELS: Record<CosmeticType, string> = {
   'avatar-skin': 'Style',
@@ -343,6 +383,18 @@ const CATEGORY_LABELS: Record<CosmeticType | 'all', string> = {
 };
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('.personalize-overlay').forEach((el) => el.remove());
+  document.querySelectorAll('.personalize-toast').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -358,7 +410,8 @@ function initStyles(): void {
 function createModal(): HTMLElement {
   initStyles();
 
-  document.querySelectorAll('.personalize-overlay').forEach((el) => el.remove());
+  // HMR cleanup - remove any existing instances
+  cleanupOrphanedElements();
 
   const overlay = document.createElement('div');
   overlay.className = 'personalize-overlay';
@@ -385,7 +438,7 @@ function createModal(): HTMLElement {
 function renderHeader(): string {
   return `
     <div class="personalize-header">
-      <button class="personalize-close">${CLOSE_ICON}</button>
+      <button class="personalize-close" aria-label="Close">${CLOSE_ICON}</button>
       <p class="personalize-eyebrow">Make It Yours</p>
       <h2 class="personalize-title">Personalize</h2>
       <p class="personalize-subtitle">Choose how Ferni looks and sounds</p>
@@ -394,12 +447,14 @@ function renderHeader(): string {
 }
 
 function renderCategories(): string {
+  // Include all categories that have items
   const categories: Array<CosmeticType | 'all'> = [
     'all',
     'avatar-skin',
     'ui-theme',
     'sound-pack',
-    'emote',
+    // 'voice-pack' - Currently no voice pack items, will add when available
+    // 'emote' - Currently no emote items, will add when available
   ];
 
   return `
@@ -418,6 +473,60 @@ function renderCategories(): string {
         .join('')}
     </div>
   `;
+}
+
+/**
+ * Render a visual preview for a cosmetic item
+ */
+function renderPreview(item: CosmeticItem): string {
+  switch (item.type) {
+    case 'avatar-skin': {
+      // Show actual skin color
+      const primaryColor = item.config?.primaryColor || 'var(--persona-primary)';
+      const glowColor = item.config?.glowColor || 'var(--persona-glow)';
+      // Handle CSS variable references
+      const bgColor = primaryColor.startsWith('var(') ? 'var(--persona-primary)' : primaryColor;
+      return `
+        <div class="personalize-preview preview-skin" 
+             style="background: linear-gradient(145deg, ${bgColor}, ${item.config?.secondaryColor || bgColor}); 
+                    --preview-glow: ${glowColor};">
+        </div>
+      `;
+    }
+    case 'ui-theme': {
+      // Show mini UI mockup
+      return `
+        <div class="personalize-preview preview-theme">
+          <div class="theme-bar"></div>
+          <div class="theme-bar"></div>
+          <div class="theme-bar"></div>
+        </div>
+      `;
+    }
+    case 'sound-pack': {
+      return `
+        <div class="personalize-preview preview-sound">
+          ${SOUND_ICON}
+        </div>
+      `;
+    }
+    case 'voice-pack': {
+      return `
+        <div class="personalize-preview preview-sound">
+          ${VOICE_ICON}
+        </div>
+      `;
+    }
+    case 'emote': {
+      return `
+        <div class="personalize-preview preview-emote">
+          ~
+        </div>
+      `;
+    }
+    default:
+      return `<div class="personalize-preview"></div>`;
+  }
 }
 
 function renderItems(): string {
@@ -451,7 +560,7 @@ function renderItems(): string {
             class="personalize-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}"
             data-item-id="${item.id}"
           >
-            <div class="personalize-preview">${TYPE_ICONS[item.type]}</div>
+            ${renderPreview(item)}
             <div class="personalize-item-name">${item.name}</div>
             <div class="personalize-item-type">${TYPE_LABELS[item.type]}</div>
             ${renderItemStatus(item, isOwned, isEquipped)}
@@ -584,21 +693,30 @@ function refreshUI(): void {
   }
 }
 
+/**
+ * Show a toast notification
+ * Uses CSS variables for brand-compliant colors
+ */
 function showToast(message: string, type: 'success' | 'error' = 'success'): void {
+  // Remove any existing toasts
+  document.querySelectorAll('.personalize-toast').forEach((el) => el.remove());
+
   const toast = document.createElement('div');
+  toast.className = 'personalize-toast';
   toast.textContent = message;
   toast.style.cssText = `
     position: fixed;
     bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
+    background: ${type === 'error' ? 'var(--color-semantic-error, #b5453a)' : 'var(--persona-primary, #4a6741)'};
     color: white;
     padding: 12px 24px;
-    border-radius: 999px;
+    border-radius: var(--radius-full, 999px);
     z-index: 10001;
     font-size: 0.9rem;
     font-weight: 500;
+    box-shadow: var(--shadow-lg);
   `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2500);

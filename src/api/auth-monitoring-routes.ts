@@ -139,19 +139,19 @@ async function handleGetMetrics(req: IncomingMessage, res: ServerResponse): Prom
         ...metrics,
         successRate:
           metrics.firebaseTokenVerifications > 0
-            ? (
+            ? `${(
                 (metrics.firebaseTokenVerifications /
                   (metrics.firebaseTokenVerifications + metrics.firebaseTokenFailures)) *
                 100
-              ).toFixed(1) + '%'
+              ).toFixed(1)}%`
             : 'N/A',
         firebaseAdoptionRate:
           metrics.firebaseTokenVerifications + metrics.deviceIdAuthentications > 0
-            ? (
+            ? `${(
                 (metrics.firebaseTokenVerifications /
                   (metrics.firebaseTokenVerifications + metrics.deviceIdAuthentications)) *
                 100
-              ).toFixed(1) + '%'
+              ).toFixed(1)}%`
             : 'N/A',
       },
       security: securityMetrics,

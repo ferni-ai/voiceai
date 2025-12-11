@@ -415,12 +415,16 @@ export class PerformanceInstrumentation {
    */
   checkMemoryThresholds(): MemoryAlert | null {
     const current = this.getCurrentMemory();
-    const heapUsedMB = current.heapUsedMB;
+    const { heapUsedMB } = current;
 
     // Check critical first
     if (heapUsedMB >= this.alertConfig.criticalThresholdMB) {
       if (this.lastAlertLevel !== 'critical') {
-        const alert = this.createAlert('critical', heapUsedMB, this.alertConfig.criticalThresholdMB);
+        const alert = this.createAlert(
+          'critical',
+          heapUsedMB,
+          this.alertConfig.criticalThresholdMB
+        );
         this.lastAlertLevel = 'critical';
         return alert;
       }

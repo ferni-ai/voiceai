@@ -482,7 +482,10 @@ export async function loadDifficultConversationsVoice(
 
   // Fall back to Ferni
   if (personaId !== 'ferni') {
-    return loadPersonaContent<DifficultConversationsVoice>('ferni', 'difficult_conversations_voice');
+    return loadPersonaContent<DifficultConversationsVoice>(
+      'ferni',
+      'difficult_conversations_voice'
+    );
   }
   return null;
 }

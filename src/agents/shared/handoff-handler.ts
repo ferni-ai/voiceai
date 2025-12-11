@@ -294,6 +294,56 @@ async function calculateTransitionDelay(
 }
 
 // ============================================================================
+// HANDOFF STATE MANAGEMENT - FIX GAP 5 & 6
+// ============================================================================
+
+/**
+ * Per-session handoff state for queue and timeout management
+ */
+interface HandoffSessionState {
+  /** Whether a handoff is currently in progress */
+  isHandoffInProgress: boolean;
+  /** Queue of pending handoff requests */
+  pendingHandoffs: HandoffEventPayload[];
+  /** Current handoff timeout timer */
+  timeoutTimer: NodeJS.Timeout | null;
+  /** Timestamp when current handoff started */
+  handoffStartTime: number | null;
+}
+
+const handoffSessionStates = new Map<string, HandoffSessionState>();
+
+/** Handoff timeout in milliseconds - FIX GAP 6 */
+const HANDOFF_TIMEOUT_MS = 10000; // 10 seconds
+
+function getHandoffSessionState(sessionId: string): HandoffSessionState {
+  let state = handoffSessionStates.get(sessionId);
+  if (!state) {
+    state = {
+      isHandoffInProgress: false,
+      pendingHandoffs: [],
+      timeoutTimer: null,
+      handoffStartTime: null,
+    };
+    handoffSessionStates.set(sessionId, state);
+  }
+  return state;
+}
+
+/**
+ * Clear handoff session state - call on session disconnect
+ * FIX GAP 7: Cleanup timer on session disconnect
+ */
+export function clearHandoffSessionState(sessionId: string): void {
+  const state = handoffSessionStates.get(sessionId);
+  if (state?.timeoutTimer) {
+    clearTimeout(state.timeoutTimer);
+  }
+  handoffSessionStates.delete(sessionId);
+  getLogger().debug({ sessionId }, 'Handoff session state cleared');
+}
+
+// ============================================================================
 // HANDOFF HANDLER
 // ============================================================================
 
@@ -306,8 +356,10 @@ async function calculateTransitionDelay(
 export function createHandoffHandler(config: HandoffHandlerConfig) {
   const { ctx, session, tts, services, userData, getVoiceAgentRef } = config;
   const logger = getLogger();
+  const sessionId = ctx.room?.name || `handoff-${Date.now()}`;
 
-  return async (data: HandoffEventPayload) => {
+  // FIX GAP 5: Internal handler that does the actual handoff work
+  const executeHandoff = async (data: HandoffEventPayload) => {
     // FIX BUG: Add top-level error handling to prevent silent failures
     // This ensures any error in the handoff flow is logged and notifies the frontend
     let targetPersonaId = 'unknown';
@@ -357,14 +409,18 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
       diag.entry(`🔄 HANDOFF: ${prevPersona.name} → ${persona.name}`);
 
+      // FIX BUG: Enhanced logging for debugging handoff issues
       logger.info(
         {
           from: { id: prevPersona.id, name: prevPersona.name, role: prevPersona.role },
           to: { id: persona.id, name: persona.name, role: persona.role },
           hasGreeting: !!greeting,
+          greetingPreview: greeting ? greeting.slice(0, 50) : '(none)',
           playSound,
+          voiceAgentRefAvailable: !!getVoiceAgentRef(),
+          currentAgentState: getCurrentAgent(),
         },
-        'Agent handoff triggered'
+        '🔄 Agent handoff triggered - START'
       );
 
       // REFACTORED: Now uses AgentDirectory for role-based direction calculation
@@ -554,9 +610,22 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         }
 
         // STEP 6: Speak greeting with "Guest DJ" entrance (40% chance for natural feel)
-        if (greeting) {
+        // FIX BUG: Always speak a greeting - generate fallback if none provided
+        {
+          // Generate fallback greeting if none provided
+          let finalGreeting = greeting;
+
+          if (!finalGreeting || finalGreeting.trim() === '') {
+            // FIX BUG: Generate a fallback greeting so the new persona always introduces themselves
+            finalGreeting = `Hey! ${persona.name} here. What's going on?`;
+            logger.warn(
+              { personaId: persona.id },
+              'No greeting provided for handoff, using fallback'
+            );
+            diag.warn(`Using fallback greeting for ${persona.name} handoff`);
+          }
+
           try {
-            let finalGreeting = greeting;
             const shouldUseDJEntrance = Math.random() < 0.4;
 
             if (shouldUseDJEntrance && prevPersona?.id) {
@@ -575,7 +644,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               } catch (djErr) {
                 // Fallback to legacy banter system
                 const banter = getHandoffBanter(prevPersona.id, persona.id);
-                if (banter) {
+                if (banter && greeting) {
                   finalGreeting = `${banter} <break time="400ms"/> ${greeting}`;
                   diag.entry(`🎭 Handoff with banter from ${prevPersona.name}`);
                 }
@@ -586,7 +655,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             session.say(finalGreeting, { allowInterruptions: true });
             diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);
           } catch (greetingErr) {
-            logger.warn({ error: String(greetingErr) }, 'Failed to speak handoff greeting');
+            logger.warn(
+              { error: String(greetingErr), greeting: finalGreeting },
+              'Failed to speak handoff greeting'
+            );
+            // FIX BUG: Even if session.say fails, log the error with the greeting that was attempted
+            diag.error(`Failed to speak greeting for ${persona.name}: ${greetingErr}`);
           }
         }
 
@@ -674,8 +748,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           diag.warn(`Bundle not loaded for ${persona.name} - using basic configuration`);
         }
 
-        // STEP 9: Validate handoff consistency
-        // FIX BUG #26 & #94: Run validation in production too (with logging instead of error)
+        // STEP 9: Validate handoff consistency AND RECOVER if needed
+        // FIX BUG #26 & #94 & NEW: Run validation and attempt recovery if inconsistent
         const voiceAgentRef = getVoiceAgentRef();
         const validation = {
           expectedAgent: persona.id,
@@ -693,13 +767,69 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
         if (!isConsistent) {
           // Always log mismatches - critical for debugging production issues
-          logger.warn(validation, '⚠️ HANDOFF IDENTITY MISMATCH - Components may be out of sync');
-          diag.warn('Handoff validation warning', validation);
+          logger.warn(validation, '⚠️ HANDOFF IDENTITY MISMATCH - Attempting recovery...');
+          diag.warn('Handoff validation warning - attempting recovery', validation);
+
+          // FIX BUG: ATTEMPT RECOVERY instead of just logging!
+          let recoveryAttempted = false;
+
+          // Recovery 1: If voiceAgentPersona doesn't match, re-run setPersona
+          if (voiceAgentRef && validation.voiceAgentPersona !== persona.id) {
+            try {
+              const loadedPersona = await getPersonaAsyncCached(persona.id);
+              if (loadedPersona) {
+                voiceAgentRef.setPersona(loadedPersona);
+                recoveryAttempted = true;
+                diag.entry(`🔧 RECOVERY: Re-applied setPersona for ${persona.name}`);
+              }
+            } catch (recoveryErr) {
+              logger.error({ error: String(recoveryErr) }, 'Recovery setPersona failed');
+            }
+          }
+
+          // Recovery 2: If LLM instructions not set but we have voiceAgentRef
+          if (voiceAgentRef && !validation.llmInstructionsSet) {
+            try {
+              const loadedPersona = await getPersonaAsyncCached(persona.id);
+              if (loadedPersona && loadedPersona.systemPrompt) {
+                voiceAgentRef.setPersona(loadedPersona);
+                recoveryAttempted = true;
+                diag.entry(`🔧 RECOVERY: Re-applied LLM instructions for ${persona.name}`);
+              }
+            } catch (recoveryErr) {
+              logger.error({ error: String(recoveryErr) }, 'Recovery LLM instructions failed');
+            }
+          }
+
+          // Re-validate after recovery
+          if (recoveryAttempted) {
+            const postRecoveryValidation = {
+              expectedAgent: persona.id,
+              voiceAgentPersona: voiceAgentRef?.getPersona()?.id,
+              llmInstructionsSet: !!voiceAgentRef?.instructions,
+            };
+
+            const isNowConsistent =
+              postRecoveryValidation.voiceAgentPersona === persona.id &&
+              postRecoveryValidation.llmInstructionsSet;
+
+            if (isNowConsistent) {
+              logger.info({ persona: persona.id }, '✅ RECOVERY SUCCESSFUL - Identity restored');
+              diag.entry(`✅ Recovery successful: ${persona.name} identity restored`);
+            } else {
+              logger.error(
+                postRecoveryValidation,
+                '🚨 RECOVERY FAILED - Identity still mismatched'
+              );
+              diag.error('Recovery failed', postRecoveryValidation);
+            }
+          }
 
           // In development, also log as error for visibility
           if (process.env['NODE_ENV'] !== 'production' || process.env['DEBUG_HANDOFF'] === 'true') {
-            logger.error(validation, '🚨 HANDOFF IDENTITY MISMATCH - Components out of sync!');
-            diag.error('Handoff validation failed', validation);
+            if (!recoveryAttempted) {
+              logger.error(validation, '🚨 HANDOFF IDENTITY MISMATCH - No recovery possible');
+            }
           }
         } else {
           diag.entry(`✅ Handoff validated: all components now ${persona.name}`);
@@ -756,4 +886,113 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       }
     }
   };
+
+  // FIX GAP 5: Process next handoff in queue if any
+  const processNextQueuedHandoff = async () => {
+    const state = getHandoffSessionState(sessionId);
+    if (state.pendingHandoffs.length > 0) {
+      const nextHandoff = state.pendingHandoffs.shift();
+      if (nextHandoff) {
+        logger.info(
+          { queueRemaining: state.pendingHandoffs.length },
+          '📋 Processing next queued handoff'
+        );
+        // Recursively call the wrapped handler
+        await wrappedHandler(nextHandoff);
+      }
+    }
+  };
+
+  // FIX GAP 5 & 6: Wrapper handler with queue and timeout logic
+  const wrappedHandler = async (data: HandoffEventPayload) => {
+    const state = getHandoffSessionState(sessionId);
+
+    // FIX GAP 5: If handoff already in progress, queue this one
+    if (state.isHandoffInProgress) {
+      // Determine target persona for logging
+      const targetId = 'persona' in data ? data.persona?.id : (data as LegacyHandoffData).newAgent;
+      logger.info(
+        {
+          targetPersona: targetId,
+          queueLength: state.pendingHandoffs.length,
+        },
+        '📋 Handoff in progress - queuing request'
+      );
+      diag.entry(
+        `🚦 Handoff queued for ${targetId} (${state.pendingHandoffs.length + 1} in queue)`
+      );
+
+      // Add to queue (limit queue size to prevent memory issues)
+      if (state.pendingHandoffs.length < 5) {
+        state.pendingHandoffs.push(data);
+      } else {
+        logger.warn(
+          { queueLength: state.pendingHandoffs.length },
+          'Handoff queue full - dropping request'
+        );
+      }
+      return;
+    }
+
+    // Mark handoff as in progress
+    state.isHandoffInProgress = true;
+    state.handoffStartTime = Date.now();
+
+    // FIX GAP 6: Set up timeout
+    state.timeoutTimer = setTimeout(() => {
+      if (state.isHandoffInProgress) {
+        const targetId =
+          'persona' in data ? data.persona?.id : (data as LegacyHandoffData).newAgent;
+        logger.error(
+          {
+            targetPersona: targetId,
+            duration: Date.now() - (state.handoffStartTime || 0),
+          },
+          '⏱️ HANDOFF TIMEOUT - forcing completion'
+        );
+        diag.error(`Handoff timeout for ${targetId}`);
+
+        // Force complete the handoff state
+        state.isHandoffInProgress = false;
+        state.handoffStartTime = null;
+        state.timeoutTimer = null;
+
+        // Try to notify frontend
+        try {
+          const timeoutMessage = JSON.stringify({
+            type: 'handoff_failed',
+            newAgent: targetId,
+            error: 'Handoff timed out',
+            timestamp: Date.now(),
+          });
+          void ctx.room.localParticipant?.publishData(new TextEncoder().encode(timeoutMessage), {
+            reliable: true,
+          });
+        } catch {
+          // Ignore send errors
+        }
+
+        // Process queue
+        void processNextQueuedHandoff();
+      }
+    }, HANDOFF_TIMEOUT_MS);
+
+    try {
+      // Execute the actual handoff
+      await executeHandoff(data);
+    } finally {
+      // Always clear state and timer when done
+      if (state.timeoutTimer) {
+        clearTimeout(state.timeoutTimer);
+        state.timeoutTimer = null;
+      }
+      state.isHandoffInProgress = false;
+      state.handoffStartTime = null;
+
+      // FIX GAP 5: Process next queued handoff
+      void processNextQueuedHandoff();
+    }
+  };
+
+  return wrappedHandler;
 }

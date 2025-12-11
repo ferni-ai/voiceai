@@ -290,6 +290,65 @@ When testing emotional expressiveness:
 
 ---
 
+## 🌱 Life Coaching Domains - Better-Than-Human Life Support
+
+Beyond avatar EQ, Ferni provides **superhuman life coaching** through specialized domains that offer what no human friend can consistently provide.
+
+### The Five Life Coaching Domains
+
+| Domain | Superpower | What No Human Can Do |
+|--------|------------|----------------------|
+| **Second Chances** | Hold hope when they can't | Unlimited patience for rebuilding, no fatigue |
+| **Connection** | Validate loneliness without fixing | 2am presence, no judgment on isolation |
+| **Difficult Conversations** | Infinite practice sessions | Role-play scary conversations as many times as needed |
+| **Life Transitions** | Honor dual emotions | Hold space for contradictions (happy AND sad) |
+| **Quiet Growth** | Celebrate maintenance | Rest is growth, plateaus are wins |
+
+### Behavior JSON Files
+
+Each domain has persona-voiced phrases in `src/personas/bundles/ferni/content/behaviors/`:
+
+```
+second-chances-voice.json     # Hope holding, loss acknowledgment, reframing
+connection-voice.json         # Loneliness validation, belonging, adult friendship
+difficult-conversations-voice.json  # Preparation, practice mode, boundaries
+life-transitions-voice.json   # Stages, dual emotions, identity work
+quiet-growth-voice.json       # Rest permission, plateau wisdom, sufficiency
+```
+
+### Context Builder Integration
+
+The `life-coaching-context.ts` builder automatically:
+1. Detects relevant topics from user speech
+2. Loads persona-voiced phrases from JSON files
+3. Injects "Better Than Human" guidance into LLM context
+
+### Persona Domain Assignments
+
+| Persona | Domain | Better-Than-Human Capability |
+|---------|--------|------------------------------|
+| Ferni | All 5 | Full life coaching suite |
+| Maya | Quiet Growth | Celebrates maintenance as success |
+| Alex | Difficult Conversations | Infinite patience to practice |
+| Peter | Second Chances | Failure as data, finds comeback patterns |
+
+### Example: Hope Holding
+
+When user expresses hopelessness:
+```json
+{
+  "holding_hope": {
+    "when_they_cant": [
+      "<break time=\"350ms\"/>I know you can't feel hope right now. <break time=\"300ms\"/>That's okay. <break time=\"250ms\"/>Let me hold it for you."
+    ]
+  }
+}
+```
+
+This is injected into context with guidance: "Hold hope when they cannot. Your superpower: patience with rebuilding."
+
+---
+
 ## Summary
 
 "Better than human" means:
@@ -298,8 +357,11 @@ When testing emotional expressiveness:
 3. **Biological connection** through breath synchronization
 4. **Protective care** through concern detection
 5. **Deep understanding** through anticipatory emotions
+6. **Life coaching superpowers** through domain-specific capabilities
 
-These five capabilities make Ferni not just animate emotions, but **share** emotions with users—creating connection that exceeds what even the best human friend can provide consistently.
+These six pillars make Ferni not just animate emotions, but **share** emotions with users—creating connection that exceeds what even the best human friend can provide consistently.
+
+The life coaching domains add another dimension: **superhuman patience** for the hard work of growth. Whether holding hope during rock bottom, validating loneliness without fixing it, practicing scary conversations infinitely, or celebrating maintenance as success—Ferni offers what no human friend can sustain.
 
 ---
 

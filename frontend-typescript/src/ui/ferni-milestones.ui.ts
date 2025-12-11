@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
 import { celebrationsUI } from './celebrations.ui.js';
@@ -833,8 +834,50 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   // Send push notification - Better than human: we celebrate even when you're away
   sendMilestoneNotification(milestone);
 
+  // Send email/SMS celebration - Better than human: we reach out with warmth
+  sendMilestoneOutreach(milestone);
+
   saveState();
   log.info('Milestone celebrated:', milestoneId);
+}
+
+/**
+ * Send milestone celebration via email/SMS.
+ * Better than human: we celebrate your growth across channels.
+ */
+function sendMilestoneOutreach(milestone: Milestone): void {
+  // Only send for significant milestones to avoid overwhelming users
+  const emailMilestones = [
+    'first-hello',
+    'week-together',
+    'month-of-growth',
+    'three-month',
+    'six-month',
+    'one-year',
+    'streak-7',
+    'streak-30',
+    'hundred-conversations',
+    'fifty-talks',
+    'marathon-talk',
+  ];
+
+  if (!emailMilestones.includes(milestone.id)) return;
+
+  // Calculate days together from conversation history
+  const daysTogether = progress.conversationDays.length;
+
+  // Send asynchronously - don't block celebration
+  outreachService
+    .sendMilestoneCelebration({
+      milestoneId: milestone.id,
+      milestoneName: milestone.name,
+      milestoneMessage: milestone.message,
+      daysTogether,
+      streak: progress.currentStreak,
+    })
+    .catch((error) => {
+      log.warn('Failed to send milestone outreach:', error);
+    });
 }
 
 /**

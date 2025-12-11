@@ -573,12 +573,12 @@ async function handleAccountDeletion(
         const { deleteFirebaseUser } = await import('../services/firebase-auth.js');
         firebaseDeleted = await deleteFirebaseUser(userId);
         if (firebaseDeleted) {
-          log.info({ userId: userId.substring(0, 8) + '...' }, 'Firebase user deleted');
+          log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
         }
       } catch (firebaseErr) {
         // Firebase deletion is best-effort - don't fail the whole request
         log.warn(
-          { error: String(firebaseErr), userId: userId.substring(0, 8) + '...' },
+          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }

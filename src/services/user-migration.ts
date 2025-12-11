@@ -93,8 +93,8 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
   const legacyUserId = deviceId.startsWith('device:') ? deviceId : `device:${deviceId}`;
 
   log.info('Starting user migration', {
-    from: legacyUserId.substring(0, 20) + '...',
-    to: firebaseUid.substring(0, 8) + '...',
+    from: `${legacyUserId.substring(0, 20)}...`,
+    to: `${firebaseUid.substring(0, 8)}...`,
   });
 
   // Check if already migrated
@@ -111,7 +111,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
     }
     // Different Firebase UID - this is an error
     log.warn('Device already migrated to different Firebase UID', {
-      existingUid: existingUid?.substring(0, 8) + '...',
+      existingUid: `${existingUid?.substring(0, 8)}...`,
     });
     return {
       success: false,

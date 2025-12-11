@@ -51,7 +51,7 @@ export async function handleAccountRoutes(
   const auth = await requireAuth(req, res);
   if (!auth) return true;
 
-  const userId = auth.userId;
+  const { userId } = auth;
   const method = req.method || 'GET';
 
   try {
@@ -176,7 +176,7 @@ async function handleDeleteAccount(
     return true;
   }
 
-  log.warn({ userId: userId.substring(0, 15) + '...' }, 'Account deletion requested');
+  log.warn({ userId: `${userId.substring(0, 15)}...` }, 'Account deletion requested');
 
   // Record this critical event
   await recordSecurityEvent({
@@ -201,11 +201,11 @@ async function handleDeleteAccount(
       try {
         firebaseDeleted = await deleteFirebaseUser(userId);
         if (firebaseDeleted) {
-          log.info({ userId: userId.substring(0, 8) + '...' }, 'Firebase user deleted');
+          log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
         }
       } catch (firebaseErr) {
         log.warn(
-          { error: String(firebaseErr), userId: userId.substring(0, 8) + '...' },
+          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }

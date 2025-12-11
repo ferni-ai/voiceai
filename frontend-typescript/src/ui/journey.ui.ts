@@ -20,6 +20,7 @@ import {
   getProgress,
   getTotalMilestonesCount,
 } from './ferni-milestones.ui.js';
+import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
 
 const log = createLogger('JourneyUI');
@@ -131,7 +132,7 @@ export function closeJourney(): void {
 
 /**
  * Share your journey with others.
- * Uses native share API when available, falls back to clipboard.
+ * Creates a beautiful visual card and shares via native share or download.
  */
 async function shareJourney(
   celebrated: number,
@@ -139,48 +140,50 @@ async function shareJourney(
   streak: number,
   totalDays: number
 ): Promise<void> {
-  // Create warm, shareable message
-  const messages = [
-    `${celebrated}/${total} milestones`,
-    streak > 1 ? `${streak} day streak` : '',
-    totalDays > 0 ? `${totalDays} days together` : '',
-  ].filter(Boolean);
+  const cardData = {
+    celebrated,
+    total,
+    streak,
+    daysTogether: totalDays,
+  };
 
-  const shareText = `My journey with Ferni:\n${messages.join(' • ')}\n\nferni.ai`;
-
-  // Try native share API first (mobile)
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: 'My Journey with Ferni',
-        text: shareText,
-        url: 'https://ferni.ai',
-      });
-      log.info('Journey shared via native share');
-      return;
-    } catch (err) {
-      // User cancelled or share failed, try clipboard
-      if ((err as Error).name !== 'AbortError') {
-        log.warn('Native share failed:', err);
-      }
-    }
-  }
-
-  // Fallback to clipboard
   try {
-    await navigator.clipboard.writeText(shareText);
-    showShareConfirmation();
-    log.info('Journey copied to clipboard');
-  } catch {
-    log.warn('Could not copy to clipboard');
+    // Try sharing with visual card
+    const shared = await shareJourneySummaryCard(cardData);
+
+    if (shared) {
+      log.info('Journey card shared via native share');
+    } else {
+      // Card was downloaded as fallback
+      showShareConfirmation('Image saved');
+      log.info('Journey card downloaded');
+    }
+  } catch (err) {
+    // Final fallback to text sharing
+    log.warn('Card share failed, falling back to text:', err);
+
+    const messages = [
+      `${celebrated}/${total} milestones`,
+      streak > 1 ? `${streak} day streak` : '',
+      totalDays > 0 ? `${totalDays} days together` : '',
+    ].filter(Boolean);
+
+    const shareText = `My journey with Ferni:\n${messages.join(' • ')}\n\nferni.ai`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      showShareConfirmation('Copied to clipboard');
+    } catch {
+      log.warn('Could not copy to clipboard');
+    }
   }
 }
 
-function showShareConfirmation(): void {
+function showShareConfirmation(message = 'Copied to clipboard'): void {
   // Show a brief toast-like confirmation
   const toast = document.createElement('div');
   toast.className = 'journey-share-toast';
-  toast.textContent = 'Copied to clipboard';
+  toast.textContent = message;
   toast.setAttribute('role', 'status');
 
   document.body.appendChild(toast);

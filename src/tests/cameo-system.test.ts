@@ -82,7 +82,7 @@ vi.mock('../services/cameo/cameo-timing.js', async (importOriginal) => {
 });
 
 describe('Cameo Orchestrator', () => {
-  const sessionId = 'test-session-' + Date.now();
+  const sessionId = `test-session-${Date.now()}`;
 
   beforeEach(() => {
     resetSessionState(sessionId);

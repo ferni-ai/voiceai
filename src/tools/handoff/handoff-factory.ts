@@ -455,10 +455,15 @@ export async function buildHandoffTools(
           return { error: result.error, rateLimited: result.rateLimited };
         }
 
+        // FIX: Prevent double-speaking - greeting is ALREADY spoken by handoff-handler.ts
+        // The handler calls session.say(greeting) before the tool result returns.
+        // We tell the LLM not to repeat it.
         return {
           handoff_complete: true,
           new_agent: result.targetAgentName,
-          greeting: result.greeting,
+          // IMPORTANT: Greeting has ALREADY been spoken by the voice handler via session.say()
+          // The LLM should NOT speak the greeting again!
+          greetingAlreadySpoken: true,
           instructions: result.instructions,
           voice_id: result.voiceId,
         };

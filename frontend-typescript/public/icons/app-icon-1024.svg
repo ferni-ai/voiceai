@@ -1,48 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Ferni Orb Logo - 1024x1024 -->
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni iOS/Android App Icon - 1024x1024 master -->
+  <!-- Brand Colors: Forest Green #3D5A45, Paper Cream #F5F1E8 -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
+    <!-- Main gradient - Forest Green -->
+    <linearGradient id="appGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="50%" stop-color="#3D5A45"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
     </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
     
-    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="40.96" result="blur"/>
-      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
+    <!-- Background gradient - Warm cream -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#E8E0D5"/>
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="appGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feFlood flood-color="#3D5A45" flood-opacity="0.3"/>
       <feComposite in2="blur" operator="in"/>
       <feMerge>
         <feMergeNode/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    
+    <!-- Subtle shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="24" flood-color="#2C2520" flood-opacity="0.15"/>
+    </filter>
+    
+    <!-- Inner highlight -->
+    <linearGradient id="appShine" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
   </defs>
-
-  <rect width="1024" height="1024" rx="192" fill="#F5F1E8"/>
   
-    <circle cx="512" cy="512" r="422.83008" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
-    <circle cx="512" cy="512" r="381.91104000000007" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
-
-  <!-- Main orb -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
-
-  <!-- Top highlight -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbHighlight)"/>
-
-  <!-- Waveform bars -->
-  <g>
-    <rect x="334" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="377" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="420" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="463" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="506" y="443.8016" width="12" height="136.3968" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="549" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="592" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="635" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="678" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-  </g>
+  <!-- Background (iOS requires filled background) -->
+  <rect width="1024" height="1024" fill="url(#bgGradient)"/>
+  
+  <!-- Subtle texture grain -->
+  <rect width="1024" height="1024" fill="url(#bgGradient)" opacity="0.5"/>
+  
+  <!-- Main rounded square with shadow -->
+  <rect x="112" y="112" width="800" height="800" rx="180" ry="180" 
+        fill="url(#appGradient)" filter="url(#shadow)"/>
+  
+  <!-- Inner highlight -->
+  <rect x="112" y="112" width="800" height="800" rx="180" ry="180" 
+        fill="url(#appShine)" opacity="0.6"/>
+  
+  <!-- FE Monogram -->
+  <text x="512" y="580" 
+        font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" 
+        font-size="380" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle" 
+        letter-spacing="-0.02em">FE</text>
 </svg>

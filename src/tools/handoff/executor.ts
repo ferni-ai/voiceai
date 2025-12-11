@@ -19,8 +19,8 @@ import {
   detectUserMoodFromContext,
   getAliveEntranceForHandoff,
 } from '../../personas/alive-entrances.js';
-import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import { isCoach } from '../../personas/persona-ids.js';
+import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import {
   getCanonicalPersonaId,
   getPersonaDisplayName,
@@ -635,8 +635,10 @@ HANDOFF REASON: ${reason}
 ${contextContinuation ? `CONTEXT: ${contextContinuation}` : ''}
 ${cognitiveInstructions}
 
+IMPORTANT: Your greeting has ALREADY been spoken automatically. Do NOT repeat a greeting or introduction - the user already heard "${targetName} here" or similar. Jump straight into addressing their needs.
+
 INSTRUCTIONS:
-1. Acknowledge the handoff naturally - you're picking up where someone else left off
+1. Do NOT speak a greeting - it was already said. Start with substance.
 2. Reference the context if relevant
 3. Move forward with your expertise in this area
 4. Stay in character as ${targetName}

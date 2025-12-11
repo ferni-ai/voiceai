@@ -6,8 +6,8 @@
  * @module PredictiveInsightsService
  */
 
-import { createLogger } from '../utils/logger.js';
 import { showInsightFromAPI, type InsightType } from '../ui/predictive-insights.ui.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('PredictiveInsightsService');
 

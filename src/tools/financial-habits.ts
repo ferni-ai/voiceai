@@ -48,7 +48,10 @@ import {
 
 // Import extracted types and helpers
 import type { SpendingCategory } from './financial-habits/types.js';
-import { analyzeSpendingFromBudget, findSpendingLeaksFromStore } from './financial-habits/helpers.js';
+import {
+  analyzeSpendingFromBudget,
+  findSpendingLeaksFromStore,
+} from './financial-habits/helpers.js';
 
 // Re-export types for backward compatibility
 export type {

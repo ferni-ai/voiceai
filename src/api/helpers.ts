@@ -9,6 +9,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { API_ERRORS } from './error-messages.js';
+import {
+  getCorsHeaders as getSecureCorsHeaders,
+  getAPISecurityHeaders,
+  isProduction,
+} from './security-headers.js';
 
 // ============================================================================
 // REQUEST PARSING
@@ -87,19 +92,29 @@ export function requireUserId(
 
 /**
  * CORS headers for API responses.
- * Uses ALLOWED_ORIGINS env var in production, defaults to '*' for development.
+ * Uses ALLOWED_ORIGINS env var in production.
+ *
+ * SECURITY: In production, ALLOWED_ORIGINS must be set to specific origins.
+ * Wildcard '*' is only allowed in development.
+ *
+ * @param origin - Optional request Origin header for validation
  */
-export function getCorsHeaders(): Record<string, string> {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS || '*';
+export function getCorsHeaders(origin?: string): Record<string, string> {
+  return getSecureCorsHeaders(origin);
+}
+
+/**
+ * Combined security + CORS headers for API responses.
+ */
+export function getSecureResponseHeaders(origin?: string): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': allowedOrigins,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, Authorization',
+    ...getAPISecurityHeaders(),
+    ...getCorsHeaders(origin),
   };
 }
 
 /**
- * Send JSON response
+ * Send JSON response with security headers.
  *
  * @param res - Server response
  * @param data - Data to serialize as JSON
@@ -108,14 +123,13 @@ export function getCorsHeaders(): Record<string, string> {
 export function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-    ...getCorsHeaders(),
+    ...getSecureResponseHeaders(),
   });
   res.end(JSON.stringify(data));
 }
 
 /**
- * Send JSON response with caching
+ * Send JSON response with caching and security headers.
  *
  * @param res - Server response
  * @param data - Data to serialize
@@ -128,27 +142,34 @@ export function sendJSONCached(
   maxAge = 60,
   status = 200
 ): void {
+  // Get security headers but override Cache-Control for cacheable responses
+  const { 'Cache-Control': _, Pragma: __, ...securityHeaders } = getAPISecurityHeaders();
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    'Cache-Control': `private, max-age=${maxAge}`,
+    ...securityHeaders,
     ...getCorsHeaders(),
+    // Explicit Cache-Control for cacheable responses (override security no-cache)
+    'Cache-Control': `private, max-age=${maxAge}`,
   });
   res.end(JSON.stringify(data));
 }
 
 /**
- * Send error response
+ * Send error response with security headers.
  *
  * @param res - Server response
  * @param message - Error message
  * @param status - HTTP status code (default 500)
  */
 export function sendError(res: ServerResponse, message: string, status = 500): void {
+  // In production, avoid exposing internal error details
+  const safeMessage = isProduction() && status >= 500 ? 'Internal server error' : message;
+
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    ...getCorsHeaders(),
+    ...getSecureResponseHeaders(),
   });
-  res.end(JSON.stringify({ error: message }));
+  res.end(JSON.stringify({ error: safeMessage }));
 }
 
 /**

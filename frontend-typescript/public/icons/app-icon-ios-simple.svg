@@ -1,39 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Ferni Orb Logo - 1024x1024 -->
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni iOS App Icon - Simple version -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
+    <linearGradient id="iosGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
     </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
-    
   </defs>
-
-  <rect width="1024" height="1024" rx="0" fill="#F5F1E8"/>
   
-    <circle cx="512" cy="512" r="422.83008" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
-    <circle cx="512" cy="512" r="381.91104000000007" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
-
-  <!-- Main orb -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbGradient)"/>
-
-  <!-- Top highlight -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbHighlight)"/>
-
-  <!-- Waveform bars -->
-  <g>
-    <rect x="334" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="377" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="420" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="463" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="506" y="443.8016" width="12" height="136.3968" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="549" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="592" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="635" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="678" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-  </g>
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#F5F1E8"/>
+  
+  <!-- Main shape -->
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#iosGradient)"/>
+  
+  <!-- FE Monogram -->
+  <text x="512" y="580" 
+        font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="380" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle">FE</text>
 </svg>

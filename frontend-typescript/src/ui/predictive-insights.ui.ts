@@ -215,24 +215,36 @@ class PredictiveInsightsUI {
             ${icon}
           </div>
           <div class="insight-card-title">${this.escapeHtml(insight.title)}</div>
-          ${insight.dismissable ? `
+          ${
+            insight.dismissable
+              ? `
             <button class="insight-card-dismiss" aria-label="Dismiss">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         <div class="insight-card-message">${this.escapeHtml(insight.message)}</div>
-        ${insight.suggestion ? `
+        ${
+          insight.suggestion
+            ? `
           <div class="insight-card-suggestion">${this.escapeHtml(insight.suggestion)}</div>
-        ` : ''}
-        ${insight.actionLabel ? `
+        `
+            : ''
+        }
+        ${
+          insight.actionLabel
+            ? `
           <button class="insight-card-action" style="background: ${color}">
             ${this.escapeHtml(insight.actionLabel)}
           </button>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
 

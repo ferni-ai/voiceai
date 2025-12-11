@@ -92,8 +92,8 @@ import { initWeatherEffects } from './ui/weather-effects.ui.js';
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
 // Ferni Milestones - Warm relationship celebrations
 import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
-// Journey Indicator - Subtle heart near avatar showing milestone progress
-import { initJourneyIndicator } from './ui/journey-indicator.ui.js';
+// Connection Heart - Unified status + relationship indicator near avatar
+import { initConnectionHeart } from './ui/connection-heart.ui.js';
 // Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
@@ -191,6 +191,7 @@ import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { growthJourneyUI } from './ui/growth-journey.ui.js';
 import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
 import { personalizeUI } from './ui/personalize.ui.js';
+import { referralUI } from './ui/referral.ui.js';
 import { tipJarUI } from './ui/tip-jar.ui.js';
 // Growth Journey - Celebrates relationship milestones
 import { growthJourneyService } from './services/growth-journey.service.js';
@@ -206,6 +207,8 @@ import {
   showUpgradeModal,
   showUsageIndicator,
 } from './ui/subscription.ui.js';
+// Cosmetics Service - personalization system
+import { initCosmeticsService } from './services/cosmetics.service.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
@@ -927,6 +930,7 @@ class VoiceAIApp {
             void this.connect();
           }
         },
+
         onPersonaSwipe: (direction) => {
           // Integrated with gestures - persona switching handled there
           const persona =
@@ -956,9 +960,9 @@ class VoiceAIApp {
       // Tracks conversation streaks, team connections, sweet moments
     });
 
-    // 💚 Journey Indicator - Heart icon near avatar showing progress
-    this.safeInit('JourneyIndicator', () => {
-      initJourneyIndicator();
+    // 💚 Connection Heart - Status + relationship indicator
+    this.safeInit('ConnectionHeart', () => {
+      initConnectionHeart();
     });
     // 🎬 Ferni Expressions - Character-level eye expressions & reactions
     this.safeInit('FerniExpressions', () => {
@@ -1195,6 +1199,9 @@ class VoiceAIApp {
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
 
+    // 🎨 Cosmetics Service - Personalization system (themes, skins, sounds)
+    this.safeInit('CosmeticsService', () => initCosmeticsService());
+
     // 🌱 Growth Journey - Celebrate milestones as relationship deepens
     this.safeInit('GrowthJourney', () => {
       growthJourneyService.init();
@@ -1269,6 +1276,7 @@ class VoiceAIApp {
         },
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => growthJourneyUI.open(),
+        onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
       });
 
@@ -1366,6 +1374,13 @@ class VoiceAIApp {
     void this.checkVoiceReEnrollment();
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
+
+    // 💚 Connection Heart - Listen for connect requests
+    window.addEventListener('ferni:request-connect', () => {
+      if (appState.get('connection') === 'disconnected') {
+        void this.connect();
+      }
+    });
 
     // Show personalized greeting and track visit
     this.showWelcome();

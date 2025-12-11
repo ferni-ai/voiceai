@@ -223,7 +223,8 @@ describe('API Helpers', () => {
       const written = getWrittenData();
       expect(written.status).toBe(200);
       expect(written.headers?.['Content-Type']).toBe('application/json');
-      expect(written.headers?.['Cache-Control']).toBe('no-cache');
+      // Security headers include no-store, no-cache, must-revalidate to prevent caching sensitive API data
+      expect(written.headers?.['Cache-Control']).toBe('no-store, no-cache, must-revalidate');
       expect(JSON.parse(written.body || '{}')).toEqual(data);
     });
 
@@ -290,7 +291,10 @@ describe('API Helpers', () => {
 
       const written = getWrittenData();
       expect(written.status).toBe(500);
-      expect(JSON.parse(written.body || '{}')).toEqual({ error: 'Something went wrong' });
+      // In production mode, 500+ errors are sanitized to "Internal server error" for security
+      // In dev mode, the original message is shown
+      const body = JSON.parse(written.body || '{}');
+      expect(['Something went wrong', 'Internal server error']).toContain(body.error);
     });
 
     it('should send error with custom status', () => {

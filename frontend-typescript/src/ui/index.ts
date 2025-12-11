@@ -166,11 +166,11 @@ export type { PredictionsUIData } from './predictions.ui.js';
 
 // Predictive Insights UI (proactive predictions)
 export {
+  dismissPredictiveInsight,
   getPredictiveInsightsUI,
   initPredictiveInsights,
-  showPredictiveInsight,
-  dismissPredictiveInsight,
   showInsightFromAPI,
+  showPredictiveInsight,
 } from './predictive-insights.ui.js';
 export type { InsightCard, InsightType } from './predictive-insights.ui.js';
 

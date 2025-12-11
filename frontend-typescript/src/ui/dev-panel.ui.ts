@@ -71,6 +71,8 @@ import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 import { ferniMilestones, type MilestoneType } from './ferni-milestones.ui.js';
 // Journey UI - Milestone scrapbook view
 import { journeyUI } from './journey.ui.js';
+// Outreach Service - Email/SMS delivery
+import { outreachService } from '../services/outreach.service.js';
 
 // Real Ambient Effects - Canvas-based particles and aurora
 import {
@@ -966,7 +968,45 @@ function createPanel(): HTMLElement {
           </div>
         </div>
       </section>
-      
+
+      <!-- Outreach Testing (Email/SMS) -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.mail} Outreach Testing</h3>
+        <p class="dev-section__desc">Test email and SMS delivery</p>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Welcome Sequence</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-outreach="welcome-day0" title="Send Day 0 welcome">Welcome</button>
+            <button class="dev-expression-btn" data-outreach="welcome-day3" title="Send Day 3 check-in">Day 3</button>
+            <button class="dev-expression-btn" data-outreach="welcome-week" title="Send 1 week email">Week</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Milestone Celebration</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-outreach="milestone" title="Send test milestone email">Send Milestone</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Streak Reminder</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-outreach="streak-5" title="5-day streak reminder">Streak 5</button>
+            <button class="dev-expression-btn" data-outreach="streak-14" title="14-day streak reminder">Streak 14</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Test Direct</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-outreach="test-email" title="Test email delivery">Test Email</button>
+            <button class="dev-expression-btn" data-outreach="test-sms" title="Test SMS delivery">Test SMS</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Music Animation Tester -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.music} Music Animations</h3>
@@ -2319,7 +2359,61 @@ function createPanel(): HTMLElement {
   // Reset milestones button
   container.querySelector('[data-action="reset-milestones"]')?.addEventListener('click', () => {
     ferniMilestones.resetMilestones();
-    log.info('🗑️ All milestones reset');
+    log.info('All milestones reset');
+  });
+
+  // Outreach test buttons
+  container.querySelectorAll('[data-outreach]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const action = (btn as HTMLElement).dataset.outreach;
+      if (!action) return;
+
+      try {
+        let result;
+        switch (action) {
+          case 'welcome-day0':
+            result = await outreachService.sendWelcomeEmail('day0');
+            break;
+          case 'welcome-day3':
+            result = await outreachService.sendWelcomeEmail('day3');
+            break;
+          case 'welcome-week':
+            result = await outreachService.sendWelcomeEmail('week');
+            break;
+          case 'milestone':
+            result = await outreachService.sendMilestoneCelebration({
+              milestoneId: 'test-milestone',
+              milestoneName: 'Test Milestone',
+              milestoneMessage: 'This is a test milestone celebration.',
+              daysTogether: 7,
+              streak: 3,
+            });
+            break;
+          case 'streak-5':
+            result = await outreachService.sendStreakReminder(5);
+            break;
+          case 'streak-14':
+            result = await outreachService.sendStreakReminder(14);
+            break;
+          case 'test-email':
+            result = await outreachService.sendTestMessage(
+              'email',
+              'This is a test email from Ferni dev panel.',
+              'Test from Dev Panel'
+            );
+            break;
+          case 'test-sms':
+            result = await outreachService.sendTestMessage(
+              'sms',
+              'This is a test SMS from Ferni dev panel. - Ferni'
+            );
+            break;
+        }
+        log.info({ action, result }, 'Outreach test triggered');
+      } catch (error) {
+        log.error({ action, error }, 'Outreach test failed');
+      }
+    });
   });
 
   // Roster buttons

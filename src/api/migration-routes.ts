@@ -148,8 +148,8 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
 
     // Perform migration
     log.info('Migration requested', {
-      deviceId: deviceId.substring(0, 15) + '...',
-      firebaseUid: firebaseUid!.substring(0, 8) + '...',
+      deviceId: `${deviceId.substring(0, 15)}...`,
+      firebaseUid: `${firebaseUid!.substring(0, 8)}...`,
     });
 
     const result = await migrateUserData({
@@ -198,7 +198,7 @@ function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): void 
   sendJson(res, {
     deviceId,
     isMigrated,
-    migratedTo: migratedTo ? migratedTo.substring(0, 8) + '...' : null,
+    migratedTo: migratedTo ? `${migratedTo.substring(0, 8)}...` : null,
   });
 }
 

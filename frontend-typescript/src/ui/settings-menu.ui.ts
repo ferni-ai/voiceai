@@ -62,6 +62,7 @@ export interface SettingsMenuUICallbacks {
   onFerniFundClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
+  onShareFerniClick?: () => void;
   onAccentSettingsClick?: () => void;
   onClose?: () => void;
 }
@@ -119,6 +120,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
   palette:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg>',
+  share:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
   trophy:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
   globe:
@@ -372,6 +375,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Music Games')}
             ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
             ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
+            ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
           </section>
 
           <section class="settings-menu__section">
@@ -523,6 +527,9 @@ class SettingsMenuUI {
         break;
       case 'your-journey':
         this.callbacks.onYourJourneyClick?.();
+        break;
+      case 'share-ferni':
+        this.callbacks.onShareFerniClick?.();
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();

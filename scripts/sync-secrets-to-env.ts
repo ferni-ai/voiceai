@@ -59,6 +59,7 @@ const SECRET_MAPPING: Record<string, string> = {
   // Admin
   'admin-api-key': 'ADMIN_API_KEY',
   'log-hash-secret': 'LOG_HASH_SECRET',
+  'redis-url': 'REDIS_URL',
 
   // Observability
   'sentry-dsn': 'SENTRY_DSN',
@@ -227,4 +228,5 @@ function main() {
 }
 
 main();
+
 

@@ -192,6 +192,8 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     'ADMIN_KEY=admin-api-key:latest',
     'LOG_HASH_SECRET=log-hash-secret:latest',
     'EVALOPS_ADMIN_KEY=evalops-admin-key:latest',
+    // Redis for persistent rate limiting
+    'REDIS_URL=redis-url:latest',
   ];
 
   // Check for optional secrets (only in sync mode - async skips this)
@@ -227,7 +229,8 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     '--concurrency 10', // Handle 10 voice calls per instance (was 1)
     '--min-instances 1', // Warm starts, eliminates cold start latency (~$30/month)
     '--max-instances 50', // Scale to 500 concurrent calls (quota: 200 CPUs = 50 × 4 CPUs)
-    `--set-env-vars "NODE_ENV=production,PERSONA_ID=${CONFIG.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+    '--vpc-connector ferni-redis-connector', // VPC connector for Memorystore Redis access
+    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"`,
     `--set-secrets "${secrets.join(',')}"`,
     '--quiet',
   ].join(' ');
@@ -288,8 +291,9 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--timeout 300',
     '--min-instances 0',
     '--max-instances 10',
-    '--set-env-vars "NODE_ENV=production"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest"',
+    '--vpc-connector ferni-redis-connector', // VPC connector for Memorystore Redis access
+    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest"',
     '--quiet',
   ].join(' ');
 

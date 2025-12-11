@@ -149,7 +149,7 @@ describe('detectLifeCoachingDomains', () => {
 
   describe('connection detection', () => {
     it('should detect connection from loneliness text', () => {
-      const domains = detectLifeCoachingDomains("I feel so lonely lately");
+      const domains = detectLifeCoachingDomains('I feel so lonely lately');
       expect(domains.some((d) => d.domain === 'connection')).toBe(true);
     });
 
@@ -171,7 +171,7 @@ describe('detectLifeCoachingDomains', () => {
     });
 
     it('should detect difficult conversations from practice request', () => {
-      const domains = detectLifeCoachingDomains("Can you help me practice what to say");
+      const domains = detectLifeCoachingDomains('Can you help me practice what to say');
       expect(domains.some((d) => d.domain === 'difficultConversations')).toBe(true);
     });
 
@@ -205,12 +205,12 @@ describe('detectLifeCoachingDomains', () => {
     });
 
     it('should detect quiet growth from comparison text', () => {
-      const domains = detectLifeCoachingDomains("Everyone else is ahead of me");
+      const domains = detectLifeCoachingDomains('Everyone else is ahead of me');
       expect(domains.some((d) => d.domain === 'quietGrowth')).toBe(true);
     });
 
     it('should detect quiet growth from plateau text', () => {
-      const domains = detectLifeCoachingDomains("I feel stuck on a plateau");
+      const domains = detectLifeCoachingDomains('I feel stuck on a plateau');
       expect(domains.some((d) => d.domain === 'quietGrowth')).toBe(true);
     });
   });
@@ -280,7 +280,7 @@ describe('buildLifeCoachingContext', () => {
     expect(injections.length).toBeGreaterThanOrEqual(0);
     // If injections exist, they should have life coaching content
     if (injections.length > 0) {
-      const content = injections[0].content;
+      const { content } = injections[0];
       expect(content).toContain('SECOND CHANCES');
     }
   });
@@ -291,7 +291,7 @@ describe('buildLifeCoachingContext', () => {
     });
     const injections = await buildLifeCoachingContext(input);
     if (injections.length > 0) {
-      const content = injections[0].content;
+      const { content } = injections[0];
       expect(content).toContain('CONNECTION');
     }
   });
@@ -303,7 +303,7 @@ describe('buildLifeCoachingContext', () => {
     });
     const injections = await buildLifeCoachingContext(input);
     if (injections.length > 0) {
-      const content = injections[0].content;
+      const { content } = injections[0];
       expect(content).toContain('DIFFICULT CONVERSATIONS');
     }
   });
@@ -326,18 +326,18 @@ describe('buildLifeCoachingContext', () => {
     });
     const injections = await buildLifeCoachingContext(input);
     if (injections.length > 0) {
-      const content = injections[0].content;
+      const { content } = injections[0];
       expect(content).toContain('QUIET GROWTH');
     }
   });
 
   it('should include better-than-human guidance', async () => {
     const input = createMockInput({
-      userText: "I feel hopeless about starting over after my divorce",
+      userText: 'I feel hopeless about starting over after my divorce',
     });
     const injections = await buildLifeCoachingContext(input);
     if (injections.length > 0) {
-      const content = injections[0].content;
+      const { content } = injections[0];
       expect(content).toContain('BETTER THAN HUMAN');
     }
   });

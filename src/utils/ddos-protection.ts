@@ -129,7 +129,7 @@ export interface ParseBodyResult {
  * Safely parse request body with size limits
  * Prevents OOM attacks from oversized payloads
  */
-export function parseBodySafe(
+export async function parseBodySafe(
   req: IncomingMessage,
   res: ServerResponse,
   options: ParseBodyOptions = {}
