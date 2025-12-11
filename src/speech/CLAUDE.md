@@ -378,40 +378,185 @@ console.log(BREATH_DETECTION_CONFIG.GASP_MIN_CENTROID); // 500 Hz
 
 This allows fine-tuning detection sensitivity for different audio environments without modifying the source code.
 
-## Future Refactoring Opportunities
+## Recent Improvements
 
-### 1. Consolidate Backchanneling Systems
+### 1. ✅ Unified Backchanneling with Adaptive Mode
 
-There are currently **three** backchanneling implementations:
+The backchanneling systems have been consolidated into `backchanneling/`:
 
-- `backchanneling.ts` - Original system (5-8 second triggers)
-- `enhanced-backchanneling.ts` - Research-backed (3-5 second triggers, context-aware)
-- `live-backchanneling/` - Real-time during speech (breath-pause detection)
+```typescript
+import { getBackchannelEngine } from './backchanneling/index.js';
 
-**Recommendation**: Unify into a single `backchanneling/` module with:
+// Standard mode: Basic verbal nods (5-8s triggers)
+const standard = getBackchannelEngine(sessionId, 'standard');
 
+// Enhanced mode: Context-aware, research-backed (3-5s triggers)
+const enhanced = getBackchannelEngine(sessionId, 'enhanced');
+
+// Live mode: Real-time during speech (breath-pause detection)
+const live = getBackchannelEngine(sessionId, 'live');
+
+// NEW: Adaptive mode - automatically switches between modes
+const adaptive = getBackchannelEngine(sessionId, 'adaptive');
+
+// Adaptive mode switches based on:
+// - Early conversation → standard (less intrusive)
+// - Heavy topics → enhanced (more thoughtful)
+// - High emotional intensity → live (immediate support)
+// - Breath pause available → live (natural timing)
 ```
-backchanneling/
-├── types.ts            # Unified types
-├── timing-config.ts    # Standard, enhanced, live timing configs
-├── phrase-library.ts   # All persona phrases in one place
-├── decision-engine.ts  # Unified decision logic with mode parameter
-├── session.ts          # Session management
-└── index.ts
+
+### 2. ✅ Type Guards & Complete Type Barrel
+
+Type guards are now available for runtime validation:
+
+```typescript
+import {
+  isProsodyFeatures,
+  isVoiceEmotionResult,
+  isBackchannelContext,
+  isHumanListeningResult,
+  validateProsodyFeatures,
+  validateVoiceEmotionResult,
+} from './types/index.js';
+
+// Runtime validation
+if (isProsodyFeatures(data)) {
+  // TypeScript knows data is ProsodyFeatures
+}
+
+// Validation with null return
+const prosody = validateProsodyFeatures(untrustedData);
+if (prosody) {
+  // Safe to use
+}
 ```
 
-### 2. Consolidate Persona Phrases
+### 3. ✅ Dynamic Speed Control
 
-Persona-specific phrases are duplicated across:
+Real-time speech speed adjustment based on context:
 
-- `response-naturalness.ts` (ACKNOWLEDGMENT_PREFIXES, THINKING_FILLERS, PERSONA_CATCHPHRASES)
-- `enhanced-backchanneling.ts` (BACKCHANNEL_LIBRARY, PERSONA_BACKCHANNEL_STYLE)
-- `live-backchanneling/constants.ts` (SOFT_BACKCHANNELS)
-- `backchanneling.ts` (inline backchannels)
+```typescript
+import {
+  calculateDynamicSpeed,
+  applyDynamicSpeedSsml,
+} from './adaptive-ssml/dynamic-speed-control.js';
 
-**Recommendation**: Create `persona-phrases.ts` as single source of truth.
+const speedResult = calculateDynamicSpeed({
+  userEngagement: 0.8, // High engagement → slightly faster
+  contentComplexity: 0.3, // Low complexity → no slowdown needed
+  emotionalIntensity: 0.4, // Moderate → slight adjustment
+  baseSpeed: 1.0,
+  userWPM: 140, // Mirror user's pace
+  topicWeight: 'medium',
+});
 
-### 3. Naming Conventions (Standardized)
+// speedResult.speedMultiplier might be 1.05 (slightly faster)
+// speedResult.addExtraPauses = false
+// speedResult.reason = "high engagement, mirroring fast pace"
+
+const ssml = applyDynamicSpeedSsml(text, speedResult);
+```
+
+### 4. ✅ Real-Time Audio Analyzer
+
+Optimized for streaming audio analysis with lower latency:
+
+```typescript
+import {
+  getRealTimeAnalyzer,
+  type PartialProsodyFeatures,
+} from './audio-prosody/real-time-analyzer.js';
+
+const analyzer = getRealTimeAnalyzer(sessionId);
+
+// Process audio chunks as they arrive
+function onAudioFrame(samples: Float32Array): void {
+  const partial = analyzer.processChunk(samples);
+
+  if (partial) {
+    // Real-time features available:
+    // - pitchEstimate, pitchConfidence
+    // - energyDb, energyVariance
+    // - isSpeech, currentSilenceMs
+    // - pitchTrend: 'rising' | 'falling' | 'stable'
+
+    if (partial.pitchTrend === 'falling' && partial.currentSilenceMs > 500) {
+      // User might be finishing their turn
+    }
+  }
+}
+
+// At end of utterance, get full features
+const fullFeatures = analyzer.getFullFeatures();
+```
+
+### 5. ✅ Speech Metrics & Observability
+
+Performance and quality metrics collection:
+
+```typescript
+import {
+  recordLatency,
+  recordEmotionConfidence,
+  withTiming,
+  getSpeechMetricsSnapshot,
+} from './metrics/index.js';
+
+// Record latency manually
+recordLatency('humanListening.analyze', 45);
+
+// Or use timing wrapper
+const result = await withTiming('humanListening.analyze', async () => {
+  return await pipeline.analyze(context);
+});
+
+// Record quality metrics
+recordEmotionConfidence(voiceEmotion.confidence);
+recordTurnPredictionAccuracy(wasCorrect);
+
+// Get all metrics
+const snapshot = getSpeechMetricsSnapshot();
+// {
+//   timestamp: 1234567890,
+//   uptimeSec: 3600,
+//   metrics: {
+//     latency: { avgAnalysisLatencyMs: 42, p99LatencyMs: 120, ... },
+//     quality: { avgEmotionConfidence: 0.72, highConfidenceRate: 0.85, ... },
+//     usage: { activeSessionCount: 5, totalSessionsCreated: 100, ... },
+//     operations: { ... }
+//   }
+// }
+```
+
+### 6. ✅ Enhanced Emergency Cleanup
+
+The `emergencySpeechCleanup()` function now properly clears ALL service Maps:
+
+```typescript
+import { emergencySpeechCleanup } from './session-cleanup.js';
+
+// Clears ALL state from ALL services (use with caution!)
+emergencySpeechCleanup();
+// Logs: "Emergency speech cleanup complete (14/14 services cleared)"
+```
+
+### 7. ✅ Comprehensive E2E Test Coverage
+
+New test files:
+
+- `__tests__/e2e-speech-pipeline.test.ts` - Full pipeline integration tests
+- `__tests__/emotional-contagion.test.ts` - Emotional continuity tests
+- `__tests__/enhanced-turn-prediction.test.ts` - Turn prediction tests
+- `__tests__/prosody-turn-bridge.test.ts` - Voice-turn integration tests
+
+Run all speech tests:
+
+```bash
+npm test -- --run src/speech/__tests__/
+```
+
+## Naming Conventions (Standardized)
 
 **Preferred naming pattern:**
 
@@ -427,15 +572,3 @@ Legacy `remove*` functions now have `reset*` aliases:
 - `removeEnhancedBackchannelingEngine` → `resetEnhancedBackchannelingEngine`
 
 New code should use the `reset*` naming for consistency.
-
-### 4. Type Consolidation
-
-Types are scattered across many files. Consider a `types/` directory:
-
-```
-types/
-├── prosody.ts      # ProsodyFeatures, VoiceEmotion, etc.
-├── backchannel.ts  # All backchannel types
-├── listening.ts    # HumanListeningResult, etc.
-└── index.ts        # Re-exports all
-```

@@ -571,3 +571,68 @@ export {
   type EnhancedBackchannelContext, // Preferred naming alias
   type BackchannelDecision as EnhancedBackchannelDecision,
 } from './enhanced-backchanneling.js';
+
+// ============================================================================
+// DYNAMIC SPEED CONTROL (NEW)
+// Real-time speech speed adjustment based on context
+// ============================================================================
+
+export {
+  applyDynamicSpeedSsml,
+  calculateDynamicSpeed,
+  DEFAULT_SPEED_CONFIG,
+  getSpeedControlSession,
+  getSpeedTrend,
+  recordSpeedDecision,
+  resetAllSpeedControlSessions,
+  resetSpeedControlSession,
+  type SpeedControlConfig,
+  type SpeedControlContext,
+  type SpeedControlResult,
+} from './adaptive-ssml/dynamic-speed-control.js';
+
+// ============================================================================
+// REAL-TIME AUDIO ANALYZER (NEW)
+// Optimized streaming audio analysis for lower latency
+// ============================================================================
+
+export {
+  DEFAULT_REALTIME_CONFIG,
+  getActiveRealTimeAnalyzerCount,
+  getRealTimeAnalyzer,
+  RealTimeAudioAnalyzer,
+  resetAllRealTimeAnalyzers,
+  resetRealTimeAnalyzer,
+  type AnalyzerState,
+  type PartialProsodyFeatures,
+  type RealTimeAnalyzerConfig,
+} from './audio-prosody/real-time-analyzer.js';
+
+// ============================================================================
+// SPEECH METRICS & OBSERVABILITY (NEW)
+// Performance and quality metrics collection
+// ============================================================================
+
+export {
+  getLatencyMetrics,
+  getQualityMetrics,
+  getSpeechMetrics,
+  getSpeechMetricsSnapshot,
+  getUsageMetrics,
+  recordBackchannelTiming,
+  recordEmotionConfidence,
+  recordLatency,
+  recordOperation,
+  recordSessionEnd,
+  recordSessionStart,
+  recordTurnPredictionAccuracy,
+  resetSpeechMetrics,
+  withTiming,
+  withTimingSync,
+  type LatencyMetrics,
+  type MetricsSnapshot,
+  type OperationMetrics,
+  type QualityMetrics,
+  type SpeechPipelineMetrics,
+  type UsageMetrics,
+} from './metrics/index.js';

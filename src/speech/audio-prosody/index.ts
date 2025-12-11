@@ -74,3 +74,19 @@ export {
   mapToEmotionalDimensions,
   smoothFeatures,
 } from './emotion-mapping.js';
+
+// ============================================================================
+// REAL-TIME ANALYZER (optimized for streaming)
+// ============================================================================
+
+export {
+  DEFAULT_REALTIME_CONFIG,
+  RealTimeAudioAnalyzer,
+  getActiveRealTimeAnalyzerCount,
+  getRealTimeAnalyzer,
+  resetAllRealTimeAnalyzers,
+  resetRealTimeAnalyzer,
+  type AnalyzerState,
+  type PartialProsodyFeatures,
+  type RealTimeAnalyzerConfig,
+} from './real-time-analyzer.js';

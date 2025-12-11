@@ -62,6 +62,24 @@ export {
 } from './cognitive-ssml.js';
 
 // ============================================================================
+// DYNAMIC SPEED CONTROL
+// ============================================================================
+
+export {
+  DEFAULT_SPEED_CONFIG,
+  applyDynamicSpeedSsml,
+  calculateDynamicSpeed,
+  getSpeedControlSession,
+  getSpeedTrend,
+  recordSpeedDecision,
+  resetAllSpeedControlSessions,
+  resetSpeedControlSession,
+  type SpeedControlConfig,
+  type SpeedControlContext,
+  type SpeedControlResult,
+} from './dynamic-speed-control.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

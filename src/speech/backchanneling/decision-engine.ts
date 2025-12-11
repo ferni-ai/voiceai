@@ -106,7 +106,10 @@ export class BackchannelEngine {
       ? mergeTimingConfig(baseTiming, options.customTiming)
       : baseTiming;
 
-    log.debug({ mode: this.configuredMode, personaId: this.personaId }, 'BackchannelEngine initialized');
+    log.debug(
+      { mode: this.configuredMode, personaId: this.personaId },
+      'BackchannelEngine initialized'
+    );
   }
 
   /**
@@ -167,8 +170,34 @@ export class BackchannelEngine {
    * Decide whether to emit a backchannel
    */
   decide(context: BackchannelContext): BackchannelDecision {
-    // Get timing adjusted for topic
-    const timing = adjustTimingForTopic(this.baseTiming, context.topicWeight);
+    // Determine effective mode for adaptive
+    const effectiveMode = this.determineAdaptiveMode(context);
+    this.lastAdaptiveMode = effectiveMode;
+
+    // Track mode changes for analytics
+    if (
+      this.configuredMode === 'adaptive' &&
+      (this.modeHistory.length === 0 ||
+        this.modeHistory[this.modeHistory.length - 1] !== effectiveMode)
+    ) {
+      this.modeHistory.push(effectiveMode);
+      if (this.modeHistory.length > this.maxHistorySize) {
+        this.modeHistory.shift();
+      }
+      log.debug(
+        { from: this.modeHistory[this.modeHistory.length - 2] ?? 'none', to: effectiveMode },
+        '🔄 Adaptive mode switched'
+      );
+    }
+
+    // Get timing for the effective mode, adjusted for topic
+    const modeTiming = getTimingForMode(effectiveMode);
+    const timing = adjustTimingForTopic(
+      this.baseTiming.minSpeechDuration !== modeTiming.minSpeechDuration
+        ? modeTiming
+        : this.baseTiming,
+      context.topicWeight
+    );
 
     // Check timing conditions
     const timingCheck = this.checkTiming(context, timing);
@@ -177,12 +206,12 @@ export class BackchannelEngine {
     }
 
     // For live mode, check breath pause
-    if (this.mode === 'live' && !context.isBreathPause) {
+    if (effectiveMode === 'live' && !context.isBreathPause) {
       return this.noBackchannel('not_breath_pause');
     }
 
     // Probability check for live mode
-    if (this.mode === 'live') {
+    if (effectiveMode === 'live') {
       const probability = context.isEmotionalMoment
         ? (timing.emotionalProbability ?? 0.4)
         : (timing.baseProbability ?? 0.25);
@@ -194,27 +223,28 @@ export class BackchannelEngine {
 
     // Determine emotion type and category
     const emotionType = this.determineEmotionType(context);
-    const category = this.selectCategory(context, emotionType);
+    const category = this.selectCategory(context, emotionType, effectiveMode);
 
     // Select phrase
-    const phrase = this.selectPhrase(category, emotionType);
+    const phrase = this.selectPhrase(category, emotionType, effectiveMode);
     if (!phrase) {
       return this.noBackchannel('no_phrase_available');
     }
 
     // Build SSML
-    const ssml = this.buildSsml(phrase, emotionType);
+    const ssml = this.buildSsml(phrase, emotionType, effectiveMode);
 
     // Record this backchannel
-    this.recordBackchannel(category, phrase);
+    this.recordBackchannel(category, phrase, effectiveMode);
 
     // Determine volume and overlap based on mode
-    const isLive = this.mode === 'live';
+    const isLive = effectiveMode === 'live';
     const volumeRatio = isLive ? 0.3 : getPersonaBackchannelStyle(this.personaId).volumeRatio;
 
     log.debug(
       {
-        mode: this.mode,
+        configuredMode: this.configuredMode,
+        effectiveMode,
         category,
         phrase,
         emotionType,
@@ -230,10 +260,13 @@ export class BackchannelEngine {
       ssml,
       category,
       emotionType,
-      timing: this.mode === 'live' ? 'immediate' : 'after_pause',
+      timing: effectiveMode === 'live' ? 'immediate' : 'after_pause',
       volumeRatio,
       allowOverlap: isLive,
-      reason: 'conditions_met',
+      reason:
+        this.configuredMode === 'adaptive'
+          ? `conditions_met (adaptive→${effectiveMode})`
+          : 'conditions_met',
     };
   }
 
@@ -306,10 +339,11 @@ export class BackchannelEngine {
 
   private selectCategory(
     context: BackchannelContext,
-    emotionType: BackchannelEmotionType
+    emotionType: BackchannelEmotionType,
+    effectiveMode: BackchannelMode
   ): BackchannelCategory {
     // For live mode, always use simpler acknowledgments
-    if (this.mode === 'live') {
+    if (effectiveMode === 'live') {
       return emotionType === 'empathetic' ? 'empathy' : 'acknowledgment';
     }
 
@@ -351,10 +385,11 @@ export class BackchannelEngine {
 
   private selectPhrase(
     category: BackchannelCategory,
-    emotionType: BackchannelEmotionType
+    emotionType: BackchannelEmotionType,
+    effectiveMode: BackchannelMode
   ): string | null {
     // For live mode, use soft backchannels
-    if (this.mode === 'live') {
+    if (effectiveMode === 'live') {
       return getSoftBackchannel(this.personaId, emotionType);
     }
 
@@ -374,15 +409,19 @@ export class BackchannelEngine {
   // SSML BUILDING
   // ==========================================================================
 
-  private buildSsml(phrase: string, _emotionType: BackchannelEmotionType): string {
+  private buildSsml(
+    phrase: string,
+    _emotionType: BackchannelEmotionType,
+    effectiveMode: BackchannelMode
+  ): string {
     const style = getPersonaBackchannelStyle(this.personaId);
-    const volumeRatio = this.mode === 'live' ? 0.3 : style.volumeRatio;
+    const volumeRatio = effectiveMode === 'live' ? 0.3 : style.volumeRatio;
     const emotionTag = style.emotionTag;
 
     let ssml = '';
 
     // Volume wrapper
-    if (this.mode === 'live') {
+    if (effectiveMode === 'live') {
       ssml = `<volume level="soft"><speed ratio="0.95">${phrase}</speed></volume>`;
     } else {
       ssml = `<volume ratio="${volumeRatio}"/>`;
@@ -400,13 +439,17 @@ export class BackchannelEngine {
   // STATE MANAGEMENT
   // ==========================================================================
 
-  private recordBackchannel(category: BackchannelCategory, phrase: string): void {
+  private recordBackchannel(
+    category: BackchannelCategory,
+    phrase: string,
+    effectiveMode: BackchannelMode
+  ): void {
     const now = Date.now();
     this.lastBackchannelTime = now;
     this.backchannelCount++;
     this.turnBackchannelCount++;
 
-    this.backchannelHistory.push({ category, phrase, time: now });
+    this.backchannelHistory.push({ category, phrase, time: now, mode: effectiveMode });
     if (this.backchannelHistory.length > this.maxHistorySize) {
       this.backchannelHistory.shift();
     }
@@ -468,6 +511,34 @@ export class BackchannelEngine {
    */
   getLastBackchannelTime(): number {
     return this.lastBackchannelTime;
+  }
+
+  /**
+   * Get adaptive mode statistics (only relevant for adaptive mode)
+   */
+  getAdaptiveModeStats(): {
+    isAdaptive: boolean;
+    currentEffectiveMode: BackchannelMode;
+    modeHistory: BackchannelMode[];
+    modeBreakdown: Record<BackchannelMode, number>;
+  } {
+    const modeBreakdown: Record<BackchannelMode, number> = {
+      standard: 0,
+      enhanced: 0,
+      live: 0,
+      adaptive: 0,
+    };
+
+    for (const entry of this.backchannelHistory) {
+      modeBreakdown[entry.mode]++;
+    }
+
+    return {
+      isAdaptive: this.configuredMode === 'adaptive',
+      currentEffectiveMode: this.lastAdaptiveMode,
+      modeHistory: [...this.modeHistory],
+      modeBreakdown,
+    };
   }
 }
 
