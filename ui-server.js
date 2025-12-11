@@ -99,6 +99,12 @@ import handleMigrationRoutes from './dist/api/migration-routes.js';
 // Account routes (profile, deletion)
 import handleAccountRoutes from './dist/api/account-routes.js';
 
+// Auth monitoring routes (metrics, health)
+import handleAuthMonitoringRoutes from './dist/api/auth-monitoring-routes.js';
+
+// Session accent routes (mid-session accent changes)
+import handleSessionAccentRoutes from './dist/api/session-accent-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -613,6 +619,30 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     console.error('❌ Account route error:', err);
+  }
+
+  // ============================================================================
+  // SESSION ACCENT ROUTES (mid-session accent changes)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/session/accent')) {
+      const handled = await handleSessionAccentRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Session accent route error:', err);
+  }
+
+  // ============================================================================
+  // AUTH MONITORING ROUTES (metrics, health)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/auth/')) {
+      const handled = await handleAuthMonitoringRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Auth monitoring route error:', err);
   }
 
   // ============================================================================

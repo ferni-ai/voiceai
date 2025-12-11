@@ -1,9 +1,12 @@
 name: Auto Deploy on Push
 
+# Triggers deploy-production workflow which has full blue-green deployment
+# This workflow just does quick quality checks - actual deployment is in deploy-production.yml
+
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # Manual trigger option
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -12,6 +15,7 @@ concurrency:
 jobs:
   # Quick quality gate (fails fast, saves minutes)
   quality:
+    name: Quick Quality Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,76 +27,12 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test -- --run --reporter=dot  # Faster output
+      - run: npm test -- --run --reporter=dot
 
-  # Deploy UI Server (only if quality passes)
-  deploy-ui:
-    needs: quality
-    runs-on: ubuntu-latest
-    if: |
-      contains(github.event.head_commit.modified, 'src/api/') ||
-      contains(github.event.head_commit.modified, 'ui-server') ||
-      contains(github.event.head_commit.modified, 'frontend-typescript/')
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy UI Server
-        run: |
-          gcloud builds submit \
-            --config=cloudbuild-ui.yaml \
-            --async \
-            --quiet
-
-  # Deploy Voice Agent (only if quality passes)
-  deploy-agent:
-    needs: quality
-    runs-on: ubuntu-latest
-    if: |
-      contains(github.event.head_commit.modified, 'src/agents/') ||
-      contains(github.event.head_commit.modified, 'src/services/') ||
-      contains(github.event.head_commit.modified, 'src/tools/')
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy Voice Agent
-        run: |
-          gcloud builds submit \
-            --config=cloudbuild.yaml \
-            --async \
-            --quiet
-
-  # Notify on success
-  notify-success:
-    needs: [quality, deploy-ui, deploy-agent]
-    if: success()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send success notification
-        run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            -H 'Content-type: application/json' \
-            --data '{"text":"✅ Ferni deployed: ${{ github.event.head_commit.message }}\n\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"}'
-
-  # Notify on failure
-  notify-failure:
-    needs: [quality, deploy-ui, deploy-agent]
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send failure notification
-        run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            -H 'Content-type: application/json' \
-            --data '{"text":"❌ Ferni deploy failed: ${{ github.event.head_commit.message }}\n\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"}'
+  # Note: Actual deployment happens via deploy-production.yml (also triggered on main push)
+  # That workflow has full blue-green deployment with:
+  # - Deploy green revision with 0% traffic
+  # - Health checks on green
+  # - Traffic shift only if healthy
+  # - Automatic rollback on failure
+  # - DORA metrics tracking

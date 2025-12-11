@@ -3,6 +3,12 @@ name: Deploy Firebase Hosting
 # Auto-deploy frontend to Firebase Hosting when pushed to main
 # Deploys to BOTH sites: ferni-prod AND johnb-app (app.ferni.ai)
 #
+# Deployment Strategy:
+# 1. Build frontend
+# 2. Deploy to Firebase (atomic - instant switch)
+# 3. Run health checks on deployed site
+# 4. If unhealthy, auto-rollback to previous version
+#
 # NOTE: Deploys on ALL pushes to main (not just frontend changes) because:
 # - Backend persona changes affect the app experience
 # - System prompt changes need fresh frontend for consistency
@@ -33,7 +39,7 @@ jobs:
     name: Deploy App
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || inputs.target == 'app' || inputs.target == 'both' }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,6 +69,7 @@ jobs:
           NODE_ENV: production
 
       - name: Deploy to Firebase (ferni-prod)
+        id: deploy-ferni
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -72,6 +79,7 @@ jobs:
           entryPoint: ./frontend-typescript
 
       - name: Deploy to Firebase (johnb-app / app.ferni.ai)
+        id: deploy-app
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -80,14 +88,71 @@ jobs:
           target: johnb-app
           entryPoint: ./frontend-typescript
 
-      - name: Deployment summary
+      - name: Health check deployed sites
+        id: health
         run: |
-          echo "## 🚀 Firebase Hosting Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "Waiting 10s for deployment propagation..."
+          sleep 10
+
+          HEALTHY=true
+
+          # Check ferni-prod
+          echo "Checking https://ferni-prod.web.app..."
+          for i in {1..3}; do
+            if curl -sf "https://ferni-prod.web.app" > /dev/null 2>&1; then
+              echo "✅ ferni-prod is healthy"
+              break
+            fi
+            if [ $i -eq 3 ]; then
+              echo "❌ ferni-prod health check failed"
+              HEALTHY=false
+            fi
+            sleep 5
+          done
+
+          # Check app.ferni.ai
+          echo "Checking https://app.ferni.ai..."
+          for i in {1..3}; do
+            if curl -sf "https://app.ferni.ai" > /dev/null 2>&1; then
+              echo "✅ app.ferni.ai is healthy"
+              break
+            fi
+            if [ $i -eq 3 ]; then
+              echo "❌ app.ferni.ai health check failed"
+              HEALTHY=false
+            fi
+            sleep 5
+          done
+
+          echo "healthy=$HEALTHY" >> $GITHUB_OUTPUT
+
+      - name: Rollback on health check failure
+        if: steps.health.outputs.healthy == 'false'
+        run: |
+          echo "⚠️ Health check failed - initiating rollback"
+
+          # Install Firebase CLI
+          npm install -g firebase-tools
+
+          # Rollback to previous version
+          cd frontend-typescript
+          firebase hosting:rollback --site ferni-prod --confirm || echo "Rollback ferni-prod failed"
+          firebase hosting:rollback --site johnb-app --confirm || echo "Rollback johnb-app failed"
+
+          echo "🔄 Rollback initiated - check Firebase console for status"
+          exit 1
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Deployment summary
+        if: steps.health.outputs.healthy == 'true'
+        run: |
+          echo "## 🚀 Firebase Hosting Deployed (Healthy)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Site | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| ferni-prod | https://ferni-prod.web.app |" >> $GITHUB_STEP_SUMMARY
-          echo "| johnb-app | https://app.ferni.ai |" >> $GITHUB_STEP_SUMMARY
+          echo "| Site | URL | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ferni-prod | https://ferni-prod.web.app | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+          echo "| johnb-app | https://app.ferni.ai | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # DEPLOY LANDING PAGE
@@ -96,7 +161,7 @@ jobs:
     name: Deploy Landing
     runs-on: ubuntu-latest
     if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -118,6 +183,7 @@ jobs:
           npm run build
 
       - name: Deploy landing to Firebase
+        id: deploy-landing
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -126,11 +192,58 @@ jobs:
           target: ferni-landing
           entryPoint: ./promo/ferni-website
 
-      - name: Deployment summary
+      - name: Health check landing page
+        id: health
         run: |
-          echo "## 🌐 Landing Page Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Site | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| Landing | https://ferni.ai |" >> $GITHUB_STEP_SUMMARY
+          echo "Waiting 10s for deployment propagation..."
+          sleep 10
 
+          echo "Checking https://ferni.ai..."
+          for i in {1..3}; do
+            if curl -sf "https://ferni.ai" > /dev/null 2>&1; then
+              echo "✅ ferni.ai is healthy"
+              echo "healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+
+          echo "healthy=false" >> $GITHUB_OUTPUT
+          echo "❌ ferni.ai health check failed"
+
+      - name: Rollback on health check failure
+        if: steps.health.outputs.healthy == 'false'
+        run: |
+          echo "⚠️ Health check failed - initiating rollback"
+          npm install -g firebase-tools
+          cd promo/ferni-website
+          firebase hosting:rollback --site ferni-landing --confirm || echo "Rollback failed"
+          exit 1
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Deployment summary
+        if: steps.health.outputs.healthy == 'true'
+        run: |
+          echo "## 🌐 Landing Page Deployed (Healthy)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Site | URL | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Landing | https://ferni.ai | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # NOTIFY ON FAILURE
+  # ============================================================================
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-app, deploy-landing]
+    if: failure()
+    steps:
+      - name: Send Slack notification
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            --data '{"text":"❌ Firebase deploy failed or rolled back: ${{ github.event.head_commit.message }}\n\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"}'
+        continue-on-error: true
