@@ -45,37 +45,45 @@ cd frontend-typescript && npm run dev
 
 **Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
 
-## 🌐 Production Deployment (Google Cloud Run)
+## 🌐 Production Deployment (Blue-Green)
 
-**⚠️ ALWAYS use async deployments** to avoid blocking your terminal:
+**⚠️ ALWAYS use the deploy script** - it implements blue-green deployment with health checks:
 
 ```bash
-# Deploy UI (async - returns immediately)
-npm run deploy:ui:async
-
-# Deploy Voice Agent (async - returns immediately)
+# Deploy Voice Agent (blue-green, async)
 npm run deploy:agent:async
+
+# Deploy UI (blue-green, async)
+npm run deploy:ui:async
 
 # Monitor progress
 tail -f .deploy-logs/*.log
-gcloud builds list --limit=1
 ```
 
-**Never use blocking deploys** (`npm run deploy:ui`) - they take 3-5 minutes and waste your time.
+### Blue-Green Deployment Flow
+1. Build container image
+2. Deploy new revision with `--no-traffic` (green)
+3. Health check the green revision
+4. **Only shift traffic if healthy**
+5. Keep old revision running if health check fails
 
-| Environment | UI Server | Voice Agent | Frontend |
-|-------------|-----------|-------------|----------|
-| **Development** | port 3002 | `npm run dev` | Vite port 3004 |
-| **Production** | `Dockerfile.ui` → Cloud Run | `Dockerfile` → Cloud Run | Built into UI |
+### ⛔ NEVER DO
+| Wrong | Right |
+|-------|-------|
+| `gcloud run deploy voiceai-agent` | `npm run deploy:agent:async` |
+| `gcloud builds submit && gcloud run deploy` | `npm run deploy:agent:async` |
+| Direct `gcloud` deploy commands | Always use `npm run deploy:*` |
 
-| Deploy Command | What it deploys | Blocking? |
-|----------------|-----------------|-----------|
-| `npm run deploy:ui:async` | UI backend APIs | ✅ No (async) |
-| `npm run deploy:agent:async` | Voice agent | ✅ No (async) |
-| `npm run deploy:frontend` | Firebase Hosting | Blocking |
-| `npm run deploy:landing` | Landing page | Blocking |
+**Why?** Direct deploys skip health checks and can push broken code to production. The crash on 2025-12-11 was caused by direct deploy without blue-green.
 
-**Key files:** `cloudbuild-ui.yaml`, `cloudbuild.yaml`, `Dockerfile.ui`, `Dockerfile`, `scripts/deploy.ts`
+| Deploy Command | What it deploys | Blue-Green? |
+|----------------|-----------------|-------------|
+| `npm run deploy:agent:async` | Voice agent | ✅ Yes |
+| `npm run deploy:ui:async` | UI backend APIs | ✅ Yes |
+| `npm run deploy:frontend` | Firebase Hosting | ✅ Yes (preview channel) |
+| `npm run deploy:landing` | Landing page | ✅ Yes (preview channel) |
+
+**Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
 ## 🎨 Design System (SINGLE SOURCE OF TRUTH)
 
@@ -467,6 +475,7 @@ Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `st
 | Editing generated files | Check filename for `.generated.` |
 | Wrong deploy target | Check table in Deployment section |
 | Forgetting to sync tokens | Run `npm run tokens:sync` after token edits |
+| Direct `gcloud run deploy` | **NEVER** - use `npm run deploy:*:async` (blue-green) |
 
 **If pre-commit fails:**
 ```bash
