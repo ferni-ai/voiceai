@@ -221,6 +221,19 @@ export interface TurnProcessorResult {
     /** Whether to prompt for contribution post-conversation */
     shouldPrompt: boolean;
   };
+  /** Advanced humanization guidance (10 deep capabilities) */
+  advancedHumanization?: {
+    /** Response prefix (repair phrase, milestone, affirmation) */
+    responsePrefix?: string;
+    /** Response suffix (hope, affirmation) */
+    responseSuffix?: string;
+    /** Whether to stop giving direct advice */
+    stopDirectAdvice: boolean;
+    /** Tone guidance for response */
+    toneGuidance: string;
+    /** Length guidance for response */
+    lengthGuidance: 'shorter' | 'normal' | 'longer';
+  };
 }
 
 // ============================================================================

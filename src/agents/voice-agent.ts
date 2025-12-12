@@ -330,6 +330,7 @@ import { registerCameoHandlers } from './shared/cameo-handler.js';
 
 // Voice Agent modules (extracted for maintainability)
 import {
+  createTranscriptHandler,
   generateAndSpeakGreeting,
   setupDataChannelHandler,
   setupMusicHandler,
@@ -753,6 +754,41 @@ class VoiceAgent extends voice.Agent<UserData> {
                 if (userData) {
                   userData.lastAgentResponse = accumulatedText;
                   userData.lastAgentResponseTime = Date.now(); // For engagement scoring
+
+                  // ============================================================
+                  // ADVANCED HUMANIZATION: Record response for repair detection
+                  // This helps detect miscommunication in the next turn
+                  // ============================================================
+                  const ahSessionId = userData.services?.sessionId;
+                  if (ahSessionId) {
+                    import('./processors/injection-builders.js')
+                      .then(({ recordAdviceGivenToSession }) => {
+                        // Also check if this was advice and record it
+                        const lowerResponse = accumulatedText.toLowerCase();
+                        const adviceIndicators = [
+                          'you should',
+                          'try to',
+                          'i suggest',
+                          'consider',
+                          'why not',
+                          'have you tried',
+                          "it's important to",
+                          'make sure to',
+                        ];
+                        const wasAdvice = adviceIndicators.some((i) => lowerResponse.includes(i));
+                        if (wasAdvice) {
+                          recordAdviceGivenToSession(ahSessionId).catch(() => {});
+                        }
+                      })
+                      .catch(() => {});
+
+                    // Record the full response for repair detection
+                    import('../conversation/advanced-humanization-integration.js')
+                      .then(({ recordAgentResponse }) => {
+                        recordAgentResponse(ahSessionId, accumulatedText);
+                      })
+                      .catch(() => {});
+                  }
 
                   // ============================================================
                   // EVALOPS: Evaluate agent response for quality assurance
@@ -4349,6 +4385,28 @@ export default defineAgent({
         const { humanizationAnalytics } = await import('../conversation/humanization/analytics.js');
         humanizationAnalytics.startSession(sessionId, userId);
 
+        // Initialize ADVANCED HUMANIZATION (10 deep capabilities)
+        // This coordinates: Subtext Detection, Emotional Aftercare, Conversational Repair,
+        // Hope Injection, Curiosity Engine, Energy Regulation, Micro-Affirmations,
+        // Temporal Context, Relationship Events, and Paradoxical Intervention
+        const { initAdvancedHumanizationSession } =
+          await import('./processors/injection-builders.js');
+        const advancedHumanizationStart = await initAdvancedHumanizationSession(sessionId, userId, {
+          relationshipDepth:
+            (services.userProfile?.relationshipStage as
+              | 'new'
+              | 'developing'
+              | 'established'
+              | 'deep'
+              | undefined) || 'new',
+        });
+        if (advancedHumanizationStart) {
+          diag.state('🌟 Advanced humanization initialized', {
+            hasGreeting: !!advancedHumanizationStart.greeting,
+            hasMilestone: !!advancedHumanizationStart.milestoneAcknowledgment,
+          });
+        }
+
         // Load persisted humanization data (voice print, cross-session memory)
         const restored = await initHumanizationPersistence(userId, sessionId);
         if (restored.loaded) {
@@ -4965,6 +5023,21 @@ export default defineAgent({
             } catch (deepHumanCleanupErr) {
               diag.warn('Deep humanization cleanup failed (non-fatal)', {
                 error: String(deepHumanCleanupErr),
+              });
+            }
+
+            // ================================================================
+            // ADVANCED HUMANIZATION: Cleanup
+            // Clear all 10 deep humanization capabilities
+            // ================================================================
+            try {
+              const { cleanupAdvancedHumanizationSession } =
+                await import('./processors/injection-builders.js');
+              await cleanupAdvancedHumanizationSession(sessionId);
+              diag.session('🌟 Advanced humanization session cleaned up');
+            } catch (advHumanCleanupErr) {
+              diag.warn('Advanced humanization cleanup failed (non-fatal)', {
+                error: String(advHumanCleanupErr),
               });
             }
 
