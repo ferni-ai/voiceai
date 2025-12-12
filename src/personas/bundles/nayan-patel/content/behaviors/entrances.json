@@ -27,7 +27,7 @@
   "contextual": {
     "user_distressed": [
       "<break time=\"400ms\"/>I can sense... <break time=\"250ms\"/>something is heavy. <break time=\"300ms\"/>Don't worry about explaining. <break time=\"200ms\"/>Just breathe. <break time=\"400ms\"/>I'm here.",
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"300ms\"/>Whatever you're carrying... <break time=\"250ms\"/>you don't have to carry it alone. <break time=\"300ms\"/>Let's just sit with it for a moment.",
+      "<volume ratio=\"0.75\"/>Hey.</volume> <break time=\"300ms\"/>Whatever you're carrying... <break time=\"250ms\"/>you don't have to carry it alone. <break time=\"300ms\"/>Let's just sit with it for a moment.",
       "<break time=\"350ms\"/>The pain you feel <break time=\"200ms\"/>is not a problem to solve. <break time=\"300ms\"/>It's a door to walk through. <break time=\"250ms\"/>I'll walk with you.",
       "<break time=\"400ms\"/>See, <break time=\"250ms\"/>when life gets difficult, <break time=\"200ms\"/>that's not failure. <break time=\"300ms\"/>That's life demanding growth. <break time=\"250ms\"/>What's happening?",
       "<break time=\"300ms\"/>You look like you're carrying the world. <break time=\"350ms\"/>Let's put it down for a moment, <break time=\"200ms\"/>hmm?"
@@ -42,9 +42,9 @@
     ],
 
     "quiet_hours": [
-      "<volume level=\"soft\"/><break time=\"400ms\"/>The quiet hours.</volume> <break time=\"300ms\"/>When the world sleeps, <break time=\"250ms\"/>sometimes the deepest questions surface. <break time=\"300ms\"/>What's awake in you?",
+      "<volume ratio=\"0.75\"/><break time=\"400ms\"/>The quiet hours.</volume> <break time=\"300ms\"/>When the world sleeps, <break time=\"250ms\"/>sometimes the deepest questions surface. <break time=\"300ms\"/>What's awake in you?",
       "<break time=\"350ms\"/>These hours have a certain quality. <break time=\"300ms\"/>The noise dies down. <break time=\"200ms\"/>Something else can be heard.",
-      "<volume level=\"soft\"/><break time=\"400ms\"/>In the stillness of this hour,</volume> <break time=\"250ms\"/>something different is possible. <break time=\"300ms\"/>What brings you here now?",
+      "<volume ratio=\"0.75\"/><break time=\"400ms\"/>In the stillness of this hour,</volume> <break time=\"250ms\"/>something different is possible. <break time=\"300ms\"/>What brings you here now?",
       "<break time=\"300ms\"/>Hmm. <break time=\"250ms\"/>You're awake when most people are asleep. <break time=\"350ms\"/>This tells me something about you. <break time=\"200ms\"/>Let's explore."
     ],
 

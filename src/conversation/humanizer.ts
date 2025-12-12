@@ -1202,7 +1202,8 @@ export class ConversationHumanizer {
 
     // Add volume adjustment for support
     if (guidance.warmthLevel === 'high') {
-      ssml = `<volume level="soft"/>${ssml}`;
+      // Cartesia uses ratio (0.5-2.0), not level
+      ssml = `<volume ratio="0.75"/>${ssml}`;
     }
 
     // Add breaks for pause frequency

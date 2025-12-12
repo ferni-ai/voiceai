@@ -73,21 +73,14 @@ import { hasSsmlTags, startHealthCheckServer, type UserData } from './shared/ind
 import { getPersonaAsync, initializeFromBundles, type PersonaConfig } from '../personas/index.js';
 
 // Response naturalness - acknowledgments, catchphrases
-import { resetCatchphraseTracking } from '../speech/response-naturalness.js';
 
 // Meaningful Silence System - SilenceContext imported for session state handlers
 // (full meaningful-silence imports are in session-state-handler.ts)
 
 // Services Bootstrap
-import { createSessionServices, initializeServices } from '../services/index.js';
+import { initializeServices } from '../services/index.js';
 
 // First Taste Trial - "Better than Human" free trial experience
-import {
-  checkTrialStatus,
-  isEligibleForTrial,
-  startTrial,
-  type TrialCheckResult,
-} from '../services/first-taste-trial.js';
 
 // Adaptive SSML
 import { applyPhasePersonality, tagGreeting } from '../speech/adaptive-ssml.js';
@@ -97,7 +90,6 @@ import { getConversationManager } from '../services/conversation-manager.js';
 
 // Trust Systems - "Better than human" trust profile loading and recording
 import {
-  onSessionStart as loadTrustProfiles,
   // Phase 24: Voice Prosody Learning - BETTER-THAN-HUMAN baseline building
   recordVoiceSample,
 } from '../services/trust-systems/index.js';
@@ -112,7 +104,6 @@ import { onCognitiveSessionStart } from '../services/cognitive-session-hooks.js'
 import { getDJBooth } from '../audio/index.js';
 
 // Conversation State - Shared context for human-level tool orchestration
-import { getConversationState } from '../services/conversation-state.js';
 
 // Tools - Registry-based system
 import {
@@ -129,7 +120,6 @@ import {
 import { perfInstrumentation } from '../services/performance-instrumentation.js';
 
 // Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
-import { abTestingService } from '../tools/ab-testing.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
 import { dynamicToolLoader } from '../tools/dynamic-loader.js';
 import { feedbackCollector } from '../tools/feedback-collector.js';
@@ -156,7 +146,6 @@ import {
   getConversationHumanizer,
   getEmotionalArcTracker,
   getResponseDynamicsEngine,
-  resetAllConversationState,
 } from '../conversation/index.js';
 
 // Advanced Humanization Integration - voice print learning, breathing sync, cross-session memory
@@ -168,10 +157,6 @@ import {
 } from '../conversation/humanization/index.js';
 
 // 🧠 Superhuman Intelligence Persistence - cross-session learning & memory
-import {
-  createFirestoreSuperhumanStore,
-  loadSuperhumanData,
-} from '../services/superhuman-persistence.js';
 
 // Voice Humanization - prosody-aware turn prediction, micro-interruptions, emotional arc TTS
 import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
@@ -226,12 +211,7 @@ import { getEngagementDataSender } from '../services/engagement-data-sender.js';
 import { getRitualOnboardingService } from '../services/ritual-onboarding.js';
 
 // Handoff system (for multi-persona support)
-import {
-  handoffEvents,
-  initializeHandoffContext,
-  resetHandoffState,
-  resetMetPersonas,
-} from '../tools/handoff/index.js';
+import { handoffEvents, initializeHandoffContext } from '../tools/handoff/index.js';
 import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handler.js';
 
 // Cameo system (for team member pop-ins)
@@ -938,18 +918,16 @@ class VoiceAgent extends voice.Agent<UserData> {
                     voiceEmotion.primary
                   );
 
-                  // Apply momentum-based prosody adjustments
+                  // Apply momentum-based prosody adjustments using Cartesia-compatible tags
+                  // NOTE: Cartesia doesn't support <prosody>, use <speed> and <volume> instead
                   if (hints.prosody.speedAdjust !== 0 || hints.prosody.volumeAdjust !== 1.0) {
-                    const rate = Math.round((1 + hints.prosody.speedAdjust) * 100);
-                    const volume =
-                      hints.prosody.volumeAdjust > 1.05
-                        ? 'loud'
-                        : hints.prosody.volumeAdjust < 0.95
-                          ? 'soft'
-                          : 'medium';
+                    // Convert percentage adjustment to Cartesia ratio (0.6-1.5 for speed)
+                    const speedRatio = Math.max(0.6, Math.min(1.5, 1 + hints.prosody.speedAdjust));
+                    // Convert volume adjustment to Cartesia ratio (0.5-2.0)
+                    const volumeRatio = Math.max(0.5, Math.min(2.0, hints.prosody.volumeAdjust));
 
-                    if (!taggedText.includes('<prosody')) {
-                      taggedText = `<prosody rate="${rate}%" volume="${volume}">${taggedText}</prosody>`;
+                    if (!taggedText.includes('<speed') && !taggedText.includes('<volume')) {
+                      taggedText = `<speed ratio="${speedRatio.toFixed(2)}"/><volume ratio="${volumeRatio.toFixed(2)}"/>${taggedText}`;
                     }
                   }
 
@@ -996,10 +974,12 @@ class VoiceAgent extends voice.Agent<UserData> {
                     const ssmlAdjustments = wordTimingService.getCurrentAdjustments();
 
                     // Apply rate adjustment if learned rhythm differs significantly
-                    if (ssmlAdjustments.rate !== 1.0 && !taggedText.includes('<prosody')) {
-                      const ratePercent = Math.round(ssmlAdjustments.rate * 100);
-                      if (ratePercent !== 100) {
-                        taggedText = `<prosody rate="${ratePercent}%">${taggedText}</prosody>`;
+                    // NOTE: Cartesia uses <speed ratio="X"/> not <prosody rate="X%">
+                    if (ssmlAdjustments.rate !== 1.0 && !taggedText.includes('<speed')) {
+                      // Clamp to Cartesia's valid range (0.6-1.5)
+                      const speedRatio = Math.max(0.6, Math.min(1.5, ssmlAdjustments.rate));
+                      if (speedRatio !== 1.0) {
+                        taggedText = `<speed ratio="${speedRatio.toFixed(2)}"/>${taggedText}`;
                       }
                     }
 
@@ -1106,6 +1086,65 @@ class VoiceAgent extends voice.Agent<UserData> {
                   'Voice humanization TTS adjustment failed'
                 );
               }
+            }
+
+            // ============================================================
+            // 6. SMART EMPHASIS - Emphasize key words naturally
+            // Makes speech more expressive by stressing important words
+            // ============================================================
+            try {
+              const { applySmartEmphasis } =
+                await import('../speech/adaptive-ssml/smart-emphasis.js');
+              const userName = userData?.name;
+              taggedText = applySmartEmphasis(taggedText, {
+                maxEmphasis: 2, // Subtle - max 2 emphasis pauses
+                userName: userName || undefined,
+                skipIfHasManyBreaks: true,
+              });
+            } catch (_emphasisErr) {
+              // Smart emphasis is non-critical
+            }
+
+            // ============================================================
+            // 7. THINKING PAUSES - Add natural "thinking" before responses
+            // Creates authentic pauses based on question complexity
+            // ============================================================
+            try {
+              const { wrapWithThinkingPause, createThinkingContext } =
+                await import('../speech/authentic-thinking.js');
+              const thinkingContext = createThinkingContext(
+                userData?.lastUserMessage || '',
+                userData?.voiceEmotion?.arousal || 0,
+                accumulatedText.includes('?'),
+                userData?.turnCount || 0,
+                agent.persona.id
+              );
+              taggedText = wrapWithThinkingPause(taggedText, thinkingContext);
+            } catch (_thinkingErr) {
+              // Thinking pauses are non-critical
+            }
+
+            // ============================================================
+            // 8. NONVERBAL SOUNDS - Add [laughter], [sigh] for emotion
+            // Makes speech more human with natural nonverbal expressions
+            // ============================================================
+            try {
+              const { addNonverbalSounds } =
+                await import('../speech/adaptive-ssml/nonverbal-sounds.js');
+              taggedText = addNonverbalSounds(
+                taggedText,
+                {
+                  userEmotion: userData?.voiceEmotion?.primary,
+                  turnCount: userData?.turnCount || 0,
+                },
+                {
+                  maxSounds: 1,
+                  skipIfHasSounds: true,
+                  userEmotion: userData?.voiceEmotion?.primary,
+                }
+              );
+            } catch (_nonverbalErr) {
+              // Nonverbal sounds are non-critical
             }
 
             controller.enqueue(taggedText);
@@ -1773,7 +1812,6 @@ class VoiceAgent extends voice.Agent<UserData> {
       sendDataMessage: this.sendDataMessage.bind(this),
     });
   }
-
 }
 
 // ============================================================================
@@ -1995,21 +2033,15 @@ export default defineAgent({
       // STEP 2-3: INITIALIZE SESSION (services, trial, user data)
       // ===============================================
       // Extracted to voice-agent/session-init-handler.ts for maintainability
-      const {
-        services,
-        isReturningUser,
-        isTrialUser,
-        isFirstConversation,
-        trialStatus,
-        userData,
-      } = await initializeSession({
-        sessionId,
-        userId,
-        userName,
-        userAccent,
-        sessionPersona,
-        room: ctx.room,
-      });
+      const { services, isReturningUser, isTrialUser, isFirstConversation, trialStatus, userData } =
+        await initializeSession({
+          sessionId,
+          userId,
+          userName,
+          userAccent,
+          sessionPersona,
+          room: ctx.room,
+        });
 
       // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)

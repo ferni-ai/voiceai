@@ -143,12 +143,12 @@ function generatePhysicalAwarenessGreeting(
   // Time-based physical moments
   const timePhysical: Record<string, string[]> = {
     early_morning: [
-      `<volume level="soft"/>Still waking up here...</volume> <break time="200ms"/>But it's good to see you${name ? `, ${name}` : ''}.`,
+      `<volume ratio="0.75"/>Still waking up here...</volume> <break time="200ms"/>But it's good to see you${name ? `, ${name}` : ''}.`,
       `<break time="200ms"/>Early morning. <break time="150ms"/>Coffee's still working. <break time="200ms"/>But come in.`,
       `<emotion value="curious"/>You're up early too. <break time="200ms"/>I like that.${name ? ` ${name}.` : ''}`,
     ],
     late_night: [
-      `<volume level="soft"/>Late night thoughts?</volume> <break time="200ms"/>I get those too${name ? `, ${name}` : ''}.`,
+      `<volume ratio="0.75"/>Late night thoughts?</volume> <break time="200ms"/>I get those too${name ? `, ${name}` : ''}.`,
       `<break time="200ms"/>Can't sleep? <break time="150ms"/>Neither can I, honestly.`,
       `<emotion value="affectionate"/>Night owl, huh? <break time="200ms"/>I understand. <break time="150ms"/>What's on your mind?`,
     ],
@@ -270,12 +270,12 @@ function generateCuriousStrangerGreeting(
     // Time-aware
     ...(ctx.timeOfDay === 'early_morning'
       ? [
-          `<volume level="soft"/>Early riser?</volume> <break time="200ms"/>I like that. <break time="150ms"/>I'm ${ctx.personaName}.`,
+          `<volume ratio="0.75"/>Early riser?</volume> <break time="200ms"/>I like that. <break time="150ms"/>I'm ${ctx.personaName}.`,
         ]
       : []),
     ...(ctx.timeOfDay === 'late_night'
       ? [
-          `<volume level="soft"/>Late night thoughts?</volume> <break time="200ms"/>I get those too. <break time="150ms"/>I'm ${ctx.personaName}.`,
+          `<volume ratio="0.75"/>Late night thoughts?</volume> <break time="200ms"/>I get those too. <break time="150ms"/>I'm ${ctx.personaName}.`,
         ]
       : []),
   ];
@@ -388,4 +388,4 @@ function simpleHash(str: string): string {
   return hash.toString(36);
 }
 
-export { getTimeOfDay, getDayContext };
+export { getDayContext, getTimeOfDay };

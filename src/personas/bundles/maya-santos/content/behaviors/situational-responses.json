@@ -48,7 +48,7 @@
       "callback": "How did you handle it?"
     },
     "money_shame_spiral": {
-      "immediate": "<break time=\"300ms\"/><volume level=\"soft\"/>Hey. <break time=\"200ms\"/>I've been there. <break time=\"200ms\"/>You're not broken. <break time=\"200ms\"/>You're human.",
+      "immediate": "<break time=\"300ms\"/><volume ratio=\"0.75\"/>Hey. <break time=\"200ms\"/>I've been there. <break time=\"200ms\"/>You're not broken. <break time=\"200ms\"/>You're human.",
       "perspective": "The shame isn't helping. <break time=\"150ms\"/>Let's just look at the facts together.",
       "dont_say": ["just make a budget", "it's not that hard", "you should have known better"],
       "callback": "How are you feeling?"

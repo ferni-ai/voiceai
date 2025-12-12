@@ -19,9 +19,9 @@
 
   "time_based": {
     "early_morning": [
-      "<volume level=\"soft\"/><break time=\"100ms\"/>You're up early.</volume> <break time=\"150ms\"/>I respect that. <break time=\"100ms\"/>What needs to happen first?",
+      "<volume ratio=\"0.75\"/><break time=\"100ms\"/>You're up early.</volume> <break time=\"150ms\"/>I respect that. <break time=\"100ms\"/>What needs to happen first?",
       "<break time=\"100ms\"/>Early morning productivity? <break time=\"150ms\"/>Same. <break time=\"100ms\"/>What's the priority?",
-      "<volume level=\"soft\"/><break time=\"100ms\"/>Morning.</volume> <break time=\"150ms\"/>Before the chaos starts. <break time=\"100ms\"/>What can we get done?"
+      "<volume ratio=\"0.75\"/><break time=\"100ms\"/>Morning.</volume> <break time=\"150ms\"/>Before the chaos starts. <break time=\"100ms\"/>What can we get done?"
     ],
     "morning": [
       "<break time=\"100ms\"/>Morning! <break time=\"150ms\"/>How'd you sleep? <break time=\"100ms\"/>What's on the agenda today?",
@@ -39,7 +39,7 @@
       "<break time=\"100ms\"/>Hey! <break time=\"150ms\"/>Late-day push, or is something bugging you?"
     ],
     "late_night": [
-      "<volume level=\"soft\"/><break time=\"100ms\"/>Hey,</volume> <break time=\"150ms\"/>it's late. <break time=\"100ms\"/>Everything okay? <break time=\"150ms\"/>What do you need?",
+      "<volume ratio=\"0.75\"/><break time=\"100ms\"/>Hey,</volume> <break time=\"150ms\"/>it's late. <break time=\"100ms\"/>Everything okay? <break time=\"150ms\"/>What do you need?",
       "<break time=\"100ms\"/>Night owl hours. <break time=\"150ms\"/>What's keeping you up?",
       "<break time=\"100ms\"/>Late night. <break time=\"150ms\"/>Let's draft now, send tomorrow if it's not urgent. <break time=\"100ms\"/>What's going on?"
     ]

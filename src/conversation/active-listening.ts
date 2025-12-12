@@ -88,7 +88,7 @@ const BACKCHANNELS: Record<Backchannel['type'], Array<Omit<Backchannel, 'type'>>
     { verbal: 'I can imagine.', ssml: '<break time="150ms"/>I can imagine.', energy: 'low' },
     {
       verbal: 'That sounds hard.',
-      ssml: '<volume level="soft"/><break time="200ms"/>That sounds hard.',
+      ssml: '<volume ratio="0.75"/><break time="200ms"/>That sounds hard.',
       energy: 'low',
     },
   ],
@@ -573,12 +573,12 @@ export class ActiveListeningEngine {
       '<break time="200ms"/>Take your time.',
       '<break time="300ms"/>I\'m here.',
       '<break time="200ms"/>Is there more you want to share?',
-      '<volume level="soft"/><break time="300ms"/>No rush.',
+      '<volume ratio="0.75"/><break time="300ms"/>No rush.',
     ];
 
     // Context-specific prompts
     if (context?.userEmotion === 'sad' || context?.userEmotion === 'overwhelmed') {
-      return '<volume level="soft"/><break time="400ms"/>I\'m here. Take your time.';
+      return '<volume ratio="0.75"/><break time="400ms"/>I\'m here. Take your time.';
     }
 
     if (context?.lastTopic) {
@@ -635,25 +635,25 @@ export class ActiveListeningEngine {
     const silenceBackchannels: Array<Omit<Backchannel, 'type'> & { type: Backchannel['type'] }> = [
       {
         verbal: 'Mm-hmm.',
-        ssml: '<volume level="soft"/><break time="100ms"/>Mm-hmm.',
+        ssml: '<volume ratio="0.75"/><break time="100ms"/>Mm-hmm.',
         type: 'acknowledgment',
         energy: 'low',
       },
       {
         verbal: "I'm here.",
-        ssml: '<volume level="soft"/><break time="150ms"/>I\'m here.',
+        ssml: '<volume ratio="0.75"/><break time="150ms"/>I\'m here.',
         type: 'empathy',
         energy: 'low',
       },
       {
         verbal: 'Take your time.',
-        ssml: '<volume level="soft"/><break time="200ms"/>Take your time.',
+        ssml: '<volume ratio="0.75"/><break time="200ms"/>Take your time.',
         type: 'encouragement',
         energy: 'low',
       },
       {
         verbal: 'No rush.',
-        ssml: '<volume level="soft"/><break time="150ms"/>No rush.',
+        ssml: '<volume ratio="0.75"/><break time="150ms"/>No rush.',
         type: 'encouragement',
         energy: 'low',
       },
@@ -664,13 +664,13 @@ export class ActiveListeningEngine {
       silenceBackchannels.push(
         {
           verbal: "I'm with you.",
-          ssml: '<volume level="soft"/><break time="200ms"/>I\'m with you.',
+          ssml: '<volume ratio="0.75"/><break time="200ms"/>I\'m with you.',
           type: 'empathy',
           energy: 'low',
         },
         {
           verbal: "It's okay.",
-          ssml: '<volume level="soft"/><break time="200ms"/>It\'s okay.',
+          ssml: '<volume ratio="0.75"/><break time="200ms"/>It\'s okay.',
           type: 'empathy',
           energy: 'low',
         }
@@ -684,7 +684,7 @@ export class ActiveListeningEngine {
       if (personaId === 'ferni') {
         silenceBackchannels.push({
           verbal: 'Sit with it.',
-          ssml: '<volume level="soft"/><break time="200ms"/>Sit with it.',
+          ssml: '<volume ratio="0.75"/><break time="200ms"/>Sit with it.',
           type: 'encouragement',
           energy: 'low',
         });
@@ -693,7 +693,7 @@ export class ActiveListeningEngine {
       if (personaId === 'nayan-patel') {
         silenceBackchannels.push({
           verbal: 'Thinking is good.',
-          ssml: '<volume level="soft"/><break time="150ms"/>Thinking is good.',
+          ssml: '<volume ratio="0.75"/><break time="150ms"/>Thinking is good.',
           type: 'acknowledgment',
           energy: 'low',
         });

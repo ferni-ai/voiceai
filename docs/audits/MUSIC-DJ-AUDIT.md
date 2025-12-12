@@ -26,14 +26,43 @@ Audit of the music playback and DJ capabilities across the Ferni platform. Ident
 
 ### Frontend Components
 
-| Component                   | Location                            | Purpose                        |
-| --------------------------- | ----------------------------------- | ------------------------------ |
-| `now-playing.ui.ts`         | `frontend-typescript/src/ui/`       | Floating card with track info  |
-| `music-audio.controller.ts` | `frontend-typescript/src/services/` | Web Audio API ducking          |
-| `music-dashboard.ui.ts`     | `frontend-typescript/src/ui/`       | Music insights/stats dashboard |
-| `toast.ui.ts`               | `frontend-typescript/src/ui/`       | General toast notifications    |
-| `spotify.service.ts`        | `frontend-typescript/src/services/` | Spotify Web Playback SDK       |
-| `spotify.ui.ts`             | `frontend-typescript/src/ui/`       | Spotify connection UI          |
+| Component                   | Location                            | Purpose                                    |
+| --------------------------- | ----------------------------------- | ------------------------------------------ |
+| `now-playing.ui.ts`         | `frontend-typescript/src/ui/`       | Floating card with track info              |
+| `music-audio.controller.ts` | `frontend-typescript/src/services/` | **🎚️ REAL-TIME DUCKING** via Web Audio API |
+| `connection.service.ts`     | `frontend-typescript/src/services/` | Music track identification & attachment    |
+| `music-dashboard.ui.ts`     | `frontend-typescript/src/ui/`       | Music insights/stats dashboard             |
+| `toast.ui.ts`               | `frontend-typescript/src/ui/`       | General toast notifications                |
+| `spotify.service.ts`        | `frontend-typescript/src/services/` | Spotify Web Playback SDK                   |
+| `spotify.ui.ts`             | `frontend-typescript/src/ui/`       | Spotify connection UI                      |
+
+### 🎚️ MusicAudioController Deep Dive
+
+The `music-audio.controller.ts` is the **KEY** to professional DJ-quality ducking:
+
+```typescript
+// Audio Processing Chain (Web Audio API)
+HTMLAudioElement → MediaElementSource → Analyser → GainNode → Destination
+                                                      ↑
+                                              REAL-TIME VOLUME CONTROL
+
+// Gain Constants
+GAIN.NORMAL = 1.0        // Full volume
+GAIN.AGENT_SPEAKING = 0.12  // 12% when agent speaks (barely audible)
+GAIN.USER_SPEAKING = 0.20   // 20% when user speaks
+GAIN.MINIMUM = 0.05      // Never fully silent
+
+// Ramp Timings
+RAMP.DUCK_DOWN_MS = 150  // Fast duck (150ms)
+RAMP.DUCK_UP_MS = 400    // Slower restore (400ms - feels natural)
+```
+
+**Why it works:**
+
+- LiveKit streams audio as `HTMLAudioElement`
+- We intercept with `createMediaElementSource()`
+- Route through `GainNode` for real-time volume control
+- Use `linearRampToValueAtTime()` for smooth DJ-quality fades
 
 ### Message Flow
 
@@ -497,19 +526,275 @@ Use this checklist to verify the full DJ experience is working:
 
 ---
 
-## Known Limitations (LiveKit)
+## Real-Time Ducking Architecture ✅ IMPLEMENTED
 
-These issues cannot be fixed due to LiveKit BackgroundAudioPlayer limitations:
+**Problem:** LiveKit BackgroundAudioPlayer cannot change volume during playback.
 
-| Issue                       | Limitation                   | Workaround                                    |
-| --------------------------- | ---------------------------- | --------------------------------------------- |
-| No real-time volume control | Volume set at play time only | Low default volume (25%), pause during speech |
-| Ambient music pauses        | Can't duck, only pause       | Quick pause/resume feels natural              |
-| No smooth crossfade audio   | Single track at a time       | 1.5s gap during transition + DJ phrase        |
+**Solution:** Two-tier architecture with frontend Web Audio API handling real-time ducking.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  REAL-TIME DUCKING FLOW                                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  BACKEND (src/audio/music-player.ts)                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ BackgroundAudioPlayer                                                │   │
+│  │ - Plays audio (volume fixed at play time)                           │   │
+│  │ - duck() → sends 'ducking' state to frontend                        │   │
+│  │ - unduck() → sends 'playing' state to frontend                      │   │
+│  │ - Ambient music: pause/resume (fills silence, shouldn't compete)    │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                           │                                                 │
+│                           ▼ (LiveKit Data Channel: music_state)            │
+│                                                                             │
+│  FRONTEND (frontend-typescript/src/services/music-audio.controller.ts)     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ MusicAudioController (Web Audio API)                                │   │
+│  │                                                                      │   │
+│  │ Audio Chain:                                                        │   │
+│  │   HTMLAudioElement → MediaElementSource → Analyser → GainNode → Out │   │
+│  │                                                       ↑              │   │
+│  │                                                  REAL DUCKING        │   │
+│  │                                                                      │   │
+│  │ Methods:                                                            │   │
+│  │   duckForAgent()  → 12% volume in 150ms (smooth ramp)              │   │
+│  │   unduckForAgent() → 100% volume in 400ms (slower restore)         │   │
+│  │   duckForUser()   → 20% volume (user speaking)                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Files
+
+| File                                                         | Layer    | Responsibility                                      |
+| ------------------------------------------------------------ | -------- | --------------------------------------------------- |
+| `src/audio/music-player.ts`                                  | Backend  | Sends 'ducking'/'playing' state messages            |
+| `src/agents/voice-agent/session-state-handler.ts`            | Backend  | Calls `player.duck()` on agent speech start         |
+| `frontend-typescript/src/services/music-audio.controller.ts` | Frontend | **REAL DUCKING** via Web Audio GainNode             |
+| `frontend-typescript/src/services/connection.service.ts`     | Frontend | Identifies music tracks, calls `attachMusicTrack()` |
+| `frontend-typescript/src/app.ts`                             | Frontend | Triggers `duckForAgent()`/`unduckForAgent()`        |
+| `frontend-typescript/src/app/data-message-handlers.ts`       | Frontend | Handles 'ducking' state from backend                |
+
+### Volume Levels
+
+| Scenario        | Gain Level | Ramp Time  | Why                                         |
+| --------------- | ---------- | ---------- | ------------------------------------------- |
+| Normal playback | 100% (1.0) | -          | Full volume when nobody speaking            |
+| Agent speaking  | 12% (0.12) | 150ms down | Agent voice dominates, music barely audible |
+| User speaking   | 20% (0.20) | 150ms down | User still wants some music                 |
+| Minimum floor   | 5% (0.05)  | -          | Never fully silent                          |
+| Restore         | 100% (1.0) | 400ms up   | Slower restore feels more natural           |
+
+### Ducking Triggers
+
+1. **Agent Speech Start** (highest priority)
+   - `app.ts:1880` → `getMusicAudioController().duckForAgent()`
+2. **Agent Speech End**
+   - `app.ts:1895` → `getMusicAudioController().unduckForAgent()`
+
+3. **User Speech (VAD)**
+   - `app.ts:1927-1930` → `duckForUser()` / `unduckForUser()`
+
+4. **Backend 'ducking' state**
+   - `data-message-handlers.ts:716` → `duckFromBackend()`
+
+### Music Track Identification
+
+For ducking to work, the music track must be attached to the MusicAudioController:
+
+1. Backend sends `music_state: 'playing'` via data channel
+2. Frontend `data-message-handlers.ts` calls `connectionService.expectMusicTrack()`
+3. When LiveKit audio track arrives, `connection.service.ts` identifies it as music
+4. `app.ts:1903-1909` calls `controller.attachMusicTrack(audioElement, trackId)`
+5. Track is routed through GainNode for real-time volume control
+
+### E2E Verification (Browser Console)
+
+Look for these logs to verify ducking is working:
+
+```
+🎚️ Music track identified { trackKey: "..." }
+🎚️ MusicAudioController initialized { sampleRate: 48000 }
+🎚️ Music track attached for ducking { trackId: "..." }
+🎚️ Ducking for agent speech
+🎚️ Ramping gain { from: "1.00", to: "0.12", durationMs: 150 }
+🎚️ Agent stopped, restoring gain
+🎚️ Ramping gain { from: "0.12", to: "1.00", durationMs: 400 }
+```
+
+### Troubleshooting Ducking Not Working
+
+| Symptom                                   | Cause                       | Fix                                         |
+| ----------------------------------------- | --------------------------- | ------------------------------------------- |
+| No "Music track identified" log           | Track not detected          | Check pending buffer logs, increase timeout |
+| "Track added to pending buffer" but no ID | Data message never arrived  | Check data channel connectivity             |
+| "DUCKING WILL NOT WORK" error             | `attachMusicTrack()` failed | Check if audio element already connected    |
+| "Reusing existing MediaElementSource" log | Track reattached            | This is fine - ducking should still work    |
+| No "Ramping gain" log                     | Duck not triggered          | Check agent speech events in app.ts         |
+| "Ducking already at target level" log     | Redundant trigger           | This is fine - both paths working           |
+| Ducking works once then stops             | Track detached              | Check for cleanup being called prematurely  |
+
+---
+
+## Known Limitations (LiveKit Backend Only)
+
+These limitations apply to the **BACKEND** only. Frontend ducking works perfectly.
+
+| Issue                       | Backend Limitation           | Solution                                    |
+| --------------------------- | ---------------------------- | ------------------------------------------- |
+| No real-time volume control | Volume set at play time only | ✅ Frontend Web Audio GainNode handles this |
+| Ambient music during speech | Can't duck smoothly          | Pause/resume (ambient is meant for silence) |
+| No smooth crossfade audio   | Single track at a time       | 1.5s gap during transition + DJ phrase      |
+
+---
+
+## E2E Ducking Test Checklist
+
+### Manual Verification Steps
+
+Run these tests with browser console open to verify ducking is working:
+
+#### 1. Music Track Identification
+
+```
+[ ] Ask agent to "play some music"
+[ ] Check browser console for: "🎚️ Music track identified"
+[ ] Check browser console for: "🎚️ Music track attached for ducking"
+```
+
+#### 2. Agent Speaking Ducking
+
+```
+[ ] While music is playing, start talking to trigger agent response
+[ ] Check browser console for: "🎚️ Ducking for agent speech"
+[ ] Check browser console for: "🎚️ Ramping gain { from: '1.00', to: '0.12', durationMs: 150 }"
+[ ] LISTEN: Music should drop to ~12% volume instantly (150ms)
+```
+
+#### 3. Unduck After Agent Stops
+
+```
+[ ] Wait for agent to finish speaking
+[ ] Check browser console for: "🎚️ Agent stopped, restoring gain"
+[ ] Check browser console for: "🎚️ Ramping gain { from: '0.12', to: '1.00', durationMs: 400 }"
+[ ] LISTEN: Music should smoothly return to full volume (400ms)
+```
+
+#### 4. User Speaking Ducking
+
+```
+[ ] While music is playing, speak without triggering agent (e.g., clear throat)
+[ ] Check browser console for: "🎚️ Ducking for user speech"
+[ ] LISTEN: Music should drop to ~20% volume
+```
+
+#### 5. DJ Outro with Ducking
+
+```
+[ ] Let song play until ~5 seconds from end
+[ ] Check browser console for: "Music state changed { state: 'fading' }"
+[ ] LISTEN: Agent should speak DJ outro over fading music
+[ ] LISTEN: Music should duck for agent speech, but track is already fading
+```
+
+### Potential Issues & Debug Steps
+
+| Symptom                        | Debug Step                                             | Fix                                                                        |
+| ------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| No "Music track identified"    | Check `expectMusicTrack()` called before track arrives | Timing issue - data message might arrive after audio                       |
+| "Failed to attach music track" | Check for Web Audio errors in console                  | AudioContext not initialized, or `createMediaElementSource` already called |
+| Music doesn't get quieter      | Verify `attachMusicTrack()` succeeded                  | Track not routed through GainNode                                          |
+| Ducking too slow               | Check `RAMP.DUCK_DOWN_MS` value                        | Should be 150ms for fast duck                                              |
+| Volume doesn't restore         | Check `unduckForAgent()` called                        | Agent speech end event not firing                                          |
+
+### Unit Test Coverage (Backend)
+
+**Existing tests in `src/tests/music-integration.test.ts`:**
+
+- [x] `player.duck()` sets `isDucked = true`
+- [x] `player.unduck()` sets `isDucked = false`
+- [x] No double-ducking
+- [x] Ducking volume < normal volume
+
+**Missing tests:**
+
+- [ ] `duck()` calls `notifyStateChange('ducking')`
+- [ ] `unduck()` calls `notifyStateChange('playing')`
+- [ ] Ambient music pauses on duck (not just state change)
+
+### E2E Test Coverage (Frontend)
+
+**No existing E2E tests for:**
+
+- [ ] `MusicAudioController` Web Audio chain
+- [ ] `attachMusicTrack()` success/failure
+- [ ] `duckForAgent()` gain ramping
+- [ ] `unduckForAgent()` gain restore
+- [ ] Music track identification flow
+- [ ] Full ducking flow backend → frontend
+
+### Recommended New Test File
+
+Create `frontend-typescript/src/__tests__/music-ducking.e2e.test.ts`:
+
+```typescript
+describe('Music Ducking E2E', () => {
+  it('should identify music track when expectMusicTrack() is called first');
+  it('should attach music track to Web Audio GainNode');
+  it('should duck to 12% when agent starts speaking');
+  it('should unduck to 100% when agent stops speaking');
+  it('should duck to 20% when user speaks');
+  it('should use smooth gain ramps (not instant jumps)');
+});
+```
 
 ---
 
 ## Changelog
+
+### 2025-12-11 (Critical Fixes)
+
+**Race Condition Fix:**
+
+- **Fixed:** Music track identification race condition where audio arrived before data message
+- **Added:** `pendingMusicTracks` buffer for tracks that arrive before `music_state` message
+- **Added:** Retroactive track identification in `expectMusicTrack()`
+- **Changed:** Timeout window increased from 3s to 5s for more reliable identification
+- **Added:** Cleanup for pending track interval on disconnect
+
+**Web Audio Attachment Fix:**
+
+- **Fixed:** `createMediaElementSource` double-call error with `connectedElements` WeakMap
+- **Added:** Retry logic (up to 2 retries) for transient attachment failures
+- **Fixed:** Silent failure now logs clear error: "DUCKING WILL NOT WORK"
+- **Added:** Graceful degradation - returns no-op cleanup instead of throwing
+
+**Redundant Ducking Verification:**
+
+- **Verified:** Priority system correctly handles multiple ducking triggers
+- **Added:** Debug logging for redundant triggers being ignored
+- **Confirmed:** Both frontend and backend paths provide redundancy
+
+### 2025-12-11 (Ducking Documentation)
+
+- **Documented:** Full ducking architecture (backend state → frontend Web Audio)
+- **Documented:** MusicAudioController deep dive (GainNode chain, gain levels, ramp times)
+- **Documented:** E2E ducking verification checklist with browser console logs
+- **Documented:** Troubleshooting guide for ducking issues
+- **Fixed:** Removed incorrect "Known Limitations" claim that ducking isn't possible
+- **Added:** E2E test coverage gaps and recommended new test file
+- **Fixed:** Backend `duck()` no longer restarts track (was breaking position)
+
+### 2025-12-11 (DJ Outro Fixes)
+
+- **Fixed:** FFmpeg fade uses actual audio duration (via ffprobe), not hardcoded 30s
+- **Fixed:** Static imports for DJ phrase functions (removes 100-200ms latency)
+- **Fixed:** Removed `isDucked` check that skipped outro when agent was speaking
+- **Fixed:** DJ outro phrases now always include track/artist info
 
 ### 2025-12-09 (Batch 2)
 

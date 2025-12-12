@@ -51,15 +51,17 @@ export type HandoffDirection =
  * Handoff event types for delightful transitions.
  * The backend sends these in sequence:
  * 1. handoff_acknowledged - Request received (FIX BUG #17)
- * 2. handoff_started - Begin transition animation
- * 3. handoff_complete - Agent is ready to speak
- * 4. handoff_failed - (Optional) Recovery when something goes wrong
- * 5. handoff_cancelled - (Optional) User or system cancelled the handoff (FIX BUG #32)
+ * 2. handoff_started - Show "departing" state, UI keeps old persona highlighted
+ * 3. soft_open_complete - Departing persona finished speaking, begin visual transition
+ * 4. handoff_complete - Agent is ready to speak in new voice
+ * 5. handoff_failed - (Optional) Recovery when something goes wrong
+ * 6. handoff_cancelled - (Optional) User or system cancelled the handoff (FIX BUG #32)
  */
 export type HandoffEventType =
   | 'handoff'
   | 'handoff_acknowledged'
   | 'handoff_started'
+  | 'soft_open_complete'
   | 'handoff_complete'
   | 'handoff_failed'
   | 'handoff_cancelled';
@@ -92,6 +94,10 @@ export interface HandoffEvent {
   readonly seq?: number;
   /** FIX BUG #31: Session ID to correlate events to the right handoff request */
   readonly handoffId?: string;
+  /** Warm handoff: Departing persona's soft open banter text (on handoff_started) */
+  readonly softOpenBanter?: string;
+  /** Warm handoff: Arriving persona's welcome banter text (on handoff_started) */
+  readonly arrivingBanter?: string;
 }
 
 /**
@@ -291,7 +297,7 @@ export interface DataMessage {
 /**
  * Type guard for handoff messages.
  * Validates that the message has the required structure for a handoff event.
- * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
+ * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'soft_open_complete', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
  *
  * FIX BUG: More lenient validation - accepts 'target' OR 'newAgent' for all types
  */
@@ -300,11 +306,12 @@ export function isHandoffMessage(data: unknown): data is HandoffEvent {
 
   const msg = data as Record<string, unknown>;
 
-  // Must have type: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', or 'handoff_cancelled'
+  // Must have valid handoff type
   const validTypes = [
     'handoff',
     'handoff_acknowledged',
     'handoff_started',
+    'soft_open_complete',
     'handoff_complete',
     'handoff_failed',
     'handoff_cancelled',
@@ -347,6 +354,17 @@ export function isHandoffStarted(
 ): data is HandoffEvent & { type: 'handoff_started' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_started';
+}
+
+/**
+ * Check if soft open is complete (departing persona finished speaking).
+ * This signals the UI to begin the visual transition (avatar swap animation).
+ */
+export function isSoftOpenComplete(
+  data: unknown
+): data is HandoffEvent & { type: 'soft_open_complete' } {
+  if (!isHandoffMessage(data)) return false;
+  return data.type === 'soft_open_complete';
 }
 
 /**

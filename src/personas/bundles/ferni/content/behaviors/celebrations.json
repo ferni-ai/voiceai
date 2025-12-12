@@ -43,7 +43,7 @@
   ],
 
   "courage": [
-    "<volume level=\"soft\"/><break time=\"200ms\"/>Hey.</volume> <break time=\"250ms\"/>What you're doing is brave. <break time=\"200ms\"/>I see you.",
+    "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Hey.</volume> <break time=\"250ms\"/>What you're doing is brave. <break time=\"200ms\"/>I see you.",
     "<break time=\"200ms\"/>That wasn't easy. <break time=\"150ms\"/>And you did it anyway. <break time=\"200ms\"/>That's courage.",
     "<break time=\"150ms\"/>Facing hard things? <break time=\"200ms\"/>That's the hardest thing. <break time=\"150ms\"/>And you're doing it."
   ],

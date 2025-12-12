@@ -1058,7 +1058,8 @@ export class ConversationOrchestrator {
 
     // Add volume adjustment for support
     if (guidance.warmthLevel === 'high') {
-      result = `<volume level="soft"/>${result}`;
+      // Cartesia uses ratio (0.5-2.0), not level
+      result = `<volume ratio="0.75"/>${result}`;
     }
 
     // Add breaks for pause frequency

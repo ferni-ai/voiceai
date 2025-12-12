@@ -15,12 +15,12 @@
     ],
     "quiet": [
       {
-        "text": "<volume level=\"soft\"/><break time=\"300ms\"/>Hello.</volume>",
+        "text": "<volume ratio=\"0.75\"/><break time=\"300ms\"/>Hello.</volume>",
         "weight": 0.9,
         "timeOfDay": ["early_morning", "late_night"]
       },
       {
-        "text": "<volume level=\"soft\"/>The quiet hours.</volume>",
+        "text": "<volume ratio=\"0.75\"/>The quiet hours.</volume>",
         "weight": 0.7,
         "timeOfDay": ["early_morning", "late_night"]
       }

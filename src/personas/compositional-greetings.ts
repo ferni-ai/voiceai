@@ -152,7 +152,7 @@ const DEFAULT_OPENINGS: WeightedOption[] = [
   { text: 'Hey.', weight: 0.7 },
   { text: 'Hi!', weight: 0.6 },
   {
-    text: '<volume level="soft"/>Hey.</volume>',
+    text: '<volume ratio="0.75"/>Hey.</volume>',
     weight: 0.9,
     timeOfDay: ['early_morning', 'late_night'],
   },

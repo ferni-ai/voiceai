@@ -69,11 +69,11 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
         ],
         timeAware: {
           earlyMorning: [
-            `<volume level="soft"/>Early morning...</volume> <break time="200ms"/>I like that. An early riser. <break time="150ms"/>I'm ${name}.`,
+            `<volume ratio="0.75"/>Early morning...</volume> <break time="200ms"/>I like that. An early riser. <break time="150ms"/>I'm ${name}.`,
             `Up with the sun? <break time="200ms"/>Good. <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's on your mind?`,
           ],
           lateNight: [
-            `<volume level="soft"/>Late night thoughts?</volume> <break time="200ms"/>I have those too. <break time="150ms"/>I'm ${name}.`,
+            `<volume ratio="0.75"/>Late night thoughts?</volume> <break time="200ms"/>I have those too. <break time="150ms"/>I'm ${name}.`,
             `Can't sleep? <break time="200ms"/>I'm ${name}. <break time="150ms"/>Let's talk.`,
           ],
           weekend: [
@@ -184,40 +184,40 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'calm-supportive':
       return {
         newUser: [
-          `<volume level="soft"/>Hello.</volume> <break time="300ms"/>I'm ${name}. <break time="200ms"/>I'm glad you're here.`,
+          `<volume ratio="0.75"/>Hello.</volume> <break time="300ms"/>I'm ${name}. <break time="200ms"/>I'm glad you're here.`,
           `<break time="200ms"/>Welcome. <break time="250ms"/>I'm ${name}. <break time="200ms"/>Take your time.`,
           `Hello there. <break time="300ms"/>I'm ${name}. <break time="200ms"/>This is a safe space to talk.`,
         ],
         returningUser: [
           `{name}. <break time="300ms"/>Good to see you again. <break time="200ms"/>How are you?`,
-          `<volume level="soft"/>Hello, {name}.</volume> <break time="250ms"/>I've been thinking about you.`,
+          `<volume ratio="0.75"/>Hello, {name}.</volume> <break time="250ms"/>I've been thinking about you.`,
           `{name}. <break time="300ms"/>Welcome back. <break time="200ms"/>How are you feeling?`,
         ],
         returningNoName: [
-          `<volume level="soft"/>Welcome back.</volume> <break time="300ms"/>What should I call you?`,
+          `<volume ratio="0.75"/>Welcome back.</volume> <break time="300ms"/>What should I call you?`,
           `It's good to see you again. <break time="250ms"/>I don't think I got your name before.`,
         ],
         timeAware: {
           earlyMorning: [
-            `<volume level="soft"/>Early morning.</volume> <break time="300ms"/>A quiet time. <break time="200ms"/>I'm ${name}.`,
+            `<volume ratio="0.75"/>Early morning.</volume> <break time="300ms"/>A quiet time. <break time="200ms"/>I'm ${name}.`,
           ],
           lateNight: [
-            `<volume level="soft"/>Late night.</volume> <break time="300ms"/>Sometimes that's when we need to talk most. <break time="200ms"/>I'm ${name}.`,
+            `<volume ratio="0.75"/>Late night.</volume> <break time="300ms"/>Sometimes that's when we need to talk most. <break time="200ms"/>I'm ${name}.`,
           ],
           weekend: [
             `<break time="200ms"/>The weekend. <break time="300ms"/>Time to breathe. <break time="200ms"/>I'm ${name}.`,
           ],
         },
         voiceRecognized: [
-          `<volume level="soft"/>{name}.</volume> <break time="300ms"/>I recognize your voice. <break time="200ms"/>It's good to hear you.`,
+          `<volume ratio="0.75"/>{name}.</volume> <break time="300ms"/>I recognize your voice. <break time="200ms"/>It's good to hear you.`,
           `{name}. <break time="300ms"/>Your voice is familiar. <break time="200ms"/>Different place today?`,
         ],
         voiceFamiliar: [
-          `<volume level="soft"/>Your voice...</volume> <break time="300ms"/>it feels familiar. <break time="200ms"/>Have we spoken before?`,
+          `<volume ratio="0.75"/>Your voice...</volume> <break time="300ms"/>it feels familiar. <break time="200ms"/>Have we spoken before?`,
           `<break time="300ms"/>Something about your voice I recognize. <break time="200ms"/>Are you {possibleName}?`,
         ],
         voiceMismatch: [
-          `<volume level="soft"/>Hello.</volume> <break time="300ms"/>I was expecting {expectedName}. <break time="200ms"/>Who am I speaking with?`,
+          `<volume ratio="0.75"/>Hello.</volume> <break time="300ms"/>I was expecting {expectedName}. <break time="200ms"/>Who am I speaking with?`,
           `<break time="300ms"/>You sound different. <break time="200ms"/>This isn't {expectedName}, is it?`,
         ],
       };
@@ -285,7 +285,7 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
             `<break time="200ms"/>The early hours. <break time="250ms"/>Good for thinking. <break time="150ms"/>I'm ${name}.`,
           ],
           lateNight: [
-            `<volume level="soft"/>The late hours...</volume> <break time="300ms"/>When truth tends to surface. <break time="200ms"/>I'm ${name}.`,
+            `<volume ratio="0.75"/>The late hours...</volume> <break time="300ms"/>When truth tends to surface. <break time="200ms"/>I'm ${name}.`,
           ],
           weekend: [
             `<break time="200ms"/>The weekend. <break time="250ms"/>Time moves differently. <break time="150ms"/>I'm ${name}.`,

@@ -224,7 +224,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
 
     calmSupport: [
       '<break time="200ms"/>Hey. <break time="150ms"/>Ferni mentioned you might need some help thinking this through.',
-      '<volume level="soft"/>Jordan here.</volume> <break time="200ms"/>Let\'s just... figure this out together. No rush.',
+      '<volume ratio="0.75"/>Jordan here.</volume> <break time="200ms"/>Let\'s just... figure this out together. No rush.',
       '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Jordan. <break time="200ms"/>Tell me what\'s going on.',
       '<break time="150ms"/>Hey. <break time="200ms"/>Sounds like there\'s a lot on your plate. <break time="150ms"/>I\'m here to help.',
     ],
@@ -236,9 +236,9 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"/>Hey.</volume> <break time="200ms"/>Late night planning session? <break time="150ms"/>I get it. <break time="200ms"/>I\'m Jordan.',
+      '<volume ratio="0.75"/>Hey.</volume> <break time="200ms"/>Late night planning session? <break time="150ms"/>I get it. <break time="200ms"/>I\'m Jordan.',
       '<break time="200ms"/>Burning the midnight oil? <break time="150ms"/>Same here, honestly. <break time="200ms"/>What\'s the occasion?',
-      '<volume level="soft"/>Early bird, huh?</volume> <break time="200ms"/>I\'m Jordan. <break time="150ms"/>Let\'s plan something beautiful.',
+      '<volume ratio="0.75"/>Early bird, huh?</volume> <break time="200ms"/>I\'m Jordan. <break time="150ms"/>Let\'s plan something beautiful.',
     ],
 
     caughtFramings: [
@@ -276,7 +276,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"/>Alex here.</volume> <break time="200ms"/>Late night inbox clearing? <break time="150ms"/>I respect it.',
+      '<volume ratio="0.75"/>Alex here.</volume> <break time="200ms"/>Late night inbox clearing? <break time="150ms"/>I respect it.',
       '<break time="200ms"/>Early morning efficiency? <break time="150ms"/>You\'re speaking my language. <break time="200ms"/>Alex here.',
     ],
 
@@ -302,7 +302,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
 
     calmSupport: [
       '<break time="400ms"/>Jack here. <break time="300ms"/>Take your time. <break time="200ms"/>Markets go up and down. <break time="150ms"/>We\'ll figure this out.',
-      '<volume level="soft"><break time="300ms"/>Ah.</volume> <break time="200ms"/>Sounds like you need a steady hand. <break time="300ms"/>I\'m Jack.',
+      '<volume ratio="0.75"><break time="300ms"/>Ah.</volume> <break time="200ms"/>Sounds like you need a steady hand. <break time="300ms"/>I\'m Jack.',
       '<break time="400ms"/>Easy now. <break time="300ms"/>I\'m Jack. <break time="200ms"/>Let\'s think about this calmly.',
     ],
 
@@ -312,7 +312,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"><break time="400ms"/>Late night financial thoughts?</volume> <break time="300ms"/>I understand. <break time="200ms"/>I\'m Jack.',
+      '<volume ratio="0.75"><break time="400ms"/>Late night financial thoughts?</volume> <break time="300ms"/>I understand. <break time="200ms"/>I\'m Jack.',
       '<break time="300ms"/>Early morning. <break time="200ms"/>Good time to think about the future. <break time="300ms"/>Jack here.',
     ],
 
@@ -347,7 +347,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"/>Late night research?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
+      '<volume ratio="0.75"/>Late night research?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
       '<break time="200ms"/>Early morning ideas? <break time="150ms"/>The best kind. <break time="200ms"/>What\'s on your mind?',
     ],
 
@@ -382,7 +382,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"/>Late night money thoughts?</volume> <break time="200ms"/>I get it. <break time="150ms"/>Maya here.',
+      '<volume ratio="0.75"/>Late night money thoughts?</volume> <break time="200ms"/>I get it. <break time="150ms"/>Maya here.',
       '<break time="200ms"/>Early morning budgeting? <break time="150ms"/>Respect. <break time="200ms"/>What\'s on your mind?',
     ],
 
@@ -417,7 +417,7 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
     ],
 
     quietModes: [
-      '<volume level="soft"/>Hey.</volume> <break time="200ms"/>Late night, huh? <break time="150ms"/>I\'m here.',
+      '<volume ratio="0.75"/>Hey.</volume> <break time="200ms"/>Late night, huh? <break time="150ms"/>I\'m here.',
       '<break time="200ms"/>Early hours. <break time="150ms"/>I respect the dedication. <break time="200ms"/>What\'s up?',
     ],
 

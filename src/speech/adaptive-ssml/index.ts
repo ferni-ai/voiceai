@@ -28,6 +28,23 @@ export { tagTextWithSsmlAdaptive } from './adaptation.js';
 export { applyEmotionAdaptation } from './emotion-adaptation.js';
 
 // ============================================================================
+// SMART EMPHASIS
+// ============================================================================
+
+export { applySmartEmphasis, type EmphasisOptions } from './smart-emphasis.js';
+
+// ============================================================================
+// NONVERBAL SOUNDS
+// ============================================================================
+
+export {
+  NONVERBALS,
+  addNonverbalSounds,
+  hasNonverbalSounds,
+  type NonverbalOptions,
+} from './nonverbal-sounds.js';
+
+// ============================================================================
 // SPECIALIZED TAGGERS
 // ============================================================================
 

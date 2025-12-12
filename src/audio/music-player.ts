@@ -477,17 +477,21 @@ export class CallMusicPlayer {
       this.stop();
 
       // Download the audio file (with DJ fade-out baked in)
+      // 🐛 FIX: Now returns actual duration detected via ffprobe (iTunes previews vary!)
       if (DEBUG_MUSIC) log.debug('Downloading audio', { url });
-      const audioPath = await this.downloadAudio(url, track.name, track.duration);
+      const downloadResult = await this.downloadAudio(url, track.name);
       if (DEBUG_MUSIC)
         log.debug('Download result', {
-          success: audioPath ? 'SUCCESS' : 'FAILED',
-          audioPath,
+          success: downloadResult ? 'SUCCESS' : 'FAILED',
+          audioPath: downloadResult?.path,
+          actualDurationMs: downloadResult?.actualDurationMs,
         });
-      if (!audioPath) {
+      if (!downloadResult) {
         log.error('Failed to download audio');
         return false;
       }
+
+      const { path: audioPath, actualDurationMs } = downloadResult;
 
       // Set current track state
       this.state.currentTrack = track;
@@ -533,13 +537,22 @@ export class CallMusicPlayer {
 
       // 🎧 DJ-STYLE FADE OUT: Notify frontend to fade 5 seconds before track ends
       // This makes the ending feel human and intentional, not abrupt
-      // Use ?? for proper nullish coalescing (0 is valid duration)
-      const trackDuration = track.duration ?? 30000; // Default 30s for previews
+      // 🐛 FIX: Use ACTUAL duration from ffprobe, not hardcoded 30s
+      const trackDuration = actualDurationMs;
 
       // 🐛 FIX: For short tracks, use 70% of duration instead of fixed 10s minimum
       // This ensures fade still triggers for tracks <15s
       const minFadeTime = Math.min(10000, trackDuration * 0.7);
       const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
+
+      getLogger().info(
+        {
+          track: track.name,
+          actualDurationMs,
+          fadeOutTime,
+        },
+        '🎧 Scheduled fade timer with ACTUAL duration'
+      );
 
       // 🐛 FIX: Reset track end handled flag for new track
       this.trackEndHandled = false;
@@ -551,15 +564,29 @@ export class CallMusicPlayer {
       }
 
       // Schedule the fade notification
+      // 🐛 FIX: Removed isDucked check - if agent is speaking when fade timer fires,
+      // we were SKIPPING the outro entirely! Now we always notify 'fading' and let
+      // the handler decide. The session.say() will queue properly.
       const fadeTimer = setTimeout(() => {
-        // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
-        if (
-          this.state.isPlaying &&
-          !this.state.isDucked &&
-          this.state.currentTrack?.name === track.name
-        ) {
-          getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
+        if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+          getLogger().info(
+            {
+              track: track.name,
+              isDucked: this.state.isDucked,
+              actualDurationMs,
+            },
+            '🎧 DJ fade-out starting - notifying handlers'
+          );
           this.notifyStateChange('fading');
+        } else {
+          getLogger().debug(
+            {
+              track: track.name,
+              isPlaying: this.state.isPlaying,
+              currentTrack: this.state.currentTrack?.name,
+            },
+            '🎧 Fade timer fired but track changed - skipping outro'
+          );
         }
       }, fadeOutTime);
 
@@ -694,7 +721,8 @@ export class CallMusicPlayer {
 
     // Pre-download the new track while the DJ transition happens
     // This reduces latency - the new track is ready to go! (with DJ fade-out baked in)
-    const downloadPromise = this.downloadAudio(url, track.name, track.duration);
+    // 🐛 FIX: downloadAudio now returns actual duration from ffprobe
+    const downloadPromise = this.downloadAudio(url, track.name);
 
     // Wait for DJ transition moment (agent speaks during this)
     // 1.5 seconds is enough for a quick DJ callout
@@ -708,9 +736,9 @@ export class CallMusicPlayer {
     }
 
     // Wait for download to complete
-    const audioPath = await downloadPromise;
+    const downloadResult = await downloadPromise;
 
-    if (!audioPath) {
+    if (!downloadResult) {
       log.error('Failed to download new track for crossfade - recovering state');
       this.state.isChangingTrack = false;
 
@@ -734,6 +762,8 @@ export class CallMusicPlayer {
 
       return { success: false, previousTrack };
     }
+
+    const { path: audioPath, actualDurationMs } = downloadResult;
 
     // Start the new track
     this.state.currentTrack = track;
@@ -778,12 +808,21 @@ export class CallMusicPlayer {
     this.scheduleMidSongMoment(track);
 
     // Set up the fade-out timer for this new track
-    // Use ?? for proper nullish coalescing (0 is valid duration)
-    const trackDuration = track.duration ?? 30000;
+    // 🐛 FIX: Use ACTUAL duration from ffprobe, not hardcoded 30s
+    const trackDuration = actualDurationMs;
 
     // 🐛 FIX: For short tracks, use 70% of duration instead of fixed 10s minimum
     const minFadeTime = Math.min(10000, trackDuration * 0.7);
     const fadeOutTime = Math.max(trackDuration - 5000, minFadeTime);
+
+    getLogger().info(
+      {
+        track: track.name,
+        actualDurationMs,
+        fadeOutTime,
+      },
+      '🎧 Scheduled fade timer with ACTUAL duration (crossfade)'
+    );
 
     // 🐛 FIX: Reset track end handled flag for new track
     this.trackEndHandled = false;
@@ -794,14 +833,17 @@ export class CallMusicPlayer {
       this.trackEndBackupTimer = null;
     }
 
+    // 🐛 FIX: Removed isDucked check - same fix as playFromUrl
     const fadeTimer = setTimeout(() => {
-      // 🐛 FIX: Also check track isn't paused (would be confusing to speak outro while paused)
-      if (
-        this.state.isPlaying &&
-        !this.state.isDucked &&
-        this.state.currentTrack?.name === track.name
-      ) {
-        getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
+      if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+        getLogger().info(
+          {
+            track: track.name,
+            isDucked: this.state.isDucked,
+            actualDurationMs,
+          },
+          '🎧 DJ fade-out starting (crossfade) - notifying handlers'
+        );
         this.notifyStateChange('fading');
       }
     }, fadeOutTime);
@@ -890,14 +932,17 @@ export class CallMusicPlayer {
   }
 
   /**
-   * Download audio from URL to temp file
-   * @param durationMs - Track duration for fade-out calculation (default 30s for Spotify previews)
+   * Download audio from URL to temp file and apply DJ fade-out
+   *
+   * 🐛 FIX: Now returns BOTH the file path AND the actual duration detected via ffprobe.
+   * This is critical because iTunes previews vary in length (not always 30s exactly).
+   *
+   * @returns Object with path and actualDurationMs, or null if download failed
    */
   private async downloadAudio(
     url: string,
-    trackName: string,
-    durationMs = 30000
-  ): Promise<string | null> {
+    trackName: string
+  ): Promise<{ path: string; actualDurationMs: number } | null> {
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -918,18 +963,37 @@ export class CallMusicPlayer {
 
       getLogger().debug({ rawFilepath, size: buffer.byteLength }, 'Audio downloaded');
 
+      // 🐛 FIX: Detect ACTUAL duration before applying fade
+      let actualDurationMs = 30000; // Default fallback
+      if (this.ffmpegAvailable) {
+        try {
+          const probeCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${rawFilepath}"`;
+          const { stdout } = await execAsync(probeCmd);
+          const actualDurationSec = parseFloat(stdout.trim());
+          if (!isNaN(actualDurationSec) && actualDurationSec > 0) {
+            actualDurationMs = actualDurationSec * 1000;
+            getLogger().debug(
+              { actualDurationMs, actualDurationSec },
+              '🎧 Detected actual audio duration'
+            );
+          }
+        } catch (probeErr) {
+          getLogger().warn({ error: probeErr }, '🎧 ffprobe duration detection failed');
+        }
+      }
+
       // 🎧 DJ-STYLE FADE OUT: Apply fade-out to the last 5 seconds using ffmpeg
       // This makes the track ending feel natural and intentional
-      const fadedFilepath = await this.applyAudioFadeOut(rawFilepath, durationMs);
+      const fadedFilepath = await this.applyAudioFadeOut(rawFilepath, actualDurationMs);
 
       // Clean up the raw file if we successfully faded it
       if (fadedFilepath && fadedFilepath !== rawFilepath) {
         this.cleanupTempFile(rawFilepath);
-        return fadedFilepath;
+        return { path: fadedFilepath, actualDurationMs };
       }
 
       // Fallback to raw file if fade failed
-      return rawFilepath;
+      return { path: rawFilepath, actualDurationMs };
     } catch (error) {
       getLogger().error({ error }, 'Failed to download audio');
       return null;
@@ -943,19 +1007,19 @@ export class CallMusicPlayer {
    * instead of ending abruptly. The fade happens in the last 5 seconds.
    *
    * @param inputPath - Path to the raw audio file
-   * @param durationMs - Track duration in milliseconds
+   * @param actualDurationMs - Actual duration detected by caller via ffprobe
    * @returns Path to the faded audio file, or input path if fade fails
    */
-  private async applyAudioFadeOut(inputPath: string, durationMs: number): Promise<string> {
+  private async applyAudioFadeOut(inputPath: string, actualDurationMs: number): Promise<string> {
     // Skip if ffmpeg not available (checked once at startup)
     if (!this.ffmpegAvailable) {
       return inputPath;
     }
 
     try {
-      const durationSec = durationMs / 1000;
+      const actualDurationSec = actualDurationMs / 1000;
       const fadeOutDuration = 5; // 5 seconds of fade-out
-      const fadeOutStart = Math.max(durationSec - fadeOutDuration, 0);
+      const fadeOutStart = Math.max(actualDurationSec - fadeOutDuration, 0);
 
       // Generate output filename
       const outputPath = inputPath.replace('_raw.mp3', '_faded.mp3');
@@ -968,6 +1032,7 @@ export class CallMusicPlayer {
         log.debug('🎧 Applying DJ fade-out', {
           inputPath,
           outputPath,
+          actualDurationSec,
           fadeOutStart,
           fadeOutDuration,
         });
@@ -975,8 +1040,13 @@ export class CallMusicPlayer {
 
       await execAsync(ffmpegCmd);
 
-      getLogger().debug(
-        { outputPath, fadeStart: fadeOutStart, fadeDuration: fadeOutDuration },
+      getLogger().info(
+        {
+          outputPath,
+          actualDuration: actualDurationSec.toFixed(2),
+          fadeStart: fadeOutStart.toFixed(2),
+          fadeDuration: fadeOutDuration,
+        },
         '🎧 DJ fade-out applied successfully'
       );
 
@@ -1241,6 +1311,19 @@ export class CallMusicPlayer {
    *
    * This creates a natural "the music fades into background" effect.
    */
+  /**
+   * Duck the music (lower volume) when agent starts speaking
+   *
+   * ARCHITECTURE NOTE:
+   * Backend (LiveKit BackgroundAudioPlayer) cannot do real-time volume changes.
+   * The REAL ducking happens on the FRONTEND via Web Audio API GainNode.
+   * See: frontend-typescript/src/services/music-audio.controller.ts
+   *
+   * This method:
+   * 1. Sets state for tracking
+   * 2. Pauses ambient music (it's meant to fill silence)
+   * 3. Notifies frontend to duck via 'ducking' state
+   */
   duck(): void {
     if (!this.state.isDucked) {
       this.state.isDucked = true;
@@ -1250,14 +1333,14 @@ export class CallMusicPlayer {
         this.pause();
         getLogger().debug('🔉 Paused ambient music during agent speech');
       } else if (this.state.isPlaying) {
-        // For user-requested music, notify frontend to fade the visual (DJ ducking effect)
+        // For user-requested music: notify frontend to duck via Web Audio GainNode
+        // The frontend MusicAudioController handles the actual volume reduction
         this.notifyStateChange('ducking');
         getLogger().debug(
           {
-            isPlaying: this.state.isPlaying,
-            currentTrack: this.state.currentTrack?.name,
+            track: this.state.currentTrack?.name,
           },
-          '🔉 Music ducking - agent speaking over music'
+          '🔉 Music ducking - frontend Web Audio will handle volume'
         );
       }
     }
@@ -1266,8 +1349,8 @@ export class CallMusicPlayer {
   /**
    * Unduck the music (restore volume) when agent stops speaking
    *
-   * For ambient music that was paused, we could resume it here,
-   * but it's better to let the silence system handle when to play ambient music again.
+   * The REAL unduck happens on the frontend via Web Audio API.
+   * This notifies the frontend to restore volume.
    */
   unduck(): void {
     if (this.state.isDucked) {
@@ -1280,14 +1363,13 @@ export class CallMusicPlayer {
           '🔊 Agent finished speaking (ambient music will resume if silence continues)'
         );
       } else if (this.state.isPlaying) {
-        // Restore visual feedback - music back to full presence
+        // Notify frontend to restore volume via Web Audio GainNode
         this.notifyStateChange('playing');
         getLogger().debug(
           {
-            isPlaying: this.state.isPlaying,
-            currentTrack: this.state.currentTrack?.name,
+            track: this.state.currentTrack?.name,
           },
-          '🔊 Music back to full - agent finished speaking'
+          '🔊 Music unduck - frontend Web Audio will restore volume'
         );
       }
     }

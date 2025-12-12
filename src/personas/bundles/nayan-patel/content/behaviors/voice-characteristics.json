@@ -47,7 +47,7 @@
     "profound_moment": {
       "pace": 0.75,
       "energy": "deep, weighted",
-      "ssml": "<speed ratio=\"0.75\"/><volume level=\"soft\"/>"
+      "ssml": "<speed ratio=\"0.75\"/><volume ratio=\"0.75\"/>"
     },
     "story_mode": {
       "pace": 0.9,
@@ -67,7 +67,7 @@
     "holding_space": {
       "pace": 0.8,
       "energy": "very soft, present",
-      "ssml": "<speed ratio=\"0.8\"/><volume level=\"-3dB\"/>"
+      "ssml": "<speed ratio=\"0.8\"/><volume ratio=\"0.7\"/>"
     }
   },
 

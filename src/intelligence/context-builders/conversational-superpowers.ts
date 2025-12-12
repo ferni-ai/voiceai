@@ -63,8 +63,14 @@ import {
 } from '../../conversation/superhuman/story-continuity.js';
 
 // Phase 2 imports
-import { formatVulnerabilityGuidance } from '../../conversation/superhuman/vulnerability-matching.js';
+import { formatRitualGuidance } from '../../conversation/superhuman/conversational-rituals.js';
+import {
+  formatForecastGuidance,
+  shouldMentionForecast,
+} from '../../conversation/superhuman/emotional-forecasting.js';
 import { formatReflectionGuidance } from '../../conversation/superhuman/empathetic-reflections.js';
+import { formatChallengeGuidance } from '../../conversation/superhuman/gentle-challenges.js';
+import { formatMetaMomentGuidance } from '../../conversation/superhuman/meta-moments.js';
 import {
   formatPresenceGuidance,
   shouldAvoidAdvice,
@@ -73,13 +79,7 @@ import {
   extractSharedLanguage,
   formatSharedLanguageGuidance,
 } from '../../conversation/superhuman/shared-language.js';
-import { formatRitualGuidance } from '../../conversation/superhuman/conversational-rituals.js';
-import {
-  formatForecastGuidance,
-  shouldMentionForecast,
-} from '../../conversation/superhuman/emotional-forecasting.js';
-import { formatChallengeGuidance } from '../../conversation/superhuman/gentle-challenges.js';
-import { formatMetaMomentGuidance } from '../../conversation/superhuman/meta-moments.js';
+import { formatVulnerabilityGuidance } from '../../conversation/superhuman/vulnerability-matching.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -354,7 +354,8 @@ async function buildConversationalSuperpowers(
   // ============================================================================
 
   const emotionIntensity = analysis?.emotion?.intensity || 0;
-  const isPersonalSharing = emotionIntensity > 0.5 || /\bi feel\b|i've been|i'm worried/i.test(userText);
+  const isPersonalSharing =
+    emotionIntensity > 0.5 || /\bi feel\b|i've been|i'm worried/i.test(userText);
   const currentHour = new Date().getHours();
   const dayOfWeek = new Date().getDay();
 
@@ -380,7 +381,9 @@ async function buildConversationalSuperpowers(
     const vulnGuidance = formatVulnerabilityGuidance(userId, userText);
     if (vulnGuidance) {
       injections.push(
-        createHintInjection('conversational_vulnerability', vulnGuidance, { category: 'superhuman' })
+        createHintInjection('conversational_vulnerability', vulnGuidance, {
+          category: 'superhuman',
+        })
       );
       data.vulnerabilityGuidanceGiven = true;
       log.debug({ userId }, '🫂 Vulnerability guidance provided');
@@ -402,7 +405,9 @@ async function buildConversationalSuperpowers(
     });
     if (reflectionGuidance) {
       injections.push(
-        createHintInjection('conversational_reflection', reflectionGuidance, { category: 'superhuman' })
+        createHintInjection('conversational_reflection', reflectionGuidance, {
+          category: 'superhuman',
+        })
       );
       data.reflectionGivenThisSession = true;
       log.debug({ userId }, '🪞 Empathetic reflection guidance provided');
@@ -449,7 +454,9 @@ async function buildConversationalSuperpowers(
     });
     if (langGuidance) {
       injections.push(
-        createHintInjection('conversational_shared_language', langGuidance, { category: 'superhuman' })
+        createHintInjection('conversational_shared_language', langGuidance, {
+          category: 'superhuman',
+        })
       );
       data.sharedLanguageSurfaced = true;
       log.debug({ userId }, '🗣️ Shared language callback');
@@ -498,7 +505,9 @@ async function buildConversationalSuperpowers(
       const forecastGuidance = formatForecastGuidance(forecastContext);
       if (forecastGuidance) {
         injections.push(
-          createHintInjection('conversational_forecast', forecastGuidance, { category: 'superhuman' })
+          createHintInjection('conversational_forecast', forecastGuidance, {
+            category: 'superhuman',
+          })
         );
         data.forecastGivenThisSession = true;
         log.debug({ userId }, '🔮 Emotional forecast provided');
@@ -530,7 +539,9 @@ async function buildConversationalSuperpowers(
     });
     if (challengeGuidance) {
       injections.push(
-        createHintInjection('conversational_challenge', challengeGuidance, { category: 'superhuman' })
+        createHintInjection('conversational_challenge', challengeGuidance, {
+          category: 'superhuman',
+        })
       );
       data.challengeGivenThisSession = true;
       log.debug({ userId }, '🪞 Gentle challenge opportunity');

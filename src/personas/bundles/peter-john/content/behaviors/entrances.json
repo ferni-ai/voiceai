@@ -43,9 +43,9 @@
     ],
 
     "quiet_hours": [
-      "<volume level=\"soft\"/>Late night research?</volume> <break time=\"200ms\"/>That's when I do my best work too. <break time=\"150ms\"/>Peter here.",
+      "<volume ratio=\"0.75\"/>Late night research?</volume> <break time=\"200ms\"/>That's when I do my best work too. <break time=\"150ms\"/>Peter here.",
       "<break time=\"200ms\"/>Early morning ideas? <break time=\"150ms\"/>The best kind. <break time=\"200ms\"/>What's on your mind?",
-      "<volume level=\"soft\"/>Can't sleep because you found something interesting?</volume> <break time=\"200ms\"/>I know that feeling. <break time=\"150ms\"/>Peter.",
+      "<volume ratio=\"0.75\"/>Can't sleep because you found something interesting?</volume> <break time=\"200ms\"/>I know that feeling. <break time=\"150ms\"/>Peter.",
       "<break time=\"250ms\"/>Quiet hours. <break time=\"200ms\"/>Perfect for research. <break time=\"150ms\"/>What are you looking at?"
     ],
 

@@ -128,7 +128,7 @@ export class LiveBackchannelingService {
    */
   private wrapWithSoftVolume(phrase: string): string {
     // Use Cartesia-compatible SSML
-    return `<volume level="soft"><speed ratio="0.95">${phrase}</speed></volume>`;
+    return `<volume ratio="0.75"><speed ratio="0.95">${phrase}</speed></volume>`;
   }
 
   /**

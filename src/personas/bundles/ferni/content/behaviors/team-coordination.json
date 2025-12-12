@@ -191,9 +191,9 @@
       "fallback_role": "life-coach",
       "stay_with_ferni": true,
       "phrases": [
-        "<volume level=\"soft\"><break time=\"400ms\"/>I'm here.</volume> <break time=\"300ms\"/>You don't need to be anywhere else right now.",
+        "<volume ratio=\"0.75\"><break time=\"400ms\"/>I'm here.</volume> <break time=\"300ms\"/>You don't need to be anywhere else right now.",
         "<break time=\"300ms\"/>Stay with me. <break time=\"200ms\"/>Let's just... <break time=\"200ms\"/>be here together for a moment.",
-        "<volume level=\"soft\"><break time=\"400ms\"/>I've got you.</volume> <break time=\"300ms\"/>There's no rush. <break time=\"200ms\"/>Take your time."
+        "<volume ratio=\"0.75\"><break time=\"400ms\"/>I've got you.</volume> <break time=\"300ms\"/>There's no rush. <break time=\"200ms\"/>Take your time."
       ]
     }
   },

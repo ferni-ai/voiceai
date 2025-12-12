@@ -381,85 +381,76 @@ export function getDJOutroPhrase(
   artistName?: string,
   personaId?: string
 ): string {
-  // Persona-specific DJ outro styles
-  const personaPhrases: Record<string, string[]> = {
-    'peter-john': [
-      '<break time="200ms"/>And that was a great one. <break time="150ms"/>Always love that track.',
-      '<break time="200ms"/>Nice. <break time="150ms"/>Solid choice there.',
-      '<break time="200ms"/>Good stuff. <break time="150ms"/>What else you want to talk about?',
+  // 🎧 DJ OUTRO: Spoken over the 5-second audio fade
+  // These should feel like a real radio DJ wrapping up a track
+  // ALWAYS include track info for that authentic DJ feel
+
+  // Persona-specific DJ outro styles - with track callout built in
+  const personaOutros: Record<string, (track: string, artist?: string) => string[]> = {
+    ferni: (track, artist) => [
+      `<break time="200ms"/>Mm, ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="200ms"/>I love sharing music with you.`,
+      `<break time="200ms"/>${artist ? `${artist}, "${track}"` : `"${track}"`}. <break time="200ms"/>How did that land for you?`,
+      `<break time="200ms"/>That was ${artist ? `${artist}` : `"${track}"`}. <break time="200ms"/>Nice little moment there.`,
+      `<break time="200ms"/>And that was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="200ms"/>Sometimes we just need a musical pause.`,
     ],
-    'nayan-patel': [
-      '<break time="300ms"/>Ah, <break time="150ms"/>that was lovely. <break time="200ms"/>Music for the soul.',
-      '<break time="300ms"/>Beautiful. <break time="200ms"/>There\'s something special about a good song, isn\'t there?',
-      '<break time="300ms"/>Wonderful. <break time="150ms"/>I hope that resonated.',
+    'peter-john': (track, artist) => [
+      `<break time="200ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="150ms"/>Good stuff.`,
+      `<break time="200ms"/>${artist ? `${artist}, "${track}"` : `"${track}"`}. <break time="150ms"/>Solid choice.`,
+      `<break time="200ms"/>And that's ${artist ? `"${track}"` : `that track`}. <break time="150ms"/>What else is on your mind?`,
     ],
-    'jack-b': [
-      '<emotion value="happy"/><break time="150ms"/>Nice! <break time="100ms"/>That was a good one!',
-      '<break time="150ms"/>Ha! <break time="100ms"/>Love that track. <break time="150ms"/>How you feeling?',
-      '<emotion value="happy"/><break time="100ms"/>Good stuff! <break time="150ms"/>Music always hits different, doesn\'t it?',
+    'nayan-patel': (track, artist) => [
+      `<break time="300ms"/>Ah, ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="200ms"/>Music for the soul.`,
+      `<break time="300ms"/>That was ${artist ? `${artist}` : `"${track}"`}. <break time="200ms"/>Beautiful, wasn't it?`,
+      `<break time="300ms"/>${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="200ms"/>There's something special about a good song.`,
     ],
-    maya: [
-      '<break time="200ms"/>That was a nice break. <break time="150ms"/>Music can really shift your energy.',
-      '<break time="200ms"/>Love it. <break time="150ms"/>How are you feeling after that?',
-      '<break time="200ms"/>Nice choice. <break time="150ms"/>Sometimes we just need a moment with good music.',
+    maya: (track, artist) => [
+      `<break time="200ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="150ms"/>Music can really shift your energy.`,
+      `<break time="200ms"/>${artist ? `${artist}` : `"${track}"`}. <break time="150ms"/>How are you feeling after that?`,
+      `<break time="200ms"/>And ${artist ? `"${track}"` : `that`} wrapping up. <break time="150ms"/>Nice moment.`,
     ],
-    'maya-santos': [
-      '<break time="200ms"/>That was a nice break. <break time="150ms"/>Music can really shift your energy.',
-      '<break time="200ms"/>Love it. <break time="150ms"/>How are you feeling after that?',
-      '<break time="200ms"/>Nice choice. <break time="150ms"/>Sometimes we just need a moment with good music.',
+    'maya-santos': (track, artist) => [
+      `<break time="200ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="150ms"/>Music can really shift your energy.`,
+      `<break time="200ms"/>${artist ? `${artist}` : `"${track}"`}. <break time="150ms"/>How are you feeling after that?`,
+      `<break time="200ms"/>And ${artist ? `"${track}"` : `that`} wrapping up. <break time="150ms"/>Nice moment.`,
     ],
-    jordan: [
-      '<emotion value="happy"/><break time="150ms"/>That was fun! <break time="100ms"/>Great pick!',
-      '<emotion value="happy"/><break time="100ms"/>Love it! <break time="150ms"/>What\'s next on the agenda?',
-      '<break time="150ms"/>Nice one! <break time="100ms"/>Music always makes things better.',
+    jordan: (track, artist) => [
+      `<emotion value="happy"/><break time="150ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}! <break time="100ms"/>Great pick!`,
+      `<emotion value="happy"/><break time="100ms"/>${artist ? `${artist}, "${track}"` : `"${track}"`}! <break time="150ms"/>What's next?`,
+      `<break time="150ms"/>And that's ${artist ? `"${track}"` : `that track`}! <break time="100ms"/>Love it.`,
     ],
-    'jordan-taylor': [
-      '<emotion value="happy"/><break time="150ms"/>That was fun! <break time="100ms"/>Great pick!',
-      '<emotion value="happy"/><break time="100ms"/>Love it! <break time="150ms"/>What\'s next on the agenda?',
-      '<break time="150ms"/>Nice one! <break time="100ms"/>Music always makes things better.',
+    'jordan-taylor': (track, artist) => [
+      `<emotion value="happy"/><break time="150ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}! <break time="100ms"/>Great pick!`,
+      `<emotion value="happy"/><break time="100ms"/>${artist ? `${artist}, "${track}"` : `"${track}"`}! <break time="150ms"/>What's next?`,
+      `<break time="150ms"/>And that's ${artist ? `"${track}"` : `that track`}! <break time="100ms"/>Love it.`,
     ],
-    alex: [
-      '<break time="150ms"/>Good track. <break time="100ms"/>Ready to get back to it?',
-      '<break time="150ms"/>Nice. <break time="100ms"/>What were we discussing?',
-      '<break time="150ms"/>That was a good one. <break time="100ms"/>Shall we continue?',
+    alex: (track, artist) => [
+      `<break time="150ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="100ms"/>Ready to get back to it?`,
+      `<break time="150ms"/>${artist ? `${artist}` : `"${track}"`} wrapping up. <break time="100ms"/>What were we discussing?`,
+      `<break time="150ms"/>And that's ${artist ? `"${track}"` : `that track`}. <break time="100ms"/>Shall we continue?`,
     ],
-    'alex-chen': [
-      '<break time="150ms"/>Good track. <break time="100ms"/>Ready to get back to it?',
-      '<break time="150ms"/>Nice. <break time="100ms"/>What were we discussing?',
-      '<break time="150ms"/>That was a good one. <break time="100ms"/>Shall we continue?',
-    ],
-    ferni: [
-      '<break time="200ms"/>That was nice. <break time="150ms"/>I love when we can just share a moment like that.',
-      '<break time="200ms"/>Good music. <break time="150ms"/>How are you feeling?',
-      '<break time="200ms"/>Beautiful. <break time="150ms"/>Sometimes we just need a musical pause.',
+    'alex-chen': (track, artist) => [
+      `<break time="150ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="100ms"/>Ready to get back to it?`,
+      `<break time="150ms"/>${artist ? `${artist}` : `"${track}"`} wrapping up. <break time="100ms"/>What were we discussing?`,
+      `<break time="150ms"/>And that's ${artist ? `"${track}"` : `that track`}. <break time="100ms"/>Shall we continue?`,
     ],
   };
 
-  // Default DJ-style phrases (friendly, casual, like a good radio host)
-  const defaultPhrases = [
-    '<break time="200ms"/>That was a good one. <break time="150ms"/>Hope you enjoyed that.',
-    '<break time="200ms"/>Nice. <break time="150ms"/>Sometimes you just need a little music.',
-    '<break time="200ms"/>Good stuff. <break time="150ms"/>How you feeling?',
+  // Default DJ-style outros (friendly, casual, like a good radio host)
+  const defaultOutros = (track: string, artist?: string): string[] => [
+    `<break time="200ms"/>That was ${artist ? `"${track}" by ${artist}` : `"${track}"`}. <break time="150ms"/>Hope you enjoyed that.`,
+    `<break time="200ms"/>${artist ? `${artist}, "${track}"` : `"${track}"`}. <break time="150ms"/>Good stuff.`,
+    `<break time="200ms"/>And that's ${artist ? `"${track}"` : `that track`} wrapping up. <break time="150ms"/>How you feeling?`,
   ];
 
-  const phrases =
-    personaId && personaPhrases[personaId] ? personaPhrases[personaId] : defaultPhrases;
+  // Build the track reference
+  const track = trackName || 'that song';
 
-  const basePhrase = phrases[Math.floor(Math.random() * phrases.length)];
+  // Get persona-specific or default outros
+  const getOutros =
+    personaId && personaOutros[personaId] ? personaOutros[personaId] : defaultOutros;
+  const phrases = getOutros(track, artistName);
 
-  // Optionally prepend a DJ-style track callout (30% chance for variety)
-  if (trackName && Math.random() < 0.3) {
-    const callouts = artistName
-      ? [
-          `<break time="100ms"/>That was "${trackName}" by ${artistName}. `,
-          `<break time="100ms"/>"${trackName}", ${artistName}. `,
-        ]
-      : [`<break time="100ms"/>That was "${trackName}". `, `<break time="100ms"/>"${trackName}". `];
-    const callout = callouts[Math.floor(Math.random() * callouts.length)];
-    return callout + basePhrase;
-  }
-
-  return basePhrase;
+  return phrases[Math.floor(Math.random() * phrases.length)];
 }
 
 // ============================================================================

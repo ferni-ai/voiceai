@@ -184,7 +184,7 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design System**: `design-system/README.md` (tokens, animations, colors)
 - **Design System Audit**: `docs/audits/DESIGN-SYSTEM-AUDIT.md` (consolidation status)
-- **Emotional Intelligence**: `design-system/brand/BETTER-THAN-HUMAN.md`
+- **Emotional Intelligence**: `brand/BETTER-THAN-HUMAN.md`
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 

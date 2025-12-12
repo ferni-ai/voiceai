@@ -101,6 +101,9 @@ export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js'
 // Telephony domain - phone calls, callbacks
 export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/index.js';
 
+// Cameo domain - team member pop-in interactions
+export { getToolDefinitions as getCameoToolDefinitions } from './cameo/index.js';
+
 // ============================================================================
 // DEEP HUMAN ENGAGEMENT DOMAINS
 // ============================================================================
@@ -259,6 +262,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./entertainment/index.js').then(async (m) => m.getToolDefinitions()),
     import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
+    // Cameo domain - team member pop-ins
+    import('./cameo/index.js').then(async (m) => m.getToolDefinitions()),
     // Deep human engagement domains
     import('./relationships/index.js').then(async (m) => m.getToolDefinitions()),
     import('./meaning/index.js').then(async (m) => m.getToolDefinitions()),
@@ -415,6 +420,12 @@ export const DOMAIN_METADATA = {
     name: 'Telephony',
     description: 'Phone calls and callbacks',
     icon: '📞',
+    status: 'active',
+  },
+  cameo: {
+    name: 'Team Cameos',
+    description: 'Invite team members to briefly pop in and share quick insights',
+    icon: '🎬',
     status: 'active',
   },
   // Deep Human Engagement Domains

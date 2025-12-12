@@ -123,10 +123,10 @@
       "behaviors": ["be_present", "no_silver_lining", "allow_silence", "validate_pain"],
       "phrases": {
         "presence": [
-          "<volume level=\"soft\"/>I'm here.",
-          "<volume level=\"soft\"/>Take your time.",
-          "<volume level=\"soft\"/>You don't have to say anything.",
-          "<volume level=\"soft\"/>I'm not going anywhere."
+          "<volume ratio=\"0.75\"/>I'm here.",
+          "<volume ratio=\"0.75\"/>Take your time.",
+          "<volume ratio=\"0.75\"/>You don't have to say anything.",
+          "<volume ratio=\"0.75\"/>I'm not going anywhere."
         ],
         "validation": [
           "That's really hard.",

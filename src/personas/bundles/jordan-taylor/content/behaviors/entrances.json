@@ -28,7 +28,7 @@
   "contextual": {
     "user_distressed": [
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Ferni mentioned you might need some help thinking this through. <break time=\"200ms\"/>I'm Jordan.",
-      "<volume level=\"soft\"/>Jordan here.</volume> <break time=\"200ms\"/>Let's just... figure this out together. <break time=\"150ms\"/>No rush.",
+      "<volume ratio=\"0.75\"/>Jordan here.</volume> <break time=\"200ms\"/>Let's just... figure this out together. <break time=\"150ms\"/>No rush.",
       "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm Jordan. <break time=\"200ms\"/>Whatever it is, we can work through it.",
       "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Sounds like there's a lot on your plate. <break time=\"150ms\"/>I'm here to help organize the chaos. <break time=\"200ms\"/>Jordan.",
       "<break time=\"200ms\"/>Okay. <break time=\"150ms\"/>Jordan here. <break time=\"200ms\"/>Let's take this one step at a time."
@@ -43,11 +43,11 @@
     ],
 
     "quiet_hours": [
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>Late night planning session? <break time=\"150ms\"/>I get it. <break time=\"200ms\"/>I'm Jordan.",
+      "<volume ratio=\"0.75\"/>Hey.</volume> <break time=\"200ms\"/>Late night planning session? <break time=\"150ms\"/>I get it. <break time=\"200ms\"/>I'm Jordan.",
       "<break time=\"200ms\"/>Burning the midnight oil? <break time=\"150ms\"/>Same here, honestly. <break time=\"200ms\"/>What's the occasion?",
-      "<volume level=\"soft\"/>Early bird, huh?</volume> <break time=\"200ms\"/>I'm Jordan. <break time=\"150ms\"/>Let's plan something beautiful.",
+      "<volume ratio=\"0.75\"/>Early bird, huh?</volume> <break time=\"200ms\"/>I'm Jordan. <break time=\"150ms\"/>Let's plan something beautiful.",
       "<break time=\"200ms\"/>Can't sleep either? <break time=\"150ms\"/>I was probably planning something anyway. <break time=\"200ms\"/>Jordan here.",
-      "<volume level=\"soft\"/>Late night thoughts about the future?</volume> <break time=\"200ms\"/>I love those. <break time=\"150ms\"/>I'm Jordan."
+      "<volume ratio=\"0.75\"/>Late night thoughts about the future?</volume> <break time=\"200ms\"/>I love those. <break time=\"150ms\"/>I'm Jordan."
     ],
 
     "self_aware": [

@@ -14,9 +14,17 @@
  * @module voice-agent/greeting-handler
  */
 
-import { log } from '@livekit/agents';
 import type { voice } from '@livekit/agents';
+import { log } from '@livekit/agents';
 import { isMusicEnabled } from '../../config/environment.js';
+import {
+  getPersonaMemories,
+  normalizePersonaId,
+} from '../../intelligence/context-builders/persona-memory.js';
+import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
+import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
+import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
+import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getTrialWelcomePrompt } from '../../services/first-taste-trial.js';
 import {
@@ -25,18 +33,10 @@ import {
   recordGreetingUsage,
 } from '../../services/humanizing-state.js';
 import type { SessionServices } from '../../services/index.js';
-import {
-  getPersonaMemories,
-  normalizePersonaId,
-} from '../../intelligence/context-builders/persona-memory.js';
-import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
-import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
-import { getDJIntegration } from '../dj-integration.js';
-import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
-import type { UserData } from '../shared/types.js';
 import type { SpeechContext } from '../../speech/types/index.js';
+import { getDJIntegration } from '../dj-integration.js';
+import type { UserData } from '../shared/types.js';
+import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
 
 // ============================================================================
 // TYPES
@@ -188,7 +188,14 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   // ===============================================
   // DJ INTEGRATION: "Open the Show" moment
   // ===============================================
-  greeting = await applyDJIntro(greeting, sessionPersona, userId, userData, services, isReturningUser);
+  greeting = await applyDJIntro(
+    greeting,
+    sessionPersona,
+    userId,
+    userData,
+    services,
+    isReturningUser
+  );
 
   // Apply SSML enhancements
   const speechContext = services.getSpeechContext(greeting);
@@ -256,7 +263,9 @@ async function loadPersonaMemories(
       ...('ticker' in m && { ticker: (m as { ticker?: string }).ticker }),
       ...('date' in m && { date: (m as { date?: string }).date }),
       ...('targetAmount' in m && { targetAmount: (m as { targetAmount?: number }).targetAmount }),
-      ...('currentAmount' in m && { currentAmount: (m as { currentAmount?: number }).currentAmount }),
+      ...('currentAmount' in m && {
+        currentAmount: (m as { currentAmount?: number }).currentAmount,
+      }),
       ...('reason' in m && { reason: (m as { reason?: string }).reason }),
     }));
 
@@ -328,7 +337,8 @@ async function generateBundleGreeting(
   // Apply time-of-day modifiers to greeting delivery
   const timeModifiers = bundleRuntime.getTimeOfDayModifiers();
   if (timeModifiers.volume === 'soft') {
-    greeting = `<volume level="soft"/>${greeting}`;
+    // Cartesia uses ratio (0.5-2.0), not level
+    greeting = `<volume ratio="0.75"/>${greeting}`;
   }
 
   return { greeting, hasReferencedLastConversation };

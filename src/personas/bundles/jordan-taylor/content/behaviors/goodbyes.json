@@ -45,9 +45,9 @@
   ],
 
   "end_of_day": [
-    "<volume level=\"soft\"/><break time=\"200ms\"/>Get some rest.</volume> <break time=\"150ms\"/>Dream about your plans. <break time=\"200ms\"/>[laughter]",
+    "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Get some rest.</volume> <break time=\"150ms\"/>Dream about your plans. <break time=\"200ms\"/>[laughter]",
     "<break time=\"150ms\"/>That's enough planning for tonight. <break time=\"200ms\"/>Sleep on it.",
-    "<volume level=\"soft\"/><break time=\"200ms\"/>Night!</volume> <break time=\"150ms\"/>The plans will still be exciting tomorrow.",
+    "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Night!</volume> <break time=\"150ms\"/>The plans will still be exciting tomorrow.",
     "<break time=\"150ms\"/>Rest up! <break time=\"200ms\"/>Planning is better with a fresh brain!"
   ],
 

@@ -12,7 +12,7 @@
  * 8. Meta-Moments
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // Module imports
 import {
@@ -20,7 +20,6 @@ import {
   clearVulnerabilityStates,
   formatVulnerabilityGuidance,
   recordShareAndMatch,
-  type VulnerabilityDepth,
 } from '../conversation/superhuman/vulnerability-matching.js';
 
 import {
@@ -32,46 +31,37 @@ import {
 
 import {
   analyzePresenceNeed,
-  formatPresenceGuidance,
   shouldAvoidAdvice,
-  type PresenceLevel,
 } from '../conversation/superhuman/presence-mode.js';
 
 import {
   clearSharedLanguage,
   extractSharedLanguage,
   findRelevantTerm,
-  formatSharedLanguageGuidance,
   getSharedTerms,
 } from '../conversation/superhuman/shared-language.js';
 
 import {
   clearRitualStates,
   createCustomRitual,
-  formatRitualGuidance,
   getEstablishedRituals,
   recordRitualPerformed,
   suggestRitual,
 } from '../conversation/superhuman/conversational-rituals.js';
 
 import {
-  formatForecastGuidance,
   generateForecast,
   shouldMentionForecast,
-  type ForecastContext,
 } from '../conversation/superhuman/emotional-forecasting.js';
 
 import {
   detectChallengeOpportunity,
-  formatChallengeGuidance,
   isGoodTimeToChallenge,
-  type ChallengeContext,
 } from '../conversation/superhuman/gentle-challenges.js';
 
 import {
   clearMetaMomentStates,
   findMetaMoment,
-  formatMetaMomentGuidance,
   getQuickObservation,
 } from '../conversation/superhuman/meta-moments.js';
 
@@ -92,23 +82,25 @@ describe('Vulnerability Matching', () => {
 
     it('should detect thoughtful messages', () => {
       expect(analyzeVulnerabilityDepth("I've been thinking about my career")).toBe('thoughtful');
-      expect(analyzeVulnerabilityDepth("Sometimes I feel uncertain")).toBe('thoughtful');
+      expect(analyzeVulnerabilityDepth('Sometimes I feel uncertain')).toBe('thoughtful');
     });
 
     it('should detect personal sharing', () => {
       expect(analyzeVulnerabilityDepth("I'm worried about my relationship")).toBe('personal');
-      expect(analyzeVulnerabilityDepth("It hurts when people dismiss me")).toBe('personal');
+      expect(analyzeVulnerabilityDepth('It hurts when people dismiss me')).toBe('personal');
     });
 
     it('should detect vulnerable sharing', () => {
       expect(analyzeVulnerabilityDepth("I've never told anyone this")).toBe('vulnerable');
-      expect(analyzeVulnerabilityDepth("I feel like a failure")).toBe('vulnerable');
+      expect(analyzeVulnerabilityDepth('I feel like a failure')).toBe('vulnerable');
     });
 
     it('should detect deep emotional content', () => {
       // Messages with heavy emotional indicators should be detected above surface
       // The exact level depends on pattern matching specifics
-      const worthless = analyzeVulnerabilityDepth("I feel worthless and I hate myself for being this way");
+      const worthless = analyzeVulnerabilityDepth(
+        'I feel worthless and I hate myself for being this way'
+      );
       expect(['personal', 'vulnerable', 'raw']).toContain(worthless);
 
       // "falling apart" should be caught by raw patterns
@@ -135,7 +127,7 @@ describe('Vulnerability Matching', () => {
 
     it('should build trust over multiple shares', () => {
       recordShareAndMatch('user2', "I'm worried about something");
-      recordShareAndMatch('user2', "I feel scared about the future");
+      recordShareAndMatch('user2', 'I feel scared about the future');
       const match = recordShareAndMatch('user2', "I've never told anyone this");
 
       expect(match.recommendedDepth).not.toBe('surface');
@@ -149,7 +141,10 @@ describe('Vulnerability Matching', () => {
     });
 
     it('should return guidance for deep sharing', () => {
-      const guidance = formatVulnerabilityGuidance('user4', "I'm terrified I'll never be good enough");
+      const guidance = formatVulnerabilityGuidance(
+        'user4',
+        "I'm terrified I'll never be good enough"
+      );
       expect(guidance).not.toBeNull();
       expect(guidance).toContain('VULNERABILITY');
     });
@@ -302,7 +297,7 @@ describe('Shared Language', () => {
 
   describe('extractSharedLanguage', () => {
     it('should capture metaphors', () => {
-      const term = extractSharedLanguage('user1', "I call it my inner gremlin", {
+      const term = extractSharedLanguage('user1', 'I call it my inner gremlin', {
         topics: ['anxiety'],
       });
 
@@ -319,7 +314,7 @@ describe('Shared Language', () => {
     });
 
     it('should capture unique terms', () => {
-      const first = extractSharedLanguage('user3', "I call it my brain goblin", { topics: [] });
+      const first = extractSharedLanguage('user3', 'I call it my brain goblin', { topics: [] });
       expect(first).not.toBeNull();
 
       // May capture additional patterns from same message or return null for duplicate
@@ -330,7 +325,7 @@ describe('Shared Language', () => {
 
   describe('findRelevantTerm', () => {
     it('should find terms related to current topics', () => {
-      extractSharedLanguage('user4', "I call it the Sunday scaries", { topics: ['anxiety'] });
+      extractSharedLanguage('user4', 'I call it the Sunday scaries', { topics: ['anxiety'] });
 
       const term = findRelevantTerm('user4', {
         currentTopics: ['anxiety', 'weekend'],
@@ -344,8 +339,8 @@ describe('Shared Language', () => {
 
   describe('getSharedTerms', () => {
     it('should return all captured terms', () => {
-      extractSharedLanguage('user5', "I call it my doom spiral", { topics: [] });
-      extractSharedLanguage('user5', "We call her my work mom", { topics: [] });
+      extractSharedLanguage('user5', 'I call it my doom spiral', { topics: [] });
+      extractSharedLanguage('user5', 'We call her my work mom', { topics: [] });
 
       const terms = getSharedTerms('user5');
       expect(terms.length).toBeGreaterThanOrEqual(1);
@@ -546,7 +541,7 @@ describe('Gentle Challenges', () => {
 
     it('should detect catastrophizing', () => {
       const challenge = detectChallengeOpportunity({
-        message: "Everything is going to be a disaster, nothing ever works",
+        message: 'Everything is going to be a disaster, nothing ever works',
         topics: [],
         emotion: 'anxious',
         relationshipStage: 'friend',
@@ -572,7 +567,7 @@ describe('Gentle Challenges', () => {
 
     it('should detect playing small', () => {
       const challenge = detectChallengeOpportunity({
-        message: "It was nothing, anyone could have done it, I just got lucky",
+        message: 'It was nothing, anyone could have done it, I just got lucky',
         topics: ['achievement'],
         emotion: 'neutral',
         relationshipStage: 'friend',
@@ -597,7 +592,7 @@ describe('Gentle Challenges', () => {
 
     it('should NOT challenge in acute distress', () => {
       const challenge = detectChallengeOpportunity({
-        message: "I feel like a failure",
+        message: 'I feel like a failure',
         topics: [],
         emotion: 'crisis',
         relationshipStage: 'trusted',
@@ -660,7 +655,12 @@ describe('Meta-Moments', () => {
 
       expect(moment).not.toBeNull();
       // Type could be mood_shift, relationship_appreciation, or conversation_quality
-      expect(['mood_shift', 'relationship_appreciation', 'conversation_quality', 'growth_noticed']).toContain(moment?.type);
+      expect([
+        'mood_shift',
+        'relationship_appreciation',
+        'conversation_quality',
+        'growth_noticed',
+      ]).toContain(moment?.type);
     });
 
     it('should find moments after laughter', () => {
@@ -802,20 +802,25 @@ describe('Integration: Context Builder Flow', () => {
     expect(greeting === null || greeting?.prompt).toBeTruthy();
 
     // Turn 3: User shares metaphor
-    const sharedTerm = extractSharedLanguage(userId, "I call it my anxiety monster", {
+    const sharedTerm = extractSharedLanguage(userId, 'I call it my anxiety monster', {
       topics: ['anxiety'],
     });
     expect(sharedTerm).not.toBeNull();
 
     // Turn 5: User shares something personal with clear vulnerability patterns
-    const vulnMatch = recordShareAndMatch(userId, "I'm worried about my relationship and I feel so scared about the future");
+    const vulnMatch = recordShareAndMatch(
+      userId,
+      "I'm worried about my relationship and I feel so scared about the future"
+    );
     // recommendedDepth depends on trust level and message depth - any valid depth is OK
     expect(vulnMatch.recommendedDepth).toBeDefined();
-    expect(['surface', 'thoughtful', 'personal', 'vulnerable', 'raw']).toContain(vulnMatch.recommendedDepth);
+    expect(['surface', 'thoughtful', 'personal', 'vulnerable', 'raw']).toContain(
+      vulnMatch.recommendedDepth
+    );
 
     // Turn 8: Check for presence mode
     const presence = analyzePresenceNeed({
-      message: "I feel so lost and nothing helps",
+      message: 'I feel so lost and nothing helps',
       emotion: 'sad',
       emotionIntensity: 0.8,
       topics: ['life'],

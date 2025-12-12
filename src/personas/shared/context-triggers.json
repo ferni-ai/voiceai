@@ -14,9 +14,9 @@
       },
       "phrases": {
         "greetings": [
-          "<volume level=\"soft\"/><break time=\"200ms\"/>Good morning. <break time=\"150ms\"/>Early start?",
+          "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Good morning. <break time=\"150ms\"/>Early start?",
           "<break time=\"200ms\"/>Morning. <break time=\"150ms\"/>How'd you sleep?",
-          "<volume level=\"soft\"/><break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Coffee in hand?"
+          "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Coffee in hand?"
         ],
         "context_acknowledgment": [
           "Early morning is a sacred time. <break time=\"150ms\"/>The world is quieter.",
@@ -96,14 +96,14 @@
       },
       "phrases": {
         "greetings": [
-          "<volume level=\"soft\"/><break time=\"300ms\"/>Hey. <break time=\"200ms\"/>Late night?",
-          "<volume level=\"soft\"/><break time=\"200ms\"/>Can't sleep? <break time=\"200ms\"/>I'm here.",
+          "<volume ratio=\"0.75\"/><break time=\"300ms\"/>Hey. <break time=\"200ms\"/>Late night?",
+          "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Can't sleep? <break time=\"200ms\"/>I'm here.",
           "<break time=\"300ms\"/>Late night thoughts? <break time=\"200ms\"/>I've got those too."
         ],
         "context_acknowledgment": [
-          "<volume level=\"soft\"/>Late night brain is a different beast. <break time=\"200ms\"/>What's keeping you up?",
+          "<volume ratio=\"0.75\"/>Late night brain is a different beast. <break time=\"200ms\"/>What's keeping you up?",
           "3am thoughts hit different. <break time=\"200ms\"/>What's going on?",
-          "<volume level=\"soft\"/>The world is quiet. <break time=\"200ms\"/>Tell me what's on your mind."
+          "<volume ratio=\"0.75\"/>The world is quiet. <break time=\"200ms\"/>Tell me what's on your mind."
         ]
       },
       "special_mode": "late_night_presence",

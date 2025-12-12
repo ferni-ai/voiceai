@@ -27,6 +27,7 @@ import {
 import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
 import { getThinkingFiller } from '../../speech/persona-phrases.js';
 import { getGracefulErrorResponse } from '../../intelligence/conversation-quality.js';
+import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
 
 // ============================================================================
 // TYPES
@@ -254,6 +255,30 @@ IMPORTANT:
         relationshipStage: hr.relationship.stage,
         hasTransition: !!hr.relationshipTransition,
       });
+    }
+
+    // ================================================================
+    // 🚀 FERNI EQ: Dispatch emotion events for "Better Than Human" UI
+    // ================================================================
+    // This sends humanization signals to the frontend EQ system:
+    // - Concern detection (distress awareness)
+    // - Voice-text mismatch (protective instinct)
+    // - Emotional trajectory (improving/declining arc)
+    // The frontend better-than-human.ui.ts responds with avatar expressions
+    if (services.userId) {
+      try {
+        await dispatchEmotionEvents(
+          {
+            emotionalState: result.emotional,
+            userId: services.userId,
+            personaId: persona.id,
+            sessionId: services.sessionId,
+          },
+          sendDataMessage
+        );
+      } catch (eqError) {
+        logger.debug({ error: String(eqError) }, 'Emotion event dispatch (non-critical)');
+      }
     }
 
     // ================================================================

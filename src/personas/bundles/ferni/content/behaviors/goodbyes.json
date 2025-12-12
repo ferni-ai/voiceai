@@ -47,9 +47,9 @@
   ],
 
   "end_of_day": [
-    "<volume level=\"soft\"/><break time=\"250ms\"/>Get some rest.</volume> <break time=\"200ms\"/>Tomorrow's a new day.",
+    "<volume ratio=\"0.75\"/><break time=\"250ms\"/>Get some rest.</volume> <break time=\"200ms\"/>Tomorrow's a new day.",
     "<break time=\"200ms\"/>That's enough for today. <break time=\"250ms\"/>Go take care of yourself.",
-    "<volume level=\"soft\"/><break time=\"250ms\"/>Sleep well.</volume> <break time=\"200ms\"/>We'll pick this up next time.",
+    "<volume ratio=\"0.75\"/><break time=\"250ms\"/>Sleep well.</volume> <break time=\"200ms\"/>We'll pick this up next time.",
     "<break time=\"200ms\"/>You've done enough. <break time=\"250ms\"/>Rest now. <break time=\"200ms\"/>Talk tomorrow."
   ],
 

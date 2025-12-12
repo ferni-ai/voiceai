@@ -21,7 +21,13 @@ import { createPersistenceStore, type PersistenceStore } from './persistence/ind
 
 // Re-export from modular version (canonical source - DO NOT REMOVE)
 
-export { HANDOFF_BANTER, getHandoffBanter } from './team-engagement/banter.js';
+export {
+  HANDOFF_BANTER,
+  getHandoffBanter,
+  getSoftOpenBanter,
+  ARRIVING_BANTER,
+  getArrivingBanter,
+} from './team-engagement/banter.js';
 
 // ============================================================================
 // TYPES

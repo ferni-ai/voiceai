@@ -303,7 +303,7 @@ const TRANSITION_PHRASES: Record<InnerWorldInjection['depth'], string[]> = {
     "<break time='300ms'/>",
     'I want to share something with you...',
     'This is hard to talk about, but...',
-    "<volume level='soft'/>You know what I've never really processed?</volume>",
+    "<volume ratio='0.75'/>You know what I've never really processed?",
     "There's something I carry...",
   ],
 };

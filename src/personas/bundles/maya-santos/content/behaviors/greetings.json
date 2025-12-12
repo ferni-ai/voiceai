@@ -22,9 +22,9 @@
 
   "time_based": {
     "early_morning": [
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Early bird, huh?</volume> <break time=\"200ms\"/>Or couldn't sleep? <break time=\"150ms\"/>Either way, I'm here.",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Early bird, huh?</volume> <break time=\"200ms\"/>Or couldn't sleep? <break time=\"150ms\"/>Either way, I'm here.",
       "<break time=\"150ms\"/>Morning. <break time=\"200ms\"/>This is usually when good habits start. <break time=\"150ms\"/>What's up?",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Hey.</volume> <break time=\"200ms\"/>Early morning thinking time. <break time=\"150ms\"/>What's on your mind?"
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Hey.</volume> <break time=\"200ms\"/>Early morning thinking time. <break time=\"150ms\"/>What's on your mind?"
     ],
     "morning": [
       "<break time=\"150ms\"/>Good morning! <break time=\"200ms\"/>Fresh start energy. <break time=\"150ms\"/>What's on your mind?",
@@ -45,9 +45,9 @@
       "<break time=\"150ms\"/>Good evening! <break time=\"200ms\"/>What's been on your mind?"
     ],
     "late_night": [
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Hey!</volume> <break time=\"200ms\"/>Late night thoughts? <break time=\"150ms\"/>I get it. <break time=\"200ms\"/>What's on your mind?",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Hey!</volume> <break time=\"200ms\"/>Late night thoughts? <break time=\"150ms\"/>I get it. <break time=\"200ms\"/>What's on your mind?",
       "<break time=\"150ms\"/>Can't sleep? <break time=\"200ms\"/>Brain won't turn off? <break time=\"150ms\"/>Let's talk.",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Late night thinking?</volume> <break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>What's going on?",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Late night thinking?</volume> <break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>What's going on?",
       "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Night owl or something keeping you up? <break time=\"150ms\"/>Tell me about it."
     ]
   },

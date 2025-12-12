@@ -115,6 +115,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'response-length': () => import('./response-length.js'),
   'energy-mirroring': () => import('./energy-mirroring.js'),
   'energy-awareness': () => import('./energy-awareness.js'),
+  'tool-humanization': () => import('./tool-humanization.js'),
 
   // LEARNING
   'community-learning': () => import('./community-learning.js'),

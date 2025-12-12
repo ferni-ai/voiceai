@@ -213,7 +213,7 @@ function generateFirstMeetingOpener(
   // Time-specific greetings
   const timeGreetings: Record<string, string[]> = {
     early_morning: [
-      `<volume level="soft"/><break time="200ms"/>Early morning, hm? <break time="150ms"/>I like that. <break time="100ms"/>I'm ${name}.`,
+      `<volume ratio="0.75"/><break time="200ms"/>Early morning, hm? <break time="150ms"/>I like that. <break time="100ms"/>I'm ${name}.`,
       `<break time="200ms"/>Up before the sun? <break time="150ms"/>Good. <break time="100ms"/>I'm ${name}. <break time="150ms"/>What's on your mind?`,
     ],
     morning: [
@@ -229,8 +229,8 @@ function generateFirstMeetingOpener(
       `<emotion value="affectionate"/><break time="200ms"/>Evening! <break time="150ms"/>I'm ${name}. <break time="100ms"/>What's on your mind?`,
     ],
     late_night: [
-      `<volume level="soft"/><break time="200ms"/>Late night thoughts? <break time="150ms"/>I have those too. <break time="100ms"/>I'm ${name}.`,
-      `<volume level="soft"/><break time="200ms"/>Can't sleep? <break time="150ms"/>I'm ${name}. <break time="100ms"/>Let's talk.`,
+      `<volume ratio="0.75"/><break time="200ms"/>Late night thoughts? <break time="150ms"/>I have those too. <break time="100ms"/>I'm ${name}.`,
+      `<volume ratio="0.75"/><break time="200ms"/>Can't sleep? <break time="150ms"/>I'm ${name}. <break time="100ms"/>Let's talk.`,
     ],
   };
 
@@ -421,14 +421,14 @@ function generateTimeAwareOpener(
 
   if (time === 'early_morning') {
     const greetings = [
-      `<volume level="soft"/><break time="200ms"/>Early bird${nameStr}. <break time="150ms"/>I respect that.`,
-      `<volume level="soft"/><break time="200ms"/>Up before the world${nameStr}? <break time="150ms"/>What's on your mind?`,
+      `<volume ratio="0.75"/><break time="200ms"/>Early bird${nameStr}. <break time="150ms"/>I respect that.`,
+      `<volume ratio="0.75"/><break time="200ms"/>Up before the world${nameStr}? <break time="150ms"/>What's on your mind?`,
     ];
     greeting = greetings[Math.floor(Math.random() * greetings.length)];
   } else if (time === 'late_night') {
     const greetings = [
-      `<volume level="soft"/><break time="200ms"/>Burning the midnight oil${nameStr}? <break time="150ms"/>I'm here.`,
-      `<volume level="soft"/><break time="200ms"/>Late night${nameStr}. <break time="150ms"/>Can't sleep, or just thinking?`,
+      `<volume ratio="0.75"/><break time="200ms"/>Burning the midnight oil${nameStr}? <break time="150ms"/>I'm here.`,
+      `<volume ratio="0.75"/><break time="200ms"/>Late night${nameStr}. <break time="150ms"/>Can't sleep, or just thinking?`,
     ];
     greeting = greetings[Math.floor(Math.random() * greetings.length)];
   } else if (day === 'weekend') {
@@ -480,7 +480,7 @@ function generateSeasonalOpener(
       `<emotion value="affectionate"/><break time="200ms"/>Fall${nameStr}. <break time="150ms"/>Good time for reflection. <break time="100ms"/>What's on your mind?`,
     ],
     winter: [
-      `<volume level="soft"/><break time="200ms"/>Winter${nameStr}. <break time="150ms"/>Cozy time for deep conversations. <break time="100ms"/>What's going on?`,
+      `<volume ratio="0.75"/><break time="200ms"/>Winter${nameStr}. <break time="150ms"/>Cozy time for deep conversations. <break time="100ms"/>What's going on?`,
     ],
   };
 

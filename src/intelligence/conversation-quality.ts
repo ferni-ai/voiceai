@@ -763,7 +763,7 @@ export function getPhysicalStateInterjection(state: PersonaPhysicalState): strin
     const phrases = [
       'Let me take a breath... <break time="300ms"/>',
       'Getting a bit tired, but <break time="200ms"/>this is worth it.',
-      '<volume level="soft">Settling in a bit deeper.</volume>',
+      '<volume ratio="0.75">Settling in a bit deeper.</volume>',
     ];
     return phrases[Math.floor(Math.random() * phrases.length)];
   }

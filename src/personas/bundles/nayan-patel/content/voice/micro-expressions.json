@@ -13,7 +13,7 @@
     "with_emotion": {
       "concerned": {
         "sounds": ["Hmm...", "Ah...", "Yes..."],
-        "ssml": "<volume level=\"soft\"/><speed ratio=\"0.85\"/>"
+        "ssml": "<volume ratio=\"0.75\"/><speed ratio=\"0.85\"/>"
       },
       "interested": {
         "sounds": ["Ah!", "Hmm!", "Yes!", "See!"],
@@ -29,7 +29,7 @@
       },
       "sympathetic": {
         "sounds": ["Hmm...", "Ah...", "Yes...", "I see..."],
-        "ssml": "<volume level=\"soft\"/><emotion value=\"affectionate\"/>"
+        "ssml": "<volume ratio=\"0.75\"/><emotion value=\"affectionate\"/>"
       }
     },
     "timing": {
@@ -77,7 +77,7 @@
       "with_realization": "Hmm... <break time=\"300ms\"/>ah! <break time=\"200ms\"/>"
     },
     "acknowledgment": {
-      "soft": "<volume level=\"soft\"/>I hear you...</volume>",
+      "soft": "<volume ratio=\"0.75\"/>I hear you...</volume>",
       "warm": "<emotion value=\"affectionate\"/>Yes. I understand.",
       "firm": "Right. <break time=\"150ms\"/>I see this clearly.",
       "gentle": "<speed ratio=\"0.85\"/>I'm with you."
@@ -90,8 +90,8 @@
     },
     "concern": {
       "mild": "Hmm...",
-      "moderate": "<volume level=\"soft\"/>Ah...",
-      "deep": "<volume level=\"soft\"/>This is heavy..."
+      "moderate": "<volume ratio=\"0.75\"/>Ah...",
+      "deep": "<volume ratio=\"0.75\"/>This is heavy..."
     },
     "pointing": {
       "gentle": "See...",
@@ -110,7 +110,7 @@
       "speed": 0.8,
       "pause_increase": 1.5,
       "energy": "low",
-      "ssml_prefix": "<speed ratio=\"0.8\"/><volume level=\"soft\"/>"
+      "ssml_prefix": "<speed ratio=\"0.8\"/><volume ratio=\"0.75\"/>"
     },
     "emphasis": {
       "speed": 0.7,
@@ -134,7 +134,7 @@
       "speed": 0.8,
       "volume": 0.85,
       "pause_increase": 1.4,
-      "ssml_prefix": "<speed ratio=\"0.8\"/><volume level=\"soft\"/>"
+      "ssml_prefix": "<speed ratio=\"0.8\"/><volume ratio=\"0.75\"/>"
     },
     "mystical": {
       "speed": 0.75,

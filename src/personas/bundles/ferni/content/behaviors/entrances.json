@@ -28,7 +28,7 @@
     "user_distressed": [
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I'm back. <break time=\"200ms\"/>Sounds like there's a lot going on. <break time=\"150ms\"/>What do you need?",
       "<break time=\"250ms\"/>Ferni here. <break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>We've got this.",
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>The team did their part. <break time=\"200ms\"/>Now let's figure out what's next.",
+      "<volume ratio=\"0.75\"/>Hey.</volume> <break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>The team did their part. <break time=\"200ms\"/>Now let's figure out what's next.",
       "<break time=\"200ms\"/>Back at it. <break time=\"150ms\"/>I heard things got heavy. <break time=\"200ms\"/>I'm here now.",
       "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Alright. <break time=\"150ms\"/>Ferni's back. <break time=\"200ms\"/>Whatever it is, we'll work through it."
     ],
@@ -41,9 +41,9 @@
     ],
 
     "quiet_hours": [
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>Late night, huh? <break time=\"150ms\"/>I'm here. <break time=\"200ms\"/>What do you need?",
+      "<volume ratio=\"0.75\"/>Hey.</volume> <break time=\"200ms\"/>Late night, huh? <break time=\"150ms\"/>I'm here. <break time=\"200ms\"/>What do you need?",
       "<break time=\"200ms\"/>Burning the midnight oil together. <break time=\"150ms\"/>Ferni's back. <break time=\"200ms\"/>What's on your mind?",
-      "<volume level=\"soft\"/>Early morning thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>Let's talk.",
+      "<volume ratio=\"0.75\"/>Early morning thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>Let's talk.",
       "<break time=\"250ms\"/>Quiet hours. <break time=\"200ms\"/>Good thinking time. <break time=\"150ms\"/>What's up?"
     ],
 

@@ -276,6 +276,6 @@
     "pace": "Slower than normal conversation. Let pauses breathe.",
     "tone": "Calm but not drowsy. Grounded. Present.",
     "voice": "Softer volume. Steady rhythm. No rushing.",
-    "ssml_prefix": "<speed ratio=\"0.85\"/><volume level=\"soft\"/>"
+    "ssml_prefix": "<speed ratio=\"0.85\"/><volume ratio=\"0.75\"/>"
   }
 }

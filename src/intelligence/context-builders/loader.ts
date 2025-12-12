@@ -167,6 +167,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'response-length',
     'energy-mirroring',
     'energy-awareness',
+    'tool-humanization', // Natural tool usage framing
   ],
 
   // LEARNING - Collective intelligence

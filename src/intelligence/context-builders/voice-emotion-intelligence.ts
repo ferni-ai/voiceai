@@ -121,7 +121,7 @@ DON'T:
       "This sounds heavy. <break time='300ms'/> I'm here.",
       "You're carrying a lot right now. <break time='200ms'/> I hear that.",
       "Tell me what's weighing on you.",
-      "<volume level='soft'/>I'm listening. <break time='200ms'/> Really listening.</volume>",
+      "<volume ratio='0.75'/>I'm listening. <break time='200ms'/> Really listening.",
     ],
     avoidBehaviors: [
       'Being too energetic or upbeat',
@@ -215,10 +215,10 @@ DON'T:
 - Rush to fix anything
 - Break the intimacy of the moment`,
     phrases: [
-      "<volume level='soft'/><break time='300ms'/>I'm here.</volume>",
-      "<volume level='soft'/>Thank you for sharing that with me.</volume> <break time='300ms'/> Take your time.",
+      "<volume ratio='0.75'/><break time='300ms'/>I'm here.",
+      "<volume ratio='0.75'/>Thank you for sharing that with me. <break time='300ms'/> Take your time.",
       "<break time='400ms'/>I hear you. <break time='200ms'/> Really.",
-      "<volume level='soft'/>You're safe here.</volume> <break time='300ms'/> What do you need?",
+      "<volume ratio='0.75'/>You're safe here. <break time='300ms'/> What do you need?",
     ],
     avoidBehaviors: [
       'Being too clinical',

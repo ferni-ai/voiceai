@@ -422,7 +422,7 @@ export class BackchannelEngine {
 
     // Volume wrapper
     if (effectiveMode === 'live') {
-      ssml = `<volume level="soft"><speed ratio="0.95">${phrase}</speed></volume>`;
+      ssml = `<volume ratio="0.75"><speed ratio="0.95">${phrase}</speed></volume>`;
     } else {
       ssml = `<volume ratio="${volumeRatio}"/>`;
       if (emotionTag) {

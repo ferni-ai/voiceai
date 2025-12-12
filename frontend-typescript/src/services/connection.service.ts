@@ -1,6 +1,6 @@
 /**
  * Connection Service
- * 
+ *
  * Manages LiveKit room connections with type-safe APIs.
  * Handles token fetching, room creation, and connection lifecycle.
  */
@@ -55,11 +55,11 @@ const getLiveKit = () => {
   throw new Error('LiveKit not loaded. Make sure the UMD script is included.');
 };
 
-import type { TokenResponse, TokenRequest, RoomState } from '../types/livekit.js';
-import type { ConnectionState, DataMessage } from '../types/events.js';
-import { isValidTokenResponse } from '../types/livekit.js';
 import { API } from '../config/index.js';
 import { appState, setConnectionState } from '../state/app.state.js';
+import type { ConnectionState, DataMessage } from '../types/events.js';
+import type { RoomState, TokenRequest, TokenResponse } from '../types/livekit.js';
+import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Connection');
@@ -77,7 +77,11 @@ export interface ConnectionCallbacks {
   onAgentDisconnected?: () => void;
   onDataMessage?: (message: DataMessage) => void;
   /** Called when agent audio track is available. Includes the audio element and track for visualization. */
-  onAudioTrack?: (audioElement: HTMLAudioElement, participantId: string, mediaStreamTrack?: MediaStreamTrack) => void;
+  onAudioTrack?: (
+    audioElement: HTMLAudioElement,
+    participantId: string,
+    mediaStreamTrack?: MediaStreamTrack
+  ) => void;
   /** Called when agent audio track ends (agent stops speaking). */
   onAudioTrackEnd?: (participantId: string) => void;
   /** 🎚️ Called when a MUSIC audio track is detected. Route to MusicAudioController for ducking. */
@@ -111,6 +115,13 @@ class ConnectionService {
   private musicTrackIds: Set<string> = new Set(); // Track IDs identified as music
   private voiceTrackId: string | null = null; // First track is usually voice
 
+  // 🐛 FIX: Buffer for tracks that arrive BEFORE the data message
+  // This fixes the race condition where audio arrives before music_state message
+  private pendingMusicTracks: Map<string, { audioEl: HTMLAudioElement; timestamp: number }> =
+    new Map();
+  private pendingTrackCleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly PENDING_TRACK_TTL_MS = 5000; // 5 seconds to match with data message
+
   /**
    * Register callbacks for connection events.
    */
@@ -125,23 +136,105 @@ class ConnectionService {
   /**
    * Signal that we're expecting a music track soon.
    * Called when we receive music_state: 'playing' from backend.
-   * Any new audio track arriving within 3 seconds will be treated as music.
+   *
+   * 🐛 FIX: Now also checks pending tracks buffer for tracks that
+   * arrived BEFORE this message (race condition fix).
    */
   expectMusicTrack(): void {
     this.expectingMusicTrack = true;
-    
+
     // Clear any existing timeout
     if (this.expectingMusicTrackTimeout) {
       clearTimeout(this.expectingMusicTrackTimeout);
     }
-    
-    // Stop expecting after 3 seconds
+
+    // 🐛 FIX: Check if any pending tracks are waiting to be identified
+    // This handles the case where audio arrives BEFORE the data message
+    if (this.pendingMusicTracks.size > 0) {
+      log.info('🎚️ Found pending tracks waiting for identification', {
+        count: this.pendingMusicTracks.size,
+      });
+
+      // Identify the most recent pending track as music
+      let mostRecentTrack: { trackKey: string; audioEl: HTMLAudioElement } | null = null;
+      let mostRecentTime = 0;
+
+      for (const [trackKey, { audioEl, timestamp }] of this.pendingMusicTracks) {
+        if (timestamp > mostRecentTime) {
+          mostRecentTime = timestamp;
+          mostRecentTrack = { trackKey, audioEl };
+        }
+      }
+
+      if (mostRecentTrack) {
+        const { trackKey, audioEl } = mostRecentTrack;
+        this.musicTrackIds.add(trackKey);
+        this.pendingMusicTracks.delete(trackKey);
+
+        log.info('🎚️ Music track identified (retroactive - audio arrived before data message)', {
+          trackKey,
+          latencyMs: Date.now() - mostRecentTime,
+        });
+
+        // Route to MusicAudioController for ducking
+        this.callbacks.onMusicTrack?.(audioEl, trackKey);
+
+        // Clear expecting flag since we found the track
+        this.expectingMusicTrack = false;
+        return;
+      }
+    }
+
+    // Stop expecting after 5 seconds (increased from 3s for reliability)
     this.expectingMusicTrackTimeout = setTimeout(() => {
       this.expectingMusicTrack = false;
       this.expectingMusicTrackTimeout = null;
-    }, 3000);
-    
+      log.debug('🎚️ Music track expectation timed out');
+    }, 5000);
+
     log.debug('🎚️ Expecting music track...');
+  }
+
+  /**
+   * Add a track to the pending buffer.
+   * Called when a track arrives but we're not sure if it's music.
+   */
+  private addPendingMusicTrack(trackKey: string, audioEl: HTMLAudioElement): void {
+    this.pendingMusicTracks.set(trackKey, { audioEl, timestamp: Date.now() });
+
+    // Start cleanup interval if not running
+    if (!this.pendingTrackCleanupInterval) {
+      this.pendingTrackCleanupInterval = setInterval(() => {
+        this.cleanupOldPendingTracks();
+      }, 2000);
+    }
+
+    log.debug('🎚️ Track added to pending buffer', { trackKey });
+  }
+
+  /**
+   * Remove old pending tracks that were never identified.
+   */
+  private cleanupOldPendingTracks(): void {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [trackKey, { timestamp }] of this.pendingMusicTracks) {
+      if (now - timestamp > this.PENDING_TRACK_TTL_MS) {
+        this.pendingMusicTracks.delete(trackKey);
+        removed++;
+      }
+    }
+
+    // Stop interval if no more pending tracks
+    if (this.pendingMusicTracks.size === 0 && this.pendingTrackCleanupInterval) {
+      clearInterval(this.pendingTrackCleanupInterval);
+      this.pendingTrackCleanupInterval = null;
+    }
+
+    if (removed > 0) {
+      log.debug('🎚️ Cleaned up old pending tracks', { removed });
+    }
   }
 
   /**
@@ -163,6 +256,8 @@ class ConnectionService {
     if (this.voiceTrackId === trackId) {
       this.voiceTrackId = null;
     }
+    // Also clean from pending buffer
+    this.pendingMusicTracks.delete(trackId);
   }
 
   /**
@@ -194,7 +289,9 @@ class ConnectionService {
         tokenResponse = await this.fetchToken(tokenRequest);
       } catch (tokenError) {
         log.error('Token fetch failed:', tokenError);
-        throw new Error(`Token fetch failed: ${tokenError instanceof Error ? tokenError.message : String(tokenError)}`);
+        throw new Error(
+          `Token fetch failed: ${tokenError instanceof Error ? tokenError.message : String(tokenError)}`
+        );
       }
 
       // Create and configure room using global LiveKit (iOS compatible)
@@ -215,7 +312,9 @@ class ConnectionService {
         });
       } catch (roomError) {
         log.error('Room connection failed:', roomError);
-        throw new Error(`Room connection failed: ${roomError instanceof Error ? roomError.message : String(roomError)}`);
+        throw new Error(
+          `Room connection failed: ${roomError instanceof Error ? roomError.message : String(roomError)}`
+        );
       }
 
       // Enable microphone so the agent can hear us
@@ -230,7 +329,6 @@ class ConnectionService {
       this.updateState('connected');
       this.startQualityMonitoring();
       return true;
-
     } catch (error) {
       log.error('Connection failed:', error);
       this.updateState('error');
@@ -248,10 +346,10 @@ class ConnectionService {
     try {
       // Stop quality monitoring
       this.stopQualityMonitoring();
-      
+
       // Clean up event handlers
       this.cleanup();
-      
+
       // Clean up cached audio elements
       this.audioElements.forEach((audioEl) => {
         audioEl.pause();
@@ -264,7 +362,6 @@ class ConnectionService {
       this.room = null;
 
       this.updateState('disconnected');
-
     } catch (error) {
       log.error('Disconnect error:', error);
     }
@@ -328,23 +425,24 @@ class ConnectionService {
     }
 
     const url = `${API.TOKEN}?${params.toString()}`;
-    
+
     let response: Response;
     try {
       response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         // iOS sometimes needs explicit cache control
         cache: 'no-cache',
       });
     } catch (fetchError) {
       log.error('Fetch error:', fetchError);
-      throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`);
+      throw new Error(
+        `Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`
+      );
     }
-    
-    
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       log.error('Token error response:', errorText);
@@ -358,7 +456,7 @@ class ConnectionService {
       log.error('JSON parse error:', jsonError);
       throw new Error('Invalid response format from server');
     }
-    
+
     if (!isValidTokenResponse(data)) {
       log.error('Invalid token response:', data);
       throw new Error('Invalid token response from server');
@@ -408,7 +506,12 @@ class ConnectionService {
     // Track subscribed (audio from agent) - use simple attach() like old frontend
     // FIX: Support MULTIPLE audio tracks per participant (voice + background music)
     const onTrackSubscribed = (
-      track: { kind: string; attach: () => HTMLMediaElement; mediaStreamTrack: MediaStreamTrack; sid?: string },
+      track: {
+        kind: string;
+        attach: () => HTMLMediaElement;
+        mediaStreamTrack: MediaStreamTrack;
+        sid?: string;
+      },
       _publication: unknown,
       participant: { identity: string }
     ) => {
@@ -416,25 +519,30 @@ class ConnectionService {
         // Use track SID + participant identity to support multiple audio tracks
         // (e.g., agent voice track + BackgroundAudioPlayer music track)
         const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack.id || Date.now()}`;
-        
+
         // Check if we already have this specific track attached
         let audioEl = this.audioElements.get(trackKey);
-        
+
         if (audioEl) {
           // Just fire the callback with existing element and track
           this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
           return;
         }
-        
+
         // Create new audio element via LiveKit's track.attach()
         // Each track gets its own audio element (voice and music play simultaneously)
         audioEl = track.attach() as HTMLAudioElement;
         this.audioElements.set(trackKey, audioEl);
-        
+
         // 🎚️ MUSIC TRACK IDENTIFICATION
         // Determine if this is a music track or voice track
+        //
+        // RACE CONDITION FIX:
+        // Audio track might arrive BEFORE the music_state data message.
+        // We now buffer unknown tracks and retroactively identify them
+        // when expectMusicTrack() is called.
         let isMusicTrack = false;
-        
+
         if (this.expectingMusicTrack) {
           // We received a music_state: playing message, so this is likely music
           isMusicTrack = true;
@@ -444,22 +552,28 @@ class ConnectionService {
             this.expectingMusicTrackTimeout = null;
           }
           this.musicTrackIds.add(trackKey);
-          log.info('🎚️ Music track identified', { trackKey });
+          log.info('🎚️ Music track identified (data message arrived first)', { trackKey });
         } else if (!this.voiceTrackId) {
           // First track is usually voice - mark it
           this.voiceTrackId = trackKey;
           log.debug('🎤 Voice track identified', { trackKey });
         } else if (!this.musicTrackIds.has(trackKey) && trackKey !== this.voiceTrackId) {
           // Additional track after voice - could be music
-          // Check if we recently got a music data message (last 5 seconds)
-          // For now, treat additional tracks as music
+          // 🐛 FIX: Add to pending buffer instead of immediately treating as music
+          // This allows expectMusicTrack() to retroactively identify it
+          this.addPendingMusicTrack(trackKey, audioEl);
+
+          // Still treat as music for now (fallback behavior)
+          // The pending buffer is for cases where data message arrives late
           isMusicTrack = true;
           this.musicTrackIds.add(trackKey);
-          log.info('🎚️ Additional track treated as music', { trackKey });
+          log.info('🎚️ Additional track treated as music (added to pending for confirmation)', {
+            trackKey,
+          });
         }
-        
+
         log.debug(`Audio track attached: ${trackKey} (isMusicTrack: ${isMusicTrack})`);
-        
+
         // iOS/Safari specific attributes
         audioEl.setAttribute('playsinline', '');
         audioEl.setAttribute('autoplay', '');
@@ -468,13 +582,13 @@ class ConnectionService {
         audioEl.autoplay = true;
         audioEl.muted = false; // Explicitly unmuted for voice
         audioEl.volume = 1.0;
-        
+
         // Add to DOM (required for iOS)
         audioEl.style.display = 'none';
         audioEl.style.position = 'absolute';
         audioEl.style.left = '-9999px';
         document.body.appendChild(audioEl);
-        
+
         // iOS audio unlock: try to play immediately
         const playAudio = async () => {
           try {
@@ -484,8 +598,7 @@ class ConnectionService {
           } catch (err) {
             // iOS/mobile requires user gesture - set up handlers
             const unlock = () => {
-              audioEl.play()
-                .catch((e) => log.warn('Audio unlock failed:', e));
+              audioEl.play().catch((e) => log.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);
               document.removeEventListener('touchend', unlock);
               document.removeEventListener('click', unlock);
@@ -495,14 +608,14 @@ class ConnectionService {
             document.addEventListener('click', unlock, { once: true });
           }
         };
-        
+
         void playAudio();
-        
+
         // 🎚️ Route music tracks to MusicAudioController for ducking
         if (isMusicTrack) {
           this.callbacks.onMusicTrack?.(audioEl, trackKey);
         }
-        
+
         // Pass audio element AND track for visualization
         // Track-based visualization works better for WebRTC streams
         this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
@@ -523,12 +636,12 @@ class ConnectionService {
       if (!participant.isLocal && track.kind === 'audio') {
         // Try to identify the track
         const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack?.id || 'unknown'}`;
-        
+
         // 🎚️ Check if this was a music track
         if (this.musicTrackIds.has(trackKey)) {
           this.handleTrackEnded(trackKey);
         }
-        
+
         // Fire the voice track end callback
         this.callbacks.onAudioTrackEnd?.(participant.identity);
       }
@@ -553,10 +666,7 @@ class ConnectionService {
     });
 
     // Local track unpublished (microphone disabled)
-    const onLocalTrackUnpublished = (
-      publication: { kind: string },
-      _participant: unknown
-    ) => {
+    const onLocalTrackUnpublished = (publication: { kind: string }, _participant: unknown) => {
       if (publication.kind === 'audio') {
         this.callbacks.onLocalMicActive?.(false);
       }
@@ -567,10 +677,7 @@ class ConnectionService {
     });
 
     // Track muted/unmuted (for detecting when user mutes their mic)
-    const onTrackMuted = (
-      publication: { kind: string },
-      participant: { isLocal?: boolean }
-    ) => {
+    const onTrackMuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
         this.callbacks.onLocalMicActive?.(false);
       }
@@ -580,10 +687,7 @@ class ConnectionService {
       this.room?.off('trackMuted', onTrackMuted);
     });
 
-    const onTrackUnmuted = (
-      publication: { kind: string },
-      participant: { isLocal?: boolean }
-    ) => {
+    const onTrackUnmuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
         this.callbacks.onLocalMicActive?.(true);
       }
@@ -594,11 +698,7 @@ class ConnectionService {
     });
 
     // Data messages (handoff notifications, etc.)
-    const onDataReceived = (
-      payload: Uint8Array,
-      _participant: unknown,
-      _kind: unknown
-    ) => {
+    const onDataReceived = (payload: Uint8Array, _participant: unknown, _kind: unknown) => {
       try {
         const text = new TextDecoder().decode(payload);
         const message = JSON.parse(text) as DataMessage;
@@ -630,6 +730,20 @@ class ConnectionService {
       fn();
     }
     this.cleanupFunctions = [];
+
+    // 🎚️ Clean up music track identification state
+    if (this.pendingTrackCleanupInterval) {
+      clearInterval(this.pendingTrackCleanupInterval);
+      this.pendingTrackCleanupInterval = null;
+    }
+    if (this.expectingMusicTrackTimeout) {
+      clearTimeout(this.expectingMusicTrackTimeout);
+      this.expectingMusicTrackTimeout = null;
+    }
+    this.pendingMusicTracks.clear();
+    this.musicTrackIds.clear();
+    this.voiceTrackId = null;
+    this.expectingMusicTrack = false;
   }
 
   /**
@@ -663,7 +777,7 @@ class ConnectionService {
    */
   private hasActiveAudioTrack(): boolean {
     if (!this.room) return false;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     for (const participant of this.room.remoteParticipants.values()) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -683,12 +797,12 @@ class ConnectionService {
    */
   private startQualityMonitoring(): void {
     if (this.qualityMonitorInterval) return;
-    
+
     // Check quality every 5 seconds
     this.qualityMonitorInterval = window.setInterval(() => {
       void this.measureConnectionQuality();
     }, 5000);
-    
+
     // Initial measurement
     void this.measureConnectionQuality();
   }
@@ -708,13 +822,14 @@ class ConnectionService {
    */
   private measureConnectionQuality(): void {
     if (!this.room || this.room.state !== 'connected') return;
-    
+
     try {
       // Try to get RTT from the room's engine if available
       // LiveKit exposes connection stats through the engine
-      const engine = (this.room as unknown as { engine?: { client?: { currentRTT?: number } } }).engine;
+      const engine = (this.room as unknown as { engine?: { client?: { currentRTT?: number } } })
+        .engine;
       const rtt = engine?.client?.currentRTT;
-      
+
       if (typeof rtt === 'number' && rtt > 0) {
         // RTT is in milliseconds
         this.callbacks.onConnectionQuality?.(rtt);
@@ -740,4 +855,3 @@ class ConnectionService {
  * Singleton connection service instance.
  */
 export const connectionService = new ConnectionService();
-

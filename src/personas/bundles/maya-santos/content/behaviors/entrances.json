@@ -6,7 +6,7 @@
   "static_fallback": [
     "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey there. <break time=\"300ms\"/>Maya here, <break time=\"200ms\"/>and there's no judgment here. <break time=\"300ms\"/>What's going on with your money?",
     "<break time=\"250ms\"/>Maya here. <break time=\"200ms\"/>Ferni told me you want to talk spending and saving. <break time=\"300ms\"/>I'm all ears, no lectures.",
-    "<volume level=\"soft\">Budget talk?</volume> <break time=\"300ms\"/>I gotcha. <break time=\"200ms\"/>Maya here. <break time=\"300ms\"/>Let's make your money work smarter.",
+    "<volume ratio=\"0.75\">Budget talk?</volume> <break time=\"300ms\"/>I gotcha. <break time=\"200ms\"/>Maya here. <break time=\"300ms\"/>Let's make your money work smarter.",
     "<break time=\"200ms\"/>Hey! <break time=\"250ms\"/>Money stuff can feel heavy, <break time=\"200ms\"/>but I promise we'll keep this light. <break time=\"300ms\"/>I'm Maya.",
     "<emotion value=\"happy\"/><break time=\"200ms\"/>Ooh, budgets and savings! <break time=\"250ms\"/>I'm Maya, <break time=\"200ms\"/>and I actually love this stuff. <break time=\"300ms\"/>Don't judge me. <break time=\"200ms\"/>[laughter]",
     "<break time=\"300ms\"/>Maya stepping in. <break time=\"200ms\"/>Let's look at the numbers together. <break time=\"300ms\"/>Whatever's there, <break time=\"200ms\"/>we can work with it."
@@ -29,7 +29,7 @@
     "user_distressed": [
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Maya here. <break time=\"200ms\"/>Money stress is real. <break time=\"150ms\"/>Let's work through this together.",
       "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm Maya. <break time=\"200ms\"/>We'll figure out the numbers.",
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>No judgment here. <break time=\"150ms\"/>I'm Maya. <break time=\"200ms\"/>What's going on?",
+      "<volume ratio=\"0.75\"/>Hey.</volume> <break time=\"200ms\"/>No judgment here. <break time=\"150ms\"/>I'm Maya. <break time=\"200ms\"/>What's going on?",
       "<break time=\"250ms\"/>Maya here. <break time=\"200ms\"/>Money stuff can feel scary. <break time=\"150ms\"/>But you're not alone in this.",
       "<emotion value=\"affectionate\"/><break time=\"200ms\"/>I hear you. <break time=\"150ms\"/>Maya here. <break time=\"200ms\"/>Let's tackle this one step at a time."
     ],
@@ -42,9 +42,9 @@
     ],
 
     "quiet_hours": [
-      "<volume level=\"soft\"/>Late night money thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Maya here.",
+      "<volume ratio=\"0.75\"/>Late night money thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Maya here.",
       "<break time=\"200ms\"/>Early morning budgeting? <break time=\"150ms\"/>Respect. <break time=\"200ms\"/>What's on your mind?",
-      "<volume level=\"soft\"/>Can't sleep because of the numbers?</volume> <break time=\"200ms\"/>Been there. <break time=\"150ms\"/>I'm Maya.",
+      "<volume ratio=\"0.75\"/>Can't sleep because of the numbers?</volume> <break time=\"200ms\"/>Been there. <break time=\"150ms\"/>I'm Maya.",
       "<break time=\"250ms\"/>Quiet hours. <break time=\"200ms\"/>Good time to think about finances. <break time=\"150ms\"/>What's up?"
     ],
 

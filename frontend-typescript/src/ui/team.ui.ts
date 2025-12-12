@@ -49,6 +49,9 @@ const cleanupFunctions: (() => void)[] = [];
 /** FIX BUG #57: ARIA live region for announcing handoff status to screen readers */
 let ariaLiveRegion: HTMLElement | null = null;
 
+/** WARM HANDOFF: Visual banter text element for displaying handoff banter */
+let banterTextElement: HTMLElement | null = null;
+
 // 🎬 Pixar Animation state
 let activeHoverAnimation: Animation | null = null;
 let magneticAnimationFrame: number | null = null;
@@ -92,16 +95,29 @@ export function initTeamUI(): void {
     cleanupFunctions.push(unsub2);
 
     // FIX BUG #57: Announce handoff start events to screen readers
-    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona) => {
+    // WARM HANDOFF: Also display banter text visually if available
+    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, banter) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Switching to ${persona.name}`);
+
+      // WARM HANDOFF: Display banter text if available
+      if (banter?.softOpen) {
+        log.debug('Showing soft open banter:', banter.softOpen);
+        showBanterText(banter.softOpen);
+      }
     });
     cleanupFunctions.push(unsubStart);
 
     // FIX BUG #57: Announce handoff completion
+    // WARM HANDOFF: Also serves as fallback for roster update if no soft_open_complete was sent
     const unsubComplete = handoffService.onHandoffComplete((toPersona) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Now speaking with ${persona.name}`);
+      // WARM HANDOFF: Hide any visible banter text
+      hideBanterText();
+      // Fallback: ensure roster is updated (in case soft_open_complete wasn't sent)
+      // This handles backward compatibility when there's no soft open banter
+      setActiveTeamMember(toPersona);
     });
     cleanupFunctions.push(unsubComplete);
 
@@ -109,15 +125,28 @@ export function initTeamUI(): void {
     // FIX BUG: Also clear visual switching states when handoff fails
     const unsubFailed = handoffService.onHandoffFailed((error, targetPersona) => {
       announceToScreenReader(`Switch failed. ${error}`);
+      hideBanterText();
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubFailed);
 
     // FIX BUG: Handle handoff cancellation - clear visual states
     const unsubCancelled = handoffService.onHandoffCancelled((targetPersona, _reason) => {
+      hideBanterText();
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubCancelled);
+
+    // WARM HANDOFF: Listen for soft_open_complete to sync roster visual transition
+    // This ensures the roster moves AFTER the departing persona finishes speaking
+    const unsubSoftOpen = handoffService.onSoftOpenComplete((toPersona, fromPersona) => {
+      log.debug('Soft open complete - triggering visual transition:', { toPersona, fromPersona });
+      // NOW trigger the actual roster visual transition
+      setActiveTeamMember(toPersona);
+      // Clear the switching feedback states
+      clearSwitchingFeedback(toPersona);
+    });
+    cleanupFunctions.push(unsubSoftOpen);
 
     // 🍴 Setup avatar as drop zone for "eating" marketplace agents
     avatarFeedback.setupDropZone(handleAgentDropped);
@@ -215,6 +244,67 @@ function announceToScreenReader(message: string): void {
       ariaLiveRegion.textContent = message;
     }
   }, 50);
+}
+
+/**
+ * WARM HANDOFF: Create the banter text display element.
+ * Displays as a subtle caption during handoff transitions.
+ */
+function createBanterTextElement(): void {
+  if (banterTextElement) return;
+
+  banterTextElement = document.createElement('div');
+  banterTextElement.id = 'handoff-banter-text';
+  banterTextElement.className = 'handoff-banter-text';
+  banterTextElement.style.cssText = `
+    position: fixed;
+    bottom: calc(var(--space-xl, 42px) * 2);
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 80%;
+    padding: var(--space-sm, 8px) var(--space-md, 16px);
+    background: var(--color-bg-glass, rgba(0, 0, 0, 0.6));
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-lg, 12px);
+    color: var(--color-text-secondary, #a0a0a0);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-style: italic;
+    text-align: center;
+    opacity: 0;
+    transition: opacity var(--duration-normal, 200ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    pointer-events: none;
+    z-index: var(--z-notification, 3000);
+  `;
+  document.body.appendChild(banterTextElement);
+}
+
+/**
+ * WARM HANDOFF: Display banter text during handoff.
+ * Shows the departing persona's warm sendoff message.
+ */
+function showBanterText(text: string): void {
+  if (!banterTextElement) {
+    createBanterTextElement();
+  }
+  if (banterTextElement) {
+    banterTextElement.textContent = `"${text}"`;
+    banterTextElement.style.opacity = '1';
+
+    // Auto-hide after a delay (sync with handoff timing)
+    // Use FIRST_MEETING timing (400ms) + generous buffer for reading banter
+    setTimeout(() => {
+      hideBanterText();
+    }, HANDOFF_TIMING.FIRST_MEETING + 2500);
+  }
+}
+
+/**
+ * WARM HANDOFF: Hide the banter text display.
+ */
+function hideBanterText(): void {
+  if (banterTextElement) {
+    banterTextElement.style.opacity = '0';
+  }
 }
 
 /**
@@ -1466,10 +1556,16 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
 
 /**
  * Handle handoff event.
+ *
+ * WARM HANDOFF: This is called when handoff_started fires.
+ * We intentionally DON'T update the active team member here - we wait for
+ * soft_open_complete event to sync the visual transition with voice timing.
+ * The fallback (if no soft_open_complete) is handled by onHandoffComplete.
  */
-function handleHandoff(handoff: NormalizedHandoff): void {
-  // Update active state
-  setActiveTeamMember(handoff.toPersona);
+function handleHandoff(_handoff: NormalizedHandoff): void {
+  // WARM HANDOFF: Visual transition is now handled by soft_open_complete event
+  // to sync with departing persona's voice. See initTeamUI for the handler.
+  // We don't call setActiveTeamMember here anymore.
 }
 
 // ============================================================================

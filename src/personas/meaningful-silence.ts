@@ -17,14 +17,14 @@
  * This transforms awkward silence into relationship building.
  */
 
-import type { PersonaConfig, StoryConfig } from './types.js';
 import {
   playAmbientMusic as playAmbient,
   stopAmbientMusic as stopAmbient,
 } from '../audio/ambient-music.js';
-import { getCanonicalPersonaId } from './voice-registry.js';
-import { getSpontaneousMusicOffer, getMusicConversationStarter } from '../services/dj-service.js';
 import { getMusicPlayer } from '../audio/index.js';
+import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/dj-service.js';
+import type { PersonaConfig, StoryConfig } from './types.js';
+import { getCanonicalPersonaId } from './voice-registry.js';
 
 // ============================================================================
 // TYPES
@@ -97,20 +97,20 @@ const COMFORTABLE_PRESENCE = {
   general: [
     '<break time="600ms"/>I\'m here. <break time="400ms"/>No rush.',
     '<break time="500ms"/>Take your time. <break time="300ms"/>I\'m not going anywhere.',
-    '<volume level="soft"><break time="400ms"/>Still here with you.</volume>',
+    '<volume ratio="0.75"><break time="400ms"/>Still here with you.</volume>',
     '<break time="500ms"/>Whenever you\'re ready.',
     '<break time="600ms"/>I\'m listening. <break time="300ms"/>Even the silence.',
   ],
   afterHeavyTopic: [
-    '<volume level="soft"><break time="600ms"/>That was a lot to share. <break time="400ms"/>Take all the time you need.</volume>',
+    '<volume ratio="0.75"><break time="600ms"/>That was a lot to share. <break time="400ms"/>Take all the time you need.</volume>',
     '<break time="500ms"/>I hear you. <break time="400ms"/>Sometimes you just need to sit with it.',
-    '<volume level="soft"><break time="600ms"/>It\'s okay. <break time="400ms"/>We don\'t have to talk.</volume>',
+    '<volume ratio="0.75"><break time="600ms"/>It\'s okay. <break time="400ms"/>We don\'t have to talk.</volume>',
     '<break time="500ms"/>Thank you for trusting me with that. <break time="400ms"/>No pressure to say anything else.',
   ],
   late_conversation: [
     '<break time="500ms"/>You know, I\'ve enjoyed this. <break time="300ms"/>Take your time.',
     '<break time="400ms"/>Been a good conversation. <break time="300ms"/>No need to rush.',
-    '<volume level="soft"><break time="500ms"/>Just sitting here with you.</volume> <break time="300ms"/>Nice.',
+    '<volume ratio="0.75"><break time="500ms"/>Just sitting here with you.</volume> <break time="300ms"/>Nice.',
   ],
 };
 
@@ -377,15 +377,15 @@ const TOPIC_SPECIFIC_RESPONSES: Record<string, string[]> = {
     '<break time="400ms"/>No rush on the money stuff. <break time="300ms"/>Better to think now than regret later.',
   ],
   loss: [
-    '<volume level="soft"><break time="600ms"/>Some things don\'t need words.</volume> <break time="400ms"/>I\'m here.',
-    '<volume level="soft"><break time="500ms"/>Take all the time you need.</volume>',
+    '<volume ratio="0.75"><break time="600ms"/>Some things don\'t need words.</volume> <break time="400ms"/>I\'m here.',
+    '<volume ratio="0.75"><break time="500ms"/>Take all the time you need.</volume>',
   ],
   career: [
     '<break time="500ms"/>Career questions are life questions. <break time="300ms"/>They deserve real thought.',
     '<break time="400ms"/>Work shapes so much of our lives. <break time="300ms"/>Worth taking time to think about.',
   ],
   health: [
-    '<volume level="soft"><break time="500ms"/>Health stuff is heavy.</volume> <break time="300ms"/>Take your time.',
+    '<volume ratio="0.75"><break time="500ms"/>Health stuff is heavy.</volume> <break time="300ms"/>Take your time.',
     '<break time="400ms"/>No rush. <break time="300ms"/>This matters.',
   ],
   wedding: [

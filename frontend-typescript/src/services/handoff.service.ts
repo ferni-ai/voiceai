@@ -17,7 +17,7 @@
 
 import type { PersonaId } from '../types/persona.js';
 import type { HandoffEvent, NormalizedHandoff, DataMessage } from '../types/events.js';
-import { isHandoffMessage, isHandoffStarted, isHandoffComplete, isHandoffFailed, isHandoffAcknowledged, isHandoffCancelled, isStateReset } from '../types/events.js';
+import { isHandoffMessage, isHandoffStarted, isHandoffComplete, isHandoffFailed, isHandoffAcknowledged, isHandoffCancelled, isSoftOpenComplete, isStateReset } from '../types/events.js';
 import { normalizeAgentId, getPersona, getTransitionConfig } from '../config/personas.js';
 import { SOUND_EFFECTS } from '../config/index.js';
 import { HANDOFF_TIMING, getPostSoundPause, type TransitionStyle } from '../config/handoff-timing.js';
@@ -37,9 +37,19 @@ const log = createLogger('Handoff');
 export type HandoffCallback = (handoff: NormalizedHandoff) => void;
 
 /**
+ * Banter text for warm handoffs - what the departing and arriving personas say.
+ */
+export interface HandoffBanter {
+  /** What the departing persona says about the arriving one (soft open) */
+  softOpen?: string;
+  /** What the arriving persona says as welcome */
+  arriving?: string;
+}
+
+/**
  * Handoff phase callbacks for UI state management.
  */
-export type HandoffStartCallback = (toPersona: PersonaId, fromPersona: PersonaId) => void;
+export type HandoffStartCallback = (toPersona: PersonaId, fromPersona: PersonaId, banter?: HandoffBanter) => void;
 export type HandoffCompleteCallback = (toPersona: PersonaId) => void;
 export type HandoffFailedCallback = (error: string, targetPersona: PersonaId) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
@@ -48,6 +58,13 @@ export type HandoffAcknowledgedCallback = (target: PersonaId, success: boolean, 
 export type HandoffRateLimitedCallback = (remainingMs: number) => void;
 /** FIX BUG #32: Callback for when handoff is cancelled */
 export type HandoffCancelledCallback = (targetPersona: PersonaId, reason?: string) => void;
+
+/**
+ * Callback for when soft open is complete (departing persona finished speaking).
+ * This signals the UI to begin the visual transition (roster move, avatar swap).
+ * The toPersona is the incoming persona, fromPersona is the departing one.
+ */
+export type SoftOpenCompleteCallback = (toPersona: PersonaId, fromPersona: PersonaId) => void;
 
 /**
  * Extended handoff data with entrance info.
@@ -77,6 +94,8 @@ class HandoffService {
   private rateLimitedCallbacks: Set<HandoffRateLimitedCallback> = new Set();
   /** FIX BUG #32: Track cancelled callbacks */
   private cancelledCallbacks: Set<HandoffCancelledCallback> = new Set();
+  /** WARM HANDOFF: Track soft open complete callbacks for voice-to-visual sync */
+  private softOpenCompleteCallbacks: Set<SoftOpenCompleteCallback> = new Set();
   private lastHandoffTime: number = 0;
   /**
    * FIX BUG #18 & #21: Use configurable constant synchronized with backend.
@@ -116,6 +135,12 @@ class HandoffService {
    */
   private _handoffTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private readonly HANDOFF_TIMEOUT_MS = 15000; // 15 seconds max for handoff
+
+  /**
+   * WARM HANDOFF: Pending soft_open_complete callback
+   * Used when soft_open_complete arrives before handoff_started (race condition)
+   */
+  private _pendingSoftOpenCallback: (() => void) | null = null;
 
   /**
    * Check if currently transitioning between agents.
@@ -186,6 +211,16 @@ class HandoffService {
   onHandoffCancelled(callback: HandoffCancelledCallback): () => void {
     this.cancelledCallbacks.add(callback);
     return () => this.cancelledCallbacks.delete(callback);
+  }
+
+  /**
+   * WARM HANDOFF: Register a callback for when soft open is complete.
+   * This is when the departing persona has finished speaking their warm sendoff.
+   * Use this to trigger the visual transition (roster move, avatar swap).
+   */
+  onSoftOpenComplete(callback: SoftOpenCompleteCallback): () => void {
+    this.softOpenCompleteCallbacks.add(callback);
+    return () => this.softOpenCompleteCallbacks.delete(callback);
   }
 
   /**
@@ -290,24 +325,77 @@ class HandoffService {
       this._isTransitioning = true;
       this._targetPersona = toPersona;
       this._handoffPhase = 'started';
-      
+
       // FIX BUG: Start timeout to prevent stuck states
       this.startHandoffTimeout(toPersona);
-      
-      // Notify start callbacks
+
+      // WARM HANDOFF: Extract banter text from the event
+      const banter: HandoffBanter | undefined =
+        event.softOpenBanter || event.arrivingBanter
+          ? { softOpen: event.softOpenBanter, arriving: event.arrivingBanter }
+          : undefined;
+
+      // Notify start callbacks (with banter if available)
       for (const callback of this.startCallbacks) {
         try {
-          callback(toPersona, fromPersona);
+          callback(toPersona, fromPersona, banter);
         } catch (error) {
           log.error('Handoff start callback error:', error);
         }
       }
-      
+
+      // WARM HANDOFF: Fire any pending soft_open_complete that arrived before us
+      if (this._pendingSoftOpenCallback) {
+        log.info('Executing deferred soft_open_complete callback');
+        this._pendingSoftOpenCallback();
+        this._pendingSoftOpenCallback = null;
+      }
+
       // Process like a normal handoff (plays sounds, updates UI)
       const handoff = this.normalizeHandoff(event);
       await this.handleHandoff(handoff);
       return true;
-      
+
+    } else if (isSoftOpenComplete(message)) {
+      // WARM HANDOFF: Departing persona finished speaking their warm sendoff.
+      // This is the signal to begin the visual transition (avatar swap, roster move).
+
+      // RACE CONDITION GUARD: Check if we received handoff_started first
+      if (this._handoffPhase !== 'started') {
+        log.warn('Received soft_open_complete before handoff_started - queueing until started:', {
+          phase: this._handoffPhase,
+          toPersona,
+          fromPersona
+        });
+        // Queue the callback to fire when handoff_started arrives
+        // Use a one-time listener on start callbacks
+        const pendingCallback = () => {
+          log.info('Soft open complete - deferred execution after handoff_started');
+          for (const callback of this.softOpenCompleteCallbacks) {
+            try {
+              callback(toPersona, fromPersona);
+            } catch (error) {
+              log.error('Soft open complete callback error:', error);
+            }
+          }
+        };
+        // Store pending soft open to fire after next handoff_started
+        this._pendingSoftOpenCallback = pendingCallback;
+        return true;
+      }
+
+      log.info('Soft open complete - beginning visual transition:', { toPersona, fromPersona });
+
+      // Notify soft open complete callbacks - UI should start visual transition NOW
+      for (const callback of this.softOpenCompleteCallbacks) {
+        try {
+          callback(toPersona, fromPersona);
+        } catch (error) {
+          log.error('Soft open complete callback error:', error);
+        }
+      }
+      return true;
+
     } else if (isHandoffComplete(message)) {
       // FIX BUG #16: Check if we got complete before started (out of order)
       if (this._handoffPhase !== 'started') {
@@ -586,7 +674,7 @@ class HandoffService {
   resetSession(): void {
     // FIX BUG: Clear timeout to prevent stuck states
     this.clearHandoffTimeout();
-    
+
     this.metPersonas.clear();
     this.metPersonas.add('ferni');
     this._isTransitioning = false;
@@ -598,6 +686,8 @@ class HandoffService {
     this._handoffPhase = 'idle';
     // FIX BUG #38: Reset sound tracking
     this._soundPlayedForCurrentHandoff = false;
+    // WARM HANDOFF: Clear pending soft open callback
+    this._pendingSoftOpenCallback = null;
   }
 
   /**
@@ -607,7 +697,7 @@ class HandoffService {
   dispose(): void {
     // FIX BUG: Clear timeout to prevent stuck states
     this.clearHandoffTimeout();
-    
+
     this.callbacks.clear();
     this.startCallbacks.clear();
     this.completeCallbacks.clear();
@@ -615,6 +705,7 @@ class HandoffService {
     this.acknowledgedCallbacks.clear();
     this.rateLimitedCallbacks.clear();
     this.cancelledCallbacks.clear(); // FIX BUG #32
+    this.softOpenCompleteCallbacks.clear(); // WARM HANDOFF
     this.metPersonas.clear();
     this._isTransitioning = false;
     this._targetPersona = null;
@@ -626,6 +717,8 @@ class HandoffService {
     this._handoffPhase = 'idle';
     // FIX BUG #38: Clear sound tracking on dispose
     this._soundPlayedForCurrentHandoff = false;
+    // WARM HANDOFF: Clear pending soft open callback
+    this._pendingSoftOpenCallback = null;
   }
 
   // ============================================================================

@@ -251,29 +251,29 @@ class BetterThanHumanTelemetry {
   }
 
   // Growth
-  trackGrowthInsightDetected(userId: string, insightType: string): void {
-    this.track('growth_insight_detected', userId, 'ferni', undefined, { insightType });
+  trackGrowthInsightDetected(userId: string, personaId: string, insightType: string): void {
+    this.track('growth_insight_detected', userId, personaId, undefined, { insightType });
   }
 
   trackGrowthInsightSurfaced(userId: string, personaId: string, insightId: string): void {
     this.track('growth_insight_surfaced', userId, personaId, undefined, { insightId });
   }
 
-  trackGrowthInsightResonated(userId: string, insightId: string): void {
-    this.track('growth_insight_resonated', userId, 'ferni', undefined, { insightId });
+  trackGrowthInsightResonated(userId: string, personaId: string, insightId: string): void {
+    this.track('growth_insight_resonated', userId, personaId, undefined, { insightId });
   }
 
   // Patterns
-  trackPatternDetected(userId: string, patternType: string): void {
-    this.track('pattern_detected', userId, 'ferni', undefined, { patternType });
+  trackPatternDetected(userId: string, personaId: string, patternType: string): void {
+    this.track('pattern_detected', userId, personaId, undefined, { patternType });
   }
 
   trackPatternSurfaced(userId: string, personaId: string, patternId: string): void {
     this.track('pattern_surfaced', userId, personaId, undefined, { patternId });
   }
 
-  trackPatternResonated(userId: string, patternId: string): void {
-    this.track('pattern_resonated', userId, 'ferni', undefined, { patternId });
+  trackPatternResonated(userId: string, personaId: string, patternId: string): void {
+    this.track('pattern_resonated', userId, personaId, undefined, { patternId });
   }
 
   // EQ

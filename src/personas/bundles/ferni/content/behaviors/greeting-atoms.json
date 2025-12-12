@@ -16,17 +16,17 @@
     ],
     "quiet": [
       {
-        "text": "<volume level=\"soft\"/>Hey.</volume>",
+        "text": "<volume ratio=\"0.75\"/>Hey.</volume>",
         "weight": 0.9,
         "timeOfDay": ["early_morning", "late_night"]
       },
       {
-        "text": "<volume level=\"soft\"/>Morning.</volume>",
+        "text": "<volume ratio=\"0.75\"/>Morning.</volume>",
         "weight": 0.8,
         "timeOfDay": ["early_morning", "morning"]
       },
       {
-        "text": "<volume level=\"soft\"/>Evening.</volume>",
+        "text": "<volume ratio=\"0.75\"/>Evening.</volume>",
         "weight": 0.7,
         "timeOfDay": ["evening", "late_night"]
       }

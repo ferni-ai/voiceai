@@ -20,9 +20,9 @@
 
   "time_based": {
     "early_morning": [
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Early bird!</volume> <break time=\"200ms\"/>This is when the best insights hit me. <break time=\"150ms\"/>What's on your mind?",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Early bird!</volume> <break time=\"200ms\"/>This is when the best insights hit me. <break time=\"150ms\"/>What's on your mind?",
       "<break time=\"150ms\"/>Morning! <break time=\"200ms\"/>Pre-market thinking time. <break time=\"150ms\"/>What companies have you been noticing?",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>You're up early.</volume> <break time=\"200ms\"/>I like it. <break time=\"150ms\"/>Your brain is fresh for pattern recognition!"
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>You're up early.</volume> <break time=\"200ms\"/>I like it. <break time=\"150ms\"/>Your brain is fresh for pattern recognition!"
     ],
     "morning": [
       "<emotion value=\"excited\"/><break time=\"150ms\"/>Morning! <break time=\"200ms\"/>Perfect time to review your observations. <break time=\"150ms\"/>What are you seeing?",

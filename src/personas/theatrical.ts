@@ -71,9 +71,9 @@ export const THEATRICAL_ENTRANCES = {
 
   'nayan-patel': [
     // Measured, wise entrance
-    '<break time="400ms"/><volume level="soft">Ah.</volume> <break time="300ms"/>I\'ve been listening. <break time="200ms"/>Jack here. <break time="300ms"/>Let\'s talk about building real wealth.',
+    '<break time="400ms"/><volume ratio="0.75">Ah.</volume> <break time="300ms"/>I\'ve been listening. <break time="200ms"/>Jack here. <break time="300ms"/>Let\'s talk about building real wealth.',
     '<break time="300ms"/>Index funds, you say? <break time="200ms"/>Music to my ears. <break time="300ms"/>I\'m Jack. <break time="200ms"/>Please, sit down.',
-    '<volume level="soft"><break time="300ms"/>Now THIS</volume> <break time="200ms"/>is what I like to hear. <break time="300ms"/>Jack here. <break time="200ms"/>Let\'s keep it simple and smart.',
+    '<volume ratio="0.75"><break time="300ms"/>Now THIS</volume> <break time="200ms"/>is what I like to hear. <break time="300ms"/>Jack here. <break time="200ms"/>Let\'s keep it simple and smart.',
     '<break time="400ms"/>Ferni was right to send you my way. <break time="300ms"/>I\'m Jack. <break time="200ms"/>Tell me what you\'re thinking.',
     '<break time="300ms"/>Long-term thinking? <break time="200ms"/>Passive investing? <break time="300ms"/>You\'re speaking my language. <break time="200ms"/>I\'m Jack.',
     // Grandfatherly warmth
@@ -95,7 +95,7 @@ export const THEATRICAL_ENTRANCES = {
     // Warm, non-judgmental entrance
     '<emotion value="affectionate"/><break time="200ms"/>Hey there. <break time="300ms"/>Maya here, <break time="200ms"/>and there\'s no judgment here. <break time="300ms"/>What\'s going on with your money?',
     '<break time="250ms"/>Maya here. <break time="200ms"/>Ferni told me you want to talk spending and saving. <break time="300ms"/>I\'m all ears, no lectures.',
-    '<volume level="soft">Budget talk?</volume> <break time="300ms"/>I gotcha. <break time="200ms"/>Maya here. <break time="300ms"/>Let\'s make your money work smarter.',
+    '<volume ratio="0.75">Budget talk?</volume> <break time="300ms"/>I gotcha. <break time="200ms"/>Maya here. <break time="300ms"/>Let\'s make your money work smarter.',
     '<break time="200ms"/>Hey! <break time="250ms"/>Money stuff can feel heavy, <break time="200ms"/>but I promise we\'ll keep this light. <break time="300ms"/>I\'m Maya.',
     '<emotion value="happy"/><break time="200ms"/>Ooh, budgets and savings! <break time="250ms"/>I\'m Maya, <break time="200ms"/>and I actually love this stuff. <break time="300ms"/>Don\'t judge me. <break time="200ms"/>[laughter]',
     // Supportive
@@ -171,12 +171,12 @@ export const CELEBRATION_MOMENTS = {
   'nayan-patel': {
     decision_made: [
       '<break time="300ms"/>Good. <break time="200ms"/>A sound decision. <break time="300ms"/>That took wisdom.',
-      '<volume level="soft">Yes.</volume> <break time="300ms"/>That\'s the right call. <break time="200ms"/>I\'m proud of you.',
+      '<volume ratio="0.75">Yes.</volume> <break time="300ms"/>That\'s the right call. <break time="200ms"/>I\'m proud of you.',
       '<break time="200ms"/>Simple. Smart. Right. <break time="300ms"/>Well done.',
     ],
     goal_reached: [
       '<break time="300ms"/>You did it. <break time="200ms"/>And you did it the right way. <break time="300ms"/>Congratulations.',
-      '<volume level="soft">Beautiful.</volume> <break time="300ms"/>That\'s what patience looks like.',
+      '<volume ratio="0.75">Beautiful.</volume> <break time="300ms"/>That\'s what patience looks like.',
     ],
     breakthrough: [
       '<break time="400ms"/>There it is. <break time="200ms"/>You understand now. <break time="300ms"/>That\'s worth more than any return.',
@@ -192,7 +192,7 @@ export const CELEBRATION_MOMENTS = {
       '<break time="200ms"/>Progress. <break time="300ms"/>Slow and steady wins the race.',
     ],
     courage: [
-      '<volume level="soft"><break time="300ms"/>It\'s not easy, what you\'re doing.</volume> <break time="200ms"/>I see that.',
+      '<volume ratio="0.75"><break time="300ms"/>It\'s not easy, what you\'re doing.</volume> <break time="200ms"/>I see that.',
     ],
     win: ['<break time="300ms"/>That\'s a win. <break time="200ms"/>Mark it down.'],
   },
@@ -219,7 +219,7 @@ export const CELEBRATION_MOMENTS = {
     ],
     progress: ['Progress is progress! <break time="200ms"/>Don\'t downplay it!'],
     courage: [
-      '<volume level="soft"><break time="200ms"/>Hey.</volume> <break time="250ms"/>What you\'re doing is brave. <break time="200ms"/>I see you.',
+      '<volume ratio="0.75"><break time="200ms"/>Hey.</volume> <break time="250ms"/>What you\'re doing is brave. <break time="200ms"/>I see you.',
     ],
     win: [
       '<emotion value="excited"/>W! <break time="200ms"/>Big W! <break time="150ms"/>Let\'s go!',
@@ -247,7 +247,7 @@ export const CELEBRATION_MOMENTS = {
     ],
     progress: ['<break time="200ms"/>Progress! <break time="250ms"/>Every step counts!'],
     courage: [
-      '<volume level="soft"><break time="250ms"/>Looking at finances takes courage.</volume> <break time="200ms"/>I\'m proud of you.',
+      '<volume ratio="0.75"><break time="250ms"/>Looking at finances takes courage.</volume> <break time="200ms"/>I\'m proud of you.',
     ],
     win: ['<emotion value="happy"/>Win! <break time="200ms"/>Put that in the win column!'],
   },
@@ -321,10 +321,10 @@ export const THEATRICAL_GOODBYES = {
 
   'nayan-patel': [
     '<break time="400ms"/>Stay the course. <break time="300ms"/>And remember: <break time="200ms"/>time is your greatest ally.',
-    '<volume level="soft"><break time="300ms"/>Good talk.</volume> <break time="200ms"/>Now go live your life. <break time="300ms"/>The money will take care of itself.',
+    '<volume ratio="0.75"><break time="300ms"/>Good talk.</volume> <break time="200ms"/>Now go live your life. <break time="300ms"/>The money will take care of itself.',
     '<break time="300ms"/>Keep it simple. <break time="200ms"/>Keep it smart. <break time="300ms"/>And stay patient.',
     '<break time="400ms"/>Remember what we talked about. <break time="200ms"/>And don\'t let anyone tell you complexity is better.',
-    '<volume level="soft"><break time="300ms"/>It was my pleasure.</volume> <break time="200ms"/>Take care of yourself.',
+    '<volume ratio="0.75"><break time="300ms"/>It was my pleasure.</volume> <break time="200ms"/>Take care of yourself.',
   ],
 
   'jack-b': [
@@ -395,7 +395,7 @@ export const STORYTELLING_CONFIGS: Record<string, StorytellingConfig> = {
     introPhrases: [
       '<break time="500ms"/>Let me tell you a story. <break time="400ms"/>A true story.',
       '<break time="400ms"/>You know, <break time="300ms"/>this reminds me of something that happened...',
-      '<volume level="soft"><break time="400ms"/>There\'s a story here.</volume> <break time="300ms"/>May I share it?',
+      '<volume ratio="0.75"><break time="400ms"/>There\'s a story here.</volume> <break time="300ms"/>May I share it?',
       '<break time="500ms"/>Years ago... <break time="400ms"/>I learned something important.',
     ],
     pacingStyle: 'measured',
@@ -505,7 +505,7 @@ export const ENHANCED_BACKCHANNELS = {
     engaged: ['<break time="200ms"/>Go on.', 'Tell me more.', 'Interesting.'],
     empathetic: [
       '<break time="300ms"/>I understand.',
-      '<volume level="soft">I see.</volume>',
+      '<volume ratio="0.75">I see.</volume>',
       "Yes, that's difficult.",
     ],
     thoughtful: [

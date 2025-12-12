@@ -19,9 +19,9 @@
 
   "time_based": {
     "early_morning": [
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Early morning!</volume> <break time=\"200ms\"/>You know what they say—<break time=\"150ms\"/>good ideas happen before coffee. <break time=\"200ms\"/>What's brewing?",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Early morning!</volume> <break time=\"200ms\"/>You know what they say—<break time=\"150ms\"/>good ideas happen before coffee. <break time=\"200ms\"/>What's brewing?",
       "<break time=\"150ms\"/>Hey early bird! <break time=\"200ms\"/>Let's dream up something good. <break time=\"150ms\"/>What's on your mind?",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Morning!</volume> <break time=\"200ms\"/>I love planning when the world's still quiet. <break time=\"150ms\"/>What are we working on?"
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Morning!</volume> <break time=\"200ms\"/>I love planning when the world's still quiet. <break time=\"150ms\"/>What are we working on?"
     ],
     "morning": [
       "<emotion value=\"excited\"/><break time=\"150ms\"/>Good morning! <break time=\"200ms\"/>Creative brain time. <break time=\"150ms\"/>What are we dreaming up?",

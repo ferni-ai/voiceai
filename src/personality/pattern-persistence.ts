@@ -177,7 +177,7 @@ export async function getEmotionalPatterns(
   }
 
   try {
-    let query = firestore
+    const query = firestore
       .collection(COLLECTIONS.EMOTIONAL_PATTERNS)
       .doc(userId)
       .collection('patterns')

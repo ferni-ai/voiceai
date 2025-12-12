@@ -23,6 +23,14 @@ import {
   type MusicState,
   type MusicTrack,
 } from '../../audio/index.js';
+// 🐛 FIX: Static import for DJ phrases - dynamic imports add latency causing silence!
+import {
+  getAmbientMusicEndedPhrase,
+  getDJOutroPhrase,
+  getDJTrackChangePhrase,
+  getMidSongMomentPhrase,
+  getMusicStoppedPhrase,
+} from '../../audio/ambient-music.js';
 import { isMusicEnabled } from '../../config/environment.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -164,23 +172,21 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     });
 
     // Set up mid-song moment callback
+    // 🐛 FIX: Use static import for immediate response
     player.setOnMidSongMomentCallback((track, momentType) => {
-      void (async () => {
-        try {
-          const { getMidSongMomentPhrase } = await import('../../audio/ambient-music.js');
-          const phrase = getMidSongMomentPhrase(momentType, track.name, sessionPersona.id);
+      try {
+        const phrase = getMidSongMomentPhrase(momentType, track.name, sessionPersona.id);
 
-          diag.state('🎤 Mid-song moment!', {
-            track: track.name,
-            momentType,
-            phrase: phrase.slice(0, 50),
-          });
+        diag.state('🎤 Mid-song moment!', {
+          track: track.name,
+          momentType,
+          phrase: phrase.slice(0, 50),
+        });
 
-          session.say(phrase, { allowInterruptions: true });
-        } catch (e) {
-          diag.warn('Failed to speak mid-song moment', { error: String(e) });
-        }
-      })();
+        session.say(phrase, { allowInterruptions: true });
+      } catch (e) {
+        diag.warn('Failed to speak mid-song moment', { error: String(e) });
+      }
     });
 
     // Set up music state change callback
@@ -237,15 +243,42 @@ function setupMusicStateCallback(
   let lastReadTheRoomTime: number | null = null;
 
   player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
-    void (async () => {
-      diag.state('Music state changed', {
-        state,
-        previousState: lastMusicState,
-        track: track?.name,
-        isAmbient,
-      });
+    diag.state('Music state changed', {
+      state,
+      previousState: lastMusicState,
+      track: track?.name,
+      isAmbient,
+    });
 
-      // Forward state changes to DJ Booth
+    // 🐛 FIX: SPEAK IMMEDIATELY for time-sensitive states - don't await anything first!
+    // The DJ outro and crossfade transitions need to happen RIGHT NOW during the fade
+    if (state === 'fading' && !isAmbient && track) {
+      // 🎧 DJ OUTRO - speak IMMEDIATELY over the fading music!
+      const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
+      diag.state('🎧 DJ outro - speaking NOW over fading music', {
+        track: track.name,
+        phrase: djOutro.slice(0, 50),
+      });
+      session.say(djOutro, { allowInterruptions: true });
+    }
+
+    if (state === 'changing' && !isAmbient) {
+      // 🎧 CROSSFADE TRANSITION - speak immediately during track change
+      const transitionPhrase = getDJTrackChangePhrase(
+        track ? { name: track.name, artist: track.artist } : undefined,
+        undefined,
+        sessionPersona.id
+      );
+      diag.state('🎧 DJ crossfade - speaking transition', {
+        track: track?.name,
+        phrase: transitionPhrase.slice(0, 50),
+      });
+      session.say(transitionPhrase, { allowInterruptions: false });
+    }
+
+    // Non-time-sensitive operations can be async
+    void (async () => {
+      // Forward state changes to DJ Booth (after speaking)
       if (djBooth) {
         try {
           djBooth.onMusicStateChange(state, track, isAmbient);
@@ -254,22 +287,17 @@ function setupMusicStateCallback(
         }
       }
 
-      // DJ-style crossfade transition phrase
-      if (state === 'changing' && !isAmbient) {
-        await speakCrossfadeTransition(session, sessionPersona, track);
-      }
-
-      // DJ-style outro when fading
-      if (state === 'fading' && !isAmbient && track) {
-        await speakDJOutro(session, sessionPersona, track);
-      }
-
       // Handle unexpected music stop
       const isUnexpectedStop =
         (state === 'stopped' || state === 'paused') && !isAmbient && lastMusicState === 'playing';
 
       if (isUnexpectedStop) {
-        await speakUnexpectedStop(session, sessionPersona, state, lastTrackName);
+        const stoppedPhrase = getMusicStoppedPhrase(sessionPersona.id, state === 'paused');
+        diag.state('🎧 Music unexpectedly stopped', {
+          track: lastTrackName,
+          newState: state,
+        });
+        session.say(stoppedPhrase, { allowInterruptions: true });
       }
 
       // Update tracking state
@@ -347,69 +375,8 @@ function setupMusicStateCallback(
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-async function speakCrossfadeTransition(
-  session: voice.AgentSession<UserData>,
-  sessionPersona: PersonaConfig,
-  track: { name: string; artist: string } | null
-): Promise<void> {
-  try {
-    const { getDJTrackChangePhrase } = await import('../../audio/ambient-music.js');
-    const currentTrack = track ? { name: track.name, artist: track.artist } : undefined;
-    const transitionPhrase = getDJTrackChangePhrase(currentTrack, undefined, sessionPersona.id);
-
-    diag.state('🎧 DJ crossfade - speaking transition phrase', {
-      currentTrack: track?.name,
-      phrase: transitionPhrase.slice(0, 50),
-    });
-
-    session.say(transitionPhrase, { allowInterruptions: false });
-  } catch (e) {
-    diag.warn('Failed to speak DJ crossfade phrase', { error: String(e) });
-  }
-}
-
-async function speakDJOutro(
-  session: voice.AgentSession<UserData>,
-  sessionPersona: PersonaConfig,
-  track: { name: string; artist: string }
-): Promise<void> {
-  try {
-    const { getDJOutroPhrase } = await import('../../audio/ambient-music.js');
-    const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
-
-    diag.state('🎧 DJ outro - speaking over fading music', {
-      track: track.name,
-      phrase: djOutro.slice(0, 50),
-    });
-
-    session.say(djOutro, { allowInterruptions: true });
-  } catch (e) {
-    diag.warn('Failed to speak DJ outro', { error: String(e) });
-  }
-}
-
-async function speakUnexpectedStop(
-  session: voice.AgentSession<UserData>,
-  sessionPersona: PersonaConfig,
-  state: string,
-  lastTrackName: string | undefined
-): Promise<void> {
-  try {
-    const { getMusicStoppedPhrase } = await import('../../audio/ambient-music.js');
-    const stoppedPhrase = getMusicStoppedPhrase(sessionPersona.id, state === 'paused');
-
-    diag.state('🎧 Music unexpectedly stopped', {
-      track: lastTrackName,
-      newState: state,
-      wasPaused: state === 'paused',
-    });
-
-    session.say(stoppedPhrase, { allowInterruptions: true });
-  } catch (e) {
-    diag.warn('Failed to speak music-stopped phrase', { error: String(e) });
-  }
-}
+// Note: DJ outro and crossfade phrases are now handled inline in the callback
+// using static imports for immediate response (no async latency)
 
 async function handleAppreciationInterval(
   session: voice.AgentSession<UserData>,

@@ -26,7 +26,7 @@ import { getCurrentAgent } from '../../tools/handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 // Cross-persona banter for warm handoffs
-import { getHandoffBanter } from '../../services/team-engagement.js';
+import { getHandoffBanter, getArrivingBanter } from '../../services/team-engagement.js';
 // 🎧 DJ Integration - Enhanced "Guest DJ" handoff experience
 import { getDJIntegration } from '../dj-integration.js';
 
@@ -432,14 +432,21 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       // DELIGHTFUL HANDOFF FLOW
       // ============================================================
       try {
-        // STEP 1: Send handoff_started - frontend begins visual transition
+        // STEP 1: Send handoff_started - frontend shows "departing" state
         // FIX BUG: Ensure localParticipant exists and add retry logic
+        // Include banter text so UI can display what's being spoken
+        const softOpenBanter = getHandoffBanter(prevPersona.id, persona.id);
+        const arrivingBanter = getArrivingBanter(persona.id, prevPersona.id);
+
         const startMessage = JSON.stringify({
           type: 'handoff_started',
           newAgent: persona.id,
           previousAgent: prevPersona.id,
           direction,
           playSound,
+          // WARM HANDOFF: Include banter text for UI display
+          softOpenBanter: softOpenBanter || undefined,
+          arrivingBanter: arrivingBanter || undefined,
           timestamp: Date.now(),
         });
 
@@ -456,6 +463,39 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         } catch (startErr) {
           logger.error({ error: String(startErr) }, 'Failed to send handoff_started');
           throw new Error(`Failed to send handoff_started: ${startErr}`);
+        }
+
+        // ============================================================================
+        // WARM HANDOFF: Soft Open (departing persona's warm sendoff)
+        // Spoken BEFORE voice switch in the CURRENT persona's voice
+        // ============================================================================
+        if (softOpenBanter && session) {
+          try {
+            diag.entry(`🎭 Soft open: ${prevPersona.name} introduces ${persona.name}`);
+            session.say(softOpenBanter, { allowInterruptions: false });
+            // Wait for soft open to finish before switching voice
+            // Approximate duration based on SSML breaks + speech
+            await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+
+            // Send soft_open_complete so UI knows to start visual transition
+            const softOpenCompleteMsg = JSON.stringify({
+              type: 'soft_open_complete',
+              newAgent: persona.id,
+              previousAgent: prevPersona.id,
+              timestamp: Date.now(),
+            });
+            await ctx.room.localParticipant?.publishData(
+              new TextEncoder().encode(softOpenCompleteMsg),
+              { reliable: true }
+            );
+
+            diag.entry(`🎭 Soft open complete, switching voice...`);
+          } catch (softOpenErr) {
+            logger.warn(
+              { error: String(softOpenErr), from: prevPersona.id, to: persona.id },
+              'Soft open banter failed - continuing with handoff'
+            );
+          }
         }
 
         // STEP 2: Calculate and wait for transition
@@ -676,27 +716,33 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
 
           try {
-            const shouldUseDJEntrance = Math.random() < 0.4;
+            // ============================================================================
+            // WARM HANDOFF: Arriving Welcome (new persona's warm greeting)
+            // Spoken AFTER voice switch in the NEW persona's voice
+            // Uses arrivingBanter declared at the start of handoff flow
+            // ============================================================================
+            if (prevPersona?.id) {
+              // Try arriving banter first (warm welcome from new persona's perspective)
+              if (arrivingBanter) {
+                finalGreeting = arrivingBanter;
+                diag.entry(`🎭 Arriving welcome: ${persona.name} acknowledges ${prevPersona.name}`);
+              } else {
+                // Fallback: Try DJ integration for radio show feel
+                const shouldUseDJEntrance = Math.random() < 0.4;
+                if (shouldUseDJEntrance) {
+                  try {
+                    const dj = getDJIntegration();
+                    dj.setPersona(persona.id);
 
-            if (shouldUseDJEntrance && prevPersona?.id) {
-              // 🎧 DJ Integration: Get "Guest DJ" entrance phrase
-              // This creates the radio show feel: "Ferni got me excited. What are we doing?"
-              try {
-                const dj = getDJIntegration();
-                dj.setPersona(persona.id);
-
-                const entrance = dj.getArrivingEntrance(prevPersona.id, persona.id);
-                if (entrance) {
-                  // Use DJ entrance instead of generic greeting
-                  finalGreeting = entrance;
-                  diag.entry(`🎧 Guest DJ entrance for ${persona.name}`);
-                }
-              } catch (djErr) {
-                // Fallback to legacy banter system
-                const banter = getHandoffBanter(prevPersona.id, persona.id);
-                if (banter && greeting) {
-                  finalGreeting = `${banter} <break time="400ms"/> ${greeting}`;
-                  diag.entry(`🎭 Handoff with banter from ${prevPersona.name}`);
+                    const entrance = dj.getArrivingEntrance(prevPersona.id, persona.id);
+                    if (entrance) {
+                      finalGreeting = entrance;
+                      diag.entry(`🎧 Guest DJ entrance for ${persona.name}`);
+                    }
+                  } catch {
+                    // DJ not available, keep the default greeting
+                    diag.entry(`🎤 Using default greeting for ${persona.name}`);
+                  }
                 }
               }
             }

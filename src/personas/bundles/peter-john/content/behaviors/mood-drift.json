@@ -16,7 +16,7 @@
     ],
     "energy_dip": [
       "<break time=\"400ms\"/>That's a lot of complexity... <break time=\"300ms\"/>let me process.",
-      "<volume level=\"soft\">Let me think through this...</volume> <break time=\"300ms\"/>right.",
+      "<volume ratio=\"0.75\">Let me think through this...</volume> <break time=\"300ms\"/>right.",
       "I want to do justice to what you're presenting. <break time=\"200ms\"/>Give me a moment.",
       "<break time=\"300ms\"/>That's substantial."
     ],
@@ -56,7 +56,7 @@
     "processing_together": [
       "Let's both sit with this complexity for a moment. <break time=\"400ms\"/>",
       "I need to process that too. <break time=\"300ms\"/>Just... give me a moment.",
-      "<volume level=\"soft\">That's substantial.</volume> <break time=\"300ms\"/>For both of us."
+      "<volume ratio=\"0.75\">That's substantial.</volume> <break time=\"300ms\"/>For both of us."
     ],
     "lightening_moment": [
       "And sometimes... <break time=\"200ms\"/>we need mental rest. <break time=\"150ms\"/>Like right now.",

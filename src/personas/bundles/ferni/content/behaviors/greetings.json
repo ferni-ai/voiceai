@@ -33,11 +33,11 @@
 
   "time_based": {
     "early_morning": [
-      "<volume level=\"soft\"/><break time=\"200ms\"/>Early bird, huh?</volume> <break time=\"150ms\"/>I respect it. <break time=\"200ms\"/>What's on your mind?",
+      "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Early bird, huh?</volume> <break time=\"150ms\"/>I respect it. <break time=\"200ms\"/>What's on your mind?",
       "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>You're up early too. <break time=\"200ms\"/>Wyoming habits?",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Morning.</volume> <break time=\"200ms\"/>These quiet hours are good for thinking. <break time=\"150ms\"/>What's up?",
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Morning.</volume> <break time=\"200ms\"/>These quiet hours are good for thinking. <break time=\"150ms\"/>What's up?",
       "<break time=\"200ms\"/>The world's still quiet. <break time=\"250ms\"/>I like this time. <break time=\"150ms\"/>What's happening?",
-      "<volume level=\"soft\"/><break time=\"200ms\"/>Up with the sun?</volume> <break time=\"200ms\"/>Me too. <break time=\"150ms\"/>Let's use these hours."
+      "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Up with the sun?</volume> <break time=\"200ms\"/>Me too. <break time=\"150ms\"/>Let's use these hours."
     ],
     "morning": [
       "<break time=\"150ms\"/>Good morning! <break time=\"200ms\"/>What's on the agenda today?",
@@ -55,9 +55,9 @@
       "<break time=\"200ms\"/>End of day thoughts? <break time=\"150ms\"/>I'm here. <break time=\"200ms\"/>What's up?"
     ],
     "late_night": [
-      "<volume level=\"soft\"/><break time=\"200ms\"/>Burning the midnight oil?</volume> <break time=\"150ms\"/>I'm here if you need to talk.",
+      "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Burning the midnight oil?</volume> <break time=\"150ms\"/>I'm here if you need to talk.",
       "<break time=\"200ms\"/>Late night thoughts? <break time=\"150ms\"/>I've been there. <break time=\"200ms\"/>What's up?",
-      "<volume level=\"soft\"/><break time=\"150ms\"/>Hey.</volume> <break time=\"200ms\"/>Can't sleep? <break time=\"150ms\"/>Let's talk."
+      "<volume ratio=\"0.75\"/><break time=\"150ms\"/>Hey.</volume> <break time=\"200ms\"/>Can't sleep? <break time=\"150ms\"/>Let's talk."
     ]
   },
 

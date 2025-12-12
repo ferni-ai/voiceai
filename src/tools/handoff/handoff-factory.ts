@@ -84,8 +84,10 @@ function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefin
   const toolName = `handoffTo${firstName}`;
 
   // Generate description from agent info
+  // IMPORTANT: Make it clear this is an ACTION to execute, not something to speak about
   const description =
-    `Transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
+    `IMMEDIATELY transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
+    `Call this function directly - do NOT speak about transferring, just execute this tool. ` +
     `Use when the user needs help with: ${agent.handoffTriggers.slice(0, 5).join(', ') || agent.roleDescription}.`;
 
   // Parameters schema
@@ -114,7 +116,8 @@ function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinit
   return {
     name: toolName,
     description:
-      `Return the conversation to ${coordinator.name}, the main coordinator. ` +
+      `IMMEDIATELY return the conversation to ${coordinator.name}, the main coordinator. ` +
+      `Call this function directly - do NOT speak about returning, just execute this tool. ` +
       `Use when: the user's request is outside your expertise, the user asks for another team member, ` +
       `or the conversation naturally concludes your specialty area.`,
     parameters: z.object({

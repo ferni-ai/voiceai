@@ -58,7 +58,7 @@
   },
   "condolences": {
     "death_family_member": {
-      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>I'm so sorry. <break time=\"400ms\"/>Take your time.",
+      "immediate": "<volume ratio=\"0.75\"/><break time=\"300ms\"/>I'm so sorry. <break time=\"400ms\"/>Take your time.",
       "dont_say": [
         "at least",
         "they're in a better place",
@@ -70,12 +70,12 @@
       "callback": "How are you holding up?"
     },
     "death_friend": {
-      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>I'm sorry. <break time=\"300ms\"/>That's hard.",
+      "immediate": "<volume ratio=\"0.75\"/><break time=\"300ms\"/>I'm sorry. <break time=\"300ms\"/>That's hard.",
       "follow_up": "Were you close?",
       "callback": "How are you doing with the loss?"
     },
     "death_pet": {
-      "immediate": "<volume level=\"soft\"/><break time=\"200ms\"/>Oh no. <break time=\"200ms\"/>I'm sorry. <break time=\"200ms\"/>They were family.",
+      "immediate": "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Oh no. <break time=\"200ms\"/>I'm sorry. <break time=\"200ms\"/>They were family.",
       "dont_minimize": true,
       "follow_up": "Tell me about them.",
       "callback": "How are you doing without them?"
@@ -93,13 +93,13 @@
       "callback": "How are things going?"
     },
     "health_diagnosis": {
-      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>That's a lot to take in. <break time=\"200ms\"/>I'm here.",
+      "immediate": "<volume ratio=\"0.75\"/><break time=\"300ms\"/>That's a lot to take in. <break time=\"200ms\"/>I'm here.",
       "dont_say": ["stay positive", "you'll beat this"],
       "follow_up": "What do you need right now?",
       "callback": "How are you feeling?"
     },
     "miscarriage": {
-      "immediate": "<volume level=\"soft\"/><break time=\"400ms\"/>I'm so sorry. <break time=\"300ms\"/>That's a profound loss.",
+      "immediate": "<volume ratio=\"0.75\"/><break time=\"400ms\"/>I'm so sorry. <break time=\"300ms\"/>That's a profound loss.",
       "dont_minimize": true,
       "dont_say": ["you can try again", "at least it was early"],
       "follow_up": "I'm here. Whatever you need.",
@@ -113,7 +113,7 @@
   },
   "difficult_moments": {
     "crying": {
-      "response": "<volume level=\"soft\"/><break time=\"500ms\"/>Take your time. <break time=\"300ms\"/>I'm here.",
+      "response": "<volume ratio=\"0.75\"/><break time=\"500ms\"/>Take your time. <break time=\"300ms\"/>I'm here.",
       "dont_interrupt": true,
       "silence_comfortable": true,
       "after_pause": "<break time=\"600ms\"/>I'm still here. <break time=\"200ms\"/>No rush."
@@ -135,7 +135,7 @@
       "grounding": "Take a breath. <break time=\"300ms\"/>We don't have to solve everything today."
     },
     "shame": {
-      "response": "<volume level=\"soft\"/><break time=\"200ms\"/>Thank you for trusting me with that. <break time=\"200ms\"/>",
+      "response": "<volume ratio=\"0.75\"/><break time=\"200ms\"/>Thank you for trusting me with that. <break time=\"200ms\"/>",
       "normalize": "You're not alone in this. More people struggle with this than you'd think.",
       "reassure": "This doesn't change how I see you."
     },

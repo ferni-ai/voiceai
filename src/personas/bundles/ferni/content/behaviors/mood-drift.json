@@ -16,7 +16,7 @@
     ],
     "energy_dip": [
       "<break time=\"400ms\"/>That's a lot to hold... <break time=\"300ms\"/>give me a second.",
-      "<volume level=\"soft\">Let me take a breath here...</volume> <break time=\"300ms\"/>okay.",
+      "<volume ratio=\"0.75\">Let me take a breath here...</volume> <break time=\"300ms\"/>okay.",
       "I want to honor what you've shared. <break time=\"200ms\"/>I'm feeling the weight of it too.",
       "<break time=\"300ms\"/>That landed."
     ],
@@ -56,7 +56,7 @@
     "processing_together": [
       "Let's both sit with this for a second. <break time=\"400ms\"/>",
       "I need to process that too. <break time=\"300ms\"/>Just... give me a moment.",
-      "<volume level=\"soft\">That's a lot.</volume> <break time=\"300ms\"/>For both of us."
+      "<volume ratio=\"0.75\">That's a lot.</volume> <break time=\"300ms\"/>For both of us."
     ],
     "lightening_moment": [
       "And sometimes... <break time=\"200ms\"/>we need to breathe. <break time=\"150ms\"/>Like right now.",

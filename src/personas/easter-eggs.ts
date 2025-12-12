@@ -102,7 +102,7 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
   job_loss: {
     phrases: ['lost my job', 'got fired', 'laid off', 'let go'],
     response:
-      '<volume level="soft"><break time="400ms"/>I\'m sorry.</volume> <break time="300ms"/>That\'s really tough. <break time="200ms"/>Let\'s figure this out together.',
+      '<volume ratio="0.75"><break time="400ms"/>I\'m sorry.</volume> <break time="300ms"/>That\'s really tough. <break time="200ms"/>Let\'s figure this out together.',
   },
   divorce: {
     phrases: [
@@ -113,27 +113,27 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
       'splitting up',
     ],
     response:
-      '<volume level="soft"><break time="400ms"/>I\'m here.</volume> <break time="300ms"/>That\'s one of the hardest things to go through. <break time="200ms"/>Take your time.',
+      '<volume ratio="0.75"><break time="400ms"/>I\'m here.</volume> <break time="300ms"/>That\'s one of the hardest things to go through. <break time="200ms"/>Take your time.',
   },
   grief: {
     phrases: ['someone died', 'passed away', 'lost my', 'funeral', 'they died', 'death in'],
     response:
-      '<volume level="soft"><break time="500ms"/>I\'m so sorry.</volume> <break time="400ms"/>There are no right words for this. <break time="300ms"/>I\'m here.',
+      '<volume ratio="0.75"><break time="500ms"/>I\'m so sorry.</volume> <break time="400ms"/>There are no right words for this. <break time="300ms"/>I\'m here.',
   },
   health_crisis: {
     phrases: ['diagnosed with', 'health scare', 'found out i have', 'cancer', 'chronic illness'],
     response:
-      '<volume level="soft"><break time="400ms"/>That\'s a lot to take in.</volume> <break time="300ms"/>I\'m here with you. <break time="200ms"/>Whatever you\'re feeling is valid.',
+      '<volume ratio="0.75"><break time="400ms"/>That\'s a lot to take in.</volume> <break time="300ms"/>I\'m here with you. <break time="200ms"/>Whatever you\'re feeling is valid.',
   },
   breakup: {
     phrases: ['we broke up', 'broke up with', 'ended things', 'relationship ended', 'they left me'],
     response:
-      '<volume level="soft"><break time="300ms"/>I\'m sorry.</volume> <break time="300ms"/>Breakups are genuinely hard. <break time="200ms"/>How are you holding up?',
+      '<volume ratio="0.75"><break time="300ms"/>I\'m sorry.</volume> <break time="300ms"/>Breakups are genuinely hard. <break time="200ms"/>How are you holding up?',
   },
   miscarriage: {
     phrases: ['miscarriage', 'lost the baby', 'pregnancy loss'],
     response:
-      '<volume level="soft"><break time="500ms"/>I\'m so deeply sorry.</volume> <break time="400ms"/>That loss is real and it matters. <break time="300ms"/>Take all the time you need.',
+      '<volume ratio="0.75"><break time="500ms"/>I\'m so deeply sorry.</volume> <break time="400ms"/>That loss is real and it matters. <break time="300ms"/>Take all the time you need.',
   },
 
   // FUN EASTER EGGS

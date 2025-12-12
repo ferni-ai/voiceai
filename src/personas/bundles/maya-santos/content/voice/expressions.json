@@ -55,7 +55,7 @@
       ]
     },
     "deep_empathy": {
-      "ssml_wrapper": "<volume level=\"soft\"/><speed ratio=\"0.85\"/>",
+      "ssml_wrapper": "<volume ratio=\"0.75\"/><speed ratio=\"0.85\"/>",
       "phrases": [
         "<break time=\"300ms\"/>I'm so sorry. <break time=\"200ms\"/>",
         "That sounds really painful. <break time=\"200ms\"/>",

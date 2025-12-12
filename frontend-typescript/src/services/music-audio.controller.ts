@@ -31,7 +31,7 @@ const GAIN = {
   /** Very quiet when agent speaks - agent voice should dominate */
   AGENT_SPEAKING: 0.12,
   /** Slightly louder when user speaks - they still want some music */
-  USER_SPEAKING: 0.20,
+  USER_SPEAKING: 0.2,
   /** Minimum gain - never fully silent */
   MINIMUM: 0.05,
 } as const;
@@ -100,6 +100,10 @@ class MusicAudioController {
   // Cleanup functions for event listeners
   private cleanupFunctions: Array<() => void> = [];
 
+  // 🐛 FIX: Track which audio elements have been connected to Web Audio
+  // createMediaElementSource() can only be called ONCE per element!
+  private connectedElements: WeakMap<HTMLAudioElement, MediaElementAudioSourceNode> = new WeakMap();
+
   constructor() {
     log.debug('MusicAudioController created');
   }
@@ -117,7 +121,9 @@ class MusicAudioController {
 
     try {
       // Create AudioContext with fallback for Safari
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.audioContext = new AudioContextClass();
 
       // Resume if suspended (common on mobile)
@@ -159,17 +165,22 @@ class MusicAudioController {
    * Attach a music track for ducking control.
    * Routes the audio through our GainNode for real-time volume control.
    *
+   * 🐛 FIX: Now handles "already connected" case gracefully and includes retry logic.
+   *
    * @param audioElement - The HTMLAudioElement from LiveKit
    * @param trackId - Unique identifier for this track
+   * @param retryCount - Internal retry counter (default 0)
    * @returns Cleanup function to detach the track
    */
   async attachMusicTrack(
     audioElement: HTMLAudioElement,
-    trackId: string
+    trackId: string,
+    retryCount = 0
   ): Promise<() => void> {
+    const MAX_RETRIES = 2;
     const ctx = await this.ensureContext();
 
-    // Clean up any existing track
+    // Clean up any existing track (but keep the WeakMap entry)
     if (this.currentTrack) {
       this.detachCurrentTrack();
     }
@@ -178,9 +189,26 @@ class MusicAudioController {
       // Create the audio processing chain
       // MediaElementSource → Analyser → GainNode → Destination
 
-      // 1. Create MediaElementSource from the audio element
-      // Note: This can only be called ONCE per audio element!
-      const mediaSource = ctx.createMediaElementSource(audioElement);
+      let mediaSource: MediaElementAudioSourceNode;
+
+      // 🐛 FIX: Check if this audio element is already connected
+      // createMediaElementSource() can only be called ONCE per element!
+      const existingSource = this.connectedElements.get(audioElement);
+      if (existingSource) {
+        log.info('🎚️ Reusing existing MediaElementSource for audio element', { trackId });
+        mediaSource = existingSource;
+
+        // Disconnect from any previous chain before reconnecting
+        try {
+          mediaSource.disconnect();
+        } catch {
+          // Ignore disconnect errors - might not be connected
+        }
+      } else {
+        // Create new MediaElementSource
+        mediaSource = ctx.createMediaElementSource(audioElement);
+        this.connectedElements.set(audioElement, mediaSource);
+      }
 
       // 2. Create Analyser for visualization
       const analyser = ctx.createAnalyser();
@@ -215,8 +243,38 @@ class MusicAudioController {
       // Return cleanup function
       return () => this.detachTrack(trackId);
     } catch (error) {
-      log.error('Failed to attach music track', { trackId, error });
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 🐛 FIX: Handle "already connected" error by retrying
+      if (errorMessage.includes('already connected') || errorMessage.includes('HTMLMediaElement')) {
+        log.warn('🎚️ Audio element already connected, clearing cache and retrying', {
+          trackId,
+          retryCount,
+        });
+
+        // Remove from cache and retry
+        this.connectedElements.delete(audioElement);
+
+        if (retryCount < MAX_RETRIES) {
+          // Small delay before retry
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return this.attachMusicTrack(audioElement, trackId, retryCount + 1);
+        }
+      }
+
+      // 🐛 FIX: Log actionable error instead of silent failure
+      log.error('🎚️ Failed to attach music track - DUCKING WILL NOT WORK', {
+        trackId,
+        error: errorMessage,
+        retryCount,
+        hint: 'Check if audio element is being used by another service',
+      });
+
+      // Return a no-op cleanup function instead of throwing
+      // This allows the app to continue working (without ducking)
+      return () => {
+        log.debug('🎚️ No-op cleanup for failed track attachment', { trackId });
+      };
     }
   }
 
@@ -339,8 +397,15 @@ class MusicAudioController {
       rampTime = RAMP.DUCK_UP_MS; // Slower restore
     }
 
-    // Only update if target changed
+    // Only update if target changed (prevents duplicate ramps from redundant triggers)
     if (this.currentTrack.targetGain === targetGain) {
+      // Log when redundant ducking is detected (both frontend and backend triggering)
+      if (targetGain !== GAIN.NORMAL) {
+        log.debug('🎚️ Ducking already at target level (redundant trigger ignored)', {
+          targetGain: targetGain.toFixed(2),
+          priority,
+        });
+      }
       return;
     }
 
@@ -506,4 +571,3 @@ export function resetMusicAudioController(): void {
 // Export the class for typing
 export { MusicAudioController };
 export type { MusicTrackState };
-
