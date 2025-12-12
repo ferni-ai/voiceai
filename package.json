@@ -145,6 +145,7 @@
     "deploy:ui:async": "npx tsx scripts/deploy.ts ui --async",
     "deploy:agent": "npx tsx scripts/deploy.ts agent",
     "deploy:agent:async": "npx tsx scripts/deploy.ts agent --async",
+    "deploy:speaker": "gcloud builds submit --config=cloudbuild-speaker.yaml",
     "warmup:agent": "bash scripts/warmup-agent.sh",
     "deploy:brand": "npx tsx scripts/deploy.ts brand",
     "deploy:landing": "npx tsx scripts/deploy.ts landing",
