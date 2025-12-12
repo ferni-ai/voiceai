@@ -152,31 +152,17 @@ const REFLECTIONS: Record<MilestoneType, (value: number) => string[]> = {
     `What's been the most valuable thing from our ${count} talks?`,
     `Looking back at our conversations, what stands out to you?`,
   ],
-  days_together: (days) => [
-    `How have things changed for you in these ${days} days?`,
-  ],
-  weeks_together: () => [
-    `What's different about your life now compared to when we started?`,
-  ],
+  days_together: (days) => [`How have things changed for you in these ${days} days?`],
+  weeks_together: () => [`What's different about your life now compared to when we started?`],
   months_together: (months) => [
     `If you could tell yourself something from ${months} month${months > 1 ? 's' : ''} ago, what would it be?`,
     `What are you most proud of from these past ${months} month${months > 1 ? 's' : ''}?`,
   ],
-  hours_talked: () => [
-    `What's been the most helpful thing we've talked about?`,
-  ],
-  topics_explored: () => [
-    `What topic surprised you the most when we explored it?`,
-  ],
-  goals_achieved: () => [
-    `Which achievement means the most to you?`,
-  ],
-  breakthroughs: () => [
-    `Which breakthrough changed you the most?`,
-  ],
-  laughs_shared: () => [
-    `What's been your favorite funny moment together?`,
-  ],
+  hours_talked: () => [`What's been the most helpful thing we've talked about?`],
+  topics_explored: () => [`What topic surprised you the most when we explored it?`],
+  goals_achieved: () => [`Which achievement means the most to you?`],
+  breakthroughs: () => [`Which breakthrough changed you the most?`],
+  laughs_shared: () => [`What's been your favorite funny moment together?`],
 };
 
 // ============================================================================
@@ -301,10 +287,7 @@ export function checkMilestones(userId: string): RelationshipMilestone[] {
       const milestoneId = `${type}_${threshold}`;
 
       // Check if we've hit this milestone and haven't acknowledged it
-      if (
-        currentValue >= threshold &&
-        !stats.milestonesAcknowledged.includes(milestoneId)
-      ) {
+      if (currentValue >= threshold && !stats.milestonesAcknowledged.includes(milestoneId)) {
         const celebrations = CELEBRATIONS[milestoneType](threshold);
         const reflections = REFLECTIONS[milestoneType](threshold);
 
@@ -313,9 +296,10 @@ export function checkMilestones(userId: string): RelationshipMilestone[] {
           value: threshold,
           label: `${threshold} ${config.unit}`,
           celebration: celebrations[Math.floor(Math.random() * celebrations.length)],
-          reflection: reflections.length > 0
-            ? reflections[Math.floor(Math.random() * reflections.length)]
-            : undefined,
+          reflection:
+            reflections.length > 0
+              ? reflections[Math.floor(Math.random() * reflections.length)]
+              : undefined,
         });
 
         // Only surface one milestone per check
@@ -330,11 +314,7 @@ export function checkMilestones(userId: string): RelationshipMilestone[] {
 /**
  * Mark a milestone as acknowledged
  */
-export function acknowledgeMilestone(
-  userId: string,
-  type: MilestoneType,
-  value: number
-): void {
+export function acknowledgeMilestone(userId: string, type: MilestoneType, value: number): void {
   const stats = getStats(userId);
   const milestoneId = `${type}_${value}`;
 

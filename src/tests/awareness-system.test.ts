@@ -388,7 +388,13 @@ describe('TangentSystem', () => {
       // Check if travel triggers get detected
       // Note: This is probabilistic (22% chance * not-opening * not-intimate)
       // We test that the decision logic runs without error and provides a reason
-      const decision = decideTangent(sessionId, 'ferni', "I'm thinking about traveling abroad", 7, 1);
+      const decision = decideTangent(
+        sessionId,
+        'ferni',
+        "I'm thinking about traveling abroad",
+        7,
+        1
+      );
 
       // Should either tangent OR provide a reason why not
       expect(decision.reason).toBeDefined();
@@ -414,7 +420,13 @@ describe('TangentSystem', () => {
       // With depth 0, family tangents shouldn't fire
       let familyTangentWithNoRelationship = false;
       for (let i = 0; i < 30; i++) {
-        const decision = decideTangent(sessionId, 'ferni', "I'm having issues with my family", 7, 0);
+        const decision = decideTangent(
+          sessionId,
+          'ferni',
+          "I'm having issues with my family",
+          7,
+          0
+        );
         if (decision.shouldTangent && decision.tangent?.theme === 'family_life') {
           familyTangentWithNoRelationship = true;
           break;
@@ -461,10 +473,13 @@ describe('SelfAwarenessTracker', () => {
       });
 
       // Record positive reaction
-      const assessment = tracker.recordReaction("Yes! That's exactly what I needed to hear. Thank you.", {
-        emotionalChange: 0.2,
-        topicContinued: true,
-      });
+      const assessment = tracker.recordReaction(
+        "Yes! That's exactly what I needed to hear. Thank you.",
+        {
+          emotionalChange: 0.2,
+          topicContinued: true,
+        }
+      );
 
       expect(assessment).not.toBeNull();
       expect(assessment?.result).toBe('landed');
@@ -482,10 +497,13 @@ describe('SelfAwarenessTracker', () => {
         emotionalTone: 'neutral',
       });
 
-      const assessment = tracker.recordReaction("I guess. Whatever. Let's talk about something else.", {
-        emotionalChange: -0.2,
-        topicContinued: false,
-      });
+      const assessment = tracker.recordReaction(
+        "I guess. Whatever. Let's talk about something else.",
+        {
+          emotionalChange: -0.2,
+          topicContinued: false,
+        }
+      );
 
       expect(assessment).not.toBeNull();
       expect(['missed', 'partial']).toContain(assessment?.result);
@@ -566,9 +584,9 @@ describe('SelfAwarenessTracker', () => {
       const responses = [
         { reaction: 'Yes! Great point.', landed: true },
         { reaction: 'I guess.', landed: false },
-        { reaction: "That really helps, thanks.", landed: true },
-        { reaction: "Hm. Ok.", landed: false },
-        { reaction: "Exactly what I needed.", landed: true },
+        { reaction: 'That really helps, thanks.', landed: true },
+        { reaction: 'Hm. Ok.', landed: false },
+        { reaction: 'Exactly what I needed.', landed: true },
       ];
 
       for (const { reaction, landed } of responses) {
@@ -680,7 +698,7 @@ describe('Awareness System Integration', () => {
       userEmotionBefore: 0.7,
     });
 
-    const assessment = selfTracker.recordReaction("Yes, that really resonates with me.", {
+    const assessment = selfTracker.recordReaction('Yes, that really resonates with me.', {
       emotionalChange: 0.2,
       topicContinued: true,
     });

@@ -311,6 +311,8 @@ export function sanitizeSsml(text: string): string {
   result = result.replace(/\binhales?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bteasing(ly)?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsmirk(s|ing)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bpauses?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bpausing\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags

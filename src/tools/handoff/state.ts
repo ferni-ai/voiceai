@@ -212,6 +212,12 @@ export function resetHandoffState(): void {
 
 /**
  * Capture context for a handoff
+ *
+ * @deprecated Use the session-scoped version from handoff-state.ts instead:
+ *   import { captureHandoffContext } from '../handoff-state.js';
+ *   captureHandoffContext(state, context);
+ *
+ * This global version should only be used when session state is not available.
  */
 export function captureHandoffContext(context: Partial<HandoffContext>): void {
   handoffContext = {
@@ -544,7 +550,10 @@ export async function getAgentDisplayNameAsync(agentId: string): Promise<string>
  * FIX BUG: Previously returned stale cached context from WRONG persona after handoffs!
  * Now returns empty string if cache is stale (forces async refresh).
  *
- * @returns Agent context string from manifest, or empty if not found/stale
+ * FIX BUG #5: Added fallback identity context to prevent LLM identity confusion
+ * when async context hasn't loaded yet.
+ *
+ * @returns Agent context string from manifest, or fallback identity if not found/stale
  */
 export function getAgentContext(): string {
   // Use cached context ONLY if it matches current agent
@@ -556,14 +565,16 @@ export function getAgentContext(): string {
   // Start async fetch in background - context will be available on next call
   void fetchAgentContextAsync(currentAgent);
 
-  // FIX BUG: Return EMPTY instead of stale context!
-  // Stale context from a different agent causes identity confusion.
-  // Empty is safe - the LLM will use its base instructions until cache is updated.
+  // FIX BUG #5: Return a MINIMAL identity context instead of empty
+  // This prevents identity confusion during the brief window while async loads
+  const displayName = getAgentDisplayName(currentAgent);
+  const fallbackContext = `[IDENTITY REMINDER: You are ${displayName}. Stay in character.]`;
+
   getLogger().debug(
-    { currentAgent, cachedAgent: cachedAgentContext?.agentId },
-    'Agent context cache miss - returning empty (async fetch started)'
+    { currentAgent, cachedAgent: cachedAgentContext?.agentId, fallback: true },
+    'Agent context cache miss - returning fallback identity (async fetch started)'
   );
-  return '';
+  return fallbackContext;
 }
 
 // Cache for async context loading
@@ -613,23 +624,52 @@ export function suggestHandoff(userInput: string): {
   return { suggest: false, to: null, reason: null };
 }
 
+// FIX BUG #7: Module-level cache for team data to enable sync access
+let cachedTeamForHandoff: Array<{ id: AgentId; name: string; specialty: string }> | null = null;
+let teamCachePromise: Promise<void> | null = null;
+
 /**
  * Get all available team members for handoff.
  *
  * REFACTORED: Now delegates to AgentDirectory.
  * No hardcoded team list - discovered from manifests!
+ *
+ * FIX BUG #7: Now returns cached data instead of empty array.
+ * First call triggers async load, subsequent calls return cached data.
  */
 export function getTeamForHandoff(): Array<{ id: AgentId; name: string; specialty: string }> {
-  // Use cached data from AgentDirectory
-  // The async version is preferred but we provide sync for backwards compatibility
-  const fallback: Array<{ id: AgentId; name: string; specialty: string }> = [];
+  // Return cached data if available
+  if (cachedTeamForHandoff) {
+    return cachedTeamForHandoff;
+  }
 
-  // Trigger async load and return what we have
-  void AgentDirectory.getTeamForHandoff().then((team) => {
-    // Data will be cached for next call
-  });
+  // Trigger async load if not already in progress
+  if (!teamCachePromise) {
+    teamCachePromise = AgentDirectory.getTeamForHandoff()
+      .then((team) => {
+        cachedTeamForHandoff = team.map((t) => ({
+          id: t.id as AgentId,
+          name: t.name,
+          specialty: t.specialty,
+        }));
+        getLogger().debug({ count: cachedTeamForHandoff.length }, 'Team for handoff cache loaded');
+      })
+      .catch((err) => {
+        getLogger().warn({ error: err }, 'Failed to load team for handoff');
+        teamCachePromise = null; // Allow retry
+      });
+  }
 
-  return fallback;
+  // Return fallback team while loading
+  // This ensures the first call isn't empty
+  return [
+    { id: 'ferni' as AgentId, name: 'Ferni', specialty: 'life coaching and team coordination' },
+    { id: 'peter-john' as AgentId, name: 'Peter', specialty: 'stock picking and research' },
+    { id: 'alex-chen' as AgentId, name: 'Alex', specialty: 'communication and writing' },
+    { id: 'maya-santos' as AgentId, name: 'Maya', specialty: 'habits and routines' },
+    { id: 'jordan-taylor' as AgentId, name: 'Jordan', specialty: 'event planning' },
+    { id: 'nayan-patel' as AgentId, name: 'Nayan', specialty: 'wisdom and philosophy' },
+  ];
 }
 
 /**

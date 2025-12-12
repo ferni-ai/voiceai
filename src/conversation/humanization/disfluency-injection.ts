@@ -79,27 +79,30 @@ const DISFLUENCY_PATTERNS: Record<
   }
 > = {
   filled_pause: {
-    patterns: ['Um', 'Uh', 'Hmm'],
+    patterns: ['Um', 'Uh', 'Hmm', 'Mm'],
     ssmlPatterns: [
-      '<break time="150ms"/>Um<break time="200ms"/>',
-      '<break time="100ms"/>Uh<break time="150ms"/>',
-      '<break time="200ms"/>Hmm<break time="250ms"/>',
+      '<break time="180ms"/>Um<break time="220ms"/>',
+      '<break time="120ms"/>Uh<break time="180ms"/>',
+      '<break time="250ms"/>Hmm<break time="300ms"/>',
+      '<break time="100ms"/>Mm<break time="150ms"/>',
     ],
-    probability: 0.12,
+    probability: 0.16, // Increased from 0.12 for more natural feel
     placement: 'opening',
     contexts: ['complex_question', 'thinking', 'uncertain'],
   },
 
   discourse_marker: {
-    patterns: ['So', 'Well', 'You know', 'I mean', 'Okay so'],
+    patterns: ['So', 'Well', 'You know', 'I mean', 'Okay so', 'Yeah', 'Right'],
     ssmlPatterns: [
-      'So,<break time="100ms"/>',
-      'Well,<break time="150ms"/>',
-      'You know,<break time="100ms"/>',
-      'I mean,<break time="100ms"/>',
-      'Okay so,<break time="100ms"/>',
+      'So,<break time="120ms"/>',
+      'Well,<break time="180ms"/>',
+      'You know,<break time="120ms"/>',
+      'I mean,<break time="120ms"/>',
+      'Okay so,<break time="120ms"/>',
+      'Yeah,<break time="100ms"/>',
+      'Right,<break time="100ms"/>',
     ],
-    probability: 0.15,
+    probability: 0.18, // Increased from 0.15 for more natural conversation
     placement: 'opening',
     contexts: ['any', 'emotional', 'explaining'],
   },

@@ -10,6 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
+import { getAdminHeaders } from '../admin-api.js';
 import {
   ICON_AGENTS,
   ICON_DELETE,
@@ -575,7 +576,7 @@ function renderNoActivity(): string {
 async function fetchSystemHealth(): Promise<SystemHealth> {
   try {
     const response = await fetch('/api/v1/admin/dashboard/health', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: getAdminHeaders(),
     });
 
     if (response.ok) {
@@ -596,7 +597,7 @@ async function fetchSystemHealth(): Promise<SystemHealth> {
 async function fetchAggregatedStats(): Promise<AggregatedStats> {
   try {
     const response = await fetch('/api/v1/admin/dashboard/stats', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: getAdminHeaders(),
     });
 
     if (response.ok) {
@@ -619,7 +620,7 @@ async function fetchAggregatedStats(): Promise<AggregatedStats> {
 async function fetchRecentActivity(): Promise<ActivityEvent[]> {
   try {
     const response = await fetch('/api/v1/admin/dashboard/activity', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: getAdminHeaders(),
     });
 
     if (response.ok) {

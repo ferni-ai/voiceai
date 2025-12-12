@@ -208,9 +208,11 @@ import {
 } from './maintenance.js';
 
 // Analytics & Learning
+import { getBetterThanHumanTelemetry } from '../better-than-human-telemetry.js';
 import {
   analytics,
   calculateGlobalAnalytics,
+  calculatePeriodAnalytics,
   calculateUserAnalytics,
   clearUserAnalyticsData,
   exportAnalyticsData,
@@ -221,6 +223,7 @@ import {
   recordResponseEvent,
   type GlobalAnalytics,
   type OutreachEvent,
+  type PeriodAnalytics,
   type ResponseEvent,
   type UserAnalytics,
 } from './analytics.js';
@@ -702,6 +705,33 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
         : (finalChannel as 'sms' | 'email' | 'call');
     const eventId = recordOutreachEvent(decision, analyticsChannel);
 
+    // Better-than-human telemetry: track outreach sent (responses tracked via webhooks)
+    if (delivered) {
+      const triggerType = decision.trigger.type;
+      const telemetry = getBetterThanHumanTelemetry();
+
+      const toOutreachType = (
+        t: string
+      ): 'thinking_of_you' | 'celebration' | 'growth' | 'commitment_check' | null => {
+        if (t === 'thinking_of_you') return 'thinking_of_you';
+        if (t === 'commitment_check') return 'commitment_check';
+        if (t === 'celebration' || t === 'streak_celebration') return 'celebration';
+        if (t === 'insight_discovery' || t === 'growth_milestone' || t === 'goal_milestone')
+          return 'growth';
+        return null;
+      };
+
+      const mapped = toOutreachType(triggerType);
+      if (mapped) {
+        telemetry.trackOutreach(mapped, userId, personaId, {
+          outreachId,
+          triggerType,
+          channel: finalChannel,
+          analyticsEventId: eventId,
+        });
+      }
+    }
+
     // Persist to Firestore
     if (isFirestoreAvailable()) {
       await saveToHistory(userId, decision);
@@ -1005,6 +1035,7 @@ export type { MaintenanceConfig, MaintenanceStats };
 export {
   analytics,
   calculateGlobalAnalytics,
+  calculatePeriodAnalytics,
   calculateUserAnalytics,
   clearUserAnalyticsData,
   exportAnalyticsData,
@@ -1015,7 +1046,7 @@ export {
   recordResponseEvent,
 };
 
-export type { GlobalAnalytics, OutreachEvent, ResponseEvent, UserAnalytics };
+export type { GlobalAnalytics, OutreachEvent, PeriodAnalytics, ResponseEvent, UserAnalytics };
 
 // Voice Synthesis
 export {
@@ -1223,6 +1254,7 @@ export default {
   analytics,
   calculateUserAnalytics,
   calculateGlobalAnalytics,
+  calculatePeriodAnalytics,
   getRecommendations,
   predictResponseLikelihood,
   recordOutreachEvent,

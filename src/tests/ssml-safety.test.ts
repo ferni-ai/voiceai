@@ -157,6 +157,19 @@ describe('SSML Safety Tests', () => {
       const result = sanitizeSsml('[laughter] That was funny');
       expect(result).toContain('[laughter]');
     });
+
+    it('should remove standalone "pauses" stage direction', () => {
+      // This was causing Ferni to say "pauses" out loud
+      const result1 = sanitizeSsml('pauses Let me think about that');
+      const result2 = sanitizeSsml('Hmm... pauses ...that reminds me');
+      const result3 = sanitizeSsml('pause What do you think?');
+
+      expect(result1).not.toContain('pauses');
+      expect(result2).not.toContain('pauses');
+      expect(result3).not.toContain('pause');
+      expect(result1).toContain('Let me think');
+      expect(result3).toContain('What do you think');
+    });
   });
 
   describe('Combined Safety Processing', () => {

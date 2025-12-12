@@ -16,10 +16,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  recordMomentumTransition,
-  recordMomentumVelocity,
-} from './awareness-metrics.js';
+import { recordMomentumTransition, recordMomentumVelocity } from './awareness-metrics.js';
 
 const log = createLogger({ module: 'momentum-tracker' });
 
@@ -207,7 +204,12 @@ const ALEX_PROFILE: MomentumProfile = {
   topicContinuityWeight: 0.3, // More focused on getting things done
   emotionalWeight: 0.4, // Less emotional focus, more practical
   cues: {
-    building: ['Let\'s keep going.', 'Good direction.', "We're making progress.", 'Keep that focus.'],
+    building: [
+      "Let's keep going.",
+      'Good direction.',
+      "We're making progress.",
+      'Keep that focus.',
+    ],
     cruising: ['Got it.', 'Right.', 'Okay.', 'Makes sense.'],
     peaking: ["You're nailing this.", 'Perfect.', 'Exactly right.', "That's the move."],
     winding_down: ["We've covered a lot.", 'Solid progress.', "Let's wrap this up.", 'Good work.'],

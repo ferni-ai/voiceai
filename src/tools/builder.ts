@@ -70,6 +70,12 @@ export interface BuildToolsOptions {
   /** Service registry for external services */
   services?: ServiceRegistry;
 
+  /** User profile for unlock validation (required for handoff tools) */
+  userProfile?: import('../types/user-profile.js').UserProfile | null;
+
+  /** User's subscription tier for unlock validation */
+  subscriptionTier?: 'free' | 'friend' | 'partner';
+
   /** Override manifest tools spec */
   toolsOverride?: Partial<ToolSetSpec>;
 
@@ -158,15 +164,20 @@ function getDefaultDomainsForRole(roleId?: string): ToolDomain[] {
  *
  * FIX: Now uses buildHandoffTools from handoff-factory which:
  * 1. Creates proper llm.tool() wrapped tools with execute functions
- * 2. Filters tools based on user unlock status at runtime
- * 3. Returns proper LLM-compatible tools, not raw definitions
+ * 2. Filters tools based on user unlock status at BUILD time (prevents LLM seeing locked tools)
+ * 3. Also validates at RUNTIME when tool is executed
+ * 4. Returns proper LLM-compatible tools, not raw definitions
  *
- * Previously this used createHandoffTools() which returned raw definitions
- * that didn't have execute functions or unlock validation.
+ * IMPORTANT: userProfile and subscriptionTier MUST be passed for correct filtering.
+ * Without them, all team members except Ferni will be filtered out!
  */
 async function buildHandoffToolsForAgent(
   manifest: AgentManifest,
-  ctx: ToolContext
+  ctx: ToolContext,
+  options?: {
+    userProfile?: import('../types/user-profile.js').UserProfile | null;
+    subscriptionTier?: 'free' | 'friend' | 'partner';
+  }
 ): Promise<Record<string, Tool>> {
   if (!manifest.role?.can_handoff) {
     return {};
@@ -179,7 +190,8 @@ async function buildHandoffToolsForAgent(
   try {
     // Use the FILTERED buildHandoffTools from handoff-factory
     // This creates proper llm.tool() wrapped tools with:
-    // - Runtime unlock validation
+    // - BUILD time unlock filtering (prevents LLM seeing locked member tools)
+    // - Runtime unlock validation (double-check when tool executes)
     // - User profile context extraction
     // - Proper execute functions
     const { buildHandoffTools: buildFilteredHandoffTools } =
@@ -187,8 +199,10 @@ async function buildHandoffToolsForAgent(
 
     const { tools: handoffTools, agentIds } = await buildFilteredHandoffTools({
       currentAgentId: ctx.agentId,
-      // Note: userProfile is not available at build time, so filtering happens at RUNTIME
-      // when the tool's execute function is called. The handoff-factory.ts already handles this.
+      // FIX: Pass userProfile and subscriptionTier for BUILD-TIME filtering
+      // Without this, all team members are filtered out for new/null profiles!
+      userProfile: options?.userProfile,
+      subscriptionTier: options?.subscriptionTier || 'free',
     });
 
     // Filter by manifest targets if not '*'
@@ -423,7 +437,12 @@ export async function buildAgentTools(
   const result: ToolSetResult = toolRegistry.buildToolSet(finalSpec, ctx);
 
   // Add handoff tools if enabled
-  const handoffTools = await buildHandoffToolsForAgent(manifest, ctx);
+  // FIX: Pass userProfile and subscriptionTier for correct BUILD-TIME filtering
+  // Without this, Ferni can't see handoff tools for unlocked team members!
+  const handoffTools = await buildHandoffToolsForAgent(manifest, ctx, {
+    userProfile: options.userProfile,
+    subscriptionTier: options.subscriptionTier,
+  });
 
   // Add local tools from extensibility bundles (marketplace agents)
   const localTools = await buildLocalToolsForAgent(agentId, ctx);

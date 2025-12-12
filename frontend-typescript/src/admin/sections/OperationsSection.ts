@@ -10,6 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
+import { getAdminHeaders } from '../admin-api.js';
 import {
   ICON_ACTIVITY,
   ICON_EXTERNAL,
@@ -622,7 +623,7 @@ function renderQuickLink(label: string, url: string): string {
 async function fetchOperationsData(): Promise<OperationsData> {
   try {
     const response = await fetch('/api/v1/admin/operations', {
-      headers: { 'x-admin-key': 'dev-mode' },
+      headers: getAdminHeaders(),
     });
 
     if (response.ok) {

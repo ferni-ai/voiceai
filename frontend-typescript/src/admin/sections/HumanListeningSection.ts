@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { getAdminHeaders } from '../admin-api.js';
 import {
   ICON_ACTIVITY,
   ICON_INFO,
@@ -741,9 +742,7 @@ function renderSoulResponse(trigger: string, response: string, desc: string, cod
 async function fetchMetrics(): Promise<ListeningMetrics> {
   try {
     const response = await fetch('/api/v1/admin/human-listening/metrics', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       return response.json();
@@ -768,9 +767,7 @@ async function fetchMetrics(): Promise<ListeningMetrics> {
 async function fetchRecentSignals(): Promise<RecentSignal[]> {
   try {
     const response = await fetch('/api/v1/admin/human-listening/signals', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       return response.json();
@@ -786,9 +783,7 @@ async function fetchRecentSignals(): Promise<RecentSignal[]> {
 async function fetchLiveSessions(): Promise<LiveSession[]> {
   try {
     const response = await fetch('/api/v1/admin/human-listening/live', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       return response.json();

@@ -396,16 +396,26 @@ export async function buildHandoffTools(
   );
 
   for (const def of toolSet.tools) {
-    // FILTER AT BUILD TIME: Always filter locked members from tool list
-    // This prevents the LLM from even seeing tools for locked team members.
-    // The context injection tells the LLM who's available, and this enforces it at the tool level.
+    // BUILD-TIME FILTERING: Only filter if we have actual user profile data
     //
-    // FIX: Previously the condition was `if (userProfile || subscriptionTier !== 'free')`
-    // which SKIPPED filtering for free users without a profile. This caused Ferni to
-    // try handoffs to locked members. Now we ALWAYS filter.
+    // When userProfile is UNDEFINED (not passed), we're likely building tools at agent
+    // creation time before the user joins. In this case, include all tools and rely on
+    // RUNTIME filtering in executeHandoff() which has access to the actual user profile.
+    //
+    // When userProfile is provided (including NULL for new users), filter appropriately.
+    // This prevents the LLM from seeing tools for locked team members.
+    //
+    // The team-availability context builder tells Ferni who's available. Even if the LLM
+    // tries to call a locked member's tool, the RUNTIME check in executeHandoff() will
+    // return a friendly error message.
     const isTargetCoordinator = isCoach(def.agentId);
+    const hasProfileData = userProfile !== undefined;
+    const bypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
+
     if (
+      hasProfileData &&
       !isTargetCoordinator &&
+      !bypassUnlocks &&
       !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
     ) {
       filteredTools.push(def.name);
@@ -416,7 +426,7 @@ export async function buildHandoffTools(
           tier: subscriptionTier,
           hasProfile: !!userProfile,
         },
-        'Skipping handoff tool for locked member'
+        'Skipping handoff tool for locked member (BUILD-TIME filter)'
       );
       continue; // Don't create this tool
     }
@@ -431,18 +441,32 @@ export async function buildHandoffTools(
       }),
       execute: async ({ reason, context_summary }, runContext) => {
         // Get user profile from RUNTIME context (available when tool is executed)
-        // This is the key change - we get fresh user data at execution time, not build time
-        const runtimeUserProfile =
-          (
-            runContext as {
-              ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } };
-            }
-          )?.ctx?.userData?.services?.userProfile ||
-          userProfile ||
-          null;
+        // The runContext structure is { ctx: { userData: UserData } } where UserData.services has userProfile
+        //
+        // This is critical for unlock validation - build time may not have profile data,
+        // but runtime context always should (after user joins session)
+        const ctx = (
+          runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } }
+        )?.ctx;
+        const userData = ctx?.userData;
+        const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
           (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
           subscriptionTier;
+
+        // Debug log for runtime context (helps diagnose unlock issues)
+        getLogger().debug(
+          {
+            targetAgent: def.agentId,
+            hasRunContext: !!runContext,
+            hasCtx: !!ctx,
+            hasUserData: !!userData,
+            hasServices: !!userData?.services,
+            hasRuntimeProfile: !!runtimeUserProfile,
+            runtimeTier,
+          },
+          `🔍 Handoff tool runtime context for ${def.agentName}`
+        );
 
         // Use the generic executor with runtime user context for unlock validation
         const result = await executeHandoff(def.agentId, reason, {
@@ -639,6 +663,7 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
   });
 
   // Log summary of tool filtering for debugging unlock issues
+  const buildTimeFilterApplied = userProfile !== undefined;
   getLogger().info(
     {
       totalTools: Object.keys(tools).length,
@@ -646,9 +671,13 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
       filteredTools,
       agentIds,
       hasUserProfile: !!userProfile,
+      userProfileUndefined: userProfile === undefined,
       subscriptionTier,
+      buildTimeFilterApplied,
     },
-    `Built handoff tools: ${createdTools.length} created, ${filteredTools.length} filtered out (locked)`
+    buildTimeFilterApplied
+      ? `Built handoff tools: ${createdTools.length} created, ${filteredTools.length} filtered out (BUILD-TIME unlock filter)`
+      : `Built handoff tools: ${createdTools.length} created (no BUILD-TIME filter - will use RUNTIME check)`
   );
 
   return {

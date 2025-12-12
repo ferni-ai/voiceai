@@ -42,25 +42,9 @@ export interface NamingContext {
 
 const ENDEARMENTS: Record<EndearmentLevel, string[]> = {
   none: [],
-  gentle: [
-    'friend',
-    'my friend',
-  ],
-  warm: [
-    'friend',
-    'my friend',
-    'sweetie',
-    'dear',
-  ],
-  affectionate: [
-    'friend',
-    'my friend',
-    'sweetie',
-    'dear',
-    'love',
-    'sweetheart',
-    'honey',
-  ],
+  gentle: ['friend', 'my friend'],
+  warm: ['friend', 'my friend', 'sweetie', 'dear'],
+  affectionate: ['friend', 'my friend', 'sweetie', 'dear', 'love', 'sweetheart', 'honey'],
 };
 
 // When to use each type of naming
@@ -107,16 +91,12 @@ export function getUserNaming(userId: string): UserNaming {
 /**
  * Set the user's name
  */
-export function setUserName(
-  userId: string,
-  firstName: string,
-  preferredName?: string
-): void {
+export function setUserName(userId: string, firstName: string, preferredName?: string): void {
   const naming = getUserNaming(userId);
   naming.firstName = firstName;
   naming.preferredName = preferredName || firstName;
   namingStore.set(userId, naming);
-  
+
   log.info({ userId, name: naming.preferredName }, '👤 User name set');
 }
 
@@ -140,14 +120,14 @@ export function updateEndearmentLevel(
   stage: 'stranger' | 'acquaintance' | 'friend' | 'trusted'
 ): void {
   const naming = getUserNaming(userId);
-  
+
   const levelMap: Record<string, EndearmentLevel> = {
     stranger: 'none',
     acquaintance: 'none',
     friend: 'gentle',
     trusted: 'warm',
   };
-  
+
   naming.allowedEndearments = levelMap[stage];
   namingStore.set(userId, naming);
 }
@@ -164,7 +144,7 @@ export function shouldUseName(
   context: NamingContext
 ): { useName: boolean; useEndearment: boolean; suggestion?: string } {
   const naming = getUserNaming(userId);
-  
+
   // Can't use name if we don't know it
   if (!naming.preferredName) {
     return { useName: false, useEndearment: false };
@@ -179,10 +159,8 @@ export function shouldUseName(
   }
 
   // Check if this is an occasion for using name
-  const isNameOccasion = 
-    context.emotionalMoment ||
-    context.celebrationMoment ||
-    context.supportMoment;
+  const isNameOccasion =
+    context.emotionalMoment || context.celebrationMoment || context.supportMoment;
 
   if (!isNameOccasion) {
     return { useName: false, useEndearment: false };
@@ -190,7 +168,7 @@ export function shouldUseName(
 
   // Decide between name and endearment
   const roll = Math.random();
-  
+
   // Endearment for support moments (if allowed)
   if (
     context.supportMoment &&
@@ -267,10 +245,7 @@ export function extractNameFromMessage(
 /**
  * Format naming guidance for prompt
  */
-export function formatNamingGuidance(
-  userId: string,
-  context: NamingContext
-): string | null {
+export function formatNamingGuidance(userId: string, context: NamingContext): string | null {
   const decision = shouldUseName(userId, context);
   const naming = getUserNaming(userId);
 
@@ -303,7 +278,7 @@ export function formatNamingGuidance(
       `- "Oh ${decision.suggestion}, I\'m so sorry."`,
       `- "I\'m here for you, ${decision.suggestion}."`,
       '',
-      'Only if it feels natural. Don\'t force it.',
+      "Only if it feels natural. Don't force it.",
     ].join('\n');
   }
 

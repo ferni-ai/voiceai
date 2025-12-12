@@ -84,45 +84,16 @@ const RELATIONSHIP_PATTERNS: Record<RelationshipType, RegExp[]> = {
     /(bf|gf)\b/i,
     /the (person|one) I('m| am) (dating|seeing|with)/i,
   ],
-  spouse: [
-    /my (wife|husband|spouse)/i,
-    /my (better half)/i,
-  ],
-  parent: [
-    /my (mom|mother|dad|father|parent)/i,
-    /my (ma|pa|mama|papa|mum|daddy|mommy)/i,
-  ],
-  child: [
-    /my (son|daughter|kid|child)/i,
-    /my (boy|girl|little one|baby)/i,
-  ],
-  sibling: [
-    /my (brother|sister|sibling)/i,
-    /my (bro|sis)/i,
-  ],
-  friend: [
-    /my (friend|best friend|bestie|buddy|pal)/i,
-    /my (closest friend|good friend)/i,
-  ],
-  coworker: [
-    /my (coworker|colleague|work friend)/i,
-    /(someone|person) (at|from) work/i,
-  ],
-  boss: [
-    /my (boss|manager|supervisor)/i,
-    /my (lead|director)/i,
-  ],
-  ex: [
-    /my ex/i,
-    /my (former|previous) (partner|boyfriend|girlfriend|husband|wife)/i,
-  ],
-  therapist: [
-    /my (therapist|counselor|psychologist)/i,
-    /my (shrink)/i,
-  ],
-  doctor: [
-    /my (doctor|physician|specialist)/i,
-  ],
+  spouse: [/my (wife|husband|spouse)/i, /my (better half)/i],
+  parent: [/my (mom|mother|dad|father|parent)/i, /my (ma|pa|mama|papa|mum|daddy|mommy)/i],
+  child: [/my (son|daughter|kid|child)/i, /my (boy|girl|little one|baby)/i],
+  sibling: [/my (brother|sister|sibling)/i, /my (bro|sis)/i],
+  friend: [/my (friend|best friend|bestie|buddy|pal)/i, /my (closest friend|good friend)/i],
+  coworker: [/my (coworker|colleague|work friend)/i, /(someone|person) (at|from) work/i],
+  boss: [/my (boss|manager|supervisor)/i, /my (lead|director)/i],
+  ex: [/my ex/i, /my (former|previous) (partner|boyfriend|girlfriend|husband|wife)/i],
+  therapist: [/my (therapist|counselor|psychologist)/i, /my (shrink)/i],
+  doctor: [/my (doctor|physician|specialist)/i],
   other: [],
 };
 
@@ -139,10 +110,7 @@ const peopleStore = new Map<string, PersonInLife[]>();
 /**
  * Extract a person mentioned in a message
  */
-export function extractPerson(
-  userId: string,
-  message: string
-): Partial<PersonInLife> | null {
+export function extractPerson(userId: string, message: string): Partial<PersonInLife> | null {
   // First, check for relationship type
   let relationshipType: RelationshipType = 'other';
   for (const [type, patterns] of Object.entries(RELATIONSHIP_PATTERNS)) {
@@ -195,12 +163,9 @@ export function extractPerson(
 /**
  * Get or create a person in the user's life
  */
-export function getOrCreatePerson(
-  userId: string,
-  partial: Partial<PersonInLife>
-): PersonInLife {
+export function getOrCreatePerson(userId: string, partial: Partial<PersonInLife>): PersonInLife {
   const people = peopleStore.get(userId) || [];
-  
+
   // Check if this person already exists
   const existing = people.find(
     (p) =>
@@ -233,7 +198,7 @@ export function getOrCreatePerson(
 
   log.info(
     { userId, personId: person.id, name: person.name, relationship: person.relationship },
-    '👥 New person in user\'s life tracked'
+    "👥 New person in user's life tracked"
   );
 
   return person;
@@ -277,8 +242,8 @@ export function updateStoryline(
   if (!person) return;
 
   // Find existing storyline or create new
-  let storyline = person.activeStorylines.find(
-    (s) => s.summary.toLowerCase().includes(storylineSummary.toLowerCase().slice(0, 30))
+  let storyline = person.activeStorylines.find((s) =>
+    s.summary.toLowerCase().includes(storylineSummary.toLowerCase().slice(0, 30))
   );
 
   if (storyline) {
@@ -328,16 +293,17 @@ export function findPeopleToAskAbout(
     .filter((p) => {
       // Has active storylines
       if (p.activeStorylines.length === 0) return false;
-      
+
       // Hasn't been mentioned recently
       const daysSince = (Date.now() - p.lastMentioned.getTime()) / (1000 * 60 * 60 * 24);
       return daysSince >= 2; // At least 2 days since last mention
     })
     .map((person) => {
       // Find the most interesting storyline
-      const storyline = person.activeStorylines
-        .sort((a, b) => b.lastUpdate.getTime() - a.lastUpdate.getTime())[0];
-      
+      const storyline = person.activeStorylines.sort(
+        (a, b) => b.lastUpdate.getTime() - a.lastUpdate.getTime()
+      )[0];
+
       return { person, storyline };
     });
 
@@ -371,47 +337,20 @@ function generateFollowUpQuestion(person: PersonInLife, storyline: Storyline): s
       `Any updates on the ${name} situation?`,
       `How's ${name} doing these days?`,
     ],
-    spouse: [
-      `How's ${name} doing?`,
-      `What's happening with ${name} and the ${summary}?`,
-    ],
-    parent: [
-      `How's your ${person.relationship} doing?`,
-      `Any news from ${name}?`,
-    ],
-    child: [
-      `How's ${name} doing?`,
-      `What's new with ${name}?`,
-    ],
-    sibling: [
-      `How's ${name} doing?`,
-      `Any updates from ${name}?`,
-    ],
-    friend: [
-      `Hey, how's ${name} doing?`,
-      `What's the latest with ${name}?`,
-    ],
+    spouse: [`How's ${name} doing?`, `What's happening with ${name} and the ${summary}?`],
+    parent: [`How's your ${person.relationship} doing?`, `Any news from ${name}?`],
+    child: [`How's ${name} doing?`, `What's new with ${name}?`],
+    sibling: [`How's ${name} doing?`, `Any updates from ${name}?`],
+    friend: [`Hey, how's ${name} doing?`, `What's the latest with ${name}?`],
     coworker: [
       `How are things going with ${name} at work?`,
       `Any updates on the ${name} situation?`,
     ],
-    boss: [
-      `How are things with your ${person.relationship}?`,
-      `Any developments with ${name}?`,
-    ],
-    ex: [
-      `How are you feeling about the ${name} situation?`,
-    ],
-    therapist: [
-      `How have your sessions been going?`,
-    ],
-    doctor: [
-      `Any updates from ${name}?`,
-    ],
-    other: [
-      `How's ${name} doing?`,
-      `What's happening with ${name}?`,
-    ],
+    boss: [`How are things with your ${person.relationship}?`, `Any developments with ${name}?`],
+    ex: [`How are you feeling about the ${name} situation?`],
+    therapist: [`How have your sessions been going?`],
+    doctor: [`Any updates from ${name}?`],
+    other: [`How's ${name} doing?`, `What's happening with ${name}?`],
   };
 
   const options = questions[person.relationship] || questions.other;
@@ -431,8 +370,10 @@ export function formatFollowUpForPrompt(followUp: PersonFollowUp): string {
     '',
     `Suggested question: "${followUp.question}"`,
     '',
-    'Ask naturally if there\'s an opening. Shows you remember the people in their life.',
-  ].filter(Boolean).join('\n');
+    "Ask naturally if there's an opening. Shows you remember the people in their life.",
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // ============================================================================

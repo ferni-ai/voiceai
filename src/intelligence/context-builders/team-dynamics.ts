@@ -13,11 +13,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
   createHintInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { createBuilderRng } from './rng-utils.js';
 import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = createLogger({ module: 'TeamDynamics' });
@@ -201,6 +202,9 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
 
+  // Create deterministic RNG for this builder
+  const rng = createBuilderRng(input, 'team-dynamics');
+
   // Get subscription tier for unlock checking
   const tier: 'free' | 'friend' | 'partner' =
     (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
@@ -210,8 +214,8 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
     return injections;
   }
 
-  // Don't over-inject team dynamics
-  if (Math.random() > 0.4) {
+  // Don't over-inject team dynamics (40% chance to proceed)
+  if (!rng.chance(0.4)) {
     return injections;
   }
 
@@ -265,7 +269,8 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
     }
 
     // Only suggest handoff occasionally (25% chance)
-    if (Math.random() < 0.25 && bundleRuntime) {
+    // Use forked RNG for independent decision
+    if (rng.fork('handoff').chance(0.25) && bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);
 
       if (dynamic) {
@@ -285,7 +290,8 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
 
   // Occasional organic team reference (10% chance after turn 5)
   // Only reference UNLOCKED team members
-  if (turnCount > 5 && Math.random() < 0.1 && bundleRuntime) {
+  const organicRng = rng.fork('organic');
+  if (turnCount > 5 && organicRng.chance(0.1) && bundleRuntime) {
     const teamMembers = bundleRuntime.getTeamMemberIds();
 
     if (teamMembers.length > 0) {
@@ -297,7 +303,8 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
       });
 
       if (otherMembers.length > 0) {
-        const randomMember = otherMembers[Math.floor(Math.random() * otherMembers.length)];
+        const randomMember = organicRng.pick(otherMembers);
+        if (!randomMember) return injections;
         const dynamic = bundleRuntime.getTeamDynamic(randomMember);
 
         if (dynamic?.whatIAdmire) {
@@ -329,4 +336,4 @@ registerContextBuilder({
   build: buildTeamDynamicsContext,
 });
 
-export { buildTeamDynamicsContext, detectTeamMemberMention, detectExpertiseMatch, TEAM_MEMBERS };
+export { buildTeamDynamicsContext, detectExpertiseMatch, detectTeamMemberMention, TEAM_MEMBERS };

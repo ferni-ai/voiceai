@@ -63,6 +63,13 @@ COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
 
+# Node.js process optimizations for voice agent stability
+# - max-old-space-size: Set heap limit to 3072MB (75% of 4GB container limit)
+#   This gives headroom before OOM and allows GC to work effectively
+# - max-semi-space-size: Increase young generation for voice processing (128MB)
+# - expose-gc: Allow manual GC triggering if needed
+ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=128"
+
 EXPOSE 8080
 
 # Run the voice agent

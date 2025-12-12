@@ -109,6 +109,8 @@ describe('SilencePresenceEngine', () => {
           conversationDepth: 'deep',
           wasPersonalSharing: true,
           topicWeight: 'heavy',
+          // Seed changes per attempt to explore the probability space deterministically
+          randomSeed: `test:emotional:${i}`,
         });
 
         if (decision.useSilence && decision.reason === 'emotional') {
@@ -133,6 +135,7 @@ describe('SilencePresenceEngine', () => {
           turnCount: 5,
           conversationDepth: 'deep',
           topicWeight: 'heavy',
+          randomSeed: `test:grief:${i}`,
         });
 
         if (decision.useSilence && ['emotional', 'respect'].includes(decision.reason)) {
@@ -163,6 +166,7 @@ describe('SilencePresenceEngine', () => {
           turnCount: 5,
           conversationDepth: 'deep',
           topicWeight: 'heavy',
+          randomSeed: `test:respect:${i}`,
         });
 
         if (decision.useSilence && decision.reason === 'respect') {
@@ -192,6 +196,7 @@ describe('SilencePresenceEngine', () => {
           userMessage: 'Wow, I just realized something important. Oh my god.',
           turnCount: 5,
           conversationDepth: 'medium',
+          randomSeed: `test:resonance:${i}`,
         });
 
         if (decision.useSilence && decision.reason === 'resonance') {
@@ -221,6 +226,7 @@ describe('SilencePresenceEngine', () => {
           userMessage: "What do you think? I'm not sure about this. Let me think...",
           turnCount: 5,
           conversationDepth: 'medium',
+          randomSeed: `test:processing:${i}`,
         });
 
         if (decision.useSilence && decision.reason === 'processing') {

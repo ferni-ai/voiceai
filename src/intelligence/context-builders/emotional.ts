@@ -54,7 +54,7 @@ const log = createLogger({ module: 'context:emotional' });
 async function buildEmotionalContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, analysis, userData, persona, services, voiceEmotion } = input;
   const injections: ContextInjection[] = [];
-  const sessionId = services.sessionId;
+  const sessionId = services.sessionId ?? 'default';
 
   // Load persona-specific emotional intelligence (if available)
   const emotionalIntelligence = await loadEmotionalIntelligence(persona.id);
@@ -69,27 +69,42 @@ async function buildEmotionalContext(input: ContextBuilderInput): Promise<Contex
     valence: analysis.emotion.valence ?? 'neutral',
   };
 
-  // Convert voiceEmotion to VoiceEmotionInput if available
-  // Extended voice emotion may have additional properties
-  const extendedVoice = voiceEmotion as
-    | (typeof voiceEmotion & {
+  // Convert voice emotion to VoiceEmotionInput if available.
+  // Backward-compatibility: some callers provide voice emotion under `userData.voiceEmotion`
+  // and/or use `primary` instead of `emotion`.
+  const rawVoiceEmotion =
+    voiceEmotion ??
+    (typeof userData === 'object' && userData !== null
+      ? (userData as { voiceEmotion?: unknown }).voiceEmotion
+      : undefined);
+
+  const extendedVoice = rawVoiceEmotion as
+    | (typeof rawVoiceEmotion & {
+        primary?: string;
+        emotion?: string;
+        confidence?: number;
+        speechRate?: number;
+        pitch?: number;
         stressLevel?: number;
         arousal?: number;
         valence?: number;
+        anxietyMarkers?: boolean;
       })
     | undefined;
 
-  const voiceInput: VoiceEmotionInput | undefined = voiceEmotion
-    ? {
-        emotion: voiceEmotion.emotion,
-        confidence: voiceEmotion.confidence,
-        speechRate: voiceEmotion.speechRate,
-        pitch: voiceEmotion.pitch,
-        stressLevel: extendedVoice?.stressLevel,
-        arousal: extendedVoice?.arousal,
-        valence: extendedVoice?.valence,
-      }
-    : undefined;
+  const voiceInput: VoiceEmotionInput | undefined =
+    extendedVoice && typeof extendedVoice.confidence === 'number'
+      ? {
+          emotion: extendedVoice.emotion ?? extendedVoice.primary ?? 'neutral',
+          confidence: extendedVoice.confidence,
+          speechRate: extendedVoice.speechRate,
+          pitch: extendedVoice.pitch,
+          stressLevel: extendedVoice.stressLevel,
+          arousal: extendedVoice.arousal,
+          valence: extendedVoice.valence,
+          anxietyMarkers: extendedVoice.anxietyMarkers,
+        }
+      : undefined;
 
   // Use orchestrator for unified voice emotion analysis
   const voiceAnalysis = analyzeVoiceEmotion(sessionId, voiceInput, textInput, userText);
@@ -250,14 +265,19 @@ DO NOT say "but..." after validating.`
   // -----------------------------------------------
   // EMOTIONAL TREND FEEDBACK
   // -----------------------------------------------
-  if (voiceAnalysis.trend === 'improving') {
+  const shouldSurfaceTrend =
+    mergedDistress >= DISTRESS.MILD ||
+    analysis.emotion.valence !== 'neutral' ||
+    (voiceInput && voiceAnalysis.guidance.messages.length > 0);
+
+  if (shouldSurfaceTrend && voiceAnalysis.trend === 'improving') {
     injections.push(
       createHintInjection(
         'emotional_trend',
         `[EMOTIONAL TREND: IMPROVING] User seems to be feeling better during this conversation. Keep doing what you're doing.`
       )
     );
-  } else if (voiceAnalysis.trend === 'declining') {
+  } else if (shouldSurfaceTrend && voiceAnalysis.trend === 'declining') {
     injections.push(
       createStandardInjection(
         'emotional_trend',

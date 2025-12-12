@@ -82,6 +82,13 @@ const ADMIN_API_KEYS = new Set((process.env.ADMIN_API_KEYS || '').split(',').fil
 /** Whether we're in development mode */
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
+/**
+ * Legacy header auth (X-User-Id without a token).
+ *
+ * Default: disabled. Can be enabled explicitly for transitional deployments.
+ */
+const ALLOW_LEGACY_X_USER_ID_AUTH = process.env.ALLOW_LEGACY_X_USER_ID_AUTH === 'true';
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -178,9 +185,8 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
 
   // 4. Legacy fallback: Accept X-User-Id header for backward compatibility
   // This allows users who haven't migrated to Firebase auth to still use the API
-  // TODO: Remove this fallback once Firebase auth migration is complete
   const legacyUserId = getHeader(req, 'X-User-Id');
-  if (legacyUserId) {
+  if (legacyUserId && ALLOW_LEGACY_X_USER_ID_AUTH) {
     log.debug({ userId: legacyUserId }, 'Legacy X-User-Id auth (no Firebase token)');
     return {
       userId: legacyUserId,
@@ -188,6 +194,13 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       isDevMode: false,
       authMethod: 'api_key', // Treat as api_key for rate limiting purposes
     };
+  }
+
+  if (legacyUserId && !ALLOW_LEGACY_X_USER_ID_AUTH) {
+    log.warn(
+      { userId: legacyUserId, ip },
+      'Legacy X-User-Id auth header provided but disabled (set ALLOW_LEGACY_X_USER_ID_AUTH=true to enable)'
+    );
   }
 
   return null;

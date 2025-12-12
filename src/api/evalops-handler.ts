@@ -179,7 +179,7 @@ export async function handleEvalOpsRoutes(
     // ========================================================================
     if (pathname === '/api/evalops/evaluations/flagged' && method === 'GET') {
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '20');
-      const evaluations = getFlaggedEvaluations(limit);
+      const evaluations = await getFlaggedEvaluations(limit);
       sendJSON(res, { success: true, count: evaluations.length, evaluations });
       return true;
     }
@@ -190,8 +190,8 @@ export async function handleEvalOpsRoutes(
       const flaggedOnly = parsedUrl.searchParams.get('flagged') === 'true';
 
       const evaluations = flaggedOnly
-        ? getFlaggedEvaluations(limit)
-        : getRecentEvaluations(limit, { personaId, flagged: flaggedOnly || undefined });
+        ? await getFlaggedEvaluations(limit)
+        : await getRecentEvaluations(limit, { personaId, flagged: flaggedOnly || undefined });
 
       sendJSON(res, { success: true, count: evaluations.length, evaluations });
       return true;

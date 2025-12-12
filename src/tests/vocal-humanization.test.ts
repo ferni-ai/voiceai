@@ -10,7 +10,7 @@
  * - Mid-sentence reactions
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addIntakeBreath,
   addPitchVariation,
@@ -336,6 +336,41 @@ describe('Vocal Humanization', () => {
       expect(contracted).toContain("I'm");
       expect(contracted).toContain("you're");
       expect(contracted).toContain('gonna');
+    });
+  });
+
+  describe('Deterministic Randomness (seeded)', () => {
+    it('should be deterministic when randomSeed is provided', () => {
+      const context = {
+        userEnergy: 'low' as const,
+        isMeaningfulMoment: true,
+        turnNumber: 7,
+        userMessage: 'I have been feeling overwhelmed lately.',
+        randomSeed: 'session-1:turn-7',
+      };
+
+      const a = humanizeVocals('I am here with you.', { ...context });
+      const b = humanizeVocals('I am here with you.', { ...context });
+
+      expect(a.ssml).toBe(b.ssml);
+      expect(a.appliedFeatures).toEqual(b.appliedFeatures);
+    });
+
+    it('should not call Math.random when randomSeed is provided', () => {
+      const spy = vi.spyOn(Math, 'random');
+      try {
+        humanizeVocals('I am here with you.', {
+          userEnergy: 'low',
+          isMeaningfulMoment: true,
+          turnNumber: 7,
+          userMessage: 'I have been feeling overwhelmed lately.',
+          randomSeed: 'session-2:turn-7',
+        });
+
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 });

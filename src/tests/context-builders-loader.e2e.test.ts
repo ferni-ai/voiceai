@@ -1,0 +1,60 @@
+/**
+ * Context Builder Loader E2E Tests
+ *
+ * These tests enforce that:
+ * - The manifest only references real builder modules
+ * - The loader can import every builder without failures
+ *
+ * This protects us from silent runtime degradation (missing modules, typos, etc.).
+ */
+
+import { existsSync } from 'fs';
+import path from 'path';
+
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import {
+  ensureBuildersLoaded,
+  getAllBuilderModules,
+  getLastLoadReport,
+  reloadBuilders,
+} from '../intelligence/context-builders/index.js';
+
+describe('context-builders loader (e2e)', () => {
+  beforeAll(async () => {
+    // Make any module-level randomness deterministic during imports.
+    vi.spyOn(Math, 'random').mockReturnValue(0.05);
+
+    await reloadBuilders();
+    await ensureBuildersLoaded();
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('manifest references only existing source modules', () => {
+    const builderDir = path.join(process.cwd(), 'src/intelligence/context-builders');
+    const modules = getAllBuilderModules();
+
+    const missing: string[] = [];
+    for (const moduleName of modules) {
+      const tsPath = path.join(builderDir, `${moduleName}.ts`);
+      if (!existsSync(tsPath)) {
+        missing.push(moduleName);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it('loads all manifest modules without failures', () => {
+    const modules = getAllBuilderModules();
+    const report = getLastLoadReport();
+
+    expect(report).not.toBeNull();
+    expect(report?.failed).toEqual([]);
+    expect(report?.loaded).toBe(modules.length);
+    expect(report?.durationMs).toBeGreaterThanOrEqual(0);
+  });
+});

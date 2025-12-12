@@ -478,7 +478,10 @@ export function registerContextBuilder(
   // Invalidate caches
   invalidateCaches();
 
-  log.debug({ builder: builder.name, priority: builder.priority, category }, 'Registered context builder');
+  log.debug(
+    { builder: builder.name, priority: builder.priority, category },
+    'Registered context builder'
+  );
 }
 
 /**
@@ -875,8 +878,10 @@ export {
   ensureBuildersLoaded,
   getAllBuilderModules,
   getBuilderModulesByCategory,
+  getLastLoadReport,
   getLoadingStatus,
   reloadBuilders,
+  type BuilderLoadReport,
 } from './loader.js';
 
 // Import for internal use
@@ -892,3 +897,9 @@ export {
   formatConversationHumanizingForPrompt,
   getHumanizingSummary as getConversationHumanizingSummary,
 } from './conversation-humanizing.js';
+
+// ============================================================================
+// RNG UTILITIES FOR DETERMINISTIC BEHAVIOR
+// ============================================================================
+
+export { createBuilderRng, createSimpleRng, type BuilderRng } from './rng-utils.js';

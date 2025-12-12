@@ -49,7 +49,11 @@ const mockClient = {
   close: vi.fn().mockResolvedValue(undefined),
   listTools: vi.fn().mockResolvedValue({
     tools: [
-      { name: 'get_weather', description: 'Get weather for a location', inputSchema: { type: 'object' } },
+      {
+        name: 'get_weather',
+        description: 'Get weather for a location',
+        inputSchema: { type: 'object' },
+      },
       { name: 'search_web', description: 'Search the web', inputSchema: { type: 'object' } },
     ],
   }),
@@ -153,7 +157,11 @@ describe('MCP Integration', () => {
     mockClient.close.mockReset().mockResolvedValue(undefined);
     mockClient.listTools.mockReset().mockResolvedValue({
       tools: [
-        { name: 'get_weather', description: 'Get weather for a location', inputSchema: { type: 'object' } },
+        {
+          name: 'get_weather',
+          description: 'Get weather for a location',
+          inputSchema: { type: 'object' },
+        },
         { name: 'search_web', description: 'Search the web', inputSchema: { type: 'object' } },
       ],
     });
@@ -162,9 +170,8 @@ describe('MCP Integration', () => {
   afterEach(async () => {
     // Clean up connections after each test
     try {
-      const { disconnectAllMCPServers, clearMCPConfigCache } = await import(
-        '../personas/bundles/mcp-loader.js'
-      );
+      const { disconnectAllMCPServers, clearMCPConfigCache } =
+        await import('../personas/bundles/mcp-loader.js');
       await disconnectAllMCPServers();
       clearMCPConfigCache();
     } catch {
@@ -232,7 +239,8 @@ describe('MCP Integration', () => {
       mockStat.mockResolvedValue({ isFile: () => true });
       mockReadFile.mockResolvedValue(JSON.stringify(testConfig));
 
-      const { getMCPConfig, clearMCPConfigCache } = await import('../personas/bundles/mcp-loader.js');
+      const { getMCPConfig, clearMCPConfigCache } =
+        await import('../personas/bundles/mcp-loader.js');
 
       // Clear cache first
       clearMCPConfigCache();
@@ -300,9 +308,8 @@ describe('MCP Integration', () => {
     });
 
     it('should export disconnect functions', async () => {
-      const { disconnectFromMCPServer, disconnectAllMCPServers, getMCPConnection } = await import(
-        '../personas/bundles/mcp-loader.js'
-      );
+      const { disconnectFromMCPServer, disconnectAllMCPServers, getMCPConnection } =
+        await import('../personas/bundles/mcp-loader.js');
 
       expect(typeof disconnectFromMCPServer).toBe('function');
       expect(typeof disconnectAllMCPServers).toBe('function');

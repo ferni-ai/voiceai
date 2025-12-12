@@ -34,11 +34,7 @@ export {
 } from './relationship-milestones.js';
 
 // Micro-celebrations - Real-time wins
-export {
-  detectMicroWin,
-  formatMicroWinForPrompt,
-  type MicroWin,
-} from './micro-celebrations.js';
+export { detectMicroWin, formatMicroWinForPrompt, type MicroWin } from './micro-celebrations.js';
 
 // Natural Speech - Fillers, self-corrections
 export {
@@ -86,3 +82,37 @@ export {
   type PersonInLife,
   type Storyline,
 } from './story-continuity.js';
+
+// Better Than Human Orchestrator - Superhuman insights
+export {
+  BetterThanHumanOrchestrator,
+  clearBetterThanHuman,
+  getBetterThanHuman,
+} from './orchestrator.js';
+
+// Engine getters and clearers for testing
+export { clearAnticipatoryPresence, getAnticipatoryPresence } from './anticipatory-presence.js';
+export { clearEmotionalMemory, getEmotionalMemory } from './emotional-memory.js';
+export { clearEvolvingJokes, getEvolvingJokes } from './evolving-jokes.js';
+export { clearLinguisticMirroring, getLinguisticMirroring } from './linguistic-mirroring.js';
+export {
+  clearMetaRelationship,
+  clearSomaticPresence,
+  getMetaRelationship,
+  getSomaticPresence,
+} from './meta-relationship.js';
+export {
+  clearDelightEngines,
+  getProtectiveInstincts,
+  getSpontaneousDelight,
+  getVisibleVulnerability,
+} from './spontaneous-delight.js';
+export {
+  clearSuperhumanObservations,
+  getSuperhumanObservations,
+} from './superhuman-observations.js';
+export { clearTeamCoherence, getTeamCoherence } from './team-coherence.js';
+export { clearTemporalEmotional, getTemporalEmotional } from './temporal-emotional.js';
+
+// Better Than Human Types
+export type { BetterThanHumanContext, BetterThanHumanInsight } from './types.js';

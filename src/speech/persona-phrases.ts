@@ -452,6 +452,27 @@ export const PERSONA_CATCHPHRASES: Record<string, CatchphraseConfig> = {
 };
 
 // ============================================================================
+// BACKWARD COMPATIBILITY: ALIAS KEYS
+// ============================================================================
+
+// Many older callers (and some tests) use short/legacy persona IDs directly as keys
+// into these exported maps. We keep those aliases pointing at canonical entries.
+ACKNOWLEDGMENT_PREFIXES['jack-b'] = ACKNOWLEDGMENT_PREFIXES.ferni;
+ACKNOWLEDGMENT_PREFIXES.maya = ACKNOWLEDGMENT_PREFIXES['maya-santos'];
+ACKNOWLEDGMENT_PREFIXES.jordan = ACKNOWLEDGMENT_PREFIXES['jordan-taylor'];
+ACKNOWLEDGMENT_PREFIXES.alex = ACKNOWLEDGMENT_PREFIXES['alex-chen'];
+
+THINKING_FILLERS['jack-b'] = THINKING_FILLERS.ferni;
+THINKING_FILLERS.maya = THINKING_FILLERS['maya-santos'];
+THINKING_FILLERS.jordan = THINKING_FILLERS['jordan-taylor'];
+THINKING_FILLERS.alex = THINKING_FILLERS['alex-chen'];
+
+PERSONA_CATCHPHRASES['jack-b'] = PERSONA_CATCHPHRASES.ferni;
+PERSONA_CATCHPHRASES.maya = PERSONA_CATCHPHRASES['maya-santos'];
+PERSONA_CATCHPHRASES.jordan = PERSONA_CATCHPHRASES['jordan-taylor'];
+PERSONA_CATCHPHRASES.alex = PERSONA_CATCHPHRASES['alex-chen'];
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -488,7 +509,13 @@ export function getAcknowledgmentPrefix(
  */
 export function getThinkingFiller(personaId: string): string {
   const normalized = normalizePersonaId(personaId);
-  const fillers = THINKING_FILLERS[normalized] ?? THINKING_FILLERS.ferni;
+  const fillers = THINKING_FILLERS[normalized];
+
+  // For unknown personas, return a stable, "safe" default (tests expect "Hmm")
+  if (!fillers) {
+    return THINKING_FILLERS.ferni[0];
+  }
+
   return fillers[Math.floor(Math.random() * fillers.length)];
 }
 

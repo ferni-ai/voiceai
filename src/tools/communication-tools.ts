@@ -238,6 +238,15 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
  * Generate and send a voice message using Alex's voice
  */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
+  // Backward compatible overload will pass 'unknown'
+  return sendVoiceMessageRealWithUserId(to, message, 'unknown');
+}
+
+async function sendVoiceMessageRealWithUserId(
+  to: string,
+  message: string,
+  userId: string
+): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to send a voice message. Can you provide one?`;
@@ -258,7 +267,7 @@ async function sendVoiceMessageReal(to: string, message: string): Promise<string
   try {
     // Create voice message record
     const voiceMsg = await createVoiceMessage({
-      userId: 'unknown', // Would get from context
+      userId,
       message,
       voiceId: getAlexVoiceId(),
     });
@@ -472,8 +481,10 @@ Good for:
         phoneNumber: z.string().describe('Phone number to send voice message to'),
         message: z.string().describe('What Alex should say in the voice message'),
       }),
-      execute: async ({ phoneNumber, message }) => {
-        return sendVoiceMessageReal(phoneNumber, message);
+      execute: async ({ phoneNumber, message }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        const userId = userData?.userId || 'unknown';
+        return sendVoiceMessageRealWithUserId(phoneNumber, message, userId);
       },
     }),
 

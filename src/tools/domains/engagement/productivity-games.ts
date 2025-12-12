@@ -8,10 +8,10 @@
  * @module engagement/productivity-games
  */
 
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDailyRitualsService } from '../../../services/daily-rituals.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 // ============================================================================
 // INBOX ZERO CHALLENGE
@@ -24,16 +24,15 @@ export const inboxZeroChallengeDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'alex', 'productivity', 'streaks'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
+    const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
       description: `Track daily inbox zero progress. Build streaks. Alex celebrates wins and helps with setbacks.`,
       parameters: z.object({
         action: z.enum(['check-in', 'report-status', 'view-streak', 'tips']).describe('Action'),
         inboxCount: z.number().optional().describe('Current inbox count'),
       }),
-      execute: async ({ action, inboxCount }, { ctx: toolCtx }) => {
-        const userData = toolCtx.userData as { userId?: string };
-        const userId = userData.userId || 'anonymous';
+      execute: async ({ action, inboxCount }) => {
         const service = getDailyRitualsService();
 
         if (action === 'check-in') {

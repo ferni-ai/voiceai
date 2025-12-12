@@ -182,7 +182,9 @@ export function getCacheSummaryReport(): string {
 
   for (const health of snapshot.health) {
     const status = health.healthy ? '✓' : '⚠';
-    lines.push(`${status} ${health.name}: ${health.size} entries, ${(health.hitRate * 100).toFixed(1)}% hit rate`);
+    lines.push(
+      `${status} ${health.name}: ${health.size} entries, ${(health.hitRate * 100).toFixed(1)}% hit rate`
+    );
     if (health.issues.length > 0) {
       for (const issue of health.issues) {
         lines.push(`    - ${issue}`);

@@ -111,7 +111,19 @@ export class MemoryDecayManager {
   private config: MemoryDecayConfig;
 
   constructor(config?: Partial<MemoryDecayConfig>) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    // Backward-compatibility: some older callers used different option names.
+    // We accept them here so older tests/callers don't silently break.
+    const legacy = (config ?? {}) as Record<string, unknown>;
+
+    const translated: Partial<MemoryDecayConfig> = { ...config };
+    if (typeof legacy.emotionalDecayMultiplier === 'number') {
+      translated.emotionalMultiplier = legacy.emotionalDecayMultiplier;
+    }
+    if (typeof legacy.pruneThreshold === 'number') {
+      translated.archivalThreshold = legacy.pruneThreshold;
+    }
+
+    this.config = { ...DEFAULT_CONFIG, ...translated };
   }
 
   /**
@@ -386,6 +398,80 @@ export class MemoryDecayManager {
     }
 
     return results;
+  }
+
+  // ============================================================================
+  // LEGACY COMPATIBILITY HELPERS
+  // ============================================================================
+
+  /**
+   * Legacy API: applyDecay(memory) → DecayResult
+   *
+   * Older tests/callers passed a simplified memory shape (no `type`, `source`, etc.).
+   * We adapt it into a `MemoryItem` and reuse the v2 decay calculation.
+   */
+  applyDecay(memory: {
+    id: string;
+    content: string;
+    timestamp: Date;
+    emotionalWeight: number;
+    initialStrength?: number;
+    hasCommitment?: boolean;
+  }): DecayResult {
+    const baseImportance =
+      typeof memory.initialStrength === 'number' ? this.clamp01(memory.initialStrength) : 0.5;
+
+    const item: MemoryItem = {
+      id: memory.id,
+      type: memory.hasCommitment ? 'commitment' : 'topic',
+      content: memory.content,
+      timestamp: memory.timestamp,
+      emotionalWeight: memory.emotionalWeight,
+      relevanceDecay: 0,
+      baseImportance,
+      commitment: memory.hasCommitment ?? false,
+      source: {
+        collection: 'legacy',
+        documentId: memory.id,
+      },
+    };
+
+    return this.calculateStrength(item);
+  }
+
+  /**
+   * Legacy API: pruneWeak(memories, dryRun) → { analyzed, pruned, preserved }
+   *
+   * In v2, we "prune" by archiving (never hard delete). This helper mirrors the
+   * older return shape while using v2 decay logic.
+   */
+  pruneWeak(
+    memories: Array<{
+      id: string;
+      content: string;
+      timestamp: Date;
+      emotionalWeight: number;
+      initialStrength?: number;
+      hasCommitment?: boolean;
+    }>,
+    _dryRun?: boolean
+  ): { analyzed: number; pruned: string[]; preserved: number } {
+    const analyzed = memories.length;
+    const pruned: string[] = [];
+
+    for (const memory of memories) {
+      const decay = this.applyDecay(memory);
+      if (decay.shouldArchive) {
+        pruned.push(memory.id);
+      }
+    }
+
+    return { analyzed, pruned, preserved: analyzed - pruned.length };
+  }
+
+  private clamp01(value: number): number {
+    if (Number.isNaN(value)) return 0;
+    return Math.max(0, Math.min(1, value));
   }
 }
 

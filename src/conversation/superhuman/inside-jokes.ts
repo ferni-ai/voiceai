@@ -98,7 +98,7 @@ export function detectJokeMoment(
 ): InsideJoke | null {
   // Check for humor indicators
   const isHumorous = HUMOR_INDICATORS.some((p) => p.test(message)) || context.wasLaughing;
-  
+
   if (!isHumorous) {
     return null;
   }
@@ -119,9 +119,8 @@ export function detectJokeMoment(
   if (message.length > 200) {
     // Find the sentence with the humor
     const sentences = message.split(/[.!?]+/).filter((s) => s.trim());
-    const funnySentence = sentences.find((s) =>
-      HUMOR_INDICATORS.some((p) => p.test(s)) ||
-      NICKNAME_PATTERNS.some((p) => p.test(s))
+    const funnySentence = sentences.find(
+      (s) => HUMOR_INDICATORS.some((p) => p.test(s)) || NICKNAME_PATTERNS.some((p) => p.test(s))
     );
     funnyPart = funnySentence || sentences[0];
   }
@@ -148,10 +147,7 @@ export function detectJokeMoment(
     mood: context.conversationMood === 'heavy' ? 'supportive' : 'light',
   };
 
-  log.info(
-    { userId, jokeId: joke.id, shorthand },
-    '😄 Inside joke moment captured'
-  );
+  log.info({ userId, jokeId: joke.id, shorthand }, '😄 Inside joke moment captured');
 
   return joke;
 }
@@ -161,7 +157,7 @@ export function detectJokeMoment(
  */
 export function saveJoke(joke: InsideJoke): void {
   const existing = jokeStore.get(joke.userId) || [];
-  
+
   // Check for similar jokes
   const isDupe = existing.some(
     (j) =>
@@ -249,11 +245,13 @@ export function findRelevantJoke(
     let score = 10; // Base score
 
     // Topic match bonus
-    if (context.currentTopics?.some((t) =>
-      joke.relatedTopics.some((jt) =>
-        t.toLowerCase().includes(jt) || jt.includes(t.toLowerCase())
+    if (
+      context.currentTopics?.some((t) =>
+        joke.relatedTopics.some(
+          (jt) => t.toLowerCase().includes(jt) || jt.includes(t.toLowerCase())
+        )
       )
-    )) {
+    ) {
       score += 30;
     }
 
@@ -293,15 +291,16 @@ export function findRelevantJoke(
  * Generate an introduction to the inside joke
  */
 function generateJokeIntro(joke: InsideJoke): string {
-  const daysAgo = Math.floor(
-    (Date.now() - joke.createdAt.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysAgo = Math.floor((Date.now() - joke.createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
   const timeRef =
-    daysAgo === 0 ? 'earlier' :
-    daysAgo === 1 ? 'yesterday' :
-    daysAgo < 7 ? 'the other day' :
-    'a while back';
+    daysAgo === 0
+      ? 'earlier'
+      : daysAgo === 1
+        ? 'yesterday'
+        : daysAgo < 7
+          ? 'the other day'
+          : 'a while back';
 
   const intros = [
     `Remember ${timeRef} when you said`,
@@ -355,7 +354,7 @@ export function formatJokeForPrompt(reference: JokeReference): string {
     '',
     `Original context: "${reference.joke.originalContext.slice(0, 150)}..."`,
     '',
-    'Use this naturally if it fits. Don\'t force it.',
+    "Use this naturally if it fits. Don't force it.",
     'Inside jokes make relationships feel real.',
   ].join('\n');
 }

@@ -17,6 +17,7 @@
 
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { seededChance, seededFloat, seededIndex } from './utils/rng.js';
 
 const logger = createLogger({ module: 'SilencePresence' });
 
@@ -196,6 +197,8 @@ export class SilencePresenceEngine {
     wasPersonalSharing?: boolean;
     conversationDepth: 'surface' | 'medium' | 'deep';
     topicWeight?: 'light' | 'medium' | 'heavy';
+    /** Optional seed for deterministic behavior */
+    randomSeed?: string;
   }): SilenceDecision {
     const {
       userMessage,
@@ -204,6 +207,7 @@ export class SilencePresenceEngine {
       wasPersonalSharing,
       conversationDepth,
       topicWeight,
+      randomSeed,
     } = context;
 
     // Default: no silence
@@ -237,6 +241,7 @@ export class SilencePresenceEngine {
       wasPersonalSharing,
       conversationDepth,
       topicWeight,
+      randomSeed,
     });
 
     if (!reason) {
@@ -247,7 +252,11 @@ export class SilencePresenceEngine {
     const config = SILENCE_CONFIGS[reason];
 
     // Calculate duration (random within range)
-    const duration = config.minDuration + Math.random() * (config.maxDuration - config.minDuration);
+    const seed =
+      randomSeed ??
+      `silence:${turnCount}:${conversationDepth}:${topicWeight ?? 'medium'}:${userEmotion ?? ''}:${userMessage}`;
+    const roll = seededFloat(`${seed}:duration`);
+    const duration = config.minDuration + roll * (config.maxDuration - config.minDuration);
 
     // Build SSML
     const ssml = this.buildSilenceSsml(reason, duration, config);
@@ -280,42 +289,46 @@ export class SilencePresenceEngine {
       wasPersonalSharing?: boolean;
       conversationDepth: 'surface' | 'medium' | 'deep';
       topicWeight?: 'light' | 'medium' | 'heavy';
+      randomSeed?: string;
     }
   ): SilenceReason | null {
-    const { userEmotion, wasPersonalSharing, conversationDepth, topicWeight } = context;
+    const { userEmotion, wasPersonalSharing, conversationDepth, topicWeight, randomSeed } = context;
+    const seedBase =
+      randomSeed ??
+      `silence-reason:${conversationDepth}:${topicWeight ?? 'medium'}:${userEmotion ?? ''}:${userMessage}`;
 
     // Check emotional patterns first (highest priority)
     if (EMOTIONAL_PATTERNS.some((p) => p.test(userMessage))) {
       // High probability for emotional silence
-      if (Math.random() < 0.7) {
+      if (seededChance(`${seedBase}:emotional`, 0.7)) {
         return 'emotional';
       }
     }
 
     // Vulnerability deserves respect
     if (VULNERABILITY_PATTERNS.some((p) => p.test(userMessage))) {
-      if (Math.random() < 0.6) {
+      if (seededChance(`${seedBase}:respect`, 0.6)) {
         return 'respect';
       }
     }
 
     // Resonance after insights
     if (RESONANCE_PATTERNS.some((p) => p.test(userMessage))) {
-      if (Math.random() < 0.5) {
+      if (seededChance(`${seedBase}:resonance`, 0.5)) {
         return 'resonance';
       }
     }
 
     // Processing after questions/uncertainty
     if (PROCESSING_PATTERNS.some((p) => p.test(userMessage))) {
-      if (Math.random() < 0.4) {
+      if (seededChance(`${seedBase}:processing`, 0.4)) {
         return 'processing';
       }
     }
 
     // Context-based decisions
     if (wasPersonalSharing && topicWeight === 'heavy') {
-      if (Math.random() < 0.5) {
+      if (seededChance(`${seedBase}:personal-heavy`, 0.5)) {
         return 'emotional';
       }
     }
@@ -323,14 +336,14 @@ export class SilencePresenceEngine {
     if (conversationDepth === 'deep' && userEmotion) {
       const emotionalEmotions = ['sad', 'anxious', 'vulnerable', 'overwhelmed', 'grief'];
       if (emotionalEmotions.includes(userEmotion.toLowerCase())) {
-        if (Math.random() < 0.5) {
+        if (seededChance(`${seedBase}:deep-emotion`, 0.5)) {
           return 'presence';
         }
       }
     }
 
     // Occasionally use presence silence in deep conversations
-    if (conversationDepth === 'deep' && Math.random() < 0.1) {
+    if (conversationDepth === 'deep' && seededChance(`${seedBase}:deep-presence`, 0.1)) {
       return 'presence';
     }
 
@@ -389,7 +402,8 @@ export class SilencePresenceEngine {
       return null;
     }
 
-    return options[Math.floor(Math.random() * options.length)];
+    const index = seededIndex(`silence-cue:${reason}`, options.length);
+    return options[index] ?? null;
   }
 
   /**

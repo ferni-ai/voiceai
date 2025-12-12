@@ -8,10 +8,10 @@
  * @module engagement/financial-games
  */
 
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDailyRitualsService } from '../../../services/daily-rituals.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 // ============================================================================
 // COMPOUND & INTEREST GAME
@@ -24,7 +24,8 @@ export const compoundInterestGameDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'maya', 'habits', 'gamification'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
+    const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
       description: `Track habits with Maya's cats Compound and Interest.
 Compound represents slow, steady growth. Interest is chaotic and demanding.
@@ -35,9 +36,7 @@ Users "feed" their habits daily and watch the cats thrive.`,
           .describe('Action to take'),
         habitName: z.string().optional().describe('Name of habit being fed'),
       }),
-      execute: async ({ action, habitName }, { ctx: toolCtx }) => {
-        const userData = toolCtx.userData as { userId?: string };
-        const userId = userData.userId || 'anonymous';
+      execute: async ({ action, habitName }) => {
         const service = getDailyRitualsService();
 
         if (action === 'check-in') {

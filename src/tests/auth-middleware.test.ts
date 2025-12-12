@@ -6,8 +6,8 @@
  * Authentication now uses: API Keys, Firebase ID Tokens, or dev mode (X-Admin-Key header).
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock environment before importing module
 const originalEnv = { ...process.env };
@@ -63,6 +63,7 @@ describe('Auth Middleware', () => {
       process.env.API_KEYS = 'test-api-key-1,test-api-key-2';
       process.env.ADMIN_API_KEYS = 'admin-key-1';
       process.env.NODE_ENV = 'development';
+      delete process.env.ALLOW_LEGACY_X_USER_ID_AUTH;
     });
 
     afterEach(() => {
@@ -147,6 +148,33 @@ describe('Auth Middleware', () => {
       const auth = authenticate(req);
 
       expect(auth).toBeNull();
+    });
+
+    it('should NOT allow legacy X-User-Id auth by default', async () => {
+      const { authenticate } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-user-id': 'legacy-user-123' },
+      });
+
+      const auth = authenticate(req);
+
+      expect(auth).toBeNull();
+    });
+
+    it('should allow legacy X-User-Id auth only when explicitly enabled', async () => {
+      process.env.ALLOW_LEGACY_X_USER_ID_AUTH = 'true';
+      vi.resetModules();
+      const { authenticate } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-user-id': 'legacy-user-123' },
+      });
+
+      const auth = authenticate(req);
+
+      expect(auth).not.toBeNull();
+      expect(auth?.userId).toBe('legacy-user-123');
+      expect(auth?.authMethod).toBe('api_key');
+      expect(auth?.isAdmin).toBe(false);
     });
   });
 

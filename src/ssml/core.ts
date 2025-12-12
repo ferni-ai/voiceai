@@ -6,17 +6,17 @@
  */
 
 import {
+  applyThinkingTimeSSML,
+  calculateThinkingTime,
+  type ThinkingContext,
+  type ThinkingInjection,
+} from '../conversation/thinking-time-injector.js';
+import {
   addBreathGroupPauses,
   injectNaturalFillers,
   type BreathGroupConfig,
   type FillerConfig,
 } from '../speech/advanced-humanization.js';
-import {
-  calculateThinkingTime,
-  applyThinkingTimeSSML,
-  type ThinkingContext,
-  type ThinkingInjection,
-} from '../conversation/thinking-time-injector.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
@@ -440,6 +440,8 @@ export function sanitizeSsml(text: string): string {
   result = result.replace(/\binhales?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bteasing(ly)?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsmirk(s|ing)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bpauses?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bpausing\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags

@@ -23,6 +23,7 @@ import {
 } from '../../intelligence/context-builders/metrics.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJSON, sendJSONCached } from '../helpers.js';
+import { requireAuth } from '../auth-middleware.js';
 
 const log = createLogger({ module: 'BuilderMetricsAPI' });
 
@@ -251,6 +252,17 @@ export async function handleBuilderMetricsRoutes(
   // Only allow GET requests
   if (req.method !== 'GET') {
     return false;
+  }
+
+  // Check if this is a builder-metrics route
+  if (!pathname.startsWith('/api/admin/builder-metrics')) {
+    return false;
+  }
+
+  // Require admin authentication for all builder-metrics endpoints
+  const auth = await requireAuth(req, res, { requireAdmin: true, allowDevMode: true });
+  if (!auth) {
+    return true; // Auth failed, response already sent
   }
 
   // Main metrics endpoint

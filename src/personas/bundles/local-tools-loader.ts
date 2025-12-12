@@ -33,12 +33,10 @@
  */
 
 import { readFile, readdir, stat } from 'fs/promises';
-import { join, basename } from 'path';
+import { dirname, join, resolve } from 'path';
+import { pathToFileURL } from 'url';
 import { getLogger } from '../../utils/safe-logger.js';
-import type {
-  BundleLocalTool,
-  BundleLocalToolsIndex,
-} from './types/commands.js';
+import type { BundleLocalTool, BundleLocalToolsIndex } from './types/commands.js';
 
 const log = getLogger();
 
@@ -160,10 +158,7 @@ export interface LocalToolExecutionResult {
 /**
  * Execute a prompt-type tool (returns the rendered prompt)
  */
-function executePromptTool(
-  tool: BundleLocalTool,
-  params: Record<string, unknown>
-): string {
+function executePromptTool(tool: BundleLocalTool, params: Record<string, unknown>): string {
   let prompt = tool.prompt || '';
 
   // Substitute {{param}} placeholders
@@ -210,6 +205,111 @@ async function executeWebhookTool(
   return response.json();
 }
 
+function getBundlePathFromToolFilePath(filePath: string | undefined): string | null {
+  if (!filePath) return null;
+  // Expected shape: <bundlePath>/tools/<tool>.json
+  // So bundlePath is parent of the "tools" directory.
+  const toolsDir = dirname(filePath);
+  return dirname(toolsDir);
+}
+
+async function executeScriptTool(
+  tool: BundleLocalTool,
+  params: Record<string, unknown>,
+  context: LocalToolExecutionContext
+): Promise<unknown> {
+  if (!tool.script) {
+    throw new Error('Script path not configured');
+  }
+
+  if (!tool.filePath) {
+    throw new Error('Tool filePath missing (cannot resolve script location safely)');
+  }
+
+  const bundlePath = getBundlePathFromToolFilePath(tool.filePath);
+  if (!bundlePath) {
+    throw new Error('Could not resolve bundle path for script tool');
+  }
+
+  // Resolve script relative to the tool JSON file directory
+  const scriptPath = resolve(dirname(tool.filePath), tool.script);
+
+  // Basic safety: only allow scripts inside the bundle directory
+  const normalizedBundle = resolve(bundlePath);
+  const normalizedScript = resolve(scriptPath);
+  if (!normalizedScript.startsWith(normalizedBundle + '/')) {
+    throw new Error('Script path escapes bundle directory (blocked)');
+  }
+
+  // Only allow JS modules (TypeScript would require a sandbox/runner)
+  if (!normalizedScript.endsWith('.js') && !normalizedScript.endsWith('.mjs')) {
+    throw new Error('Script tools must reference a .js or .mjs module');
+  }
+
+  const mod = (await import(pathToFileURL(normalizedScript).toString())) as unknown;
+
+  const runFn =
+    typeof (mod as { run?: unknown }).run === 'function'
+      ? ((mod as { run: (p: unknown, c: unknown) => unknown }).run as (
+          p: unknown,
+          c: unknown
+        ) => unknown)
+      : typeof (mod as { default?: unknown }).default === 'function'
+        ? ((mod as { default: (p: unknown, c: unknown) => unknown }).default as (
+            p: unknown,
+            c: unknown
+          ) => unknown)
+        : null;
+
+  if (!runFn) {
+    throw new Error(
+      'Script module must export a run(params, context) function (or default export)'
+    );
+  }
+
+  // Enforce a soft timeout (non-cancelable) to prevent hangs
+  const timeoutMs = 15000;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    setTimeout(() => reject(new Error('Script tool timed out')), timeoutMs);
+  });
+
+  return await Promise.race([Promise.resolve(runFn(params, context)), timeoutPromise]);
+}
+
+async function executeMcpTool(
+  tool: BundleLocalTool,
+  params: Record<string, unknown>
+): Promise<unknown> {
+  if (!tool.mcp?.server || !tool.mcp.tool) {
+    throw new Error('MCP tool reference not configured');
+  }
+
+  if (!tool.filePath) {
+    throw new Error('Tool filePath missing (cannot resolve MCP config location)');
+  }
+
+  const bundlePath = getBundlePathFromToolFilePath(tool.filePath);
+  if (!bundlePath) {
+    throw new Error('Could not resolve bundle path for MCP tool');
+  }
+
+  const { connectToMCPServer, findServer, getMCPConfig, callMCPTool } =
+    await import('./mcp-loader.js');
+
+  const config = await getMCPConfig(bundlePath);
+  const server = findServer(config, tool.mcp.server);
+  if (!server) {
+    throw new Error(`MCP server not found in bundle config: ${tool.mcp.server}`);
+  }
+
+  const connection = await connectToMCPServer(server);
+  if (connection.status !== 'connected') {
+    throw new Error(connection.error || `MCP server connection failed: ${server.id}`);
+  }
+
+  return await callMCPTool(server.id, tool.mcp.tool, params);
+}
+
 /**
  * Execute a local tool
  */
@@ -231,21 +331,13 @@ export async function executeLocalTool(
       }
 
       case 'script': {
-        // Script execution would require sandboxing - not implemented yet
-        log.warn({ toolId: tool.id }, 'Script tools not yet implemented');
-        return {
-          success: false,
-          error: 'Script tools not yet implemented',
-        };
+        const result = await executeScriptTool(tool, params, context);
+        return { success: true, result };
       }
 
       case 'mcp': {
-        // MCP delegation - will be implemented in Phase 5
-        log.warn({ toolId: tool.id }, 'MCP tools require Phase 5 implementation');
-        return {
-          success: false,
-          error: 'MCP tools require Phase 5 implementation',
-        };
+        const result = await executeMcpTool(tool, params);
+        return { success: true, result };
       }
 
       default:

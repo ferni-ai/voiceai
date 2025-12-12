@@ -13,16 +13,18 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import {
+  getActivityByType,
+  getRecentActivity as getRecentActivityFromStore,
+  initializeActivityLog,
+  recordActivity as recordActivityToStore,
+  type ActivityEvent,
+} from '../../../services/admin-activity.js';
+import { getBetterThanHumanTelemetry } from '../../../services/better-than-human-telemetry.js';
+import { calculatePeriodAnalytics } from '../../../services/outreach/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
-import {
-  initializeActivityLog,
-  recordActivity as recordActivityToStore,
-  getRecentActivity as getRecentActivityFromStore,
-  getActivityByType,
-  type ActivityEvent,
-} from '../../../services/admin-activity.js';
 
 const log = createLogger({ module: 'AdminDashboardAPI' });
 
@@ -183,6 +185,12 @@ interface AggregatedStats {
     responseTime: number;
     errorRate: number;
   };
+  betterThanHuman: {
+    outreach: {
+      last7Days: { totalOutreach: number; responseRate: number };
+      last30Days: { totalOutreach: number; responseRate: number };
+    };
+  };
 }
 
 async function getAggregatedStats(): Promise<AggregatedStats> {
@@ -194,6 +202,10 @@ async function getAggregatedStats(): Promise<AggregatedStats> {
     getSystemStats(),
   ]);
 
+  const outreach7 = calculatePeriodAnalytics(7);
+  const outreach30 = calculatePeriodAnalytics(30);
+  void getBetterThanHumanTelemetry().getSummary(7);
+
   return {
     agents: agentStats,
     conversations: {
@@ -204,6 +216,15 @@ async function getAggregatedStats(): Promise<AggregatedStats> {
     evalops: evalStats,
     trust: trustStats,
     system: systemStats,
+    betterThanHuman: {
+      outreach: {
+        last7Days: { totalOutreach: outreach7.totalOutreach, responseRate: outreach7.responseRate },
+        last30Days: {
+          totalOutreach: outreach30.totalOutreach,
+          responseRate: outreach30.responseRate,
+        },
+      },
+    },
   };
 }
 

@@ -107,11 +107,35 @@ function extractThinkingSounds(thinkingSounds: BundleBehaviors['thinking_sounds'
 
 /**
  * Convert a loaded bundle to PersonaConfig
+ * Includes defensive null checks for incomplete manifests (e.g., marketplace agents)
  */
 export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promise<PersonaConfig> {
   const { manifest } = bundle;
   const behaviors = await bundle.getBehaviors();
   const stories = await bundle.getAllStories();
+
+  // Defensive defaults for optional manifest sections
+  // Supports both core persona schema (role.domains) and marketplace schema (knowledge.domains)
+  const speechChars = manifest.speech_characteristics ?? {
+    base_speed_multiplier: 1.0,
+    pause_multiplier: 1.0,
+    thinking_sound_frequency: 0.3,
+    emphasis_style: 'subtle' as const,
+  };
+
+  // Marketplace agents may have knowledge.domains instead of role.domains
+  const knowledgeDomains = (manifest as { knowledge?: { domains?: string[] } }).knowledge?.domains ?? [];
+  const role = manifest.role ?? {
+    id: manifest.identity?.id ?? 'assistant',
+    domains: knowledgeDomains,
+    responsibilities: [] as string[]
+  };
+  // If role exists but domains is empty, try knowledge.domains as fallback
+  if (role.domains?.length === 0 && knowledgeDomains.length > 0) {
+    role.domains = knowledgeDomains;
+  }
+
+  const personality = manifest.personality ?? { warmth: 0.7, humor_level: 0.4, directness: 0.6, energy: 0.6, traits: [] as string[] };
 
   // Register bundle backchannels with the theatrical system
   // This makes them available to the BackchannelingSystem for natural responses
@@ -196,40 +220,40 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
     description: manifest.identity.description,
   };
 
-  // Convert speech characteristics
+  // Convert speech characteristics (with defensive defaults for incomplete manifests)
   const speechCharacteristics: SpeechCharacteristics = {
-    baseSpeedMultiplier: manifest.speech_characteristics.base_speed_multiplier,
-    pauseMultiplier: manifest.speech_characteristics.pause_multiplier,
+    baseSpeedMultiplier: speechChars.base_speed_multiplier ?? 1.0,
+    pauseMultiplier: speechChars.pause_multiplier ?? 1.0,
     speedVariation: 0.15, // Default
-    thinkingSoundFrequency: manifest.speech_characteristics.thinking_sound_frequency,
-    emphasisStyle: manifest.speech_characteristics.emphasis_style,
+    thinkingSoundFrequency: speechChars.thinking_sound_frequency ?? 0.3,
+    emphasisStyle: speechChars.emphasis_style ?? 'subtle',
     sentenceEndingStyle: 'natural',
     minimumEnergy: 0.7,
     maximumEnergy: 1.2,
   };
 
-  // Convert identity config
+  // Convert identity config (with defensive defaults for incomplete manifests)
   const identity: IdentityConfig = {
-    selfReference: manifest.identity.self_reference,
-    coreValues: manifest.personality.traits.slice(0, 5),
-    role: manifest.role.id,
-    background: manifest.identity.description,
-    priorities: manifest.role.domains,
+    selfReference: manifest.identity?.self_reference ?? manifest.identity?.name ?? 'I',
+    coreValues: (personality.traits ?? []).slice(0, 5),
+    role: role.id ?? 'assistant',
+    background: manifest.identity?.description ?? '',
+    priorities: role.domains ?? [],
     desiredUserExperience: 'feeling heard, supported, and empowered',
   };
 
   // Convert communication config
   const communication = await buildCommunicationConfig(behaviors, manifest);
 
-  // Convert personality config
-  const personality: PersonalityConfig = {
-    warmth: manifest.personality.warmth,
-    humorLevel: manifest.personality.humor_level,
+  // Convert personality config (with defensive defaults for incomplete manifests)
+  const personalityConfig: PersonalityConfig = {
+    warmth: personality.warmth ?? 0.7,
+    humorLevel: personality.humor_level ?? 0.4,
     humorStyle: ['dry-wit', 'self-deprecating', 'observational'] as HumorStyle[],
-    directness: manifest.personality.directness,
-    energy: manifest.personality.energy,
+    directness: personality.directness ?? 0.6,
+    energy: personality.energy ?? 0.6,
     tangentFrequency: 0.25,
-    traits: manifest.personality.traits,
+    traits: personality.traits ?? [],
     boundaries: [
       'Never sound like a customer service agent',
       'Never give specific stock picks without context',
@@ -238,10 +262,10 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
     ],
   };
 
-  // Convert knowledge config
+  // Convert knowledge config (with defensive defaults for incomplete manifests)
   const knowledge: KnowledgeConfig = {
-    domains: manifest.role.domains,
-    qualifiedTopics: manifest.role.domains,
+    domains: role.domains ?? [],
+    qualifiedTopics: role.domains ?? [],
     outOfScopeTopics: [],
     outOfScopeResponse:
       "That's a bit outside my expertise. Let me connect you with someone better suited to help.",
@@ -284,12 +308,12 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
   return {
     id: manifest.identity.id,
     name: manifest.identity.name,
-    description: manifest.identity.description,
+    description: manifest.identity?.description ?? '',
     voice,
     speechCharacteristics,
     identity,
     communication,
-    personality,
+    personality: personalityConfig,
     knowledge,
     stories: convertedStories,
     catchphrases: extractCatchphrases(behaviors.catchphrases),
@@ -305,11 +329,14 @@ async function buildCommunicationConfig(
   behaviors: BundleBehaviors,
   manifest: PersonaBundleManifest
 ): Promise<CommunicationConfig> {
+  // Defensive defaults for personality
+  const personalityData = manifest.personality ?? { warmth: 0.7, energy: 0.6 };
+
   // Determine greeting style from personality
   let greetingStyle: GreetingStyle = 'warm-friend';
-  if (manifest.personality.energy > 0.8) {
+  if ((personalityData.energy ?? 0.6) > 0.8) {
     greetingStyle = 'enthusiastic';
-  } else if (manifest.personality.warmth > 0.8) {
+  } else if ((personalityData.warmth ?? 0.7) > 0.8) {
     greetingStyle = 'warm-friend';
   }
 
@@ -392,21 +419,25 @@ async function buildCommunicationConfig(
  * Generate a basic system prompt from manifest data
  */
 function generateSystemPrompt(manifest: PersonaBundleManifest, behaviors: BundleBehaviors): string {
-  const traits = manifest.personality.traits.join(', ');
-  const domains = manifest.role.domains.join(', ');
+  // Defensive defaults
+  const personalityData = manifest.personality ?? { traits: [], warmth: 0.7, energy: 0.6 };
+  const roleData = manifest.role ?? { domains: [] };
 
-  return `# ${manifest.identity.name}
+  const traits = (personalityData.traits ?? []).join(', ') || 'helpful, friendly';
+  const domains = (roleData.domains ?? []).join(', ') || 'general assistance';
+
+  return `# ${manifest.identity?.name ?? 'Assistant'}
 
 ## WHO YOU ARE
-You are ${manifest.identity.name} (${manifest.identity.self_reference}). ${manifest.identity.description}
+You are ${manifest.identity?.name ?? 'an AI assistant'} (${manifest.identity?.self_reference ?? 'I'}). ${manifest.identity?.description ?? ''}
 
 ## YOUR EXPERTISE
 Your domains: ${domains}
 
 ## YOUR PERSONALITY
 Traits: ${traits}
-Warmth: ${manifest.personality.warmth * 100}%
-Energy: ${manifest.personality.energy * 100}%
+Warmth: ${(personalityData.warmth ?? 0.7) * 100}%
+Energy: ${(personalityData.energy ?? 0.6) * 100}%
 
 ## HOW YOU COMMUNICATE
 - Be warm and authentic

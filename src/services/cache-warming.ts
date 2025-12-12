@@ -263,12 +263,7 @@ export async function prefetchForSession(
 export async function prefetchPersonaEmbeddings(personaId: string): Promise<number> {
   // Persona-specific common queries
   const personaQueries: Record<string, string[]> = {
-    ferni: [
-      'how are you feeling',
-      'tell me about yourself',
-      'I need advice',
-      'what should I do',
-    ],
+    ferni: ['how are you feeling', 'tell me about yourself', 'I need advice', 'what should I do'],
     'maya-santos': [
       'help me build a habit',
       'morning routine',
@@ -287,12 +282,7 @@ export async function prefetchPersonaEmbeddings(personaId: string): Promise<numb
       'financial planning',
       'portfolio review',
     ],
-    'jordan-taylor': [
-      'event planning',
-      'party ideas',
-      'celebration planning',
-      'milestone event',
-    ],
+    'jordan-taylor': ['event planning', 'party ideas', 'celebration planning', 'milestone event'],
     'nayan-patel': [
       'meditation guidance',
       'mindfulness practice',

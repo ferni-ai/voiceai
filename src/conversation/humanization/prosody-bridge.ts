@@ -17,7 +17,7 @@
 
 import type { ProsodyFeatures, VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { type AmbientDetectionResult } from './ambient-awareness.js';
+import { getAmbientAwarenessEngine, type AmbientDetectionResult } from './ambient-awareness.js';
 import { getBreathingSyncEngine, type BreathPattern } from './breathing-sync.js';
 import { getCrossSessionVoiceEngine } from './cross-session-voice.js';
 import { getVoicePrintEngine, type VoiceSnapshot } from './voice-print.js';
@@ -203,6 +203,14 @@ export function processProsodyForHumanization(
   const breathingSync = getBreathingSyncEngine(sessionId);
   breathingSync.updateUserPattern(breathPattern);
 
+  // 3. Ambient inference (heuristic) → AmbientAwarenessEngine
+  const ambientDetection = inferAmbientFromProsody(prosody);
+  if (ambientDetection) {
+    const ambient = getAmbientAwarenessEngine(sessionId);
+    // We don't have turnCount here; snapshotCount is a stable proxy for "time in session"
+    ambient.processDetection(ambientDetection, state.snapshotCount);
+  }
+
   // 3. Cross-session voice tracking is handled by startSession/endSession
   // The engine automatically detects changes when sessions start
 
@@ -304,35 +312,85 @@ export function getCrossSessionInsight(
  * - Etc.
  */
 export function inferAmbientFromProsody(prosody: ProsodyFeatures): AmbientDetectionResult | null {
-  // This is a simplified inference - real implementation would use
-  // actual audio classification
-  const speakingRatio = prosody.speakingRatio;
-  const noiseLevel = 1 - speakingRatio; // Rough proxy for background activity
+  const energyLevel = normalizeEnergy(prosody.energyMean);
+  const speakingRatio = Math.max(0, Math.min(1, prosody.speakingRatio));
 
-  if (noiseLevel < 0.2) {
-    return null; // Quiet environment, nothing notable
+  // Estimate background activity:
+  // - Lower speaking ratio tends to mean more background relative to voice
+  // - Higher energy suggests a louder environment overall
+  // - Lower breathiness (if treated as HNR) suggests noisier signal
+  const voiceQualityNoisiness = Math.max(0, Math.min(1, 1 - (prosody.breathiness ?? 0.5)));
+  const varianceNoisiness = Math.max(0, Math.min(1, (prosody.energyVariance ?? 0) / 30));
+  const noisiness = Math.max(
+    0,
+    Math.min(1, (1 - speakingRatio) * 0.6 + energyLevel * 0.25 + voiceQualityNoisiness * 0.15)
+  );
+
+  const periodicityScore = Math.max(0, Math.min(1, 1 - varianceNoisiness));
+
+  const sounds: Array<{
+    sound: AmbientDetectionResult['sounds'][number]['sound'];
+    confidence: number;
+  }> = [];
+
+  // Quiet/private signal (also used to "clear" prior context)
+  if (energyLevel < 0.22 && noisiness < 0.35) {
+    sounds.push({ sound: 'quiet', confidence: 0.7 });
   }
 
-  // If there's significant background activity, might be in a busy place
-  if (noiseLevel > 0.4) {
-    return {
-      sounds: [
-        {
-          sound: 'crowd' as const,
-          confidence: noiseLevel,
-        },
-      ],
-      overallConfidence: noiseLevel,
-      features: {
-        energyLevel: noiseLevel,
-        frequencyProfile: 'broadband',
-        periodicityScore: 0.3,
-        noisiness: noiseLevel,
-      },
-    };
+  // Traffic-like steady noise (car/road)
+  if (
+    energyLevel > 0.45 &&
+    speakingRatio < 0.55 &&
+    (prosody.energyPeaks ?? 0) <= 2 &&
+    (prosody.energyVariance ?? 0) < 10
+  ) {
+    sounds.push({ sound: 'traffic', confidence: Math.min(0.85, 0.55 + noisiness * 0.4) });
   }
 
-  return null;
+  // Crowd/public environment (more variable + more energy peaks)
+  if (
+    energyLevel > 0.4 &&
+    speakingRatio < 0.55 &&
+    ((prosody.energyPeaks ?? 0) >= 3 || (prosody.energyVariance ?? 0) >= 12)
+  ) {
+    sounds.push({ sound: 'crowd', confidence: Math.min(0.85, 0.5 + noisiness * 0.45) });
+  }
+
+  // Wind/outside hint (noisy + breathy signal quality)
+  if (voiceQualityNoisiness > 0.7 && energyLevel > 0.3 && (prosody.pitchVariance ?? 0) < 35) {
+    sounds.push({ sound: 'wind', confidence: Math.min(0.75, 0.4 + voiceQualityNoisiness * 0.5) });
+  }
+
+  // Office/work ambience (moderate energy + moderate speaking + low peaks)
+  if (
+    energyLevel >= 0.25 &&
+    energyLevel <= 0.55 &&
+    speakingRatio >= 0.45 &&
+    (prosody.energyPeaks ?? 0) <= 2 &&
+    (prosody.pauseFrequency ?? 0) >= 5
+  ) {
+    sounds.push({ sound: 'office', confidence: 0.45 });
+  }
+
+  if (sounds.length === 0) {
+    return null;
+  }
+
+  sounds.sort((a, b) => b.confidence - a.confidence);
+  const overallConfidence = sounds[0].confidence;
+
+  return {
+    sounds,
+    overallConfidence,
+    features: {
+      energyLevel,
+      frequencyProfile:
+        sounds[0].sound === 'traffic' || sounds[0].sound === 'crowd' ? 'broadband' : 'normal',
+      periodicityScore,
+      noisiness,
+    },
+  };
 }
 
 // ============================================================================

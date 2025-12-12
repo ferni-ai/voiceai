@@ -26,25 +26,22 @@ import { TextEncoder } from 'node:util';
 import { getDJBooth } from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
-import type { PersonaConfig } from '../../personas/types.js';
 import {
   extractMemorableMoments,
   mergeMemorableMoments,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
+import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkTrialStatus } from '../../services/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
-import {
-  recordCacheAttempt,
-  recordLatency,
-} from '../../services/voice-humanization-metrics.js';
+import { recordCacheAttempt, recordLatency } from '../../services/voice-humanization-metrics.js';
 import { getHumanListeningPipeline } from '../../speech/human-listening-pipeline.js';
 import { getResponseAnticipationService } from '../../speech/response-anticipation.js';
 import type { ConversationContext as FeedbackContext } from '../../tools/feedback-collector.js';
-import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
+import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 
 // ============================================================================
@@ -101,7 +98,8 @@ export interface TranscriptHandlerResult {
 // MAIN TRANSCRIPT HANDLER
 // ============================================================================
 
-const logger = log();
+// Lazy getLogger() initialization - log() can only be called after LiveKit initializes
+const getLogger = () => log();
 
 /**
  * Set up the user transcript event handler
@@ -337,7 +335,7 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
       }
     })
     .catch((error) => {
-      logger.warn({ error }, 'Failed to process message for dynamic tool loading');
+      getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
     });
 
   // Process voice identity
@@ -482,9 +480,8 @@ function processHumanListeningPipeline(
 function processGameTopicChange(transcript: string, silenceContext: SilenceContext): void {
   void (async () => {
     try {
-      const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } = await import(
-        '../../services/games/index.js'
-      );
+      const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } =
+        await import('../../services/games/index.js');
 
       if (isGameCurrentlyActive()) {
         type GameType = import('../../services/games/types.js').GameType;
@@ -493,9 +490,8 @@ function processGameTopicChange(transcript: string, silenceContext: SilenceConte
 
         if (hasChangedTopic) {
           // User seems to have moved on from the game
-          const { getGameEngine, resetGameActivity } = await import(
-            '../../services/games/index.js'
-          );
+          const { getGameEngine, resetGameActivity } =
+            await import('../../services/games/index.js');
           const engine = getGameEngine();
           const gameSession = engine.endGame();
           resetGameActivity();
@@ -520,16 +516,11 @@ function processGameTopicChange(transcript: string, silenceContext: SilenceConte
 /**
  * Process voice identity for trust/identity context
  */
-function processVoiceIdentity(
-  sessionId: string,
-  transcript: string,
-  userData: UserData
-): void {
+function processVoiceIdentity(sessionId: string, transcript: string, userData: UserData): void {
   void (async () => {
     try {
-      const { onUserMessage } = await import(
-        '../../services/trust-and-identity/voice-agent-integration.js'
-      );
+      const { onUserMessage } =
+        await import('../../services/trust-and-identity/voice-agent-integration.js');
       const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
       const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
 
@@ -606,7 +597,7 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
       }
     } catch (e) {
       // Session flow tracking is non-critical
-      logger.debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
+      getLogger().debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
     }
   })();
 }

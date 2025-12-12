@@ -115,7 +115,7 @@ function isOriginAllowed(config: WidgetConfig, origin: string): boolean {
 function cleanExpiredSessions(): void {
   const now = Date.now();
   for (const [widgetId, sessions] of activeSessions.entries()) {
-    const validSessions = sessions.filter(s => s.expiresAt > now);
+    const validSessions = sessions.filter((s) => s.expiresAt > now);
     if (validSessions.length > 0) {
       activeSessions.set(widgetId, validSessions);
     } else {
@@ -227,10 +227,7 @@ async function handleGetWidgetConfig(
  * POST /api/widget/session
  * Creates a new widget session and returns a token
  */
-async function handleCreateSession(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleCreateSession(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseRequestBody<{
     widgetId: string;
     visitorId?: string;
@@ -301,10 +298,7 @@ async function handleCreateSession(
  * POST /api/widget/register
  * Registers a new widget (requires authentication)
  */
-async function handleRegisterWidget(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleRegisterWidget(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const userId = req.headers['x-user-id'] as string;
   if (!userId) {
     sendError(res, 'Authentication required', 401);
@@ -366,10 +360,7 @@ async function handleRegisterWidget(
  * GET /api/widget/list
  * Lists all widgets for the authenticated user
  */
-async function handleListWidgets(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleListWidgets(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const userId = req.headers['x-user-id'] as string;
   if (!userId) {
     sendError(res, 'Authentication required', 401);
@@ -384,7 +375,7 @@ async function handleListWidgets(
   }
 
   sendJsonResponse(res, 200, {
-    widgets: userWidgets.map(w => ({
+    widgets: userWidgets.map((w) => ({
       widgetId: w.widgetId,
       displayName: w.displayName,
       personaId: w.personaId,

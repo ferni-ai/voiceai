@@ -91,8 +91,13 @@ export {
   type VoiceHumanizationInitResult,
 } from './voice-humanization-init-handler.js';
 
-// Session utilities (to be added)
-// export * from './session-setup.js';
+// Session init handler
+export {
+  initializeSession,
+  type SessionInitContext,
+  type SessionInitResult,
+  type UserDataInit,
+} from './session-init-handler.js';
 
 // Speech pipeline (to be added)
 // export * from './speech-pipeline.js';

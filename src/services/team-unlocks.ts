@@ -494,6 +494,11 @@ export function isFullTeamUnlocked(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
+  // BYPASS: When env var is set, full team is considered unlocked (for testing/demo)
+  if (process.env['BYPASS_TEAM_UNLOCKS'] === 'true') {
+    return true;
+  }
+
   const state = getTeamUnlockState(profile, tier);
 
   // Check that all team members are unlocked

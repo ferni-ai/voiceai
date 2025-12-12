@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { seededChance, seededIndex } from './utils/rng.js';
 
 // ============================================================================
 // TYPES
@@ -25,6 +26,8 @@ export interface BackchannelContext {
   silenceDurationMs?: number;
   userJustSharedSomethingPersonal?: boolean;
   userAskedQuestion?: boolean;
+  /** Optional seed for deterministic selection */
+  randomSeed?: string;
 }
 
 export interface Backchannel {
@@ -270,7 +273,14 @@ export class ActiveListeningEngine {
     }
 
     // For minimal preference users, skip 50% of backchannels entirely
-    if (this.userBackchannelPreference === 'minimal' && Math.random() < 0.5) {
+    const seedBase =
+      context.randomSeed ??
+      `backchannel:${personaId}:${context.topicSeriousness ?? 'casual'}:${context.userEmotion ?? ''}:${context.userEnergy ?? ''}:${context.userAskedQuestion ? 'q' : 'nq'}:${context.userJustSharedSomethingPersonal ? 'personal' : 'normal'}`;
+
+    if (
+      this.userBackchannelPreference === 'minimal' &&
+      seededChance(`${seedBase}:minimal-skip`, 0.5)
+    ) {
       return null;
     }
 
@@ -281,10 +291,12 @@ export class ActiveListeningEngine {
     const style = PERSONA_BACKCHANNEL_STYLES[personaId];
 
     // Try persona-specific phrase first (20% chance)
-    if (style && Math.random() < 0.2) {
+    if (style && seededChance(`${seedBase}:persona-unique`, 0.2)) {
       const uniqueOfType = style.uniquePhrases.filter((p) => p.type === type);
       if (uniqueOfType.length > 0) {
-        const phrase = uniqueOfType[Math.floor(Math.random() * uniqueOfType.length)];
+        const phrase =
+          uniqueOfType[seededIndex(`${seedBase}:unique:${type}`, uniqueOfType.length)] ??
+          uniqueOfType[0];
         this.recordBackchannel(phrase.phrase);
         return {
           verbal: phrase.phrase,
@@ -316,7 +328,8 @@ export class ActiveListeningEngine {
       return null;
     }
 
-    const selected = available[Math.floor(Math.random() * available.length)];
+    const selected =
+      available[seededIndex(`${seedBase}:pick:${type}`, available.length)] ?? available[0];
     this.recordBackchannel(selected.verbal);
 
     return {
@@ -422,7 +435,10 @@ export class ActiveListeningEngine {
     }
 
     const options = emotionEchoes[intensity];
-    return options[Math.floor(Math.random() * options.length)];
+    return (
+      options[seededIndex(`echo:${userEmotion}:${intensity}:${userText}`, options.length)] ??
+      options[0]
+    );
   }
 
   /**
@@ -479,7 +495,8 @@ export class ActiveListeningEngine {
     };
 
     const options = questions[type];
-    const selected = options[Math.floor(Math.random() * options.length)];
+    const seed = `clarify:${type}:${context?.topic ?? ''}:${context?.previousStatement ?? ''}`;
+    const selected = options[seededIndex(seed, options.length)] ?? options[0];
 
     return {
       question: selected.q,
@@ -568,7 +585,14 @@ export class ActiveListeningEngine {
       return `<break time="200ms"/>Still thinking about ${context.lastTopic}?`;
     }
 
-    return prompts[Math.floor(Math.random() * prompts.length)];
+    return (
+      prompts[
+        seededIndex(
+          `gentle-prompt:${context?.userEmotion ?? ''}:${context?.lastTopic ?? ''}`,
+          prompts.length
+        )
+      ] ?? prompts[0]
+    );
   }
 
   /**
@@ -583,6 +607,7 @@ export class ActiveListeningEngine {
       userIsProcessingEmotions?: boolean;
       lastUserEmotion?: string;
       turnCount?: number;
+      randomSeed?: string;
     }
   ): Backchannel | null {
     // Evaluate if this silence warrants intervention
@@ -683,7 +708,10 @@ export class ActiveListeningEngine {
       return null;
     }
 
-    const selected = available[Math.floor(Math.random() * available.length)];
+    const seed =
+      context.randomSeed ??
+      `silence-backchannel:${personaId}:${context.turnCount ?? 0}:${context.silenceDurationMs}:${context.lastUserEmotion ?? ''}`;
+    const selected = available[seededIndex(seed, available.length)] ?? available[0];
     this.recordBackchannel(selected.verbal);
 
     getLogger().debug(
@@ -736,7 +764,10 @@ export class ActiveListeningEngine {
     }
 
     // Default distribution
-    const roll = Math.random();
+    const seed =
+      context.randomSeed ??
+      `backchannel-type:${context.topicSeriousness ?? 'casual'}:${context.userEmotion ?? ''}:${context.userEnergy ?? ''}:${context.userAskedQuestion ? 'q' : 'nq'}:${context.userJustSharedSomethingPersonal ? 'personal' : 'normal'}`;
+    const roll = seededIndex(`${seed}:roll`, 1000) / 1000;
     if (roll < 0.4) return 'acknowledgment';
     if (roll < 0.6) return 'encouragement';
     if (roll < 0.8) return 'curiosity';

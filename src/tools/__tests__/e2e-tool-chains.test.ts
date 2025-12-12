@@ -346,11 +346,11 @@ describe('E2E Tool Chains', () => {
       const chain: ChainStep[] = [
         {
           toolId: 'morningSkyCheck',
-          params: { mood: 'partly-cloudy', energy: 'medium' },
+          params: { mode: 'record-weather', weather: 'partly-cloudy', energy: 'medium' },
         },
         {
           toolId: 'questionOfTheWeek',
-          params: {},
+          params: { mode: 'get-question' },
         },
       ];
 
@@ -385,7 +385,7 @@ describe('E2E Tool Chains', () => {
         },
         {
           toolId: 'celebrationMoment',
-          params: { achievement: '30-day streak', celebrationType: 'milestone' },
+          params: { achievement: '30-day streak', scale: 'big', personaStyle: 'ferni' },
         },
       ];
 

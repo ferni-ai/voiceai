@@ -613,27 +613,49 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
         // FIX: STEP 6 (was 7): Update persona & LLM instructions BEFORE speaking greeting
         // This ensures the LLM has the correct identity when the tool returns
+        // FIX BUG #3: Add retry logic for setPersona failure
         let instructionsUpdated = false;
-        try {
-          // FIX BUG #51: Use cached persona lookup
-          const loadedPersona = await getPersonaAsyncCached(persona.id);
-          const voiceAgentRef = getVoiceAgentRef();
+        const MAX_PERSONA_RETRIES = 2;
 
-          if (loadedPersona && voiceAgentRef) {
-            voiceAgentRef.setPersona(loadedPersona);
-            instructionsUpdated = true;
-            diag.entry(`🎭 Persona & LLM instructions updated to ${persona.name}`);
+        for (let attempt = 0; attempt <= MAX_PERSONA_RETRIES && !instructionsUpdated; attempt++) {
+          try {
+            // FIX BUG #51: Use cached persona lookup
+            const loadedPersona = await getPersonaAsyncCached(persona.id);
+            const voiceAgentRef = getVoiceAgentRef();
+
+            if (loadedPersona && voiceAgentRef) {
+              voiceAgentRef.setPersona(loadedPersona);
+              instructionsUpdated = true;
+              diag.entry(
+                `🎭 Persona & LLM instructions updated to ${persona.name}${attempt > 0 ? ` (retry ${attempt})` : ''}`
+              );
+            } else if (!loadedPersona) {
+              throw new Error(`Persona ${persona.id} not found`);
+            } else if (!voiceAgentRef) {
+              throw new Error('VoiceAgent ref not available');
+            }
+          } catch (personaErr) {
+            if (attempt < MAX_PERSONA_RETRIES) {
+              logger.warn(
+                { personaId: persona.id, attempt: attempt + 1, error: String(personaErr) },
+                `⚠️ Persona update failed (attempt ${attempt + 1}), retrying in 100ms...`
+              );
+              await new Promise<void>((resolve) => setTimeout(resolve, 100));
+            } else {
+              // FIX BUG #49: Graceful degradation - handoff proceeds but with basic instructions
+              logger.warn(
+                {
+                  personaId: persona.id,
+                  error: String(personaErr),
+                  attempts: MAX_PERSONA_RETRIES + 1,
+                },
+                '⚠️ Persona update failed after retries - handoff continues with existing configuration'
+              );
+              diag.warn(
+                `Persona async load failed for ${persona.name} after ${MAX_PERSONA_RETRIES + 1} attempts`
+              );
+            }
           }
-        } catch (personaErr) {
-          // FIX BUG #49: Graceful degradation - handoff proceeds but with basic instructions
-          logger.warn(
-            {
-              personaId: persona.id,
-              error: String(personaErr),
-            },
-            '⚠️ Persona update failed - handoff continues with existing configuration'
-          );
-          diag.warn(`Persona async load failed for ${persona.name}, using cached version`);
         }
 
         // FIX: STEP 7 (was 6): Speak greeting AFTER instructions are updated
@@ -808,17 +830,36 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             }
           }
 
+          // FIX BUG #4: Recovery 3: If bundle persona doesn't match, reload bundle runtime
+          if (voiceAgentRef && validation.bundlePersona !== persona.id) {
+            try {
+              const { loadBundleById, createBundleRuntime } = await getBundleFunctionsCached();
+              const newBundle = await loadBundleById(persona.id);
+              if (newBundle) {
+                const newRuntime = await createBundleRuntime(newBundle);
+                newRuntime.updateState({ personaId: persona.id });
+                voiceAgentRef.setBundleRuntime(newRuntime);
+                recoveryAttempted = true;
+                diag.entry(`🔧 RECOVERY: Reloaded bundle runtime for ${persona.name}`);
+              }
+            } catch (bundleRecoveryErr) {
+              logger.error({ error: String(bundleRecoveryErr) }, 'Recovery bundle reload failed');
+            }
+          }
+
           // Re-validate after recovery
           if (recoveryAttempted) {
             const postRecoveryValidation = {
               expectedAgent: persona.id,
               voiceAgentPersona: voiceAgentRef?.getPersona()?.id,
               llmInstructionsSet: !!voiceAgentRef?.instructions,
+              bundlePersona: voiceAgentRef?.getBundleRuntime()?.getState().personaId,
             };
 
             const isNowConsistent =
               postRecoveryValidation.voiceAgentPersona === persona.id &&
-              postRecoveryValidation.llmInstructionsSet;
+              postRecoveryValidation.llmInstructionsSet &&
+              postRecoveryValidation.bundlePersona === persona.id;
 
             if (isNowConsistent) {
               logger.info({ persona: persona.id }, '✅ RECOVERY SUCCESSFUL - Identity restored');
@@ -965,7 +1006,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       );
 
       // Add to queue (limit queue size to prevent memory issues)
-      if (state.pendingHandoffs.length < 5) {
+      // FIX ISSUE #5: Increased from 5 to 10 to handle rapid persona switches better
+      // (e.g., during testing or unusual conversation patterns)
+      if (state.pendingHandoffs.length < 10) {
         state.pendingHandoffs.push(data);
       } else {
         logger.warn(

@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { recordPredictiveInsightFeedback } from '../services/predictive-insights/feedback-store.js';
 import { runPredictiveAnalysis } from '../services/predictive-insights/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -129,8 +130,8 @@ async function handleInsightFeedback(
   try {
     const body = await parseBody(req);
     const insightId = body.insightId as string;
-    const helpful = body.helpful as boolean;
-    const accurate = body.accurate as boolean;
+    const helpful = body.helpful as boolean | undefined;
+    const accurate = body.accurate as boolean | undefined;
     const notes = body.notes as string | undefined;
 
     if (!insightId) {
@@ -138,12 +139,28 @@ async function handleInsightFeedback(
       return;
     }
 
-    // Store feedback (could use for improving predictions)
     log.info({ userId, insightId, helpful, accurate, notes }, '📝 Insight feedback received');
 
-    // TODO: Store feedback for model improvement
+    const result = await recordPredictiveInsightFeedback({
+      userId,
+      insightId,
+      helpful,
+      accurate,
+      notes,
+      source: 'api',
+    });
 
-    sendJson(res, { success: true, recorded: true });
+    if (!result.ok) {
+      // Graceful fallback: endpoint still acknowledges receipt, but flags storage issue.
+      sendJson(res, {
+        success: true,
+        recorded: false,
+        reason: 'reason' in result ? result.reason : 'unknown',
+      });
+      return;
+    }
+
+    sendJson(res, { success: true, recorded: true, id: result.id });
   } catch (error) {
     log.error({ error, userId }, 'Failed to record feedback');
     sendError(res, 'Failed to record feedback', 500);

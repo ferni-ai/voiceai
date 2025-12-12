@@ -47,17 +47,11 @@ export interface NaturalSpeechConfig {
 // ============================================================================
 
 const FILLERS: Record<string, string[]> = {
-  warm: [
-    'You know what,',
-    'I was just thinking,',
-    'Here\'s the thing—',
-    'Honestly,',
-    'I mean,',
-  ],
+  warm: ['You know what,', 'I was just thinking,', "Here's the thing—", 'Honestly,', 'I mean,'],
   thoughtful: [
     'Hmm,',
     'Let me think about that...',
-    'That\'s interesting because...',
+    "That's interesting because...",
     'The thing is,',
     'I wonder if...',
   ],
@@ -65,16 +59,10 @@ const FILLERS: Record<string, string[]> = {
     'Oh!',
     'Wait—',
     'Okay so,',
-    'Here\'s what I think—',
+    "Here's what I think—",
     'You know what I love about that?',
   ],
-  calm: [
-    'Well,',
-    'You see,',
-    'The way I see it,',
-    'In my experience,',
-    'I think...',
-  ],
+  calm: ['Well,', 'You see,', 'The way I see it,', 'In my experience,', 'I think...'],
 };
 
 const HEDGES: Record<string, string[]> = {
@@ -82,69 +70,56 @@ const HEDGES: Record<string, string[]> = {
     'I might be wrong, but',
     'From what I can tell,',
     'It seems like',
-    'If I\'m understanding right,',
+    "If I'm understanding right,",
   ],
   thoughtful: [
     'I could be off here, but',
     'My sense is',
     'It appears that',
-    'Based on what you\'ve shared,',
+    "Based on what you've shared,",
   ],
-  energetic: [
-    'I\'m not 100% sure but',
-    'This might just be me but',
-    'I could be totally wrong—',
-  ],
-  calm: [
-    'Perhaps',
-    'It may be that',
-    'One possibility is',
-    'It could be',
-  ],
+  energetic: ["I'm not 100% sure but", 'This might just be me but', 'I could be totally wrong—'],
+  calm: ['Perhaps', 'It may be that', 'One possibility is', 'It could be'],
 };
 
 const THINKING_ALOUD: Record<string, string[]> = {
   warm: [
     'Let me sit with that for a second...',
-    'Okay, I\'m processing...',
+    "Okay, I'm processing...",
     'Give me a moment to think about that properly...',
     'I want to give that the thought it deserves...',
   ],
   thoughtful: [
     'Let me consider that...',
-    'I\'m turning that over in my mind...',
-    'There\'s something there...',
+    "I'm turning that over in my mind...",
+    "There's something there...",
     'I want to think about this carefully...',
   ],
   energetic: [
     'Okay okay okay, let me think—',
-    'Wait, I\'m having a thought—',
-    'Hold on, something\'s clicking—',
+    "Wait, I'm having a thought—",
+    "Hold on, something's clicking—",
   ],
-  calm: [
-    'Let me reflect on that...',
-    'I\'m taking that in...',
-    'That\'s worth sitting with...',
-  ],
+  calm: ['Let me reflect on that...', "I'm taking that in...", "That's worth sitting with..."],
 };
 
 const SELF_CORRECTIONS: Record<string, string[]> = {
   warm: [
     'Actually, wait—let me rephrase that.',
     'No, that came out wrong. What I mean is—',
-    'Actually, that\'s not quite right. What I really think is—',
+    "Actually, that's not quite right. What I really think is—",
     'Hmm, let me try that again—',
   ],
   thoughtful: [
     'Actually, I want to revise that.',
     'No, let me be more precise—',
-    'That\'s not exactly what I mean. Let me clarify—',
+    "That's not exactly what I mean. Let me clarify—",
     'I should put that differently—',
   ],
   energetic: [
     'Wait no—scratch that—',
     'Actually! No. What I meant was—',
-    'Okay that didn\'t come out right—',
+    "Okay that didn't come out right—",
   ],
   calm: [
     'Let me put that another way.',
@@ -158,66 +133,33 @@ const EMPHASIS: Record<string, string[]> = {
     'And I really mean that.',
     'I want you to hear this—',
     'This is important—',
-    'Don\'t skip over this part—',
+    "Don't skip over this part—",
   ],
-  thoughtful: [
-    'And I say that with intention.',
-    'This matters—',
-    'Pay attention to this part—',
-  ],
-  energetic: [
-    'Seriously!',
-    'I\'m not just saying that!',
-    'This is actually huge—',
-  ],
-  calm: [
-    'And I mean that genuinely.',
-    'This is significant.',
-    'Take this in—',
-  ],
+  thoughtful: ['And I say that with intention.', 'This matters—', 'Pay attention to this part—'],
+  energetic: ['Seriously!', "I'm not just saying that!", 'This is actually huge—'],
+  calm: ['And I mean that genuinely.', 'This is significant.', 'Take this in—'],
 };
 
 const PERSONAL_ASIDES: Record<string, string[]> = {
   warm: [
     '(And between you and me,',
     '(Can I be honest with you?',
-    '(This is something I don\'t say to everyone, but',
+    "(This is something I don't say to everyone, but",
   ],
-  thoughtful: [
-    '(And speaking personally,',
-    '(I\'ll share something with you—',
-  ],
-  energetic: [
-    '(Okay real talk—',
-    '(Between us—',
-  ],
-  calm: [
-    '(I\'ll tell you something—',
-    '(Just between us—',
-  ],
+  thoughtful: ['(And speaking personally,', "(I'll share something with you—"],
+  energetic: ['(Okay real talk—', '(Between us—'],
+  calm: ["(I'll tell you something—", '(Just between us—'],
 };
 
 const RELATABLE_MOMENTS: Record<string, string[]> = {
-  warm: [
-    'I get it—I\'ve been there.',
-    'I totally know that feeling.',
-    'Oh, I so relate to that.',
-  ],
+  warm: ["I get it—I've been there.", 'I totally know that feeling.', 'Oh, I so relate to that.'],
   thoughtful: [
     'That resonates with me.',
-    'I\'ve experienced something similar.',
+    "I've experienced something similar.",
     'I understand that deeply.',
   ],
-  energetic: [
-    'Oh my gosh, same!',
-    'I know EXACTLY what you mean!',
-    'Yes! I\'ve felt that too!',
-  ],
-  calm: [
-    'I understand.',
-    'That makes sense to me.',
-    'I hear you.',
-  ],
+  energetic: ['Oh my gosh, same!', 'I know EXACTLY what you mean!', "Yes! I've felt that too!"],
+  calm: ['I understand.', 'That makes sense to me.', 'I hear you.'],
 };
 
 // ============================================================================
@@ -268,7 +210,7 @@ export function getSpeechModification(
     if (random <= 0) {
       const patterns = getPatternPool(type, style);
       const insertion = patterns[Math.floor(Math.random() * patterns.length)];
-      
+
       return {
         type,
         insertion,
@@ -318,10 +260,7 @@ export function addNaturalSpeech(
 
   // Get a modification for emphasis (end)
   const endMod = context.needsEmphasis
-    ? getSpeechModification(
-        { ...config, enabledPatterns: ['emphasis'] },
-        { needsEmphasis: true }
-      )
+    ? getSpeechModification({ ...config, enabledPatterns: ['emphasis'] }, { needsEmphasis: true })
     : null;
 
   let modified = response;

@@ -24,6 +24,10 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  fetchRecentEvaluations as fetchRecentEvaluationsFromFirestore,
+  persistEvaluation,
+} from './evaluation-persistence.js';
+import {
   DEFAULT_SAMPLING_CONFIG,
   evaluateResponse,
   evaluateVoiceConsistency,
@@ -216,6 +220,9 @@ function storeEvaluation(sessionId: string, evaluation: ResponseEvaluation): voi
     evaluationStore.shift();
   }
 
+  // Persist asynchronously (never block)
+  void persistEvaluation({ ...evaluation, sessionId }).catch(() => undefined);
+
   // Record to activity log
   if (evaluation.flagged) {
     // Find the lowest scoring dimension
@@ -241,10 +248,16 @@ function storeEvaluation(sessionId: string, evaluation: ResponseEvaluation): voi
 /**
  * Get recent evaluations
  */
-export function getRecentEvaluations(
+export async function getRecentEvaluations(
   limit = 50,
   filters?: { personaId?: string; flagged?: boolean }
-): StoredEvaluation[] {
+): Promise<StoredEvaluation[]> {
+  const fromFirestore = await fetchRecentEvaluationsFromFirestore(limit, filters);
+  if (fromFirestore.length > 0) {
+    // Ensure sessionId exists (ResponseEvaluation has it; StoredEvaluation expects it too)
+    return fromFirestore.map((e) => ({ ...(e as StoredEvaluation), sessionId: e.sessionId }));
+  }
+
   let results = [...evaluationStore];
 
   if (filters?.personaId) {
@@ -260,8 +273,8 @@ export function getRecentEvaluations(
 /**
  * Get flagged evaluations
  */
-export function getFlaggedEvaluations(limit = 20): StoredEvaluation[] {
-  return getRecentEvaluations(limit, { flagged: true });
+export async function getFlaggedEvaluations(limit = 20): Promise<StoredEvaluation[]> {
+  return await getRecentEvaluations(limit, { flagged: true });
 }
 
 /**

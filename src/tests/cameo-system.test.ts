@@ -68,16 +68,50 @@ const createMockDetectionContext = (
 // Mock the timing module to use fast timers for tests
 vi.mock('../services/cameo/cameo-timing.js', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
+  const timing = {
+    ...(original.CAMEO_TIMING as Record<string, unknown>),
+    ARRIVAL_DELAY: 10, // 10ms instead of 400ms
+    RETURN_DELAY: 10, // 10ms instead of 300ms
+    MAX_DURATION: 5000, // 5s instead of 15s for tests
+    HANDLER_TIMEOUT: 30, // 30ms instead of 10s for tests
+    COOLDOWN: 100, // 100ms instead of 30s
+    CELEBRATION_COOLDOWN: 50, // 50ms instead of 20s
+    HIGH_PRIORITY_COOLDOWN: 40, // 40ms instead of 30s
+  };
+
+  function getCooldownForPriority(priority: 'normal' | 'high' | 'celebration'): number {
+    switch (priority) {
+      case 'celebration':
+        return (timing.CELEBRATION_COOLDOWN as number) || 0;
+      case 'high':
+        return (timing.HIGH_PRIORITY_COOLDOWN as number) || 0;
+      default:
+        return (timing.COOLDOWN as number) || 0;
+    }
+  }
+
+  function isCooldownExpired(
+    lastCameoEndTime: number,
+    priority: 'normal' | 'high' | 'celebration' = 'normal'
+  ): boolean {
+    return Date.now() - lastCameoEndTime >= getCooldownForPriority(priority);
+  }
+
+  function getRemainingCooldown(
+    lastCameoEndTime: number,
+    priority: 'normal' | 'high' | 'celebration' = 'normal'
+  ): number {
+    const cooldown = getCooldownForPriority(priority);
+    const elapsed = Date.now() - lastCameoEndTime;
+    return Math.max(0, cooldown - elapsed);
+  }
+
   return {
     ...original,
-    CAMEO_TIMING: {
-      ...(original.CAMEO_TIMING as Record<string, unknown>),
-      ARRIVAL_DELAY: 10, // 10ms instead of 400ms
-      RETURN_DELAY: 10, // 10ms instead of 300ms
-      MAX_DURATION: 5000, // 5s instead of 15s for tests
-      COOLDOWN: 100, // 100ms instead of 30s
-      CELEBRATION_COOLDOWN: 50, // 50ms instead of 10s
-    },
+    CAMEO_TIMING: timing,
+    getCooldownForPriority,
+    isCooldownExpired,
+    getRemainingCooldown,
   };
 });
 
@@ -148,15 +182,16 @@ describe('Cameo Orchestrator', () => {
       expect(result.cooldownRemaining).toBeGreaterThan(0);
     });
 
-    // Note: This test validates cooldown logic but requires real time (30s+ wait)
-    // Skipped in CI - run manually for cooldown validation
-    it.skip('should allow celebration cameos with shorter cooldown', async () => {
+    it('should allow celebration cameos with shorter cooldown', async () => {
       // Execute and complete first cameo
       await executeCameo({ personaId: 'peter-john', triggerType: 'data_insight' }, { sessionId });
       await endCameo(sessionId);
 
-      // Would need to wait 10+ seconds for celebration cooldown to expire
-      // Celebration cameo should work with priority: 'celebration'
+      // With mocked timing constants, celebration cooldown is short but non-zero.
+      await new Promise((resolve) => {
+        setTimeout(resolve, 60);
+      });
+
       const result = await executeCameo(
         {
           personaId: 'jordan-taylor',
@@ -467,25 +502,40 @@ describe('Cameo Content Generation', () => {
 // for fast orchestrator tests. We skip these when mocked.
 // ============================================================================
 
-describe.skip('Cameo Timing (skipped - module is mocked for fast tests)', () => {
-  it('should have reasonable timing constants', () => {
-    expect(CAMEO_TIMING.ARRIVAL_DELAY).toBeGreaterThanOrEqual(100);
-    expect(CAMEO_TIMING.ARRIVAL_DELAY).toBeLessThanOrEqual(1000);
+describe('Cameo Timing (production constants)', () => {
+  it('should have reasonable timing constants', async () => {
+    // cameo-timing is mocked in this test file for orchestrator speed.
+    // For production constants, import the real module directly.
+    const mod = (await vi.importActual('../services/cameo/cameo-timing.js')) as {
+      CAMEO_TIMING: typeof CAMEO_TIMING;
+    };
+    const REAL = mod.CAMEO_TIMING;
 
-    expect(CAMEO_TIMING.RETURN_DELAY).toBeGreaterThanOrEqual(100);
-    expect(CAMEO_TIMING.RETURN_DELAY).toBeLessThanOrEqual(1000);
+    expect(REAL.ARRIVAL_DELAY).toBeGreaterThanOrEqual(100);
+    expect(REAL.ARRIVAL_DELAY).toBeLessThanOrEqual(1000);
 
-    expect(CAMEO_TIMING.MAX_DURATION).toBeGreaterThanOrEqual(10000);
-    expect(CAMEO_TIMING.MAX_DURATION).toBeLessThanOrEqual(30000);
+    expect(REAL.RETURN_DELAY).toBeGreaterThanOrEqual(100);
+    expect(REAL.RETURN_DELAY).toBeLessThanOrEqual(1000);
 
-    expect(CAMEO_TIMING.COOLDOWN).toBeGreaterThanOrEqual(30000);
+    expect(REAL.MAX_DURATION).toBeGreaterThanOrEqual(10000);
+    expect(REAL.MAX_DURATION).toBeLessThanOrEqual(30000);
+
+    expect(REAL.COOLDOWN).toBeGreaterThanOrEqual(30000);
   });
 
-  it('should have celebration cooldown shorter than normal', () => {
-    expect(CAMEO_TIMING.CELEBRATION_COOLDOWN).toBeLessThan(CAMEO_TIMING.COOLDOWN);
+  it('should have celebration cooldown shorter than normal', async () => {
+    const mod = (await vi.importActual('../services/cameo/cameo-timing.js')) as {
+      CAMEO_TIMING: typeof CAMEO_TIMING;
+    };
+    const REAL = mod.CAMEO_TIMING;
+    expect(REAL.CELEBRATION_COOLDOWN).toBeLessThan(REAL.COOLDOWN);
   });
 
-  it('should have high priority cooldown shorter than normal', () => {
-    expect(CAMEO_TIMING.HIGH_PRIORITY_COOLDOWN).toBeLessThan(CAMEO_TIMING.COOLDOWN);
+  it('should have high priority cooldown shorter than normal', async () => {
+    const mod = (await vi.importActual('../services/cameo/cameo-timing.js')) as {
+      CAMEO_TIMING: typeof CAMEO_TIMING;
+    };
+    const REAL = mod.CAMEO_TIMING;
+    expect(REAL.HIGH_PRIORITY_COOLDOWN).toBeLessThan(REAL.COOLDOWN);
   });
 });

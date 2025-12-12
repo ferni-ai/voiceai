@@ -363,6 +363,26 @@ export function getOrComputeDetection<T>(key: string, compute: () => T): T {
 }
 
 /**
+ * Get or compute cached detection, also returning whether it was a cache hit.
+ *
+ * NOTE: This treats `undefined` as a cache miss. Detection functions in this
+ * module should return defined values (booleans/objects), so this is fine.
+ */
+export function getOrComputeDetectionWithHit<T>(
+  key: string,
+  compute: () => T
+): { value: T; hit: boolean } {
+  const cached = getCachedDetection<T>(key);
+  if (cached !== undefined) {
+    return { value: cached, hit: true };
+  }
+
+  const value = compute();
+  setCachedDetection(key, value);
+  return { value, hit: false };
+}
+
+/**
  * Clear detection cache
  */
 export function clearDetectionCache(): void {

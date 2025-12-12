@@ -18,12 +18,13 @@ import { getLogger } from '../utils/safe-logger.js';
 
 // Import shared detection utilities (re-export for backwards compatibility)
 import {
-  detectUserEnergy as sharedDetectUserEnergy,
   detectEmotionalContent as sharedDetectEmotionalContent,
   detectHeavyContent as sharedDetectHeavyContent,
-  HEAVY_CONTENT_PATTERNS,
+  detectUserEnergy as sharedDetectUserEnergy,
   type EnergyLevel,
 } from './utils/detection.js';
+
+import { chance, createSeededRandom, createSystemRandom, type RandomSource } from './utils/rng.js';
 
 const log = getLogger().child({ module: 'VocalHumanization' });
 
@@ -48,6 +49,12 @@ export interface VocalContext {
   isMeaningfulMoment?: boolean;
   /** Previous user message (for energy detection) */
   userMessage?: string;
+  /**
+   * Optional random source/seed to make behavior deterministic per session/turn.
+   * If omitted, falls back to system randomness.
+   */
+  rng?: RandomSource;
+  randomSeed?: string;
 }
 
 export interface VocalProfile {
@@ -392,7 +399,12 @@ export function addIntakeBreath(text: string, context: VocalContext): string {
     breathOptions = INTAKE_BREATHS.thoughtful;
   }
 
-  const breath = breathOptions[Math.floor(Math.random() * breathOptions.length)];
+  const rng =
+    context.rng ??
+    (context.randomSeed
+      ? createSeededRandom(`${context.randomSeed}:vocal-breath`)
+      : createSystemRandom());
+  const breath = breathOptions[rng.nextInt(breathOptions.length)];
 
   return `${breath}${text}`;
 }
@@ -461,8 +473,14 @@ function applyEmotionEffect(text: string, effect: string, pattern: RegExp): stri
  * Not every response, but when natural
  */
 export function addMidSentenceReactions(text: string, context: VocalContext): string {
+  const rng =
+    context.rng ??
+    (context.randomSeed
+      ? createSeededRandom(`${context.randomSeed}:vocal-mid-reaction`)
+      : createSystemRandom());
+
   // Only occasionally add mid-sentence reactions
-  if (Math.random() > 0.15) return text;
+  if (!chance(rng, 0.15)) return text;
 
   // Don't add to short responses
   if (text.length < 100) return text;
@@ -477,11 +495,12 @@ export function addMidSentenceReactions(text: string, context: VocalContext): st
   ];
 
   let result = text;
-  const usedOne = false;
+  let usedOne = false;
 
   for (const { trigger, insert } of reactions) {
-    if (!usedOne && trigger.test(result) && Math.random() < 0.3) {
+    if (!usedOne && trigger.test(result) && chance(rng, 0.3)) {
       result = result.replace(trigger, insert);
+      usedOne = true;
       break; // Only one mid-sentence reaction per response
     }
   }
@@ -499,6 +518,13 @@ export function addMidSentenceReactions(text: string, context: VocalContext): st
 export function humanizeVocals(text: string, context: VocalContext): HumanizedVocals {
   const appliedFeatures: string[] = [];
   let result = text;
+
+  const rng =
+    context.rng ??
+    (context.randomSeed
+      ? createSeededRandom(`${context.randomSeed}:vocal-main:${context.turnNumber ?? 0}`)
+      : createSystemRandom());
+  context.rng = rng;
 
   // 1. Detect user energy if not provided
   const userEnergy = context.userEnergy || detectUserEnergy(context.userMessage || '');

@@ -10,12 +10,13 @@
  * @module tests/speech-naturalizer
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getSpeechNaturalizer,
   resetSpeechNaturalizer,
-  type SpeechNaturalizer,
+  SpeechNaturalizer,
+  type SpeechNaturalizer as SpeechNaturalizerInstance,
 } from '../conversation/speech-naturalizer.js';
 
 // ============================================================================
@@ -23,7 +24,7 @@ import {
 // ============================================================================
 
 describe('SpeechNaturalizer', () => {
-  let naturalizer: SpeechNaturalizer;
+  let naturalizer: SpeechNaturalizerInstance;
 
   beforeEach(() => {
     resetSpeechNaturalizer();
@@ -346,6 +347,67 @@ describe('SpeechNaturalizer', () => {
           naturalizer.naturalize(`Test sentence ${i}`, 'ferni', { turnNumber: i });
         }
       }).not.toThrow();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Deterministic Randomness (seeded)
+  // --------------------------------------------------------------------------
+
+  describe('Deterministic Randomness', () => {
+    it('should be deterministic when randomSeed is provided', () => {
+      const text = 'This is a test sentence for deterministic naturalization.';
+
+      // Use fresh instances to avoid stateful anti-repetition logic influencing output.
+      const a = new SpeechNaturalizer({
+        enabled: true,
+        frequency: 1,
+        contextSensitivity: false,
+      }).naturalize(text, 'ferni', { turnNumber: 5, randomSeed: 'session-1:turn-5' });
+
+      const b = new SpeechNaturalizer({
+        enabled: true,
+        frequency: 1,
+        contextSensitivity: false,
+      }).naturalize(text, 'ferni', { turnNumber: 5, randomSeed: 'session-1:turn-5' });
+
+      expect(a).toBe(b);
+    });
+
+    it('should not call Math.random when randomSeed is provided', () => {
+      const seeded = new SpeechNaturalizer({
+        enabled: true,
+        frequency: 1,
+        contextSensitivity: false,
+      });
+      const text = 'This is a test sentence for deterministic naturalization.';
+
+      const spy = vi.spyOn(Math, 'random');
+      try {
+        seeded.naturalize(text, 'ferni', { turnNumber: 5, randomSeed: 'session-2:turn-5' });
+        // In seeded mode, we should not rely on Math.random() at all.
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('should make getThinkingPhrase deterministic when randomSeed is provided', () => {
+      const seeded = new SpeechNaturalizer({
+        enabled: true,
+        frequency: 1,
+        contextSensitivity: false,
+      });
+
+      const a = seeded.getThinkingPhrase('ferni', 'processing', {
+        randomSeed: 'session-3:thinking',
+      });
+      const b = seeded.getThinkingPhrase('ferni', 'processing', {
+        randomSeed: 'session-3:thinking',
+      });
+
+      expect(a.phrase).toBe(b.phrase);
+      expect(a.ssml).toBe(b.ssml);
     });
   });
 });

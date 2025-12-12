@@ -469,4 +469,3 @@ export function resetAwarenessMetrics(sessionId: string): void {
 export function resetAllAwarenessMetrics(): void {
   sessionMetrics.clear();
 }
-

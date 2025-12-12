@@ -45,6 +45,13 @@ import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext
 import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
+// Evaluation / heuristics
+export {
+  evaluateConversationQuality,
+  type ConversationQualityInput,
+  type ConversationQualityScore,
+} from './eval/index.js';
+
 // Emotional Arc Tracking
 export {
   EmotionalArcTracker,

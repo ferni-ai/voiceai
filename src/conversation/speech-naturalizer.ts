@@ -11,6 +11,8 @@
  * These "imperfections" are what make human speech feel authentic.
  */
 
+import { chance, createSeededRandom, createSystemRandom, type RandomSource } from './utils/rng.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -29,12 +31,29 @@ export interface NaturalizationContext {
   isResponding?: boolean; // vs initiating
   turnNumber?: number;
   userEnergy?: 'high' | 'medium' | 'low';
+  /**
+   * Optional random source/seed to make behavior deterministic per session/turn.
+   * If omitted, falls back to system randomness.
+   */
+  rng?: RandomSource;
+  randomSeed?: string;
 }
 
 export interface ThinkingPattern {
   type: 'processing' | 'recalling' | 'considering' | 'uncertain';
   phrase: string;
   ssml: string;
+}
+
+interface RandomOptions {
+  rng?: RandomSource;
+  randomSeed?: string;
+}
+
+function getRng(options: RandomOptions | undefined, salt: string): RandomSource {
+  if (options?.rng) return options.rng;
+  if (options?.randomSeed) return createSeededRandom(`${options.randomSeed}:${salt}`);
+  return createSystemRandom();
 }
 
 // ============================================================================
@@ -80,7 +99,7 @@ const PERSONA_DISFLUENCIES: Record<
       'Hmm... let me sit with that.',
       "That's a powerful question...",
       "I'm feeling into this...",
-      '<break time="300ms"/>You know what...',
+      'You know what...',
     ],
   },
   'peter-john': {
@@ -186,17 +205,18 @@ export class SpeechNaturalizer {
     }
 
     // Decide what to add
-    const roll = Math.random();
+    const rng = getRng(context, `speech-naturalize:${personaId}:${context.turnNumber ?? 0}`);
+    const roll = rng.nextFloat();
 
     if (roll < effectiveFrequency * 0.4) {
       // Add opening filler
-      result = this.addOpeningFiller(result, patterns);
+      result = this.addOpeningFiller(result, patterns, rng);
     } else if (roll < effectiveFrequency * 0.7) {
       // Add mid-sentence hedge
-      result = this.addHedge(result, patterns);
+      result = this.addHedge(result, patterns, rng);
     } else if (roll < effectiveFrequency) {
       // Add thinking phrase
-      result = this.addThinkingPhrase(result, patterns, context);
+      result = this.addThinkingPhrase(result, patterns, context, rng);
     }
 
     return result;
@@ -205,9 +225,18 @@ export class SpeechNaturalizer {
   /**
    * Generate a self-correction/repair
    */
-  generateRepair(originalStatement: string, correctedStatement: string, personaId: string): string {
+  generateRepair(
+    originalStatement: string,
+    correctedStatement: string,
+    personaId: string,
+    options?: RandomOptions
+  ): string {
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
-    const repair = patterns.repairs[Math.floor(Math.random() * patterns.repairs.length)];
+    const rng = getRng(
+      options,
+      `speech-repair:${personaId}:${originalStatement}:${correctedStatement}`
+    );
+    const repair = patterns.repairs[rng.nextInt(patterns.repairs.length)];
 
     return `${originalStatement}<break time="200ms"/> ${repair} ${correctedStatement}`;
   }
@@ -217,9 +246,11 @@ export class SpeechNaturalizer {
    */
   getThinkingPhrase(
     personaId: string,
-    type: ThinkingPattern['type'] = 'processing'
+    type: ThinkingPattern['type'] = 'processing',
+    options?: RandomOptions
   ): ThinkingPattern {
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
+    const rng = getRng(options, `speech-thinking:${personaId}:${type}`);
 
     const typeSpecific: Record<ThinkingPattern['type'], string[]> = {
       processing: ['Let me think about that...', 'Hmm...', "That's an interesting point..."],
@@ -238,7 +269,7 @@ export class SpeechNaturalizer {
 
     // Mix persona-specific and type-specific
     const candidates = [...patterns.thinkingPhrases, ...typeSpecific[type]];
-    const phrase = candidates[Math.floor(Math.random() * candidates.length)];
+    const phrase = candidates[rng.nextInt(candidates.length)];
 
     return {
       type,
@@ -250,8 +281,13 @@ export class SpeechNaturalizer {
   /**
    * Generate a hedge appropriate to the statement
    */
-  getHedge(personaId: string, strength: 'soft' | 'medium' | 'strong' = 'medium'): string {
+  getHedge(
+    personaId: string,
+    strength: 'soft' | 'medium' | 'strong' = 'medium',
+    options?: RandomOptions
+  ): string {
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
+    const rng = getRng(options, `speech-hedge:${personaId}:${strength}`);
 
     const hedgesByStrength = {
       soft: ['I think', 'Maybe', 'Perhaps'],
@@ -259,21 +295,27 @@ export class SpeechNaturalizer {
       strong: ["I'm not certain, but", 'If I had to guess,', 'This could be wrong, but'],
     };
 
-    const personalHedge = patterns.hedges[Math.floor(Math.random() * patterns.hedges.length)];
+    const personalHedge = patterns.hedges[rng.nextInt(patterns.hedges.length)];
     const strengthHedge =
-      hedgesByStrength[strength][Math.floor(Math.random() * hedgesByStrength[strength].length)];
+      hedgesByStrength[strength][rng.nextInt(hedgesByStrength[strength].length)];
 
     // Randomly pick between personal and strength-based
-    return Math.random() < 0.6 ? personalHedge : strengthHedge;
+    return chance(rng, 0.6) ? personalHedge : strengthHedge;
   }
 
   /**
    * Wrap text with uncertainty markers
    */
-  addUncertainty(text: string, personaId: string, level: 'low' | 'medium' | 'high'): string {
+  addUncertainty(
+    text: string,
+    personaId: string,
+    level: 'low' | 'medium' | 'high',
+    options?: RandomOptions
+  ): string {
     const hedge = this.getHedge(
       personaId,
-      level === 'high' ? 'strong' : level === 'medium' ? 'medium' : 'soft'
+      level === 'high' ? 'strong' : level === 'medium' ? 'medium' : 'soft',
+      options
     );
 
     // Determine where to add hedge
@@ -282,7 +324,7 @@ export class SpeechNaturalizer {
     }
 
     // For lower levels, sometimes add at start, sometimes embed
-    if (Math.random() < 0.5) {
+    if (chance(getRng(options, `speech-uncertainty:${personaId}:${level}:${text}`), 0.5)) {
       return `${hedge}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
     }
 
@@ -299,7 +341,11 @@ export class SpeechNaturalizer {
   // PRIVATE HELPERS
   // ============================================================================
 
-  private addOpeningFiller(text: string, patterns: typeof DEFAULT_DISFLUENCIES): string {
+  private addOpeningFiller(
+    text: string,
+    patterns: typeof DEFAULT_DISFLUENCIES,
+    rng: RandomSource
+  ): string {
     // Avoid repeating recent fillers
     const available = patterns.fillers.filter((f) => !this.recentDisfluencies.includes(f));
     if (available.length === 0) {
@@ -307,7 +353,7 @@ export class SpeechNaturalizer {
       return text;
     }
 
-    const filler = available[Math.floor(Math.random() * available.length)];
+    const filler = available[rng.nextInt(available.length)];
     this.recentDisfluencies.push(filler);
     if (this.recentDisfluencies.length > 5) {
       this.recentDisfluencies.shift();
@@ -316,8 +362,8 @@ export class SpeechNaturalizer {
     return `${filler} ${text}`;
   }
 
-  private addHedge(text: string, patterns: typeof DEFAULT_DISFLUENCIES): string {
-    const hedge = patterns.hedges[Math.floor(Math.random() * patterns.hedges.length)];
+  private addHedge(text: string, patterns: typeof DEFAULT_DISFLUENCIES, rng: RandomSource): string {
+    const hedge = patterns.hedges[rng.nextInt(patterns.hedges.length)];
 
     // Find a good place to insert
     // Look for "I" or "You" or statement starters
@@ -346,13 +392,13 @@ export class SpeechNaturalizer {
   private addThinkingPhrase(
     text: string,
     patterns: typeof DEFAULT_DISFLUENCIES,
-    context: NaturalizationContext
+    context: NaturalizationContext,
+    rng: RandomSource
   ): string {
-    const thinkingPhrase =
-      patterns.thinkingPhrases[Math.floor(Math.random() * patterns.thinkingPhrases.length)];
+    const thinkingPhrase = patterns.thinkingPhrases[rng.nextInt(patterns.thinkingPhrases.length)];
 
-    // Add SSML breaks for natural pacing
-    return `<break time="100ms"/>${thinkingPhrase}<break time="200ms"/> ${text}`;
+    // Plain-text only (SSML is handled by vocal + orchestrator layers)
+    return `${thinkingPhrase} ${text}`;
   }
 
   /**
@@ -392,7 +438,7 @@ export function generateFragment(context: 'trailing' | 'interrupted' | 'rethinki
   };
 
   const options = fragments[context];
-  return options[Math.floor(Math.random() * options.length)];
+  return options[getRng(undefined, `speech-fragment:${context}`).nextInt(options.length)];
 }
 
 // ============================================================================
@@ -505,8 +551,8 @@ export function generateCourseCorrection(
   originalThought: string,
   correctedThought: string
 ): string {
-  const correction =
-    MID_THOUGHT_CORRECTIONS[Math.floor(Math.random() * MID_THOUGHT_CORRECTIONS.length)];
+  const rng = getRng(undefined, `speech-course-correction:${originalThought}:${correctedThought}`);
+  const correction = MID_THOUGHT_CORRECTIONS[rng.nextInt(MID_THOUGHT_CORRECTIONS.length)];
   return `${originalThought}<break time="300ms"/> ${correction} ${correctedThought}`;
 }
 
@@ -514,7 +560,8 @@ export function generateCourseCorrection(
  * Generate a doubt-to-conviction transition
  */
 export function generateDoubtToConviction(statement: string): string {
-  const pattern = DOUBT_TO_CONVICTION[Math.floor(Math.random() * DOUBT_TO_CONVICTION.length)];
+  const rng = getRng(undefined, `speech-doubt-to-conviction:${statement}`);
+  const pattern = DOUBT_TO_CONVICTION[rng.nextInt(DOUBT_TO_CONVICTION.length)];
   return `${pattern.doubt}<break time="200ms"/> ${pattern.conviction} ${statement}`;
 }
 
@@ -522,7 +569,8 @@ export function generateDoubtToConviction(statement: string): string {
  * Generate a thinking-out-loud prefix
  */
 export function generateThinkingOutLoud(): string {
-  const phrase = THINKING_OUT_LOUD[Math.floor(Math.random() * THINKING_OUT_LOUD.length)];
+  const rng = getRng(undefined, 'speech-thinking-out-loud');
+  const phrase = THINKING_OUT_LOUD[rng.nextInt(THINKING_OUT_LOUD.length)];
   return `<break time="150ms"/>${phrase}<break time="300ms"/>`;
 }
 
@@ -530,7 +578,8 @@ export function generateThinkingOutLoud(): string {
  * Generate a graceful uncertainty prefix
  */
 export function generateGracefulUncertainty(statement: string): string {
-  const uncertainty = GRACEFUL_UNCERTAINTY[Math.floor(Math.random() * GRACEFUL_UNCERTAINTY.length)];
+  const rng = getRng(undefined, `speech-graceful-uncertainty:${statement}`);
+  const uncertainty = GRACEFUL_UNCERTAINTY[rng.nextInt(GRACEFUL_UNCERTAINTY.length)];
   return `${uncertainty} ${statement.charAt(0).toLowerCase()}${statement.slice(1)}`;
 }
 
@@ -538,7 +587,8 @@ export function generateGracefulUncertainty(statement: string): string {
  * Generate a self-interruption
  */
 export function generateSelfInterruption(statement: string): string {
-  const pattern = SELF_INTERRUPTIONS[Math.floor(Math.random() * SELF_INTERRUPTIONS.length)];
+  const rng = getRng(undefined, `speech-self-interruption:${statement}`);
+  const pattern = SELF_INTERRUPTIONS[rng.nextInt(SELF_INTERRUPTIONS.length)];
   return `${pattern.start}<break time="200ms"/> ${pattern.interrupt}<break time="300ms"/> ${pattern.resume} ${statement}`;
 }
 
@@ -550,6 +600,8 @@ export function shouldApplyImperfection(context: {
   isSeriousContext?: boolean;
   emotion?: string;
   turnNumber?: number;
+  rng?: RandomSource;
+  randomSeed?: string;
 }): boolean {
   // Don't add imperfections in serious contexts
   if (context.isSeriousContext) return false;
@@ -566,7 +618,8 @@ export function shouldApplyImperfection(context: {
   // More likely in later turns when rapport is built
   const turnModifier = Math.min(1, (context.turnNumber || 5) / 5);
 
-  return Math.random() < 0.15 * turnModifier;
+  const rng = getRng(context, `speech-imperfection:${context.turnNumber ?? 0}`);
+  return rng.nextFloat() < 0.15 * turnModifier;
 }
 
 /**
@@ -578,11 +631,14 @@ export function applyRandomImperfection(
     isSeriousContext?: boolean;
     emotion?: string;
     turnNumber?: number;
+    rng?: RandomSource;
+    randomSeed?: string;
   }
 ): string {
   if (!shouldApplyImperfection(context)) return text;
 
-  const roll = Math.random();
+  const rng = getRng(context, `speech-imperfection-roll:${context.turnNumber ?? 0}`);
+  const roll = rng.nextFloat();
 
   if (roll < 0.25) {
     // Thinking out loud

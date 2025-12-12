@@ -8,10 +8,10 @@
  * @module engagement/analytics-games
  */
 
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
+import { getLogger } from '../../../utils/safe-logger.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 // ============================================================================
 // PATTERN DETECTIVE
@@ -107,7 +107,8 @@ export const weeklyPredictionDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'peter', 'predictions', 'self-knowledge'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
+    const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
       description: `At start of week, user predicts their behavior. At end, Peter compares prediction to reality.
 Builds calibration and self-knowledge over time.
@@ -134,10 +135,7 @@ Actions:
           .optional()
           .describe('ID of prediction to resolve (for record-actuals)'),
       }),
-      execute: async ({ action, predictions, actuals, predictionId }, { ctx: toolCtx }) => {
-        const userData = toolCtx.userData as { userId?: string };
-        const userId = userData.userId || 'anonymous';
-
+      execute: async ({ action, predictions, actuals, predictionId }) => {
         const categories = [
           'Deep work hours',
           'Exercise sessions',

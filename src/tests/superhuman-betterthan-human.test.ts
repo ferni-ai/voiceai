@@ -58,7 +58,7 @@ describe('BetterThanHumanOrchestrator', () => {
   let orchestrator: BetterThanHumanOrchestrator;
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
     orchestrator = getBetterThanHuman(userId, sessionId, 'ferni', 5);
   });
 
@@ -73,7 +73,7 @@ describe('BetterThanHumanOrchestrator', () => {
     });
 
     it('allows clearing and recreating', () => {
-      clearBetterThanHuman(userId);
+      clearBetterThanHuman(userId, sessionId);
       const orchestrator2 = getBetterThanHuman(userId, sessionId, 'ferni', 5);
       // After clear, a new orchestrator is created (may or may not be same reference)
       expect(orchestrator2).toBeDefined();
@@ -145,7 +145,7 @@ describe('Protective Instincts', () => {
   const sessionId = 'test-session-protective';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('detects harsh self-judgment', () => {
@@ -198,7 +198,7 @@ describe('Anticipatory Presence', () => {
   const sessionId = 'test-session-anticipation';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('generates anticipation for returning user at session start', () => {
@@ -225,7 +225,7 @@ describe('Emotional Bond', () => {
   const sessionId = 'test-session-bond';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('tracks warmth over interactions', () => {
@@ -278,7 +278,7 @@ describe('Somatic Presence', () => {
   const sessionId = 'test-session-somatic';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('generates somatic cues for session start', () => {
@@ -320,7 +320,7 @@ describe('Spontaneous Delight', () => {
   const sessionId = 'test-session-delight';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('may generate delight for established relationship', () => {
@@ -364,7 +364,7 @@ describe('Meta-Relationship', () => {
   const sessionId = 'test-session-meta';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('may comment on relationship for deep connection', () => {
@@ -392,7 +392,7 @@ describe('Full Integration', () => {
   const sessionId = 'test-session-integration';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('handles complete conversation flow', () => {
@@ -474,7 +474,7 @@ describe('State Management', () => {
   const sessionId = 'test-session-state';
 
   beforeEach(() => {
-    clearBetterThanHuman(userId);
+    clearBetterThanHuman(userId, sessionId);
   });
 
   it('maintains state across analyses', () => {

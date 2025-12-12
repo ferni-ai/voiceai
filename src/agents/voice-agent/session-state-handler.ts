@@ -14,13 +14,13 @@ import { log, voice } from '@livekit/agents';
 import { checkForAccentChange } from '../../api/session-accent-routes.js';
 import { getDJBooth } from '../../audio/index.js';
 import { getActiveListeningEngine } from '../../conversation/active-listening.js';
-import type { PersonaConfig } from '../../personas/types.js';
 import {
   getMeaningfulSilenceResponse,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
+import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getThinkingFiller } from '../../speech/response-naturalness.js';
@@ -60,7 +60,8 @@ export interface SessionStateResult {
 // MAIN SETUP FUNCTION
 // ============================================================================
 
-const logger = log();
+// Lazy getLogger() initialization - log() can only be called after LiveKit initializes
+const getLogger = () => log();
 
 /**
  * Set up session state change handlers (AgentStateChanged, UserStateChanged)
@@ -155,7 +156,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           persona: sessionPersona.id,
         });
       } catch (e) {
-        logger.warn({ error: e }, 'Failed to fire backchannel');
+        getLogger().warn({ error: e }, 'Failed to fire backchannel');
       }
     }
   };
@@ -199,7 +200,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               diag.state('Ducked background music for agent speech (basic)');
             }
           })
-          .catch((e) => logger.debug({ error: String(e) }, 'Music ducking (non-critical)'));
+          .catch((e) => getLogger().debug({ error: String(e) }, 'Music ducking (non-critical)'));
       }
     }
 
@@ -226,7 +227,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               diag.state('Unducked background music after agent speech (basic)');
             }
           })
-          .catch((e) => logger.debug({ error: String(e) }, 'Music unducking (non-critical)'));
+          .catch((e) => getLogger().debug({ error: String(e) }, 'Music unducking (non-critical)'));
       }
     }
   });
@@ -269,9 +270,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // GAME DUCKING: Lower music volume when user speaks during a game
       void (async () => {
         try {
-          const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } = await import(
-            '../../services/games/index.js'
-          );
+          const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } =
+            await import('../../services/games/index.js');
           if (isGameCurrentlyActive()) {
             duckForUserGuess();
             updateGameActivity();
@@ -336,7 +336,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 personaId: sessionPersona.id,
               });
             } catch (e) {
-              logger.debug({ error: e }, 'Failed to say early acknowledgment');
+              getLogger().debug({ error: e }, 'Failed to say early acknowledgment');
             }
           }
         }
@@ -368,9 +368,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // GAME UNDUCK: Restore music volume after user finishes speaking
       void (async () => {
         try {
-          const { isGameCurrentlyActive, unduckAfterGuess } = await import(
-            '../../services/games/index.js'
-          );
+          const { isGameCurrentlyActive, unduckAfterGuess } =
+            await import('../../services/games/index.js');
           if (isGameCurrentlyActive()) {
             unduckAfterGuess();
           }
@@ -426,7 +425,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 type: silenceBackchannel.type,
               });
             } catch (e) {
-              logger.debug({ error: e }, 'Failed to say silence backchannel');
+              getLogger().debug({ error: e }, 'Failed to say silence backchannel');
             }
           }
 
@@ -451,9 +450,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 });
 
                 void (async () => {
-                  const { humanizationAnalytics } = await import(
-                    '../../conversation/humanization/analytics.js'
-                  );
+                  const { humanizationAnalytics } =
+                    await import('../../conversation/humanization/analytics.js');
                   humanizationAnalytics.recordApplied(sessionId, 'voice_print_detection', {
                     emotion: insight.emotion,
                     confidence: insight.confidence,
@@ -461,7 +459,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 })();
               }
             } catch (insightErr) {
-              logger.debug({ error: insightErr }, 'Failed to deliver voice insight');
+              getLogger().debug({ error: insightErr }, 'Failed to deliver voice insight');
             }
           }
         }
@@ -509,7 +507,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           }
           lastSilenceResponseAt = Date.now();
         } catch (e) {
-          logger.warn({ error: e }, 'Failed to say silence response');
+          getLogger().warn({ error: e }, 'Failed to say silence response');
         }
       }
     }

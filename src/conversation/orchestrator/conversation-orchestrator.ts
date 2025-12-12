@@ -17,6 +17,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+// SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled
+import { sanitizeSsml } from '../../ssml/core.js';
+
 // Config adapter (unified feature toggles)
 import { getConfigAdapter } from './config-adapter.js';
 
@@ -74,7 +77,7 @@ import type {
 import { getMetricsCollector, logSlowOrchestration } from './metrics.js';
 
 // Performance optimizations
-import { getCircuitBreaker, getOrComputeDetection, withTimeout } from './performance.js';
+import { getCircuitBreaker, getOrComputeDetectionWithHit, withTimeout } from './performance.js';
 
 // Debug
 import { recordOrchestration } from './debug.js';
@@ -221,31 +224,34 @@ export class ConversationOrchestrator {
       return this.getDefaultAnalysis();
     }
 
+    const metricsCollector = getMetricsCollector(this.sessionId, input.personaId);
+
     // Use cached analysis for the same message (within same turn)
     const cacheKey = `analysis:${input.userMessage}:${input.userEmotion || ''}`;
-    const cachedAnalysis = getOrComputeDetection(cacheKey, () =>
+    const analysisResult = getOrComputeDetectionWithHit(cacheKey, () =>
       analyzeMessage(input.userMessage, input.userEmotion)
     );
-    const analysis = cachedAnalysis;
+    const analysis = analysisResult.value;
+    metricsCollector.recordCacheHit(analysisResult.hit);
 
     // Cache individual signal detections
     const signalCachePrefix = `signal:${input.userMessage}:`;
     const signals: DetectedSignals = {
-      hasEvidence: getOrComputeDetection(`${signalCachePrefix}evidence`, () =>
+      hasEvidence: getOrComputeDetectionWithHit(`${signalCachePrefix}evidence`, () =>
         detectEvidence(input.userMessage)
-      ),
-      isBreakthrough: getOrComputeDetection(`${signalCachePrefix}breakthrough`, () =>
+      ).value,
+      isBreakthrough: getOrComputeDetectionWithHit(`${signalCachePrefix}breakthrough`, () =>
         detectBreakthrough(input.userMessage)
-      ),
-      hasHesitation: getOrComputeDetection(`${signalCachePrefix}hesitation`, () =>
+      ).value,
+      hasHesitation: getOrComputeDetectionWithHit(`${signalCachePrefix}hesitation`, () =>
         detectHesitation(input.userMessage)
-      ),
-      isDisengaged: getOrComputeDetection(`${signalCachePrefix}disengaged`, () =>
+      ).value,
+      isDisengaged: getOrComputeDetectionWithHit(`${signalCachePrefix}disengaged`, () =>
         detectDisengagement(input.userMessage)
-      ),
-      isHighlyEngaged: getOrComputeDetection(`${signalCachePrefix}engaged`, () =>
+      ).value,
+      isHighlyEngaged: getOrComputeDetectionWithHit(`${signalCachePrefix}engaged`, () =>
         detectHighEngagement(input.userMessage)
-      ),
+      ).value,
       isEmotional: analysis.isEmotional,
       isHeavy: analysis.isHeavy,
       isFirstTurn: input.turnNumber <= 1,
@@ -260,10 +266,6 @@ export class ConversationOrchestrator {
       needsSupport: signals.isHeavy || signals.isEmotional || input.wasPersonalSharing === true,
       confidence: analysis.confidence,
     };
-
-    // Record cache hit in metrics
-    const metricsCollector = getMetricsCollector(this.sessionId, input.personaId);
-    metricsCollector.recordCacheHit(true); // Cached detection used
 
     return { analysis, signals, context };
   }
@@ -587,6 +589,7 @@ export class ConversationOrchestrator {
     if (this.config.features.speechNaturalization) {
       const result = this.applySpeechNaturalization(text, input, analysis);
       text = result.text;
+      ssml = text;
       if (result.applied) {
         appliedFeatures.push({ name: 'speech_naturalization', source: 'speech' });
       }
@@ -596,12 +599,14 @@ export class ConversationOrchestrator {
     const mirrorResult = this.applyVocabularyMirroring(text, input.userMessage);
     if (mirrorResult.applied) {
       text = mirrorResult.text;
+      ssml = text;
       appliedFeatures.push({ name: 'vocabulary_mirroring', source: 'speech' });
     }
 
     // 3. Content Delivery Pacing (for long content)
     if (this.config.features.contentDeliveryPacing && shouldApplyDeliveryPacing(text)) {
-      text = applyDeliveryPacing(text, {
+      // SSML-only: keep `text` human-readable, apply pacing to `ssml`.
+      ssml = applyDeliveryPacing(text, {
         personaId: input.personaId,
         isDirectResponse: input.userMessage.includes('?'),
       });
@@ -610,8 +615,7 @@ export class ConversationOrchestrator {
 
     // 4. Vocal Humanization
     if (this.config.features.vocalHumanization) {
-      const vocalResult = this.applyVocalHumanization(text, input, analysis, intelligence);
-      text = vocalResult.ssml;
+      const vocalResult = this.applyVocalHumanization(ssml, input, analysis, intelligence);
       ssml = vocalResult.ssml;
       appliedFeatures.push(
         ...vocalResult.appliedFeatures.map((f) => ({ name: f, source: 'vocal' as const }))
@@ -674,6 +678,7 @@ export class ConversationOrchestrator {
         topic: input.topic,
         isSeriousContext: analysis.context.needsSupport,
         turnNumber: input.turnNumber,
+        randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:naturalize`,
       };
       const result = naturalizer.naturalize(text, input.personaId, context);
       return { text: result, applied: result !== text };
@@ -712,6 +717,7 @@ export class ConversationOrchestrator {
       turnNumber: input.turnNumber,
       isMeaningfulMoment: input.wasPersonalSharing,
       userMessage: input.userMessage,
+      randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:vocal`,
     };
 
     const result = humanizeVocals(text, context);
@@ -733,6 +739,7 @@ export class ConversationOrchestrator {
         wasPersonalSharing: input.wasPersonalSharing,
         conversationDepth: analysis.context.conversationDepth,
         topicWeight: analysis.context.topicWeight,
+        randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:silence`,
       });
 
       if (decision.useSilence) {
@@ -913,7 +920,10 @@ export class ConversationOrchestrator {
 
     try {
       // Memory callback (after turn 4, with probability)
-      if (input.turnNumber > 4 && Math.random() < 0.2) {
+      if (
+        input.turnNumber > 4 &&
+        this.shouldTrigger(input.sessionId, input.turnNumber, 'memory', 0.2)
+      ) {
         const memory = getConversationalMemory();
         const callback = memory.getMemoryCallback(input.topic || 'general', input.turnNumber);
         if (callback) {
@@ -922,7 +932,10 @@ export class ConversationOrchestrator {
       }
 
       // Follow-up question (if not already a question, with probability)
-      if (!input.userMessage.includes('?') && Math.random() < 0.35) {
+      if (
+        !input.userMessage.includes('?') &&
+        this.shouldTrigger(input.sessionId, input.turnNumber, 'follow_up_question', 0.35)
+      ) {
         const questions = getQuestionPatternEngine();
         const context: QuestionContext = {
           topic: input.topic,
@@ -930,6 +943,7 @@ export class ConversationOrchestrator {
           previousUserStatement: input.userMessage,
           personaId: input.personaId,
           conversationDepth: analysis.context.conversationDepth,
+          randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:followup:${input.userMessage}`,
         };
         const question = questions.generateQuestion(context);
         additions.followUpQuestion = { text: question.text, ssml: question.ssml };
@@ -939,6 +953,34 @@ export class ConversationOrchestrator {
     }
 
     return additions;
+  }
+
+  /**
+   * Deterministic probability gate.
+   *
+   * We avoid `Math.random()` to keep behavior stable within a session/turn,
+   * which feels more "human" (consistent) and makes tests reliable.
+   */
+  private shouldTrigger(
+    sessionId: string,
+    turnNumber: number,
+    feature: string,
+    probability: number
+  ): boolean {
+    const p = Math.max(0, Math.min(1, probability));
+    if (p === 0) return false;
+    if (p === 1) return true;
+
+    const key = `${sessionId}:${turnNumber}:${feature}`;
+    // FNV-1a 32-bit hash
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) {
+      hash ^= key.charCodeAt(i);
+      hash = (hash * 0x01000193) >>> 0;
+    }
+
+    const roll = hash / 0xffffffff; // 0..1
+    return roll < p;
   }
 
   // ==========================================================================
@@ -968,8 +1010,11 @@ export class ConversationOrchestrator {
     const appliedFeatures = humanization.appliedFeatures.map((f) => f.name);
 
     return {
-      text: humanization.text,
-      ssml,
+      // Ensure plain text output never leaks SSML tags.
+      text: this.stripSsml(humanization.text),
+      // CRITICAL: Sanitize SSML to convert stage directions like "[gentle chuckle]" to [laughter]
+      // Without this, breath sounds from persona JSON files would be spoken literally
+      ssml: sanitizeSsml(ssml),
       appliedFeatures,
       emotionalGuidance: intelligence.emotionalGuidance,
       pacing: intelligence.guidance.pacing,
@@ -1027,6 +1072,12 @@ export class ConversationOrchestrator {
   // ==========================================================================
   // UTILITY METHODS
   // ==========================================================================
+
+  private stripSsml(text: string): string {
+    // Strip any SSML/markup that could leak into chat surfaces.
+    const withoutTags = text.replace(/<[^>]+>/g, '');
+    return withoutTags.replace(/\s+/g, ' ').trim();
+  }
 
   private getComfortLevel(stage?: string): number {
     const levels: Record<string, number> = {

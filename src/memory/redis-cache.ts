@@ -611,16 +611,22 @@ export class RedisCache {
         await this.client.set(key, base64);
       }
 
-      getLogger().debug({
-        key,
-        originalSize: serialized.length,
-        compressedSize: base64.length,
-        ratio: (base64.length / serialized.length).toFixed(2),
-      }, 'Stored compressed value');
+      getLogger().debug(
+        {
+          key,
+          originalSize: serialized.length,
+          compressedSize: base64.length,
+          ratio: (base64.length / serialized.length).toFixed(2),
+        },
+        'Stored compressed value'
+      );
 
       return true;
     } catch (error) {
-      getLogger().warn({ error: String(error), key }, 'Failed to set compressed cache value (non-blocking)');
+      getLogger().warn(
+        { error: String(error), key },
+        'Failed to set compressed cache value (non-blocking)'
+      );
       return false;
     }
   }
@@ -648,7 +654,10 @@ export class RedisCache {
         return serialized as unknown as T;
       }
     } catch (error) {
-      getLogger().warn({ error: String(error), key }, 'Failed to get compressed cache value (non-blocking)');
+      getLogger().warn(
+        { error: String(error), key },
+        'Failed to get compressed cache value (non-blocking)'
+      );
       return null;
     }
   }
@@ -662,7 +671,11 @@ export class RedisCache {
     data: SessionCacheData,
     ttlSeconds?: number
   ): Promise<boolean> {
-    return this.setCompressed(`session:${sessionId}:compressed`, data, ttlSeconds || this.SESSION_TTL);
+    return this.setCompressed(
+      `session:${sessionId}:compressed`,
+      data,
+      ttlSeconds || this.SESSION_TTL
+    );
   }
 
   /**

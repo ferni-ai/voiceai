@@ -9,6 +9,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
+import { getAdminHeaders } from '../admin-api.js';
 import {
   ICON_CHART,
   ICON_EVALOPS,
@@ -456,9 +457,7 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
 async function fetchEvalMetrics(): Promise<EvalMetrics> {
   try {
     const response = await fetch('/api/evalops/metrics', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -500,9 +499,7 @@ function formatTimeAgo(date: Date): string {
 async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
   try {
     const response = await fetch('/api/evalops/evaluations/flagged', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -527,9 +524,7 @@ async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
 async function fetchDimensionAverages(): Promise<DimensionAverages> {
   try {
     const response = await fetch('/api/evalops/dimensions', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();

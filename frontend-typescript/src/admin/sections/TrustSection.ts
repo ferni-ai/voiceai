@@ -9,6 +9,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
+import { getAdminHeaders } from '../admin-api.js';
 import {
   ICON_CHART,
   ICON_CROWN,
@@ -632,9 +633,7 @@ function renderTrustEvent(icon: string, text: string, time: string): string {
 async function fetchTrustMetrics(): Promise<TrustMetrics> {
   try {
     const response = await fetch('/api/trust/analytics/metrics', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -661,9 +660,7 @@ async function fetchTrustMetrics(): Promise<TrustMetrics> {
 async function fetchTrustEvents(): Promise<TrustEvent[]> {
   try {
     const response = await fetch('/api/v1/admin/dashboard/activity/trust', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -686,9 +683,7 @@ interface StageData {
 async function fetchStageDistribution(): Promise<StageData[]> {
   try {
     const response = await fetch('/api/trust/analytics/stages', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -725,9 +720,7 @@ interface WarmthStats {
 async function fetchTrustSystems(): Promise<TrustSystem[]> {
   try {
     const response = await fetch('/api/trust/analytics/systems', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       const data = await response.json();
@@ -755,9 +748,7 @@ function getStageColor(stage: string): string {
 async function fetchWarmthStats(): Promise<WarmthStats> {
   try {
     const response = await fetch('/api/trust/analytics/warmth', {
-      headers: {
-        'x-admin-key': 'dev-mode',
-      },
+      headers: getAdminHeaders(),
     });
     if (response.ok) {
       return await response.json();

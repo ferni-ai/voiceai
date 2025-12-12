@@ -134,12 +134,14 @@ export function extractQuote(
     const sentences = message.match(/[^.!?]+[.!?]+/g);
     if (sentences && sentences.length > 0) {
       // Find the most relevant sentence
-      quote = sentences.find((s) => 
-        WISDOM_PATTERNS.some((p) => p.test(s)) ||
-        VULNERABLE_PATTERNS.some((p) => p.test(s)) ||
-        GOAL_PATTERNS.some((p) => p.test(s)) ||
-        FUNNY_PATTERNS.some((p) => p.test(s))
-      ) || sentences[0];
+      quote =
+        sentences.find(
+          (s) =>
+            WISDOM_PATTERNS.some((p) => p.test(s)) ||
+            VULNERABLE_PATTERNS.some((p) => p.test(s)) ||
+            GOAL_PATTERNS.some((p) => p.test(s)) ||
+            FUNNY_PATTERNS.some((p) => p.test(s))
+        ) || sentences[0];
     } else {
       quote = message.slice(0, 150) + '...';
     }
@@ -181,7 +183,7 @@ export function extractQuote(
  */
 export function saveQuote(quote: UserQuote): void {
   const existing = quoteStore.get(quote.userId) || [];
-  
+
   // Check for duplicates (similar content within last 24 hours)
   const isDupe = existing.some(
     (q) =>
@@ -195,12 +197,12 @@ export function saveQuote(quote: UserQuote): void {
   }
 
   existing.push(quote);
-  
+
   // Keep only last 100 quotes per user
   if (existing.length > 100) {
     existing.shift();
   }
-  
+
   quoteStore.set(quote.userId, existing);
 }
 
@@ -230,9 +232,7 @@ export function captureQuote(
 /**
  * Find a relevant quote to surface
  */
-export function findRelevantQuote(
-  context: QuoteSurfaceContext
-): QuoteSuggestion | null {
+export function findRelevantQuote(context: QuoteSurfaceContext): QuoteSuggestion | null {
   const quotes = quoteStore.get(context.userId);
   if (!quotes || quotes.length === 0) {
     return null;
@@ -258,10 +258,14 @@ export function findRelevantQuote(
     let reason = '';
 
     // Topic match
-    if (context.currentTopic && quote.topics.some((t) => 
-      t.toLowerCase().includes(context.currentTopic!.toLowerCase()) ||
-      context.currentTopic!.toLowerCase().includes(t.toLowerCase())
-    )) {
+    if (
+      context.currentTopic &&
+      quote.topics.some(
+        (t) =>
+          t.toLowerCase().includes(context.currentTopic!.toLowerCase()) ||
+          context.currentTopic!.toLowerCase().includes(t.toLowerCase())
+      )
+    ) {
       score += 30;
       reason = 'topic match';
     }
@@ -328,17 +332,20 @@ export function findRelevantQuote(
  * Generate a natural introduction for a quote
  */
 function generateQuoteIntro(quote: UserQuote, reason: string): string {
-  const daysSince = Math.floor(
-    (Date.now() - quote.timestamp.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysSince = Math.floor((Date.now() - quote.timestamp.getTime()) / (1000 * 60 * 60 * 24));
 
-  const timeRef = 
-    daysSince === 0 ? 'earlier today' :
-    daysSince === 1 ? 'yesterday' :
-    daysSince < 7 ? 'the other day' :
-    daysSince < 30 ? 'a few weeks ago' :
-    daysSince < 90 ? 'a while back' :
-    'a few months ago';
+  const timeRef =
+    daysSince === 0
+      ? 'earlier today'
+      : daysSince === 1
+        ? 'yesterday'
+        : daysSince < 7
+          ? 'the other day'
+          : daysSince < 30
+            ? 'a few weeks ago'
+            : daysSince < 90
+              ? 'a while back'
+              : 'a few months ago';
 
   const intros = {
     'topic match': [
@@ -350,14 +357,11 @@ function generateQuoteIntro(quote: UserQuote, reason: string): string {
       `I was just thinking about what you said ${timeRef} that made me smile:`,
       `Remember ${timeRef} when you said:`,
     ],
-    'reassurance': [
+    reassurance: [
       `You said something really wise ${timeRef}:`,
       `I keep thinking about what you told me ${timeRef}:`,
     ],
-    'goal check-in': [
-      `${timeRef} you told me about a goal:`,
-      `I remember ${timeRef} you said:`,
-    ],
+    'goal check-in': [`${timeRef} you told me about a goal:`, `I remember ${timeRef} you said:`],
     'wisdom recall': [
       `You said something ${timeRef} that I think about:`,
       `I loved what you said ${timeRef}:`,
@@ -400,7 +404,7 @@ export function formatQuoteForPrompt(suggestion: QuoteSuggestion): string {
     `Why now: ${suggestion.reason}`,
     `Original context: ${suggestion.quote.context}`,
     '',
-    'Use this naturally if it fits. Don\'t force it.',
+    "Use this naturally if it fits. Don't force it.",
   ].join('\n');
 }
 

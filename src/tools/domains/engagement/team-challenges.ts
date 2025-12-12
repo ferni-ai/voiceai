@@ -11,10 +11,10 @@
  * @module engagement/team-challenges
  */
 
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../../services/daily-rituals.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 // ============================================================================
 // TEAM HUDDLE
@@ -244,7 +244,8 @@ export const streakTrackerDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'streaks', 'gamification', 'motivation'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
+    const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
       description: `Check on user's various streaks and celebrate milestones.
 Tracks daily rituals, habits, and engagement patterns.`,
@@ -252,9 +253,7 @@ Tracks daily rituals, habits, and engagement patterns.`,
         action: z.enum(['check', 'celebrate', 'protect']).describe('Action to take'),
         streakType: z.string().optional().describe('Specific streak to check'),
       }),
-      execute: async ({ action, streakType }, { ctx: toolCtx }) => {
-        const userData = toolCtx.userData as { userId?: string };
-        const userId = userData.userId || 'anonymous';
+      execute: async ({ action, streakType }) => {
         const service = getDailyRitualsService();
         const profile = service.exportProfile(userId);
 

@@ -9,11 +9,11 @@
  * @module engagement/emotional-games
  */
 
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getDailyRitualsService, type EmotionalWeather } from '../../../services/daily-rituals.js';
+import { getLogger } from '../../../utils/safe-logger.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { generateWeatherInsight } from './helpers.js';
 
 // ============================================================================
@@ -27,7 +27,8 @@ export const morningSkyCheckDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'ferni', 'daily-ritual', 'emotional-awareness'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
+    const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
       description: `Perform Ferni's Morning Sky Check - a 30-second emotional weather report.
 Use this to start conversations with returning users or when they want to check in.`,
@@ -40,9 +41,7 @@ Use this to start conversations with returning users or when they want to check 
         energy: z.enum(['high', 'medium', 'low']).optional().describe('User energy level'),
         note: z.string().optional().describe('Optional note about the weather'),
       }),
-      execute: async ({ mode, weather, energy, note }, { ctx: toolCtx }) => {
-        const userData = toolCtx.userData as { userId?: string };
-        const userId = userData.userId || 'anonymous';
+      execute: async ({ mode, weather, energy, note }) => {
         const service = getDailyRitualsService();
 
         if (mode === 'start') {

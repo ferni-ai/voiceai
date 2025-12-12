@@ -350,7 +350,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     '--min-instances 1',
     '--max-instances 50',
     '--vpc-connector ferni-redis-connector',
-    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"`,
+    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@BYPASS_TEAM_UNLOCKS=true"`,
     `--set-secrets "${secrets.join(',')}"`,
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
@@ -383,7 +383,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
         --min-instances 1 \\
         --max-instances 50 \\
         --vpc-connector ferni-redis-connector \\
-        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app" \\
+        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@BYPASS_TEAM_UNLOCKS=true" \\
         --set-secrets "${secretsStr}" \\
         --no-traffic \\
         --tag green \\

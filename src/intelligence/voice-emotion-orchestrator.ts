@@ -54,6 +54,8 @@ export interface VoiceEmotionInput {
   arousal?: number;
   /** Valence (-1 to 1) */
   valence?: number;
+  /** Optional direct anxiety marker signal (from upstream detector) */
+  anxietyMarkers?: boolean;
 }
 
 /**
@@ -273,6 +275,11 @@ class VoiceEmotionOrchestratorImpl {
    * Detect anxiety markers
    */
   private detectAnxietyMarkers(voice?: VoiceEmotionInput, text?: string): boolean {
+    // Upstream detectors may provide an explicit anxiety marker boolean
+    if (voice?.anxietyMarkers) {
+      return true;
+    }
+
     // Voice markers: high arousal + low valence
     if (voice) {
       if ((voice.arousal ?? 0) > 0.7 && (voice.valence ?? 0) < 0.3) {
@@ -413,6 +420,14 @@ class VoiceEmotionOrchestratorImpl {
       messages.push("User's voice shows significant stress. Be extra gentle.");
     }
 
+    // High voice stress even if overall distress isn't "high" yet
+    if (indicators.voiceStress >= 0.65 && distressLevel < DISTRESS.HIGH) {
+      guidance.slowDown = true;
+      guidance.addPauses = true;
+      guidance.softenTone = true;
+      messages.push('High stress detected in voice. Slow down, add pauses, and lead with empathy.');
+    }
+
     // Tremor detected
     if (indicators.hasTremor) {
       guidance.slowDown = true;
@@ -440,16 +455,33 @@ class VoiceEmotionOrchestratorImpl {
       guidance.slowDown = true;
       guidance.softenTone = true;
       guidance.suggestedStyle = 'calm';
-      messages.push('Anxiety markers detected. Focus on grounding and reassurance.');
+      messages.push(
+        'anxiety markers detected. Offer calm presence; focus on grounding and reassurance.'
+      );
     }
 
-    // Trend-based guidance
-    if (trend === 'improving') {
-      messages.push("User's emotional state is improving. What you're doing is working.");
-    } else if (trend === 'declining') {
-      messages.push(
-        "User's stress is increasing. Consider a different approach or check in directly."
-      );
+    // Emotion-specific voice cues (helps when text hides emotion)
+    const mappedPrimary = voice ? this.mapVoiceEmotion(voice.emotion) : undefined;
+    if (mappedPrimary === 'sadness' || voice?.emotion === 'sad') {
+      guidance.softenTone = true;
+      guidance.addPauses = true;
+      messages.push('Voice sounds sad, with emotional undertones. Be gentle and validating.');
+    }
+
+    if (mappedPrimary === 'joy' || voice?.emotion === 'happy') {
+      messages.push('Voice sounds happy — clear positive energy. Match it.');
+    }
+
+    if (
+      voice &&
+      (['frustrated', 'angry', 'agitated', 'upset'].includes(voice.emotion) ||
+        (distressLevel >= DISTRESS.MODERATE &&
+          (voice.arousal ?? 0) > 0.7 &&
+          (voice.valence ?? 0) < 0.3))
+    ) {
+      guidance.slowDown = true;
+      guidance.softenTone = true;
+      messages.push('Voice sounds agitated and upset. Keep your tone steady; validate first.');
     }
 
     // Positive voice signals

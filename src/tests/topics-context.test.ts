@@ -8,7 +8,7 @@
  * - Goal connection
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Use vi.hoisted to define mocks that are available when vi.mock is hoisted
 const {
@@ -57,6 +57,11 @@ vi.mock('../intelligence/human-behaviors.js', () => ({
 }));
 
 vi.mock('../services/conversation-manager.js', () => ({
+  // Session-scoped is now the default export used by the builder
+  getSessionConversationManager: vi.fn(() => ({
+    getConversationEnhancements: mockGetConversationEnhancements,
+  })),
+  // Keep legacy export mocked for backward-compatibility
   getConversationManager: vi.fn(() => ({
     getConversationEnhancements: mockGetConversationEnhancements,
   })),

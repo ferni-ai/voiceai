@@ -201,15 +201,115 @@ async function getDirectionsFromGoogle(
 // ============================================================================
 
 async function getTrafficFromHERE(
-  _origin: string,
-  _destination: string
+  origin: string,
+  destination: string
 ): Promise<TrafficInfo | null> {
   if (!HERE_API_KEY) return null;
 
-  // HERE uses lat,lng format - we'd need to geocode first
-  // For simplicity, we'll skip this if Google is available
-  // This is a placeholder for future implementation
-  return null;
+  try {
+    const originPos = await geocodeHere(origin);
+    const destinationPos = await geocodeHere(destination);
+    if (!originPos || !destinationPos) return null;
+
+    const route = await getHereRoute(originPos, destinationPos);
+    if (!route) return null;
+
+    const normalDuration = Math.round(route.durationSeconds / 60);
+    const trafficDuration = Math.round(route.durationInTrafficSeconds / 60);
+    const delay = trafficDuration - normalDuration;
+
+    let trafficCondition: TrafficInfo['trafficCondition'] = 'unknown';
+    if (delay <= 2) trafficCondition = 'light';
+    else if (delay <= 10) trafficCondition = 'moderate';
+    else if (delay <= 20) trafficCondition = 'heavy';
+    else trafficCondition = 'severe';
+
+    return {
+      origin,
+      destination,
+      durationInTraffic: trafficDuration,
+      durationNormal: normalDuration,
+      distance: route.distanceText,
+      trafficCondition,
+      summary: route.summary,
+    };
+  } catch (error) {
+    getLogger().warn({ error, origin, destination }, 'HERE API error');
+    return null;
+  }
+}
+
+async function geocodeHere(query: string): Promise<{ lat: number; lng: number } | null> {
+  const params = new URLSearchParams({ q: query, apiKey: HERE_API_KEY });
+  const url = `https://geocode.search.hereapi.com/v1/geocode?${params}`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!response.ok) return null;
+  const data = (await response.json()) as {
+    items?: Array<{ position?: { lat?: number; lng?: number } }>;
+  };
+  const pos = data.items?.[0]?.position;
+  if (!pos || typeof pos.lat !== 'number' || typeof pos.lng !== 'number') return null;
+  return { lat: pos.lat, lng: pos.lng };
+}
+
+async function getHereRoute(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number }
+): Promise<{
+  distanceText: string;
+  durationSeconds: number;
+  durationInTrafficSeconds: number;
+  summary?: string;
+} | null> {
+  const params = new URLSearchParams({
+    transportMode: 'car',
+    origin: `${origin.lat},${origin.lng}`,
+    destination: `${destination.lat},${destination.lng}`,
+    return: 'summary,typicalDuration',
+    routingMode: 'fast',
+    // enable traffic where supported
+    departureTime: 'now',
+    apiKey: HERE_API_KEY,
+  });
+
+  const url = `https://router.hereapi.com/v8/routes?${params}`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as {
+    routes?: Array<{
+      sections?: Array<{
+        summary?: {
+          length?: number; // meters
+          duration?: number; // seconds
+          baseDuration?: number; // seconds (no traffic)
+          typicalDuration?: number; // seconds
+        };
+      }>;
+    }>;
+  };
+
+  const summary = data.routes?.[0]?.sections?.[0]?.summary;
+  if (!summary) return null;
+
+  const lengthMeters = summary.length ?? 0;
+  const durationSeconds = summary.baseDuration ?? summary.typicalDuration ?? summary.duration ?? 0;
+  const durationInTrafficSeconds = summary.duration ?? durationSeconds;
+
+  if (durationInTrafficSeconds <= 0) return null;
+
+  const distanceText =
+    lengthMeters > 0
+      ? lengthMeters >= 1000
+        ? `${(lengthMeters / 1000).toFixed(1)} km`
+        : `${Math.round(lengthMeters)} m`
+      : 'Unknown';
+
+  return {
+    distanceText,
+    durationSeconds,
+    durationInTrafficSeconds,
+  };
 }
 
 // ============================================================================

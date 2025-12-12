@@ -182,7 +182,14 @@ Team members available:
         const subscriptionTier =
           (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
-        if (isTeamMemberUnlocked(personaId, userProfile, subscriptionTier)) {
+        // FIX ISSUE #4: When userProfile is null (not loaded), we can't reliably check unlock status
+        // In this case, err on the side of allowing cameos - the worst case is a brief "hello"
+        // from a team member who might already be unlocked, which is harmless.
+        // However, if userProfile IS loaded (even if empty for new users), trust the check.
+        const hasProfileData =
+          userProfile !== undefined && userData?.services?.userProfile !== undefined;
+
+        if (hasProfileData && isTeamMemberUnlocked(personaId, userProfile, subscriptionTier)) {
           const persona = CAMEO_PERSONAS[personaId as CameoPersonaKey];
           log.warn(
             { personaId, hasProfile: !!userProfile, tier: subscriptionTier },
@@ -195,6 +202,14 @@ Team members available:
             useHandoffInstead: true,
             targetPersonaId: personaId,
           };
+        }
+
+        // Log when we allow cameo due to missing profile (helps debug)
+        if (!hasProfileData) {
+          log.debug(
+            { personaId, hasProfile: !!userProfile },
+            '🎬 Cameo allowed (profile not loaded, cannot verify unlock status)'
+          );
         }
 
         // Check if already in a cameo

@@ -42,6 +42,7 @@ export interface EmbeddingCacheConfig {
 
 export interface CacheStats {
   size: number;
+  maxSize: number;
   hits: number;
   misses: number;
   hitRate: number;
@@ -231,6 +232,7 @@ export class EmbeddingCache {
 
     return {
       size: this.cache.size,
+      maxSize: this.config.maxSize,
       hits: this.stats.hits,
       misses: this.stats.misses,
       hitRate: totalAccesses > 0 ? this.stats.hits / totalAccesses : 0,

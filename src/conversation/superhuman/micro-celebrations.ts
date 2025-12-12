@@ -47,7 +47,10 @@ export type WinType =
 // WIN DETECTION PATTERNS
 // ============================================================================
 
-const WIN_PATTERNS: Record<WinType, { patterns: RegExp[]; magnitude: 'tiny' | 'small' | 'medium' | 'big' }> = {
+const WIN_PATTERNS: Record<
+  WinType,
+  { patterns: RegExp[]; magnitude: 'tiny' | 'small' | 'medium' | 'big' }
+> = {
   did_hard_thing: {
     patterns: [
       /I (finally|actually|just) (did|finished|completed|handled)/i,
@@ -177,91 +180,167 @@ const WIN_PATTERNS: Record<WinType, { patterns: RegExp[]; magnitude: 'tiny' | 's
 
 const CELEBRATIONS: Record<'tiny' | 'small' | 'medium' | 'big', Record<WinType, string[]>> = {
   tiny: {
-    did_hard_thing: ["That's something.", "Good for you."],
+    did_hard_thing: ["That's something.", 'Good for you.'],
     showed_up: ["You showed up. That's half the battle."],
-    spoke_up: ["You used your voice."],
-    set_boundary: ["Boundaries. Yes."],
-    made_progress: ["Progress is progress."],
+    spoke_up: ['You used your voice.'],
+    set_boundary: ['Boundaries. Yes.'],
+    made_progress: ['Progress is progress.'],
     tried_new_thing: ["You tried. That's brave."],
-    self_care: ["Taking care of yourself. Love that."],
-    asked_for_help: ["Asking for help is strength."],
-    finished_something: ["Done is done. Nice."],
-    overcame_fear: ["You did it scared. Respect."],
-    chose_healthy: ["Good choice."],
-    practiced_skill: ["Putting in the work."],
-    stayed_consistent: ["Consistency is everything."],
-    let_go: ["Letting go takes strength."],
-    stood_ground: ["You stood firm."],
+    self_care: ['Taking care of yourself. Love that.'],
+    asked_for_help: ['Asking for help is strength.'],
+    finished_something: ['Done is done. Nice.'],
+    overcame_fear: ['You did it scared. Respect.'],
+    chose_healthy: ['Good choice.'],
+    practiced_skill: ['Putting in the work.'],
+    stayed_consistent: ['Consistency is everything.'],
+    let_go: ['Letting go takes strength.'],
+    stood_ground: ['You stood firm.'],
   },
   small: {
-    did_hard_thing: ["That took guts. I'm proud of you.", "Look at you doing hard things."],
-    showed_up: ["Showing up is half the battle. You did it.", "You showed up when it would've been easier not to."],
-    spoke_up: ["Using your voice like that? That's growth.", "You spoke up. That matters."],
-    set_boundary: ["Setting boundaries is self-respect in action.", "That boundary? Chef's kiss."],
-    made_progress: ["Progress! Any forward motion counts.", "You're moving forward. That's what matters."],
-    tried_new_thing: ["Trying something new is always brave.", "Look at you, stepping outside your comfort zone."],
-    self_care: ["Self-care isn't selfish. It's necessary. Good for you.", "You're taking care of yourself. I love to see it."],
-    asked_for_help: ["Asking for help takes courage. Real talk.", "Reaching out is strength, not weakness."],
-    finished_something: ["You finished! That's not nothing.", "Done! Celebrate that."],
-    overcame_fear: ["You felt the fear and did it anyway. That's courage.", "Overcoming fear? That's huge."],
-    chose_healthy: ["Choosing the healthier option. Your future self thanks you."],
+    did_hard_thing: ["That took guts. I'm proud of you.", 'Look at you doing hard things.'],
+    showed_up: [
+      'Showing up is half the battle. You did it.',
+      "You showed up when it would've been easier not to.",
+    ],
+    spoke_up: ["Using your voice like that? That's growth.", 'You spoke up. That matters.'],
+    set_boundary: ['Setting boundaries is self-respect in action.', "That boundary? Chef's kiss."],
+    made_progress: [
+      'Progress! Any forward motion counts.',
+      "You're moving forward. That's what matters.",
+    ],
+    tried_new_thing: [
+      'Trying something new is always brave.',
+      'Look at you, stepping outside your comfort zone.',
+    ],
+    self_care: [
+      "Self-care isn't selfish. It's necessary. Good for you.",
+      "You're taking care of yourself. I love to see it.",
+    ],
+    asked_for_help: [
+      'Asking for help takes courage. Real talk.',
+      'Reaching out is strength, not weakness.',
+    ],
+    finished_something: ["You finished! That's not nothing.", 'Done! Celebrate that.'],
+    overcame_fear: [
+      "You felt the fear and did it anyway. That's courage.",
+      "Overcoming fear? That's huge.",
+    ],
+    chose_healthy: ['Choosing the healthier option. Your future self thanks you.'],
     practiced_skill: ["Practice makes progress. You're getting there."],
-    stayed_consistent: ["Consistency is your superpower showing.", "Staying consistent? That's how real change happens."],
-    let_go: ["Letting go is one of the hardest things. You did it."],
-    stood_ground: ["Standing your ground like that? Respect.", "You didn't waver. That takes strength."],
+    stayed_consistent: [
+      'Consistency is your superpower showing.',
+      "Staying consistent? That's how real change happens.",
+    ],
+    let_go: ['Letting go is one of the hardest things. You did it.'],
+    stood_ground: [
+      'Standing your ground like that? Respect.',
+      "You didn't waver. That takes strength.",
+    ],
   },
   medium: {
-    did_hard_thing: ["Wait, you actually did that? That's incredible! I know how hard that was for you.", "Stop. You did THAT? I'm genuinely impressed."],
-    showed_up: ["The fact that you showed up when every part of you probably wanted to stay home? That's real strength."],
-    spoke_up: ["You spoke your truth. That takes so much courage. I'm really proud of you.", "Using your voice like that? That's the kind of growth I love to see."],
-    set_boundary: ["That boundary you set? That's you choosing yourself. And you deserve that.", "Setting that boundary was an act of self-love. Don't forget that."],
+    did_hard_thing: [
+      "Wait, you actually did that? That's incredible! I know how hard that was for you.",
+      "Stop. You did THAT? I'm genuinely impressed.",
+    ],
+    showed_up: [
+      "The fact that you showed up when every part of you probably wanted to stay home? That's real strength.",
+    ],
+    spoke_up: [
+      "You spoke your truth. That takes so much courage. I'm really proud of you.",
+      "Using your voice like that? That's the kind of growth I love to see.",
+    ],
+    set_boundary: [
+      "That boundary you set? That's you choosing yourself. And you deserve that.",
+      "Setting that boundary was an act of self-love. Don't forget that.",
+    ],
     made_progress: ["This progress you're making? It's real. I see it. Don't downplay it."],
     tried_new_thing: ["You tried something new! That's not small. That's how life gets bigger."],
     self_care: ["The fact that you prioritized yourself? That's growth. Real growth."],
-    asked_for_help: ["You asked for help. Do you know how brave that is? Most people suffer in silence."],
-    finished_something: ["You finished it! Remember when this felt impossible? Look at you now."],
-    overcame_fear: ["You faced that fear head-on. That's not just brave, that's transformative.", "Overcoming that fear? You just proved something to yourself. Hold onto that."],
-    chose_healthy: ["Making the healthier choice when the easier one was right there? That's discipline and self-love combined."],
-    practiced_skill: ["All that practice is building something. You might not see it yet, but I do."],
-    stayed_consistent: ["Your consistency is paying off. This is exactly how lasting change works."],
-    let_go: ["Letting go of that? I know how heavy it was. You just got so much lighter."],
+    asked_for_help: [
+      'You asked for help. Do you know how brave that is? Most people suffer in silence.',
+    ],
+    finished_something: ['You finished it! Remember when this felt impossible? Look at you now.'],
+    overcame_fear: [
+      "You faced that fear head-on. That's not just brave, that's transformative.",
+      'Overcoming that fear? You just proved something to yourself. Hold onto that.',
+    ],
+    chose_healthy: [
+      "Making the healthier choice when the easier one was right there? That's discipline and self-love combined.",
+    ],
+    practiced_skill: [
+      'All that practice is building something. You might not see it yet, but I do.',
+    ],
+    stayed_consistent: [
+      'Your consistency is paying off. This is exactly how lasting change works.',
+    ],
+    let_go: ['Letting go of that? I know how heavy it was. You just got so much lighter.'],
     stood_ground: ["The way you stood your ground? That's integrity in action. I'm proud of you."],
   },
   big: {
-    did_hard_thing: ["I need you to stop and really hear me: what you just did was HUGE. That took everything you had. I'm so incredibly proud of you."],
-    showed_up: ["You showed up for yourself today in a way that really matters. That's not small. That's everything."],
-    spoke_up: ["What you just did—speaking up like that—that's the kind of moment that changes things. I'm genuinely in awe."],
-    set_boundary: ["That boundary? That was you choosing your peace over their comfort. That's revolutionary self-care."],
-    made_progress: ["The progress you've made... I've watched you grow so much. This moment right here? It's proof."],
-    tried_new_thing: ["You did something you've never done before. That takes courage most people never find. Remember this feeling."],
-    self_care: ["Prioritizing yourself like this? This is the version of you that's going to thrive. I love seeing it."],
-    asked_for_help: ["Asking for help when everything in you wanted to handle it alone? That's true strength. The strongest people know when to reach out."],
-    finished_something: ["YOU FINISHED IT! After everything, you crossed that finish line. I'm celebrating you so hard right now."],
-    overcame_fear: ["You looked your fear in the face and you won. This is the moment you'll look back on and realize you can do anything. I mean it."],
-    chose_healthy: ["Choosing yourself over the easy path? That's not just a choice, that's who you're becoming."],
-    practiced_skill: ["The dedication you've shown... it's inspiring. You're becoming someone new through this work."],
-    stayed_consistent: ["Your consistency is extraordinary. Most people give up. You didn't. You won't. That's special."],
-    let_go: ["Letting go of something that heavy? You just freed yourself. This is a new chapter. I can feel it."],
-    stood_ground: ["The way you stood in your truth? That was powerful. You should be so proud of yourself."],
+    did_hard_thing: [
+      "I need you to stop and really hear me: what you just did was HUGE. That took everything you had. I'm so incredibly proud of you.",
+    ],
+    showed_up: [
+      "You showed up for yourself today in a way that really matters. That's not small. That's everything.",
+    ],
+    spoke_up: [
+      "What you just did—speaking up like that—that's the kind of moment that changes things. I'm genuinely in awe.",
+    ],
+    set_boundary: [
+      "That boundary? That was you choosing your peace over their comfort. That's revolutionary self-care.",
+    ],
+    made_progress: [
+      "The progress you've made... I've watched you grow so much. This moment right here? It's proof.",
+    ],
+    tried_new_thing: [
+      "You did something you've never done before. That takes courage most people never find. Remember this feeling.",
+    ],
+    self_care: [
+      "Prioritizing yourself like this? This is the version of you that's going to thrive. I love seeing it.",
+    ],
+    asked_for_help: [
+      "Asking for help when everything in you wanted to handle it alone? That's true strength. The strongest people know when to reach out.",
+    ],
+    finished_something: [
+      "YOU FINISHED IT! After everything, you crossed that finish line. I'm celebrating you so hard right now.",
+    ],
+    overcame_fear: [
+      "You looked your fear in the face and you won. This is the moment you'll look back on and realize you can do anything. I mean it.",
+    ],
+    chose_healthy: [
+      "Choosing yourself over the easy path? That's not just a choice, that's who you're becoming.",
+    ],
+    practiced_skill: [
+      "The dedication you've shown... it's inspiring. You're becoming someone new through this work.",
+    ],
+    stayed_consistent: [
+      "Your consistency is extraordinary. Most people give up. You didn't. You won't. That's special.",
+    ],
+    let_go: [
+      'Letting go of something that heavy? You just freed yourself. This is a new chapter. I can feel it.',
+    ],
+    stood_ground: [
+      'The way you stood in your truth? That was powerful. You should be so proud of yourself.',
+    ],
   },
 };
 
 const FOLLOW_UPS: Record<WinType, string[]> = {
-  did_hard_thing: ["How do you feel now that it's done?", "What was the hardest part?"],
-  showed_up: ["How did it go?", "Was it as hard as you thought it would be?"],
-  spoke_up: ["How did they respond?", "How do you feel after saying that?"],
-  set_boundary: ["How did they take it?", "How does it feel to have that boundary in place?"],
-  made_progress: ["What do you think made the difference?", "What's the next step?"],
-  tried_new_thing: ["What was it like?", "Would you do it again?"],
-  self_care: ["What did you do for yourself?", "How do you feel now?"],
-  asked_for_help: ["Who did you reach out to?", "What kind of support did you ask for?"],
-  finished_something: ["How does it feel to have that behind you?", "What's next?"],
-  overcame_fear: ["What was going through your mind?", "How do you feel now that you've done it?"],
-  chose_healthy: ["What helped you make that choice?"],
-  practiced_skill: ["What are you working on?", "How's the progress feeling?"],
-  stayed_consistent: ["What's your secret to staying consistent?", "How long have you been at it?"],
-  let_go: ["What helped you let go?", "How does it feel?"],
-  stood_ground: ["What gave you the strength?", "How do you feel now?"],
+  did_hard_thing: ["How do you feel now that it's done?", 'What was the hardest part?'],
+  showed_up: ['How did it go?', 'Was it as hard as you thought it would be?'],
+  spoke_up: ['How did they respond?', 'How do you feel after saying that?'],
+  set_boundary: ['How did they take it?', 'How does it feel to have that boundary in place?'],
+  made_progress: ['What do you think made the difference?', "What's the next step?"],
+  tried_new_thing: ['What was it like?', 'Would you do it again?'],
+  self_care: ['What did you do for yourself?', 'How do you feel now?'],
+  asked_for_help: ['Who did you reach out to?', 'What kind of support did you ask for?'],
+  finished_something: ['How does it feel to have that behind you?', "What's next?"],
+  overcame_fear: ['What was going through your mind?', "How do you feel now that you've done it?"],
+  chose_healthy: ['What helped you make that choice?'],
+  practiced_skill: ['What are you working on?', "How's the progress feeling?"],
+  stayed_consistent: ["What's your secret to staying consistent?", 'How long have you been at it?'],
+  let_go: ['What helped you let go?', 'How does it feel?'],
+  stood_ground: ['What gave you the strength?', 'How do you feel now?'],
 };
 
 // ============================================================================
@@ -274,7 +353,7 @@ const FOLLOW_UPS: Record<WinType, string[]> = {
 export function detectMicroWin(message: string): MicroWin | null {
   for (const [type, config] of Object.entries(WIN_PATTERNS)) {
     const winType = type as WinType;
-    
+
     for (const pattern of config.patterns) {
       const match = message.match(pattern);
       if (match) {
@@ -286,9 +365,10 @@ export function detectMicroWin(message: string): MicroWin | null {
           magnitude: config.magnitude,
           trigger: match[0],
           celebration: celebrations[Math.floor(Math.random() * celebrations.length)],
-          followUp: Math.random() > 0.5 
-            ? followUps[Math.floor(Math.random() * followUps.length)]
-            : undefined,
+          followUp:
+            Math.random() > 0.5
+              ? followUps[Math.floor(Math.random() * followUps.length)]
+              : undefined,
         };
 
         log.debug(

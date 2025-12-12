@@ -9,6 +9,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/toast.ui.js';
+import { getAdminHeaders } from './admin-api.js';
 
 const log = createLogger('AdminEvents');
 
@@ -21,7 +22,7 @@ async function adminFetch(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-key': 'dev-mode',
+      ...getAdminHeaders(),
       ...options.headers,
     },
   });
@@ -1017,7 +1018,7 @@ export async function sendApiRequest(
       method,
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-key': 'dev-mode',
+        ...getAdminHeaders(),
       },
     };
     

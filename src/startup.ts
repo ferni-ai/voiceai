@@ -297,13 +297,33 @@ export function registerShutdownHandlers(): void {
   process.on('SIGTERM', () => void handleShutdown('SIGTERM'));
   process.on('SIGINT', () => void handleShutdown('SIGINT'));
 
+  // NOTE: uncaughtException and unhandledRejection are handled more
+  // gracefully in agents/shared/shutdown-handler.ts which:
+  // - Doesn't immediately crash on first exception
+  // - Monitors memory usage
+  // - Only exits after multiple exceptions in short period
+  // This handler is a fallback for non-agent processes.
   process.on('uncaughtException', (error) => {
     getLogger().error(`Uncaught exception: ${error}`);
-    void shutdown().finally(() => process.exit(1));
+    // Log with stack trace to stderr for Cloud Run visibility
+    process.stderr.write(`[STARTUP] Uncaught exception: ${error}\n${(error as Error).stack}\n`);
+    // Don't immediately exit - let the agent's handler decide
+    // Only exit if this is clearly fatal (e.g., out of memory)
+    const errorStr = String(error).toLowerCase();
+    if (
+      errorStr.includes('out of memory') ||
+      errorStr.includes('heap out of memory') ||
+      errorStr.includes('allocation failed')
+    ) {
+      getLogger().error('Fatal memory error, forcing shutdown');
+      void shutdown().finally(() => process.exit(1));
+    }
+    // Otherwise, log and continue - agent's handler will track exception count
   });
 
   process.on('unhandledRejection', (reason) => {
     getLogger().error(`Unhandled rejection: ${reason}`);
+    process.stderr.write(`[STARTUP] Unhandled rejection: ${reason}\n`);
     // Don't exit for unhandled rejections, just log
   });
 

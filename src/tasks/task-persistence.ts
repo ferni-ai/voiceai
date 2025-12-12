@@ -130,7 +130,7 @@ function generateTaskContentHash(record: TaskRecord): string {
   let hash = 0;
   for (let i = 0; i < hashInput.length; i++) {
     const char = hashInput.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return hash.toString(36);
@@ -148,11 +148,14 @@ function isDuplicateTask(record: TaskRecord): boolean {
     const age = Date.now() - existing.timestamp;
     // Duplicate if same content within time window
     if (age < DEDUPE_WINDOW_MS && existing.contentHash === contentHash) {
-      log.debug({
-        userId: record.userId,
-        taskType: record.taskType,
-        ageMs: age,
-      }, 'Skipping duplicate task record');
+      log.debug(
+        {
+          userId: record.userId,
+          taskType: record.taskType,
+          ageMs: age,
+        },
+        'Skipping duplicate task record'
+      );
       return true;
     }
   }
@@ -185,8 +188,9 @@ function markTaskRecorded(record: TaskRecord): void {
 
     // If still over limit, remove oldest
     if (dedupeIndex.size > MAX_DEDUPE_ENTRIES) {
-      const entries = Array.from(dedupeIndex.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const entries = Array.from(dedupeIndex.entries()).sort(
+        (a, b) => a[1].timestamp - b[1].timestamp
+      );
 
       const toRemove = entries.slice(0, entries.length - MAX_DEDUPE_ENTRIES);
       for (const [key] of toRemove) {

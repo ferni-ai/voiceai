@@ -526,14 +526,108 @@ export async function getUserMemoryForAPI(userId: string): Promise<{
     .sort((a, b) => b.count - a.count)
     .slice(0, 20);
 
+  const relationshipMilestones = deriveRelationshipMilestones(conversations);
+
   return {
     totalConversations: conversations.length,
     totalDuration,
     firstConversation: sorted[0]?.startedAt || null,
     lastConversation: sorted[sorted.length - 1]?.startedAt || null,
     topics,
-    relationshipMilestones: [], // TODO: Could derive from conversation patterns
+    relationshipMilestones,
   };
+}
+
+function deriveRelationshipMilestones(
+  conversations: readonly ConversationMetadata[]
+): Array<{ type: string; date: Date; description: string }> {
+  if (conversations.length === 0) return [];
+
+  const sorted = [...conversations].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+  const milestones: Array<{ type: string; date: Date; description: string }> = [];
+
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  milestones.push({
+    type: 'first_conversation',
+    date: first.startedAt,
+    description: 'First conversation together',
+  });
+
+  const countMilestones: Array<{ n: number; type: string; label: string }> = [
+    { n: 5, type: 'conversation_5', label: 'Five conversations together' },
+    { n: 10, type: 'conversation_10', label: 'Ten conversations together' },
+    { n: 25, type: 'conversation_25', label: 'Twenty-five conversations together' },
+    { n: 50, type: 'conversation_50', label: 'Fifty conversations together' },
+  ];
+
+  for (const m of countMilestones) {
+    if (sorted.length >= m.n) {
+      milestones.push({
+        type: m.type,
+        date: sorted[m.n - 1]!.startedAt,
+        description: m.label,
+      });
+    }
+  }
+
+  // Deepest / most involved conversation (by turnCount)
+  const longest = [...sorted].sort((a, b) => b.turnCount - a.turnCount)[0];
+  if (longest && longest.turnCount >= 30) {
+    milestones.push({
+      type: 'deep_conversation',
+      date: longest.startedAt,
+      description: `A deep conversation (${longest.turnCount} turns)`,
+    });
+  }
+
+  // Returned after a meaningful gap
+  let maxGapDays = 0;
+  let gapReturnDate: Date | null = null;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]!;
+    const cur = sorted[i]!;
+    const gapDays = Math.floor((cur.startedAt.getTime() - prev.startedAt.getTime()) / 86400000);
+    if (gapDays > maxGapDays) {
+      maxGapDays = gapDays;
+      gapReturnDate = cur.startedAt;
+    }
+  }
+
+  if (gapReturnDate && maxGapDays >= 14) {
+    milestones.push({
+      type: 'returned_after_gap',
+      date: gapReturnDate,
+      description: `Came back after ${maxGapDays} days`,
+    });
+  }
+
+  // One-month relationship marker (first conversation that is >= 30 days after first)
+  const thirtyDaysAfterFirst = new Date(first.startedAt.getTime() + 30 * 86400000);
+  const monthMarker = sorted.find((c) => c.startedAt >= thirtyDaysAfterFirst);
+  if (monthMarker) {
+    milestones.push({
+      type: 'one_month_together',
+      date: monthMarker.startedAt,
+      description: 'A month of staying connected',
+    });
+  }
+
+  // Sort and de-dupe by (type, date)
+  const seen = new Set<string>();
+  return (
+    milestones
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .filter((m) => {
+        const key = `${m.type}:${m.date.toISOString()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      // Don’t return milestones in the future (shouldn’t happen, but keep sane)
+      .filter((m) => m.date.getTime() <= last.startedAt.getTime())
+  );
 }
 
 /**

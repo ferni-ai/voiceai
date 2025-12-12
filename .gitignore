@@ -98,3 +98,6 @@ frontend-typescript/src/services/cameo.service.ts
 frontend-typescript/src/ui/cameo-transition.ui.ts
 frontend-typescript/src/ui/manage-subscription.ui.ts
 marketplace-agents/
+
+# Prevent accidental direct gcloud deploys - use npm run deploy instead
+# This comment reminds developers to use the deploy script

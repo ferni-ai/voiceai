@@ -25,10 +25,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  recordSelfAwarenessAssessment,
-  recordSelfAwarePrompt,
-} from './awareness-metrics.js';
+import { recordSelfAwarenessAssessment, recordSelfAwarePrompt } from './awareness-metrics.js';
 import { getMomentumTracker, type MomentumState } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'self-awareness' });

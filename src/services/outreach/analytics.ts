@@ -9,6 +9,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getBetterThanHumanTelemetry } from '../better-than-human-telemetry.js';
 import type { OutreachDecision, OutreachTriggerType } from './decision-engine.js';
 
 const log = getLogger().child({ module: 'outreach-analytics' });
@@ -61,6 +62,15 @@ export interface GlobalAnalytics {
   lastUpdated: Date;
 }
 
+export interface PeriodAnalytics {
+  periodDays: number;
+  totalOutreach: number;
+  responseRate: number;
+  byChannel: Record<string, { sent: number; responded: number; rate: number }>;
+  byTrigger: Record<string, { sent: number; responded: number; rate: number }>;
+  byPersona: Record<string, { sent: number; responded: number; rate: number }>;
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -69,6 +79,11 @@ const outreachEvents = new Map<string, OutreachEvent[]>();
 const responseEvents = new Map<string, ResponseEvent[]>();
 const userAnalyticsCache = new Map<string, UserAnalytics>();
 let globalAnalyticsCache: GlobalAnalytics | null = null;
+
+function getPeriodStart(periodDays: number): Date {
+  const now = Date.now();
+  return new Date(now - periodDays * 24 * 60 * 60 * 1000);
+}
 
 // ============================================================================
 // EVENT RECORDING
@@ -81,8 +96,27 @@ export function recordOutreachEvent(
   decision: OutreachDecision,
   channel: 'sms' | 'email' | 'call'
 ): string {
+  const existing = (outreachEvents.get(decision.trigger.userId) || []).find(
+    (e) => e.id === decision.trigger.id
+  );
+
+  if (existing) {
+    existing.channel = channel;
+    existing.personaId = decision.trigger.suggestedPersona || decision.persona || 'ferni';
+    existing.timestamp = new Date();
+    existing.decision = decision.decision;
+    existing.skipReason = decision.skipReason;
+
+    // Invalidate caches
+    userAnalyticsCache.delete(existing.userId);
+    globalAnalyticsCache = null;
+
+    return existing.id;
+  }
+
   const event: OutreachEvent = {
-    id: `outreach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // Critical: use decision.trigger.id so responses can be linked (webhooks use outreachId)
+    id: decision.trigger.id,
     userId: decision.trigger.userId,
     triggerId: decision.trigger.id,
     triggerType: decision.trigger.type,
@@ -143,6 +177,77 @@ export function recordResponseEvent(params: {
     { outreachId: params.outreachId, responseType: params.responseType },
     'Recorded response event'
   );
+
+  // Bridge into Better-Than-Human telemetry (response loop)
+  if (params.userId !== 'unknown' && params.responseType !== 'no_response') {
+    getBetterThanHumanTelemetry().trackOutreachResponse({
+      userId: params.userId,
+      outreachId: params.outreachId,
+      responseType: params.responseType,
+      sentiment: params.sentiment,
+    });
+  }
+}
+
+export function calculatePeriodAnalytics(periodDays: number): PeriodAnalytics {
+  const periodStart = getPeriodStart(periodDays);
+
+  let totalSent = 0;
+  let totalResponded = 0;
+
+  const byChannel: Record<string, { sent: number; responded: number; rate: number }> = {};
+  const byTrigger: Record<string, { sent: number; responded: number; rate: number }> = {};
+  const byPersona: Record<string, { sent: number; responded: number; rate: number }> = {};
+
+  outreachEvents.forEach((events, userId) => {
+    const responses = responseEvents.get(userId) || [];
+    const responseMap = new Map<string, ResponseEvent>();
+    responses.forEach((r) => {
+      if (r.timestamp >= periodStart) {
+        responseMap.set(r.outreachId, r);
+      }
+    });
+
+    const sentEvents = events.filter((e) => e.decision === 'send' && e.timestamp >= periodStart);
+
+    for (const e of sentEvents) {
+      totalSent++;
+      const hasResponse =
+        responseMap.has(e.id) && responseMap.get(e.id)?.responseType !== 'no_response';
+      if (hasResponse) totalResponded++;
+
+      // Channel
+      if (!byChannel[e.channel]) byChannel[e.channel] = { sent: 0, responded: 0, rate: 0 };
+      byChannel[e.channel].sent++;
+      if (hasResponse) byChannel[e.channel].responded++;
+
+      // Trigger
+      if (!byTrigger[e.triggerType]) byTrigger[e.triggerType] = { sent: 0, responded: 0, rate: 0 };
+      byTrigger[e.triggerType].sent++;
+      if (hasResponse) byTrigger[e.triggerType].responded++;
+
+      // Persona
+      if (!byPersona[e.personaId]) byPersona[e.personaId] = { sent: 0, responded: 0, rate: 0 };
+      byPersona[e.personaId].sent++;
+      if (hasResponse) byPersona[e.personaId].responded++;
+    }
+  });
+
+  for (const stats of Object.values(byChannel))
+    stats.rate = stats.sent > 0 ? stats.responded / stats.sent : 0;
+  for (const stats of Object.values(byTrigger))
+    stats.rate = stats.sent > 0 ? stats.responded / stats.sent : 0;
+  for (const stats of Object.values(byPersona))
+    stats.rate = stats.sent > 0 ? stats.responded / stats.sent : 0;
+
+  return {
+    periodDays,
+    totalOutreach: totalSent,
+    responseRate: totalSent > 0 ? totalResponded / totalSent : 0,
+    byChannel,
+    byTrigger,
+    byPersona,
+  };
 }
 
 // ============================================================================

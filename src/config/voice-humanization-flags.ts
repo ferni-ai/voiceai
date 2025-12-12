@@ -97,10 +97,10 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   enableMultiSignalLaughter: true,
   enableWordTimingRhythm: true,
 
-  // Phase 5: Preemptive - MONITORING ONLY (don't use cached responses yet)
-  enableResponseAnticipation: true, // Track but don't use
-  useCachedResponses: false, // Just monitor
-  cacheConfidenceThreshold: 0.7, // 70% confidence required
+  // Phase 5: Preemptive - ENABLED for faster, more natural responses
+  enableResponseAnticipation: true,
+  useCachedResponses: true, // Use cached responses for instant feel
+  cacheConfidenceThreshold: 0.65, // 65% confidence (slightly lower for more natural flow)
 
   // Rollout: 100% by default
   rolloutPercentage: 100,
@@ -333,7 +333,7 @@ export function resetFlags(): void {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export { DEFAULT_FLAGS, STAGING_FLAGS, DEVELOPMENT_FLAGS };
+export { DEFAULT_FLAGS, DEVELOPMENT_FLAGS, STAGING_FLAGS };
 
 /**
  * Direct access to current flags (auto-initializes if needed)

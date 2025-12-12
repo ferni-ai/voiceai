@@ -244,6 +244,7 @@ import {
   handleSessionCleanup,
   handleUserTurn,
   identifyUser,
+  initializeSession,
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
@@ -1991,200 +1992,24 @@ export default defineAgent({
       });
 
       // ===============================================
-      // STEP 2: CREATE SESSION SERVICES
+      // STEP 2-3: INITIALIZE SESSION (services, trial, user data)
       // ===============================================
-      diag.session('Step 2: Creating session services');
-
-      // Reset handoff state to ensure clean slate for new session
-      resetHandoffState();
-      resetMetPersonas(); // Reset "first meeting" tracking for natural greetings
-
-      // FIX BUG #33: Notify frontend of state reset so UI can sync
-      try {
-        await ctx.room.localParticipant?.publishData(
-          new TextEncoder().encode(
-            JSON.stringify({
-              type: 'state_reset',
-              activePersona: 'ferni',
-              timestamp: Date.now(),
-            })
-          ),
-          { reliable: true }
-        );
-        logger.debug('Notified frontend of state reset');
-      } catch (notifyErr) {
-        logger.warn({ error: String(notifyErr) }, 'Failed to notify frontend of state reset');
-      }
-
-      // Reset catchphrase tracking for new session (prevents overuse)
-      resetCatchphraseTracking();
-
-      // Reset all conversation dynamics for fresh session
-      // (emotional arc, response dynamics, story timing)
-      resetAllConversationState();
-
-      // Create session services with PERSONA-SPECIFIC speech characteristics
-      // This ensures each agent (Jack Bogle, Peter John, Ferni) sounds distinctly different
-      const services = await createSessionServices(
-        sessionId,
-        userId,
-        undefined, // isReturningUser will be determined from profile
-        sessionPersona.speechCharacteristics, // Per-persona pacing, pauses, energy
-        sessionPersona.personality.energy, // Fallback: derive from energy level
-        sessionPersona.id // Persona ID for persona-aware SSML
-      );
-
-      // Load trust profiles for "better than human" trust awareness
-      if (userId) {
-        try {
-          await loadTrustProfiles(userId);
-          diag.session('Trust profiles loaded for user', { userId });
-        } catch (trustErr) {
-          diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) });
-        }
-
-        // 🧠 Load superhuman intelligence data (memories, patterns, learning)
-        try {
-          const { getFirestoreStore } = await import('../memory/firestore-store.js');
-          const superhumanStore = createFirestoreSuperhumanStore(async () => {
-            const store = getFirestoreStore();
-            if (!store) throw new Error('Firestore not initialized');
-            return store as unknown as {
-              collection: (name: string) => {
-                doc: (id: string) => {
-                  get: () => Promise<{ exists: boolean; data: () => unknown }>;
-                  set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
-                  delete: () => Promise<void>;
-                };
-              };
-            };
-          });
-          await loadSuperhumanData(userId, sessionId, superhumanStore);
-          diag.session('🧠 Superhuman intelligence loaded', { userId });
-        } catch (superhumanErr) {
-          diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
-        }
-      }
-
-      const isReturningUser =
-        services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
-
-      // ===============================================
-      // FIRST TASTE TRIAL: Check trial eligibility for new users
-      // "Better than Human" - let them experience the magic first
-      // ===============================================
-      let isTrialUser = false;
-      let isFirstConversation = false;
-      let trialStatus: TrialCheckResult | null = null;
-
-      if (userId && !isReturningUser) {
-        try {
-          const eligible = await isEligibleForTrial(userId);
-          if (eligible) {
-            // Start trial for new user
-            await startTrial(userId);
-            isTrialUser = true;
-            isFirstConversation = true;
-            trialStatus = await checkTrialStatus(userId, 0);
-            diag.session('Started first taste trial for new user', { userId });
-          }
-        } catch (trialErr) {
-          diag.warn('Trial check failed (non-fatal)', { error: String(trialErr) });
-        }
-      } else if (userId) {
-        // Check if existing user is still in trial
-        try {
-          trialStatus = await checkTrialStatus(userId, 0);
-          if (trialStatus.inTrial) {
-            isTrialUser = true;
-            diag.session('User is in active trial', {
-              userId,
-              timeRemainingMs: trialStatus.timeRemainingMs,
-            });
-          }
-        } catch (trialErr) {
-          diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
-        }
-      }
-
-      // ===============================================
-      // STEP 3: INITIALIZE USER DATA
-      // ===============================================
-
-      // Initialize conversation state for tool orchestration
-      // This provides shared context across all tools for human-level conversation
-      const conversationState = getConversationState(
-        sessionId,
-        userId || 'default',
-        sessionPersona.id
-      );
-
-      // Set user name if known
-      if (userName || services.userProfile?.name) {
-        conversationState.setUserName(userName || services.userProfile?.name || '');
-      }
-
-      const userData: UserData = {
-        name: userName || services.userProfile?.name,
-        userId,
-        isReturningUser,
+      // Extracted to voice-agent/session-init-handler.ts for maintainability
+      const {
         services,
-        turnCount: 0,
-        // 🌍 International accent preference
-        preferredAccent: userAccent,
-        // Initialize bundle runtime state
-        bundleRuntimeState: {
-          relationshipTurns: services.userProfile?.totalConversations
-            ? Math.min(services.userProfile.totalConversations * 5, 300) // Estimate turns from sessions
-            : 0,
-          currentMode: 'listening', // Start in listening mode
-          storiesToldThisSession: [],
-        },
-        // Conversation state for tool orchestration
-        conversationState,
-        // First Taste Trial state
+        isReturningUser,
         isTrialUser,
         isFirstConversation,
-        trialStatus: trialStatus
-          ? {
-              inTrial: trialStatus.inTrial,
-              timeRemainingMs: trialStatus.timeRemainingMs,
-              approachingEnd: trialStatus.approachingEnd,
-              trialEnded: trialStatus.trialEnded,
-            }
-          : undefined,
-        hasSpokenTrialEndPrompt: false,
-      };
-
-      diag.session('Conversation state initialized', {
+        trialStatus,
+        userData,
+      } = await initializeSession({
         sessionId,
-        userId: userId || 'default',
-        agentId: sessionPersona.id,
+        userId,
+        userName,
+        userAccent,
+        sessionPersona,
+        room: ctx.room,
       });
-
-      // ===============================================
-      // A/B TESTING: Assign user to active experiments
-      // ===============================================
-      // This enables testing different tool configurations to optimize performance
-      const activeExperiments = abTestingService.getActiveExperiments();
-      for (const experiment of activeExperiments) {
-        const assignment = abTestingService.assignUser(userId || sessionId, experiment.id);
-        if (assignment) {
-          diag.entry('User assigned to experiment', {
-            experimentId: experiment.id,
-            variantId: assignment.variantId,
-            userId: userId || sessionId,
-          });
-        }
-      }
-
-      // ===============================================
-      // AUTO-OPTIMIZATION: Start session tracking
-      // ===============================================
-      // Track this session for pattern analysis and feedback collection
-      patternAnalyzer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
-      autoOptimizer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
-      diag.entry('Optimization session started', { sessionId, personaId: sessionPersona.id });
 
       // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)
@@ -2350,7 +2175,8 @@ export default defineAgent({
       }
 
       // Store in userData for use in context injection
-      (userData as Record<string, unknown>).extensibilitySessionPrompt = extensibilitySessionPrompt;
+      (userData as unknown as Record<string, unknown>).extensibilitySessionPrompt =
+        extensibilitySessionPrompt;
 
       // ===============================================
       // STEP 5: EVENT LISTENERS

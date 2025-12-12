@@ -14,41 +14,39 @@
  */
 
 import {
+  captureJoke,
+  findRelevantJoke,
+  formatJokeForPrompt,
+} from '../../conversation/superhuman/inside-jokes.js';
+import {
+  detectMicroWin,
+  formatMicroWinForPrompt,
+} from '../../conversation/superhuman/micro-celebrations.js';
+import { formatNaturalSpeechGuidance } from '../../conversation/superhuman/natural-speech.js';
+import {
+  extractNameFromMessage,
+  formatNamingGuidance,
+  setUserName,
+  updateEndearmentLevel,
+} from '../../conversation/superhuman/nicknames.js';
+import {
   captureQuote,
   findRelevantQuote,
   formatQuoteForPrompt,
   markQuoteSurfaced,
 } from '../../conversation/superhuman/quote-memory.js';
 import {
-  checkMilestones,
   acknowledgeMilestone,
+  checkMilestones,
   formatMilestoneForPrompt,
   recordConversation,
   recordLaugh,
 } from '../../conversation/superhuman/relationship-milestones.js';
 import {
-  detectMicroWin,
-  formatMicroWinForPrompt,
-} from '../../conversation/superhuman/micro-celebrations.js';
-import {
-  formatNaturalSpeechGuidance,
-} from '../../conversation/superhuman/natural-speech.js';
-import {
-  captureJoke,
-  findRelevantJoke,
-  formatJokeForPrompt,
-} from '../../conversation/superhuman/inside-jokes.js';
-import {
-  extractNameFromMessage,
-  setUserName,
-  formatNamingGuidance,
-  updateEndearmentLevel,
-} from '../../conversation/superhuman/nicknames.js';
-import {
   extractPerson,
-  getOrCreatePerson,
   findPeopleToAskAbout,
   formatFollowUpForPrompt,
+  getOrCreatePerson,
 } from '../../conversation/superhuman/story-continuity.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -111,8 +109,7 @@ async function buildConversationalSuperpowers(
   // Get current topics and emotion
   const currentTopics = analysis?.topics?.detected || [];
   const currentEmotion = analysis?.emotion?.primary || 'neutral';
-  const wasLaughing = analysis?.emotion?.primary === 'joy' || 
-    /haha|lol|😂/i.test(userText);
+  const wasLaughing = analysis?.emotion?.primary === 'joy' || /haha|lol|😂/i.test(userText);
 
   // ============================================================================
   // 1. CAPTURE DATA FROM USER MESSAGE
@@ -175,11 +172,9 @@ async function buildConversationalSuperpowers(
 
     if (relevantQuote && relevantQuote.relevanceScore > 25) {
       injections.push(
-        createHintInjection(
-          'conversational_quote_callback',
-          formatQuoteForPrompt(relevantQuote),
-          { category: 'superhuman' }
-        )
+        createHintInjection('conversational_quote_callback', formatQuoteForPrompt(relevantQuote), {
+          category: 'superhuman',
+        })
       );
       markQuoteSurfaced(userId, relevantQuote.quote.id);
       data.quoteSurfacedThisSession = true;
@@ -196,11 +191,9 @@ async function buildConversationalSuperpowers(
     if (milestones.length > 0) {
       const milestone = milestones[0];
       injections.push(
-        createHintInjection(
-          'conversational_milestone',
-          formatMilestoneForPrompt(milestone),
-          { category: 'superhuman' }
-        )
+        createHintInjection('conversational_milestone', formatMilestoneForPrompt(milestone), {
+          category: 'superhuman',
+        })
       );
       acknowledgeMilestone(userId, milestone.type, milestone.value);
       data.milestoneSurfacedThisSession = true;
@@ -223,11 +216,9 @@ async function buildConversationalSuperpowers(
 
     if (relevantJoke) {
       injections.push(
-        createHintInjection(
-          'conversational_inside_joke',
-          formatJokeForPrompt(relevantJoke),
-          { category: 'superhuman' }
-        )
+        createHintInjection('conversational_inside_joke', formatJokeForPrompt(relevantJoke), {
+          category: 'superhuman',
+        })
       );
       data.jokeSurfacedThisSession = true;
       log.info({ userId, jokeId: relevantJoke.joke.id }, '😄 Inside joke surfaced');
@@ -243,11 +234,9 @@ async function buildConversationalSuperpowers(
 
     if (followUp) {
       injections.push(
-        createHintInjection(
-          'conversational_person_followup',
-          formatFollowUpForPrompt(followUp),
-          { category: 'superhuman' }
-        )
+        createHintInjection('conversational_person_followup', formatFollowUpForPrompt(followUp), {
+          category: 'superhuman',
+        })
       );
       data.personFollowUpThisSession = true;
       log.info({ userId, person: followUp.person.name }, '👥 Person follow-up surfaced');
@@ -261,11 +250,9 @@ async function buildConversationalSuperpowers(
   const microWin = detectMicroWin(userText);
   if (microWin) {
     injections.push(
-      createHintInjection(
-        'conversational_micro_win',
-        formatMicroWinForPrompt(microWin),
-        { category: 'superhuman' }
-      )
+      createHintInjection('conversational_micro_win', formatMicroWinForPrompt(microWin), {
+        category: 'superhuman',
+      })
     );
     log.info({ userId, winType: microWin.type }, '🎊 Micro-win detected');
   }
@@ -278,11 +265,7 @@ async function buildConversationalSuperpowers(
   const personaStyle = getPersonaStyle(persona?.id || 'ferni');
   const speechGuidance = formatNaturalSpeechGuidance(personaStyle);
   injections.push(
-    createHintInjection(
-      'conversational_natural_speech',
-      speechGuidance,
-      { category: 'persona' }
-    )
+    createHintInjection('conversational_natural_speech', speechGuidance, { category: 'persona' })
   );
 
   // ============================================================================
@@ -299,11 +282,7 @@ async function buildConversationalSuperpowers(
   const namingGuidance = formatNamingGuidance(userId, namingContext);
   if (namingGuidance) {
     injections.push(
-      createHintInjection(
-        'conversational_naming',
-        namingGuidance,
-        { category: 'superhuman' }
-      )
+      createHintInjection('conversational_naming', namingGuidance, { category: 'superhuman' })
     );
   }
 
@@ -325,7 +304,7 @@ function calculateRelationshipStage(
 
 function getPersonaStyle(personaId: string): 'warm' | 'thoughtful' | 'energetic' | 'calm' {
   const styleMap: Record<string, 'warm' | 'thoughtful' | 'energetic' | 'calm'> = {
-    'ferni': 'warm',
+    ferni: 'warm',
     'peter-john': 'thoughtful',
     'alex-chen': 'energetic',
     'maya-santos': 'calm',
@@ -341,7 +320,8 @@ function getPersonaStyle(personaId: string): 'warm' | 'thoughtful' | 'energetic'
 
 registerContextBuilder({
   name: 'conversational_superpowers',
-  description: 'Superhuman conversational features: quotes, milestones, micro-wins, jokes, names, people',
+  description:
+    'Superhuman conversational features: quotes, milestones, micro-wins, jokes, names, people',
   priority: 72, // After human_personality (75), before general engagement
   build: buildConversationalSuperpowers,
   category: BuilderCategory.PERSONA,

@@ -13,6 +13,9 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
+// SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled
+import { sanitizeSsml } from '../ssml/core.js';
+
 // Import all conversation modules
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 
@@ -259,10 +262,14 @@ export class ConversationHumanizer {
       topicSeriousness: context.isSeriousContext ? 'serious' : 'casual',
       userJustSharedSomethingPersonal: context.wasPersonalSharing,
       userAskedQuestion: context.userMessage.includes('?'),
+      randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:backchannel`,
     };
 
     // Only backchannel during longer user turns
-    if (context.userMessage.length > 100 && Math.random() < 0.3) {
+    if (
+      context.userMessage.length > 100 &&
+      this.shouldTrigger(context.turnNumber, 'backchannel', 0.3)
+    ) {
       const backchannel = this.listening.getBackchannel(this.personaId, backchannelContext);
       if (backchannel) {
         actions.backchannel = {
@@ -365,7 +372,10 @@ export class ConversationHumanizer {
     }
 
     // 6. Question diversity suggestion
-    if (!context.userMessage.includes('?') && Math.random() < 0.4) {
+    if (
+      !context.userMessage.includes('?') &&
+      this.shouldTrigger(context.turnNumber, 'guidance_question_suggestion', 0.4)
+    ) {
       const questionContext: QuestionContext = {
         topic,
         userEmotion: context.userEmotion,
@@ -389,7 +399,9 @@ export class ConversationHumanizer {
         /how (do|should|can|would)/i.test(context.userMessage) ||
         /what (should|do you think|would)/i.test(context.userMessage));
     if (isComplexQuestion) {
-      const thinkingPhrase = this.naturalizer.getThinkingPhrase(this.personaId, 'processing');
+      const thinkingPhrase = this.naturalizer.getThinkingPhrase(this.personaId, 'processing', {
+        randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:thinking_phrase`,
+      });
       guidance.push({
         source: 'speech_naturalizer',
         content: `[THINKING CUE] For complex questions, you might open with: "${thinkingPhrase.phrase}"`,
@@ -565,15 +577,18 @@ export class ConversationHumanizer {
       topic: context.topic,
       isSeriousContext: context.isSeriousContext,
       turnNumber: context.turnNumber,
+      randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:naturalize`,
     };
 
     text = this.naturalizer.naturalize(text, this.personaId, naturalizationContext);
+    ssml = text;
     appliedFeatures.push('speech_naturalization');
 
     // 2. Try vocabulary mirroring
     const mirrored = this.listening.mirrorUserVocabulary(context.userMessage, text);
     if (mirrored) {
       text = mirrored.mirrored;
+      ssml = text;
       appliedFeatures.push('vocabulary_mirroring');
     }
 
@@ -583,7 +598,7 @@ export class ConversationHumanizer {
 
     // 4. Check for memory callback opportunity
     let memoryCallback: HumanizedResponse['memoryCallback'];
-    if (context.turnNumber > 4 && Math.random() < 0.2) {
+    if (context.turnNumber > 4 && this.shouldTrigger(context.turnNumber, 'memory_callback', 0.2)) {
       const callback = this.memory.getMemoryCallback(
         context.topic || 'general',
         context.turnNumber
@@ -600,7 +615,10 @@ export class ConversationHumanizer {
 
     // 5. Consider adding a follow-up question
     let followUpQuestion: HumanizedResponse['followUpQuestion'];
-    if (!context.userMessage.includes('?') && Math.random() < 0.35) {
+    if (
+      !context.userMessage.includes('?') &&
+      this.shouldTrigger(context.turnNumber, 'follow_up_question', 0.35)
+    ) {
       const questionContext: QuestionContext = {
         topic: context.topic,
         userEmotion: context.userEmotion,
@@ -608,6 +626,7 @@ export class ConversationHumanizer {
         personaId: this.personaId,
         conversationDepth:
           context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
+        randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:followup:${context.userMessage}`,
       };
       const question = this.questions.generateQuestion(questionContext);
       followUpQuestion = {
@@ -619,14 +638,16 @@ export class ConversationHumanizer {
 
     // 6. Add hedging for uncertainty if appropriate
     if (this.shouldAddUncertainty(text, context)) {
-      text = this.naturalizer.addUncertainty(text, this.personaId, 'medium');
+      text = this.naturalizer.addUncertainty(text, this.personaId, 'medium', {
+        randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:uncertainty`,
+      });
       appliedFeatures.push('uncertainty_hedge');
     }
 
     // 7. Apply content delivery pacing for longer content
     // This makes reading web results, lists, and long material feel natural
     if (shouldApplyDeliveryPacing(text)) {
-      text = applyDeliveryPacing(text, {
+      ssml = applyDeliveryPacing(text, {
         personaId: this.personaId,
         isDirectResponse: context.userMessage.includes('?'),
       });
@@ -643,21 +664,23 @@ export class ConversationHumanizer {
       turnNumber: context.turnNumber,
       isMeaningfulMoment: context.wasPersonalSharing,
       userMessage: context.userMessage,
+      randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:vocal`,
     };
-    const vocalResult = humanizeVocals(text, vocalContext);
-    text = vocalResult.ssml;
+    const vocalResult = humanizeVocals(ssml, vocalContext);
+    ssml = vocalResult.ssml;
     appliedFeatures.push(...vocalResult.appliedFeatures);
 
     // 9. Apply SSML enhancements based on emotional guidance
-    ssml = this.applySsmlEnhancements(text, emotionalGuidance);
+    ssml = this.applySsmlEnhancements(ssml, emotionalGuidance);
 
     // Record agent message
     this.memory.recordAgentMessage(text);
     this.dynamics.recordMessage('agent', text, context.topic ? [context.topic] : undefined);
 
     return {
-      text,
-      ssml,
+      text: this.stripSsml(text),
+      // Sanitize SSML to handle stage directions that may have been injected
+      ssml: sanitizeSsml(ssml),
       appliedFeatures,
       emotionalGuidance,
       pacing: pacing.suggestedAgentPacing,
@@ -776,6 +799,7 @@ export class ConversationHumanizer {
       conversationDepth:
         context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
       topicWeight,
+      randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:silence`,
     });
 
     if (silenceDecision.useSilence) {
@@ -973,8 +997,10 @@ export class ConversationHumanizer {
 
     return {
       ...baseResult,
-      text: enhancedText,
-      ssml: enhancedSsml,
+      text: this.stripSsml(enhancedText),
+      // CRITICAL: Sanitize SSML to convert stage directions like "[gentle chuckle]" to [laughter]
+      // Without this, breath sounds from persona JSON files would be spoken literally
+      ssml: sanitizeSsml(enhancedSsml),
       appliedFeatures: [...baseResult.appliedFeatures, ...additionalFeatures],
     };
   }
@@ -1037,7 +1063,9 @@ export class ConversationHumanizer {
     text: string;
     ssml: string;
   } {
-    const pattern = this.naturalizer.getThinkingPhrase(this.personaId, type);
+    const pattern = this.naturalizer.getThinkingPhrase(this.personaId, type, {
+      randomSeed: `${this.sessionId}:${this.personaId}:${type}:thinking_phrase`,
+    });
     return {
       text: pattern.phrase,
       ssml: pattern.ssml,
@@ -1106,6 +1134,28 @@ export class ConversationHumanizer {
   // PRIVATE HELPERS
   // ============================================================================
 
+  /**
+   * Deterministic probability gate for stable, human-feeling behavior.
+   *
+   * Avoids `Math.random()` so the same session/turn tends to behave consistently,
+   * and tests remain reliable.
+   */
+  private shouldTrigger(turnNumber: number, feature: string, probability: number): boolean {
+    const p = Math.max(0, Math.min(1, probability));
+    if (p === 0) return false;
+    if (p === 1) return true;
+
+    const key = `${this.sessionId}:${this.personaId}:${turnNumber}:${feature}`;
+    // FNV-1a 32-bit hash
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) {
+      hash ^= key.charCodeAt(i);
+      hash = (hash * 0x01000193) >>> 0;
+    }
+    const roll = hash / 0xffffffff;
+    return roll < p;
+  }
+
   private shouldAddUncertainty(text: string, context: HumanizationContext): boolean {
     // Don't add uncertainty to questions
     if (text.trim().endsWith('?')) return false;
@@ -1114,17 +1164,27 @@ export class ConversationHumanizer {
     if (text.length < 30) return false;
 
     // Add more uncertainty early in conversation
-    if (context.turnNumber < 3) return Math.random() < 0.3;
+    if (context.turnNumber < 3)
+      return this.shouldTrigger(context.turnNumber, 'uncertainty_early', 0.3);
 
     // Add uncertainty when giving advice
     const advicePatterns = /you should|you need to|you have to|try to|consider/i;
-    if (advicePatterns.test(text)) return Math.random() < 0.25;
+    if (advicePatterns.test(text)) {
+      return this.shouldTrigger(context.turnNumber, 'uncertainty_advice', 0.25);
+    }
 
     // Add uncertainty when making predictions
     const predictionPatterns = /will probably|likely|might|could be/i;
-    if (predictionPatterns.test(text)) return Math.random() < 0.2;
+    if (predictionPatterns.test(text)) {
+      return this.shouldTrigger(context.turnNumber, 'uncertainty_prediction', 0.2);
+    }
 
-    return Math.random() < 0.1;
+    return this.shouldTrigger(context.turnNumber, 'uncertainty_default', 0.1);
+  }
+
+  private stripSsml(text: string): string {
+    const withoutTags = text.replace(/<[^>]+>/g, '');
+    return withoutTags.replace(/\s+/g, ' ').trim();
   }
 
   private applySsmlEnhancements(text: string, guidance: EmotionalResponse | null): string {

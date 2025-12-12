@@ -5,8 +5,7 @@
  * custom commands, tools, hooks, themes, and MCP integration.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { join } from 'path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the safe-logger
 vi.mock('../../../utils/safe-logger.js', () => ({
@@ -354,14 +353,14 @@ describe('Local Tools Loader', () => {
       expect(result.result).toBe('Celebration: milestone achieved!');
     });
 
-    it('should return error for unsupported tool type', async () => {
+    it('should return error for script tool without filePath', async () => {
       const { executeLocalTool } = await import('../local-tools-loader.js');
 
       const tool = {
         id: 'test-tool',
         name: 'testTool',
         description: 'A test tool',
-        type: 'script' as const, // Not supported yet
+        type: 'script' as const,
         script: '/path/to/script.js',
         parameters: {},
       };
@@ -375,7 +374,7 @@ describe('Local Tools Loader', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('not yet implemented');
+      expect(result.error).toContain('filePath missing');
     });
   });
 });
@@ -453,8 +452,20 @@ describe('MCP Loader', () => {
       const config = {
         servers: [
           { id: 'auto1', name: 'Auto 1', transport: 'stdio' as const, command: 'node' },
-          { id: 'auto2', name: 'Auto 2', transport: 'http' as const, url: 'https://example.com', autoConnect: true },
-          { id: 'manual', name: 'Manual', transport: 'http' as const, url: 'https://example.com', autoConnect: false },
+          {
+            id: 'auto2',
+            name: 'Auto 2',
+            transport: 'http' as const,
+            url: 'https://example.com',
+            autoConnect: true,
+          },
+          {
+            id: 'manual',
+            name: 'Manual',
+            transport: 'http' as const,
+            url: 'https://example.com',
+            autoConnect: false,
+          },
         ],
       };
 
@@ -478,8 +489,18 @@ describe('MCP Loader', () => {
 
       const config = {
         servers: [
-          { id: 'server1', name: 'Server 1', transport: 'http' as const, url: 'https://example1.com' },
-          { id: 'server2', name: 'Server 2', transport: 'http' as const, url: 'https://example2.com' },
+          {
+            id: 'server1',
+            name: 'Server 1',
+            transport: 'http' as const,
+            url: 'https://example1.com',
+          },
+          {
+            id: 'server2',
+            name: 'Server 2',
+            transport: 'http' as const,
+            url: 'https://example2.com',
+          },
         ],
       };
 
@@ -492,7 +513,14 @@ describe('MCP Loader', () => {
       const { findServer } = await import('../mcp-loader.js');
 
       const config = {
-        servers: [{ id: 'server1', name: 'Server 1', transport: 'http' as const, url: 'https://example.com' }],
+        servers: [
+          {
+            id: 'server1',
+            name: 'Server 1',
+            transport: 'http' as const,
+            url: 'https://example.com',
+          },
+        ],
       };
 
       const server = findServer(config, 'unknown');

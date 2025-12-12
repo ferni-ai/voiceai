@@ -2,14 +2,30 @@
  * Graceful Shutdown Handler
  *
  * Handles graceful shutdown by flushing all pending data before exit.
+ * Also handles uncaught exceptions and unhandled rejections to prevent
+ * the agent from silently "cutting out".
  */
 
 import { diag } from '../../services/diagnostic-logger.js';
+
+// Track if we're already shutting down to prevent double-shutdown
+let isShuttingDown = false;
+
+// Track uncaught exception count - too many in short period = real problem
+let uncaughtExceptionCount = 0;
+const EXCEPTION_WINDOW_MS = 60_000; // 1 minute
+const MAX_EXCEPTIONS_BEFORE_EXIT = 5;
 
 /**
  * Handle graceful shutdown - flush all pending data before exit
  */
 export async function gracefulShutdown(signal: string): Promise<void> {
+  if (isShuttingDown) {
+    diag.warn('Shutdown already in progress, ignoring duplicate signal', { signal });
+    return;
+  }
+  isShuttingDown = true;
+
   diag.info(`Received ${signal}, initiating graceful shutdown...`);
 
   try {
@@ -27,12 +43,113 @@ export async function gracefulShutdown(signal: string): Promise<void> {
 
 /**
  * Register process signal handlers for graceful shutdown
+ *
+ * IMPORTANT: This includes handlers for uncaughtException and unhandledRejection
+ * to prevent the agent from silently "cutting out" when errors occur.
  */
 export function registerShutdownSignalHandlers(): void {
+  // Standard shutdown signals
   process.on('SIGTERM', () => {
     void gracefulShutdown('SIGTERM');
   });
   process.on('SIGINT', () => {
     void gracefulShutdown('SIGINT');
+  });
+
+  // =========================================================================
+  // UNCAUGHT EXCEPTION HANDLER
+  // =========================================================================
+  // Instead of immediately crashing, we log the error and continue.
+  // Only crash if we get too many exceptions in a short period (indicates real problem).
+  // This prevents a single unexpected error from killing all active voice sessions.
+  process.on('uncaughtException', (error: Error, origin: string) => {
+    uncaughtExceptionCount++;
+
+    // Log the error with full context
+    diag.error('🚨 UNCAUGHT EXCEPTION - agent may cut out', {
+      error: error.message,
+      stack: error.stack,
+      origin,
+      exceptionCount: uncaughtExceptionCount,
+      processUptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+    });
+
+    // Also write to stderr for Cloud Run logs
+    process.stderr.write(
+      `[UNCAUGHT EXCEPTION] ${error.message}\n${error.stack}\nOrigin: ${origin}\n`
+    );
+
+    // If we're getting too many exceptions, something is seriously wrong - exit
+    if (uncaughtExceptionCount >= MAX_EXCEPTIONS_BEFORE_EXIT) {
+      diag.error('Too many uncaught exceptions, forcing shutdown', {
+        count: uncaughtExceptionCount,
+        threshold: MAX_EXCEPTIONS_BEFORE_EXIT,
+      });
+      void gracefulShutdown('UNCAUGHT_EXCEPTION_THRESHOLD');
+    }
+
+    // Reset counter after window expires
+    setTimeout(() => {
+      uncaughtExceptionCount = Math.max(0, uncaughtExceptionCount - 1);
+    }, EXCEPTION_WINDOW_MS);
+  });
+
+  // =========================================================================
+  // UNHANDLED REJECTION HANDLER
+  // =========================================================================
+  // Log but don't crash - unhandled rejections are often recoverable
+  process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+    diag.warn('⚠️ UNHANDLED REJECTION - may cause issues', {
+      reason: String(reason),
+      promise: String(promise),
+      processUptime: process.uptime(),
+    });
+
+    // Write to stderr for visibility in Cloud Run logs
+    process.stderr.write(`[UNHANDLED REJECTION] ${String(reason)}\n`);
+  });
+
+  // =========================================================================
+  // MEMORY WARNING HANDLER
+  // =========================================================================
+  // Node.js doesn't have a built-in memory warning, but we can set up periodic checks
+  const MEMORY_CHECK_INTERVAL = 30_000; // Check every 30 seconds
+  const MEMORY_WARNING_THRESHOLD = 0.85; // 85% of heap limit
+  const MEMORY_CRITICAL_THRESHOLD = 0.95; // 95% of heap limit
+
+  setInterval(() => {
+    const memUsage = process.memoryUsage();
+    const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+    const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
+    const heapLimitMB = 3072; // From NODE_OPTIONS --max-old-space-size
+
+    const heapUsageRatio = heapUsedMB / heapLimitMB;
+
+    if (heapUsageRatio > MEMORY_CRITICAL_THRESHOLD) {
+      diag.error('🚨 CRITICAL MEMORY USAGE - agent may crash soon', {
+        heapUsedMB: Math.round(heapUsedMB),
+        heapTotalMB: Math.round(heapTotalMB),
+        heapLimitMB,
+        usagePercent: Math.round(heapUsageRatio * 100),
+        rss: Math.round(memUsage.rss / 1024 / 1024),
+      });
+
+      // Try to trigger garbage collection if available
+      if (global.gc) {
+        diag.warn('Triggering manual garbage collection');
+        global.gc();
+      }
+    } else if (heapUsageRatio > MEMORY_WARNING_THRESHOLD) {
+      diag.warn('⚠️ HIGH MEMORY USAGE', {
+        heapUsedMB: Math.round(heapUsedMB),
+        heapLimitMB,
+        usagePercent: Math.round(heapUsageRatio * 100),
+      });
+    }
+  }, MEMORY_CHECK_INTERVAL);
+
+  diag.info('Process signal handlers registered', {
+    handlers: ['SIGTERM', 'SIGINT', 'uncaughtException', 'unhandledRejection', 'memoryMonitor'],
   });
 }

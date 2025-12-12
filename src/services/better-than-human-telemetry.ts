@@ -52,6 +52,7 @@ export type FeatureType =
   | 'outreach_celebration'
   | 'outreach_growth'
   | 'outreach_commitment_check'
+  | 'outreach_response'
   // User reactions
   | 'user_reaction_positive'
   | 'user_reaction_neutral'
@@ -159,6 +160,7 @@ class BetterThanHumanTelemetry {
       'outreach_celebration',
       'outreach_growth',
       'outreach_commitment_check',
+      'outreach_response',
       'user_reaction_positive',
       'user_reaction_neutral',
       'user_reaction_negative',
@@ -299,7 +301,8 @@ class BetterThanHumanTelemetry {
   trackOutreach(
     type: 'thinking_of_you' | 'celebration' | 'growth' | 'commitment_check',
     userId: string,
-    personaId: string
+    personaId: string,
+    metadata?: Record<string, unknown>
   ): void {
     const featureMap: Record<string, FeatureType> = {
       thinking_of_you: 'outreach_thinking_of_you',
@@ -307,7 +310,21 @@ class BetterThanHumanTelemetry {
       growth: 'outreach_growth',
       commitment_check: 'outreach_commitment_check',
     };
-    this.track(featureMap[type], userId, personaId);
+    this.track(featureMap[type], userId, personaId, undefined, metadata);
+  }
+
+  trackOutreachResponse(options: {
+    userId: string;
+    outreachId: string;
+    responseType: string;
+    personaId?: string;
+    sentiment?: 'positive' | 'neutral' | 'negative';
+  }): void {
+    this.track('outreach_response', options.userId, options.personaId || 'ferni', undefined, {
+      outreachId: options.outreachId,
+      responseType: options.responseType,
+      sentiment: options.sentiment,
+    });
   }
 
   // User reactions
@@ -364,6 +381,19 @@ class BetterThanHumanTelemetry {
       countByFeature('outreach_growth') +
       countByFeature('outreach_commitment_check');
 
+    const outreachResponses = periodEvents.filter((e) => e.feature === 'outreach_response');
+    const respondedOutreachIds = new Set(
+      outreachResponses
+        .map((e) => e.metadata?.['outreachId'])
+        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    );
+
+    const responseRate =
+      totalOutreach > 0
+        ? (respondedOutreachIds.size > 0 ? respondedOutreachIds.size : outreachResponses.length) /
+          totalOutreach
+        : 0;
+
     const positiveReactions = countByFeature('user_reaction_positive');
     const neutralReactions = countByFeature('user_reaction_neutral');
     const negativeReactions = countByFeature('user_reaction_negative');
@@ -411,7 +441,7 @@ class BetterThanHumanTelemetry {
         growth: countByFeature('outreach_growth'),
         commitmentChecks: countByFeature('outreach_commitment_check'),
         totalSent: totalOutreach,
-        responseRate: 0, // TODO: Calculate from actual responses
+        responseRate,
       },
       userReactions: {
         positive: positiveReactions,

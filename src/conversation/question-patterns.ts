@@ -15,6 +15,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { seededChance, seededPick } from './utils/rng.js';
 
 // ============================================================================
 // TYPES
@@ -47,6 +48,11 @@ export interface QuestionContext {
   conversationDepth?: 'surface' | 'medium' | 'deep';
   personaId?: string;
   intent?: 'explore' | 'understand' | 'guide' | 'connect' | 'close';
+  /**
+   * Optional seed for deterministic selection. If omitted, selection falls back
+   * to process randomness (legacy behavior).
+   */
+  randomSeed?: string;
 }
 
 // ============================================================================
@@ -451,7 +457,8 @@ export class QuestionPatternEngine {
     const keyword = keywords[0];
     const variations = [`${keyword}?`, `${keyword}—what do you mean?`, `${keyword}... how so?`];
 
-    const text = variations[Math.floor(Math.random() * variations.length)];
+    const seed = `echo:${userStatement}:${keyword}`;
+    const text = seededPick(seed, variations) ?? variations[0];
 
     return {
       type: 'echo',
@@ -495,7 +502,7 @@ export class QuestionPatternEngine {
       '—does that resonate?',
       '—what do you think?',
     ];
-    return tags[Math.floor(Math.random() * tags.length)];
+    return seededPick('question-tag', tags) ?? tags[0];
   }
 
   /**
@@ -585,17 +592,24 @@ export class QuestionPatternEngine {
       candidates = ['open_ended', 'follow_up'];
     }
 
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    const baseSeed =
+      context.randomSeed ??
+      `qtype:${context.personaId ?? 'unknown'}:${context.intent ?? 'default'}:${context.conversationDepth ?? 'medium'}:${context.topic ?? ''}:${context.previousUserStatement ?? ''}`;
+    return (seededPick(`${baseSeed}:pick`, candidates) ?? candidates[0]) as QuestionType;
   }
 
   private buildQuestion(type: QuestionType, context: QuestionContext): Question {
     // Check for persona-specific custom question first
     const personaStyle = context.personaId ? PERSONA_QUESTION_STYLES[context.personaId] : null;
 
-    if (personaStyle && Math.random() < 0.3) {
+    const baseSeed =
+      context.randomSeed ??
+      `qbuild:${context.personaId ?? 'unknown'}:${type}:${context.conversationDepth ?? 'medium'}:${context.topic ?? ''}:${context.previousUserStatement ?? ''}`;
+
+    if (personaStyle && seededChance(`${baseSeed}:persona-custom`, 0.3)) {
       const customs = personaStyle.customQuestions.filter((q) => q.type === type);
       if (customs.length > 0) {
-        const custom = customs[Math.floor(Math.random() * customs.length)];
+        const custom = seededPick(`${baseSeed}:custom`, customs) ?? customs[0];
         return {
           type,
           text: custom.text,
@@ -608,7 +622,7 @@ export class QuestionPatternEngine {
 
     // Use template
     const templates = QUESTION_TEMPLATES[type];
-    const template = templates[Math.floor(Math.random() * templates.length)];
+    const template = seededPick(`${baseSeed}:template`, templates) ?? templates[0];
 
     // Fill in template variables
     let text = template.template;

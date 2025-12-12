@@ -28,6 +28,7 @@ import {
 } from '../../personas/voice-registry.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
+// FIX BUG #1: Import trust context builder for handoffs
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   buildCognitiveHandoffContext,
@@ -236,6 +237,15 @@ export interface ExecuteHandoffOptions {
   subscriptionTier?: 'free' | 'friend' | 'partner';
   /** Skip unlock validation (for testing) */
   skipUnlockCheck?: boolean;
+  /**
+   * FIX BUG #6: Recent conversation messages to pass to the new persona.
+   * This ensures the new agent has context of what was just discussed.
+   */
+  recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /** Current emotional state of the user */
+  emotionalState?: string;
+  /** Topics discussed in the conversation */
+  topics?: string[];
 }
 
 export interface HandoffResult {
@@ -312,7 +322,9 @@ export async function executeHandoff(
 
   // Team unlock validation - check if this persona is available for the user
   // Skip check for coach (coordinator is always available) or if explicitly skipped
-  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId)) {
+  // Also skip if BYPASS_TEAM_UNLOCKS env var is set (for testing/demo)
+  const bypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
+  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId) && !bypassUnlocks) {
     const tier = options.subscriptionTier || 'free';
     const targetName = getPersonaDisplayName(canonicalTargetId);
 
@@ -377,14 +389,34 @@ export async function executeHandoff(
   lastHandoffTimestamp = Date.now();
   recordHandoff(previousAgent, canonicalTargetId as AgentId, reason);
 
+  // FIX BUG #6: Capture conversation context if provided
+  // This ensures the new persona has awareness of what was just discussed
+  if (options.recentMessages || options.topics || options.emotionalState) {
+    captureHandoffContext({
+      topics: options.topics || [],
+      emotionalState: options.emotionalState || 'neutral',
+      summary: reason,
+      pendingItems: [],
+      recentMessages: options.recentMessages || [],
+    });
+    getLogger().debug(
+      {
+        messageCount: options.recentMessages?.length || 0,
+        topics: options.topics,
+        emotionalState: options.emotionalState,
+      },
+      '📝 Captured conversation context for handoff'
+    );
+  }
+
   // Update current agent
   setCurrentAgent(canonicalTargetId as AgentId);
 
   // Generate greeting
   const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent);
 
-  // Build context continuation
-  const contextContinuation = buildContextContinuation(reason);
+  // Build context continuation - now includes recent messages if available
+  const contextContinuation = buildContextContinuation(reason, options.recentMessages);
 
   // Get voice ID for the target agent
   let voiceId: string | undefined;
@@ -646,29 +678,48 @@ function getReasonAcknowledgment(reason: string): string {
 // ============================================================================
 
 /**
- * Build context continuation string from reason
+ * Build context continuation string from reason and recent messages
+ * FIX BUG #6: Now accepts recent messages to pass to the new persona
  */
-function buildContextContinuation(reason: string): string {
-  if (!reason || reason.length < 10) {
-    return '';
-  }
+function buildContextContinuation(
+  reason: string,
+  recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>
+): string {
+  const parts: string[] = [];
 
   // Extract key topics from the reason
-  const topics: string[] = [];
+  if (reason && reason.length >= 10) {
+    const topics: string[] = [];
 
-  if (reason.toLowerCase().includes('stock')) topics.push('stocks');
-  if (reason.toLowerCase().includes('invest')) topics.push('investing');
-  if (reason.toLowerCase().includes('budget')) topics.push('budgeting');
-  if (reason.toLowerCase().includes('save')) topics.push('savings');
-  if (reason.toLowerCase().includes('calendar')) topics.push('calendar');
-  if (reason.toLowerCase().includes('goal')) topics.push('goals');
-  if (reason.toLowerCase().includes('plan')) topics.push('planning');
+    if (reason.toLowerCase().includes('stock')) topics.push('stocks');
+    if (reason.toLowerCase().includes('invest')) topics.push('investing');
+    if (reason.toLowerCase().includes('budget')) topics.push('budgeting');
+    if (reason.toLowerCase().includes('save')) topics.push('savings');
+    if (reason.toLowerCase().includes('calendar')) topics.push('calendar');
+    if (reason.toLowerCase().includes('goal')) topics.push('goals');
+    if (reason.toLowerCase().includes('plan')) topics.push('planning');
 
-  if (topics.length > 0) {
-    return `The user was discussing: ${topics.join(', ')}. Original context: ${reason}`;
+    if (topics.length > 0) {
+      parts.push(`The user was discussing: ${topics.join(', ')}.`);
+    }
+    parts.push(`Handoff reason: ${reason}`);
   }
 
-  return `Context from previous conversation: ${reason}`;
+  // FIX BUG #6: Include recent conversation for context continuity
+  if (recentMessages && recentMessages.length > 0) {
+    // Get last 3 messages to give new persona context without overwhelming
+    const lastMessages = recentMessages.slice(-3);
+    const conversationSummary = lastMessages
+      .map(
+        (m) =>
+          `${m.role === 'user' ? 'User' : 'Previous Agent'}: ${m.content.slice(0, 150)}${m.content.length > 150 ? '...' : ''}`
+      )
+      .join('\n');
+
+    parts.push(`\n[RECENT CONVERSATION]\n${conversationSummary}`);
+  }
+
+  return parts.join(' ');
 }
 
 /**
