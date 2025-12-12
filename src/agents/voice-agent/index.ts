@@ -81,6 +81,9 @@ export {
   type CelebrationConfig,
 } from './celebration-events-handler.js';
 
+// Turn handler
+export { handleUserTurn, type TurnHandlerContext } from './turn-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
