@@ -67,6 +67,13 @@ export {
   type TurnResult,
 } from './trust-recording-handler.js';
 
+// Slash command handler
+export {
+  handleSlashCommand,
+  type SlashCommandContext,
+  type SlashCommandResult,
+} from './slash-command-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 

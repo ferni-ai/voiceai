@@ -296,6 +296,7 @@ import { registerCameoHandlers } from './shared/cameo-handler.js';
 import {
   createTranscriptHandler,
   generateAndSpeakGreeting,
+  handleSlashCommand,
   identifyUser,
   recordTrustSystemsData,
   setupDataChannelHandler,
@@ -1882,19 +1883,6 @@ class VoiceAgent extends voice.Agent<UserData> {
       return;
     }
 
-    // ================================================================
-    // EXTENSIBILITY: Slash command detection
-    // Check if user is invoking a slash command like "/daily-check-in"
-    // Note: We don't return early - the LLM still needs to respond based on injected context
-    // ================================================================
-    const trimmedText = userText.trim();
-    let isSlashCommand = false;
-    if (trimmedText.startsWith('/')) {
-      isSlashCommand = await this.handleSlashCommand(trimmedText, turnCtx);
-      // If it's a valid command, context was injected. Continue to let LLM respond.
-      // If not valid, continue normal processing.
-    }
-
     const userData = this.getUserDataFromContext();
     // FIX: Remove race-condition-prone global fallback
     // Services should always be available from the session's userData
@@ -1905,6 +1893,25 @@ class VoiceAgent extends voice.Agent<UserData> {
         'No services available for turn processing - session may not be properly initialized'
       );
       return;
+    }
+
+    // ================================================================
+    // EXTENSIBILITY: Slash command detection
+    // Check if user is invoking a slash command like "/daily-check-in"
+    // Note: We don't return early - the LLM still needs to respond based on injected context
+    // ================================================================
+    const trimmedText = userText.trim();
+    let _isSlashCommand = false;
+    if (trimmedText.startsWith('/')) {
+      const slashResult = await handleSlashCommand({
+        text: trimmedText,
+        turnCtx,
+        personaId: this.persona.id,
+        services: { userId: services.userId, sessionId: services.sessionId },
+      });
+      _isSlashCommand = slashResult.handled;
+      // If it's a valid command, context was injected. Continue to let LLM respond.
+      // If not valid, continue normal processing.
     }
 
     try {
@@ -2107,89 +2114,6 @@ IMPORTANT:
 
       // Don't throw - we've handled it gracefully
       // The LLM will still generate a response (without our context injections)
-    }
-  }
-
-  // ============================================================================
-  // EXTENSIBILITY: SLASH COMMAND HANDLING
-  // ============================================================================
-
-  /**
-   * Handle slash commands like "/daily-check-in" or "/weekly-review"
-   * Returns true if the command was handled, false if not a valid command
-   */
-  private async handleSlashCommand(text: string, turnCtx: llm.ChatContext): Promise<boolean> {
-    try {
-      // Parse command: "/command-name arg1 arg2" -> commandName, args
-      const match = text.match(/^\/([a-zA-Z0-9_-]+)(?:\s+(.*))?$/);
-      if (!match) {
-        return false; // Not a valid command format
-      }
-
-      const commandId = match[1];
-      const argsString = match[2] || '';
-
-      // Get user context
-      const userData = this.getUserDataFromContext();
-      const services = userData?.services;
-
-      if (!services) {
-        this.logger.warn('No services available for command execution');
-        return false;
-      }
-
-      // Execute the command via extensibility integration
-      const { executeCommand, getCommands } =
-        await import('../personas/bundles/extensibility-integration.js');
-
-      // Check if this persona has this command
-      const commands = await getCommands(this.persona.id);
-      const command = commands.find(
-        (c) => c.id === commandId || c.name.toLowerCase() === commandId.toLowerCase()
-      );
-
-      if (!command) {
-        // Not a valid command for this persona - let normal processing handle it
-        return false;
-      }
-
-      // Parse arguments (simple key=value format for now)
-      const args: Record<string, string> = {};
-      const argMatches = argsString.matchAll(/(\w+)=["']?([^"'\s]+)["']?/g);
-      for (const argMatch of argMatches) {
-        args[argMatch[1]] = argMatch[2];
-      }
-
-      this.logger.info({ commandId, args, personaId: this.persona.id }, 'Executing slash command');
-
-      const result = await executeCommand(this.persona.id, commandId, args, {
-        userId: services.userId,
-        sessionId: services.sessionId,
-      });
-
-      if (!result.success) {
-        this.logger.error({ error: result.error, commandId }, 'Command execution failed');
-        // Inject error message as context for LLM to handle gracefully
-        turnCtx.addMessage({
-          role: 'system',
-          content: `[COMMAND ERROR] The user invoked /${commandId} but it failed: ${result.error}. Please acknowledge the issue gracefully and offer to help another way.`,
-        });
-        return true; // Still handled - LLM will respond about the error
-      }
-
-      // Inject the command's rendered prompt as context
-      if (result.prompt) {
-        turnCtx.addMessage({
-          role: 'system',
-          content: `[SLASH COMMAND: /${commandId}]\n${result.prompt}`,
-        });
-      }
-
-      this.logger.info({ commandId }, 'Slash command executed successfully');
-      return true; // Command was handled, LLM will respond based on injected context
-    } catch (error) {
-      this.logger.error({ error: String(error), text }, 'Error handling slash command');
-      return false; // Let normal processing handle it
     }
   }
 
