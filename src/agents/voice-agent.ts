@@ -141,7 +141,7 @@ import { getDJIntegration } from './dj-integration.js';
 
 // 🎧 DJ Booth - Audio-level orchestration (ducking, fading, timing)
 // This handles the "sound engineering" while DJ Integration handles "what to say"
-import { getDJBooth, initializeDJBooth, resetDJBooth, type DJBooth } from '../audio/index.js';
+import { getDJBooth, resetDJBooth } from '../audio/index.js';
 
 // Conversation State - Shared context for human-level tool orchestration
 import {
@@ -329,7 +329,11 @@ import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handl
 import { registerCameoHandlers } from './shared/cameo-handler.js';
 
 // Voice Agent modules (extracted for maintainability)
-import { generateAndSpeakGreeting, setupDataChannelHandler } from './voice-agent/index.js';
+import {
+  generateAndSpeakGreeting,
+  setupDataChannelHandler,
+  setupMusicHandler,
+} from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
 import { createBundleRuntime, type BundleRuntimeEngine } from '../personas/bundles/index.js';
@@ -4293,363 +4297,13 @@ export default defineAgent({
       // ===============================================
       // STEP 7a: INITIALIZE MUSIC PLAYER (BEFORE session.start!)
       // ===============================================
-      // CRITICAL: Initialize music player BEFORE session.start() to prevent race conditions.
-      // If we wait until after session.start(), the agent could try to play music
-      // before the music player is ready, causing silent "simulation mode" playback.
-      const { isMusicEnabled } = await import('../config/environment.js');
-      let _djBooth: DJBooth | null = null; // Track for cleanup
-
-      if (ctx.room && isMusicEnabled()) {
-        try {
-          const { initializeMusicPlayer, getMusicPlayer, getAmbientMusicEndedPhrase } =
-            await import('../audio/index.js');
-          // Pass the agent session for proper audio mixing with voice
-          await initializeMusicPlayer(ctx.room, session);
-
-          // Set up callback for when ambient music ends - agent comes back in
-          const player = getMusicPlayer();
-
-          // 🎧 INITIALIZE DJ BOOTH - Audio-level orchestration
-          // This gives us smooth volume fading, smart ducking, and timed DJ moments
-          // Pass existing music preferences from user profile for cross-session memory (Phase 8)
-          const existingMusicPrefs = services.userProfile?.musicMemory
-            ? {
-                likedArtists: services.userProfile.musicMemory.favoriteArtists || [],
-                dislikedArtists: services.userProfile.musicMemory.dislikedArtists || [],
-                favoriteGenres: services.userProfile.musicMemory.favoriteGenres || [],
-                totalTracksPlayed: services.userProfile.musicMemory.totalTracksPlayed || 0,
-                lastPlayed: services.userProfile.musicMemory.lastPlayedTrack
-                  ? {
-                      artist: services.userProfile.musicMemory.lastPlayedArtist || 'Unknown',
-                      track: services.userProfile.musicMemory.lastPlayedTrack,
-                      timestamp:
-                        services.userProfile.musicMemory.updatedAt?.getTime() || Date.now(),
-                    }
-                  : undefined,
-              }
-            : undefined;
-
-          _djBooth = initializeDJBooth(
-            {
-              personaId: sessionPersona.id,
-              speakCallback: (phrase, options) => {
-                try {
-                  session.say(phrase, options);
-                } catch (e) {
-                  diag.warn('DJ Booth speak callback failed', { error: String(e) });
-                }
-              },
-              onAgentSpeakStart: () => {
-                diag.state('🎧 DJ Booth: Agent speaking (music will duck)');
-              },
-              onAgentSpeakEnd: () => {
-                diag.state('🎧 DJ Booth: Agent stopped (music will restore)');
-              },
-              // FIX: Prevent double-speaking by providing agent speaking state
-              isAgentSpeaking: () => conversationManager.isAgentSpeaking(),
-            },
-            existingMusicPrefs
-          );
-
-          // Set user ID for "Our Songs" trust system tracking
-          if (services.userId) {
-            _djBooth.setUserId(services.userId);
-            diag.state('🎵 DJ Booth user ID set for "Our Songs"', { userId: services.userId });
-          }
-
-          diag.state('🎧 DJ Booth initialized with enhancements', {
-            persona: sessionPersona.id,
-            hasExistingPrefs: !!existingMusicPrefs,
-            hasUserId: !!services.userId,
-          });
-          player.setOnTrackEndedCallback((track, wasAmbient) => {
-            if (wasAmbient) {
-              // Ambient music ended - agent acknowledges and comes back
-              const comeBackPhrase = getAmbientMusicEndedPhrase(sessionPersona.id);
-              diag.state('Ambient music ended, agent coming back', { track: track.name });
-
-              try {
-                session.say(comeBackPhrase, { allowInterruptions: true });
-              } catch (e) {
-                diag.warn('Failed to say music-ended phrase', { error: String(e) });
-              }
-            }
-          });
-
-          // 🎤 Set up callback for "Wait for it..." mid-song moments
-          // These make the DJ feel alive - like they're enjoying the music with you!
-          player.setOnMidSongMomentCallback((track, momentType) => {
-            void (async () => {
-              try {
-                const { getMidSongMomentPhrase } = await import('../audio/ambient-music.js');
-                const phrase = getMidSongMomentPhrase(momentType, track.name, sessionPersona.id);
-
-                diag.state('🎤 Mid-song moment!', {
-                  track: track.name,
-                  momentType,
-                  phrase: phrase.slice(0, 50),
-                });
-
-                // Speak the interjection - brief and natural!
-                session.say(phrase, { allowInterruptions: true });
-              } catch (e) {
-                diag.warn('Failed to speak mid-song moment', { error: String(e) });
-              }
-            })();
-          });
-
-          // ✨ Set up callback for music state changes - notify frontend AND do DJ-style interactions!
-          // Track previous state to detect unexpected stops
-          let lastMusicState = 'idle';
-          let lastTrackName: string | undefined;
-
-          // 🎧 DJ ENGAGEMENT TRACKING - for "more than human" music experience
-          let musicPlaybackStartTime: number | null = null;
-          let lastAppreciationTime: number | null = null;
-          let lastReadTheRoomTime: number | null = null;
-          let appreciationTimer: NodeJS.Timeout | null = null;
-          let readTheRoomTimer: NodeJS.Timeout | null = null;
-
-          // Cleanup function for timers
-          const clearMusicTimers = () => {
-            if (appreciationTimer) clearInterval(appreciationTimer);
-            if (readTheRoomTimer) clearInterval(readTheRoomTimer);
-            appreciationTimer = null;
-            readTheRoomTimer = null;
-          };
-
-          player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
-            void (async () => {
-              diag.state('Music state changed', {
-                state,
-                previousState: lastMusicState,
-                track: track?.name,
-                isAmbient,
-              });
-
-              // 🐛 FIX: Forward state changes to DJ Booth (our callback overwrote theirs)
-              // The DJ Booth handles post-music check-ins and other DJ behaviors
-              if (_djBooth) {
-                try {
-                  // Access the DJ Booth's internal handler through its callback mechanism
-                  // by notifying it of state changes
-                  _djBooth.onMusicStateChange(state, track, isAmbient);
-                } catch (e) {
-                  diag.warn('Failed to forward music state to DJ Booth', { error: String(e) });
-                }
-              }
-
-              // 🎧 DJ-STYLE CROSSFADE: When music is CHANGING, speak a transition phrase!
-              // This is the magic moment where Ferni acts like a real DJ switching tracks
-              if (state === 'changing' && !isAmbient) {
-                try {
-                  const { getDJTrackChangePhrase } = await import('../audio/ambient-music.js');
-                  const currentTrack = track
-                    ? { name: track.name, artist: track.artist }
-                    : undefined;
-                  const transitionPhrase = getDJTrackChangePhrase(
-                    currentTrack,
-                    undefined, // New track name not known yet
-                    sessionPersona.id
-                  );
-
-                  diag.state('🎧 DJ crossfade - speaking transition phrase', {
-                    currentTrack: track?.name,
-                    phrase: transitionPhrase.slice(0, 50),
-                  });
-
-                  // Speak the transition - this happens DURING the crossfade!
-                  // The music player waits 1.5s during crossfade for this phrase
-                  session.say(transitionPhrase, { allowInterruptions: false });
-                } catch (e) {
-                  diag.warn('Failed to speak DJ crossfade phrase', { error: String(e) });
-                }
-              }
-
-              // 🎧 DJ-STYLE OUTRO: When music is FADING (not ended), speak over it like a real DJ!
-              // This creates that professional radio/DJ feel where the host talks as the track winds down
-              if (state === 'fading' && !isAmbient && track) {
-                try {
-                  // Dynamic import to avoid circular dependency
-                  const { getDJOutroPhrase } = await import('../audio/ambient-music.js');
-                  const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
-
-                  diag.state('🎧 DJ outro - speaking over fading music', {
-                    track: track.name,
-                    phrase: djOutro.slice(0, 50),
-                  });
-
-                  // Speak the outro - the music is still playing but fading!
-                  // This is the magic moment where we feel like a real DJ
-                  session.say(djOutro, { allowInterruptions: true });
-                } catch (e) {
-                  diag.warn('Failed to speak DJ outro', { error: String(e) });
-                }
-              }
-
-              // 🎧 UNEXPECTED STOP: Music stopped/paused without fading first
-              // This means it crashed, network dropped, or user stopped it manually
-              // The agent should acknowledge this naturally
-              // NOTE: Don't speak if we're in a crossfade (changing state) - that's intentional!
-              const isUnexpectedStop =
-                (state === 'stopped' || state === 'paused') &&
-                !isAmbient &&
-                lastMusicState === 'playing'; // Only if it was actively playing (not fading, changing, etc.)
-
-              if (isUnexpectedStop) {
-                // Only speak if music was actually playing (not if we just connected)
-                // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
-                // And don't speak if we're changing tracks (lastMusicState would be 'changing')
-                try {
-                  const { getMusicStoppedPhrase } = await import('../audio/ambient-music.js');
-                  const stoppedPhrase = getMusicStoppedPhrase(
-                    sessionPersona.id,
-                    state === 'paused'
-                  );
-
-                  diag.state('🎧 Music unexpectedly stopped', {
-                    track: lastTrackName,
-                    newState: state,
-                    wasPaused: state === 'paused',
-                  });
-
-                  session.say(stoppedPhrase, { allowInterruptions: true });
-                } catch (e) {
-                  diag.warn('Failed to speak music-stopped phrase', { error: String(e) });
-                }
-              }
-
-              // Update tracking state
-              lastMusicState = state;
-              lastTrackName = track?.name;
-
-              // =====================================================
-              // 🎧 DJ ENGAGEMENT FEATURES - Make Ferni feel human!
-              // =====================================================
-
-              // When music STARTS playing, set up appreciation & engagement timers
-              if (state === 'playing' && !isAmbient && track) {
-                musicPlaybackStartTime = Date.now();
-                lastAppreciationTime = null;
-                lastReadTheRoomTime = null;
-
-                // 🎧 DJ Integration: Track music for cross-session callbacks
-                try {
-                  const dj = getDJIntegration();
-                  dj.trackMusicPlayed(track.artist);
-                  diag.state('🎧 Tracked music for session', { artist: track.artist });
-                } catch (e) {
-                  diag.warn('🎧 Failed to track music', { error: String(e) });
-                }
-
-                // Clear any existing timers
-                clearMusicTimers();
-
-                // 🎵 MUSIC APPRECIATION: Random comments during playback
-                // Like a real DJ who's vibing with the music
-                appreciationTimer = setInterval(() => {
-                  void (async () => {
-                    try {
-                      const { getMusicAppreciationComment, getMusicElementAppreciation } =
-                        await import('../services/dj-service.js');
-
-                      // 30% chance of appreciation comment every 15-25 seconds
-                      const now = Date.now();
-                      const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                      const timeSinceLastAppreciation = lastAppreciationTime
-                        ? (now - lastAppreciationTime) / 1000
-                        : timeSinceStart;
-
-                      // Only appreciate if enough time has passed and we're still playing
-                      if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
-                        // Randomly choose between general appreciation or element-specific
-                        const comment =
-                          Math.random() < 0.7
-                            ? getMusicAppreciationComment(sessionPersona.id, track)
-                            : getMusicElementAppreciation(sessionPersona.id);
-
-                        if (comment) {
-                          diag.state('🎧 DJ appreciation comment', {
-                            comment: comment.slice(0, 50),
-                            timeSinceStart: Math.round(timeSinceStart),
-                          });
-                          session.say(comment, { allowInterruptions: true });
-                          lastAppreciationTime = now;
-                        }
-                      }
-                    } catch (e) {
-                      diag.warn('Failed to generate appreciation', { error: String(e) });
-                    }
-                  })();
-                }, 10000); // Check every 10 seconds
-
-                // 🎯 READ THE ROOM: Check if user is engaged with the music
-                readTheRoomTimer = setInterval(() => {
-                  void (async () => {
-                    try {
-                      const { getReadTheRoomAction } = await import('../services/dj-service.js');
-
-                      const now = Date.now();
-                      const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                      const timeSinceLastCheck = lastReadTheRoomTime
-                        ? (now - lastReadTheRoomTime) / 1000
-                        : timeSinceStart;
-
-                      // Only check every 60+ seconds
-                      if (timeSinceLastCheck > 60) {
-                        const action = getReadTheRoomAction(
-                          {
-                            musicHasBeenPlayingFor: timeSinceStart,
-                            userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
-                          },
-                          sessionPersona.id
-                        );
-
-                        if (action?.phrase && action.action !== 'continue') {
-                          diag.state('🎧 Read the room check', {
-                            action: action.action,
-                            timePlaying: Math.round(timeSinceStart),
-                          });
-                          session.say(action.phrase, { allowInterruptions: true });
-                          lastReadTheRoomTime = now;
-                        }
-                      }
-                    } catch (e) {
-                      diag.warn('Failed read-the-room check', { error: String(e) });
-                    }
-                  })();
-                }, 30000); // Check every 30 seconds
-              }
-
-              // Clear timers when music stops
-              if (state === 'stopped' || state === 'paused' || state === 'idle') {
-                clearMusicTimers();
-                musicPlaybackStartTime = null;
-              }
-
-              // Notify frontend for avatar dancing
-              // All states are now supported: playing, ducking, fading, changing, paused, stopped, idle
-              try {
-                const { getFrontendPublisher } = await import('./realtime/index.js');
-                const publisher = getFrontendPublisher();
-                if (publisher && ctx.room) {
-                  // Convert null track to undefined for sendMusicState
-                  const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
-                  await publisher.sendMusicState(state, trackInfo, isAmbient);
-                }
-              } catch (pubError) {
-                diag.warn('Failed to publish music state', { error: String(pubError) });
-              }
-            })();
-          });
-
-          diag.state('Music player initialized (before session.start)');
-        } catch (musicError) {
-          diag.warn('Music player init failed (non-fatal)', { error: String(musicError) });
-        }
-      } else if (!isMusicEnabled()) {
-        diag.session('Music player skipped (MUSIC_ENABLED not set)');
-      }
+      const musicResult = await setupMusicHandler({
+        room: ctx.room,
+        session,
+        services,
+        sessionPersona,
+        conversationManager,
+      });
 
       diag.state('Starting session', {
         isPhoneCall,
@@ -5049,6 +4703,14 @@ export default defineAgent({
               }
             } catch (djErr) {
               diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });
+            }
+
+            // 🎧 Music handler: Clean up timers
+            try {
+              musicResult.clearTimers();
+              diag.session('🎧 Music handler timers cleaned up');
+            } catch (timerErr) {
+              diag.warn('🎧 Music timer cleanup failed (non-fatal)', { error: String(timerErr) });
             }
 
             // 🎧 DJ Booth: Clean up audio orchestration

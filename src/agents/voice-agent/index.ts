@@ -24,6 +24,13 @@ export {
   type DataChannelResult,
 } from './data-channel-handler.js';
 
+// Music handler
+export {
+  setupMusicHandler,
+  type MusicHandlerContext,
+  type MusicHandlerResult,
+} from './music-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
