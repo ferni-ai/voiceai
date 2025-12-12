@@ -3,15 +3,20 @@
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
  *
- * Injects evidence-based coaching frameworks from methodology.json into the LLM context.
- * This enables agents to ground their responses in research-backed approaches while
- * maintaining their unique personality and voice.
+ * Injects evidence-based coaching frameworks from methodology.json AND
+ * world-class-coaching.json into the LLM context. This enables agents to
+ * ground their responses in research-backed approaches from:
+ *
+ * Elite Coaches: Brené Brown, Tony Robbins, Esther Perel, Simon Sinek, BJ Fogg, Mel Robbins
+ * Psychology Frameworks: ACT, Motivational Interviewing, Positive Psychology, SDT
+ * Professional Standards: ICF Core Competencies, GROW Model
  *
  * Features:
  * - Topic-aware injection (only surfaces methodology when relevant)
  * - Research framework surfacing with proper attribution
- * - Intervention technique suggestions
+ * - Intervention technique suggestions from elite coaches
  * - Coaching principle reminders
+ * - "When to use what" situational matching
  *
  * @module MethodologyContextBuilder
  */
@@ -38,6 +43,7 @@ const log = createLogger({ module: 'context:methodology' });
  * This significantly improves performance for repeated calls.
  */
 const methodologyCache = new Map<string, MethodologyContent | null>();
+const worldClassCoachingCache = new Map<string, WorldClassCoachingContent | null>();
 const cacheLoadTimes = new Map<string, number>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -78,10 +84,50 @@ async function getCachedMethodology(personaId: string): Promise<MethodologyConte
 }
 
 /**
+ * Get world-class coaching content with caching
+ */
+async function getCachedWorldClassCoaching(
+  personaId: string
+): Promise<WorldClassCoachingContent | null> {
+  const cacheKey = `wcc:${personaId}`;
+  const now = Date.now();
+  const lastLoad = cacheLoadTimes.get(cacheKey);
+
+  // Return cached if valid
+  if (worldClassCoachingCache.has(personaId) && lastLoad && now - lastLoad < CACHE_TTL_MS) {
+    return worldClassCoachingCache.get(personaId) ?? null;
+  }
+
+  // Load and cache
+  try {
+    const bundle = await loadBundleById(personaId);
+    if (!bundle) {
+      worldClassCoachingCache.set(personaId, null);
+      cacheLoadTimes.set(cacheKey, now);
+      return null;
+    }
+
+    const behaviors = await bundle.getBehaviors();
+    const worldClassCoaching = (behaviors.world_class_coaching as WorldClassCoachingContent) ?? null;
+
+    worldClassCoachingCache.set(personaId, worldClassCoaching);
+    cacheLoadTimes.set(cacheKey, now);
+
+    return worldClassCoaching;
+  } catch (error) {
+    log.warn({ error: String(error), personaId }, 'Error loading world-class coaching');
+    worldClassCoachingCache.set(personaId, null);
+    cacheLoadTimes.set(cacheKey, now);
+    return null;
+  }
+}
+
+/**
  * Clear methodology cache (useful for testing)
  */
 export function clearMethodologyCache(): void {
   methodologyCache.clear();
+  worldClassCoachingCache.clear();
   cacheLoadTimes.clear();
 }
 

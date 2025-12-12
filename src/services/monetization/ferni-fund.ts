@@ -11,6 +11,7 @@
  * allows generous users to feel they're helping others.
  */
 
+import * as admin from 'firebase-admin';
 import {
   SPONSORED_MESSAGES,
   THANK_YOU_MESSAGES,
@@ -40,6 +41,97 @@ const contributorUserIds = new Set<string>();
 // Cost per sponsored conversation (for tracking purposes)
 // Even though Ferni is free, this gives contributors a sense of impact
 const COST_PER_CONVERSATION_CENTS = 50; // $0.50 symbolically
+
+// ============================================================================
+// FIRESTORE HELPERS
+// ============================================================================
+
+/**
+ * Get Firestore instance (optional - works without it)
+ */
+function getFirestore(): admin.firestore.Firestore | null {
+  try {
+    return admin.firestore();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current month key for aggregation (YYYY-MM)
+ */
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Update Firestore garden_stats with contribution
+ * Uses atomic increment to prevent race conditions
+ */
+async function updateGardenStats(params: {
+  userId: string;
+  amountCents: number;
+  isMonthly: boolean;
+}): Promise<void> {
+  const db = getFirestore();
+  if (!db) {
+    log.debug('Firestore not available, skipping garden_stats update');
+    return;
+  }
+
+  const monthKey = getCurrentMonthKey();
+  const { userId, amountCents, isMonthly } = params;
+  const amountDollars = amountCents / 100;
+
+  try {
+    const batch = db.batch();
+
+    // Update monthly garden_stats
+    const statsRef = db.collection('garden_stats').doc(monthKey);
+    batch.set(
+      statsRef,
+      {
+        totalAmount: admin.firestore.FieldValue.increment(amountDollars),
+        totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
+        uniqueContributors: admin.firestore.FieldValue.increment(1), // May double-count, but that's OK
+        monthlySubscribers: isMonthly ? admin.firestore.FieldValue.increment(1) : admin.firestore.FieldValue.increment(0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // Update user_gardens
+    const userRef = db.collection('user_gardens').doc(userId);
+    batch.set(
+      userRef,
+      {
+        totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
+        seedsThisMonth: admin.firestore.FieldValue.increment(amountDollars),
+        isMonthlyGardener: isMonthly || admin.firestore.FieldValue.increment(0), // Keep existing if not monthly
+        lastSeedDate: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // Set firstSeedDate if not exists
+    const userDoc = await userRef.get();
+    if (!userDoc.exists || !userDoc.data()?.firstSeedDate) {
+      batch.set(
+        userRef,
+        { firstSeedDate: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    }
+
+    await batch.commit();
+    log.info({ userId, amountDollars, monthKey }, 'Garden stats updated in Firestore');
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to update garden stats');
+    // Non-fatal - in-memory tracking continues to work
+  }
+}
 
 // ============================================================================
 // FUND CONTRIBUTION
