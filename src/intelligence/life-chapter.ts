@@ -845,6 +845,17 @@ export function formatChapterForPrompt(analysis: ChapterAnalysis): string {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a chapter profile into memory (for persistence)
+ */
+export function importChapterProfile(profile: ChapterProfile): void {
+  profiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

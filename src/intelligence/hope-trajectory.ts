@@ -787,6 +787,17 @@ export function formatHopeForPrompt(analysis: HopeAnalysis): string {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a hope profile into memory (for persistence)
+ */
+export function importHopeProfile(profile: HopeProfile): void {
+  profiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

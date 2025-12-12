@@ -651,6 +651,17 @@ export function formatPredictionForPrompt(prediction: RhythmPrediction): string 
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a life rhythm profile into memory (for persistence)
+ */
+export function importLifeRhythmProfile(profile: LifeRhythmProfile): void {
+  userProfiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

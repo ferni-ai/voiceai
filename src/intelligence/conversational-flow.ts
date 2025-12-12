@@ -749,6 +749,17 @@ export function formatFlowForPrompt(analysis: FlowAnalysis): string {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a flow profile into memory (for persistence)
+ */
+export function importFlowProfile(profile: FlowProfile): void {
+  userProfiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

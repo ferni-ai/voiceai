@@ -583,6 +583,17 @@ export function formatSilenceForPrompt(analysis: SilenceAnalysis): string {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a silence pattern into memory (for persistence)
+ */
+export function importSilencePattern(pattern: SilencePattern): void {
+  userPatterns.set(pattern.userId, pattern);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

@@ -736,6 +736,17 @@ export function getSubconsciousSummary(userId: string): string | null {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a subconscious profile into memory (for persistence)
+ */
+export function importSubconsciousProfile(profile: SubconsciousProfile): void {
+  profiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

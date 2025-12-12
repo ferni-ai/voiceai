@@ -632,6 +632,17 @@ export function formatEnergyForPrompt(assessment: EnergyAssessment): string {
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import an energy pattern into memory (for persistence)
+ */
+export function importEnergyPattern(pattern: EnergyPattern): void {
+  userPatterns.set(pattern.userId, pattern);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

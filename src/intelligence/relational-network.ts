@@ -808,6 +808,25 @@ export function formatRelationalInsightsForPrompt(
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a relational network into memory (for persistence)
+ */
+export function importRelationalNetwork(network: RelationalNetwork): void {
+  // Convert people array back to Map if needed
+  if (Array.isArray(network.people)) {
+    const peopleMap = new Map<string, PersonInLife>();
+    for (const person of network.people) {
+      peopleMap.set(person.id, person);
+    }
+    network.people = peopleMap;
+  }
+  networks.set(network.userId, network);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

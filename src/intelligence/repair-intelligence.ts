@@ -694,6 +694,17 @@ export function quickRepairCheck(
 }
 
 // ============================================================================
+// IMPORT/EXPORT (for persistence)
+// ============================================================================
+
+/**
+ * Import a repair profile into memory (for persistence)
+ */
+export function importRepairProfile(profile: RepairProfile): void {
+  profiles.set(profile.userId, profile);
+}
+
+// ============================================================================
 // RESET (for testing)
 // ============================================================================
 

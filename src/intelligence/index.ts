@@ -622,6 +622,7 @@ export {
   analyzeSilence,
   formatSilenceForPrompt,
   getSilencePattern,
+  importSilencePattern,
   recordSilence,
   resetSilenceIntelligence,
   type SilenceAnalysis,
