@@ -397,7 +397,11 @@ class SettingsMenuUI {
             ${this.renderMenuItem('commands', ICONS.commands, 'Start a Practice')}
             ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
             ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, 'Link Calendar')}
+            <!-- Calendar settings hidden until backend is configured -->
+            <button class="settings-menu__item" data-action="calendar-settings" style="display: none;">
+              <span class="settings-menu__icon">${ICONS.calendar}</span>
+              <span class="settings-menu__label">Link Calendar</span>
+            </button>
             ${this.renderMenuItem('outreach-schedule', ICONS.calendar, 'Upcoming Check-ins')}
             ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
           </section>

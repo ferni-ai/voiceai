@@ -536,6 +536,20 @@ export {
 } from './paradoxical-intervention.js';
 
 // ============================================================================
+// EMOTIONAL JOURNEY ORCHESTRATOR
+// ============================================================================
+
+// Master orchestrator that coordinates all emotional systems for smiles, laughs, and tears
+export {
+  buildEmotionalContext,
+  orchestrateEmotionalJourney,
+  type EmotionalContext,
+  type EmotionalMomentType,
+  type JourneyDecision,
+  type JourneyPhase,
+} from './emotional-journey-orchestrator.js';
+
+// ============================================================================
 // ADVANCED HUMANIZATION ORCHESTRATOR
 // ============================================================================
 

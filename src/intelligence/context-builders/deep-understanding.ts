@@ -22,81 +22,49 @@
  * @module intelligence/context-builders/deep-understanding
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 // Import all intelligence systems
-import {
-  analyzeSilence,
-  formatSilenceForPrompt,
-  type SilenceAnalysis,
-} from '../silence-intelligence.js';
+import { analyzeSilence, formatSilenceForPrompt } from '../silence-intelligence.js';
 
 import {
+  formatPredictionForPrompt,
   predictUserState,
   recordConversationObservation,
-  formatPredictionForPrompt,
-  type RhythmPrediction,
 } from '../life-rhythm-prediction.js';
 
 import {
-  extractPersonMentions,
-  recordPersonMention,
   detectUnspokenTension,
+  extractPersonMentions,
   formatRelationalInsightsForPrompt,
-  getRelationalNetwork,
+  recordPersonMention,
 } from '../relational-network.js';
 
-import {
-  analyzeResistance,
-  formatResistanceForPrompt,
-  type ResistanceAnalysis,
-} from '../resistance-detection.js';
+import { analyzeResistance, formatResistanceForPrompt } from '../resistance-detection.js';
 
-import {
-  assessEnergyState,
-  formatEnergyForPrompt,
-  type EnergyAssessment,
-} from '../energy-state.js';
+import { assessEnergyState, formatEnergyForPrompt } from '../energy-state.js';
 
-import {
-  analyzeSubconscious,
-  formatSubconsciousForPrompt,
-  type SubconsciousAnalysis,
-} from '../subconscious-goals.js';
+import { analyzeSubconscious, formatSubconsciousForPrompt } from '../subconscious-goals.js';
 
-import {
-  analyzeFlow,
-  formatFlowForPrompt,
-  type FlowAnalysis,
-} from '../conversational-flow.js';
+import { analyzeFlow, formatFlowForPrompt } from '../conversational-flow.js';
 
 import {
   detectMisunderstanding,
-  generateRepair,
   formatRepairForPrompt,
+  generateRepair,
   recordAIResponse,
-  type MisunderstandingDetection,
-  type RepairApproach,
 } from '../repair-intelligence.js';
 
-import {
-  analyzeHope,
-  formatHopeForPrompt,
-  type HopeAnalysis,
-} from '../hope-trajectory.js';
+import { analyzeHope, formatHopeForPrompt } from '../hope-trajectory.js';
 
-import {
-  analyzeChapter,
-  formatChapterForPrompt,
-  type ChapterAnalysis,
-} from '../life-chapter.js';
+import { analyzeChapter, formatChapterForPrompt } from '../life-chapter.js';
 
 import {
   BuilderCategory,
+  createCriticalInjection,
   createHintInjection,
   createStandardInjection,
-  createCriticalInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
@@ -181,10 +149,7 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
       if (misunderstanding.detected) {
         const repair = generateRepair(misunderstanding);
         injections.push(
-          createCriticalInjection(
-            'deep_repair',
-            formatRepairForPrompt(misunderstanding, repair)
-          )
+          createCriticalInjection('deep_repair', formatRepairForPrompt(misunderstanding, repair))
         );
         log.info({ userId, type: misunderstanding.type }, '🔧 Repair needed');
       }
@@ -194,17 +159,15 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     // 2. ENERGY STATE (Affects all other processing)
     // ========================================================================
 
-    const energy = assessEnergyState(
-      userId,
-      userText,
-      voiceData,
-      currentTopics,
-      session.turnCount
-    );
+    const energy = assessEnergyState(userId, userText, voiceData, currentTopics, session.turnCount);
 
     // Only inject if notable state
-    if (energy.physical.level === 'depleted' || energy.physical.level === 'low' ||
-        energy.mental.capacity === 'overwhelmed' || energy.mental.capacity === 'limited') {
+    if (
+      energy.physical.level === 'depleted' ||
+      energy.physical.level === 'low' ||
+      energy.mental.capacity === 'overwhelmed' ||
+      energy.mental.capacity === 'limited'
+    ) {
       injections.push(
         createStandardInjection('deep_energy', formatEnergyForPrompt(energy), {
           category: 'awareness',
@@ -227,14 +190,18 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
 
     // Always inject if alerts or concerning trajectory
     if (hope.alerts.length > 0 || hope.trajectory.intervention.urgencyLevel !== 'proactive') {
-      const priority = hope.alerts.some(a => a.severity === 'high') ? 'critical' : 'standard';
-      const injection = priority === 'critical'
-        ? createCriticalInjection('deep_hope', formatHopeForPrompt(hope))
-        : createStandardInjection('deep_hope', formatHopeForPrompt(hope), { category: 'safety' });
+      const priority = hope.alerts.some((a) => a.severity === 'high') ? 'critical' : 'standard';
+      const injection =
+        priority === 'critical'
+          ? createCriticalInjection('deep_hope', formatHopeForPrompt(hope))
+          : createStandardInjection('deep_hope', formatHopeForPrompt(hope), { category: 'safety' });
       injections.push(injection);
 
-      if (hope.alerts.some(a => a.type === 'hopelessness')) {
-        log.warn({ userId, hopeLevel: hope.trajectory.current.hopeLevel }, '⚠️ Hope concern detected');
+      if (hope.alerts.some((a) => a.type === 'hopelessness')) {
+        log.warn(
+          { userId, hopeLevel: hope.trajectory.current.hopeLevel },
+          '⚠️ Hope concern detected'
+        );
       }
     }
 
@@ -248,11 +215,13 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
       userText,
       session.turnCount,
       currentEmotionIntensity,
-      voiceData ? {
-        pace: voiceData.arousal,
-        volume: 0.5, // Would need actual data
-        hasHesitations: false,
-      } : undefined
+      voiceData
+        ? {
+            pace: voiceData.arousal,
+            volume: 0.5, // Would need actual data
+            hasHesitations: false,
+          }
+        : undefined
     );
 
     // Inject if non-standard direction needed
@@ -300,9 +269,13 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     // Surface opportunity if ready
     if (subconscious.surfaceOpportunity.shouldSurface && subconscious.surfaceOpportunity.phrase) {
       injections.push(
-        createHintInjection('deep_subconscious', formatSubconsciousForPrompt(userId, subconscious) || '', {
-          category: 'insight',
-        })
+        createHintInjection(
+          'deep_subconscious',
+          formatSubconsciousForPrompt(userId, subconscious) || '',
+          {
+            category: 'insight',
+          }
+        )
       );
     }
 
@@ -310,16 +283,13 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     // 7. LIFE CHAPTER
     // ========================================================================
 
-    const chapter = analyzeChapter(
-      userId,
-      userText,
-      currentTopics,
-      [currentEmotion]
-    );
+    const chapter = analyzeChapter(userId, userText, currentTopics, [currentEmotion]);
 
     // Inject if confident about chapter and there's relevant insight
-    if (chapter.chapter.current.confidence > 0.5 &&
-        (chapter.narrativeInsight || chapter.chapter.transition.phase !== 'stable')) {
+    if (
+      chapter.chapter.current.confidence > 0.5 &&
+      (chapter.narrativeInsight || chapter.chapter.transition.phase !== 'stable')
+    ) {
       injections.push(
         createHintInjection('deep_chapter', formatChapterForPrompt(chapter), {
           category: 'context',
@@ -340,7 +310,9 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
         emotionIntensity: currentEmotionIntensity,
         topics: currentTopics,
         wasPositive: currentEmotion === 'happy' || currentEmotion === 'joy',
-        wasStressed: currentEmotionIntensity > 0.6 && ['anxious', 'sad', 'angry', 'frustrated'].includes(currentEmotion),
+        wasStressed:
+          currentEmotionIntensity > 0.6 &&
+          ['anxious', 'sad', 'angry', 'frustrated'].includes(currentEmotion),
       });
 
       // Check for unspoken tension
@@ -349,10 +321,7 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
 
     // Get relational insights if someone was mentioned
     if (personMentions.length > 0) {
-      const relationalInsight = formatRelationalInsightsForPrompt(
-        userId,
-        personMentions[0].name
-      );
+      const relationalInsight = formatRelationalInsightsForPrompt(userId, personMentions[0].name);
       if (relationalInsight) {
         injections.push(
           createHintInjection('deep_relational', relationalInsight, {
@@ -371,7 +340,9 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     // Record this observation
     recordConversationObservation(userId, {
       timestamp: new Date(),
-      mood: currentEmotionIntensity * (currentEmotion === 'happy' ? 1 : currentEmotion === 'sad' ? 0 : 0.5),
+      mood:
+        currentEmotionIntensity *
+        (currentEmotion === 'happy' ? 1 : currentEmotion === 'sad' ? 0 : 0.5),
       energy: energy.physical.level === 'high' ? 0.8 : energy.physical.level === 'low' ? 0.3 : 0.5,
       topics: currentTopics,
       wasStressed: currentEmotionIntensity > 0.6,
@@ -423,7 +394,6 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
 
     // Record our response for next turn's repair check
     // (This would typically be set after the response is generated)
-
   } catch (error) {
     log.error({ error, userId }, '❌ Error in deep understanding analysis');
   }
@@ -447,11 +417,11 @@ export function recordResponse(sessionId: string, response: string): void {
 
 registerContextBuilder({
   name: 'deep_understanding',
-  description: 'Superhuman understanding: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters',
+  description:
+    'Superhuman understanding: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters',
   priority: 35, // Run early to inform other builders
   build: buildDeepUnderstanding,
   category: BuilderCategory.COGNITIVE,
 });
 
 export { buildDeepUnderstanding };
-

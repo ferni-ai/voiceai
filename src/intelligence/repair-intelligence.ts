@@ -694,6 +694,18 @@ export function quickRepairCheck(
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all repair intelligence state (for testing)
+ */
+export function resetRepairIntelligence(): void {
+  profiles.clear();
+  recentResponses.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -705,5 +717,6 @@ export default {
   recordRepairOutcome,
   formatRepairForPrompt,
   quickRepairCheck,
+  resetRepairIntelligence,
 };
 

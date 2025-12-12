@@ -371,13 +371,177 @@ function formatInterventionTechnique(
   return parts.join('\n');
 }
 
+/**
+ * Situational triggers for elite coaching frameworks
+ */
+const ELITE_COACH_TRIGGERS: Record<string, string[]> = {
+  brene_brown: [
+    'shame',
+    'embarrassed',
+    'vulnerable',
+    'courage',
+    'belong',
+    'worthy',
+    'perfectio',
+    'judg',
+    'critic',
+    'arena',
+  ],
+  tony_robbins: [
+    'stuck',
+    'motivation',
+    'state',
+    'need',
+    'focus',
+    'energy',
+    'pattern',
+    'breakthrough',
+    'transform',
+  ],
+  esther_perel: [
+    'relationship',
+    'partner',
+    'marriage',
+    'intimacy',
+    'desire',
+    'affair',
+    'trust',
+    'connection',
+    'love',
+  ],
+  mel_robbins: ['procrastinat', 'start', 'action', 'hesitat', 'scared', '5 second', 'just do'],
+  simon_sinek: ['why', 'purpose', 'meaning', 'leader', 'inspire', 'mission', 'vision', 'believe'],
+  bj_fogg: ['habit', 'tiny', 'routine', 'trigger', 'behavior', 'celebrat', 'anchor'],
+};
+
+/**
+ * Match user text to elite coach frameworks
+ */
+function matchEliteCoachFramework(userText: string): string | null {
+  const lowerText = userText.toLowerCase();
+
+  for (const [coach, triggers] of Object.entries(ELITE_COACH_TRIGGERS)) {
+    for (const trigger of triggers) {
+      if (lowerText.includes(trigger)) {
+        return coach;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Format world-class coaching content for LLM injection
+ */
+function formatWorldClassCoachingInjection(
+  coaching: WorldClassCoachingContent,
+  matchedCoach: string | null,
+  situationalMatch: string | null
+): string {
+  const parts: string[] = [];
+
+  // Add situational guidance if matched
+  if (situationalMatch && coaching.when_to_use_what?.[situationalMatch]) {
+    const situation = coaching.when_to_use_what[situationalMatch];
+    parts.push(`[COACHING SITUATION: ${situationalMatch.replace(/_/g, ' ').toUpperCase()}]`);
+    if (situation.frameworks) {
+      parts.push(`Relevant frameworks: ${situation.frameworks.join(', ')}`);
+    }
+    if (situation.key_question) {
+      parts.push(`Key question: "${situation.key_question}"`);
+    }
+  }
+
+  // Add matched elite coach framework
+  if (matchedCoach && coaching.elite_coaches_framework) {
+    const coachData = coaching.elite_coaches_framework[matchedCoach] as Record<string, unknown>;
+    if (coachData) {
+      const coachName = matchedCoach.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      parts.push(`\n[INSPIRED BY: ${coachName}]`);
+
+      // Extract a relevant phrase
+      const phrases: string[] = [];
+      if (coachData.key_concepts) {
+        for (const concept of Object.values(coachData.key_concepts as Record<string, unknown>)) {
+          if ((concept as { coaching_phrases?: string[] }).coaching_phrases) {
+            phrases.push(
+              ...((concept as { coaching_phrases: string[] }).coaching_phrases.slice(0, 1) || [])
+            );
+          }
+        }
+      }
+      if (coachData.core_frameworks) {
+        for (const framework of Object.values(
+          coachData.core_frameworks as Record<string, unknown>
+        )) {
+          if ((framework as { coaching_phrases?: string[] }).coaching_phrases) {
+            phrases.push(
+              ...((framework as { coaching_phrases: string[] }).coaching_phrases.slice(0, 1) || [])
+            );
+          }
+        }
+      }
+
+      if (phrases.length > 0) {
+        parts.push(`Consider: "${phrases[0]}"`);
+      }
+    }
+  }
+
+  // Add a golden rule if available
+  if (coaching.coaching_golden_rules?.from_the_masters) {
+    const rules = coaching.coaching_golden_rules.from_the_masters;
+    const randomRule = rules[Math.floor(Math.random() * rules.length)];
+    if (randomRule && parts.length === 0) {
+      // Only add if no other content
+      parts.push(`[COACHING WISDOM - ${randomRule.source}]`);
+      parts.push(`"${randomRule.rule}"`);
+      if (randomRule.phrase) {
+        parts.push(`Try: "${randomRule.phrase}"`);
+      }
+    }
+  }
+
+  if (parts.length === 0) return '';
+
+  parts.push(`\nApply naturally - don't cite sources, just embody the wisdom.`);
+  return parts.join('\n');
+}
+
+/**
+ * Match situational triggers to "when_to_use_what" scenarios
+ */
+function matchSituation(userText: string): string | null {
+  const lowerText = userText.toLowerCase();
+
+  const situationTriggers: Record<string, string[]> = {
+    someone_feeling_stuck: ['stuck', "can't move", 'paralyzed', 'frozen', "don't know what to do"],
+    someone_in_shame: ['ashamed', 'embarrassed', 'stupid', 'failure', "what's wrong with me"],
+    someone_lost_meaning: ['meaningless', 'pointless', "why bother", "what's the point", 'empty'],
+    someone_grieving: ['lost', 'died', 'miss them', 'gone', 'grief'],
+    someone_avoiding_change: ['should but', "can't change", 'too hard', 'tried before'],
+    someone_building_habits: ['habit', 'routine', 'consistent', 'every day', 'trying to start'],
+    someone_in_relationship_crisis: ['fighting', 'argument', 'divorce', 'break up', 'trust'],
+  };
+
+  for (const [situation, triggers] of Object.entries(situationTriggers)) {
+    for (const trigger of triggers) {
+      if (lowerText.includes(trigger)) {
+        return situation;
+      }
+    }
+  }
+  return null;
+}
+
 // ============================================================================
 // METHODOLOGY CONTEXT BUILDER
 // ============================================================================
 
 registerContextBuilder({
   name: 'methodology',
-  description: 'Evidence-based coaching frameworks from methodology.json',
+  description:
+    'Evidence-based coaching frameworks from methodology.json and world-class-coaching.json',
   priority: 55, // Mid-priority - after core context, before polish
   category: BuilderCategory.COACHING,
 
@@ -387,60 +551,87 @@ registerContextBuilder({
 
     // Check if conversation triggers methodology injection FIRST (fast path)
     const detectedTopics = analysis.topics.detected || [];
-    const triggers = detectMethodologyTriggers(userText, detectedTopics);
+    const methodologyTriggers = detectMethodologyTriggers(userText, detectedTopics);
 
-    if (triggers.length === 0) {
-      // No triggers - don't load methodology (avoid unnecessary work)
+    // Also check for elite coach triggers and situational matches
+    const matchedCoach = matchEliteCoachFramework(userText);
+    const matchedSituation = matchSituation(userText);
+
+    // If no triggers at all, skip loading
+    if (methodologyTriggers.length === 0 && !matchedCoach && !matchedSituation) {
       return injections;
     }
 
-    // Only load methodology if we have triggers (optimized)
-    const methodology = await getCachedMethodology(persona.id);
-    if (!methodology) {
-      log.debug({ personaId: persona.id }, 'No methodology found for persona');
-      return injections;
-    }
-
-    log.debug(
-      { personaId: persona.id, triggers, topics: detectedTopics },
-      'Methodology triggers detected'
-    );
-
-    // Inject main methodology context
-    const methodologyContext = formatMethodologyInjection(methodology, triggers);
-    injections.push(
-      createStandardInjection('methodology', methodologyContext, {
-        category: 'methodology',
-        confidence: 0.8,
-      })
-    );
-
-    // Check for specific intervention opportunities
-    if (methodology.intervention_techniques) {
-      // Match triggers to intervention techniques
-      const techniques = methodology.intervention_techniques as Record<
-        string,
-        Record<string, unknown>
-      >;
-
-      for (const [techniqueName, technique] of Object.entries(techniques)) {
-        // Check if any trigger matches this technique
-        const techniqueKeywords = techniqueName.toLowerCase().split('_');
-        const isRelevant = triggers.some((trigger) =>
-          techniqueKeywords.some(
-            (keyword) => trigger.includes(keyword) || keyword.includes(trigger)
-          )
+    // Load methodology if we have methodology triggers
+    if (methodologyTriggers.length > 0) {
+      const methodology = await getCachedMethodology(persona.id);
+      if (methodology) {
+        log.debug(
+          { personaId: persona.id, triggers: methodologyTriggers, topics: detectedTopics },
+          'Methodology triggers detected'
         );
 
-        if (isRelevant) {
-          const techniqueInjection = formatInterventionTechnique(techniqueName, technique);
+        // Inject main methodology context
+        const methodologyContext = formatMethodologyInjection(methodology, methodologyTriggers);
+        injections.push(
+          createStandardInjection('methodology', methodologyContext, {
+            category: 'methodology',
+            confidence: 0.8,
+          })
+        );
+
+        // Check for specific intervention opportunities
+        if (methodology.intervention_techniques) {
+          const techniques = methodology.intervention_techniques as Record<
+            string,
+            Record<string, unknown>
+          >;
+
+          for (const [techniqueName, technique] of Object.entries(techniques)) {
+            const techniqueKeywords = techniqueName.toLowerCase().split('_');
+            const isRelevant = methodologyTriggers.some((trigger) =>
+              techniqueKeywords.some(
+                (keyword) => trigger.includes(keyword) || keyword.includes(trigger)
+              )
+            );
+
+            if (isRelevant) {
+              const techniqueInjection = formatInterventionTechnique(techniqueName, technique);
+              injections.push(
+                createHintInjection('intervention', techniqueInjection, {
+                  category: 'intervention_technique',
+                  confidence: 0.6,
+                })
+              );
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Load world-class coaching if we have elite coach or situational triggers
+    if (matchedCoach || matchedSituation) {
+      const worldClassCoaching = await getCachedWorldClassCoaching(persona.id);
+      if (worldClassCoaching) {
+        log.debug(
+          { personaId: persona.id, matchedCoach, matchedSituation },
+          'World-class coaching triggers detected'
+        );
+
+        const coachingContext = formatWorldClassCoachingInjection(
+          worldClassCoaching,
+          matchedCoach,
+          matchedSituation
+        );
+
+        if (coachingContext) {
           injections.push(
-            createHintInjection('intervention', techniqueInjection, {
-              category: 'intervention_technique',
-              confidence: 0.6,
+            createHintInjection('world_class_coaching', coachingContext, {
+              category: 'elite_coaching',
+              confidence: 0.7,
             })
           );
-          break; // Only inject one technique per turn to avoid overload
         }
       }
     }

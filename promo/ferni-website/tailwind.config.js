@@ -6,59 +6,105 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Ferni Design System Colors
+      // Ferni Design System Colors - References CSS variables from design-tokens.css
+      // Note: Opacity modifiers (bg-ferni/50) won't work with CSS vars - use glow variants instead
       colors: {
         // Zen Theme (Light Mode) - Primary
         paper: {
-          DEFAULT: '#faf8f5',
-          cream: '#fffdfb',
-          sand: '#f5f2ed',
-          warm: '#ebe6df',
+          DEFAULT: 'var(--color-bg-primary)',
+          cream: 'var(--color-bg-elevated)',
+          sand: 'var(--color-bg-secondary)',
+          warm: '#ebe6df', // Not in tokens yet
         },
         ink: {
-          DEFAULT: '#2c2520',
-          muted: '#5c544a',
-          light: '#756a5e',
-          faded: '#857a6e',
+          DEFAULT: 'var(--color-text-primary)',
+          muted: 'var(--color-text-secondary)',
+          light: 'var(--color-text-muted)',
+          faded: 'var(--color-text-dimmed)',
         },
-        // Persona Colors
+        // Accent (CTA buttons, links)
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          hover: 'var(--color-accent-hover)',
+          pressed: 'var(--color-accent-pressed)',
+          glow: 'var(--color-accent-glow)',
+        },
+        // Persona Colors - Single source of truth from design-tokens.css
         ferni: {
-          DEFAULT: '#4a6741',
-          dark: '#3d5a35',
-          light: '#5a7751',
-          glow: 'rgba(74, 103, 65, 0.28)',
-          tint: 'rgba(74, 103, 65, 0.06)',
+          DEFAULT: 'var(--color-ferni)',
+          dark: 'var(--color-ferni-secondary)',
+          glow: 'var(--color-ferni-glow)',
+        },
+        jack: {
+          DEFAULT: 'var(--color-jack)',
+          dark: 'var(--color-jack-secondary)',
+          glow: 'var(--color-jack-glow)',
         },
         peter: {
-          DEFAULT: '#3a6b73',
-          dark: '#2d5359',
-          glow: 'rgba(58, 107, 115, 0.28)',
+          DEFAULT: 'var(--color-peter)',
+          dark: 'var(--color-peter-secondary)',
+          glow: 'var(--color-peter-glow)',
         },
         alex: {
-          DEFAULT: '#5a6b8a',
-          dark: '#4a5a73',
-          glow: 'rgba(90, 107, 138, 0.28)',
+          DEFAULT: 'var(--color-alex)',
+          dark: 'var(--color-alex-secondary)',
+          glow: 'var(--color-alex-glow)',
         },
         maya: {
-          DEFAULT: '#a67a6a',
-          dark: '#8a635a',
-          glow: 'rgba(166, 122, 106, 0.28)',
+          DEFAULT: 'var(--color-maya)',
+          dark: 'var(--color-maya-secondary)',
+          glow: 'var(--color-maya-glow)',
         },
         jordan: {
-          DEFAULT: '#c4856a',
-          dark: '#a86d55',
-          glow: 'rgba(196, 133, 106, 0.28)',
+          DEFAULT: 'var(--color-jordan)',
+          dark: 'var(--color-jordan-secondary)',
+          glow: 'var(--color-jordan-glow)',
         },
         nayan: {
-          DEFAULT: '#8a7a6a',
-          dark: '#6d5f52',
-          glow: 'rgba(138, 122, 106, 0.28)',
+          DEFAULT: 'var(--color-nayan)',
+          dark: 'var(--color-nayan-secondary)',
+          glow: 'var(--color-nayan-glow)',
+        },
+        // Marketplace personas
+        eli: {
+          DEFAULT: 'var(--color-eli)',
+          dark: 'var(--color-eli-secondary)',
+          glow: 'var(--color-eli-glow)',
+        },
+        marcus: {
+          DEFAULT: 'var(--color-marcus)',
+          dark: 'var(--color-marcus-secondary)',
+          glow: 'var(--color-marcus-glow)',
+        },
+        kenji: {
+          DEFAULT: 'var(--color-kenji)',
+          dark: 'var(--color-kenji-secondary)',
+          glow: 'var(--color-kenji-glow)',
+        },
+        carmen: {
+          DEFAULT: 'var(--color-carmen)',
+          dark: 'var(--color-carmen-secondary)',
+          glow: 'var(--color-carmen-glow)',
+        },
+        amara: {
+          DEFAULT: 'var(--color-amara)',
+          dark: 'var(--color-amara-secondary)',
+          glow: 'var(--color-amara-glow)',
+        },
+        sasha: {
+          DEFAULT: 'var(--color-sasha)',
+          dark: 'var(--color-sasha-secondary)',
+          glow: 'var(--color-sasha-glow)',
+        },
+        ray: {
+          DEFAULT: 'var(--color-ray)',
+          dark: 'var(--color-ray-secondary)',
+          glow: 'var(--color-ray-glow)',
         },
         // Semantic
-        success: '#3d7a52',
-        error: '#b5453a',
-        warning: '#a67c35',
-        info: '#3a6b9c',
+        success: 'var(--color-success)',
+        error: 'var(--color-error)',
+        warning: 'var(--color-warning)',
         // Night theme colors for dark sections
         night: {
           DEFAULT: '#1a1512',

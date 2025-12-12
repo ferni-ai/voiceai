@@ -27,7 +27,7 @@ interface AccentOption {
   value: EnglishAccent;
   label: string;
   description: string;
-  flag: string;
+  flagSvg: string;
 }
 
 interface AccentSettingsState {
@@ -45,30 +45,72 @@ interface AccentSettingsState {
 // ACCENT OPTIONS
 // ============================================================================
 
+// SVG flag icons (brand-compliant, no emojis)
+const FLAG_SVGS = {
+  us: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="16" fill="#B22234"/>
+    <rect y="1.23" width="24" height="1.23" fill="white"/>
+    <rect y="3.69" width="24" height="1.23" fill="white"/>
+    <rect y="6.15" width="24" height="1.23" fill="white"/>
+    <rect y="8.62" width="24" height="1.23" fill="white"/>
+    <rect y="11.08" width="24" height="1.23" fill="white"/>
+    <rect y="13.54" width="24" height="1.23" fill="white"/>
+    <rect width="9.6" height="8.62" fill="#3C3B6E"/>
+  </svg>`,
+  gb: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="16" fill="#012169"/>
+    <path d="M0 0L24 16M24 0L0 16" stroke="white" stroke-width="2.5"/>
+    <path d="M0 0L24 16M24 0L0 16" stroke="#C8102E" stroke-width="1.5"/>
+    <path d="M12 0V16M0 8H24" stroke="white" stroke-width="4"/>
+    <path d="M12 0V16M0 8H24" stroke="#C8102E" stroke-width="2.5"/>
+  </svg>`,
+  au: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="16" fill="#00008B"/>
+    <rect width="12" height="8" fill="#012169"/>
+    <path d="M0 0L12 8M12 0L0 8" stroke="white" stroke-width="1.5"/>
+    <path d="M0 0L12 8M12 0L0 8" stroke="#C8102E" stroke-width="0.8"/>
+    <path d="M6 0V8M0 4H12" stroke="white" stroke-width="2.5"/>
+    <path d="M6 0V8M0 4H12" stroke="#C8102E" stroke-width="1.5"/>
+    <circle cx="6" cy="12" r="1.2" fill="white"/>
+    <circle cx="18" cy="5" r="0.8" fill="white"/>
+    <circle cx="20" cy="8" r="0.8" fill="white"/>
+    <circle cx="18" cy="11" r="0.8" fill="white"/>
+    <circle cx="15" cy="9" r="0.8" fill="white"/>
+  </svg>`,
+  in: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="5.33" fill="#FF9933"/>
+    <rect y="5.33" width="24" height="5.34" fill="white"/>
+    <rect y="10.67" width="24" height="5.33" fill="#138808"/>
+    <circle cx="12" cy="8" r="2" fill="#000080"/>
+    <circle cx="12" cy="8" r="1.5" fill="white"/>
+    <circle cx="12" cy="8" r="0.5" fill="#000080"/>
+  </svg>`,
+};
+
 const ACCENT_OPTIONS: AccentOption[] = [
   {
     value: 'american',
     label: 'American English',
     description: 'Standard American accent, warm and familiar',
-    flag: '🇺🇸',
+    flagSvg: FLAG_SVGS.us,
   },
   {
     value: 'british',
     label: 'British English',
     description: 'Received Pronunciation, elegant and clear',
-    flag: '🇬🇧',
+    flagSvg: FLAG_SVGS.gb,
   },
   {
     value: 'australian',
     label: 'Australian English',
     description: 'Friendly Australian accent, relaxed and approachable',
-    flag: '🇦🇺',
+    flagSvg: FLAG_SVGS.au,
   },
   {
     value: 'indian',
     label: 'Indian English',
     description: 'Indian English accent, melodic and expressive',
-    flag: '🇮🇳',
+    flagSvg: FLAG_SVGS.in,
   },
 ];
 
@@ -279,7 +321,6 @@ function injectStyles(): void {
     }
 
     .accent-option-flag {
-      font-size: 1.5rem;
       width: 36px;
       height: 36px;
       display: flex;
@@ -287,6 +328,14 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-md, 8px);
+      overflow: hidden;
+      padding: 6px;
+    }
+
+    .accent-option-flag svg {
+      width: 100%;
+      height: auto;
+      border-radius: 2px;
     }
 
     .accent-option-info {
@@ -583,7 +632,7 @@ function render(): void {
               (option) => `
               <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
-                <span class="accent-option-flag">${option.flag}</span>
+                <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
                   <p class="accent-option-label">${option.label}</p>
                   <p class="accent-option-desc">${option.description}</p>

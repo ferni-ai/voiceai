@@ -833,3 +833,126 @@ export async function recordAdviceGivenToSession(sessionId: string): Promise<voi
     // Non-fatal
   }
 }
+
+// ============================================================================
+// EMOTIONAL JOURNEY ORCHESTRATOR
+// Coordinates all systems for smiles, laughter, vulnerability, and tears
+// ============================================================================
+
+export interface EmotionalJourneyContext {
+  userId: string;
+  sessionId: string;
+  turnCount: number;
+  sessionCount: number;
+  relationshipStage?: string;
+  emotion?: {
+    primary: string;
+    intensity?: number;
+    distressLevel?: number;
+  };
+  voiceEmotion?: {
+    arousal?: number;
+    valence?: number;
+    speechRate?: number;
+  };
+  resistanceDetected?: boolean;
+  vulnerabilityShared?: boolean;
+  wasAdviceGiven?: boolean;
+  topicsTouched?: string[];
+  isLastTurn?: boolean;
+}
+
+export interface EmotionalJourneyResult {
+  injections: ContextInjection[];
+  highEmotionMode: boolean;
+  coachingMode: 'direct' | 'exploratory' | 'paradoxical' | 'celebratory' | 'supportive';
+  suppressedSystems: string[];
+  phase: string;
+  momentType: string | null;
+}
+
+/**
+ * Build emotional journey injections that coordinate all emotional systems
+ *
+ * This is the master coordinator that ensures:
+ * - Smiles come at warm moments (return visits, recognition)
+ * - Laughter comes at light moments (NOT during vulnerability)
+ * - Vulnerability is invited when trust exists
+ * - Tears are held in safe embrace
+ * - Celebration honors effort, not just outcomes
+ */
+export async function buildEmotionalJourneyInjections(
+  ctx: EmotionalJourneyContext
+): Promise<EmotionalJourneyResult> {
+  const result: EmotionalJourneyResult = {
+    injections: [],
+    highEmotionMode: false,
+    coachingMode: 'exploratory',
+    suppressedSystems: [],
+    phase: 'exploration',
+    momentType: null,
+  };
+
+  try {
+    const { orchestrateEmotionalJourney, buildEmotionalContext } =
+      await import('../../conversation/emotional-journey-orchestrator.js');
+
+    // Build context
+    const emotionalContext = buildEmotionalContext({
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      turnCount: ctx.turnCount,
+      sessionCount: ctx.sessionCount,
+      relationshipStage: ctx.relationshipStage,
+      emotion: ctx.emotion,
+      voiceEmotion: ctx.voiceEmotion,
+      resistanceDetected: ctx.resistanceDetected,
+      vulnerabilityShared: ctx.vulnerabilityShared,
+      wasAdviceGiven: ctx.wasAdviceGiven,
+      topicsTouched: ctx.topicsTouched,
+      isLastTurn: ctx.isLastTurn,
+    });
+
+    // Get orchestration decision
+    const decision = orchestrateEmotionalJourney(emotionalContext);
+
+    // Transfer results
+    result.highEmotionMode = decision.highEmotionMode;
+    result.coachingMode = decision.coachingMode;
+    result.suppressedSystems = decision.suppressSystems;
+    result.phase = decision.phase;
+    result.momentType = decision.momentType;
+
+    // Add guidance injection (high priority)
+    if (decision.guidance) {
+      result.injections.push({
+        category: 'emotional_journey',
+        content: `[EMOTIONAL JOURNEY - ${decision.phase.toUpperCase()}]\n${decision.guidance}`,
+        priority: 60, // High priority - should guide other systems
+      });
+    }
+
+    // Add moment-specific injection if there's an emotional moment opportunity
+    if (decision.momentType) {
+      result.injections.push({
+        category: 'emotional_moment',
+        content: `[MOMENT OPPORTUNITY: ${decision.momentType.replace(/_/g, ' ').toUpperCase()}]`,
+        priority: 55,
+      });
+    }
+
+    // Log for debugging
+    diag.debug('🎭 Emotional journey orchestrated', {
+      phase: decision.phase,
+      momentType: decision.momentType,
+      coachingMode: decision.coachingMode,
+      highEmotionMode: decision.highEmotionMode,
+      activeSystems: decision.activateSystems.length,
+      suppressedSystems: decision.suppressSystems.length,
+    });
+  } catch (error) {
+    diag.warn('Emotional journey orchestration failed (non-fatal)', { error: String(error) });
+  }
+
+  return result;
+}

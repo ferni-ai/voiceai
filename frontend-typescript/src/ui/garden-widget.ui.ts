@@ -13,6 +13,7 @@ import type {
   GardenHealth,
   GardenerStatus,
 } from '../../../src/types/seed-fund.types.js';
+import { apiFetch } from '../utils/api-helpers.js';
 
 // =============================================================================
 // STATE
@@ -78,7 +79,8 @@ const STATUS_ICONS: Record<GardenerStatus, string> = {
 
 async function fetchGardenStatus(): Promise<GardenStatus | null> {
   try {
-    const response = await fetch('/api/garden/status');
+    // Public endpoint - no auth needed but apiFetch adds it anyway
+    const response = await apiFetch('/api/garden/status');
     if (!response.ok) return null;
     return await response.json();
   } catch {
@@ -88,7 +90,8 @@ async function fetchGardenStatus(): Promise<GardenStatus | null> {
 
 async function fetchUserGarden(): Promise<UserGarden | null> {
   try {
-    const response = await fetch('/api/garden/user');
+    // Authenticated endpoint - apiFetch adds Firebase Bearer token + X-User-Id
+    const response = await apiFetch('/api/garden/user');
     if (!response.ok) return null;
     return await response.json();
   } catch {

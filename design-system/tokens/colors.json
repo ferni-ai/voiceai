@@ -89,12 +89,12 @@
         "strong": "rgba(44, 37, 32, 0.18)"
       },
       "accent": {
-        "primary": "#2d5a3d",
-        "hover": "#3a7350",
-        "pressed": "#1e4530",
-        "glow": "rgba(45, 90, 61, 0.15)",
-        "subtle": "rgba(45, 90, 61, 0.05)",
-        "text": "#2d5a3d",
+        "primary": "#3D5A45",
+        "hover": "#4a6b52",
+        "pressed": "#2d4535",
+        "glow": "rgba(61, 90, 69, 0.15)",
+        "subtle": "rgba(61, 90, 69, 0.05)",
+        "text": "#3D5A45",
         "_textNote": "Same as primary for light theme - good contrast on light backgrounds"
       },
       "semantic": {

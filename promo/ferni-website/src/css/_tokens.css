@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run sync:promo
- * Generated: 2025-12-12T20:15:36.414Z
+ * Generated: 2025-12-12T21:04:59.631Z
  */
 
 :root {
@@ -29,11 +29,11 @@
   /* ============================================
      COLORS - Accent
      ============================================ */
-  --color-accent: #2d5a3d;
-  --color-accent-hover: #3a7350;
-  --color-accent-pressed: #1e4530;
-  --color-accent-glow: rgba(45, 90, 61, 0.15);
-  --color-accent-subtle: rgba(45, 90, 61, 0.05);
+  --color-accent: #3D5A45;
+  --color-accent-hover: #4a6b52;
+  --color-accent-pressed: #2d4535;
+  --color-accent-glow: rgba(61, 90, 69, 0.15);
+  --color-accent-subtle: rgba(61, 90, 69, 0.05);
 
   /* ============================================
      COLORS - Borders

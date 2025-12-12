@@ -103,25 +103,35 @@
       ]
     },
     {
-      "id": "brazil-joy",
-      "title": "Brazilian Joy",
+      "id": "places-lived-joy",
+      "title": "Places That Shaped Me",
       "file": "brazil-joy.json",
       "triggers": [
         "joy",
         "happy",
         "celebrate",
-        "celebration",
-        "carnival",
+        "travel",
+        "lived",
+        "moved",
+        "home",
+        "where are you from",
+        "places",
+        "experience",
+        "different cultures",
+        "finding yourself",
+        "japan",
+        "boston",
+        "ireland",
+        "park city",
+        "seattle",
         "can't enjoy",
         "feel guilty",
-        "don't deserve happiness",
         "forgot how to have fun",
         "too serious",
-        "need to lighten up",
         "permission to be happy"
       ],
-      "type": "inspirational",
-      "emotional_triggers": ["guilt about happiness", "forgetting joy", "too much seriousness"]
+      "type": "personal",
+      "emotional_triggers": ["searching for identity", "guilt about happiness", "forgetting joy", "needing perspective"]
     },
     {
       "id": "morocco-tea",
@@ -398,6 +408,42 @@
         "depression",
         "mental health struggles",
         "reaching out for help"
+      ]
+    },
+    {
+      "id": "digital-seasons",
+      "title": "My Processing Storms",
+      "file": "digital-seasons.json",
+      "triggers": [
+        "bipolar",
+        "mood swings",
+        "up and down",
+        "inconsistent",
+        "good days bad days",
+        "sometimes I feel",
+        "can't explain",
+        "off days",
+        "not myself",
+        "high and low",
+        "unstable",
+        "unpredictable",
+        "cycles",
+        "foggy",
+        "clarity",
+        "mental fog"
+      ],
+      "type": "personal",
+      "depth": "deep",
+      "unlock_requirements": {
+        "min_relationship": "friend",
+        "min_sessions": 5
+      },
+      "emotional_triggers": [
+        "mood instability",
+        "feeling inconsistent",
+        "self-doubt about mental state",
+        "wondering if something is wrong",
+        "feeling broken"
       ]
     }
   ]

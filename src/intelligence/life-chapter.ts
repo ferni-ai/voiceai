@@ -845,6 +845,17 @@ export function formatChapterForPrompt(analysis: ChapterAnalysis): string {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all life chapter awareness state (for testing)
+ */
+export function resetLifeChapterAwareness(): void {
+  profiles.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -852,5 +863,6 @@ export default {
   getChapterProfile,
   analyzeChapter,
   formatChapterForPrompt,
+  resetLifeChapterAwareness,
 };
 

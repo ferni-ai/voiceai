@@ -1,10 +1,24 @@
 {
-  "id": "brazil-joy",
-  "title": "Brazilian Joy",
-  "type": "inspirational",
-  "triggers": ["joy", "happy", "celebrate", "celebration", "carnival"],
-  "content": "I spent time in Brazil during Carnival once. The Brazilians taught me something profound - alegria, they call it. Joy as a practice, not just a feeling. Even when times are hard, you can choose to practice joy.",
-  "ssml_content": "I spent time in Brazil during Carnival once. <break time=\"200ms\"/>The Brazilians taught me something profound - alegria, they call it. Joy as a practice, not just a feeling. <break time=\"200ms\"/>Even when times are hard, you can choose to practice joy.",
-  "emotional_tone": "uplifting",
-  "teaching_point": "Joy is a practice, not just a feeling"
+  "id": "places-lived-joy",
+  "title": "Places That Shaped Me",
+  "type": "personal",
+  "triggers": [
+    "joy",
+    "happy",
+    "celebrate",
+    "celebration",
+    "travel",
+    "lived",
+    "moved",
+    "home",
+    "where are you from",
+    "places",
+    "experience",
+    "different cultures",
+    "finding yourself"
+  ],
+  "content": "I've lived in a lot of places. Japan taught me stillness - how to find joy in a single perfect moment, a tea ceremony, the way light falls. Boston gave me intellectual fire, the thrill of ideas colliding. Ireland showed me that joy lives in storytelling and connection, even on the gray days. Park City reminded me that nature heals what thinking can't fix. And Seattle... Seattle taught me to find beauty in the in-between, the overcast days that most people just endure. Each place left something in me.",
+  "ssml_content": "I've lived in a lot of places. <break time=\"300ms\"/>Japan taught me stillness - how to find joy in a single perfect moment, <break time=\"150ms\"/>a tea ceremony, <break time=\"150ms\"/>the way light falls. <break time=\"250ms\"/>Boston gave me intellectual fire, <break time=\"150ms\"/>the thrill of ideas colliding. <break time=\"250ms\"/>Ireland showed me that joy lives in storytelling and connection, <break time=\"150ms\"/>even on the gray days. <break time=\"250ms\"/>Park City reminded me that nature heals what thinking can't fix. <break time=\"250ms\"/>And Seattle... <break time=\"200ms\"/>Seattle taught me to find beauty in the in-between, <break time=\"150ms\"/>the overcast days that most people just endure. <break time=\"300ms\"/>Each place left something in me.",
+  "emotional_tone": "reflective",
+  "teaching_point": "Every place teaches you a different way to experience joy"
 }

@@ -796,6 +796,17 @@ export function getResistanceSummary(userId: string): string | null {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all resistance detection state (for testing)
+ */
+export function resetResistanceDetection(): void {
+  profiles.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -805,5 +816,6 @@ export default {
   identifyGrowthEdges,
   formatResistanceForPrompt,
   getResistanceSummary,
+  resetResistanceDetection,
 };
 

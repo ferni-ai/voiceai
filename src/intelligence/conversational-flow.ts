@@ -749,6 +749,18 @@ export function formatFlowForPrompt(analysis: FlowAnalysis): string {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all conversational flow state (for testing)
+ */
+export function resetConversationalFlow(): void {
+  userProfiles.clear();
+  sessionStates.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -756,5 +768,6 @@ export default {
   getFlowProfile,
   analyzeFlow,
   formatFlowForPrompt,
+  resetConversationalFlow,
 };
 

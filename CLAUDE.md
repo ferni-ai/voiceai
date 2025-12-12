@@ -127,6 +127,53 @@ GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = f
 
 **Key files:** `design-system/tokens/`, `design-system/*.js`, `.github/workflows/token-check.yml`
 
+### Brand Alignment (Automated)
+
+Brand colors are validated against `brand/FERNI-BRAND-GUIDELINES.md`:
+
+```bash
+npm run brand:check    # Validate tokens match brand guidelines
+npm run tokens:check   # Validate generated files match source
+```
+
+### Critical Brand Colors (Never Change Without Design Review)
+
+| Name | Hex | Usage |
+|------|-----|-------|
+| **Accent (CTA)** | `#3D5A45` | Buttons, links, primary actions |
+| **Ferni** | `#4a6741` | Ferni persona avatar |
+| **Natural Ink** | `#2C2520` | Primary text |
+
+### Color Rules for AI Agents
+
+**ALWAYS use CSS variables** - never hardcode hex values:
+
+```css
+/* CORRECT */
+color: var(--color-ferni);
+background: var(--color-accent);
+
+/* WRONG - will fail brand:check */
+color: #4a6741;
+background: #3D5A45;
+```
+
+**In Tailwind configs**, use CSS variable references:
+
+```javascript
+// CORRECT - single source of truth
+ferni: { DEFAULT: 'var(--color-ferni)' }
+
+// WRONG - causes drift
+ferni: { DEFAULT: '#4a6741' }
+```
+
+**Before modifying any color**, check the brand guidelines:
+1. Read `brand/FERNI-BRAND-GUIDELINES.md`
+2. Modify `design-system/tokens/colors.json` (source of truth)
+3. Run `npm run tokens:sync`
+4. Run `npm run brand:check`
+
 ## 🔌 Agent Extensibility System
 
 Extend personas with custom commands, hooks, MCP servers, and embeddable widgets. **All extensions are opt-in and per-persona.**

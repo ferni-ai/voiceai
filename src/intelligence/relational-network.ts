@@ -808,6 +808,17 @@ export function formatRelationalInsightsForPrompt(
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all relational network state (for testing)
+ */
+export function resetRelationalNetwork(): void {
+  networks.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -819,5 +830,6 @@ export default {
   analyzeSupportNetwork,
   generateRelationalInsights,
   formatRelationalInsightsForPrompt,
+  resetRelationalNetwork,
 };
 

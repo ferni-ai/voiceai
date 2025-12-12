@@ -651,6 +651,17 @@ export function formatPredictionForPrompt(prediction: RhythmPrediction): string 
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all life rhythm prediction state (for testing)
+ */
+export function resetLifeRhythmPrediction(): void {
+  userProfiles.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -660,5 +671,6 @@ export default {
   recordConversationObservation,
   addAnniversary,
   formatPredictionForPrompt,
+  resetLifeRhythmPrediction,
 };
 

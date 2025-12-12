@@ -736,6 +736,17 @@ export function getSubconsciousSummary(userId: string): string | null {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all subconscious goals state (for testing)
+ */
+export function resetSubconsciousGoals(): void {
+  profiles.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -745,5 +756,6 @@ export default {
   recordSurfaceReaction,
   formatSubconsciousForPrompt,
   getSubconsciousSummary,
+  resetSubconsciousGoals,
 };
 

@@ -632,6 +632,17 @@ export function formatEnergyForPrompt(assessment: EnergyAssessment): string {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all energy state inference state (for testing)
+ */
+export function resetEnergyStateInference(): void {
+  userPatterns.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -640,5 +651,6 @@ export default {
   assessEnergyState,
   markTopicEnergy,
   formatEnergyForPrompt,
+  resetEnergyStateInference,
 };
 

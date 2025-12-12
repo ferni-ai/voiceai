@@ -787,6 +787,17 @@ export function formatHopeForPrompt(analysis: HopeAnalysis): string {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all hope trajectory state (for testing)
+ */
+export function resetHopeTrajectory(): void {
+  profiles.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -794,4 +805,5 @@ export default {
   getHopeProfile,
   analyzeHope,
   formatHopeForPrompt,
+  resetHopeTrajectory,
 };
