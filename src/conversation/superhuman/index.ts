@@ -116,3 +116,100 @@ export { clearTemporalEmotional, getTemporalEmotional } from './temporal-emotion
 
 // Better Than Human Types
 export type { BetterThanHumanContext, BetterThanHumanInsight } from './types.js';
+
+// ===========================================================================
+// NEW SUPERHUMAN FEATURES (Phase 2)
+// ===========================================================================
+
+// Vulnerability Matching - Reciprocal depth
+export {
+  analyzeVulnerabilityDepth,
+  clearVulnerabilityStates,
+  formatVulnerabilityGuidance,
+  getVulnerabilityState,
+  getVulnerabilityStates,
+  recordShareAndMatch,
+  resetSessionVulnerability,
+  type VulnerabilityDepth,
+  type VulnerabilityMatch,
+  type VulnerabilityState,
+} from './vulnerability-matching.js';
+
+// Empathetic Reflections - Structured empathy
+export {
+  clearReflectionStates,
+  formatReflectionGuidance,
+  generateReflection,
+  type Reflection,
+  type ReflectionContext,
+  type ReflectionType,
+} from './empathetic-reflections.js';
+
+// Presence Mode - "Just be here"
+export {
+  analyzePresenceNeed,
+  formatPresenceGuidance,
+  getPresencePhrase,
+  shouldAvoidAdvice,
+  type PresenceDecision,
+  type PresenceLevel,
+} from './presence-mode.js';
+
+// Shared Language - "Our words"
+export {
+  addSharedTerm,
+  clearSharedLanguage,
+  extractSharedLanguage,
+  findRelevantTerm,
+  formatSharedLanguageGuidance,
+  getLanguageStates,
+  getSharedTerms,
+  type SharedLanguageState,
+  type SharedTerm,
+  type SharedTermType,
+  type TermSuggestion,
+} from './shared-language.js';
+
+// Conversational Rituals - "Our thing"
+export {
+  clearRitualStates,
+  createCustomRitual,
+  formatRitualGuidance,
+  getEstablishedRituals,
+  recordRitualPerformed,
+  suggestRitual,
+  type Ritual,
+  type RitualSuggestion,
+  type RitualType,
+} from './conversational-rituals.js';
+
+// Emotional Forecasting - "Tomorrow might be tough"
+export {
+  formatForecastGuidance,
+  generateForecast,
+  getForecastAcknowledgment,
+  shouldMentionForecast,
+  type EmotionalForecast,
+  type ForecastContext,
+} from './emotional-forecasting.js';
+
+// Gentle Challenges - "I love you, and..."
+export {
+  detectChallengeOpportunity,
+  formatChallengeGuidance,
+  getSoftChallenge,
+  isGoodTimeToChallenge,
+  type Challenge,
+  type ChallengeContext,
+  type ChallengeType,
+} from './gentle-challenges.js';
+
+// Meta-Moments - "This is nice"
+export {
+  clearMetaMomentStates,
+  findMetaMoment,
+  formatMetaMomentGuidance,
+  getQuickObservation,
+  type MetaMoment,
+  type MetaMomentType,
+} from './meta-moments.js';

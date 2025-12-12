@@ -2,6 +2,8 @@
  * Conversational Superpowers Context Builder
  *
  * Integrates all the "better than human" conversational features:
+ *
+ * Phase 1 (Original):
  * - Quote memory ("Last time you said...")
  * - Relationship milestones ("It's been 3 months!")
  * - Micro-celebrations (real-time wins)
@@ -10,9 +12,20 @@
  * - Nicknames
  * - Story continuity (people in their life)
  *
+ * Phase 2 (Enhanced):
+ * - Vulnerability matching (reciprocal depth)
+ * - Empathetic reflections (structured empathy)
+ * - Presence mode ("just be here")
+ * - Shared language ("our words")
+ * - Conversational rituals ("our thing")
+ * - Emotional forecasting ("tomorrow might be tough")
+ * - Gentle challenges ("I love you, and...")
+ * - Meta-moments ("this is nice")
+ *
  * @module intelligence/context-builders/conversational-superpowers
  */
 
+// Phase 1 imports
 import {
   captureJoke,
   findRelevantJoke,
@@ -48,6 +61,26 @@ import {
   formatFollowUpForPrompt,
   getOrCreatePerson,
 } from '../../conversation/superhuman/story-continuity.js';
+
+// Phase 2 imports
+import { formatVulnerabilityGuidance } from '../../conversation/superhuman/vulnerability-matching.js';
+import { formatReflectionGuidance } from '../../conversation/superhuman/empathetic-reflections.js';
+import {
+  formatPresenceGuidance,
+  shouldAvoidAdvice,
+} from '../../conversation/superhuman/presence-mode.js';
+import {
+  extractSharedLanguage,
+  formatSharedLanguageGuidance,
+} from '../../conversation/superhuman/shared-language.js';
+import { formatRitualGuidance } from '../../conversation/superhuman/conversational-rituals.js';
+import {
+  formatForecastGuidance,
+  shouldMentionForecast,
+} from '../../conversation/superhuman/emotional-forecasting.js';
+import { formatChallengeGuidance } from '../../conversation/superhuman/gentle-challenges.js';
+import { formatMetaMomentGuidance } from '../../conversation/superhuman/meta-moments.js';
+
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -64,10 +97,25 @@ const log = createLogger({ module: 'ConversationalSuperpowers' });
 // ============================================================================
 
 interface SuperpowersSessionData {
+  // Phase 1
   quoteSurfacedThisSession: boolean;
   milestoneSurfacedThisSession: boolean;
   jokeSurfacedThisSession: boolean;
   personFollowUpThisSession: boolean;
+  // Phase 2
+  vulnerabilityGuidanceGiven: boolean;
+  reflectionGivenThisSession: boolean;
+  presenceGuidanceGiven: boolean;
+  sharedLanguageSurfaced: boolean;
+  ritualSuggestedThisSession: boolean;
+  forecastGivenThisSession: boolean;
+  challengeGivenThisSession: boolean;
+  metaMomentThisSession: boolean;
+  // Tracking
+  hadDeepSharing: boolean;
+  hadLaughter: boolean;
+  sessionEmotions: string[];
+  sessionStartMood: string | null;
 }
 
 const sessionData = new Map<string, SuperpowersSessionData>();
@@ -76,10 +124,25 @@ function getSessionData(sessionId: string): SuperpowersSessionData {
   let data = sessionData.get(sessionId);
   if (!data) {
     data = {
+      // Phase 1
       quoteSurfacedThisSession: false,
       milestoneSurfacedThisSession: false,
       jokeSurfacedThisSession: false,
       personFollowUpThisSession: false,
+      // Phase 2
+      vulnerabilityGuidanceGiven: false,
+      reflectionGivenThisSession: false,
+      presenceGuidanceGiven: false,
+      sharedLanguageSurfaced: false,
+      ritualSuggestedThisSession: false,
+      forecastGivenThisSession: false,
+      challengeGivenThisSession: false,
+      metaMomentThisSession: false,
+      // Tracking
+      hadDeepSharing: false,
+      hadLaughter: false,
+      sessionEmotions: [],
+      sessionStartMood: null,
     };
     sessionData.set(sessionId, data);
   }
@@ -284,6 +347,229 @@ async function buildConversationalSuperpowers(
     injections.push(
       createHintInjection('conversational_naming', namingGuidance, { category: 'superhuman' })
     );
+  }
+
+  // ============================================================================
+  // PHASE 2: ENHANCED SUPERHUMAN FEATURES
+  // ============================================================================
+
+  const emotionIntensity = analysis?.emotion?.intensity || 0;
+  const isPersonalSharing = emotionIntensity > 0.5 || /\bi feel\b|i've been|i'm worried/i.test(userText);
+  const currentHour = new Date().getHours();
+  const dayOfWeek = new Date().getDay();
+
+  // Track session state
+  if (!data.sessionStartMood) {
+    data.sessionStartMood = currentEmotion;
+  }
+  if (!data.sessionEmotions.includes(currentEmotion)) {
+    data.sessionEmotions.push(currentEmotion);
+  }
+  if (emotionIntensity > 0.7) {
+    data.hadDeepSharing = true;
+  }
+  if (wasLaughing) {
+    data.hadLaughter = true;
+  }
+
+  // ============================================================================
+  // 6. VULNERABILITY MATCHING
+  // ============================================================================
+
+  if (!data.vulnerabilityGuidanceGiven && isPersonalSharing) {
+    const vulnGuidance = formatVulnerabilityGuidance(userId, userText);
+    if (vulnGuidance) {
+      injections.push(
+        createHintInjection('conversational_vulnerability', vulnGuidance, { category: 'superhuman' })
+      );
+      data.vulnerabilityGuidanceGiven = true;
+      log.debug({ userId }, '🫂 Vulnerability guidance provided');
+    }
+  }
+
+  // ============================================================================
+  // 7. EMPATHETIC REFLECTIONS
+  // ============================================================================
+
+  if (!data.reflectionGivenThisSession && isPersonalSharing && turnCount >= 2) {
+    const reflectionGuidance = formatReflectionGuidance({
+      emotion: currentEmotion,
+      topics: currentTopics,
+      message: userText,
+      isPersonalSharing,
+      relationshipStage,
+      turnCount,
+    });
+    if (reflectionGuidance) {
+      injections.push(
+        createHintInjection('conversational_reflection', reflectionGuidance, { category: 'superhuman' })
+      );
+      data.reflectionGivenThisSession = true;
+      log.debug({ userId }, '🪞 Empathetic reflection guidance provided');
+    }
+  }
+
+  // ============================================================================
+  // 8. PRESENCE MODE (high priority when needed)
+  // ============================================================================
+
+  if (!data.presenceGuidanceGiven) {
+    const presenceGuidance = formatPresenceGuidance({
+      message: userText,
+      emotion: currentEmotion,
+      emotionIntensity,
+      topics: currentTopics,
+      hour: currentHour,
+      turnCount,
+    });
+    if (presenceGuidance) {
+      injections.push(
+        createHintInjection('conversational_presence', presenceGuidance, {
+          category: 'superhuman',
+        })
+      );
+      data.presenceGuidanceGiven = true;
+      log.info({ userId }, '🕯️ Presence mode activated');
+    }
+  }
+
+  // ============================================================================
+  // 9. SHARED LANGUAGE CAPTURE AND SURFACE
+  // ============================================================================
+
+  // Capture new shared terms
+  extractSharedLanguage(userId, userText, { topics: currentTopics, emotion: currentEmotion });
+
+  // Surface relevant terms
+  if (!data.sharedLanguageSurfaced && turnCount >= 5) {
+    const langGuidance = formatSharedLanguageGuidance(userId, {
+      currentTopics,
+      currentMessage: userText,
+      turnCount,
+    });
+    if (langGuidance) {
+      injections.push(
+        createHintInjection('conversational_shared_language', langGuidance, { category: 'superhuman' })
+      );
+      data.sharedLanguageSurfaced = true;
+      log.debug({ userId }, '🗣️ Shared language callback');
+    }
+  }
+
+  // ============================================================================
+  // 10. CONVERSATIONAL RITUALS
+  // ============================================================================
+
+  if (!data.ritualSuggestedThisSession) {
+    const phase = turnCount <= 2 ? 'greeting' : turnCount >= 15 ? 'closing' : 'middle';
+    const ritualGuidance = formatRitualGuidance(userId, {
+      phase,
+      topics: currentTopics,
+      emotion: currentEmotion,
+      turnCount,
+      hasWin: !!microWin,
+      needsComfort: emotionIntensity > 0.7 && ['sad', 'anxious'].includes(currentEmotion),
+    });
+    if (ritualGuidance) {
+      injections.push(
+        createHintInjection('conversational_ritual', ritualGuidance, { category: 'superhuman' })
+      );
+      data.ritualSuggestedThisSession = true;
+      log.debug({ userId }, '🎭 Ritual suggestion');
+    }
+  }
+
+  // ============================================================================
+  // 11. EMOTIONAL FORECASTING (end of heavy conversations)
+  // ============================================================================
+
+  if (!data.forecastGivenThisSession && turnCount >= 8 && data.hadDeepSharing) {
+    const forecastContext = {
+      currentEmotion,
+      emotionIntensity,
+      topics: currentTopics,
+      hadHeavySharing: data.hadDeepSharing,
+      madeDecision: /i decided|i'm going to|i chose/i.test(userText),
+      dayOfWeek,
+      hour: currentHour,
+    };
+
+    if (shouldMentionForecast(forecastContext)) {
+      const forecastGuidance = formatForecastGuidance(forecastContext);
+      if (forecastGuidance) {
+        injections.push(
+          createHintInjection('conversational_forecast', forecastGuidance, { category: 'superhuman' })
+        );
+        data.forecastGivenThisSession = true;
+        log.debug({ userId }, '🔮 Emotional forecast provided');
+      }
+    }
+  }
+
+  // ============================================================================
+  // 12. GENTLE CHALLENGES (when appropriate)
+  // ============================================================================
+
+  // Only challenge if not in presence mode
+  const inPresenceMode = shouldAvoidAdvice({
+    message: userText,
+    emotion: currentEmotion,
+    emotionIntensity,
+    topics: currentTopics,
+    hour: currentHour,
+    turnCount,
+  });
+
+  if (!data.challengeGivenThisSession && !inPresenceMode && turnCount >= 5) {
+    const challengeGuidance = formatChallengeGuidance({
+      message: userText,
+      topics: currentTopics,
+      emotion: currentEmotion,
+      relationshipStage,
+      turnCount,
+    });
+    if (challengeGuidance) {
+      injections.push(
+        createHintInjection('conversational_challenge', challengeGuidance, { category: 'superhuman' })
+      );
+      data.challengeGivenThisSession = true;
+      log.debug({ userId }, '🪞 Gentle challenge opportunity');
+    }
+  }
+
+  // ============================================================================
+  // 13. META-MOMENTS
+  // ============================================================================
+
+  if (!data.metaMomentThisSession && turnCount >= 7) {
+    const moodShift =
+      data.sessionStartMood && data.sessionStartMood !== currentEmotion
+        ? ['sad', 'anxious', 'frustrated'].includes(data.sessionStartMood) &&
+          !['sad', 'anxious', 'frustrated'].includes(currentEmotion)
+          ? 'improved'
+          : ['sad', 'anxious', 'frustrated'].includes(currentEmotion)
+            ? 'declined'
+            : 'stable'
+        : 'stable';
+
+    const metaGuidance = formatMetaMomentGuidance(sessionId, {
+      sessionTopics: currentTopics,
+      sessionEmotions: data.sessionEmotions,
+      moodShift,
+      hadLaughter: data.hadLaughter,
+      hadDeepSharing: data.hadDeepSharing,
+      relationshipStage,
+      turnCount,
+      sessionMinutes: turnCount * 2, // Rough estimate
+      totalConversations: services?.userProfile?.totalConversations || 0,
+    });
+    if (metaGuidance) {
+      injections.push(
+        createHintInjection('conversational_meta_moment', metaGuidance, { category: 'superhuman' })
+      );
+      data.metaMomentThisSession = true;
+      log.debug({ userId, sessionId }, '💭 Meta-moment opportunity');
+    }
   }
 
   return injections;
