@@ -107,8 +107,17 @@ All design tokens live in `design-system/tokens/*.json`. **Never edit generated 
 
 ### Quick Commands
 ```bash
+# Via npm scripts
 npm run tokens:sync    # Build & sync all tokens (run after editing JSON)
 npm run tokens:check   # Validate no drift (runs in pre-commit & CI)
+
+# Via Ferni CLI (recommended)
+ferni tokens sync                        # Build & sync all tokens
+ferni tokens check                       # Validate no drift
+ferni tokens version                     # Show current token version
+ferni tokens version patch "Fixed X"     # Bump patch version with changelog
+ferni tokens watch                       # Watch for changes during development
+ferni tokens brand                       # Check brand color alignment
 ```
 
 ### What Gets Generated
@@ -173,6 +182,14 @@ background: var(--color-accent);
 color: #4a6741;
 background: #3D5A45;
 ```
+
+**ESLint enforces design tokens** in `frontend-typescript/src/ui/**/*.ts`:
+- 🎨 Hardcoded hex colors → Use `var(--color-*)` or `var(--persona-*)`
+- 🎨 Hardcoded rgba() → Use `var(--backdrop-*)` or `var(--persona-tint)`
+- 📝 Hardcoded font-family → Use `var(--font-body)` or `var(--font-display)`
+- 💨 Hardcoded blur values → Use `var(--glass-blur-subtle)` or `var(--glass-blur-heavy)`
+- ⏱️ Hardcoded durations → Use `DURATION.SLOW`, `DURATION.NORMAL` from animation-constants
+- 🌫️ Hardcoded box-shadow → Use `var(--shadow-sm)`, `var(--shadow-md)`, etc.
 
 **In Tailwind configs**, use CSS variable references:
 

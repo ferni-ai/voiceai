@@ -13,6 +13,38 @@
  * - Active listening (backchanneling, mirroring, silence handling)
  * - Conversational memory (callbacks, threading, commitments)
  * - Question patterns (diverse question types for natural conversation)
+ *
+ * ============================================================================
+ * 🎭 RECOMMENDED: UNIFIED INTEGRATION API
+ * ============================================================================
+ *
+ * For voice agent integration, use the unified session-based API:
+ *
+ * ```typescript
+ * // In voice-agent.ts
+ * import {
+ *   initConversationSession,
+ *   humanizeAgentResponse,
+ *   cleanupConversationSession,
+ * } from './agents/integrations/conversation-session-integration.js';
+ *
+ * // At session start
+ * initConversationSession({ sessionId, userId, personaId, ... });
+ *
+ * // For POST-LLM humanization
+ * const result = await humanizeAgentResponse(sessionId, rawResponse, context);
+ *
+ * // At session end
+ * cleanupConversationSession(sessionId);
+ * ```
+ *
+ * For direct orchestrator access, use:
+ * ```typescript
+ * import { createConversationSession } from '../conversation/unified-integration.js';
+ * ```
+ *
+ * @see unified-integration.ts for the main session API
+ * @see orchestrator/ for the underlying ConversationOrchestrator
  */
 
 // Import reset functions for local use

@@ -257,6 +257,14 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['start', 'status', 'advance', 'rollback', 'list', 'presets'],
     examples: ['ferni rollout start feature --preset=canary', 'ferni rollout status'],
   },
+  tokens: {
+    name: 'Tokens',
+    description: 'Manage design tokens',
+    icon: '🎨',
+    handler: handleTokens,
+    subcommands: ['sync', 'check', 'version', 'watch', 'brand'],
+    examples: ['ferni tokens sync', 'ferni tokens version patch "Fixed colors"', 'ferni tokens watch'],
+  },
 };
 
 // ============================================================================
@@ -685,6 +693,116 @@ async function handleDb(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// TOKENS COMMAND
+// ============================================================================
+
+async function handleTokens(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'sync';
+
+  log.header(`🎨 Design Tokens`);
+
+  if (subcommand === 'sync') {
+    console.log(`${colors.bold}Syncing all design tokens...${colors.reset}\n`);
+
+    const spinner = new Spinner('Building design system...');
+    spinner.start();
+
+    const result = spawnSync('npm', ['run', 'tokens:sync'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'pipe',
+      shell: true,
+    });
+
+    if (result.status === 0) {
+      spinner.stop(true);
+      log.success('All tokens synced successfully');
+    } else {
+      spinner.stop(false);
+      console.log(result.stderr?.toString() || result.stdout?.toString());
+    }
+  }
+
+  if (subcommand === 'check') {
+    console.log(`${colors.bold}Checking for token drift...${colors.reset}\n`);
+
+    const driftResult = spawnSync('node', ['design-system/check-drift.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    console.log();
+
+    const brandResult = spawnSync('node', ['design-system/check-brand.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    if (driftResult.status === 0 && brandResult.status === 0) {
+      console.log();
+      log.success('All checks passed');
+    }
+  }
+
+  if (subcommand === 'version') {
+    const versionType = args[1];
+    const changes = args.slice(2);
+
+    if (!versionType) {
+      // Show current version
+      const result = spawnSync('npm', ['run', 'tokens:version', '--', '--current'], {
+        cwd: PROJECT_ROOT,
+        stdio: 'pipe',
+        shell: true,
+      });
+      const version = result.stdout?.toString().trim().split('\n').pop();
+      console.log(`Current token version: ${colors.bold}${colors.green}${version}${colors.reset}`);
+      console.log(`\n${colors.dim}Bump version with: ferni tokens version <patch|minor|major> "change description"${colors.reset}`);
+      return;
+    }
+
+    if (!['patch', 'minor', 'major'].includes(versionType)) {
+      log.error(`Invalid version type: ${versionType}`);
+      log.info('Use: patch, minor, or major');
+      return;
+    }
+
+    if (changes.length === 0) {
+      log.error('Please provide at least one change description');
+      log.info('Example: ferni tokens version patch "Fixed button colors"');
+      return;
+    }
+
+    const versionArgs = ['run', 'tokens:version', '--', versionType, ...changes];
+    spawnSync('npm', versionArgs, {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+      shell: true,
+    });
+  }
+
+  if (subcommand === 'watch') {
+    console.log(`${colors.bold}Starting token file watcher...${colors.reset}\n`);
+    log.info('Watching for changes in design-system/tokens/');
+    log.info('Press Ctrl+C to stop\n');
+
+    spawn('npm', ['run', 'tokens:watch'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+      shell: true,
+    });
+  }
+
+  if (subcommand === 'brand') {
+    console.log(`${colors.bold}Checking brand alignment...${colors.reset}\n`);
+
+    spawnSync('node', ['design-system/check-brand.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+  }
+}
+
+// ============================================================================
 // ENVIRONMENT COMMAND
 // ============================================================================
 
@@ -881,7 +999,7 @@ ${colors.bold}What would you like to do?${colors.reset}
   // Group commands by category
   const devCommands = ['deploy', 'build', 'test', 'setup'];
   const opsCommands = ['status', 'logs', 'doctor', 'db', 'env'];
-  const agentCommands = ['agents', 'validate', 'generate', 'rollout', 'audit'];
+  const agentCommands = ['agents', 'validate', 'generate', 'rollout', 'audit', 'tokens'];
 
   console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
   let index = 1;
@@ -1003,7 +1121,7 @@ ${colors.bold}Commands:${colors.reset}
   const categories = {
     'Development': ['deploy', 'build', 'test', 'setup'],
     'Operations': ['status', 'logs', 'doctor', 'db', 'env'],
-    'Agents & Quality': ['agents', 'validate', 'generate', 'rollout', 'audit'],
+    'Agents & Quality': ['agents', 'validate', 'generate', 'rollout', 'audit', 'tokens'],
   };
 
   for (const [category, keys] of Object.entries(categories)) {

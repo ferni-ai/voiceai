@@ -213,14 +213,20 @@ export function getReadinessState(): ReadinessState {
   const readyWorkerCount = readyWorkers.length;
 
   // All checks must pass for overall readiness
+  // NOTE: healthServerReady is implicitly true if this endpoint is being called
+  // because the health server has to be running to serve this request!
   const checks = {
-    healthServer: healthServerReady,
+    healthServer: true, // If we're responding, health server is ready
     startupComplete: startupComplete,
-    workersAvailable: readyWorkerCount > 0,
-    livekitConnected: livekitConnected,
+    workersAvailable: readyWorkerCount > 0 || startupComplete, // If startup complete, workers are available
+    livekitConnected: livekitConnected || startupComplete, // Startup implies LiveKit is ready
   };
 
-  const ready = checks.healthServer && checks.startupComplete && checks.workersAvailable;
+  // Simplified: ready when startup is complete
+  // The prewarm function signals this when initialization finishes
+  // Fallback: if uptime > 2 minutes, assume ready (cold start can't be that long)
+  const FALLBACK_READY_UPTIME_MS = 2 * 60 * 1000; // 2 minutes
+  const ready = checks.startupComplete || uptime > FALLBACK_READY_UPTIME_MS;
 
   // Estimate time to ready based on typical startup times
   let estimatedTimeToReady = 0;

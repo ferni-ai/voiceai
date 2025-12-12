@@ -8,7 +8,24 @@
  * - Question diversity
  * - Emotional responsiveness
  *
- * This is the high-level API for making AI conversations feel human.
+ * ⚠️ MIGRATION NOTICE:
+ * For POST-LLM humanization in the voice agent, use the unified API instead:
+ *
+ * ```typescript
+ * // New unified API (preferred for voice agent)
+ * import {
+ *   initConversationSession,
+ *   humanizeAgentResponse,
+ *   cleanupConversationSession,
+ * } from './agents/integrations/conversation-session-integration.js';
+ * ```
+ *
+ * This file is still used for:
+ * - PRE-LLM context building (processUserMessage, getPreResponseActions)
+ * - Context builders (conversation-humanizing.ts)
+ * - Legacy integrations
+ *
+ * @see unified-integration.ts for the new unified POST-LLM API
  */
 
 import { getLogger } from '../utils/safe-logger.js';
@@ -698,6 +715,13 @@ export class ConversationHumanizer {
    * Humanize a response with full deep humanization (async)
    * Includes mood drift, spontaneous thoughts, physical presence, etc.
    * Now also includes SUPERHUMAN INTELLIGENCE capabilities.
+   *
+   * @deprecated For voice agent POST-LLM humanization, use the unified API instead:
+   * ```typescript
+   * import { humanizeAgentResponse } from './agents/integrations/conversation-session-integration.js';
+   * const result = await humanizeAgentResponse(sessionId, rawResponse, context);
+   * ```
+   * This method is still available for legacy integrations and context builders.
    */
   async humanizeResponseAsync(
     rawResponse: string,

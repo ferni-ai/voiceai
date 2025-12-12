@@ -27,10 +27,9 @@ import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.j
 import { getDJIntegration } from '../dj-integration.js';
 import {
   cleanupProsodyBridge,
-  onSessionEnd as endHumanizationSession,
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
-// 🎭 Unified conversation session cleanup
+// 🎭 Unified conversation session cleanup (handles endHumanizationSession internally)
 import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 import {
   cleanupDynamicSpeed,
@@ -344,12 +343,24 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     }
 
     // ================================================================
-    // STEP 15: Advanced humanization persistence
+    // STEP 15: 🎭 UNIFIED CONVERSATION SESSION CLEANUP
+    // Single cleanup that handles: endHumanizationSession, 
+    // cleanupAdvancedHumanization, and resetConversationOrchestrator
     // ================================================================
     try {
-      endHumanizationSession(sessionId);
+      cleanupConversationSession(sessionId);
+      diag.session('🎭 Unified conversation session cleaned up');
+    } catch (unifiedCleanupErr) {
+      diag.warn('Unified conversation session cleanup failed (non-fatal)', {
+        error: String(unifiedCleanupErr),
+      });
+    }
 
-      // End analytics session
+    // ================================================================
+    // STEP 15b: Humanization analytics & persistence (still needed)
+    // ================================================================
+    try {
+      // End analytics session and log stats
       const { humanizationAnalytics } =
         await import('../../conversation/humanization/analytics.js');
       const analyticsStats = humanizationAnalytics.endSession(sessionId);
@@ -367,7 +378,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
         diag.session('🎭 Humanization state persisted', { items: saveResult.items });
       }
 
-      // Cleanup prosody bridge
+      // Cleanup prosody bridge (voice analysis layer)
       cleanupProsodyBridge(sessionId);
     } catch (humanizationEndErr) {
       diag.warn('Humanization persistence failed (non-fatal)', {
@@ -384,33 +395,6 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // STEP 17: Deep humanization cleanup
     // ================================================================
     await cleanupDeepHumanization(sessionId);
-
-    // ================================================================
-    // STEP 17.5: 🎭 UNIFIED CONVERSATION SESSION CLEANUP
-    // Clean up the new unified humanization session
-    // ================================================================
-    try {
-      cleanupConversationSession(sessionId);
-      diag.session('🎭 Unified conversation session cleaned up');
-    } catch (unifiedCleanupErr) {
-      diag.warn('Unified conversation session cleanup failed (non-fatal)', {
-        error: String(unifiedCleanupErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 18: Advanced humanization cleanup
-    // ================================================================
-    try {
-      const { cleanupAdvancedHumanizationSession } =
-        await import('../processors/injection-builders.js');
-      await cleanupAdvancedHumanizationSession(sessionId);
-      diag.session('🌟 Advanced humanization session cleaned up');
-    } catch (advHumanCleanupErr) {
-      diag.warn('Advanced humanization cleanup failed (non-fatal)', {
-        error: String(advHumanCleanupErr),
-      });
-    }
 
     // Better-than-human API services cleanup
     cleanupAdvancedEmotionServices(sessionId);

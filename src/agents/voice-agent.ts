@@ -2288,15 +2288,22 @@ export default defineAgent({
       // STEP 2-3: INITIALIZE SESSION (services, trial, user data)
       // ===============================================
       // Extracted to voice-agent/session-init-handler.ts for maintainability
-      const { services, isReturningUser, isTrialUser, isFirstConversation, trialStatus, userData } =
-        await initializeSession({
-          sessionId,
-          userId,
-          userName,
-          userAccent,
-          sessionPersona,
-          room: ctx.room,
-        });
+      const {
+        services,
+        isReturningUser,
+        isTrialUser,
+        isFirstConversation,
+        trialStatus,
+        userData,
+        stopPeriodicSync,
+      } = await initializeSession({
+        sessionId,
+        userId,
+        userName,
+        userAccent,
+        sessionPersona,
+        room: ctx.room,
+      });
 
       // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)
@@ -2998,6 +3005,7 @@ export default defineAgent({
           cameoCleanup: cleanupCameoHandlers || undefined,
           musicCleanup: musicResult.clearTimers,
           userData,
+          stopPeriodicSync,
         }).catch((err) => {
           diag.error('Session cleanup failed', { error: String(err) });
         });
