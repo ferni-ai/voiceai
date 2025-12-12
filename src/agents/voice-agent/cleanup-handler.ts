@@ -18,7 +18,6 @@ import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/
 import {
   onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
   flushLearningSignals,
-  clearDeepSynthesisSessionState,
 } from '../../intelligence/index.js';
 import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
@@ -521,13 +520,6 @@ async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: strin
     diag.warn('Collective learning flush failed (non-fatal)', { error: String(learningErr) });
   }
 
-  // Clear deep synthesis session state
-  try {
-    clearDeepSynthesisSessionState(sessionId);
-    diag.session('Deep synthesis session state cleared');
-  } catch (synthErr) {
-    diag.warn('Deep synthesis cleanup failed (non-fatal)', { error: String(synthErr) });
-  }
 }
 
 async function cleanupUtilities(utilitiesCleanup: () => Promise<void>): Promise<void> {

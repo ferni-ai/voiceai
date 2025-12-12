@@ -110,6 +110,12 @@
      ========================================================================= */
   --color-ferni: #4a6741;
   --color-ferni-secondary: #3d5a35;
+
+  /* Garden/Sage Colors - Community funding theme */
+  --color-sage: var(--color-ferni);
+  --color-sage-dark: var(--color-ferni-secondary);
+  --color-bg-sage-subtle: rgba(74, 103, 65, 0.05);
+
   --color-jack: #9a7b5a;
   --color-jack-secondary: #7d6348;
   --color-peter: #3a6b73;

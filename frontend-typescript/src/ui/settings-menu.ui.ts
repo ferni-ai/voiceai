@@ -63,6 +63,7 @@ export interface SettingsMenuUICallbacks {
   onWellbeingClick?: () => void;
   onTipJarClick?: () => void;
   onFerniFundClick?: () => void;
+  onGardenImpactClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
   onShareFerniClick?: () => void;
@@ -386,6 +387,13 @@ class SettingsMenuUI {
             ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
           </section>
 
+          <section class="settings-menu__section settings-menu__section--garden">
+            <h3>The Garden</h3>
+            <p class="settings-menu__section-desc">Ferni is free because of gardeners like you.</p>
+            ${this.renderMenuItem('ferni-fund', ICONS.seedling, 'Plant Seeds', 'settings-menu__item--garden')}
+            ${this.renderMenuItem('garden-impact', ICONS.trophy, 'Your Impact')}
+          </section>
+
           <section class="settings-menu__section">
             <h3>Customize</h3>
             <button class="settings-menu__item" data-action="spotify" style="display: none;">
@@ -413,11 +421,9 @@ class SettingsMenuUI {
           </section>
 
           <section class="settings-menu__section">
-            <h3>Subscription</h3>
+            <h3>Account</h3>
             ${this.renderMenuItem('subscription', ICONS.infinity, 'Your Plan')}
             ${this.renderMenuItem('billing', ICONS.creditCard, 'Manage Billing')}
-            ${this.renderMenuItem('tip-jar', ICONS.coffee, 'Support Ferni')}
-            ${this.renderMenuItem('ferni-fund', ICONS.seedling, 'Ferni Fund')}
           </section>
 
           <section class="settings-menu__section">

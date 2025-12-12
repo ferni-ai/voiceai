@@ -378,3 +378,174 @@ a.card:hover h3 {
   color: var(--color-accent);
 }
 
+/* ============================================================================
+   HERO COMMUNITY SECTION
+   ============================================================================ */
+.hero__community {
+  margin-top: var(--space-8);
+  text-align: center;
+  opacity: 0.9;
+}
+
+.hero__community-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.hero__community-text strong {
+  color: var(--color-sage);
+}
+
+.hero__community-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-sage);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.hero__community-link:hover {
+  gap: var(--space-3);
+  color: var(--color-accent);
+}
+
+.hero__community-link svg {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.hero__community-link:hover svg {
+  transform: scale(1.1);
+}
+
+/* ============================================================================
+   STATS BAR - GARDENERS VARIANT
+   ============================================================================ */
+.stat--gardeners .stat__value {
+  color: var(--color-sage);
+}
+
+.stat--gardeners .stat__label {
+  color: var(--color-sage);
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   THE GARDEN SECTION
+   ============================================================================ */
+.garden {
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-sage-subtle, rgba(74, 103, 65, 0.05)) 100%);
+}
+
+.garden__content {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.garden__intro {
+  text-align: center;
+  margin-bottom: var(--space-12);
+}
+
+.garden__lead {
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: var(--leading-relaxed);
+}
+
+.garden__lead em {
+  color: var(--color-sage);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.garden__text {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.garden__model {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-8);
+  margin-bottom: var(--space-12);
+}
+
+.garden__pillar {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.garden__pillar-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark, #3d5a35));
+  border-radius: var(--radius-full);
+  color: white;
+}
+
+.garden__pillar-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.garden__pillar-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.garden__cta {
+  text-align: center;
+}
+
+.garden__promise {
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  margin: 0 0 var(--space-6) 0;
+}
+
+.btn--garden {
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark, #3d5a35));
+  color: white;
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.btn--garden:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  filter: brightness(1.05);
+}
+
+.btn--garden svg {
+  transition: transform var(--duration-fast);
+}
+
+.btn--garden:hover svg {
+  transform: scale(1.1);
+}
+

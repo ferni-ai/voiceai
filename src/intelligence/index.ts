@@ -389,14 +389,6 @@ export {
   type UnifiedAnalysisResult,
 } from './unified-analyzer.js';
 
-// Deep Understanding Synthesis Context Builder
-export {
-  clearSessionState as clearDeepSynthesisSessionState,
-  getSessionInsightsSummary as getDeepSynthesisInsights,
-  recordLastAIResponse as recordDeepAIResponse,
-  recordSilenceDuration as recordDeepSilenceDuration,
-} from './context-builders/deep-understanding-synthesis.js';
-
 // ============================================================================
 // COMBINED ANALYSIS
 // ============================================================================
