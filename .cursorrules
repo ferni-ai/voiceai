@@ -37,18 +37,36 @@ Write code that is clean, maintainable, and production-ready - but never at the 
 | `ferni-landing` | ferni.ai           | Landing page                          |
 | `bogle-ui`      | (Cloud Run)        | Backend APIs                          |
 
-### After Making Changes - ALWAYS DEPLOY
+### After Making Changes - ALWAYS DEPLOY (Blue-Green)
 
 When you finish implementing a feature, **proactively suggest the correct deploy command**:
 
-| Files Changed                       | Deploy Command            | What it does                                |
-| ----------------------------------- | ------------------------- | ------------------------------------------- |
-| `frontend-typescript/src/*`         | `npm run deploy:frontend` | Deploys to BOTH ferni-prod AND app.ferni.ai |
-| `frontend-typescript/firebase.json` | `npm run deploy:frontend` | Updates Firebase rewrites                   |
-| `ui-server.js`                      | `npm run deploy:ui`       | Deploys Cloud Run backend                   |
-| `src/**/*.ts` (backend)             | `npm run deploy:ui`       | Deploys Cloud Run backend                   |
-| `promo/ferni-website/*`             | `npm run deploy:landing`  | Deploys landing page                        |
-| Multiple areas                      | `npm run deploy:all`      | Deploys everything                          |
+| Files Changed                       | Deploy Command                | What it does                                |
+| ----------------------------------- | ----------------------------- | ------------------------------------------- |
+| `src/agents/**/*.ts` (voice agent)  | `npm run deploy:agent:async`  | Blue-green deploy voice agent               |
+| `src/**/*.ts` (backend)             | `npm run deploy:ui:async`     | Blue-green deploy UI backend                |
+| `frontend-typescript/src/*`         | `npm run deploy:frontend`     | Deploys to BOTH ferni-prod AND app.ferni.ai |
+| `frontend-typescript/firebase.json` | `npm run deploy:frontend`     | Updates Firebase rewrites                   |
+| `promo/ferni-website/*`             | `npm run deploy:landing`      | Deploys landing page                        |
+| Multiple areas                      | `npm run deploy:all`          | Deploys everything                          |
+
+### ⛔ NEVER USE DIRECT GCLOUD DEPLOYS
+
+**CRITICAL:** Always use `npm run deploy:*` commands. NEVER use raw gcloud commands:
+
+| ❌ WRONG                              | ✅ RIGHT                       |
+| ------------------------------------- | ------------------------------ |
+| `gcloud run deploy voiceai-agent`     | `npm run deploy:agent:async`   |
+| `gcloud builds submit && gcloud run`  | `npm run deploy:agent:async`   |
+| `gcloud run deploy john-bogle-ui`     | `npm run deploy:ui:async`      |
+
+**Why?** The deploy script implements blue-green deployment:
+1. Deploy new revision with `--no-traffic`
+2. Health check the new revision
+3. Only shift traffic if healthy
+4. Keep old revision if health check fails
+
+Direct gcloud deploys skip health checks and can push broken code to production.
 
 ### CRITICAL: Firebase Hosting Has TWO Sites
 
@@ -1135,6 +1153,7 @@ npm run tokens:check  # MUST pass if touched design-system/
 | Hardcoded `#4a6741`      | Faster than looking up var | ALWAYS use `var(--color-ferni)`     |
 | Adding `console.log`     | Quick debugging            | ALWAYS use `createLogger()`         |
 | Wrong deploy command     | Similar names              | CHECK deployment table in CLAUDE.md |
+| Direct `gcloud run deploy`| Seems faster              | **NEVER** - use `npm run deploy:*`  |
 | Breaking imports         | Moving files               | Run `npm run typecheck` IMMEDIATELY |
 | Duplicate DOM elements   | HMR re-initialization      | ADD `cleanupOrphanedElements()`     |
 | Token drift              | Edited JSON but not synced | Run `npm run tokens:sync`           |
