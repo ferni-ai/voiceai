@@ -84,9 +84,7 @@ import { getGracefulErrorResponse } from '../intelligence/conversation-quality.j
 
 // Meaningful Silence System - transforms quiet moments into connection
 import {
-  extractMemorableMoments,
   getMeaningfulSilenceResponse,
-  mergeMemorableMoments,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
   type SilenceContext,
@@ -168,10 +166,7 @@ import { abTestingService } from '../tools/ab-testing.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
 import { deprecationService } from '../tools/deprecation.js';
 import { dynamicToolLoader } from '../tools/dynamic-loader.js';
-import {
-  feedbackCollector,
-  type ConversationContext as FeedbackContext,
-} from '../tools/feedback-collector.js';
+import { feedbackCollector } from '../tools/feedback-collector.js';
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';
 
 // Voice Manager
@@ -231,8 +226,6 @@ import { getAmbientAwarenessService } from '../speech/ambient-awareness.js';
 import { getEmotionalContagionService } from '../speech/emotional-contagion.js';
 
 // Human Listening Pipeline - "better than human" listening capabilities
-import { setHumanListeningResult } from '../intelligence/context-builders/human-listening.js';
-import { getHumanListeningPipeline } from '../speech/human-listening-pipeline.js';
 
 // Speech Metrics & Dynamic Speed Integration (new unified systems)
 import {
@@ -246,7 +239,6 @@ import {
   initializeSpeechMetrics,
   logMetricsSummary,
   trackBackchannelEvent,
-  trackConversationTurn,
   trackEmotionDetection,
   trackResponseLatency,
   validateTurnPrediction,
@@ -288,9 +280,7 @@ import { getSessionFlags, initializeFlags } from '../config/voice-humanization-f
 
 // Metrics collection
 import {
-  recordCacheAttempt,
   recordFeatureUsage,
-  recordLatency,
   recordLaughterDetection,
   recordSessionEnd,
   recordSessionStart,
@@ -3739,460 +3729,29 @@ export default defineAgent({
         }
       });
 
+      // ===============================================
+      // USER INPUT TRANSCRIBED HANDLER
+      // ===============================================
+      // Extracted to voice-agent/transcript-handler.ts for maintainability
+      // Handles: micro-interruption detection, partial transcripts, response anticipation,
+      // trial status, human listening pipeline, memorable moments, game detection,
+      // dynamic tool loading, voice identity, DJ session flow, and feedback collection
+      const transcriptHandler = createTranscriptHandler({
+        room: ctx.room,
+        session,
+        services,
+        sessionPersona,
+        conversationManager,
+        voiceHumanization,
+        userData,
+        userId,
+        sessionId,
+        silenceContext,
+        dynamicToolLoader,
+        autoOptimizer,
+      });
       session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event) => {
-        // ===============================================
-        // MICRO-INTERRUPTION DETECTION (Phase 1)
-        // Check EVERY transcript (partial or final) for stop words
-        // "wait", "hold on", "actually" should stop agent immediately
-        // ===============================================
-        if (event.transcript && voiceHumanization) {
-          const isAgentSpeaking = conversationManager.isAgentSpeaking();
-          const microInterrupt = voiceHumanization.processStreamingWord(
-            event.transcript,
-            isAgentSpeaking
-          );
-
-          if (microInterrupt.shouldStopAgent) {
-            diag.state('🛑 Micro-interrupt triggered', {
-              trigger: microInterrupt.trigger,
-              transcript: event.transcript.slice(0, 30),
-            });
-            // The onInterrupt callback handles the actual interruption
-          }
-        }
-
-        // ===============================================
-        // 🚀 FERNI EQ: ANTICIPATION - Send partial transcripts to frontend
-        // Enables "reading the future" - responding before user finishes
-        // ===============================================
-        if (event.transcript && !event.isFinal && event.transcript.length > 10) {
-          // Send partial transcript every ~500ms to avoid spam
-          const now = Date.now();
-          const lastPartialKey = Symbol.for('ferniLastPartialTime');
-          const lastPartialTime = (globalThis as Record<symbol, number>)[lastPartialKey] || 0;
-          if (now - lastPartialTime > 500) {
-            (globalThis as Record<symbol, number>)[lastPartialKey] = now;
-            ctx.room.localParticipant
-              ?.publishData(
-                new TextEncoder().encode(
-                  JSON.stringify({
-                    type: 'partial_transcript',
-                    text: event.transcript,
-                    isFinal: false,
-                    timestamp: now,
-                  })
-                ),
-                { reliable: false } // Use unreliable for partial transcripts (low latency)
-              )
-              .catch(() => {
-                // Non-blocking
-              });
-          }
-        }
-
-        // ===============================================
-        // RESPONSE ANTICIPATION (Phase 7+ - Monitoring Mode)
-        // Analyze partial transcripts for pattern caching
-        // ===============================================
-        const antFlags = getSessionFlags(sessionId);
-        if (antFlags.enableResponseAnticipation && event.transcript) {
-          try {
-            const anticipator = getResponseAnticipationService(sessionId);
-            const startTime = Date.now();
-
-            const anticipation = anticipator.anticipate(event.transcript);
-
-            const latencyMs = Date.now() - startTime;
-
-            if (anticipation && anticipation.confidence > 0.5) {
-              // Record metrics
-              if (antFlags.enableMetrics) {
-                recordCacheAttempt(
-                  sessionId,
-                  anticipation.isComplete,
-                  anticipation.intent,
-                  latencyMs
-                );
-                recordLatency(sessionId, 'anticipation', latencyMs);
-              }
-
-              // Log the anticipation (monitoring mode)
-              diag.state('⚡ Response anticipation', {
-                intent: anticipation.intent,
-                confidence: anticipation.confidence.toFixed(2),
-                isComplete: anticipation.isComplete,
-                isFinal: event.isFinal,
-                latencyMs,
-              });
-
-              // If using cached responses (not just monitoring) and high confidence
-              if (
-                antFlags.useCachedResponses &&
-                anticipation.isComplete &&
-                anticipation.confidence >= antFlags.cacheConfidenceThreshold &&
-                event.isFinal
-              ) {
-                const cached = anticipator.getCompleteResponse();
-                if (cached) {
-                  diag.state('⚡ CACHE HIT - Would use cached response', {
-                    intent: anticipation.intent,
-                    response: cached.response.slice(0, 50),
-                  });
-                  // Note: We could call session.say(cached.ssml) here
-                  // but for now we're in monitoring mode
-                }
-              }
-            }
-          } catch (_antErr) {
-            // Response anticipation is non-critical
-          }
-        }
-
-        if (event.isFinal && event.transcript) {
-          userData.turnCount = (userData.turnCount || 0) + 1;
-
-          // Record turn in voice humanization for rhythm learning
-          if (voiceHumanization) {
-            voiceHumanization.recordTurn();
-          }
-
-          // Track turn in unified speech metrics
-          trackConversationTurn(sessionId);
-
-          // ===============================================
-          // FIRST TASTE TRIAL: Check trial status periodically
-          // Inject transition prompt when trial is ending
-          // ===============================================
-          if (userData.isTrialUser && userId && !userData.hasSpokenTrialEndPrompt) {
-            void (async () => {
-              try {
-                const sessionDurationMs = Date.now() - services.sessionStartTime;
-                const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
-
-                // Update userData with latest trial status
-                userData.trialStatus = {
-                  inTrial: trialStatus.inTrial,
-                  timeRemainingMs: trialStatus.timeRemainingMs,
-                  approachingEnd: trialStatus.approachingEnd,
-                  trialEnded: trialStatus.trialEnded,
-                };
-
-                // If trial is ending and we should show transition, inject it
-                if (trialStatus.showTransition && trialStatus.transitionPrompt) {
-                  userData.hasSpokenTrialEndPrompt = true;
-                  diag.session('Trial ending - speaking transition prompt', {
-                    timeRemainingMs: trialStatus.timeRemainingMs,
-                    trialEnded: trialStatus.trialEnded,
-                  });
-
-                  // Speak the transition prompt after the agent's next response
-                  // We'll queue it as a follow-up
-                  setTimeout(() => {
-                    try {
-                      // FIX: Prevent double-speaking - only speak if agent is not already speaking
-                      if (session && !conversationManager.isAgentSpeaking()) {
-                        session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
-                      } else if (session) {
-                        // Agent is speaking - retry after another delay
-                        setTimeout(() => {
-                          try {
-                            if (session && !conversationManager.isAgentSpeaking()) {
-                              session.say(trialStatus.transitionPrompt!, {
-                                allowInterruptions: true,
-                              });
-                            }
-                          } catch {
-                            // Ignore retry errors
-                          }
-                        }, 3000);
-                      }
-                    } catch (sayErr) {
-                      diag.warn('Failed to speak trial transition', { error: String(sayErr) });
-                    }
-                  }, 2000); // Small delay to let current response finish
-                }
-              } catch (trialErr) {
-                diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
-              }
-            })();
-          }
-
-          // ===============================================
-          // 🎧 HUMAN LISTENING PIPELINE - "Better than Human" Analysis
-          // ===============================================
-          // Analyzes voice tremor, breath patterns, cognitive load,
-          // hedging, self-soothing, and more for superhuman emotional awareness
-          void (async () => {
-            try {
-              const pipeline = getHumanListeningPipeline(sessionId);
-
-              // Get prosody features from voice emotion if available
-              // This enables audio-based analysis without raw samples
-              const prosodyFeatures = userData.voiceEmotion?.prosody
-                ? {
-                    pitchVariance: userData.voiceEmotion.prosody.pitchVariance,
-                    jitter: userData.voiceEmotion.prosody.jitter,
-                    shimmer: userData.voiceEmotion.prosody.shimmer,
-                    breathiness: userData.voiceEmotion.prosody.breathiness,
-                    energyMean: userData.voiceEmotion.prosody.energyMean,
-                    energyVariance: userData.voiceEmotion.prosody.energyVariance,
-                    speechRate: userData.voiceEmotion.prosody.speechRate,
-                    pauseDuration: userData.voiceEmotion.prosody.pauseDuration,
-                    pauseFrequency: userData.voiceEmotion.prosody.pauseFrequency,
-                    utteranceDuration: userData.voiceEmotion.prosody.utteranceDuration,
-                    voiceQuality: userData.voiceEmotion.prosody.voiceQuality,
-                  }
-                : undefined;
-
-              const listeningResult = await pipeline.analyze({
-                sessionId,
-                text: event.transcript,
-                turnNumber: userData.turnCount || 1,
-                currentTopic: userData.lastTopic,
-                emotion: userData.lastEmotionAnalysis?.primary,
-                emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
-                durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
-                prosodyFeatures,
-                timeSinceAgentMessage: userData.lastAgentResponseTime
-                  ? Date.now() - userData.lastAgentResponseTime
-                  : undefined,
-              });
-
-              // Store for context builder access
-              setHumanListeningResult(sessionId, listeningResult);
-
-              if (listeningResult.possibleDistress) {
-                diag.warn('🎧 Human listening: Distress signals detected', {
-                  signals: listeningResult.prioritySignals,
-                  guidance: listeningResult.agentGuidance,
-                });
-              } else if (listeningResult.shouldSlowDown) {
-                diag.state('🎧 Human listening: User needs slower pace', {
-                  assessment: listeningResult.overallAssessment.slice(0, 100),
-                });
-              }
-            } catch (listeningErr) {
-              diag.warn('Human listening pipeline error', { error: String(listeningErr) });
-            }
-          })();
-
-          // Extract memorable moments from what the user shared
-          // This powers the meaningful silence system - so we can reference
-          // things like "your daughter" or "the move" later
-          const newMoments = extractMemorableMoments(event.transcript);
-          if (newMoments.length > 0) {
-            silenceContext.memorableMoments = mergeMemorableMoments(
-              silenceContext.memorableMoments || [],
-              newMoments
-            );
-            diag.state('Captured memorable moments', {
-              newMoments,
-              total: silenceContext.memorableMoments.length,
-            });
-          }
-
-          // Update context with last user message
-          silenceContext.lastUserMessage = event.transcript;
-
-          // ===============================================
-          // 🎮 GAME TOPIC CHANGE DETECTION
-          // ===============================================
-          // If a game is active and user seems to have moved on, end it gracefully
-          void (async () => {
-            try {
-              const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } =
-                await import('../services/games/index.js');
-
-              if (isGameCurrentlyActive()) {
-                const gameType = getCurrentGameType() as
-                  | import('../services/games/types.js').GameType
-                  | null;
-                const hasChangedTopic = detectTopicChange(event.transcript, gameType);
-
-                if (hasChangedTopic) {
-                  // User seems to have moved on from the game
-                  const { getGameEngine, resetGameActivity } =
-                    await import('../services/games/index.js');
-                  const engine = getGameEngine();
-                  const session = engine.endGame();
-                  resetGameActivity();
-
-                  diag.state('🎮 Game auto-ended due to topic change', {
-                    gameType,
-                    score: session.score,
-                    rounds: session.roundsPlayed,
-                  });
-                }
-
-                // Update silence context to reflect game state
-                silenceContext.isGameActive = isGameCurrentlyActive();
-                silenceContext.activeGameType = getCurrentGameType() || undefined;
-              }
-            } catch {
-              // Games module not loaded - that's fine
-            }
-          })();
-
-          // ===============================================
-          // DYNAMIC TOOL LOADING based on conversation topic
-          // ===============================================
-          // Analyze the user's message and auto-load relevant tool domains
-          // This keeps tool count manageable while ensuring relevant tools are available
-          dynamicToolLoader
-            .processMessage(event.transcript)
-            .then((loadedDomains) => {
-              if (loadedDomains.length > 0) {
-                diag.tool('Dynamic domains loaded based on user message', {
-                  transcript: event.transcript.slice(0, 50),
-                  loadedDomains,
-                  totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
-                });
-              }
-            })
-            .catch((error) => {
-              logger.warn({ error }, 'Failed to process message for dynamic tool loading');
-            });
-
-          // ===============================================
-          // 🔐 VOICE IDENTITY: Process user message for trust/identity context
-          // ===============================================
-          // This enables phone collection prompts, verification triggers,
-          // and trust-level updates based on conversation content
-          void (async () => {
-            try {
-              const { onUserMessage } =
-                await import('../services/trust-and-identity/voice-agent-integration.js');
-              const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
-              const identityUpdate = await onUserMessage(
-                sessionId,
-                event.transcript,
-                emotionalIntensity
-              );
-
-              if (identityUpdate.shouldAskForContact ?? false) {
-                // Store the phone ask script for injection
-                diag.state('🔐 Identity: Should ask for contact', {
-                  reason: identityUpdate.contactAskReason ?? 'unknown',
-                });
-              }
-
-              if (identityUpdate.requiresVerification ?? false) {
-                diag.state('🔐 Identity: Verification required', {
-                  reason: 'Speaker or content change detected',
-                });
-              }
-            } catch (identityErr) {
-              // Non-critical - identity processing shouldn't block conversation
-              diag.warn('Identity message processing failed', { error: String(identityErr) });
-            }
-          })();
-
-          // ===============================================
-          // 🎧 DJ SESSION FLOW TRACKING & "OUR SONGS"
-          // ===============================================
-          // Track conversation topics and emotions for session summaries
-          // Also detect "Our Songs" moments when music is playing
-          void (async () => {
-            try {
-              const booth = getDJBooth();
-              if (!booth) return;
-
-              // Track topics discussed for session summary
-              // Extract topics from transcript using simple keyword detection
-              const topicKeywords: Record<string, string[]> = {
-                work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
-                family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
-                health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
-                finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
-                relationships: [
-                  'dating',
-                  'relationship',
-                  'partner',
-                  'friend',
-                  'boyfriend',
-                  'girlfriend',
-                ],
-                goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
-                stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
-              };
-
-              const transcriptLower = event.transcript.toLowerCase();
-              for (const [topic, keywords] of Object.entries(topicKeywords)) {
-                if (keywords.some((kw) => transcriptLower.includes(kw))) {
-                  booth.trackTopic(topic);
-                  diag.state('🎧 Session flow: tracked topic', { topic });
-                  break; // Only track first match per message
-                }
-              }
-
-              // Track emotional moments
-              const emotionKeywords: Record<string, string[]> = {
-                happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
-                sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
-                anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
-                grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
-              };
-
-              for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-                if (keywords.some((kw) => transcriptLower.includes(kw))) {
-                  booth.trackEmotion(emotion);
-                  diag.state('🎧 Session flow: tracked emotion', { emotion });
-                  break;
-                }
-              }
-
-              // 🎵 "OUR SONGS" - Process user speech during music for meaningful moments
-              // This captures shared music experiences that become relationship memories
-              if (booth.isPlayingMusic()) {
-                const voiceEmotion = userData.voiceEmotion?.primary || undefined;
-                booth.processUserSpeechDuringMusic(
-                  event.transcript,
-                  voiceEmotion,
-                  userData.lastTopic
-                );
-                diag.state('🎵 Processed user speech during music for "Our Songs"', {
-                  transcript: event.transcript.slice(0, 50),
-                  emotion: voiceEmotion,
-                });
-              }
-            } catch (e) {
-              // Session flow tracking is non-critical
-              log().debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
-            }
-          })();
-
-          // ===============================================
-          // FEEDBACK COLLECTION for tool optimization
-          // ===============================================
-          // Collect implicit and explicit feedback from user messages
-          // This powers the automated recommendation system
-          try {
-            // Get tool execution data from conversation state
-            const toolExecData = userData.conversationState?.getToolExecutionData?.();
-            const recentTools = toolExecData?.recentlyUsedTools || [];
-            const lastToolResult = toolExecData?.lastToolResult;
-            const lastToolId = toolExecData?.lastToolCalled;
-
-            const feedbackContext: FeedbackContext = {
-              userId: userData.userId || 'anonymous',
-              sessionId,
-              agentId: sessionPersona.id,
-              turnNumber: userData.turnCount || 0,
-              recentTools,
-              lastToolResult,
-            };
-
-            // Process feedback (synchronous)
-            try {
-              autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);
-            } catch (err) {
-              diag.debug('Feedback processing error', { error: String(err) });
-            }
-          } catch (feedbackError) {
-            // Feedback collection is non-critical
-            diag.warn('Feedback collection error', { error: String(feedbackError) });
-          }
-        }
+        transcriptHandler.handler(event);
       });
 
       // ===============================================

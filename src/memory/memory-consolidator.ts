@@ -176,9 +176,28 @@ export class MemoryConsolidator {
   }
 
   /**
-   * Consolidate a group of related memories into one
+   * Consolidate memories (supports legacy and new signatures)
+   *
+   * - **Legacy (v1)**: `consolidateMemories(memories, dryRun)` → returns `ConsolidationResult`
+   * - **Current (v2)**: `consolidateMemories(memories, topic)` → returns `Result<ConsolidatedMemory, MemoryError>`
    */
   async consolidateMemories(
+    memories: MemoryItem[],
+    topicOrDryRun: string | boolean
+  ): Promise<Result<ConsolidatedMemory, MemoryError> | ConsolidationResult> {
+    // Legacy compatibility: some tests/callers used consolidateMemories(memories, true)
+    // and expected a ConsolidationResult-like shape.
+    if (typeof topicOrDryRun === 'boolean') {
+      return this.runConsolidationPass(memories);
+    }
+
+    return this.consolidateMemoryGroup(memories, topicOrDryRun);
+  }
+
+  /**
+   * Consolidate a group of related memories into one (current internal implementation)
+   */
+  private async consolidateMemoryGroup(
     memories: MemoryItem[],
     topic: string
   ): Promise<Result<ConsolidatedMemory, MemoryError>> {
@@ -285,7 +304,7 @@ export class MemoryConsolidator {
       // Limit batch size
       const batch = groupMemories.slice(0, this.config.maxBatchSize);
 
-      const consolidationResult = await this.consolidateMemories(batch, topic);
+      const consolidationResult = await this.consolidateMemoryGroup(batch, topic);
 
       if (consolidationResult.ok) {
         result.consolidated.push(consolidationResult.value);

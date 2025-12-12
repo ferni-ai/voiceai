@@ -31,6 +31,14 @@ export {
   type MusicHandlerResult,
 } from './music-handler.js';
 
+// Transcript handler
+export {
+  createTranscriptHandler,
+  type TranscriptHandlerContext,
+  type TranscriptHandlerResult,
+  type TranscriptEvent,
+} from './transcript-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
