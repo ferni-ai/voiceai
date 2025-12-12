@@ -81,8 +81,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-playful',
     'persona-vulnerability',
     'persona-mood',
-    'ferni-personality', // DEPRECATED - returns empty, kept for reference
-    'human-personality', // NEW - semantic matching, timing intelligence, callbacks
+    'human-personality', // Semantic matching, timing intelligence, callbacks
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'alive-awareness',
     'inner-world-injector',

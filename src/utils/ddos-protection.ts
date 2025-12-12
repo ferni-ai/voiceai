@@ -11,7 +11,7 @@
  */
 
 import type { IncomingMessage, Server, ServerResponse } from 'http';
-import { createLogger } from './logger.js';
+import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'DDoSProtection' });
 

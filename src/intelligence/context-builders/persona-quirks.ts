@@ -304,7 +304,7 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 registerContextBuilder({
   name: 'persona_quirks',
   description: 'Surfaces quirks, habits, and personality traits naturally throughout conversation',
-  priority: 65, // After ferni-personality (60), before engagement builders
+  priority: 65, // Before human-personality (75), after core persona builders
   build: buildPersonaQuirksContext,
 });
 

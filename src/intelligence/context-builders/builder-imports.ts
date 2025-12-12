@@ -43,7 +43,6 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'persona-playful': () => import('./persona-playful.js'),
   'persona-vulnerability': () => import('./persona-vulnerability.js'),
   'persona-mood': () => import('./persona-mood.js'),
-  'ferni-personality': () => import('./ferni-personality.js'),
   'human-personality': () => import('./human-personality.js'),
   'conversational-superpowers': () => import('./conversational-superpowers.js'),
   'alive-awareness': () => import('./alive-awareness.js'),

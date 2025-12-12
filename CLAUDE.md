@@ -235,6 +235,30 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 
 **Reference:** `brand/BETTER-THAN-HUMAN.md` for full documentation.
 
+### Backend → Frontend Integration
+
+The backend detects emotions and dispatches events to the frontend EQ system:
+
+```
+Backend (voice-agent)              Frontend (better-than-human.ui.ts)
+─────────────────────              ─────────────────────────────────
+turn-handler.ts
+     │
+     ▼
+emotion-event-dispatcher.ts
+     │
+     ├─→ humanization_signal ─────→ handleBetterThanHumanSignal()
+     │   (concern_detected,            │
+     │    voice_state_detected,        ▼
+     │    emotional_trajectory)    playMicroExpression()
+     │                             analyzeConcern()
+     └─→ mood (existing) ─────────→ emotionState.update()
+```
+
+**Key files:**
+- Backend: `src/agents/realtime/emotion-event-dispatcher.ts`
+- Frontend: `frontend-typescript/src/ui/better-than-human.ui.ts`
+
 ## 🦸 200% Persona System - Superhuman Capabilities
 
 Every persona has "200% capabilities" that go beyond normal conversation - superhuman insights that no human friend could consistently provide.
@@ -267,6 +291,7 @@ Persona Bundle (src/personas/bundles/{persona}/)
 | `physical-presence.ts` | `late-night-presence.json` | Late night wisdom, grounding exercises |
 | `persona-vulnerability.ts` | `self-doubt.json`, `secret-fears.json`, `mortality-awareness.json` | Vulnerability moments |
 | `emotional.ts` | `emotional-intelligence.json` | Persona-specific emotional responses |
+| `tool-humanization.ts` | Persona cognitive profiles | Natural tool usage framing (no "querying database") |
 
 ### Content Loading (src/services/persona-content-loader.ts)
 

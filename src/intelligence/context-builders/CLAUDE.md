@@ -18,13 +18,9 @@ Context builders inject guidance into each conversation turn. They analyze the c
 ### 1. Create the Builder
 ```typescript
 // my-builder.ts
-import {
-  registerContextBuilder,
-  createContextInjection,
-  type ContextBuilder,
-  type ContextBuilderInput,
-  type ContextInjection
-} from './registry.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
+import { registerContextBuilder, createStandardInjection } from './index.js';
+import { BuilderCategory } from './categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:my-builder' });
@@ -33,22 +29,20 @@ export const myBuilder: ContextBuilder = {
   name: 'my-builder',
   description: 'What guidance this provides',
   priority: 50,  // 0-100, see priority guide below
+  category: BuilderCategory.HUMANIZING, // Required - see categories.ts
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { conversationState, userProfile, sessionServices } = input;
+    const { persona, analysis, userData } = input;
 
     // Analyze context
-    if (!shouldActivate(conversationState)) {
+    if (!shouldActivate(analysis)) {
       return [];  // Return empty if nothing to inject
     }
 
-    // Return guidance
+    // Return guidance using createStandardInjection
     return [
-      createContextInjection({
-        type: 'guidance',
-        priority: 'normal',
-        content: 'Specific instruction for the agent...',
-        source: 'my-builder',
+      createStandardInjection('my_injection', 'Specific instruction for the agent...', {
+        category: 'my-category',
       }),
     ];
   },
@@ -58,10 +52,16 @@ export const myBuilder: ContextBuilder = {
 registerContextBuilder(myBuilder);
 ```
 
-### 2. Export from Index
+### 2. Add to Builder Registry
 ```typescript
-// index.ts
-export * from './my-builder.js';
+// builder-imports.ts - add your import
+'my-builder': () => import('./my-builder.js'),
+
+// loader.ts - add to BUILDER_MANIFEST in appropriate category
+[BuilderCategory.HUMANIZING]: [
+  'humanizing',
+  'my-builder', // Add here
+],
 ```
 
 ## Priority Guidelines
@@ -110,20 +110,49 @@ type InjectionPriority =
 - Make injections vague ("be nice")
 - Duplicate logic from other builders
 
+## Builder Categories
+
+Builders are organized by category and loaded in priority order. See `loader.ts` for the full manifest.
+
+| Category | Examples | Purpose |
+|----------|----------|---------|
+| SAFETY | `crisis.ts`, `wellbeing-context.ts` | Must run first, can override everything |
+| EMOTIONAL | `emotional.ts`, `celebration.ts` | Core emotion handling |
+| VOICE | `voice-emotion.ts`, `human-listening.ts` | Voice emotion analysis |
+| MEMORY | `memory.ts`, `proactive-memory.ts` | Cross-session persistence |
+| PERSONA | `persona-identity.ts`, `human-personality.ts` | Character and identity |
+| COACHING | `coaching-context.ts`, `therapeutic-frameworks.ts` | Life coaching |
+| COGNITIVE | `awareness.ts`, `cognitive-distortions.ts` | Pattern recognition |
+| ENGAGEMENT | `engagement.ts`, `game-context.ts` | User engagement |
+| TEAM | `team-availability.ts`, `handoff.ts` | Multi-persona |
+| CONTEXT | `topics.ts`, `session-flow.ts` | Situational awareness |
+| EXTERNAL | `biometrics.ts`, `world-awareness.ts` | External data |
+| HUMANIZING | `humanizing.ts`, `tool-humanization.ts` | Natural speech |
+| LEARNING | `community-learning.ts`, `wisdom-synthesis.ts` | Collective intelligence |
+
 ## Existing Builders Reference
 ```
-emotional.ts      - Emotion detection & validation
-crisis.ts         - Crisis/panic/emergency detection
-celebration.ts    - Milestone acknowledgment
-memory.ts         - Cross-session memory callbacks
-engagement.ts     - Curiosity & conversation depth
-discovery.ts      - New user onboarding
-personal.ts       - Name usage, personal details
-topics.ts         - Topic threading & transitions
-humanizing.ts     - Self-correction, humor, naturalness
-cognitive.ts      - Persona-specific reasoning style
-persona-memory.ts - Persona-specific memories
-storytelling.ts   - When to share anecdotes
+# SAFETY
+crisis.ts               - Crisis/panic/emergency detection
+wellbeing-context.ts    - Wellbeing signals and support
+
+# EMOTIONAL
+emotional.ts            - Emotion detection & validation
+celebration.ts          - Milestone acknowledgment
+
+# MEMORY
+memory.ts               - Cross-session memory callbacks
+proactive-memory.ts     - Proactive memory surfacing
+
+# PERSONA
+persona-identity.ts     - Core persona identity
+human-personality.ts    - Semantic matching, callbacks
+
+# HUMANIZING
+humanizing.ts           - Self-correction, humor, naturalness
+tool-humanization.ts    - Natural tool usage framing
+
+# See loader.ts for complete list of 90+ builders
 ```
 
 ## Testing

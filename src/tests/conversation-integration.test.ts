@@ -116,7 +116,8 @@ describe('Conversation Integration Tests', () => {
       // May or may not generate based on internal evaluation
       if (mediumSilence) {
         expect(mediumSilence.energy).toBe('low');
-        expect(mediumSilence.ssml).toContain('volume level="soft"');
+        // SSML format uses volume ratio for soft speech (0.75 = soft)
+        expect(mediumSilence.ssml).toMatch(/volume.*ratio="0\.7/);
       }
     });
 

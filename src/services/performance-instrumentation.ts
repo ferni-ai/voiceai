@@ -19,9 +19,9 @@
  *   const report = perfInstrumentation.getReport();
  */
 
-import { createLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 
-const log = createLogger({ module: 'perf-instrumentation' });
+const log = getLogger();
 
 // ============================================================================
 // MEMORY ALERT CONFIGURATION

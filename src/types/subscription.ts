@@ -386,6 +386,11 @@ export interface UsageStatus {
 // ============================================================================
 
 /**
+ * Payment provider type
+ */
+export type PaymentProvider = 'stripe' | 'apple' | 'none';
+
+/**
  * Full subscription data stored in user profile
  */
 export interface SubscriptionData {
@@ -398,17 +403,29 @@ export interface SubscriptionData {
   /** Billing frequency (monthly or annual) */
   billingFrequency: BillingFrequency;
 
+  /** Payment provider (stripe or apple) */
+  provider?: PaymentProvider;
+
   /** Stripe customer ID */
   stripeCustomerId?: string;
 
   /** Stripe subscription ID */
   stripeSubscriptionId?: string;
 
+  /** Apple original transaction ID (used for subscription lookup) */
+  appleOriginalTransactionId?: string;
+
+  /** Apple product ID */
+  appleProductId?: string;
+
   /** When subscription started */
   subscribedAt?: Date;
 
   /** Current period end (for canceled subscriptions) */
   currentPeriodEnd?: Date;
+
+  /** Grace period end date (for Apple billing retry) */
+  gracePeriodEnd?: Date;
 
   /** Whether this is in trial */
   inTrial: boolean;
@@ -422,8 +439,11 @@ export interface SubscriptionData {
   /** Historical usage (last 3 months for display) */
   usageHistory?: MonthlyUsage[];
 
-  /** When subscription data was last synced with Stripe */
+  /** When subscription data was last synced with provider */
   lastSyncedAt: Date;
+
+  /** When subscription was revoked (for refunds) */
+  revokedAt?: Date;
 }
 
 /**

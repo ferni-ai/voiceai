@@ -138,7 +138,6 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'persona-playful': BuilderCategory.PERSONA,
   'persona-vulnerability': BuilderCategory.PERSONA,
   'persona-mood': BuilderCategory.PERSONA,
-  'ferni-personality': BuilderCategory.PERSONA,
   'alive-awareness': BuilderCategory.PERSONA,
   'inner-world-injector': BuilderCategory.PERSONA,
   'spontaneous-vulnerability': BuilderCategory.PERSONA,
