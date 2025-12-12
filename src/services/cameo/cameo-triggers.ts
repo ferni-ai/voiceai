@@ -30,66 +30,183 @@ const log = getLogger();
 
 /**
  * Keywords that strongly suggest a specific persona should cameo
+ * ENHANCED: More comprehensive trigger patterns for natural cameo opportunities
  */
 const STRONG_TRIGGER_PATTERNS: Record<CameoPersonaId, RegExp[]> = {
   'peter-john': [
+    // Finance & Investing
     /\b(stock|invest(ment|ing)?|portfolio|market|P\/E|dividend|returns?)\b/i,
+    /\b(401k|IRA|retirement\s+account|index\s+fund|ETF|mutual\s+fund)\b/i,
+    /\b(crypto|bitcoin|ethereum|blockchain)\b/i,
+    /\b(interest\s+rate|inflation|recession|bull|bear\s+market)\b/i,
+    // Research & Analysis
     /\b(research|data|analysis|numbers?|statistics?|pattern)\b/i,
-    /\b(performance|tracking|metrics?)\b/i,
+    /\b(performance|tracking|metrics?|KPI|benchmark)\b/i,
+    /\b(trend|growth|decline|correlation|comparison)\b/i,
+    /\b(report|chart|graph|spreadsheet|excel)\b/i,
+    // Problem-solving phrases
+    /\b(make\s+sense\s+of|figure\s+out|analyze|calculate)\b/i,
+    /\b(what\s+are\s+the\s+odds|probability|likelihood)\b/i,
   ],
   'alex-chen': [
+    // Calendar & Scheduling
     /\b(calendar|schedule|meeting|appointment|deadline)\b/i,
+    /\b(book|reschedule|cancel|conflict|double[\s-]?booked)\b/i,
+    /\b(morning|afternoon|evening)\s+(meeting|call|appointment)/i,
+    /\b(next\s+week|this\s+week|tomorrow|today)\b/i,
+    // Communication
     /\b(email|reminder|busy|free\s+time|availability)\b/i,
     /\b(communication|message|text\s+me|call\s+me)\b/i,
+    /\b(reply|respond|follow[\s-]?up|reach\s+out)\b/i,
+    /\b(draft|write|compose|word(ing)?)\b/i,
+    // Boundary setting
+    /\b(say\s+no|decline|boundaries?|overwhelm)\b/i,
+    /\b(too\s+much|overcommit|prioritize|delegate)\b/i,
+    // Organization
+    /\b(organize|plan\s+out|coordinate|logistics)\b/i,
+    /\b(to[\s-]?do|task|checklist|agenda)\b/i,
   ],
   'maya-santos': [
+    // Habits & Routines
     /\b(habit|routine|morning|evening|daily)\b/i,
+    /\b(streak|consistency|tracking|discipline)\b/i,
+    /\b(build\s+a\s+habit|start(ing)?\s+a\s+habit|new\s+habit)\b/i,
+    /\b(break\s+a\s+habit|stop(ping)?|quit(ting)?)\b/i,
+    // Health & Wellness
+    /\b(exercise|meditation|sleep|workout|gym)\b/i,
+    /\b(water|hydration|steps|walking|running)\b/i,
+    /\b(diet|eating|meal\s+prep|nutrition|fasting)\b/i,
+    /\b(self[\s-]?care|wellness|health(y)?)\b/i,
+    // Money Habits
     /\b(budget|spending|saving|money\s+habit)\b/i,
-    /\b(exercise|meditation|sleep|workout)\b/i,
-    /\b(streak|consistency|tracking)\b/i,
+    /\b(impulse|overspending|frugal|financial\s+habit)\b/i,
+    // Motivation & Accountability
+    /\b(motivated|unmotivated|procrastinat|lazy)\b/i,
+    /\b(accountab|commit|discipline|willpower)\b/i,
+    /\b(small\s+steps|baby\s+steps|one\s+day\s+at\s+a\s+time)\b/i,
   ],
   'jordan-taylor': [
-    /\b(vacation|trip|travel|plan(ning)?)\b/i,
+    // Travel & Vacation
+    /\b(vacation|trip|travel|getaway|road\s+trip)\b/i,
+    /\b(flight|hotel|airbnb|booking|reservation)\b/i,
+    /\b(pack(ing)?|itinerary|passport|destination)\b/i,
+    // Events & Milestones
+    /\b(plan(ning)?|event|organize|coordinate)\b/i,
     /\b(goal|milestone|celebration|party)\b/i,
     /\b(birthday|anniversary|wedding|retirement)\b/i,
-    /\b(bucket\s+list|dream|future)\b/i,
+    /\b(graduation|promotion|new\s+job|new\s+house)\b/i,
+    // Future & Dreams
+    /\b(bucket\s+list|dream|future|someday)\b/i,
+    /\b(five[\s-]?year|ten[\s-]?year|long[\s-]?term\s+goal)\b/i,
+    /\b(vision\s+board|manifest|aspiration)\b/i,
+    // Excitement
+    /\b(excited|can't\s+wait|looking\s+forward|pumped)\b/i,
+    /\b(big\s+news|announcement|surprise)\b/i,
   ],
   'nayan-patel': [
+    // Wisdom & Meaning
     /\b(meaning|purpose|wisdom|perspective)\b/i,
-    /\b(long[\s-]?term|patience|legacy)\b/i,
-    /\b(philosophy|spiritual|meditat(e|ion))\b/i,
+    /\b(big[\s-]?picture|zoom\s+out|step\s+back)\b/i,
     /\b(life\s+advice|guidance|peace|calm)\b/i,
+    // Long-term Thinking
+    /\b(long[\s-]?term|patience|legacy|enduring)\b/i,
+    /\b(in\s+the\s+grand\s+scheme|years\s+from\s+now)\b/i,
+    /\b(what\s+really\s+matters|truly\s+important)\b/i,
+    // Philosophy & Spirituality
+    /\b(philosophy|spiritual|meditat(e|ion)|mindful)\b/i,
+    /\b(gratitude|acceptance|letting\s+go|surrender)\b/i,
+    /\b(inner\s+peace|contentment|serenity)\b/i,
+    // Existential Questions
+    /\b(why\s+am\s+i|what's\s+the\s+point|does\s+it\s+matter)\b/i,
+    /\b(life\s+lesson|learn(ed)?\s+from|grew\s+from)\b/i,
+    /\b(regret|hindsight|looking\s+back)\b/i,
+    // Tough Times
+    /\b(this\s+too\s+shall\s+pass|temporary|season\s+of\s+life)\b/i,
+    /\b(grief|loss|difficult\s+time|hard\s+time)\b/i,
   ],
 };
 
 /**
  * Phrases that indicate a good cameo opportunity (any persona)
+ * ENHANCED: More natural conversation patterns
  */
 const CAMEO_OPPORTUNITY_PHRASES = [
+  // Direct persona mentions
   /what\s+do(es)?\s+\w+\s+think/i, // "what does Peter think?"
   /can\s+\w+\s+help/i, // "can Alex help?"
   /ask\s+\w+/i, // "ask Maya"
   /\w+\s+would\s+(know|say)/i, // "Jordan would know"
+  // Seeking help patterns
   /remind\s+me/i, // Good for Alex
+  /help\s+me\s+(figure|understand|plan|organize)/i,
+  /i\s+need\s+(help|advice|perspective|guidance)/i,
+  /what\s+should\s+i\s+do/i,
+  /any\s+(advice|thoughts|ideas)/i,
+  // Tracking & analysis
   /been\s+tracking/i, // Good for Peter or Maya
+  /make\s+sense\s+of\s+(this|the)/i,
+  /what\s+do\s+the\s+numbers\s+(say|show|mean)/i,
+  // Big picture thinking
   /big\s+picture/i, // Good for Nayan
   /long[\s-]?term/i, // Good for Nayan
+  /in\s+the\s+grand\s+scheme/i,
+  /what\s+really\s+matters/i,
+  // Excitement & planning
   /excited\s+about/i, // Good for Jordan
+  /can't\s+wait\s+(to|for)/i,
+  /planning\s+(a|my|our)/i,
+  /big\s+(day|event|news)/i,
+  // Habits & routines
+  /trying\s+to\s+(start|build|break)/i,
+  /having\s+trouble\s+with/i,
+  /keep\s+falling\s+(off|back)/i,
+  /stay(ing)?\s+(consistent|on\s+track)/i,
+  // Communication & scheduling
+  /how\s+(do|should)\s+i\s+(say|tell|write|respond)/i,
+  /fit\s+(it|this|everything)\s+in/i,
+  /too\s+much\s+on\s+my\s+plate/i,
 ];
 
 /**
  * Emotional states that might trigger supportive cameos
+ * ENHANCED: More nuanced emotional detection
  */
 const EMOTIONAL_TRIGGERS: Record<string, CameoPersonaId[]> = {
+  // Stress & Anxiety
   stressed: ['maya-santos', 'nayan-patel'],
   anxious: ['maya-santos', 'nayan-patel'],
   overwhelmed: ['alex-chen', 'maya-santos'],
+  burnt: ['maya-santos', 'nayan-patel'], // "burnt out"
+  exhausted: ['maya-santos', 'nayan-patel'],
+  // Positive emotions
   excited: ['jordan-taylor'],
   celebrating: ['jordan-taylor'],
+  proud: ['jordan-taylor'],
+  hopeful: ['jordan-taylor', 'nayan-patel'],
+  grateful: ['nayan-patel'],
+  // Confusion & Decision-making
   confused: ['peter-john', 'alex-chen'],
   stuck: ['maya-santos', 'nayan-patel'],
+  uncertain: ['peter-john', 'nayan-patel'],
+  indecisive: ['alex-chen', 'nayan-patel'],
+  // Curiosity & Learning
   curious: ['peter-john'],
+  interested: ['peter-john'],
+  // Planning & Organization
   planning: ['jordan-taylor', 'alex-chen'],
+  organizing: ['alex-chen'],
+  // Emotional processing
+  reflective: ['nayan-patel'],
+  nostalgic: ['nayan-patel'],
+  contemplative: ['nayan-patel'],
+  // Growth mindset
+  motivated: ['maya-santos', 'jordan-taylor'],
+  determined: ['maya-santos'],
+  inspired: ['jordan-taylor', 'nayan-patel'],
+  // Struggles
+  frustrated: ['maya-santos', 'alex-chen'],
+  disappointed: ['nayan-patel', 'jordan-taylor'],
+  discouraged: ['maya-santos', 'nayan-patel'],
 };
 
 // ============================================================================

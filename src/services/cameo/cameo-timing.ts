@@ -369,23 +369,35 @@ export function getRandomHandback(personaId: CameoPersonaId): string {
 
 /**
  * Check if enough time has passed since last cameo
+ * @param lastCameoEndTime - When the last cameo ended
+ * @param priority - Priority level affects cooldown
+ * @param customCooldownMs - Optional custom cooldown (e.g., from user preferences)
  */
 export function isCooldownExpired(
   lastCameoEndTime: number,
-  priority: 'normal' | 'high' | 'celebration' = 'normal'
+  priority: 'normal' | 'high' | 'celebration' = 'normal',
+  customCooldownMs?: number
 ): boolean {
-  const cooldown = getCooldownForPriority(priority);
+  const baseCooldown = getCooldownForPriority(priority);
+  // Use custom cooldown if provided and greater than base (more restrictive wins)
+  const cooldown = customCooldownMs ? Math.max(baseCooldown, customCooldownMs) : baseCooldown;
   return Date.now() - lastCameoEndTime >= cooldown;
 }
 
 /**
  * Get remaining cooldown time in milliseconds
+ * @param lastCameoEndTime - When the last cameo ended
+ * @param priority - Priority level affects cooldown
+ * @param customCooldownMs - Optional custom cooldown (e.g., from user preferences)
  */
 export function getRemainingCooldown(
   lastCameoEndTime: number,
-  priority: 'normal' | 'high' | 'celebration' = 'normal'
+  priority: 'normal' | 'high' | 'celebration' = 'normal',
+  customCooldownMs?: number
 ): number {
-  const cooldown = getCooldownForPriority(priority);
+  const baseCooldown = getCooldownForPriority(priority);
+  // Use custom cooldown if provided and greater than base (more restrictive wins)
+  const cooldown = customCooldownMs ? Math.max(baseCooldown, customCooldownMs) : baseCooldown;
   const elapsed = Date.now() - lastCameoEndTime;
   return Math.max(0, cooldown - elapsed);
 }

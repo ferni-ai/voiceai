@@ -22,6 +22,7 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { getUserPreferences, type CameoPreferences } from './cameo-analytics.js';
 import { getCameoGreeting, getCameoHandback, getPersonaColor } from './cameo-content.js';
 import {
   CAMEO_CONFIG,
@@ -41,6 +42,9 @@ import type {
 } from './types.js';
 
 const log = getLogger();
+
+// Cache user preferences per session to avoid repeated lookups
+const sessionPreferencesCache = new Map<string, CameoPreferences>();
 
 // ============================================================================
 // EVENT EMITTER
@@ -116,6 +120,7 @@ export function resetSessionState(sessionId: string): void {
     }
   }
   sessionStates.delete(sessionId);
+  sessionPreferencesCache.delete(sessionId); // Clear preferences cache
   log.debug('Cameo session state reset', { sessionId });
 }
 
@@ -145,7 +150,7 @@ export async function executeCameo(
     returnToPersona?: CanonicalPersonaId;
   }
 ): Promise<CameoResult> {
-  const { sessionId, returnToPersona = 'ferni' } = options;
+  const { sessionId, userId, returnToPersona = 'ferni' } = options;
   const state = getSessionState(sessionId);
 
   log.info('Cameo requested', {
@@ -153,6 +158,24 @@ export async function executeCameo(
     triggerType: request.triggerType,
     sessionId,
   });
+
+  // ========================================
+  // Load user preferences (for frequency adaptation)
+  // ========================================
+
+  let userPrefs: CameoPreferences | null = null;
+  if (userId) {
+    // Check session cache first
+    userPrefs = sessionPreferencesCache.get(sessionId) || null;
+    if (!userPrefs) {
+      try {
+        userPrefs = await getUserPreferences(userId);
+        sessionPreferencesCache.set(sessionId, userPrefs);
+      } catch (e) {
+        log.debug({ error: String(e) }, 'Could not load user preferences');
+      }
+    }
+  }
 
   // ========================================
   // Validation
@@ -175,18 +198,32 @@ export async function executeCameo(
     };
   }
 
-  // Check session limit
-  if (state.totalCameosThisSession >= CAMEO_CONFIG.maxCameosPerSession) {
+  // Check session limit (use user preference if available)
+  const maxCameos = userPrefs?.maxCameosPerSession ?? CAMEO_CONFIG.maxCameosPerSession;
+  if (state.totalCameosThisSession >= maxCameos) {
     return {
       success: false,
       error: 'Maximum cameos reached for this session',
     };
   }
 
-  // Check cooldown
+  // Check if user wants to avoid this persona
+  if (userPrefs?.avoidPersonas.includes(request.personaId)) {
+    log.debug(
+      { personaId: request.personaId, userId },
+      'Skipping cameo - user prefers to avoid this persona'
+    );
+    return {
+      success: false,
+      error: 'User preference: avoiding this persona',
+    };
+  }
+
+  // Check cooldown (use user preference if available)
   const priority = request.priority || 'normal';
-  if (!isCooldownExpired(state.lastCameoEndTime, priority)) {
-    const remaining = getRemainingCooldown(state.lastCameoEndTime, priority);
+  const minCooldown = userPrefs?.minCooldownMs ?? undefined;
+  if (!isCooldownExpired(state.lastCameoEndTime, priority, minCooldown)) {
+    const remaining = getRemainingCooldown(state.lastCameoEndTime, priority, minCooldown);
     return {
       success: false,
       error: 'Cameo cooldown active',

@@ -120,6 +120,22 @@ export {
 } from './cameo-triggers.js';
 
 // ============================================================================
+// ANALYTICS - Track engagement and learn preferences
+// ============================================================================
+
+export {
+  analyzeUserResponse,
+  clearSessionData as clearAnalyticsSession,
+  getBestPersonaForTrigger,
+  getPersonaStats,
+  getUserPreferences,
+  recordCameoEngagement,
+  type CameoEngagement,
+  type CameoPreferences,
+  type PersonaEngagementStats,
+} from './cameo-analytics.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 
