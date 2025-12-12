@@ -64,13 +64,47 @@ function getCurrentMonthKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Track Firestore initialization attempts
+let firestoreInstance: admin.firestore.Firestore | null = null;
+let initAttempted = false;
+
 /**
- * Get Firestore instance
+ * Get Firestore instance with lazy initialization.
+ * Returns null if Firebase is not available.
  */
 function getFirestore(): admin.firestore.Firestore | null {
+  if (firestoreInstance) {
+    return firestoreInstance;
+  }
+
+  if (initAttempted) {
+    return null;
+  }
+  initAttempted = true;
+
   try {
-    return admin.firestore();
-  } catch {
+    // Check if Firebase is already initialized
+    if (admin.apps.length === 0) {
+      // Try to initialize with default credentials or project ID
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+        log.info({ projectId }, 'Firebase initialized for garden routes');
+      } else {
+        // Try default credentials
+        admin.initializeApp();
+        log.info('Firebase initialized with default credentials');
+      }
+    }
+
+    firestoreInstance = admin.firestore();
+    return firestoreInstance;
+  } catch (error) {
+    log.warn({ error }, 'Firebase not available for garden routes');
     return null;
   }
 }
@@ -82,6 +116,8 @@ function getFirestore(): admin.firestore.Firestore | null {
 /**
  * GET /api/garden/status
  * Get current fund status (public, no auth required)
+ * 
+ * Returns a fallback status if Firestore is unavailable (graceful degradation)
  */
 async function handleGetStatus(
   _req: IncomingMessage,
@@ -89,8 +125,23 @@ async function handleGetStatus(
 ): Promise<void> {
   try {
     const db = getFirestore();
+    
+    // Fallback status when database is unavailable
+    // We return 200 with default data rather than an error
+    // to prevent broken UI - similar to /api/agents fallback
     if (!db) {
-      sendError(res, 'Database not available', 503);
+      log.warn('Firestore unavailable - returning garden fallback');
+      const fallbackStatus: GardenStatus = {
+        monthlyGoal: MONTHLY_GOAL,
+        currentMonth: 0,
+        percentFunded: 0,
+        health: 'needs-water',
+        gardenersThisMonth: 0,
+        seedsThisMonth: 0,
+        monthlyGardeners: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+      sendJSON(res, fallbackStatus);
       return;
     }
 
@@ -130,7 +181,18 @@ async function handleGetStatus(
     sendJSON(res, status);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get garden status');
-    sendError(res, 'Failed to get garden status');
+    // Return fallback on error to prevent UI breakage
+    const fallbackStatus: GardenStatus = {
+      monthlyGoal: MONTHLY_GOAL,
+      currentMonth: 0,
+      percentFunded: 0,
+      health: 'needs-water',
+      gardenersThisMonth: 0,
+      seedsThisMonth: 0,
+      monthlyGardeners: 0,
+      lastUpdated: new Date().toISOString(),
+    };
+    sendJSON(res, fallbackStatus);
   }
 }
 
