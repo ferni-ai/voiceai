@@ -12,12 +12,12 @@
  */
 
 import * as crypto from 'crypto';
+import { getStore } from '../memory/store-factory.js';
 import {
   createDefaultSubscription,
   type SubscriptionStatus,
   type SubscriptionTier,
 } from '../types/subscription.js';
-import { getStore } from '../memory/store-factory.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'AppleIAP' });
@@ -636,7 +636,10 @@ async function findUserByTransaction(originalTransactionId: string): Promise<str
     log.debug({ originalTransactionId }, 'No user found for Apple transaction');
     return null;
   } catch (error) {
-    log.error({ error: String(error), originalTransactionId }, 'Error looking up user by transaction');
+    log.error(
+      { error: String(error), originalTransactionId },
+      'Error looking up user by transaction'
+    );
     return null;
   }
 }
@@ -750,7 +753,10 @@ async function handleFailedRenewal(
     updatedAt: new Date(),
   });
 
-  log.warn({ userId, gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate }, '⚠️ Apple subscription in grace period');
+  log.warn(
+    { userId, gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate },
+    '⚠️ Apple subscription in grace period'
+  );
 }
 
 /**
