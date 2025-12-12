@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-# Clone and build ferni-speaker (using PAT for auth)
+# Clone ferni-speaker (using PAT for auth)
 RUN if [ -n "$GITHUB_PAT" ]; then \
       echo "Cloning ferni-speaker with PAT..." && \
       git clone --depth 1 https://${GITHUB_PAT}@github.com/sethdford/ferni-speaker.git; \
@@ -68,12 +68,22 @@ FROM node:20-slim
 
 WORKDIR /speaker
 
-# Copy all speaker artifacts
-COPY --from=builder /app/ferni-speaker/*.node ./ 2>/dev/null || true
-COPY --from=builder /app/ferni-speaker/index.js ./ 2>/dev/null || true
-COPY --from=builder /app/ferni-speaker/index.d.ts ./ 2>/dev/null || true
-COPY --from=builder /app/ferni-speaker/package.json ./ 2>/dev/null || true
-COPY --from=builder /app/ferni-speaker/models/ ./models/ 2>/dev/null || true
+# Create directories
+RUN mkdir -p models
+
+# Copy all speaker artifacts using RUN cp instead of COPY (to handle missing files)
+# We use a multi-stage approach: copy builder stage to /tmp then selectively copy
+COPY --from=builder /app/ferni-speaker/ /tmp/ferni-speaker/
+
+# Copy files that exist (using shell to handle missing files gracefully)
+RUN cp /tmp/ferni-speaker/*.node ./ 2>/dev/null || echo "No .node files"
+RUN cp /tmp/ferni-speaker/index.js ./ 2>/dev/null || echo "No index.js"
+RUN cp /tmp/ferni-speaker/index.d.ts ./ 2>/dev/null || echo "No index.d.ts"
+RUN cp /tmp/ferni-speaker/package.json ./ 2>/dev/null || echo "No package.json"
+RUN cp -r /tmp/ferni-speaker/models/* ./models/ 2>/dev/null || echo "No models"
+
+# Cleanup temp files
+RUN rm -rf /tmp/ferni-speaker
 
 # Create fallback index.js if not present
 RUN if [ ! -f index.js ]; then \
@@ -84,9 +94,13 @@ RUN if [ ! -f index.js ]; then \
       echo 'if (!nativeModule) { console.warn("ferni-speaker: No native module found"); module.exports = {}; } else { module.exports = nativeModule; }' >> index.js; \
     fi
 
+# Create minimal package.json if not present
+RUN if [ ! -f package.json ]; then \
+      echo '{"name":"ferni-speaker","version":"0.1.0","main":"index.js"}' > package.json; \
+    fi
+
 # List contents for verification
-RUN echo "=== Pre-built ferni-speaker contents ===" && ls -la
+RUN echo "=== Pre-built ferni-speaker contents ===" && ls -la && echo "=== Models ===" && ls -la models/
 
 # This image is used as a source for COPY --from in other Dockerfiles
 CMD ["echo", "This is a builder image, not meant to be run directly"]
-
