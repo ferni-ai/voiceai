@@ -46,6 +46,13 @@ export {
   type SessionStateResult,
 } from './session-state-handler.js';
 
+// User identification handler
+export {
+  identifyUser,
+  type UserIdentificationContext,
+  type UserIdentificationResult,
+} from './user-identification-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
