@@ -33,9 +33,22 @@ const log = createLogger('CameoService');
 
 /**
  * Cameo data message from backend
+ *
+ * Full lifecycle:
+ * - cameo_starting: Visual prep (frontend should start animation)
+ * - cameo_start: Voice switch happened, persona is speaking
+ * - cameo_ending: Cameo wrapping up (persona said handback)
+ * - cameo_complete: Back to Ferni
+ * - cameo_cancelled/cameo_failed: Something went wrong
  */
 export interface CameoDataMessage {
-  type: 'cameo_start' | 'cameo_complete' | 'cameo_cancelled' | 'cameo_failed';
+  type:
+    | 'cameo_starting'
+    | 'cameo_start'
+    | 'cameo_ending'
+    | 'cameo_complete'
+    | 'cameo_cancelled'
+    | 'cameo_failed';
   personaId: string;
   personaName: string;
   personaColor?: string;
@@ -44,6 +57,7 @@ export interface CameoDataMessage {
   voiceId?: string;
   error?: string;
   cameoId?: string;
+  duration?: number;
 }
 
 /**
@@ -166,8 +180,18 @@ class CameoService {
     const cameoMessage = message as unknown as CameoDataMessage;
 
     switch (cameoMessage.type) {
+      case 'cameo_starting':
+        // Early signal - prepare UI but don't play sounds yet
+        void this.handleCameoStarting(cameoMessage);
+        return true;
+
       case 'cameo_start':
         void this.handleCameoStart(cameoMessage);
+        return true;
+
+      case 'cameo_ending':
+        // Cameo wrapping up - persona said handback
+        void this.handleCameoEnding(cameoMessage);
         return true;
 
       case 'cameo_complete':
@@ -223,7 +247,9 @@ class CameoService {
   private isCameoMessage(message: DataMessage): boolean {
     const msg = message as unknown as { type?: string };
     return (
+      msg.type === 'cameo_starting' ||
       msg.type === 'cameo_start' ||
+      msg.type === 'cameo_ending' ||
       msg.type === 'cameo_complete' ||
       msg.type === 'cameo_cancelled' ||
       msg.type === 'cameo_failed'
@@ -231,22 +257,66 @@ class CameoService {
   }
 
   /**
-   * Handle cameo start
+   * Handle cameo_starting - early signal for UI prep
+   *
+   * This fires BEFORE the voice switch, giving the frontend time to:
+   * - Prepare visual animations
+   * - Start playing arrival sounds
+   * - Set up CSS variables for persona colors
+   *
+   * The actual cameo callbacks are triggered on cameo_start (after voice switch)
    */
-  private async handleCameoStart(message: CameoDataMessage): Promise<void> {
-    const { personaId, personaName, isFirstCameo, cameoId } = message;
+  private async handleCameoStarting(message: CameoDataMessage): Promise<void> {
+    const { personaId, personaName, isFirstCameo } = message;
 
-    log.info('Cameo starting', { personaId, personaName, isFirstCameo });
+    log.info('🎬 Cameo starting (early signal)', { personaId, personaName, isFirstCameo });
 
-    // Play arrival sound
+    // Play arrival sound early for better UX
     try {
       await this.playArrivalSound();
     } catch (err) {
       log.warn('Failed to play cameo arrival sound', { error: String(err) });
     }
 
-    // Wait for sound
-    await this.sleep(CAMEO_TIMING.ARRIVAL_SOUND_WAIT);
+    // Pre-set CSS variables so animations can start immediately
+    const colors = getCameoPersonaColors(personaId);
+    document.documentElement.style.setProperty('--cameo-persona-primary', colors.primary);
+    document.documentElement.style.setProperty('--cameo-persona-glow', colors.glow);
+
+    log.debug('🎬 Cameo UI prep complete, waiting for cameo_start');
+  }
+
+  /**
+   * Handle cameo_ending - persona is wrapping up
+   *
+   * This fires when the cameo persona says their handback phrase,
+   * giving the frontend time to prepare the exit animation.
+   */
+  private async handleCameoEnding(message: CameoDataMessage): Promise<void> {
+    const { personaId, duration } = message;
+
+    log.info('🎬 Cameo ending', { personaId, duration });
+
+    // Play return sound early so it syncs with exit animation
+    try {
+      await this.playReturnSound();
+    } catch (err) {
+      log.warn('Failed to play cameo return sound', { error: String(err) });
+    }
+
+    log.debug('🎬 Cameo exit prep complete, waiting for cameo_complete');
+  }
+
+  /**
+   * Handle cameo start (cameo_start) - voice switch has happened
+   *
+   * NOTE: Sound is played in handleCameoStarting (which fires first).
+   * This handler focuses on state updates and triggering UI callbacks.
+   */
+  private async handleCameoStart(message: CameoDataMessage): Promise<void> {
+    const { personaId, personaName, isFirstCameo, cameoId } = message;
+
+    log.info('🎬 Cameo started (voice switched)', { personaId, personaName, isFirstCameo });
 
     // Update state
     const wasFirstCameo = !this.state.personasWhoCameoed.has(personaId);
@@ -260,14 +330,14 @@ class CameoService {
       personasWhoCameoed: new Set([...this.state.personasWhoCameoed, personaId]),
     };
 
-    // Set CSS variables for persona colors
+    // Set CSS variables for persona colors (may already be set from cameo_starting)
     const colors = getCameoPersonaColors(personaId);
     document.documentElement.style.setProperty('--cameo-persona-primary', colors.primary);
     document.documentElement.style.setProperty('--cameo-persona-glow', colors.glow);
     document.body.setAttribute('data-cameo-active', 'true');
     document.body.setAttribute('data-cameo-persona', personaId);
 
-    // Notify callbacks
+    // Notify callbacks - THIS triggers the visual pop-in animation
     for (const callback of this.startCallbacks) {
       try {
         callback(personaId, personaName, this.state.isFirstCameo);
@@ -276,27 +346,20 @@ class CameoService {
       }
     }
 
-    log.info('Cameo started', { personaId, duration: Date.now() - this.state.startTime! });
+    log.info('🎬 Cameo callbacks fired', { personaId, duration: Date.now() - this.state.startTime! });
   }
 
   /**
    * Handle cameo complete
+   *
+   * NOTE: Sound is played in handleCameoEnding (which fires first).
+   * This handler focuses on state cleanup and triggering UI callbacks.
    */
   private async handleCameoComplete(message: CameoDataMessage): Promise<void> {
     const { personaId } = message;
     const duration = this.state.startTime ? Date.now() - this.state.startTime : 0;
 
-    log.info('Cameo completing', { personaId, duration });
-
-    // Play return sound
-    try {
-      await this.playReturnSound();
-    } catch (err) {
-      log.warn('Failed to play cameo return sound', { error: String(err) });
-    }
-
-    // Wait for sound
-    await this.sleep(CAMEO_TIMING.RETURN_SOUND_WAIT);
+    log.info('🎬 Cameo complete', { personaId, duration });
 
     // Update state
     this.state.isActive = false;
@@ -312,7 +375,7 @@ class CameoService {
     document.body.removeAttribute('data-cameo-active');
     document.body.removeAttribute('data-cameo-persona');
 
-    // Notify callbacks
+    // Notify callbacks - THIS triggers the visual pop-out animation
     for (const callback of this.endCallbacks) {
       try {
         callback();
@@ -321,7 +384,7 @@ class CameoService {
       }
     }
 
-    log.info('Cameo complete', { personaId, totalDuration: duration });
+    log.info('🎬 Cameo end callbacks fired', { personaId, totalDuration: duration });
   }
 
   /**
