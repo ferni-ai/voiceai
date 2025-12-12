@@ -96,7 +96,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-modal);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -110,7 +110,7 @@ const styles = `
 .ferni-fund-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
+  background: var(--color-bg-glass);
   backdrop-filter: blur(20px);
 }
 
@@ -146,7 +146,7 @@ const styles = `
 }
 
 .ferni-fund-close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-secondary);
 }
 
 .ferni-fund-header {
@@ -209,7 +209,7 @@ const styles = `
 
 .ferni-fund-progress-bar-container {
   height: 12px;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-secondary);
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: var(--space-3, 12px);
@@ -235,7 +235,7 @@ const styles = `
   gap: var(--space-3, 12px);
   margin-bottom: var(--space-6, 24px);
   padding: var(--space-4, 16px);
-  background: rgba(74, 103, 65, 0.05);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-lg, 12px);
 }
 
@@ -282,7 +282,7 @@ const styles = `
 
 .ferni-fund-amount-btn:hover {
   border-color: var(--persona-primary, #4a6741);
-  background: rgba(74, 103, 65, 0.05);
+  background: var(--color-bg-tertiary);
 }
 
 .ferni-fund-amount-btn.selected {
@@ -348,7 +348,7 @@ const styles = `
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-3, 12px);
-  background: rgba(74, 103, 65, 0.05);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-md, 8px);
   margin-bottom: var(--space-4, 16px);
 }
@@ -433,7 +433,7 @@ const styles = `
 .ferni-fund-impact {
   text-align: center;
   padding: var(--space-4, 16px);
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(74, 103, 65, 0.05));
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-lg, 12px);
   margin-bottom: var(--space-4, 16px);
 }
@@ -496,7 +496,7 @@ const styles = `
 
 .ferni-fund-impact-summary {
   padding: var(--space-4, 16px);
-  background: rgba(74, 103, 65, 0.08);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-lg, 12px);
 }
 
@@ -852,11 +852,11 @@ function showToast(message: string, type: 'success' | 'error' = 'success'): void
     bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
+    background: ${type === 'error' ? 'var(--color-semantic-error)' : 'var(--persona-primary)'};
     color: white;
     padding: 12px 24px;
     border-radius: 999px;
-    z-index: 10001;
+    z-index: var(--z-notification);
     font-size: 0.9rem;
   `;
   document.body.appendChild(toast);

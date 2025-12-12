@@ -202,11 +202,11 @@
   
   {# ====== FERNI EQ SYSTEM (Superhuman Emotional Intelligence) ====== #}
   <script src="/js/better-than-human.js"></script>
-  <script src="/js/ferni-sentience.js"></script>
+  {# ferni-sentience.js removed - was creating floating "soft nudge" boxes #}
   <script src="/js/ferni-sounds.js"></script>
   
-  {# ====== DEMO WIDGET (Talk to Ferni without signup) ====== #}
-  <script src="/js/demo-widget.js"></script>
+  {# ====== DEMO WIDGET DISABLED - user complained about floating box #}
+  {# <script src="/js/demo-widget.js"></script> #}
   
   {# ====== A/B TESTING & EXPERIMENTS ====== #}
   <script src="/js/experiments.js"></script>
@@ -388,6 +388,89 @@
         trackEvent('Contact', 'phone_click', 'Call Ferni');
       });
     });
+    
+    // ========== INLINE TRY FERNI DEMO ==========
+    const tryFerniBtn = document.getElementById('tryFerniBtn');
+    const tryFerniDemo = document.getElementById('tryFerniDemo');
+    
+    if (tryFerniBtn && tryFerniDemo) {
+      tryFerniBtn.addEventListener('click', () => {
+        // Track the demo click
+        trackEvent('Demo', 'inline_try_click', 'Hero');
+        
+        // Create inline demo panel if it doesn't exist
+        let demoPanel = document.getElementById('heroDemoPanel');
+        if (!demoPanel) {
+          demoPanel = document.createElement('div');
+          demoPanel.id = 'heroDemoPanel';
+          demoPanel.className = 'hero__demo-panel';
+          demoPanel.innerHTML = `
+            <div class="hero__demo-avatar" id="demoAvatar">FE</div>
+            <p class="hero__demo-status" id="demoStatus">Click below to start talking</p>
+            <div class="hero__demo-action">
+              <button class="btn btn--primary" id="demoStartBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                Start Talking
+              </button>
+              <button class="btn btn--secondary" id="demoCloseBtn">Maybe Later</button>
+            </div>
+            <p style="margin-top: var(--space-4); font-size: 13px; color: var(--color-text-muted); text-align: center;">
+              Or <a href="tel:+14844813081" style="color: var(--color-ferni-green); text-decoration: underline;">call (484) 481-3081</a> directly
+            </p>
+          `;
+          tryFerniDemo.appendChild(demoPanel);
+          
+          // Handle close
+          document.getElementById('demoCloseBtn').addEventListener('click', () => {
+            demoPanel.classList.remove('is-open');
+            tryFerniBtn.style.display = '';
+          });
+          
+          // Handle start - redirect to app with demo mode
+          document.getElementById('demoStartBtn').addEventListener('click', async () => {
+            const avatar = document.getElementById('demoAvatar');
+            const status = document.getElementById('demoStatus');
+            const startBtn = document.getElementById('demoStartBtn');
+            
+            avatar.classList.add('listening');
+            status.textContent = 'Connecting to Ferni...';
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span class="loading-dots">...</span> Connecting';
+            
+            trackEvent('Demo', 'start_click', 'Hero');
+            
+            // Small delay for effect, then redirect to app
+            setTimeout(() => {
+              window.location.href = 'https://app.ferni.ai?demo=true&source=landing';
+            }, 800);
+          });
+        }
+        
+        // Show panel, hide button
+        demoPanel.classList.add('is-open');
+        tryFerniBtn.style.display = 'none';
+      });
+    }
+    
+    // ========== CURSOR-AWARE AVATAR ==========
+    // Make Ferni's orb subtly "look at" the cursor
+    const heroOrb = document.querySelector('.hero-ferni__orb');
+    if (heroOrb && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.addEventListener('mousemove', (e) => {
+        const rect = heroOrb.getBoundingClientRect();
+        const orbCenterX = rect.left + rect.width / 2;
+        const orbCenterY = rect.top + rect.height / 2;
+        
+        // Calculate offset (subtle - max 3px)
+        const deltaX = (e.clientX - orbCenterX) / window.innerWidth * 3;
+        const deltaY = (e.clientY - orbCenterY) / window.innerHeight * 3;
+        
+        heroOrb.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      }, { passive: true });
+    }
     
   })();
   </script>

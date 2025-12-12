@@ -29,6 +29,7 @@ export {
 } from './handoff-diagnostics.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleOptimizerRoutes } from './optimizer-routes.js';
+export { handleToolsAnalyticsRoutes } from './tools-analytics-routes.js';
 export { handlePerformanceRoutes } from './performance-routes.js';
 export {
   handleSubscriptionRequest,

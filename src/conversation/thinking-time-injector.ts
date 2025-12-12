@@ -15,12 +15,16 @@
  * 5. Self-Correction - "Actually..." moments need setup
  * 6. Persona Style - Some personas are more contemplative
  *
+ * COORDINATION: Uses ThinkingPhraseCoordinator to prevent duplicate
+ * "good question" phrases from multiple systems.
+ *
  * @module conversation/thinking-time-injector
  */
 
 import { createLogger } from '../utils/safe-logger.js';
 import { recordThinkingTime } from './awareness-metrics.js';
 import { getMomentumTracker, type MomentumState } from './momentum-tracker.js';
+import { requestThinkingPhrase, wasPhraseUsedThisTurn } from './thinking-phrase-coordinator.js';
 
 const log = createLogger({ module: 'thinking-time' });
 
@@ -224,27 +228,39 @@ function calculateOpeningPause(ctx: ThinkingContext, complexity: { weight: numbe
 function selectThinkingSound(
   ctx: ThinkingContext,
   complexity: { weight: number },
-  profile: ThinkingSoundProfile
+  _profile: ThinkingSoundProfile
 ): string | undefined {
-  // Probabilistic - don't always use sounds
-  if (Math.random() > profile.soundProbability) {
+  // COORDINATED: Check if another system already added a thinking phrase
+  if (wasPhraseUsedThisTurn(ctx.sessionId, ctx.turnCount)) {
+    log.debug(
+      { sessionId: ctx.sessionId, turn: ctx.turnCount },
+      'Skipping thinking sound - phrase already used this turn'
+    );
     return undefined;
   }
 
-  // Choose category based on context
-  let sounds: string[];
+  // Request phrase from coordinator (prevents duplicates across systems)
+  const result = requestThinkingPhrase(
+    ctx.sessionId,
+    ctx.turnCount,
+    'thinking-time-injector',
+    ctx.personaId,
+    {
+      isQuestion: ctx.isComplexQuestion,
+      complexity: complexity.weight,
+      emotionalIntensity: ctx.emotionalIntensity,
+    }
+  );
 
-  if (ctx.emotionalIntensity && ctx.emotionalIntensity > 0.6) {
-    sounds = profile.emotional;
-  } else if (complexity.weight > 0.6) {
-    sounds = profile.consideration;
-  } else if (ctx.isComplexQuestion) {
-    sounds = profile.processing;
-  } else {
-    sounds = profile.acknowledgment;
+  if (!result.granted) {
+    log.debug(
+      { sessionId: ctx.sessionId, turn: ctx.turnCount, reason: result.reason },
+      'Thinking sound not granted by coordinator'
+    );
+    return undefined;
   }
 
-  return sounds[Math.floor(Math.random() * sounds.length)];
+  return result.phrase ?? undefined;
 }
 
 function calculateMidPauses(

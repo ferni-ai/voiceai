@@ -401,12 +401,17 @@ export class ConversationHumanizer {
     if (isComplexQuestion) {
       const thinkingPhrase = this.naturalizer.getThinkingPhrase(this.personaId, 'processing', {
         randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:thinking_phrase`,
+        sessionId: this.sessionId,
+        turnNumber: context.turnNumber,
       });
-      guidance.push({
-        source: 'speech_naturalizer',
-        content: `[THINKING CUE] For complex questions, you might open with: "${thinkingPhrase.phrase}"`,
-        priority: 'hint',
-      });
+      // Only add guidance if coordinator granted the phrase
+      if (thinkingPhrase.phrase) {
+        guidance.push({
+          source: 'speech_naturalizer',
+          content: `[THINKING CUE] For complex questions, you might open with: "${thinkingPhrase.phrase}"`,
+          priority: 'hint',
+        });
+      }
     }
 
     // 8. Active listening - emotional echo for personal sharing
@@ -1056,15 +1061,21 @@ export class ConversationHumanizer {
 
   /**
    * Get a thinking phrase when processing
+   *
+   * @param type - Type of thinking phrase
+   * @param turnNumber - Turn number for coordination (prevents duplicate phrases)
    */
   getThinkingPhrase(
-    type: 'processing' | 'recalling' | 'considering' | 'uncertain' = 'processing'
+    type: 'processing' | 'recalling' | 'considering' | 'uncertain' = 'processing',
+    turnNumber?: number
   ): {
     text: string;
     ssml: string;
   } {
     const pattern = this.naturalizer.getThinkingPhrase(this.personaId, type, {
       randomSeed: `${this.sessionId}:${this.personaId}:${type}:thinking_phrase`,
+      sessionId: this.sessionId,
+      turnNumber,
     });
     return {
       text: pattern.phrase,

@@ -16,8 +16,12 @@
  * Humans don't respond instantly. We pause, consider, reflect.
  * These pauses aren't empty - they signal that we're truly engaged,
  * that your question deserves real thought.
+ *
+ * COORDINATION: This module uses ThinkingPhraseCoordinator to prevent
+ * duplicate "good question" phrases from multiple systems.
  */
 
+import { requestThinkingPhrase } from '../conversation/thinking-phrase-coordinator.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -39,6 +43,8 @@ export interface ThinkingContext {
   turnCount: number;
   /** Persona ID for persona-specific thinking sounds */
   personaId?: string;
+  /** Session ID for coordination (prevents duplicate phrases across systems) */
+  sessionId?: string;
 }
 
 export interface ThinkingPause {
@@ -141,49 +147,62 @@ export function analyzeQuestionComplexity(userText: string): number {
 }
 
 // ============================================================================
-// THINKING PHRASES
+// THINKING PHRASES (via ThinkingPhraseCoordinator)
 // ============================================================================
 
 /**
- * Persona-specific thinking sounds/phrases
+ * @deprecated Use ThinkingPhraseCoordinator instead.
+ * Kept for backwards compatibility with tests.
  */
 const personaThinkingPhrases: Record<string, string[]> = {
-  ferni: [
-    'Hmm...',
-    'Let me think about that...',
-    "That's a good question...",
-    'You know...',
-    'Well...',
-    'Let me sit with that for a moment...',
-  ],
-  'nayan-patel': [
-    'Hmm...',
-    'You know...',
-    'Well...',
-    'Let me think...',
-    "That's worth considering...",
-  ],
-  'peter-john': [
-    "Oh, that's interesting...",
-    'Hmm, let me think...',
-    'You know what...',
-    'Good question...',
-  ],
-  'maya-santos': ['Hmm...', "Let's see...", "That's a thoughtful question...", 'You know...'],
-  'alex-chen': ['Let me think...', 'Good question...', 'Hmm...', "Okay, let's see..."],
-  'jordan-taylor': ['Ooh, good question...', 'Let me think...', 'Hmm...', 'You know what...'],
-  default: ['Hmm...', 'Let me think about that...', 'Well...', "That's a good question..."],
+  ferni: ['Hmm...', 'Let me think about that...', 'You know...', 'Well...'],
+  'nayan-patel': ['Hmm...', 'You know...', 'Well...', 'Let me think...'],
+  'peter-john': ['Hmm, let me think...', 'You know what...', "Here's what jumps out..."],
+  'maya-santos': ['Hmm...', "Let's see...", 'You know...'],
+  'alex-chen': ['Let me think...', 'Hmm...', "Okay, let's see..."],
+  'jordan-taylor': ['Let me think...', 'Hmm...', 'You know what...'],
+  default: ['Hmm...', 'Let me think about that...', 'Well...'],
 };
 
 /**
- * Get a thinking phrase for a persona
+ * Get a thinking phrase for a persona.
+ *
+ * COORDINATED: Uses ThinkingPhraseCoordinator to prevent duplicate
+ * "good question" phrases from multiple systems.
  */
-function getThinkingPhrase(personaId: string | undefined, complexity: number): string {
+function getThinkingPhrase(
+  personaId: string | undefined,
+  complexity: number,
+  sessionId?: string,
+  turnCount?: number
+): string {
   // Only use thinking phrase for complex questions
   if (complexity < 0.5) return '';
 
-  // Higher complexity = higher chance of thinking phrase
-  const usePhrase = Math.random() < complexity * 0.8;
+  // If we have session info, use the coordinator (prevents duplicates)
+  if (sessionId && turnCount !== undefined) {
+    const result = requestThinkingPhrase(
+      sessionId,
+      turnCount,
+      'authentic-thinking',
+      personaId,
+      {
+        isQuestion: true,
+        complexity,
+      }
+    );
+
+    if (result.granted && result.phrase) {
+      return result.phrase;
+    }
+
+    // Coordinator denied (another system already added a phrase)
+    return '';
+  }
+
+  // Fallback for callers without session info (legacy compatibility)
+  // Use lower probability since we can't coordinate
+  const usePhrase = Math.random() < complexity * 0.4;
   if (!usePhrase) return '';
 
   const phrases = personaThinkingPhrases[personaId || 'default'] || personaThinkingPhrases.default;
@@ -198,7 +217,8 @@ function getThinkingPhrase(personaId: string | undefined, complexity: number): s
  * Calculate authentic thinking pause based on context
  */
 export function calculateThinkingPause(context: ThinkingContext): ThinkingPause {
-  const { questionComplexity, isEmotional, requiresLookup, turnCount, personaId } = context;
+  const { questionComplexity, isEmotional, requiresLookup, turnCount, personaId, sessionId } =
+    context;
 
   // Base pause (100-400ms depending on complexity)
   let pauseDurationMs = 100 + questionComplexity * 300;
@@ -221,8 +241,8 @@ export function calculateThinkingPause(context: ThinkingContext): ThinkingPause 
   // Cap at 800ms (anything longer feels unnatural)
   pauseDurationMs = Math.min(800, pauseDurationMs);
 
-  // Get thinking phrase
-  const thinkingPhrase = getThinkingPhrase(personaId, questionComplexity);
+  // Get thinking phrase (coordinated to prevent duplicates)
+  const thinkingPhrase = getThinkingPhrase(personaId, questionComplexity, sessionId, turnCount);
 
   // Soft entry for emotional content
   const softEntry = isEmotional && Math.random() < 0.4;
@@ -235,6 +255,7 @@ export function calculateThinkingPause(context: ThinkingContext): ThinkingPause 
       complexity: questionComplexity.toFixed(2),
       pauseMs: Math.round(pauseDurationMs),
       hasPhrase: !!thinkingPhrase,
+      sessionId,
     },
     'Calculated thinking pause'
   );
@@ -315,7 +336,8 @@ export function createThinkingContext(
   emotionIntensity: number,
   isQuestion: boolean,
   turnCount: number,
-  personaId?: string
+  personaId?: string,
+  sessionId?: string
 ): ThinkingContext {
   return {
     userText,
@@ -324,6 +346,7 @@ export function createThinkingContext(
     requiresLookup: /\b(price|stock|weather|news|score|rate)\b/i.test(userText),
     turnCount,
     personaId,
+    sessionId,
   };
 }
 

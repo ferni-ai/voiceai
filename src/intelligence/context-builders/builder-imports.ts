@@ -68,6 +68,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cognitive-insights': () => import('./cognitive-insights.js'),
   'pattern-surfacing': () => import('./pattern-surfacing.js'),
   'superhuman-insights': () => import('./superhuman-insights.js'),
+  'deep-understanding': () => import('./deep-understanding.js'), // Unified deep intelligence
 
   // ENGAGEMENT
   engagement: () => import('./engagement.js'),

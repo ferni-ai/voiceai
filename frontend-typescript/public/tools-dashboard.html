@@ -690,7 +690,7 @@
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
-  <div class="dashboard">
+  <div class="dashboard" id="main-content">
     <header>
       <h1>
         <div class="logo-orb">
@@ -959,7 +959,23 @@
     }
 
     // Data loading
+    // API base URL
+    const API_BASE = '';
+    
     async function loadData() {
+      try {
+        // Try to fetch from real API
+        const response = await fetch(`${API_BASE}/api/tools/analytics`);
+        if (response.ok) {
+          const data = await response.json();
+          renderData(data);
+          return;
+        }
+      } catch (err) {
+        console.warn('API not available, using sample data:', err.message);
+      }
+      
+      // Fall back to sample data
       const data = await getMockData();
       renderData(data);
     }

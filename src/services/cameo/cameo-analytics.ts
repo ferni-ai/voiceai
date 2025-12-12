@@ -489,6 +489,69 @@ export async function getPersonaStats(
 }
 
 /**
+ * Get global engagement stats for a persona (across all users)
+ * Used for admin analytics dashboard
+ */
+export async function getGlobalPersonaStats(
+  personaId: CameoPersonaId
+): Promise<PersonaEngagementStats | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  try {
+    // Query all engagements for this persona using collection group
+    const snapshot = await db
+      .collectionGroup('history')
+      .where('personaId', '==', personaId)
+      .orderBy('timestamp', 'desc')
+      .limit(500) // Get recent 500 engagements
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const engagements = snapshot.docs.map((doc) => doc.data() as CameoEngagement);
+
+    // Calculate stats
+    const totalCameos = engagements.length;
+    const positiveResponses = engagements.filter((e) => e.userRespondedPositively).length;
+    const followUpRequests = engagements.filter((e) => e.userAskedFollowUp).length;
+    const handoffRequests = engagements.filter((e) => e.userRequestedHandoff).length;
+    const totalDuration = engagements.reduce((sum, e) => sum + (e.durationMs || 0), 0);
+
+    // Calculate per-trigger-type stats
+    const triggerTypeStats: PersonaEngagementStats['triggerTypeStats'] = {} as PersonaEngagementStats['triggerTypeStats'];
+    for (const engagement of engagements) {
+      if (!triggerTypeStats[engagement.triggerType]) {
+        triggerTypeStats[engagement.triggerType] = { count: 0, positiveRate: 0 };
+      }
+      triggerTypeStats[engagement.triggerType].count++;
+    }
+
+    // Calculate positive rates per trigger type
+    for (const triggerType of Object.keys(triggerTypeStats) as CameoTriggerType[]) {
+      const typeEngagements = engagements.filter((e) => e.triggerType === triggerType);
+      const positiveCount = typeEngagements.filter((e) => e.userRespondedPositively).length;
+      triggerTypeStats[triggerType].positiveRate = positiveCount / typeEngagements.length;
+    }
+
+    return {
+      personaId,
+      totalCameos,
+      positiveResponses,
+      followUpRequests,
+      handoffRequests,
+      averageDurationMs: totalCameos > 0 ? totalDuration / totalCameos : 0,
+      engagementRate: totalCameos > 0 ? positiveResponses / totalCameos : 0,
+      lastCameoAt: engagements[0]?.timestamp || 0,
+      triggerTypeStats,
+    };
+  } catch (e) {
+    log.warn({ error: String(e), personaId }, 'Failed to get global persona stats');
+    return null;
+  }
+}
+
+/**
  * Get best persona for a given trigger type (based on user history)
  */
 export async function getBestPersonaForTrigger(

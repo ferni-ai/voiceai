@@ -1116,12 +1116,17 @@ class VoiceAgent extends voice.Agent<UserData> {
             try {
               const { wrapWithThinkingPause, createThinkingContext } =
                 await import('../speech/authentic-thinking.js');
+              const thinkingSessionId = userData?.services?.sessionId;
+              // IMPORTANT: Check if USER asked a question (not if agent's response has one)
+              // This prevents "good question" phrases when Ferni is about to ask a question
+              const userAskedQuestion = (userData?.lastUserMessage || '').includes('?');
               const thinkingContext = createThinkingContext(
                 userData?.lastUserMessage || '',
                 userData?.voiceEmotion?.arousal || 0,
-                accumulatedText.includes('?'),
+                userAskedQuestion, // ✅ Now correctly checks user's message
                 userData?.turnCount || 0,
-                agent.persona.id
+                agent.persona.id,
+                thinkingSessionId // Pass sessionId for coordination
               );
               taggedText = wrapWithThinkingPause(taggedText, thinkingContext);
             } catch (_thinkingErr) {

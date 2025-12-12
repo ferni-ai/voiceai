@@ -127,6 +127,7 @@ export {
   analyzeUserResponse,
   clearSessionData as clearAnalyticsSession,
   getBestPersonaForTrigger,
+  getGlobalPersonaStats,
   getPersonaStats,
   getUserPreferences,
   recordCameoEngagement,

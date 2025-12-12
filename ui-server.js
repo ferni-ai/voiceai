@@ -21,6 +21,7 @@ import { handleDiagnosticsRoutes } from './dist/api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from './dist/api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from './dist/api/dora-routes.js';
 import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
+import { handleToolsAnalyticsRoutes } from './dist/api/tools-analytics-routes.js';
 import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
 
 // Proactive Outreach API routes
@@ -136,6 +137,7 @@ import { handleLandingIntelligenceRoutes } from './dist/api/landing-intelligence
 import { handleLandingOptimizationRoutes } from './dist/api/landing-optimization-handler.js';
 
 // Garden routes (Seed Fund community contribution system)
+import { handleCameoAnalyticsRoutes } from './dist/api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from './dist/api/garden-routes.js';
 
 const PORT = process.env.PORT || 3003;
@@ -812,6 +814,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Tools Analytics (for tools-dashboard.html)
+    if (pathname.startsWith('/api/tools')) {
+      const handled = await handleToolsAnalyticsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Dashboard metrics (for HTML dashboards - /api/metrics/*, /api/cognitive/*)
     if (pathname.startsWith('/api/metrics') || pathname.startsWith('/api/cognitive')) {
       const handled = await handleDashboardMetricsRoutes(req, res, pathname);
@@ -947,6 +955,12 @@ const server = http.createServer(async (req, res) => {
     // Garden routes (Seed Fund community contribution system)
     if (pathname.startsWith('/api/garden')) {
       const handled = await handleGardenRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Cameo Analytics routes
+    if (pathname.startsWith('/api/cameo')) {
+      const handled = await handleCameoAnalyticsRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -2789,6 +2803,12 @@ const server = http.createServer(async (req, res) => {
 
   // Serve admin page (same SPA, JS handles routing)
   if (pathname === '/admin') {
+    serveStaticFile('index.html', res, req);
+    return;
+  }
+
+  // Serve garden payment result pages (SPA handles routing)
+  if (pathname === '/garden/success' || pathname === '/garden/cancel') {
     serveStaticFile('index.html', res, req);
     return;
   }

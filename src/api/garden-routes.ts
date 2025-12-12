@@ -38,10 +38,7 @@ import {
   createPaymentIntent,
   isStripeConfigured,
 } from '../services/stripe-payments.js';
-import {
-  createCheckoutSession,
-  getOrCreateCustomer,
-} from '../services/stripe-subscription.js';
+import { createCheckoutSession } from '../services/stripe-subscription.js';
 
 const log = createLogger({ module: 'GardenAPI' });
 

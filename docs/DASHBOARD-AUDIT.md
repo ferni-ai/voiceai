@@ -9,22 +9,22 @@
 
 ## 🎯 Executive Summary
 
-Ferni has **17 HTML dashboards** + **5 TypeScript UI dashboards** = **22+ total dashboards**. 
+Ferni has **19 HTML dashboards** (including observability-hub) + **5 TypeScript UI dashboards** = **24+ total dashboards**. 
 
 ### ✅ ALL REQUIREMENTS MET
 
 | Requirement | Status | Coverage |
 |-------------|--------|----------|
-| Skip Links (WCAG 2.1 AA) | ✅ Complete | 17/17 dashboards |
-| Reduced Motion Support | ✅ Complete | 18/18 files |
-| Design System Integration | ✅ Complete | 18/18 files |
+| Skip Links (WCAG 2.1 AA) | ✅ Complete | 19/19 dashboards |
+| Reduced Motion Support | ✅ Complete | 19/19 files |
+| Design System Integration | ✅ Complete | 19/19 files |
 | Brand Compliance | ✅ Complete | All use tokens.css |
 | API Connectivity | ✅ Complete | All connected to real APIs |
 | E2E Browser Testing | ✅ Complete | All verified working |
 
 ### Implementation Summary
 
-All 17 HTML dashboards now include:
+All 19 HTML dashboards now include:
 - **Skip link** for keyboard navigation accessibility
 - **`prefers-reduced-motion`** media query support
 - **Design system tokens** (`tokens.css`) for consistent branding
@@ -35,7 +35,7 @@ All 17 HTML dashboards now include:
 
 ## 📋 Dashboard Inventory
 
-### HTML Dashboards (17 total)
+### HTML Dashboards (19 total)
 
 | Dashboard | File | API Endpoint | Status |
 |-----------|------|--------------|--------|
@@ -47,6 +47,8 @@ All 17 HTML dashboards now include:
 | LLM Health | `llm-dashboard.html` | `/api/observability/llm` | ✅ Working + A11y Fixed |
 | Cost Tracking | `cost-dashboard.html` | `/api/observability/cost` | ✅ Working + A11y Fixed |
 | Handoff Diagnostics | `handoff-dashboard.html` | `/api/diagnostics/handoffs/*` | ✅ Working |
+| Tool Analytics | `tools-dashboard.html` | `/api/tools/analytics` | ✅ API Created (Dec 12) |
+| Cameo Analytics | `cameo-dashboard.html` | `/api/cameo/analytics` | ⚠️ API needs backend |
 | Cognitive Intelligence | `cognitive-dashboard.html` | `/api/cognitive/state` | ✅ Working |
 | Tool Analytics | `tools-dashboard.html` | None (mock data) | ⚠️ Static mock data |
 | Memory & RAG | `memory-dashboard.html` | `/api/observability/memory` | ✅ Working + A11y Fixed |

@@ -43,6 +43,7 @@ import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-natu
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
 import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
 import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context.js';
+import { resetThinkingPhraseCoordinator as _resetThinkingPhraseCoordinator } from './thinking-phrase-coordinator.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
 // Evaluation / heuristics
@@ -182,6 +183,17 @@ export {
   type HumanizedResponse,
   type PreResponseActions,
 } from './humanizer.js';
+
+// Thinking Phrase Coordinator - Prevents duplicate "good question" phrases
+export {
+  getThinkingPhraseCoordinator,
+  requestThinkingPhrase,
+  resetThinkingPhraseCoordinator,
+  wasPhraseUsedThisTurn,
+  type ThinkingPhraseRequest,
+  type ThinkingPhraseResult,
+  type ThinkingPhraseSource,
+} from './thinking-phrase-coordinator.js';
 
 // Humanizing Configuration - Tuning parameters for all features
 export {
@@ -609,6 +621,9 @@ export function resetAllConversationState(
   if (sessionId && userId) {
     _resetAdvancedHumanization(sessionId, userId);
   }
+
+  // Reset thinking phrase coordinator (global singleton)
+  _resetThinkingPhraseCoordinator();
 }
 
 // ============================================================================

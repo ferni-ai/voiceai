@@ -1360,6 +1360,24 @@ class VoiceAIApp {
       }
     }) as EventListener);
 
+    // 🌱 Handle garden payment result routes (Stripe redirects here)
+    const gardenPathname = window.location.pathname;
+    if (gardenPathname === '/garden/success') {
+      // Show thank you message for successful payment
+      // Wait a moment for UI to initialize
+      setTimeout(() => {
+        ferniFundUI.showThankYou({
+          conversationsSponsored: 1,
+          message: 'Thank you for planting a seed!',
+        });
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', '/');
+      }, 500);
+    } else if (gardenPathname === '/garden/cancel') {
+      // Payment was cancelled - just redirect to home
+      window.history.replaceState({}, '', '/');
+    }
+
     // 📊 Dev Panel modal event listeners
     window.addEventListener('ferni:open-analytics', () => {
       void showAnalyticsDashboard();

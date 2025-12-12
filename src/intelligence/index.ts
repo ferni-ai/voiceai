@@ -613,6 +613,160 @@ export {
   type SelfSoothingResult,
 } from './self-soothing-detection.js';
 
+// ============================================================================
+// DEEP UNDERSTANDING SYSTEMS - Superhuman Emotional Intelligence
+// ============================================================================
+
+// Silence Intelligence - Understanding what different pauses mean
+export {
+  analyzeSilence,
+  formatSilenceForPrompt,
+  getSilencePattern,
+  recordSilence,
+  type SilenceAnalysis,
+  type SilencePattern,
+  type SilenceResponse,
+  type SilenceType,
+} from './silence-intelligence.js';
+
+// Life Rhythm Prediction - Anticipating support needs
+export {
+  addAnniversary,
+  formatPredictionForPrompt,
+  getLifeRhythmProfile,
+  predictUserState,
+  recordConversationObservation,
+  type AnniversaryDate,
+  type LifeRhythmProfile,
+  type MonthlyPattern,
+  type RhythmPrediction,
+  type SeasonalPattern,
+  type WeeklyPattern,
+} from './life-rhythm-prediction.js';
+
+// Relational Network Intelligence - Understanding people in their life
+export {
+  analyzeSupportNetwork,
+  detectUnspokenTension,
+  extractPersonMentions,
+  formatRelationalInsightsForPrompt,
+  generateRelationalInsights,
+  getRelationalNetwork,
+  recordPersonMention,
+  type PersonInLife,
+  type RelationalInsight,
+  type RelationalNetwork,
+  type RelationshipQuality,
+  type RelationshipType,
+  type SupportNetwork,
+  type Triangulation,
+  type UnspokenTension,
+} from './relational-network.js';
+
+// Resistance Pattern Detection - What they're avoiding
+export {
+  analyzeResistance,
+  formatResistanceForPrompt,
+  getResistanceProfile,
+  getResistanceSummary,
+  identifyGrowthEdges,
+  type AvoidedTopic,
+  type DefensePattern,
+  type GrowthEdge,
+  type ResistanceAnalysis,
+  type ResistanceProfile,
+  type SelfProtectiveProfile,
+} from './resistance-detection.js';
+
+// Energy State Inference - Physical/mental capacity
+export {
+  assessEnergyState,
+  formatEnergyForPrompt,
+  getEnergyPattern,
+  markTopicEnergy,
+  type EnergyAssessment,
+  type EnergyLevel as EnergyStateLevel,
+  type EnergyPattern,
+  type MentalCapacity,
+  type MentalEnergyState,
+  type PhysicalEnergyState,
+  type SleepQuality,
+} from './energy-state.js';
+
+// Subconscious Goal Detection - What they want but haven't articulated
+export {
+  analyzeSubconscious,
+  formatSubconsciousForPrompt,
+  getSubconsciousProfile,
+  getSubconsciousSummary,
+  recordSurfaceReaction,
+  type Contradiction,
+  type EmergingDesire,
+  type GoalCategory,
+  type RecurringPattern,
+  type SubconsciousAnalysis,
+  type SubconsciousProfile,
+} from './subconscious-goals.js';
+
+// Conversational Flow Optimizer - When to go deep vs light
+export {
+  analyzeFlow,
+  formatFlowForPrompt,
+  getFlowProfile,
+  type ConversationDepth,
+  type DepthIndicators,
+  type FlowAnalysis,
+  type FlowDirection,
+  type FlowProfile,
+  type FlowState,
+  type FlowTransition,
+  type UserSignal,
+} from './conversational-flow.js';
+
+// Repair Intelligence - Fixing misunderstandings
+export {
+  detectMisunderstanding,
+  formatRepairForPrompt,
+  generateRepair,
+  getRepairProfile,
+  quickRepairCheck,
+  recordAIResponse,
+  recordRepairOutcome,
+  type MisunderstandingDetection,
+  type MisunderstandingSeverity,
+  type MisunderstandingType,
+  type RepairApproach,
+  type RepairAttempt,
+  type RepairProfile,
+  type RepairStrategy,
+} from './repair-intelligence.js';
+
+// Hope Trajectory Tracking - Long-term resilience
+export {
+  analyzeHope,
+  formatHopeForPrompt,
+  getHopeProfile,
+  type HopeAnalysis,
+  type HopeObservation,
+  type HopeProfile,
+  type HopeTrajectory,
+  type TrajectoryDirection,
+  type UrgencyLevel,
+} from './hope-trajectory.js';
+
+// Life Chapter Awareness - Major life phases
+export {
+  analyzeChapter,
+  formatChapterForPrompt,
+  getChapterProfile,
+  type ChapterAnalysis,
+  type ChapterEvidence,
+  type ChapterProfile,
+  type ChapterType,
+  type LifeChapter,
+  type TransitionPhase,
+} from './life-chapter.js';
+
 export default {
   analyzeMessage,
   resetIntelligence,

@@ -9,9 +9,13 @@
  * - Sentence fragments
  *
  * These "imperfections" are what make human speech feel authentic.
+ *
+ * COORDINATION: Uses ThinkingPhraseCoordinator to prevent duplicate
+ * "good question" phrases from multiple systems.
  */
 
 import { chance, createSeededRandom, createSystemRandom, type RandomSource } from './utils/rng.js';
+import { requestThinkingPhrase, wasPhraseUsedThisTurn } from './thinking-phrase-coordinator.js';
 
 // ============================================================================
 // TYPES
@@ -48,6 +52,10 @@ export interface ThinkingPattern {
 interface RandomOptions {
   rng?: RandomSource;
   randomSeed?: string;
+  /** Session ID for coordination (prevents duplicate phrases across systems) */
+  sessionId?: string;
+  /** Turn number for coordination */
+  turnNumber?: number;
 }
 
 function getRng(options: RandomOptions | undefined, salt: string): RandomSource {
@@ -243,17 +251,60 @@ export class SpeechNaturalizer {
 
   /**
    * Get a thinking-out-loud phrase
+   *
+   * COORDINATED: Uses ThinkingPhraseCoordinator to prevent duplicate
+   * phrases across systems.
    */
   getThinkingPhrase(
     personaId: string,
     type: ThinkingPattern['type'] = 'processing',
     options?: RandomOptions
   ): ThinkingPattern {
+    // Check coordinator if session info is available
+    if (options?.sessionId && options?.turnNumber !== undefined) {
+      // Check if phrase already used this turn
+      if (wasPhraseUsedThisTurn(options.sessionId, options.turnNumber)) {
+        // Return empty pattern - another system already added a phrase
+        return {
+          type,
+          phrase: '',
+          ssml: '',
+        };
+      }
+
+      // Request from coordinator
+      const result = requestThinkingPhrase(
+        options.sessionId,
+        options.turnNumber,
+        'speech-naturalizer',
+        personaId,
+        { isQuestion: type === 'processing' }
+      );
+
+      if (result.granted && result.phrase) {
+        return {
+          type,
+          phrase: result.phrase,
+          ssml: result.ssml || `<break time="200ms"/>${result.phrase}<break time="300ms"/>`,
+        };
+      }
+
+      // Coordinator denied - return empty
+      return {
+        type,
+        phrase: '',
+        ssml: '',
+      };
+    }
+
+    // Fallback for callers without session info (legacy compatibility)
+    // Note: When session info IS provided, the coordinator handles probability.
+    // When no session info, we return a phrase for backwards compatibility.
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
     const rng = getRng(options, `speech-thinking:${personaId}:${type}`);
 
     const typeSpecific: Record<ThinkingPattern['type'], string[]> = {
-      processing: ['Let me think about that...', 'Hmm...', "That's an interesting point..."],
+      processing: ['Let me think about that...', 'Hmm...'],
       recalling: ['You know, that reminds me...', 'Now that you mention it...', 'I remember...'],
       considering: [
         'Let me consider this...',
@@ -267,7 +318,6 @@ export class SpeechNaturalizer {
       ],
     };
 
-    // Mix persona-specific and type-specific
     const candidates = [...patterns.thinkingPhrases, ...typeSpecific[type]];
     const phrase = candidates[rng.nextInt(candidates.length)];
 
