@@ -118,15 +118,63 @@ export function disposeCameoRoster(): void {
 }
 
 // ============================================================================
+// RETRY CONFIGURATION
+// ============================================================================
+
+const ROSTER_RETRY_CONFIG = {
+  /** Max retries when roster elements not found */
+  MAX_RETRIES: 5,
+  /** Delay between retries (ms) - increases with each retry */
+  BASE_DELAY: 100,
+  /** Max total time to wait for roster (ms) */
+  MAX_WAIT: 2000,
+};
+
+// ============================================================================
 // CAMEO HANDLERS
 // ============================================================================
+
+/**
+ * Find roster elements with retry logic
+ * The roster is dynamically built and may not be ready when cameo triggers
+ */
+async function findRosterElementsWithRetry(): Promise<boolean> {
+  for (let attempt = 0; attempt < ROSTER_RETRY_CONFIG.MAX_RETRIES; attempt++) {
+    if (findRosterElements()) {
+      if (attempt > 0) {
+        log.info(`🎬 Roster elements found on attempt ${attempt + 1}`);
+      }
+      return true;
+    }
+
+    // Wait with exponential backoff
+    const delay = ROSTER_RETRY_CONFIG.BASE_DELAY * Math.pow(1.5, attempt);
+    if (delay > ROSTER_RETRY_CONFIG.MAX_WAIT) {
+      break;
+    }
+
+    log.debug(`🎬 Roster not ready, retrying in ${delay}ms (attempt ${attempt + 1})`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  return false;
+}
 
 function handleCameoStart(personaId: string, personaName: string, isFirstCameo: boolean): void {
   log.info('🎬 Cameo pop-in:', { personaId, personaName, isFirstCameo });
 
-  // Find elements fresh (roster is dynamic)
-  if (!findRosterElements()) {
-    log.error('Cannot start cameo - roster elements not found');
+  // Find elements with retry (roster is dynamically built)
+  void handleCameoStartAsync(personaId, personaName, isFirstCameo);
+}
+
+async function handleCameoStartAsync(
+  personaId: string,
+  personaName: string,
+  isFirstCameo: boolean
+): Promise<void> {
+  // Find elements with retry logic
+  if (!(await findRosterElementsWithRetry())) {
+    log.error('Cannot start cameo - roster elements not found after retries');
     return;
   }
 

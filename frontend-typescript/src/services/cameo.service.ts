@@ -101,6 +101,18 @@ export type CameoFailedCallback = (error: string) => void;
 // CAMEO SERVICE
 // ============================================================================
 
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const CAMEO_SAFETY_CONFIG = {
+  /** Max time a cameo can be active before auto-cleanup (ms) */
+  MAX_CAMEO_DURATION: 30_000, // 30 seconds
+
+  /** Debounce time to prevent double sounds (ms) */
+  SOUND_DEBOUNCE: 500,
+};
+
 /**
  * Frontend cameo state management service
  */
@@ -118,6 +130,15 @@ class CameoService {
   private startCallbacks: Set<CameoStartCallback> = new Set();
   private endCallbacks: Set<CameoEndCallback> = new Set();
   private failedCallbacks: Set<CameoFailedCallback> = new Set();
+
+  /** Timer for auto-cleanup of orphaned cameos */
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Timestamp of last arrival sound to prevent double-play */
+  private lastArrivalSoundTime: number = 0;
+
+  /** Timestamp of last return sound to prevent double-play */
+  private lastReturnSoundTime: number = 0;
 
   // ========================================
   // Public API
@@ -271,9 +292,9 @@ class CameoService {
 
     log.info('🎬 Cameo starting (early signal)', { personaId, personaName, isFirstCameo });
 
-    // Play arrival sound early for better UX
+    // Play arrival sound early for better UX (with debounce to prevent double-play)
     try {
-      await this.playArrivalSound();
+      await this.playArrivalSoundDebounced();
     } catch (err) {
       log.warn('Failed to play cameo arrival sound', { error: String(err) });
     }
@@ -297,9 +318,9 @@ class CameoService {
 
     log.info('🎬 Cameo ending', { personaId, duration });
 
-    // Play return sound early so it syncs with exit animation
+    // Play return sound early so it syncs with exit animation (with debounce)
     try {
-      await this.playReturnSound();
+      await this.playReturnSoundDebounced();
     } catch (err) {
       log.warn('Failed to play cameo return sound', { error: String(err) });
     }
@@ -317,6 +338,9 @@ class CameoService {
     const { personaId, personaName, isFirstCameo, cameoId } = message;
 
     log.info('🎬 Cameo started (voice switched)', { personaId, personaName, isFirstCameo });
+
+    // Clear any existing cleanup timer (in case of rapid cameos)
+    this.clearCleanupTimer();
 
     // Update state
     const wasFirstCameo = !this.state.personasWhoCameoed.has(personaId);
@@ -336,6 +360,9 @@ class CameoService {
     document.documentElement.style.setProperty('--cameo-persona-glow', colors.glow);
     document.body.setAttribute('data-cameo-active', 'true');
     document.body.setAttribute('data-cameo-persona', personaId);
+
+    // Start cleanup timer in case cameo_complete never arrives
+    this.startCleanupTimer(personaId);
 
     // Notify callbacks - THIS triggers the visual pop-in animation
     for (const callback of this.startCallbacks) {
@@ -360,6 +387,9 @@ class CameoService {
     const duration = this.state.startTime ? Date.now() - this.state.startTime : 0;
 
     log.info('🎬 Cameo complete', { personaId, duration });
+
+    // Clear the cleanup timer - cameo completed normally
+    this.clearCleanupTimer();
 
     // Update state
     this.state.isActive = false;
@@ -395,6 +425,9 @@ class CameoService {
 
     log.info('Cameo cancelled', { personaId, reason: error });
 
+    // Clear the cleanup timer
+    this.clearCleanupTimer();
+
     // Reset state
     this.state.isActive = false;
     this.state.currentPersonaId = null;
@@ -427,6 +460,9 @@ class CameoService {
 
     log.error('Cameo failed', { personaId, error });
 
+    // Clear the cleanup timer
+    this.clearCleanupTimer();
+
     // Reset state
     this.state.isActive = false;
     this.state.currentPersonaId = null;
@@ -449,6 +485,97 @@ class CameoService {
         log.error('Cameo failed callback error', { error: String(err) });
       }
     }
+  }
+
+  // ========================================
+  // Cleanup Timer Management
+  // ========================================
+
+  /**
+   * Start cleanup timer for orphaned cameos
+   * If cameo_complete never arrives, auto-cleanup after MAX_CAMEO_DURATION
+   */
+  private startCleanupTimer(personaId: string): void {
+    this.clearCleanupTimer();
+
+    this.cleanupTimer = setTimeout(() => {
+      if (this.state.isActive) {
+        log.warn('🎬 Cameo timeout - auto-cleaning orphaned state', {
+          personaId,
+          wasActive: this.state.currentPersonaId,
+          maxDuration: CAMEO_SAFETY_CONFIG.MAX_CAMEO_DURATION,
+        });
+
+        // Force cleanup
+        this.forceCleanup();
+      }
+    }, CAMEO_SAFETY_CONFIG.MAX_CAMEO_DURATION);
+
+    log.debug('🎬 Cleanup timer started', {
+      personaId,
+      timeout: CAMEO_SAFETY_CONFIG.MAX_CAMEO_DURATION,
+    });
+  }
+
+  /**
+   * Clear the cleanup timer
+   */
+  private clearCleanupTimer(): void {
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+      log.debug('🎬 Cleanup timer cleared');
+    }
+  }
+
+  /**
+   * Force cleanup of orphaned cameo state
+   * Called by timeout or when page visibility changes
+   */
+  private forceCleanup(): void {
+    log.info('🎬 Forcing cameo cleanup');
+
+    // Reset state
+    this.state.isActive = false;
+    this.state.currentPersonaId = null;
+    this.state.currentPersonaName = null;
+    this.state.startTime = null;
+    this.state.cameoId = null;
+    this.state.isFirstCameo = false;
+
+    // Clear CSS variables
+    document.documentElement.style.removeProperty('--cameo-persona-primary');
+    document.documentElement.style.removeProperty('--cameo-persona-glow');
+    document.body.removeAttribute('data-cameo-active');
+    document.body.removeAttribute('data-cameo-persona');
+
+    // Notify end callbacks
+    for (const callback of this.endCallbacks) {
+      try {
+        callback();
+      } catch (err) {
+        log.error('Cameo force cleanup callback error', { error: String(err) });
+      }
+    }
+  }
+
+  // ========================================
+  // Sound Playing (with debounce)
+  // ========================================
+
+  /**
+   * Play the cameo arrival sound with debounce to prevent double-play
+   * Tries: cameo-arrive → dramatic-entrance → connect
+   */
+  private async playArrivalSoundDebounced(): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastArrivalSoundTime < CAMEO_SAFETY_CONFIG.SOUND_DEBOUNCE) {
+      log.debug('🎬 Arrival sound debounced (already played recently)');
+      return;
+    }
+    this.lastArrivalSoundTime = now;
+
+    await this.playArrivalSound();
   }
 
   /**
@@ -475,6 +602,21 @@ class CameoService {
   }
 
   /**
+   * Play the cameo return sound with debounce to prevent double-play
+   * Tries: cameo-return → connect
+   */
+  private async playReturnSoundDebounced(): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastReturnSoundTime < CAMEO_SAFETY_CONFIG.SOUND_DEBOUNCE) {
+      log.debug('🎬 Return sound debounced (already played recently)');
+      return;
+    }
+    this.lastReturnSoundTime = now;
+
+    await this.playReturnSound();
+  }
+
+  /**
    * Play the cameo return sound
    * Tries: cameo-return → connect
    */
@@ -495,13 +637,6 @@ class CameoService {
       }
     }
     log.warn('No cameo return sound available');
-  }
-
-  /**
-   * Sleep helper
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
