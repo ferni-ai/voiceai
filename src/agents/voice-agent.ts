@@ -194,10 +194,7 @@ import {
   calculatePersonaAdjustedSpeed,
   getPersonaSpeedProfile,
 } from './integrations/dynamic-speed-integration.js';
-import {
-  initializeSpeechMetrics,
-  trackEmotionDetection,
-} from './integrations/speech-metrics-integration.js';
+import { trackEmotionDetection } from './integrations/speech-metrics-integration.js';
 
 // ============================================================================
 // ADVANCED VOICE HUMANIZATION (Phase 7+)
@@ -219,17 +216,10 @@ import { getWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
 import { getResponseAnticipationService } from '../speech/response-anticipation.js';
 
 // Feature flags for gradual rollout
-import { getSessionFlags, initializeFlags } from '../config/voice-humanization-flags.js';
+import { getSessionFlags } from '../config/voice-humanization-flags.js';
 
 // Metrics collection
-import {
-  recordFeatureUsage,
-  recordLaughterDetection,
-  recordSessionStart,
-} from '../services/voice-humanization-metrics.js';
-
-// User Analytics (DAU/WAU/MAU, concurrent users, session tracking)
-import { recordSessionStart as recordUserSessionStart } from '../services/user-analytics.js';
+import { recordLaughterDetection } from '../services/voice-humanization-metrics.js';
 
 // Mid-session accent change support
 import { registerSessionTTS } from '../api/session-accent-routes.js';
@@ -264,6 +254,7 @@ import {
   setupMusicHandler,
   setupSessionStateHandlers,
   setupToolTrackingHandler,
+  setupVoiceHumanizationInit,
 } from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
@@ -2840,72 +2831,14 @@ export default defineAgent({
       // ===============================================
       // STEP 8a: INITIALIZE ADVANCED VOICE HUMANIZATION
       // ===============================================
-      initializeFlags(); // Initialize feature flags
-      const voiceFlags = getSessionFlags(sessionId);
-
-      if (voiceFlags.enableMetrics) {
-        recordSessionStart(sessionId);
-        diag.session('📊 Voice humanization metrics enabled');
-      }
-
-      // Initialize unified speech pipeline metrics
-      initializeSpeechMetrics(sessionId, sessionPersona.id);
-      diag.session('📊 Speech pipeline metrics initialized');
-
-      // User Analytics: Track session for DAU/WAU/MAU metrics
-      const visitorId = services.userId || 'anonymous';
-      const isSubscriber = (services.userProfile?.subscription?.tier ?? 'free') !== 'free';
-      void recordUserSessionStart(sessionId, visitorId, sessionPersona.id, isSubscriber).catch(
-        (err) => diag.warn('📊 User analytics session start failed', { error: String(err) })
-      );
-
-      // Initialize response anticipation for monitoring
-      if (voiceFlags.enableResponseAnticipation) {
-        const anticipator = getResponseAnticipationService(sessionId);
-        anticipator.setPersona(sessionPersona.id);
-        recordFeatureUsage(sessionId, 'responseAnticipation', true);
-        diag.session('⚡ Response anticipation initialized (monitoring mode)', {
-          useCachedResponses: voiceFlags.useCachedResponses,
-        });
-      }
-
-      // Initialize enhanced turn prediction
-      if (voiceFlags.enableEnhancedTurnPrediction) {
-        getEnhancedTurnPredictor(sessionId); // Pre-initialize
-        recordFeatureUsage(sessionId, 'enhancedTurnPrediction', true);
-        diag.session('🎯 Enhanced turn prediction initialized');
-      }
-
-      // Initialize multi-signal laughter detection
-      if (voiceFlags.enableMultiSignalLaughter) {
-        const laughterDetector = getMultiSignalLaughterDetector(sessionId);
-        laughterDetector.updateContext({ conversationPhase: 'greeting' });
-        recordFeatureUsage(sessionId, 'multiSignalLaughter', true);
-        diag.session('😂 Multi-signal laughter detection initialized');
-      }
-
-      // Initialize word-timing rhythm service
-      if (voiceFlags.enableWordTimingRhythm) {
-        getWordTimingRhythmService(sessionId); // Pre-initialize
-        recordFeatureUsage(sessionId, 'wordTimingRhythm', true);
-        diag.session('🎵 Word-timing rhythm service initialized');
-      }
-
-      // Initialize FFT analyzer
-      if (voiceFlags.enableFftAnalysis) {
-        getFFTAnalyzer(sessionId); // Pre-initialize
-        recordFeatureUsage(sessionId, 'fftAnalysis', true);
-        diag.session('📊 FFT spectral analyzer initialized');
-      }
-
-      diag.session('🎤 Advanced voice humanization ready', {
-        flags: {
-          fft: voiceFlags.enableFftAnalysis,
-          turnPrediction: voiceFlags.enableEnhancedTurnPrediction,
-          laughter: voiceFlags.enableMultiSignalLaughter,
-          rhythm: voiceFlags.enableWordTimingRhythm,
-          anticipation: voiceFlags.enableResponseAnticipation,
-        },
+      // Extracted to voice-agent/voice-humanization-init-handler.ts for maintainability
+      // Handles: feature flags, metrics, response anticipation, turn prediction,
+      // laughter detection, rhythm service, FFT analysis
+      setupVoiceHumanizationInit({
+        sessionId,
+        sessionPersona,
+        userId,
+        userProfile: services.userProfile,
       });
 
       // ===============================================
