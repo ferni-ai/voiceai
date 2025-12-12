@@ -60,6 +60,13 @@ export {
   type ToolTrackingResult,
 } from './tool-tracking-handler.js';
 
+// Trust recording handler
+export {
+  recordTrustSystemsData,
+  type TrustRecordingContext,
+  type TurnResult,
+} from './trust-recording-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 

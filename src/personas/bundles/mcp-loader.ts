@@ -345,6 +345,13 @@ export function getMCPConnection(serverId: string): MCPConnection | null {
 }
 
 /**
+ * Get all active MCP connections
+ */
+export function getAllMCPConnections(): MCPConnection[] {
+  return Array.from(activeConnections.values());
+}
+
+/**
  * List tools available on an MCP server
  */
 export async function listMCPTools(
@@ -419,6 +426,7 @@ export default {
   disconnectFromMCPServer,
   disconnectAllMCPServers,
   getMCPConnection,
+  getAllMCPConnections,
   listMCPTools,
   callMCPTool,
 };

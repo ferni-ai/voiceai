@@ -102,19 +102,10 @@ import { getConversationManager } from '../services/conversation-manager.js';
 
 // Trust Systems - "Better than human" trust profile loading and recording
 import {
-  // Phase 14: Life Events
-  detectLifeEvents,
   onSessionStart as loadTrustProfiles,
-  recordEmotionData,
-  // Phase 17: Sentiment Timeline
-  recordEmotionalSnapshot,
-  // Phase 27: Learning Style
-  recordLearningSignals,
-  recordTopicData,
+  onSessionEnd as saveTrustProfiles,
   // Phase 24: Voice Prosody Learning - BETTER-THAN-HUMAN baseline building
   recordVoiceSample,
-  saveEvent,
-  onSessionEnd as saveTrustProfiles,
 } from '../services/trust-systems/index.js';
 
 // Simple Utilities - "Better than human" everyday helpers (timers, tips, timezone, etc.)
@@ -306,6 +297,7 @@ import {
   createTranscriptHandler,
   generateAndSpeakGreeting,
   identifyUser,
+  recordTrustSystemsData,
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
@@ -2078,7 +2070,7 @@ IMPORTANT:
       // ================================================================
       const { userId } = services;
       if (userId) {
-        await this.recordTrustSystemsData(userId, userText, result);
+        await recordTrustSystemsData({ userId, userText, result });
       }
 
       this.logger.info(
@@ -2201,97 +2193,6 @@ IMPORTANT:
     }
   }
 
-  // ============================================================================
-  // TRUST SYSTEMS DATA RECORDING
-  // ============================================================================
-
-  /**
-   * Record data to trust systems for "better than human" features
-   * Called after each user turn is processed
-   */
-  private async recordTrustSystemsData(
-    userId: string,
-    userText: string,
-    result: {
-      emotional: { primary?: string; intensity?: number };
-      context: { humanizingResult?: { mood?: { state?: string } } };
-    }
-  ): Promise<void> {
-    try {
-      // Phase 17: Record emotional snapshot to sentiment timeline
-      if (result.emotional?.primary) {
-        recordEmotionalSnapshot(userId, {
-          primaryEmotion: result.emotional.primary as
-            | 'joy'
-            | 'sadness'
-            | 'anxiety'
-            | 'anger'
-            | 'fear'
-            | 'surprise'
-            | 'disgust'
-            | 'trust'
-            | 'anticipation'
-            | 'neutral',
-          secondaryEmotions: [],
-          intensity: result.emotional.intensity || 0.5,
-          source: 'detected',
-        });
-      }
-
-      // Phase 14: Detect life events mentioned in conversation
-      const lifeEvents = detectLifeEvents(userId, userText);
-      for (const detection of lifeEvents) {
-        if (detection.detected && detection.event && detection.confidence > 0.6) {
-          saveEvent({
-            ...detection.event,
-            userId,
-            id: detection.event.id || `event-${Date.now()}`,
-            date: detection.event.date || new Date(),
-            type: detection.event.type || 'event',
-            importance: detection.event.importance || 'medium',
-            followUp: detection.event.followUp || { beforeReminder: true, afterCheckIn: true },
-            tags: detection.event.tags || [],
-            context: detection.event.context || {
-              mentionedAt: new Date(),
-              originalText: userText,
-            },
-          } as Parameters<typeof saveEvent>[0]);
-          this.logger.debug({ event: detection.event }, '📅 Life event detected and saved');
-        }
-      }
-
-      // Phase 27: Record learning style signals
-      recordLearningSignals(userId, userText);
-
-      // Phase 28: Record topic data for insights
-      const topic = result.context?.humanizingResult?.mood?.state;
-      if (topic) {
-        const sentiment =
-          result.emotional?.primary === 'joy' || result.emotional?.primary === 'trust'
-            ? 'positive'
-            : result.emotional?.primary === 'sadness' ||
-                result.emotional?.primary === 'anger' ||
-                result.emotional?.primary === 'fear'
-              ? 'negative'
-              : 'neutral';
-        recordTopicData(userId, topic, sentiment);
-      }
-
-      // Phase 28: Record emotion data for insights
-      if (result.emotional?.primary) {
-        recordEmotionData(userId, {
-          date: new Date(),
-          emotion: result.emotional.primary,
-          intensity: result.emotional.intensity || 0.5,
-        });
-      }
-
-      this.logger.debug({ userId }, '🤝 Trust systems data recorded');
-    } catch (error) {
-      // Non-fatal - don't break conversation for trust recording errors
-      this.logger.warn({ error: String(error) }, 'Trust systems recording failed (non-fatal)');
-    }
-  }
 }
 
 // ============================================================================

@@ -16,6 +16,7 @@ import {
   getAutoConnectServers,
   getMCPConfig,
   getMCPConnection,
+  getAllMCPConnections,
   callMCPTool,
   type MCPConnection,
 } from './mcp-loader.js';
@@ -275,15 +276,28 @@ export async function cleanupMCPConnections(): Promise<void> {
 
 /**
  * Get current MCP connection status
+ *
+ * Returns status of all active MCP connections from the mcp-loader.
  */
 export function getMCPConnectionStatus(): Array<{
   serverId: string;
   status: string;
   toolCount: number;
+  error?: string;
 }> {
-  // This would need to track active connections
-  // For now, return empty array - implement if needed for status API
-  return [];
+  try {
+    const connections = getAllMCPConnections();
+
+    return connections.map((conn) => ({
+      serverId: conn.serverId,
+      status: conn.status,
+      toolCount: conn.tools?.length ?? 0,
+      error: conn.error,
+    }));
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Error getting MCP connection status');
+    return [];
+  }
 }
 
 // ============================================================================
