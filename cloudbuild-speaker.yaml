@@ -19,7 +19,7 @@ steps:
           -f docker/Dockerfile.speaker \
           --build-arg GITHUB_PAT=$$GITHUB_PAT \
           -t gcr.io/$PROJECT_ID/ferni-speaker:latest \
-          -t gcr.io/$PROJECT_ID/ferni-speaker:$(date +%Y%m%d) \
+          -t gcr.io/$PROJECT_ID/ferni-speaker:$SHORT_SHA \
           .
     id: 'build-speaker'
     secretEnv: ['GITHUB_PAT']
@@ -32,11 +32,12 @@ steps:
     waitFor: ['build-speaker']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ferni-speaker:$(date +%Y%m%d)']
+    args: ['push', 'gcr.io/$PROJECT_ID/ferni-speaker:$SHORT_SHA']
     waitFor: ['build-speaker']
 
 images:
   - 'gcr.io/$PROJECT_ID/ferni-speaker:latest'
+  - 'gcr.io/$PROJECT_ID/ferni-speaker:$SHORT_SHA'
 
 options:
   machineType: 'E2_HIGHCPU_8'
