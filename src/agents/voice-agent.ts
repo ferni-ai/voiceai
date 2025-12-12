@@ -152,16 +152,9 @@ import {
 } from '../conversation/index.js';
 
 // 🎭 UNIFIED CONVERSATION HUMANIZATION (replaces scattered humanization calls)
-// Single entry point for all conversation humanization
-import {
-  initConversationSession,
-  humanizeAgentResponse,
-  cleanupConversationSession,
-  recordVulnerabilityEvent,
-  recordLaughterEvent,
-  recordBreakthroughEvent,
-  getSessionState as getConversationSessionState,
-} from './integrations/conversation-session-integration.js';
+// NOTE: These are loaded DYNAMICALLY to avoid slowing down agent startup
+// The unified integration imports heavy modules that would timeout runner init
+// Use: const { initConversationSession } = await import('./integrations/conversation-session-integration.js');
 
 // Legacy humanization imports (for prosody bridge - still needed)
 import {
@@ -559,7 +552,7 @@ class VoiceAgent extends voice.Agent<UserData> {
             const userData = agent.getUserDataFromContext();
 
             // ============================================================
-            // 🎭 UNIFIED POST-LLM HUMANIZATION
+            // 🎭 UNIFIED POST-LLM HUMANIZATION (dynamic import)
             // Uses the unified conversation session for all humanization:
             // - Speech naturalization, vocabulary mirroring
             // - Deep humanization: mood drift, spontaneous thoughts
@@ -571,6 +564,10 @@ class VoiceAgent extends voice.Agent<UserData> {
               const agentSessionId =
                 (userData?.sessionData as { sessionId?: string } | undefined)?.sessionId ||
                 `session-${agent.persona.id}`;
+
+              // Dynamic import to avoid startup timeout
+              const { humanizeAgentResponse, recordVulnerabilityEvent } =
+                await import('./integrations/conversation-session-integration.js');
 
               // Use the unified humanization API
               const humanized = await humanizeAgentResponse(agentSessionId, accumulatedText, {
@@ -2756,12 +2753,14 @@ export default defineAgent({
         // Initialize prosody bridge for this session (still needed for voice analysis)
         initProsodyBridge(sessionId, userId);
 
-        // 🎭 UNIFIED CONVERSATION SESSION
+        // 🎭 UNIFIED CONVERSATION SESSION (dynamic import to avoid startup timeout)
         // This replaces all the scattered humanization initialization calls:
         // - startHumanizationSession
         // - initAdvancedHumanizationSession
         // - humanizationAnalytics.startSession
         // All coordinated through a single session object
+        const { initConversationSession } =
+          await import('./integrations/conversation-session-integration.js');
         const conversationSession = initConversationSession({
           sessionId,
           userId,

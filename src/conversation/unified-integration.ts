@@ -27,9 +27,9 @@ import { createLogger } from '../utils/safe-logger.js';
 
 // Unified orchestrator (the single source of truth)
 import {
-  ConversationOrchestrator,
   getConversationOrchestrator,
   resetConversationOrchestrator,
+  type ConversationOrchestrator,
   type OrchestratorInput,
   type OrchestratorOutput,
 } from './orchestrator/index.js';

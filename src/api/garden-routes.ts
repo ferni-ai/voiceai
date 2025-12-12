@@ -16,7 +16,8 @@
 import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit, requireAuth } from './auth-middleware.js';
+import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
+import { API_ERRORS } from './error-messages.js';
 import {
   getUserId,
   handleCorsPreflightIfNeeded,
@@ -468,16 +469,21 @@ export async function handleGardenRoutes(
     return true;
   }
 
-  // All other routes require authentication
-  const auth = await requireAuth(req, res, { allowDevMode: true });
-  if (!auth) {
-    return true; // 401 already sent
-  }
-
-  const userId = getUserId(req, parsedUrl);
+  // Auth strategy for garden routes:
+  // 1. Try Firebase auth (preferred) - sets userId to Firebase UID
+  // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
+  // This allows users who haven't migrated to Firebase to still use the API
+  const auth = await optionalAuthAsync(req);
+  const userId = auth?.userId || getUserId(req, parsedUrl);
+  
   if (!userId) {
-    sendError(res, 'User ID required', 401);
+    sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
     return true;
+  }
+  
+  // If we have Firebase auth, update the header so handlers use Firebase UID consistently
+  if (auth) {
+    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
   }
 
   // GET /api/garden/user - Get user's garden

@@ -25,8 +25,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
+import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js';
+import { API_ERRORS } from './error-messages.js';
 
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
@@ -87,10 +88,26 @@ export async function handleEngagementRoutes(
     return true; // Rate limited
   }
 
-  // Require authentication for all engagement routes
-  const auth = await requireAuth(req, res, { allowDevMode: true });
-  if (!auth) {
-    return true; // Auth failed, 401 already sent
+  // Auth strategy for engagement routes:
+  // 1. Try Firebase auth (preferred) - sets userId to Firebase UID
+  // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
+  // This allows users who haven't migrated to Firebase to still use the API
+  const auth = await optionalAuthAsync(req);
+  
+  // If we have Firebase auth, we can use the userId from there
+  // Otherwise, individual handlers will get userId from query params/headers
+  // We still need SOME form of user identification
+  const userId = auth?.userId || getUserId(req, parsedUrl);
+  if (!userId) {
+    sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
+    return true;
+  }
+  
+  // Store userId in request for handlers to use
+  // This normalizes Firebase UID vs device ID for downstream handlers
+  if (auth) {
+    // If we have Firebase auth, set the X-User-Id header so handlers use Firebase UID
+    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
   }
 
   // Delegate to modular route handlers

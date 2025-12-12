@@ -32,8 +32,8 @@ import {
   cleanupProsodyBridge,
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
-// 🎭 Unified conversation session cleanup (handles endHumanizationSession internally)
-import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
+// 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
+// import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 import {
   cleanupDynamicSpeed,
 } from '../integrations/dynamic-speed-integration.js';
@@ -351,6 +351,9 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // cleanupAdvancedHumanization, and resetConversationOrchestrator
     // ================================================================
     try {
+      // Dynamic import to avoid startup timeout
+      const { cleanupConversationSession } =
+        await import('../integrations/conversation-session-integration.js');
       cleanupConversationSession(sessionId);
       diag.session('🎭 Unified conversation session cleaned up');
     } catch (unifiedCleanupErr) {
