@@ -156,7 +156,6 @@ import { perfInstrumentation } from '../services/performance-instrumentation.js'
 // Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
 import { abTestingService } from '../tools/ab-testing.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
-import { deprecationService } from '../tools/deprecation.js';
 import { dynamicToolLoader } from '../tools/dynamic-loader.js';
 import { feedbackCollector } from '../tools/feedback-collector.js';
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';
@@ -310,6 +309,7 @@ import {
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
+  setupToolTrackingHandler,
 } from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
@@ -321,7 +321,7 @@ import { loadBundleById } from '../personas/bundles/loader.js';
 // Humanizing Debug - enable with DEBUG_HUMANIZING=true
 
 // Types
-import type { AudioFrame } from '@livekit/rtc-node';
+import { ConnectionState, type AudioFrame } from '@livekit/rtc-node';
 
 // ============================================================================
 // PERSONA AND AGENT NAME
@@ -1170,6 +1170,19 @@ class VoiceAgent extends voice.Agent<UserData> {
 
             controller.enqueue(taggedText);
           }
+        } catch (streamError) {
+          // FIX: Properly propagate stream errors instead of silent failure
+          // This prevents the agent from "cutting out" silently when TTS pipeline fails
+          agent.logger.error(
+            { error: String(streamError) },
+            '🚨 TranscriptionNode stream error - this may cause agent to cut out'
+          );
+          diag.error('TranscriptionNode stream failed', {
+            error: String(streamError),
+            accumulatedLength: accumulatedText.length,
+          });
+          // Propagate error to stream consumer
+          controller.error(streamError);
         } finally {
           reader.releaseLock();
           controller.close();
@@ -2485,7 +2498,12 @@ export default defineAgent({
       // Extracted to voice-agent/user-identification-handler.ts for maintainability
       // Handles: user identification from metadata, identity session (trust levels),
       // world awareness, personal journey, speaker change detection, accent detection
-      const { userId, userName, identificationSource: _identificationSource, userAccent } = await identifyUser({
+      const {
+        userId,
+        userName,
+        identificationSource: _identificationSource,
+        userAccent,
+      } = await identifyUser({
         jobMetadata: ctx.job.metadata,
         room: ctx.room,
         sessionId,
@@ -2910,104 +2928,15 @@ export default defineAgent({
       // ============================================================
       // TOOL EXECUTION TRACKING - Orchestration Integration
       // ============================================================
-      // Track tool calls in conversation state for orchestration
-      // Also record analytics for tool usage optimization
-      session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
-        void (async () => {
-          const toolStartTime = Date.now();
-
-          // Debug logging (can be disabled in production)
-          if (DEBUG_STARTUP) {
-            logger.debug(
-              { event: 'FunctionToolsExecuted' },
-              '🔧 [TOOLS] FunctionToolsExecuted event'
-            );
-          }
-          logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
-
-          // Update conversation state with tool execution
-          if (userData?.conversationState && event) {
-            const convState = userData.conversationState;
-
-            // Get tool information from event
-            // The event structure varies, but typically contains tool name/id
-            const toolInfo = event as {
-              name?: string;
-              toolName?: string;
-              result?: unknown;
-              error?: unknown;
-              tools?: Array<{
-                name?: string;
-                result?: unknown;
-                error?: unknown;
-                startTime?: number;
-              }>;
-            };
-
-            // Handle single tool or multiple tools
-            const toolCalls = toolInfo.tools || [toolInfo];
-
-            for (const tool of toolCalls) {
-              const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
-              const resultSummary =
-                typeof tool.result === 'string'
-                  ? tool.result.slice(0, 200)
-                  : JSON.stringify(tool.result).slice(0, 200);
-
-              // Record in conversation state
-              convState.recordToolCall(toolName, resultSummary);
-
-              // Record analytics for tool usage optimization
-              try {
-                const { recordToolUsage } = await import('../services/tool-usage-analytics.js');
-                const toolWithStartTime = tool as { startTime?: number };
-                const latencyMs = toolWithStartTime.startTime
-                  ? Date.now() - toolWithStartTime.startTime
-                  : Date.now() - toolStartTime;
-                const hasError = !!tool.error || !!toolInfo.error;
-                recordToolUsage(
-                  toolName,
-                  'unknown', // Domain can be inferred later from registry
-                  {
-                    agentId: sessionPersona?.id || 'unknown',
-                    userId: services.userId,
-                    sessionId: services.sessionId,
-                  },
-                  latencyMs,
-                  !hasError,
-                  hasError ? String(tool.error || toolInfo.error) : undefined
-                );
-
-                // Record for deprecation analysis (identifies unused/error-prone tools)
-                deprecationService.recordUsage(toolName, !hasError, latencyMs);
-
-                // Record for pattern analysis (co-occurrence, sequences, journeys)
-                patternAnalyzer.recordToolCall(
-                  services.sessionId || sessionId,
-                  toolName,
-                  !hasError,
-                  latencyMs
-                );
-
-                // Record for auto-optimizer (feeds recommendation engine)
-                autoOptimizer.recordToolExecution(
-                  services.sessionId || sessionId,
-                  toolName,
-                  !hasError,
-                  latencyMs
-                );
-              } catch (e) {
-                // Analytics recording is non-critical, don't fail the tool execution
-                log().debug({ error: String(e) }, 'Tool analytics recording failed (non-critical)');
-              }
-
-              diag.tool('Tool execution tracked', {
-                tool: toolName,
-                hasResult: !!tool.result,
-              });
-            }
-          }
-        })();
+      // Extracted to voice-agent/tool-tracking-handler.ts for maintainability
+      // Tracks: tool usage analytics, deprecation analysis, pattern analysis, auto-optimizer
+      setupToolTrackingHandler({
+        session,
+        userData,
+        services,
+        sessionPersona,
+        sessionId,
+        debugEnabled: DEBUG_STARTUP,
       });
 
       // ===============================================
@@ -3498,8 +3427,32 @@ export default defineAgent({
       });
 
       // ===============================================
-      // STEP 9: CLEANUP ON DISCONNECT
+      // STEP 9: CONNECTION MONITORING & CLEANUP
       // ===============================================
+      // FIX: Monitor connection state to detect and log connection issues
+      // This helps diagnose "agent cutting out" issues
+      ctx.room.on('connectionStateChanged', (state: ConnectionState) => {
+        const stateName = ConnectionState[state] || String(state);
+        diag.session('🔌 Room connection state changed', { state: stateName, sessionId });
+
+        if (state === ConnectionState.CONN_RECONNECTING) {
+          diag.warn('🔌 Room reconnecting - agent may be temporarily unresponsive', { sessionId });
+        } else if (state === ConnectionState.CONN_DISCONNECTED) {
+          diag.warn('🔌 Room disconnected unexpectedly', { sessionId });
+        } else if (state === ConnectionState.CONN_CONNECTED) {
+          diag.session('🔌 Room connected/reconnected', { sessionId });
+        }
+      });
+
+      // FIX: Listen for room errors that could cause silent failures
+      ctx.room.on('reconnecting', () => {
+        diag.warn('🔌 Room is reconnecting...', { sessionId });
+      });
+
+      ctx.room.on('reconnected', () => {
+        diag.session('🔌 Room reconnected successfully', { sessionId });
+      });
+
       ctx.room.on('disconnected', () => {
         void (async () => {
           // FIX BUG #15: Remove dataReceived handler to prevent memory leaks
