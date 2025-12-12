@@ -685,6 +685,12 @@ export async function loadBundle(
         behaviors.methodology = await loadJsonFile<BundleBehaviors['methodology']>(methodologyPath);
       }
 
+      // Load world-class coaching (elite coaches, psychology frameworks, professional standards)
+      const worldClassCoachingPath = join(behaviorsPath, 'world-class-coaching.json');
+      if (await fileExists(worldClassCoachingPath)) {
+        behaviors.world_class_coaching = await loadJsonFile(worldClassCoachingPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },
