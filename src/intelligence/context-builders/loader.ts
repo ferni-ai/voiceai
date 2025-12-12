@@ -103,6 +103,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // COGNITIVE - Cognitive intelligence
   [BuilderCategory.COGNITIVE]: [
+    'deep-understanding-synthesis', // Session-level synthesis: silence, trajectory, repair, energy (priority 25)
     'deep-understanding', // Unified deep intelligence: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters
     'awareness', // Momentum, thinking time, tangents, self-awareness (priority 55)
     'cognitive',

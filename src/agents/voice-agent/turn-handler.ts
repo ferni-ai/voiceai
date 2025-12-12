@@ -28,6 +28,11 @@ import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
 import { getThinkingFiller } from '../../speech/persona-phrases.js';
 import { getGracefulErrorResponse } from '../../intelligence/conversation-quality.js';
 import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
+import {
+  recordResponseForLearning,
+  analyzeUserEngagement,
+  type ConversationSignalContext,
+} from '../../intelligence/index.js';
 
 // ============================================================================
 // TYPES
@@ -287,6 +292,77 @@ IMPORTANT:
     const { userId } = services;
     if (userId) {
       await recordTrustSystemsData({ userId, userText, result });
+    }
+
+    // ================================================================
+    // COLLECTIVE LEARNING: Record signal for community insights
+    // ================================================================
+    if (userId && services.sessionId) {
+      try {
+        // Extract topic from injections if available
+        const topicInjection = result.context.injections.find(i =>
+          i.category === 'topics' || i.content.includes('topic')
+        );
+        const topic = topicInjection?.content.split(' ')[0] || 'general';
+
+        // Build context for collective learning
+        const learningContext: ConversationSignalContext = {
+          sessionId: services.sessionId,
+          userId,
+          personaId: persona.id,
+          turnNumber: userData.turnCount ?? 0,
+          emotion: result.emotional.primary || 'neutral',
+          topic,
+          relationshipStage: result.context.humanizingResult?.relationship?.stage || 'unknown',
+        };
+
+        // Create a simplified emotion result for engagement analysis
+        const valence = result.emotional.intensity > 0.5 ? 'positive' : 'neutral';
+        const emotionForEngagement = {
+          primary: result.emotional.primary as 'neutral',
+          intensity: result.emotional.intensity,
+          valence: valence as 'positive' | 'neutral' | 'negative',
+          distressLevel: result.emotional.distressLevel || 0,
+          confidence: 0.8,
+          markers: [] as string[],
+          suggestedTone: 'warm' as 'warm',
+        };
+
+        // Analyze user engagement based on their message
+        const engagement = analyzeUserEngagement(
+          userText,
+          null, // Previous emotion (not tracked here)
+          emotionForEngagement
+        );
+
+        // Record the response signal (async, non-blocking)
+        void recordResponseForLearning(
+          learningContext,
+          result.context.injections
+            .map(i => i.content)
+            .join(' ')
+            .slice(0, 500), // Summarize context injections
+          engagement,
+          {
+            hadPersonalShare: result.context.injections.some(i =>
+              i.content.includes('personal') || i.content.includes('story')
+            ),
+            hadQuirk: result.context.injections.some(i =>
+              i.content.includes('quirk') || i.content.includes('playful')
+            ),
+            hadTeamReference: result.context.injections.some(i =>
+              i.content.includes('team') || i.content.includes('handoff')
+            ),
+          }
+        );
+
+        logger.debug(
+          { emotion: result.emotional.primary, topic: learningContext.topic },
+          'Collective learning signal recorded'
+        );
+      } catch (learningError) {
+        logger.debug({ error: String(learningError) }, 'Collective learning recording (non-critical)');
+      }
     }
 
     logger.info(

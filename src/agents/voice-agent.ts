@@ -2082,7 +2082,7 @@ export default defineAgent({
     const backgroundInit = async () => {
       try {
         // Wrap in hard timeout to prevent runaway initialization
-        const BACKGROUND_TIMEOUT = 30_000; // 30 seconds max for background init
+        const BACKGROUND_TIMEOUT = 90_000; // 90 seconds max for background init (Cloud Run cold starts)
 
         await Promise.race([
           (async () => {

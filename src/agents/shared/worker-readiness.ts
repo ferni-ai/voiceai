@@ -222,11 +222,11 @@ export function getReadinessState(): ReadinessState {
     livekitConnected: livekitConnected || startupComplete, // Startup implies LiveKit is ready
   };
 
-  // Simplified: ready when startup is complete
-  // The prewarm function signals this when initialization finishes
-  // Fallback: if uptime > 2 minutes, assume ready (cold start can't be that long)
-  const FALLBACK_READY_UPTIME_MS = 2 * 60 * 1000; // 2 minutes
-  const ready = checks.startupComplete || uptime > FALLBACK_READY_UPTIME_MS;
+  // Ready when we have at least one worker ready
+  // The signalWorkerAcceptingJobs() call marks workers as ready when LiveKit is accepting jobs
+  // Fallback: if uptime > 90 seconds, assume ready (typical cold start is 60-90s)
+  const FALLBACK_READY_UPTIME_MS = 90 * 1000; // 90 seconds
+  const ready = readyWorkerCount > 0 || uptime > FALLBACK_READY_UPTIME_MS;
 
   // Estimate time to ready based on typical startup times
   let estimatedTimeToReady = 0;

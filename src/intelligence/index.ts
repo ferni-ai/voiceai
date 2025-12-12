@@ -375,9 +375,27 @@ export {
 } from './analysis-pipeline.js';
 
 // ============================================================================
-// UNIFIED ANALYZER - Coming soon (planned unification of entry points)
+// UNIFIED ANALYZER - Recommended single entry point for complete analysis
 // ============================================================================
-// TODO: Implement unified-analyzer.ts
+
+export {
+  analyze,
+  analyzeSync,
+  type BehavioralSignals as UnifiedBehavioralSignals,
+  type CombinedEmotion,
+  type DeepUnderstandingInsights,
+  type ResponseGuidance as UnifiedResponseGuidance,
+  type UnifiedAnalysisInput,
+  type UnifiedAnalysisResult,
+} from './unified-analyzer.js';
+
+// Deep Understanding Synthesis Context Builder
+export {
+  clearSessionState as clearDeepSynthesisSessionState,
+  getSessionInsightsSummary as getDeepSynthesisInsights,
+  recordLastAIResponse as recordDeepAIResponse,
+  recordSilenceDuration as recordDeepSilenceDuration,
+} from './context-builders/deep-understanding-synthesis.js';
 
 // ============================================================================
 // COMBINED ANALYSIS
@@ -804,11 +822,6 @@ export {
   saveDeepUnderstandingProfiles,
   type DeepUnderstandingBundle,
 } from './deep-understanding-persistence.js';
-
-// ============================================================================
-// INTELLIGENCE SERVICE - Coming soon (unified facade)
-// ============================================================================
-// TODO: Implement intelligence-service.ts
 
 // ============================================================================
 // COLLECTIVE LEARNING INTEGRATION

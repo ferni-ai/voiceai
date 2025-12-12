@@ -15,7 +15,11 @@ import { endConversation as endConversationState } from '../../services/conversa
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
-import { onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles } from '../../intelligence/index.js';
+import {
+  onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
+  flushLearningSignals,
+  clearDeepSynthesisSessionState,
+} from '../../intelligence/index.js';
 import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
 import { resetEnhancedTurnPredictor } from '../../speech/enhanced-turn-prediction.js';
@@ -257,7 +261,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // Then save all profiles
     if (userId) {
       await cleanupTrustProfiles(userId);
-      await cleanupDeepUnderstandingProfiles(userId);
+      await cleanupDeepUnderstandingProfiles(userId, sessionId);
 
       // Save superhuman intelligence data
       try {
@@ -499,12 +503,30 @@ async function cleanupTrustProfiles(userId: string): Promise<void> {
   }
 }
 
-async function cleanupDeepUnderstandingProfiles(userId: string): Promise<void> {
+async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: string): Promise<void> {
   try {
     await saveDeepUnderstandingProfiles(userId);
     diag.session('Deep understanding profiles saved', { userId });
   } catch (deepErr) {
     diag.warn('Deep understanding profile save failed (non-fatal)', { error: String(deepErr) });
+  }
+
+  // Flush collective learning signals
+  try {
+    const flushed = await flushLearningSignals();
+    if (flushed.responses > 0 || flushed.stories > 0 || flushed.breakthroughs > 0) {
+      diag.session('📊 Collective learning signals flushed', flushed);
+    }
+  } catch (learningErr) {
+    diag.warn('Collective learning flush failed (non-fatal)', { error: String(learningErr) });
+  }
+
+  // Clear deep synthesis session state
+  try {
+    clearDeepSynthesisSessionState(sessionId);
+    diag.session('Deep synthesis session state cleared');
+  } catch (synthErr) {
+    diag.warn('Deep synthesis cleanup failed (non-fatal)', { error: String(synthErr) });
   }
 }
 
