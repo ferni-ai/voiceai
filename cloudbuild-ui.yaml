@@ -18,7 +18,6 @@ steps:
     args:
       - '--dockerfile=docker/Dockerfile.ui'
       - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:latest'
-      - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:$SHORT_SHA'
       - '--cache=true'
       - '--cache-ttl=168h'
       - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'
@@ -31,7 +30,6 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
-  - 'gcr.io/$PROJECT_ID/john-bogle-ui:$SHORT_SHA'
 
 options:
   machineType: 'E2_HIGHCPU_8'
