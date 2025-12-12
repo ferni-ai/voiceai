@@ -228,7 +228,7 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const limit = options?.limit || 100;
-      let query: Query = this.db
+      let query: Query = db
         .collection(this.USERS_COLLECTION)
         .orderBy(options?.sortBy || 'updatedAt', options?.sortOrder || 'desc');
 
@@ -263,7 +263,7 @@ export class FirestoreStore extends MemoryStore {
     const db = await this.ensureInitialized();
 
     try {
-      const summaryRef = this.db
+      const summaryRef = db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('summaries')
@@ -283,7 +283,7 @@ export class FirestoreStore extends MemoryStore {
     try {
       const limit = options?.limit || 10;
 
-      let query: Query = this.db
+      let query: Query = db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('summaries')
@@ -323,7 +323,7 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const momentId = moment.id || `moment_${Date.now()}`;
-      const momentRef = this.db
+      const momentRef = db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('moments')
@@ -343,7 +343,7 @@ export class FirestoreStore extends MemoryStore {
     try {
       const limit = options?.limit || 50;
 
-      const query: Query = this.db
+      const query: Query = db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('moments')
@@ -378,7 +378,7 @@ export class FirestoreStore extends MemoryStore {
     const db = await this.ensureInitialized();
 
     try {
-      const goalRef = this.db
+      const goalRef = db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('goals')
@@ -451,7 +451,7 @@ export class FirestoreStore extends MemoryStore {
       const limit = options?.limit || 10;
       const queryLower = query.toLowerCase();
 
-      const q: Query = this.db
+      const q: Query = db
         .collection(this.USERS_COLLECTION)
         .where('nameLower', '>=', queryLower)
         .where('nameLower', '<=', `${queryLower}\uf8ff`)
