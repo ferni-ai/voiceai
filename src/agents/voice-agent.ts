@@ -309,6 +309,7 @@ import { registerCameoHandlers } from './shared/cameo-handler.js';
 import {
   createTranscriptHandler,
   generateAndSpeakGreeting,
+  identifyUser,
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
@@ -2418,10 +2419,23 @@ export default defineAgent({
         `[voice-agent] ENTRY: Prewarm incomplete, initializing now pid=${process.pid}\n`
       );
       try {
-        // Minimal initialization - just services, not full startup
-        // This ensures we can handle the job even if prewarm failed
+        // Initialize services first
         await initializeServices(true);
-        diag.entry('Fallback initialization complete');
+
+        // CRITICAL: Also load persona bundles!
+        // initializeServices() does NOT load bundles, so we must do it here
+        // otherwise getPersonaAsync() will block mid-job to load them
+        const bundleStart = Date.now();
+        const bundleResult = await initializeFromBundles();
+        const bundleTime = Date.now() - bundleStart;
+        diag.entry('Fallback initialization complete', {
+          bundlesLoaded: bundleResult.loaded,
+          bundlesFailed: bundleResult.failed,
+          bundleTimeMs: bundleTime,
+        });
+        process.stderr.write(
+          `[voice-agent] ENTRY: Bundles loaded=${bundleResult.loaded} failed=${bundleResult.failed} time=${bundleTime}ms\n`
+        );
       } catch (initError) {
         diag.warn('Fallback initialization failed, continuing anyway', {
           error: String(initError),
