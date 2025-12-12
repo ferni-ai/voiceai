@@ -297,6 +297,7 @@ import {
   createTranscriptHandler,
   generateAndSpeakGreeting,
   handleSlashCommand,
+  handleUserTurn,
   identifyUser,
   recordTrustSystemsData,
   sendCelebrationEvents,
@@ -1806,242 +1807,26 @@ class VoiceAgent extends voice.Agent<UserData> {
     newMessage: llm.ChatMessage
   ): Promise<void> {
     const userText = newMessage.textContent;
-    if (!userText || userText.trim().length === 0) {
-      return;
-    }
-
     const userData = this.getUserDataFromContext();
-    // FIX: Remove race-condition-prone global fallback
-    // Services should always be available from the session's userData
     const services = userData?.services;
 
     if (!services) {
-      this.logger.error(
-        'No services available for turn processing - session may not be properly initialized'
-      );
+      this.logger.error('No services available for turn processing');
       return;
     }
 
-    // ================================================================
-    // EXTENSIBILITY: Slash command detection
-    // Check if user is invoking a slash command like "/daily-check-in"
-    // Note: We don't return early - the LLM still needs to respond based on injected context
-    // ================================================================
-    const trimmedText = userText.trim();
-    let _isSlashCommand = false;
-    if (trimmedText.startsWith('/')) {
-      const slashResult = await handleSlashCommand({
-        text: trimmedText,
-        turnCtx,
-        personaId: this.persona.id,
-        services: { userId: services.userId, sessionId: services.sessionId },
-      });
-      _isSlashCommand = slashResult.handled;
-      // If it's a valid command, context was injected. Continue to let LLM respond.
-      // If not valid, continue normal processing.
-    }
-
-    try {
-      // Import the turn processor (cached after first load)
-      const { processTurn, injectTurnContext, getCelebrationEvents } =
-        await import('./processors/index.js');
-
-      // Build turn context
-      const turnContext = {
-        turnCtx,
-        userText,
-        persona: this.persona,
-        bundleRuntime: this.bundleRuntime,
-        services,
-        userData: userData as UserData,
-        logger: this.logger,
-      };
-
-      // ================================================================
-      // DEAD AIR FIX: Timeout wrapper for turn processing
-      // If processing takes too long, speak a thinking filler to fill silence
-      // ================================================================
-      let spokeFiller = false;
-      let fillerTimeout: ReturnType<typeof setTimeout> | null = null;
-
-      // Schedule filler if processing takes too long
-      const fillerPromise = new Promise<void>((resolve) => {
-        fillerTimeout = setTimeout(() => {
-          if (!spokeFiller && this._currentSession) {
-            spokeFiller = true;
-            const filler = getThinkingFiller(this.persona.id);
-            this._currentSession.say(filler, { allowInterruptions: true });
-            diag.state('🎤 Spoke thinking filler (processing slow)', {
-              personaId: this.persona.id,
-              timeoutMs: PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT,
-            });
-          }
-          resolve();
-        }, PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT);
-      });
-
-      // Process the turn (all analysis, context building, emotional tracking)
-      // Race with hard timeout to prevent infinite hangs
-      const result = await Promise.race([
-        processTurn(turnContext),
-        new Promise<never>((_, reject) => {
-          setTimeout(
-            () => reject(new Error('Turn processing hard timeout')),
-            PROCESSING_TIMEOUTS.TURN_PROCESSING_HARD_TIMEOUT
-          );
-        }),
-      ]).finally(() => {
-        // Clean up filler timeout
-        if (fillerTimeout) {
-          clearTimeout(fillerTimeout);
-        }
-      });
-
-      // Cancel the filler promise (it may have already fired)
-      void fillerPromise;
-
-      // Inject context into LLM
-      injectTurnContext(turnCtx, result);
-
-      // ================================================================
-      // EXTENSIBILITY: before_response hook
-      // Allow marketplace agents to inject custom context before response
-      // ================================================================
-      try {
-        const { onBeforeResponse } =
-          await import('../personas/bundles/extensibility-integration.js');
-        const beforeResponsePrompt = await onBeforeResponse({
-          personaId: this.persona.id,
-          userId: services.userId,
-          sessionId: services.sessionId,
-        });
-
-        if (beforeResponsePrompt) {
-          turnCtx.addMessage({
-            role: 'system',
-            content: `[AGENT EXTENSIBILITY - RESPONSE GUIDANCE]\n${beforeResponsePrompt}`,
-          });
-          this.logger.info(
-            { personaId: this.persona.id },
-            'Extensibility before_response hook injected'
-          );
-        }
-
-        // Also check for session_start prompt that wasn't used yet
-        const extSessionPrompt = (userData as Record<string, unknown>)
-          .extensibilitySessionPrompt as string | null;
-        if (extSessionPrompt && (userData.turnCount ?? 0) <= 1) {
-          turnCtx.addMessage({
-            role: 'system',
-            content: `[AGENT EXTENSIBILITY - SESSION CONTEXT]\n${extSessionPrompt}`,
-          });
-          this.logger.info(
-            { personaId: this.persona.id },
-            'Extensibility session_start context injected'
-          );
-        }
-      } catch (extHookErr) {
-        this.logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
-      }
-
-      // ================================================================
-      // HUMAN-FIRST 2FA: Check for phone ask opportunity
-      // If a magic moment was detected, inject the phone ask guidance
-      // ================================================================
-      try {
-        const { getResponseModification } =
-          await import('../services/trust-and-identity/voice-agent-integration.js');
-        const phoneAskMod = getResponseModification(services.sessionId);
-
-        if (phoneAskMod.injectPhoneAsk && phoneAskMod.script) {
-          // Add phone ask guidance to the LLM context
-          turnCtx.addMessage({
-            role: 'system',
-            content: `[MAGIC MOMENT - PHONE COLLECTION]
-This is a perfect emotional moment to naturally ask for their phone number.
-Moment type: ${phoneAskMod.momentType}
-Emotional tone: ${phoneAskMod.tone}
-
-SUGGESTED ASK (incorporate naturally): "${phoneAskMod.script}"
-
-IMPORTANT:
-- Frame this as wanting to follow up/check in, NOT data collection
-- Make it feel like YOU want to stay connected, not that you NEED their info
-- If they decline, accept gracefully and move on
-- Don't repeat if already asked this session`,
-          });
-
-          diag.session('📱 Phone ask injected', {
-            momentType: phoneAskMod.momentType,
-            tone: phoneAskMod.tone,
-          });
-        }
-      } catch (phoneAskErr) {
-        // Non-fatal - don't block on phone ask injection
-        this.logger.debug({ error: String(phoneAskErr) }, 'Phone ask injection skipped');
-      }
-
-      // Send celebration events to frontend
-      const celebrations = getCelebrationEvents(result);
-      if (celebrations.length > 0) {
-        await sendCelebrationEvents({ injections: celebrations, room: this._room });
-      }
-
-      // Send mood update to frontend
-      if (result.context.humanizingResult) {
-        const hr = result.context.humanizingResult;
-        await this.sendDataMessage('mood', {
-          state: hr.mood.state,
-          energyLevel: hr.mood.energyLevel,
-          relationshipStage: hr.relationship.stage,
-          hasTransition: !!hr.relationshipTransition,
-        });
-      }
-
-      // ================================================================
-      // TRUST SYSTEMS DATA RECORDING
-      // Record data to new trust systems for "better than human" features
-      // ================================================================
-      const { userId } = services;
-      if (userId) {
-        await recordTrustSystemsData({ userId, userText, result });
-      }
-
-      this.logger.info(
-        {
-          elapsedMs: result.context.elapsedMs,
-          contextCount: result.context.injections.length,
-          emotion: result.emotional.primary,
-        },
-        '🎯 Turn processed with TurnProcessor V2'
-      );
-    } catch (error) {
-      this.logger.error({ error: String(error) }, 'TurnProcessor V2 failed');
-
-      // ================================================================
-      // DEAD AIR FIX: Graceful error recovery
-      // Don't throw - instead speak a human-like error response
-      // This prevents silent failures that leave users in dead air
-      // ================================================================
-      const isTimeout = String(error).includes('timeout');
-      const errorType = isTimeout ? 'api_timeout' : 'general';
-      const gracefulError = getGracefulErrorResponse(errorType, String(error));
-
-      if (this._currentSession) {
-        try {
-          this._currentSession.say(gracefulError.userMessage, { allowInterruptions: true });
-          diag.state('🎤 Spoke graceful error recovery', {
-            errorType,
-            recoverable: gracefulError.recoverable,
-          });
-        } catch (sayError) {
-          this.logger.error({ error: String(sayError) }, 'Failed to speak error recovery');
-        }
-      }
-
-      // Don't throw - we've handled it gracefully
-      // The LLM will still generate a response (without our context injections)
-    }
+    // Delegate to extracted turn handler
+    await handleUserTurn({
+      turnCtx,
+      userText: userText || '',
+      persona: this.persona,
+      bundleRuntime: this.bundleRuntime,
+      services,
+      userData: userData as UserData,
+      currentSession: this._currentSession,
+      room: this._room,
+      sendDataMessage: this.sendDataMessage.bind(this),
+    });
   }
 
 }

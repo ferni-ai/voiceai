@@ -11,17 +11,13 @@
  * @module voice-agent/data-channel-handler
  */
 
-import { log as livekitLog } from '@livekit/agents';
 import type { voice } from '@livekit/agents';
+import { log as livekitLog } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
+import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import type { PersonaConfig } from '../../personas/types.js';
-import {
-  createHandoffTools,
-  executeHandoff,
-  getCurrentAgent,
-} from '../../tools/handoff/index.js';
+import { createHandoffTools, executeHandoff, getCurrentAgent } from '../../tools/handoff/index.js';
 import type { UserData } from '../shared/types.js';
 
 // ============================================================================
@@ -58,7 +54,9 @@ export interface DataChannelResult {
 // MAIN DATA CHANNEL SETUP
 // ============================================================================
 
-const logger = livekitLog();
+// Lazy getLogger() initialization - livekitLog() can only be called after LiveKit initializes
+// Using a getter to defer the call until the getLogger() is actually needed
+const getLogger = () => livekitLog();
 
 /**
  * Set up data channel message handling
@@ -75,27 +73,27 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
     const theirIdentity = participant?.identity;
 
     // Enhanced debugging for handoff requests
-    logger.info(
+    getLogger().info(
       { ourIdentity, theirIdentity, dataLength: data?.length },
       '📩 Data received from participant'
     );
 
     // Only process messages from our user (not from ourselves)
     if (!participant) {
-      logger.warn('🚫 Ignoring message: no participant info attached');
+      getLogger().warn('🚫 Ignoring message: no participant info attached');
       return;
     }
     if (theirIdentity === ourIdentity) {
-      logger.debug('Ignoring message: from ourselves (agent)');
+      getLogger().debug('Ignoring message: from ourselves (agent)');
       return;
     }
 
     try {
       const rawText = new TextDecoder().decode(data);
-      logger.info({ rawText: rawText.slice(0, 200) }, '📝 Raw data message received');
+      getLogger().info({ rawText: rawText.slice(0, 200) }, '📝 Raw data message received');
 
       const message = JSON.parse(rawText);
-      logger.info(
+      getLogger().info(
         { messageType: message.type, target: message.target, timestamp: message.timestamp },
         '📬 Parsed data message'
       );
@@ -148,7 +146,7 @@ async function handleHandoffRequest(
   const { room, services, voiceAgentRef } = ctx;
   const targetPersona = message.target;
 
-  logger.info({ targetPersona }, '🎯 User requested handoff via UI');
+  getLogger().info({ targetPersona }, '🎯 User requested handoff via UI');
   diag.entry(`🎯 User requested handoff via UI to: ${targetPersona}`);
 
   // Get handoff tools using the new factory
@@ -182,7 +180,7 @@ async function handleHandoffRequest(
   const toolName = `handoffTo${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`;
   const toolNameLower = toolName.toLowerCase();
 
-  logger.info(
+  getLogger().info(
     {
       targetPersona,
       canonicalId,
@@ -206,7 +204,7 @@ async function handleHandoffRequest(
         reliable: true,
       });
     } catch (ackErr) {
-      logger.warn({ error: String(ackErr) }, 'Failed to send handoff ack');
+      getLogger().warn({ error: String(ackErr) }, 'Failed to send handoff ack');
     }
   };
 
@@ -224,17 +222,16 @@ async function handleHandoffRequest(
         reliable: true,
       });
     } catch (failErr) {
-      logger.warn({ error: String(failErr) }, 'Failed to send handoff_failed');
+      getLogger().warn({ error: String(failErr) }, 'Failed to send handoff_failed');
     }
   };
 
   // Check if we have a valid handoff target
   const toolDefinition =
-    handoffToolSet.toolsByAgentId.get(canonicalId) ||
-    handoffToolSet.toolsByName.get(toolNameLower);
+    handoffToolSet.toolsByAgentId.get(canonicalId) || handoffToolSet.toolsByName.get(toolNameLower);
 
   if (toolDefinition) {
-    logger.info(
+    getLogger().info(
       { targetPersona, toolName, currentAgent: getCurrentAgent() },
       '🔄 Executing user-requested handoff'
     );
@@ -247,16 +244,19 @@ async function handleHandoffRequest(
           (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free',
       });
 
-      logger.info({ result: JSON.stringify(result).slice(0, 500) }, '📦 Handoff result');
+      getLogger().info({ result: JSON.stringify(result).slice(0, 500) }, '📦 Handoff result');
 
       if (!result.success) {
-        logger.warn({ error: result.error, rateLimited: result.rateLimited }, '⚠️ Handoff blocked');
+        getLogger().warn(
+          { error: result.error, rateLimited: result.rateLimited },
+          '⚠️ Handoff blocked'
+        );
         await sendAck(false, result.error || 'Handoff failed');
         if (!result.rateLimited) {
           await sendFailure(result.error || 'Handoff failed');
         }
       } else {
-        logger.info({ newAgent: result.targetAgent }, '✅ Handoff executed');
+        getLogger().info({ newAgent: result.targetAgent }, '✅ Handoff executed');
         await sendAck(true);
 
         // CRITICAL: Inject identity into LLM context
@@ -274,16 +274,19 @@ async function handleHandoffRequest(
               diag.entry(`🎭 Identity switch complete for ${newPersona.name}`);
             }
           } catch (identityErr) {
-            logger.warn({ error: String(identityErr) }, 'Identity injection failed (non-fatal)');
+            getLogger().warn(
+              { error: String(identityErr) },
+              'Identity injection failed (non-fatal)'
+            );
           }
         }
       }
     } catch (handoffErr) {
-      logger.error({ error: String(handoffErr) }, '❌ Handoff execution failed');
+      getLogger().error({ error: String(handoffErr) }, '❌ Handoff execution failed');
       await sendFailure(String(handoffErr));
     }
   } else {
-    logger.warn({ targetPersona, toolName }, '⚠️ Unknown handoff target or tool not found');
+    getLogger().warn({ targetPersona, toolName }, '⚠️ Unknown handoff target or tool not found');
     await sendAck(false, `Unknown persona: ${targetPersona}`);
     await sendFailure(`Invalid handoff target: ${targetPersona}`);
   }
@@ -299,7 +302,7 @@ async function handleGameStartRequest(
   const { room, session, sessionPersona } = ctx;
   const { gameType } = message;
 
-  logger.info({ gameType }, '🎮 User requested game start via UI');
+  getLogger().info({ gameType }, '🎮 User requested game start via UI');
 
   try {
     const { getGameEngine } = await import('../../services/games/index.js');
@@ -309,11 +312,11 @@ async function handleGameStartRequest(
     // Cast gameType since it comes from user input via data channel
     type GameType = import('../../services/games/types.js').GameType;
     const welcomeMessage = await engine.startGame(gameType as GameType);
-    logger.info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
+    getLogger().info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
     if (welcomeMessage && session) {
-      logger.info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
+      getLogger().info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
 
       session.generateReply({
         instructions: `You are starting a music game called "${gameType}".
@@ -324,7 +327,7 @@ async function handleGameStartRequest(
         After speaking, wait for the user's response.`,
       });
 
-      logger.info('🎮 Agent spoke welcome message');
+      getLogger().info('🎮 Agent spoke welcome message');
     }
 
     // Send ack to frontend
@@ -339,9 +342,9 @@ async function handleGameStartRequest(
       reliable: true,
     });
 
-    logger.info({ gameType }, '🎮 Game started successfully');
+    getLogger().info({ gameType }, '🎮 Game started successfully');
   } catch (gameErr) {
-    logger.error({ error: String(gameErr), gameType }, '❌ Game start failed');
+    getLogger().error({ error: String(gameErr), gameType }, '❌ Game start failed');
 
     // Make agent acknowledge the error gracefully
     if (session) {
@@ -373,7 +376,7 @@ async function handleVoicePackChange(
 ): Promise<void> {
   const { room, userId } = ctx;
 
-  logger.info({ packId: message.packId }, '🎤 User changed voice pack via Personalize');
+  getLogger().info({ packId: message.packId }, '🎤 User changed voice pack via Personalize');
 
   try {
     const { handleVoicePackMessage } = await import('../../services/voice-pack-service.js');
@@ -391,9 +394,9 @@ async function handleVoicePackChange(
       reliable: true,
     });
 
-    logger.info({ packId: message.packId }, '🎤 Voice pack updated successfully');
+    getLogger().info({ packId: message.packId }, '🎤 Voice pack updated successfully');
   } catch (voicePackErr) {
-    logger.warn({ error: String(voicePackErr) }, 'Voice pack change failed');
+    getLogger().warn({ error: String(voicePackErr) }, 'Voice pack change failed');
   }
 }
 
