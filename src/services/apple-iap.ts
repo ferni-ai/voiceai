@@ -11,7 +11,13 @@
  * We just verify through a different payment provider.
  */
 
-import type { SubscriptionStatus, SubscriptionTier } from '../types/subscription.js';
+import * as crypto from 'crypto';
+import {
+  createDefaultSubscription,
+  type SubscriptionStatus,
+  type SubscriptionTier,
+} from '../types/subscription.js';
+import { getStore } from '../memory/store-factory.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'AppleIAP' });
@@ -157,16 +163,29 @@ export function isAppleConfigured(): boolean {
 // ============================================================================
 
 /**
+ * Base64URL encode (no padding)
+ */
+function base64urlEncode(data: Buffer | string): string {
+  const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  return buffer.toString('base64url');
+}
+
+/**
  * Generate JWT for App Store Server API authentication
  * Uses ES256 algorithm with Apple's private key
  */
 async function generateAppleJWT(): Promise<string> {
-  // In production, use proper JWT library
-  // For now, return placeholder - implement with jsonwebtoken or jose
-  const privateKey = process.env.APPLE_PRIVATE_KEY;
-  if (!privateKey) {
+  const privateKeyPem = process.env.APPLE_PRIVATE_KEY;
+  if (!privateKeyPem) {
     throw new Error('APPLE_PRIVATE_KEY not configured');
   }
+
+  // JWT header
+  const header = {
+    alg: 'ES256',
+    kid: APPLE_CONFIG.keyId,
+    typ: 'JWT',
+  };
 
   // JWT payload
   const now = Math.floor(Date.now() / 1000);
@@ -178,11 +197,29 @@ async function generateAppleJWT(): Promise<string> {
     bid: APPLE_CONFIG.bundleId,
   };
 
-  // Sign with ES256
-  // TODO: Implement proper JWT signing
-  // const jwt = await signJWT(payload, privateKey, APPLE_CONFIG.keyId);
-  log.warn('Apple JWT generation not fully implemented - using placeholder');
-  return 'placeholder-jwt';
+  // Encode header and payload
+  const headerEncoded = base64urlEncode(JSON.stringify(header));
+  const payloadEncoded = base64urlEncode(JSON.stringify(payload));
+  const signingInput = `${headerEncoded}.${payloadEncoded}`;
+
+  // Sign with ES256 (ECDSA P-256 with SHA-256)
+  const sign = crypto.createSign('SHA256');
+  sign.update(signingInput);
+  sign.end();
+
+  // Apple's private key is in PEM format
+  const signature = sign.sign(
+    {
+      key: privateKeyPem.replace(/\\n/g, '\n'), // Handle escaped newlines from env
+      dsaEncoding: 'ieee-p1363', // Required for JWT ES256 format
+    },
+    'base64url'
+  );
+
+  const jwt = `${signingInput}.${signature}`;
+
+  log.debug('Generated Apple JWT for API authentication');
+  return jwt;
 }
 
 // ============================================================================
@@ -583,10 +620,25 @@ async function decodeSignedRenewal(signedRenewal: string): Promise<AppleRenewalI
  * Looks up in our database for the associated Ferni user
  */
 async function findUserByTransaction(originalTransactionId: string): Promise<string | null> {
-  // TODO: Implement database lookup
-  // For now, log and return null
-  log.debug({ originalTransactionId }, 'Looking up user by Apple transaction');
-  return null;
+  try {
+    const store = await getStore();
+    // Query all profiles and find the one with matching Apple transaction ID
+    // Note: In production, you'd want an index for this. For now, we scan.
+    const profiles = await store.listProfiles({ limit: 1000 });
+
+    for (const profile of profiles) {
+      if (profile.subscription?.appleOriginalTransactionId === originalTransactionId) {
+        log.debug({ originalTransactionId, userId: profile.id }, 'Found user by Apple transaction');
+        return profile.id;
+      }
+    }
+
+    log.debug({ originalTransactionId }, 'No user found for Apple transaction');
+    return null;
+  } catch (error) {
+    log.error({ error: String(error), originalTransactionId }, 'Error looking up user by transaction');
+    return null;
+  }
 }
 
 /**
@@ -600,14 +652,35 @@ async function handleNewSubscription(
 
   log.info({ userId, productId: transaction.productId, tier }, 'Processing new Apple subscription');
 
-  // TODO: Update user profile with subscription data
-  // await updateUserSubscription(userId, {
-  //   tier,
-  //   status: 'active',
-  //   provider: 'apple',
-  //   appleOriginalTransactionId: transaction.originalTransactionId,
-  //   currentPeriodEnd: transaction.expiresDate,
-  // });
+  const store = await getStore();
+  const profile = await store.getProfile(userId);
+
+  if (!profile) {
+    log.warn({ userId }, 'Cannot update subscription - profile not found');
+    return;
+  }
+
+  const existingSubscription = profile.subscription ?? createDefaultSubscription();
+
+  const updatedSubscription = {
+    ...existingSubscription,
+    tier,
+    status: 'active' as const,
+    provider: 'apple' as const,
+    appleOriginalTransactionId: transaction.originalTransactionId,
+    appleProductId: transaction.productId,
+    subscribedAt: existingSubscription.subscribedAt ?? transaction.purchaseDate,
+    currentPeriodEnd: transaction.expiresDate,
+    lastSyncedAt: new Date(),
+  };
+
+  await store.saveProfile({
+    ...profile,
+    subscription: updatedSubscription,
+    updatedAt: new Date(),
+  });
+
+  log.info({ userId, tier }, '✅ Apple subscription activated');
 }
 
 /**
@@ -616,11 +689,31 @@ async function handleNewSubscription(
 async function handleRenewal(userId: string, transaction: AppleTransactionInfo): Promise<void> {
   log.info({ userId, productId: transaction.productId }, 'Processing Apple renewal');
 
-  // TODO: Extend subscription period
-  // await updateUserSubscription(userId, {
-  //   status: 'active',
-  //   currentPeriodEnd: transaction.expiresDate,
-  // });
+  const store = await getStore();
+  const profile = await store.getProfile(userId);
+
+  if (!profile) {
+    log.warn({ userId }, 'Cannot update subscription - profile not found');
+    return;
+  }
+
+  const existingSubscription = profile.subscription ?? createDefaultSubscription();
+
+  const updatedSubscription = {
+    ...existingSubscription,
+    status: 'active' as const,
+    currentPeriodEnd: transaction.expiresDate,
+    gracePeriodEnd: undefined, // Clear any grace period
+    lastSyncedAt: new Date(),
+  };
+
+  await store.saveProfile({
+    ...profile,
+    subscription: updatedSubscription,
+    updatedAt: new Date(),
+  });
+
+  log.info({ userId }, '✅ Apple subscription renewed');
 }
 
 /**
@@ -633,12 +726,31 @@ async function handleFailedRenewal(
 ): Promise<void> {
   log.warn({ userId, productId: transaction.productId }, 'Apple renewal failed');
 
-  // Keep access during grace period
-  // TODO: Update status to past_due
-  // await updateUserSubscription(userId, {
-  //   status: 'past_due',
-  //   gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate,
-  // });
+  const store = await getStore();
+  const profile = await store.getProfile(userId);
+
+  if (!profile) {
+    log.warn({ userId }, 'Cannot update subscription - profile not found');
+    return;
+  }
+
+  const existingSubscription = profile.subscription ?? createDefaultSubscription();
+
+  // Keep access during grace period but mark as past_due
+  const updatedSubscription = {
+    ...existingSubscription,
+    status: 'past_due' as const,
+    gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate,
+    lastSyncedAt: new Date(),
+  };
+
+  await store.saveProfile({
+    ...profile,
+    subscription: updatedSubscription,
+    updatedAt: new Date(),
+  });
+
+  log.warn({ userId, gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate }, '⚠️ Apple subscription in grace period');
 }
 
 /**
@@ -647,11 +759,32 @@ async function handleFailedRenewal(
 async function handleExpiration(userId: string, transaction: AppleTransactionInfo): Promise<void> {
   log.info({ userId, productId: transaction.productId }, 'Apple subscription expired');
 
-  // TODO: Downgrade to free tier
-  // await updateUserSubscription(userId, {
-  //   tier: 'free',
-  //   status: 'canceled',
-  // });
+  const store = await getStore();
+  const profile = await store.getProfile(userId);
+
+  if (!profile) {
+    log.warn({ userId }, 'Cannot update subscription - profile not found');
+    return;
+  }
+
+  const existingSubscription = profile.subscription ?? createDefaultSubscription();
+
+  // Downgrade to free tier
+  const updatedSubscription = {
+    ...existingSubscription,
+    tier: 'free' as const,
+    status: 'canceled' as const,
+    gracePeriodEnd: undefined,
+    lastSyncedAt: new Date(),
+  };
+
+  await store.saveProfile({
+    ...profile,
+    subscription: updatedSubscription,
+    updatedAt: new Date(),
+  });
+
+  log.info({ userId }, '📉 Apple subscription expired - downgraded to free');
 }
 
 /**
@@ -660,12 +793,33 @@ async function handleExpiration(userId: string, transaction: AppleTransactionInf
 async function handleRefund(userId: string, transaction: AppleTransactionInfo): Promise<void> {
   log.info({ userId, transactionId: transaction.transactionId }, 'Apple refund/revoke');
 
-  // TODO: Immediately revoke access
-  // await updateUserSubscription(userId, {
-  //   tier: 'free',
-  //   status: 'canceled',
-  //   revokedAt: new Date(),
-  // });
+  const store = await getStore();
+  const profile = await store.getProfile(userId);
+
+  if (!profile) {
+    log.warn({ userId }, 'Cannot update subscription - profile not found');
+    return;
+  }
+
+  const existingSubscription = profile.subscription ?? createDefaultSubscription();
+
+  // Immediately revoke access and downgrade to free
+  const updatedSubscription = {
+    ...existingSubscription,
+    tier: 'free' as const,
+    status: 'canceled' as const,
+    revokedAt: new Date(),
+    gracePeriodEnd: undefined,
+    lastSyncedAt: new Date(),
+  };
+
+  await store.saveProfile({
+    ...profile,
+    subscription: updatedSubscription,
+    updatedAt: new Date(),
+  });
+
+  log.warn({ userId }, '🚫 Apple subscription refunded/revoked - access removed');
 }
 
 /**
@@ -679,8 +833,10 @@ async function handleRenewalStatusChange(
 
   log.info({ userId, willRenew }, 'Apple auto-renew status changed');
 
-  // TODO: Update renewal status
   // This doesn't change access, just tracks intent
+  // We log it for analytics but don't modify the subscription
+  // If user turns off auto-renew, they keep access until period ends
+  // The EXPIRED notification will handle the actual downgrade
 }
 
 // ============================================================================

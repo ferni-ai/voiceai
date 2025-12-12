@@ -10,6 +10,7 @@
  * @module personality/relationship-memory
  */
 
+import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../utils/safe-logger.js';
 import type {
   PersonalityRelationship,
@@ -20,6 +21,21 @@ import type {
 } from './types.js';
 
 const log = createLogger({ module: 'RelationshipMemory' });
+
+// Lazy Firestore initialization to avoid startup issues
+let firestoreInstance: FirebaseFirestore.Firestore | null = null;
+
+function getDb(): FirebaseFirestore.Firestore | null {
+  if (!firestoreInstance) {
+    try {
+      firestoreInstance = getFirestore();
+    } catch (e) {
+      log.warn({ error: String(e) }, 'Firestore not available - using cache only');
+      return null;
+    }
+  }
+  return firestoreInstance;
+}
 
 // ============================================================================
 // IN-MEMORY CACHE
@@ -86,6 +102,68 @@ function toFirestore(rel: PersonalityRelationship): PersonalityRelationshipDoc {
   };
 }
 
+/**
+ * Get Firestore document ID for a relationship
+ */
+function getDocId(userId: string, personaId: string): string {
+  return `${userId}_${personaId}`;
+}
+
+/**
+ * Load relationship from Firestore
+ */
+async function loadFromFirestore(
+  userId: string,
+  personaId: string
+): Promise<PersonalityRelationship | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  try {
+    const docId = getDocId(userId, personaId);
+    const docRef = db.collection(COLLECTION_PATH).doc(docId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return null;
+    }
+
+    const data = doc.data() as PersonalityRelationshipDoc;
+    return fromFirestore(data);
+  } catch (e) {
+    log.warn({ error: String(e), userId, personaId }, 'Failed to load relationship from Firestore');
+    return null;
+  }
+}
+
+/**
+ * Save relationship to Firestore (fire-and-forget with error logging)
+ */
+function saveToFirestore(relationship: PersonalityRelationship): void {
+  const db = getDb();
+  if (!db) return;
+
+  const docId = getDocId(relationship.userId, relationship.personaId);
+  const docRef = db.collection(COLLECTION_PATH).doc(docId);
+  const data = toFirestore(relationship);
+
+  // Fire and forget - don't block on persistence
+  docRef
+    .set(data, { merge: true })
+    .then(() => {
+      log.debug(
+        { userId: relationship.userId, personaId: relationship.personaId },
+        '💾 Relationship saved to Firestore'
+      );
+    })
+    .catch((e) => {
+      log.warn(
+        { error: String(e), userId: relationship.userId, personaId: relationship.personaId },
+        'Failed to save relationship to Firestore'
+      );
+    });
+}
+
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -105,8 +183,15 @@ export async function getRelationship(
     return cached;
   }
 
-  // TODO: Load from Firestore
-  // For now, create new relationship
+  // Try to load from Firestore
+  const fromDb = await loadFromFirestore(userId, personaId);
+  if (fromDb) {
+    relationshipCache.set(cacheKey, fromDb);
+    log.debug({ userId, personaId }, '📖 Loaded relationship from Firestore');
+    return fromDb;
+  }
+
+  // Create new relationship if not found
   const relationship: PersonalityRelationship = {
     userId,
     personaId,
@@ -119,6 +204,10 @@ export async function getRelationship(
   };
 
   relationshipCache.set(cacheKey, relationship);
+
+  // Persist new relationship
+  saveToFirestore(relationship);
+
   return relationship;
 }
 
@@ -157,7 +246,8 @@ export async function recordSharedMoment(
 
   log.debug({ userId, personaId, momentId, topic }, '📝 Recorded shared moment');
 
-  // TODO: Persist to Firestore
+  // Persist to Firestore
+  saveToFirestore(relationship);
 }
 
 /**
@@ -190,7 +280,8 @@ export async function recordUserMoment(
     '📝 Recorded user moment for callback'
   );
 
-  // TODO: Persist to Firestore
+  // Persist to Firestore
+  saveToFirestore(relationship);
 
   return id;
 }
@@ -216,7 +307,8 @@ export async function markCallbackComplete(
 
     log.debug({ userId, personaId, userMomentId }, '✅ Marked callback complete');
 
-    // TODO: Persist to Firestore
+    // Persist to Firestore
+    saveToFirestore(relationship);
   }
 }
 
@@ -279,7 +371,8 @@ export async function incrementVulnerabilityDepth(
   const cacheKey = getCacheKey(userId, personaId);
   relationshipCache.set(cacheKey, relationship);
 
-  // TODO: Persist to Firestore
+  // Persist to Firestore
+  saveToFirestore(relationship);
 }
 
 /**
