@@ -70,7 +70,7 @@ import {
 } from '../services/voice-speaker-change.js';
 
 // Shared Agent Utilities (used by ALL agents)
-import { PROCESSING_TIMEOUTS, SILENCE_THRESHOLDS } from './shared/constants.js';
+import { PROCESSING_TIMEOUTS } from './shared/constants.js';
 import { hasSsmlTags, startHealthCheckServer, type UserData } from './shared/index.js';
 
 // Persona System
@@ -82,13 +82,8 @@ import { getThinkingFiller, resetCatchphraseTracking } from '../speech/response-
 // Graceful error handling for dead air prevention
 import { getGracefulErrorResponse } from '../intelligence/conversation-quality.js';
 
-// Meaningful Silence System - transforms quiet moments into connection
-import {
-  getMeaningfulSilenceResponse,
-  playAmbientMusicDuringSilence,
-  stopAmbientMusic,
-  type SilenceContext,
-} from '../personas/meaningful-silence.js';
+// Meaningful Silence System - SilenceContext imported for session state handlers
+// (full meaningful-silence imports are in session-state-handler.ts)
 
 // Services Bootstrap
 import { createSessionServices, initializeServices } from '../services/index.js';
@@ -187,7 +182,6 @@ import {
 
 // Conversation dynamics - emotional arc, response length, story timing
 import {
-  getActiveListeningEngine,
   getConversationHumanizer,
   getEmotionalArcTracker,
   getResponseDynamicsEngine,
@@ -238,10 +232,7 @@ import {
   finalizeSpeechMetrics,
   initializeSpeechMetrics,
   logMetricsSummary,
-  trackBackchannelEvent,
   trackEmotionDetection,
-  trackResponseLatency,
-  validateTurnPrediction,
 } from './integrations/speech-metrics-integration.js';
 
 // ============================================================================
@@ -293,11 +284,7 @@ import {
 } from '../services/user-analytics.js';
 
 // Mid-session accent change support
-import {
-  checkForAccentChange,
-  registerSessionTTS,
-  unregisterSessionTTS,
-} from '../api/session-accent-routes.js';
+import { registerSessionTTS, unregisterSessionTTS } from '../api/session-accent-routes.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
@@ -324,6 +311,7 @@ import {
   generateAndSpeakGreeting,
   setupDataChannelHandler,
   setupMusicHandler,
+  setupSessionStateHandlers,
 } from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
@@ -3234,499 +3222,18 @@ export default defineAgent({
         })();
       });
 
-      // Track when user finished speaking for response latency calculation
-      let userFinishedSpeakingAt = 0;
-
-      session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
-        if (event.newState === 'speaking') {
-          conversationManager.handleAgentStartedSpeaking('');
-
-          // Track response latency: time from user finish to agent start
-          if (userFinishedSpeakingAt > 0) {
-            const responseLatency = Date.now() - userFinishedSpeakingAt;
-            trackResponseLatency(sessionId, responseLatency);
-            userFinishedSpeakingAt = 0; // Reset after tracking
-          }
-
-          // 🌍 Check for mid-session accent changes
-          // This applies any pending accent change before the agent speaks
-          void checkForAccentChange(sessionId).catch((accentErr) => {
-            diag.warn('Mid-session accent check failed', { error: String(accentErr) });
-          });
-
-          // 🎧 DJ BOOTH: Notify agent speaking - smooth ducking with timing
-          // The DJ Booth handles volume fading (not abrupt duck/unduck)
-          const booth = getDJBooth();
-          if (booth) {
-            // 🎵 THINKING MUSIC: Stop thinking music when agent starts speaking
-            // The agent is no longer "thinking" - they have a response!
-            booth.onProcessingEnd();
-            // DJ Booth will smoothly fade music to talk-over volume
-            // and manage timing for when to restore
-            diag.state('🎧 Agent speaking - DJ Booth managing music');
-          } else {
-            // Fallback to basic ducking if DJ Booth not initialized
-            import('../config/environment.js')
-              .then(async ({ isMusicEnabled }) => {
-                if (!isMusicEnabled()) return;
-                return import('../audio/index.js');
-              })
-              .then((audioModule) => {
-                if (!audioModule) return;
-                const player = audioModule.getMusicPlayer();
-                if (player.isPlaying()) {
-                  player.duck();
-                  diag.state('Ducked background music for agent speech (basic)');
-                }
-              })
-              .catch((e) => log().debug({ error: String(e) }, 'Music ducking (non-critical)'));
-          }
-        }
-        if (event.oldState === 'speaking' && event.newState !== 'speaking') {
-          conversationManager.handleAgentFinishedSpeaking(0);
-
-          // 🎧 DJ BOOTH: Notify agent stopped speaking
-          const booth = getDJBooth();
-          if (booth) {
-            booth.onAgentFinishedSpeaking();
-            diag.state('🎧 Agent stopped - DJ Booth restoring music');
-          } else {
-            // Fallback to basic unducking
-            import('../config/environment.js')
-              .then(async ({ isMusicEnabled }) => {
-                if (!isMusicEnabled()) return;
-                return import('../audio/index.js');
-              })
-              .then((audioModule) => {
-                if (!audioModule) return;
-                const player = audioModule.getMusicPlayer();
-                if (player.getState().isDucked) {
-                  player.unduck();
-                  diag.state('Unducked background music after agent speech (basic)');
-                }
-              })
-              .catch((e) => log().debug({ error: String(e) }, 'Music unducking (non-critical)'));
-          }
-        }
-      });
-
-      let userLastSpokeAt = Date.now();
-      let silenceResponseCount = 0;
-      let lastSilenceResponseAt = 0;
-
-      // Track conversation context for meaningful silence responses
-      const silenceContext: SilenceContext = {
-        silenceDurationSeconds: 0,
-        turnCount: 0,
-        topicsDiscussed: [],
-        recentEmotionalTone: 'neutral',
-        userName: userData.name,
-        memorableMoments: [],
-        isGameActive: false,
-        activeGameType: undefined,
-        isMusicPlaying: false,
-      };
-
       // ===============================================
-      // BACKCHANNEL SYSTEM - Real-time listening cues
+      // SESSION STATE HANDLERS (AgentStateChanged, UserStateChanged)
       // ===============================================
-      // Fire "mm-hmm", "right", etc. while user is speaking long turns
-      // This makes the AI feel like it's actively listening
-      //
-      // Research basis (see docs/VOICE-HUMANIZATION-RESEARCH.md):
-      // - Backchanneling signals active listening and reduces awkward pauses
-      // - Triggers after 3s (reduced from 3.5s for faster response)
-      // - Min interval 4s (reduced from 5s) for more natural conversation
-      const activeListening = getActiveListeningEngine();
-      let backchannelTimer: ReturnType<typeof setTimeout> | null = null;
-      let lastBackchannelAt = 0;
-      const BACKCHANNEL_MIN_INTERVAL_MS = 4000; // Research: 4s feels more natural than 5s
-      const BACKCHANNEL_TRIGGER_MS = 3000; // Research: 3s better than 3.5s for responsiveness
-
-      const attemptBackchannel = async () => {
-        // Don't backchannel if agent is speaking
-        if (conversationManager.isAgentSpeaking()) return;
-
-        // Don't backchannel too frequently
-        if (Date.now() - lastBackchannelAt < BACKCHANNEL_MIN_INTERVAL_MS) return;
-
-        // Get a backchannel from active listening engine
-        const backchannel = activeListening.getBackchannel(sessionPersona.id, {
-          userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : undefined,
-          topicSeriousness: silenceContext.recentEmotionalTone === 'heavy' ? 'serious' : 'casual',
-          userJustSharedSomethingPersonal: silenceContext.recentEmotionalTone === 'heavy',
-        });
-
-        if (backchannel) {
-          try {
-            // Say the backchannel with SSML - allow interruption
-            session.say(backchannel.ssml, { allowInterruptions: true });
-            const backchannelFiredAt = Date.now();
-            const pauseDuration = backchannelFiredAt - lastBackchannelAt;
-            lastBackchannelAt = backchannelFiredAt;
-
-            // Track that we gave a backchannel (for reaction analysis)
-            pendingBackchannelReaction = true;
-
-            // Track detailed backchannel event in unified metrics
-            // Backchannel types: 'acknowledgment' | 'understanding' | 'encouragement' | 'empathy' | 'agreement' | 'surprise' | 'thinking'
-            trackBackchannelEvent(sessionId, {
-              pauseDurationMs: pauseDuration,
-              wasTimely: true, // Assume timely initially, will validate later
-              category:
-                backchannel.type === 'empathy'
-                  ? 'empathy'
-                  : backchannel.type === 'encouragement'
-                    ? 'encouragement'
-                    : backchannel.type === 'agreement'
-                      ? 'affirmation'
-                      : 'acknowledgment',
-              userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
-              mode: 'adaptive',
-            });
-
-            diag.state('Backchannel fired', {
-              text: backchannel.verbal,
-              type: backchannel.type,
-              persona: sessionPersona.id,
-            });
-          } catch (e) {
-            logger.warn({ error: e }, 'Failed to fire backchannel');
-          }
-        }
-      };
-
-      // Track backchannel reactions for frequency tuning
-      let pendingBackchannelReaction = false;
-
-      session.on(voice.AgentSessionEventTypes.UserStateChanged, (event) => {
-        if (event.newState === 'speaking') {
-          userLastSpokeAt = Date.now();
-          userData.userSpeakingStartTime = userLastSpokeAt;
-
-          // Validate turn prediction: user continued speaking
-          validateTurnPrediction(sessionId, 'user_continued');
-
-          // Check if user responded to our backchannel (within 10 seconds)
-          if (pendingBackchannelReaction && Date.now() - lastBackchannelAt < 10000) {
-            // User continued speaking after backchannel - positive reaction!
-            activeListening.recordBackchannelReaction(true);
-            pendingBackchannelReaction = false;
-          }
-          // Reset silence tracking when user speaks
-          silenceResponseCount = 0;
-          lastSilenceResponseAt = 0;
-          // Stop ambient music when user starts speaking
-          stopAmbientMusic();
-          conversationManager.handleUserStartedSpeaking();
-
-          // 🎧 DJ BOOTH: User started speaking - duck music to hear them clearly
-          const booth = getDJBooth();
-          if (booth) {
-            booth.onUserStartSpeaking();
-            diag.state('🎧 User speaking - DJ Booth ducking music');
-          }
-
-          // 🎮 GAME DUCKING: Lower music volume when user speaks during a game
-          // They're making a guess - let them be heard clearly!
-          void (async () => {
-            try {
-              const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } =
-                await import('../services/games/index.js');
-              if (isGameCurrentlyActive()) {
-                duckForUserGuess();
-                updateGameActivity(); // Track activity for auto-cleanup
-              }
-            } catch {
-              // Games module not loaded - that's fine
-            }
-          })();
-
-          // Schedule potential backchannel after user has been speaking a while
-          // Only for turn 3+ to establish rapport first
-          if ((userData.turnCount || 0) >= 3) {
-            backchannelTimer = setTimeout(() => {
-              void attemptBackchannel();
-            }, BACKCHANNEL_TRIGGER_MS);
-          }
-        } else if (event.newState === 'listening') {
-          // User stopped speaking - cancel pending backchannel
-          if (backchannelTimer) {
-            clearTimeout(backchannelTimer);
-            backchannelTimer = null;
-          }
-
-          // Validate turn prediction: user finished speaking
-          validateTurnPrediction(sessionId, 'user_finished');
-
-          // Record timestamp for response latency tracking
-          userFinishedSpeakingAt = Date.now();
-
-          if (userData.userSpeakingStartTime) {
-            conversationManager.handleUserFinishedSpeaking(
-              Date.now() - userData.userSpeakingStartTime
-            );
-          }
-
-          // 🎧 DJ BOOTH: User stopped speaking - restore music (unless agent is responding)
-          const userStopBooth = getDJBooth();
-          if (userStopBooth) {
-            userStopBooth.onUserStopSpeaking();
-            diag.state('🎧 User stopped - DJ Booth managing volume restore');
-
-            // 🎵 THINKING MUSIC: User stopped speaking, agent is "thinking"
-            // Start the thinking music timer - it will play after a delay if agent
-            // doesn't respond quickly. This fills awkward silences during LLM processing.
-            userStopBooth.onProcessingStart();
-            diag.state('🎵 User stopped speaking - thinking music scheduled');
-          }
-
-          // ================================================================
-          // DEAD AIR FIX: Early silence detection
-          // If agent hasn't started responding after EARLY_ACKNOWLEDGMENT_SECONDS,
-          // speak a quick acknowledgment to fill the silence
-          // ================================================================
-          const userStoppedAt = Date.now();
-          let earlyAckTimer: ReturnType<typeof setTimeout> | null = null;
-
-          earlyAckTimer = setTimeout(() => {
-            // Check if agent is still not speaking
-            if (!conversationManager.isAgentSpeaking()) {
-              // Only fire if we haven't spoken anything else
-              const timeSinceStop = Date.now() - userStoppedAt;
-              if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-                const filler = getThinkingFiller(sessionPersona.id);
-                try {
-                  session.say(filler, { allowInterruptions: true });
-                  diag.state('🎤 Early acknowledgment (agent processing)', {
-                    waitedMs: timeSinceStop,
-                    personaId: sessionPersona.id,
-                  });
-                } catch (e) {
-                  logger.debug({ error: e }, 'Failed to say early acknowledgment');
-                }
-              }
-            }
-            earlyAckTimer = null;
-          }, SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000);
-
-          // Clean up timer if agent starts speaking (via state change listener)
-          const cleanupEarlyAck = () => {
-            if (earlyAckTimer) {
-              clearTimeout(earlyAckTimer);
-              earlyAckTimer = null;
-            }
-          };
-
-          // Listen for agent starting to speak to cancel the early ack
-          const agentStateHandler = (agentEvent: { newState: string }) => {
-            if (agentEvent.newState === 'speaking') {
-              cleanupEarlyAck();
-              session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
-            }
-          };
-          session.on(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
-
-          // Also clean up after 10 seconds regardless (prevents memory leaks)
-          setTimeout(() => {
-            cleanupEarlyAck();
-            session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
-          }, 10000);
-
-          // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
-          void (async () => {
-            try {
-              const { isGameCurrentlyActive, unduckAfterGuess } =
-                await import('../services/games/index.js');
-              if (isGameCurrentlyActive()) {
-                unduckAfterGuess();
-              }
-            } catch {
-              // Games module not loaded - that's fine
-            }
-          })();
-        }
-
-        // MEANINGFUL SILENCE HANDLING
-        // Progressive responses that create genuine connection instead of "still there?"
-        if (event.newState === 'away') {
-          const silenceDurationMs = Date.now() - userLastSpokeAt;
-          const silenceDurationSec = silenceDurationMs / 1000;
-
-          // Track negative backchannel reaction if user went silent after our backchannel
-          if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > 5000) {
-            // User went silent 5+ seconds after backchannel - might be negative
-            activeListening.recordBackchannelReaction(false);
-            pendingBackchannelReaction = false;
-          }
-
-          // ----------------------------------------------------------------
-          // MEDIUM SILENCE BACKCHANNELS (3-8 seconds)
-          // Gentle acknowledgment before the full meaningful silence system kicks in
-          // These create connection without being intrusive
-          // ----------------------------------------------------------------
-          const MEDIUM_SILENCE_THRESHOLD_SEC = 4; // 4 seconds of silence
-          const MEDIUM_SILENCE_COOLDOWN_MS = 12000; // Only one per 12 seconds
-
-          if (
-            silenceDurationSec >= MEDIUM_SILENCE_THRESHOLD_SEC &&
-            silenceDurationSec < 10 && // Before meaningful silence kicks in
-            silenceResponseCount === 0 && // No response given yet
-            Date.now() - lastBackchannelAt > MEDIUM_SILENCE_COOLDOWN_MS &&
-            !conversationManager.isAgentSpeaking() &&
-            (userData.turnCount || 0) >= 2 // Not in first couple turns
-          ) {
-            // Check if this was a vulnerable/emotional moment - give more space
-            const isEmotionalMoment = silenceContext.recentEmotionalTone === 'heavy';
-
-            // For emotional moments, wait longer (6 seconds) before gentle acknowledgment
-            if (!isEmotionalMoment || silenceDurationSec >= 6) {
-              const silenceBackchannel = activeListening.getSilenceBackchannel(sessionPersona.id, {
-                silenceDurationMs,
-                userJustSharedPersonal: isEmotionalMoment,
-                userIsProcessingEmotions: isEmotionalMoment,
-                lastUserEmotion: userData.lastEmotionAnalysis?.primary,
-                turnCount: userData.turnCount || 0,
-              });
-
-              if (silenceBackchannel) {
-                try {
-                  session.say(silenceBackchannel.ssml, { allowInterruptions: true });
-                  lastBackchannelAt = Date.now();
-                  diag.state('Silence-aware backchannel', {
-                    phrase: silenceBackchannel.verbal,
-                    silenceSec: Math.round(silenceDurationSec),
-                    type: silenceBackchannel.type,
-                  });
-                } catch (e) {
-                  logger.debug({ error: e }, 'Failed to say silence backchannel');
-                }
-              }
-
-              // ============================================================
-              // VOICE INSIGHT DELIVERY: "You sound tired today"
-              // After silence backchannel, this is a good moment to deliver
-              // voice-based observations in a natural way
-              // ============================================================
-              if (
-                userData?.pendingVoiceInsight &&
-                !userData.deliveredVoiceInsight &&
-                silenceDurationSec >= 4 // Wait for meaningful pause
-              ) {
-                try {
-                  const insight = userData.pendingVoiceInsight;
-
-                  // Only deliver if confidence is high enough
-                  if (insight.confidence > 0.6) {
-                    session.say(`<break time="300ms"/>${insight.ssml}`, {
-                      allowInterruptions: true,
-                    });
-
-                    userData.deliveredVoiceInsight = true;
-                    userData.pendingVoiceInsight = undefined;
-
-                    diag.state('🎤 Delivered voice state insight', {
-                      emotion: insight.emotion,
-                      confidence: insight.confidence,
-                    });
-
-                    // Track in analytics (async wrapper to avoid await in sync context)
-                    void (async () => {
-                      const { humanizationAnalytics } =
-                        await import('../conversation/humanization/analytics.js');
-                      humanizationAnalytics.recordApplied(sessionId, 'voice_print_detection', {
-                        emotion: insight.emotion,
-                        confidence: insight.confidence,
-                      });
-                    })();
-                  }
-                } catch (insightErr) {
-                  logger.debug({ error: insightErr }, 'Failed to deliver voice insight');
-                }
-              }
-            }
-          }
-
-          // ----------------------------------------------------------------
-          // LONG SILENCE (10s+) - Meaningful silence responses
-          // ----------------------------------------------------------------
-          // Determine which interval we're in and if we should respond
-          // First response at 10s, second at 22s, third at 38s
-          const intervals = [10, 22, 38];
-          const targetInterval = intervals[silenceResponseCount];
-
-          if (
-            targetInterval &&
-            silenceDurationSec >= targetInterval &&
-            Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL
-          ) {
-            userData.userWentSilent = true;
-
-            // Update silence context from conversation state
-            silenceContext.silenceDurationSeconds = silenceDurationSec;
-            silenceContext.turnCount = userData.turnCount || 0;
-            silenceContext.userName = userData.name;
-
-            // Get topics from services if available
-            try {
-              const promptContext = services.getPromptContext();
-              if (promptContext.topicsToCircleBack) {
-                silenceContext.topicsDiscussed = promptContext.topicsToCircleBack;
-                // Set wasDiscussingTopic to the most recent topic
-                if (promptContext.topicsToCircleBack.length > 0) {
-                  silenceContext.wasDiscussingTopic = promptContext.topicsToCircleBack[0];
-                }
-              }
-              // Detect emotional tone from recent phase
-              if (promptContext.phase === 'supporting') {
-                silenceContext.recentEmotionalTone = 'heavy';
-              } else if (
-                promptContext.phase === 'greeting' ||
-                promptContext.phase === 'warming_up'
-              ) {
-                silenceContext.recentEmotionalTone = 'light';
-              }
-              // Also set time awareness
-              silenceContext.currentHour = new Date().getHours();
-              silenceContext.isWeekend = [0, 6].includes(new Date().getDay());
-            } catch (e) {
-              // Services might not be ready
-              log().debug(
-                { error: String(e) },
-                'Silence context initialization failed (services not ready)'
-              );
-            }
-
-            // Get meaningful silence response instead of generic filler
-            const silenceResponse = getMeaningfulSilenceResponse(sessionPersona, silenceContext);
-
-            diag.state('Meaningful silence response', {
-              type: silenceResponse.type,
-              silenceDuration: Math.round(silenceDurationSec),
-              responseCount: silenceResponseCount + 1,
-            });
-
-            try {
-              session.say(silenceResponse.text, { allowInterruptions: true });
-              silenceResponseCount++;
-
-              // If we offered music, actually play it after a short delay
-              if (silenceResponse.type === 'music_offering') {
-                setTimeout(() => {
-                  void (async () => {
-                    const musicStarted = await playAmbientMusicDuringSilence();
-                    if (musicStarted) {
-                      diag.state('Started ambient music during silence');
-                    }
-                  })();
-                }, 3000); // Wait 3 seconds for them to respond before starting music
-              }
-              lastSilenceResponseAt = Date.now();
-            } catch (e) {
-              logger.warn({ error: e }, 'Failed to say silence response');
-            }
-          }
-        }
+      // Extracted to voice-agent/session-state-handler.ts for maintainability
+      // Handles: Agent speaking state (DJ booth, response latency, accent changes),
+      // User speaking state (backchannels, meaningful silence, early acknowledgments)
+      const { silenceContext } = setupSessionStateHandlers({
+        session,
+        sessionPersona,
+        conversationManager,
+        userData,
+        sessionId,
       });
 
       // ===============================================

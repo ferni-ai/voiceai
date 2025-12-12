@@ -39,6 +39,13 @@ export {
   type TranscriptEvent,
 } from './transcript-handler.js';
 
+// Session state handler (AgentStateChanged, UserStateChanged)
+export {
+  setupSessionStateHandlers,
+  type SessionStateContext,
+  type SessionStateResult,
+} from './session-state-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
