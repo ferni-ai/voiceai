@@ -28,15 +28,9 @@ const _startInfo = JSON.stringify({
   time: new Date().toISOString(),
 });
 process.stderr.write(`[voice-agent] ${_startInfo}\n`);
-console.log('[voice-agent] MODULE START', {
-  pid: process.pid,
-  isChild: !!process.send,
-  time: new Date().toISOString(),
-});
 
 // ============================================================================
 // EARLY STARTUP LOGGING
-// Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
 import { Modality } from '@google/genai';
 import {
@@ -59,20 +53,16 @@ import { TextDecoder, TextEncoder } from 'node:util';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import { DEBUG_STARTUP, earlyLog } from './shared/early-logger.js';
 
-console.log('[voice-agent] After early-logger import', { pid: process.pid });
+process.stderr.write(`[voice-agent] early-logger ready (pid=${process.pid})\n`);
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   nodeVersion: process.version,
   personaId: process.env['PERSONA_ID'] || '(default)',
 });
 
-console.log('[voice-agent] Importing @google/genai...', { pid: process.pid });
-console.log('[voice-agent] Importing @livekit/agents...', { pid: process.pid });
-console.log('[voice-agent] Importing google plugin...', { pid: process.pid });
-console.log('[voice-agent] Importing silero plugin...', { pid: process.pid });
-console.log('[voice-agent] Importing noise-cancellation...', { pid: process.pid });
-console.log('[voice-agent] Importing dotenv...', { pid: process.pid });
-console.log('[voice-agent] Core imports complete', { pid: process.pid });
+if (DEBUG_STARTUP) {
+  process.stderr.write(`[voice-agent] core imports complete (pid=${process.pid})\n`);
+}
 // Voice authentication - speaker change detection (available for future integration)
 import {
   getSpeakerChangeDetector,
@@ -84,26 +74,7 @@ import { PROCESSING_TIMEOUTS, SILENCE_THRESHOLDS } from './shared/constants.js';
 import { hasSsmlTags, startHealthCheckServer, type UserData } from './shared/index.js';
 
 // Persona System
-import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
-import {
-  getPersonaAsync,
-  initializeFromBundles,
-  type PersonaConfig,
-} from '../personas/index.js';
-import { convertFromUserProfileEvents } from '../personas/shared/life-events.js';
-
-// Persona Memory System - for memory-enhanced greetings
-import {
-  getPersonaMemories,
-  normalizePersonaId,
-} from '../intelligence/context-builders/persona-memory.js';
-
-// Greeting repetition prevention
-import {
-  applyHumanizingStateToProfile,
-  getHumanizingState,
-  recordGreetingUsage,
-} from '../services/humanizing-state.js';
+import { getPersonaAsync, initializeFromBundles, type PersonaConfig } from '../personas/index.js';
 
 // Response naturalness - acknowledgments, thinking fillers, catchphrases
 import { getThinkingFiller, resetCatchphraseTracking } from '../speech/response-naturalness.js';
@@ -127,7 +98,6 @@ import { createSessionServices, initializeServices } from '../services/index.js'
 // First Taste Trial - "Better than Human" free trial experience
 import {
   checkTrialStatus,
-  getTrialWelcomePrompt,
   isEligibleForTrial,
   recordTrialTime,
   startTrial,
@@ -158,10 +128,7 @@ import {
 } from '../services/trust-systems/index.js';
 
 // Simple Utilities - "Better than human" everyday helpers (timers, tips, timezone, etc.)
-import {
-  initializeUtilitiesIntegration,
-  weaveProactiveIntoGreeting,
-} from './shared/utilities-integration.js';
+import { initializeUtilitiesIntegration } from './shared/utilities-integration.js';
 
 // Cognitive Intelligence - Session lifecycle hooks for persistent learning
 import {
@@ -363,6 +330,9 @@ import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handl
 
 // Cameo system (for team member pop-ins)
 import { registerCameoHandlers } from './shared/cameo-handler.js';
+
+// Voice Agent modules (extracted for maintainability)
+import { generateAndSpeakGreeting } from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
 import { createBundleRuntime, type BundleRuntimeEngine } from '../personas/bundles/index.js';
@@ -4855,381 +4825,20 @@ export default defineAgent({
       // ===============================================
       // STEP 8: GENERATE AND SAY GREETING
       // ===============================================
-      diag.session('Step 8: Generating greeting');
-
-      let greeting: string | undefined;
-
-      // ===============================================
-      // FIRST TASTE TRIAL: Use special welcome for first-time trial users
-      // This creates the "magic first impression" before any friction
-      // ===============================================
-      if (userData.isFirstConversation && userData.isTrialUser) {
-        greeting = getTrialWelcomePrompt();
-        diag.session('Using trial welcome prompt for first-time user', {
-          userId,
-          greeting: `${greeting.slice(0, 50)}...`,
-        });
-      }
-
-      // Load persona-specific memories for memory-enhanced greetings (skip for trial welcome)
-      let personaMemories: PersonaMemoryForGreeting[] = [];
-      if (!greeting && isReturningUser && services.userProfile?.id && sessionPersona?.id) {
-        try {
-          const normalizedId = normalizePersonaId(sessionPersona.id);
-          if (normalizedId) {
-            const memoryResult = await getPersonaMemories(
-              services.userProfile.id,
-              normalizedId,
-              userData.name || services.userProfile.name
-            );
-            if (memoryResult && memoryResult.memories.length > 0) {
-              personaMemories = memoryResult.memories.map((m) => ({
-                type: m.type,
-                name: m.name,
-                details: m.details,
-                sentiment: m.sentiment,
-                // Add persona-specific fields if present
-                ...('ticker' in m && { ticker: (m as { ticker?: string }).ticker }),
-                ...('date' in m && { date: (m as { date?: string }).date }),
-                ...('targetAmount' in m && {
-                  targetAmount: (m as { targetAmount?: number }).targetAmount,
-                }),
-                ...('currentAmount' in m && {
-                  currentAmount: (m as { currentAmount?: number }).currentAmount,
-                }),
-                ...('reason' in m && { reason: (m as { reason?: string }).reason }),
-              }));
-              diag.session('Loaded persona memories for greeting', {
-                personaId: normalizedId,
-                memoryCount: personaMemories.length,
-              });
-            }
-          }
-        } catch (e) {
-          diag.warn('Failed to load persona memories for greeting', { error: String(e) });
-        }
-      }
-
-      // Try bundle runtime for enhanced greeting first (skip if trial welcome already set)
-      if (!greeting && bundleRuntime) {
-        // Get time-of-day aware greeting from bundle
-        const timeGreeting = bundleRuntime.getTimeOfDayGreeting();
-        const relationshipStage = bundleRuntime.getCurrentRelationshipStage();
-        const stagePhrases = relationshipStage?.phrases?.greetings;
-
-        if (stagePhrases && stagePhrases.length > 0) {
-          // Use relationship-stage appropriate greeting
-          let bundleGreeting = stagePhrases[Math.floor(Math.random() * stagePhrases.length)];
-
-          // Substitute {name} placeholder if we have a name
-          if (userData.name) {
-            bundleGreeting = bundleGreeting.replace(/\{name\}/g, userData.name);
-          } else {
-            // Remove name placeholders if no name
-            bundleGreeting = bundleGreeting.replace(/\{name\}[,!]?\s*/g, '');
-          }
-
-          greeting = bundleGreeting;
-          diag.session('Using bundle relationship-stage greeting', {
-            stage: bundleRuntime.getRelationshipStageName(),
-            hasTimeGreeting: !!timeGreeting,
-          });
-        } else if (timeGreeting) {
-          greeting = timeGreeting;
-          diag.session('Using bundle time-of-day greeting');
-        } else {
-          // Fall back to standard greeting generator with persona memories + bundleRuntime
-          // Include proactive opener context for intelligent greetings
-
-          // Get open thread conversation starter for proactive greeting
-          let threadStarter: string | undefined;
-          const openThreads = services.getOpenThreads();
-          if (openThreads.length > 0 && isReturningUser) {
-            threadStarter = services.getThreadConversationStarter() || undefined;
-            if (threadStarter) {
-              diag.session('Found cross-session thread to surface', {
-                threadCount: openThreads.length,
-                starter: threadStarter.slice(0, 50),
-              });
-            }
-          }
-
-          // Get open questions from threads
-          const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
-
-          greeting = await generateGreeting(sessionPersona, {
-            isReturningUser,
-            userName: userData.name,
-            lastConversationSummary: services.userProfile?.lastConversationSummary,
-            personaMemories, // Pass persona-specific memories for memory-enhanced greetings
-            bundleRuntime, // Pass runtime for alive greetings
-            relationshipStage: services.userProfile?.relationshipStage as
-              | 'stranger'
-              | 'acquaintance'
-              | 'friend'
-              | 'trusted_advisor'
-              | undefined,
-            usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-            // Proactive opener context for returning users
-            lastConversationDate: services.userProfile?.lastContact
-              ? new Date(services.userProfile.lastContact)
-              : undefined,
-            goals: services.userProfile?.goals,
-            primaryConcerns: services.userProfile?.primaryConcerns,
-            openQuestions, // Questions from cross-session threads
-            // Convert UserProfile.lifeEvents to shared/life-events format for greeting integration
-            lifeEvents: services.userProfile?.lifeEvents
-              ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
-              : undefined,
-            conversationCount: services.userProfile?.totalConversations,
-            // 🌟 Personal Journey: Pass userId for journey-enhanced greetings
-            userId: services.userId,
-          });
-
-          // Track if greeting referenced last conversation (for repetition prevention)
-          if (greeting.toLowerCase().includes('last time')) {
-            userData.hasReferencedLastConversation = true;
-          }
-
-          // If we have a thread starter and didn't use it in greeting, append it
-          if (threadStarter && !userData.hasReferencedLastConversation) {
-            greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
-            userData.hasReferencedLastConversation = true;
-          }
-        }
-
-        // Apply time-of-day modifiers to greeting delivery
-        const timeModifiers = bundleRuntime.getTimeOfDayModifiers();
-        if (timeModifiers.volume === 'soft') {
-          greeting = `<volume level="soft"/>${greeting}`;
-        }
-      } else if (!greeting) {
-        // Standard greeting without bundle - include persona memories and proactive context
-        // (Skip if trial welcome was already set)
-
-        // Get open thread conversation starter for proactive greeting
-        let threadStarter: string | undefined;
-        const openThreads = services.getOpenThreads();
-        if (openThreads.length > 0 && isReturningUser) {
-          threadStarter = services.getThreadConversationStarter() || undefined;
-        }
-
-        // Get open questions from threads
-        const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
-
-        // Get high-priority proactive insights for check-ins
-        let proactiveInsight: string | undefined;
-        let proactiveInsightId: string | undefined;
-        if (isReturningUser) {
-          try {
-            const insightResult = await services.getProactiveInsights();
-            if (insightResult.highPriorityCount > 0 && insightResult.suggestedConversationStarter) {
-              // Only use proactive insight if no thread starter (avoid double-starter)
-              if (!threadStarter) {
-                proactiveInsight = insightResult.suggestedConversationStarter;
-                proactiveInsightId = insightResult.suggestedInsightId;
-              }
-            }
-          } catch (e) {
-            log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
-          }
-        }
-
-        // Get emotional memory check-in suggestions for returning users
-        let emotionalCheckIn: string | undefined;
-        if (isReturningUser && !threadStarter && !proactiveInsight) {
-          try {
-            const checkIns = services.emotionalMemory.getCheckInSuggestions();
-            if (checkIns.length > 0) {
-              const topCheckIn = checkIns[0];
-              // Mark as followed up so we don't repeat
-              services.emotionalMemory.markFollowedUp(topCheckIn.moment.id);
-              emotionalCheckIn = topCheckIn.suggestedOpener;
-              diag.session('Using emotional memory check-in', {
-                type: topCheckIn.type,
-                reference: topCheckIn.reference,
-              });
-            }
-          } catch (e) {
-            log().debug({ error: String(e) }, 'Emotional check-in fetch failed (non-blocking)');
-          }
-        }
-
-        greeting = await generateGreeting(sessionPersona, {
-          isReturningUser,
-          userName: userData.name,
-          lastConversationSummary: services.userProfile?.lastConversationSummary,
-          personaMemories, // Pass persona-specific memories for memory-enhanced greetings
-          relationshipStage: services.userProfile?.relationshipStage as
-            | 'stranger'
-            | 'acquaintance'
-            | 'friend'
-            | 'trusted_advisor'
-            | undefined,
-          usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-          // Proactive opener context for returning users
-          lastConversationDate: services.userProfile?.lastContact
-            ? new Date(services.userProfile.lastContact)
-            : undefined,
-          goals: services.userProfile?.goals,
-          primaryConcerns: services.userProfile?.primaryConcerns,
-          openQuestions, // Questions from cross-session threads
-          // Convert UserProfile.lifeEvents to shared/life-events format for greeting integration
-          lifeEvents: services.userProfile?.lifeEvents
-            ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
-            : undefined,
-          conversationCount: services.userProfile?.totalConversations,
-          // 🌟 Personal Journey: Pass userId for journey-enhanced greetings
-          userId: services.userId,
-        });
-
-        // Track if greeting referenced last conversation (for repetition prevention)
-        if (greeting.toLowerCase().includes('last time')) {
-          userData.hasReferencedLastConversation = true;
-        }
-
-        // If we have a thread starter and didn't use it in greeting, append it
-        if (threadStarter && !userData.hasReferencedLastConversation) {
-          greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
-          userData.hasReferencedLastConversation = true;
-        }
-
-        // If we have an emotional memory check-in, append it
-        if (emotionalCheckIn && !userData.hasReferencedLastConversation) {
-          greeting = `${greeting} <break time="400ms"/> ${emotionalCheckIn}`;
-          userData.hasReferencedLastConversation = true;
-        }
-
-        // Or append proactive insight if we have one
-        if (proactiveInsight && !threadStarter && !greeting.toLowerCase().includes('checking in')) {
-          greeting = `${greeting} <break time="400ms"/> ${proactiveInsight}`;
-
-          // Mark insight as delivered for tracking
-          if (proactiveInsightId) {
-            services.markInsightDelivered(proactiveInsightId);
-            diag.session('Proactive insight delivered', { insightId: proactiveInsightId });
-          }
-        }
-      }
-
-      // ===============================================
-      // STEP 8b: WEAVE IN UTILITIES PROACTIVE OPENER
-      // ===============================================
-      // Add "better than human" utility suggestions (e.g., "Want your usual tea timer?")
-      if (utilitiesProactiveOpener) {
-        greeting = weaveProactiveIntoGreeting(greeting, utilitiesProactiveOpener, 0.3);
-        diag.session('Wove in utilities proactive opener', {
-          opener: utilitiesProactiveOpener.slice(0, 50),
-        });
-      }
-
-      // ===============================================
-      // STEP 8c: CROSS-SESSION MUSIC MEMORY CALLBACK
-      // ===============================================
-      // Reference their favorite music from past sessions (DJ memory!)
-      if (isReturningUser && services.userProfile?.musicMemory && isMusicEnabled()) {
-        try {
-          const { getCrossSessionMusicCallback } = await import('../services/dj-service.js');
-          const musicCallback = getCrossSessionMusicCallback(
-            sessionPersona.id,
-            services.userProfile.musicMemory
-          );
-
-          // 20% chance to mention music preferences in greeting (not too pushy)
-          if (musicCallback && Math.random() < 0.2) {
-            greeting = `${greeting} <break time="500ms"/> ${musicCallback}`;
-            diag.session('Added cross-session music callback', {
-              callback: musicCallback.slice(0, 50),
-            });
-          }
-        } catch (e) {
-          diag.warn('Cross-session music callback failed', { error: String(e) });
-        }
-      }
-
-      diag.tts('Generated greeting', {
-        greeting: greeting.substring(0, 100) + (greeting.length > 100 ? '...' : ''),
-        length: greeting.length,
+      // Extracted to voice-agent/greeting-handler.ts for maintainability
+      await generateAndSpeakGreeting({
+        sessionPersona,
+        services,
+        userData,
+        sessionId,
+        userId,
+        userName,
+        isReturningUser,
+        bundleRuntime,
+        utilitiesProactiveOpener: utilitiesProactiveOpener ?? undefined,
+        session,
+        tagGreeting,
       });
-
-      // ===============================================
-      // STEP 8d: CROSS-SESSION VOICE ACKNOWLEDGMENT
-      // Note: This happens AFTER voice data is available (turn 2+)
-      // The acknowledgment is stored in userData.pendingCrossSessionAck
-      // and delivered after we have voice prosody to compare
-      // ===============================================
-      // Cross-session ack is now handled in sttNode after voice analysis
-
-      // ===============================================
-      // 🎧 DJ INTEGRATION: "Open the Show" moment
-      // ===============================================
-      // This creates the radio DJ feel - a warm musical opening
-      try {
-        const dj = getDJIntegration();
-        dj.setPersona(sessionPersona.id);
-
-        const djIntroResult = await dj.openShow({
-          personaId: sessionPersona.id,
-          userId: userId || undefined,
-          userName: userData.name || services.userProfile?.name,
-          isFirstSession: !isReturningUser,
-          sessionCount: services.userProfile?.totalConversations || 0,
-          musicHistory: services.userProfile?.musicMemory,
-          lastSessionTopics: services.userProfile?.lastConversationSummary
-            ? [services.userProfile.lastConversationSummary.slice(0, 100)]
-            : undefined,
-        });
-
-        // For first-time users or music callbacks, DJ intro may REPLACE the greeting
-        if (djIntroResult.shouldReplaceGreeting && djIntroResult.phrase) {
-          greeting = djIntroResult.phrase;
-          diag.session('🎧 Using DJ intro as greeting', {
-            type: djIntroResult.intro.introType,
-            playedSound: djIntroResult.playedSound,
-          });
-        } else if (djIntroResult.playedSound && djIntroResult.intro.delayMs) {
-          // Sound played - add a small delay before greeting for timing
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, djIntroResult.intro.delayMs);
-          });
-        }
-      } catch (djError) {
-        diag.warn('🎧 DJ intro failed (non-fatal)', { error: String(djError) });
-      }
-
-      const speechContext = services.getSpeechContext(greeting);
-      const enhancedGreeting = tagGreeting(greeting, speechContext);
-
-      diag.tts('Enhanced greeting', {
-        enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
-      });
-
-      try {
-        session.say(enhancedGreeting);
-        diag.tts('Greeting spoken');
-
-        // Track greeting usage to prevent repetition across sessions
-        if (services.userProfile) {
-          try {
-            const currentState = getHumanizingState(services.userProfile);
-            const updatedState = recordGreetingUsage(currentState, greeting);
-            const updatedProfile = applyHumanizingStateToProfile(
-              services.userProfile,
-              updatedState
-            );
-            services.userProfile = updatedProfile;
-            diag.session('Greeting recorded for repetition prevention', {
-              greetingsTracked: updatedState.usedGreetings.length,
-            });
-          } catch (greetingTrackErr) {
-            diag.warn('Failed to track greeting usage', { error: String(greetingTrackErr) });
-          }
-        }
-      } catch (e) {
-        diag.error('Greeting failed', { error: String(e) });
-      }
-
-      services.addTurn('assistant', greeting);
 
       diag.section('SESSION INITIALIZED');
       diag.session('Session ready', {

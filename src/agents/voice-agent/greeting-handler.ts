@@ -36,6 +36,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { getDJIntegration } from '../dj-integration.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
 import type { UserData } from '../shared/types.js';
+import type { SpeechContext } from '../../speech/types/index.js';
 
 // ============================================================================
 // TYPES
@@ -63,7 +64,7 @@ export interface GreetingContext {
   /** Voice session to speak the greeting */
   session: voice.AgentSession<UserData>;
   /** Function to tag greeting with SSML */
-  tagGreeting: (text: string, context: unknown) => string;
+  tagGreeting: (text: string, context: SpeechContext, personaId?: string) => string;
 }
 
 export interface GreetingResult {
