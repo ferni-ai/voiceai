@@ -201,7 +201,7 @@ import { getGardenWidgetStyles, initGardenWidget } from './ui/garden-widget.ui.j
 import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
 import { personalizeUI } from './ui/personalize.ui.js';
 import { referralUI } from './ui/referral.ui.js';
-import { tipJarUI } from './ui/tip-jar.ui.js';
+// tipJarUI removed - now using ferniFundUI (Garden metaphor)
 // Growth Journey - Celebrates relationship milestones
 import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
@@ -1294,9 +1294,10 @@ class VoiceAIApp {
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
         onTipJarClick: () => {
+          // Redirect tip jar to Ferni Fund (Garden metaphor)
           const userId = appState.get('deviceId');
           if (userId) {
-            tipJarUI.open(userId);
+            void ferniFundUI.open(userId);
           }
         },
         onFerniFundClick: () => {

@@ -544,6 +544,9 @@ class SettingsMenuUI {
       case 'ferni-fund':
         this.callbacks.onFerniFundClick?.();
         break;
+      case 'garden-impact':
+        this.callbacks.onGardenImpactClick?.();
+        break;
       case 'personalize':
         this.callbacks.onPersonalizeClick?.();
         break;
@@ -729,6 +732,45 @@ class SettingsMenuUI {
         letter-spacing: var(--tracking-wider, 0.05em);
         margin: 0 0 var(--space-2) 0;
         padding: var(--space-2) 0;
+      }
+
+      /* The Garden Section - Prominent styling */
+      .settings-menu__section--garden {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.08)), transparent);
+        margin: var(--space-2, 8px) var(--space-3, 12px);
+        padding: var(--space-4, 16px);
+        border-radius: var(--radius-lg, 12px);
+        border: 1px solid var(--color-border-subtle, rgba(74, 103, 65, 0.15));
+      }
+
+      .settings-menu__section--garden h3 {
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .settings-menu__section-desc {
+        font-family: var(--font-body);
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-3) 0;
+        line-height: var(--leading-relaxed);
+      }
+
+      .settings-menu__item--garden {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+      }
+
+      .settings-menu__item--garden:hover {
+        background: var(--persona-secondary, #3d5a35);
+      }
+
+      .settings-menu__item--garden .settings-menu__icon {
+        color: white;
+      }
+
+      .settings-menu__item--garden .settings-menu__label {
+        color: white;
+        font-weight: var(--font-weight-semibold, 600);
       }
 
       .settings-menu__item {

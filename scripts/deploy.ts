@@ -433,23 +433,22 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
         
         # Get detailed readiness status
         READY_RESPONSE=\$(curl -s "\$GREEN_URL/health/ready" --max-time 15 || echo '{"ready":false}')
-        READY_STATUS=\$(echo "\$READY_RESPONSE" | grep -o '"ready":[^,}]*' | cut -d':' -f2 | tr -d ' ')
-        READY_MESSAGE=\$(echo "\$READY_RESPONSE" | grep -o '"message":"[^"]*"' | cut -d'"' -f4 || echo "checking...")
         
-        if [ "\$READY_STATUS" = "true" ]; then
-          echo "  ✅ Workers ready: \$READY_MESSAGE"
+        # Simple string check - if response contains "ready":true, we're good
+        if echo "\$READY_RESPONSE" | grep -q '"ready":true'; then
+          echo "  ✅ Workers ready!"
           break
         fi
 
         if [ "\$i" = "\$READY_MAX_RETRIES" ]; then
           echo "  ❌ Workers not ready after \$READY_MAX_RETRIES attempts (5 min timeout)"
-          echo "  Last status: \$READY_MESSAGE"
+          echo "  Last response: \$READY_RESPONSE"
           echo "  Keeping traffic on previous revision"
           gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
           exit 1
         fi
 
-        echo "  ⏳ Workers initializing: \$READY_MESSAGE (retry in \$READY_RETRY_DELAY s)..."
+        echo "  ⏳ Workers initializing... (retry in \$READY_RETRY_DELAY s)"
         sleep \$READY_RETRY_DELAY
       done
 

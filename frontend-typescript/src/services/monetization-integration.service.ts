@@ -11,7 +11,7 @@
  * We celebrate first, ask second (or not at all).
  */
 
-import { tipJarUI } from '../ui/tip-jar.ui.js';
+import { ferniFundUI } from '../ui/ferni-fund.ui.js';
 import { valueCaptureUI } from '../ui/value-capture.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { cosmeticsService } from './cosmetics.service.js';
@@ -228,9 +228,9 @@ export function considerTipJarOffer(userId: string): void {
     return;
   }
 
-  // Show tip jar
-  log.debug({ userId }, 'Offering tip jar');
-  tipJarUI.open(userId);
+  // Show Ferni Fund (community garden)
+  log.debug({ userId }, 'Offering Ferni Fund');
+  void ferniFundUI.open(userId);
 
   // Update cooldown
   localStorage.setItem('ferni_last_tip_offer', String(now));

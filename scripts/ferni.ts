@@ -329,6 +329,30 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['list', 'preview', 'test', 'compare', 'validate'],
     examples: ['ferni voices list', 'ferni voices preview cartesia', 'ferni voices test'],
   },
+  debug: {
+    name: 'Debug',
+    description: 'Troubleshooting workflows',
+    icon: '🐛',
+    handler: handleDebug,
+    subcommands: ['capture', 'logs', 'errors', 'health', 'env', 'network'],
+    examples: ['ferni debug capture', 'ferni debug errors', 'ferni debug health'],
+  },
+  integrations: {
+    name: 'Integrations',
+    description: 'Third-party API health checks',
+    icon: '🔗',
+    handler: handleIntegrations,
+    subcommands: ['check', 'livekit', 'cartesia', 'gemini', 'stripe', 'firebase', 'all'],
+    examples: ['ferni integrations check', 'ferni integrations all', 'ferni integrations livekit'],
+  },
+  release: {
+    name: 'Release',
+    description: 'Release management workflow',
+    icon: '📦',
+    handler: handleRelease,
+    subcommands: ['create', 'changelog', 'tag', 'notes', 'status', 'history'],
+    examples: ['ferni release create v1.2.0', 'ferni release changelog', 'ferni release notes'],
+  },
 };
 
 // ============================================================================
