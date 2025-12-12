@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('ConversationMemory');
 
@@ -547,13 +548,9 @@ const ICONS = {
 
 async function fetchMemory(): Promise<ConversationMemory | null> {
   try {
-    const userId = localStorage.getItem('ferni_user_id');
-    const response = await fetch('/api/voice/memory', {
-      headers: userId ? { 'X-User-ID': userId } : {},
-    });
-
-    if (!response.ok) return null;
-    return await response.json();
+    const response = await apiGet<ConversationMemory>('/api/voice/memory');
+    if (!response.ok || !response.data) return null;
+    return response.data;
   } catch (error) {
     log.error('Failed to fetch memory:', error);
     return null;
@@ -562,14 +559,11 @@ async function fetchMemory(): Promise<ConversationMemory | null> {
 
 async function fetchConversations(limit = 20): Promise<Conversation[]> {
   try {
-    const userId = localStorage.getItem('ferni_user_id');
-    const response = await fetch(`/api/voice/memory/conversations?limit=${limit}`, {
-      headers: userId ? { 'X-User-ID': userId } : {},
-    });
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.conversations || [];
+    const response = await apiGet<{ conversations?: Conversation[] }>(
+      `/api/voice/memory/conversations?limit=${limit}`
+    );
+    if (!response.ok || !response.data) return [];
+    return response.data.conversations || [];
   } catch (error) {
     log.error('Failed to fetch conversations:', error);
     return [];
@@ -578,13 +572,9 @@ async function fetchConversations(limit = 20): Promise<Conversation[]> {
 
 async function fetchContext(): Promise<ConversationContext | null> {
   try {
-    const userId = localStorage.getItem('ferni_user_id');
-    const response = await fetch('/api/voice/memory/context', {
-      headers: userId ? { 'X-User-ID': userId } : {},
-    });
-
-    if (!response.ok) return null;
-    return await response.json();
+    const response = await apiGet<ConversationContext>('/api/voice/memory/context');
+    if (!response.ok || !response.data) return null;
+    return response.data;
   } catch (error) {
     log.error('Failed to fetch context:', error);
     return null;

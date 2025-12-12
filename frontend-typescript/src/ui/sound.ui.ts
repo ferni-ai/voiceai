@@ -268,7 +268,7 @@ export function play(name: SoundName): void {
   
   // MOBILE FIX: Debounce sounds to prevent "casino effect"
   if (!canPlaySound(name)) {
-    console.debug(`Sound debounced: ${name}`);
+    log.debug(`Sound debounced: ${name}`);
     return;
   }
   

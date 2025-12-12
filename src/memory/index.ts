@@ -83,6 +83,22 @@ export {
   type RAGResult,
 } from './semantic-rag.js';
 
+// User Memory Indexer (comprehensive user data vectorization)
+export {
+  batchIndexUserMemories,
+  getUserMemoryStats,
+  indexUserMemories,
+  removeUserMemories,
+  type IndexingResult,
+  type UserMemoryCategory,
+} from './user-memory-indexer.js';
+
+// Human Signal Extractor (conversation → human memory)
+export {
+  extractHumanSignals,
+  mergeSignalsIntoMemory,
+} from './human-signal-extractor.js';
+
 // Summarization
 export {
   extractFollowUpItems,

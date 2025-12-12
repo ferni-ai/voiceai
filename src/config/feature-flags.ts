@@ -81,6 +81,8 @@ export interface FeatureFlags {
     abTesting: boolean;
     /** Voice emotion detection */
     voiceEmotionDetection: boolean;
+    /** Gemini multimodal emotion analysis (deeper semantic analysis) */
+    geminiEmotionAnalysis: boolean;
     /** Cross-session threading */
     crossSessionThreading: boolean;
     /** Proactive insights */
@@ -212,6 +214,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
     sessionContext: false,
     abTesting: false,
     voiceEmotionDetection: true,
+    geminiEmotionAnalysis: false, // Disabled by default - enable with ENABLE_GEMINI_EMOTION=true
     crossSessionThreading: true,
     proactiveInsights: true,
   },
@@ -286,6 +289,7 @@ const ENV_MAPPINGS: Record<string, string> = {
   EXPERIMENTAL_SESSION_CONTEXT: 'experimental.sessionContext',
   ENABLE_AB_TESTING: 'experimental.abTesting',
   ENABLE_VOICE_EMOTION: 'experimental.voiceEmotionDetection',
+  ENABLE_GEMINI_EMOTION: 'experimental.geminiEmotionAnalysis',
 
   // Audio
   ENABLE_MUSIC: 'audio.musicEnabled',

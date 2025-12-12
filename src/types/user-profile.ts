@@ -5,6 +5,7 @@
  * preferences, relationship history, and financial context.
  */
 
+import type { HumanMemory } from './human-memory.js';
 import type { PersonalJourneyData } from './personal-journey.js';
 import type { SubscriptionData } from './subscription.js';
 
@@ -1114,6 +1115,22 @@ export interface UserProfile {
 
   /** Subscription tier and usage tracking */
   subscription?: SubscriptionData;
+
+  // ============================================================================
+  // HUMAN-CENTRIC MEMORY
+  // "Better Than Human" - What makes someone feel truly known
+  // ============================================================================
+
+  /**
+   * Human-centric memory capturing the texture of the relationship:
+   * - Important dates (birthdays, anniversaries)
+   * - Emotional signature (what comforts them, their tells)
+   * - Inside jokes and running themes
+   * - Values, dreams, fears
+   * - Growth arc ("look how far you've come")
+   * - The unspoken (avoidances, patterns)
+   */
+  humanMemory?: Partial<HumanMemory>;
 
   // ============================================================================
   // PERSONAL JOURNEY AWARENESS

@@ -173,10 +173,19 @@ export function sanitizeSsml(text: string): string {
   // CATCH-ALL: Convert ANY remaining "chuckle" or "chuckles" to [laughter]
   result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
 
+  // CATCH-ALL: Convert ANY remaining "laugh" or "laughs" to [laughter]
+  // This catches cases like "laugh," "laugh!" "laughs." that slip through the main patterns
+  result = result.replace(/(?<!\[)\blaughs?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
+
   // NUCLEAR OPTION: If "chuckle" still appears anywhere, remove it entirely
   if (/chuckle/i.test(result)) {
     result = result.replace(/\bchuckles?\b/gi, '');
   }
+
+  // NUCLEAR OPTION: If standalone "laugh" or "laughs" still appears anywhere
+  // Convert to [laughter] to prevent the word being spoken literally
+  // The negative lookbehind (?<!\[) prevents matching "laugh" inside "[laughter]"
+  result = result.replace(/(?<!\[)\blaughs?\b/gi, '[laughter]');
 
   // Clean up multiple [laughter] tags in a row
   result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
@@ -331,6 +340,54 @@ export function sanitizeSsml(text: string): string {
 
   // Clean up excessive breaks
   result = result.replace(/(<break time="[^"]*"\/>){3,}/g, '<break time="200ms"/>');
+
+  // ================================================
+  // CONSOLIDATE MULTIPLE SPEED/VOLUME TAGS
+  // Multiple <speed> or <volume> tags can cause TTS glitches
+  // Keep only the FIRST one (applied nearest to content start)
+  // ================================================
+
+  // Consolidate speed tags - keep only the first, remove extras
+  const speedMatches = result.match(/<speed ratio="([\d.]+)"\/>/g);
+  if (speedMatches && speedMatches.length > 1) {
+    // Keep the first speed tag, remove the rest
+    let firstKept = false;
+    result = result.replace(/<speed ratio="([\d.]+)"\/>/g, (match, ratio) => {
+      if (!firstKept) {
+        firstKept = true;
+        // Also clamp the ratio to valid range (0.6-1.5)
+        const clamped = Math.max(0.6, Math.min(1.5, parseFloat(ratio)));
+        return `<speed ratio="${clamped.toFixed(2)}"/>`;
+      }
+      return ''; // Remove subsequent speed tags
+    });
+  }
+
+  // Consolidate volume tags - keep only the first, remove extras
+  const volumeMatches = result.match(/<volume ratio="([\d.]+)"\/>/g);
+  if (volumeMatches && volumeMatches.length > 1) {
+    // Keep the first volume tag, remove the rest
+    let firstKept = false;
+    result = result.replace(/<volume ratio="([\d.]+)"\/>/g, (match, ratio) => {
+      if (!firstKept) {
+        firstKept = true;
+        // Also clamp the ratio to valid range (0.5-2.0)
+        const clamped = Math.max(0.5, Math.min(2.0, parseFloat(ratio)));
+        return `<volume ratio="${clamped.toFixed(2)}"/>`;
+      }
+      return ''; // Remove subsequent volume tags
+    });
+  }
+
+  // Clamp any remaining single speed/volume tags to valid ranges
+  result = result.replace(/<speed ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+    const clamped = Math.max(0.6, Math.min(1.5, parseFloat(ratio)));
+    return `<speed ratio="${clamped.toFixed(2)}"/>`;
+  });
+  result = result.replace(/<volume ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+    const clamped = Math.max(0.5, Math.min(2.0, parseFloat(ratio)));
+    return `<volume ratio="${clamped.toFixed(2)}"/>`;
+  });
 
   // Clean up multiple spaces
   result = result.replace(/\s{2,}/g, ' ');

@@ -130,10 +130,32 @@ const RAINBOW_CODE = ['r', 'a', 'i', 'n', 'b', 'o', 'w'];
 const TRIPLE_CLICK_TIMEOUT = 400;
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  // Remove disco elements
+  document.querySelectorAll('.disco-ball').forEach((el) => el.remove());
+  document.querySelectorAll('.disco-floor').forEach((el) => el.remove());
+  // Remove matrix elements
+  document.querySelectorAll('.matrix-canvas').forEach((el) => el.remove());
+  // Remove dance party elements
+  document.querySelectorAll('.dance-party-container').forEach((el) => el.remove());
+  // Remove achievement badges
+  document.querySelectorAll('.easter-egg-achievement-badge').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 export function initEasterEggsUI(): void {
+  // HMR cleanup first
+  cleanupOrphanedElements();
+  
   // 🎬 Load saved achievements
   loadAchievements();
   
@@ -684,7 +706,7 @@ function createPokedEyeSVG(): SVGSVGElement {
     inset: 0;
     opacity: 0;
     transform: scale(0.8);
-    transition: opacity 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: opacity ${DURATION.NORMAL}ms ease, transform ${DURATION.NORMAL}ms ${EASING.SPRING};
   `;
 
   // Outer circle (the green orb)
@@ -826,7 +848,7 @@ function triggerEyePoke(): void {
             { rx: 25, ry: 28 }, // Wide open!
             { rx: 22, ry: 22 },
           ],
-          { duration: 250, easing: 'ease-out' }
+          { duration: DURATION.STANDARD, easing: EASING.STANDARD }
         );
       }
 
@@ -838,7 +860,7 @@ function triggerEyePoke(): void {
             { r: 5 }, // Shrink!
             { r: 7 },
           ],
-          { duration: 250, easing: 'ease-out' }
+          { duration: DURATION.STANDARD, easing: EASING.STANDARD }
         );
       }
 
@@ -1135,7 +1157,7 @@ function showAchievementNotification(achievement: Achievement): void {
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     z-index: var(--z-notification);
     transform: translateX(120%);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   `;
   
   const icon = notification.querySelector('.achievement-icon');

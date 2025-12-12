@@ -14,6 +14,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 import { openOutreachSchedule } from './outreach-schedule.ui.js';
 
 const log = createLogger('NextCheckin');
@@ -272,15 +273,24 @@ class NextCheckinWidget {
    */
   private async fetchNextOutreach(): Promise<void> {
     try {
-      const response = await fetch('/api/outreach/upcoming?limit=1');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.upcoming && data.upcoming.length > 0) {
-          const item = data.upcoming[0];
+      interface OutreachItem {
+        id: string;
+        personaId?: string;
+        personaName?: string;
+        scheduledFor: string;
+        type: string;
+        channel: 'sms' | 'email' | 'call' | 'push';
+        preview?: { body?: string };
+      }
+      const response = await apiGet<{ upcoming?: OutreachItem[] }>('/api/outreach/upcoming?limit=1');
+      if (response.ok && response.data) {
+        const upcoming = response.data.upcoming;
+        const item = upcoming?.[0];
+        if (item) {
           this.nextOutreach = {
             id: item.id,
             personaId: item.personaId || 'ferni',
-            personaName: item.personaName || getPersonaName(item.personaId),
+            personaName: item.personaName || getPersonaName(item.personaId || 'ferni'),
             scheduledFor: new Date(item.scheduledFor),
             type: item.type,
             channel: item.channel,

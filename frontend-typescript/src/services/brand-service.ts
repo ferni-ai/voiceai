@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('BrandService');
 
@@ -63,12 +64,11 @@ async function loadBrandRules(): Promise<BrandRules> {
 
   if (loadPromise) return loadPromise;
 
-  loadPromise = fetch('/api/brand/rules')
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`Failed to load brand rules: ${res.status}`);
-      const data = (await res.json()) as BrandRules;
-      brandRules = data;
-      return data;
+  loadPromise = apiGet<BrandRules>('/api/brand/rules')
+    .then((res) => {
+      if (!res.ok || !res.data) throw new Error(`Failed to load brand rules: ${res.status}`);
+      brandRules = res.data;
+      return res.data;
     })
     .catch((error) => {
       loadPromise = null;
@@ -162,17 +162,17 @@ export async function validateContent(
   violations: Array<{ type: string; text: string; suggestion: string }>;
 }> {
   try {
-    const response = await fetch('/api/brand/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, ...options }),
-    });
+    const response = await apiPost<{
+      isCompliant: boolean;
+      score: number;
+      violations: Array<{ type: string; text: string; suggestion: string }>;
+    }>('/api/brand/validate', { content, ...options });
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       throw new Error(`Validation failed: ${response.status}`);
     }
 
-    return await response.json();
+    return response.data;
   } catch (error) {
     log.error('Brand validation failed', { error });
     // Fallback to client-side validation

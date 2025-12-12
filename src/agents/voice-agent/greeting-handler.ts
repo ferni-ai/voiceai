@@ -199,7 +199,21 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
 
   // Apply SSML enhancements
   const speechContext = services.getSpeechContext(greeting);
-  const enhancedGreeting = tagGreeting(greeting, speechContext);
+  let enhancedGreeting = tagGreeting(greeting, speechContext);
+
+  // ===============================================
+  // GREETING VOLUME: Make greetings calmer by default
+  // Greetings should feel warm and welcoming, not loud
+  // ===============================================
+  if (!enhancedGreeting.includes('<volume')) {
+    // Add soft volume for a warmer, calmer initial impression
+    enhancedGreeting = `<volume ratio="0.85"/>${enhancedGreeting}`;
+  }
+
+  // Also add a slight speed reduction for a more relaxed opening
+  if (!enhancedGreeting.includes('<speed')) {
+    enhancedGreeting = `<speed ratio="0.95"/>${enhancedGreeting}`;
+  }
 
   diag.tts('Enhanced greeting', {
     enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),

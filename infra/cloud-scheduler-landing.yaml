@@ -1,0 +1,87 @@
+# Cloud Scheduler Jobs for Landing Page Optimization
+#
+# Deploy with:
+#   gcloud scheduler jobs create http landing-optimization-daily \
+#     --schedule="0 6 * * *" \
+#     --uri="https://app.ferni.ai/api/landing/optimization/jobs/daily" \
+#     --http-method=POST \
+#     --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#     --time-zone="America/Los_Angeles"
+#
+#   gcloud scheduler jobs create http landing-optimization-weekly \
+#     --schedule="0 9 * * 1" \
+#     --uri="https://app.ferni.ai/api/landing/optimization/jobs/weekly" \
+#     --http-method=POST \
+#     --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#     --time-zone="America/Los_Angeles"
+
+jobs:
+  # Daily optimization check - runs every day at 6am PT
+  # Checks for alerts, anomalies, and quick wins
+  - name: landing-optimization-daily
+    description: Daily landing page optimization check
+    schedule: "0 6 * * *"  # 6am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/landing/optimization/jobs/daily
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 3
+      minBackoffDuration: 30s
+      maxBackoffDuration: 300s
+
+  # Weekly optimization report - runs every Monday at 9am PT
+  # Generates comprehensive team analysis and experiment suggestions
+  - name: landing-optimization-weekly
+    description: Weekly landing page optimization report
+    schedule: "0 9 * * 1"  # 9am every Monday
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/landing/optimization/jobs/weekly
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 3
+      minBackoffDuration: 60s
+      maxBackoffDuration: 600s
+
+# ============================================================================
+# MANUAL COMMANDS
+# ============================================================================
+#
+# Create daily job:
+# gcloud scheduler jobs create http landing-optimization-daily \
+#   --location=us-central1 \
+#   --schedule="0 6 * * *" \
+#   --uri="https://app.ferni.ai/api/landing/optimization/jobs/daily" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily landing page optimization check"
+#
+# Create weekly job:
+# gcloud scheduler jobs create http landing-optimization-weekly \
+#   --location=us-central1 \
+#   --schedule="0 9 * * 1" \
+#   --uri="https://app.ferni.ai/api/landing/optimization/jobs/weekly" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Weekly landing page optimization report"
+#
+# Test manually:
+# curl -X POST https://app.ferni.ai/api/landing/optimization/jobs/daily \
+#   -H "Content-Type: application/json" \
+#   -H "X-Admin-Key: dev-mode"
+#
+# List jobs:
+# gcloud scheduler jobs list --location=us-central1
+#
+# Delete a job:
+# gcloud scheduler jobs delete landing-optimization-daily --location=us-central1
+

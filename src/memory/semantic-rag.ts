@@ -296,6 +296,11 @@ export async function semanticSearch(
 
 /**
  * Get RAG context for a user query
+ *
+ * Sources:
+ * - persona: Persona knowledge (stories, wisdom, principles)
+ * - conversation: Past conversation summaries
+ * - user_memory: User-specific memories (moments, people, goals, etc.)
  */
 export async function getRAGContext(
   query: string,
@@ -303,14 +308,18 @@ export async function getRAGContext(
     topK?: number;
     includePersona?: boolean;
     includeConversations?: boolean;
+    includeUserMemory?: boolean;
     userId?: string;
     minScore?: number;
+    /** User memory categories to include (all if not specified) */
+    userMemoryCategories?: string[];
   }
 ): Promise<RAGContext> {
   const opts = {
     topK: 5,
     includePersona: true,
     includeConversations: true,
+    includeUserMemory: true, // NEW: Include user memories by default
     minScore: 0.3,
     ...options,
   };
@@ -319,11 +328,13 @@ export async function getRAGContext(
   const sources: string[] = [];
   if (opts.includePersona) sources.push('persona');
   if (opts.includeConversations) sources.push('conversation');
+  if (opts.includeUserMemory && opts.userId) sources.push('user_memory');
 
   // Search
   const results = await semanticSearch(query, {
     topK: opts.topK,
     sources,
+    categories: opts.userMemoryCategories,
     userId: opts.userId,
     minScore: opts.minScore,
   });
@@ -474,6 +485,71 @@ export function formatRAGContext(results: RAGResult[]): string {
       .map((r) => `From previous conversation: ${r.content.slice(0, 300)}`)
       .join('\n');
     sections.push(`[CONVERSATION HISTORY]\n${convContent}`);
+  }
+
+  // User memory - group by category for clarity
+  if (bySource['user_memory']) {
+    const userMemories = bySource['user_memory'];
+    const byCategory: Record<string, RAGResult[]> = {};
+
+    for (const mem of userMemories) {
+      const cat = (mem.category as string) || 'general';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(mem);
+    }
+
+    const memSections: string[] = [];
+
+    // Key moments
+    if (byCategory['key_moment']) {
+      memSections.push(
+        `Key moments: ${byCategory['key_moment'].map((r) => r.content.slice(0, 200)).join('; ')}`
+      );
+    }
+
+    // People
+    if (byCategory['person']) {
+      memSections.push(
+        `People: ${byCategory['person'].map((r) => r.content.slice(0, 150)).join('; ')}`
+      );
+    }
+
+    // Threads and follow-ups
+    const threads = [...(byCategory['thread'] || []), ...(byCategory['followup'] || [])];
+    if (threads.length) {
+      memSections.push(`Open topics: ${threads.map((r) => r.content.slice(0, 150)).join('; ')}`);
+    }
+
+    // Life events
+    if (byCategory['life_event']) {
+      memSections.push(
+        `Life events: ${byCategory['life_event'].map((r) => r.content.slice(0, 200)).join('; ')}`
+      );
+    }
+
+    // Goals
+    if (byCategory['goal']) {
+      memSections.push(`Goals: ${byCategory['goal'].map((r) => r.content.slice(0, 200)).join('; ')}`);
+    }
+
+    // Preferences
+    if (byCategory['preference']) {
+      memSections.push(
+        `Preferences: ${byCategory['preference'].map((r) => r.content.slice(0, 200)).join('; ')}`
+      );
+    }
+
+    // Other categories (persona_learning, shared_content, entertainment)
+    const otherCats = ['persona_learning', 'shared_content', 'entertainment', 'emotional_pattern'];
+    for (const cat of otherCats) {
+      if (byCategory[cat]) {
+        memSections.push(`${cat}: ${byCategory[cat].map((r) => r.content.slice(0, 150)).join('; ')}`);
+      }
+    }
+
+    if (memSections.length) {
+      sections.push(`[USER MEMORY]\n${memSections.join('\n')}`);
+    }
   }
 
   return sections.join('\n\n');

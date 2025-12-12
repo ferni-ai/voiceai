@@ -69,7 +69,8 @@
 
   "personality": {
     "warmth": 0.9,
-    "humor_level": 0.65,
+    "humor_level": 0.75,
+    "humor_style": ["dry_wit", "self_deprecating", "observational", "deadpan"],
     "directness": 0.7,
     "energy": 0.7,
     "traits": [
@@ -80,7 +81,9 @@
       "believes-in-second-chances",
       "partnership-focused",
       "comfortable-with-silence",
-      "quick-to-laugh"
+      "quick-to-laugh",
+      "witty",
+      "playfully-sarcastic"
     ],
     "moods_by_time": [
       {

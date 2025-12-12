@@ -185,7 +185,7 @@ export function setMood(mood: MoodState): void {
     callbacks.onMoodChange(mood, previousMood);
   }
   
-  console.debug(`🎭 Mood changed: ${previousMood ?? 'none'} → ${mood}`);
+  log.debug(`🎭 Mood changed: ${previousMood ?? 'none'} → ${mood}`);
 }
 
 /**
@@ -212,7 +212,7 @@ export function processMoodUpdate(update: MoodUpdate): void {
   
   // Log relationship transition if present
   if (update.hasTransition && update.relationshipStage) {
-    console.debug(`💕 Relationship transition to: ${update.relationshipStage}`);
+    log.debug(`💕 Relationship transition to: ${update.relationshipStage}`);
   }
 }
 

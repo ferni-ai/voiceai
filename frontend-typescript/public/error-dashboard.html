@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Errors & Recovery | Ferni Observability</title>
   <link rel="stylesheet" href="/design-system/tokens.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-body: 'Inter', system-ui, sans-serif;
-      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-    }
+    /* Fonts loaded via Google Fonts link, using tokens.css variables */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--color-background-base, #1a1614); color: var(--color-text-primary, #faf6f0); min-height: 100vh; line-height: 1.6; }
-    .nav-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--color-background-elevated, #252220); border-bottom: 1px solid rgba(250, 246, 240, 0.1); position: sticky; top: 0; z-index: 100; }
+    body { font-family: var(--font-body); background: var(--color-background-primary); color: var(--color-text-primary); min-height: 100vh; line-height: 1.6; }
+    
+    /* Skip link for accessibility */
+    .skip-link { position: absolute; top: -40px; left: 0; background: var(--color-accent-primary); color: white; padding: 8px 16px; z-index: 1000; transition: top 0.3s; }
+    .skip-link:focus { top: 0; }
+    .nav-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--color-background-secondary); border-bottom: 1px solid var(--color-border-subtle); position: sticky; top: 0; z-index: 100; }
     .nav-brand { display: flex; align-items: center; gap: 0.75rem; }
     .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #4a6741, #3d5a35); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
     .nav-brand-text { font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; }
@@ -85,10 +86,23 @@
     [data-theme="light"] { --color-background-base: #faf6f0; --color-background-elevated: #ffffff; --color-text-primary: #2C2520; --color-text-secondary: #5a524a; --color-text-muted: #8a827a; }
     .theme-toggle { padding: 0.375rem; border-radius: 8px; border: 1px solid rgba(250, 246, 240, 0.1); background: transparent; cursor: pointer; }
     .theme-toggle .icon { width: 18px; height: 18px; stroke: var(--color-text-secondary); stroke-width: 2; fill: none; }
+    
+    /* Reduced Motion Support - WCAG Compliance */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      .loading-spinner { animation: none; border-top-color: var(--color-accent-primary); }
+    }
+    
+    /* Focus indicators for accessibility */
+    .nav-link:focus-visible, .refresh-btn:focus-visible, .theme-toggle:focus-visible {
+      outline: 2px solid var(--color-accent-primary);
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
-  <nav class="nav-header">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <nav class="nav-header" aria-label="Dashboard navigation">
     <div class="nav-brand">
       <div class="nav-brand-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
       <span class="nav-brand-text">Ferni Observability</span>
@@ -103,12 +117,14 @@
     </div>
   </nav>
 
-  <main class="main-content" id="app">
+  <main class="main-content" id="main-content">
     <div class="loading-overlay"><div class="loading-spinner"></div><span>Loading error metrics...</span></div>
   </main>
 
   <script>
     let data = null;
+    const appEl = document.getElementById('main-content');
+    
     function toggleTheme() {
       const html = document.documentElement;
       const current = html.getAttribute('data-theme');
@@ -125,8 +141,8 @@
         data = await response.json();
         render();
       } catch (err) {
-        console.error('Failed to fetch error data:', err);
-        document.getElementById('app').innerHTML = `<div class="loading-overlay"><span style="color: #c4856a">Failed to load data.</span></div>`;
+        // Use structured approach instead of console.error in production
+        appEl.innerHTML = `<div class="loading-overlay"><span style="color: var(--color-semantic-warning)">Failed to load data. Is the server running?</span></div>`;
       }
     }
 
@@ -148,9 +164,7 @@
       const clusters = data.errorClusters || [];
       const maxCluster = Math.max(...clusters.map(c => c.count), 1);
       const commonErrors = data.mostCommonErrors || [];
-
-      const app = document.getElementById('app');
-      app.innerHTML = `
+      appEl.innerHTML = `
         <header class="page-header">
           <div>
             <p class="page-eyebrow">System Reliability</p>

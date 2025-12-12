@@ -209,61 +209,91 @@ function getMarketFallback(): string {
 }
 
 // ============================================================================
-// WEATHER DATA
+// WEATHER DATA (Google Weather API)
 // ============================================================================
 
 /**
- * Fetch weather for a location
+ * Fetch weather for a location using Google Weather API
+ * Uses GOOGLE_API_KEY (same as Gemini) - free during preview
+ * https://developers.google.com/maps/documentation/weather
  */
 export async function getWeather(location: string): Promise<string> {
-  const apiKey = process.env['OPENWEATHER_API_KEY'];
+  const apiKey = process.env['GOOGLE_API_KEY'];
 
   if (!apiKey) {
-    logger.warn('No OpenWeather API key - using fallback');
+    logger.warn('No Google API key - using weather fallback');
     return getWeatherFallback(location);
   }
 
   try {
-    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${apiKey}`;
+    // Step 1: Geocode the location using Google Geocoding API
+    const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
     const geoResponse = await fetch(geoUrl, { signal: AbortSignal.timeout(5000) });
 
     if (!geoResponse.ok) {
+      logger.warn({ status: geoResponse.status }, 'Geocoding request failed');
       return getWeatherFallback(location);
     }
 
-    const geoData = (await geoResponse.json()) as Array<{ lat: number; lon: number; name: string }>;
+    const geoData = (await geoResponse.json()) as {
+      status: string;
+      results?: Array<{
+        geometry?: { location?: { lat: number; lng: number } };
+        formatted_address?: string;
+      }>;
+    };
 
-    if (!geoData.length) {
+    if (geoData.status !== 'OK' || !geoData.results?.length) {
       return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
     }
 
-    const firstResult = geoData[0];
-    if (!firstResult) {
+    const firstResult = geoData.results[0];
+    const coords = firstResult?.geometry?.location;
+    if (!coords) {
       return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
     }
-    const { lat, lon, name } = firstResult;
 
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
+    const locationName = firstResult.formatted_address || location;
+
+    // Step 2: Get weather from Google Weather API
+    const weatherUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}&location.latitude=${coords.lat}&location.longitude=${coords.lng}&unitsSystem=IMPERIAL`;
     const weatherResponse = await fetch(weatherUrl, { signal: AbortSignal.timeout(5000) });
 
     if (!weatherResponse.ok) {
+      logger.warn({ status: weatherResponse.status }, 'Google Weather API request failed');
       return getWeatherFallback(location);
     }
 
     const weatherData = (await weatherResponse.json()) as {
-      main?: { temp?: number; humidity?: number };
-      weather?: Array<{ description?: string }>;
+      temperature?: { value?: number };
+      humidity?: { value?: number };
+      weatherCondition?: { description?: { text?: string } };
+      feelsLikeTemperature?: { value?: number };
     };
 
-    const temp = weatherData.main?.temp;
-    const humidity = weatherData.main?.humidity;
-    const description = weatherData.weather?.[0]?.description;
+    const temp = weatherData.temperature?.value;
+    const humidity = weatherData.humidity?.value;
+    const description = weatherData.weatherCondition?.description?.text;
+    const feelsLike = weatherData.feelsLikeTemperature?.value;
 
-    if (temp !== undefined && description) {
-      let response = `It's ${Math.round(temp)}°F in ${name} right now, ${description}.`;
-      if (humidity !== undefined && humidity > 70) {
-        response += ` Humidity's at ${humidity}% - a bit muggy.`;
+    if (temp !== undefined) {
+      // Extract just the city/state from the full address for cleaner output
+      const shortLocation = locationName.split(',').slice(0, 2).join(',').trim();
+      let response = `It's ${Math.round(temp)}°F in ${shortLocation}`;
+
+      if (description) {
+        response += `, ${description.toLowerCase()}`;
       }
+      response += '.';
+
+      if (feelsLike !== undefined && Math.abs(feelsLike - temp) >= 5) {
+        response += ` Feels like ${Math.round(feelsLike)}°F.`;
+      }
+
+      if (humidity !== undefined && humidity > 70) {
+        response += ` Humidity's at ${Math.round(humidity)}% - a bit muggy.`;
+      }
+
       return response;
     }
 

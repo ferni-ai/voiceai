@@ -5,9 +5,10 @@
  * All routes require admin authentication.
  *
  * Sub-routes:
- * - /api/v1/admin/flags/*       - Feature flag management
- * - /api/v1/admin/agents/*      - Agent management
- * - /api/v1/admin/diagnostics/* - System diagnostics & handoff monitoring
+ * - /api/v1/admin/flags/*         - Feature flag management
+ * - /api/v1/admin/agents/*        - Agent management
+ * - /api/v1/admin/diagnostics/*   - System diagnostics & handoff monitoring
+ * - /api/v1/admin/tts-monitoring/*- TTS sanitization monitoring
  *
  * @module AdminAPIRouter
  */
@@ -23,6 +24,7 @@ import { handleAdminExperimentsRoutes } from './experiments.js';
 import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
 import { handleAdminOperationsRoutes } from './operations.js';
+import { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
@@ -89,6 +91,11 @@ export async function handleAdminRoutes(
     return handleAdminOperationsRoutes(req, res, pathname, parsedUrl);
   }
 
+  // TTS Monitoring (sanitization effectiveness)
+  if (pathname.startsWith(`${BASE_PATH}/tts-monitoring`)) {
+    return handleAdminTTSMonitoringRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Route not matched
   return false;
 }
@@ -108,3 +115,4 @@ export {
   updateLiveSession,
 } from './human-listening.js';
 export { handleAdminOperationsRoutes } from './operations.js';
+export { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';

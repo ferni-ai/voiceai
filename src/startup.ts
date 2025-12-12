@@ -292,6 +292,18 @@ let shutdownHandlersRegistered = false;
 export function registerShutdownHandlers(): void {
   if (shutdownHandlersRegistered) return;
 
+  // CRITICAL: Never register signal handlers in child processes!
+  // Child processes have process.send defined (IPC channel to parent).
+  // Registering SIGTERM/SIGINT handlers in child processes interferes with
+  // LiveKit's IPC communication and causes "runner initialization timed out" errors.
+  // The parent process handles signals and coordinates shutdown of children.
+  if (process.send) {
+    process.stderr.write(
+      `[STARTUP] Skipping shutdown handlers in child process pid=${process.pid}\n`
+    );
+    return;
+  }
+
   const handleShutdown = async (signal: string) => {
     getLogger().info(`Received ${signal}, shutting down...`);
     await shutdown();

@@ -1152,11 +1152,16 @@ export async function handleVoiceAuthRoutes(
 
       const member = await addHouseholdMember(deviceId, userId, displayName, role);
       if (!member) {
-        sendJson(res, 400, { error: 'Could not add member - ensure they have a voice profile' });
+        sendJson(res, 500, { error: 'Failed to add member to household' });
         return true;
       }
 
-      sendJson(res, 201, { success: true, member });
+      // Note: voiceEnrolled status is now tracked in member.preferences
+      sendJson(res, 201, {
+        success: true,
+        member,
+        needsVoiceEnrollment: !member.preferences?.voiceEnrolled,
+      });
       return true;
     }
 

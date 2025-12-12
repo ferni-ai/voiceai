@@ -179,10 +179,35 @@
     }
     .theme-toggle { padding: 0.375rem; border-radius: 8px; border: 1px solid rgba(250, 246, 240, 0.1); background: transparent; cursor: pointer; }
     .theme-toggle .icon { width: 18px; height: 18px; stroke: var(--color-text-secondary); stroke-width: 2; fill: none; }
+    
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #4a6741;
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      transition: top 0.3s;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+    }
+    .skip-link:focus { top: 0; }
+    
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <nav class="nav-header">
+  <a href="#app" class="skip-link">Skip to main content</a>
+  <nav class="nav-header" aria-label="Dashboard navigation">
     <div class="nav-brand">
       <div class="nav-brand-icon">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -195,11 +220,11 @@
       <a href="/connection-dashboard.html" class="nav-link active"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>Connection</a>
       <a href="/cost-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost</a>
       <a href="/handoff-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/></svg>Handoffs</a>
-      <button class="theme-toggle" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/></svg></button>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/></svg></button>
     </div>
   </nav>
 
-  <main class="main-content" id="app">
+  <main class="main-content" id="app" role="main">
     <div class="loading-overlay"><div class="loading-spinner"></div><span>Loading connection metrics...</span></div>
   </main>
 

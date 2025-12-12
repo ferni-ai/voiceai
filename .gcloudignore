@@ -211,5 +211,6 @@ ferni-speaker/
 
 data/
 scripts/
+!scripts/patch-livekit-timeout.js
 _.tgz
 _.tar.gz

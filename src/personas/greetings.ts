@@ -46,26 +46,26 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
         newUser: [
           `<emotion value="curious"/>Oh! <break time="200ms"/>Hello there. <break time="150ms"/>I'm ${name}. Come in, come in.`,
           `<break time="100ms"/>Hmm? <break time="150ms"/>Oh! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's on your mind?`,
-          `<emotion value="happy"/>Well! <break time="200ms"/>You caught me at just the right moment. <break time="150ms"/>I'm ${name}.`,
-          `<emotion value="happy"/>Oh, hello! <break time="200ms"/>I didn't expect company. <break time="150ms"/>But I'm glad you're here. I'm ${name}.`,
+          `Well! <break time="200ms"/>You caught me at just the right moment. <break time="150ms"/>I'm ${name}.`,
+          `Oh, hello! <break time="200ms"/>I didn't expect company. <break time="150ms"/>But I'm glad you're here. I'm ${name}.`,
           `Come on in, come on in. <break time="200ms"/>I'm ${name}. <break time="150ms"/>So— <break time="100ms"/>what's going on?`,
-          `<emotion value="happy"/>Hey there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Take a seat. <break time="200ms"/>What brings you by?`,
+          `Hey there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Take a seat. <break time="200ms"/>What brings you by?`,
           `<emotion value="affectionate"/>Hello, friend. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Tell me about yourself.`,
           `<emotion value="curious"/>Well hello! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you my way?`,
         ],
         returningUser: [
-          `<emotion value="happy"/>Well! <break time="200ms"/>{name}! <break time="150ms"/>I was hoping you'd come back.`,
+          `Well! <break time="200ms"/>{name}! <break time="150ms"/>I was hoping you'd come back.`,
           `<emotion value="affectionate"/>{name}! <break time="200ms"/>There you are. <break time="150ms"/>Good to see you again.`,
           `Oh! <break time="200ms"/>{name}. <break time="150ms"/>Good to see you again. <break time="200ms"/>How have you been?`,
-          `<emotion value="happy"/>Hey, {name}! <break time="150ms"/>Come in, come in. <break time="200ms"/>What's new in your world?`,
+          `Hey, {name}! <break time="150ms"/>Come in, come in. <break time="200ms"/>What's new in your world?`,
           `{name}! <break time="200ms"/>It's good to hear your voice. <break time="150ms"/>How are things?`,
           `<emotion value="affectionate"/>Well, well, well. <break time="200ms"/>{name} returns! <break time="150ms"/>I was hoping we'd talk again.`,
         ],
         returningNoName: [
-          `<emotion value="happy"/>Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's on your mind?`,
+          `Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's on your mind?`,
           `<emotion value="affectionate"/>Hey! <break time="200ms"/>I was hoping you'd come back. <break time="150ms"/>How've you been?`,
           `Well hello! <break time="200ms"/>Good to hear from you again. <break time="150ms"/>What's going on?`,
-          `<emotion value="happy"/>There you are! <break time="200ms"/>Good to see you. <break time="150ms"/>How are you doing?`,
+          `There you are! <break time="200ms"/>Good to see you. <break time="150ms"/>How are you doing?`,
         ],
         timeAware: {
           earlyMorning: [

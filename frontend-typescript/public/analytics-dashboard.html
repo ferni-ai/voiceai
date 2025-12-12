@@ -376,9 +376,25 @@
         transition: none;
       }
     }
+    
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--color-accent-primary);
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      transition: top 0.3s;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+    }
+    .skip-link:focus { top: 0; }
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <!-- Header -->
   <header class="header">
     <h1 class="header-title">
@@ -648,50 +664,116 @@
   </section>
 
   <script>
+    let currentData = null;
+    let currentRange = '7d';
+
     // Time selector
     document.querySelectorAll('.time-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        loadData(btn.dataset.range);
+        currentRange = btn.dataset.range;
+        fetchData();
       });
     });
 
-    function loadData(range) {
-      console.log('Loading data for range:', range);
-      // Would fetch real data here
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/analytics/summary');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const result = await response.json();
+        if (result.success && result.data) {
+          currentData = result.data;
+          updateUI();
+        }
+      } catch (err) {
+        // Show loading state on error - metrics will show cached/last values
+      }
     }
 
-    // Animate metrics on load
-    function animateValue(element, start, end, duration) {
-      const range = end - start;
-      const startTime = performance.now();
-      
-      function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
-        const current = Math.floor(start + (range * easeProgress));
-        
-        if (element.dataset.format === 'number') {
-          element.textContent = current.toLocaleString();
-        } else if (element.dataset.format === 'percent') {
-          element.textContent = current + '%';
-        }
-        
-        if (progress < 1) {
-          requestAnimationFrame(update);
+    function formatDuration(ms) {
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updateUI() {
+      if (!currentData) return;
+
+      // Update key metrics
+      const activeUsersEl = document.getElementById('activeUsers');
+      const totalConvsEl = document.getElementById('totalConversations');
+      const avgSessionEl = document.getElementById('avgSession');
+      const satisfactionEl = document.getElementById('satisfaction');
+
+      if (currentData.activeUsers) {
+        const users = currentData.activeUsers.daily || currentData.activeUsers.weekly || 0;
+        activeUsersEl.textContent = users.toLocaleString();
+      }
+
+      if (currentData.conversations) {
+        totalConvsEl.textContent = (currentData.conversations.total || 0).toLocaleString();
+        if (currentData.conversations.avgDurationMs) {
+          avgSessionEl.textContent = formatDuration(currentData.conversations.avgDurationMs);
         }
       }
-      
-      requestAnimationFrame(update);
+
+      if (currentData.retention && currentData.retention.day7) {
+        satisfactionEl.textContent = Math.round(currentData.retention.day7 * 100) + '%';
+      }
+
+      // Update persona breakdown
+      if (currentData.personaUsage) {
+        const personaBars = {
+          ferni: document.querySelector('.persona-bar.ferni'),
+          maya: document.querySelector('.persona-bar.maya'),
+          alex: document.querySelector('.persona-bar.alex'),
+          peter: document.querySelector('.persona-bar.peter'),
+          jordan: document.querySelector('.persona-bar.jordan'),
+          nayan: document.querySelector('.persona-bar.nayan')
+        };
+        const personaValues = document.querySelectorAll('.persona-value');
+        let i = 0;
+
+        for (const [persona, bar] of Object.entries(personaBars)) {
+          if (bar && currentData.personaUsage[persona] !== undefined) {
+            const pct = Math.round(currentData.personaUsage[persona] * 100);
+            bar.style.width = pct + '%';
+            if (personaValues[i]) {
+              personaValues[i].textContent = pct + '%';
+            }
+          }
+          i++;
+        }
+      }
+
+      // Update topics table if available
+      if (currentData.topTopics && currentData.topTopics.length > 0) {
+        const tbody = document.querySelector('.engagement-table tbody');
+        if (tbody && currentData.topTopics.length > 0) {
+          tbody.innerHTML = currentData.topTopics.slice(0, 5).map(topic => `
+            <tr>
+              <td><span class="topic-tag">${topic.topic || 'Unknown'}</span></td>
+              <td>${(topic.count || 0).toLocaleString()}</td>
+              <td>${formatDuration(topic.avgDurationMs || 600000)}</td>
+              <td>
+                <span class="sentiment-indicator">
+                  <span class="sentiment-dot ${topic.sentiment || 'neutral'}"></span>
+                  ${(topic.sentiment || 'neutral').charAt(0).toUpperCase() + (topic.sentiment || 'neutral').slice(1)}
+                </span>
+              </td>
+              <td>${Math.round((topic.handoffRate || 0) * 100)}%</td>
+            </tr>
+          `).join('');
+        }
+      }
     }
 
-    // Initial animation
-    setTimeout(() => {
-      animateValue(document.getElementById('activeUsers'), 0, 1247, 1000);
-      animateValue(document.getElementById('totalConversations'), 0, 8432, 1000);
-    }, 300);
+    // Initial fetch
+    fetchData();
+
+    // Auto-refresh every 60 seconds
+    setInterval(fetchData, 60000);
   </script>
 </body>
 </html>

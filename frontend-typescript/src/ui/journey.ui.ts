@@ -132,10 +132,25 @@ const CATEGORY_META: Record<string, { icon: string; title: string; color: string
 };
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('.journey-modal').forEach((el) => el.remove());
+  document.querySelectorAll('.journey-modal-backdrop').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // PUBLIC API
 // ============================================================================
 
 export function openJourney(): void {
+  // HMR cleanup first
+  cleanupOrphanedElements();
+  
   if (isOpen) return;
 
   soundUI.play('switch');

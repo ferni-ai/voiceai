@@ -35,10 +35,13 @@ export interface NonverbalContext {
  * Supported nonverbal sounds in Cartesia
  */
 export const NONVERBALS = {
-  laughter: '[laughter]',
-  softLaugh: '[soft laughter]',
-  sigh: '[sigh]',
-  hmm: '[hmm]',
+  // NOTE: Bracket notation like [laughter] uses Cartesia's STOCK audio samples
+  // which sound like a different voice. Use plain text that will be synthesized
+  // with the persona's voice instead.
+  laughter: 'haha',
+  softLaugh: 'heh',
+  sigh: '', // Skip - Cartesia stock sounds don't match persona voice
+  hmm: 'Hmm...', // Plain text, will be synthesized with persona's voice
 } as const;
 
 /**

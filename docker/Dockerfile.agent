@@ -53,6 +53,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package*.json ./
 RUN npm ci --only=production
 
+# Patch LiveKit agents library to increase initialization timeout
+# The library has hardcoded 10s/30s timeouts that are too short for Cloud Run cold starts
+RUN node -e " \
+  const fs = require('fs'); \
+  const path = require('path'); \
+  const workerPath = path.join(__dirname, 'node_modules/@livekit/agents/dist/worker.js'); \
+  if (!fs.existsSync(workerPath)) { console.log('worker.js not found, skipping patch'); process.exit(0); } \
+  let content = fs.readFileSync(workerPath, 'utf8'); \
+  const p1 = 'initializeTimeout: 3e4'; \
+  const p1r = 'initializeTimeout: 3e5 /* PATCHED 5min */'; \
+  const p2 = 'initializeProcessTimeout = 10 * 1e3'; \
+  const p2r = 'initializeProcessTimeout = 300 * 1e3 /* PATCHED 5min */'; \
+  if (content.includes(p1)) { content = content.replace(p1, p1r); console.log('Patched InferenceProcExecutor timeout'); } \
+  if (content.includes(p2)) { content = content.replace(p2, p2r); console.log('Patched initializeProcessTimeout'); } \
+  fs.writeFileSync(workerPath, content); \
+  console.log('[patch-livekit-timeout] Patch complete'); \
+"
+
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 

@@ -1,34 +1,81 @@
 /**
- * Ferni Fund UI Component
+ * Seed Fund UI Component (formerly Ferni Fund)
  *
- * Pay-it-forward modal for contributing to the community pool.
- * When someone contributes, their generosity sponsors conversations
- * for others who might be going through hard times.
+ * "Ferni doesn't have a paywall. It has a community."
+ *
+ * Community-funded model where contributions ("seeds") keep Ferni
+ * free for everyone. When enough seeds are planted, everyone benefits.
  *
  * Design principles:
- * - Focus on the impact, not the amount
- * - Celebrate the giver's generosity
- * - Show community connection
+ * - Transparent fund progress (show the goal)
+ * - Seeds, not transactions
+ * - Community, not customers
  * - Never guilt-inducing
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import {
-  contributeFund,
-  formatAmount,
-  getFundStatus,
-  loadStripe,
-} from '../services/monetization.service.js';
+import { formatAmount, loadStripe } from '../services/monetization.service.js';
 import { createLogger } from '../utils/logger.js';
+import type { GardenStatus, PlantSeedResponse, SubscriptionResponse } from '../../../src/types/seed-fund.types.js';
 
 const log = createLogger('FerniFundUI');
+
+// ============================================================================
+// GARDEN API
+// ============================================================================
+
+/**
+ * Fetch garden status from the API
+ */
+async function fetchGardenStatus(): Promise<GardenStatus | null> {
+  try {
+    const response = await fetch('/api/garden/status');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to fetch garden status');
+    return null;
+  }
+}
+
+/**
+ * Plant a one-time seed contribution
+ */
+async function plantSeed(amount: number): Promise<PlantSeedResponse> {
+  const response = await fetch('/api/garden/plant', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Start a monthly subscription
+ */
+async function startMonthlySubscription(amount: number): Promise<SubscriptionResponse> {
+  const response = await fetch('/api/garden/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+  return response.json();
+}
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-const SUGGESTED_AMOUNTS = [500, 1000, 2500, 5000]; // $5, $10, $25, $50
-const COST_PER_CONVERSATION = 50; // $0.50 symbolically
+const SUGGESTED_AMOUNTS = [300, 500, 1000, 2500]; // $3, $5, $10, $25 (1 seed = $1)
+const MONTHLY_GOAL_CENTS = 350000; // $3,500/month to keep Ferni free
 
 // ============================================================================
 // STATE
@@ -137,6 +184,48 @@ const styles = `
   color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.6;
+}
+
+/* Progress Bar - Transparent Fund */
+.ferni-fund-progress {
+  margin-bottom: var(--space-6, 24px);
+  text-align: center;
+}
+
+.ferni-fund-progress-header {
+  margin-bottom: var(--space-2, 8px);
+}
+
+.ferni-fund-progress-current {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ferni-fund-progress-goal {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+.ferni-fund-progress-bar-container {
+  height: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.ferni-fund-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
+}
+
+.ferni-fund-progress-message {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* Community Stats */
@@ -454,7 +543,8 @@ const styles = `
 
 const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
-const HANDS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`;
+// Seed/sprout icon for the new branding
+const SEED_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>`;
 
 const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
@@ -477,13 +567,8 @@ async function createModal(): Promise<HTMLElement> {
   // Clean up any existing modals
   document.querySelectorAll('.ferni-fund-overlay').forEach((el) => el.remove());
 
-  // Fetch fund status
-  let fundStatus = { conversationsSponsored: 0, totalContributors: 0, conversationsRemaining: 0 };
-  try {
-    fundStatus = await getFundStatus();
-  } catch (e) {
-    log.warn({ error: String(e) }, 'Failed to fetch fund status');
-  }
+  // Fetch garden status from the new API
+  const gardenStatus = await fetchGardenStatus();
 
   const overlay = document.createElement('div');
   overlay.className = 'ferni-fund-overlay';
@@ -492,7 +577,7 @@ async function createModal(): Promise<HTMLElement> {
     <div class="ferni-fund-card" role="dialog" aria-labelledby="ferni-fund-title">
       <button class="ferni-fund-close" aria-label="Close">${CLOSE_ICON}</button>
       <div class="ferni-fund-content">
-        ${renderContributionForm(fundStatus)}
+        ${renderContributionForm(gardenStatus)}
       </div>
     </div>
   `;
@@ -507,32 +592,60 @@ async function createModal(): Promise<HTMLElement> {
   return overlay;
 }
 
-function renderContributionForm(fundStatus: {
-  conversationsSponsored: number;
-  totalContributors: number;
-  conversationsRemaining: number;
-}): string {
+function renderContributionForm(gardenStatus: GardenStatus | null): string {
+  // Use garden status data or defaults
+  const currentDollars = gardenStatus?.currentMonth ?? 0;
+  const goalDollars = gardenStatus?.monthlyGoal ?? MONTHLY_GOAL_CENTS / 100;
+  const percentFunded = gardenStatus?.percentFunded ?? 0;
+  const gardenersThisMonth = gardenStatus?.gardenersThisMonth ?? 0;
+  const seedsThisMonth = gardenStatus?.seedsThisMonth ?? 0;
+  const health = gardenStatus?.health ?? 'needs-water';
+
+  const healthColors: Record<string, string> = {
+    thriving: 'var(--color-semantic-success, #22c55e)',
+    growing: 'var(--color-accent-warm, #f59e0b)',
+    'needs-water': 'var(--color-semantic-warning, #eab308)',
+  };
+
+  const healthMessage = health === 'thriving'
+    ? `Ferni is free because ${gardenersThisMonth} people planted seeds.`
+    : health === 'growing'
+    ? `${percentFunded}% funded. Every seed helps keep Ferni free.`
+    : `The garden needs some love. Can you help?`;
+
   return `
     <div class="ferni-fund-header">
-      <div class="ferni-fund-icon">${HANDS_ICON}</div>
-      <h2 class="ferni-fund-title" id="ferni-fund-title">Ferni Fund</h2>
+      <div class="ferni-fund-icon">${SEED_ICON}</div>
+      <h2 class="ferni-fund-title" id="ferni-fund-title">Ferni's Garden</h2>
       <p class="ferni-fund-subtitle">
-        Pay it forward. Your contribution sponsors conversations for people going through hard times.
+        Ferni doesn't have a paywall. It has a community.
       </p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="ferni-fund-progress">
+      <div class="ferni-fund-progress-header">
+        <span class="ferni-fund-progress-current">$${currentDollars.toLocaleString()}</span>
+        <span class="ferni-fund-progress-goal">/ $${goalDollars.toLocaleString()}</span>
+      </div>
+      <div class="ferni-fund-progress-bar-container">
+        <div class="ferni-fund-progress-bar" style="width: ${percentFunded}%; background: ${healthColors[health]}"></div>
+      </div>
+      <p class="ferni-fund-progress-message">${healthMessage}</p>
     </div>
 
     <div class="ferni-fund-stats">
       <div class="ferni-fund-stat">
-        <div class="ferni-fund-stat-value">${fundStatus.conversationsSponsored.toLocaleString()}</div>
-        <div class="ferni-fund-stat-label">Convos Sponsored</div>
+        <div class="ferni-fund-stat-value">${gardenersThisMonth.toLocaleString()}</div>
+        <div class="ferni-fund-stat-label">Gardeners</div>
       </div>
       <div class="ferni-fund-stat">
-        <div class="ferni-fund-stat-value">${fundStatus.totalContributors.toLocaleString()}</div>
-        <div class="ferni-fund-stat-label">Contributors</div>
+        <div class="ferni-fund-stat-value">${seedsThisMonth.toLocaleString()}</div>
+        <div class="ferni-fund-stat-label">Seeds Planted</div>
       </div>
       <div class="ferni-fund-stat">
-        <div class="ferni-fund-stat-value">${fundStatus.conversationsRemaining.toLocaleString()}</div>
-        <div class="ferni-fund-stat-label">Ready to Give</div>
+        <div class="ferni-fund-stat-value">${percentFunded}%</div>
+        <div class="ferni-fund-stat-label">This Month</div>
       </div>
     </div>
 
@@ -541,7 +654,7 @@ function renderContributionForm(fundStatus: {
         (amount) => `
         <button class="ferni-fund-amount-btn" data-amount="${amount}">
           ${formatAmount(amount)}
-          <span class="impact">${Math.floor(amount / COST_PER_CONVERSATION)} convos</span>
+          <span class="impact">${Math.round(amount / 100)} seeds</span>
         </button>
       `
       ).join('')}
@@ -556,32 +669,23 @@ function renderContributionForm(fundStatus: {
 
     <div class="ferni-fund-impact" style="display: none;">
       <div class="ferni-fund-impact-number">0</div>
-      <div class="ferni-fund-impact-text">conversations you'll sponsor</div>
-    </div>
-
-    <div class="ferni-fund-message-section">
-      <label class="ferni-fund-message-label">Leave a message for recipients (optional)</label>
-      <textarea
-        class="ferni-fund-message-input"
-        placeholder="e.g., Everyone deserves someone to talk to. You've got this."
-        rows="2"
-      ></textarea>
+      <div class="ferni-fund-impact-text">seeds you'll plant</div>
     </div>
 
     <div class="ferni-fund-recurring">
       <div class="ferni-fund-recurring-toggle" data-active="false"></div>
       <div class="ferni-fund-recurring-text">
-        <div class="ferni-fund-recurring-title">Make this monthly</div>
-        <div class="ferni-fund-recurring-desc">Automatically sponsor conversations each month</div>
+        <div class="ferni-fund-recurring-title">Become a monthly Gardener</div>
+        <div class="ferni-fund-recurring-desc">Plant seeds automatically each month</div>
       </div>
     </div>
 
     <button class="ferni-fund-submit-btn" disabled>
-      Sponsor Conversations
+      Plant Seeds
     </button>
 
     <p class="ferni-fund-footer">
-      Ferni is free for everyone. Your generosity helps people who need support most.
+      When enough people give, everyone benefits. That's the whole point.
     </p>
   `;
 }
@@ -595,18 +699,19 @@ function renderLoading(): string {
   `;
 }
 
-function renderThankYou(impact: { conversationsSponsored: number; message: string }): string {
+function renderThankYou(impact: { conversationsSponsored: number; message: string; seedsPlanted?: number }): string {
+  const seeds = impact.seedsPlanted || impact.conversationsSponsored;
   return `
     <div class="ferni-fund-thank-you">
       <div class="ferni-fund-thank-you-icon">${CHECK_ICON}</div>
-      <h2 class="ferni-fund-thank-you-title">You're Amazing</h2>
+      <h2 class="ferni-fund-thank-you-title">Your seed is planted</h2>
       <p class="ferni-fund-thank-you-message">
-        ${impact.message}
+        Thanks for helping Ferni grow. You're now one of the gardeners keeping Ferni free for everyone.
       </p>
       <div class="ferni-fund-impact-summary">
         <div class="ferni-fund-impact-summary-title">Your Impact</div>
         <div class="ferni-fund-impact-summary-value">
-          ${impact.conversationsSponsored} conversation${impact.conversationsSponsored === 1 ? '' : 's'} sponsored
+          ${seeds} seed${seeds === 1 ? '' : 's'} planted
         </div>
       </div>
     </div>
@@ -627,11 +732,12 @@ function setupFormListeners(): void {
   let selectedAmount = 0;
   let isRecurring = false;
 
-  function updateImpact(amount: number): void {
-    const conversations = Math.floor(amount / COST_PER_CONVERSATION);
-    if (amount > 0 && impactDiv && impactNumber) {
+  function updateImpact(amountCents: number): void {
+    // 1 seed = $1 = 100 cents
+    const seeds = Math.floor(amountCents / 100);
+    if (amountCents > 0 && impactDiv && impactNumber) {
       impactDiv.style.display = 'block';
-      impactNumber.textContent = String(conversations);
+      impactNumber.textContent = String(seeds);
     } else if (impactDiv) {
       impactDiv.style.display = 'none';
     }
@@ -673,7 +779,7 @@ function setupFormListeners(): void {
 
 async function processContribution(
   amountCents: number,
-  message: string,
+  _message: string,
   isRecurring: boolean
 ): Promise<void> {
   if (!container || !currentUserId) return;
@@ -683,43 +789,54 @@ async function processContribution(
     content.innerHTML = renderLoading();
   }
 
+  // Convert cents to dollars (garden API uses dollars)
+  const amountDollars = Math.round(amountCents / 100);
+
   try {
-    const result = await contributeFund({
-      userId: currentUserId,
-      amountCents,
-      message,
-      isRecurring,
-      recurringFrequency: isRecurring ? 'monthly' : undefined,
-    });
+    if (isRecurring) {
+      // Monthly subscription - redirect to Stripe Checkout
+      const result = await startMonthlySubscription(amountDollars);
 
-    // Load Stripe and process payment
-    const stripe = await loadStripe();
-    if (!stripe) {
-      throw new Error('Stripe not available');
-    }
+      if (!result.success || !result.checkoutUrl) {
+        throw new Error(result.error || 'Failed to start subscription');
+      }
 
-    // @ts-expect-error - Stripe types
-    const { error } = await stripe.confirmPayment({
-      clientSecret: result.clientSecret,
-      confirmParams: {
-        return_url: `${window.location.origin}/fund/complete`,
-      },
-    });
+      // Redirect to Stripe Checkout
+      window.location.href = result.checkoutUrl;
+      return;
+    } else {
+      // One-time payment - use Stripe.js with client secret
+      const result = await plantSeed(amountDollars);
 
-    if (error) {
-      throw new Error(error.message);
+      if (!result.success || !result.clientSecret) {
+        throw new Error(result.error || 'Failed to create payment');
+      }
+
+      // Load Stripe and process payment
+      const stripe = await loadStripe();
+      if (!stripe) {
+        throw new Error('Stripe not available');
+      }
+
+      // @ts-expect-error - Stripe types
+      const { error } = await stripe.confirmPayment({
+        clientSecret: result.clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/garden/success`,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
     }
   } catch (error) {
     log.error({ error: String(error) }, 'Fund contribution failed');
 
     // Show error and reset form
     if (content) {
-      const fundStatus = await getFundStatus().catch(() => ({
-        conversationsSponsored: 0,
-        totalContributors: 0,
-        conversationsRemaining: 0,
-      }));
-      content.innerHTML = renderContributionForm(fundStatus);
+      const gardenStatus = await fetchGardenStatus();
+      content.innerHTML = renderContributionForm(gardenStatus);
       setupFormListeners();
     }
 

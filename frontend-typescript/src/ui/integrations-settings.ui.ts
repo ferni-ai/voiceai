@@ -105,7 +105,6 @@ class IntegrationsSettingsUI {
   private callbacks: IntegrationsUICallbacks = {};
   private status: IntegrationStatus | null = null;
   private capabilities: IntegrationCapabilities | null = null;
-  private userId: string = '';
 
   initialize(): void {
     if (this.panel) return;
@@ -115,10 +114,6 @@ class IntegrationsSettingsUI {
 
   setCallbacks(callbacks: IntegrationsUICallbacks): void {
     this.callbacks = callbacks;
-  }
-
-  setUserId(userId: string): void {
-    this.userId = userId;
   }
 
   async show(): Promise<void> {
@@ -1119,11 +1114,10 @@ export function getIntegrationsSettingsUI(): IntegrationsSettingsUI {
 }
 
 export function initIntegrationsSettingsUI(
-  userId: string,
+  _userId: string, // No longer used - auth handled by apiGet/apiPost
   callbacks: IntegrationsUICallbacks
 ): void {
   const ui = getIntegrationsSettingsUI();
-  ui.setUserId(userId);
   ui.setCallbacks(callbacks);
   ui.initialize();
 }

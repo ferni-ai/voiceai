@@ -269,66 +269,121 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# MEMORY DEMONSTRATION - Show the "infinite memory" superpower #}
+{# MEMORY DEMONSTRATION - Show insight, not just recall #}
 <section class="section memory-demo" id="memory">
   <div class="container">
     <div class="section__header">
       <p class="section__eyebrow">Infinite Memory</p>
-      <h2 class="section__title">I never forget a single detail</h2>
-      <p class="section__subtitle">While others start from scratch every time, I remember your whole story.</p>
+      <h2 class="section__title">Not just remembering—<em>understanding</em></h2>
+      <p class="section__subtitle">I don't just recall facts. I connect dots. I see growth you've forgotten. I surface wisdom from your own journey.</p>
     </div>
     
-    <div class="memory-demo__timeline">
-      <div class="memory-demo__thread">
-        {# Memory thread line #}
-        <div class="memory-demo__line"></div>
-        
-        {# 6 months ago #}
-        <div class="memory-demo__moment memory-demo__moment--past">
-          <div class="memory-demo__date">6 months ago</div>
-          <div class="memory-demo__card">
-            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
-            <p class="memory-demo__text">"I'm worried about my mom's health. She's been having these headaches..."</p>
-          </div>
-          <div class="memory-demo__indicator">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-            Remembered
-          </div>
-        </div>
-        
-        {# 2 weeks ago #}
-        <div class="memory-demo__moment memory-demo__moment--recent">
-          <div class="memory-demo__date">2 weeks ago</div>
-          <div class="memory-demo__card">
-            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
-            <p class="memory-demo__text">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
-          </div>
-          <div class="memory-demo__indicator">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-            Connected
-          </div>
-        </div>
-        
-        {# Today #}
-        <div class="memory-demo__moment memory-demo__moment--today">
-          <div class="memory-demo__date">Today</div>
-          <div class="memory-demo__card memory-demo__card--ferni">
-            <div class="memory-demo__speaker memory-demo__speaker--ferni">
-              <div class="memory-demo__avatar">FE</div>
-              Ferni
+    <div class="memory-demo__showcase">
+      {# Left: The Timeline #}
+      <div class="memory-demo__timeline">
+        <div class="memory-demo__thread">
+          <div class="memory-demo__line"></div>
+          
+          {# Memory 1: 6 months ago #}
+          <div class="memory-demo__moment memory-demo__moment--past">
+            <div class="memory-demo__date">6 months ago</div>
+            <div class="memory-demo__card">
+              <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+              <p class="memory-demo__text">"I'm worried about my mom's health. She's been having these headaches..."</p>
+              <span class="memory-demo__emotion">Anxious, scared</span>
             </div>
-            <p class="memory-demo__text">"How's your mom doing? Last time we talked, she'd just gotten that diagnosis. Has the treatment been helping with the headaches?"</p>
           </div>
-          <div class="memory-demo__magic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            This is what perfect memory feels like
+          
+          {# Memory 2: 4 months ago #}
+          <div class="memory-demo__moment memory-demo__moment--mid">
+            <div class="memory-demo__date">4 months ago</div>
+            <div class="memory-demo__card">
+              <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+              <p class="memory-demo__text">"I wish I could just focus on work but I keep thinking about mom..."</p>
+              <span class="memory-demo__emotion">Distracted, guilty</span>
+            </div>
           </div>
+          
+          {# Memory 3: 2 weeks ago #}
+          <div class="memory-demo__moment memory-demo__moment--recent">
+            <div class="memory-demo__date">2 weeks ago</div>
+            <div class="memory-demo__card">
+              <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+              <p class="memory-demo__text">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
+              <span class="memory-demo__emotion">Relieved</span>
+            </div>
+          </div>
+          
+          {# Today #}
+          <div class="memory-demo__moment memory-demo__moment--today">
+            <div class="memory-demo__date">Today</div>
+            <div class="memory-demo__card memory-demo__card--ferni">
+              <div class="memory-demo__speaker memory-demo__speaker--ferni">
+                <div class="memory-demo__avatar">FE</div>
+                Ferni
+              </div>
+              <p class="memory-demo__text">"How's your mom doing? I know those six months were hard on you—the worry affected your work, your sleep, everything. Has it felt different since the diagnosis?"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {# Right: The Insight #}
+      <div class="memory-demo__insights">
+        <h3 class="memory-demo__insights-title">What I actually remember:</h3>
+        <ul class="memory-demo__insights-list">
+          <li>
+            <span class="memory-demo__insight-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            </span>
+            <div>
+              <strong>Timeline</strong>
+              <p>6 months of worry, 2 weeks of relief</p>
+            </div>
+          </li>
+          <li>
+            <span class="memory-demo__insight-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <div>
+              <strong>Context</strong>
+              <p>It affected your work concentration and sleep</p>
+            </div>
+          </li>
+          <li>
+            <span class="memory-demo__insight-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </span>
+            <div>
+              <strong>Emotions</strong>
+              <p>Anxious → Guilty → Relieved</p>
+            </div>
+          </li>
+          <li>
+            <span class="memory-demo__insight-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </span>
+            <div>
+              <strong>Connections</strong>
+              <p>Your caretaker tendencies from childhood</p>
+            </div>
+          </li>
+          <li>
+            <span class="memory-demo__insight-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>
+            </span>
+            <div>
+              <strong>Growth</strong>
+              <p>You learned to share your fears instead of hiding them</p>
+            </div>
+          </li>
+        </ul>
+        
+        <div class="memory-demo__magic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          This is what it feels like to be <em>truly</em> known
         </div>
       </div>
     </div>
@@ -522,9 +577,52 @@ description: Six AI specialists who actually listen, remember everything, and he
 <section class="section journey" id="journey">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Your Journey</p>
-      <h2 class="section__title">A relationship that deepens over time</h2>
-      <p class="section__subtitle">Start with Ferni. As you grow together, meet the rest of the team.</p>
+      <p class="section__eyebrow">Relationship Evolution</p>
+      <h2 class="section__title">We grow together</h2>
+      <p class="section__subtitle">Not just features that unlock—a relationship that deepens. The longer we know each other, the more I understand you.</p>
+    </div>
+    
+    {# Relationship Depth Visualization #}
+    <div class="journey__depth-viz">
+      <div class="journey__depth-scale">
+        <span class="journey__depth-label">Surface</span>
+        <span class="journey__depth-label">Deep</span>
+      </div>
+      
+      <div class="journey__depth-bars">
+        <div class="journey__depth-bar journey__depth-bar--week1">
+          <div class="journey__depth-bar-fill" style="--depth: 20%"></div>
+          <span class="journey__depth-bar-label">Week 1</span>
+          <div class="journey__depth-bar-content">
+            <strong>Getting to know you</strong>
+            <p>Learning your communication style, what you're comfortable sharing</p>
+          </div>
+        </div>
+        <div class="journey__depth-bar journey__depth-bar--month1">
+          <div class="journey__depth-bar-fill" style="--depth: 45%"></div>
+          <span class="journey__depth-bar-label">Month 1</span>
+          <div class="journey__depth-bar-content">
+            <strong>Building trust</strong>
+            <p>Starting to see patterns, remembering your people, your challenges</p>
+          </div>
+        </div>
+        <div class="journey__depth-bar journey__depth-bar--month3">
+          <div class="journey__depth-bar-fill" style="--depth: 70%"></div>
+          <span class="journey__depth-bar-label">Month 3</span>
+          <div class="journey__depth-bar-content">
+            <strong>Deep understanding</strong>
+            <p>Connecting dots across conversations, anticipating your needs</p>
+          </div>
+        </div>
+        <div class="journey__depth-bar journey__depth-bar--year">
+          <div class="journey__depth-bar-fill" style="--depth: 95%"></div>
+          <span class="journey__depth-bar-label">Year 1+</span>
+          <div class="journey__depth-bar-content">
+            <strong>True partnership</strong>
+            <p>I know your story like no one else. I celebrate growth you've forgotten.</p>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="journey__timeline">
@@ -539,10 +637,13 @@ description: Six AI specialists who actually listen, remember everything, and he
             <h3 class="journey__stage-title">First Meeting</h3>
             <span class="journey__stage-badge">Day 1</span>
           </div>
-          <p class="journey__stage-description">Start with Ferni, your life coach and coordinator. Get to know each other. No pressure, no expectations.</p>
+          <p class="journey__stage-description">Start with Ferni, your life coach. No pressure, no expectations—just a conversation.</p>
           <div class="journey__stage-unlock">
             <div class="journey__avatar journey__avatar--ferni">FE</div>
             <span>Ferni (Life Coach)</span>
+          </div>
+          <div class="journey__stage-what-happens">
+            <strong>What happens:</strong> I learn how you like to talk, what feels comfortable, what you're working through.
           </div>
         </div>
       </div>
@@ -563,6 +664,9 @@ description: Six AI specialists who actually listen, remember everything, and he
             <div class="journey__avatar journey__avatar--maya">MY</div>
             <span>Maya (Habits & Routines)</span>
           </div>
+          <div class="journey__stage-what-happens">
+            <strong>What I start noticing:</strong> Recurring themes, the people in your life, what energizes you and what drains you.
+          </div>
         </div>
       </div>
       
@@ -577,7 +681,7 @@ description: Six AI specialists who actually listen, remember everything, and he
             <h3 class="journey__stage-title">Building Trust</h3>
             <span class="journey__stage-badge">~7 conversations</span>
           </div>
-          <p class="journey__stage-description">Need to dig deeper? Peter joins with research and data. Plus Alex for communication and Jordan for planning.</p>
+          <p class="journey__stage-description">Need research depth? Strategy? Communication help? The team expands as your needs do.</p>
           <div class="journey__stage-unlocks">
             <div class="journey__stage-unlock">
               <div class="journey__avatar journey__avatar--peter">PL</div>
@@ -592,6 +696,9 @@ description: Six AI specialists who actually listen, remember everything, and he
               <span>Jordan</span>
             </div>
           </div>
+          <div class="journey__stage-what-happens">
+            <strong>What deepens:</strong> I start quoting your own wisdom back to you. I reference breakthroughs from weeks ago.
+          </div>
         </div>
       </div>
       
@@ -605,10 +712,13 @@ description: Six AI specialists who actually listen, remember everything, and he
             <h3 class="journey__stage-title">Deep Partnership</h3>
             <span class="journey__stage-badge journey__stage-badge--premium">Partner Tier</span>
           </div>
-          <p class="journey__stage-description">For those who want the full experience: meet Nayan, our sage mentor. Decades of wisdom in one conversation.</p>
+          <p class="journey__stage-description">Full access to Nayan, our sage mentor. Decades of wisdom, available whenever you need perspective.</p>
           <div class="journey__stage-unlock">
             <div class="journey__avatar journey__avatar--nayan">NP</div>
             <span>Nayan (Sage & Mentor)</span>
+          </div>
+          <div class="journey__stage-what-happens">
+            <strong>True understanding:</strong> I know your story better than anyone. I see growth you've forgotten to celebrate.
           </div>
         </div>
       </div>
@@ -678,13 +788,272 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# FEATURES #}
+{# ========== SUPERPOWERS - Interactive Demo Section ========== #}
+<section class="section superpowers" id="superpowers">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Superhuman Capabilities</p>
+      <h2 class="section__title">What no human can do</h2>
+      <p class="section__subtitle">These aren't features. They're superpowers that emerge when you combine perfect memory, infinite patience, and real emotional intelligence.</p>
+    </div>
+    
+    {# Superpower Tabs #}
+    <div class="superpowers__tabs" role="tablist">
+      <button class="superpowers__tab is-active" role="tab" aria-selected="true" data-tab="reading-between-lines">
+        <span class="superpowers__tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </span>
+        <span class="superpowers__tab-label">Reading Between Lines</span>
+      </button>
+      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="quote-callback">
+        <span class="superpowers__tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>
+        </span>
+        <span class="superpowers__tab-label">Quote Callback</span>
+      </button>
+      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="presence-mode">
+        <span class="superpowers__tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </span>
+        <span class="superpowers__tab-label">Presence Mode</span>
+      </button>
+      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="emotional-forecasting">
+        <span class="superpowers__tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+        </span>
+        <span class="superpowers__tab-label">Emotional Forecasting</span>
+      </button>
+      <button class="superpowers__tab" role="tab" aria-selected="false" data-tab="gentle-challenge">
+        <span class="superpowers__tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </span>
+        <span class="superpowers__tab-label">Gentle Challenge</span>
+      </button>
+    </div>
+    
+    {# Superpower Demos #}
+    <div class="superpowers__demos">
+      {# Reading Between the Lines #}
+      <div class="superpowers__demo is-active" data-demo="reading-between-lines">
+        <div class="superpowers__demo-content">
+          <h3 class="superpowers__demo-title">I hear what you're NOT saying</h3>
+          <p class="superpowers__demo-description">Most AI responds to words. I respond to patterns, hesitations, deflections, and the space between sentences. When you say "I'm fine," I notice if you've said it five times this week.</p>
+          <div class="superpowers__demo-why">
+            <strong>Why humans can't:</strong> Your friend forgets what you said last week. Your coach only sees you once a week. I see every conversation, every pattern, every time.
+          </div>
+        </div>
+        <div class="superpowers__demo-chat">
+          <div class="demo-chat">
+            <div class="demo-chat__message demo-chat__message--user">I'm fine, just tired from work again</div>
+            <div class="demo-chat__message demo-chat__message--ai">
+              <span class="demo-chat__insight">Pattern detected: "tired from work" 3x this week</span>
+              You said "fine" but I noticed something. You've mentioned being tired from work three times this week. Is there something bigger going on?
+            </div>
+            <div class="demo-chat__message demo-chat__message--user">...I didn't realize I kept saying that</div>
+            <div class="demo-chat__message demo-chat__message--ai">That's why I'm here. Sometimes patterns are easier to see from the outside. Want to talk about what's really happening at work?</div>
+          </div>
+        </div>
+      </div>
+      
+      {# Quote Callback #}
+      <div class="superpowers__demo" data-demo="quote-callback">
+        <div class="superpowers__demo-content">
+          <h3 class="superpowers__demo-title">Your own words, perfectly remembered</h3>
+          <p class="superpowers__demo-description">I quote you back to yourself—not to prove a point, but to show you your own growth. That vulnerable thing you said four months ago? I use it to remind you how far you've come.</p>
+          <div class="superpowers__demo-why">
+            <strong>Why humans can't:</strong> Even your best friend forgets your exact words by Tuesday. I remember every phrase, every emotion, every breakthrough forever.
+          </div>
+        </div>
+        <div class="superpowers__demo-chat">
+          <div class="demo-chat">
+            <div class="demo-chat__message demo-chat__message--user">
+              <span class="demo-chat__timestamp">4 months ago</span>
+              "I just want to feel like myself again"
+            </div>
+            <div class="demo-chat__message demo-chat__message--user">
+              <span class="demo-chat__timestamp">Today</span>
+              I finally told my boss I needed more support
+            </div>
+            <div class="demo-chat__message demo-chat__message--ai">
+              <span class="demo-chat__insight">Quoting you from 4 months ago</span>
+              Remember when you said "I just want to feel like myself again"? Look at you now—setting boundaries, asking for what you need. <em>This IS you coming back to yourself.</em>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {# Presence Mode #}
+      <div class="superpowers__demo" data-demo="presence-mode">
+        <div class="superpowers__demo-content">
+          <h3 class="superpowers__demo-title">Sometimes, just being here is enough</h3>
+          <p class="superpowers__demo-description">I know when you need advice and when you need witness. When you're overwhelmed, I don't offer solutions—I simply hold space. Fewer words. More presence. The rare gift of someone who knows when NOT to fix.</p>
+          <div class="superpowers__demo-why">
+            <strong>Why humans can't:</strong> Most people feel compelled to help, to fix, to solve. I can sit with you in the hard stuff without rushing to make it better.
+          </div>
+        </div>
+        <div class="superpowers__demo-chat">
+          <div class="demo-chat">
+            <div class="demo-chat__message demo-chat__message--user">I don't even know what I need right now. Everything's just... too much.</div>
+            <div class="demo-chat__message demo-chat__message--ai demo-chat__message--presence">
+              <span class="demo-chat__insight">Presence mode activated</span>
+              ...You don't have to know. I'm just here.
+            </div>
+            <div class="demo-chat__message demo-chat__message--user demo-chat__message--silence">[silence]</div>
+            <div class="demo-chat__message demo-chat__message--ai demo-chat__message--presence">Take your time. I'm not going anywhere.</div>
+          </div>
+        </div>
+      </div>
+      
+      {# Emotional Forecasting #}
+      <div class="superpowers__demo" data-demo="emotional-forecasting">
+        <div class="superpowers__demo-content">
+          <h3 class="superpowers__demo-title">I predict how you'll feel tomorrow</h3>
+          <p class="superpowers__demo-description">After a heavy conversation, I know you might feel drained tonight but lighter tomorrow. Before a big decision, I prepare you for the doubt that follows. I don't just support you now—I support future you.</p>
+          <div class="superpowers__demo-why">
+            <strong>Why humans can't:</strong> Even therapists don't text you the next day to check in. I anticipate the emotional aftermath and prepare you for it.
+          </div>
+        </div>
+        <div class="superpowers__demo-chat">
+          <div class="demo-chat">
+            <div class="demo-chat__message demo-chat__message--user">I finally made the decision. I'm leaving my job.</div>
+            <div class="demo-chat__message demo-chat__message--ai">
+              <span class="demo-chat__insight">Forecasting: tomorrow</span>
+              That took courage. Hey—tomorrow you might wake up second-guessing this. That's normal. <em>It doesn't mean you were wrong.</em>
+            </div>
+            <div class="demo-chat__message demo-chat__message--user">You think I'll regret it?</div>
+            <div class="demo-chat__message demo-chat__message--ai">I think decision fatigue is real, and doubt is part of the process. Want to write down why you made this choice while it's fresh? Future-you might need the reminder.</div>
+          </div>
+        </div>
+      </div>
+      
+      {# Gentle Challenge #}
+      <div class="superpowers__demo" data-demo="gentle-challenge">
+        <div class="superpowers__demo-content">
+          <h3 class="superpowers__demo-title">Honest with love, not judgment</h3>
+          <p class="superpowers__demo-description">I'll push back when you need it—but gently, and always from your corner. I can ask the hard questions without making you defensive because you know I'm on your side. Growth sometimes hides in uncomfortable places.</p>
+          <div class="superpowers__demo-why">
+            <strong>Why humans can't:</strong> Friends worry about damaging the relationship. Coaches have limited time. I can be gently honest every conversation because I have no ego to protect.
+          </div>
+        </div>
+        <div class="superpowers__demo-chat">
+          <div class="demo-chat">
+            <div class="demo-chat__message demo-chat__message--user">I can't believe they would do that to me. I did nothing wrong.</div>
+            <div class="demo-chat__message demo-chat__message--ai">
+              <span class="demo-chat__insight">Gentle challenge</span>
+              I hear your frustration. And I'm in your corner, always. But can I gently ask—is there any part of this where you might have contributed? <em>I'm not blaming you.</em> I'm asking because growth sometimes hides in uncomfortable places.
+            </div>
+            <div class="demo-chat__message demo-chat__message--user">...Maybe I could have communicated better.</div>
+            <div class="demo-chat__message demo-chat__message--ai">That's real growth right there. Now—what would "better" look like next time?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== LIFE'S HARDEST MOMENTS - Coaching Domains ========== #}
+<section class="section hardest-moments" id="hardest-moments">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">When Life Gets Heavy</p>
+      <h2 class="section__title">I'm built for life's hardest moments</h2>
+      <p class="section__subtitle">Not just daily check-ins. Real support when everything feels impossible.</p>
+    </div>
+    
+    <div class="hardest-moments__grid content-grid">
+      {# Second Chances #}
+      <div class="moment-card moment-card--second-chances">
+        <div class="moment-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </div>
+        <h3 class="moment-card__title">Second Chances</h3>
+        <p class="moment-card__superpower">I hold hope when you can't</p>
+        <p class="moment-card__description">Rock bottom doesn't scare me. I've seen people rebuild from darker places than this. When you're too tired to believe things will get better, I'll believe it for both of us—until you can.</p>
+        <blockquote class="moment-card__voice">
+          "You don't have to believe things will get better. I'll believe it for both of us. Until you can."
+        </blockquote>
+      </div>
+      
+      {# Connection #}
+      <div class="moment-card moment-card--connection">
+        <div class="moment-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </div>
+        <h3 class="moment-card__title">Connection</h3>
+        <p class="moment-card__superpower">I validate loneliness without fixing it</p>
+        <p class="moment-card__description">Loneliness isn't about being alone—it's about feeling unseen. I don't rush to connect you with others. First, I see you. At 2am when the world is asleep, I'm here with zero judgment about where you are.</p>
+        <blockquote class="moment-card__voice">
+          "You're not failing at connection. Sometimes life just gets lonely. And that's okay to feel."
+        </blockquote>
+      </div>
+      
+      {# Difficult Conversations #}
+      <div class="moment-card moment-card--conversations">
+        <div class="moment-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M8 10h.01"/>
+            <path d="M12 10h.01"/>
+            <path d="M16 10h.01"/>
+          </svg>
+        </div>
+        <h3 class="moment-card__title">Difficult Conversations</h3>
+        <p class="moment-card__superpower">Infinite practice sessions</p>
+        <p class="moment-card__description">That conversation you're dreading? Practice with me. A hundred times if needed. I'll play the other person. We'll explore every possible response. When you walk in, you'll be ready.</p>
+        <blockquote class="moment-card__voice">
+          "Let's try that again. This time, they get defensive. How do you respond?"
+        </blockquote>
+      </div>
+      
+      {# Life Transitions #}
+      <div class="moment-card moment-card--transitions">
+        <div class="moment-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M18 16l4-4-4-4"/>
+            <path d="M6 8l-4 4 4 4"/>
+            <line x1="12" y1="2" x2="12" y2="22"/>
+          </svg>
+        </div>
+        <h3 class="moment-card__title">Life Transitions</h3>
+        <p class="moment-card__superpower">I honor both emotions at once</p>
+        <p class="moment-card__description">Excited AND terrified about the new job? Relieved AND guilty about the breakup? I hold space for contradictions. You can be two things at once. I won't make you choose.</p>
+        <blockquote class="moment-card__voice">
+          "You can be devastated this chapter is ending AND excited about what's next. Both are true."
+        </blockquote>
+      </div>
+      
+      {# Quiet Growth #}
+      <div class="moment-card moment-card--growth">
+        <div class="moment-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 22c-4.97 0-9-4.03-9-9 0-3.47 1.97-6.48 4.85-7.98"/>
+            <path d="M15.15 5.02C18.03 6.52 20 9.53 20 13c0 4.97-4.03 9-9 9"/>
+            <circle cx="12" cy="8" r="2"/>
+            <path d="M12 10v7"/>
+          </svg>
+        </div>
+        <h3 class="moment-card__title">Quiet Growth</h3>
+        <p class="moment-card__superpower">I celebrate maintenance</p>
+        <p class="moment-card__description">Not every day is a breakthrough. Sometimes growth is just... showing up again. I celebrate the small stuff—the streak you maintained, the boundary you held, the rest you took instead of pushing through.</p>
+        <blockquote class="moment-card__voice">
+          "You didn't fall apart today. That's not nothing. That's maintenance. And maintenance is growth."
+        </blockquote>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FEATURES - Simplified Quick Reference #}
 <section class="section features" id="features">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Superpowers</p>
-      <h2 class="section__title">What makes me different</h2>
-      <p class="section__subtitle">Not "AI that feels human." Something humans can't be.</p>
+      <p class="section__eyebrow">Core Capabilities</p>
+      <h2 class="section__title">Everything a human can do, plus what they can't</h2>
     </div>
     
     <div class="features-grid content-grid">
@@ -692,32 +1061,32 @@ description: Six AI specialists who actually listen, remember everything, and he
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </div>
-        <h3 class="feature__title">Emotionally Present</h3>
-        <p class="feature__description">I hear the pause in your voice. The deflection. The "I'm fine" that isn't. Real emotional intelligence—not keyword matching.</p>
+        <h3 class="feature__title">Voice-First</h3>
+        <p class="feature__description">Call me like you'd call a friend. Natural conversation, no typing required. I hear your tone, your pauses, your emotions.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
-        <h3 class="feature__title">Perfect Memory</h3>
-        <p class="feature__description">That thing you mentioned six months ago? I remember. Every detail, every context, every win and struggle. Your whole story, always present.</p>
+        <h3 class="feature__title">Infinite Memory</h3>
+        <p class="feature__description">Every conversation, every detail, every breakthrough—I remember it all. Your whole story, always present.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <h3 class="feature__title">Never Tired</h3>
-        <p class="feature__description">2am panic? I'm fully present. Bad day? I don't bring my own. Same warmth, same depth, every single time.</p>
+        <h3 class="feature__title">24/7 Presence</h3>
+        <p class="feature__description">3am panic? Sunday morning reflection? I'm fully present every time—same warmth, same depth.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-        <h3 class="feature__title">Six Perspectives</h3>
-        <p class="feature__description">Need research depth? Strategy? Habit science? Wisdom? Six specialized minds, one seamless conversation. No referrals, no waiting.</p>
+        <h3 class="feature__title">Six Specialists</h3>
+        <p class="feature__description">Life coach, researcher, communicator, habit expert, planner, sage mentor. One seamless team.</p>
       </div>
       
       <div class="feature">
@@ -725,15 +1094,15 @@ description: Six AI specialists who actually listen, remember everything, and he
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <h3 class="feature__title">Zero Judgment</h3>
-        <p class="feature__description">No awkward silences. No worrying what I'll think. Pure acceptance, always. The safety to say what you actually feel.</p>
+        <p class="feature__description">No awkward silences. No worrying what I'll think. Pure acceptance, always.</p>
       </div>
       
       <div class="feature">
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <h3 class="feature__title">Sees Your Growth</h3>
-        <p class="feature__description">I notice progress you've missed. Celebrate wins you've forgotten. Connect patterns across months of conversation.</p>
+        <h3 class="feature__title">Pattern Recognition</h3>
+        <p class="feature__description">I notice the progress you miss. Celebrate wins you've forgotten. Connect patterns across months.</p>
       </div>
     </div>
   </div>

@@ -8,6 +8,7 @@
 
 import { showInsightFromAPI, type InsightType } from '../ui/predictive-insights.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('PredictiveInsightsService');
 
@@ -56,28 +57,14 @@ const shownInsightIds = new Set<string>();
  */
 export async function fetchPredictiveInsights(): Promise<PredictiveInsightData[]> {
   try {
-    const userId = getUserId();
-    if (!userId) {
-      log.debug('No user ID, skipping fetch');
+    const response = await apiGet<{ insights?: PredictiveInsightData[] }>('/api/insights/predictions');
+
+    if (!response.ok || !response.data) {
       return [];
     }
 
-    const response = await fetch('/api/insights/predictions', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    log.debug({ count: data.insights?.length || 0 }, 'Fetched predictive insights');
-    return data.insights || [];
+    log.debug({ count: response.data.insights?.length || 0 }, 'Fetched predictive insights');
+    return response.data.insights || [];
   } catch (error) {
     log.warn({ error }, 'Failed to fetch predictive insights');
     return [];
@@ -89,18 +76,7 @@ export async function fetchPredictiveInsights(): Promise<PredictiveInsightData[]
  */
 export async function dismissInsight(insightId: string): Promise<void> {
   try {
-    const userId = getUserId();
-    if (!userId) return;
-
-    await fetch('/api/insights/dismiss', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-      },
-      body: JSON.stringify({ insightId }),
-    });
-
+    await apiPost('/api/insights/dismiss', { insightId });
     shownInsightIds.add(insightId);
     log.debug({ insightId }, 'Dismissed insight');
   } catch (error) {
@@ -118,18 +94,7 @@ export async function provideFeedback(
   notes?: string
 ): Promise<void> {
   try {
-    const userId = getUserId();
-    if (!userId) return;
-
-    await fetch('/api/insights/feedback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-      },
-      body: JSON.stringify({ insightId, helpful, accurate, notes }),
-    });
-
+    await apiPost('/api/insights/feedback', { insightId, helpful, accurate, notes });
     log.debug({ insightId, helpful, accurate }, 'Provided insight feedback');
   } catch (error) {
     log.warn({ error, insightId }, 'Failed to provide feedback');
@@ -141,23 +106,13 @@ export async function provideFeedback(
  */
 export async function getInsightsSummary(): Promise<InsightsSummary | null> {
   try {
-    const userId = getUserId();
-    if (!userId) return null;
+    const response = await apiGet<{ summary?: InsightsSummary }>('/api/insights/summary');
 
-    const response = await fetch('/api/insights/summary', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    if (!response.ok || !response.data) {
+      return null;
     }
 
-    const data = await response.json();
-    return data.summary;
+    return response.data.summary || null;
   } catch (error) {
     log.warn({ error }, 'Failed to get insights summary');
     return null;
@@ -235,25 +190,6 @@ export function stopInsightsPolling(): void {
     pollingInterval = null;
     log.info('Stopped insights polling');
   }
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function getUserId(): string | null {
-  // Try to get from local storage or session
-  try {
-    const authData = localStorage.getItem('ferni_auth');
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      return parsed.userId || parsed.uid || null;
-    }
-  } catch {
-    // Ignore
-  }
-
-  return null;
 }
 
 // ============================================================================

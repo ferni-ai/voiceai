@@ -129,6 +129,15 @@ import handleAuthMonitoringRoutes from './dist/api/auth-monitoring-routes.js';
 // Session accent routes (mid-session accent changes)
 import handleSessionAccentRoutes from './dist/api/session-accent-routes.js';
 
+// Landing Intelligence routes (Gemini-powered landing page optimization)
+import { handleLandingIntelligenceRoutes } from './dist/api/landing-intelligence-handler.js';
+
+// Landing Optimization Agent routes (automated optimization, reports, experiments)
+import { handleLandingOptimizationRoutes } from './dist/api/landing-optimization-handler.js';
+
+// Garden routes (Seed Fund community contribution system)
+import { handleGardenRoutes } from './dist/api/garden-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -869,6 +878,18 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Landing Intelligence routes (Gemini-powered landing page optimization)
+    if (pathname.startsWith('/api/landing')) {
+      // Check optimization routes first (more specific)
+      if (pathname.startsWith('/api/landing/optimization')) {
+        const handled = await handleLandingOptimizationRoutes(req, res, pathname);
+        if (handled) return;
+      }
+      // Then general landing routes
+      const handled = await handleLandingIntelligenceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Commands API routes (persona slash commands)
     if (pathname.startsWith('/api/commands')) {
       const handled = await handleCommandsRoutes(req, res, pathname);
@@ -920,6 +941,12 @@ const server = http.createServer(async (req, res) => {
     // Habit persistence routes (CRUD, completions, streaks)
     if (pathname.startsWith('/api/habits')) {
       const handled = await handleHabitRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Garden routes (Seed Fund community contribution system)
+    if (pathname.startsWith('/api/garden')) {
+      const handled = await handleGardenRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

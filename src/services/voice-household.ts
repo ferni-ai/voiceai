@@ -35,6 +35,7 @@ export interface HouseholdMember {
   preferences?: {
     greeting?: string;
     persona?: string;
+    voiceEnrolled?: boolean;
   };
 }
 
@@ -211,7 +212,8 @@ async function saveHousehold(household: Household): Promise<void> {
 
 /**
  * Add a member to a household.
- * The member must already have a voice profile enrolled.
+ * Voice profile is optional - member can be added first, then enrolled later.
+ * Members without voice profiles won't be automatically recognized during conversations.
  */
 export async function addHouseholdMember(
   deviceId: string,
@@ -232,24 +234,28 @@ export async function addHouseholdMember(
     return existing;
   }
 
-  // Verify voice profile exists
+  // Check if voice profile exists (optional - for logging/status)
   const profile = await loadVoiceProfile(userId);
-  if (!profile) {
-    log.warn({ userId }, 'Cannot add member - no voice profile');
-    return null;
-  }
+  const hasVoiceProfile = !!profile;
 
   const member: HouseholdMember = {
     userId,
     displayName,
     role,
     enrolledAt: new Date(),
+    // Track voice enrollment status in preferences
+    preferences: {
+      voiceEnrolled: hasVoiceProfile,
+    },
   };
 
   household.members.push(member);
   await saveHousehold(household);
 
-  log.info({ userId, householdId: household.id, role }, 'Member added to household');
+  log.info(
+    { userId, householdId: household.id, role, voiceEnrolled: hasVoiceProfile },
+    'Member added to household'
+  );
   return member;
 }
 

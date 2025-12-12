@@ -7,10 +7,14 @@
  *
  * Design: Follows Ferni's warm, Apple-inspired aesthetic with
  * centered floating modal and proper accessibility.
+ *
+ * @module @ferni/household-manager
  */
 
 import { createLogger } from '../utils/logger.js';
-import { getDeviceId } from '../state/app.state.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('HouseholdManager');
 
@@ -27,6 +31,7 @@ export interface HouseholdMember {
   preferences?: {
     greeting?: string;
     persona?: string;
+    voiceEnrolled?: boolean;
   };
 }
 
@@ -60,11 +65,30 @@ const ROLE_LABELS: Record<HouseholdMember['role'], string> = {
   guest: 'Guest',
 };
 
+// ============================================================================
+// ICONS (Lucide-style SVGs - 2px stroke, rounded corners)
+// ============================================================================
+
+const ICONS = {
+  close: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
+  userPlus: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`,
+  users: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  home: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  // Role icons (Lucide SVGs - no emoji!)
+  crown: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`,
+  user: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  baby: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>`,
+  handWave: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`,
+  alertCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+// Map roles to their Lucide icons
 const ROLE_ICONS: Record<HouseholdMember['role'], string> = {
-  owner: '👑',
-  adult: '👤',
-  child: '🧒',
-  guest: '👋',
+  owner: ICONS.crown,
+  adult: ICONS.user,
+  child: ICONS.baby,
+  guest: ICONS.handWave,
 };
 
 // ============================================================================
@@ -75,6 +99,8 @@ let modal: HTMLElement | null = null;
 let household: Household | null = null;
 let callbacks: HouseholdManagerCallbacks = {};
 let isLoading = false;
+let currentView: 'main' | 'create' | 'confirm-remove' = 'main';
+let memberToRemove: HouseholdMember | null = null;
 
 // ============================================================================
 // STYLES
@@ -90,7 +116,7 @@ const styles = `
     justify-content: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--duration-normal, 200ms) ease-out;
+    transition: opacity var(--duration-normal, ${DURATION.NORMAL}ms) ${EASING.STANDARD};
   }
   
   .household-modal-overlay.visible {
@@ -101,8 +127,9 @@ const styles = `
   .household-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.4);
+    background: var(--color-overlay, rgba(44, 37, 32, 0.4));
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
   
   .household-modal {
@@ -112,10 +139,10 @@ const styles = `
     max-height: 85vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl);
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
     overflow: hidden;
     transform: scale(0.95);
-    transition: transform var(--duration-slow, 300ms) var(--ease-spring);
+    transition: transform var(--duration-slow, ${DURATION.SLOW}ms) ${EASING.SPRING};
   }
   
   .household-modal-overlay.visible .household-modal {
@@ -132,7 +159,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni, #4a6741);
+    color: var(--persona-primary, var(--color-ferni, #4a6741));
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -164,7 +191,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     color: var(--color-text-secondary, #70605a);
-    transition: all var(--duration-fast, 100ms) ease;
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
   .household-modal__close:hover {
@@ -180,6 +207,10 @@ const styles = `
   
   .household-modal__section {
     margin-bottom: var(--space-6, 24px);
+  }
+  
+  .household-modal__section:last-child {
+    margin-bottom: 0;
   }
   
   .household-modal__section-title {
@@ -206,7 +237,7 @@ const styles = `
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
     border-radius: var(--radius-lg, 12px);
     border: 1px solid transparent;
-    transition: all var(--duration-fast, 100ms) ease;
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
   .household-member:hover {
@@ -218,11 +249,12 @@ const styles = `
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-dark, #3d5a35) 100%);
+    background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni, #4a6741)) 0%, var(--persona-secondary, var(--color-ferni-dark, #3d5a35)) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
+    font-weight: 600;
     color: white;
     flex-shrink: 0;
   }
@@ -258,6 +290,13 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 500;
+    color: var(--color-text-secondary, #70605a);
+  }
+  
+  .household-member__role svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.8;
   }
   
   .household-member__actions {
@@ -276,7 +315,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--duration-fast, 100ms) ease;
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
   .household-member__btn:hover {
@@ -285,8 +324,8 @@ const styles = `
   }
   
   .household-member__btn--danger:hover {
-    background: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
+    background: var(--color-semantic-error-glow, rgba(181, 69, 58, 0.1));
+    color: var(--color-semantic-error, #b5453a);
   }
   
   /* Empty State */
@@ -297,14 +336,93 @@ const styles = `
   }
   
   .household-empty__icon {
-    font-size: 48px;
-    margin-bottom: var(--space-3, 12px);
-    opacity: 0.5;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-4, 16px);
+    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    opacity: 0.6;
+  }
+  
+  .household-empty__icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .household-empty__title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary, #2c2520);
+    margin-bottom: var(--space-2, 8px);
   }
   
   .household-empty__text {
     font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: var(--space-5, 20px);
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  /* Create Household Form */
+  .household-create-form {
+    text-align: center;
+    padding: var(--space-4, 16px);
+  }
+  
+  .household-create-form__title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-text-primary, #2c2520);
+    margin-bottom: var(--space-2, 8px);
+  }
+  
+  .household-create-form__subtitle {
+    font-size: 14px;
+    color: var(--color-text-secondary, #70605a);
+    margin-bottom: var(--space-5, 20px);
+  }
+  
+  .household-create-form__input-group {
     margin-bottom: var(--space-4, 16px);
+  }
+  
+  .household-create-form__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary, #70605a);
+    margin-bottom: var(--space-2, 8px);
+    text-align: left;
+  }
+  
+  .household-create-form__input {
+    width: 100%;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border: 1px solid var(--color-border-medium, rgba(112, 96, 90, 0.15));
+    border-radius: var(--radius-lg, 12px);
+    font-size: 16px;
+    background: var(--color-background-elevated, #fffdfb);
+    color: var(--color-text-primary, #2c2520);
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
+  }
+  
+  .household-create-form__input:focus {
+    outline: none;
+    border-color: var(--persona-primary, var(--color-ferni, #4a6741));
+    box-shadow: 0 0 0 3px var(--persona-glow, rgba(74, 103, 65, 0.15));
+  }
+  
+  .household-create-form__input::placeholder {
+    color: var(--color-text-muted, #a89a94);
+  }
+  
+  .household-create-form__actions {
+    display: flex;
+    gap: var(--space-3, 12px);
+    margin-top: var(--space-5, 20px);
   }
   
   /* Add Member Form */
@@ -330,12 +448,17 @@ const styles = `
     font-size: 15px;
     background: var(--color-background-elevated, #fffdfb);
     color: var(--color-text-primary, #2c2520);
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
   .household-add-form__input:focus {
     outline: none;
-    border-color: var(--color-ferni, #4a6741);
-    box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+    border-color: var(--persona-primary, var(--color-ferni, #4a6741));
+    box-shadow: 0 0 0 3px var(--persona-glow, rgba(74, 103, 65, 0.1));
+  }
+  
+  .household-add-form__input::placeholder {
+    color: var(--color-text-muted, #a89a94);
   }
   
   .household-add-form__select {
@@ -346,6 +469,13 @@ const styles = `
     background: var(--color-background-elevated, #fffdfb);
     color: var(--color-text-primary, #2c2520);
     min-width: 100px;
+    cursor: pointer;
+  }
+  
+  .household-add-form__hint {
+    font-size: 12px;
+    color: var(--color-text-muted, #a89a94);
+    margin: 0;
   }
   
   /* Settings */
@@ -366,6 +496,7 @@ const styles = `
   
   .household-setting__info {
     flex: 1;
+    padding-right: var(--space-3, 12px);
   }
   
   .household-setting__label {
@@ -402,7 +533,7 @@ const styles = `
     right: 0;
     bottom: 0;
     background-color: var(--color-text-muted, #a89a94);
-    transition: var(--duration-normal, 200ms);
+    transition: background-color var(--duration-normal, ${DURATION.NORMAL}ms) ${EASING.STANDARD};
     border-radius: 28px;
   }
   
@@ -414,17 +545,63 @@ const styles = `
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: var(--duration-normal, 200ms);
+    transition: transform var(--duration-normal, ${DURATION.NORMAL}ms) ${EASING.SPRING};
     border-radius: 50%;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
   }
   
   .toggle-switch input:checked + .toggle-switch__slider {
-    background-color: var(--color-ferni, #4a6741);
+    background-color: var(--persona-primary, var(--color-ferni, #4a6741));
   }
   
   .toggle-switch input:checked + .toggle-switch__slider:before {
     transform: translateX(20px);
+  }
+  
+  .toggle-switch input:focus-visible + .toggle-switch__slider {
+    box-shadow: 0 0 0 3px var(--persona-glow, rgba(74, 103, 65, 0.2));
+  }
+  
+  /* Confirmation Dialog */
+  .household-confirm {
+    text-align: center;
+    padding: var(--space-4, 16px);
+  }
+  
+  .household-confirm__icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto var(--space-4, 16px);
+    color: var(--color-semantic-error, #b5453a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .household-confirm__icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .household-confirm__title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary, #2c2520);
+    margin-bottom: var(--space-2, 8px);
+  }
+  
+  .household-confirm__message {
+    font-size: 14px;
+    color: var(--color-text-secondary, #70605a);
+    margin-bottom: var(--space-5, 20px);
+    line-height: 1.5;
+  }
+  
+  .household-confirm__actions {
+    display: flex;
+    gap: var(--space-3, 12px);
+    justify-content: center;
   }
   
   /* Footer */
@@ -436,24 +613,33 @@ const styles = `
     gap: var(--space-3, 12px);
   }
   
+  /* Buttons */
   .household-btn {
     padding: var(--space-3, 12px) var(--space-5, 20px);
     border-radius: var(--radius-full, 9999px);
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
-    transition: all var(--duration-fast, 100ms) ease;
+    transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
     border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2, 8px);
   }
   
   .household-btn--primary {
-    background: var(--color-ferni, #4a6741);
+    background: var(--persona-primary, var(--color-ferni, #4a6741));
     color: white;
   }
   
   .household-btn--primary:hover {
-    background: var(--color-ferni-dark, #3d5a35);
+    background: var(--persona-secondary, var(--color-ferni-dark, #3d5a35));
     transform: translateY(-1px);
+  }
+  
+  .household-btn--primary:active {
+    transform: translateY(0);
   }
   
   .household-btn--secondary {
@@ -465,10 +651,30 @@ const styles = `
     background: var(--color-background-hover, rgba(112, 96, 90, 0.1));
   }
   
+  .household-btn--danger {
+    background: var(--color-semantic-error, #b5453a);
+    color: white;
+  }
+  
+  .household-btn--danger:hover {
+    background: var(--color-semantic-error, #9a3a30);
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+  }
+  
+  .household-btn--flex {
+    flex: 1;
+  }
+  
   .household-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+  }
+  
+  .household-btn svg {
+    width: 18px;
+    height: 18px;
   }
   
   /* Loading State */
@@ -483,21 +689,25 @@ const styles = `
     width: 32px;
     height: 32px;
     border: 3px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
-    border-top-color: var(--color-ferni, #4a6741);
+    border-top-color: var(--persona-primary, var(--color-ferni, #4a6741));
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: household-spin 1s linear infinite;
   }
   
-  @keyframes spin {
+  @keyframes household-spin {
     to { transform: rotate(360deg); }
   }
   
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     .household-modal-overlay,
     .household-modal,
+    .household-member,
     .toggle-switch__slider,
     .toggle-switch__slider:before,
-    .household-btn {
+    .household-btn,
+    .household-add-form__input,
+    .household-create-form__input {
       transition: none;
     }
     .household-spinner {
@@ -507,38 +717,23 @@ const styles = `
 `;
 
 // ============================================================================
-// ICONS (Lucide-style SVGs)
-// ============================================================================
-
-const ICONS = {
-  close: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-  trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
-  userPlus: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`,
-  users: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-};
-
-// ============================================================================
 // API FUNCTIONS
 // ============================================================================
 
 async function fetchHousehold(): Promise<Household | null> {
   try {
-    const deviceId = getDeviceId();
-    const response = await fetch('/api/voice/household', {
-      headers: {
-        'X-Device-ID': deviceId,
-      },
-    });
+    // Device ID is automatically included in headers via getApiHeaders()
+    const response = await apiGet<Household>('/api/voice/household');
 
     if (response.status === 404) {
       return null;
     }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    if (!response.ok || !response.data) {
+      return null;
     }
 
-    return await response.json();
+    return response.data;
   } catch (error) {
     log.error('Failed to fetch household:', error);
     return null;
@@ -547,70 +742,65 @@ async function fetchHousehold(): Promise<Household | null> {
 
 async function createHouseholdApi(name: string): Promise<Household | null> {
   try {
-    const deviceId = getDeviceId();
-    const userId = localStorage.getItem('ferni_user_id') || `user_${Date.now()}`;
+    // Device ID is automatically included in headers via getApiHeaders()
+    const response = await apiPost<{ household?: Household }>('/api/voice/household', { name });
 
-    const response = await fetch('/api/voice/household', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Device-ID': deviceId,
-        'X-User-ID': userId,
-      },
-      body: JSON.stringify({ name }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    if (!response.ok || !response.data) {
+      return null;
     }
 
-    const data = await response.json();
-    return data.household;
+    return response.data.household || null;
   } catch (error) {
     log.error('Failed to create household:', error);
     return null;
   }
 }
 
+interface AddMemberResult {
+  member?: HouseholdMember;
+  needsVoiceEnrollment?: boolean;
+  error?: string;
+}
+
 async function addMemberApi(
-  userId: string,
+  memberId: string,
   displayName: string,
   role: HouseholdMember['role']
-): Promise<HouseholdMember | null> {
+): Promise<AddMemberResult> {
   try {
-    const deviceId = getDeviceId();
-
-    const response = await fetch('/api/voice/household/members', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Device-ID': deviceId,
-      },
-      body: JSON.stringify({ userId, displayName, role }),
+    // Device ID is automatically included in headers via getApiHeaders()
+    const response = await apiPost<{
+      member?: HouseholdMember;
+      needsVoiceEnrollment?: boolean;
+      error?: string;
+    }>('/api/voice/household/members', {
+      userId: memberId,
+      displayName,
+      role,
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      return {
+        error: response.error || 'Failed to add member',
+      };
     }
 
-    const data = await response.json();
-    return data.member;
+    return {
+      member: response.data?.member,
+      needsVoiceEnrollment: response.data?.needsVoiceEnrollment,
+    };
   } catch (error) {
     log.error('Failed to add member:', error);
-    return null;
+    return {
+      error: 'Network error - please try again',
+    };
   }
 }
 
-async function removeMemberApi(userId: string): Promise<boolean> {
+async function removeMemberApi(memberId: string): Promise<boolean> {
   try {
-    const deviceId = getDeviceId();
-
-    const response = await fetch(`/api/voice/household/members/${userId}`, {
-      method: 'DELETE',
-      headers: {
-        'X-Device-ID': deviceId,
-      },
-    });
+    // Device ID is automatically included in headers via getApiHeaders()
+    const response = await apiDelete(`/api/voice/household/members/${memberId}`);
 
     return response.ok;
   } catch (error) {
@@ -648,6 +838,8 @@ export function cleanupHouseholdManager(): void {
   document.querySelector('.household-modal-overlay')?.remove();
   modal = null;
   household = null;
+  currentView = 'main';
+  memberToRemove = null;
 }
 
 // ============================================================================
@@ -659,15 +851,18 @@ export function cleanupHouseholdManager(): void {
  */
 export async function showHouseholdManager(options?: HouseholdManagerCallbacks): Promise<void> {
   callbacks = options || {};
+  currentView = 'main';
 
   // Create modal if it doesn't exist
   if (!modal) {
     createModal();
   }
 
-  // Show modal
-  modal?.classList.add('visible');
-  document.body.style.overflow = 'hidden';
+  // Show modal with animation
+  requestAnimationFrame(() => {
+    modal?.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  });
 
   // Load data
   await loadHousehold();
@@ -679,6 +874,12 @@ export async function showHouseholdManager(options?: HouseholdManagerCallbacks):
 export function hideHouseholdManager(): void {
   modal?.classList.remove('visible');
   document.body.style.overflow = '';
+
+  // Reset state after animation
+  setTimeout(() => {
+    currentView = 'main';
+    memberToRemove = null;
+  }, DURATION.SLOW);
 }
 
 function createModal(): void {
@@ -692,9 +893,9 @@ function createModal(): void {
     <div class="household-modal-backdrop"></div>
     <div class="household-modal">
       <header class="household-modal__header">
-        <p class="household-modal__eyebrow">Voice Settings</p>
+        <p class="household-modal__eyebrow">Your People</p>
         <h2 id="household-title" class="household-modal__title">Your Household</h2>
-        <p class="household-modal__subtitle">Manage family members who use Ferni on this device</p>
+        <p class="household-modal__subtitle">Everyone who talks to me here</p>
         <button class="household-modal__close" aria-label="Close">${ICONS.close}</button>
       </header>
       <div class="household-modal__content" id="household-content">
@@ -748,50 +949,67 @@ function renderContent(): void {
     return;
   }
 
+  // Route to appropriate view
+  switch (currentView) {
+    case 'create':
+      renderCreateForm(content);
+      break;
+    case 'confirm-remove':
+      renderConfirmRemove(content);
+      break;
+    default:
+      renderMainView(content);
+  }
+}
+
+function renderMainView(content: HTMLElement): void {
   if (!household) {
     content.innerHTML = `
       <div class="household-empty">
         <div class="household-empty__icon">${ICONS.users}</div>
+        <h3 class="household-empty__title">No household yet</h3>
         <p class="household-empty__text">
-          No household set up yet.<br>
-          Create one to let multiple family members use Ferni.
+          When you share this device with family, I can recognize each person's voice and remember everyone individually.
         </p>
-        <button class="household-btn household-btn--primary" data-action="create-household">
-          ${ICONS.userPlus} Create Household
+        <button class="household-btn household-btn--primary" data-action="show-create">
+          ${ICONS.home}
+          <span>Create Household</span>
         </button>
       </div>
     `;
 
-    content
-      .querySelector('[data-action="create-household"]')
-      ?.addEventListener('click', handleCreateHousehold);
+    content.querySelector('[data-action="show-create"]')?.addEventListener('click', () => {
+      currentView = 'create';
+      renderContent();
+    });
     return;
   }
 
   const membersHTML =
     household.members.length > 0
       ? household.members.map((member) => renderMember(member)).join('')
-      : `<p style="text-align: center; color: var(--color-text-secondary); padding: var(--space-4);">
-        No members enrolled yet. Add someone to get started!
-      </p>`;
+      : `<p class="household-add-form__hint" style="text-align: center; padding: var(--space-4);">
+          No one enrolled yet. Add your first family member below!
+        </p>`;
 
   content.innerHTML = `
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">Family Members (${household.members.length})</h3>
+      <h3 class="household-modal__section-title">Family Members</h3>
       <div class="household-members">
         ${membersHTML}
       </div>
     </section>
     
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">Add Member</h3>
+      <h3 class="household-modal__section-title">Add Someone</h3>
       <div class="household-add-form">
         <div class="household-add-form__row">
           <input 
             type="text" 
             class="household-add-form__input" 
             id="member-name" 
-            placeholder="Name (e.g., Sarah)"
+            placeholder="Their name"
+            autocomplete="off"
           />
           <select class="household-add-form__select" id="member-role">
             <option value="adult">Adult</option>
@@ -802,25 +1020,25 @@ function renderContent(): void {
         <button class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
           Add to Household
         </button>
-        <p style="font-size: 12px; color: var(--color-text-muted); margin: 0;">
-          Note: Members need to complete voice enrollment to be recognized.
+        <p class="household-add-form__hint">
+          They'll need to complete voice enrollment so I can recognize them.
         </p>
       </div>
     </section>
     
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">Settings</h3>
+      <h3 class="household-modal__section-title">How This Works</h3>
       <div class="household-settings">
         ${renderSetting(
           'autoIdentify',
-          'Auto-Identify Speaker',
-          "Automatically detect who's speaking when conversation starts"
+          'Recognize voices automatically',
+          "I'll know who's talking as soon as you start"
         )}
-        ${renderSetting('guestMode', 'Guest Mode', 'Allow unrecognized voices to use Ferni')}
+        ${renderSetting('guestMode', 'Welcome guests', 'Let me chat with voices I don\'t recognize')}
         ${renderSetting(
           'childSafeMode',
-          'Child Safe Mode',
-          'Enable parental controls for child accounts'
+          'Kid-friendly mode',
+          'Extra care when talking with the little ones'
         )}
       </div>
     </section>
@@ -830,11 +1048,23 @@ function renderContent(): void {
   content.querySelectorAll('[data-action="remove-member"]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const userId = (e.currentTarget as HTMLElement).dataset.userId;
-      if (userId) handleRemoveMember(userId);
+      const member = household?.members.find((m) => m.userId === userId);
+      if (member) {
+        memberToRemove = member;
+        currentView = 'confirm-remove';
+        renderContent();
+      }
     });
   });
 
   content.querySelector('[data-action="add-member"]')?.addEventListener('click', handleAddMember);
+
+  // Handle enter key in input
+  content.querySelector('#member-name')?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') {
+      handleAddMember();
+    }
+  });
 
   content.querySelectorAll('.toggle-switch input').forEach((input) => {
     input.addEventListener('change', (e) => {
@@ -845,18 +1075,107 @@ function renderContent(): void {
   });
 }
 
+function renderCreateForm(content: HTMLElement): void {
+  content.innerHTML = `
+    <div class="household-create-form">
+      <h3 class="household-create-form__title">Name your household</h3>
+      <p class="household-create-form__subtitle">
+        This helps me keep everyone's conversations and memories separate.
+      </p>
+      <div class="household-create-form__input-group">
+        <label class="household-create-form__label" for="household-name">Household name</label>
+        <input 
+          type="text" 
+          class="household-create-form__input" 
+          id="household-name" 
+          placeholder="The Smith Family"
+          autocomplete="off"
+          autofocus
+        />
+      </div>
+      <div class="household-create-form__actions">
+        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
+          Maybe later
+        </button>
+        <button class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
+          Create
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Focus the input
+  setTimeout(() => {
+    (document.getElementById('household-name') as HTMLInputElement)?.focus();
+  }, DURATION.FAST);
+
+  // Event listeners
+  content.querySelector('[data-action="cancel-create"]')?.addEventListener('click', () => {
+    currentView = 'main';
+    renderContent();
+  });
+
+  content.querySelector('[data-action="confirm-create"]')?.addEventListener('click', handleCreateHousehold);
+
+  // Handle enter key
+  content.querySelector('#household-name')?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') {
+      handleCreateHousehold();
+    }
+  });
+}
+
+function renderConfirmRemove(content: HTMLElement): void {
+  if (!memberToRemove) {
+    currentView = 'main';
+    renderContent();
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="household-confirm">
+      <div class="household-confirm__icon">${ICONS.alertCircle}</div>
+      <h3 class="household-confirm__title">Remove ${memberToRemove.displayName}?</h3>
+      <p class="household-confirm__message">
+        I'll forget ${memberToRemove.displayName}'s voice, but their conversation history will stay safe. 
+        They can always re-enroll later if needed.
+      </p>
+      <div class="household-confirm__actions">
+        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
+          Keep them
+        </button>
+        <button class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
+          Remove
+        </button>
+      </div>
+    </div>
+  `;
+
+  content.querySelector('[data-action="cancel-remove"]')?.addEventListener('click', () => {
+    memberToRemove = null;
+    currentView = 'main';
+    renderContent();
+  });
+
+  content.querySelector('[data-action="confirm-remove"]')?.addEventListener('click', async () => {
+    if (memberToRemove) {
+      await handleRemoveMember(memberToRemove.userId);
+    }
+  });
+}
+
 function renderMember(member: HouseholdMember): string {
   const initial = member.displayName.charAt(0).toUpperCase();
   const lastSeenText = member.lastSeen
-    ? `Last seen ${formatRelativeTime(new Date(member.lastSeen))}`
-    : 'Never used';
+    ? `Last here ${formatRelativeTime(new Date(member.lastSeen))}`
+    : 'Not enrolled yet';
   const isOwner = member.role === 'owner';
 
   return `
     <div class="household-member">
       <div class="household-member__avatar">${initial}</div>
       <div class="household-member__info">
-        <div class="household-member__name">${member.displayName}</div>
+        <div class="household-member__name">${escapeHtml(member.displayName)}</div>
         <div class="household-member__meta">
           <span class="household-member__role">
             ${ROLE_ICONS[member.role]} ${ROLE_LABELS[member.role]}
@@ -873,7 +1192,7 @@ function renderMember(member: HouseholdMember): string {
             class="household-member__btn household-member__btn--danger" 
             data-action="remove-member"
             data-user-id="${member.userId}"
-            aria-label="Remove ${member.displayName}"
+            aria-label="Remove ${escapeHtml(member.displayName)}"
             title="Remove from household"
           >
             ${ICONS.trash}
@@ -886,11 +1205,7 @@ function renderMember(member: HouseholdMember): string {
   `;
 }
 
-function renderSetting(
-  key: keyof Household['settings'],
-  label: string,
-  description: string
-): string {
+function renderSetting(key: keyof Household['settings'], label: string, description: string): string {
   const checked = household?.settings[key] ?? false;
 
   return `
@@ -912,8 +1227,14 @@ function renderSetting(
 // ============================================================================
 
 async function handleCreateHousehold(): Promise<void> {
-  const name = prompt('What would you like to call your household?', 'My Home');
-  if (!name) return;
+  const nameInput = document.getElementById('household-name') as HTMLInputElement;
+  const name = nameInput?.value.trim();
+
+  if (!name) {
+    nameInput?.focus();
+    toast.warning('Please enter a name');
+    return;
+  }
 
   isLoading = true;
   renderContent();
@@ -921,10 +1242,14 @@ async function handleCreateHousehold(): Promise<void> {
   household = await createHouseholdApi(name);
 
   isLoading = false;
+  currentView = 'main';
   renderContent();
 
   if (household) {
     log.info('Household created:', household.name);
+    toast.success(`${household.name} created!`);
+  } else {
+    toast.error('Could not create household');
   }
 }
 
@@ -937,37 +1262,63 @@ async function handleAddMember(): Promise<void> {
 
   if (!displayName) {
     nameInput?.focus();
+    toast.warning('Please enter a name');
     return;
+  }
+
+  // Disable button during add
+  const addBtn = document.querySelector('[data-action="add-member"]') as HTMLButtonElement;
+  if (addBtn) {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding...';
   }
 
   // Generate a unique user ID for the new member
   const userId = `member_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const member = await addMemberApi(userId, displayName, role);
+  const result = await addMemberApi(userId, displayName, role);
 
-  if (member && household) {
-    household.members.push(member);
+  if (result.member && household) {
+    household.members.push(result.member);
     renderContent();
-    callbacks.onMemberAdded?.(member);
+    callbacks.onMemberAdded?.(result.member);
     log.info('Member added:', displayName);
+
+    // Show success toast
+    if (result.needsVoiceEnrollment) {
+      toast.success(`${displayName} added! Voice enrollment needed.`);
+    } else {
+      toast.success(`${displayName} added!`);
+    }
+  } else {
+    // Show error toast
+    toast.error(result.error || 'Could not add member');
+    log.warn('Failed to add member:', result.error);
+  }
+
+  // Re-enable button
+  if (addBtn) {
+    addBtn.disabled = false;
+    addBtn.textContent = 'Add to Household';
   }
 }
 
 async function handleRemoveMember(userId: string): Promise<void> {
-  const member = household?.members.find((m) => m.userId === userId);
-  if (!member) return;
-
-  const confirmed = confirm(`Remove ${member.displayName} from the household?`);
-  if (!confirmed) return;
-
+  const memberName = memberToRemove?.displayName || 'Member';
   const success = await removeMemberApi(userId);
 
   if (success && household) {
     household.members = household.members.filter((m) => m.userId !== userId);
-    renderContent();
     callbacks.onMemberRemoved?.(userId);
     log.info('Member removed:', userId);
+    toast.success(`${memberName} removed`);
+  } else {
+    toast.error('Could not remove member');
   }
+
+  memberToRemove = null;
+  currentView = 'main';
+  renderContent();
 }
 
 function handleSettingChange(setting: keyof Household['settings'], value: boolean): void {
@@ -996,6 +1347,12 @@ function formatRelativeTime(date: Date): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+function escapeHtml(str: string): string {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // ============================================================================

@@ -312,6 +312,10 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     'EVALOPS_ADMIN_KEY=evalops-admin-key:latest',
     // Redis for persistent rate limiting
     'REDIS_URL=redis-url:latest',
+    // Spotify (for music playback)
+    'SPOTIFY_CLIENT_ID=spotify-client-id:latest',
+    'SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest',
+    'SPOTIFY_REFRESH_TOKEN=spotify-refresh-token:latest',
   ];
 
   // Check for optional secrets (only in sync mode - async skips this)

@@ -134,6 +134,10 @@ import { diag } from '../services/diagnostic-logger.js';
 // Audio prosody analysis
 import { getSessionAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
+// Gemini multimodal emotion analysis (experimental feature)
+import { startEmotionStream, clearSession as clearGeminiSession } from '../services/emotion-analysis/hume.js';
+import { isExperimentalEnabled } from '../config/feature-flags.js';
+
 // Emotion matching - connect prosody to voice response
 import {
   applyHumanListeningAdjustments,
@@ -1314,6 +1318,17 @@ class VoiceAgent extends voice.Agent<UserData> {
               // Spontaneous appreciation is non-critical
             }
 
+            // ============================================================
+            // 15. FINAL SSML CLEANUP - Consolidate stacked tags
+            // Multiple speed/volume tags can cause TTS screeching/glitches
+            // ============================================================
+            try {
+              const { sanitizeSsml } = await import('../speech/ssml-tagger/index.js');
+              taggedText = sanitizeSsml(taggedText);
+            } catch (_sanitizeErr) {
+              // sanitize is non-critical, pass through as-is
+            }
+
             controller.enqueue(taggedText);
           }
         } catch (streamError) {
@@ -1362,6 +1377,11 @@ class VoiceAgent extends voice.Agent<UserData> {
       let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
       let prosodySessionId: string | null = null;
 
+      // Gemini multimodal emotion analysis (experimental feature toggle)
+      const geminiEmotionEnabled = isExperimentalEnabled('geminiEmotionAnalysis');
+      let geminiEmotionStream: Awaited<ReturnType<typeof startEmotionStream>> | null = null;
+      let geminiSessionId: string | null = null;
+
       try {
         while (true) {
           const { value: frame, done } = await reader.read();
@@ -1378,6 +1398,34 @@ class VoiceAgent extends voice.Agent<UserData> {
             }
             // Process frame if analyzer is ready
             prosodyAnalyzer?.processAudioFrame(frame);
+
+            // Lazy init Gemini emotion stream when feature enabled and sessionId available
+            if (geminiEmotionEnabled && !geminiEmotionStream) {
+              const userData = agent.getUserDataFromContext();
+              geminiSessionId = userData?.services?.sessionId ?? null;
+              if (geminiSessionId) {
+                try {
+                  geminiEmotionStream = await startEmotionStream(geminiSessionId, (result) => {
+                    // Gemini emotion results update session timeline automatically
+                    // Log for debugging when enabled
+                    log().debug(
+                      { primary: result.primary, confidence: result.confidence },
+                      'Gemini emotion analysis result'
+                    );
+                  });
+                  log().info({ sessionId: geminiSessionId }, 'Gemini emotion analysis started');
+                } catch (err) {
+                  log().warn({ error: String(err) }, 'Failed to start Gemini emotion stream');
+                }
+              }
+            }
+
+            // Feed audio frame to Gemini stream (if enabled and initialized)
+            if (geminiEmotionStream && frame.data) {
+              // Convert Int16Array to ArrayBuffer for Gemini
+              const audioBuffer = new Int16Array(frame.data).buffer;
+              geminiEmotionStream.sendAudio(audioBuffer);
+            }
 
             // Feed audio to speaker change detector for voice identity verification
             const userData = agent.getUserDataFromContext();
@@ -1396,6 +1444,15 @@ class VoiceAgent extends voice.Agent<UserData> {
               }
             }
           }
+        }
+
+        // Stop Gemini emotion stream when audio ends
+        if (geminiEmotionStream) {
+          geminiEmotionStream.stop();
+          if (geminiSessionId) {
+            clearGeminiSession(geminiSessionId);
+          }
+          log().debug('Gemini emotion stream stopped');
         }
 
         const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
@@ -2140,7 +2197,10 @@ export default defineAgent({
             );
           })(),
           new Promise<void>((_, reject) => {
-            setTimeout(() => reject(new Error('Fallback initialization timeout')), FALLBACK_TIMEOUT);
+            setTimeout(
+              () => reject(new Error('Fallback initialization timeout')),
+              FALLBACK_TIMEOUT
+            );
           }),
         ]);
       } catch (initError) {
@@ -2984,16 +3044,19 @@ const agentName = process.env.AGENT_NAME || 'voice-agent';
 diag.section('STARTING WORKER');
 diag.info('Worker configuration', { defaultPersonaId: DEFAULT_PERSONA_ID, agentName });
 
-// ============================================================================
-// GRACEFUL SHUTDOWN HANDLER
-// ============================================================================
-import { registerShutdownSignalHandlers } from './shared/shutdown-handler.js';
-registerShutdownSignalHandlers();
-
 // Only run cli.runApp in the main process, not in child processes
 // Child processes are spawned by LiveKit and import this module to get prewarm/entry
 // process.send is only defined in child processes (IPC channel to parent)
 if (!process.send) {
+  // ============================================================================
+  // GRACEFUL SHUTDOWN HANDLER (MAIN PROCESS ONLY)
+  // ============================================================================
+  // CRITICAL: This must only run in the main process, NOT in child processes!
+  // Running it in child processes interferes with LiveKit's IPC communication
+  // and causes "runner initialization timed out" errors.
+  const { registerShutdownSignalHandlers } = await import('./shared/shutdown-handler.js');
+  registerShutdownSignalHandlers();
+
   cli.runApp(
     new WorkerOptions({
       agent: fileURLToPath(import.meta.url),

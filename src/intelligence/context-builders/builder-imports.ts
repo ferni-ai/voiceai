@@ -33,6 +33,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'advanced-memory': () => import('./advanced-memory.js'),
   'proactive-memory': () => import('./proactive-memory.js'),
   'persona-memory': () => import('./persona-memory.js'),
+  'human-memory': () => import('./human-memory.js'), // Human-centric: dates, growth, jokes
   'conversation-recap': () => import('./conversation-recap.js'),
   'cross-session-reflection': () => import('./cross-session-reflection.js'),
   'cross-session-threading': () => import('./cross-session-threading.js'),

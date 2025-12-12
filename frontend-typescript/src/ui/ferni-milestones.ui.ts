@@ -493,11 +493,26 @@ let celebrationQueue: Milestone[] = [];
 let isCelebrating = false;
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('.ferni-milestone-toast').forEach((el) => el.remove());
+  document.querySelectorAll('.ferni-milestone-celebration').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 export function initFerniMilestones(): void {
   if (isInitialized) return;
+
+  // HMR cleanup first
+  cleanupOrphanedElements();
 
   // Load saved state
   loadState();

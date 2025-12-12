@@ -790,6 +790,23 @@
     }
 
     /* ========================================
+       SKIP LINK - Accessibility
+       ======================================== */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--color-accent-primary);
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      transition: top 0.3s;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+    }
+    .skip-link:focus { top: 0; }
+    
+    /* ========================================
        REDUCED MOTION
        ======================================== */
     @media (prefers-reduced-motion: reduce) {
@@ -810,6 +827,7 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="container">
     <header>
       <h1>

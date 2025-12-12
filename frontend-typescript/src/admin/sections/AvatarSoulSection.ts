@@ -7,7 +7,10 @@
  * @module AvatarSoulSection
  */
 
+import { createLogger } from '../../utils/logger.js';
 import { ICON_ACTIVITY, ICON_TRUST, ICON_ZAP } from '../icons.js';
+
+const log = createLogger('AvatarSoulSection');
 
 // Avatar Soul integration - dynamically imported
 let avatarSoul: typeof import('../../ui/avatar-soul.ui.js') | null = null;
@@ -711,7 +714,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
         break;
     }
   } catch (err) {
-    console.error('Soul action failed:', err);
+    log.error('Soul action failed:', err);
   }
 }
 
@@ -733,7 +736,7 @@ async function handleSoulSlider(type: string, value: number): Promise<void> {
         break;
     }
   } catch (err) {
-    console.error('Soul slider failed:', err);
+    log.error('Soul slider failed:', err);
   }
 }
 

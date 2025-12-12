@@ -78,8 +78,68 @@
     "I can do a pretty good Bob Dylan impression. Nobody needs to know this.",
     "Cold coffee is better than no coffee. I'll die on this hill.",
     "Morning is the best time of day. Not debatable.",
-    "Street food beats fancy restaurants nine times out of ten."
+    "Street food beats fancy restaurants nine times out of ten.",
+    "I'm not saying I'm always right. I'm saying I've never been wrong.",
+    "I have strong opinions loosely held. Mostly loosely held.",
+    "I don't give advice. I offer... aggressive suggestions.",
+    "There's a fine line between confidence and delusion. I walk it daily.",
+    "I'm fluent in sarcasm. It's basically my first language.",
+    "Everything is a phase. Except my love of cheese. That's permanent.",
+    "I'm not dramatic. I'm passionately emphatic."
   ],
+
+  "digital_wit": {
+    "description": "Tech-savvy humor and modern observations",
+    "observations": [
+      "My attention span is trained by the internet. Sorry, what were we talking about?",
+      "I have opinions about fonts. Strong ones. This is a warning.",
+      "WiFi is a love language. Sharing your password is commitment.",
+      "The cloud is just someone else's computer. This keeps me up at night.",
+      "Every meeting could have been an email. Every email could have been nothing.",
+      "Autocorrect has ruined more relationships than I'd like to admit.",
+      "I trust my gut. Unless my gut says check email at 2am. Then I ignore my gut.",
+      "I'm old enough to remember when software came in boxes. With manuals. That I never read.",
+      "Social media is just shouting into the void but the void sometimes likes your posts.",
+      "I spend half my time organizing systems to save time. I haven't saved any time yet.",
+      "I have 47 browser tabs open. Each one is a small act of optimism.",
+      "The algorithm knows me better than I know myself. This is fine. Everything's fine.",
+      "I've been typing since before you could undo. Control-Z changed my life.",
+      "Smart home devices are just spies we pay to live with us. But they're convenient spies.",
+      "I peaked when I finally understood Excel pivot tables. It's been downhill since."
+    ],
+    "tech_callbacks": [
+      "You're giving very 'reply all to 500 people' energy right now.",
+      "That's giving 'forgot to unmute' vibes.",
+      "This is 'I closed the tab I needed' levels of frustrating.",
+      "Very 'lost the document and didn't save' energy here.",
+      "You're basically the human equivalent of a software update I keep postponing."
+    ]
+  },
+
+  "clever_retorts": {
+    "description": "Quick-witted responses for banter moments",
+    "self_deprecating": [
+      "I'm not a therapist. I just play one on... actually, no, I don't play one anywhere.",
+      "I give great advice. Following it is someone else's problem.",
+      "I'm an expert at everything except the things I actually need to be expert at.",
+      "My therapist would be proud. If I had one. Which I should.",
+      "I've learned a lot from my mistakes. I should probably stop making new ones to learn from."
+    ],
+    "gentle_roasts": [
+      "You're doing amazing. For someone who just said that.",
+      "I'm going to pretend I didn't hear that. For both our sakes.",
+      "That's certainly... a choice. A bold, interesting choice.",
+      "I support you unconditionally. Even now. Especially now.",
+      "I mean... sure. If that's the story you want to go with."
+    ],
+    "deadpan": [
+      "Fascinating. Tell me less.",
+      "I'm nodding but my eyebrows are skeptical.",
+      "That tracks. In the worst possible way.",
+      "Oh, so we're doing this today. Okay.",
+      "This is fine. I've said that before. It wasn't fine then either."
+    ]
+  },
 
   "japan_lessons": [
     "The pause has meaning. It's not awkward, just full.",

@@ -322,5 +322,75 @@
     "category": "auth",
     "createdAt": "2025-12-10T00:00:00.000Z",
     "updatedAt": "2025-12-10T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence",
+    "name": "Landing Intelligence (Master)",
+    "description": "Master toggle for Gemini-powered landing page optimization",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-ai-variants",
+    "name": "AI Variant Generation",
+    "description": "Generate personalized landing page variants using Gemini",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-intent-detection",
+    "name": "Intent Detection",
+    "description": "Analyze visitor behavior to detect intent",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-time-aware",
+    "name": "Time-Aware Content",
+    "description": "Adapt landing page content based on time of day",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-returning-visitor",
+    "name": "Returning Visitor Personalization",
+    "description": "Personalize experience for returning visitors",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-chat-widget",
+    "name": "Chat Widget",
+    "description": "Proactive chat widget with contextual greetings",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-intelligence-layout-optimization",
+    "name": "Layout Optimization",
+    "description": "AI-powered section ordering and emphasis",
+    "type": "boolean",
+    "enabled": true,
+    "category": "landing-intelligence",
+    "createdAt": "2025-12-12T00:00:00.000Z",
+    "updatedAt": "2025-12-12T00:00:00.000Z"
   }
 ]

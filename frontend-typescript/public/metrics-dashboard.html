@@ -822,11 +822,11 @@
       currentTheme = currentTheme === 'midnight' ? 'zen' : 'midnight';
       document.documentElement.setAttribute('data-theme', currentTheme);
       document.getElementById('themeIcon').innerHTML = currentTheme === 'midnight' ? moonIcon : sunIcon;
-      localStorage.setItem('ferni-metrics-theme', currentTheme);
+      localStorage.setItem('ferni-theme', currentTheme);
     }
 
     // Initialize theme
-    const savedTheme = localStorage.getItem('ferni-metrics-theme');
+    const savedTheme = localStorage.getItem('ferni-theme');
     if (savedTheme) {
       currentTheme = savedTheme;
       document.documentElement.setAttribute('data-theme', currentTheme);

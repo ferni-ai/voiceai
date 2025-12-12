@@ -54,6 +54,19 @@ const state: AdminState = {
 };
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('.admin-edit-modal').forEach((el) => el.remove());
+  document.querySelectorAll('.admin-color-picker').forEach((el) => el.remove());
+  document.querySelectorAll('.admin-bundle-upload').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -62,6 +75,9 @@ const state: AdminState = {
  * Call this when navigating to /admin.
  */
 export async function initAdminDashboard(): Promise<void> {
+  // HMR cleanup first
+  cleanupOrphanedElements();
+  
   const container = document.getElementById('adminDashboard');
   if (!container) {
     log.warn('Admin dashboard container not found');
@@ -85,6 +101,9 @@ export async function initAdminDashboard(): Promise<void> {
 
     // Attach event listeners
     attachEventListeners(container);
+
+    // Load TTS monitoring stats
+    void loadTTSMonitoringStats();
   } catch (err) {
     state.error = (err as Error).message;
     state.loading = false;
@@ -177,6 +196,8 @@ function renderDashboard(): string {
           </div>
         </div>
       </section>
+
+      ${renderTTSMonitoringSection()}
 
       ${renderAvatarSoulLab()}
     </div>
@@ -274,6 +295,128 @@ function renderAgentDetailPanel(): string {
       </div>
     </div>
   `;
+}
+
+function renderTTSMonitoringSection(): string {
+  return `
+    <section class="admin-section admin-tts-monitoring">
+      <h2>TTS Monitoring</h2>
+      <p class="admin-hint">Track stage directions and suspicious patterns that slip through sanitization</p>
+
+      <div class="admin-tts-stats" id="ttsMonitoringStats">
+        <div class="admin-tts-loading">Loading TTS stats...</div>
+      </div>
+
+      <div class="admin-tts-actions">
+        <button class="admin-btn admin-btn--small" data-action="refresh-tts-stats">
+          Refresh Stats
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+async function loadTTSMonitoringStats(): Promise<void> {
+  const container = document.getElementById('ttsMonitoringStats');
+  if (!container) return;
+
+  try {
+    const response = await fetch('/api/v1/admin/tts-monitoring/stats');
+    if (!response.ok) {
+      throw new Error('Failed to fetch TTS stats');
+    }
+
+    const stats = await response.json();
+    container.innerHTML = renderTTSStatsContent(stats);
+  } catch (err) {
+    container.innerHTML = `
+      <div class="admin-tts-error">
+        Failed to load TTS stats. Make sure the agent is running.
+      </div>
+    `;
+    log.error('Failed to load TTS stats:', err);
+  }
+}
+
+interface TTSStatsResponse {
+  totalChecks: number;
+  issuesFound: number;
+  issueRatePercent: string;
+  topPatterns: Array<{ pattern: string; count: number }>;
+  lastIssue: { time: string; timeAgo: string; textPreview: string } | null;
+  status: 'healthy' | 'warning' | 'critical';
+}
+
+function renderTTSStatsContent(stats: TTSStatsResponse): string {
+  const statusColors: Record<string, string> = {
+    healthy: 'var(--color-semantic-success, #48bb78)',
+    warning: 'var(--color-semantic-warning, #ed8936)',
+    critical: 'var(--color-semantic-error, #fc8181)',
+  };
+
+  const statusLabels: Record<string, string> = {
+    healthy: 'Healthy',
+    warning: 'Warning',
+    critical: 'Critical',
+  };
+
+  return `
+    <div class="admin-tts-grid">
+      <div class="admin-tts-stat-card">
+        <div class="admin-tts-stat-value">${stats.totalChecks.toLocaleString()}</div>
+        <div class="admin-tts-stat-label">Total Checks</div>
+      </div>
+      <div class="admin-tts-stat-card">
+        <div class="admin-tts-stat-value">${stats.issuesFound.toLocaleString()}</div>
+        <div class="admin-tts-stat-label">Issues Found</div>
+      </div>
+      <div class="admin-tts-stat-card">
+        <div class="admin-tts-stat-value">${stats.issueRatePercent}</div>
+        <div class="admin-tts-stat-label">Issue Rate</div>
+      </div>
+      <div class="admin-tts-stat-card">
+        <div class="admin-tts-stat-value" style="color: ${statusColors[stats.status]}">${statusLabels[stats.status]}</div>
+        <div class="admin-tts-stat-label">Status</div>
+      </div>
+    </div>
+
+    ${
+      stats.topPatterns.length > 0
+        ? `
+      <div class="admin-tts-patterns">
+        <h4>Top Problematic Patterns</h4>
+        <ul class="admin-tts-pattern-list">
+          ${stats.topPatterns.map((p) => `<li><code>${escapeHtml(p.pattern)}</code> <span class="count">${p.count}x</span></li>`).join('')}
+        </ul>
+      </div>
+    `
+        : ''
+    }
+
+    ${
+      stats.lastIssue
+        ? `
+      <div class="admin-tts-last-issue">
+        <h4>Last Issue</h4>
+        <div class="admin-tts-issue-info">
+          <span class="time">${stats.lastIssue.timeAgo}</span>
+          <code class="preview">${escapeHtml(stats.lastIssue.textPreview)}</code>
+        </div>
+      </div>
+    `
+        : `
+      <div class="admin-tts-no-issues">
+        No issues detected yet. Keep talking to Ferni!
+      </div>
+    `
+    }
+  `;
+}
+
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function renderAvatarSoulLab(): string {
@@ -836,6 +979,9 @@ function handleClick(e: Event): void {
       break;
     case 'refresh':
       void refreshAgents();
+      break;
+    case 'refresh-tts-stats':
+      void loadTTSMonitoringStats();
       break;
     case 'use-template': {
       const template = target.closest('[data-template]')?.getAttribute('data-template');
@@ -1572,6 +1718,164 @@ export function injectAdminStyles(): void {
 
     .admin-error h2 {
       color: var(--color-semantic-error, #fc8181);
+    }
+
+    /* TTS Monitoring Section */
+    .admin-tts-monitoring {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .admin-tts-monitoring h2 {
+      color: var(--color-accent-primary, #3b82f6);
+    }
+
+    .admin-tts-stats {
+      min-height: 100px;
+    }
+
+    .admin-tts-loading {
+      text-align: center;
+      padding: 2rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .admin-tts-error {
+      text-align: center;
+      padding: 1rem;
+      color: var(--color-semantic-error, #fc8181);
+      background: rgba(252, 129, 129, 0.1);
+      border-radius: 8px;
+    }
+
+    .admin-tts-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .admin-tts-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .admin-tts-stat-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .admin-tts-stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--color-text-primary);
+    }
+
+    .admin-tts-stat-label {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    .admin-tts-patterns {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+    }
+
+    .admin-tts-patterns h4 {
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .admin-tts-pattern-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .admin-tts-pattern-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .admin-tts-pattern-list li:last-child {
+      border-bottom: none;
+    }
+
+    .admin-tts-pattern-list code {
+      background: rgba(0,0,0,0.3);
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--color-semantic-error, #fc8181);
+    }
+
+    .admin-tts-pattern-list .count {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.75rem;
+    }
+
+    .admin-tts-last-issue {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(252, 129, 129, 0.1);
+      border: 1px solid rgba(252, 129, 129, 0.2);
+      border-radius: 8px;
+    }
+
+    .admin-tts-last-issue h4 {
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+      color: var(--color-semantic-error, #fc8181);
+    }
+
+    .admin-tts-issue-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .admin-tts-issue-info .time {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .admin-tts-issue-info .preview {
+      background: rgba(0,0,0,0.3);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .admin-tts-no-issues {
+      text-align: center;
+      padding: 1rem;
+      color: var(--color-semantic-success, #48bb78);
+      background: rgba(72, 187, 120, 0.1);
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .admin-tts-actions {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
     }
 
     /* Avatar Soul Lab */

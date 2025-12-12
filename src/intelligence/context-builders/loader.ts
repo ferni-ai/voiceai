@@ -69,6 +69,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'advanced-memory',
     'proactive-memory',
     'persona-memory',
+    'human-memory', // Human-centric: dates, comfort patterns, growth, jokes
     'conversation-recap',
     'cross-session-reflection',
     'cross-session-threading',

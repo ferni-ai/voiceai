@@ -18,6 +18,7 @@ import {
   type FillerConfig,
 } from '../speech/advanced-humanization.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
+import { checkTTSText, trackTTSCheck } from '../speech/tts-monitoring.js';
 import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
@@ -466,6 +467,16 @@ export function sanitizeSsml(text: string): string {
 
   // Clean up multiple spaces
   result = result.replace(/\s{2,}/g, ' ');
+
+  // ================================================
+  // TTS MONITORING: Check for suspicious patterns that slipped through
+  // This logs warnings if stage directions weren't properly sanitized
+  // ================================================
+  const monitorResult = checkTTSText(result);
+  if (monitorResult.hasIssues) {
+    // Track for analytics
+    trackTTSCheck(monitorResult);
+  }
 
   return result;
 }

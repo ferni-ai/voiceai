@@ -15,6 +15,7 @@
 import { platform, isNative } from '../utils/platform.js';
 import { createLogger } from '../utils/logger.js';
 import { isDevelopment } from '../utils/environment.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('PushNotify');
 
@@ -658,15 +659,14 @@ class PushNotificationsService {
     // In production, fetch from server
     if (!isDevelopment()) {
       try {
-        const response = await fetch('/api/push/vapid-key');
-        if (!response.ok) {
+        const response = await apiGet<{ publicKey: string }>('/api/push/vapid-key');
+        if (!response.ok || !response.data) {
           throw new Error(`Failed to fetch VAPID key: ${response.status}`);
         }
-        const data = await response.json() as { publicKey: string };
-        if (!data.publicKey) {
+        if (!response.data.publicKey) {
           throw new Error('VAPID key not configured on server');
         }
-        return data.publicKey;
+        return response.data.publicKey;
       } catch (error) {
         log.error('Failed to get VAPID public key - push notifications will not work:', error);
         throw error;
@@ -681,11 +681,7 @@ class PushNotificationsService {
 
   private async sendSubscriptionToServer(subscription: PushSubscription): Promise<void> {
     try {
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      });
+      await apiPost('/api/push/subscribe', subscription);
     } catch (error) {
       log.warn('[PushNotifications] Failed to send subscription to server:', error);
     }

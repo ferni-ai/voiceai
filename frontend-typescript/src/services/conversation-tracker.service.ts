@@ -7,6 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { relationshipStageService } from './relationship-stage.service.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('ConversationTracker');
 
@@ -177,55 +178,43 @@ class ConversationTrackerService {
   // ============================================================================
 
   private async persistSession(session: ConversationSession): Promise<void> {
-    const userId = localStorage.getItem('ferni_user_id');
-    if (!userId) {
-      log.debug('No user ID, cannot persist session');
-      return;
-    }
-
     // Calculate duration
     const duration = this.getSessionDuration();
 
-    // Prepare payload
-    const payload = {
-      userId,
-      session: {
-        id: session.id,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        personaId: session.personaId,
-        personaName: session.personaName,
-        duration,
-        messageCount: session.messages.length,
-        // Only include transcripts for non-trivial conversations
-        transcript: session.messages.length > 3 
-          ? session.messages.map(m => ({
-              role: m.role,
-              content: m.content,
-              timestamp: new Date(m.timestamp).toISOString(),
-            }))
-          : undefined,
-        insights: session.insights,
-        topicsDiscussed: session.topicsDiscussed,
-      },
+    // Prepare session data
+    const sessionData = {
+      id: session.id,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      personaId: session.personaId,
+      personaName: session.personaName,
+      duration,
+      messageCount: session.messages.length,
+      // Only include transcripts for non-trivial conversations
+      transcript: session.messages.length > 3
+        ? session.messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(m.timestamp).toISOString(),
+          }))
+        : undefined,
+      insights: session.insights,
+      topicsDiscussed: session.topicsDiscussed,
     };
 
     try {
-      const response = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const response = await apiPost('/api/conversations', { session: sessionData });
 
       if (response.ok) {
         log.info('Session persisted to backend', { sessionId: session.id });
       } else {
         log.warn('Failed to persist session', { status: response.status });
+        this.storeLocalSession(sessionData);
       }
     } catch (err) {
       log.warn('Network error persisting session', err);
       // Store locally for later sync
-      this.storeLocalSession(payload.session);
+      this.storeLocalSession(sessionData);
     }
   }
 
@@ -250,23 +239,16 @@ class ConversationTrackerService {
    * Sync any pending local sessions to backend
    */
   async syncPendingSessions(): Promise<void> {
-    const userId = localStorage.getItem('ferni_user_id');
-    if (!userId) return;
-
     try {
       const key = 'ferni_pending_sessions';
       const pending = JSON.parse(localStorage.getItem(key) || '[]');
-      
+
       if (pending.length === 0) return;
 
       let synced = 0;
       for (const session of pending) {
         try {
-          const response = await fetch('/api/conversations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, session }),
-          });
+          const response = await apiPost('/api/conversations', { session });
           if (response.ok) synced++;
         } catch {
           // Keep trying other sessions

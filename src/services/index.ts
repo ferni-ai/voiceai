@@ -524,6 +524,30 @@ export {
 } from './health-checks.js';
 
 // ============================================================================
+// LANDING INTELLIGENCE (Gemini-powered landing page optimization)
+// ============================================================================
+
+export {
+  detectVisitorIntent,
+  generatePersonalizedVariant,
+  generateDemoConversation,
+  getTimeAwareContent,
+  getOptimalSectionOrder,
+  generateChatGreeting,
+  optimizeLandingPage,
+  initLandingIntelligence,
+  shutdownLandingIntelligence,
+  type BehaviorSignals,
+  type VisitorIntent,
+  type GeneratedVariant,
+  type TimeAwareContent,
+  type DemoConversation,
+  type LayoutOptimization,
+  type LandingOptimizationRequest,
+  type LandingOptimizationResponse,
+} from './landing-intelligence/index.js';
+
+// ============================================================================
 // MCP INTEGRATION (Model Context Protocol)
 // ============================================================================
 

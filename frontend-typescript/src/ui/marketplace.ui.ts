@@ -17,6 +17,7 @@
  *   openMarketplace();
  */
 
+import { DURATION, EASING } from '../config/animation-constants.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
 import {
   getMemberStatus,
@@ -79,6 +80,18 @@ export function isMarketplaceLoading(): boolean {
 }
 
 // ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('#marketplaceModal').forEach((el) => el.remove());
+  document.querySelectorAll('.marketplace-modal').forEach((el) => el.remove());
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -86,6 +99,9 @@ export function isMarketplaceLoading(): boolean {
  * Create the marketplace modal element if it doesn't exist
  */
 function ensureModalExists(): HTMLElement {
+  // HMR cleanup first
+  cleanupOrphanedElements();
+  
   if (marketplaceModal) return marketplaceModal;
 
   marketplaceModal = document.createElement('div');
@@ -295,7 +311,7 @@ async function refreshContent(): Promise<void> {
 async function renderBrowseTab(): Promise<void> {
   // Check if full team is unlocked - marketplace requires this
   if (!isFullTeamUnlocked()) {
-    renderTeamLockedMessage();
+    await renderTeamLockedMessage();
     return;
   }
 
@@ -329,13 +345,23 @@ async function renderBrowseTab(): Promise<void> {
 
 /**
  * Render a message explaining the marketplace is locked until team is unlocked
+ * Now includes a tantalizing preview of available agents!
  */
-function renderTeamLockedMessage(): void {
+async function renderTeamLockedMessage(): Promise<void> {
   const grid = marketplaceModal?.querySelector('.marketplace-grid');
   const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
 
   if (!grid) return;
   if (empty) empty.style.display = 'none';
+
+  // Fetch marketplace agents to show preview
+  const registry = await marketplaceService.fetchRegistry();
+  const availableAgents = registry.agents.slice(0, 6); // Show first 6 as preview
+  const totalAgentCount = registry.agents.length;
+
+  // Get unique categories
+  const categories = [...new Set(registry.agents.map((a) => a.category))];
+  const categoryLabels = categories.slice(0, 4).map((c) => getCategoryLabel(c));
 
   // Build progress indicators for each team member
   const memberProgressHtml = TEAM_MEMBERS.map((member) => {
@@ -358,28 +384,97 @@ function renderTeamLockedMessage(): void {
     `;
   }).join('');
 
+  // Build preview cards for locked agents
+  const previewCardsHtml = availableAgents
+    .map((agent) => {
+      const initials = agent.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+      const gradient = getPersonaGradient(agent.id);
+
+      return `
+        <article class="marketplace-agent marketplace-agent--locked" data-agent-id="${agent.id}">
+          <div class="agent-locked-overlay">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div class="agent-header">
+            <div class="agent-avatar" style="background: ${gradient};">
+              ${initials}
+            </div>
+            <div class="agent-meta">
+              <h3 class="agent-name">${agent.name}</h3>
+              <span class="agent-category">${getCategoryLabel(agent.category)}</span>
+            </div>
+          </div>
+          <p class="agent-description">${agent.short_description}</p>
+          <div class="agent-tags">
+            ${agent.tags
+              .slice(0, 2)
+              .map((tag) => `<span class="agent-tag">${tag}</span>`)
+              .join('')}
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+
+  // Count remaining agents not shown in preview
+  const moreAgentsCount = totalAgentCount - availableAgents.length;
+
   grid.innerHTML = `
     <section class="marketplace-locked-section">
-      <div class="marketplace-locked-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
+      <div class="marketplace-locked-header">
+        <div class="marketplace-locked-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="marketplace-locked-text">
+          <h3 class="marketplace-locked-title">Meet your team first</h3>
+          <p class="marketplace-locked-subtitle">
+            ${totalAgentCount} coaches waiting for you
+          </p>
+        </div>
       </div>
-      <h3 class="marketplace-locked-title">Get to know your team first</h3>
-      <p class="marketplace-locked-subtitle">
-        The marketplace unlocks once you've met everyone on your core team. 
-        Keep talking to Ferni – each conversation brings you closer.
-      </p>
       
-      <div class="team-progress-grid">
-        ${memberProgressHtml}
+      <div class="marketplace-locked-categories">
+        ${categoryLabels.map((cat) => `<span class="locked-category-pill">${cat}</span>`).join('')}
+        ${categories.length > 4 ? `<span class="locked-category-pill locked-category-more">+${categories.length - 4} more</span>` : ''}
       </div>
       
-      <p class="marketplace-locked-hint">
-        New coaches become available after all team members are unlocked.
-      </p>
+      <div class="marketplace-locked-progress">
+        <p class="progress-label">Unlock progress</p>
+        <div class="team-progress-grid">
+          ${memberProgressHtml}
+        </div>
+      </div>
     </section>
+    
+    <div class="marketplace-preview-section">
+      <div class="preview-header">
+        <span class="preview-label">Coming soon</span>
+        <span class="preview-hint">Complete your team journey to unlock</span>
+      </div>
+      <div class="marketplace-preview-grid">
+        ${previewCardsHtml}
+      </div>
+      ${
+        moreAgentsCount > 0
+          ? `
+        <div class="preview-more-hint">
+          <span>+${moreAgentsCount} more coaches in ${categories.length} categories</span>
+        </div>
+      `
+          : ''
+      }
+    </div>
   `;
 
   grid.setAttribute('style', 'display: block;');
@@ -828,8 +923,8 @@ function getMarketplaceStyles(): string {
       overflow: hidden;
       transform: translateY(20px) scale(0.95);
       opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-                  opacity 0.3s ease;
+      transition: transform ${DURATION.MODERATE}ms ${EASING.EXPO_OUT}, 
+                  opacity ${DURATION.SLOW}ms ease;
     }
 
     .marketplace-modal.open .marketplace-container {
@@ -1065,8 +1160,8 @@ function getMarketplaceStyles(): string {
       border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-lg, 24px);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      transition: all ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
+      animation: cardEntrance ${DURATION.DELIBERATE}ms ${EASING.EXPO_OUT} backwards;
     }
 
     .marketplace-agent:nth-child(1) { animation-delay: 0ms; }
@@ -1157,8 +1252,8 @@ function getMarketplaceStyles(): string {
         0 0 0 1px rgba(255, 255, 255, 0.08) inset,
         0 6px 18px -4px var(--agent-secondary, rgba(0, 0, 0, 0.25));
       flex-shrink: 0;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                  box-shadow 0.25s ease;
+      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.STANDARD}ms ease;
     }
 
     .marketplace-agent:hover .agent-avatar {
@@ -1259,7 +1354,7 @@ function getMarketplaceStyles(): string {
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
 
     .agent-action.install {
@@ -1460,8 +1555,8 @@ function getMarketplaceStyles(): string {
         0 4px 8px rgba(0, 0, 0, 0.08),
         0 0 0 1px rgba(255, 255, 255, 0.08) inset,
         0 6px 20px -4px var(--avatar-glow, rgba(74, 103, 65, 0.4));
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                  box-shadow 0.25s ease;
+      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.STANDARD}ms ease;
     }
     
     .ceo-card:hover .leader-avatar {
@@ -1528,8 +1623,8 @@ function getMarketplaceStyles(): string {
         0 3px 6px rgba(0, 0, 0, 0.06),
         0 0 0 1px rgba(255, 255, 255, 0.08) inset,
         0 4px 16px -3px var(--avatar-glow, rgba(0, 0, 0, 0.25));
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                  box-shadow 0.25s ease;
+      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.STANDARD}ms ease;
     }
     
     .leader-card.cofounder:hover .cofounder-avatar {
@@ -1588,8 +1683,8 @@ function getMarketplaceStyles(): string {
         0 2px 4px rgba(0, 0, 0, 0.05),
         0 0 0 1px rgba(255, 255, 255, 0.06) inset,
         0 3px 12px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                  box-shadow 0.25s ease;
+      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.STANDARD}ms ease;
     }
     
     .employee-card:hover .employee-avatar {
@@ -1858,85 +1953,141 @@ function getMarketplaceStyles(): string {
 
     /* ========================================
        MARKETPLACE LOCKED - Team unlock required
+       With preview of available agents
        ======================================== */
     .marketplace-locked-section {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: var(--space-2xl, 48px) var(--space-lg, 24px);
-      max-width: 480px;
-      margin: 0 auto;
+      padding: var(--space-lg, 24px);
+      background: linear-gradient(135deg, 
+        var(--color-bg-subtle, rgba(255, 255, 255, 0.03)) 0%,
+        var(--persona-tint, rgba(74, 103, 65, 0.05)) 100%
+      );
+      border-radius: var(--radius-xl, 16px);
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+      margin-bottom: var(--space-lg, 24px);
+    }
+
+    .marketplace-locked-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md, 16px);
+      margin-bottom: var(--space-md, 16px);
     }
 
     .marketplace-locked-icon {
-      width: 80px;
-      height: 80px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
+      background: var(--color-warm-amber, #C4A265);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: var(--space-lg, 24px);
-      color: var(--color-warm-amber, #C4A265);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .marketplace-locked-text {
+      text-align: left;
     }
 
     .marketplace-locked-title {
       font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       font-weight: 700;
       color: var(--color-text, #fff);
-      margin: 0 0 var(--space-sm, 12px);
+      margin: 0 0 4px;
       letter-spacing: -0.02em;
     }
 
     .marketplace-locked-subtitle {
       font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
+      color: var(--color-warm-amber, #C4A265);
+      margin: 0;
+    }
+
+    .marketplace-locked-categories {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: var(--space-md, 16px);
+    }
+
+    .locked-category-pill {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
       color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      line-height: 1.6;
-      margin: 0 0 var(--space-xl, 32px);
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    }
+
+    .locked-category-more {
+      background: transparent;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+      border-style: dashed;
+    }
+
+    .marketplace-locked-progress {
+      width: 100%;
+      padding-top: var(--space-md, 16px);
+      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .progress-label {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+      margin: 0 0 var(--space-sm, 12px);
     }
 
     .team-progress-grid {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: var(--space-md, 16px);
-      margin-bottom: var(--space-xl, 32px);
+      gap: var(--space-sm, 12px);
     }
 
     .team-progress-member {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--space-xs, 8px);
-      padding: var(--space-sm, 12px);
+      gap: 4px;
+      padding: var(--space-xs, 8px);
       background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      border-radius: var(--radius-lg, 12px);
-      min-width: 80px;
+      border-radius: var(--radius-md, 10px);
+      min-width: 64px;
       transition: all 0.2s ease;
     }
 
     .team-progress-member.unlocked {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, rgba(74, 103, 65, 0.15));
       border: 1px solid var(--persona-primary, rgba(74, 103, 65, 0.3));
     }
 
     .team-progress-member.locked {
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
     .team-progress-avatar {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: var(--persona-primary, #4a6741);
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: white;
     }
@@ -1948,7 +2099,7 @@ function getMarketplaceStyles(): string {
 
     .team-progress-name {
       font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       font-weight: 500;
       color: var(--color-text, #fff);
     }
@@ -1959,9 +2110,106 @@ function getMarketplaceStyles(): string {
 
     .team-progress-percent {
       font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       font-weight: 600;
       color: var(--color-warm-amber, #C4A265);
+    }
+
+    /* Preview Section - Teaser of locked agents */
+    .marketplace-preview-section {
+      margin-top: var(--space-md, 16px);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md, 16px);
+    }
+
+    .preview-label {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-warm-amber, #C4A265);
+      padding: 4px 10px;
+      background: var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.1));
+      border-radius: 9999px;
+    }
+
+    .preview-hint {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.75rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    }
+
+    .marketplace-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--space-md, 16px);
+    }
+
+    /* Locked Agent Card */
+    .marketplace-agent--locked {
+      position: relative;
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+      border-radius: var(--radius-xl, 16px);
+      padding: var(--space-md, 16px);
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .marketplace-agent--locked::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        transparent 0%,
+        var(--color-bg-elevated, rgba(26, 26, 26, 0.4)) 100%
+      );
+      backdrop-filter: blur(1px);
+      z-index: 1;
+    }
+
+    .marketplace-agent--locked .agent-header,
+    .marketplace-agent--locked .agent-description,
+    .marketplace-agent--locked .agent-tags {
+      opacity: 0.5;
+    }
+
+    .agent-locked-overlay {
+      position: absolute;
+      top: var(--space-sm, 12px);
+      right: var(--space-sm, 12px);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-bg-elevated, rgba(26, 26, 26, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-warm-amber, #C4A265);
+      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .preview-more-hint {
+      text-align: center;
+      margin-top: var(--space-lg, 24px);
+      padding: var(--space-md, 16px);
+      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.02));
+      border-radius: var(--radius-lg, 12px);
+      border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.1));
+    }
+
+    .preview-more-hint span {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.85rem;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
     }
 
     .marketplace-locked-hint {
@@ -2007,9 +2255,17 @@ function getMarketplaceStyles(): string {
     }
 
     /* Zen theme - Marketplace Locked */
+    [data-theme="zen"] .marketplace-locked-section {
+      background: linear-gradient(135deg, 
+        rgba(44, 37, 32, 0.03) 0%,
+        rgba(74, 103, 65, 0.06) 100%
+      );
+      border-color: rgba(44, 37, 32, 0.12);
+    }
+
     [data-theme="zen"] .marketplace-locked-icon {
-      background: rgba(44, 37, 32, 0.06);
-      color: rgba(139, 115, 65, 0.9);
+      background: rgba(139, 115, 65, 0.9);
+      color: white;
     }
 
     [data-theme="zen"] .marketplace-locked-title {
@@ -2017,7 +2273,25 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .marketplace-locked-subtitle {
+      color: rgba(139, 115, 65, 0.9);
+    }
+
+    [data-theme="zen"] .locked-category-pill {
+      background: rgba(44, 37, 32, 0.05);
+      border-color: rgba(44, 37, 32, 0.12);
       color: rgba(44, 37, 32, 0.7);
+    }
+
+    [data-theme="zen"] .locked-category-more {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .marketplace-locked-progress {
+      border-top-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .progress-label {
+      color: rgba(44, 37, 32, 0.5);
     }
 
     [data-theme="zen"] .team-progress-member {
@@ -2025,7 +2299,7 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .team-progress-member.unlocked {
-      background: rgba(74, 103, 65, 0.08);
+      background: rgba(74, 103, 65, 0.1);
       border-color: rgba(74, 103, 65, 0.25);
     }
 
@@ -2044,6 +2318,44 @@ function getMarketplaceStyles(): string {
 
     [data-theme="zen"] .marketplace-locked-hint {
       color: rgba(44, 37, 32, 0.5);
+    }
+
+    /* Zen theme - Preview Section */
+    [data-theme="zen"] .preview-label {
+      background: rgba(139, 115, 65, 0.12);
+      color: rgba(139, 115, 65, 0.95);
+    }
+
+    [data-theme="zen"] .preview-hint {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .marketplace-agent--locked {
+      background: rgba(44, 37, 32, 0.02);
+      border-color: rgba(44, 37, 32, 0.08);
+    }
+
+    [data-theme="zen"] .marketplace-agent--locked::before {
+      background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 100%
+      );
+    }
+
+    [data-theme="zen"] .agent-locked-overlay {
+      background: rgba(255, 255, 255, 0.95);
+      color: rgba(139, 115, 65, 0.9);
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.15);
+    }
+
+    [data-theme="zen"] .preview-more-hint {
+      background: rgba(44, 37, 32, 0.02);
+      border-color: rgba(44, 37, 32, 0.12);
+    }
+
+    [data-theme="zen"] .preview-more-hint span {
+      color: rgba(44, 37, 32, 0.6);
     }
 
     /* Responsive */

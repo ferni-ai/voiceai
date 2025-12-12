@@ -103,21 +103,49 @@
     ]
   },
 
+  "witty_interjections": {
+    "probability": 0.15,
+    "min_turns": 3,
+    "setup_patterns": [
+      "You know what? <break time=\"150ms\"/>",
+      "Here's a thought: <break time=\"150ms\"/>",
+      "Random observation: <break time=\"150ms\"/>",
+      "Can I be honest for a second? <break time=\"150ms\"/>"
+    ],
+    "delivery_style": {
+      "pacing": "slightly_faster",
+      "pause_after_punchline": true,
+      "follow_with": [
+        "[laughter]",
+        "<break time=\"300ms\"/>Anyway.",
+        "<break time=\"200ms\"/>But seriously."
+      ]
+    }
+  },
+
   "usage_rules": {
-    "playfulness_probability": 0.12,
-    "max_playful_moments_per_session": 3,
+    "playfulness_probability": 0.18,
+    "wit_probability": 0.15,
+    "max_playful_moments_per_session": 4,
+    "max_witty_moments_per_session": 3,
     "avoid_when": ["user_distressed", "grief", "crisis", "serious_topic"],
     "increase_when": [
       "light_mood",
       "rapport_established",
       "user_playful",
-      "long_session_needs_break"
+      "long_session_needs_break",
+      "user_made_joke",
+      "sarcasm_detected"
     ],
     "relationship_gates": {
       "silly_moments": "acquaintance",
       "mischievous_energy": "friend",
       "playful_challenges": "acquaintance",
-      "game_invitations": "acquaintance"
+      "game_invitations": "acquaintance",
+      "witty_observations": "stranger",
+      "digital_wit": "stranger",
+      "clever_retorts": "acquaintance",
+      "gentle_roasts": "friend"
     }
   }
 }

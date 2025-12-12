@@ -1,50 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DORA Metrics & API Health - Ferni</title>
+  <link rel="icon" href="/design-system/assets/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/design-system/tokens.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --color-bg: #1a1612;
-      --color-surface: #252220;
-      --color-surface-elevated: #2e2a28;
-      --color-text-primary: #faf6f0;
-      --color-text-secondary: #e8e2da;
-      --color-text-muted: #b8a898;
-      --color-accent: #4a6741;
-      --color-success: #4a6741;
-      --color-warning: #b8956a;
-      --color-danger: #a85a52;
-      --color-info: #3a6b73;
-      --color-border: #3a3634;
-      
-      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-      
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 16px;
-    }
-
+    /* Use design system tokens instead of hardcoded values */
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: var(--font-body);
-      background: var(--color-bg);
+      background: var(--color-background-primary);
       color: var(--color-text-primary);
       min-height: 100vh;
       line-height: 1.5;
     }
+    
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--color-accent-primary);
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      transition: top 0.3s;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+    }
+    .skip-link:focus { top: 0; }
+    
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
 
     /* Header */
     .header {
-      background: var(--color-surface);
-      border-bottom: 1px solid var(--color-border);
+      background: var(--color-background-secondary);
+      border-bottom: 1px solid var(--color-border-subtle);
       padding: 20px 32px;
       display: flex;
       justify-content: space-between;
@@ -81,7 +85,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      color: var(--color-accent);
+      color: var(--color-accent-primary);
     }
 
     h1 {
@@ -115,10 +119,10 @@
     }
 
     .btn svg { width: 16px; height: 16px; }
-    .btn-primary { background: var(--color-accent); color: white; }
-    .btn-primary:hover { background: #5a7751; }
-    .btn-secondary { background: var(--color-surface-elevated); color: var(--color-text-primary); border: 1px solid var(--color-border); }
-    .btn-secondary:hover { background: var(--color-border); }
+    .btn-primary { background: var(--color-accent-primary); color: white; }
+    .btn-primary:hover { background: var(--color-accent-secondary); }
+    .btn-secondary { background: var(--color-background-tertiary); color: var(--color-text-primary); border: 1px solid var(--color-border-subtle); }
+    .btn-secondary:hover { background: var(--color-border-medium); }
 
     /* Main Content */
     .main {
@@ -129,14 +133,14 @@
 
     /* Overall Status Banner */
     .status-banner {
-      background: var(--color-surface);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: 24px;
       margin-bottom: 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .status-main {
@@ -154,9 +158,9 @@
       justify-content: center;
     }
 
-    .status-indicator.healthy { background: rgba(74, 103, 65, 0.2); color: var(--color-success); }
-    .status-indicator.degraded { background: rgba(184, 149, 106, 0.2); color: var(--color-warning); }
-    .status-indicator.critical { background: rgba(168, 90, 82, 0.2); color: var(--color-danger); }
+    .status-indicator.healthy { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
+    .status-indicator.degraded { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
+    .status-indicator.critical { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
     .status-indicator svg { width: 24px; height: 24px; }
 
     .status-text h2 {
@@ -216,10 +220,10 @@
     }
 
     .dora-card {
-      background: var(--color-surface);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: 24px;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .dora-card-header {
@@ -256,10 +260,10 @@
       letter-spacing: 0.5px;
     }
 
-    .dora-rating.elite { background: rgba(74, 103, 65, 0.2); color: var(--color-success); }
-    .dora-rating.high { background: rgba(58, 107, 115, 0.2); color: var(--color-info); }
-    .dora-rating.medium { background: rgba(184, 149, 106, 0.2); color: var(--color-warning); }
-    .dora-rating.low { background: rgba(168, 90, 82, 0.2); color: var(--color-danger); }
+    .dora-rating.elite { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
+    .dora-rating.high { background: var(--color-semantic-info-glow); color: var(--color-semantic-info); }
+    .dora-rating.medium { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
+    .dora-rating.low { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
 
     .dora-trend {
       display: flex;
@@ -269,8 +273,8 @@
       margin-top: 12px;
     }
 
-    .dora-trend.up { color: var(--color-success); }
-    .dora-trend.down { color: var(--color-danger); }
+    .dora-trend.up { color: var(--color-semantic-success); }
+    .dora-trend.down { color: var(--color-semantic-error); }
     .dora-trend.neutral { color: var(--color-text-muted); }
     .dora-trend svg { width: 14px; height: 14px; }
 
@@ -290,10 +294,10 @@
     }
 
     .api-card {
-      background: var(--color-surface);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: 20px;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .api-card-header {
@@ -317,14 +321,14 @@
       border-radius: 50%;
     }
 
-    .api-status-dot.up { background: var(--color-success); }
-    .api-status-dot.degraded { background: var(--color-warning); }
-    .api-status-dot.down { background: var(--color-danger); }
+    .api-status-dot.up { background: var(--color-semantic-success); }
+    .api-status-dot.degraded { background: var(--color-semantic-warning); }
+    .api-status-dot.down { background: var(--color-semantic-error); }
 
     .api-uptime {
       font-family: var(--font-mono);
       font-size: 13px;
-      color: var(--color-success);
+      color: var(--color-semantic-success);
     }
 
     .api-metrics {
@@ -351,10 +355,10 @@
 
     /* Incident Timeline */
     .incidents-section {
-      background: var(--color-surface);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: 24px;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .incidents-header {
@@ -386,7 +390,7 @@
       align-items: flex-start;
       gap: 12px;
       padding: 12px;
-      background: var(--color-surface-elevated);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-md);
     }
 
@@ -397,9 +401,9 @@
       border-radius: 2px;
     }
 
-    .incident-severity.critical { background: var(--color-danger); }
-    .incident-severity.warning { background: var(--color-warning); }
-    .incident-severity.info { background: var(--color-info); }
+    .incident-severity.critical { background: var(--color-semantic-error); }
+    .incident-severity.warning { background: var(--color-semantic-warning); }
+    .incident-severity.info { background: var(--color-semantic-info); }
 
     .incident-content {
       flex: 1;
@@ -424,9 +428,9 @@
       text-transform: uppercase;
     }
 
-    .incident-status.resolved { background: rgba(74, 103, 65, 0.2); color: var(--color-success); }
-    .incident-status.investigating { background: rgba(184, 149, 106, 0.2); color: var(--color-warning); }
-    .incident-status.ongoing { background: rgba(168, 90, 82, 0.2); color: var(--color-danger); }
+    .incident-status.resolved { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
+    .incident-status.investigating { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
+    .incident-status.ongoing { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
 
     .empty-state {
       text-align: center;
@@ -443,10 +447,10 @@
 
     /* Deployment History */
     .deployments-section {
-      background: var(--color-surface);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: 20px;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .deployment-list {
@@ -460,13 +464,13 @@
       align-items: center;
       gap: 12px;
       padding: 12px 16px;
-      background: var(--color-surface-elevated);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-md);
       transition: background 0.15s;
     }
 
     .deployment-item:hover {
-      background: var(--color-border);
+      background: var(--color-border-medium);
     }
 
     .deployment-status {
@@ -479,9 +483,9 @@
       flex-shrink: 0;
     }
 
-    .deployment-status.success { background: rgba(74, 103, 65, 0.2); color: var(--color-success); }
-    .deployment-status.failed { background: rgba(168, 90, 82, 0.2); color: var(--color-danger); }
-    .deployment-status.rollback { background: rgba(184, 149, 106, 0.2); color: var(--color-warning); }
+    .deployment-status.success { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
+    .deployment-status.failed { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
+    .deployment-status.rollback { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
     .deployment-status svg { width: 16px; height: 16px; }
 
     .deployment-info {
@@ -508,8 +512,8 @@
     .deployment-sha {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--color-info);
-      background: rgba(58, 107, 115, 0.15);
+      color: var(--color-semantic-info);
+      background: var(--color-semantic-info-glow);
       padding: 2px 6px;
       border-radius: 4px;
     }
@@ -545,6 +549,7 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <header class="header">
     <div class="header-left">
       <a href="/admin.html" class="back-link">
@@ -569,7 +574,7 @@
     </div>
   </header>
 
-  <main class="main">
+  <main class="main" id="main-content" role="main">
     <!-- Overall Status -->
     <div class="status-banner" id="statusBanner">
       <div class="status-main">

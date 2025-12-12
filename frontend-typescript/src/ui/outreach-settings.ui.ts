@@ -99,7 +99,13 @@ async function loadPreferences(): Promise<void> {
           end: data.preferences?.quietHours?.end ?? '07:00',
         },
         frequency: data.preferences?.frequency ?? 'balanced',
-        triggerTypes: data.preferences?.triggerTypes ?? currentPreferences.triggerTypes,
+        triggerTypes: {
+          commitments: data.preferences?.triggerTypes?.commitments ?? currentPreferences.triggerTypes.commitments,
+          emotional: data.preferences?.triggerTypes?.emotional ?? currentPreferences.triggerTypes.emotional,
+          celebrations: data.preferences?.triggerTypes?.celebrations ?? currentPreferences.triggerTypes.celebrations,
+          thinkingOfYou: data.preferences?.triggerTypes?.thinkingOfYou ?? currentPreferences.triggerTypes.thinkingOfYou,
+          reminders: data.preferences?.triggerTypes?.reminders ?? currentPreferences.triggerTypes.reminders,
+        },
       };
     }
   } catch (error) {

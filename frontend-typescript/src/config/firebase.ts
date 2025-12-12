@@ -11,6 +11,9 @@
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Firebase');
 
 // ============================================================================
 // CONFIGURATION
@@ -50,7 +53,7 @@ export function isFirebaseConfigured(): boolean {
  */
 export function getFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseConfigured()) {
-    console.warn('Firebase not configured - missing environment variables');
+    log.warn('Firebase not configured - missing environment variables');
     return null;
   }
 

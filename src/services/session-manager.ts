@@ -1533,6 +1533,56 @@ export async function createSessionServices(
           }
 
           // ================================================================
+          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
+          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // ================================================================
+          try {
+            const { extractHumanSignals, mergeSignalsIntoMemory } =
+              await import('../memory/human-signal-extractor.js');
+
+            if (turns.length > 0) {
+              const signals = extractHumanSignals(turns, {
+                userId: validatedUserId,
+                personaId: services.personaId || 'ferni',
+                userName: userProfile.preferredName || userProfile.name,
+                existingMemory: updatedProfile.humanMemory,
+                sessionEmotion: summary?.emotionalArc,
+              });
+
+              // Only merge if we found meaningful signals
+              const totalSignals = Object.values(signals).reduce(
+                (sum, arr) => sum + arr.length,
+                0
+              );
+
+              if (totalSignals > 0) {
+                updatedProfile.humanMemory = mergeSignalsIntoMemory(
+                  updatedProfile.humanMemory,
+                  signals
+                );
+                getLogger().info(
+                  {
+                    userId: validatedUserId,
+                    totalSignals,
+                    dates: signals.importantDates.length,
+                    values: signals.values.length,
+                    dreams: signals.dreams.length,
+                    fears: signals.fears.length,
+                    growth: signals.growthMarkers.length,
+                    comfort: signals.comfortPatterns.length,
+                  },
+                  '🌟 Human memory signals extracted and merged'
+                );
+              }
+            }
+          } catch (humanMemoryError) {
+            getLogger().warn(
+              { error: String(humanMemoryError), userId: validatedUserId },
+              'Failed to extract human memory signals (non-fatal)'
+            );
+          }
+
+          // ================================================================
           // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt
           // are all handled by updateProfileFromSession() inside saveProfile().
           // We MUST NOT increment here or we'll double-count!
@@ -1550,6 +1600,34 @@ export async function createSessionServices(
             },
             '✅ Profile saved with conversation data'
           );
+
+          // 🧠 Index user memories for semantic search (fire-and-forget)
+          // This enables "remember when..." queries across all user data
+          // Including human-centric memory: dates, values, dreams, growth, etc.
+          try {
+            const { indexUserMemories } = await import('../memory/user-memory-indexer.js');
+            void indexUserMemories(validatedUserId, updatedProfile, {
+              // Index both profile data AND human-centric memory
+              categories: [
+                // Profile data (P1)
+                'key_moment', 'person', 'thread', 'followup', 'life_event', 'goal',
+                // Human memory (P0/P1)
+                'important_date', 'value', 'dream', 'fear', 'growth_marker',
+                'challenge', 'comfort_pattern', 'stress_trigger',
+              ],
+            }).then((result) => {
+              if (result.indexed > 0) {
+                getLogger().info(
+                  { userId: validatedUserId, indexed: result.indexed, categories: result.categories },
+                  '🧠 User memories indexed for semantic search'
+                );
+              }
+            }).catch((err) => {
+              getLogger().debug({ error: String(err) }, 'User memory indexing failed (non-blocking)');
+            });
+          } catch (indexErr) {
+            getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
+          }
 
           // 📤 Analyze session for proactive outreach opportunities
           // This extracts commitments, detects emotional state, and creates outreach triggers

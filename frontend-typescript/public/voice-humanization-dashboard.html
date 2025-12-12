@@ -1,27 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Voice Humanization Dashboard | Ferni</title>
   <link rel="icon" href="/design-system/assets/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --color-bg: #1a1614;
-      --color-bg-elevated: #252220;
-      --color-bg-card: #2d2925;
-      --color-text: #f5f1e8;
-      --color-text-secondary: #a89f94;
-      --color-accent: #4a6741;
-      --color-accent-light: #5a7a51;
-      --color-success: #4a6741;
-      --color-warning: #c4856a;
-      --color-error: #a85a5a;
-      --color-info: #3a6b73;
-      --radius: 12px;
-      --shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-
+    /* Using design system tokens - no hardcoded colors */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -29,12 +16,27 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--color-bg);
-      color: var(--color-text);
+      font-family: var(--font-body);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
       min-height: 100vh;
       padding: 24px;
     }
+    
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--color-accent-primary);
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      transition: top 0.3s;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+    }
+    .skip-link:focus { top: 0; }
 
     .header {
       display: flex;
@@ -42,10 +44,11 @@
       align-items: center;
       margin-bottom: 32px;
       padding-bottom: 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .header h1 {
+      font-family: var(--font-display);
       font-size: 24px;
       font-weight: 600;
       display: flex;
@@ -53,8 +56,13 @@
       gap: 12px;
     }
 
-    .header h1::before {
-      content: '🎤';
+    /* Lucide microphone icon instead of emoji */
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      stroke: var(--color-accent-primary);
+      stroke-width: 2;
+      fill: none;
     }
 
     .status-badge {
@@ -62,7 +70,7 @@
       align-items: center;
       gap: 8px;
       padding: 8px 16px;
-      background: var(--color-bg-elevated);
+      background: var(--color-background-secondary);
       border-radius: 20px;
       font-size: 14px;
     }
@@ -71,7 +79,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--color-success);
+      background: var(--color-semantic-success);
       animation: pulse 2s infinite;
     }
 
@@ -88,10 +96,11 @@
     }
 
     .card {
-      background: var(--color-bg-card);
-      border-radius: var(--radius);
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-lg);
       padding: 24px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .card-header {
@@ -102,23 +111,26 @@
     }
 
     .card-title {
+      font-family: var(--font-display);
       font-size: 16px;
       font-weight: 600;
-      color: var(--color-text-secondary);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .metric-value {
+      font-family: var(--font-mono);
       font-size: 48px;
       font-weight: 700;
       line-height: 1;
       margin-bottom: 8px;
+      color: var(--color-text-primary);
     }
 
     .metric-label {
       font-size: 14px;
-      color: var(--color-text-secondary);
+      color: var(--color-text-muted);
     }
 
     .metric-row {
@@ -126,7 +138,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .metric-row:last-child {
@@ -136,7 +148,7 @@
     .progress-bar {
       width: 100%;
       height: 8px;
-      background: var(--color-bg-elevated);
+      background: var(--color-background-tertiary);
       border-radius: 4px;
       overflow: hidden;
       margin-top: 12px;
@@ -144,17 +156,17 @@
 
     .progress-fill {
       height: 100%;
-      background: var(--color-accent);
+      background: var(--color-accent-primary);
       border-radius: 4px;
       transition: width 0.5s ease;
     }
 
     .progress-fill.warning {
-      background: var(--color-warning);
+      background: var(--color-semantic-warning);
     }
 
     .progress-fill.error {
-      background: var(--color-error);
+      background: var(--color-semantic-error);
     }
 
     .toggle-group {
@@ -168,7 +180,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
-      background: var(--color-bg-elevated);
+      background: var(--color-background-tertiary);
       border-radius: 8px;
     }
 
@@ -192,7 +204,7 @@
     .toggle-slider {
       position: absolute;
       inset: 0;
-      background: var(--color-bg);
+      background: var(--color-background-primary);
       border-radius: 13px;
       transition: background 0.3s;
     }
@@ -204,18 +216,18 @@
       height: 20px;
       left: 3px;
       bottom: 3px;
-      background: var(--color-text-secondary);
+      background: var(--color-text-muted);
       border-radius: 50%;
       transition: transform 0.3s, background 0.3s;
     }
 
     .toggle-switch input:checked + .toggle-slider {
-      background: var(--color-accent);
+      background: var(--color-accent-primary);
     }
 
     .toggle-switch input:checked + .toggle-slider::before {
       transform: translateX(22px);
-      background: var(--color-text);
+      background: var(--color-text-primary);
     }
 
     .chart-container {
@@ -228,14 +240,14 @@
 
     .chart-bar {
       flex: 1;
-      background: var(--color-accent);
+      background: var(--color-accent-primary);
       border-radius: 4px 4px 0 0;
       min-height: 4px;
       transition: height 0.3s ease;
     }
 
     .chart-bar:hover {
-      background: var(--color-accent-light);
+      background: var(--color-accent-secondary);
     }
 
     .intent-breakdown {
@@ -247,7 +259,7 @@
 
     .intent-tag {
       padding: 6px 12px;
-      background: var(--color-bg-elevated);
+      background: var(--color-background-tertiary);
       border-radius: 16px;
       font-size: 12px;
       display: flex;
@@ -256,10 +268,11 @@
     }
 
     .intent-count {
-      background: var(--color-accent);
+      background: var(--color-accent-primary);
       padding: 2px 8px;
       border-radius: 10px;
       font-weight: 600;
+      color: white;
     }
 
     .btn {
@@ -273,21 +286,22 @@
     }
 
     .btn-primary {
-      background: var(--color-accent);
-      color: var(--color-text);
+      background: var(--color-accent-primary);
+      color: white;
     }
 
     .btn-primary:hover {
-      background: var(--color-accent-light);
+      background: var(--color-accent-secondary);
     }
 
     .btn-secondary {
-      background: var(--color-bg-elevated);
-      color: var(--color-text);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .btn-secondary:hover {
-      background: var(--color-bg);
+      background: var(--color-background-tertiary);
     }
 
     .actions {
@@ -298,9 +312,25 @@
 
     .last-updated {
       font-size: 12px;
-      color: var(--color-text-secondary);
+      color: var(--color-text-muted);
       text-align: center;
       margin-top: 24px;
+    }
+    
+    /* Reduced Motion Support - WCAG Compliance */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .status-dot { animation: none; }
+    }
+    
+    /* Focus indicators for accessibility */
+    .btn:focus-visible, .toggle-switch:focus-visible {
+      outline: 2px solid var(--color-accent-primary);
+      outline-offset: 2px;
     }
 
     .section-title {
@@ -319,11 +349,12 @@
     .latency-item {
       text-align: center;
       padding: 16px;
-      background: var(--color-bg-elevated);
+      background: var(--color-background-tertiary);
       border-radius: 8px;
     }
 
     .latency-value {
+      font-family: var(--font-mono);
       font-size: 24px;
       font-weight: 600;
       margin-bottom: 4px;
@@ -331,7 +362,7 @@
 
     .latency-label {
       font-size: 12px;
-      color: var(--color-text-secondary);
+      color: var(--color-text-muted);
     }
 
     @media (max-width: 768px) {
@@ -345,8 +376,16 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="header">
-    <h1>Voice Humanization Dashboard</h1>
+    <h1>
+      <svg class="header-icon" viewBox="0 0 24 24">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" x2="12" y1="19" y2="22"/>
+      </svg>
+      Voice Humanization Dashboard
+    </h1>
     <div class="status-badge">
       <span class="status-dot"></span>
       <span id="session-count">0 active sessions</span>
@@ -354,6 +393,7 @@
   </div>
 
   <!-- Key Metrics -->
+  <main id="main-content">
   <div class="grid">
     <!-- Cache Performance -->
     <div class="card">
@@ -489,6 +529,7 @@
   <div class="last-updated">
     Last updated: <span id="last-updated">Never</span>
   </div>
+  </main>
 
   <script>
     const API_BASE = '/api';

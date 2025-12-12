@@ -129,7 +129,60 @@ export async function handleUserRoutes(
     return true;
   }
 
-  // Require authentication
+  const route = pathname.replace('/api/user', '');
+
+  // ============================================================================
+  // GET /api/user/accent - Get voice accent preference (OPTIONAL AUTH)
+  // This endpoint uses optional auth to allow loading preferences before
+  // Firebase auth completes. Returns defaults if not authenticated.
+  // ============================================================================
+  if (route === '/accent' && method === 'GET') {
+    // Try to get auth but don't require it
+    const optionalAuth = await requireAuth(req, res, { allowDevMode: true, optional: true });
+
+    // If no auth, return defaults
+    if (!optionalAuth) {
+      sendJson(res, 200, {
+        success: true,
+        accent: 'american',
+        autoDetected: true,
+        locale: null,
+        requiresAuth: true, // Hint that saving will need auth
+      });
+      return true;
+    }
+
+    // User is authenticated - fetch their preference
+    const userId = optionalAuth.userId;
+    try {
+      const store = getDefaultStore();
+      const profile = await store.getProfile(userId);
+
+      if (!profile) {
+        // No profile yet - return default
+        sendJson(res, 200, {
+          success: true,
+          accent: 'american',
+          autoDetected: true,
+          locale: null,
+        });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        accent: profile.preferences?.preferredAccent || 'american',
+        autoDetected: profile.preferences?.accentAutoDetected ?? true,
+        locale: profile.preferences?.locale,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get accent preference');
+      sendJson(res, 500, { success: false, error: 'Failed to get accent preference' });
+    }
+    return true;
+  }
+
+  // All other routes require authentication
   const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // 401 already sent
@@ -137,8 +190,6 @@ export async function handleUserRoutes(
 
   // Use authenticated userId (prevents user enumeration)
   const authenticatedUserId = auth.userId;
-
-  const route = pathname.replace('/api/user', '');
 
   // ============================================================================
   // POST /api/user/timezone - Quick timezone auto-detection update
@@ -427,40 +478,6 @@ export async function handleUserRoutes(
     } catch (error) {
       log.error({ error, userId }, 'Failed to update accent preference');
       sendJson(res, 500, { success: false, error: 'Failed to update accent preference' });
-    }
-    return true;
-  }
-
-  // ============================================================================
-  // GET /api/user/accent - Get voice accent preference
-  // ============================================================================
-  if (route === '/accent' && method === 'GET') {
-    const userId = authenticatedUserId;
-
-    try {
-      const store = getDefaultStore();
-      const profile = await store.getProfile(userId);
-
-      if (!profile) {
-        // No profile yet - return default
-        sendJson(res, 200, {
-          success: true,
-          accent: 'american',
-          autoDetected: true,
-          locale: null,
-        });
-        return true;
-      }
-
-      sendJson(res, 200, {
-        success: true,
-        accent: profile.preferences?.preferredAccent || 'american',
-        autoDetected: profile.preferences?.accentAutoDetected ?? true,
-        locale: profile.preferences?.locale,
-      });
-    } catch (error) {
-      log.error({ error, userId }, 'Failed to get accent preference');
-      sendJson(res, 500, { success: false, error: 'Failed to get accent preference' });
     }
     return true;
   }

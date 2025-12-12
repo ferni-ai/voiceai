@@ -614,8 +614,17 @@ export function setupEvents(): void {
         break;
 
       case 'create-experiment':
-        // TODO: Show create experiment modal
-        alert('Create experiment modal coming soon!');
+        // Create experiment modal not yet implemented - log and show toast
+        log.info('Create experiment requested - feature in development');
+        // Use the admin toast if available, otherwise just log
+        const toastContainer = document.querySelector('.admin-toast-container');
+        if (toastContainer) {
+          const toast = document.createElement('div');
+          toast.className = 'admin-toast';
+          toast.textContent = 'Create experiment coming soon!';
+          toastContainer.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }
         break;
     }
   });

@@ -514,6 +514,35 @@ export type {
   UserRhythm,
 } from './personal-journey.js';
 
+// Human-centric memory types - "Better than human" relationship texture
+export type {
+  ChallengeProgress,
+  ComfortPattern,
+  CoreValue,
+  Dream,
+  EmotionalSignature,
+  EmotionalTell,
+  EnergyPattern,
+  Fear,
+  FormativeExperience,
+  GrowthArc,
+  GrowthMarker,
+  HumanMemory,
+  HumorProfile,
+  IdentityProfile,
+  ImportantDate,
+  InsideJoke,
+  ReachOutPattern,
+  RecurringAvoidance,
+  RunningTheme,
+  SeasonalPattern,
+  StressTrigger,
+  TemporalPatterns,
+  TimeOfDayPattern,
+  UnspokenPatterns,
+  UserTeaching,
+} from './human-memory.js';
+
 // Personal themes
 export { PERSONAL_THEMES, extractPersonalThemes, type PersonalTheme } from './personal-themes.js';
 

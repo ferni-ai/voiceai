@@ -1,18 +1,39 @@
 /**
- * Hume AI Voice Emotion Analysis Service
+ * Voice Emotion Analysis Service
  *
- * Provides superhuman emotion detection from voice audio.
+ * Provides superhuman emotion detection from voice audio using Gemini.
  * Distinguishes anxiety from sadness from fatigue with high precision.
  *
  * "Better than human" - detects suppressed emotions, micro-expressions in voice,
  * and emotional trajectories that humans often miss.
  *
- * @see https://hume.ai/
+ * Originally designed for Hume AI, now uses Gemini multimodal for emotion analysis.
+ * Uses existing GOOGLE_API_KEY - no additional API setup required.
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-const logger = getLogger().child({ service: 'HumeEmotion' });
+const logger = getLogger().child({ service: 'VoiceEmotion' });
+
+// Dynamic import for Gemini SDK
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let GoogleGenerativeAI: any;
+let geminiLoaded = false;
+
+async function loadGeminiSDK(): Promise<boolean> {
+  if (geminiLoaded) return !!GoogleGenerativeAI;
+  try {
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const module = await importFn('@google/generative-ai');
+    GoogleGenerativeAI = module.GoogleGenerativeAI;
+    geminiLoaded = true;
+    return true;
+  } catch {
+    logger.debug('Gemini SDK not available for emotion analysis');
+    geminiLoaded = true;
+    return false;
+  }
+}
 
 // ============================================================================
 // Types
@@ -109,8 +130,30 @@ export interface HumeEmotionPoint {
 // Configuration
 // ============================================================================
 
-const HUME_API_URL = 'https://api.hume.ai/v0/batch/jobs';
-const HUME_STREAMING_URL = 'wss://api.hume.ai/v0/stream/models';
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // Fast multimodal model
+
+// Emotion analysis prompt for Gemini
+const EMOTION_ANALYSIS_PROMPT = `Analyze the emotional content of this audio clip. Focus on voice prosody (tone, pitch, rhythm, energy).
+
+Return a JSON object with:
+{
+  "primary": "the dominant emotion (use one of: joy, sadness, anxiety, anger, fear, tiredness, contentment, excitement, neutral, confusion, frustration, relief, pride, embarrassment, love, contempt, amusement, determination, distress)",
+  "secondary": ["array of 1-3 secondary emotions detected"],
+  "confidence": 0.0-1.0,
+  "arousal": 0.0-1.0 (0=calm/low energy, 1=highly activated/energetic),
+  "valence": -1.0 to 1.0 (-1=very negative, 0=neutral, 1=very positive),
+  "suppression": 0.0-1.0 (0=emotions seem authentic, 1=emotions seem forced/suppressed),
+  "indicators": ["brief notes on what you heard, e.g., 'voice tremor', 'flat tone', 'upward inflection'"]
+}
+
+Be sensitive to subtle cues. Distinguish between similar emotions:
+- Anxiety: rapid speech, tension, higher pitch
+- Sadness: slower speech, lower energy, sighing
+- Tiredness: flat prosody, low energy, monotone
+- Anger: clipped speech, tension, volume spikes
+
+Return ONLY the JSON object, no markdown.`;
 
 // Emotion categories for simplified mapping
 const NEGATIVE_EMOTIONS: HumeEmotion[] = [
@@ -164,48 +207,50 @@ const sessionStates = new Map<string, SessionState>();
 // ============================================================================
 
 /**
- * Analyze audio buffer for emotions using Hume AI
+ * Analyze audio buffer for emotions using Gemini multimodal
  */
 export async function analyzeVoiceEmotion(
   audioBuffer: ArrayBuffer,
   sessionId: string
 ): Promise<HumeEmotionResult | null> {
-  const apiKey = process.env.HUME_API_KEY;
+  if (!GEMINI_API_KEY) {
+    logger.debug('Google API key not configured, using fallback');
+    return generateFallbackResult();
+  }
 
-  if (!apiKey) {
-    logger.debug('Hume API key not configured, using fallback');
+  // Load Gemini SDK
+  const hasSDK = await loadGeminiSDK();
+  if (!hasSDK || !GoogleGenerativeAI) {
+    logger.debug('Gemini SDK not available, using fallback');
     return generateFallbackResult();
   }
 
   try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+
     // Convert audio buffer to base64
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
-    const response = await fetch(HUME_API_URL, {
-      method: 'POST',
-      headers: {
-        'X-Hume-Api-Key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        models: {
-          prosody: {},
+    // Determine audio MIME type (assume PCM/WAV by default)
+    const mimeType = 'audio/wav';
+
+    // Send audio to Gemini for analysis
+    const result = await model.generateContent([
+      EMOTION_ANALYSIS_PROMPT,
+      {
+        inlineData: {
+          mimeType,
+          data: base64Audio,
         },
-        data: [
-          {
-            file: base64Audio,
-          },
-        ],
-      }),
-    });
+      },
+    ]);
 
-    if (!response.ok) {
-      logger.warn({ status: response.status }, 'Hume API request failed');
-      return generateFallbackResult();
-    }
+    const response = result.response;
+    const text = response.text();
 
-    const result = await response.json();
-    const emotionResult = parseHumeResponse(result);
+    // Parse Gemini response
+    const emotionResult = parseGeminiResponse(text);
 
     // Update session timeline
     updateSessionTimeline(sessionId, emotionResult);
@@ -216,27 +261,82 @@ export async function analyzeVoiceEmotion(
         confidence: emotionResult.confidence,
         valence: emotionResult.valence,
       },
-      'Hume emotion analysis complete'
+      'Gemini emotion analysis complete'
     );
 
     return emotionResult;
   } catch (error) {
-    logger.warn({ error: String(error) }, 'Hume analysis failed, using fallback');
+    logger.warn({ error: String(error) }, 'Gemini analysis failed, using fallback');
+    return generateFallbackResult();
+  }
+}
+
+/**
+ * Parse Gemini emotion analysis response
+ */
+function parseGeminiResponse(text: string): HumeEmotionResult {
+  try {
+    // Clean up response (remove markdown if present)
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+    else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+    if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+    cleaned = cleaned.trim();
+
+    // Try to extract JSON
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      logger.warn('No JSON found in Gemini response');
+      return generateFallbackResult();
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as {
+      primary?: string;
+      secondary?: string[];
+      confidence?: number;
+      arousal?: number;
+      valence?: number;
+      suppression?: number;
+      indicators?: string[];
+    };
+
+    const primary = (parsed.primary || 'neutral') as HumeEmotion;
+    const secondary = (parsed.secondary || []) as HumeEmotion[];
+
+    // Build scores object from primary/secondary
+    const scores: Record<string, number> = { [primary]: parsed.confidence || 0.7 };
+    secondary.forEach((s, i) => {
+      scores[s] = Math.max(0.3 - i * 0.1, 0.1);
+    });
+
+    return {
+      primary,
+      secondary,
+      confidence: parsed.confidence || 0.7,
+      suppression: parsed.suppression || 0,
+      arousal: parsed.arousal || 0.5,
+      valence: parsed.valence || 0,
+      scores: scores as Record<HumeEmotion, number>,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'Failed to parse Gemini response');
     return generateFallbackResult();
   }
 }
 
 /**
  * Start real-time emotion streaming for a session
+ *
+ * Note: Gemini doesn't support streaming WebSocket for multimodal.
+ * This uses periodic batch analysis instead.
  */
 export async function startEmotionStream(
   sessionId: string,
   onEmotion: (result: HumeEmotionResult) => void
 ): Promise<{ sendAudio: (audio: ArrayBuffer) => void; stop: () => void }> {
-  const apiKey = process.env.HUME_API_KEY;
-
-  if (!apiKey) {
-    logger.debug('Hume API key not configured, streaming disabled');
+  if (!GEMINI_API_KEY) {
+    logger.debug('Google API key not configured, streaming disabled');
     return {
       sendAudio: () => {},
       stop: () => {},
@@ -247,54 +347,51 @@ export async function startEmotionStream(
   if (!sessionStates.has(sessionId)) {
     sessionStates.set(sessionId, { timeline: [] });
   }
-  const state = sessionStates.get(sessionId)!;
 
-  try {
-    const ws = new WebSocket(`${HUME_STREAMING_URL}?apikey=${apiKey}`);
-    state.websocket = ws;
+  let audioBuffer: ArrayBuffer[] = [];
+  let isProcessing = false;
+  let stopped = false;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        if (data.prosody?.predictions) {
-          const result = parseHumeResponse(data);
-          state.lastAnalysis = result;
-          updateSessionTimeline(sessionId, result);
-          onEmotion(result);
-        }
-      } catch (e) {
-        logger.debug({ error: String(e) }, 'Failed to parse Hume stream message');
+  // Process accumulated audio periodically
+  const processInterval = setInterval(async () => {
+    if (stopped || isProcessing || audioBuffer.length === 0) return;
+
+    isProcessing = true;
+    try {
+      // Combine audio chunks
+      const totalLength = audioBuffer.reduce((sum, buf) => sum + buf.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buf of audioBuffer) {
+        combined.set(new Uint8Array(buf), offset);
+        offset += buf.byteLength;
       }
-    };
+      audioBuffer = [];
 
-    ws.onerror = (error) => {
-      logger.warn({ error: String(error) }, 'Hume WebSocket error');
-    };
+      // Analyze combined audio
+      const result = await analyzeVoiceEmotion(combined.buffer, sessionId);
+      if (result) {
+        onEmotion(result);
+      }
+    } catch (e) {
+      logger.debug({ error: String(e) }, 'Emotion stream processing error');
+    } finally {
+      isProcessing = false;
+    }
+  }, 3000); // Analyze every 3 seconds
 
-    return {
-      sendAudio: (audio: ArrayBuffer) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          const base64 = Buffer.from(audio).toString('base64');
-          ws.send(
-            JSON.stringify({
-              data: base64,
-              models: { prosody: {} },
-            })
-          );
-        }
-      },
-      stop: () => {
-        ws.close();
-        state.websocket = undefined;
-      },
-    };
-  } catch (error) {
-    logger.warn({ error: String(error) }, 'Failed to start Hume stream');
-    return {
-      sendAudio: () => {},
-      stop: () => {},
-    };
-  }
+  return {
+    sendAudio: (audio: ArrayBuffer) => {
+      if (!stopped) {
+        audioBuffer.push(audio);
+      }
+    },
+    stop: () => {
+      stopped = true;
+      clearInterval(processInterval);
+      audioBuffer = [];
+    },
+  };
 }
 
 /**
@@ -479,46 +576,8 @@ export function generateEmotionInsight(result: HumeEmotionResult): string | null
 }
 
 // ============================================================================
-// Helper Functions
+// Helper Functions (kept for compatibility with existing analysis functions)
 // ============================================================================
-
-function parseHumeResponse(response: unknown): HumeEmotionResult {
-  // Parse Hume API response structure
-  const predictions =
-    (
-      response as {
-        prosody?: { predictions?: Array<{ emotions?: Array<{ name: string; score: number }> }> };
-      }
-    )?.prosody?.predictions?.[0]?.emotions || [];
-
-  const scores: Record<string, number> = {};
-  for (const pred of predictions) {
-    scores[pred.name.toLowerCase().replace(/ /g, '_')] = pred.score;
-  }
-
-  // Find primary emotion (highest score)
-  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  const primary = (sorted[0]?.[0] || 'neutral') as HumeEmotion;
-  const secondary = sorted.slice(1, 4).map(([name]) => name as HumeEmotion);
-
-  // Calculate valence and arousal from emotion mix
-  const valence = calculateValence(scores);
-  const arousal = calculateArousal(scores);
-
-  // Estimate suppression from prosody inconsistencies
-  const suppression = estimateSuppression(scores, valence);
-
-  return {
-    primary,
-    secondary,
-    confidence: sorted[0]?.[1] || 0,
-    suppression,
-    arousal,
-    valence,
-    scores: scores as Record<HumeEmotion, number>,
-    timestamp: Date.now(),
-  };
-}
 
 function calculateValence(scores: Record<string, number>): number {
   let positive = 0;

@@ -35,14 +35,12 @@ steps:
       - 'docker pull gcr.io/$PROJECT_ID/ferni-voice-agent:latest || true'
     id: 'pull-cache'
 
-  # Build the container image with caching
+  # Build the container image (NO CACHE to prevent stale layers)
+  # Added --no-cache 2025-12-12 to fix stale cached layers causing TS errors
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
-      - '--cache-from'
-      - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
-      - '--build-arg'
-      - 'BUILDKIT_INLINE_CACHE=1'
+      - '--no-cache'
       - '-f'
       - 'docker/Dockerfile.agent'
       - '-t'
