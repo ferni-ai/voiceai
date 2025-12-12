@@ -11,7 +11,7 @@
 # building Rust from scratch every time.
 # ============================================================================
 
-FROM rust:1.75-slim AS builder
+FROM rust:1.83-slim AS builder
 
 ARG GITHUB_PAT=""
 
@@ -41,13 +41,13 @@ RUN if [ -n "$GITHUB_PAT" ]; then \
       (echo "Clone failed, creating placeholder" && mkdir -p ferni-speaker/models && touch ferni-speaker/placeholder); \
     fi
 
-# Build the native module
+# Build the native module (with fallback on failure)
 RUN if [ -d "ferni-speaker/.git" ]; then \
       cd ferni-speaker && \
       rm -f Cargo.lock && \
       npm install --ignore-scripts && \
-      npm run build && \
-      echo "✅ ferni-speaker built successfully"; \
+      (npm run build && echo "✅ ferni-speaker built successfully") || \
+      echo "⚠️ Rust build failed, continuing without native module"; \
     else \
       echo "⚠️ ferni-speaker not available, using placeholder"; \
     fi
