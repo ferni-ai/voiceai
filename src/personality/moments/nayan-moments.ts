@@ -7,7 +7,7 @@
  * @module personality/moments/nayan-moments
  */
 
-import { STANDARD_TRANSITIONS } from '../personal-moment-store.js';
+import { STANDARD_TRANSITIONS } from '../transitions.js';
 import type { PersonalMoment } from '../types.js';
 
 export const NAYAN_MOMENTS: PersonalMoment[] = [

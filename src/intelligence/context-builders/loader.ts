@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { BUILDER_IMPORTS } from './builder-imports.js';
 import { BuilderCategory } from './categories.js';
 
 const log = createLogger({ module: 'context-builder-loader' });
@@ -80,7 +81,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-playful',
     'persona-vulnerability',
     'persona-mood',
-    'ferni-personality',
+    'ferni-personality', // DEPRECATED - returns empty, kept for reference
+    'human-personality', // NEW - semantic matching, timing intelligence, callbacks
     'alive-awareness',
     'inner-world-injector',
     'spontaneous-vulnerability',
@@ -177,6 +179,15 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 let buildersLoaded = false;
 let loadingPromise: Promise<void> | null = null;
 
+export interface BuilderLoadReport {
+  loaded: number;
+  failed: string[];
+  durationMs: number;
+  loadedAt: number;
+}
+
+let lastLoadReport: BuilderLoadReport | null = null;
+
 // ============================================================================
 // LOADER FUNCTIONS
 // ============================================================================
@@ -199,8 +210,17 @@ export function getBuilderModulesByCategory(category: BuilderCategory): string[]
  * Load a single builder module
  */
 async function loadBuilderModule(moduleName: string): Promise<boolean> {
+  const importer = BUILDER_IMPORTS[moduleName];
+  if (!importer) {
+    log.warn(
+      { module: moduleName },
+      'Failed to load builder module (missing from import registry)'
+    );
+    return false;
+  }
+
   try {
-    await import(`./${moduleName}.js`);
+    await importer();
     return true;
   } catch (error) {
     log.warn({ module: moduleName, error }, 'Failed to load builder module');
@@ -281,6 +301,13 @@ export async function ensureBuildersLoaded(): Promise<void> {
     buildersLoaded = true;
     const duration = Date.now() - start;
 
+    lastLoadReport = {
+      loaded,
+      failed,
+      durationMs: duration,
+      loadedAt: Date.now(),
+    };
+
     if (failed.length > 0) {
       log.warn({ loaded, failed, durationMs: duration }, 'Some context builders failed to load');
     } else {
@@ -292,11 +319,19 @@ export async function ensureBuildersLoaded(): Promise<void> {
 }
 
 /**
+ * Get the last builder load report (useful for testing and observability).
+ */
+export function getLastLoadReport(): BuilderLoadReport | null {
+  return lastLoadReport;
+}
+
+/**
  * Force reload all builders (for testing)
  */
 export async function reloadBuilders(): Promise<void> {
   buildersLoaded = false;
   loadingPromise = null;
+  lastLoadReport = null;
   await ensureBuildersLoaded();
 }
 

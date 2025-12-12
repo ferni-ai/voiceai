@@ -7,7 +7,7 @@
  * @module personality/moments/alex-moments
  */
 
-import { STANDARD_TRANSITIONS } from '../personal-moment-store.js';
+import { STANDARD_TRANSITIONS } from '../transitions.js';
 import type { PersonalMoment } from '../types.js';
 
 export const ALEX_MOMENTS: PersonalMoment[] = [

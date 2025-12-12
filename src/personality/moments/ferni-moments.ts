@@ -10,7 +10,7 @@
  * @module personality/moments/ferni-moments
  */
 
-import { STANDARD_TRANSITIONS } from '../personal-moment-store.js';
+import { STANDARD_TRANSITIONS } from '../transitions.js';
 import type { PersonalMoment } from '../types.js';
 
 export const FERNI_MOMENTS: PersonalMoment[] = [

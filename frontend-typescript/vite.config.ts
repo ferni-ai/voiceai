@@ -24,39 +24,29 @@ export default defineConfig({
   server: {
     port: 3004,
     proxy: {
-      '/token': 'http://localhost:3001',
-      '/token-url': 'http://localhost:3001',
-      // Spotify routes - use UI server (3002) which has fallback handling
-      // Token server (3001) has per-user spotify linking, but may not always be running
-      '/spotify': 'http://localhost:3002',
-      // Agent routes go to ui-server (which has the registry integration)
-      '/api/agents': 'http://localhost:3002',
-      // Engagement API routes go to ui-server
-      '/api/cognitive': 'http://localhost:3002',
-      '/api/conversations': 'http://localhost:3002',
-      '/api/analytics': 'http://localhost:3002',
-      '/api/predictions': 'http://localhost:3002',
-      '/api/rituals': 'http://localhost:3002',
-      '/api/huddles': 'http://localhost:3002',
-      '/api/export': 'http://localhost:3002',
-      '/api/relationship': 'http://localhost:3002',
-      // Voice authentication routes
-      '/api/voice': 'http://localhost:3002',
-      // Trust journey routes
-      '/api/trust': 'http://localhost:3002',
-      // Marketplace routes
-      '/api/marketplace': 'http://localhost:3002',
-      // Subscription routes (Stripe checkout, billing portal, status)
-      '/subscription': 'http://localhost:3002',
-      '/api/subscription': 'http://localhost:3002',
-      // Admin API v1 routes
-      '/api/v1': 'http://localhost:3002',
-      // EvalOps routes
-      '/api/evalops': 'http://localhost:3002',
-      // Dashboard metrics routes
-      '/api/metrics': 'http://localhost:3002',
-      // Other API routes to token server
-      '/api': 'http://localhost:3001',
+      // UI server runs on port 3003 locally
+      '/token': 'http://localhost:3003',
+      '/token-url': 'http://localhost:3003',
+      '/spotify': 'http://localhost:3003',
+      '/api/agents': 'http://localhost:3003',
+      '/api/cognitive': 'http://localhost:3003',
+      '/api/conversations': 'http://localhost:3003',
+      '/api/analytics': 'http://localhost:3003',
+      '/api/predictions': 'http://localhost:3003',
+      '/api/rituals': 'http://localhost:3003',
+      '/api/huddles': 'http://localhost:3003',
+      '/api/export': 'http://localhost:3003',
+      '/api/relationship': 'http://localhost:3003',
+      '/api/voice': 'http://localhost:3003',
+      '/api/trust': 'http://localhost:3003',
+      '/api/marketplace': 'http://localhost:3003',
+      '/subscription': 'http://localhost:3003',
+      '/api/subscription': 'http://localhost:3003',
+      '/api/v1': 'http://localhost:3003',
+      '/api/evalops': 'http://localhost:3003',
+      '/api/metrics': 'http://localhost:3003',
+      '/api': 'http://localhost:3003',
+      '/health': 'http://localhost:3003',
     },
   },
   build: {

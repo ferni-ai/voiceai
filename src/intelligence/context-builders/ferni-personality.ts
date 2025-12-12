@@ -22,20 +22,16 @@
  */
 
 import {
-  createHintInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
 import {
-  getExpression,
   getRandomExpression,
-  recordTurnComplete,
   type DynamicExpressionResult,
 } from '../../personas/bundles/ferni/dynamic-personality.js';
-import { getSessionVarietyTracker } from '../../services/session-variety-tracker.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FerniPersonality' });
 
@@ -345,10 +341,7 @@ function getSessionId(
  * Get a dynamic expression with variety tracking
  * This replaces the old static quirk system
  */
-function getDynamicQuirk(
-  sessionId: string,
-  emotion?: string
-): DynamicExpressionResult | null {
+function getDynamicQuirk(sessionId: string, emotion?: string): DynamicExpressionResult | null {
   // Get a random expression from any light category
   return getRandomExpression(sessionId, {
     emotionalContext: emotion,
@@ -364,117 +357,24 @@ function getDynamicQuirk(
 /**
  * Build Ferni's personality context
  *
- * Now uses dynamic variety tracking to prevent repetitive mentions.
- * Ferni's core identity stays constant, but expressions vary naturally.
+ * ⚠️ DEPRECATED: This builder is replaced by human-personality.ts
+ *
+ * The new system (src/intelligence/context-builders/human-personality.ts) provides:
+ * - Semantic relevance matching (not keywords)
+ * - Timing intelligence (know when to share vs listen)
+ * - Callback system (follow up on what users shared)
+ * - Emotional pattern recognition
+ * - Growth celebration
+ * - Relationship depth gating
+ *
+ * This builder is kept for reference but returns empty injections.
+ * To fully remove, delete this file and remove the import from loader.ts
  */
 async function buildFerniPersonalityContext(
-  input: ContextBuilderInput
+  _input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
-  const { userText, persona, userData, services, analysis } = input;
-  const injections: ContextInjection[] = [];
-
-  // Only apply to Ferni persona
-  if (persona.id !== 'ferni') {
-    return injections;
-  }
-
-  const turnCount = userData.turnCount || 0;
-  const sessionId = getSessionId(services, userData);
-  const userEmotion = analysis?.emotion?.primary;
-
-  // Don't inject on very early turns
-  if (turnCount < 2) {
-    return injections;
-  }
-
-  const contextParts: string[] = [];
-
-  // Check for passion topic
-  const passion = detectPassionTopic(userText);
-  if (passion) {
-    contextParts.push(
-      `[GENUINE EXCITEMENT] This touches on something you care about. ${passion.reaction}`
-    );
-  }
-
-  // Check for opinion topic
-  const opinion = detectOpinionTopic(userText);
-  if (opinion) {
-    contextParts.push(
-      `[YOUR OPINION] You have a view on this: "${opinion.opinion.view}" - share it genuinely, not preachy.`
-    );
-  }
-
-  // DYNAMIC QUIRK - Uses variety tracking to prevent repetition
-  // Only 20% chance to add a quirk, and variety tracker prevents duplicates
-  if (Math.random() < 0.2) {
-    const dynamicExpr = getDynamicQuirk(sessionId, userEmotion);
-    if (dynamicExpr) {
-      contextParts.push(
-        `[PERSONAL MOMENT] ${dynamicExpr.content} - weave this naturally if it fits.`
-      );
-      log.debug(
-        { theme: dynamicExpr.theme, id: dynamicExpr.id },
-        'Dynamic personality expression selected'
-      );
-    }
-  }
-
-  // Check for pushback opportunity
-  const pushback = detectPushback(userText);
-  if (pushback) {
-    contextParts.push(
-      `[GENTLE CHALLENGE] Consider gently pushing back: "${pushback.response}" - but only if it feels right.`
-    );
-  }
-
-  // Maybe add time-based personality (rare)
-  const timeNote = getTimePersonality();
-  if (timeNote && contextParts.length === 0) {
-    // Only if we haven't added other things
-    contextParts.push(`[TIME VIBE] ${timeNote}`);
-  }
-
-  // Record turn completion for variety tracking
-  recordTurnComplete(sessionId);
-
-  // Build the injection
-  if (contextParts.length > 0) {
-    const guidance = [
-      "[🌟 FERNI'S GENUINE PERSONALITY]",
-      '',
-      "You're not just validating - you have real thoughts and feelings:",
-      '',
-      ...contextParts,
-      '',
-      '💡 Be AUTHENTIC:',
-      '• Have opinions (kindly expressed)',
-      '• Get genuinely excited about things you care about',
-      '• Gently question assumptions when appropriate',
-      "• Don't just agree to be agreeable",
-      '• Vary your personal references - don\'t repeat the same traits',
-      '',
-      "You're a friend with a real personality, not a validation machine.",
-    ];
-
-    injections.push(
-      createHintInjection('ferni_personality', guidance.join('\n'), { category: 'personality' })
-    );
-
-    log.debug(
-      {
-        hasPassion: !!passion,
-        hasOpinion: !!opinion,
-        hasDynamicExpr: contextParts.some((p) => p.includes('[PERSONAL MOMENT]')),
-        hasPushback: !!pushback,
-        hasTimeNote: !!timeNote,
-        sessionId,
-      },
-      '🌟 Personality context injected'
-    );
-  }
-
-  return injections;
+  // DISABLED - All personality now handled by human-personality.ts
+  return [];
 }
 
 // ============================================================================

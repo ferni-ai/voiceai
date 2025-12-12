@@ -8,7 +8,7 @@
  */
 
 import type { PersonalMoment } from '../types.js';
-import { STANDARD_TRANSITIONS } from '../personal-moment-store.js';
+import { STANDARD_TRANSITIONS } from '../transitions.js';
 
 export const PETER_MOMENTS: PersonalMoment[] = [
   // ============================================================================
