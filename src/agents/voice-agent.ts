@@ -198,22 +198,16 @@ import { trackEmotionDetection } from './integrations/speech-metrics-integration
 
 // ============================================================================
 // ADVANCED VOICE HUMANIZATION (Phase 7+)
+// Note: FFT, turn predictor, response anticipation are initialized in
+// voice-humanization-init-handler.ts; below imports are still used in
+// transcriptionNode/sttNode for runtime access
 // ============================================================================
-
-// FFT-based spectral analysis for better ambient/laughter detection
-import { getFFTAnalyzer } from '../speech/fft-analyzer.js';
-
-// Enhanced turn prediction with phrase boundary detection
-import { getEnhancedTurnPredictor } from '../speech/enhanced-turn-prediction.js';
 
 // Multi-signal laughter detection (~85% accuracy)
 import { getMultiSignalLaughterDetector } from '../speech/multi-signal-laughter.js';
 
 // Word-timing rhythm mirroring
 import { getWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
-
-// Response anticipation / pattern caching (preemptive workaround)
-import { getResponseAnticipationService } from '../speech/response-anticipation.js';
 
 // Feature flags for gradual rollout
 import { getSessionFlags } from '../config/voice-humanization-flags.js';
