@@ -608,7 +608,9 @@ export async function buildCrossPersonaInsightsInjection(
         services.userId || 'anonymous',
         item.insight.id,
         validPersonaId
-      ).catch(() => {});
+      ).catch((err) => {
+        diag.warn('Failed to acknowledge insight', { insightId: item.insight.id, error: String(err) });
+      });
     }
 
     if (insightContext) {

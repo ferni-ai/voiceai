@@ -17,6 +17,13 @@ export {
   type GreetingResult,
 } from './greeting-handler.js';
 
+// Data channel handler
+export {
+  setupDataChannelHandler,
+  type DataChannelContext,
+  type DataChannelResult,
+} from './data-channel-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 

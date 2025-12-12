@@ -952,7 +952,9 @@ export function clearUserContext(userId: string): void {
   contextStore.delete(userId);
 
   // Also clear from Firestore
-  deleteUserContext(userId).catch(() => {});
+  deleteUserContext(userId).catch((err) => {
+    log.warn({ userId, error: String(err) }, 'Failed to delete user context from Firestore');
+  });
 
   log.debug({ userId }, 'Cleared user context');
 }

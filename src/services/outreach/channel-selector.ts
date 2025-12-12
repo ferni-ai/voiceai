@@ -179,7 +179,9 @@ export function getChannelProfile(userId: string): ChannelProfile {
     channelProfileStore.set(userId, profile);
 
     // Async load from Firestore (fire and forget)
-    loadChannelProfileFromFirestore(userId).catch(() => {});
+    loadChannelProfileFromFirestore(userId).catch((err) => {
+      log.warn({ userId, error: String(err) }, 'Failed to load channel profile from Firestore');
+    });
   }
   return profile;
 }
