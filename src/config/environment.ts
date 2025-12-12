@@ -166,7 +166,7 @@ export function loadConfig(): AppConfig {
     environment: env,
     isGoogleCloud: isGCP,
 
-    personaId: process.env.PERSONA_ID || 'nayan-patel',
+    personaId: process.env.PERSONA_ID || 'ferni',
 
     storage: {
       type: storageType,

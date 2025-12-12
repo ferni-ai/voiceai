@@ -1165,6 +1165,155 @@ class VoiceAgent extends voice.Agent<UserData> {
               // Audio smoothing is non-critical
             }
 
+            // ============================================================
+            // 10. EMOTIONAL PACING - Pause before heavy topics
+            // Adds thoughtful pause + softer tone for grief, loss, crisis
+            // ============================================================
+            try {
+              const { applyEmotionalPacing } =
+                await import('../speech/adaptive-ssml/emotional-pacing.js');
+              // Determine if this is an emotional/vulnerable share
+              const voiceEmotionNow = userData?.voiceEmotion;
+              const isEmotionalShare = voiceEmotionNow
+                ? voiceEmotionNow.stressLevel > 0.4 || Math.abs(voiceEmotionNow.valence) > 0.3
+                : false;
+              const pacingResult = applyEmotionalPacing(taggedText, {
+                userEmotion: userData?.voiceEmotion?.primary,
+                userMessage: userData?.lastUserMessage,
+                isVulnerableShare: isEmotionalShare,
+              });
+              if (pacingResult.applied) {
+                taggedText = pacingResult.text;
+                agent.logger.debug(
+                  { reason: pacingResult.reason, pauseMs: pacingResult.pauseMs },
+                  '🫂 Applied emotional pacing'
+                );
+              }
+            } catch (_pacingErr) {
+              // Emotional pacing is non-critical
+            }
+
+            // ============================================================
+            // 11. VOICE WARMTH - Adjust tone based on user emotion
+            // Slower/softer for distress, match energy for excitement
+            // ============================================================
+            try {
+              const { applyVoiceWarmth } = await import('../speech/adaptive-ssml/voice-warmth.js');
+              // Estimate intensity from confidence or stress level
+              const emotionIntensity = userData?.voiceEmotion?.confidence ?? 0.7;
+              const warmthResult = applyVoiceWarmth(taggedText, {
+                userEmotion: userData?.voiceEmotion?.primary,
+                emotionIntensity,
+                arousal: userData?.voiceEmotion?.arousal,
+                valence: userData?.voiceEmotion?.valence,
+              });
+              if (
+                warmthResult.adjustments.reason !== 'skipped - existing tags' &&
+                warmthResult.adjustments.reason !== 'no significant adjustment needed'
+              ) {
+                taggedText = warmthResult.text;
+                agent.logger.debug(
+                  {
+                    speed: warmthResult.adjustments.speedRatio,
+                    volume: warmthResult.adjustments.volumeRatio,
+                    reason: warmthResult.adjustments.reason,
+                  },
+                  '💜 Applied voice warmth modulation'
+                );
+              }
+            } catch (_warmthErr) {
+              // Voice warmth is non-critical
+            }
+
+            // ============================================================
+            // 12. TEMPORAL VOICE - Time-of-day awareness
+            // Late night = softer/slower, Friday = lighter energy
+            // ============================================================
+            try {
+              const { applyTemporalVoice } =
+                await import('../speech/adaptive-ssml/temporal-voice.js');
+              const temporalResult = applyTemporalVoice(taggedText, {
+                hour: new Date().getHours(),
+                dayOfWeek: new Date().getDay(),
+              });
+              if (
+                temporalResult.adjustments.speedRatio !== 1.0 ||
+                temporalResult.adjustments.volumeRatio !== 1.0
+              ) {
+                taggedText = temporalResult.text;
+                agent.logger.debug(
+                  {
+                    period: temporalResult.adjustments.period,
+                    speed: temporalResult.adjustments.speedRatio,
+                  },
+                  '🕐 Applied temporal voice adjustment'
+                );
+              }
+            } catch (_temporalErr) {
+              // Temporal voice is non-critical
+            }
+
+            // ============================================================
+            // 13. SPEED MIRRORING - Match user's speaking pace
+            // Builds unconscious rapport through subtle pace matching
+            // ============================================================
+            try {
+              const { applySpeedMirroring } =
+                await import('../speech/adaptive-ssml/speed-mirroring.js');
+              const mirrorResult = applySpeedMirroring(taggedText, {
+                userArousal: userData?.voiceEmotion?.arousal,
+                isRapidSpeech: userData?.voiceEmotion?.arousal
+                  ? userData.voiceEmotion.arousal > 0.7
+                  : undefined,
+                isSlowSpeech: userData?.voiceEmotion?.arousal
+                  ? userData.voiceEmotion.arousal < 0.3
+                  : undefined,
+              });
+              if (mirrorResult.speedRatio !== 1.0) {
+                taggedText = mirrorResult.text;
+                agent.logger.debug(
+                  { speedRatio: mirrorResult.speedRatio, reason: mirrorResult.reason },
+                  '🔄 Applied speed mirroring'
+                );
+              }
+            } catch (_mirrorErr) {
+              // Speed mirroring is non-critical
+            }
+
+            // ============================================================
+            // 14. SPONTANEOUS APPRECIATION - Random genuine connection
+            // 5% chance to add "I really enjoy talking with you" etc.
+            // ============================================================
+            try {
+              const { injectSpontaneousAppreciation } =
+                await import('../speech/adaptive-ssml/spontaneous-appreciation.js');
+              // Determine conversation tone from voice emotion
+              const voiceEmotionForTone = userData?.voiceEmotion;
+              const isHeavyTone = voiceEmotionForTone
+                ? voiceEmotionForTone.stressLevel > 0.6
+                : false;
+              const isPositiveTone = voiceEmotionForTone
+                ? voiceEmotionForTone.arousal > 0.6 && voiceEmotionForTone.valence > 0.2
+                : false;
+              const appreciationResult = injectSpontaneousAppreciation(taggedText, {
+                turnCount: userData?.turnCount || 0,
+                // Get total conversations from services if available
+                totalConversations: userData?.services?.userProfile?.totalConversations,
+                userName: userData?.name,
+                conversationTone: isHeavyTone ? 'heavy' : isPositiveTone ? 'positive' : 'neutral',
+                sessionId,
+              });
+              if (appreciationResult.appreciationAdded) {
+                taggedText = appreciationResult.text;
+                agent.logger.debug(
+                  { phrase: appreciationResult.phrase },
+                  '💜 Injected spontaneous appreciation'
+                );
+              }
+            } catch (_appreciationErr) {
+              // Spontaneous appreciation is non-critical
+            }
+
             controller.enqueue(taggedText);
           }
         } catch (streamError) {
@@ -1967,27 +2116,38 @@ export default defineAgent({
         `[voice-agent] ENTRY: Prewarm incomplete, initializing now pid=${process.pid}\n`
       );
       try {
-        // Initialize services first
-        await initializeServices(true);
+        // CRITICAL: Add timeout to prevent hanging forever
+        // If services don't initialize in 60s, continue anyway - agent may work in degraded mode
+        const FALLBACK_TIMEOUT = 60_000; // 60 seconds
+        await Promise.race([
+          (async () => {
+            // Initialize services first
+            await initializeServices(true);
 
-        // CRITICAL: Also load persona bundles!
-        // initializeServices() does NOT load bundles, so we must do it here
-        // otherwise getPersonaAsync() will block mid-job to load them
-        const bundleStart = Date.now();
-        const bundleResult = await initializeFromBundles();
-        const bundleTime = Date.now() - bundleStart;
-        diag.entry('Fallback initialization complete', {
-          bundlesLoaded: bundleResult.loaded,
-          bundlesFailed: bundleResult.failed,
-          bundleTimeMs: bundleTime,
-        });
-        process.stderr.write(
-          `[voice-agent] ENTRY: Bundles loaded=${bundleResult.loaded} failed=${bundleResult.failed} time=${bundleTime}ms\n`
-        );
+            // CRITICAL: Also load persona bundles!
+            // initializeServices() does NOT load bundles, so we must do it here
+            // otherwise getPersonaAsync() will block mid-job to load them
+            const bundleStart = Date.now();
+            const bundleResult = await initializeFromBundles();
+            const bundleTime = Date.now() - bundleStart;
+            diag.entry('Fallback initialization complete', {
+              bundlesLoaded: bundleResult.loaded,
+              bundlesFailed: bundleResult.failed,
+              bundleTimeMs: bundleTime,
+            });
+            process.stderr.write(
+              `[voice-agent] ENTRY: Bundles loaded=${bundleResult.loaded} failed=${bundleResult.failed} time=${bundleTime}ms\n`
+            );
+          })(),
+          new Promise<void>((_, reject) => {
+            setTimeout(() => reject(new Error('Fallback initialization timeout')), FALLBACK_TIMEOUT);
+          }),
+        ]);
       } catch (initError) {
-        diag.warn('Fallback initialization failed, continuing anyway', {
+        diag.warn('Fallback initialization failed or timed out, continuing anyway', {
           error: String(initError),
         });
+        process.stderr.write(`[voice-agent] ENTRY: Fallback init failed/timeout: ${initError}\n`);
       }
     } else {
       diag.entry('Prewarm complete, proceeding with job');

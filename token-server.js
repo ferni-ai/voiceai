@@ -727,7 +727,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const personaId = persona_id || 'jack-bogle';
+      const personaId = persona_id || 'ferni';
 
       // Create room and dispatch agent with user identification
       // firebase_uid is CRITICAL for remembering users across sessions!

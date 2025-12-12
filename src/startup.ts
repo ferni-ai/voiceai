@@ -70,12 +70,16 @@ export async function startup(): Promise<AppConfig> {
   }
 
   // Initialize memory system (storage + cache)
-  logger.info('Initializing memory system...');
+  // CRITICAL: Skip persona indexing in production to avoid hanging on Google AI API calls
+  // Persona indexing generates embeddings for all persona content which can take forever
+  // In Cloud Run, this causes the agent to timeout during initialization
+  const shouldIndexPersona = process.env.SKIP_PERSONA_INDEXING !== 'true' && config.environment !== 'production';
+  logger.info({ indexPersona: shouldIndexPersona }, 'Initializing memory system...');
   const memStart = Date.now();
   memorySystem = await initializeMemorySystem({
     storeType: config.storage.type,
     enableRedis: config.cache.enabled,
-    indexPersona: true,
+    indexPersona: shouldIndexPersona,
   });
   logger.info(
     `✓ Memory: ${config.storage.type}${config.cache.enabled ? ' + Redis cache' : ''} (${Date.now() - memStart}ms)`

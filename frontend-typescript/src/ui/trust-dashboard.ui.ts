@@ -15,7 +15,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { appState } from '../state/app.state.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('TrustDashboardUI');
 
@@ -484,41 +484,40 @@ async function loadTabData(tab: DashboardState['activeTab']): Promise<void> {
   state.error = null;
   renderContent();
 
-  const userId = (appState as { userId?: string }).userId || 'anonymous';
-
   try {
     const baseUrl = '/api/trust';
 
     switch (tab) {
-      case 'health':
-        const healthRes = await fetch(`${baseUrl}/health?userId=${userId}`);
-        state.data.health = await healthRes.json();
+      case 'health': {
+        const healthRes = await apiGet<HealthData>(`${baseUrl}/health`);
+        if (healthRes.ok && healthRes.data) state.data.health = healthRes.data;
         break;
-
-      case 'timeline':
-        const timelineRes = await fetch(`${baseUrl}/sentiment?userId=${userId}`);
-        state.data.timeline = await timelineRes.json();
+      }
+      case 'timeline': {
+        const timelineRes = await apiGet<TimelineData>(`${baseUrl}/sentiment`);
+        if (timelineRes.ok && timelineRes.data) state.data.timeline = timelineRes.data;
         break;
-
-      case 'events':
-        const eventsRes = await fetch(`${baseUrl}/life-events?userId=${userId}`);
-        state.data.events = await eventsRes.json();
+      }
+      case 'events': {
+        const eventsRes = await apiGet<EventsData>(`${baseUrl}/life-events`);
+        if (eventsRes.ok && eventsRes.data) state.data.events = eventsRes.data;
         break;
-
-      case 'journal':
-        const journalRes = await fetch(`${baseUrl}/journaling/prompts?userId=${userId}`);
-        state.data.journal = await journalRes.json();
+      }
+      case 'journal': {
+        const journalRes = await apiGet<JournalData>(`${baseUrl}/journaling/prompts`);
+        if (journalRes.ok && journalRes.data) state.data.journal = journalRes.data;
         break;
-
-      case 'media':
-        const mediaRes = await fetch(`${baseUrl}/media/suggestions?userId=${userId}`);
-        state.data.media = await mediaRes.json();
+      }
+      case 'media': {
+        const mediaRes = await apiGet<MediaData>(`${baseUrl}/media/suggestions`);
+        if (mediaRes.ok && mediaRes.data) state.data.media = mediaRes.data;
         break;
-
-      case 'insights':
-        const insightsRes = await fetch(`${baseUrl}/insights?userId=${userId}`);
-        state.data.insights = await insightsRes.json();
+      }
+      case 'insights': {
+        const insightsRes = await apiGet<InsightsData>(`${baseUrl}/insights`);
+        if (insightsRes.ok && insightsRes.data) state.data.insights = insightsRes.data;
         break;
+      }
     }
 
     state.loading = false;

@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('WellbeingDashboard');
 

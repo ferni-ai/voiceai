@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('CalendarSettings');
 
@@ -62,20 +63,21 @@ const ICONS = {
 
 async function fetchCalendarStatus(): Promise<CalendarStatus> {
   try {
-    const userId = appState.getState().deviceId;
-    if (!userId) {
-      return { connected: false, configured: false };
-    }
+    const response = await apiGet<{
+      connected?: boolean;
+      email?: string;
+      lastSynced?: string;
+      busySlotsToday?: number;
+      configured?: boolean;
+    }>('/api/calendar/status');
 
-    const response = await fetch(`/api/calendar/status?userId=${userId}`);
-    if (response.ok) {
-      const data = await response.json();
+    if (response.ok && response.data) {
       return {
-        connected: data.connected ?? false,
-        email: data.email,
-        lastSynced: data.lastSynced,
-        busySlotsToday: data.busySlotsToday,
-        configured: data.configured ?? true,
+        connected: response.data.connected ?? false,
+        email: response.data.email,
+        lastSynced: response.data.lastSynced,
+        busySlotsToday: response.data.busySlotsToday,
+        configured: response.data.configured ?? true,
       };
     }
   } catch (error) {
@@ -86,14 +88,7 @@ async function fetchCalendarStatus(): Promise<CalendarStatus> {
 
 async function disconnectCalendar(): Promise<boolean> {
   try {
-    const userId = appState.getState().deviceId;
-    if (!userId) return false;
-
-    const response = await fetch('/api/calendar/disconnect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
+    const response = await apiPost('/api/calendar/disconnect');
     return response.ok;
   } catch (error) {
     log.error('Failed to disconnect calendar:', error);
@@ -103,14 +98,7 @@ async function disconnectCalendar(): Promise<boolean> {
 
 async function syncCalendar(): Promise<boolean> {
   try {
-    const userId = appState.getState().deviceId;
-    if (!userId) return false;
-
-    const response = await fetch('/api/calendar/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
+    const response = await apiPost('/api/calendar/sync');
     return response.ok;
   } catch (error) {
     log.error('Failed to sync calendar:', error);

@@ -16,6 +16,31 @@ let uncaughtExceptionCount = 0;
 const EXCEPTION_WINDOW_MS = 60_000; // 1 minute
 const MAX_EXCEPTIONS_BEFORE_EXIT = 5;
 
+// ============================================================================
+// CRITICAL LIVEKIT ERRORS
+// ============================================================================
+// These errors indicate the LiveKit worker connection is dead and won't recover.
+// The container will pass health checks but can't receive room dispatches.
+// Force immediate restart to prevent "zombie" state.
+const CRITICAL_LIVEKIT_ERROR_PATTERNS = [
+  'runner initialization timed out', // Worker process failed to initialize
+  'ERR_IPC_CHANNEL_CLOSED', // IPC channel between main and worker crashed
+  'LIVEKIT_CONNECTION_FAILED', // LiveKit server connection failed
+  'AgentWorkerFailed', // Worker process crashed
+] as const;
+
+/**
+ * Check if an error is a critical LiveKit error that requires immediate restart.
+ * These errors leave the container in a "zombie" state - health checks pass
+ * but the agent can't receive room dispatches from LiveKit.
+ */
+function isCriticalLiveKitError(error: Error): boolean {
+  const errorString = `${error.name} ${error.message} ${error.stack || ''}`;
+  return CRITICAL_LIVEKIT_ERROR_PATTERNS.some((pattern) =>
+    errorString.toLowerCase().includes(pattern.toLowerCase())
+  );
+}
+
 /**
  * Handle graceful shutdown - flush all pending data before exit
  */
@@ -62,8 +87,38 @@ export function registerShutdownSignalHandlers(): void {
   // Instead of immediately crashing, we log the error and continue.
   // Only crash if we get too many exceptions in a short period (indicates real problem).
   // This prevents a single unexpected error from killing all active voice sessions.
+  //
+  // EXCEPTION: Critical LiveKit errors force IMMEDIATE shutdown because they
+  // leave the container in a "zombie" state where health checks pass but the
+  // agent can't receive room dispatches from LiveKit Cloud.
   process.on('uncaughtException', (error: Error, origin: string) => {
     uncaughtExceptionCount++;
+
+    // Check for critical LiveKit errors FIRST - these require immediate restart
+    // because the container will be in a zombie state (health OK, but can't receive dispatches)
+    if (isCriticalLiveKitError(error)) {
+      diag.error('🚨 CRITICAL LIVEKIT ERROR - forcing immediate container restart', {
+        error: error.message,
+        stack: error.stack,
+        origin,
+        reason:
+          'LiveKit worker connection is dead. Container passes health checks but cannot receive room dispatches.',
+        action: 'Forcing shutdown to trigger Cloud Run container restart',
+        processUptime: process.uptime(),
+      });
+
+      // Write to stderr for immediate visibility in Cloud Run logs
+      process.stderr.write(
+        `\n[CRITICAL LIVEKIT ERROR] ${error.message}\n` +
+          `Stack: ${error.stack}\n` +
+          `Origin: ${origin}\n` +
+          `Action: Forcing container restart to recover LiveKit connection\n\n`
+      );
+
+      // Force immediate shutdown - Cloud Run will restart the container
+      void gracefulShutdown('LIVEKIT_CRITICAL_ERROR');
+      return;
+    }
 
     // Log the error with full context
     diag.error('🚨 UNCAUGHT EXCEPTION - agent may cut out', {

@@ -413,8 +413,8 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
           exit 1
         fi
 
-        echo "  ⏳ Waiting ${RETRY_DELAY}s before retry (HTTP $HTTP_CODE)..."
-        sleep $RETRY_DELAY
+        echo "  ⏳ Waiting \${RETRY_DELAY}s before retry (HTTP \$HTTP_CODE)..."
+        sleep \$RETRY_DELAY
       done
 
       echo ""
@@ -573,8 +573,8 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
           exit 1
         fi
 
-        echo "  ⏳ Waiting ${RETRY_DELAY}s before retry (HTTP $HTTP_CODE)..."
-        sleep $RETRY_DELAY
+        echo "  ⏳ Waiting \${RETRY_DELAY}s before retry (HTTP \$HTTP_CODE)..."
+        sleep \$RETRY_DELAY
       done
 
       echo ""

@@ -16,6 +16,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { apiGet } from '../utils/api.js';
 
 // ============================================================================
 // TYPES
@@ -142,14 +143,13 @@ class IntegrationsSettingsUI {
 
   private async fetchStatus(): Promise<void> {
     try {
-      const response = await fetch(`/api/v1/integrations/status?userId=${this.userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        this.status = data.integrations;
-        this.capabilities = data.capabilities;
+      const response = await apiGet<{ integrations: IntegrationStatus; capabilities: IntegrationCapabilities }>('/api/v1/integrations/status');
+      if (response.ok && response.data) {
+        this.status = response.data.integrations;
+        this.capabilities = response.data.capabilities;
       }
     } catch (error) {
-      console.warn('Failed to fetch integration status:', error);
+      if (import.meta.env?.DEV) console.debug('Failed to fetch integration status:', error);
       // Set defaults
       this.status = {
         biometrics: { connected: false, platform: null },

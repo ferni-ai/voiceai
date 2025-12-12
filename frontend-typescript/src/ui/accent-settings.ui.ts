@@ -13,6 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('AccentSettingsUI');
 
@@ -681,16 +682,13 @@ async function loadCurrentPreference(): Promise<void> {
   render();
 
   try {
-    const response = await fetch('/api/user/accent', {
-      credentials: 'include',
-    });
+    const response = await apiGet<{ accent?: EnglishAccent; autoDetected?: boolean }>('/api/user/accent');
 
-    if (response.ok) {
-      const data = await response.json();
-      state.currentAccent = data.accent || 'american';
-      state.detectedAccent = data.accent || 'american';
-      state.autoDetected = data.autoDetected ?? true;
-      log.debug('Loaded accent preference:', data);
+    if (response.ok && response.data) {
+      state.currentAccent = response.data.accent || 'american';
+      state.detectedAccent = response.data.accent || 'american';
+      state.autoDetected = response.data.autoDetected ?? true;
+      log.debug('Loaded accent preference:', response.data);
     }
   } catch (err) {
     log.warn('Failed to load accent preference:', err);
@@ -708,21 +706,13 @@ async function savePreference(): Promise<void> {
   render();
 
   try {
-    const response = await fetch('/api/user/accent', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        accent: state.currentAccent,
-        autoDetected: state.autoDetected,
-      }),
+    const response = await apiPost<{ error?: string }>('/api/user/accent', {
+      accent: state.currentAccent,
+      autoDetected: state.autoDetected,
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to save preference');
+      throw new Error(response.data?.error || response.error || 'Failed to save preference');
     }
 
     state.success =

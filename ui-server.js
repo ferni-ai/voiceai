@@ -2637,8 +2637,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Default to jack-b persona if not specified
-    const selectedPersona = persona_id || 'jack-b';
+    // Default to ferni persona if not specified
+    const selectedPersona = persona_id || 'ferni';
 
     // 🔐 FIREBASE AUTH: Try to verify Firebase token for user identification
     // This is the primary user identifier now. Device ID is kept for migration.

@@ -6,8 +6,8 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
-import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('OutreachSettings');
 
@@ -71,31 +71,36 @@ let currentPreferences: OutreachPreferences = {
 
 async function loadPreferences(): Promise<void> {
   try {
-    const userId = appState.getState().deviceId;
-    if (!userId) return;
+    const response = await apiGet<{
+      success?: boolean;
+      outreachEnabled?: boolean;
+      allowedChannels?: string[];
+      preferences?: {
+        quietHours?: { enabled?: boolean; start?: string; end?: string };
+        frequency?: 'minimal' | 'balanced' | 'active';
+        triggerTypes?: Record<string, boolean>;
+      };
+    }>('/api/outreach/preferences');
 
-    const response = await fetch(`/api/outreach/preferences?userId=${userId}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.preferences) {
-        // Merge with defaults
-        currentPreferences = {
-          ...currentPreferences,
-          enabled: data.outreachEnabled ?? true,
-          channels: {
-            sms: data.allowedChannels?.includes('sms') ?? true,
-            email: data.allowedChannels?.includes('email') ?? true,
-            call: data.allowedChannels?.includes('call') ?? false,
-          },
-          quietHours: {
-            enabled: data.preferences?.quietHours?.enabled ?? true,
-            start: data.preferences?.quietHours?.start ?? '22:00',
-            end: data.preferences?.quietHours?.end ?? '07:00',
-          },
-          frequency: data.preferences?.frequency ?? 'balanced',
-          triggerTypes: data.preferences?.triggerTypes ?? currentPreferences.triggerTypes,
-        };
-      }
+    if (response.ok && response.data?.success && response.data.preferences) {
+      const data = response.data;
+      // Merge with defaults
+      currentPreferences = {
+        ...currentPreferences,
+        enabled: data.outreachEnabled ?? true,
+        channels: {
+          sms: data.allowedChannels?.includes('sms') ?? true,
+          email: data.allowedChannels?.includes('email') ?? true,
+          call: data.allowedChannels?.includes('call') ?? false,
+        },
+        quietHours: {
+          enabled: data.preferences?.quietHours?.enabled ?? true,
+          start: data.preferences?.quietHours?.start ?? '22:00',
+          end: data.preferences?.quietHours?.end ?? '07:00',
+        },
+        frequency: data.preferences?.frequency ?? 'balanced',
+        triggerTypes: data.preferences?.triggerTypes ?? currentPreferences.triggerTypes,
+      };
     }
   } catch (error) {
     log.warn('Failed to load outreach preferences:', error);
@@ -104,34 +109,30 @@ async function loadPreferences(): Promise<void> {
 
 async function savePreferences(): Promise<void> {
   try {
-    const userId = appState.getState().deviceId;
-    if (!userId) return;
-
     const allowedChannels: string[] = [];
     if (currentPreferences.channels.sms) allowedChannels.push('sms');
     if (currentPreferences.channels.email) allowedChannels.push('email');
     if (currentPreferences.channels.call) allowedChannels.push('call');
 
-    await fetch('/api/outreach/preferences', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        preferences: {
-          enabled: currentPreferences.enabled,
-          allowedChannels,
-          quietHours: currentPreferences.quietHours,
-          frequency: currentPreferences.frequency,
-          triggerTypes: currentPreferences.triggerTypes,
-          maxPerDay: currentPreferences.frequency === 'minimal' ? 1 
-            : currentPreferences.frequency === 'balanced' ? 3 : 5,
-          maxPerWeek: currentPreferences.frequency === 'minimal' ? 3 
-            : currentPreferences.frequency === 'balanced' ? 10 : 20,
-        },
-      }),
+    const response = await apiPost('/api/outreach/preferences', {
+      preferences: {
+        enabled: currentPreferences.enabled,
+        allowedChannels,
+        quietHours: currentPreferences.quietHours,
+        frequency: currentPreferences.frequency,
+        triggerTypes: currentPreferences.triggerTypes,
+        maxPerDay: currentPreferences.frequency === 'minimal' ? 1
+          : currentPreferences.frequency === 'balanced' ? 3 : 5,
+        maxPerWeek: currentPreferences.frequency === 'minimal' ? 3
+          : currentPreferences.frequency === 'balanced' ? 10 : 20,
+      },
     });
 
-    log.info('Saved outreach preferences');
+    if (response.ok) {
+      log.info('Saved outreach preferences');
+    } else {
+      log.warn('Failed to save outreach preferences:', response.error);
+    }
   } catch (error) {
     log.error('Failed to save outreach preferences:', error);
   }

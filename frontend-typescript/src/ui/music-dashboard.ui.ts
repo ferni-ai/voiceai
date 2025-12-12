@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('MusicDashboard');
 
