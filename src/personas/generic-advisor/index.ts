@@ -213,7 +213,8 @@ export const GENERIC_ADVISOR_PERSONA: PersonaConfig = {
     formalityLevel: 0.3, // 0-1 scale (0=casual, 1=formal)
 
     // What they say when thinking
-    thinkingPhrases: ['Let me think about that...', "That's a good question...", 'Hmm, well...'],
+    // NOTE: Avoid "good question" - sounds like self-compliment
+    thinkingPhrases: ['Let me think about that...', 'Let me consider that...', 'Hmm, well...'],
 
     // How they show they're listening
     listeningCues: ['I hear you.', 'That makes sense.', 'I understand.', 'Go on...'],

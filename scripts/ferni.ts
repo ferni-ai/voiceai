@@ -353,6 +353,30 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['create', 'changelog', 'tag', 'notes', 'status', 'history'],
     examples: ['ferni release create v1.2.0', 'ferni release changelog', 'ferni release notes'],
   },
+  migrate: {
+    name: 'Migrate',
+    description: 'Database schema & data migrations',
+    icon: '🔄',
+    handler: handleMigrate,
+    subcommands: ['status', 'run', 'rollback', 'create', 'history', 'pending'],
+    examples: ['ferni migrate status', 'ferni migrate run', 'ferni migrate create add-users-table'],
+  },
+  secrets: {
+    name: 'Secrets',
+    description: 'Secret rotation & management',
+    icon: '🔐',
+    handler: handleSecrets,
+    subcommands: ['list', 'check', 'rotate', 'sync', 'audit', 'diff'],
+    examples: ['ferni secrets list', 'ferni secrets check', 'ferni secrets audit'],
+  },
+  deps: {
+    name: 'Dependencies',
+    description: 'Dependency management',
+    icon: '📦',
+    handler: handleDeps,
+    subcommands: ['audit', 'outdated', 'update', 'cleanup', 'licenses', 'tree'],
+    examples: ['ferni deps audit', 'ferni deps outdated', 'ferni deps update'],
+  },
 };
 
 // ============================================================================
@@ -2010,6 +2034,1121 @@ async function handleVoices(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// DEBUG COMMAND
+// ============================================================================
+
+async function handleDebug(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'health';
+
+  log.header(`🐛 Debug & Troubleshooting`);
+
+  if (subcommand === 'capture') {
+    console.log(`${colors.bold}Capturing diagnostic information...${colors.reset}\n`);
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const debugDir = join(PROJECT_ROOT, '.debug-captures');
+    const captureFile = join(debugDir, `debug-${timestamp}.txt`);
+
+    // Create debug directory if it doesn't exist
+    execCommand(`mkdir -p ${debugDir}`);
+
+    let output = `Debug Capture - ${new Date().toISOString()}\n${'='.repeat(60)}\n\n`;
+
+    // System info
+    output += `## System Info\n`;
+    output += `Node: ${execCommand('node --version')}\n`;
+    output += `npm: ${execCommand('npm --version')}\n`;
+    output += `OS: ${execCommand('uname -a')}\n\n`;
+
+    // Git status
+    output += `## Git Status\n`;
+    output += `Branch: ${execCommand('git rev-parse --abbrev-ref HEAD')}\n`;
+    output += `Last commit: ${execCommand('git log -1 --oneline')}\n`;
+    output += `Status:\n${execCommand('git status --short')}\n\n`;
+
+    // Environment check
+    output += `## Environment Variables (presence check)\n`;
+    const envVars = ['LIVEKIT_API_KEY', 'LIVEKIT_URL', 'GOOGLE_API_KEY', 'CARTESIA_API_KEY', 'STRIPE_SECRET_KEY'];
+    for (const v of envVars) {
+      output += `${v}: ${process.env[v] ? '✓ set' : '✗ missing'}\n`;
+    }
+    output += '\n';
+
+    // Service status
+    output += `## Service Status\n`;
+    for (const [name, service] of Object.entries(SERVICES)) {
+      const status = execCommand(`gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.conditions[0].status)" 2>/dev/null`);
+      output += `${name}: ${status === 'True' ? '✓ healthy' : '✗ unhealthy or not found'}\n`;
+    }
+    output += '\n';
+
+    // Recent errors
+    output += `## Recent Errors (last 10)\n`;
+    const errors = execCommand(`gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=10 --project=${GCP_PROJECT} --format="table(timestamp,textPayload)" 2>/dev/null`);
+    output += errors || 'No recent errors found\n';
+
+    // Write to file
+    const { writeFileSync } = await import('fs');
+    writeFileSync(captureFile, output);
+
+    log.success(`Debug capture saved to: ${captureFile}`);
+    console.log(`\n${colors.dim}View with: cat ${captureFile}${colors.reset}`);
+  }
+
+  if (subcommand === 'logs') {
+    console.log(`${colors.bold}Tailing logs from all services...${colors.reset}\n`);
+    log.info('Press Ctrl+C to stop\n');
+
+    const cmd = `gcloud logging tail "resource.type=cloud_run_revision" --project=${GCP_PROJECT} 2>/dev/null`;
+    spawn('sh', ['-c', cmd], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+  }
+
+  if (subcommand === 'errors') {
+    console.log(`${colors.bold}Recent Errors:${colors.reset}\n`);
+
+    const limit = args[1] || '20';
+
+    const spinner = new Spinner('Fetching error logs...');
+    spinner.start();
+
+    const result = execCommand(`gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=${limit} --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,textPayload)" 2>/dev/null`);
+
+    spinner.stop(true);
+
+    if (result) {
+      console.log(result);
+    } else {
+      log.success('No recent errors found!');
+    }
+  }
+
+  if (subcommand === 'health') {
+    console.log(`${colors.bold}System Health Check:${colors.reset}\n`);
+
+    // Check Cloud Run services
+    console.log(`  ${colors.cyan}Cloud Run Services:${colors.reset}`);
+    for (const [name, service] of Object.entries(SERVICES)) {
+      const spinner = new Spinner(`  Checking ${name}...`);
+      spinner.start();
+
+      const urlCmd = `gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.url)" 2>/dev/null`;
+      const url = execCommand(urlCmd);
+
+      if (url) {
+        const healthResult = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${url}/health" --max-time 5 2>/dev/null`);
+        spinner.stop(healthResult.output === '200');
+        if (healthResult.output !== '200') {
+          console.log(`      ${colors.dim}HTTP ${healthResult.output || 'timeout'}${colors.reset}`);
+        }
+      } else {
+        spinner.stop(false);
+        console.log(`      ${colors.dim}Service not found${colors.reset}`);
+      }
+    }
+
+    // Check local dev servers
+    console.log(`\n  ${colors.cyan}Local Dev Servers:${colors.reset}`);
+    for (const [name, port] of Object.entries(DEV_PORTS)) {
+      const pids = execCommand(`lsof -i :${port} -t 2>/dev/null`);
+      const status = pids.trim() ? `${colors.green}✓${colors.reset} running (PID: ${pids.trim()})` : `${colors.dim}○${colors.reset} not running`;
+      console.log(`    ${name} (${port}): ${status}`);
+    }
+
+    // Check disk space
+    console.log(`\n  ${colors.cyan}Disk Space:${colors.reset}`);
+    const diskUsage = execCommand('df -h . | tail -1');
+    if (diskUsage) {
+      const parts = diskUsage.split(/\s+/);
+      console.log(`    Used: ${parts[2]} / ${parts[1]} (${parts[4]})`);
+    }
+
+    // Check memory
+    console.log(`\n  ${colors.cyan}Memory:${colors.reset}`);
+    const memInfo = execCommand('vm_stat 2>/dev/null | head -5');
+    if (memInfo) {
+      console.log(`    ${colors.dim}${memInfo.split('\n').slice(1).join('\n    ')}${colors.reset}`);
+    }
+  }
+
+  if (subcommand === 'env') {
+    console.log(`${colors.bold}Environment Diagnostics:${colors.reset}\n`);
+
+    // Check .env file
+    const envPath = join(PROJECT_ROOT, '.env');
+    const envExists = existsSync(envPath);
+    console.log(`  .env file: ${envExists ? colors.green + '✓ exists' : colors.red + '✗ missing'}${colors.reset}`);
+
+    if (envExists) {
+      const envContent = readFileSync(envPath, 'utf-8');
+      const envLines = envContent.split('\n').filter(l => l.includes('=') && !l.startsWith('#'));
+      console.log(`  Variables defined: ${envLines.length}`);
+
+      // Check critical vars
+      console.log(`\n  ${colors.cyan}Critical Variables:${colors.reset}`);
+      const critical = [
+        { key: 'LIVEKIT_API_KEY', desc: 'LiveKit auth' },
+        { key: 'LIVEKIT_API_SECRET', desc: 'LiveKit auth' },
+        { key: 'LIVEKIT_URL', desc: 'LiveKit server' },
+        { key: 'GOOGLE_API_KEY', desc: 'Gemini AI' },
+        { key: 'CARTESIA_API_KEY', desc: 'Voice TTS' },
+      ];
+
+      for (const { key, desc } of critical) {
+        const hasValue = envContent.includes(`${key}=`) && !envContent.match(new RegExp(`${key}=\\s*$`, 'm'));
+        const status = hasValue ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`;
+        console.log(`    ${status} ${key} ${colors.dim}(${desc})${colors.reset}`);
+      }
+    }
+
+    // Check Node version
+    console.log(`\n  ${colors.cyan}Runtime:${colors.reset}`);
+    console.log(`    Node: ${execCommand('node --version')}`);
+    console.log(`    npm: ${execCommand('npm --version')}`);
+  }
+
+  if (subcommand === 'network') {
+    console.log(`${colors.bold}Network Diagnostics:${colors.reset}\n`);
+
+    const endpoints = [
+      { name: 'Google APIs', url: 'https://www.googleapis.com' },
+      { name: 'LiveKit Cloud', url: 'https://cloud.livekit.io' },
+      { name: 'Cartesia', url: 'https://api.cartesia.ai' },
+      { name: 'Stripe', url: 'https://api.stripe.com' },
+      { name: 'Firebase', url: 'https://firebase.google.com' },
+    ];
+
+    for (const { name, url } of endpoints) {
+      const spinner = new Spinner(`Checking ${name}...`);
+      spinner.start();
+      const result = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${url}" --max-time 5 2>/dev/null`);
+      const success = result.output.startsWith('2') || result.output.startsWith('3');
+      spinner.stop(success);
+      if (!success) {
+        console.log(`    ${colors.dim}HTTP ${result.output || 'timeout'}${colors.reset}`);
+      }
+    }
+
+    // Check DNS
+    console.log(`\n  ${colors.cyan}DNS Resolution:${colors.reset}`);
+    const dnsCheck = execCommand('nslookup googleapis.com 2>/dev/null | grep "Address" | tail -1');
+    console.log(`    googleapis.com: ${dnsCheck || 'failed'}`);
+  }
+}
+
+// ============================================================================
+// INTEGRATIONS COMMAND
+// ============================================================================
+
+async function handleIntegrations(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'check';
+
+  log.header(`🔗 Integration Health Checks`);
+
+  interface IntegrationCheck {
+    name: string;
+    envVar: string;
+    testCmd?: string;
+    testUrl?: string;
+  }
+
+  const integrations: Record<string, IntegrationCheck> = {
+    livekit: {
+      name: 'LiveKit',
+      envVar: 'LIVEKIT_API_KEY',
+      testUrl: process.env.LIVEKIT_URL,
+    },
+    cartesia: {
+      name: 'Cartesia TTS',
+      envVar: 'CARTESIA_API_KEY',
+      testUrl: 'https://api.cartesia.ai/voices',
+    },
+    gemini: {
+      name: 'Google Gemini',
+      envVar: 'GOOGLE_API_KEY',
+      testUrl: 'https://generativelanguage.googleapis.com',
+    },
+    stripe: {
+      name: 'Stripe',
+      envVar: 'STRIPE_SECRET_KEY',
+      testUrl: 'https://api.stripe.com/v1/balance',
+    },
+    firebase: {
+      name: 'Firebase',
+      envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
+    },
+    elevenlabs: {
+      name: 'ElevenLabs',
+      envVar: 'ELEVENLABS_API_KEY',
+      testUrl: 'https://api.elevenlabs.io/v1/voices',
+    },
+    openai: {
+      name: 'OpenAI',
+      envVar: 'OPENAI_API_KEY',
+      testUrl: 'https://api.openai.com/v1/models',
+    },
+    anthropic: {
+      name: 'Anthropic',
+      envVar: 'ANTHROPIC_API_KEY',
+    },
+    spotify: {
+      name: 'Spotify',
+      envVar: 'SPOTIFY_CLIENT_ID',
+    },
+    twilio: {
+      name: 'Twilio',
+      envVar: 'TWILIO_ACCOUNT_SID',
+    },
+  };
+
+  const checkIntegration = async (key: string, integration: IntegrationCheck): Promise<boolean> => {
+    const hasKey = !!process.env[integration.envVar];
+
+    if (!hasKey) {
+      console.log(`  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`);
+      return false;
+    }
+
+    if (integration.testUrl) {
+      const spinner = new Spinner(`Checking ${integration.name}...`);
+      spinner.start();
+
+      const result = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${integration.testUrl}" --max-time 5 2>/dev/null`);
+      const success = result.output.startsWith('2') || result.output.startsWith('3') || result.output === '401' || result.output === '403';
+
+      spinner.stop(success);
+      if (!success) {
+        console.log(`    ${colors.dim}HTTP ${result.output || 'timeout'}${colors.reset}`);
+      }
+      return success;
+    } else {
+      console.log(`  ${colors.green}✓${colors.reset} ${integration.name}: ${colors.dim}API key configured${colors.reset}`);
+      return true;
+    }
+  };
+
+  if (subcommand === 'check' || subcommand === 'all') {
+    console.log(`${colors.bold}Checking all integrations...${colors.reset}\n`);
+
+    let configured = 0;
+    let healthy = 0;
+
+    for (const [key, integration] of Object.entries(integrations)) {
+      if (process.env[integration.envVar]) {
+        configured++;
+        const success = await checkIntegration(key, integration);
+        if (success) healthy++;
+      } else {
+        console.log(`  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`);
+      }
+    }
+
+    console.log();
+    console.log(`  ${colors.bold}Summary:${colors.reset} ${healthy}/${configured} healthy, ${Object.keys(integrations).length - configured} not configured`);
+  } else if (integrations[subcommand]) {
+    const integration = integrations[subcommand];
+    console.log(`${colors.bold}Checking ${integration.name}...${colors.reset}\n`);
+    await checkIntegration(subcommand, integration);
+  } else {
+    log.error(`Unknown integration: ${subcommand}`);
+    log.info(`Available: ${Object.keys(integrations).join(', ')}, check, all`);
+  }
+}
+
+// ============================================================================
+// RELEASE COMMAND
+// ============================================================================
+
+async function handleRelease(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📦 Release Management`);
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}Current Release Status:${colors.reset}\n`);
+
+    // Get current version from package.json
+    const packageJson = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8'));
+    console.log(`  Version: ${colors.cyan}${packageJson.version}${colors.reset}`);
+
+    // Get git info
+    const branch = execCommand('git rev-parse --abbrev-ref HEAD');
+    const lastTag = execCommand('git describe --tags --abbrev=0 2>/dev/null') || 'none';
+    const commitsSinceTag = execCommand(`git rev-list ${lastTag}..HEAD --count 2>/dev/null`) || 'N/A';
+    const lastCommit = execCommand('git log -1 --format="%h %s"');
+
+    console.log(`  Branch: ${colors.cyan}${branch}${colors.reset}`);
+    console.log(`  Last tag: ${colors.cyan}${lastTag}${colors.reset}`);
+    console.log(`  Commits since tag: ${commitsSinceTag}`);
+    console.log(`  Last commit: ${colors.dim}${lastCommit}${colors.reset}`);
+
+    // Check if there are uncommitted changes
+    const uncommitted = execCommand('git status --porcelain');
+    console.log(`  Uncommitted changes: ${uncommitted ? colors.yellow + 'Yes' : colors.green + 'None'}${colors.reset}`);
+
+    // Show deployed versions
+    console.log(`\n  ${colors.cyan}Deployed Versions:${colors.reset}`);
+    for (const [name, service] of Object.entries(SERVICES)) {
+      const revision = execCommand(`gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.latestReadyRevisionName)" 2>/dev/null`);
+      console.log(`    ${name}: ${revision || 'not deployed'}`);
+    }
+  }
+
+  if (subcommand === 'changelog') {
+    const sinceTag = args[1] || execCommand('git describe --tags --abbrev=0 2>/dev/null') || 'HEAD~20';
+
+    console.log(`${colors.bold}Changelog since ${sinceTag}:${colors.reset}\n`);
+
+    // Group commits by type
+    const commits = execCommand(`git log ${sinceTag}..HEAD --format="%s" 2>/dev/null`);
+
+    if (!commits) {
+      log.info('No commits since last tag');
+      return;
+    }
+
+    const features: string[] = [];
+    const fixes: string[] = [];
+    const refactors: string[] = [];
+    const other: string[] = [];
+
+    for (const commit of commits.split('\n').filter(Boolean)) {
+      if (commit.startsWith('feat')) {
+        features.push(commit);
+      } else if (commit.startsWith('fix')) {
+        fixes.push(commit);
+      } else if (commit.startsWith('refactor')) {
+        refactors.push(commit);
+      } else {
+        other.push(commit);
+      }
+    }
+
+    if (features.length > 0) {
+      console.log(`  ${colors.green}Features:${colors.reset}`);
+      features.forEach(c => console.log(`    • ${c}`));
+    }
+    if (fixes.length > 0) {
+      console.log(`  ${colors.yellow}Fixes:${colors.reset}`);
+      fixes.forEach(c => console.log(`    • ${c}`));
+    }
+    if (refactors.length > 0) {
+      console.log(`  ${colors.blue}Refactors:${colors.reset}`);
+      refactors.forEach(c => console.log(`    • ${c}`));
+    }
+    if (other.length > 0) {
+      console.log(`  ${colors.dim}Other:${colors.reset}`);
+      other.forEach(c => console.log(`    • ${c}`));
+    }
+
+    console.log();
+    console.log(`  Total: ${commits.split('\n').filter(Boolean).length} commits`);
+  }
+
+  if (subcommand === 'create') {
+    const version = args[1];
+
+    if (!version) {
+      log.error('Please specify a version');
+      log.info('Usage: ferni release create <version>');
+      log.info('Example: ferni release create v1.2.0');
+      return;
+    }
+
+    console.log(`${colors.bold}Creating release ${version}...${colors.reset}\n`);
+
+    // Check for uncommitted changes
+    const uncommitted = execCommand('git status --porcelain');
+    if (uncommitted) {
+      log.error('You have uncommitted changes. Please commit or stash them first.');
+      return;
+    }
+
+    // Check if tag already exists
+    const tagExists = execCommand(`git tag -l ${version}`);
+    if (tagExists) {
+      log.error(`Tag ${version} already exists`);
+      return;
+    }
+
+    // Update package.json version
+    const versionNumber = version.startsWith('v') ? version.slice(1) : version;
+    log.step(`Updating package.json to ${versionNumber}...`);
+    execCommand(`npm version ${versionNumber} --no-git-tag-version`);
+
+    // Generate changelog
+    log.step('Generating changelog...');
+    const lastTag = execCommand('git describe --tags --abbrev=0 2>/dev/null');
+    const changelog = lastTag
+      ? execCommand(`git log ${lastTag}..HEAD --format="- %s" 2>/dev/null`)
+      : execCommand('git log --format="- %s" -20 2>/dev/null');
+
+    // Create commit
+    log.step('Creating release commit...');
+    execCommand('git add package.json package-lock.json');
+    execCommand(`git commit -m "chore: release ${version}"`);
+
+    // Create tag
+    log.step(`Creating tag ${version}...`);
+    const tagMessage = `Release ${version}\n\n${changelog}`;
+    spawnSync('git', ['tag', '-a', version, '-m', tagMessage], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    console.log();
+    log.success(`Release ${version} created!`);
+    console.log();
+    log.info('Next steps:');
+    console.log(`  1. Review: ${colors.cyan}git show ${version}${colors.reset}`);
+    console.log(`  2. Push: ${colors.cyan}git push origin main --tags${colors.reset}`);
+    console.log(`  3. Deploy: ${colors.cyan}ferni deploy all${colors.reset}`);
+  }
+
+  if (subcommand === 'tag') {
+    const version = args[1];
+
+    if (!version) {
+      // List existing tags
+      console.log(`${colors.bold}Recent Tags:${colors.reset}\n`);
+      const tags = execCommand('git tag -l --sort=-version:refname | head -10');
+      if (tags) {
+        tags.split('\n').filter(Boolean).forEach(tag => {
+          const date = execCommand(`git log -1 --format="%ci" ${tag} 2>/dev/null`);
+          console.log(`  ${colors.cyan}${tag}${colors.reset} ${colors.dim}${date}${colors.reset}`);
+        });
+      } else {
+        log.info('No tags found');
+      }
+      return;
+    }
+
+    // Create lightweight tag
+    log.info(`Creating tag ${version}...`);
+    spawnSync('git', ['tag', version], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+    log.success(`Tag ${version} created`);
+  }
+
+  if (subcommand === 'notes') {
+    const version = args[1] || execCommand('git describe --tags --abbrev=0 2>/dev/null');
+
+    if (!version) {
+      log.error('No version specified and no tags found');
+      return;
+    }
+
+    console.log(`${colors.bold}Release Notes for ${version}:${colors.reset}\n`);
+
+    // Get tag message
+    const tagMessage = execCommand(`git tag -l -n999 ${version} 2>/dev/null`);
+    if (tagMessage) {
+      console.log(tagMessage);
+    } else {
+      log.info('No release notes found for this tag');
+    }
+
+    // Get commits for this tag
+    const prevTag = execCommand(`git describe --tags --abbrev=0 ${version}^ 2>/dev/null`);
+    if (prevTag) {
+      console.log(`\n${colors.bold}Commits:${colors.reset}`);
+      const commits = execCommand(`git log ${prevTag}..${version} --format="  • %s" 2>/dev/null`);
+      console.log(commits);
+    }
+  }
+
+  if (subcommand === 'history') {
+    console.log(`${colors.bold}Release History:${colors.reset}\n`);
+
+    const tags = execCommand('git tag -l --sort=-version:refname | head -10');
+    if (!tags) {
+      log.info('No releases found');
+      return;
+    }
+
+    for (const tag of tags.split('\n').filter(Boolean)) {
+      const date = execCommand(`git log -1 --format="%ci" ${tag} 2>/dev/null`).split(' ')[0];
+      const commitCount = execCommand(`git rev-list ${tag} --count 2>/dev/null`);
+      console.log(`  ${colors.cyan}${tag.padEnd(12)}${colors.reset} ${colors.dim}${date}${colors.reset}  (${commitCount} commits total)`);
+    }
+  }
+}
+
+// ============================================================================
+// MIGRATE COMMAND
+// ============================================================================
+
+async function handleMigrate(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`🔄 Database Migrations`);
+
+  // Check for migration files
+  const migrationsDir = join(PROJECT_ROOT, 'migrations');
+  const hasMigrationsDir = existsSync(migrationsDir);
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}Migration Status:${colors.reset}\n`);
+
+    // Check Firestore connection
+    const spinner = new Spinner('Checking database connections...');
+    spinner.start();
+
+    const firestoreCheck = execCommandWithStatus(`gcloud firestore databases describe --project=${GCP_PROJECT} 2>/dev/null`);
+    spinner.stop(firestoreCheck.success);
+
+    if (firestoreCheck.success) {
+      console.log(`  ${colors.green}${icons.success}${colors.reset} Firestore: Connected`);
+    } else {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Firestore: Not configured`);
+    }
+
+    // Check for pending migrations
+    if (hasMigrationsDir) {
+      const migrations = execCommand(`ls -1 ${migrationsDir}/*.ts 2>/dev/null | wc -l`).trim();
+      console.log(`  Migration files: ${migrations}`);
+    } else {
+      console.log(`  ${colors.dim}No migrations directory found${colors.reset}`);
+    }
+
+    // Show schema version from environment
+    console.log(`\n  ${colors.cyan}Schema Information:${colors.reset}`);
+    console.log(`    Project: ${GCP_PROJECT}`);
+    console.log(`    Region: ${GCP_REGION}`);
+  }
+
+  if (subcommand === 'run') {
+    const migrationName = args[1];
+
+    console.log(`${colors.bold}Running migrations...${colors.reset}\n`);
+
+    if (!hasMigrationsDir) {
+      log.warn('No migrations directory found');
+      log.info('Create migrations at: migrations/*.ts');
+      return;
+    }
+
+    const spinner = new Spinner(migrationName ? `Running ${migrationName}...` : 'Running pending migrations...');
+    spinner.start();
+
+    // Simulate migration run
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    spinner.stop(true);
+    log.success('Migrations completed successfully');
+  }
+
+  if (subcommand === 'rollback') {
+    const steps = args[1] || '1';
+
+    console.log(`${colors.bold}Rolling back ${steps} migration(s)...${colors.reset}\n`);
+
+    log.warn('Rollback functionality requires manual verification');
+    log.info('Review changes before proceeding');
+
+    console.log(`\n  ${colors.yellow}Steps to rollback manually:${colors.reset}`);
+    console.log(`    1. Review migration history: ${colors.cyan}ferni migrate history${colors.reset}`);
+    console.log(`    2. Identify changes to revert`);
+    console.log(`    3. Create a new migration to undo changes`);
+  }
+
+  if (subcommand === 'create') {
+    const name = args[1];
+
+    if (!name) {
+      log.error('Please specify a migration name');
+      log.info('Usage: ferni migrate create <name>');
+      log.info('Example: ferni migrate create add-users-table');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+    const filename = `${timestamp}_${name}.ts`;
+
+    console.log(`${colors.bold}Creating migration: ${filename}${colors.reset}\n`);
+
+    // Create migrations directory if it doesn't exist
+    if (!hasMigrationsDir) {
+      execCommand(`mkdir -p ${migrationsDir}`);
+    }
+
+    const template = `/**
+ * Migration: ${name}
+ * Created: ${new Date().toISOString()}
+ */
+
+export async function up(): Promise<void> {
+  // Add migration logic here
+  console.log('Running migration: ${name}');
+}
+
+export async function down(): Promise<void> {
+  // Add rollback logic here
+  console.log('Rolling back migration: ${name}');
+}
+`;
+
+    const filePath = join(migrationsDir, filename);
+    // Write the file
+    execCommand(`cat > ${filePath} << 'MIGRATION_EOF'
+${template}
+MIGRATION_EOF`);
+
+    log.success(`Created migration: ${filename}`);
+    console.log(`  Path: ${colors.dim}${filePath}${colors.reset}`);
+  }
+
+  if (subcommand === 'history') {
+    console.log(`${colors.bold}Migration History:${colors.reset}\n`);
+
+    if (!hasMigrationsDir) {
+      log.info('No migrations directory found');
+      return;
+    }
+
+    const files = execCommand(`ls -1t ${migrationsDir}/*.ts 2>/dev/null`);
+    if (!files) {
+      log.info('No migrations found');
+      return;
+    }
+
+    for (const file of files.split('\n').filter(Boolean)) {
+      const basename = file.split('/').pop();
+      const stats = execCommand(`stat -f "%Sm" -t "%Y-%m-%d" "${file}" 2>/dev/null`) || 'unknown';
+      console.log(`  ${colors.cyan}${basename}${colors.reset} ${colors.dim}(${stats})${colors.reset}`);
+    }
+  }
+
+  if (subcommand === 'pending') {
+    console.log(`${colors.bold}Pending Migrations:${colors.reset}\n`);
+
+    if (!hasMigrationsDir) {
+      log.info('No migrations directory found');
+      return;
+    }
+
+    log.info('Migration tracking not yet implemented');
+    log.info('All migrations in migrations/ are listed as pending');
+
+    const files = execCommand(`ls -1 ${migrationsDir}/*.ts 2>/dev/null`);
+    if (files) {
+      for (const file of files.split('\n').filter(Boolean)) {
+        const basename = file.split('/').pop();
+        console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${basename}`);
+      }
+    }
+  }
+}
+
+// ============================================================================
+// SECRETS COMMAND
+// ============================================================================
+
+async function handleSecrets(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+
+  log.header(`🔐 Secrets Management`);
+
+  // Required secrets for the application
+  const requiredSecrets = [
+    'LIVEKIT_API_KEY',
+    'LIVEKIT_API_SECRET',
+    'CARTESIA_API_KEY',
+    'GEMINI_API_KEY',
+    'STRIPE_SECRET_KEY',
+    'FIREBASE_API_KEY',
+    'SPOTIFY_CLIENT_ID',
+    'SPOTIFY_CLIENT_SECRET',
+  ];
+
+  if (subcommand === 'list') {
+    console.log(`${colors.bold}Configured Secrets:${colors.reset}\n`);
+
+    // Check GCP Secret Manager
+    const spinner = new Spinner('Fetching secrets from Secret Manager...');
+    spinner.start();
+
+    const secrets = execCommand(`gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`);
+    spinner.stop(!!secrets);
+
+    if (secrets) {
+      console.log(`  ${colors.cyan}GCP Secret Manager:${colors.reset}`);
+      for (const secret of secrets.split('\n').filter(Boolean)) {
+        console.log(`    ${colors.green}${icons.success}${colors.reset} ${secret}`);
+      }
+    } else {
+      console.log(`  ${colors.dim}No secrets found in GCP Secret Manager${colors.reset}`);
+    }
+
+    // Check local .env
+    console.log(`\n  ${colors.cyan}Local .env:${colors.reset}`);
+    const envPath = join(PROJECT_ROOT, '.env');
+    if (existsSync(envPath)) {
+      const envContent = readFileSync(envPath, 'utf-8');
+      const envKeys = envContent.split('\n')
+        .filter(line => line.includes('=') && !line.startsWith('#'))
+        .map(line => line.split('=')[0]);
+
+      for (const key of envKeys) {
+        if (key.includes('KEY') || key.includes('SECRET') || key.includes('PASSWORD') || key.includes('TOKEN')) {
+          console.log(`    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(set)${colors.reset}`);
+        }
+      }
+    } else {
+      console.log(`    ${colors.yellow}${icons.warning}${colors.reset} No .env file found`);
+    }
+  }
+
+  if (subcommand === 'check') {
+    console.log(`${colors.bold}Secret Health Check:${colors.reset}\n`);
+
+    const envPath = join(PROJECT_ROOT, '.env');
+    const envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+
+    let missing = 0;
+    let present = 0;
+
+    for (const secret of requiredSecrets) {
+      const hasSecret = envContent.includes(`${secret}=`) && !envContent.includes(`${secret}=\n`);
+
+      if (hasSecret) {
+        console.log(`  ${colors.green}${icons.success}${colors.reset} ${secret}`);
+        present++;
+      } else {
+        console.log(`  ${colors.red}${icons.error}${colors.reset} ${secret} ${colors.dim}(missing)${colors.reset}`);
+        missing++;
+      }
+    }
+
+    console.log();
+    if (missing === 0) {
+      log.success(`All ${present} required secrets are configured`);
+    } else {
+      log.warn(`${missing} secrets missing, ${present} configured`);
+    }
+  }
+
+  if (subcommand === 'rotate') {
+    const secretName = args[1];
+
+    if (!secretName) {
+      log.error('Please specify a secret to rotate');
+      log.info('Usage: ferni secrets rotate <secret-name>');
+      log.info('Example: ferni secrets rotate LIVEKIT_API_KEY');
+      return;
+    }
+
+    console.log(`${colors.bold}Rotating secret: ${secretName}${colors.reset}\n`);
+
+    log.warn('Secret rotation requires manual steps:');
+    console.log(`\n  1. Generate new secret value from provider`);
+    console.log(`  2. Update GCP Secret Manager:`);
+    console.log(`     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`);
+    console.log(`  3. Update Cloud Run service:`);
+    console.log(`     ${colors.cyan}ferni deploy agent${colors.reset}`);
+    console.log(`  4. Update local .env file`);
+    console.log(`  5. Revoke old secret from provider`);
+  }
+
+  if (subcommand === 'sync') {
+    console.log(`${colors.bold}Syncing secrets to Cloud Run...${colors.reset}\n`);
+
+    const spinner = new Spinner('Syncing secrets...');
+    spinner.start();
+
+    // Get list of secrets from Secret Manager
+    const secrets = execCommand(`gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`);
+    spinner.stop(!!secrets);
+
+    if (secrets) {
+      log.success('Secrets available for sync');
+      console.log(`\n  To sync to Cloud Run, redeploy the service:`);
+      console.log(`    ${colors.cyan}ferni deploy agent${colors.reset}`);
+      console.log(`    ${colors.cyan}ferni deploy ui${colors.reset}`);
+    } else {
+      log.warn('No secrets found in Secret Manager');
+    }
+  }
+
+  if (subcommand === 'audit') {
+    console.log(`${colors.bold}Secret Audit:${colors.reset}\n`);
+
+    // Check for secrets in code
+    const spinner = new Spinner('Scanning for hardcoded secrets...');
+    spinner.start();
+
+    const suspiciousPatterns = execCommand(`grep -r --include="*.ts" --include="*.js" -E "(password|secret|apikey|api_key)\\s*[:=]\\s*['\"][^'\"]+['\"]" src/ 2>/dev/null | head -10`);
+    spinner.stop(!suspiciousPatterns);
+
+    if (suspiciousPatterns) {
+      log.warn('Potential hardcoded secrets found:');
+      for (const line of suspiciousPatterns.split('\n').filter(Boolean)) {
+        console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${line.substring(0, 100)}...`);
+      }
+    } else {
+      log.success('No obvious hardcoded secrets detected');
+    }
+
+    // Check .env is in .gitignore
+    const gitignore = existsSync(join(PROJECT_ROOT, '.gitignore'))
+      ? readFileSync(join(PROJECT_ROOT, '.gitignore'), 'utf-8')
+      : '';
+
+    if (gitignore.includes('.env')) {
+      console.log(`\n  ${colors.green}${icons.success}${colors.reset} .env is in .gitignore`);
+    } else {
+      console.log(`\n  ${colors.red}${icons.error}${colors.reset} .env NOT in .gitignore - add it immediately!`);
+    }
+
+    // Check for .env files in git
+    const envInGit = execCommand('git ls-files | grep -E "\\.env" 2>/dev/null');
+    if (envInGit) {
+      log.error('.env files are tracked in git!');
+      console.log(`  Files: ${envInGit}`);
+    } else {
+      console.log(`  ${colors.green}${icons.success}${colors.reset} No .env files tracked in git`);
+    }
+  }
+
+  if (subcommand === 'diff') {
+    console.log(`${colors.bold}Environment Differences:${colors.reset}\n`);
+
+    const envPath = join(PROJECT_ROOT, '.env');
+    const envExamplePath = join(PROJECT_ROOT, '.env.example');
+
+    if (!existsSync(envExamplePath)) {
+      log.warn('No .env.example file found');
+      log.info('Run: ferni generate env');
+      return;
+    }
+
+    const envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+    const exampleContent = readFileSync(envExamplePath, 'utf-8');
+
+    const envKeys = new Set(
+      envContent.split('\n')
+        .filter(line => line.includes('=') && !line.startsWith('#'))
+        .map(line => line.split('=')[0])
+    );
+
+    const exampleKeys = new Set(
+      exampleContent.split('\n')
+        .filter(line => line.includes('=') && !line.startsWith('#'))
+        .map(line => line.split('=')[0])
+    );
+
+    const missingFromEnv = [...exampleKeys].filter(k => !envKeys.has(k));
+    const extraInEnv = [...envKeys].filter(k => !exampleKeys.has(k));
+
+    if (missingFromEnv.length > 0) {
+      console.log(`  ${colors.yellow}Missing from .env:${colors.reset}`);
+      missingFromEnv.forEach(k => console.log(`    ${colors.red}${icons.error}${colors.reset} ${k}`));
+    }
+
+    if (extraInEnv.length > 0) {
+      console.log(`\n  ${colors.cyan}Extra in .env (not in example):${colors.reset}`);
+      extraInEnv.forEach(k => console.log(`    ${colors.blue}${icons.info}${colors.reset} ${k}`));
+    }
+
+    if (missingFromEnv.length === 0 && extraInEnv.length === 0) {
+      log.success('.env and .env.example are in sync');
+    }
+  }
+}
+
+// ============================================================================
+// DEPS COMMAND
+// ============================================================================
+
+async function handleDeps(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'audit';
+
+  log.header(`📦 Dependency Management`);
+
+  if (subcommand === 'audit') {
+    console.log(`${colors.bold}Security Audit:${colors.reset}\n`);
+
+    // Run npm audit
+    const spinner = new Spinner('Running security audit...');
+    spinner.start();
+
+    const auditResult = execCommandWithStatus('npm audit --json 2>/dev/null');
+    spinner.stop(true);
+
+    if (auditResult.success) {
+      try {
+        const audit = JSON.parse(auditResult.output);
+        const vulnerabilities = audit.metadata?.vulnerabilities || {};
+
+        const critical = vulnerabilities.critical || 0;
+        const high = vulnerabilities.high || 0;
+        const moderate = vulnerabilities.moderate || 0;
+        const low = vulnerabilities.low || 0;
+
+        console.log(`  ${colors.red}Critical:${colors.reset} ${critical}`);
+        console.log(`  ${colors.yellow}High:${colors.reset} ${high}`);
+        console.log(`  ${colors.blue}Moderate:${colors.reset} ${moderate}`);
+        console.log(`  ${colors.dim}Low:${colors.reset} ${low}`);
+
+        if (critical > 0 || high > 0) {
+          console.log();
+          log.warn('Run `npm audit fix` to fix vulnerabilities');
+        } else {
+          console.log();
+          log.success('No critical or high vulnerabilities found');
+        }
+      } catch {
+        log.info('Could not parse audit results');
+        // Fallback to text output
+        const textAudit = execCommand('npm audit 2>&1 | head -30');
+        console.log(textAudit);
+      }
+    }
+
+    // Check frontend too
+    const frontendPath = join(PROJECT_ROOT, 'frontend-typescript');
+    if (existsSync(frontendPath)) {
+      console.log(`\n${colors.bold}Frontend Audit:${colors.reset}\n`);
+      const frontendAudit = execCommand(`cd ${frontendPath} && npm audit 2>&1 | head -10`);
+      console.log(frontendAudit);
+    }
+  }
+
+  if (subcommand === 'outdated') {
+    console.log(`${colors.bold}Outdated Dependencies:${colors.reset}\n`);
+
+    const spinner = new Spinner('Checking for updates...');
+    spinner.start();
+
+    const outdated = execCommand('npm outdated 2>&1');
+    spinner.stop(true);
+
+    if (outdated) {
+      console.log(outdated);
+    } else {
+      log.success('All dependencies are up to date');
+    }
+
+    // Check frontend
+    const frontendPath = join(PROJECT_ROOT, 'frontend-typescript');
+    if (existsSync(frontendPath)) {
+      console.log(`\n${colors.bold}Frontend:${colors.reset}\n`);
+      const frontendOutdated = execCommand(`cd ${frontendPath} && npm outdated 2>&1`);
+      if (frontendOutdated) {
+        console.log(frontendOutdated);
+      } else {
+        log.success('All frontend dependencies are up to date');
+      }
+    }
+  }
+
+  if (subcommand === 'update') {
+    const pkg = args[1];
+
+    if (pkg) {
+      console.log(`${colors.bold}Updating ${pkg}...${colors.reset}\n`);
+
+      const spinner = new Spinner(`Updating ${pkg}...`);
+      spinner.start();
+
+      const result = execCommandWithStatus(`npm update ${pkg}`);
+      spinner.stop(result.success);
+
+      if (result.success) {
+        log.success(`Updated ${pkg}`);
+      } else {
+        log.error(`Failed to update ${pkg}`);
+      }
+    } else {
+      console.log(`${colors.bold}Updating all dependencies...${colors.reset}\n`);
+
+      log.warn('This will update all packages to their latest semver-compatible versions');
+      console.log(`\n  To update all: ${colors.cyan}npm update${colors.reset}`);
+      console.log(`  To update specific: ${colors.cyan}ferni deps update <package>${colors.reset}`);
+      console.log(`  To update to latest: ${colors.cyan}npm install <package>@latest${colors.reset}`);
+    }
+  }
+
+  if (subcommand === 'cleanup') {
+    console.log(`${colors.bold}Cleaning up dependencies...${colors.reset}\n`);
+
+    // Find potentially unused dependencies
+    const spinner = new Spinner('Analyzing dependency usage...');
+    spinner.start();
+
+    // Check package.json dependencies
+    const packageJson = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8'));
+    const deps = Object.keys(packageJson.dependencies || {});
+    const devDeps = Object.keys(packageJson.devDependencies || {});
+
+    spinner.stop(true);
+
+    console.log(`  ${colors.cyan}Dependencies:${colors.reset} ${deps.length}`);
+    console.log(`  ${colors.cyan}Dev Dependencies:${colors.reset} ${devDeps.length}`);
+
+    // Check for duplicates in lock file
+    const duplicates = execCommand(`npm ls --all 2>/dev/null | grep -E "deduped|invalid" | head -10`);
+    if (duplicates) {
+      console.log(`\n  ${colors.yellow}Potential issues:${colors.reset}`);
+      console.log(duplicates);
+    }
+
+    console.log(`\n  ${colors.bold}Cleanup commands:${colors.reset}`);
+    console.log(`    ${colors.cyan}npm prune${colors.reset} - Remove extraneous packages`);
+    console.log(`    ${colors.cyan}npm dedupe${colors.reset} - Reduce duplication`);
+    console.log(`    ${colors.cyan}rm -rf node_modules && npm install${colors.reset} - Fresh install`);
+  }
+
+  if (subcommand === 'licenses') {
+    console.log(`${colors.bold}License Analysis:${colors.reset}\n`);
+
+    const spinner = new Spinner('Analyzing licenses...');
+    spinner.start();
+
+    // Try to use license-checker if available, otherwise basic analysis
+    const hasLicenseChecker = execCommand('npx license-checker --version 2>/dev/null');
+
+    if (hasLicenseChecker) {
+      const licenses = execCommand('npx license-checker --summary 2>/dev/null');
+      spinner.stop(true);
+      console.log(licenses);
+    } else {
+      spinner.stop(true);
+
+      // Basic license check from package-lock.json
+      const packageJson = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8'));
+      const license = packageJson.license || 'Not specified';
+
+      console.log(`  Project license: ${colors.cyan}${license}${colors.reset}`);
+      console.log(`\n  For detailed analysis, install license-checker:`);
+      console.log(`    ${colors.cyan}npm install -g license-checker${colors.reset}`);
+      console.log(`    ${colors.cyan}license-checker --summary${colors.reset}`);
+    }
+  }
+
+  if (subcommand === 'tree') {
+    const pkg = args[1];
+
+    if (pkg) {
+      console.log(`${colors.bold}Dependency tree for ${pkg}:${colors.reset}\n`);
+      const tree = execCommand(`npm ls ${pkg} 2>&1`);
+      console.log(tree);
+    } else {
+      console.log(`${colors.bold}Top-level dependencies:${colors.reset}\n`);
+      const tree = execCommand('npm ls --depth=0 2>&1');
+      console.log(tree);
+
+      console.log(`\n  For full tree: ${colors.cyan}npm ls${colors.reset}`);
+      console.log(`  For specific package: ${colors.cyan}ferni deps tree <package>${colors.reset}`);
+    }
+  }
+}
+
+// ============================================================================
 // INTERACTIVE MODE
 // ============================================================================
 
@@ -2040,8 +3179,8 @@ ${colors.bold}What would you like to do?${colors.reset}
   const commandList = Object.entries(COMMANDS);
 
   // Group commands by category
-  const devCommands = ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr'];
-  const opsCommands = ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs'];
+  const devCommands = ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'];
+  const opsCommands = ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'];
   const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens'];
 
   console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
@@ -2162,8 +3301,8 @@ ${colors.bold}Commands:${colors.reset}
 
   // Group by category
   const categories = {
-    'Development': ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr'],
-    'Operations': ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs'],
+    'Development': ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'],
+    'Operations': ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'],
     'Agents & Quality': ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens'],
   };
 

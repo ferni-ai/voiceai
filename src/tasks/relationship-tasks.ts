@@ -321,7 +321,8 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
           }),
           execute: async ({ question, answer }) => {
             this.questionsAnswered.push(question);
-            return `Good question! ${answer}`;
+            // NOTE: Avoid "Good question!" - sounds like self-compliment
+            return answer;
           },
         }),
 

@@ -206,7 +206,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
     thoughtful: [
       `Hmm...${breakTag('300ms')}`,
       `Let me think about that...${breakTag('400ms')}`,
-      `Good question.${breakTag('300ms')}`,
+      `Interesting...${breakTag('300ms')}`,
     ],
   },
 
@@ -219,7 +219,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
     ],
     engaged: [
       `Ah, yes!${breakTag('300ms')}`,
-      `Good question.${breakTag('350ms')}`,
+      `Now, that's interesting.${breakTag('350ms')}`,
       `${breakTag('200ms')}Now, that's important.${breakTag('300ms')}`,
     ],
     empathetic: [
@@ -246,7 +246,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
     ],
     engaged: [
       `Oh, I love this!${breakTag('250ms')}`,
-      `Ooh, great question!${breakTag('200ms')}`,
+      `Ooh, interesting!${breakTag('200ms')}`,
       `Yes! Now,${breakTag('200ms')}`,
       `Ha! Okay, so${breakTag('200ms')}`,
     ],
@@ -290,7 +290,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
     ],
     thoughtful: [
       `Hmm...${breakTag('300ms')}`,
-      `That's a good question.${breakTag('300ms')}`,
+      `Interesting...${breakTag('300ms')}`,
       `Let me think...${breakTag('350ms')}`,
     ],
   },
@@ -343,38 +343,41 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
 // THINKING FILLERS (For LLM processing delays)
 // ============================================================================
 
+// IMPORTANT: Avoid "Good question" phrases - they sound like self-compliments
+// These are spoken while the agent is thinking, NOT in response to questions
 export const THINKING_FILLERS: Record<string, string[]> = {
   ferni: [
     `${breakTag('250ms')}Hmm...${breakTag('400ms')}let me think about that.${breakTag('350ms')}`,
-    `${breakTag('200ms')}Good question!${breakTag('400ms')}`,
-    `${breakTag('250ms')}Well...${breakTag('400ms')}`,
+    `${breakTag('200ms')}Well...${breakTag('400ms')}`,
+    `${breakTag('250ms')}Let me see...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Okay...${breakTag('400ms')}`,
   ],
   'nayan-patel': [
     `${breakTag('300ms')}Hmm...${breakTag('500ms')}let me think about that.${breakTag('400ms')}`,
     `${breakTag('200ms')}Well...${breakTag('600ms')}`,
-    `${breakTag('300ms')}That's a good question.${breakTag('500ms')}`,
     `${breakTag('400ms')}You know...${breakTag('400ms')}`,
+    `${breakTag('300ms')}Let me consider that...${breakTag('500ms')}`,
   ],
   'peter-john': [
     `${breakTag('200ms')}Ooh, interesting!${breakTag('300ms')}Let me think...${breakTag('400ms')}`,
     `${breakTag('200ms')}Hmm!${breakTag('400ms')}`,
-    `${breakTag('200ms')}Oh, good question!${breakTag('300ms')}`,
     `${breakTag('200ms')}Well, you know what...${breakTag('400ms')}`,
+    `${breakTag('200ms')}Let me see...${breakTag('300ms')}`,
   ],
   'maya-santos': [
-    `${breakTag('250ms')}Hmm...${breakTag('400ms')}that's a good one.${breakTag('300ms')}`,
+    `${breakTag('250ms')}Hmm...${breakTag('400ms')}let me think.${breakTag('300ms')}`,
     `${breakTag('200ms')}Let me think about this...${breakTag('400ms')}`,
     `${breakTag('250ms')}Okay...${breakTag('350ms')}`,
   ],
   'jordan-taylor': [
     `${breakTag('200ms')}Ooh!${breakTag('300ms')}Let me think...${breakTag('350ms')}`,
     `${breakTag('200ms')}Hmm!${breakTag('350ms')}`,
-    `${breakTag('200ms')}Good question!${breakTag('300ms')}`,
+    `${breakTag('200ms')}Oh, let me see...${breakTag('300ms')}`,
   ],
   'alex-chen': [
     `${breakTag('200ms')}One moment...${breakTag('400ms')}`,
     `${breakTag('200ms')}Let me check...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Processing...${breakTag('300ms')}`,
+    `${breakTag('200ms')}One sec...${breakTag('300ms')}`,
   ],
 };
 

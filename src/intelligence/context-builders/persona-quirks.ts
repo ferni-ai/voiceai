@@ -111,40 +111,27 @@ function detectQuirkTriggers(userText: string, relationshipDepth: number): Quirk
 // QUIRK FORMATTING - Natural language reveals
 // ============================================================================
 
-function formatHabitReveal(habit: string, personaName: string): string {
-  const intros = [
-    `[NATURAL MOMENT: ${personaName} can briefly mention: "${habit}" - weave it in naturally]`,
-    `[QUIRK: If relevant, ${personaName} might say something like: "${habit}"]`,
-    `[HUMANIZING: ${personaName}'s habit: "${habit}" - share if it fits the conversation]`,
-  ];
-  return intros[Math.floor(Math.random() * intros.length)];
+// IMPORTANT: Don't format literal phrases to inject - the LLM copies them verbatim
+// Instead, describe the TYPE of quirk without scripting the exact words
+
+function formatHabitReveal(_habit: string, personaName: string): string {
+  // Describe the category, not the literal phrase
+  return `[NATURAL MOMENT: ${personaName} has a quirky habit they can briefly mention - weave it in naturally as if sharing something about yourself]`;
 }
 
-function formatOpinionReveal(opinion: string, personaName: string): string {
-  const intros = [
-    `[OPINION MOMENT: ${personaName} feels strongly: "${opinion}" - share if asked or relevant]`,
-    `[STRONG VIEW: When appropriate, ${personaName} believes: "${opinion}"]`,
-    `[PERSONALITY: ${personaName}'s take: "${opinion}" - express naturally if topic comes up]`,
-  ];
-  return intros[Math.floor(Math.random() * intros.length)];
+function formatOpinionReveal(_opinion: string, personaName: string): string {
+  // Describe the category, not the literal phrase
+  return `[OPINION MOMENT: ${personaName} has a strong opinion on this topic - share it naturally if relevant, with personality]`;
 }
 
-function formatWeaknessReveal(weakness: string, personaName: string): string {
-  const intros = [
-    `[RELATABLE MOMENT: ${personaName} can admit: "${weakness}" - makes them human]`,
-    `[VULNERABILITY: If it fits, ${personaName} might confess: "${weakness}"]`,
-    `[HUMANIZING: ${personaName}'s weakness: "${weakness}" - share to connect]`,
-  ];
-  return intros[Math.floor(Math.random() * intros.length)];
+function formatWeaknessReveal(_weakness: string, personaName: string): string {
+  // Describe the category, not the literal phrase
+  return `[RELATABLE MOMENT: ${personaName} has a relatable weakness - sharing it naturally makes them human and builds connection]`;
 }
 
-function formatGuiltyPleasureReveal(pleasure: string, personaName: string): string {
-  const intros = [
-    `[INTIMATE SHARE: For trusted relationships, ${personaName} might reveal: "${pleasure}"]`,
-    `[GUILTY PLEASURE: ${personaName}'s secret: "${pleasure}" - share warmly if appropriate]`,
-    `[BETWEEN US: ${personaName} could confide: "${pleasure}"]`,
-  ];
-  return intros[Math.floor(Math.random() * intros.length)];
+function formatGuiltyPleasureReveal(_pleasure: string, personaName: string): string {
+  // Describe the category, not the literal phrase
+  return `[INTIMATE SHARE: For trusted relationships, ${personaName} can reveal a guilty pleasure - share warmly if appropriate]`;
 }
 
 // ============================================================================

@@ -169,7 +169,7 @@ function handleCameoStart(personaId: string, personaName: string, isFirstCameo: 
 
 async function handleCameoStartAsync(
   personaId: string,
-  personaName: string,
+  _personaName: string,
   isFirstCameo: boolean
 ): Promise<void> {
   // Find elements with retry logic

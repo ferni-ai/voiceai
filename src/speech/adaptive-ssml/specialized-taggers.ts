@@ -12,15 +12,17 @@ import { tagTextWithSsmlAdaptive } from './adaptation.js';
 // ============================================================================
 
 /**
- * Tag greeting specifically - warmer, slower
+ * Tag greeting specifically - warm but confident, not slow/timid
+ * NOTE: Previous settings (0.8 speed, 1.2x pauses) made Ferni sound weird and cautious
+ * Greetings should feel natural and present, like meeting a friend
  */
 export function tagGreeting(text: string, context: SpeechContext, personaId?: string): string {
-  // Greetings should be extra warm and slow
+  // Greetings should be warm but confident - don't over-slow
   const greetingContext: SpeechContext = {
     ...context,
-    baseSpeed: Math.min(context.baseSpeed, 0.8),
-    pauseMultiplier: context.pauseMultiplier * 1.2,
-    emotionIntensity: 0.9,
+    baseSpeed: Math.min(context.baseSpeed, 0.95), // Natural pace, not dragging
+    pauseMultiplier: context.pauseMultiplier * 1.05, // Minimal extra pauses
+    emotionIntensity: 0.85,
   };
 
   return tagTextWithSsmlAdaptive(text, greetingContext, personaId);

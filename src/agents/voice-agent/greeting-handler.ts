@@ -110,9 +110,25 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   } = ctx;
 
   diag.session('Step 8: Generating greeting');
+  const greetingStart = Date.now();
 
   let greeting: string | undefined;
   let hasReferencedLastConversation = false;
+  let usedWarmGreeting = false;
+
+  // ===============================================
+  // INSTANT GREETING: Use prewarmed greeting for immediate response
+  // If greeting generation takes >150ms, use warm greeting first
+  // ===============================================
+  let warmGreeting: string | null = null;
+  try {
+    const { getWarmGreeting, clearWarmGreeting } = await import('../shared/warm-greeting.js');
+    warmGreeting = getWarmGreeting(sessionPersona.id);
+    // Clear it so we don't reuse on next session
+    clearWarmGreeting();
+  } catch {
+    // Non-fatal - warm greeting is optional
+  }
 
   // ===============================================
   // FIRST TASTE TRIAL: Use special welcome for first-time trial users
@@ -131,7 +147,18 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     personaMemories = await loadPersonaMemories(services, sessionPersona, userData);
   }
 
-  // Try bundle runtime for enhanced greeting first (skip if trial welcome already set)
+  // If greeting generation is taking too long and we have a warm greeting, use it
+  const elapsedSoFar = Date.now() - greetingStart;
+  if (!greeting && warmGreeting && elapsedSoFar > 100) {
+    diag.session('Using warm greeting (personalized taking too long)', {
+      elapsedMs: elapsedSoFar,
+      warmGreeting: warmGreeting.slice(0, 30),
+    });
+    greeting = warmGreeting;
+    usedWarmGreeting = true;
+  }
+
+  // Try bundle runtime for enhanced greeting first (skip if already have greeting)
   if (!greeting && bundleRuntime) {
     const result = await generateBundleGreeting(
       bundleRuntime,
@@ -156,11 +183,20 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     hasReferencedLastConversation = result.hasReferencedLastConversation;
   }
 
-  // Ensure greeting is defined (fallback should never be needed but satisfies TypeScript)
+  // Ensure greeting is defined (use warm greeting as final fallback)
+  // NOTE: Never use "How can I help you today?" - that's customer service, not Ferni
   if (!greeting) {
-    greeting = `Hello! How can I help you today?`;
-    diag.warn('Using fallback greeting - this should not happen');
+    greeting = warmGreeting || `Hey! What's going on?`;
+    if (!warmGreeting) {
+      diag.warn('Using fallback greeting - this should not happen');
+    }
   }
+  
+  diag.session('Greeting generated', {
+    elapsedMs: Date.now() - greetingStart,
+    usedWarmGreeting,
+    greetingLength: greeting.length,
+  });
 
   // Update userData with reference tracking
   userData.hasReferencedLastConversation = hasReferencedLastConversation;
@@ -202,17 +238,13 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   let enhancedGreeting = tagGreeting(greeting, speechContext);
 
   // ===============================================
-  // GREETING VOLUME: Make greetings calmer by default
-  // Greetings should feel warm and welcoming, not loud
+  // GREETING VOICE: Confident and natural, not soft/timid
+  // Ferni should sound like himself - cool, warm, present
+  // NOTE: Removed soft volume (0.85) - it made Ferni sound weird/timid
   // ===============================================
-  if (!enhancedGreeting.includes('<volume')) {
-    // Add soft volume for a warmer, calmer initial impression
-    enhancedGreeting = `<volume ratio="0.85"/>${enhancedGreeting}`;
-  }
-
-  // Also add a slight speed reduction for a more relaxed opening
+  // Only adjust speed slightly for a natural opening cadence
   if (!enhancedGreeting.includes('<speed')) {
-    enhancedGreeting = `<speed ratio="0.95"/>${enhancedGreeting}`;
+    enhancedGreeting = `<speed ratio="0.98"/>${enhancedGreeting}`;
   }
 
   diag.tts('Enhanced greeting', {

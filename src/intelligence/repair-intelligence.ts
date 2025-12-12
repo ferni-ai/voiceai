@@ -651,17 +651,19 @@ export function formatRepairForPrompt(
   detection: MisunderstandingDetection,
   approach: RepairApproach
 ): string {
+  // IMPORTANT: Don't include literal phrases to copy - the LLM will parrot them verbatim
+  // Instead, describe the approach and let the LLM craft natural language
   const lines = ['[REPAIR NEEDED]'];
 
   lines.push(`Issue: ${detection.whatWentWrong}`);
   lines.push(`Strategy: ${approach.strategy}`);
-  lines.push(`Open with: "${approach.opener}"`);
 
   if (approach.avoid.length > 0) {
-    lines.push(`AVOID: "${approach.avoid[0]}"`);
+    lines.push(`AVOID: ${approach.avoid[0]}`);
   }
 
-  lines.push(`Full repair: "${approach.fullRepair}"`);
+  // Describe the approach without literal scripts
+  lines.push(`Repair approach: Acknowledge the misunderstanding, then ${approach.strategy.toLowerCase()}`);
 
   return lines.join('\n');
 }

@@ -235,13 +235,12 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
       if (dynamic) {
         // If member is locked, don't give details - just acknowledge vaguely
         if (!memberUnlocked) {
-          const content = `[TEAM MENTION: User mentioned someone on your team, but they haven't unlocked access to ${mentionedMember.description} yet. Acknowledge you have a friend who helps with that, but say you need to get to know them better first before making introductions.]`;
+          // Note: Don't script literal phrases - describe the situation
+          const content = `[TEAM MENTION: User mentioned someone on your team, but they haven't unlocked access yet. Acknowledge you have a colleague who helps with that topic, but you need to get to know them better first.]`;
           injections.push(createHintInjection('team_mention', content));
         } else {
-          const content = dynamic.whatIAdmire
-            ? `[TEAM MENTION: User mentioned ${mentionedMember.description}. Your perspective: "${dynamic.whatIAdmire}" How you work together: "${dynamic.howWeInteract}"]`
-            : `[TEAM MENTION: User mentioned ${mentionedMember.description}. How you work together: "${dynamic.howWeInteract}"]`;
-
+          // Note: Don't inject literal phrases - describe the relationship context
+          const content = `[TEAM MENTION: User mentioned ${mentionedMember.description}. You have a warm working relationship with them - speak naturally about your colleague as you would about a trusted friend.]`;
           injections.push(createHintInjection('team_mention', content));
         }
 
@@ -274,7 +273,8 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
       const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);
 
       if (dynamic) {
-        const handoffHint = `[EXPERTISE OPPORTUNITY: This topic relates to ${expertMatch.description}'s area. ${dynamic.howWeInteract} If appropriate, you could mention them naturally or offer to connect the user.]`;
+        // Note: Don't inject literal phrases about how you work together
+        const handoffHint = `[EXPERTISE OPPORTUNITY: This topic relates to ${expertMatch.description}'s specialty. If appropriate, you could mention your colleague naturally or offer to connect the user.]`;
 
         injections.push(createHintInjection('team_expertise', handoffHint));
 
@@ -311,10 +311,11 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
           const teamMemberInfo = TEAM_MEMBERS.find((m) => m.id === randomMember);
           const memberDesc = teamMemberInfo?.description || randomMember;
 
+          // Note: Don't inject literal phrases - just indicate opportunity to reference
           injections.push(
             createHintInjection(
               'team_organic',
-              `[TEAM COLOR: If natural, you might briefly reference ${memberDesc}: "${dynamic.whatIAdmire}" - don't force it, only if it fits.]`
+              `[TEAM COLOR: If natural, you might briefly reference your colleague ${memberDesc} - speak about them warmly as a friend, only if it fits.]`
             )
           );
         }

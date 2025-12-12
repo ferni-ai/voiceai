@@ -101,3 +101,6 @@ export { gracefulShutdown, registerShutdownSignalHandlers } from './shutdown-han
 
 // Helpers
 export { hasSsmlTags, sanitizeUserName } from './helpers.js';
+
+// Performance Optimizations
+export * from './performance/index.js';

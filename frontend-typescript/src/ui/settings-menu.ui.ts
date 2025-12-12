@@ -61,9 +61,6 @@ export interface SettingsMenuUICallbacks {
   onHouseholdClick?: () => void;
   onConversationMemoryClick?: () => void;
   onWellbeingClick?: () => void;
-  onTipJarClick?: () => void;
-  onFerniFundClick?: () => void;
-  onGardenImpactClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
   onShareFerniClick?: () => void;
@@ -387,13 +384,6 @@ class SettingsMenuUI {
             ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
           </section>
 
-          <section class="settings-menu__section settings-menu__section--garden">
-            <h3>The Garden</h3>
-            <p class="settings-menu__section-desc">Ferni is free because of gardeners like you.</p>
-            ${this.renderMenuItem('ferni-fund', ICONS.seedling, 'Plant Seeds', 'settings-menu__item--garden')}
-            ${this.renderMenuItem('garden-impact', ICONS.trophy, 'Your Impact')}
-          </section>
-
           <section class="settings-menu__section">
             <h3>Customize</h3>
             <button class="settings-menu__item" data-action="spotify" style="display: none;">
@@ -537,15 +527,6 @@ class SettingsMenuUI {
         break;
       case 'wellbeing':
         this.callbacks.onWellbeingClick?.();
-        break;
-      case 'tip-jar':
-        this.callbacks.onTipJarClick?.();
-        break;
-      case 'ferni-fund':
-        this.callbacks.onFerniFundClick?.();
-        break;
-      case 'garden-impact':
-        this.callbacks.onGardenImpactClick?.();
         break;
       case 'personalize':
         this.callbacks.onPersonalizeClick?.();
@@ -732,45 +713,6 @@ class SettingsMenuUI {
         letter-spacing: var(--tracking-wider, 0.05em);
         margin: 0 0 var(--space-2) 0;
         padding: var(--space-2) 0;
-      }
-
-      /* The Garden Section - Prominent styling */
-      .settings-menu__section--garden {
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.08)), transparent);
-        margin: var(--space-2, 8px) var(--space-3, 12px);
-        padding: var(--space-4, 16px);
-        border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(74, 103, 65, 0.15));
-      }
-
-      .settings-menu__section--garden h3 {
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .settings-menu__section-desc {
-        font-family: var(--font-body);
-        font-size: var(--text-xs);
-        color: var(--color-text-secondary);
-        margin: 0 0 var(--space-3) 0;
-        line-height: var(--leading-relaxed);
-      }
-
-      .settings-menu__item--garden {
-        background: var(--persona-primary, #4a6741);
-        color: white;
-      }
-
-      .settings-menu__item--garden:hover {
-        background: var(--persona-secondary, #3d5a35);
-      }
-
-      .settings-menu__item--garden .settings-menu__icon {
-        color: white;
-      }
-
-      .settings-menu__item--garden .settings-menu__label {
-        color: white;
-        font-weight: var(--font-weight-semibold, 600);
       }
 
       .settings-menu__item {

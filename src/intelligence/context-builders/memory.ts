@@ -196,15 +196,14 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   // Every 4-6 turns, suggest circling back
   // -----------------------------------------------
   if (topics.length > 0 && turnCount > 3 && turnCount % 5 === 0) {
-    const memoryCallback = getMemoryCallback(topics, userData.name);
-    if (memoryCallback) {
-      injections.push(
-        createHintInjection(
-          'memory_callback',
-          `[MEMORY CALLBACK: Consider saying "${memoryCallback}" to show you're listening and remembering.]`
-        )
-      );
-    }
+    // Note: Don't inject literal phrases - the LLM copies them verbatim
+    const topicToReference = topics[Math.floor(Math.random() * topics.length)];
+    injections.push(
+      createHintInjection(
+        'memory_callback',
+        `[MEMORY CALLBACK: Earlier in this conversation, ${userData.name ? userData.name : 'they'} mentioned ${topicToReference}. If natural, circle back to show you were listening.]`
+      )
+    );
   }
   // -----------------------------------------------
   // CROSS-SESSION MEMORY (reference previous conversations)
@@ -212,12 +211,14 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   // -----------------------------------------------
   const alreadyReferencedLastConversation = userData.hasReferencedLastConversation === true;
   if (turnCount === 3 && !alreadyReferencedLastConversation && Math.random() < 0.4) {
-    const crossSessionMemory = getCrossSessionMemory(extServices, userData.name);
-    if (crossSessionMemory) {
+    // Note: Don't inject literal phrases - the LLM copies them verbatim
+    // Just indicate that cross-session memory is available (check via userProfile)
+    const hasLastConversation = userProfile && userProfile.totalConversations > 1;
+    if (hasLastConversation) {
       injections.push(
         createHintInjection(
           'cross_session_memory',
-          `[CROSS-SESSION MEMORY: IF you haven't already referenced past conversations, consider: "${crossSessionMemory}". Only mention once, don't repeat.]`
+          `[CROSS-SESSION MEMORY: You remember previous conversations with ${userData.name || 'this person'}. If natural, reference something from your shared history. Only mention once, don't repeat.]`
         )
       );
     }
@@ -229,10 +230,11 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   if (turnCount >= 6 && turnCount <= 10 && Math.random() < 0.3) {
     const intelligentFollowUp = getIntelligentFollowUp(extServices);
     if (intelligentFollowUp) {
+      // Note: Don't inject literal questions - the LLM copies them verbatim
       injections.push(
         createHintInjection(
           'intelligent_followup',
-          `[INTELLIGENT FOLLOW-UP: Consider asking "${intelligentFollowUp.question}" (${intelligentFollowUp.context})]`
+          `[INTELLIGENT FOLLOW-UP: Based on your history, there's an opportunity to ask about ${intelligentFollowUp.context}. Ask in your own words if it feels natural.]`
         )
       );
     }
@@ -241,10 +243,18 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   // TIME SINCE LAST CONVERSATION (early greeting context)
   // -----------------------------------------------
   if (turnCount <= 2 && userProfile?.lastContact) {
-    const timeContext = getTimeSinceContext(userProfile.lastContact);
-    if (timeContext) {
+    const daysSince = Math.floor(
+      (Date.now() - new Date(userProfile.lastContact).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysSince > 1) {
+      // Note: Don't inject literal phrases - just provide context
+      const timeFrame =
+        daysSince > 30 ? 'over a month' : daysSince > 7 ? 'over a week' : 'a few days';
       injections.push(
-        createHintInjection('time_since', `[TIME AWARENESS: Consider mentioning: "${timeContext}"]`)
+        createHintInjection(
+          'time_since',
+          `[TIME AWARENESS: It's been ${timeFrame} since you last talked. Acknowledge the time gap naturally if it fits.]`
+        )
       );
     }
   }
@@ -252,12 +262,18 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   // EMOTIONAL CONTINUITY (check on previous feelings)
   // -----------------------------------------------
   if (turnCount <= 3 && userProfile?.emotionalPatterns) {
-    const emotionalContinuity = getEmotionalContinuity(userProfile);
-    if (emotionalContinuity) {
+    // Check if recent patterns show distress (emotionalPatterns is an array)
+    const hasRecentDistress =
+      Array.isArray(userProfile.emotionalPatterns) &&
+      userProfile.emotionalPatterns.some(
+        (p) => p.emotion === 'distressed' || p.emotion === 'anxious' || p.emotion === 'sad'
+      );
+    if (hasRecentDistress) {
+      // Note: Don't inject literal phrases - just provide context
       injections.push(
         createStandardInjection(
           'emotional_continuity',
-          `[EMOTIONAL CONTINUITY: User had distress in previous conversations. Consider checking in: "${emotionalContinuity}"]`
+          `[EMOTIONAL CONTINUITY: ${userData.name || 'They'} seemed distressed in recent conversations. Check in on how they're doing - in your own words, with genuine care.]`
         )
       );
     }
@@ -275,12 +291,16 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
           turnCount,
         });
         if (relevantMoment) {
-          const momentReference = keyMomentRetrieval.generateMomentReference(
-            relevantMoment,
-            userProfile.name
-          );
+          // Note: Don't inject literal phrases - describe what to reference
+          const momentDesc =
+            'moment' in relevantMoment && relevantMoment.moment
+              ? String(relevantMoment.moment)
+              : 'something meaningful from your history';
           injections.push(
-            createStandardInjection('key_moment', `[KEY MOMENT CALLBACK: "${momentReference}"]`)
+            createStandardInjection(
+              'key_moment',
+              `[KEY MOMENT: You remember a significant moment - ${momentDesc}. Reference it naturally if relevant, in your own words.]`
+            )
           );
         }
       }
@@ -313,10 +333,11 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
       turnCount
     );
     if (proactiveInsight) {
+      // Note: Don't inject literal phrases - describe what insight is available
       injections.push(
         createHintInjection(
           'proactive_insight',
-          `[PROACTIVE MEMORY: Consider naturally weaving in: "${proactiveInsight}"]`
+          `[PROACTIVE MEMORY: You have an insight about ${userData.name || 'this person'} that may be relevant. Weave it naturally into conversation if it fits.]`
         )
       );
     }

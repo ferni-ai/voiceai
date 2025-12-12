@@ -82,6 +82,56 @@ export * from './session/index.js';
 export * from './handlers/index.js';
 
 // ============================================================================
+// PERFORMANCE OPTIMIZATIONS
+// ============================================================================
+
+// Re-export key performance utilities for easy access
+export {
+  parallelCollect,
+  ParallelExecutor,
+  parallelMap,
+} from './shared/performance/parallel-executor.js';
+
+export {
+  batchWrite,
+  executeWithPool,
+  getDocument,
+  getFirestorePool,
+  setDocument,
+} from './shared/performance/firestore-pool.js';
+
+export {
+  createStreamingSession,
+  LookaheadBuffer,
+  ResponseStreamProcessor,
+} from './shared/performance/response-streaming.js';
+
+export {
+  cachePersonaBundle,
+  EdgeCache,
+  getCachedPersonaBundle,
+  getOrLoadPersonaBundle,
+  getPersonaBundleCache,
+  warmCommonCaches,
+} from './shared/performance/edge-cache.js';
+
+export {
+  createSessionKeepAlive,
+  getSessionKeepAlive,
+  WebSocketKeepAlive,
+} from './shared/performance/websocket-keepalive.js';
+
+export {
+  BatchAnalyticsWriter,
+  createPerformanceEvent,
+  createSessionEvent,
+  createToolEvent,
+  initBatchAnalytics,
+  queueAnalyticsEvent,
+  queueAnalyticsEvents,
+} from './shared/performance/batch-analytics.js';
+
+// ============================================================================
 // PRIMARY AGENT
 // ============================================================================
 
@@ -100,9 +150,9 @@ export { djIntegration, getDJIntegration, resetDJIntegration } from './dj-integr
 // ============================================================================
 
 export {
-  getVoiceId,
   getCanonicalPersonaId,
   getPersonaDisplayName,
+  getVoiceId,
 } from '../personas/voice-registry.js';
 
 // All personas use:

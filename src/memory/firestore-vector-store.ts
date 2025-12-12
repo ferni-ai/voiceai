@@ -189,9 +189,20 @@ export class FirestoreVectorStore implements IVectorStore {
   }
 
   /**
+   * Ensure vector store is initialized before any operation.
+   * Enables lazy initialization - connects on first use, not startup.
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this._initialized) return;
+    await this.initialize();
+  }
+
+  /**
    * Add a document to the vector store
    */
   async addDocument(doc: VectorDocument): Promise<void> {
+    await this.ensureInitialized();
+    
     // Generate embedding if not provided
     let { embedding } = doc;
     if (!embedding) {
@@ -328,6 +339,8 @@ export class FirestoreVectorStore implements IVectorStore {
       minScore?: number;
     }
   ): Promise<VectorSearchResult[]> {
+    await this.ensureInitialized();
+    
     const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 

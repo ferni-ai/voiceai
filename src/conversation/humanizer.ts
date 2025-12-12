@@ -410,28 +410,26 @@ export class ConversationHumanizer {
     }
 
     // 7. Thinking cue for complex questions
+    // NOTE: Removed literal phrase injection - the LLM was copying "Good question" verbatim
+    // which made it sound like Ferni was complimenting himself. Instead, we now guide
+    // the LLM to THINK before responding, without providing specific phrases to parrot.
     const isComplexQuestion =
       context.userMessage.includes('?') &&
       (context.userMessage.length > 100 ||
         /how (do|should|can|would)/i.test(context.userMessage) ||
         /what (should|do you think|would)/i.test(context.userMessage));
     if (isComplexQuestion) {
-      const thinkingPhrase = this.naturalizer.getThinkingPhrase(this.personaId, 'processing', {
-        randomSeed: `${this.sessionId}:${this.personaId}:${context.turnNumber}:thinking_phrase`,
-        sessionId: this.sessionId,
-        turnNumber: context.turnNumber,
+      // Don't inject literal phrases - just guide the behavior
+      guidance.push({
+        source: 'speech_naturalizer',
+        content: `[THINKING CUE] This is a thoughtful question. Take a brief pause to consider it before responding - don't rush to answer.`,
+        priority: 'hint',
       });
-      // Only add guidance if coordinator granted the phrase
-      if (thinkingPhrase.phrase) {
-        guidance.push({
-          source: 'speech_naturalizer',
-          content: `[THINKING CUE] For complex questions, you might open with: "${thinkingPhrase.phrase}"`,
-          priority: 'hint',
-        });
-      }
     }
 
     // 8. Active listening - emotional echo for personal sharing
+    // NOTE: Removed literal phrase injection - the LLM was copying the exact echo phrase
+    // which sounded robotic. Now we guide the LLM to be empathetic without scripting it.
     const needsEmotionalSupport =
       context.wasPersonalSharing ||
       (context.userEmotion &&
@@ -439,14 +437,9 @@ export class ConversationHumanizer {
           context.userEmotion.toLowerCase()
         ));
     if (needsEmotionalSupport && context.userEmotion) {
-      const echo = this.listening.generateEmotionalEcho(
-        context.userEmotion,
-        context.userMessage,
-        'medium'
-      );
       guidance.push({
         source: 'active_listening',
-        content: `[EMPATHETIC ECHO] Consider opening with: "${echo}"`,
+        content: `[EMPATHETIC ECHO] The user seems ${context.userEmotion}. Acknowledge this feeling before offering any advice - show you heard them.`,
         priority: 'standard',
       });
     }

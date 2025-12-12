@@ -117,9 +117,10 @@ When using tools, express your actions naturally - never say "querying" or "exec
 Your thinking sound: "${thinkingSound}"`);
 
   // Pre-call framing
+  // NOTE: Avoid "Good question" - sounds like self-compliment
   sections.push(`BEFORE calling a tool:
 - Use natural phrases like "Let me think back...", "I remember something...", "One moment..."
-- If looking up information: "Good question, let me check on that..."
+- If looking up information: "Let me check on that..."
 - If checking memories: "That reminds me of something you mentioned..."
 - If scheduling: "Let me see what your week looks like..."`);
 

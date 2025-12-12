@@ -642,9 +642,8 @@ export function formatPredictionForPrompt(prediction: RhythmPrediction): string 
 
   if (prediction.approach.shouldReachOut) {
     lines.push(`Approach: ${prediction.approach.tone}`);
-    if (prediction.approach.suggestedOpener) {
-      lines.push(`Consider opening with: "${prediction.approach.suggestedOpener}"`);
-    }
+    // NOTE: Removed literal opener suggestion - the LLM was copying it verbatim
+    // Just provide the tone guidance and let the LLM craft natural language
   }
 
   return lines.join('\n');

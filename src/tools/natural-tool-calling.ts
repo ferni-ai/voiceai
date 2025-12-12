@@ -73,9 +73,10 @@ const PRE_CALL_PHRASES = {
   ],
 
   // Information lookup
+  // NOTE: Avoid "Good question" - sounds like self-compliment
   search: [
     'Let me find out...',
-    'Good question, let me see...',
+    'Let me see...',
     "I'm curious too, let me check...",
     'Hmm, one moment...',
   ],

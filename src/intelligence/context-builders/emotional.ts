@@ -152,26 +152,22 @@ If they need silence, give them silence.`
 
     // Add persona-specific distress response if available
     if (emotionalIntelligence) {
-      const eiContent = emotionalIntelligence as Record<string, unknown>;
-      const distressResponses = (eiContent.detecting_distress as Record<string, unknown>)
-        ?.responses as Record<string, string[]>;
-      if (distressResponses?.immediate_validation) {
-        const phrase = getRandomPhraseClean(distressResponses.immediate_validation);
-        if (phrase) {
-          injections.push(
-            createHintInjection('persona_ei_distress', `[PERSONA VOICE for distress]: "${phrase}"`)
-          );
-        }
-      }
+      // Note: Don't inject literal phrases - the LLM copies them verbatim
+      // Just indicate high distress needs validation
+      injections.push(
+        createHintInjection(
+          'persona_ei_distress',
+          `[HIGH DISTRESS: Immediately validate their feelings. No advice yet - just presence and acknowledgment.]`
+        )
+      );
     }
   } else if (mergedDistress >= DISTRESS.MODERATE) {
-    // MODERATE DISTRESS
+    // MODERATE DISTRESS - Don't script literal responses
     injections.push(
       createStandardInjection(
         'emotional_alert',
         `[EMOTIONAL ALERT: ${analysis.emotion.primary} at ${Math.round(mergedDistress * 100)}%]
-Empathy FIRST, advice second. Slow down. Shorter sentences.
-Acknowledge: "That sounds really difficult." Listen more than you speak.`
+Empathy FIRST, advice second. Slow down. Shorter sentences. Listen more than you speak.`
       )
     );
   } else if (analysis.emotion.valence === 'negative') {

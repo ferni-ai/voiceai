@@ -246,121 +246,99 @@ async function getSecondChancesPhrases(
   personaId: string,
   context: { isHopeless?: boolean; isGrieving?: boolean; hasWin?: boolean }
 ): Promise<string[]> {
-  const voice = await loadSecondChancesVoice(personaId);
-  if (!voice) return [];
-
+  // IMPORTANT: Don't return literal phrases - the LLM copies them verbatim
+  // Instead, describe the coaching approach to take
   const phrases: string[] = [];
 
   if (context.isHopeless) {
-    const phrase = getRandomPhraseClean(voice.holding_hope?.when_they_cant);
-    if (phrase) phrases.push(`Hope holding: "${phrase}"`);
+    phrases.push('Hold hope for them when they cannot hold it themselves');
   }
 
   if (context.isGrieving) {
-    const phrase = getRandomPhraseClean(voice.acknowledging_loss?.permission_to_grieve);
-    if (phrase) phrases.push(`Permission: "${phrase}"`);
+    phrases.push('Give permission to grieve - validate the loss');
   }
 
   if (context.hasWin) {
-    const phrase = getRandomPhraseClean(voice.celebrating_wins?.acknowledging_progress);
-    if (phrase) phrases.push(`Celebrate: "${phrase}"`);
+    phrases.push('Celebrate their progress, even small wins');
   }
 
-  // Always include wisdom
-  const wisdom = getRandomPhraseClean(voice.wisdom_sharing?.resilience);
-  if (wisdom) phrases.push(`Wisdom: "${wisdom}"`);
+  // Always include resilience wisdom approach
+  phrases.push('Share resilience wisdom - they are stronger than they think');
 
   return phrases;
 }
 
 async function getConnectionPhrases(
-  personaId: string,
+  _personaId: string,
   context: { isLonely?: boolean; isLateNight?: boolean }
 ): Promise<string[]> {
-  const voice = await loadConnectionVoice(personaId);
-  if (!voice) return [];
-
+  // IMPORTANT: Don't return literal phrases - the LLM copies them verbatim
+  // Instead, describe the emotional approach to take
   const phrases: string[] = [];
 
   if (context.isLonely) {
-    const validation = getRandomPhraseClean(voice.acknowledging_loneliness?.validation);
-    if (validation) phrases.push(`Validate loneliness: "${validation}"`);
-
-    const normalizing = getRandomPhraseClean(voice.acknowledging_loneliness?.normalizing);
-    if (normalizing) phrases.push(`Normalize: "${normalizing}"`);
+    phrases.push('Validate their loneliness - it is real and okay to feel');
+    phrases.push('Normalize feeling disconnected - many people feel this way');
   }
 
   if (context.isLateNight) {
-    const presence = getRandomPhraseClean(voice.late_night_loneliness?.presence);
-    if (presence) phrases.push(`Late night presence: "${presence}"`);
+    phrases.push('Offer presence - you are here with them right now');
   }
 
-  const belonging = getRandomPhraseClean(voice.belonging?.being_seen);
-  if (belonging) phrases.push(`Belonging: "${belonging}"`);
+  phrases.push('Help them feel seen and that they belong');
 
   return phrases;
 }
 
 async function getDifficultConversationsPhrases(
-  personaId: string,
+  _personaId: string,
   context: { isPreparing?: boolean; needsPractice?: boolean; needsBoundary?: boolean }
 ): Promise<string[]> {
-  const voice = await loadDifficultConversationsVoice(personaId);
-  if (!voice) return [];
-
+  // IMPORTANT: Don't return literal phrases - the LLM copies them verbatim
+  // Instead, describe the coaching approach to take
   const phrases: string[] = [];
 
   // Always acknowledge the fear
-  const fear = getRandomPhraseClean(voice.validation?.acknowledging_fear);
-  if (fear) phrases.push(`Acknowledge fear: "${fear}"`);
+  phrases.push('Acknowledge their fear about the conversation - it is valid');
 
   if (context.isPreparing) {
-    const prep = getRandomPhraseClean(voice.preparation?.before_conversation);
-    if (prep) phrases.push(`Preparation: "${prep}"`);
+    phrases.push('Help them prepare - what do they want to say and feel?');
   }
 
   if (context.needsPractice) {
-    const invite = getRandomPhraseClean(voice.practice_mode?.invitation);
-    if (invite) phrases.push(`Practice invitation: "${invite}"`);
+    phrases.push('Offer to practice the conversation with them if they want');
   }
 
   if (context.needsBoundary) {
-    const boundary = getRandomPhraseClean(voice.boundaries?.setting);
-    if (boundary) phrases.push(`Boundary setting: "${boundary}"`);
+    phrases.push('Help them set and articulate their boundary clearly');
   }
 
   return phrases;
 }
 
 async function getLifeTransitionsPhrases(
-  personaId: string,
+  _personaId: string,
   context: { stage?: 'ending' | 'neutral' | 'beginning'; hasDualEmotions?: boolean }
 ): Promise<string[]> {
-  const voice = await loadLifeTransitionsVoice(personaId);
-  if (!voice) return [];
-
+  // IMPORTANT: Don't return literal phrases - the LLM copies them verbatim
+  // Instead, describe the coaching approach for each transition stage
   const phrases: string[] = [];
 
   // Validation
-  const validation = getRandomPhraseClean(voice.acknowledging_transitions?.validation);
-  if (validation) phrases.push(`Validate transition: "${validation}"`);
+  phrases.push('Validate this transition - change is hard even when chosen');
 
-  // Stage-specific
+  // Stage-specific guidance
   if (context.stage === 'ending') {
-    const ending = getRandomPhraseClean(voice.stages?.the_ending);
-    if (ending) phrases.push(`Ending stage: "${ending}"`);
+    phrases.push('Honor what is ending - grief is part of growth');
   } else if (context.stage === 'neutral') {
-    const neutral = getRandomPhraseClean(voice.stages?.neutral_zone);
-    if (neutral) phrases.push(`Neutral zone: "${neutral}"`);
+    phrases.push('Embrace the in-between - this uncertainty is fertile ground');
   } else if (context.stage === 'beginning') {
-    const beginning = getRandomPhraseClean(voice.stages?.new_beginning);
-    if (beginning) phrases.push(`New beginning: "${beginning}"`);
+    phrases.push('Celebrate the new beginning - courage got them here');
   }
 
   // Dual emotions
   if (context.hasDualEmotions) {
-    const bothAnd = getRandomPhraseClean(voice.dual_emotions?.both_and);
-    if (bothAnd) phrases.push(`Both/and: "${bothAnd}"`);
+    phrases.push('Hold space for both/and - they can feel excited AND scared');
   }
 
   return phrases;
@@ -370,28 +348,23 @@ async function getQuietGrowthPhrases(
   personaId: string,
   context: { isExhausted?: boolean; isPlateau?: boolean; isComparing?: boolean }
 ): Promise<string[]> {
-  const voice = await loadQuietGrowthVoice(personaId);
-  if (!voice) return [];
-
+  // IMPORTANT: Don't return literal phrases - the LLM copies them verbatim
+  // Instead, describe the coaching approach for quiet growth
   const phrases: string[] = [];
 
   if (context.isExhausted) {
-    const rest = getRandomPhraseClean(voice.permission_to_rest?.rest_is_growth);
-    if (rest) phrases.push(`Rest permission: "${rest}"`);
+    phrases.push('Give permission to rest - rest is part of growth');
   }
 
   if (context.isPlateau) {
-    const plateau = getRandomPhraseClean(voice.celebrating_maintenance?.the_plateau);
-    if (plateau) phrases.push(`Plateau wisdom: "${plateau}"`);
+    phrases.push('Celebrate maintenance - staying level is an achievement');
   }
 
   if (context.isComparing) {
-    const pace = getRandomPhraseClean(voice.anti_hustle?.your_pace);
-    if (pace) phrases.push(`Your pace: "${pace}"`);
+    phrases.push('Honor their own pace - comparison steals joy');
   }
 
-  const enough = getRandomPhraseClean(voice.sufficiency?.enough);
-  if (enough) phrases.push(`Sufficiency: "${enough}"`);
+  phrases.push('Remind them they are enough, right now, as they are');
 
   return phrases;
 }

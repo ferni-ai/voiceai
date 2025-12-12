@@ -457,6 +457,184 @@ export const ferniFundStyles = `
 @keyframes fund-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================
+   USER IMPACT VIEW STYLES
+   ============================================ */
+
+.ferni-fund-impact-view {
+  text-align: center;
+}
+
+.ferni-fund-user-stats {
+  display: flex;
+  gap: var(--space-4, 16px);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.ferni-fund-stat {
+  flex: 1;
+  min-width: 100px;
+  padding: var(--space-4, 16px);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.ferni-fund-stat--primary {
+  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  color: white;
+}
+
+.ferni-fund-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ferni-fund-stat-value--status {
+  font-size: 1rem;
+  color: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-stat--primary .ferni-fund-stat-value {
+  color: white;
+}
+
+.ferni-fund-stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.ferni-fund-member-since {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6, 24px);
+}
+
+.ferni-fund-community {
+  padding: var(--space-4, 16px);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: var(--space-6, 24px);
+  text-align: left;
+}
+
+.ferni-fund-community h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-3, 12px) 0;
+  color: var(--color-text-primary);
+}
+
+.ferni-fund-progress-container {
+  margin-top: var(--space-2, 8px);
+}
+
+.ferni-fund-progress {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.ferni-fund-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--persona-primary, #4a6741), var(--persona-secondary, #5d7a55));
+  border-radius: 4px;
+  transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
+}
+
+.ferni-fund-progress-text {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.ferni-fund-actions {
+  display: flex;
+  gap: var(--space-3, 12px);
+  justify-content: center;
+}
+
+.ferni-fund-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px) var(--space-5, 20px);
+  border: none;
+  border-radius: var(--radius-full, 100px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+}
+
+.ferni-fund-action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ferni-fund-action-btn--primary {
+  background: var(--persona-primary, #4a6741);
+  color: white;
+}
+
+.ferni-fund-action-btn--primary:hover {
+  background: var(--persona-secondary, #3d5a35);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.ferni-fund-action-btn--secondary {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.ferni-fund-action-btn--secondary:hover {
+  background: var(--color-bg-secondary);
+  transform: translateY(-1px);
+}
+
+/* Welcome state for new users */
+.ferni-fund-welcome {
+  padding: var(--space-4, 16px) 0;
+}
+
+.ferni-fund-welcome-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4, 16px);
+  background: var(--color-bg-tertiary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-welcome-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.ferni-fund-welcome h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-3, 12px) 0;
+  color: var(--color-text-primary);
+}
+
+.ferni-fund-welcome p {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--space-6, 24px) 0;
+}
 `;
 
 // ============================================================================

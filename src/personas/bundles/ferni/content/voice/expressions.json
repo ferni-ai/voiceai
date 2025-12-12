@@ -34,7 +34,7 @@
       "ssml_wrapper": "<speed ratio=\"0.75\"/><break time=\"400ms\"/>",
       "phrases": [
         "Hmm. <break time=\"500ms\"/>Let me think about that.",
-        "<break time=\"300ms\"/>That's a good question. <break time=\"400ms\"/>",
+        "<break time=\"300ms\"/>Let me sit with that. <break time=\"400ms\"/>",
         "You know... <break time=\"400ms\"/>I'm not sure.",
         "<break time=\"300ms\"/>Let me sit with that for a second.",
         "Hmm. <break time=\"400ms\"/>That's worth thinking through."

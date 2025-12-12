@@ -1293,19 +1293,6 @@ class VoiceAIApp {
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onTipJarClick: () => {
-          // Redirect tip jar to Ferni Fund (Garden metaphor)
-          const userId = appState.get('deviceId');
-          if (userId) {
-            void ferniFundUI.open(userId);
-          }
-        },
-        onFerniFundClick: () => {
-          const userId = appState.get('deviceId');
-          if (userId) {
-            void ferniFundUI.open(userId);
-          }
-        },
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => growthJourneyUI.open(),
         onShareFerniClick: () => referralUI.open(),
@@ -1377,6 +1364,20 @@ class VoiceAIApp {
     } else if (gardenPathname === '/garden/cancel') {
       // Payment was cancelled - just redirect to home
       window.history.replaceState({}, '', '/');
+    }
+
+    // 🌱 Handle ?garden=true query param from landing page CTA
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('garden') === 'true') {
+      // Wait for UI to initialize, then open Ferni Fund modal
+      setTimeout(() => {
+        const userId = appState.get('deviceId');
+        if (userId) {
+          void ferniFundUI.open(userId);
+        }
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 800);
     }
 
     // 📊 Dev Panel modal event listeners

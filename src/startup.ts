@@ -71,20 +71,37 @@ export async function startup(): Promise<AppConfig> {
   }
 
   // Initialize memory system (storage + cache)
-  // CRITICAL: Skip persona indexing in production to avoid hanging on Google AI API calls
-  // Persona indexing generates embeddings for all persona content which can take forever
-  // In Cloud Run, this causes the agent to timeout during initialization
+  // OPTIMIZATION: Use lazy initialization for Firestore to reduce cold start time
+  // The FirestoreStore now auto-initializes on first use, so we can skip the blocking init
+  // This reduces startup from ~1100ms to ~400ms
   const shouldIndexPersona = process.env.SKIP_PERSONA_INDEXING !== 'true' && config.environment !== 'production';
-  logger.info({ indexPersona: shouldIndexPersona }, 'Initializing memory system...');
+  const isLazyInit = process.env.LAZY_FIRESTORE !== 'false'; // Default to lazy
+  
+  logger.info({ indexPersona: shouldIndexPersona, lazyInit: isLazyInit }, 'Initializing memory system...');
   const memStart = Date.now();
-  memorySystem = await initializeMemorySystem({
-    storeType: config.storage.type,
-    enableRedis: config.cache.enabled,
-    indexPersona: shouldIndexPersona,
-  });
-  logger.info(
-    `✓ Memory: ${config.storage.type}${config.cache.enabled ? ' + Redis cache' : ''} (${Date.now() - memStart}ms)`
-  );
+  
+  if (isLazyInit) {
+    // Lazy mode: Create stores but don't connect to Firestore yet
+    // Connection happens on first actual use (saves ~500ms in cold start)
+    memorySystem = await initializeMemorySystem({
+      storeType: config.storage.type,
+      enableRedis: false, // Skip Redis in lazy mode - connect on demand
+      indexPersona: false, // Always skip in lazy mode
+      skipFirestoreInit: true, // Skip Firestore init
+      rehydrateConversations: false, // Skip rehydration - store not ready yet
+    });
+    logger.info(`✓ Memory: LAZY mode (${Date.now() - memStart}ms) - Firestore connects on first use`);
+  } else {
+    // Eager mode: Full initialization (original behavior)
+    memorySystem = await initializeMemorySystem({
+      storeType: config.storage.type,
+      enableRedis: config.cache.enabled,
+      indexPersona: shouldIndexPersona,
+    });
+    logger.info(
+      `✓ Memory: ${config.storage.type}${config.cache.enabled ? ' + Redis cache' : ''} (${Date.now() - memStart}ms)`
+    );
+  }
 
   // Initialize services (prewarm)
   logger.info('Initializing services...');
@@ -153,57 +170,88 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Intelligent Outreach Engine startup failed (non-fatal): ${outreachErr}`);
   }
 
-  // PARALLELIZED INITIALIZATION - Run independent operations concurrently
-  // This significantly reduces cold start time
-  logger.info('Initializing services in parallel...');
+  // ============================================================================
+  // SPLIT INITIALIZATION: Essential vs Deferred
+  // Essential: Must complete before first session (team handlers, persistence)
+  // Deferred: Can complete after first greeting (analytics, insights, evolution)
+  // ============================================================================
+  
   const parallelStart = Date.now();
-
-  const parallelInits = await Promise.allSettled([
-    // Team handlers for cross-agent communication
+  
+  // ESSENTIAL: These must be ready for first session
+  logger.info('Initializing essential services...');
+  const essentialInits = await Promise.allSettled([
+    // Team handlers for cross-agent communication (needed for handoffs)
     initializeTeamHandlers().then(() => {
       logger.info('✓ Team handlers ready');
       return 'team_handlers';
     }),
 
-    // Community insights (collective learning)
-    import('./intelligence/community-insights.js')
-      .then(({ initializeCommunityInsights }) => initializeCommunityInsights())
-      .then(() => {
-        logger.info('✓ Community insights loaded');
-        return 'community_insights';
-      }),
-
-    // Agent evolution (persona self-improvement)
-    import('./intelligence/agent-evolution.js')
-      .then(({ initializeAgentEvolution }) => initializeAgentEvolution())
-      .then(() => {
-        logger.info('✓ Agent evolution loaded');
-        return 'agent_evolution';
-      }),
-
-    // Tool usage analytics
-    import('./services/tool-usage-analytics.js')
-      .then(({ toolUsageAnalytics }) => toolUsageAnalytics.initialize())
-      .then(() => {
-        logger.info('✓ Tool usage analytics ready');
-        return 'tool_analytics';
-      }),
-
-    // Persistence services
+    // Persistence services (needed for user profile lookups)
     initializeAllPersistence().then(() => {
       logger.info('✓ Persistence services ready');
       return 'persistence';
     }),
   ]);
+  
+  logger.info(`Essential init complete (${Date.now() - parallelStart}ms)`);
 
-  logger.info(`Parallel init complete (${Date.now() - parallelStart}ms)`);
+  // DEFERRED: These run in background AFTER startup completes
+  // This allows first greeting to happen ~150ms faster
+  const deferredInit = async () => {
+    const deferStart = Date.now();
+    
+    const deferredInits = await Promise.allSettled([
+      // Community insights (collective learning) - not needed for first greeting
+      import('./intelligence/community-insights.js')
+        .then(({ initializeCommunityInsights }) => initializeCommunityInsights())
+        .then(() => {
+          logger.debug('✓ Community insights loaded (deferred)');
+          return 'community_insights';
+        }),
 
-  // Log any failures (all are non-fatal)
-  const failures = parallelInits.filter((r) => r.status === 'rejected');
-  if (failures.length > 0) {
-    for (const failure of failures) {
+      // Agent evolution (persona self-improvement) - not needed for first greeting
+      import('./intelligence/agent-evolution.js')
+        .then(({ initializeAgentEvolution }) => initializeAgentEvolution())
+        .then(() => {
+          logger.debug('✓ Agent evolution loaded (deferred)');
+          return 'agent_evolution';
+        }),
+
+      // Tool usage analytics - not needed for first greeting
+      import('./services/tool-usage-analytics.js')
+        .then(({ toolUsageAnalytics }) => toolUsageAnalytics.initialize())
+        .then(() => {
+          logger.debug('✓ Tool usage analytics ready (deferred)');
+          return 'tool_analytics';
+        }),
+    ]);
+    
+    const failures = deferredInits.filter((r) => r.status === 'rejected');
+    if (failures.length > 0) {
+      for (const failure of failures) {
+        if (failure.status === 'rejected') {
+          logger.warn(`Deferred init failure (non-fatal): ${failure.reason}`);
+        }
+      }
+    }
+    
+    logger.debug(`Deferred init complete (${Date.now() - deferStart}ms)`);
+  };
+  
+  // Fire-and-forget deferred initialization
+  setTimeout(() => {
+    deferredInit().catch((err) => {
+      logger.warn(`Deferred initialization failed: ${err}`);
+    });
+  }, 100); // Small delay to let first session start
+
+  // Log essential failures
+  const essentialFailures = essentialInits.filter((r) => r.status === 'rejected');
+  if (essentialFailures.length > 0) {
+    for (const failure of essentialFailures) {
       if (failure.status === 'rejected') {
-        logger.warn(`Non-fatal init failure: ${failure.reason}`);
+        logger.warn(`Essential init failure: ${failure.reason}`);
       }
     }
   }

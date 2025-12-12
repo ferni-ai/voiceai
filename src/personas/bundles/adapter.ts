@@ -77,7 +77,8 @@ function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): str
  * Extract thinking sounds from either array format or structured format
  */
 function extractThinkingSounds(thinkingSounds: BundleBehaviors['thinking_sounds']): string[] {
-  const defaults = ['Let me think about that...', 'Hmm, good question.', "Here's how I see it..."];
+  // NOTE: Avoid "good question" - sounds like self-compliment
+  const defaults = ['Let me think about that...', 'Hmm, let me see.', "Here's how I see it..."];
 
   if (!thinkingSounds) return defaults;
 

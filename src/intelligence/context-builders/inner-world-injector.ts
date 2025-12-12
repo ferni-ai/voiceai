@@ -667,21 +667,27 @@ export function formatInnerWorldForPrompt(
   }
 
   const sections: string[] = [];
+  // IMPORTANT: Don't inject literal transition phrases or content - the LLM copies them verbatim
+  // Just indicate the TYPE of sharing that might fit
   sections.push('[PERSONAL SHARE OPPORTUNITY]');
-  sections.push('If the moment feels right, you could naturally share something personal:');
+  sections.push('If the moment feels right, you could naturally share something personal.');
   sections.push('');
 
   for (const injection of validInjections.slice(0, 2)) {
-    const transition =
-      injection.transitionPhrases[Math.floor(Math.random() * injection.transitionPhrases.length)];
-    sections.push(`Transition: "${transition}"`);
-    sections.push(`Share: "${injection.content}"`);
-    sections.push(`(Depth: ${injection.depth} - ${Math.round(injection.probability * 100)}% fit)`);
+    // Describe the type of share, not the literal content
+    const depthDesc =
+      injection.depth === 'surface'
+        ? 'light observation or quirk'
+        : injection.depth === 'medium'
+          ? 'relatable personal experience'
+          : 'meaningful vulnerability';
+    sections.push(`• A ${depthDesc} that connects to what they shared`);
+    sections.push(`  (${Math.round(injection.probability * 100)}% fit for this moment)`);
     sections.push('');
   }
 
   sections.push("IMPORTANT: Only share if it feels NATURAL. Don't force it.");
-  sections.push('These personal moments should feel spontaneous, not scripted.');
+  sections.push('Craft your own words - these moments should feel spontaneous, not scripted.');
 
   return sections.join('\n');
 }

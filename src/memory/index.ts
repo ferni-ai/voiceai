@@ -294,24 +294,31 @@ export function detectStoreType(): StoreType {
 
 /**
  * Create the appropriate store based on environment
+ * @param type - Store type to create
+ * @param skipInit - If true, skip initialization (for lazy loading)
  */
-export async function createStore(type?: StoreType): Promise<MemoryStore> {
+export async function createStore(type?: StoreType, skipInit = false): Promise<MemoryStore> {
   const storeType = type || detectStoreType();
 
-  getLogger().info(`Creating ${storeType} store...`);
+  getLogger().info({ storeType, lazy: skipInit }, `Creating ${storeType} store...`);
 
   switch (storeType) {
     case 'firestore': {
       const { getFirestoreStore } = await import('./firestore-store.js');
       const store = getFirestoreStore();
-      await store.initialize();
+      if (!skipInit) {
+        await store.initialize();
+      }
+      // Store will auto-initialize on first use if skipInit=true
       return store;
     }
 
     case 'postgres': {
       const { getPostgresStore } = await import('./postgres-store.js');
       const store = getPostgresStore();
-      await store.initialize();
+      if (!skipInit) {
+        await store.initialize();
+      }
       return store;
     }
 
@@ -319,7 +326,9 @@ export async function createStore(type?: StoreType): Promise<MemoryStore> {
     default: {
       const { getDefaultStore } = await import('./in-memory-store.js');
       const store = getDefaultStore();
-      await store.initialize();
+      if (!skipInit) {
+        await store.initialize();
+      }
       return store;
     }
   }
@@ -386,6 +395,8 @@ export interface MemorySystemConfig {
   usePersistentVectors?: boolean;
   /** Rehydrate conversation embeddings from Firestore on startup */
   rehydrateConversations?: boolean;
+  /** Skip Firestore initialization for lazy loading (connects on first use) */
+  skipFirestoreInit?: boolean;
 }
 
 export interface MemorySystemResult {
@@ -457,6 +468,10 @@ export async function rehydrateConversationEmbeddings(
   return rehydratedCount;
 }
 
+// Cache for memory system result (idempotent initialization)
+let cachedMemorySystem: MemorySystemResult | null = null;
+let initializingPromise: Promise<MemorySystemResult> | null = null;
+
 /**
  * Initialize the complete memory system
  *
@@ -470,8 +485,34 @@ export async function rehydrateConversationEmbeddings(
  * - Development: VectorStore (ephemeral, in-memory)
  *
  * Optional Redis cache for sessions.
+ * 
+ * NOTE: This function is idempotent - subsequent calls return cached result.
  */
 export async function initializeMemorySystem(
+  config?: MemorySystemConfig
+): Promise<MemorySystemResult> {
+  // Return cached result if already initialized
+  if (cachedMemorySystem) {
+    getLogger().debug('Memory system already initialized, returning cached result');
+    return cachedMemorySystem;
+  }
+  
+  // If initialization is in progress, wait for it
+  if (initializingPromise) {
+    return initializingPromise;
+  }
+  
+  // Start initialization
+  initializingPromise = doInitializeMemorySystem(config);
+  try {
+    cachedMemorySystem = await initializingPromise;
+    return cachedMemorySystem;
+  } finally {
+    initializingPromise = null;
+  }
+}
+
+async function doInitializeMemorySystem(
   config?: MemorySystemConfig
 ): Promise<MemorySystemResult> {
   getLogger().info('Initializing memory system...');
@@ -485,19 +526,28 @@ export async function initializeMemorySystem(
     (storeType === 'firestore' || process.env.NODE_ENV === 'production');
 
   // Initialize primary store
-  const store = config?.store || (await createStore(storeType));
+  // With skipFirestoreInit=true, skip the blocking initialize() call
+  const skipInit = config?.skipFirestoreInit === true;
+  const store = config?.store || (await createStore(storeType, skipInit));
 
   // Initialize vector store - use persistent Firestore store in production
+  // With skipFirestoreInit=true, skip the blocking initialize() call - it happens on first use
   let vectorStore: VectorStore | FirestoreVectorStore;
+  
   if (usePersistentVectors) {
-    getLogger().info('Using persistent FirestoreVectorStore');
+    getLogger().info({ lazy: skipInit }, 'Using persistent FirestoreVectorStore');
     const firestoreVectorStore = getFirestoreVectorStore();
-    await firestoreVectorStore.initialize();
+    if (!skipInit) {
+      await firestoreVectorStore.initialize();
+    }
+    // Store will auto-initialize on first use if skipInit=true
     vectorStore = firestoreVectorStore;
   } else {
     getLogger().info('Using ephemeral in-memory VectorStore');
     const memoryVectorStore = getVectorStore();
-    await memoryVectorStore.initialize();
+    if (!skipInit) {
+      await memoryVectorStore.initialize();
+    }
     vectorStore = memoryVectorStore;
   }
 
@@ -551,6 +601,10 @@ export async function initializeMemorySystem(
  */
 export async function shutdownMemorySystem(): Promise<void> {
   getLogger().info('Shutting down memory system...');
+
+  // Clear cached memory system
+  cachedMemorySystem = null;
+  initializingPromise = null;
 
   // Close Redis
   if (redisCacheEnabled) {

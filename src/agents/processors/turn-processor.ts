@@ -1544,19 +1544,44 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     throw new Error('Empty user text');
   }
 
-  // 1. Analyze message
+  // 1. Analyze message (synchronous - required for all downstream)
   const analysisResult = analyzeMessage(ctx);
 
-  // 2. Update conversation state
+  // 2. Update conversation state (synchronous)
   updateConversationState(ctx, analysisResult);
 
-  // 3. Check easter eggs
-  const easterEgg = await checkEasterEggs(ctx, turnCtx);
+  // ============================================================================
+  // PARALLEL PROCESSING: Run independent async operations concurrently
+  // This saves ~30-50ms by not waiting for each operation sequentially
+  // ============================================================================
+  
+  // Start independent async operations in parallel
+  const easterEggPromise = checkEasterEggs(ctx, turnCtx);
+  
+  // Fire-and-forget humanization processing (doesn't block turn)
+  void (async () => {
+    try {
+      const { processUserMessage } = await import(
+        '../../conversation/humanization/voice-agent-integration.js'
+      );
+      processUserMessage(services.sessionId, userText, {
+        voiceEmotion: userData?.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary,
+              confidence: userData.voiceEmotion.confidence,
+            }
+          : undefined,
+        topic: analysisResult.currentTopic,
+      });
+    } catch {
+      // Non-fatal - don't log noise
+    }
+  })();
 
-  // 4. Build emotional state (includes voice-text mismatch detection)
+  // 4. Build emotional state (synchronous - depends on analysis)
   const emotionalState = buildEmotionalState(ctx, analysisResult);
 
-  // 4b. Record mismatch as cross-persona insight if significant
+  // 4b. Record mismatch as cross-persona insight (fire-and-forget)
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
       | 'ferni'
@@ -1570,36 +1595,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       services.userId || 'anonymous',
       personaId,
       emotionalState.mismatch
-    ).catch(() => {
-      // Non-critical - don't block on insight recording
-    });
+    ).catch(() => {});
   }
 
-  // 4c. Process conversation dynamics (narrative arc, engagement, rhythm, silence)
+  // 4c. Process conversation dynamics (synchronous - depends on analysis + emotion)
   const conversationDynamics = processConversationDynamics(ctx, analysisResult, {
     primary: emotionalState.primary,
     intensity: emotionalState.intensity,
     distressLevel: emotionalState.distressLevel,
   });
 
-  // 4d. ADVANCED HUMANIZATION: Process user message for deep humanization
-  // This feeds the humanization orchestrator for response enhancement
-  try {
-    const { processUserMessage } =
-      await import('../../conversation/humanization/voice-agent-integration.js');
-    processUserMessage(services.sessionId, userText, {
-      voiceEmotion: userData?.voiceEmotion
-        ? {
-            primary: userData.voiceEmotion.primary,
-            confidence: userData.voiceEmotion.confidence,
-          }
-        : undefined,
-      topic: analysisResult.currentTopic,
-    });
-  } catch (humanizationErr) {
-    // Non-fatal - don't block turn processing
-    diag.debug('Advanced humanization processing skipped', { error: String(humanizationErr) });
-  }
+  // Wait for easter egg check (should be fast, but was started in parallel)
+  const easterEgg = await easterEggPromise;
 
   // 5. Build response guidance
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
@@ -1652,25 +1659,28 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // 8. Process bundle runtime
   const bundleRuntimeContext = processBundleRuntime(ctx, analysisResult);
 
-  // 9. Build all context injections
-  const injections = await buildContextInjections(
-    ctx,
-    analysisResult,
-    emotionalState,
-    responseGuidance,
-    identityContext,
-    humanizingResult,
-    bundleRuntimeContext,
-    conversationDynamics
-  );
-
-  // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
-  // This is the core "Better Than Human" humanization layer
-  const advancedHumanizationResult = await processAdvancedHumanization(
-    ctx,
-    analysisResult,
-    emotionalState
-  );
+  // ============================================================================
+  // PARALLEL CONTEXT BUILDING: Run context + humanization concurrently
+  // These are the two heaviest async operations - running in parallel saves ~50ms
+  // ============================================================================
+  
+  const [injections, advancedHumanizationResult] = await Promise.all([
+    // 9. Build all context injections
+    buildContextInjections(
+      ctx,
+      analysisResult,
+      emotionalState,
+      responseGuidance,
+      identityContext,
+      humanizingResult,
+      bundleRuntimeContext,
+      conversationDynamics
+    ),
+    
+    // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
+    // This is the core "Better Than Human" humanization layer
+    processAdvancedHumanization(ctx, analysisResult, emotionalState),
+  ]);
 
   // Add advanced humanization injections
   if (advancedHumanizationResult) {

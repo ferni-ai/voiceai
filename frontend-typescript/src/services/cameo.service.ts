@@ -20,7 +20,7 @@
  * ```
  */
 
-import { CAMEO_SOUNDS, CAMEO_TIMING, getCameoPersonaColors } from '../config/cameo-config.js';
+import { CAMEO_SOUNDS, getCameoPersonaColors } from '../config/cameo-config.js';
 import type { DataMessage } from '../types/events.js';
 import { createLogger } from '../utils/logger.js';
 import { audioService, type SoundEffect } from './audio.service.js';

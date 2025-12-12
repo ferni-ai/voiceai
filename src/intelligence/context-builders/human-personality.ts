@@ -298,20 +298,23 @@ async function buildHumanPersonalityContext(
         const timingCheck = shouldSharePersonalMoment(userText, relevantMoment.relevanceScore);
 
         if (timingCheck.should) {
+          // IMPORTANT: Don't inject literal content - the LLM copies it verbatim
+          // Just indicate the type of moment that might fit
+          const depthDesc =
+            relevantMoment.moment.depth === 'surface'
+              ? 'light personal observation'
+              : relevantMoment.moment.depth === 'medium'
+                ? 'relatable personal story'
+                : 'meaningful vulnerable moment';
           const momentInjection = [
             '[✨ PERSONAL MOMENT OPPORTUNITY]',
             '',
-            'If the moment feels right, you could share something personal:',
+            `If the moment feels right, you could share a ${depthDesc}.`,
+            `(Relevance: ${Math.round(relevantMoment.relevanceScore * 100)}% | Timing: ${timingCheck.reason})`,
             '',
-            `Transition: "${relevantMoment.suggestedTransition}"`,
-            `Share: "${relevantMoment.moment.content}"`,
-            `(Relevance: ${Math.round(relevantMoment.relevanceScore * 100)}% | Depth: ${relevantMoment.moment.depth})`,
-            '',
-            `Timing: ${timingCheck.reason}`,
-            '',
-            "IMPORTANT: Only share if it feels NATURAL. Don't force it.",
+            "IMPORTANT: Only share if it feels NATURAL. Craft your own words - don't script it.",
             relevantMoment.previouslyShared
-              ? "(Note: You've shared this before - maybe reference it differently)"
+              ? "(Note: You've shared something like this before - maybe approach it differently)"
               : '',
           ]
             .filter(Boolean)

@@ -73,7 +73,7 @@ export const WELLNESS_COACH_PERSONA: PersonaConfig = {
 
     thinkingPhrases: [
       'Let me think about that...',
-      "That's a great question to explore...",
+      'Hmm, let me explore that...',
       'Hmm, there are a few ways to look at this...',
     ],
 

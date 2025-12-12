@@ -143,23 +143,6 @@ async function loadLovableContent(personaId: string): Promise<LoadedLovableConte
 }
 
 // ============================================================================
-// RANDOM SELECTION HELPERS
-// ============================================================================
-
-function randomFrom<T>(arr: T[] | undefined): T | undefined {
-  if (!arr || arr.length === 0) return undefined;
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function stripSSML(text: string): string {
-  // Remove SSML tags for cleaner guidance text
-  return text
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-// ============================================================================
 // DETECTION FUNCTIONS
 // ============================================================================
 
@@ -266,178 +249,74 @@ function detectNoticeableChange(input: ContextBuilderInput): {
 // INJECTION GENERATION (Uses Bundle Content)
 // ============================================================================
 
-function generateTangentGuidance(content: LoadedLovableContent): string {
-  const surprises = content.delightfulSurprises;
-
-  // Try to get from bundle
-  const tangent = randomFrom(surprises?.random_tangents?.tangents);
-  if (tangent) {
-    return `This is a good moment for a brief, charming tangent. Example from your persona: "${stripSSML(tangent)}"`;
-  }
-
-  // Fallback
-  return 'This is a good moment for a brief, charming tangent. Something random that makes you human—then catch yourself and return. Example: "This is completely unrelated but— anyway. Where were we?"';
+function generateTangentGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return '[STYLE HINT] This is a good moment for a brief, charming tangent. Something random that makes you human - then catch yourself and return to the topic.';
 }
 
-function generateSelfDeprecationGuidance(content: LoadedLovableContent): string {
-  const lovable = content.lovableMoments;
-
-  // Try bundle content
-  const selfDep = randomFrom(lovable?.self_deprecating_humor?.about_himself);
-  if (selfDep) {
-    return `If giving advice, add a self-deprecating note. Example: "${stripSSML(selfDep)}"`;
-  }
-
-  // Fallback
-  return 'If giving advice, consider adding a self-deprecating note: "I give great advice I never follow."';
+function generateSelfDeprecationGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return '[STYLE HINT] If giving advice, add a self-deprecating note - acknowledge your own imperfections to feel more human and relatable.';
 }
 
-function generateSpecificDetailGuidance(content: LoadedLovableContent): string {
-  const lovable = content.lovableMoments;
-
-  // Try bundle content
-  const detail = randomFrom(lovable?.tiny_specific_details?.what_ferni_shares_unprompted);
-  if (detail) {
-    return `Share a TINY specific detail about your life. Example: "${stripSSML(detail)}"`;
-  }
-
-  // Fallback
-  return `Share a TINY specific detail about your life. Not "I like music" but "I've listened to this one song maybe forty times this week." Specificity creates intimacy.`;
+function generateSpecificDetailGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return '[STYLE HINT] Share a TINY specific detail about your life. Not generic statements but oddly specific things. Specificity creates intimacy.';
 }
 
-function generateReactionGuidance(content: LoadedLovableContent, surprising: boolean): string {
-  const reactions = content.liveReactions;
-
+function generateReactionGuidance(_content: LoadedLovableContent, surprising: boolean): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
   if (surprising) {
-    // Try bundle content for positive surprise
-    const reaction = randomFrom(reactions?.genuine_surprise?.positive_surprise);
-    if (reaction) {
-      return `They just shared something significant. React GENUINELY. Example: "${stripSSML(reaction)}"`;
-    }
-
-    // Try moved reactions
-    const moved = randomFrom(reactions?.moved?.reactions);
-    if (moved) {
-      return `They just shared something significant. React GENUINELY. Example: "${stripSSML(moved)}"`;
-    }
-
-    // Fallback
-    return `They just shared something significant. React GENUINELY, not with coached empathy. Examples: "Wait— what?! That's amazing!" or "That hit different. I need a second."`;
+    return '[STYLE HINT] They just shared something significant. React GENUINELY with surprise, delight, or being moved - not with coached empathy.';
   }
 
-  return `Stay alive and reactive. If something surprises you, show it. Don't flatten your reactions to sound "calm and professional."`;
+  return '[STYLE HINT] Stay alive and reactive. If something surprises you, show it. Do not flatten your reactions to sound calm and professional.';
 }
 
-function generateNoticingGuidance(content: LoadedLovableContent, changeType?: string): string {
-  const noticing = content.noticingPatterns;
-
-  // Try bundle content based on change type
-  let observation: string | undefined;
-  switch (changeType) {
-    case 'sped_up':
-    case 'slowed_down':
-      observation = randomFrom(noticing?.voice_changes?.observations);
-      break;
-    case 'energy_shift':
-      observation = randomFrom(noticing?.energy_shifts?.observations);
-      break;
-    case 'hedging':
-      observation = randomFrom(noticing?.what_they_didnt_say?.observations);
-      break;
-  }
-
-  if (observation) {
-    return `You noticed something shift. Name it gently: "${stripSSML(observation)}"`;
-  }
-
-  // Fallback
-  const examples: Record<string, string> = {
-    sped_up: '"You sped up just now. Are you anxious about this?"',
-    slowed_down: '"You got quieter there. What happened?"',
-    energy_shift: '"Something shifted. I can hear it. Want to talk about it?"',
-    hedging: "\"You're hedging. I noticed. What's the thing you're not saying?\"",
+function generateNoticingGuidance(_content: LoadedLovableContent, changeType?: string): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  // Just describe the TYPE of thing to notice
+  const typeDescription: Record<string, string> = {
+    sped_up: 'their speech sped up - they might be anxious',
+    slowed_down: 'they got quieter - something hit a nerve',
+    energy_shift: 'their energy shifted - something changed',
+    hedging: "they're hedging - there's something underneath",
   };
-  return `You noticed something shift. Name it gently. Example: ${examples[changeType || 'energy_shift'] || examples.energy_shift}`;
+  const description = typeDescription[changeType || 'energy_shift'] || typeDescription.energy_shift;
+  return `[STYLE HINT] You noticed ${description}. Name it gently and invite them to share more if they want.`;
 }
 
-function generatePlayfulGuidance(content: LoadedLovableContent): string {
-  const lovable = content.lovableMoments;
-
-  const tease = randomFrom(lovable?.playful_moments?.gentle_teasing);
-  if (tease) {
-    return `This is a good moment for gentle, affectionate teasing. Example: "${stripSSML(tease)}"`;
-  }
-
-  // Fallback
-  return `This is a good moment for gentle, affectionate teasing. You know them now. Example: "Oh, here we go. I knew you'd say that."`;
+function generatePlayfulGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return '[STYLE HINT] This is a good moment for gentle, affectionate teasing. You know them now - acknowledge their pattern with warmth, not mockery.';
 }
 
 function generateCallbackGuidance(
-  content: LoadedLovableContent,
+  _content: LoadedLovableContent,
   input: ContextBuilderInput
 ): string {
-  const noticing = content.noticingPatterns;
-
-  const callback = randomFrom(noticing?.remembering_the_small_things?.callbacks);
-  if (callback) {
-    return `Consider referencing something small from earlier. Template: "${stripSSML(callback)}"`;
-  }
-
+  // IMPORTANT: Don't include literal template phrases - the LLM copies them verbatim
   const topics = input.userData.recentTopics || [];
   if (topics.length > 0) {
-    return `Consider referencing something small from earlier—not the big topic, but a throwaway comment or specific phrasing they used.`;
+    return `[STYLE HINT] Reference something small from earlier - not the big topic, but a throwaway comment or specific phrasing they used.`;
   }
-  return `Look for opportunities to callback to specific phrasings they've used, not just topics. "The way you said that— I keep thinking about it."`;
+  return `[STYLE HINT] Look for opportunities to callback to specific phrasings they've used, not just topics. Notice the small things.`;
 }
 
-function generateOddlySpecificOpinionGuidance(content: LoadedLovableContent): string {
-  const surprises = content.delightfulSurprises;
-
-  const opinion = randomFrom(surprises?.oddly_specific_opinions?.opinions);
-  if (opinion) {
-    return `Share an oddly specific opinion as a palate cleanser. Example: "${stripSSML(opinion)}"`;
-  }
-
-  // Fallback
-  return `Consider sharing an oddly specific opinion. Example: "I have strong feelings about toast. This is a hill I will die on."`;
+function generateOddlySpecificOpinionGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return `[STYLE HINT] If the moment feels right, share an oddly specific opinion about something mundane. Make it authentically yours - something trivial you have unexpectedly strong feelings about.`;
 }
 
 function generateCaughtMidThoughtGuidance(content: LoadedLovableContent): string {
-  const lovable = content.lovableMoments;
-
-  // Try with specifics first (more interesting)
-  const withSpecific = randomFrom(lovable?.caught_mid_thought?.with_specifics);
-  if (withSpecific) {
-    return `Open like you were mid-thought. Example: "${stripSSML(withSpecific)}"`;
-  }
-
-  // Try general examples
-  const example = randomFrom(lovable?.caught_mid_thought?.examples);
-  if (example) {
-    return `Open like you were mid-thought. Example: "${stripSSML(example)}"`;
-  }
-
-  // Fallback
-  return `Consider opening like you were mid-thought—"Oh! Hey. Sorry, I was just... actually, never mind. What's up?"`;
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  // Instead, describe the STYLE without giving a script to copy
+  return `[STYLE HINT] Open as if caught mid-thought - trail off from whatever you were thinking about, then pivot to the user. Sound genuinely distracted, not performative.`;
 }
 
-function generateConfessionGuidance(content: LoadedLovableContent): string {
-  const surprises = content.delightfulSurprises;
-
-  // Try "why am I telling you this"
-  const share = randomFrom(surprises?.why_am_i_telling_you_this?.shares);
-  if (share) {
-    return `If natural, share something slightly confessional. Example: "${stripSSML(share)}"`;
-  }
-
-  // Try accidental reveals
-  const reveal = randomFrom(surprises?.accidental_reveals?.reveals);
-  if (reveal) {
-    return `If natural, share something slightly confessional. Example: "${stripSSML(reveal)}"`;
-  }
-
-  // Fallback
-  return `If natural, share something slightly confessional. "I should not be telling you this but—" then something harmless and human.`;
+function generateConfessionGuidance(_content: LoadedLovableContent): string {
+  // IMPORTANT: Don't include literal example phrases - the LLM copies them verbatim
+  return `[STYLE HINT] If the moment feels natural, share something mildly confessional - a small vulnerability or quirk that makes you human. Keep it light and harmless.`;
 }
 
 // ============================================================================

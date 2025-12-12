@@ -210,10 +210,11 @@ async function buildTeamAvailabilityContext(
   const currentTopic = analysis.topics?.primary || analysis.topics?.detected?.[0];
   const teaser = getContextualUnlockTeaser(state, currentTopic || undefined);
   if (teaser) {
+    // Note: Don't inject literal phrases - just indicate team is available to mention
     injections.push(
       createHintInjection(
         'team_teaser',
-        `[NATURAL MENTION: If it fits the conversation, you could say something like: "${teaser}"]`,
+        `[NATURAL MENTION: You have team members who could help with topics like this. If it fits naturally, you can mention you have colleagues with relevant expertise.]`,
         { category: 'team' }
       )
     );

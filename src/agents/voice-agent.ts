@@ -2108,6 +2108,15 @@ export default defineAgent({
               // Non-fatal
             }
 
+            // Pre-warm greeting for instant first response
+            try {
+              const { prewarmGreeting } = await import('./shared/warm-greeting.js');
+              const defaultPersona = process.env.PERSONA_ID || 'ferni';
+              prewarmGreeting(defaultPersona);
+            } catch {
+              // Non-fatal - greeting will generate on demand
+            }
+
             // Warm caches in background (non-blocking)
             try {
               const { warmCachesOnStartup } = await import('../services/cache-warming.js');
@@ -2831,79 +2840,82 @@ export default defineAgent({
       diag.state('Humanization signal emitter initialized');
 
       // ===============================================
-      // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
+      // PARALLEL INITIALIZATION: Non-critical services
       // ===============================================
-      // Wire up real-time engagement data to frontend
-      try {
-        const engagementDataSender = getEngagementDataSender();
-        engagementDataSender.setRoom(
-          ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
-        );
-
-        // Send initial engagement data to frontend
-        if (userId) {
-          await engagementDataSender.sendEngagementData(userId);
-          diag.state('Engagement data sent to frontend');
-        }
-      } catch (engageError) {
-        diag.warn('Engagement data init failed (non-fatal)', { error: String(engageError) });
-      }
-
-      // ===============================================
-      // STEP 6c: INITIALIZE COGNITIVE INTELLIGENCE
-      // ===============================================
-      try {
-        await onCognitiveSessionStart({
-          userId: userId || 'anonymous',
-          personaId: sessionPersona.id,
-          userProfile: services.userProfile,
-          sessionId,
-        });
-        diag.state('Cognitive session initialized');
-      } catch (cogError) {
-        diag.warn('Cognitive session init failed (non-fatal)', { error: String(cogError) });
-      }
-
-      // ===============================================
-      // STEP 6d: INITIALIZE GAME ENGINE
-      // ===============================================
-      // Load persisted game memory for "more than human" features
-      try {
-        const { getGameEngine } = await import('../services/games/index.js');
-        const engine = getGameEngine(sessionPersona.id);
-        if (userId) {
-          await engine.initializeForUser(userId);
-          diag.state('Game engine initialized', {
-            totalGames: engine.getGameMemory()?.totalGamesPlayed || 0,
-            bestStreak: engine.getGameMemory()?.bestStreak || 0,
-          });
-        }
-      } catch (gameError) {
-        diag.warn('Game engine init failed (non-fatal)', { error: String(gameError) });
-      }
-
-      // ===============================================
-      // STEP 6e: INITIALIZE SIMPLE UTILITIES
-      // ===============================================
-      // "Better than human" everyday helpers (timers, tips, timezone, etc.)
-      // Includes: voice callbacks, cross-session memory, proactive suggestions
+      // These run in parallel for faster session start (~100ms savings)
       let utilitiesCleanup: (() => Promise<void>) | undefined;
       let utilitiesProactiveOpener: string | null = null;
-      if (userId) {
-        try {
-          const utilitiesResult = await initializeUtilitiesIntegration({
-            session,
-            userId,
-            enableProactive: isReturningUser, // Only proactive for returning users
-            enableVoiceCallbacks: true,
+      
+      const parallelInitStart = Date.now();
+      
+      const parallelInits = await Promise.allSettled([
+        // STEP 6b: Engagement data sender
+        (async () => {
+          const engagementDataSender = getEngagementDataSender();
+          engagementDataSender.setRoom(
+            ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
+          );
+          if (userId) {
+            await engagementDataSender.sendEngagementData(userId);
+          }
+          return 'engagement';
+        })(),
+
+        // STEP 6c: Cognitive intelligence
+        (async () => {
+          await onCognitiveSessionStart({
+            userId: userId || 'anonymous',
+            personaId: sessionPersona.id,
+            userProfile: services.userProfile,
+            sessionId,
           });
-          utilitiesCleanup = utilitiesResult.cleanup;
-          utilitiesProactiveOpener = utilitiesResult.proactiveOpener;
-          diag.state('Simple utilities initialized', {
-            hasProactiveOpener: !!utilitiesProactiveOpener,
+          return 'cognitive';
+        })(),
+
+        // STEP 6d: Game engine
+        (async () => {
+          const { getGameEngine } = await import('../services/games/index.js');
+          const engine = getGameEngine(sessionPersona.id);
+          if (userId) {
+            await engine.initializeForUser(userId);
+          }
+          return 'games';
+        })(),
+
+        // STEP 6e: Simple utilities
+        (async () => {
+          if (userId) {
+            const utilitiesResult = await initializeUtilitiesIntegration({
+              session,
+              userId,
+              enableProactive: isReturningUser,
+              enableVoiceCallbacks: true,
+            });
+            utilitiesCleanup = utilitiesResult.cleanup;
+            utilitiesProactiveOpener = utilitiesResult.proactiveOpener;
+          }
+          return 'utilities';
+        })(),
+      ]);
+      
+      // Log results
+      const parallelElapsed = Date.now() - parallelInitStart;
+      const succeeded = parallelInits.filter(r => r.status === 'fulfilled').length;
+      const failed = parallelInits.filter(r => r.status === 'rejected');
+      
+      diag.state('Parallel session init complete', {
+        elapsedMs: parallelElapsed,
+        succeeded,
+        failed: failed.length,
+        hasProactiveOpener: !!utilitiesProactiveOpener,
+      });
+      
+      // Log any failures (all non-critical)
+      for (const failure of failed) {
+        if (failure.status === 'rejected') {
+          diag.debug('Parallel init failure (non-critical)', { 
+            error: String(failure.reason).slice(0, 100) 
           });
-        } catch (utilError) {
-          diag.warn('Utilities init failed (non-fatal)', { error: String(utilError) });
         }
       }
 

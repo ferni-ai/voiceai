@@ -317,8 +317,9 @@ function formatMethodologyInjection(methodology: MethodologyContent, triggers: s
     if (model.source) {
       parts.push(`Source: ${model.source}${model.citation ? ` (${model.citation})` : ''}`);
     }
+    // Note: Don't inject literal core insight phrases - describe the approach instead
     if (model.core_insight) {
-      parts.push(`Core insight: "${model.core_insight}"`);
+      parts.push(`Core approach: ${model.core_insight}`);
     }
   }
 
@@ -364,9 +365,8 @@ function formatInterventionTechnique(
     parts.push(`Steps: ${technique.process.slice(0, 3).join(' → ')}`);
   }
 
-  if (technique.coaching_phrase) {
-    parts.push(`Consider: "${technique.coaching_phrase}"`);
-  }
+  // Note: Don't inject literal coaching phrases - the LLM copies them verbatim
+  // The technique description is enough to guide the approach
 
   return parts.join('\n');
 }
@@ -447,58 +447,32 @@ function formatWorldClassCoachingInjection(
     if (situation.frameworks) {
       parts.push(`Relevant frameworks: ${situation.frameworks.join(', ')}`);
     }
+    // Note: Don't inject literal key questions - the LLM copies them verbatim
+    // Just describe the type of question to consider
     if (situation.key_question) {
-      parts.push(`Key question: "${situation.key_question}"`);
+      parts.push(`Focus on exploring: the underlying ${situationalMatch?.replace(/_/g, ' ')} question`);
     }
   }
 
   // Add matched elite coach framework
+  // Note: Don't inject literal coaching phrases - just indicate the inspiration
   if (matchedCoach && coaching.elite_coaches_framework) {
     const coachData = coaching.elite_coaches_framework[matchedCoach] as Record<string, unknown>;
     if (coachData) {
       const coachName = matchedCoach.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       parts.push(`\n[INSPIRED BY: ${coachName}]`);
-
-      // Extract a relevant phrase
-      const phrases: string[] = [];
-      if (coachData.key_concepts) {
-        for (const concept of Object.values(coachData.key_concepts as Record<string, unknown>)) {
-          if ((concept as { coaching_phrases?: string[] }).coaching_phrases) {
-            phrases.push(
-              ...((concept as { coaching_phrases: string[] }).coaching_phrases.slice(0, 1) || [])
-            );
-          }
-        }
-      }
-      if (coachData.core_frameworks) {
-        for (const framework of Object.values(
-          coachData.core_frameworks as Record<string, unknown>
-        )) {
-          if ((framework as { coaching_phrases?: string[] }).coaching_phrases) {
-            phrases.push(
-              ...((framework as { coaching_phrases: string[] }).coaching_phrases.slice(0, 1) || [])
-            );
-          }
-        }
-      }
-
-      if (phrases.length > 0) {
-        parts.push(`Consider: "${phrases[0]}"`);
-      }
+      parts.push(`Channel their approach - but in YOUR voice, not theirs.`);
     }
   }
 
-  // Add a golden rule if available
+  // Add a golden rule if available - but describe the principle, don't quote it
   if (coaching.coaching_golden_rules?.from_the_masters) {
     const rules = coaching.coaching_golden_rules.from_the_masters;
     const randomRule = rules[Math.floor(Math.random() * rules.length)];
     if (randomRule && parts.length === 0) {
-      // Only add if no other content
+      // Only add if no other content - describe the principle
       parts.push(`[COACHING WISDOM - ${randomRule.source}]`);
-      parts.push(`"${randomRule.rule}"`);
-      if (randomRule.phrase) {
-        parts.push(`Try: "${randomRule.phrase}"`);
-      }
+      parts.push(`Apply their key principle here - in your own words, naturally.`);
     }
   }
 

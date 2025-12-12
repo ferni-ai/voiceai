@@ -376,21 +376,20 @@ Use naturally if the moment fits. Don't force it.`;
 function buildThoughtHint(decision: ReturnType<typeof internalMonologue.decideSurfacing>): string {
   if (!decision.thought) return '';
 
+  // IMPORTANT: Don't inject literal phrases - the LLM copies them verbatim
+  // Just describe the type of thought that surfaced
   return `[INTERNAL THOUGHT SURFACING]
 Type: ${decision.thought.type.replace(/_/g, ' ')}
-Transition: "${decision.transitionPhrase}"
-Share: "${decision.expression}"
-Only use if it feels natural. This came from genuine internal processing.`;
+A genuine thought arose from processing what they shared. Express it naturally in your own words if it fits.`;
 }
 
 function buildStoryHint(result: ReturnType<typeof storyUnlocks.getBest>): string {
   if (!result) return '';
 
+  // IMPORTANT: Don't inject literal introductions - the LLM copies them verbatim
   return `[STORY OPPORTUNITY]
-Story: ${result.story.id}
-Introduction: "${result.introduction}"
-Fit score: ${Math.round(result.fitScore)}%
-This story is UNLOCKED for this relationship. Use if it feels right.`;
+You have a relevant personal story that fits this moment (${Math.round(result.fitScore)}% fit).
+This story is UNLOCKED for this relationship. Share naturally if it feels right - in your own words.`;
 }
 
 function buildVocabHint(

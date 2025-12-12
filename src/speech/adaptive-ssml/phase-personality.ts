@@ -23,10 +23,11 @@ export function applyPhasePersonality(
 ): string {
   switch (phase) {
     case 'greeting':
-      // Warm welcome - slower, warmer, more pauses, affectionate
+      // Warm welcome - confident and present, not slow/timid
+      // NOTE: Previous 0.85 speed made Ferni sound weird and cautious
       return tagGreetingWithPersonality(text, {
-        speedRatio: 0.85,
-        pauseMultiplier: 1.3,
+        speedRatio: 0.95, // Natural pace, confident
+        pauseMultiplier: 1.1, // Just enough pause to feel warm
         emotion: 'affectionate',
         volumeRatio: 1.0,
       });
@@ -78,17 +79,18 @@ export function applyPhasePersonality(
 // ============================================================================
 
 /**
- * Tag greeting with personality - warm pauses and affection
+ * Tag greeting with personality - warm but confident, not slow/timid
+ * NOTE: Greetings should feel like Ferni - cool, warm, present
  */
 export function tagGreetingWithPersonality(text: string, options: PersonalityTagOptions): string {
-  const speed = options.speedRatio || 0.85;
+  const speed = options.speedRatio || 0.95; // Natural pace
   const emotion = options.emotion || 'affectionate';
   const volume = options.volumeRatio || 1.0;
 
-  // Add natural greeting pauses
+  // Add natural greeting pauses (shorter for confident delivery)
   const tagged = text.replace(
     /\b(Hi|Hello|Good morning|Good afternoon|Good evening)\b/i,
-    `$1<break time="200ms"/>`
+    `$1<break time="150ms"/>`
   );
 
   return `<emotion value="${emotion}"><speed ratio="${speed}"><volume ratio="${volume}">${tagged}</volume></speed></emotion>`;

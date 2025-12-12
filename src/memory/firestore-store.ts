@@ -136,15 +136,33 @@ export class FirestoreStore extends MemoryStore {
     }
   }
 
+  /**
+   * Ensure Firestore is initialized before any operation.
+   * This enables true lazy initialization - connect on first use, not startup.
+   * @returns The initialized Firestore instance (guaranteed non-null)
+   */
+  private async ensureInitialized(): Promise<Firestore> {
+    if (this._initialized && this.db) return this.db;
+    await this.initialize();
+    if (!this.db) throw new Error('FirestoreStore failed to initialize');
+    return this.db;
+  }
+
+  /** Helper to get db with non-null assertion after ensureInitialized */
+  private getDb(): Firestore {
+    // This is only called after ensureInitialized(), so db is guaranteed non-null
+    return this.db!;
+  }
+
   // ============================================================================
   // USER PROFILE OPERATIONS
   // ============================================================================
 
   async getProfile(userId: string): Promise<UserProfile | null> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       const doc = await docRef.get();
 
       if (!doc.exists) return null;
@@ -165,10 +183,10 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async saveProfile(profile: UserProfile): Promise<void> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      const docRef = this.db.collection(this.USERS_COLLECTION).doc(profile.id);
+      const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
       const serialized = this.serializeForFirestore(profile);
 
       await docRef.set(serialized, { merge: true });
@@ -180,10 +198,10 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async deleteProfile(userId: string): Promise<boolean> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       await docRef.delete();
       return true;
     } catch (error) {
@@ -193,10 +211,10 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async hasProfile(userId: string): Promise<boolean> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       const doc = await docRef.get();
       return doc.exists;
     } catch (error) {
@@ -206,7 +224,7 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async listProfiles(options?: QueryOptions): Promise<UserProfile[]> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const limit = options?.limit || 100;
@@ -242,7 +260,7 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
 
   async saveSummary(userId: string, summary: ConversationSummary): Promise<void> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const summaryRef = this.db
@@ -260,7 +278,7 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async getSummaries(userId: string, options?: QueryOptions): Promise<ConversationSummary[]> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const limit = options?.limit || 10;
@@ -301,7 +319,7 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
 
   async addKeyMoment(userId: string, moment: KeyMoment): Promise<void> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const momentId = moment.id || `moment_${Date.now()}`;
@@ -320,7 +338,7 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async getKeyMoments(userId: string, options?: QueryOptions): Promise<KeyMoment[]> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const limit = options?.limit || 50;
@@ -357,7 +375,7 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
 
   async saveGoal(userId: string, goal: FinancialGoal): Promise<void> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const goalRef = this.db
@@ -375,10 +393,10 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async getGoals(userId: string): Promise<FinancialGoal[]> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      const snapshot = await this.db
+      const snapshot = await db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('goals')
@@ -403,10 +421,10 @@ export class FirestoreStore extends MemoryStore {
   }
 
   async deleteGoal(userId: string, goalId: string): Promise<boolean> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
-      await this.db
+      await db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection('goals')
@@ -427,7 +445,7 @@ export class FirestoreStore extends MemoryStore {
     query: string,
     options?: QueryOptions
   ): Promise<Array<SearchResult<UserProfile>>> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     try {
       const limit = options?.limit || 10;
@@ -478,7 +496,7 @@ export class FirestoreStore extends MemoryStore {
       maxRetries?: number;
     } = {}
   ): Promise<UserProfile | null> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     const { createIfMissing = false, maxRetries = 3 } = options;
 
@@ -552,7 +570,7 @@ export class FirestoreStore extends MemoryStore {
       updater: (profile: UserProfile) => UserProfile;
     }>
   ): Promise<{ success: number; failed: number; errors: string[] }> {
-    if (!this.db) throw new Error('FirestoreStore not initialized');
+    const db = await this.ensureInitialized();
 
     const results = { success: 0, failed: 0, errors: [] as string[] };
 

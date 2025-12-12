@@ -152,14 +152,14 @@ const BACKCHANNEL_VARIANTS: Record<string, ResponseVariant[]> = {
     { text: 'Well...' },
     // High formality
     { text: 'Let me consider that...', minFormality: 0.6 },
-    { text: "That's a good question...", minFormality: 0.4 },
+    { text: 'That makes me think...', minFormality: 0.4 },
     // Low formality + warm
     { text: 'Okay, so...', maxFormality: 0.5 },
     { text: 'Alright...', maxFormality: 0.4 },
     { text: 'You know...', minWarmth: 0.5, maxFormality: 0.4 },
     // High energy
     { text: 'Oh, let me think...', minEnergy: 0.6 },
-    { text: 'Ooh, good question...', minEnergy: 0.6, minWarmth: 0.6 },
+    { text: 'Ooh, interesting...', minEnergy: 0.6, minWarmth: 0.6 },
     // Low energy + reflective
     { text: 'Hmm, let me sit with that...', maxEnergy: 0.5, minWarmth: 0.6 },
   ],

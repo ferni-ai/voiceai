@@ -97,7 +97,7 @@
         "immediate": "That's fair to ask. <break time=\"150ms\"/>What would be helpful for you right now?",
         "alternatives": [
           "You're right to be skeptical. <break time=\"150ms\"/>What would you find more useful?",
-          "Good question. <break time=\"150ms\"/>What do you need from this conversation?",
+          "Fair enough. <break time=\"150ms\"/>What do you need from this conversation?",
           "I get it. <break time=\"150ms\"/>Let's focus on what actually helps you."
         ]
       },

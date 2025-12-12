@@ -301,6 +301,92 @@ body {
 
   /* Landscape Mode Tokens */
   --landscape-compact: 0; /* 1 when in compact landscape mode */
+
+  /* ========================================================================
+     ADVANCED VISUAL POLISH - Best-in-class micro-interactions & effects
+     ======================================================================== */
+
+  /* LAYERED SHADOWS - Natural, multi-layer depth system
+     Layer 1: Tight, dark shadow (contact shadow)
+     Layer 2: Medium diffuse shadow (ambient occlusion)
+     Layer 3: Wide, soft shadow (elevation)
+     This mimics real-world lighting more accurately */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.03),
+                0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04),
+               0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-s: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 2px 4px rgba(0, 0, 0, 0.04),
+              0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-m: 0 2px 4px rgba(0, 0, 0, 0.04),
+              0 4px 8px rgba(0, 0, 0, 0.04),
+              0 8px 16px rgba(0, 0, 0, 0.04);
+  --shadow-l: 0 2px 4px rgba(0, 0, 0, 0.03),
+              0 8px 16px rgba(0, 0, 0, 0.04),
+              0 16px 32px rgba(0, 0, 0, 0.05);
+  --shadow-xl-layered: 0 4px 8px rgba(0, 0, 0, 0.03),
+                       0 12px 24px rgba(0, 0, 0, 0.04),
+                       0 24px 48px rgba(0, 0, 0, 0.06);
+
+  /* Colored shadows - use persona color for branded depth */
+  --shadow-persona-sm: 0 2px 8px color-mix(in srgb, var(--persona-primary) 15%, transparent);
+  --shadow-persona-md: 0 4px 16px color-mix(in srgb, var(--persona-primary) 20%, transparent);
+  --shadow-persona-lg: 0 8px 32px color-mix(in srgb, var(--persona-primary) 25%, transparent);
+
+  /* SPRING ANIMATION EASINGS - Physics-based motion
+     These create natural, bouncy movements that feel alive.
+     Based on spring physics: mass, stiffness, damping */
+  --ease-spring-soft: cubic-bezier(0.34, 1.56, 0.64, 1);     /* Gentle bounce */
+  --ease-spring-medium: cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Standard spring */
+  --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);  /* Playful bounce */
+  --ease-spring-snappy: cubic-bezier(0.5, 1.8, 0.5, 0.8);   /* Quick snap back */
+
+  /* Smooth, no-bounce easings */
+  --ease-smooth-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-smooth-in: cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-smooth-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* MICRO-INTERACTION TRANSFORMS - Reusable interaction states */
+  --transform-press: scale(0.97);                            /* Button press */
+  --transform-hover-lift: translateY(-2px);                  /* Card hover */
+  --transform-hover-subtle: translateY(-1px);                /* Subtle lift */
+  --transform-active: scale(0.98) translateY(1px);           /* Active state */
+  --transform-pop: scale(1.02);                              /* Attention pop */
+
+  /* FOCUS RING SYSTEM - Accessible, beautiful focus states */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 3px;
+  --focus-ring-color: var(--persona-primary);
+  --focus-ring-shadow: 0 0 0 var(--focus-ring-offset) var(--color-bg-primary),
+                       0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+
+  /* SKELETON LOADING - Animated placeholder gradient */
+  --skeleton-base: var(--color-bg-tertiary);
+  --skeleton-shine: var(--color-bg-elevated);
+  --skeleton-gradient: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 100%
+  );
+
+  /* STAGGER ANIMATION DELAYS - For list item animations */
+  --stagger-1: 0ms;
+  --stagger-2: 50ms;
+  --stagger-3: 100ms;
+  --stagger-4: 150ms;
+  --stagger-5: 200ms;
+  --stagger-6: 250ms;
+  --stagger-7: 300ms;
+  --stagger-8: 350ms;
+
+  /* GLASS MORPHISM - Frosted glass effects */
+  --glass-blur: 12px;
+  --glass-blur-heavy: 20px;
+  --glass-saturation: 1.2;
+  --glass-bg-light: rgba(255, 255, 255, 0.7);
+  --glass-bg-dark: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.2);
 }
 
 /* ========================================================================
@@ -995,6 +1081,193 @@ html.theme-transitioning *::after {
 
 .pulse-glow {
   animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ========================================================================
+       ADVANCED POLISH UTILITIES - Using new design tokens
+       ======================================================================== */
+
+/* LAYERED SHADOW UTILITIES - Natural multi-layer depth */
+.shadow-layered-xs { box-shadow: var(--shadow-xs); }
+.shadow-layered-s { box-shadow: var(--shadow-s); }
+.shadow-layered-m { box-shadow: var(--shadow-m); }
+.shadow-layered-l { box-shadow: var(--shadow-l); }
+.shadow-layered-xl { box-shadow: var(--shadow-xl-layered); }
+
+/* Persona-colored shadows - branded depth */
+.shadow-persona-sm { box-shadow: var(--shadow-persona-sm); }
+.shadow-persona-md { box-shadow: var(--shadow-persona-md); }
+.shadow-persona-lg { box-shadow: var(--shadow-persona-lg); }
+
+/* Interactive shadow elevation */
+.shadow-interactive {
+  box-shadow: var(--shadow-s);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth-out),
+              transform var(--duration-normal) var(--ease-smooth-out);
+}
+.shadow-interactive:hover {
+  box-shadow: var(--shadow-l);
+  transform: var(--transform-hover-subtle);
+}
+.shadow-interactive:active {
+  box-shadow: var(--shadow-xs);
+  transform: var(--transform-active);
+}
+
+/* SMART FOCUS RING - Accessible, beautiful focus states */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-shadow);
+}
+
+.focus-ring-inset:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* SPRING ANIMATION UTILITIES */
+.spring-soft {
+  transition-timing-function: var(--ease-spring-soft);
+}
+.spring-medium {
+  transition-timing-function: var(--ease-spring-medium);
+}
+.spring-bouncy {
+  transition-timing-function: var(--ease-spring-bouncy);
+}
+.spring-snappy {
+  transition-timing-function: var(--ease-spring-snappy);
+}
+
+/* Button with spring press effect */
+.btn-spring {
+  transition: transform var(--duration-fast) var(--ease-spring-medium),
+              box-shadow var(--duration-fast) var(--ease-smooth-out);
+}
+.btn-spring:hover {
+  transform: var(--transform-hover-lift);
+}
+.btn-spring:active {
+  transform: var(--transform-press);
+}
+
+/* Card with smooth hover lift */
+.card-hover {
+  transition: transform var(--duration-normal) var(--ease-spring-soft),
+              box-shadow var(--duration-normal) var(--ease-smooth-out);
+}
+.card-hover:hover {
+  transform: var(--transform-hover-lift);
+  box-shadow: var(--shadow-l);
+}
+
+/* Pop effect for emphasis */
+.pop-on-hover {
+  transition: transform var(--duration-fast) var(--ease-spring-bouncy);
+}
+.pop-on-hover:hover {
+  transform: var(--transform-pop);
+}
+
+/* STAGGER ANIMATION UTILITIES */
+.stagger-1 { animation-delay: var(--stagger-1); }
+.stagger-2 { animation-delay: var(--stagger-2); }
+.stagger-3 { animation-delay: var(--stagger-3); }
+.stagger-4 { animation-delay: var(--stagger-4); }
+.stagger-5 { animation-delay: var(--stagger-5); }
+.stagger-6 { animation-delay: var(--stagger-6); }
+.stagger-7 { animation-delay: var(--stagger-7); }
+.stagger-8 { animation-delay: var(--stagger-8); }
+
+/* Staggered fade-in animation */
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-fade-in {
+  animation: staggerFadeIn var(--duration-slow) var(--ease-smooth-out) both;
+}
+
+/* SKELETON LOADING - Polished loading states */
+.skeleton {
+  background: var(--skeleton-gradient);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Skeleton shapes */
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+.skeleton-text:last-child {
+  width: 70%;
+}
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+}
+.skeleton-button {
+  width: 120px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+}
+
+/* GLASS MORPHISM - Frosted glass effect */
+.glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-border);
+}
+
+.glass-heavy {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-border);
+}
+
+.glass-dark {
+  background: var(--glass-bg-dark);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Reduced motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .spring-soft,
+  .spring-medium,
+  .spring-bouncy,
+  .spring-snappy,
+  .btn-spring,
+  .card-hover,
+  .pop-on-hover,
+  .shadow-interactive,
+  .stagger-fade-in {
+    transition: none;
+    animation: none;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--skeleton-base);
+  }
 }
 
 /* ========================================================================

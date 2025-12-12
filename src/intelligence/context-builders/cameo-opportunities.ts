@@ -152,13 +152,13 @@ async function buildCameoOpportunitiesContext(
   const unlocked = isTeamMemberUnlocked(candidate.memberId, input.userProfile, tier);
 
   if (!unlocked) {
-    // Do NOT name locked teammates.
+    // Do NOT name locked teammates - and don't script literal phrases
     injections.push(
       createHintInjection(
         'cameo_opportunity_locked',
         `[CAMEO OPPORTUNITY]
 This topic touches ${candidate.reason}. You have a teammate who'd be perfect for this, but they aren't available yet.
-If it fits, say something like: "I have a friend who's incredible at that — we'll meet them as we get to know each other better. For now, let's work through it together."`,
+Acknowledge you have a colleague who's great at this topic - you'll introduce them as you get to know each other better. For now, work through it together.`,
         { category: 'team' }
       )
     );
@@ -166,14 +166,13 @@ If it fits, say something like: "I have a friend who's incredible at that — we
   }
 
   const name = getMemberDisplayName(candidate.memberId);
+  // Note: Don't provide literal phrases to copy - describe the opportunity
   injections.push(
     createHintInjection(
       'cameo_opportunity',
       `[CAMEO OPPORTUNITY]
-This touches ${candidate.reason}. If it feels natural, you can briefly reference ${name}'s lens (without transferring):
-- "One thing ${name} tends to look for here is…"
-- "If ${name} were sitting with us, they'd probably ask…"
-Keep it short. Don't force it. Only do this if it genuinely helps.`,
+This touches ${candidate.reason}. If it feels natural, you can briefly reference ${name}'s perspective on this (without transferring).
+Speak about them like a trusted colleague. Keep it short and natural - only if it genuinely helps.`,
       { category: 'team' }
     )
   );
