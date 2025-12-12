@@ -12,7 +12,7 @@ import type {
   UserGarden,
   GardenHealth,
   GardenerStatus,
-} from '../../../src/types/seed-fund.types.js';
+} from '../types/seed-fund.types.js';
 import { apiFetch } from '../utils/api-helpers.js';
 
 // =============================================================================

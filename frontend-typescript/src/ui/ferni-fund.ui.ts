@@ -17,7 +17,8 @@ import { DURATION } from '../config/animation-constants.js';
 import { formatAmount, loadStripe } from '../services/monetization.service.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
-import type { GardenStatus, PlantSeedResponse, SubscriptionResponse } from '../../../src/types/seed-fund.types.js';
+import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
+import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
 
 const log = createLogger('FerniFundUI');
@@ -36,6 +37,20 @@ async function fetchGardenStatus(): Promise<GardenStatus | null> {
     return await response.json();
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to fetch garden status');
+    return null;
+  }
+}
+
+/**
+ * Fetch user's garden data from the API
+ */
+async function fetchUserGarden(userId: string): Promise<UserGarden | null> {
+  try {
+    const response = await apiFetch(`/api/garden/user?userId=${userId}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to fetch user garden');
     return null;
   }
 }
@@ -477,6 +492,169 @@ export function isModalOpen(): boolean {
 }
 
 // ============================================================================
+// USER IMPACT VIEW
+// ============================================================================
+
+/**
+ * Render the user impact view
+ */
+function renderUserImpact(
+  userGarden: UserGarden | null,
+  gardenStatus: GardenStatus | null
+): string {
+  const hasContributed = userGarden && userGarden.totalSeeds > 0;
+  const statusName = userGarden ? getStatusDisplayName(userGarden.status) : 'New Gardener';
+  const firstSeedDate = userGarden?.firstSeedDate
+    ? new Date(userGarden.firstSeedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null;
+
+  return `
+    <div class="ferni-fund-impact-view">
+      <button class="ferni-fund-close" aria-label="Close">${CLOSE_ICON}</button>
+
+      <div class="ferni-fund-header">
+        <h2>Your Garden Impact</h2>
+        <p class="ferni-fund-subtitle">Thank you for keeping Ferni free</p>
+      </div>
+
+      ${hasContributed ? `
+        <div class="ferni-fund-user-stats">
+          <div class="ferni-fund-stat ferni-fund-stat--primary">
+            <div class="ferni-fund-stat-value">${userGarden.totalSeeds}</div>
+            <div class="ferni-fund-stat-label">Seeds Planted</div>
+          </div>
+
+          <div class="ferni-fund-stat">
+            <div class="ferni-fund-stat-value ferni-fund-stat-value--status">${statusName}</div>
+            <div class="ferni-fund-stat-label">Your Status</div>
+          </div>
+
+          ${userGarden.isMonthlyGardener ? `
+            <div class="ferni-fund-stat">
+              <div class="ferni-fund-stat-value">$${userGarden.monthlyAmount || 5}/mo</div>
+              <div class="ferni-fund-stat-label">Monthly Support</div>
+            </div>
+          ` : ''}
+        </div>
+
+        ${firstSeedDate ? `
+          <p class="ferni-fund-member-since">Growing with Ferni since ${firstSeedDate}</p>
+        ` : ''}
+
+        ${gardenStatus ? `
+          <div class="ferni-fund-community">
+            <h3>The Garden This Month</h3>
+            <div class="ferni-fund-progress-container">
+              <div class="ferni-fund-progress">
+                <div class="ferni-fund-progress-bar" style="width: ${Math.min(gardenStatus.percentFunded, 100)}%"></div>
+              </div>
+              <div class="ferni-fund-progress-text">
+                ${gardenStatus.percentFunded}% funded by ${gardenStatus.gardenersThisMonth} gardeners
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="ferni-fund-actions">
+          <button class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
+            ${SEED_ICON}
+            <span>Plant More Seeds</span>
+          </button>
+        </div>
+      ` : `
+        <div class="ferni-fund-welcome">
+          <div class="ferni-fund-welcome-icon">${SEED_ICON}</div>
+          <h3>Start Your Garden</h3>
+          <p>Ferni stays free because of gardeners like you. Plant your first seed and join a community keeping AI accessible for everyone.</p>
+
+          ${gardenStatus ? `
+            <div class="ferni-fund-community">
+              <div class="ferni-fund-progress-container">
+                <div class="ferni-fund-progress">
+                  <div class="ferni-fund-progress-bar" style="width: ${Math.min(gardenStatus.percentFunded, 100)}%"></div>
+                </div>
+                <div class="ferni-fund-progress-text">
+                  ${gardenStatus.gardenersThisMonth} gardeners have helped this month
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="ferni-fund-actions">
+            <button class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
+              ${SEED_ICON}
+              <span>Plant Your First Seed</span>
+            </button>
+          </div>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+/**
+ * Show user impact modal
+ */
+export async function showUserImpact(userId: string): Promise<void> {
+  initStyles();
+
+  if (!container) {
+    container = await createModal();
+  }
+
+  currentUserId = userId;
+
+  // Show loading state
+  const content = container.querySelector('.ferni-fund-content');
+  if (content) {
+    content.innerHTML = `
+      <div class="ferni-fund-loading">
+        <div class="ferni-fund-spinner"></div>
+        <p>Loading your garden...</p>
+      </div>
+    `;
+  }
+
+  container.classList.add('open');
+  isOpen = true;
+
+  // Fetch data in parallel
+  const [userGarden, gardenStatus] = await Promise.all([
+    fetchUserGarden(userId),
+    fetchGardenStatus(),
+  ]);
+
+  // Render the impact view
+  if (content) {
+    content.innerHTML = renderUserImpact(userGarden, gardenStatus);
+
+    // Attach event listeners
+    const plantMoreBtn = content.querySelector('[data-action="plant-more"]');
+    const plantFirstBtn = content.querySelector('[data-action="plant-first"]');
+    const closeBtn = content.querySelector('.ferni-fund-close');
+
+    if (plantMoreBtn) {
+      plantMoreBtn.addEventListener('click', () => {
+        // Switch to the main contribution view
+        void open(userId);
+      });
+    }
+
+    if (plantFirstBtn) {
+      plantFirstBtn.addEventListener('click', () => {
+        void open(userId);
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', close);
+    }
+  }
+
+  log.debug({ userId }, 'User impact view shown');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -485,6 +663,7 @@ export const ferniFundUI = {
   close,
   isOpen: isModalOpen,
   showThankYou,
+  showUserImpact,
 };
 
 export default ferniFundUI;
