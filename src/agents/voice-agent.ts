@@ -98,7 +98,6 @@ import { getConversationManager } from '../services/conversation-manager.js';
 // Trust Systems - "Better than human" trust profile loading and recording
 import {
   onSessionStart as loadTrustProfiles,
-  onSessionEnd as saveTrustProfiles,
   // Phase 24: Voice Prosody Learning - BETTER-THAN-HUMAN baseline building
   recordVoiceSample,
 } from '../services/trust-systems/index.js';
@@ -107,17 +106,10 @@ import {
 import { initializeUtilitiesIntegration } from './shared/utilities-integration.js';
 
 // Cognitive Intelligence - Session lifecycle hooks for persistent learning
-import {
-  onCognitiveSessionEnd,
-  onCognitiveSessionStart,
-} from '../services/cognitive-session-hooks.js';
-
-// 🎧 DJ Integration - Radio show experience (intros, outros, music moments)
-import { getDJIntegration } from './dj-integration.js';
+import { onCognitiveSessionStart } from '../services/cognitive-session-hooks.js';
 
 // 🎧 DJ Booth - Audio-level orchestration (ducking, fading, timing)
-// This handles the "sound engineering" while DJ Integration handles "what to say"
-import { getDJBooth, resetDJBooth } from '../audio/index.js';
+import { getDJBooth } from '../audio/index.js';
 
 // Conversation State - Shared context for human-level tool orchestration
 import { getConversationState } from '../services/conversation-state.js';
@@ -212,31 +204,19 @@ import {
 // ============================================================================
 
 // FFT-based spectral analysis for better ambient/laughter detection
-import { getFFTAnalyzer, resetFFTAnalyzer } from '../speech/fft-analyzer.js';
+import { getFFTAnalyzer } from '../speech/fft-analyzer.js';
 
 // Enhanced turn prediction with phrase boundary detection
-import {
-  getEnhancedTurnPredictor,
-  resetEnhancedTurnPredictor,
-} from '../speech/enhanced-turn-prediction.js';
+import { getEnhancedTurnPredictor } from '../speech/enhanced-turn-prediction.js';
 
 // Multi-signal laughter detection (~85% accuracy)
-import {
-  getMultiSignalLaughterDetector,
-  resetMultiSignalLaughterDetector,
-} from '../speech/multi-signal-laughter.js';
+import { getMultiSignalLaughterDetector } from '../speech/multi-signal-laughter.js';
 
 // Word-timing rhythm mirroring
-import {
-  getWordTimingRhythmService,
-  resetWordTimingRhythmService,
-} from '../speech/word-timing-rhythm.js';
+import { getWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
 
 // Response anticipation / pattern caching (preemptive workaround)
-import {
-  getResponseAnticipationService,
-  resetResponseAnticipationService,
-} from '../speech/response-anticipation.js';
+import { getResponseAnticipationService } from '../speech/response-anticipation.js';
 
 // Feature flags for gradual rollout
 import { getSessionFlags, initializeFlags } from '../config/voice-humanization-flags.js';
@@ -245,18 +225,14 @@ import { getSessionFlags, initializeFlags } from '../config/voice-humanization-f
 import {
   recordFeatureUsage,
   recordLaughterDetection,
-  recordSessionEnd,
   recordSessionStart,
 } from '../services/voice-humanization-metrics.js';
 
 // User Analytics (DAU/WAU/MAU, concurrent users, session tracking)
-import {
-  recordSessionEnd as recordUserSessionEnd,
-  recordSessionStart as recordUserSessionStart,
-} from '../services/user-analytics.js';
+import { recordSessionStart as recordUserSessionStart } from '../services/user-analytics.js';
 
 // Mid-session accent change support
-import { registerSessionTTS, unregisterSessionTTS } from '../api/session-accent-routes.js';
+import { registerSessionTTS } from '../api/session-accent-routes.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
@@ -282,11 +258,8 @@ import {
   createTranscriptHandler,
   generateAndSpeakGreeting,
   handleSessionCleanup,
-  handleSlashCommand,
   handleUserTurn,
   identifyUser,
-  recordTrustSystemsData,
-  sendCelebrationEvents,
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
