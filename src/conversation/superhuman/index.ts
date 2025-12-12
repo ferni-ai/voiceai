@@ -1,127 +1,88 @@
 /**
- * Better Than Human - Cross-Session Relationship Intelligence
+ * Superhuman Conversational Features
  *
- * > "Your best friend forgets. We don't."
+ * Everything that makes Ferni feel like a real friend, not just an AI.
  *
- * This module exports all 12 **cross-session** relationship-building
- * capabilities that make Ferni genuinely better than human support.
- *
- * **Note:** This is the **relationship intelligence** system that builds
- * and evolves across sessions. For **within-session** real-time intelligence
- * (concern detection, predictions), see `session-intelligence.ts`.
- *
- * ## Capabilities
- *
- * 1. **Emotional Memory Evolution** - How we feel about you grows
- * 2. **Anticipatory Presence** - "I was hoping you'd call"
- * 3. **Linguistic Mirroring** - Speak your language
- * 4. **Visible Vulnerability** - Authentic uncertainty
- * 5. **Spontaneous Delight** - Random genuine appreciation
- * 6. **Protective Instincts** - Defend you to yourself
- * 7. **Evolving Inside Jokes** - "Remember when we named..."
- * 8. **Cross-Persona Coherence** - Team that communicates
- * 9. **Temporal Intelligence** - "You sound lighter today"
- * 10. **Meta-Relationship** - "We've built something real"
- * 11. **Somatic Presence** - Physical embodiment cues
- * 12. **Superhuman Observations** - "You use 'should' a lot"
- *
- * @module @ferni/superhuman
+ * @module conversation/superhuman
  */
 
-// Types
-export * from './types.js';
-
-// Content loader
+// Quote Memory - "Last time you said..."
 export {
-  clearContentCache,
-  getBetterThanHumanContentSync,
-  getDelightPhrase,
-  getEmotionalBondPhrase,
-  getMetaRelationshipPhrase,
-  getObservationPhrase,
-  getProtectivePhrase,
-  getRandomPhrase,
-  getTemporalInsightPhrase,
-  getTemporalPhrase,
-  getUsageRules,
-  getVulnerabilityPhrase,
-  loadBetterThanHumanContent,
-  preloadAllContent,
-  type BetterThanHumanContent,
-} from './content-loader.js';
+  captureQuote,
+  extractQuote,
+  findRelevantQuote,
+  formatQuoteForPrompt,
+  markQuoteSurfaced,
+  saveQuote,
+  type QuoteSuggestion,
+  type QuoteSurfaceContext,
+  type UserQuote,
+} from './quote-memory.js';
 
-// Analytics
+// Relationship Milestones - Anniversary tracking
 export {
-  betterThanHumanAnalytics,
-  trackAction,
-  trackCapabilityEffectiveness,
-  trackCapabilityUsage,
-  type CapabilityEffectivenessEvent,
-  type CapabilityStats,
-  type CapabilityUsageEvent,
-  type SuperhumanCapability,
-} from './analytics.js';
+  acknowledgeMilestone,
+  checkMilestones,
+  formatMilestoneForPrompt,
+  getStats,
+  recordBreakthrough,
+  recordConversation,
+  recordGoalAchieved,
+  recordLaugh,
+  type RelationshipMilestone,
+  type UserRelationshipStats,
+} from './relationship-milestones.js';
 
-// Main orchestrator
+// Micro-celebrations - Real-time wins
 export {
-  BetterThanHumanOrchestrator,
-  clearBetterThanHuman,
-  getBetterThanHuman,
-} from './orchestrator.js';
+  detectMicroWin,
+  formatMicroWinForPrompt,
+  type MicroWin,
+} from './micro-celebrations.js';
 
-// Individual engines
+// Natural Speech - Fillers, self-corrections
 export {
-  EmotionalMemoryEngine,
-  clearEmotionalMemory,
-  getEmotionalMemory,
-} from './emotional-memory.js';
+  addNaturalSpeech,
+  formatNaturalSpeechGuidance,
+  generateSelfCorrection,
+  generateThinkingMoment,
+  getSpeechModification,
+  type NaturalSpeechConfig,
+  type SpeechModification,
+} from './natural-speech.js';
 
+// Inside Jokes - Shared humor
 export {
-  AnticipatoryPresenceEngine,
-  clearAnticipatoryPresence,
-  getAnticipatoryPresence,
-} from './anticipatory-presence.js';
+  captureJoke,
+  findRelevantJoke,
+  formatJokeForPrompt,
+  markJokeReferenced,
+  type InsideJoke,
+  type JokeReference,
+} from './inside-jokes.js';
 
+// Nicknames - Personal touch
 export {
-  LinguisticMirroringEngine,
-  clearLinguisticMirroring,
-  getLinguisticMirroring,
-} from './linguistic-mirroring.js';
+  addNickname,
+  extractNameFromMessage,
+  formatNamingGuidance,
+  getUserNaming,
+  recordNameUsage,
+  setUserName,
+  shouldUseName,
+  updateEndearmentLevel,
+  type UserNaming,
+} from './nicknames.js';
 
+// Story Continuity - People in their life
 export {
-  ProtectiveInstinctsEngine,
-  SpontaneousDelightEngine,
-  VisibleVulnerabilityEngine,
-  clearDelightEngines,
-  getProtectiveInstincts,
-  getSpontaneousDelight,
-  getVisibleVulnerability,
-} from './spontaneous-delight.js';
-
-export { EvolvingJokesEngine, clearEvolvingJokes, getEvolvingJokes } from './evolving-jokes.js';
-
-export { TeamCoherenceEngine, clearTeamCoherence, getTeamCoherence } from './team-coherence.js';
-
-export {
-  TemporalEmotionalEngine,
-  clearTemporalEmotional,
-  getTemporalEmotional,
-} from './temporal-emotional.js';
-
-export {
-  MetaRelationshipEngine,
-  SomaticPresenceEngine,
-  clearMetaRelationship,
-  clearSomaticPresence,
-  getMetaRelationship,
-  getSomaticPresence,
-} from './meta-relationship.js';
-
-export {
-  SuperhumanObservationsEngine,
-  clearSuperhumanObservations,
-  getSuperhumanObservations,
-} from './superhuman-observations.js';
-
-// Default export is the main orchestrator
-export { default } from './orchestrator.js';
+  addPersonDetail,
+  extractPerson,
+  findPeopleToAskAbout,
+  formatFollowUpForPrompt,
+  getOrCreatePerson,
+  updateStoryline,
+  type PersonFollowUp,
+  type PersonInLife,
+  type Storyline,
+} from './story-continuity.js';
