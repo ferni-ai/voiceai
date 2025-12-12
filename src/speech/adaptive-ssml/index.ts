@@ -45,6 +45,17 @@ export {
 } from './nonverbal-sounds.js';
 
 // ============================================================================
+// AUDIO SMOOTHING
+// ============================================================================
+
+export {
+  applyAudioSmoothing,
+  hasAudioSmoothing,
+  removeAudioSmoothing,
+  type AudioSmoothingOptions,
+} from './audio-smoothing.js';
+
+// ============================================================================
 // SPECIALIZED TAGGERS
 // ============================================================================
 

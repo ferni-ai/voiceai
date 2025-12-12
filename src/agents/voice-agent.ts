@@ -1147,6 +1147,24 @@ class VoiceAgent extends voice.Agent<UserData> {
               // Nonverbal sounds are non-critical
             }
 
+            // ============================================================
+            // 9. AUDIO SMOOTHING - Fix scratchy starts/endings
+            // Final pass: adds micro-pauses for soft onset and clean ending
+            // ============================================================
+            try {
+              const { applyAudioSmoothing } =
+                await import('../speech/adaptive-ssml/audio-smoothing.js');
+              taggedText = applyAudioSmoothing(taggedText, {
+                softOnset: true,
+                trailingPadding: true,
+                leadingPauseMs: 30, // Imperceptible but smooths audio start
+                trailingPauseMs: 50, // Prevents cutoff at end
+                skipIfHasBreaks: true,
+              });
+            } catch (_smoothingErr) {
+              // Audio smoothing is non-critical
+            }
+
             controller.enqueue(taggedText);
           }
         } catch (streamError) {

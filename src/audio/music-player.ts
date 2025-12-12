@@ -937,6 +937,9 @@ export class CallMusicPlayer {
    * 🐛 FIX: Now returns BOTH the file path AND the actual duration detected via ffprobe.
    * This is critical because iTunes previews vary in length (not always 30s exactly).
    *
+   * 🐛 FIX: Now handles local file paths (starting with /) by reading from filesystem
+   * instead of fetching via HTTP. This fixes session sounds not playing.
+   *
    * @returns Object with path and actualDurationMs, or null if download failed
    */
   private async downloadAudio(
@@ -944,13 +947,34 @@ export class CallMusicPlayer {
     trackName: string
   ): Promise<{ path: string; actualDurationMs: number } | null> {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        getLogger().error({ status: response.status }, 'Failed to fetch audio');
-        return null;
-      }
+      let buffer: ArrayBuffer;
 
-      const buffer = await response.arrayBuffer();
+      // Handle local file paths (e.g., /design-system/sounds/connect.mp3)
+      if (url.startsWith('/') && !url.startsWith('//')) {
+        // Resolve relative to frontend's public directory
+        const projectRoot = path.resolve(__dirname, '../../..');
+        const localPath = path.join(projectRoot, 'frontend-typescript/public', url);
+
+        if (fs.existsSync(localPath)) {
+          getLogger().debug({ localPath, url }, 'Reading audio from local filesystem');
+          const fileBuffer = fs.readFileSync(localPath);
+          buffer = fileBuffer.buffer.slice(
+            fileBuffer.byteOffset,
+            fileBuffer.byteOffset + fileBuffer.byteLength
+          );
+        } else {
+          getLogger().error({ localPath, url }, 'Local audio file not found');
+          return null;
+        }
+      } else {
+        // Fetch from HTTP URL
+        const response = await fetch(url);
+        if (!response.ok) {
+          getLogger().error({ status: response.status }, 'Failed to fetch audio');
+          return null;
+        }
+        buffer = await response.arrayBuffer();
+      }
 
       // Generate filename from track name (sanitized)
       const safeName = trackName.replace(/[^a-z0-9]/gi, '_').slice(0, 30);

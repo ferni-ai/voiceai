@@ -74,6 +74,17 @@ export interface CalendarListEntry {
   accessRole: 'freeBusyReader' | 'reader' | 'writer' | 'owner';
 }
 
+/**
+ * Error thrown when an OAuth token is permanently invalid (e.g., user revoked access).
+ * These errors should NOT be retried - the user needs to re-authenticate.
+ */
+export class TokenPermanentlyInvalidError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TokenPermanentlyInvalidError';
+  }
+}
+
 // ============================================================================
 // FIRESTORE SETUP
 // ============================================================================
@@ -106,6 +117,48 @@ async function getFirestore(): Promise<FirestoreType | null> {
 
 const userTokens = new Map<string, GoogleTokens>();
 const loadedTokenUsers = new Set<string>();
+
+// ============================================================================
+// FAILED TOKEN TRACKING - Prevents spam when tokens are permanently invalid
+// ============================================================================
+
+/**
+ * Cache of tokens that failed with permanent errors (like invalid_grant).
+ * Maps userId -> timestamp when they failed. We won't retry for 1 hour.
+ */
+const failedTokenCache = new Map<string, number>();
+const FAILED_TOKEN_RETRY_MS = 60 * 60 * 1000; // 1 hour before retry
+
+/**
+ * Check if a user's token recently failed with a permanent error
+ */
+export function isTokenPermanentlyFailed(userId: string): boolean {
+  const failedAt = failedTokenCache.get(userId);
+  if (!failedAt) return false;
+
+  // Allow retry after FAILED_TOKEN_RETRY_MS
+  if (Date.now() - failedAt > FAILED_TOKEN_RETRY_MS) {
+    failedTokenCache.delete(userId);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Mark a token as permanently failed (e.g., invalid_grant)
+ */
+export function markTokenAsFailed(userId: string): void {
+  failedTokenCache.set(userId, Date.now());
+  getLogger().warn({ userId }, 'Marked OAuth token as failed - will not retry for 1 hour');
+}
+
+/**
+ * Clear the failed token status for a user (e.g., after successful re-auth)
+ */
+export function clearFailedTokenStatus(userId: string): void {
+  failedTokenCache.delete(userId);
+}
 
 /**
  * Store tokens for a user
@@ -276,6 +329,17 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
   if (!response.ok) {
     const error = await response.text();
     getLogger().error({ status: response.status, error }, 'Failed to refresh access token');
+
+    // Check for permanent failures that shouldn't be retried
+    const isPermanentError =
+      error.includes('invalid_grant') ||
+      error.includes('Token has been expired or revoked') ||
+      error.includes('unauthorized_client');
+
+    if (isPermanentError) {
+      throw new TokenPermanentlyInvalidError(`Token permanently invalid: ${error}`);
+    }
+
     throw new Error(`Token refresh failed: ${error}`);
   }
 
@@ -291,6 +355,12 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
  * Get valid access token for a user (refreshes if needed)
  */
 export async function getValidAccessToken(userId: string): Promise<string | null> {
+  // Check if this user's token is known to be permanently failed
+  if (isTokenPermanentlyFailed(userId)) {
+    getLogger().debug({ userId }, 'Skipping token refresh - token is marked as permanently failed');
+    return null;
+  }
+
   let tokens = await getUserTokens(userId);
   if (!tokens) {
     getLogger().debug({ userId }, 'No tokens found for user');
@@ -307,7 +377,13 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       tokens = await refreshAccessToken(tokens.refresh_token);
       await storeUserTokens(userId, tokens);
     } catch (error) {
-      getLogger().error({ userId, error }, 'Failed to refresh tokens');
+      // Check if this is a permanent failure (invalid_grant, etc.)
+      if (error instanceof TokenPermanentlyInvalidError) {
+        markTokenAsFailed(userId);
+        getLogger().warn({ userId }, 'OAuth token permanently invalid - user needs to re-authenticate');
+      } else {
+        getLogger().error({ userId, error }, 'Failed to refresh tokens');
+      }
       return null;
     }
   }
@@ -710,4 +786,9 @@ export default {
   isCalendarConfigured,
   isOAuthConfigured,
   getServiceAccountToken,
+  // Failed token tracking
+  isTokenPermanentlyFailed,
+  markTokenAsFailed,
+  clearFailedTokenStatus,
+  TokenPermanentlyInvalidError,
 };

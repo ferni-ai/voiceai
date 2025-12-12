@@ -764,8 +764,9 @@ export class DJBooth {
             }
           } else {
             // Natural ending - do a post-music check-in (60% chance)
-            // But only if we didn't already speak an outro during 'fading'
-            if (prevState !== 'fading' || Math.random() < 0.3) {
+            // But ONLY if we DIDN'T already speak an outro during 'fading'
+            // FIX: Changed || to && to prevent redundant check-in after outro
+            if (prevState !== 'fading' && Math.random() < 0.6) {
               const checkIn = this.getPostMusicCheckIn(true);
               // Small delay so the silence settles
               this.scheduleTimer(() => {
