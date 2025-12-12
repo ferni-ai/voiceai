@@ -583,6 +583,17 @@ export function formatSilenceForPrompt(analysis: SilenceAnalysis): string {
 }
 
 // ============================================================================
+// RESET (for testing)
+// ============================================================================
+
+/**
+ * Reset all silence intelligence state (for testing)
+ */
+export function resetSilenceIntelligence(): void {
+  userPatterns.clear();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -591,5 +602,6 @@ export default {
   getSilencePattern,
   recordSilence,
   formatSilenceForPrompt,
+  resetSilenceIntelligence,
 };
 

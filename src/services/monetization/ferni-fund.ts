@@ -195,6 +195,13 @@ export async function contributeToFund(params: {
     'Ferni Fund contribution received'
   );
 
+  // Update Firestore garden_stats for the widget
+  await updateGardenStats({
+    userId,
+    amountCents,
+    isMonthly: isRecurring,
+  });
+
   return contribution;
 }
 

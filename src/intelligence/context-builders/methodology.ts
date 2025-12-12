@@ -267,6 +267,42 @@ interface MethodologyContent {
   coaching_principles?: Record<string, string>;
 }
 
+interface WorldClassCoachingContent {
+  schema_version?: number;
+  elite_coaches_framework?: {
+    brene_brown?: {
+      key_concepts?: Record<string, { coaching_phrases?: string[]; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
+    tony_robbins?: {
+      core_frameworks?: Record<string, { coaching_phrases?: string[]; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
+    esther_perel?: {
+      key_insights?: Record<string, { coaching_phrases?: string[]; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
+    mel_robbins?: {
+      key_frameworks?: Record<string, { coaching_phrases?: string[]; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
+    simon_sinek?: {
+      key_frameworks?: Record<string, { questions?: string[]; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
+    bj_fogg?: {
+      tiny_habits_framework?: { coaching_phrases?: string[]; [key: string]: unknown };
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  psychology_frameworks?: Record<string, unknown>;
+  coaching_golden_rules?: {
+    from_the_masters?: Array<{ source: string; rule: string; phrase?: string }>;
+  };
+  when_to_use_what?: Record<string, { frameworks?: string[]; key_question?: string }>;
+}
+
 /**
  * Format methodology content for LLM injection
  */
