@@ -60,12 +60,28 @@ npm run deploy:ui:async
 tail -f .deploy-logs/*.log
 ```
 
-### Blue-Green Deployment Flow
+### Zero-Downtime Deployment Flow
 1. Build container image
 2. Deploy new revision with `--no-traffic` (green)
-3. Health check the green revision
-4. **Only shift traffic if healthy**
-5. Keep old revision running if health check fails
+3. **Liveness check** - server is responding (`/health`)
+4. **Readiness check** - workers can accept calls (`/health/ready`) ← NEW!
+5. **Only shift traffic when workers signal ready**
+6. Zero-downtime guaranteed - no "runner initialization timed out" errors!
+7. Keep old revision running if any check fails
+
+### Worker Readiness System
+
+Traffic is **never shifted** until LiveKit workers signal they're ready:
+
+| Check | Endpoint | What it verifies |
+|-------|----------|------------------|
+| Liveness | `/health` | Server process is running |
+| Readiness | `/health/ready` | Workers initialized, accepting calls |
+
+**Auto-scaling configuration:**
+- `min-instances: 1` - Always one warm instance ready
+- `max-instances: 50` - Scale up for traffic spikes
+- `concurrency: 10` - Max 10 concurrent calls per instance
 
 ### ⛔ NEVER DO
 | Wrong | Right |
@@ -74,7 +90,7 @@ tail -f .deploy-logs/*.log
 | `gcloud builds submit && gcloud run deploy` | `npm run deploy:agent:async` |
 | Direct `gcloud` deploy commands | Always use `npm run deploy:*` |
 
-**Why?** Direct deploys skip health checks and can push broken code to production. The crash on 2025-12-11 was caused by direct deploy without blue-green.
+**Why?** Direct deploys skip readiness checks and can cause connection failures. The deploy script waits for workers to signal ready before shifting traffic.
 
 | Deploy Command | What it deploys | Blue-Green? |
 |----------------|-----------------|-------------|

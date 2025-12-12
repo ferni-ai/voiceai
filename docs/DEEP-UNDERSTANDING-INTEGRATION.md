@@ -6,16 +6,16 @@
 
 | System | Status | Integration | Persistence |
 |--------|--------|-------------|-------------|
-| **Silence Intelligence** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Life Rhythm Prediction** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Relational Network** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Resistance Detection** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Energy State** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Subconscious Goals** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Conversational Flow** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Repair Intelligence** | ✅ Working | Context Builder + Response Hook | ⚠️ In-Memory |
-| **Hope Trajectory** | ✅ Working | Context Builder | ⚠️ In-Memory |
-| **Life Chapter** | ✅ Working | Context Builder | ⚠️ In-Memory |
+| **Silence Intelligence** | ✅ Working | Context Builder + Voice Handler | ✅ Firestore |
+| **Life Rhythm Prediction** | ✅ Working | Context Builder + Proactive Outreach | ✅ Firestore |
+| **Relational Network** | ✅ Working | Context Builder | ✅ Firestore |
+| **Resistance Detection** | ✅ Working | Context Builder | ✅ Firestore |
+| **Energy State** | ✅ Working | Context Builder | ✅ Firestore |
+| **Subconscious Goals** | ✅ Working | Context Builder | ✅ Firestore |
+| **Conversational Flow** | ✅ Working | Context Builder | ✅ Firestore |
+| **Repair Intelligence** | ✅ Working | Context Builder + Response Hook | ✅ Firestore |
+| **Hope Trajectory** | ✅ Working | Context Builder | ✅ Firestore |
+| **Life Chapter** | ✅ Working | Context Builder | ✅ Firestore |
 
 ## ✅ What's Integrated
 
@@ -48,23 +48,27 @@ prosodyAnalyzer.analyze()
     → deep-understanding builder
 ```
 
-## ⚠️ Known Gaps
+## ✅ All Gaps Fixed!
 
-### 1. In-Memory Persistence
-All profiles are stored in JavaScript `Map` objects:
-- **Impact**: Data lost on server restart
-- **Fix**: Add Firestore persistence layer
-- **Pattern**: See `src/services/trust-systems/persistence.ts`
+### 1. Firestore Persistence ✅
+All profiles now persist to Firestore:
+- **Storage**: `bogle_users/{userId}/deep_understanding/{system}`
+- **Automatic**: Loads on session start, saves on session end
+- **File**: `src/intelligence/deep-understanding-persistence.ts`
 
-### 2. Silence Duration
-Currently using text heuristics (`/\.\.\.|um+|uh+|hmm+/i`) instead of actual voice silence duration.
-- **Impact**: Less accurate silence classification
-- **Fix**: Wire actual pause detection from voice processing
+### 2. Real Silence Duration ✅
+Actual voice silence duration is now wired in:
+- **Source**: `session-state-handler.ts` detects silence via user state
+- **Analysis**: `analyzeSilence()` called with real millisecond duration
+- **Recording**: `recordSilence()` tracks how user breaks silence
+- **Storage**: `userData.lastSilenceAnalysis` available to context builders
 
-### 3. Proactive Outreach
-Life rhythm predictions generate suggestions but don't execute outreach.
-- **Impact**: Feature not actively used
-- **Fix**: Wire to outreach system in `src/services/outreach/`
+### 3. Proactive Outreach ✅
+Life rhythm predictions now trigger outreach:
+- **Trigger Type**: `life_rhythm_prediction` added to decision engine
+- **Integration**: `src/services/outreach/life-rhythm-outreach.ts`
+- **Daily Job**: Evaluates all users in daily outreach job
+- **Rate Limited**: Max 1 per day, 24h minimum between outreach
 
 ## 🧪 Testing
 
@@ -100,45 +104,43 @@ src/intelligence/
     └── loader.ts                    # Loading & categories
 ```
 
-## 🚀 Next Steps
+## 📁 New Files Added
 
-### Phase 1: Persistence (High Priority)
-```typescript
-// Example pattern from trust-systems
-import { Firestore } from '@google-cloud/firestore';
-
-async function saveDeepUnderstandingProfile(userId: string, profile: any) {
-  const doc = db.collection('bogle_users').doc(userId)
-    .collection('deep_understanding').doc('profile');
-  await doc.set(profile);
-}
+```
+src/intelligence/
+├── deep-understanding-persistence.ts   # Firestore persistence layer
+│
+src/services/outreach/
+├── life-rhythm-outreach.ts            # Proactive outreach integration
 ```
 
-### Phase 2: Real Silence Detection
-Wire actual pause duration from voice processing:
-```typescript
-// In voice-agent audio handling
-if (silenceDurationMs > 500) {
-  const silenceAnalysis = analyzeSilence(
-    silenceDurationMs,
-    lastUserText,
-    userData.voiceEmotion?.primary || 'neutral',
-    ...
-  );
-}
+## 🔌 Integration Points
+
+### Session Lifecycle
+```
+session-init-handler.ts
+  └── loadDeepUnderstandingProfiles(userId)  # ← Load on start
+
+cleanup-handler.ts
+  └── saveDeepUnderstandingProfiles(userId)  # ← Save on end
 ```
 
-### Phase 3: Proactive Outreach
-Connect life rhythm predictions to outreach:
-```typescript
-// When prediction confidence is high
-if (prediction.confidence > 0.7 && prediction.predictedMood < 0.4) {
-  scheduleOutreach(userId, {
-    time: prediction.timestamp,
-    reason: 'anticipatory_support',
-    context: prediction.reasons.join(', ')
-  });
-}
+### Voice Silence Detection
+```
+session-state-handler.ts
+  └── event.newState === 'away'
+        └── analyzeSilence(silenceDurationMs, ...)  # ← Real duration
+        └── userData.lastSilenceAnalysis = ...      # ← Store for context
+  └── event.newState === 'speaking'
+        └── recordSilence(userId, analysis, 'self') # ← Learn patterns
+```
+
+### Proactive Outreach
+```
+daily-outreach-job.ts
+  └── evaluateLifeRhythmOutreach(userId)
+        └── predictUserState(userId)               # ← Get prediction
+        └── triggerLifeRhythmOutreach(...)         # ← Schedule outreach
 ```
 
 ## 📈 Metrics

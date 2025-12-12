@@ -1137,6 +1137,95 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ============================================================================
+  // MEMORY SYSTEM HEALTH ENDPOINT
+  // ============================================================================
+  if (pathname === '/api/memory/health') {
+    try {
+      const {
+        getMemoryMetricsCollector,
+        getMemoryDecayManager,
+        getMemoryConsolidator,
+        getMemoryDeduplicator,
+      } = await import('./dist/memory/index.js');
+
+      const metrics = getMemoryMetricsCollector();
+      const decayManager = getMemoryDecayManager();
+      const consolidator = getMemoryConsolidator();
+      const deduplicator = getMemoryDeduplicator();
+
+      // Collect health data from all memory subsystems
+      const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        subsystems: {
+          metrics: {
+            status: metrics ? 'active' : 'inactive',
+            // Safely access metrics if available
+            stats: metrics
+              ? {
+                  // Get summary stats if metrics module exposes them
+                  description: 'Memory metrics collector',
+                }
+              : null,
+          },
+          decay: {
+            status: decayManager ? 'active' : 'inactive',
+            description: 'Applies graceful forgetting to old memories',
+          },
+          consolidation: {
+            status: consolidator ? 'active' : 'inactive',
+            description: 'Compresses related memories for long-term users',
+          },
+          deduplication: {
+            status: deduplicator ? 'active' : 'inactive',
+            description: 'Removes redundant memories to optimize storage',
+          },
+        },
+        features: {
+          sessionPriming: true,
+          humanSignalExtraction: true,
+          memoryIndexWarming: true,
+          crossPersonaHandoff: true,
+          advancedRetrieval: true,
+        },
+        alerts: [],
+      };
+
+      // Add alerts for inactive subsystems
+      if (!metrics)
+        health.alerts.push({ level: 'warn', message: 'Memory metrics not initialized' });
+      if (!decayManager)
+        health.alerts.push({ level: 'warn', message: 'Memory decay manager not initialized' });
+      if (!consolidator)
+        health.alerts.push({ level: 'warn', message: 'Memory consolidator not initialized' });
+      if (!deduplicator)
+        health.alerts.push({ level: 'warn', message: 'Memory deduplicator not initialized' });
+
+      // Set overall status based on alerts
+      if (health.alerts.some((a) => a.level === 'error')) {
+        health.status = 'error';
+      } else if (health.alerts.length > 0) {
+        health.status = 'degraded';
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(health, null, 2));
+    } catch (err) {
+      console.error('❌ Memory health check error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: err.message,
+          alerts: [{ level: 'error', message: `Memory system error: ${err.message}` }],
+        })
+      );
+    }
+    return;
+  }
+
   // Comprehensive health dashboard endpoint
   if (pathname === '/health/dashboard') {
     // NOTE: CORS already set at top of handler via getCorsOrigin()

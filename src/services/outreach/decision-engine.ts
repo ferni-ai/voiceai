@@ -67,6 +67,7 @@ export type OutreachTriggerType =
 
   // Pattern-based triggers ("Better than Human")
   | 'pattern_acknowledgment' // "Mondays seem hard for you"
+  | 'life_rhythm_prediction' // Deep understanding: predicted low mood/energy
 
   // Time-based triggers
   | 'scheduled' // User requested specific time

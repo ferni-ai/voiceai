@@ -50,21 +50,25 @@ npx tsx scripts/code-quality-check.ts 2>/dev/null || {
 }
 
 # =============================================================================
-# DESIGN SYSTEM VALIDATION (BLOCKING)
+# DESIGN SYSTEM VALIDATION (AUTO-REGENERATE)
 # =============================================================================
 echo ""
 echo "🎨 Design system checks..."
 
-# Check for token drift - BLOCKS commit if drift detected
-node design-system/check-drift.js || {
+# Check for token drift - auto-regenerate if detected
+if ! node design-system/check-drift.js 2>/dev/null; then
   echo ""
-  echo "  ❌ TOKEN DRIFT DETECTED - COMMIT BLOCKED"
-  echo ""
-  echo "  Fix with: npm run tokens:sync"
-  echo "  Then: git add -A"
-  echo ""
-  exit 1
-}
+  echo "  ⚠ Token drift detected - auto-regenerating..."
+  npm run build:design-system --silent
+
+  # Stage the regenerated files
+  git add design-system/dist/ 2>/dev/null || true
+  git add frontend-typescript/src/config/animation-constants.generated.ts 2>/dev/null || true
+  git add promo/ferni-website/tailwind.config.generated.js 2>/dev/null || true
+  git add promo/ferni-website/css/design-tokens.css 2>/dev/null || true
+
+  echo "  ✓ Tokens regenerated and staged"
+fi
 
 # Check brand color alignment - BLOCKS commit if critical mismatches
 node design-system/check-brand.js || {

@@ -1,0 +1,67 @@
+# Design System Validation
+#
+# Validates design tokens and generated files on every PR.
+# Fails if generated files are out of sync with source tokens.
+
+name: Design System
+
+on:
+  pull_request:
+    paths:
+      - 'design-system/tokens/**'
+      - 'design-system/*.js'
+      - 'frontend-typescript/src/config/animation-constants.generated.ts'
+      - 'promo/ferni-website/tailwind.config.generated.js'
+      - 'promo/ferni-website/css/design-tokens.css'
+
+jobs:
+  validate-tokens:
+    name: Validate Design Tokens
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check token drift
+        run: |
+          echo "Checking for design token drift..."
+          npm run tokens:check
+
+      - name: Check brand alignment
+        run: |
+          echo "Checking brand color alignment..."
+          npm run brand:check
+
+      - name: Verify generated files are up-to-date
+        run: |
+          echo "Regenerating all design system files..."
+          npm run build:design-system
+
+          echo "Checking for uncommitted changes..."
+          if [ -n "$(git status --porcelain)" ]; then
+            echo ""
+            echo "ERROR: Generated files are out of sync!"
+            echo ""
+            echo "The following files need to be regenerated:"
+            git status --porcelain
+            echo ""
+            echo "Fix: Run 'npm run tokens:sync' locally and commit the changes."
+            exit 1
+          fi
+
+          echo "All generated files are up-to-date!"
+
+      - name: Display token version
+        run: |
+          echo "Current design token version:"
+          npm run tokens:version -- --current

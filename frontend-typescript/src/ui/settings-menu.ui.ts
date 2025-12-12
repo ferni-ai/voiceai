@@ -628,14 +628,15 @@ class SettingsMenuUI {
         opacity: 1;
       }
 
-      /* The actual menu panel - slides in from right */
+      /* The actual menu panel - slides in from right
+         Uses responsive --panel-width token from design system */
       .settings-menu__card {
         position: absolute;
         top: 0;
         right: 0;
         bottom: 0;
-        width: 320px;
-        max-width: 85vw;
+        width: var(--panel-width, 360px);
+        max-width: var(--panel-max-width, 85vw);
         background: var(--color-background-elevated, #fffdfb);
         box-shadow: var(--shadow-2xl, -8px 0 32px rgba(44, 37, 32, 0.15));
         /* No border - cleaner look */
@@ -644,6 +645,8 @@ class SettingsMenuUI {
         overflow: hidden;
         transform: translateX(100%);
         transition: transform ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
+        /* Safe area support for notched devices */
+        padding-top: var(--safe-top, env(safe-area-inset-top, 0px));
       }
 
       .settings-menu--visible .settings-menu__card {

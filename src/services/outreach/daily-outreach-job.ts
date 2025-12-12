@@ -22,6 +22,7 @@
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getOutreachDecisionEngine } from './decision-engine.js';
+import { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } from './life-rhythm-outreach.js';
 import { getOutreachOrchestrator } from './outreach-orchestrator.js';
 
 const log = createLogger({ module: 'DailyOutreachJob' });
@@ -114,6 +115,17 @@ export async function runDailyOutreachJob(
             if (growthOutreach) {
               outreachSent++;
               byType['growth'] = (byType['growth'] || 0) + 1;
+            }
+          }
+
+          // 🌊 DEEP UNDERSTANDING: Life Rhythm Prediction Outreach
+          // Evaluates learned patterns to predict when user might need support
+          const rhythmResult = evaluateLifeRhythmOutreach(profile.id);
+          if (rhythmResult.triggered && rhythmResult.prediction) {
+            const triggered = await triggerLifeRhythmOutreach(profile.id, rhythmResult.prediction);
+            if (triggered) {
+              outreachSent++;
+              byType['life_rhythm'] = (byType['life_rhythm'] || 0) + 1;
             }
           }
         }

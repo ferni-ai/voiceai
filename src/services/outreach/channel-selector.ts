@@ -543,6 +543,7 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     content_share: 'information',
     insight_discovery: 'information',
     pattern_acknowledgment: 'casual',
+    life_rhythm_prediction: 'emotional', // Deep understanding: predicted need for support
     scheduled: 'reminder',
     seasonal: 'casual',
     anniversary: 'celebration',

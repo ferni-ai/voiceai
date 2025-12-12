@@ -7,13 +7,37 @@
  * - DEV MODE: X-Admin-Key: dev-mode to bypass auth
  *
  * The authentication flow:
- * 1. Try to get Firebase ID token (async)
- * 2. If available, send as Authorization: Bearer token
- * 3. Also send X-User-Id for backward compatibility during migration
+ * 1. Wait for Firebase Auth to initialize (if not ready)
+ * 2. Try to get Firebase ID token (async)
+ * 3. If available, send as Authorization: Bearer token
+ * 4. Also send X-User-Id for backward compatibility during migration
  */
 
-import { getAuthToken, getFirebaseUid } from '../services/firebase-auth.service.js';
+import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
 import { isDevelopment } from './environment.js';
+
+// Track if we've ensured auth is ready
+let authReadyPromise: Promise<void> | null = null;
+
+/**
+ * Ensure Firebase Auth is initialized before making API calls.
+ * This prevents race conditions where API calls happen before auth is ready.
+ * 
+ * - First call initializes auth (if not already)
+ * - Subsequent calls return immediately
+ * - Safe to call multiple times
+ */
+async function ensureAuthReady(): Promise<void> {
+  if (!authReadyPromise) {
+    authReadyPromise = initAuth().then(() => {
+      // Auth is now ready
+    }).catch(() => {
+      // Auth failed to initialize - continue without it
+      // API calls will use X-User-Id fallback
+    });
+  }
+  return authReadyPromise;
+}
 
 /**
  * Get the legacy device-based user ID from localStorage.
@@ -70,10 +94,17 @@ export function getApiHeaders(additionalHeaders?: Record<string, string>): Recor
 /**
  * Get headers for API calls with Firebase auth token (async version).
  * This is the preferred method for authenticated API calls.
+ * 
+ * IMPORTANT: This ensures Firebase Auth is initialized before getting the token.
+ * This prevents 401 errors from race conditions during app startup.
  */
 export async function getApiHeadersAsync(
   additionalHeaders?: Record<string, string>
 ): Promise<Record<string, string>> {
+  // Ensure auth is ready before trying to get the token
+  // This prevents race conditions where API calls happen before auth initializes
+  await ensureAuthReady();
+  
   const headers = getApiHeaders(additionalHeaders);
 
   // Get Firebase auth token

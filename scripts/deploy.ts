@@ -369,11 +369,11 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
       set -e
       echo "🔵 BLUE-GREEN DEPLOYMENT: ${serviceName}"
       echo ""
-      echo "Step 1/4: Building container image..."
+      echo "Step 1/5: Building container image..."
       ${buildCmd}
 
       echo ""
-      echo "Step 2/4: Deploying to Cloud Run (no traffic)..."
+      echo "Step 2/5: Deploying to Cloud Run (no traffic)..."
       gcloud run deploy ${serviceName} \\
         --image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest \\
         --region ${CONFIG.region} \\
@@ -394,41 +394,75 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
         --quiet
 
       echo ""
-      echo "Step 3/4: Health checking new revision..."
-      REVISION=$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
-      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app/health"
+      echo "Step 3/5: Liveness check (server responding)..."
+      REVISION=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
+      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app"
 
       MAX_RETRIES=10
       RETRY_DELAY=5
 
-      for i in $(seq 1 $MAX_RETRIES); do
-        echo "  Health check attempt $i/$MAX_RETRIES..."
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$GREEN_URL" --max-time 10 || echo "000")
+      for i in \$(seq 1 \$MAX_RETRIES); do
+        echo "  Liveness check attempt \$i/\$MAX_RETRIES..."
+        HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "\$GREEN_URL/health" --max-time 10 || echo "000")
 
-        if [ "$HTTP_CODE" = "200" ]; then
-          echo "  ✅ Health check passed (HTTP $HTTP_CODE)"
+        if [ "\$HTTP_CODE" = "200" ]; then
+          echo "  ✅ Liveness check passed (HTTP \$HTTP_CODE)"
           break
         fi
 
-        if [ "$i" = "$MAX_RETRIES" ]; then
-          echo "  ❌ Health check failed after $MAX_RETRIES attempts"
+        if [ "\$i" = "\$MAX_RETRIES" ]; then
+          echo "  ❌ Liveness check failed after \$MAX_RETRIES attempts"
           echo "  Keeping traffic on previous revision"
           gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
           exit 1
         fi
 
-        echo "  ⏳ Waiting \${RETRY_DELAY}s before retry (HTTP \$HTTP_CODE)..."
+        echo "  ⏳ Waiting \$RETRY_DELAY seconds before retry (HTTP \$HTTP_CODE)..."
         sleep \$RETRY_DELAY
       done
 
       echo ""
-      echo "Step 4/4: Shifting 100% traffic to new revision..."
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=$REVISION=100 --quiet
+      echo "Step 4/5: Worker readiness check (waiting for workers to accept calls)..."
+      echo "  This ensures zero-downtime - traffic shifts only when workers are ready"
+      
+      READY_MAX_RETRIES=30
+      READY_RETRY_DELAY=10
+      
+      for i in \$(seq 1 \$READY_MAX_RETRIES); do
+        echo "  Readiness check attempt \$i/\$READY_MAX_RETRIES..."
+        
+        # Get detailed readiness status
+        READY_RESPONSE=\$(curl -s "\$GREEN_URL/health/ready" --max-time 15 || echo '{"ready":false}')
+        READY_STATUS=\$(echo "\$READY_RESPONSE" | grep -o '"ready":[^,}]*' | cut -d':' -f2 | tr -d ' ')
+        READY_MESSAGE=\$(echo "\$READY_RESPONSE" | grep -o '"message":"[^"]*"' | cut -d'"' -f4 || echo "checking...")
+        
+        if [ "\$READY_STATUS" = "true" ]; then
+          echo "  ✅ Workers ready: \$READY_MESSAGE"
+          break
+        fi
+
+        if [ "\$i" = "\$READY_MAX_RETRIES" ]; then
+          echo "  ❌ Workers not ready after \$READY_MAX_RETRIES attempts (5 min timeout)"
+          echo "  Last status: \$READY_MESSAGE"
+          echo "  Keeping traffic on previous revision"
+          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+          exit 1
+        fi
+
+        echo "  ⏳ Workers initializing: \$READY_MESSAGE (retry in \$READY_RETRY_DELAY s)..."
+        sleep \$READY_RETRY_DELAY
+      done
 
       echo ""
-      echo "🟢 BLUE-GREEN DEPLOYMENT COMPLETE"
-      echo "  Revision: $REVISION"
-      echo "  URL: $(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')"
+      echo "Step 5/5: Shifting 100% traffic to ready revision..."
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=\$REVISION=100 --quiet
+      SERVICE_URL=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')
+
+      echo ""
+      echo "🟢 ZERO-DOWNTIME DEPLOYMENT COMPLETE"
+      echo "  Revision: \$REVISION"
+      echo "  URL: \$SERVICE_URL"
+      echo "  Status: Workers verified ready before traffic shift"
 
       # Clean up green tag
       gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
@@ -443,9 +477,10 @@ ${colors.green}✓${colors.reset} Blue-green deployment started in background!
 ${colors.bold}What's happening:${colors.reset}
   1. Build container image
   2. Deploy new revision (no traffic)
-  3. Health check new revision
-  4. If healthy → shift 100% traffic
-  5. If unhealthy → keep old version
+  3. Liveness check (server responding)
+  4. Readiness check (workers accepting calls) ← NEW!
+  5. Shift traffic only when workers ready
+  6. Zero-downtime guaranteed!
 
 ${colors.bold}Monitor progress:${colors.reset}
   ${colors.cyan}tail -f ${logFile}${colors.reset}
@@ -471,8 +506,8 @@ ${colors.bold}Or check Cloud Build:${colors.reset}
   }
   log.info(`New revision: ${newRevision}`);
 
-  // Health check the green revision
-  log.info('Health checking new revision...');
+  // Step 1: Liveness check - server is responding
+  log.info('Liveness check (server responding)...');
   const greenUrl = getRevisionUrlByTag(serviceName, 'green');
   const healthUrl = `${greenUrl}/health`;
   log.info(`Checking: ${healthUrl}`);
@@ -480,16 +515,33 @@ ${colors.bold}Or check Cloud Build:${colors.reset}
   const health = await healthCheck(healthUrl, { maxRetries: 10, retryDelay: 5000 });
 
   if (!health.healthy) {
-    log.error(`Health check failed: ${health.error}`);
+    log.error(`Liveness check failed: ${health.error}`);
     log.warn('Keeping traffic on previous revision');
     removeTag(serviceName, 'green');
     return false;
   }
 
-  log.success(`Health check passed (HTTP ${health.statusCode})`);
+  log.success(`Liveness check passed (HTTP ${health.statusCode})`);
 
-  // Shift 100% traffic to new revision
-  log.info('Shifting 100% traffic to new revision...');
+  // Step 2: Readiness check - workers can accept connections
+  log.info('Readiness check (waiting for workers to accept calls)...');
+  const readyUrl = `${greenUrl}/health/ready`;
+  log.info(`Checking: ${readyUrl}`);
+
+  // More retries for readiness - workers can take time to initialize
+  const readiness = await healthCheck(readyUrl, { maxRetries: 30, retryDelay: 10000 });
+
+  if (!readiness.healthy) {
+    log.error(`Readiness check failed: ${readiness.error}`);
+    log.warn('Workers not ready after 5 minutes - keeping traffic on previous revision');
+    removeTag(serviceName, 'green');
+    return false;
+  }
+
+  log.success('Workers ready to accept calls');
+
+  // Step 3: Shift traffic - only now that workers are verified ready
+  log.info('Shifting 100% traffic to ready revision...');
   if (!shiftTraffic(serviceName, newRevision)) {
     log.error('Failed to shift traffic');
     return false;
@@ -499,7 +551,8 @@ ${colors.bold}Or check Cloud Build:${colors.reset}
   removeTag(serviceName, 'green');
 
   const url = getServiceUrl(serviceName);
-  log.success(`Blue-green deployment complete: ${url}`);
+  log.success(`Zero-downtime deployment complete: ${url}`);
+  log.info('Workers verified ready before traffic shift - no connection issues!');
   return true;
 }
 
@@ -532,7 +585,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--vpc-connector ferni-redis-connector',
-    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app"',
+    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@ALLOW_LEGACY_X_USER_ID_AUTH=true"',
     '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest"',
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification

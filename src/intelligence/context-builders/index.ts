@@ -759,8 +759,9 @@ export async function buildConversationContext(
     );
   }
 
-  // Run all registered builders IN PARALLEL with metrics tracking
+  // Get all registered builders
   const registeredBuilders = getRegisteredBuilders();
+
   const builderResults: Array<{
     name: string;
     durationMs: number;
@@ -768,6 +769,7 @@ export async function buildConversationContext(
     error?: string;
   }> = [];
 
+  // Run all builders in parallel (sorted by priority)
   const results = await Promise.allSettled(
     registeredBuilders.map(async (builder) => {
       const start = Date.now();
@@ -775,7 +777,6 @@ export async function buildConversationContext(
         const result = await builder.build(input);
         const durationMs = Date.now() - start;
 
-        // Record metrics
         recordBuilderMetrics(builder.name, durationMs, result.length);
         builderResults.push({
           name: builder.name,
@@ -788,7 +789,6 @@ export async function buildConversationContext(
         const durationMs = Date.now() - start;
         const errorMsg = error instanceof Error ? error.message : String(error);
 
-        // Record metrics with error
         recordBuilderMetrics(builder.name, durationMs, 0, error as Error);
         builderResults.push({
           name: builder.name,

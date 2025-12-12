@@ -29,10 +29,12 @@ import {
   type TrialCheckResult,
 } from '../../services/first-taste-trial.js';
 import { onSessionStart as loadTrustProfiles } from '../../services/trust-systems/index.js';
+import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import {
   createFirestoreSuperhumanStore,
   loadSuperhumanData,
 } from '../../services/superhuman-persistence.js';
+import { startPeriodicSync } from './periodic-sync-handler.js';
 import { getConversationState } from '../../services/conversation-state.js';
 import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
 import { resetCatchphraseTracking } from '../../speech/response-naturalness.js';
@@ -77,6 +79,8 @@ export interface SessionInitResult {
   trialStatus: TrialCheckResult | null;
   /** Initialized user data object */
   userData: UserDataInit;
+  /** Cleanup function for periodic sync (call on session end) */
+  stopPeriodicSync: (() => void) | null;
 }
 
 /** User data initialized by this handler - compatible with UserData from shared/types */
@@ -167,6 +171,14 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       diag.session('Trust profiles loaded for user', { userId });
     } catch (trustErr) {
       diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) });
+    }
+
+    // Load deep understanding profiles (silence, rhythm, relational network, etc.)
+    try {
+      await loadDeepUnderstandingProfiles(userId);
+      diag.session('Deep understanding profiles loaded for user', { userId });
+    } catch (deepErr) {
+      diag.warn('Failed to load deep understanding profiles (non-fatal)', { error: String(deepErr) });
     }
 
     try {
@@ -291,6 +303,16 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   autoOptimizer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
   diag.entry('Optimization session started', { sessionId, personaId: sessionPersona.id });
 
+  // ================================================================
+  // START PERIODIC SYNC FOR DEEP UNDERSTANDING
+  // Ensures insights are saved during long sessions (every 5 minutes)
+  // ================================================================
+  let stopSync: (() => void) | null = null;
+  if (userId) {
+    stopSync = startPeriodicSync(sessionId, userId);
+    diag.session('🔄 Periodic deep understanding sync started', { sessionId, userId });
+  }
+
   logger.info({ sessionId, userId, isReturningUser, isTrialUser }, 'Session initialized');
 
   return {
@@ -300,6 +322,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     isFirstConversation,
     trialStatus,
     userData,
+    stopPeriodicSync: stopSync,
   };
 }
 

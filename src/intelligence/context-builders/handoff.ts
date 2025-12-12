@@ -307,7 +307,7 @@ function legacyToCanonical(agentId: string): string {
 /**
  * Build handoff-related context injections
  */
-function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
+async function buildHandoffContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, analysis, userProfile } = input;
   const injections: ContextInjection[] = [];
   const currentAgent = getCurrentAgent();
@@ -426,6 +426,22 @@ Acknowledge the transition naturally and continue the conversation.]`;
       if (cognitiveContext) {
         handoffMessage += `\n\n${cognitiveContext}`;
       }
+    }
+
+    // Include memory context from trust systems (boundaries, sensitivities, rapport builders)
+    try {
+      const { buildHandoffContext: buildTrustHandoff } = await import('../../services/trust-systems/handoff-context.js');
+      const userId = input.services?.userId;
+      if (userId) {
+        const toCanonical = getCurrentAgent();
+        const trustContext = buildTrustHandoff(userId, fromCanonical, toCanonical);
+        if (trustContext.contextSummary) {
+          handoffMessage += `\n\n${trustContext.contextSummary}`;
+        }
+      }
+    } catch (trustErr) {
+      // Trust context is optional, continue without it
+      if (DEBUG_HANDOFF) log.debug({ error: trustErr }, 'Trust handoff context unavailable');
     }
 
     injections.push(createHintInjection('recent_handoff', handoffMessage));

@@ -15,6 +15,7 @@ import { endConversation as endConversationState } from '../../services/conversa
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
+import { onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
 import { resetEnhancedTurnPredictor } from '../../speech/enhanced-turn-prediction.js';
@@ -29,6 +30,8 @@ import {
   onSessionEnd as endHumanizationSession,
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
+// 🎭 Unified conversation session cleanup
+import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 import {
   cleanupDynamicSpeed,
 } from '../integrations/dynamic-speed-integration.js';
@@ -86,6 +89,8 @@ export interface CleanupContext {
   musicCleanup?: () => void;
   // User data for trial tracking
   userData?: UserDataWithTrial;
+  // Periodic sync cleanup
+  stopPeriodicSync?: (() => void) | null;
 }
 
 /**
@@ -108,6 +113,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     cameoCleanup,
     musicCleanup,
     userData,
+    stopPeriodicSync,
   } = ctx;
 
   try {
@@ -241,10 +247,18 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     }
 
     // ================================================================
-    // STEP 8: Save trust profiles and superhuman intelligence
+    // STEP 8: Stop periodic sync and save profiles
     // ================================================================
+    // First stop the periodic sync to prevent race conditions
+    if (stopPeriodicSync) {
+      stopPeriodicSync();
+      diag.session('🛑 Periodic sync stopped', { sessionId });
+    }
+
+    // Then save all profiles
     if (userId) {
       await cleanupTrustProfiles(userId);
+      await cleanupDeepUnderstandingProfiles(userId);
 
       // Save superhuman intelligence data
       try {
@@ -372,6 +386,19 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     await cleanupDeepHumanization(sessionId);
 
     // ================================================================
+    // STEP 17.5: 🎭 UNIFIED CONVERSATION SESSION CLEANUP
+    // Clean up the new unified humanization session
+    // ================================================================
+    try {
+      cleanupConversationSession(sessionId);
+      diag.session('🎭 Unified conversation session cleaned up');
+    } catch (unifiedCleanupErr) {
+      diag.warn('Unified conversation session cleanup failed (non-fatal)', {
+        error: String(unifiedCleanupErr),
+      });
+    }
+
+    // ================================================================
     // STEP 18: Advanced humanization cleanup
     // ================================================================
     try {
@@ -485,6 +512,15 @@ async function cleanupTrustProfiles(userId: string): Promise<void> {
     diag.session('Trust profiles saved', { userId });
   } catch (trustErr) {
     diag.warn('Trust profile save failed (non-fatal)', { error: String(trustErr) });
+  }
+}
+
+async function cleanupDeepUnderstandingProfiles(userId: string): Promise<void> {
+  try {
+    await saveDeepUnderstandingProfiles(userId);
+    diag.session('Deep understanding profiles saved', { userId });
+  } catch (deepErr) {
+    diag.warn('Deep understanding profile save failed (non-fatal)', { error: String(deepErr) });
   }
 }
 

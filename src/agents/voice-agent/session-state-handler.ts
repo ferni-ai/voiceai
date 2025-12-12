@@ -20,6 +20,11 @@ import {
   stopAmbientMusic,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
+import {
+  analyzeSilence,
+  recordSilence,
+  type SilenceAnalysis,
+} from '../../intelligence/silence-intelligence.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -240,6 +245,22 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // USER STARTED SPEAKING
     // ----------------------------------------------------------------
     if (event.newState === 'speaking') {
+      // Record silence if we had an analysis (user broke the silence by self-initiating)
+      const userId = userData.userId;
+      if (userId && userData.lastSilenceAnalysis) {
+        try {
+          // User self-initiated speaking - record how they broke the silence
+          recordSilence(userId, userData.lastSilenceAnalysis, 'self');
+          diag.state('🤫 Silence recorded', {
+            type: userData.lastSilenceAnalysis.type,
+            howBroken: 'self',
+          });
+        } catch (recordErr) {
+          getLogger().debug({ error: recordErr }, 'Failed to record silence');
+        }
+        userData.lastSilenceAnalysis = undefined; // Clear after recording
+      }
+
       userLastSpokeAt = Date.now();
       userData.userSpeakingStartTime = userLastSpokeAt;
 
@@ -390,6 +411,38 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > 5000) {
         activeListening.recordBackchannelReaction(false);
         pendingBackchannelReaction = false;
+      }
+
+      // ----------------------------------------------------------------
+      // DEEP UNDERSTANDING: Silence Intelligence Analysis
+      // Analyze the silence to understand what type it is
+      // ----------------------------------------------------------------
+      let silenceAnalysis: SilenceAnalysis | null = null;
+      const userId = userData.userId;
+      if (userId && silenceDurationMs >= 1500) {
+        // Only analyze meaningful silences (>1.5s)
+        try {
+          silenceAnalysis = analyzeSilence(
+            silenceDurationMs,
+            silenceContext.lastUserMessage || '',
+            userData.lastEmotionAnalysis?.primary || 'neutral',
+            userData.lastEmotionAnalysis?.intensity || 0.5,
+            silenceContext.memorableMoments || [],
+            (silenceContext.lastUserMessage || '').includes('?')
+          );
+
+          // Store in userData for context builders
+          userData.lastSilenceAnalysis = silenceAnalysis;
+
+          diag.state('🤫 Silence analyzed', {
+            type: silenceAnalysis.type,
+            duration: silenceDurationMs,
+            confidence: silenceAnalysis.confidence,
+            suggestedResponse: silenceAnalysis.suggestedResponse,
+          });
+        } catch (silenceErr) {
+          getLogger().debug({ error: silenceErr }, 'Silence analysis failed');
+        }
       }
 
       // MEDIUM SILENCE BACKCHANNELS (3-8 seconds)

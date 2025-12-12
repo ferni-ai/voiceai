@@ -106,6 +106,23 @@ export {
   type OrchestrationRecord,
 } from './debug.js';
 
+// Performance Profiling
+export {
+  clearAllProfilers,
+  clearProfiler,
+  ConversationProfiler,
+  createPhaseProfiler,
+  DEFAULT_PROFILER_CONFIG,
+  getProfiler,
+  profileCall,
+  type FeatureTiming,
+  type PhaseTiming,
+  type ProfilerConfig,
+  type ProfilerReport,
+  type ProfilerSnapshot,
+  type ProfilerSummary,
+} from './profiling.js';
+
 // Types
 export type {
   AnalysisContext,

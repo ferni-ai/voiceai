@@ -147,17 +147,27 @@ import {
 
 // Conversation dynamics - emotional arc, response length, story timing
 import {
-  getConversationHumanizer,
   getEmotionalArcTracker,
   getResponseDynamicsEngine,
 } from '../conversation/index.js';
 
-// Advanced Humanization Integration - voice print learning, breathing sync, cross-session memory
+// 🎭 UNIFIED CONVERSATION HUMANIZATION (replaces scattered humanization calls)
+// Single entry point for all conversation humanization
+import {
+  initConversationSession,
+  humanizeAgentResponse,
+  cleanupConversationSession,
+  recordVulnerabilityEvent,
+  recordLaughterEvent,
+  recordBreakthroughEvent,
+  getSessionState as getConversationSessionState,
+} from './integrations/conversation-session-integration.js';
+
+// Legacy humanization imports (for prosody bridge - still needed)
 import {
   initializeFromPersistence as initHumanizationPersistence,
   initProsodyBridge,
   processProsodyForHumanization,
-  onSessionStart as startHumanizationSession,
 } from '../conversation/humanization/index.js';
 
 // 🧠 Superhuman Intelligence Persistence - cross-session learning & memory
@@ -549,71 +559,64 @@ class VoiceAgent extends voice.Agent<UserData> {
             const userData = agent.getUserDataFromContext();
 
             // ============================================================
-            // POST-LLM HUMANIZATION
-            // Apply speech naturalization, vocabulary mirroring, etc.
-            // This makes the LLM output feel more human before TTS
-            // Now includes deep humanization: mood drift, spontaneous thoughts,
-            // physical presence, excitement interruptions, etc.
-            // 🧠 Also includes superhuman intelligence: concern detection,
-            // proactive memory, predictive anticipation
+            // 🎭 UNIFIED POST-LLM HUMANIZATION
+            // Uses the unified conversation session for all humanization:
+            // - Speech naturalization, vocabulary mirroring
+            // - Deep humanization: mood drift, spontaneous thoughts
+            // - Superhuman intelligence: concern detection, predictive anticipation
+            // - Better-than-human: emotional memory, protective instincts
             // ============================================================
             try {
-              const humanizer = getConversationHumanizer(agent.persona.id);
-              const lastUserMessage = userData?.lastUserMessage || '';
-              const turnNumber = userData?.turnCount || 0;
-
-              // 🧠 Set session context for superhuman intelligence
+              // Get session ID from userData
               const agentSessionId =
                 (userData?.sessionData as { sessionId?: string } | undefined)?.sessionId ||
                 `session-${agent.persona.id}`;
-              const agentUserId = (userData?.sessionData as { userId?: string } | undefined)
-                ?.userId;
-              humanizer.setSessionContext(agentSessionId, agentUserId);
 
-              // Build humanization context (now includes deep humanization fields)
-              const humanizationContext = {
-                personaId: agent.persona.id,
-                turnNumber,
-                userMessage: lastUserMessage,
+              // Use the unified humanization API
+              const humanized = await humanizeAgentResponse(agentSessionId, accumulatedText, {
+                userMessage: userData?.lastUserMessage || '',
                 userEmotion: userData?.lastEmotionAnalysis?.primary,
                 topic: userData?.lastTopic,
                 isSeriousContext: (userData?.lastEmotionAnalysis?.distressLevel ?? 0) > 0.3,
                 wasPersonalSharing: (userData?.lastEmotionAnalysis?.intensity ?? 0) > 0.7,
-                relationshipStage: userData?.relationshipStage ?? 'acquaintance',
                 sessionData: userData?.sessionData,
-              };
+              });
 
-              // Apply humanization (async) - includes deep humanization features
-              // like mood drift, spontaneous thoughts, excitement interruptions
-              const humanized = await humanizer.humanizeResponseAsync(
-                accumulatedText,
-                humanizationContext
-              );
+              if (humanized) {
+                // Use the humanized text
+                taggedText = humanized.text;
 
-              // Use the humanized text
-              taggedText = humanized.text;
+                // Log what was applied
+                if (humanized.appliedFeatures.length > 0) {
+                  agent.logger.debug(
+                    {
+                      features: humanized.appliedFeatures,
+                      pacing: humanized.pacing,
+                      timing: humanized.timing.total.toFixed(0) + 'ms',
+                    },
+                    'Post-LLM humanization applied'
+                  );
+                }
 
-              // Log what was applied
-              if (humanized.appliedFeatures.length > 0) {
-                agent.logger.debug(
-                  { features: humanized.appliedFeatures, pacing: humanized.pacing },
-                  'Post-LLM humanization applied'
-                );
-              }
+                // If we have a memory callback to prepend, add it
+                if (humanized.memoryCallback && Math.random() < 0.3) {
+                  taggedText = `${humanized.memoryCallback.text} ${taggedText}`;
+                }
 
-              // If we have a memory callback to prepend, add it
-              if (humanized.memoryCallback && Math.random() < 0.3) {
-                taggedText = `${humanized.memoryCallback.text} ${taggedText}`;
-              }
+                // If we have a follow-up question to append, add it
+                if (humanized.followUpQuestion && !taggedText.includes('?')) {
+                  taggedText = `${taggedText} ${humanized.followUpQuestion.text}`;
+                }
 
-              // If we have a follow-up question to append, add it
-              if (humanized.followUpQuestion && !taggedText.includes('?')) {
-                taggedText = `${taggedText} ${humanized.followUpQuestion.text}`;
-              }
+                // Use the SSML version if it has enhancements
+                if (humanized.ssml && humanized.ssml !== humanized.text) {
+                  taggedText = humanized.ssml;
+                }
 
-              // Use the SSML version if it has enhancements
-              if (humanized.ssml && humanized.ssml !== humanized.text) {
-                taggedText = humanized.ssml;
+                // Track vulnerability/breakthrough events for relationship building
+                if ((userData?.lastEmotionAnalysis?.intensity ?? 0) > 0.8) {
+                  recordVulnerabilityEvent(agentSessionId);
+                }
               }
             } catch (humanizeError) {
               agent.logger.warn(
@@ -2123,6 +2126,15 @@ export default defineAgent({
             }
 
             proc.userData.prewarmComplete = true;
+
+            // Signal worker readiness for zero-downtime deployments
+            try {
+              const { signalPrewarmComplete } = await import('./shared/worker-readiness.js');
+              signalPrewarmComplete();
+            } catch {
+              // Non-fatal - readiness tracking is optional
+            }
+
             process.stderr.write(
               `[voice-agent] PREWARM COMPLETE pid=${process.pid} elapsed=${Date.now() - startTime}ms\n`
             );
@@ -2727,17 +2739,27 @@ export default defineAgent({
       diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
 
       // ===============================================
-      // STEP 7a2: INITIALIZE ADVANCED HUMANIZATION
-      // Voice print learning, cross-session memory, breathing sync
+      // STEP 7a2: INITIALIZE UNIFIED CONVERSATION HUMANIZATION
+      // Single entry point for all humanization: voice print, memory, breathing sync,
+      // superhuman capabilities, deep humanization, and more
       // ===============================================
       try {
         const userId = services.userId || 'anonymous';
 
-        // Initialize prosody bridge for this session
+        // Initialize prosody bridge for this session (still needed for voice analysis)
         initProsodyBridge(sessionId, userId);
 
-        // Start humanization session (voice agent integration)
-        startHumanizationSession(sessionId, userId, sessionPersona.id, {
+        // 🎭 UNIFIED CONVERSATION SESSION
+        // This replaces all the scattered humanization initialization calls:
+        // - startHumanizationSession
+        // - initAdvancedHumanizationSession
+        // - humanizationAnalytics.startSession
+        // All coordinated through a single session object
+        const conversationSession = initConversationSession({
+          sessionId,
+          userId,
+          personaId: sessionPersona.id,
+          sessionCount: services.userProfile?.totalConversations,
           relationshipStage: services.userProfile?.relationshipStage as
             | 'stranger'
             | 'acquaintance'
@@ -2746,29 +2768,12 @@ export default defineAgent({
             | undefined,
         });
 
-        // Start analytics tracking for this session
-        const { humanizationAnalytics } = await import('../conversation/humanization/analytics.js');
-        humanizationAnalytics.startSession(sessionId, userId);
-
-        // Initialize ADVANCED HUMANIZATION (10 deep capabilities)
-        // This coordinates: Subtext Detection, Emotional Aftercare, Conversational Repair,
-        // Hope Injection, Curiosity Engine, Energy Regulation, Micro-Affirmations,
-        // Temporal Context, Relationship Events, and Paradoxical Intervention
-        const { initAdvancedHumanizationSession } =
-          await import('./processors/injection-builders.js');
-        const advancedHumanizationStart = await initAdvancedHumanizationSession(sessionId, userId, {
-          relationshipDepth:
-            (services.userProfile?.relationshipStage as
-              | 'new'
-              | 'developing'
-              | 'established'
-              | 'deep'
-              | undefined) || 'new',
-        });
-        if (advancedHumanizationStart) {
-          diag.state('🌟 Advanced humanization initialized', {
-            hasGreeting: !!advancedHumanizationStart.greeting,
-            hasMilestone: !!advancedHumanizationStart.milestoneAcknowledgment,
+        if (conversationSession) {
+          const sessionState = conversationSession.getState();
+          diag.state('🎭 Unified conversation session initialized', {
+            turnCount: sessionState.turnCount,
+            comfortLevel: sessionState.comfortLevel.toFixed(2),
+            relationshipStage: sessionState.relationshipStage,
           });
         }
 
@@ -3080,6 +3085,16 @@ if (!process.send) {
       initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
     })
   );
+
+  // Signal that worker is accepting jobs for zero-downtime deployments
+  // This is called after cli.runApp() which means the worker is ready
+  try {
+    const { signalWorkerAcceptingJobs } = await import('./shared/worker-readiness.js');
+    signalWorkerAcceptingJobs();
+    diag.info('Worker signaled ready for zero-downtime deployments');
+  } catch {
+    // Non-fatal - readiness tracking is optional
+  }
 
   diag.info('CLI.runApp called - worker running');
 } else {

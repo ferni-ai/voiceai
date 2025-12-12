@@ -82,6 +82,9 @@ import { getCircuitBreaker, getOrComputeDetectionWithHit, withTimeout } from './
 // Debug
 import { recordOrchestration } from './debug.js';
 
+// Profiling (for performance analysis)
+import { profileOrchestration } from './profiling.js';
+
 const log = createLogger({ module: 'ConversationOrchestrator' });
 
 // ============================================================================
@@ -177,6 +180,9 @@ export class ConversationOrchestrator {
 
       // Log slow orchestrations
       logSlowOrchestration(this.sessionId, timing, input.turnNumber);
+
+      // Record profiling data for performance analysis
+      profileOrchestration(this.sessionId, input.turnNumber, timing);
 
       // Record for debugging (when debug enabled)
       if (this.config.debug) {

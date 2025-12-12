@@ -231,9 +231,10 @@ styleSheet.textContent = `
   }
   
   #${SPLASH_ID} .splash-tagline {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    font-size: 18px;
-    font-weight: 500;
+    font-family: var(--font-display, 'Plus Jakarta Sans', system-ui, sans-serif);
+    font-size: var(--text-lg, 1.125rem);
+    font-weight: var(--font-weight-medium, 500);
+    line-height: var(--leading-snug, 1.375);
     color: ${COLORS.ink};
     opacity: 0;
     margin: 0;

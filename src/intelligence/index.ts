@@ -375,6 +375,11 @@ export {
 } from './analysis-pipeline.js';
 
 // ============================================================================
+// UNIFIED ANALYZER - Coming soon (planned unification of entry points)
+// ============================================================================
+// TODO: Implement unified-analyzer.ts
+
+// ============================================================================
 // COMBINED ANALYSIS
 // ============================================================================
 
@@ -676,6 +681,7 @@ export {
   getResistanceProfile,
   getResistanceSummary,
   identifyGrowthEdges,
+  importResistanceProfile,
   resetResistanceDetection,
   type AvoidedTopic,
   type DefensePattern,
@@ -690,6 +696,7 @@ export {
   assessEnergyState,
   formatEnergyForPrompt,
   getEnergyPattern,
+  importEnergyPattern,
   markTopicEnergy,
   resetEnergyStateInference,
   type EnergyAssessment,
@@ -707,6 +714,7 @@ export {
   formatSubconsciousForPrompt,
   getSubconsciousProfile,
   getSubconsciousSummary,
+  importSubconsciousProfile,
   recordSurfaceReaction,
   resetSubconsciousGoals,
   type Contradiction,
@@ -722,6 +730,7 @@ export {
   analyzeFlow,
   formatFlowForPrompt,
   getFlowProfile,
+  importFlowProfile,
   resetConversationalFlow,
   type ConversationDepth,
   type DepthIndicators,
@@ -739,6 +748,7 @@ export {
   formatRepairForPrompt,
   generateRepair,
   getRepairProfile,
+  importRepairProfile,
   quickRepairCheck,
   recordAIResponse,
   recordRepairOutcome,
@@ -757,6 +767,7 @@ export {
   analyzeHope,
   formatHopeForPrompt,
   getHopeProfile,
+  importHopeProfile,
   resetHopeTrajectory,
   type HopeAnalysis,
   type HopeObservation,
@@ -771,6 +782,7 @@ export {
   analyzeChapter,
   formatChapterForPrompt,
   getChapterProfile,
+  importChapterProfile,
   resetLifeChapterAwareness,
   type ChapterAnalysis,
   type ChapterEvidence,
@@ -779,6 +791,46 @@ export {
   type LifeChapter,
   type TransitionPhase,
 } from './life-chapter.js';
+
+// Deep Understanding Persistence
+export {
+  deleteDeepUnderstandingProfiles,
+  exportDeepUnderstandingBundle,
+  importDeepUnderstandingBundle,
+  loadDeepUnderstandingProfiles,
+  onSessionEnd as onDeepUnderstandingSessionEnd,
+  onSessionStart as onDeepUnderstandingSessionStart,
+  periodicSync as deepUnderstandingPeriodicSync,
+  saveDeepUnderstandingProfiles,
+  type DeepUnderstandingBundle,
+} from './deep-understanding-persistence.js';
+
+// ============================================================================
+// INTELLIGENCE SERVICE - Coming soon (unified facade)
+// ============================================================================
+// TODO: Implement intelligence-service.ts
+
+// ============================================================================
+// COLLECTIVE LEARNING INTEGRATION
+// ============================================================================
+
+export {
+  analyzeResponseLength,
+  analyzeResponseType,
+  analyzeUserEngagement,
+  flushLearningSignals,
+  getCollectiveRecommendations,
+  initializeCollectiveLearning,
+  recordBreakthroughForLearning,
+  recordResponseForLearning,
+  recordStoryForLearning,
+  shutdownCollectiveLearning,
+  type BreakthroughSignal,
+  type ConversationSignalContext,
+  type ResponseSignalData,
+  type StoryUsageSignal,
+  type UserReactionSignal,
+} from './collective-learning-integration.js';
 
 export default {
   analyzeMessage,

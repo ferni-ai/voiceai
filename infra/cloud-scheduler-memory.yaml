@@ -1,0 +1,141 @@
+# Cloud Scheduler Jobs for Memory System Maintenance
+#
+# These jobs ensure long-term health and efficiency of the memory system:
+# - Consolidation: Merges related memories to reduce storage
+# - Decay: Applies graceful forgetting to old, low-importance memories
+# - Deduplication: Removes redundant memories
+# - Health Check: Monitors system health and sends alerts
+#
+# Deploy with gcloud commands below or via Terraform.
+
+jobs:
+  # Memory Consolidation - runs weekly on Sundays at 3am PT
+  # Compresses related memories for long-term users
+  - name: memory-consolidation
+    description: Weekly memory consolidation for long-term users
+    schedule: "0 3 * * 0"  # 3am every Sunday
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/memory-consolidation
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
+  # Memory Decay - runs daily at 4am PT
+  # Applies graceful forgetting to old memories
+  - name: memory-decay
+    description: Daily memory decay for graceful forgetting
+    schedule: "0 4 * * *"  # 4am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/memory-decay
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 30s
+      maxBackoffDuration: 120s
+
+  # Memory Deduplication - runs weekly on Saturdays at 2am PT
+  # Removes redundant memories to optimize storage
+  - name: memory-deduplication
+    description: Weekly memory deduplication cleanup
+    schedule: "0 2 * * 6"  # 2am every Saturday
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/memory-deduplication
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
+  # Memory Health Check - runs every 4 hours
+  # Monitors system health and sends alerts
+  - name: memory-health-check
+    description: Memory system health monitoring
+    schedule: "0 */4 * * *"  # Every 4 hours
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/memory-health-check
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 60s
+
+# ============================================================================
+# MANUAL DEPLOYMENT COMMANDS
+# ============================================================================
+#
+# Create all memory jobs:
+#
+# gcloud scheduler jobs create http memory-consolidation \
+#   --location=us-central1 \
+#   --schedule="0 3 * * 0" \
+#   --uri="https://app.ferni.ai/api/jobs/memory-consolidation" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Weekly memory consolidation for long-term users"
+#
+# gcloud scheduler jobs create http memory-decay \
+#   --location=us-central1 \
+#   --schedule="0 4 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/memory-decay" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily memory decay for graceful forgetting"
+#
+# gcloud scheduler jobs create http memory-deduplication \
+#   --location=us-central1 \
+#   --schedule="0 2 * * 6" \
+#   --uri="https://app.ferni.ai/api/jobs/memory-deduplication" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Weekly memory deduplication cleanup"
+#
+# gcloud scheduler jobs create http memory-health-check \
+#   --location=us-central1 \
+#   --schedule="0 */4 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/memory-health-check" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Memory system health monitoring"
+#
+# ============================================================================
+# TESTING COMMANDS
+# ============================================================================
+#
+# Test memory consolidation manually:
+# curl -X POST https://app.ferni.ai/api/jobs/memory-consolidation \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# Test memory decay manually:
+# curl -X POST https://app.ferni.ai/api/jobs/memory-decay \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# Check memory health:
+# curl https://app.ferni.ai/api/memory/health
+#
+# List all scheduler jobs:
+# gcloud scheduler jobs list --location=us-central1 | grep memory
+

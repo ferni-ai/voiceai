@@ -97,6 +97,7 @@
 
   <script>
     let data = null;
+    let healthData = null;
     const appEl = document.getElementById('main-content');
     
     function toggleTheme() {
@@ -110,9 +111,23 @@
 
     async function fetchData() {
       try {
-        const response = await fetch('/api/observability/memory');
-        if (!response.ok) throw new Error('Failed to fetch');
-        data = await response.json();
+        // Fetch both memory metrics and health data in parallel
+        const [metricsRes, healthRes] = await Promise.all([
+          fetch('/api/observability/memory'),
+          fetch('/api/memory/health')
+        ]);
+        
+        if (metricsRes.ok) {
+          data = await metricsRes.json();
+        }
+        if (healthRes.ok) {
+          healthData = await healthRes.json();
+        }
+        
+        if (!data && !healthData) {
+          throw new Error('Failed to fetch any data');
+        }
+        
         render();
       } catch (err) {
         appEl.innerHTML = `<div class="loading-overlay"><span style="color: var(--color-semantic-warning)">Failed to load data. Is the server running?</span></div>`;
@@ -155,22 +170,22 @@
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-label">Avg Search Latency</div>
-            <div class="stat-value">${formatDuration(data.avgSearchLatencyMs || 0)}</div>
-            <div class="stat-subtext">p95: ${formatDuration(data.p95SearchLatencyMs || 0)}</div>
+            <div class="stat-value">${formatDuration(data?.avgSearchLatencyMs || 0)}</div>
+            <div class="stat-subtext">p95: ${formatDuration(data?.p95SearchLatencyMs || 0)}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Avg Relevance</div>
-            <div class="stat-value" style="color: ${(data.avgRelevanceScore || 0) >= 0.7 ? '#4a6741' : '#c4856a'}">${formatPercent(data.avgRelevanceScore || 0)}</div>
+            <div class="stat-value" style="color: ${(data?.avgRelevanceScore || 0) >= 0.7 ? '#4a6741' : '#c4856a'}">${formatPercent(data?.avgRelevanceScore || 0)}</div>
             <div class="stat-subtext">Search quality</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Cache Hit Rate</div>
-            <div class="stat-value" style="color: ${(data.cacheHitRate || 0) >= 0.5 ? '#4a6741' : '#c4856a'}">${formatPercent(data.cacheHitRate || 0)}</div>
-            <div class="stat-subtext">${data.cacheMisses || 0} misses</div>
+            <div class="stat-value" style="color: ${(data?.cacheHitRate || 0) >= 0.5 ? '#4a6741' : '#c4856a'}">${formatPercent(data?.cacheHitRate || 0)}</div>
+            <div class="stat-subtext">${data?.cacheMisses || 0} misses</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Searches/min</div>
-            <div class="stat-value">${(data.searchesPerMinute || 0).toFixed(1)}</div>
+            <div class="stat-value">${(data?.searchesPerMinute || 0).toFixed(1)}</div>
             <div class="stat-subtext">Query rate</div>
           </div>
         </div>
@@ -183,21 +198,21 @@
             </h2>
             <div class="gauge-container">
               <div class="gauge">
-                <div class="gauge-value ${getScoreClass(data.avgTopScore || 0)}">${formatPercent(data.avgTopScore || 0)}</div>
+                <div class="gauge-value ${getScoreClass(data?.avgTopScore || 0)}">${formatPercent(data?.avgTopScore || 0)}</div>
                 <div class="gauge-label">Avg Top Score</div>
               </div>
               <div class="gauge">
-                <div class="gauge-value">${(data.avgResultsPerQuery || 0).toFixed(1)}</div>
+                <div class="gauge-value">${(data?.avgResultsPerQuery || 0).toFixed(1)}</div>
                 <div class="gauge-label">Avg Results</div>
               </div>
             </div>
             <div class="metric-row">
               <span class="metric-name">Low Relevance Searches</span>
-              <span class="metric-value" style="color: ${(data.lowRelevanceSearches || 0) > 5 ? '#e07070' : '#4a6741'}">${data.lowRelevanceSearches || 0}</span>
+              <span class="metric-value" style="color: ${(data?.lowRelevanceSearches || 0) > 5 ? '#e07070' : '#4a6741'}">${data?.lowRelevanceSearches || 0}</span>
             </div>
             <div class="metric-row">
               <span class="metric-name">Empty Result Searches</span>
-              <span class="metric-value" style="color: ${(data.emptyResultSearches || 0) > 3 ? '#e07070' : '#4a6741'}">${data.emptyResultSearches || 0}</span>
+              <span class="metric-value" style="color: ${(data?.emptyResultSearches || 0) > 3 ? '#e07070' : '#4a6741'}">${data?.emptyResultSearches || 0}</span>
             </div>
           </div>
 
@@ -208,18 +223,18 @@
             </h2>
             <div class="metric-row">
               <span class="metric-name">Embeddings Generated</span>
-              <span class="metric-value">${data.embeddingsGenerated || 0}</span>
+              <span class="metric-value">${data?.embeddingsGenerated || 0}</span>
             </div>
             <div class="metric-row">
               <span class="metric-name">Avg Embedding Latency</span>
-              <span class="metric-value">${formatDuration(data.avgEmbeddingLatencyMs || 0)}</span>
+              <span class="metric-value">${formatDuration(data?.avgEmbeddingLatencyMs || 0)}</span>
             </div>
             <div class="metric-row">
               <span class="metric-name">Embedding Error Rate</span>
-              <span class="metric-value" style="color: ${(data.embeddingErrorRate || 0) > 0.05 ? '#e07070' : '#4a6741'}">${formatPercent(data.embeddingErrorRate || 0)}</span>
+              <span class="metric-value" style="color: ${(data?.embeddingErrorRate || 0) > 0.05 ? '#e07070' : '#4a6741'}">${formatPercent(data?.embeddingErrorRate || 0)}</span>
             </div>
             <div class="progress-bar" style="margin-top: 1rem;">
-              <div class="progress-fill ${getProgressClass(1 - (data.embeddingErrorRate || 0))}" style="width: ${(1 - (data.embeddingErrorRate || 0)) * 100}%"></div>
+              <div class="progress-fill ${getProgressClass(1 - (data?.embeddingErrorRate || 0))}" style="width: ${(1 - (data?.embeddingErrorRate || 0)) * 100}%"></div>
             </div>
           </div>
         </div>
@@ -232,14 +247,14 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
             <div class="metric-row" style="flex-direction: column; align-items: flex-start;">
               <span class="metric-name">Documents Stored</span>
-              <span class="metric-value" style="font-size: 1.5rem;">${(data.documentsStored || 0).toLocaleString()}</span>
+              <span class="metric-value" style="font-size: 1.5rem;">${(data?.documentsStored || 0).toLocaleString()}</span>
             </div>
             <div class="metric-row" style="flex-direction: column; align-items: flex-start;">
               <span class="metric-name">Store Type</span>
-              <span class="metric-value" style="font-size: 1.5rem;">${data.storeType || 'memory'}</span>
+              <span class="metric-value" style="font-size: 1.5rem;">${data?.storeType || 'memory'}</span>
             </div>
           </div>
-          ${data.storageBySource && Object.keys(data.storageBySource).length > 0 ? `
+          ${data?.storageBySource && Object.keys(data.storageBySource).length > 0 ? `
             <div style="margin-top: 1rem;">
               <span class="metric-name">By Source:</span>
               <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
@@ -252,6 +267,56 @@
             </div>
           ` : ''}
         </div>
+
+        ${healthData ? `
+        <div class="section">
+          <h2 class="section-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Memory System Health
+          </h2>
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div class="gauge-value ${healthData.status === 'ok' ? 'good' : healthData.status === 'degraded' ? 'warning' : 'bad'}" style="font-size: 1.5rem;">
+              ${healthData.status === 'ok' ? '✓ Healthy' : healthData.status === 'degraded' ? '⚠ Degraded' : '✗ Error'}
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            ${Object.entries(healthData.subsystems || {}).map(([name, sub]) => `
+              <div style="background: var(--color-background-base); padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="width: 10px; height: 10px; border-radius: 50%; background: ${sub.status === 'active' ? '#4a6741' : '#c4856a'}"></span>
+                  <span style="font-weight: 600; text-transform: capitalize;">${name}</span>
+                </div>
+                <span class="metric-name">${sub.description}</span>
+              </div>
+            `).join('')}
+          </div>
+          
+          ${healthData.alerts && healthData.alerts.length > 0 ? `
+            <div style="margin-top: 1rem;">
+              <span class="metric-name" style="color: #e07070;">Alerts:</span>
+              <ul style="margin-top: 0.5rem; list-style: none;">
+                ${healthData.alerts.map(a => `
+                  <li style="padding: 0.5rem; margin-bottom: 0.5rem; background: ${a.level === 'error' ? 'rgba(224, 112, 112, 0.1)' : 'rgba(196, 133, 106, 0.1)'}; border-radius: 8px; border-left: 3px solid ${a.level === 'error' ? '#e07070' : '#c4856a'};">
+                    ${a.message}
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          
+          <div style="margin-top: 1rem;">
+            <span class="metric-name">Features:</span>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+              ${Object.entries(healthData.features || {}).map(([feature, enabled]) => `
+                <span style="background: ${enabled ? '#3d5a35' : 'var(--color-background-base)'}; color: ${enabled ? '#fff' : 'var(--color-text-muted)'}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem;">
+                  ${enabled ? '✓' : '○'} ${feature.replace(/([A-Z])/g, ' $1').trim()}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        ` : ''}
       `;
     }
 

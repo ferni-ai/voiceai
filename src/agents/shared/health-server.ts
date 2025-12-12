@@ -7,16 +7,26 @@
  * Used by ALL agents regardless of persona.
  *
  * Endpoints:
- * - GET /health - Health check
+ * - GET /health - Liveness check (always returns 200 if server is up)
+ * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /api/cognitive - Current cognitive state (for dashboard)
  * - GET /api/cognitive/history - Recent cognitive events
  * - GET /api/metrics - Full persistence metrics snapshot
  * - GET /api/metrics/summary - Concise metrics summary
  * - GET /api/metrics/sessions - Active sessions only
+ *
+ * Deploy Script Integration:
+ * The deploy script checks /health/ready before shifting traffic.
+ * This ensures zero-downtime deployments - traffic only shifts when workers are ready.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  getReadinessState,
+  markHealthServerReady,
+  type ReadinessState,
+} from './worker-readiness.js';
 
 // Debug flag for startup logging
 const DEBUG_STARTUP =
@@ -204,13 +214,34 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
     void (async () => {
       const url = req.url || '/';
 
-      // Health check endpoint for Cloud Run
+      // Liveness check - Cloud Run uses this to know the process is alive
+      // Always returns 200 if the server is running
       if (url === '/' || url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
           JSON.stringify({
             status: 'ok',
             service: serviceName,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        return;
+      }
+
+      // Readiness check - Deploy script uses this before shifting traffic
+      // Returns 200 only when workers can actually accept connections
+      if (url === '/health/ready') {
+        const readiness: ReadinessState = getReadinessState();
+
+        // Return 200 if ready, 503 if not
+        const statusCode = readiness.ready ? 200 : 503;
+
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            status: readiness.ready ? 'ready' : 'not_ready',
+            service: serviceName,
+            ...readiness,
             timestamp: new Date().toISOString(),
           })
         );
@@ -239,6 +270,9 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
     if (DEBUG_STARTUP) {
       log.info({ serviceName, port }, 'Health check server listening');
     }
+
+    // Mark health server as ready for readiness checks
+    markHealthServerReady();
 
     // Initialize WebSocket server for real-time cognitive updates
     void initWebSocketServer(server);

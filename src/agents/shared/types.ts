@@ -6,6 +6,7 @@
 
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
 import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
+import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
@@ -216,6 +217,14 @@ export interface UserData {
 
   /** Whether voice insight was delivered this session */
   deliveredVoiceInsight?: boolean;
+
+  // ============================================================
+  // DEEP UNDERSTANDING: Silence Intelligence
+  // Tracks the last analyzed silence for context building
+  // ============================================================
+
+  /** Last silence analysis from the silence intelligence system */
+  lastSilenceAnalysis?: SilenceAnalysis;
 }
 
 // ============================================================================

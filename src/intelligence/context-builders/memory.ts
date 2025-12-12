@@ -1,7 +1,7 @@
 /**
- * Memory Context Builder
+ * Memory Context Builder (Classic)
  *
- * Handles memory-related context injections:
+ * Handles traditional memory-related context injections:
  * - Memory callbacks (reference earlier in conversation)
  * - Cross-session memory (reference previous conversations)
  * - Past conversation retrieval (semantic search)
@@ -12,6 +12,18 @@
  * - Proactive insights
  *
  * This makes conversations feel continuous and personalized.
+ *
+ * MEMORY BUILDER ECOSYSTEM:
+ * - memory.ts (this file, priority ~50) - Traditional callbacks, time-since, key moments
+ * - advanced-memory.ts (priority 85) - Semantic retrieval with temporal decay, session priming
+ * - proactive-memory.ts (priority 75) - Spontaneous memories, voice recognition
+ * - human-memory.ts (priority 80) - Human-centric: dates, comfort patterns, growth, jokes
+ * - persona-memory.ts - Per-persona memory injection
+ * - cross-session-threading.ts (priority 75) - Open threads and promises
+ *
+ * NOTE: advanced-memory.ts handles semantic priming memories at session start.
+ * This builder handles turn-by-turn callbacks and cross-session references.
+ * They complement each other - advanced for semantic search, classic for pattern callbacks.
  *
  * Extracted from jack-bogle.ts lines 561-612, 959-1005, 1066-1100, 1241-1259
  */

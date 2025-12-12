@@ -61,6 +61,9 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
+  // Advanced memory retrieval for session priming
+  buildMemoryIndex,
+  getConversationPrimingMemories,
 } from '../memory/index.js';
 
 // Intelligence imports
@@ -426,10 +429,44 @@ export async function createSessionServices(
       // Get recent conversation summaries for context
       const recentSummaries = userProfile.conversationSummaries?.slice(-5) || [];
 
-      // Generate priming context (passing empty memories array for now - could enhance later)
+      // ========================================================================
+      // MEMORY INDEX WARMING - Build index at session START for returning users
+      // This ensures semantic retrieval works from turn 1, not just after indexing
+      // ========================================================================
+      let primingMemories: import('../memory/advanced-retrieval.js').MemoryItem[] = [];
+      try {
+        // Build memory index from user profile (fast if already built)
+        await buildMemoryIndex(validatedUserId, userProfile);
+
+        // Get salient memories for session priming (commitments, emotional moments, recent topics)
+        primingMemories = await getConversationPrimingMemories(
+          validatedUserId,
+          personaId || 'ferni',
+          {
+            maxMemories: 5,
+            includeCommitments: true,
+            includeRecentTopics: true,
+            sessionCount: userProfile.totalConversations || 0,
+          }
+        );
+
+        if (primingMemories.length > 0) {
+          getLogger().info(
+            { userId: validatedUserId, memoriesLoaded: primingMemories.length },
+            '🧠 Memory index warmed with salient memories for session priming'
+          );
+        }
+      } catch (memoryWarmupError) {
+        getLogger().debug(
+          { error: String(memoryWarmupError) },
+          'Memory warmup failed (non-blocking) - continuing with empty memories'
+        );
+      }
+
+      // Generate priming context with actual memories from vector store
       const primingResult = await primer.generatePrimingContext(
         userProfile,
-        [], // memories - could populate from vector store later
+        primingMemories, // Now populated with real memories!
         recentSummaries
       );
 

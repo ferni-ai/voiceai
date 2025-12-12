@@ -11,6 +11,7 @@ import {
   shutdownMemorySystem,
   type MemorySystemResult,
 } from './memory/index.js';
+import { startBackgroundIndexing } from './memory/background-indexer.js';
 import { initializeFromBundles, listPersonas } from './personas/index.js';
 import {
   initializeServices,
@@ -104,6 +105,20 @@ export async function startup(): Promise<AppConfig> {
 
   const allPersonas = listPersonas();
   logger.info(`  Available: ${allPersonas.join(', ')}`);
+
+  // Start background indexing (non-blocking, runs in background after startup)
+  // This indexes persona content into the vector store without blocking startup
+  if (memorySystem?.vectorStore) {
+    logger.info('Starting background persona indexer...');
+    void startBackgroundIndexing(memorySystem.vectorStore, {
+      startDelayMs: 5000, // Wait 5s for server to stabilize
+      concurrency: 2, // Limit concurrent embedding calls
+    }).then(() => {
+      logger.info('✓ Background persona indexing started (will complete async)');
+    }).catch((err) => {
+      logger.warn(`Background indexing failed to start (non-fatal): ${err}`);
+    });
+  }
 
   // Start schedulers (synchronous, just sets up intervals)
   logger.info('Starting schedulers...');

@@ -1,0 +1,17 @@
+{
+  "_comment": "Design Token Version - Auto-updated by npm run tokens:version",
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-12T21:32:00.000Z",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2025-12-12",
+      "changes": [
+        "Initial versioned release",
+        "Fixed accent color to match brand guidelines (#3D5A45)",
+        "Added brand alignment validation (npm run brand:check)",
+        "Tailwind config now uses CSS variable references"
+      ]
+    }
+  ]
+}

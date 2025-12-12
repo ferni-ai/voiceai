@@ -583,6 +583,23 @@ export {
 } from './advanced-humanization-integration.js';
 
 // ============================================================================
+// UNIFIED INTEGRATION (RECOMMENDED ENTRY POINT)
+// ============================================================================
+
+// Single entry point for all conversation humanization
+export {
+  createConversationSession,
+  endConversationSession,
+  getActiveSessions,
+  getConversationSession,
+  quickHumanize,
+  type ConversationSession,
+  type ConversationSessionConfig,
+  type TurnInput,
+  type TurnResult,
+} from './unified-integration.js';
+
+// ============================================================================
 // CONVENIENCE: Reset all conversation state
 // ============================================================================
 
