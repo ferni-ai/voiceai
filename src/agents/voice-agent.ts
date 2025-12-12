@@ -299,6 +299,7 @@ import {
   handleSlashCommand,
   identifyUser,
   recordTrustSystemsData,
+  sendCelebrationEvents,
   setupDataChannelHandler,
   setupMusicHandler,
   setupSessionStateHandlers,
@@ -1766,80 +1767,6 @@ class VoiceAgent extends voice.Agent<UserData> {
   }
 
   /**
-   * Send celebration events to frontend based on context injections
-   * Uses fireworks for major achievements (professional, not gamified)
-   * Uses sparkles for lighter moments (aha moments, good news)
-   *
-   * Now uses centralized FrontendPublisher for consistent handling
-   */
-  private async sendCelebrationEvents(
-    injections: Array<{ category: string; content: string }>
-  ): Promise<void> {
-    // Use FrontendPublisher for celebration events
-    try {
-      const { getFrontendPublisher } = await import('./realtime/index.js');
-      const publisher = getFrontendPublisher();
-
-      if (publisher.isConnected()) {
-        await publisher.sendCelebrationEvents(injections);
-        return;
-      }
-    } catch (e) {
-      // Fall through to legacy approach - publisher not ready
-      this.logger.debug({ error: String(e) }, 'FrontendPublisher not available for celebrations');
-    }
-
-    // Legacy fallback
-    if (!this._room?.localParticipant) return;
-
-    // Map context injection categories to celebration configs
-    const celebrationConfigs: Record<
-      string,
-      { celebrationType: string; effect: 'fireworks' | 'sparkles'; message?: string }
-    > = {
-      milestone: {
-        celebrationType: 'milestone',
-        effect: 'fireworks',
-        message: '🎆 Milestone achieved!',
-      },
-      achievement: {
-        celebrationType: 'achievement',
-        effect: 'fireworks',
-        message: '🎆 Great achievement!',
-      },
-      aha_moment: { celebrationType: 'aha_moment', effect: 'sparkles' },
-      good_news: { celebrationType: 'good_news', effect: 'sparkles' },
-    };
-
-    for (const injection of injections) {
-      const config = celebrationConfigs[injection.category];
-      if (config) {
-        try {
-          const celebrationMessage = JSON.stringify({
-            type: 'celebration',
-            celebrationType: config.celebrationType,
-            effect: config.effect,
-            message: config.message,
-            timestamp: Date.now(),
-          });
-
-          await this._room.localParticipant.publishData(
-            new TextEncoder().encode(celebrationMessage),
-            { reliable: true }
-          );
-
-          this.logger.info(
-            { celebrationType: config.celebrationType, effect: config.effect },
-            'Sent celebration event to frontend'
-          );
-        } catch (err) {
-          this.logger.warn({ error: String(err) }, 'Failed to send celebration event');
-        }
-      }
-    }
-  }
-
-  /**
    * Enhanced user turn completion hook
    * Uses modular context builders to inject intelligent guidance
    *
@@ -2057,7 +1984,7 @@ IMPORTANT:
       // Send celebration events to frontend
       const celebrations = getCelebrationEvents(result);
       if (celebrations.length > 0) {
-        await this.sendCelebrationEvents(celebrations);
+        await sendCelebrationEvents({ injections: celebrations, room: this._room });
       }
 
       // Send mood update to frontend

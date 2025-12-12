@@ -74,6 +74,13 @@ export {
   type SlashCommandResult,
 } from './slash-command-handler.js';
 
+// Celebration events handler
+export {
+  sendCelebrationEvents,
+  type CelebrationContext,
+  type CelebrationConfig,
+} from './celebration-events-handler.js';
+
 // Session utilities (to be added)
 // export * from './session-setup.js';
 
