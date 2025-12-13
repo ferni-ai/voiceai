@@ -2632,9 +2632,11 @@ body {
 .header {
   position: relative;
   z-index: 1;
-  /* Reduced padding for better above-fold content visibility */
+  /* Padding + margin-top to ensure avatar ring isn't clipped by #app overflow:hidden */
   padding: var(--space-sm) var(--space-lg) var(--space-xs);
+  margin-top: calc(20px + env(safe-area-inset-top, 0px));
   text-align: center;
+  overflow: visible;
 }
 
 .main {
@@ -6891,9 +6893,11 @@ body {
   }
 
   .header {
-    /* Reduced top padding for better above-fold content */
-    padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
+    padding: var(--space-xs) var(--space-sm) var(--space-xs);
+    margin-top: calc(16px + env(safe-area-inset-top, 0px));
     gap: var(--space-xs);
+    overflow: visible;
   }
 
   .avatar-container {
@@ -7062,8 +7066,10 @@ body {
        HERO AVATAR: These phones get premium treatment with large, centered avatar */
 @media (min-width: 390px) and (max-width: 430px) {
   .header {
-    /* Reduced top padding for better above-fold content */
-    padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
+    padding: var(--space-xs) var(--space-sm) var(--space-xs);
+    margin-top: calc(16px + env(safe-area-inset-top, 0px));
+    overflow: visible;
   }
 
   .avatar-container {
