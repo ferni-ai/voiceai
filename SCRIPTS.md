@@ -6,21 +6,6 @@ This document lists all available npm scripts in the Ferni project.
 
 ## 🚀 Quick Start
 
-### Global CLI Installation (Recommended)
-
-```bash
-# Install globally from this project
-npm link
-
-# Now use ferni from anywhere!
-ferni                       # Interactive menu
-ferni deploy ui             # Deploy UI server
-ferni agents new            # Create a new marketplace agent
-ferni status                # Check service health
-```
-
-### Alternative: npm scripts
-
 ```bash
 # Interactive CLI
 npm run ferni
@@ -39,8 +24,9 @@ Primary development commands
 
 | Script | Command |
 |--------|----------|
-| `npm run build` | `tsc` |
+| `npm run build` | `tsc -p tsconfig.build.json` |
 | `npm run dev` | `tsx src/agent.ts dev` |
+| `npm run dev:e2e` | `source .env.e2e-all-features 2>/dev/null || true && npx t...` |
 | `npm run dev:full` | `npm run token-server & npm run dev` |
 | `npm run dev:jack` | `PERSONA_ID=jack-bogle tsx src/agent.ts dev` |
 | `npm run dev:jack-b` | `PERSONA_ID=jack-b tsx src/agent.ts dev` |
@@ -61,6 +47,8 @@ Test runners and validation
 | `npm run test:cli` | `npx tsx scripts/test.ts` |
 | `npm run test:coverage` | `vitest run --coverage` |
 | `npm run test:e2e` | `npx tsx scripts/test-e2e.ts` |
+| `npm run test:integrations` | `npx env-cmd -f .env npx tsx scripts/test-all-integrations.ts` |
+| `npm run test:integrations:live` | `npx env-cmd -f .env npx tsx scripts/test-all-integrations...` |
 | `npm run test:quick` | `npx tsx scripts/test.ts quick` |
 | `npm run test:smoke` | `npx tsx scripts/test.ts smoke` |
 | `npm run test:storage` | `npx tsx scripts/test-storage.ts` |
@@ -103,13 +91,19 @@ Deploy services to cloud
 |--------|----------|
 | `npm run deploy` | `npx tsx scripts/deploy.ts` |
 | `npm run deploy:agent` | `npx tsx scripts/deploy.ts agent` |
+| `npm run deploy:agent:async` | `npx tsx scripts/deploy.ts agent --async` |
 | `npm run deploy:all` | `npx tsx scripts/deploy.ts all` |
 | `npm run deploy:brand` | `npx tsx scripts/deploy.ts brand` |
+| `npm run deploy:context` | `bash infrastructure/scripts/deploy-context.sh` |
 | `npm run deploy:evolution` | `npx tsx scripts/deploy.ts evolution` |
+| `npm run deploy:frontend` | `npx tsx scripts/deploy.ts frontend` |
 | `npm run deploy:help` | `npx tsx scripts/deploy.ts --help` |
 | `npm run deploy:joel` | `npx tsx scripts/deploy.ts joel` |
 | `npm run deploy:landing` | `npx tsx scripts/deploy.ts landing` |
+| `npm run deploy:speaker` | `gcloud builds submit --config=cloudbuild-speaker.yaml` |
 | `npm run deploy:ui` | `npx tsx scripts/deploy.ts ui` |
+| `npm run deploy:ui:async` | `npx tsx scripts/deploy.ts ui --async` |
+| `npm run deploy:workers` | `bash infrastructure/scripts/deploy-workers.sh` |
 
 ## ⚙️ Setup & Configuration
 
@@ -135,19 +129,27 @@ Code and asset generation
 | Script | Command |
 |--------|----------|
 | `npm run build:android` | `npx tsx scripts/build.ts android` |
+| `npm run build:animation-constants` | `node design-system/generate-animation-constants.js` |
 | `npm run build:apps` | `npx tsx scripts/build.ts apps` |
 | `npm run build:assets` | `node design-system/build-assets.js` |
+| `npm run build:bundle` | `node scripts/build-bundle.js` |
 | `npm run build:cli` | `npx tsx scripts/build.ts` |
 | `npm run build:design-system` | `npm run build:tokens && npm run build:persona-colors && n...` |
 | `npm run build:electron` | `npx tsx scripts/build.ts electron` |
+| `npm run build:fast` | `npx tsx scripts/build-fast.ts` |
+| `npm run build:fast:types` | `npx tsx scripts/build-fast.ts --types` |
+| `npm run build:fast:watch` | `npx tsx scripts/build-fast.ts --watch` |
 | `npm run build:ios` | `npx tsx scripts/build.ts ios` |
 | `npm run build:persona-colors` | `node design-system/generate-persona-colors.js` |
+| `npm run build:prod` | `npm run build:fast && npm run build:bundle` |
 | `npm run build:sounds` | `node design-system/generate-sounds.js` |
 | `npm run build:store-assets` | `npx tsx scripts/build.ts store-assets` |
 | `npm run build:sync` | `npx tsx scripts/build.ts sync` |
+| `npm run build:tailwind-config` | `node design-system/generate-tailwind-config.js` |
 | `npm run build:tokens` | `node design-system/build.js` |
 | `npm run generate` | `npx tsx scripts/generate.ts` |
 | `npm run generate:all` | `npx tsx scripts/generate.ts all` |
+| `npm run generate:api-docs` | `npx tsx scripts/generate-api-docs.ts` |
 | `npm run generate:design-system` | `npx tsx scripts/generate.ts design-system` |
 | `npm run generate:env` | `npx tsx scripts/generate.ts env` |
 | `npm run generate:marketing` | `npx tsx scripts/generate.ts marketing` |
@@ -209,21 +211,50 @@ Miscellaneous utilities
 | `npm run agents:create` | `npx tsx src/cli/agent-manager.ts create` |
 | `npm run agents:list` | `npx tsx src/cli/agent-manager.ts list` |
 | `npm run agents:validate` | `npx tsx src/cli/agent-manager.ts validate` |
+| `npm run brand:check` | `node design-system/check-brand.js` |
+| `npm run brand:check:all` | `npx tsx scripts/check-brand-compliance.ts --all` |
+| `npm run brand:validate` | `curl -s -X POST https://app.ferni.ai/api/brand/validate -...` |
 | `npm run build:frontend` | `npx tsx scripts/build.ts frontend` |
+| `npm run cleanup:calendar-tokens` | `npx tsx scripts/cleanup-test-calendar-tokens.ts` |
 | `npm run debt` | `npx tsx scripts/tech-debt.ts` |
 | `npm run debt:json` | `npx tsx scripts/tech-debt.ts --json` |
 | `npm run debt:markdown` | `npx tsx scripts/tech-debt.ts --markdown` |
-| `npm run docker:build` | `docker build -t voice-agent .` |
+| `npm run docker:build` | `docker build -f docker/Dockerfile.agent -t voice-agent .` |
 | `npm run docker:run` | `docker run --env-file .env -p 8080:8080 voice-agent` |
+| `npm run flags:dry-run` | `npx tsx scripts/enable-all-flags.ts --dry-run` |
+| `npm run flags:enable-all` | `npx tsx scripts/enable-all-flags.ts` |
+| `npm run flags:report` | `npx tsx scripts/enable-all-flags.ts --report` |
+| `npm run flags:reset` | `npx tsx scripts/enable-all-flags.ts --reset` |
+| `npm run flags:save-env` | `npx tsx scripts/enable-all-flags.ts --save-env` |
+| `npm run infra:health` | `bash infrastructure/scripts/check-scaling-health.sh` |
+| `npm run infra:setup-pubsub` | `bash infrastructure/scripts/setup-pubsub.sh` |
+| `npm run infra:terraform` | `cd infrastructure/terraform && terraform init && terrafor...` |
+| `npm run job:all` | `npx tsx scripts/run-job.ts all` |
+| `npm run job:check-in` | `npx tsx scripts/run-job.ts checkInNudge` |
+| `npm run job:daily-warnings` | `npx tsx scripts/run-job.ts dailyWarningCheck` |
+| `npm run job:weekly-ant` | `npx tsx scripts/run-job.ts weeklyANTReport` |
+| `npm run job:wisdom` | `npx tsx scripts/run-job.ts wisdomAggregation` |
+| `npm run ops:health` | `npx tsx scripts/health-check.ts` |
+| `npm run ops:health:alert` | `npx tsx scripts/health-check.ts --alert` |
+| `npm run ops:logs` | `gcloud run services logs read voiceai-agent --region us-c...` |
+| `npm run ops:logs:errors` | `gcloud logging read 'resource.type="cloud_run_revision" s...` |
+| `npm run ops:setup` | `./scripts/setup-monitoring.sh` |
 | `npm run persona` | `npx tsx src/cli/persona-cli.ts` |
 | `npm run persona:build` | `npx tsx src/cli/persona-cli.ts build` |
 | `npm run persona:list` | `npx tsx src/cli/persona-cli.ts list` |
 | `npm run persona:validate` | `npx tsx src/cli/persona-cli.ts validate` |
 | `npm run prebuild:frontend` | `npm run build:design-system && npm run generate:personas` |
-| `npm run prepare` | `node -e "if (process.env.CI !== 'true') require('husky')....` |
+| `npm run prepare` | `husky || true` |
+| `npm run secrets:sync` | `npx tsx scripts/sync-secrets-to-env.ts` |
 | `npm run services:down` | `docker compose -f docker-compose.local.yml down` |
 | `npm run services:logs` | `docker compose -f docker-compose.local.yml logs -f` |
 | `npm run services:up` | `docker compose -f docker-compose.local.yml up -d` |
+| `npm run storybook` | `cd design-system && npm run storybook` |
+| `npm run storybook:build` | `cd design-system && npm run build-storybook` |
+| `npm run tokens:check` | `node design-system/check-drift.js` |
+| `npm run tokens:sync` | `npm run build:design-system && npm run sync:promo && echo...` |
+| `npm run tokens:version` | `node design-system/version-tokens.js` |
+| `npm run tokens:watch` | `node design-system/dev-server.js --watch` |
 | `npm run tools:activate` | `npx tsx src/cli/tools-report.ts activate` |
 | `npm run tools:alerts` | `npx tsx src/cli/tools-report.ts alerts` |
 | `npm run tools:benchmark` | `npx tsx src/cli/tools-report.ts benchmark` |
@@ -238,115 +269,46 @@ Miscellaneous utilities
 | `npm run tools:report` | `npx tsx src/cli/tools-report.ts` |
 | `npm run tools:route` | `npx tsx src/cli/tools-report.ts route` |
 | `npm run tools:versions` | `npx tsx src/cli/tools-report.ts versions` |
+| `npm run warmup:agent` | `bash scripts/warmup-agent.sh` |
 
-## 🎯 Unified CLI Reference (v2.0)
+## 🎯 Unified CLI Reference
 
-The `ferni` CLI provides interactive access to all commands with enhanced UX:
+The `ferni` CLI provides interactive access to all commands:
 
 ```bash
-# Interactive mode (recommended)
+# Interactive mode
 npm run ferni
 
 # Direct commands
-npm run ferni deploy ui       # Deploy UI server
-npm run ferni status          # Check service health
-npm run ferni logs agent      # View agent logs
-npm run ferni doctor          # System diagnostics
-npm run ferni env check       # Validate environment
+npm run ferni deploy ui
+npm run ferni test quick
+npm run ferni setup local
+npm run ferni generate all
+npm run ferni health
 ```
 
-### Development Commands
+### Available CLI Modules
 
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `ferni deploy` | ui, agent, frontend, landing, all | Deploy to Cloud Run |
-| `ferni build` | frontend, electron, ios, android, apps | Build applications |
-| `ferni test` | unit, e2e, storage, quick, all | Run test suites |
-| `ferni setup` | local, icons, firestore, github, all | Configure environment |
-
-### Operations Commands
-
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `ferni status` | services, revisions, traffic, all | Check deployment status with health checks |
-| `ferni logs` | agent, ui, all, errors | View Cloud Run logs (--tail for streaming) |
-| `ferni doctor` | all, apis, env | System diagnostics |
-| `ferni db` | status, backup, migrate, query | Database operations |
-| `ferni env` | list, diff, check, secrets | Environment variable management |
-
-### Agents & Quality Commands
-
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `ferni agents` | **new**, list, show, validate, install | Manage AI agents |
-| `ferni validate` | voices, humanization, integrations, all | Run validations |
-| `ferni generate` | personas, env, design-system, all | Generate code/assets |
-| `ferni rollout` | start, status, advance, rollback | Feature rollouts |
-| `ferni audit` | quality, architecture, legacy, a11y | Code audits |
-
-### Creating New Marketplace Agents
-
-The CLI includes an interactive wizard for creating new marketplace agents:
-
-```bash
-npm run ferni agents new
-```
-
-The wizard guides you through:
-1. **Agent Identity** - Name, ID, and description
-2. **Domain & Expertise** - Category and specialty areas
-3. **Personality** - Traits, warmth, directness, energy levels
-4. **Voice Style** - Communication style and tone
-5. **Handoff Triggers** - Keywords that activate this agent
-
-The wizard generates all required files:
-- `persona.manifest.json` - Complete agent configuration
-- `identity/system-prompt.md` - LLM system prompt
-- `identity/biography.md` - Character backstory
-- `content/behaviors/*.json` - Greetings, goodbyes, quirks, etc.
-- `content/knowledge/_index.json` - Knowledge base index
-- `content/stories/_index.json` - Story library index
-- Registry entry in `marketplace-agents/registry.json`
-
-### Examples
-
-```bash
-# Check all services and health
-npm run ferni status
-
-# Stream live logs
-npm run ferni logs agent --tail
-
-# Full system diagnostics
-npm run ferni doctor
-
-# Compare .env with .env.example
-npm run ferni env diff
-
-# Check required environment variables
-npm run ferni env check
-
-# View database status
-npm run ferni db status
-
-# List all AI agents
-npm run ferni agents list
-
-# Create a new marketplace agent (interactive wizard)
-npm run ferni agents new
-
-# Validate an agent
-npm run ferni agents validate atlas-career-navigator
-```
+| Module | Description | Example |
+|--------|-------------|---------|
+| `deploy` | Deploy services | `ferni deploy ui` |
+| `setup` | Configure environment | `ferni setup local` |
+| `test` | Run tests | `ferni test quick` |
+| `validate` | Run validations | `ferni validate all` |
+| `audit` | Code audits | `ferni audit quality` |
+| `build` | Build apps | `ferni build apps` |
+| `generate` | Generate code/assets | `ferni generate all` |
+| `rollout` | Feature rollouts | `ferni rollout status` |
+| `health` | System health check | `ferni health` |
 
 ---
 
 ## 📚 Additional Resources
 
-- [Deployment Guide](./DEPLOYMENT.md)
-- [Onboarding](./ONBOARDING.md)
-- [Contributing](./CONTRIBUTING.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+- [Development Setup](./docs/DEVELOPMENT.md)
+- [Architecture Overview](./docs/ARCHITECTURE.md)
 
 ---
 
-*Last updated: 2025-12-11*
+*Generated on 2025-12-13*
