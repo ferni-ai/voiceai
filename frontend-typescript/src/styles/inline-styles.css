@@ -6515,93 +6515,100 @@ body {
        - φ^1.5 ≈ 164px → 160px (luxurious)
        ======================================================================== */
 
-/* Large Desktop (1200px+) - Luxurious spacing */
+/* Large Desktop (1200px+) - Match 768px to prevent layout overflow */
 @media (min-width: 1200px) {
-  /* Team roster tokens defined in consolidated section above */
+  /* Match 768px exactly - larger fonts/avatars cause helper text to disappear */
 
   .app {
     max-width: 600px;
     margin: 0 auto;
+    /* Match 768px padding */
+    padding: var(--space-md);
+    padding-top: max(var(--space-md), env(safe-area-inset-top, 8px));
+  }
+
+  .header {
+    /* Match 768px - tight spacing */
+    padding: var(--space-xs) 0 var(--space-sm) 0;
+    gap: var(--space-xs);
   }
 
   .avatar-container {
-    /* Reduced from 160px to fit better on desktop */
-    width: 120px;
-    height: 120px;
+    /* Match 768px */
+    width: 128px;
+    height: 128px;
   }
-
-  /* Connection-heart uses tokens defined above */
 
   /* Scale avatar ring with avatar */
   #avatarRing {
-    inset: -12px;
+    inset: -10px;
     border-width: 2px;
   }
 
   #avatarText {
-    font-size: 3.5rem;
+    /* Match 768px */
+    font-size: var(--text-3xl);
   }
 
   /* Scale thinking float with avatar */
   .thinking-float {
-    bottom: -36px;
-    padding: 6px 14px;
-    font-size: 12px;
+    bottom: -30px;
+    padding: 5px 12px;
+    font-size: 11px;
   }
 
   .thinking-float .thinking-dot {
-    width: 5px;
-    height: 5px;
+    width: 4.5px;
+    height: 4.5px;
   }
 
   /* Scale status whisper with avatar */
   .status-whisper {
-    bottom: -40px !important;
-    font-size: 11px !important;
+    bottom: -34px !important;
+    font-size: 10px !important;
   }
 
-  /* Scale persona name/subtitle */
+  /* Scale persona name/subtitle - MATCH 768px! */
   #personaName {
-    font-size: var(--text-2xl);
-  }
-
-  #personaSubtitle {
-    font-size: var(--text-base);
-  }
-
-  /* Team roster uses tokens defined above - no overrides needed */
-
-  /* Scale waveform */
-  #waveformContainer {
-    height: 80px;
-    padding: 8px 0;
-  }
-
-  .waveform-bars {
-    height: 56px;
-    gap: 5px;
-  }
-
-  .waveform-bar {
-    --bar-width: 4px;
-  }
-
-  /* Scale buttons */
-  .btn-primary {
-    min-height: 56px;
-    padding: 16px 40px;
     font-size: var(--text-lg);
   }
 
-  .btn-secondary {
-    min-height: 48px;
-    padding: 12px 28px;
+  #personaSubtitle {
+    font-size: var(--text-sm);
   }
 
-  /* Scale helper text */
+  /* Scale waveform - match 768px */
+  #waveformContainer {
+    max-width: 320px;
+    height: 70px;
+    padding: 6px 0;
+  }
+
+  .waveform-bars {
+    height: 48px;
+    gap: 4px;
+  }
+
+  .waveform-bar {
+    --bar-width: 3.5px;
+  }
+
+  /* Scale buttons - match 768px */
+  .btn-primary {
+    min-height: 52px;
+    padding: 14px 36px;
+    font-size: var(--text-base);
+  }
+
+  .btn-secondary {
+    min-height: 44px;
+    padding: 10px 24px;
+  }
+
+  /* Scale helper text - match 768px */
   #helperText {
-    font-size: 15px;
-    margin-top: var(--space-md);
+    font-size: var(--text-base);
+    margin-top: var(--space-lg);
   }
 
   .main {
