@@ -197,7 +197,7 @@ import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-d
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { growthJourneyUI } from './ui/growth-journey.ui.js';
 // Garden Widget - Seed Fund community contribution display
-import { getGardenWidgetStyles, initGardenWidget } from './ui/garden-widget.ui.js';
+// Garden widget removed - using simple menu option instead
 import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
 import { personalizeUI } from './ui/personalize.ui.js';
 import { referralUI } from './ui/referral.ui.js';
@@ -1293,6 +1293,12 @@ class VoiceAIApp {
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
+        onSupportFerniClick: () => {
+          const userId = appState.get('deviceId');
+          if (userId) {
+            void ferniFundUI.open(userId);
+          }
+        },
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => growthJourneyUI.open(),
         onShareFerniClick: () => referralUI.open(),
@@ -1324,29 +1330,6 @@ class VoiceAIApp {
       showTeamHuddle();
     });
 
-    // 🌱 Garden Widget - Seed Fund community contribution display
-    this.safeInit('GardenWidget', () => {
-      // Inject garden widget styles
-      const gardenStyles = document.createElement('style');
-      gardenStyles.id = 'garden-widget-styles';
-      gardenStyles.textContent = getGardenWidgetStyles();
-      document.head.appendChild(gardenStyles);
-
-      // Initialize garden widget
-      const gardenContainer = document.getElementById('gardenWidgetContainer');
-      if (gardenContainer) {
-        void initGardenWidget(gardenContainer);
-      }
-    });
-
-    // Listen for plant-seed events from garden widget
-    window.addEventListener('ferni:open-plant-seed', ((_event: CustomEvent<{ type: 'one-time' | 'monthly' }>) => {
-      const userId = appState.get('deviceId');
-      if (userId) {
-        // Open ferni fund modal (seed fund contribution)
-        void ferniFundUI.open(userId);
-      }
-    }) as EventListener);
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;

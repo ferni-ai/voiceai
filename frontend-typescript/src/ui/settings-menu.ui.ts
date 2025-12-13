@@ -61,6 +61,7 @@ export interface SettingsMenuUICallbacks {
   onHouseholdClick?: () => void;
   onConversationMemoryClick?: () => void;
   onWellbeingClick?: () => void;
+  onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
   onShareFerniClick?: () => void;
@@ -382,6 +383,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
             ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
             ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
+            ${this.renderMenuItem('support-ferni', ICONS.seedling, 'Support Ferni')}
           </section>
 
           <section class="settings-menu__section">
@@ -536,6 +538,9 @@ class SettingsMenuUI {
         break;
       case 'share-ferni':
         this.callbacks.onShareFerniClick?.();
+        break;
+      case 'support-ferni':
+        this.callbacks.onSupportFerniClick?.();
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();

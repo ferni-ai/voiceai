@@ -416,18 +416,37 @@ export function addIntakeBreath(text: string, context: VocalContext): string {
 /**
  * Make voice automatically change based on emotional content
  * "Emotion bleeding through" - not stated, but heard
+ * 
+ * Enhanced with more patterns for dynamic prosody
  */
 export function applyEmotionBleeding(text: string, context: VocalContext): string {
   let result = text;
   const emotionalPatterns = [
+    // Sympathetic - holding space
     {
-      pattern: /\b(I'm so sorry|that's really hard|that sounds painful)\b/i,
+      pattern: /\b(I'm so sorry|that's really hard|that sounds painful|that's heavy|that's a lot)\b/i,
       effect: 'sympathetic',
     },
-    { pattern: /\b(I'm proud of you|that's amazing|you did it)\b/i, effect: 'warm' },
-    { pattern: /\b(I'm worried|I'm concerned|be careful)\b/i, effect: 'concerned' },
-    { pattern: /\b(I love that|that's wonderful|beautiful)\b/i, effect: 'touched' },
-    { pattern: /\b(wait|hold on|what|really)\b/i, effect: 'surprised' },
+    // Warm - genuine affection
+    { pattern: /\b(I'm proud of you|that's amazing|you did it|look at you|I believe in you)\b/i, effect: 'warm' },
+    // Concerned - protective
+    { pattern: /\b(I'm worried|I'm concerned|be careful|are you okay|that doesn't sound right)\b/i, effect: 'concerned' },
+    // Touched - emotionally moved
+    { pattern: /\b(I love that|that's wonderful|beautiful|that means a lot|that's real)\b/i, effect: 'touched' },
+    // Surprised - genuine surprise
+    { pattern: /\b(wait|hold on|what|really|whoa|oh wow|no way)\b/i, effect: 'surprised' },
+    // Excited - breakthrough moments
+    { pattern: /\b(YES|that's it|there it is|you nailed it|exactly|that's huge)\b/i, effect: 'excited' },
+    // Curious - genuine interest
+    { pattern: /\b(tell me more|I'm curious|interesting|how so|what do you mean)\b/i, effect: 'curious' },
+    // Playful - lighthearted
+    { pattern: /\b(ha|haha|\[laughter\]|funny|classic|oh man)\b/i, effect: 'playful' },
+    // Thoughtful - processing
+    { pattern: /\b(let me think|hmm|I wonder|the thing is|here's what I'm thinking)\b/i, effect: 'thoughtful' },
+    // Emphatic - important points
+    { pattern: /\b(this is important|listen|seriously|I mean it|no really)\b/i, effect: 'emphatic' },
+    // Gentle - tender moments
+    { pattern: /\b(take your time|no rush|I'm here|it's okay|you're safe)\b/i, effect: 'gentle' },
   ];
 
   for (const { pattern, effect } of emotionalPatterns) {
@@ -441,24 +460,43 @@ export function applyEmotionBleeding(text: string, context: VocalContext): strin
 
 /**
  * Apply specific emotion effect to matching portion
+ * Enhanced for more dynamic prosody variation
  */
 function applyEmotionEffect(text: string, effect: string, pattern: RegExp): string {
   switch (effect) {
     case 'sympathetic':
-      // Softer, slower, lower pitch
-      return text.replace(pattern, '<prosody rate="90%" pitch="-5%" volume="soft">$&</prosody>');
+      // Softer, slower, lower pitch - holding space
+      return text.replace(pattern, '<prosody rate="88%" pitch="-5%" volume="soft">$&</prosody>');
     case 'warm':
-      // Slightly higher, warmer
+      // Slightly higher, warmer - genuine affection
       return text.replace(pattern, '<prosody pitch="+3%" rate="95%">$&</prosody>');
     case 'concerned':
-      // Slightly faster, focused
+      // Slightly faster, focused - protective energy
       return text.replace(pattern, '<prosody rate="102%" pitch="+2%">$&</prosody>');
     case 'touched':
-      // Slower, softer
-      return text.replace(pattern, '<prosody rate="92%" volume="soft">$&</prosody>');
+      // Slower, softer - emotionally moved
+      return text.replace(pattern, '<prosody rate="90%" volume="soft">$&</prosody>');
     case 'surprised':
-      // Quick, higher pitch
-      return text.replace(pattern, '<prosody rate="108%" pitch="+8%">$&</prosody>');
+      // Quick, higher pitch - genuine surprise
+      return text.replace(pattern, '<prosody rate="110%" pitch="+10%">$&</prosody>');
+    case 'excited':
+      // Faster, higher, more energy - breakthrough moments
+      return text.replace(pattern, '<prosody rate="112%" pitch="+8%">$&</prosody>');
+    case 'curious':
+      // Slightly upward inflection, measured pace - genuine interest
+      return text.replace(pattern, '<prosody rate="98%" pitch="+5%">$&</prosody>');
+    case 'playful':
+      // Bouncy, varied - lighthearted moments
+      return text.replace(pattern, '<prosody rate="105%" pitch="+6%">$&</prosody>');
+    case 'thoughtful':
+      // Slower, deliberate - processing deeply
+      return text.replace(pattern, '<prosody rate="92%" pitch="-2%">$&</prosody>');
+    case 'emphatic':
+      // Strong, clear - important point
+      return text.replace(pattern, '<prosody rate="95%" pitch="+3%" volume="loud">$&</prosody>');
+    case 'gentle':
+      // Very soft, slow - tender moments
+      return text.replace(pattern, '<prosody rate="85%" volume="soft" pitch="-3%">$&</prosody>');
     default:
       return text;
   }

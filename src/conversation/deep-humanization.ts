@@ -90,6 +90,8 @@ export type HumanizationType =
   | 'anticipation'
   | 'contradiction'
   | 'first_turn_notice' // 🌟 "They see me" moment
+  | 'playfulness' // 🎭 Light, fun moments
+  | 'live_reaction' // ⚡ Genuine in-the-moment responses
   | 'none';
 
 export interface HumanizationInjection {
@@ -793,6 +795,103 @@ export class DeepHumanizationEngine {
   }
 
   // ==========================================================================
+  // PLAYFULNESS - Light, fun moments
+  // ==========================================================================
+
+  /**
+   * Add playful moments when the mood is light
+   */
+  private async getPlayfulness(context: HumanizationContext): Promise<HumanizationInjection | null> {
+    // Only when mood is light and conversation is going well
+    if (this.mood.emotionalLoad > 0.4 || context.turnCount < 4) return null;
+    if (!this.canInject('playfulness', 6, 5)) return null;
+
+    const content = await loadBehaviorContent(this.personaId, 'playfulness');
+    if (!content) return null;
+
+    // Only trigger occasionally (15% chance)
+    if (Math.random() > 0.15) return null;
+
+    const categories = Object.keys(content).filter((k) => Array.isArray(content[k]));
+    if (categories.length === 0) return null;
+
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    const phrases = content[category] as string[];
+    if (!phrases || phrases.length === 0) return null;
+
+    this.recordInjection('playfulness');
+
+    return {
+      type: 'playfulness',
+      content: phrases[Math.floor(Math.random() * phrases.length)],
+      placement: 'suffix',
+      probability: 0.15,
+      cooldownTurns: 6,
+    };
+  }
+
+  // ==========================================================================
+  // LIVE REACTIONS - Genuine in-the-moment responses
+  // ==========================================================================
+
+  /**
+   * Add live reactions based on what user just shared
+   */
+  private async getLiveReaction(
+    context: HumanizationContext,
+    userTriggeredSurprise: boolean,
+    userSharedVulnerability: boolean
+  ): Promise<HumanizationInjection | null> {
+    if (!this.canInject('live_reaction', 4, 8)) return null;
+
+    const content = await loadBehaviorContent(this.personaId, 'live-reactions');
+    if (!content) return null;
+
+    let reactionType: string | null = null;
+    let phrases: string[] = [];
+
+    // Determine which reaction type based on context
+    if (userTriggeredSurprise && content.genuine_surprise) {
+      reactionType = 'genuine_surprise';
+      const surpriseContent = content.genuine_surprise as Record<string, string[]>;
+      phrases = surpriseContent.positive_surprise || [];
+    } else if (userSharedVulnerability && content.moved) {
+      reactionType = 'moved';
+      const movedContent = content.moved as { reactions?: string[] };
+      phrases = movedContent.reactions || [];
+    } else if (
+      context.userMessage.match(/\b(finally|for the first time|i did it|it worked)\b/i) &&
+      content.delight
+    ) {
+      reactionType = 'delight';
+      const delightContent = content.delight as { at_them?: string[] };
+      phrases = delightContent.at_them || [];
+    } else if (
+      context.userMessage.match(/\b(curious|interesting|tell me|how|why)\b/i) &&
+      content.curiosity_spikes
+    ) {
+      reactionType = 'curiosity';
+      const curiosityContent = content.curiosity_spikes as { reactions?: string[] };
+      phrases = curiosityContent.reactions || [];
+    }
+
+    if (!reactionType || phrases.length === 0) return null;
+
+    // 35% probability for reactions
+    if (Math.random() > 0.35) return null;
+
+    this.recordInjection('live_reaction');
+
+    return {
+      type: 'live_reaction',
+      content: phrases[Math.floor(Math.random() * phrases.length)],
+      placement: 'prefix', // Reactions come BEFORE the main response
+      probability: 0.35,
+      cooldownTurns: 4,
+    };
+  }
+
+  // ==========================================================================
   // MAIN ORCHESTRATION
   // ==========================================================================
 
@@ -808,6 +907,8 @@ export class DeepHumanizationEngine {
       isGivingAdvice?: boolean;
       isDisengaged?: boolean;
       isHighlyEngaged?: boolean;
+      userTriggeredSurprise?: boolean;
+      userSharedVulnerability?: boolean;
     } = {}
   ): Promise<HumanizationInjection[]> {
     const injections: HumanizationInjection[] = [];
@@ -825,6 +926,8 @@ export class DeepHumanizationEngine {
       runningJoke,
       engagement,
       firstTurnNoticing,
+      playfulness,
+      liveReaction,
     ] = await Promise.all([
       this.getMoodSignal(context),
       this.getSpontaneousThought(context),
@@ -840,13 +943,22 @@ export class DeepHumanizationEngine {
         signals.isDisengaged ?? false,
         signals.isHighlyEngaged ?? false
       ),
-      this.getFirstTurnNoticing(context), // NEW: First-turn "I notice" capability
+      this.getFirstTurnNoticing(context),
+      this.getPlayfulness(context),
+      this.getLiveReaction(
+        context,
+        signals.userTriggeredSurprise ?? false,
+        signals.userSharedVulnerability ?? false
+      ),
     ]);
 
     // HIGHEST PRIORITY: First-turn noticing creates the "they see me" moment
     if (firstTurnNoticing && context.turnCount <= 3) {
       injections.push(firstTurnNoticing);
     }
+
+    // Live reactions come before everything else (genuine response to what they said)
+    if (liveReaction) injections.push(liveReaction);
 
     // Collect non-null injections (engagement is high priority when disengaged)
     if (signals.isDisengaged && engagement) injections.push(engagement); // Priority: re-engage!
@@ -860,9 +972,10 @@ export class DeepHumanizationEngine {
     if (anticipation) injections.push(anticipation);
     if (contradiction) injections.push(contradiction);
     if (runningJoke) injections.push(runningJoke);
+    if (playfulness) injections.push(playfulness); // Playfulness at the end as suffix
 
-    // Limit to prevent over-humanization (max 2 per response)
-    const limited = injections.slice(0, 2);
+    // Limit to prevent over-humanization (max 3 per response for more dynamic feel)
+    const limited = injections.slice(0, 3);
 
     logger.debug(
       {

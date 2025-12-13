@@ -3101,10 +3101,10 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // DISABLED: numIdleProcesses: 1 was causing Ferni to go silent (performance issue)
-      // Process prewarming may cause memory pressure or state issues in Cloud Run
-      // Re-enable with caution after investigating - see bug hunt 2025-12-11
-      numIdleProcesses: 0,
+      // RE-ENABLED: numIdleProcesses: 1 keeps one warm child process ready
+      // Previously disabled due to "Ferni going silent" - but lazy Firestore init
+      // should fix the memory pressure that caused that issue (2025-12-13)
+      numIdleProcesses: 1,
       // Increase timeout for heavy initialization (bundles + startup + services)
       // The prewarm function calls startup() which does 10+ async operations:
       // - memory system (Firestore), services, bundles, schedulers,

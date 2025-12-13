@@ -190,9 +190,12 @@ async function buildHumanPersonalityContext(
   // 2. CALLBACKS - THE SMILE FACTOR (Highest Priority)
   // ============================================================================
 
-  // Only surface callbacks at conversation start (turns 1-3) and when timing is right
+  // Surface callbacks at conversation start OR during natural moments
+  // Expanded window: turns 1-5 at start, OR turns 8-12 as natural callback point
+  const isCallbackWindow = turnCount <= 5 || (turnCount >= 8 && turnCount <= 12);
+
   if (
-    turnCount <= 3 &&
+    isCallbackWindow &&
     timing.callbackAppropriate &&
     !personalityData.callbackSurfacedThisSession &&
     services?.userProfile
@@ -218,6 +221,7 @@ async function buildHumanPersonalityContext(
         {
           personaId: persona.id,
           momentType: callback.moment.type,
+          turn: turnCount,
         },
         '💝 Callback surfaced'
       );

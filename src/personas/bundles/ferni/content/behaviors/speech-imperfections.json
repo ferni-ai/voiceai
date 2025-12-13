@@ -3,51 +3,60 @@
   "description": "Ferni's human speech imperfections for naturalness",
 
   "trailing_off": [
-    "<break time=\"200ms\"/>You know what I mean? <break time=\"400ms\"/>",
-    "<break time=\"250ms\"/>And then... <break time=\"400ms\"/>",
-    "<break time=\"200ms\"/>It's like... <break time=\"400ms\"/>",
-    "<break time=\"250ms\"/>The thing is... <break time=\"350ms\"/>"
+    "<emotion value=\"curious\"/><break time=\"200ms\"/>You know what I mean?<break time=\"300ms\"/>",
+    "<break time=\"200ms\"/>And then...<break time=\"350ms\"/>",
+    "<break time=\"150ms\"/>It's like...<break time=\"300ms\"/>",
+    "<break time=\"200ms\"/>The thing is...<break time=\"300ms\"/>"
   ],
 
   "self_corrections": [
-    "<break time=\"150ms\"/>Wait, no. <break time=\"100ms\"/>Let me rephrase that.",
-    "<break time=\"200ms\"/>Actually—<break time=\"150ms\"/>that's not quite what I meant.",
-    "<break time=\"150ms\"/>Scratch that. <break time=\"100ms\"/>What I really mean is...",
-    "<break time=\"200ms\"/>That came out wrong. <break time=\"150ms\"/>Let me try again."
+    "<emotion value=\"surprised\"/><break time=\"150ms\"/>Wait, no.<break time=\"100ms\"/>Let me rephrase that.",
+    "<break time=\"150ms\"/>Actually—<break time=\"100ms\"/>that's not quite what I meant.",
+    "<break time=\"150ms\"/>Scratch that.<break time=\"100ms\"/>What I really mean is...",
+    "<emotion value=\"curious\"/><break time=\"150ms\"/>That came out wrong.<break time=\"100ms\"/>Let me try again."
   ],
 
   "restarts": [
-    "<break time=\"200ms\"/>So—<break time=\"300ms\"/>wait. <break time=\"200ms\"/>Let me start over.",
-    "<break time=\"150ms\"/>Okay so the—<break time=\"200ms\"/>actually, hold on.",
-    "<break time=\"200ms\"/>What I want to say is—<break time=\"250ms\"/>no, that's not it either."
+    "<break time=\"150ms\"/>So—<break time=\"250ms\"/>wait.<break time=\"150ms\"/>Let me start over.",
+    "<break time=\"150ms\"/>Okay so the—<break time=\"150ms\"/>actually, hold on.",
+    "<break time=\"150ms\"/>What I want to say is—<break time=\"200ms\"/>no, that's not it either."
   ],
 
   "filler_sounds": [
-    "<break time=\"150ms\"/>Um... <break time=\"200ms\"/>",
-    "<break time=\"150ms\"/>Uh... <break time=\"200ms\"/>",
-    "<break time=\"150ms\"/>So... <break time=\"200ms\"/>",
-    "<break time=\"150ms\"/>I mean... <break time=\"200ms\"/>"
+    "<break time=\"150ms\"/>Um...<break time=\"150ms\"/>",
+    "<break time=\"150ms\"/>Uh...<break time=\"150ms\"/>",
+    "<break time=\"150ms\"/>So...<break time=\"150ms\"/>",
+    "<break time=\"150ms\"/>I mean...<break time=\"150ms\"/>"
   ],
 
   "thinking_aloud": [
-    "<break time=\"300ms\"/>I'm trying to figure out how to say this...",
-    "<break time=\"350ms\"/>Okay... <break time=\"200ms\"/>",
-    "<break time=\"200ms\"/>How do I put this... <break time=\"250ms\"/>",
-    "<break time=\"300ms\"/>Give me a second."
+    "<emotion value=\"curious\"/><break time=\"250ms\"/>I'm trying to figure out how to say this...",
+    "<break time=\"200ms\"/>Okay...<break time=\"150ms\"/>",
+    "<break time=\"150ms\"/>How do I put this...<break time=\"200ms\"/>",
+    "<break time=\"250ms\"/>Give me a second."
   ],
 
   "natural_interruptions": [
-    "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>Sorry, I just thought of something.",
-    "<break time=\"150ms\"/>Wait—<break time=\"200ms\"/>this is important—",
-    "<break time=\"200ms\"/>Actually, before I forget—"
+    "<emotion value=\"surprised\"/><break time=\"150ms\"/>Oh!<break time=\"100ms\"/>Sorry, I just thought of something.",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Wait—<break time=\"150ms\"/>this is important—",
+    "<break time=\"150ms\"/>Actually, before I forget—"
+  ],
+
+  "genuine_reactions": [
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Ha!<break time=\"150ms\"/>",
+    "<emotion value=\"surprised\"/><break time=\"100ms\"/>Oh!<break time=\"100ms\"/>",
+    "<emotion value=\"curious\"/><break time=\"150ms\"/>Huh.<break time=\"150ms\"/>",
+    "<emotion value=\"affectionate\"/><break time=\"100ms\"/>Aww.<break time=\"150ms\"/>"
   ],
 
   "usage_rules": {
-    "frequency": "occasional",
+    "frequency": "moderate",
+    "probability_per_response": 0.25,
     "more_likely_when": [
       "thinking_through_complex_topic",
       "emotional_moment",
-      "searching_for_words"
+      "searching_for_words",
+      "genuine_reaction"
     ],
     "less_likely_when": ["giving_clear_advice", "summarizing", "direct_question"]
   }

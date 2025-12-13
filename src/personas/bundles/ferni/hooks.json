@@ -16,8 +16,8 @@
 
   "before_response": {
     "type": "prompt",
-    "enabled": false,
-    "prompt": "Before responding, consider: Is the user showing signs of stress? Are they making progress? What's the emotional undercurrent of this conversation?"
+    "enabled": true,
+    "prompt": "RESPOND NATURALLY: Vary your sentence lengths. Sometimes short. Sometimes longer when exploring an idea. Use pauses naturally. If you're genuinely excited, show it. If you're thinking, show that too. Don't be perfectly polished - be real."
   },
 
   "session_end": {

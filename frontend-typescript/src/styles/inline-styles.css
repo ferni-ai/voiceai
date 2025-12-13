@@ -1427,6 +1427,13 @@ html.theme-transitioning *::after {
   pointer-events: auto !important;
 }
 
+/* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.
+   It's added dynamically after the entrance animations, so it needs explicit visibility. */
+.team-member--marketplace {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .app-loaded .entrance-waveform {
   animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-delay: 600ms;

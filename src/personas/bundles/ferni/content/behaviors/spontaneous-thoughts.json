@@ -53,8 +53,8 @@
   ],
 
   "usage_rules": {
-    "probability_per_response": 0.18,
-    "min_turns_between": 4,
+    "probability_per_response": 0.28,
+    "min_turns_between": 3,
     "more_likely_when": ["deep_conversation", "rapport_established", "natural_pause"],
     "less_likely_when": ["crisis_mode", "early_conversation", "user_needs_focus"]
   }

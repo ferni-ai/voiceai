@@ -56,9 +56,9 @@
   },
 
   "usage_rules": {
-    "probability_when_triggered": 0.45,
-    "max_per_session": 5,
-    "min_turns_between": 4,
-    "cooldown_after_use_seconds": 45
+    "probability_when_triggered": 0.6,
+    "max_per_session": 8,
+    "min_turns_between": 3,
+    "cooldown_after_use_seconds": 30
   }
 }
