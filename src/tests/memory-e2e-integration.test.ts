@@ -126,8 +126,8 @@ describe('Human Signal Extraction E2E', () => {
       conversationTopic: 'personal',
     });
 
-    // Should detect the birthday mention
-    expect(result.dates.length).toBeGreaterThanOrEqual(0);
+    // Should detect the birthday mention (property is importantDates, not dates)
+    expect(result.importantDates.length).toBeGreaterThanOrEqual(0);
     // Note: Extraction depends on pattern matching, may or may not catch "March 15th"
   });
 
@@ -156,8 +156,9 @@ describe('Human Signal Extraction E2E', () => {
       ],
     };
 
+    // Use correct property name: importantDates (not dates)
     const extracted = {
-      dates: [
+      importantDates: [
         {
           type: 'birthday' as const,
           month: 3,
@@ -167,6 +168,8 @@ describe('Human Signal Extraction E2E', () => {
           wantsAcknowledgment: true,
         },
       ],
+      insideJokes: [],
+      runningThemes: [],
       values: [],
       dreams: [],
       fears: [],

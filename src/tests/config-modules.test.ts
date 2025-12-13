@@ -110,7 +110,7 @@ describe('environment.ts', () => {
 
       expect(config).toBeDefined();
       expect(config.environment).toBeDefined();
-      expect(config.personaId).toBe('nayan-patel');
+      expect(config.personaId).toBe('ferni'); // Ferni is the default/main coordinator
       expect(config.storage.type).toBe('memory');
       expect(config.cache.enabled).toBe(false);
       expect(config.features.musicEnabled).toBe(true);

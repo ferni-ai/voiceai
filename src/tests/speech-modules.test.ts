@@ -1153,7 +1153,8 @@ describe('authentic-thinking', () => {
       };
 
       const ssml = authenticThinking.generateThinkingSSML(pause);
-      expect(ssml).toContain('Well...');
+      // Soft entry now uses a break tag instead of "Well..." which sounded like AI inner monologue
+      expect(ssml).toContain('<break time="200ms"/>');
     });
 
     it('should skip short pauses without phrase', () => {

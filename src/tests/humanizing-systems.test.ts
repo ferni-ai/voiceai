@@ -354,9 +354,10 @@ describe('Spontaneous Vulnerability', () => {
 
       const formatted = formatSpontaneousShareForPrompt(share);
 
+      // The implementation describes the TYPE of share without scripting specific content
+      // to avoid making AI sound scripted
       expect(formatted).toContain('SPONTANEOUS');
-      expect(formatted).toContain(share.transition);
-      expect(formatted).toContain(share.content);
+      expect(formatted).toContain('personal moment'); // Generic type description
       expect(formatted).toContain('NATURAL');
     });
   });

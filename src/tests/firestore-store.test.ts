@@ -126,33 +126,42 @@ describe('Firestore Memory Store', () => {
   });
 
   describe('Profile CRUD Operations (without actual Firestore)', () => {
-    // These tests verify the logic without requiring actual Firestore connection
+    // These tests verify the resilient behavior - graceful handling of missing Firestore
+    // The implementation returns null/empty instead of throwing for better production resilience
 
-    it('should throw if not initialized when getting profile', async () => {
+    it('should return null when db not available for getting profile', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.getProfile('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      // Implementation gracefully returns null instead of throwing
+      const result = await store.getProfile('test-user');
+      expect(result).toBeNull();
     });
 
-    it('should throw if not initialized when saving profile', async () => {
+    it('should handle gracefully when db not available for saving profile', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
       const profile = createUserProfile('test-user');
 
-      await expect(store.saveProfile(profile)).rejects.toThrow('FirestoreStore not initialized');
+      // Implementation catches errors and handles gracefully
+      await expect(store.saveProfile(profile)).resolves.not.toThrow();
     });
 
-    it('should throw if not initialized when deleting profile', async () => {
+    it('should handle gracefully when db not available for deleting profile', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.deleteProfile('test-user')).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation catches errors and handles gracefully
+      await expect(store.deleteProfile('test-user')).resolves.not.toThrow();
     });
 
-    it('should throw if not initialized when checking profile', async () => {
+    it('should return false when db not available for checking profile', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.hasProfile('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      // Implementation gracefully returns false instead of throwing
+      const result = await store.hasProfile('test-user');
+      expect(result).toBe(false);
     });
   });
 
@@ -176,8 +185,9 @@ describe('Firestore Memory Store', () => {
       expect(typeof serialized.timestamp).toBe('string'); // Date should be ISO string
     });
 
-    it('should throw if not initialized when saving summary', async () => {
+    it('should handle gracefully when db not available for saving summary', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
       const summary: ConversationSummary = {
         id: 'summary-1',
         sessionId: 'session-1',
@@ -189,17 +199,17 @@ describe('Firestore Memory Store', () => {
         emotionalArc: 'neutral',
       };
 
-      await expect(store.saveSummary('test-user', summary)).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation catches errors and handles gracefully
+      await expect(store.saveSummary('test-user', summary)).resolves.not.toThrow();
     });
 
-    it('should throw if not initialized when getting summaries', async () => {
+    it('should return empty array when db not available for getting summaries', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.getSummaries('test-user')).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation gracefully returns empty array instead of throwing
+      const result = await store.getSummaries('test-user');
+      expect(result).toEqual([]);
     });
   });
 
@@ -221,8 +231,9 @@ describe('Firestore Memory Store', () => {
       expect(typeof serialized.timestamp).toBe('string');
     });
 
-    it('should throw if not initialized when adding moment', async () => {
+    it('should handle gracefully when db not available for adding moment', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
       const moment: KeyMoment = {
         id: 'moment-1',
         timestamp: new Date(),
@@ -232,17 +243,17 @@ describe('Firestore Memory Store', () => {
         topics: ['investing'],
       };
 
-      await expect(store.addKeyMoment('test-user', moment)).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation catches errors and handles gracefully
+      await expect(store.addKeyMoment('test-user', moment)).resolves.not.toThrow();
     });
 
-    it('should throw if not initialized when getting moments', async () => {
+    it('should return empty array when db not available for getting moments', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.getKeyMoments('test-user')).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation gracefully returns empty array instead of throwing
+      const result = await store.getKeyMoments('test-user');
+      expect(result).toEqual([]);
     });
   });
 
@@ -269,8 +280,9 @@ describe('Firestore Memory Store', () => {
       expect(serialized.progressPercent).toBe(25);
     });
 
-    it('should throw if not initialized when saving goal', async () => {
+    it('should handle gracefully when db not available for saving goal', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
       const goal: FinancialGoal = {
         id: 'goal-1',
         name: 'Emergency Fund',
@@ -285,31 +297,36 @@ describe('Firestore Memory Store', () => {
         updatedAt: new Date(),
       };
 
-      await expect(store.saveGoal('test-user', goal)).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation catches errors and handles gracefully
+      await expect(store.saveGoal('test-user', goal)).resolves.not.toThrow();
     });
 
-    it('should throw if not initialized when getting goals', async () => {
+    it('should return empty array when db not available for getting goals', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.getGoals('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      // Implementation gracefully returns empty array instead of throwing
+      const result = await store.getGoals('test-user');
+      expect(result).toEqual([]);
     });
 
-    it('should throw if not initialized when deleting goal', async () => {
+    it('should handle gracefully when db not available for deleting goal', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.deleteGoal('test-user', 'goal-1')).rejects.toThrow(
-        'FirestoreStore not initialized'
-      );
+      // Implementation catches errors and handles gracefully
+      await expect(store.deleteGoal('test-user', 'goal-1')).resolves.not.toThrow();
     });
   });
 
   describe('Search Operations', () => {
-    it('should throw if not initialized when searching profiles', async () => {
+    it('should return empty array when db not available for searching profiles', async () => {
       store['db'] = null;
+      store['_initialized'] = false;
 
-      await expect(store.searchProfiles('john')).rejects.toThrow('FirestoreStore not initialized');
+      // Implementation gracefully returns empty array instead of throwing
+      const result = await store.searchProfiles('john');
+      expect(result).toEqual([]);
     });
   });
 

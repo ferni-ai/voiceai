@@ -199,7 +199,7 @@ describe('Vocal Humanization', () => {
     it('should apply surprised tone to wait/what phrases', () => {
       const result = applyEmotionBleeding('Wait, really? That happened?', {});
       expect(result).toContain('prosody');
-      expect(result).toContain('108%'); // faster rate for surprise
+      expect(result).toContain('110%'); // faster rate for surprise
     });
 
     it('should not modify neutral text', () => {

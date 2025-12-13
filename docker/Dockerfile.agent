@@ -91,5 +91,6 @@ ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=128"
 EXPOSE 8080
 
 # Run the voice agent
-CMD ["node", "dist/agent.js", "start"]
+# NOTE: Using 'dev' instead of 'start' because 'start' doesn't spawn child processes
+CMD ["node", "dist/agent.js", "dev"]
 
