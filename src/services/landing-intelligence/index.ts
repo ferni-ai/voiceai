@@ -68,6 +68,28 @@ export {
 
 export { initLandingIntelligence, shutdownLandingIntelligence } from './lifecycle.js';
 
+// AI Interactions (Live Chat, Persona Preview, Smart FAQ, etc.)
+export {
+  sendDemoChatMessage,
+  generatePersonaPreview,
+  answerSmartFAQ,
+  generatePersonalizedHero,
+  generateSocialProof,
+  generateHoverPreview,
+  generateSentimentReactiveCopy,
+  type DemoChatMessage,
+  type DemoChatSession,
+  type PersonaPreviewRequest,
+  type PersonaPreviewResponse,
+  type SmartFAQRequest,
+  type SmartFAQResponse,
+  type PersonalizedHeroRequest,
+  type PersonalizedHeroResponse,
+  type SocialProofSnippet,
+  type SentimentCopyRequest,
+  type SentimentCopyResponse,
+} from './ai-interactions.js';
+
 // Optimization Agent
 export {
   collectLandingMetrics,

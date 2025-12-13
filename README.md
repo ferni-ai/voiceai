@@ -241,7 +241,7 @@ Ferni uses a warm, earthy design language:
 | **Slate Blue** | `#5a6b8a` | Communications |
 | **Rose** | `#a67a6a` | Wellness |
 
-See [`brand/FERNI-BRAND-GUIDELINES.md`](./brand/FERNI-BRAND-GUIDELINES.md) for the full design system.
+See [`design-system/brand/FERNI-BRAND-GUIDELINES.md`](./design-system/brand/FERNI-BRAND-GUIDELINES.md) for the full design system.
 
 ---
 

@@ -57,6 +57,8 @@ import {
   type GrowthReflection,
   type TuningContext,
   type UnsaidSignal,
+  // Trust Signal Emitter (Frontend UI Bridge)
+  processContextForSignals,
 } from '../../services/trust-systems/index.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -92,6 +94,17 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
     emotionIntensity: analysis?.emotion?.intensity,
     previousMessages: userData?.recentTopics,
   });
+
+  // ============================================================================
+  // EMIT TRUST SIGNALS TO FRONTEND UI
+  // Sends "Ferni noticed..." cards for growth, wins, callbacks, etc.
+  // ============================================================================
+  try {
+    processContextForSignals(trustContext, personaId);
+  } catch (signalError) {
+    // Non-critical - log and continue
+    log.debug({ error: String(signalError) }, 'Trust signal emission failed (non-critical)');
+  }
 
   // ============================================================================
   // CORE TRUST SYSTEMS (Original)

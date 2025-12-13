@@ -1232,11 +1232,21 @@ function injectMilestoneStyles(): void {
       inset: -20px;
       background: radial-gradient(
         ellipse at center,
-        rgba(74, 103, 65, 0.15) 0%,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 15%, transparent) 0%,
         transparent 70%
       );
       border-radius: 50%;
       animation: ferni-milestone-glow 2s ease-in-out infinite;
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .ferni-milestone__glow {
+        background: radial-gradient(
+          ellipse at center,
+          rgba(74, 103, 65, 0.15) 0%,
+          transparent 70%
+        );
+      }
     }
 
     @keyframes ferni-milestone-glow {

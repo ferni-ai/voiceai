@@ -1,18 +1,32 @@
 /**
- * Your Journey - A Warm Scrapbook of Milestones
+ * Your Journey - Unified Relationship Progress & Milestones
  *
  * A beautiful modal showing the user's relationship progress with Ferni.
- * Feels like flipping through a photo album of meaningful moments.
+ * Combines progress overview with milestones scrapbook.
  *
  * DESIGN:
  * - Centered floating modal (per brand guidelines)
- * - Category sections with progress indicators
+ * - Progress overview at top (stage, stats, ring)
+ * - Category sections with milestone progress
  * - Warm, personal copy for each milestone
  * - Unlocked milestones glow softly
  * - Locked milestones shown as mysteries to discover
+ *
+ * CONSOLIDATES:
+ * - relationship-progress.ui.ts (progress ring, stats, stage)
+ * - journey.ui.ts (milestones scrapbook)
+ * 
+ * ENTRY POINTS:
+ * - Heart indicator click
+ * - Settings menu "Your Journey"
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { 
+  relationshipStageService, 
+  STAGE_NAMES,
+} from '../services/relationship-stage.service.js';
+import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { getConnectionState } from './connection-heart.ui.js';
 import {
@@ -23,6 +37,7 @@ import {
 } from './ferni-milestones.ui.js';
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('JourneyUI');
 
@@ -34,10 +49,39 @@ type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' 
 
 let journeyModal: HTMLElement | null = null;
 let isOpen = false;
+let focusTrapCleanup: (() => void) | null = null;
+let previousActiveElement: HTMLElement | null = null;
 
 // ============================================================================
 // ICONS (Lucide-style)
 // ============================================================================
+
+// ============================================================================
+// STAGE DESCRIPTIONS - Brand Voice (Warm, Human, Not Saccharine)
+// ============================================================================
+
+const STAGE_DESCRIPTIONS: Record<string, { tagline: string; description: string }> = {
+  'first-meeting': {
+    tagline: 'Just getting started',
+    description: 'Every great friendship starts somewhere. This is our beginning.',
+  },
+  'getting-started': {
+    tagline: 'Building something real',
+    description: 'You keep showing up. That takes courage. I notice.',
+  },
+  'building-trust': {
+    tagline: 'Deeper than small talk',
+    description: 'We are past the surface now. Real conversations. Real growth.',
+  },
+  'established': {
+    tagline: 'A rhythm of our own',
+    description: 'You know me. I know you. This is what trust feels like.',
+  },
+  'deep-partnership': {
+    tagline: 'Something rare',
+    description: 'Few relationships reach this depth. We have built something real.',
+  },
+};
 
 const ICONS = {
   heart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -101,6 +145,20 @@ const ICONS = {
   check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="20 6 9 17 4 12"/>
   </svg>`,
+  messageCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+  </svg>`,
+  calendar: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 2v4"/><path d="M16 2v4"/>
+    <rect width="18" height="18" x="3" y="4" rx="2"/>
+    <path d="M3 10h18"/>
+  </svg>`,
+  flame: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+  </svg>`,
+  chevronDown: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6"/>
+  </svg>`,
 };
 
 const CATEGORY_META: Record<string, { icon: string; title: string; color: string }> = {
@@ -153,15 +211,29 @@ export function openJourney(): void {
   
   if (isOpen) return;
 
+  // Store current focus for restoration
+  previousActiveElement = document.activeElement as HTMLElement;
+
   soundUI.play('switch');
   createModal();
   isOpen = true;
+
+  // Set up focus trap after modal is created
+  if (journeyModal) {
+    focusTrapCleanup = trapFocus(journeyModal);
+  }
 
   log.info('Journey opened');
 }
 
 export function closeJourney(): void {
   if (!isOpen || !journeyModal) return;
+
+  // Clean up focus trap
+  if (focusTrapCleanup) {
+    focusTrapCleanup();
+    focusTrapCleanup = null;
+  }
 
   // Clean up event listener
   window.removeEventListener(
@@ -174,6 +246,12 @@ export function closeJourney(): void {
     journeyModal?.remove();
     journeyModal = null;
     isOpen = false;
+    
+    // Restore focus to previous element
+    if (previousActiveElement && previousActiveElement.focus) {
+      previousActiveElement.focus();
+      previousActiveElement = null;
+    }
   });
 
   log.info('Journey closed');
@@ -229,24 +307,8 @@ async function shareJourney(
 }
 
 function showShareConfirmation(message = 'Copied to clipboard'): void {
-  // Show a brief toast-like confirmation
-  const toast = document.createElement('div');
-  toast.className = 'journey-share-toast';
-  toast.textContent = message;
-  toast.setAttribute('role', 'status');
-
-  document.body.appendChild(toast);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.classList.add('journey-share-toast--visible');
-  });
-
-  // Remove after delay
-  setTimeout(() => {
-    toast.classList.remove('journey-share-toast--visible');
-    setTimeout(() => toast.remove(), DURATION.NORMAL);
-  }, 2000);
+  // Use shared toast system for consistency
+  toast.success(message);
 }
 
 export function toggleJourney(): void {
@@ -269,6 +331,14 @@ function createModal(): void {
   const progress = getProgress();
   const celebrated = getCelebratedCount();
   const total = getTotalMilestonesCount();
+
+  // Get relationship stage data
+  const stage = relationshipStageService.getStage();
+  const stageMetrics = relationshipStageService.getMetrics();
+  const stageProgress = relationshipStageService.getProgressToNextStage();
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
+  const progressPercent = Math.round(stageProgress.progress * 100);
 
   // Get current connection state
   let connectionState: ConnectionState = 'disconnected';
@@ -303,12 +373,6 @@ function createModal(): void {
       <header class="journey-header">
         <div class="journey-header__text">
           <span class="journey-eyebrow">YOUR JOURNEY</span>
-          <h2 class="journey-title">Our Story So Far</h2>
-          <p class="journey-subtitle">
-            ${celebrated}/${total} moments celebrated
-            ${streak > 1 ? ` • ${streak} day streak` : ''}
-            ${totalDays > 0 ? ` • ${totalDays} days together` : ''}
-          </p>
         </div>
         <button class="journey-close" aria-label="Close">
           ${ICONS.close}
@@ -316,11 +380,72 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
+        <!-- Progress Overview Section -->
+        <section class="journey-progress-overview">
+          <div class="journey-progress-ring-container">
+            <svg class="journey-progress-ring" viewBox="0 0 120 120">
+              <circle class="journey-progress-ring__bg" cx="60" cy="60" r="52" />
+              <circle 
+                class="journey-progress-ring__fill" 
+                cx="60" cy="60" r="52"
+                stroke-dasharray="${2 * Math.PI * 52}"
+                stroke-dashoffset="${2 * Math.PI * 52 * (1 - progressPercent / 100)}"
+              />
+            </svg>
+            <div class="journey-progress-ring__text">
+              <span class="journey-progress-ring__percent">${progressPercent}%</span>
+              <span class="journey-progress-ring__label">progress</span>
+            </div>
+          </div>
+          
+          <h2 class="journey-stage-name">${stageName}</h2>
+          <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
+          
+          <div class="journey-stats-row">
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.messageCircle}</span>
+              <span class="journey-stat__value">${stageMetrics.totalConversations}</span>
+              <span class="journey-stat__label">conversations</span>
+            </div>
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.calendar}</span>
+              <span class="journey-stat__value">${stageMetrics.daysSinceFirstMeeting}</span>
+              <span class="journey-stat__label">days together</span>
+            </div>
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.flame}</span>
+              <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
+              <span class="journey-stat__label">day streak</span>
+            </div>
+          </div>
+          
+          ${stageProgress.nextStage ? `
+            <div class="journey-next-stage">
+              <span class="journey-next-stage__label">Next: ${STAGE_NAMES[stageProgress.nextStage]}</span>
+              <span class="journey-next-stage__req">${stageProgress.requirement}</span>
+            </div>
+          ` : `
+            <div class="journey-next-stage journey-next-stage--max">
+              <span class="journey-next-stage__label">Max level reached! 🌟</span>
+            </div>
+          `}
+        </section>
+        
         ${renderConnectionBanner(connectionState)}
         
-        ${Object.entries(grouped)
-          .map(([category, items]) => renderCategory(category, items))
-          .join('')}
+        <!-- Milestones Section -->
+        <section class="journey-milestones-section">
+          <div class="journey-milestones-header" role="button" tabindex="0" aria-expanded="true">
+            <h3 class="journey-milestones-title">Milestones</h3>
+            <span class="journey-milestones-count">${celebrated}/${total}</span>
+            <span class="journey-milestones-toggle">${ICONS.chevronDown}</span>
+          </div>
+          <div class="journey-milestones-body">
+            ${Object.entries(grouped)
+              .map(([category, items]) => renderCategory(category, items))
+              .join('')}
+          </div>
+        </section>
       </div>
 
       <footer class="journey-footer">
@@ -342,6 +467,25 @@ function createModal(): void {
   journeyModal.querySelector('.journey-share')?.addEventListener('click', () => {
     shareJourney(celebrated, total, streak, totalDays);
   });
+
+  // Milestones toggle (collapsible section)
+  const milestonesHeader = journeyModal.querySelector('.journey-milestones-header');
+  const milestonesBody = journeyModal.querySelector('.journey-milestones-body');
+  if (milestonesHeader && milestonesBody) {
+    const toggleMilestones = () => {
+      const isExpanded = milestonesHeader.getAttribute('aria-expanded') === 'true';
+      milestonesHeader.setAttribute('aria-expanded', String(!isExpanded));
+      milestonesBody.classList.toggle('collapsed', isExpanded);
+      milestonesHeader.classList.toggle('collapsed', isExpanded);
+    };
+    milestonesHeader.addEventListener('click', toggleMilestones);
+    milestonesHeader.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        toggleMilestones();
+      }
+    });
+  }
 
   // Connect button handler
   journeyModal.querySelector('.journey-connect-btn')?.addEventListener('click', handleConnectClick);
@@ -535,6 +679,7 @@ function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: 
 async function animateIn(modal: HTMLElement): Promise<void> {
   const backdrop = modal.querySelector('.journey-backdrop') as HTMLElement;
   const content = modal.querySelector('.journey-content') as HTMLElement;
+  const isMobile = window.innerWidth <= 640;
 
   if (backdrop) {
     backdrop.style.opacity = '0';
@@ -546,25 +691,44 @@ async function animateIn(modal: HTMLElement): Promise<void> {
   }
 
   if (content) {
-    content.style.opacity = '0';
-    content.style.transform = 'scale(0.95) translateY(20px)';
-    content.animate(
-      [
-        { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
-        { opacity: '1', transform: 'scale(1) translateY(0)' },
-      ],
-      {
-        duration: DURATION.DELIBERATE,
-        easing: EASING.SPRING,
-        fill: 'forwards',
-      }
-    );
+    // Mobile: slide up from bottom (sheet-style)
+    // Desktop: scale + fade from center
+    if (isMobile) {
+      content.style.opacity = '0';
+      content.style.transform = 'translateY(100%)';
+      content.animate(
+        [
+          { opacity: '0', transform: 'translateY(100%)' },
+          { opacity: '1', transform: 'translateY(0)' },
+        ],
+        {
+          duration: DURATION.MODERATE,
+          easing: EASING.SPRING,
+          fill: 'forwards',
+        }
+      );
+    } else {
+      content.style.opacity = '0';
+      content.style.transform = 'scale(0.95) translateY(20px)';
+      content.animate(
+        [
+          { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
+          { opacity: '1', transform: 'scale(1) translateY(0)' },
+        ],
+        {
+          duration: DURATION.DELIBERATE,
+          easing: EASING.SPRING,
+          fill: 'forwards',
+        }
+      );
+    }
   }
 }
 
 async function animateOut(modal: HTMLElement): Promise<void> {
   const backdrop = modal.querySelector('.journey-backdrop') as HTMLElement;
   const content = modal.querySelector('.journey-content') as HTMLElement;
+  const isMobile = window.innerWidth <= 640;
 
   const animations: Animation[] = [];
 
@@ -579,19 +743,37 @@ async function animateOut(modal: HTMLElement): Promise<void> {
   }
 
   if (content) {
-    animations.push(
-      content.animate(
-        [
-          { opacity: '1', transform: 'scale(1) translateY(0)' },
-          { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
-        ],
-        {
-          duration: DURATION.NORMAL,
-          easing: EASING.GENTLE,
-          fill: 'forwards',
-        }
-      )
-    );
+    // Mobile: slide down (sheet-style)
+    // Desktop: scale + fade out
+    if (isMobile) {
+      animations.push(
+        content.animate(
+          [
+            { opacity: '1', transform: 'translateY(0)' },
+            { opacity: '0', transform: 'translateY(100%)' },
+          ],
+          {
+            duration: DURATION.NORMAL,
+            easing: EASING.STANDARD,
+            fill: 'forwards',
+          }
+        )
+      );
+    } else {
+      animations.push(
+        content.animate(
+          [
+            { opacity: '1', transform: 'scale(1) translateY(0)' },
+            { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
+          ],
+          {
+            duration: DURATION.NORMAL,
+            easing: EASING.GENTLE,
+            fill: 'forwards',
+          }
+        )
+      );
+    }
   }
 
   await Promise.all(animations.map((a) => a.finished));
@@ -620,7 +802,7 @@ function injectStyles(): void {
     .journey-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
+      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
       backdrop-filter: blur(var(--glass-blur-strong, 24px));
       -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
     }
@@ -629,9 +811,7 @@ function injectStyles(): void {
       position: relative;
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
       max-width: 600px;
       width: 100%;
       max-height: 85vh;
@@ -684,18 +864,228 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted, #70605a);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .journey-close:hover {
       background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
       color: var(--color-text-primary, #2c2520);
     }
+    
+    .journey-close:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
 
     .journey-body {
       flex: 1;
       overflow-y: auto;
       padding: var(--space-4, 16px) var(--space-6, 24px);
+    }
+
+    /* ===== PROGRESS OVERVIEW ===== */
+    .journey-progress-overview {
+      text-align: center;
+      padding-bottom: var(--space-5, 20px);
+      margin-bottom: var(--space-4, 16px);
+      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+    }
+
+    .journey-progress-ring-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto var(--space-4, 16px);
+    }
+
+    .journey-progress-ring {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .journey-progress-ring__bg {
+      fill: none;
+      stroke: var(--color-background-subtle, rgba(0, 0, 0, 0.08));
+      stroke-width: 8;
+    }
+
+    .journey-progress-ring__fill {
+      fill: none;
+      stroke: var(--persona-primary, #4a6741);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset ${DURATION.DRAMATIC}ms ${EASING.SPRING};
+    }
+
+    .journey-progress-ring__text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .journey-progress-ring__percent {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-2xl, 1.5rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      line-height: 1;
+    }
+
+    .journey-progress-ring__label {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: 2px;
+    }
+
+    .journey-stage-name {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-xl, 1.25rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0 0 var(--space-1, 4px);
+    }
+
+    .journey-stage-tagline {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-secondary, #5a4d47);
+      margin: 0 0 var(--space-4, 16px);
+    }
+
+    .journey-stats-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-6, 24px);
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .journey-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1, 4px);
+    }
+
+    .journey-stat__icon {
+      color: var(--color-text-muted, #70605a);
+      margin-bottom: var(--space-1, 4px);
+    }
+
+    .journey-stat__icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .journey-stat__value {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-lg, 1.125rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      line-height: 1;
+    }
+
+    .journey-stat__label {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .journey-next-stage {
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      display: inline-block;
+    }
+
+    .journey-next-stage__label {
+      display: block;
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-next-stage__req {
+      display: block;
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: var(--space-1, 4px);
+    }
+
+    .journey-next-stage--max {
+      background: linear-gradient(135deg, 
+        color-mix(in srgb, var(--persona-primary) 8%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary) 3%, transparent) 100%
+      );
+    }
+
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-next-stage--max {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.03) 100%);
+      }
+    }
+
+    /* ===== MILESTONES SECTION (Collapsible) ===== */
+    .journey-milestones-section {
+      margin-top: var(--space-4, 16px);
+    }
+
+    .journey-milestones-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3, 12px);
+      margin: 0 calc(var(--space-3, 12px) * -1);
+      border-radius: var(--radius-lg, 12px);
+      cursor: pointer;
+      transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-header:hover {
+      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
+    }
+
+    .journey-milestones-header:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
+
+    .journey-milestones-title {
+      flex: 1;
+      font-size: var(--text-base, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+    }
+
+    .journey-milestones-count {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      border-radius: var(--radius-full, 9999px);
+    }
+
+    .journey-milestones-toggle {
+      color: var(--color-text-muted, #70605a);
+      transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-header.collapsed .journey-milestones-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .journey-milestones-body {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height ${DURATION.MODERATE}ms ${EASING.STANDARD},
+                  opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-body.collapsed {
+      max-height: 0;
+      opacity: 0.5;
     }
 
     .journey-category {
@@ -748,16 +1138,23 @@ function injectStyles(): void {
       padding: var(--space-3, 12px);
       background: var(--color-background-subtle, rgba(0, 0, 0, 0.02));
       border-radius: var(--radius-lg, 12px);
-      transition: all 0.2s ease;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .journey-milestone--celebrated {
-      background: linear-gradient(
-        135deg,
-        rgba(74, 103, 65, 0.08) 0%,
-        rgba(74, 103, 65, 0.02) 100%
-      );
-      border: 1px solid rgba(74, 103, 65, 0.15);
+      background: var(--milestone-bg-celebrated, linear-gradient(135deg, 
+        color-mix(in srgb, var(--persona-primary, #4a6741) 8%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--milestone-border-celebrated, color-mix(in srgb, var(--persona-primary, #4a6741) 15%, transparent));
+    }
+    
+    /* Fallback for browsers without color-mix support */
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-milestone--celebrated {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
+        border-color: rgba(74, 103, 65, 0.15);
+      }
     }
 
     .journey-milestone--locked {
@@ -827,7 +1224,7 @@ function injectStyles(): void {
       height: 100%;
       background: var(--milestone-color, var(--persona-primary));
       border-radius: var(--radius-full, 9999px);
-      transition: width 0.3s ease;
+      transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
 
     .journey-milestone__progress-text {
@@ -873,7 +1270,7 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .journey-share:hover {
@@ -884,33 +1281,15 @@ function injectStyles(): void {
     .journey-share:active {
       transform: scale(0.98);
     }
+    
+    .journey-share:focus-visible {
+      outline: 2px solid var(--color-background-elevated, #fff);
+      outline-offset: 2px;
+    }
 
     .journey-share svg {
       width: 16px;
       height: 16px;
-    }
-
-    /* Share toast */
-    .journey-share-toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--color-text-primary, #2c2520);
-      color: white;
-      padding: var(--space-3, 12px) var(--space-5, 20px);
-      border-radius: var(--radius-full, 9999px);
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 500;
-      opacity: 0;
-      transition: all 0.2s ease;
-      z-index: 10001;
-      pointer-events: none;
-    }
-
-    .journey-share-toast--visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
     }
 
     /* ===== CONNECTION BANNER ===== */
@@ -921,7 +1300,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       border-radius: var(--radius-xl, 16px);
       margin-bottom: var(--space-5, 20px);
-      transition: all 0.3s ease;
+      transition: all ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
 
     .journey-connection__icon {
@@ -964,12 +1343,18 @@ function injectStyles(): void {
 
     /* Connected state - green, happy */
     .journey-connection--connected {
-      background: linear-gradient(
-        135deg,
-        rgba(74, 103, 65, 0.12) 0%,
-        rgba(74, 103, 65, 0.04) 100%
-      );
-      border: 1px solid rgba(74, 103, 65, 0.25);
+      background: var(--connection-bg-connected, linear-gradient(135deg,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 4%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, #4a6741) 25%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--connected {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.04) 100%);
+        border-color: rgba(74, 103, 65, 0.25);
+      }
     }
 
     .journey-connection--connected .journey-connection__icon {
@@ -982,12 +1367,18 @@ function injectStyles(): void {
 
     /* Connecting state - amber/warm */
     .journey-connection--connecting {
-      background: linear-gradient(
-        135deg,
-        rgba(212, 165, 116, 0.12) 0%,
-        rgba(212, 165, 116, 0.04) 100%
-      );
-      border: 1px solid rgba(212, 165, 116, 0.25);
+      background: var(--connection-bg-connecting, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-warning, #d4a574) 12%, transparent) 0%,
+        color-mix(in srgb, var(--color-warning, #d4a574) 4%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, #d4a574) 25%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--connecting {
+        background: linear-gradient(135deg, rgba(212, 165, 116, 0.12) 0%, rgba(212, 165, 116, 0.04) 100%);
+        border-color: rgba(212, 165, 116, 0.25);
+      }
     }
 
     .journey-connection--connecting .journey-connection__icon {
@@ -1000,12 +1391,18 @@ function injectStyles(): void {
 
     /* Disconnected state - muted gray */
     .journey-connection--disconnected {
-      background: linear-gradient(
-        135deg,
-        rgba(112, 96, 90, 0.08) 0%,
-        rgba(112, 96, 90, 0.02) 100%
-      );
-      border: 1px solid rgba(112, 96, 90, 0.15);
+      background: var(--connection-bg-disconnected, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-text-muted, #70605a) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-text-muted, #70605a) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #70605a) 15%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--disconnected {
+        background: linear-gradient(135deg, rgba(112, 96, 90, 0.08) 0%, rgba(112, 96, 90, 0.02) 100%);
+        border-color: rgba(112, 96, 90, 0.15);
+      }
     }
 
     .journey-connection--disconnected .journey-connection__icon {
@@ -1014,12 +1411,18 @@ function injectStyles(): void {
 
     /* Error state - red, but not alarming */
     .journey-connection--error {
-      background: linear-gradient(
-        135deg,
-        rgba(196, 75, 75, 0.08) 0%,
-        rgba(196, 75, 75, 0.02) 100%
-      );
-      border: 1px solid rgba(196, 75, 75, 0.2);
+      background: var(--connection-bg-error, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-error, #c44b4b) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-error, #c44b4b) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-error, color-mix(in srgb, var(--color-error, #c44b4b) 20%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--error {
+        background: linear-gradient(135deg, rgba(196, 75, 75, 0.08) 0%, rgba(196, 75, 75, 0.02) 100%);
+        border-color: rgba(196, 75, 75, 0.2);
+      }
     }
 
     .journey-connection--error .journey-connection__icon {
@@ -1043,7 +1446,7 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       flex-shrink: 0;
     }
 
@@ -1054,6 +1457,11 @@ function injectStyles(): void {
 
     .journey-connect-btn:active {
       transform: scale(0.98);
+    }
+    
+    .journey-connect-btn:focus-visible {
+      outline: 2px solid var(--color-background-elevated, #fff);
+      outline-offset: 2px;
     }
 
     .journey-connect-btn svg {
@@ -1072,7 +1480,7 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .journey-backdrop {
-      background: rgba(8, 8, 12, 0.8);
+      background: var(--backdrop-heavy-dark, rgba(8, 8, 12, 0.8));
     }
 
     [data-theme="midnight"] .journey-content {
@@ -1084,19 +1492,12 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .journey-milestone--celebrated {
-      background: linear-gradient(
-        135deg,
-        rgba(74, 103, 65, 0.15) 0%,
-        rgba(74, 103, 65, 0.05) 100%
-      );
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
+      border-color: rgba(107, 143, 94, 0.25);
     }
 
     [data-theme="midnight"] .journey-connection--connected {
-      background: linear-gradient(
-        135deg,
-        rgba(107, 143, 94, 0.15) 0%,
-        rgba(107, 143, 94, 0.05) 100%
-      );
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
       border-color: rgba(107, 143, 94, 0.3);
     }
 
@@ -1106,20 +1507,12 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .journey-connection--disconnected {
-      background: linear-gradient(
-        135deg,
-        rgba(122, 122, 122, 0.1) 0%,
-        rgba(122, 122, 122, 0.02) 100%
-      );
+      background: linear-gradient(135deg, rgba(122, 122, 122, 0.1) 0%, rgba(122, 122, 122, 0.02) 100%);
       border-color: rgba(122, 122, 122, 0.2);
     }
 
     [data-theme="midnight"] .journey-connection--error {
-      background: linear-gradient(
-        135deg,
-        rgba(224, 96, 96, 0.12) 0%,
-        rgba(224, 96, 96, 0.03) 100%
-      );
+      background: linear-gradient(135deg, rgba(224, 96, 96, 0.12) 0%, rgba(224, 96, 96, 0.03) 100%);
       border-color: rgba(224, 96, 96, 0.25);
     }
 
@@ -1139,7 +1532,50 @@ function injectStyles(): void {
       background: var(--persona-secondary, #5a7d4e);
     }
 
-    /* Mobile */
+    /* Dark theme - Progress Overview */
+    [data-theme="midnight"] .journey-progress-ring__bg {
+      stroke: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__fill {
+      stroke: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__percent,
+    [data-theme="midnight"] .journey-stage-name,
+    [data-theme="midnight"] .journey-stat__value {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__label,
+    [data-theme="midnight"] .journey-stage-tagline,
+    [data-theme="midnight"] .journey-stat__label,
+    [data-theme="midnight"] .journey-stat__icon,
+    [data-theme="midnight"] .journey-next-stage__req {
+      color: var(--color-text-muted, #a09890);
+    }
+
+    [data-theme="midnight"] .journey-next-stage {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-next-stage--max {
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.12) 0%, rgba(107, 143, 94, 0.04) 100%);
+    }
+
+    [data-theme="midnight"] .journey-milestones-title {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-milestones-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-progress-overview {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Mobile - sheet animation from bottom */
     @media (max-width: 640px) {
       .journey-modal {
         padding: 0;
@@ -1162,8 +1598,17 @@ function injectStyles(): void {
 
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      .journey-milestone {
+      .journey-milestone,
+      .journey-close,
+      .journey-share,
+      .journey-connection,
+      .journey-connect-btn,
+      .journey-milestone__progress-bar {
         transition: none;
+      }
+      
+      .journey-connection__icon--spin svg {
+        animation: none;
       }
     }
   `;
@@ -1183,3 +1628,4 @@ export const journeyUI = {
 };
 
 export default journeyUI;
+

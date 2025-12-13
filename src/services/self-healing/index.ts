@@ -97,11 +97,12 @@ export {
   getAllMetricStats,
   getRecentAnomalies,
   getMetricAnomalies,
+  getAnomalyHistory,
   resetAnomalyDetection,
   createPredictiveMonitor,
   createAlertingAnomalyHandler,
 } from './anomaly-detection.js';
-export type { MetricWindow, AnomalyConfig, Anomaly, TrendAnalysis } from './anomaly-detection.js';
+export type { MetricWindow, AnomalyConfig, Anomaly, TrendAnalysis, AnomalyHistoryPoint } from './anomaly-detection.js';
 
 // Health Monitors - Proactive service health checking
 export {
@@ -127,3 +128,22 @@ export {
   setupAutoRestart,
 } from './cloud-run-restart.js';
 export type { RestartOptions, RestartResult } from './cloud-run-restart.js';
+
+// Conversation Health Awareness - Voice AI health integration
+export {
+  getHealthContext,
+  getProactiveHealthMessage,
+  getRecoveryAnnouncement,
+  getSystemPromptInjection,
+  handleConversationError,
+  checkCapability,
+  withHealthAwareness,
+  onConversationStart,
+  onConversationPause,
+  beforeLLMResponse,
+  configureHealthAwareness,
+  DEGRADATION_PHRASES,
+  RECOVERY_PHRASES as HEALTH_RECOVERY_PHRASES,
+  CONTEXT_INJECTIONS,
+} from './conversation-health.js';
+export type { HealthContext, HealthAwarenessConfig } from './conversation-health.js';

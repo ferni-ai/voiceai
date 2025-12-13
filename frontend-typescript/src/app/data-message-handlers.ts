@@ -215,6 +215,11 @@ export function handleDataMessage(message: DataMessage): void {
       handlePartialTranscript(message as PartialTranscriptEvent);
       break;
 
+    case 'trust_signal':
+      // 💚 Trust Signal: "Ferni noticed..." UI cards from backend trust systems
+      handleTrustSignal(message as TrustSignalEvent);
+      break;
+
     default:
   }
 }
@@ -256,6 +261,50 @@ function handlePartialTranscript(event: PartialTranscriptEvent): void {
   });
 
   log.debug('🔮 Anticipation from partial:', { tone, energy, textLength: text.length });
+}
+
+// ============================================================================
+// TRUST SIGNAL HANDLER - "Ferni noticed..." UI Cards
+// ============================================================================
+
+/**
+ * Trust signal event from backend trust systems
+ */
+interface TrustSignalEvent extends DataMessage {
+  type: 'trust_signal';
+  signalType: 'growth' | 'boundary' | 'callback' | 'small_win' | 'thinking_of_you' | 'reading_lines';
+  title: string;
+  message: string;
+  personaId?: string;
+  timing: 'immediate' | 'after_response' | 'end_of_turn';
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Handle trust signal from backend
+ * 
+ * Dispatches a custom event that the trust-signals.ui.ts listens for.
+ * This creates the "Ferni noticed..." floating cards.
+ */
+function handleTrustSignal(event: TrustSignalEvent): void {
+  log.info('💚 Trust signal received', {
+    type: event.signalType,
+    title: event.title,
+    timing: event.timing,
+  });
+
+  // Dispatch custom event for the trust signals UI
+  // The progressive-features.service.ts listens for 'ferni:backend-trust-signal'
+  window.dispatchEvent(
+    new CustomEvent('ferni:backend-trust-signal', {
+      detail: {
+        type: event.signalType,
+        title: event.title,
+        message: event.message,
+        personaId: event.personaId,
+      },
+    })
+  );
 }
 
 // ============================================================================

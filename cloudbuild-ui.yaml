@@ -14,10 +14,12 @@
 
 steps:
   # Build the UI container image with Kaniko (better caching than docker build)
+  # Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
     args:
       - '--dockerfile=docker/Dockerfile.ui'
       - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:latest'
+      - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:$COMMIT_SHA'
       - '--cache=true'
       - '--cache-ttl=168h'
       - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'

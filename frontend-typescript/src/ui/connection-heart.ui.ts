@@ -483,6 +483,11 @@ function injectStyles(): void {
       transform: scale(0.95);
     }
     
+    .connection-heart:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
+    
     /* Icons container - MUST have inset:0 to fill parent and center via flexbox */
     .connection-heart__icon {
       position: absolute;
@@ -739,6 +744,10 @@ export function disposeConnectionHeart(): void {
   indicator?.remove();
   indicator = null;
   isInitialized = false;
+  currentState = null;
+  
+  // Clean up injected styles
+  document.getElementById('connection-heart-styles')?.remove();
 }
 
 // ============================================================================

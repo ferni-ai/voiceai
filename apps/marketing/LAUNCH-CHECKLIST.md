@@ -232,7 +232,7 @@
 - Blog posts: `/apps/marketing/copy/blog-posts/`
 - Social snippets: `/apps/marketing/copy/blog-posts/SOCIAL-SNIPPETS-KIT.md`
 - Social guide: `/promo/ferni-website/SOCIAL-MEDIA-GUIDE.md`
-- Brand guidelines: `/brand/FERNI-BRAND-GUIDELINES.md`
+- Brand guidelines: `/design-system/brand/FERNI-BRAND-GUIDELINES.md`
 
 ---
 

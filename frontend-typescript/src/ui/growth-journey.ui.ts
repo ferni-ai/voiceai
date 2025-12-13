@@ -1,5 +1,18 @@
 /**
- * Growth Journey UI Component
+ * @deprecated This UI component is deprecated in favor of the unified journey.ui.ts
+ * 
+ * The seasonal journey functionality has been consolidated into:
+ * - journey.ui.ts (unified "Your Journey" modal with progress ring + milestones)
+ * - ferni-milestones.ui.ts (milestone tracking and celebration)
+ * 
+ * The growth-journey.service.ts still handles the backend seasonal logic.
+ * This UI file is kept for reference but is no longer rendered or imported.
+ * 
+ * TODO: Remove this file once stable (was used for: seasonal journey modal)
+ * 
+ * ---
+ * 
+ * Growth Journey UI Component (DEPRECATED)
  *
  * Celebrates the user's journey with Ferni over time.
  * Not about "earning" or "leveling up" - just about marking
@@ -28,6 +41,7 @@ import {
   type Season,
 } from '../services/growth-journey.service.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('GrowthJourneyUI');
 
@@ -683,23 +697,12 @@ function refreshUI(): void {
 }
 
 function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  const toast = document.createElement('div');
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: 999px;
-    z-index: 10003;
-    font-size: 0.9rem;
-    font-weight: 500;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  // Use shared toast system for consistency
+  if (type === 'error') {
+    toast.error(message);
+  } else {
+    toast.success(message);
+  }
 }
 
 // ============================================================================

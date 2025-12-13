@@ -17,7 +17,20 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'https://app.ferni.ai/api/v1/public/experiments';
+  // Dynamic API base: use relative path for same-domain, full URL for cross-domain
+  // On ferni.ai -> /api/landing/experiments (proxied to backend)
+  // On app.ferni.ai -> /api/v1/public/experiments
+  // On localhost -> /api/landing/experiments
+  const getApiBase = () => {
+    const hostname = window.location.hostname;
+    if (hostname === 'app.ferni.ai') {
+      return '/api/v1/public/experiments';
+    }
+    // For ferni.ai landing page and localhost, use landing API
+    return '/api/landing/experiments';
+  };
+  
+  const API_BASE = getApiBase();
   const STORAGE_KEY = 'ferni_experiments';
   const USER_ID_KEY = 'ferni_user_id';
 

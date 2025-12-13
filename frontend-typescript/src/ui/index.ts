@@ -457,6 +457,59 @@ export type {
   IntegrationsUICallbacks,
 } from './integrations-settings.ui.js';
 
+// ============================================================================
+// PROGRESSIVE RELATIONSHIP FEATURES (Quick Wins Implementation)
+// ============================================================================
+
+// Stage Celebration Modal - Full celebration with confetti on relationship stage-up
+export {
+  initStageCelebration,
+  showStageCelebration,
+  hideStageCelebration,
+  stageCelebration,
+} from './stage-celebration.ui.js';
+
+// Trust Signal Cards - "Ferni noticed..." moments from trust systems
+export {
+  initTrustSignals,
+  showTrustSignal,
+  dismissSignal as dismissTrustSignal,
+  dismissAllSignals as dismissAllTrustSignals,
+  trustSignalHelpers,
+  trustSignalsUI,
+} from './trust-signals.ui.js';
+export type { TrustSignal, TrustSignalType } from './trust-signals.ui.js';
+
+// Persona Introduction Flows - 3-screen intro when team members unlock
+export {
+  initPersonaIntro,
+  showPersonaIntro,
+  hidePersonaIntro,
+  personaIntro,
+} from './persona-intro.ui.js';
+
+// Feature Discovery Hints - Contextual hints for newly unlocked features
+export {
+  initFeatureHints,
+  registerHint,
+  showHint,
+  dismissHint,
+  dismissAllHints,
+  featureHints,
+  FEATURE_HINTS,
+} from './feature-hints.ui.js';
+export type { FeatureHint, HintType } from './feature-hints.ui.js';
+
+// Relationship Progress Indicator - Always visible progress to next stage
+export {
+  initProgressIndicator,
+  showIndicator,
+  hideIndicator,
+  toggleProgressIndicator,
+  expandProgressIndicator,
+  progressIndicator,
+} from './progress-indicator.ui.js';
+
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';
 export type { ControlCallbacks } from './controls.ui.js';

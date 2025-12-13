@@ -72,6 +72,18 @@ export const TRUST_FLAGS = {
   'trust.persistence': 'Save/load trust profiles',
   'trust.cross-device-sync': 'Real-time cross-device sync',
   'trust.notifications': 'Proactive notifications',
+
+  // Landing Page AI Features
+  'landing-ai-live-chat': 'AI chat widget on landing page (10 msg limit)',
+  'landing-ai-persona-previews': 'Team member preview cards on hover',
+  'landing-ai-smart-faq': 'AI-powered FAQ with related questions',
+  'landing-ai-personalized-hero': 'Dynamic hero content based on context',
+  'landing-ai-social-proof': 'Dynamic social proof snippets',
+  'landing-ai-hover-previews': 'What would Ferni say tooltips',
+  'landing-ai-voice-samples': 'Audio demos of persona voices',
+  'landing-ai-micro-expressions': 'Orb reactions to user behavior',
+  'landing-ai-memory-demo': 'Interactive memory visualization',
+  'landing-ai-sentiment-copy': 'Sentiment-reactive CTA copy',
 } as const;
 
 export type TrustFlagId = keyof typeof TRUST_FLAGS;
@@ -115,6 +127,18 @@ const DEFAULT_FLAGS: Record<TrustFlagId, FlagConfig> = {
   'trust.persistence': { enabled: true, percentage: 100 },
   'trust.cross-device-sync': { enabled: true, percentage: 100 },
   'trust.notifications': { enabled: true, percentage: 100 },
+
+  // Landing Page AI Features - Gradual rollout
+  'landing-ai-live-chat': { enabled: true, percentage: 50 },
+  'landing-ai-persona-previews': { enabled: true, percentage: 100 },
+  'landing-ai-smart-faq': { enabled: true, percentage: 100 },
+  'landing-ai-personalized-hero': { enabled: true, percentage: 50 },
+  'landing-ai-social-proof': { enabled: true, percentage: 50 },
+  'landing-ai-hover-previews': { enabled: true, percentage: 50 },
+  'landing-ai-voice-samples': { enabled: true, percentage: 100 },
+  'landing-ai-micro-expressions': { enabled: true, percentage: 100 },
+  'landing-ai-memory-demo': { enabled: true, percentage: 100 },
+  'landing-ai-sentiment-copy': { enabled: true, percentage: 30 },
 };
 
 // ============================================================================

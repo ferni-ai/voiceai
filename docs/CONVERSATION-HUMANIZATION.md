@@ -465,5 +465,5 @@ try {
 - [CLAUDE.md](../CLAUDE.md) - Code quality standards
 - [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) - Ferni's philosophy
 - [TRUST-SYSTEMS.md](./TRUST-SYSTEMS.md) - Trust building systems
-- [BETTER-THAN-HUMAN.md](../brand/BETTER-THAN-HUMAN.md) - Better-than-human philosophy
+- [BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md) - Better-than-human philosophy
 

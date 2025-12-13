@@ -1682,7 +1682,7 @@ describe('Humanization Pipeline Integration', () => {
 ## 📚 References
 
 - Our existing humanization systems in `src/conversation/` and `src/speech/`
-- `design-system/brand/BETTER-THAN-HUMAN.md` - Brand philosophy
+- `design-system/design-system/brand/BETTER-THAN-HUMAN.md` - Brand philosophy
 - `docs/features/VOICE-PRESENCE-ROADMAP.md` - Voice presence features
 
 ---

@@ -10,7 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeaders } from '../admin-api.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_AGENTS,
   ICON_DELETE,
@@ -575,8 +575,9 @@ function renderNoActivity(): string {
 
 async function fetchSystemHealth(): Promise<SystemHealth> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/dashboard/health', {
-      headers: getAdminHeaders(),
+      headers,
     });
 
     if (response.ok) {
@@ -596,8 +597,9 @@ async function fetchSystemHealth(): Promise<SystemHealth> {
 
 async function fetchAggregatedStats(): Promise<AggregatedStats> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/dashboard/stats', {
-      headers: getAdminHeaders(),
+      headers,
     });
 
     if (response.ok) {
@@ -619,8 +621,9 @@ async function fetchAggregatedStats(): Promise<AggregatedStats> {
 
 async function fetchRecentActivity(): Promise<ActivityEvent[]> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/dashboard/activity', {
-      headers: getAdminHeaders(),
+      headers,
     });
 
     if (response.ok) {

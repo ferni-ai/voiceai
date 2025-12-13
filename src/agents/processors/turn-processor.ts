@@ -43,6 +43,7 @@ import {
   buildBoundaryCheckInjections,
   buildConversationDynamicsInjections,
   buildCrossPersonaInsightsInjection,
+  buildHealthAwarenessInjections,
   buildHumanLevelInjections,
   buildLifeCoachingInjections,
   buildSafetyInjections,
@@ -1143,6 +1144,11 @@ async function buildContextInjections(
     currentTopic,
   });
   injections.push(...boundaryInjections);
+
+  // 2g. Health Awareness - "Better than Human" service health transparency
+  // A human friend would be honest about technical difficulties. So are we.
+  const healthInjections = await buildHealthAwarenessInjections();
+  injections.push(...healthInjections);
 
   // 2g. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
   // This runs silently and stores detected events for later potential prompting

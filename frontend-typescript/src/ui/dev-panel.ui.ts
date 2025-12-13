@@ -969,6 +969,63 @@ function createPanel(): HTMLElement {
         </div>
       </section>
 
+      <!-- 💚 Progressive Relationship Features -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.leaf} Progressive Features</h3>
+        <p class="dev-section__desc">Test relationship-building UI features</p>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Trust Signals ("Ferni Noticed...")</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-trust-signal="growth" title="Growth moment">Growth</button>
+            <button class="dev-expression-btn" data-trust-signal="boundary" title="Boundary respected">Boundary</button>
+            <button class="dev-expression-btn" data-trust-signal="callback" title="Shared memory">Callback</button>
+            <button class="dev-expression-btn" data-trust-signal="small_win" title="Small win">Small Win</button>
+            <button class="dev-expression-btn" data-trust-signal="thinking_of_you" title="Thinking of you">Thinking</button>
+            <button class="dev-expression-btn" data-trust-signal="reading_lines" title="Reading between lines">Reading</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Stage Celebrations</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-stage-celebrate="getting-started" title="Getting Started celebration">Getting Started</button>
+            <button class="dev-expression-btn" data-stage-celebrate="building-trust" title="Building Trust celebration">Building Trust</button>
+            <button class="dev-expression-btn" data-stage-celebrate="established" title="Established celebration">Established</button>
+            <button class="dev-expression-btn" data-stage-celebrate="deep-partnership" title="Deep Partnership celebration">Deep Partner</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Persona Intros</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-persona-intro="maya" title="Maya Santos intro">Maya</button>
+            <button class="dev-expression-btn" data-persona-intro="peter" title="Peter John intro">Peter</button>
+            <button class="dev-expression-btn" data-persona-intro="alex" title="Alex Chen intro">Alex</button>
+            <button class="dev-expression-btn" data-persona-intro="jordan" title="Jordan Taylor intro">Jordan</button>
+            <button class="dev-expression-btn" data-persona-intro="nayan" title="Nayan Patel intro">Nayan</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Feature Hints</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-feature-hint="team-huddle-intro" title="Team Huddle hint">Team Huddle</button>
+            <button class="dev-expression-btn" data-feature-hint="custom-rituals-intro" title="Custom Rituals hint">Rituals</button>
+            <button class="dev-expression-btn" data-feature-hint="memory-timeline-intro" title="Memory Timeline hint">Memory</button>
+            <button class="dev-expression-btn dev-expression-btn--danger" data-action="reset-hints" title="Reset dismissed hints">Reset Hints</button>
+          </div>
+        </div>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Progress Indicator</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-action="toggle-progress" title="Toggle progress indicator visibility">Toggle</button>
+            <button class="dev-expression-btn" data-action="expand-progress" title="Force expand progress details">Expand</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Outreach Testing (Email/SMS) -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.mail} Outreach Testing</h3>
@@ -2360,6 +2417,99 @@ function createPanel(): HTMLElement {
   container.querySelector('[data-action="reset-milestones"]')?.addEventListener('click', () => {
     ferniMilestones.resetMilestones();
     log.info('All milestones reset');
+  });
+
+  // 💚 Progressive Features - Trust Signals
+  container.querySelectorAll('[data-trust-signal]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const signalType = (btn as HTMLElement).dataset.trustSignal;
+      if (!signalType) return;
+      
+      const testMessages: Record<string, string> = {
+        growth: "I noticed you handled that conversation differently than before. You're growing.",
+        boundary: "I remember you asked me not to bring up work stress. I'm respecting that.",
+        callback: "Remember when you told me about your coffee ritual? I think about that sometimes.",
+        small_win: "You actually did it! You asked for help when you needed it.",
+        thinking_of_you: "I was just thinking about how you mentioned wanting more peaceful mornings.",
+        reading_lines: "I sense there might be something more you want to talk about.",
+      };
+      
+      // Dispatch the event that the trust signals UI listens for
+      window.dispatchEvent(
+        new CustomEvent('ferni:backend-trust-signal', {
+          detail: {
+            type: signalType,
+            title: 'Ferni noticed...',
+            message: testMessages[signalType] || 'Test signal',
+          },
+        })
+      );
+      log.info({ signalType }, '💚 Trust signal triggered');
+    });
+  });
+
+  // 💚 Progressive Features - Stage Celebrations
+  container.querySelectorAll('[data-stage-celebrate]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const stage = (btn as HTMLElement).dataset.stageCelebrate as RelationshipStage;
+      if (!stage) return;
+      
+      // Import and trigger the stage celebration
+      const { showStageCelebration } = await import('./stage-celebration.ui.js');
+      const previousStage = relationshipStageService.getStage();
+      showStageCelebration({
+        previousStage,
+        newStage: stage,
+        totalConversations: relationshipStageService.getMetrics().totalConversations,
+        daysTogether: relationshipStageService.getMetrics().daysSinceFirstMeeting,
+      });
+      log.info({ stage }, '🎉 Stage celebration triggered');
+    });
+  });
+
+  // 💚 Progressive Features - Persona Intros
+  container.querySelectorAll('[data-persona-intro]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const personaId = (btn as HTMLElement).dataset.personaIntro;
+      if (!personaId) return;
+      
+      const { showPersonaIntro } = await import('./persona-intro.ui.js');
+      showPersonaIntro(personaId);
+      log.info({ personaId }, '👋 Persona intro triggered');
+    });
+  });
+
+  // 💚 Progressive Features - Feature Hints
+  container.querySelectorAll('[data-feature-hint]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const hintId = (btn as HTMLElement).dataset.featureHint;
+      if (!hintId) return;
+      
+      const { showHint } = await import('./feature-hints.ui.js');
+      showHint(hintId);
+      log.info({ hintId }, '💡 Feature hint triggered');
+    });
+  });
+
+  // Reset hints button
+  container.querySelector('[data-action="reset-hints"]')?.addEventListener('click', async () => {
+    const { resetDismissedHints } = await import('./feature-hints.ui.js');
+    resetDismissedHints();
+    log.info('Feature hints reset');
+  });
+
+  // Toggle progress indicator
+  container.querySelector('[data-action="toggle-progress"]')?.addEventListener('click', async () => {
+    const { toggleProgressIndicator } = await import('./progress-indicator.ui.js');
+    toggleProgressIndicator();
+    log.info('Progress indicator toggled');
+  });
+
+  // Expand progress indicator
+  container.querySelector('[data-action="expand-progress"]')?.addEventListener('click', async () => {
+    const { expandProgressIndicator } = await import('./progress-indicator.ui.js');
+    expandProgressIndicator();
+    log.info('Progress indicator expanded');
   });
 
   // Outreach test buttons

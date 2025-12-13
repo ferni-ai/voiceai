@@ -401,6 +401,59 @@ export function getRecentAnomalies(limit = 100): Anomaly[] {
 }
 
 /**
+ * Get anomaly history for dashboard display.
+ * Returns data points suitable for graphing.
+ */
+export interface AnomalyHistoryPoint {
+  timestamp: string;
+  metric: string;
+  value: number;
+  mean: number;
+  max: number;
+  zScore: number;
+  isAnomaly: boolean;
+}
+
+export function getAnomalyHistory(windowMinutes = 60): AnomalyHistoryPoint[] {
+  const cutoff = Date.now() - windowMinutes * 60 * 1000;
+  const points: AnomalyHistoryPoint[] = [];
+
+  // Get data from all metric windows
+  for (const [name, window] of metricWindows.entries()) {
+    // Filter to values within the time window
+    const validIndices: number[] = [];
+    for (let i = 0; i < window.timestamps.length; i++) {
+      if (window.timestamps[i] >= cutoff) {
+        validIndices.push(i);
+      }
+    }
+
+    // Sample data points (max 60 per metric)
+    const step = Math.max(1, Math.floor(validIndices.length / 60));
+    for (let i = 0; i < validIndices.length; i += step) {
+      const idx = validIndices[i];
+      const value = window.values[idx];
+      const zScore = calculateZScore(value, window.mean, window.stdDev);
+
+      points.push({
+        timestamp: new Date(window.timestamps[idx]).toISOString(),
+        metric: name,
+        value,
+        mean: window.mean,
+        max: window.max,
+        zScore,
+        isAnomaly: Math.abs(zScore) > config.zScoreThreshold,
+      });
+    }
+  }
+
+  // Sort by timestamp and limit
+  return points
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .slice(-60);
+}
+
+/**
  * Get anomalies for a specific metric
  */
 export function getMetricAnomalies(metricName: string, limit = 50): Anomaly[] {

@@ -167,6 +167,88 @@ export function validateVoiceEmotionResult(value: unknown): VoiceEmotionResult |
   return isVoiceEmotionResult(value) ? value : null;
 }
 
+/**
+ * Validate and narrow an unknown value to BackchannelContext or return null
+ */
+export function validateBackchannelContext(value: unknown): BackchannelContext | null {
+  return isBackchannelContext(value) ? value : null;
+}
+
+/**
+ * Validate and narrow an unknown value to BackchannelResult or return null
+ */
+export function validateBackchannelResult(value: unknown): BackchannelResult | null {
+  return isBackchannelResult(value) ? value : null;
+}
+
+/**
+ * Validate and narrow an unknown value to HumanListeningResult or return null
+ */
+export function validateHumanListeningResult(value: unknown): HumanListeningResult | null {
+  return isHumanListeningResult(value) ? value : null;
+}
+
+/**
+ * Validate and narrow an unknown value to TurnPredictionResult or return null
+ */
+export function validateTurnPredictionResult(value: unknown): TurnPredictionResult | null {
+  return isTurnPredictionResult(value) ? value : null;
+}
+
+/**
+ * Type guard for SpectralAnalysis
+ * Validates that an object has the required spectral analysis properties
+ */
+export function isSpectralAnalysis(value: unknown): value is SpectralAnalysis {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    obj.magnitudes instanceof Float32Array &&
+    obj.frequencies instanceof Float32Array &&
+    typeof obj.dominantFrequency === 'number' &&
+    typeof obj.spectralCentroid === 'number' &&
+    typeof obj.spectralRolloff === 'number' &&
+    typeof obj.bandEnergies === 'object'
+  );
+}
+
+/**
+ * Type guard for AnticipatedResponse
+ * Validates response anticipation result
+ */
+export function isAnticipatedResponse(value: unknown): value is AnticipatedResponse {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.intent === 'string' &&
+    typeof obj.confidence === 'number' &&
+    typeof obj.template === 'string' &&
+    Array.isArray(obj.variables) &&
+    typeof obj.isComplete === 'boolean' &&
+    typeof obj.contextHint === 'string'
+  );
+}
+
+/**
+ * Type guard for SpeechContext
+ * Validates speech context
+ */
+export function isSpeechContext(value: unknown): value is SpeechContext {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.baseSpeed === 'number' &&
+    typeof obj.userWPM === 'number' &&
+    ['light', 'medium', 'heavy'].includes(obj.topicWeight as string) &&
+    ['low', 'medium', 'high'].includes(obj.energyLevel as string)
+  );
+}
+
+// Import additional types for type guards
+import type { SpectralAnalysis } from '../fft-analyzer/types.js';
+import type { AnticipatedResponse } from '../response-anticipation/types.js';
+import type { SpeechContext } from '../speech-context.js';
+
 // ============================================================================
 // PROSODY & AUDIO ANALYSIS TYPES
 // ============================================================================

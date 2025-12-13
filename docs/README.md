@@ -37,11 +37,13 @@ docs/
 ├── architecture/          # System design
 ├── guides/                # How-to guides
 ├── features/              # Feature specs
+├── plans/                 # Implementation plans
 ├── deployment/            # Deploy guides
 ├── security/              # Security checklists
 └── audits/                # Quality audits
 
-brand/                     # Design system & brand
+brand/                     # Brand ASSETS (logos, icons)
+design-system/brand/       # Brand DOCUMENTATION
 frontend-typescript/       # Frontend code & CLAUDE.md
 marketplace-agents/        # Agent marketplace
 ```
@@ -130,12 +132,12 @@ Feature specifications and roadmaps.
 
 ### Better Than Human / Emotional Intelligence
 
-| Doc                                                                              | Description                        |
-| -------------------------------------------------------------------------------- | ---------------------------------- |
-| [brand/BETTER-THAN-HUMAN.md](../brand/BETTER-THAN-HUMAN.md)                      | EQ specification (source of truth) |
-| [BETTER-THAN-HUMAN-INTEGRATION-PLAN.md](./BETTER-THAN-HUMAN-INTEGRATION-PLAN.md) | Implementation plan                |
-| [BETTER-THAN-PHD-ROADMAP.md](./BETTER-THAN-PHD-ROADMAP.md)                       | PhD-level EQ roadmap               |
-| [BETTER-THAN-PHD-SYSTEMS.md](./BETTER-THAN-PHD-SYSTEMS.md)                       | Systems implementation             |
+| Doc                                                                                      | Description                        |
+| ---------------------------------------------------------------------------------------- | ---------------------------------- |
+| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)  | EQ specification (source of truth) |
+| [BETTER-THAN-HUMAN-INTEGRATION-PLAN.md](./BETTER-THAN-HUMAN-INTEGRATION-PLAN.md)         | Implementation plan                |
+| [BETTER-THAN-PHD-ROADMAP.md](./BETTER-THAN-PHD-ROADMAP.md)                               | PhD-level EQ roadmap               |
+| [BETTER-THAN-PHD-SYSTEMS.md](./BETTER-THAN-PHD-SYSTEMS.md)                               | Systems implementation             |
 
 ### Trust & Authentication
 
@@ -229,18 +231,31 @@ Complete coding standards: [.cursorrules](../.cursorrules) (22KB)
 
 ---
 
+## Plans (`/docs/plans/`)
+
+Implementation plans and roadmaps.
+
+| Doc                                                                           | Description                  |
+| ----------------------------------------------------------------------------- | ---------------------------- |
+| [IMPLEMENTATION-PLAN.md](./plans/IMPLEMENTATION-PLAN.md)                      | Comprehensive implementation |
+| [MUSIC-INTELLIGENCE-PLAN.md](./plans/MUSIC-INTELLIGENCE-PLAN.md)              | Music/DJ system roadmap      |
+| [EXTENSIBILITY-COMPLETION-PLAN.md](./plans/EXTENSIBILITY-COMPLETION-PLAN.md)  | Agent extensibility system   |
+| [ADMIN-SECTION-IMPLEMENTATION-PLANS.md](./plans/ADMIN-SECTION-IMPLEMENTATION-PLANS.md) | Admin UI plans        |
+
+---
+
 ## Brand & Design
 
-| File                                                                    | Purpose                      |
-| ----------------------------------------------------------------------- | ---------------------------- |
-| [brand/README.md](../brand/README.md)                                   | Brand assets index           |
-| [brand/FERNI-BRAND-GUIDELINES.md](../brand/FERNI-BRAND-GUIDELINES.md)   | Core brand guidelines        |
-| [brand/FERNI-SCREEN-GUIDELINES.md](../brand/FERNI-SCREEN-GUIDELINES.md) | Screen design system         |
-| [brand/FERNI-SONIC-IDENTITY.md](../brand/FERNI-SONIC-IDENTITY.md)       | Audio branding               |
-| [brand/FERNI-UNIVERSE-BIBLE.md](../brand/FERNI-UNIVERSE-BIBLE.md)       | Brand universe & personality |
-| [brand/BETTER-THAN-HUMAN.md](../brand/BETTER-THAN-HUMAN.md)             | EQ specification             |
+| File                                                                                                 | Purpose                      |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------- |
+| [brand/README.md](../brand/README.md)                                                                | Brand assets (logos, icons)  |
+| [design-system/brand/FERNI-BRAND-GUIDELINES.md](../design-system/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
+| [design-system/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
+| [design-system/brand/FERNI-SONIC-IDENTITY.md](../design-system/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
+| [design-system/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
+| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
 
-See [brand/README.md](../brand/README.md) for complete brand documentation index.
+See [design-system/brand/README.md](../design-system/brand/README.md) for complete brand documentation index.
 
 ---
 
@@ -285,4 +300,4 @@ For documentation cleanup status and maintenance guidelines, see:
 
 ---
 
-_Last updated: December 9, 2024_
+_Last updated: December 13, 2024_

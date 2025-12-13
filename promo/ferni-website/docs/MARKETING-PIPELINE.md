@@ -390,7 +390,7 @@ npm run marketing:audit
 | Image prompts | `prompts/IMAGE-PROMPTS.txt` | `images/generated/` |
 | Video prompts | `prompts/VEO3-PROMPTS.txt` | `videos/generated/` |
 | Social guide | `SOCIAL-MEDIA-GUIDE.md` | - |
-| Brand guidelines | `../../brand/FERNI-BRAND-GUIDELINES.md` | - |
+| Brand guidelines | `../../design-system/design-system/brand/FERNI-BRAND-GUIDELINES.md` | - |
 | Design tokens | `../../brand/ferni-design-tokens.css` | - |
 | Website standards | `WEBSITE-STANDARDS.md` | - |
 

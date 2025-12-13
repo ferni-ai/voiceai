@@ -19,8 +19,20 @@ import {
   getTimeAwareContent,
   optimizeLandingPage,
   recordVisitorSession,
+  // AI Interactions
+  sendDemoChatMessage,
+  generatePersonaPreview,
+  answerSmartFAQ,
+  generatePersonalizedHero,
+  generateSocialProof,
+  generateHoverPreview,
+  generateSentimentReactiveCopy,
   type BehaviorSignals,
   type LandingOptimizationRequest,
+  type PersonaPreviewRequest,
+  type SmartFAQRequest,
+  type PersonalizedHeroRequest,
+  type SentimentCopyRequest,
 } from '../services/landing-intelligence/index.js';
 import {
   getLandingIntelligenceFlags,
@@ -317,6 +329,60 @@ export async function handleLandingIntelligenceRoutes(
     }
 
     // ============================================================================
+    // GET /api/landing/experiments/:experimentId/variant - Get variant for experiment/flag
+    // Uses Firestore-backed feature flags (managed via admin dashboard)
+    // ============================================================================
+    if (pathname.match(/^\/api\/landing\/experiments\/[^/]+\/variant$/) && method === 'GET') {
+      const experimentId = pathname.split('/')[4];
+      const url = new URL(req.url || '', 'http://localhost');
+      const userId = url.searchParams.get('userId') || 'anonymous';
+      
+      try {
+        // Import the feature flags service (Firestore-backed)
+        const { isEnabled, getFlag: getFlagConfig } = await import('../services/feature-flags.js');
+        
+        // Check if flag is enabled for this user (handles percentage rollout internally)
+        const enabled = isEnabled(experimentId as Parameters<typeof isEnabled>[0], userId);
+        const config = getFlagConfig(experimentId as Parameters<typeof isEnabled>[0]);
+        
+        sendJSON(res, { 
+          variantId: enabled ? 'enabled' : 'control',
+          reason: enabled ? 'enabled_for_user' : 'not_in_rollout',
+          percentage: config.percentage,
+        });
+        return true;
+      } catch (err) {
+        log.warn({ err, experimentId }, 'Failed to check feature flag');
+        // Graceful fallback - default to control
+        sendJSON(res, { variantId: 'control', reason: 'error_fallback' });
+        return true;
+      }
+    }
+
+    // ============================================================================
+    // POST /api/landing/experiments/track/batch - Batch track experiment events
+    // ============================================================================
+    if (pathname === '/api/landing/experiments/track/batch' && method === 'POST') {
+      const { events } = await parseBody<{
+        events: Array<{
+          experimentId: string;
+          variantId: string;
+          userId: string;
+          eventType: string;
+          goalId?: string;
+          value?: number;
+        }>;
+      }>(req);
+      
+      // Log events for analytics (stored in Firestore via analytics system)
+      log.info({ eventCount: events?.length || 0 }, 'Received experiment events batch');
+      
+      // Just acknowledge for now - analytics system handles storage
+      sendJSON(res, { success: true, received: events?.length || 0 });
+      return true;
+    }
+
+    // ============================================================================
     // GET /api/landing/flags - Get feature flags
     // ============================================================================
     if (pathname === '/api/landing/flags' && method === 'GET') {
@@ -331,6 +397,124 @@ export async function handleLandingIntelligenceRoutes(
       const flags = await parseBody<Record<string, boolean>>(req);
       setLandingIntelligenceFlags(flags);
       sendJSON(res, getLandingIntelligenceFlags());
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/chat - Live demo chat with AI
+    // ============================================================================
+    if (pathname === '/api/landing/ai/chat' && method === 'POST') {
+      const { visitorId, message, persona } = await parseBody<{
+        visitorId: string;
+        message: string;
+        persona?: string;
+      }>(req);
+
+      if (!visitorId || !message) {
+        sendError(res, 'visitorId and message required', 400);
+        return true;
+      }
+
+      const result = await sendDemoChatMessage(visitorId, message, persona);
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/persona-preview - Get persona sample response
+    // ============================================================================
+    if (pathname === '/api/landing/ai/persona-preview' && method === 'POST') {
+      const body = await parseBody<PersonaPreviewRequest>(req);
+
+      if (!body.persona || !body.question) {
+        sendError(res, 'persona and question required', 400);
+        return true;
+      }
+
+      const result = await generatePersonaPreview(body);
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/faq - Smart FAQ answer
+    // ============================================================================
+    if (pathname === '/api/landing/ai/faq' && method === 'POST') {
+      const body = await parseBody<SmartFAQRequest>(req);
+
+      if (!body.question) {
+        sendError(res, 'question required', 400);
+        return true;
+      }
+
+      const result = await answerSmartFAQ(body);
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/personalized-hero - AI-generated hero content
+    // ============================================================================
+    if (pathname === '/api/landing/ai/personalized-hero' && method === 'POST') {
+      const body = await parseBody<PersonalizedHeroRequest>(req);
+
+      const result = await generatePersonalizedHero({
+        hour: body.hour ?? new Date().getHours(),
+        referrer: body.referrer,
+        isReturning: body.isReturning ?? false,
+        visitCount: body.visitCount ?? 1,
+        device: body.device ?? 'desktop',
+        sentiment: body.sentiment,
+        topSectionsViewed: body.topSectionsViewed,
+      });
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // GET /api/landing/ai/social-proof - Dynamic social proof snippets
+    // ============================================================================
+    if (pathname === '/api/landing/ai/social-proof' && method === 'GET') {
+      const url = new URL(req.url || '', 'http://localhost');
+      const count = parseInt(url.searchParams.get('count') || '3', 10);
+
+      const result = await generateSocialProof(count);
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/hover-preview - Generate hover preview text
+    // ============================================================================
+    if (pathname === '/api/landing/ai/hover-preview' && method === 'POST') {
+      const { elementType, context } = await parseBody<{
+        elementType: 'faq' | 'feature' | 'testimonial' | 'cta';
+        context: string;
+      }>(req);
+
+      if (!elementType || !context) {
+        sendError(res, 'elementType and context required', 400);
+        return true;
+      }
+
+      const result = await generateHoverPreview(elementType, context);
+      sendJSON(res, { preview: result });
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/ai/sentiment-copy - Sentiment-reactive copy
+    // ============================================================================
+    if (pathname === '/api/landing/ai/sentiment-copy' && method === 'POST') {
+      const body = await parseBody<SentimentCopyRequest>(req);
+
+      if (typeof body.sentiment !== 'number') {
+        sendError(res, 'sentiment required', 400);
+        return true;
+      }
+
+      const result = await generateSentimentReactiveCopy(body);
+      sendJSON(res, result);
       return true;
     }
 

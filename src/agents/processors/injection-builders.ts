@@ -1279,3 +1279,87 @@ Respect their boundaries around emotional depth.`,
 
   return injections;
 }
+
+// ============================================================================
+// HEALTH AWARENESS INJECTION BUILDER
+// Priority: 76 (Lower - operational awareness)
+// ============================================================================
+
+/**
+ * Build health awareness injections
+ *
+ * "Better than Human" - We're transparent about our limitations.
+ * When services are degraded, we proactively communicate this warmly
+ * so users understand and trust us even when things aren't perfect.
+ *
+ * This injects context about:
+ * - Service degradation (music, weather, calendar, etc.)
+ * - Recent recoveries (good news to share)
+ * - Capability limitations
+ */
+export async function buildHealthAwarenessInjections(): Promise<ContextInjection[]> {
+  const injections: ContextInjection[] = [];
+
+  try {
+    const { getHealthContext, getSystemPromptInjection } = await import(
+      '../../services/self-healing/conversation-health.js'
+    );
+
+    const healthContext = getHealthContext();
+
+    // Only inject if there's something relevant
+    if (healthContext.degradedServices.length === 0 && healthContext.recoveryMessages.length === 0) {
+      return injections;
+    }
+
+    // Build the injection content
+    let content = '[🏥 SYSTEM HEALTH AWARENESS - "Better than Human"]\n';
+
+    // Add recovery messages first (positive news!)
+    if (healthContext.recoveryMessages.length > 0) {
+      content += `\nGOOD NEWS: ${healthContext.recoveryMessages[0]}\n`;
+      content += `You can mention this naturally if the topic comes up.\n`;
+    }
+
+    // Add degradation context
+    if (healthContext.degradedServices.length > 0) {
+      const systemInjection = getSystemPromptInjection();
+      if (systemInjection) {
+        content += systemInjection;
+      }
+
+      // Add warm communication guidance
+      content += `
+COMMUNICATION GUIDANCE:
+- If user asks about an affected service, acknowledge warmly before trying
+- Don't apologize excessively - just be honest and helpful
+- Example: "I'm having a bit of trouble with [service] at the moment, but let me try..."
+- If something fails, explain simply: "That's not working for me right now - want to try again in a bit?"
+
+A human friend would be honest about technical difficulties. So are you.
+`;
+    }
+
+    // Add affected capabilities context
+    if (healthContext.affectedCapabilities.length > 0) {
+      content += `\nAffected capabilities: ${healthContext.affectedCapabilities.join(', ')}\n`;
+    }
+
+    injections.push({
+      category: 'health_awareness',
+      content,
+      priority: 76,
+    });
+
+    diag.debug('🏥 Health awareness injected', {
+      degradedCount: healthContext.degradedServices.length,
+      recoveries: healthContext.recoveryMessages.length,
+      overall: healthContext.overallHealth,
+    });
+  } catch (error) {
+    // Health awareness is non-critical - don't fail the turn
+    diag.debug('Health awareness injection skipped', { error: String(error) });
+  }
+
+  return injections;
+}

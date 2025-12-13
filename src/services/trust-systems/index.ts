@@ -774,6 +774,27 @@ export {
 } from './unified-recorder.js';
 
 // ============================================================================
+// TRUST SIGNAL EMITTER (Frontend Bridge)
+// ============================================================================
+
+export {
+  clearSignalEmitter,
+  emitBoundaryRespectedSignal,
+  emitCallbackSignal,
+  emitGrowthSignal,
+  emitReadingLinesSignal,
+  emitSmallWinSignal,
+  emitThinkingOfYouSignal,
+  emitTrustSignal,
+  processContextForSignals,
+  setSignalEmitter,
+  trustSignalEmitter,
+  type SignalEmitCallback,
+  type TrustSignalPayload,
+  type TrustSignalType,
+} from './trust-signal-emitter.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

@@ -2,15 +2,40 @@
  * Admin API Utilities
  *
  * Centralized helper for making authenticated admin API calls.
- * Uses VITE_ADMIN_API_KEY in production, falls back to dev-mode in development.
+ *
+ * Authentication strategy (in order of precedence):
+ * 1. Firebase Auth token with admin claim (Authorization: Bearer)
+ * 2. API Key (X-API-Key header) - For server-to-server calls
+ * 3. Dev Mode (X-Admin-Key: 'dev-mode') - For local development only
  *
  * @module AdminAPI
  */
 
+import { getAuthToken, initAuth } from '../services/firebase-auth.service.js';
 import { isDevelopment } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AdminAPI');
+
+// Track if we've ensured auth is ready
+let authReadyPromise: Promise<void> | null = null;
+
+/**
+ * Ensure Firebase Auth is initialized before making admin API calls.
+ * This prevents race conditions where API calls happen before auth is ready.
+ */
+async function ensureAuthReady(): Promise<void> {
+  if (!authReadyPromise) {
+    authReadyPromise = initAuth()
+      .then(() => {
+        // Auth is now ready
+      })
+      .catch(() => {
+        // Auth failed to initialize - continue with fallback
+      });
+  }
+  return authReadyPromise;
+}
 
 /**
  * Get the admin API key for authentication.
@@ -23,36 +48,79 @@ export function getAdminApiKey(): string {
     return 'dev-mode';
   }
 
-  // In production, use the admin API key from environment
+  // In production, use the admin API key from environment (if set)
   const apiKey = import.meta.env?.VITE_ADMIN_API_KEY;
-  if (!apiKey) {
-    log.warn('VITE_ADMIN_API_KEY not set - admin API calls will fail in production');
-    return 'dev-mode'; // Fallback, but will be rejected by backend
+  if (apiKey) {
+    return apiKey;
   }
 
-  return apiKey;
+  // No API key - will rely on Firebase auth
+  return '';
 }
 
 /**
- * Get headers for admin API requests.
+ * Get headers for admin API requests (sync version - for backward compatibility).
+ * NOTE: Prefer getAdminHeadersAsync() for proper Firebase auth support.
  */
 export function getAdminHeaders(): HeadersInit {
   const apiKey = getAdminApiKey();
 
-  // Use X-API-Key for production admin keys, X-Admin-Key for dev-mode
+  // Use X-Admin-Key for dev-mode in development
   if (apiKey === 'dev-mode') {
     return {
-      'x-admin-key': 'dev-mode',
+      'X-Admin-Key': 'dev-mode',
     };
   }
 
-  return {
-    'X-API-Key': apiKey,
-  };
+  // Use X-API-Key for production admin keys
+  if (apiKey) {
+    return {
+      'X-API-Key': apiKey,
+    };
+  }
+
+  // No API key - empty headers (Firebase auth will be added by async version)
+  return {};
+}
+
+/**
+ * Get headers for admin API requests with Firebase auth token (async version).
+ * This is the preferred method for authenticated admin API calls.
+ *
+ * IMPORTANT: This ensures Firebase Auth is initialized before getting the token.
+ * This prevents 401 errors from race conditions during app startup.
+ */
+export async function getAdminHeadersAsync(): Promise<HeadersInit> {
+  // Ensure auth is ready before trying to get the token
+  await ensureAuthReady();
+
+  const headers: Record<string, string> = {};
+
+  // Try Firebase auth first (primary method in production)
+  try {
+    const token = await getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      return headers;
+    }
+  } catch (error) {
+    log.debug('Firebase token not available, falling back to API key');
+  }
+
+  // Fall back to API key or dev-mode
+  const apiKey = getAdminApiKey();
+  if (apiKey === 'dev-mode') {
+    headers['X-Admin-Key'] = 'dev-mode';
+  } else if (apiKey) {
+    headers['X-API-Key'] = apiKey;
+  }
+
+  return headers;
 }
 
 /**
  * Make an authenticated admin GET request.
+ * Uses Firebase auth token for authentication in production.
  */
 export async function adminGet<T = unknown>(
   path: string,
@@ -67,9 +135,12 @@ export async function adminGet<T = unknown>(
       }
     }
 
+    // Use async headers to include Firebase auth token
+    const headers = await getAdminHeadersAsync();
+
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: getAdminHeaders(),
+      headers,
     });
 
     if (!response.ok) {
@@ -92,16 +163,20 @@ export async function adminGet<T = unknown>(
 
 /**
  * Make an authenticated admin POST request.
+ * Uses Firebase auth token for authentication in production.
  */
 export async function adminPost<T = unknown>(
   path: string,
   body?: unknown
 ): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
   try {
+    // Use async headers to include Firebase auth token
+    const headers = await getAdminHeadersAsync();
+
     const response = await fetch(path, {
       method: 'POST',
       headers: {
-        ...getAdminHeaders(),
+        ...headers,
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -128,6 +203,7 @@ export async function adminPost<T = unknown>(
 export default {
   getAdminApiKey,
   getAdminHeaders,
+  getAdminHeadersAsync,
   get: adminGet,
   post: adminPost,
 };

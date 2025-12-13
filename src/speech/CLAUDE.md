@@ -558,6 +558,66 @@ Run all speech tests:
 npm test -- --run src/speech/__tests__/
 ```
 
+### 8. ✅ Module Splitting for Large Files
+
+Files over 500 lines have been split into subdirectories:
+
+| Original File | New Directory | Contents |
+|---------------|---------------|----------|
+| `advanced-humanization.ts` | `advanced-humanization/` | emotions, fillers, breath-groups, rhythm, pipeline |
+| `fft-analyzer.ts` | `fft-analyzer/` | fft-core, spectral-analysis, environment, laughter, service |
+| `response-anticipation.ts` | `response-anticipation/` | types, patterns, prefetch, service |
+
+The original files now re-export from subdirectories for backwards compatibility.
+
+### 9. ✅ Session Debug & Monitoring
+
+New diagnostic utility for production monitoring:
+
+```typescript
+import {
+  getSpeechModuleDebugInfo,
+  checkForLeaks,
+  logModuleState,
+  trackSessionStart,
+} from './session-debug.js';
+
+// Get full module state
+const info = getSpeechModuleDebugInfo();
+// { totalSessions, serviceCounts, metrics, uptimeSeconds }
+
+// Check for memory leaks
+const { hasIssues, issues } = checkForLeaks();
+
+// Log current state (for debugging)
+logModuleState();
+```
+
+### 10. ✅ Additional Type Guards
+
+Runtime validation for more types:
+
+```typescript
+import {
+  isSpectralAnalysis,
+  isAnticipatedResponse,
+  isSpeechContext,
+  validateBackchannelContext,
+  validateHumanListeningResult,
+  validateTurnPredictionResult,
+} from './types/index.js';
+```
+
+### 11. ✅ TUNING.md Documentation
+
+See `TUNING.md` for production calibration:
+
+- Backchanneling timing configurations
+- Emotion detection thresholds
+- Turn prediction parameters
+- Performance tuning guidelines
+- Environment-specific settings
+
 ## Naming Conventions (Standardized)
 
 **Preferred naming pattern:**

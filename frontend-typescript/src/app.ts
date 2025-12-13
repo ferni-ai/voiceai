@@ -162,7 +162,6 @@ import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import {
   initRelationshipProgressUI,
-  showProgressPanel as showRelationshipProgress,
 } from './ui/relationship-progress.ui.js';
 // Trust Journey UI - "Better Than Human" relationship visualization
 import { initTrustJourneyUI, showTrustJourney } from './ui/trust-journey.ui.js';
@@ -198,7 +197,7 @@ import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-d
 import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
-import { growthJourneyUI } from './ui/growth-journey.ui.js';
+import { journeyUI } from './ui/journey.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
 import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
@@ -964,7 +963,7 @@ class VoiceAIApp {
       // Tracks conversation streaks, team connections, sweet moments
     });
 
-    // 💚 Connection Heart - Status + relationship indicator
+    // 💚 Connection Heart - Status + relationship indicator near avatar
     this.safeInit('ConnectionHeart', () => {
       initConnectionHeart();
     });
@@ -1203,6 +1202,15 @@ class VoiceAIApp {
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     this.safeInit('TrustJourneyUI', () => initTrustJourneyUI());
 
+    // 🌱 Progressive Relationship Features - All quick wins in one init
+    // Stage celebrations, trust signal cards, persona intros, feature hints, progress indicator
+    this.safeInit('ProgressiveFeatures', () => {
+      // Import dynamically to avoid circular deps
+      import('./services/progressive-features.service.js').then(({ initProgressiveFeatures }) => {
+        initProgressiveFeatures();
+      });
+    });
+
     // 💰 Subscription UI - Human-centered monetization
     // Philosophy: "Limits feel like natural breaks, not walls."
     this.safeInit('SubscriptionUI', () => initSubscriptionUI());
@@ -1268,7 +1276,6 @@ class VoiceAIApp {
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
         onThemeToggle: () => toggleTheme(),
-        onRelationshipProgressClick: () => showRelationshipProgress(),
         onNotificationSettingsClick: () => showNotificationSettings(),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
@@ -1291,7 +1298,7 @@ class VoiceAIApp {
           }
         },
         onPersonalizeClick: () => personalizeUI.open(),
-        onYourJourneyClick: () => growthJourneyUI.open(),
+        onYourJourneyClick: () => journeyUI.open(),
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
       });

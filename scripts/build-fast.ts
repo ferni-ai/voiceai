@@ -17,9 +17,9 @@
  * the runtime doesn't need type declarations.
  */
 
-import * as esbuild from 'esbuild';
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, cpSync, readdirSync, statSync } from 'fs';
+import * as esbuild from 'esbuild';
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -38,13 +38,7 @@ const CONFIG = {
   platform: 'node' as const,
 
   // Files to exclude from build
-  exclude: [
-    '**/*.test.ts',
-    '**/*.spec.ts',
-    '**/tests/**',
-    '**/__tests__/**',
-    '**/test-*.ts',
-  ],
+  exclude: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**', '**/__tests__/**', '**/test-*.ts'],
 
   // JSON files to copy (needed at runtime)
   copyPatterns: ['**/*.json', '**/*.md'],
@@ -140,9 +134,7 @@ async function buildWithEsbuild(watch = false): Promise<void> {
     const relPath = relative(CONFIG.srcDir, file);
     return !CONFIG.exclude.some((pattern) => {
       // Simple glob matching
-      const regex = new RegExp(
-        pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*')
-      );
+      const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
       return regex.test(relPath);
     });
   });
@@ -276,4 +268,3 @@ main().catch((error) => {
   console.error('Build failed:', error);
   process.exit(1);
 });
-

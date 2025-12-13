@@ -13,6 +13,7 @@
  * - GET /api/observability/errors - Error & recovery metrics
  * - GET /api/observability/personas - Persona health metrics
  * - GET /api/observability/alerts - Recent alerts
+ * - GET /api/observability/self-healing - Self-healing dashboard (circuits, anomalies, restarts)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -27,6 +28,13 @@ import {
   personaMetrics,
   uxQualityMetrics,
 } from '../services/observability/index.js';
+import {
+  getAllCircuitStats,
+  getAllClientStats,
+  getAnomalyHistory,
+  getRestartHistory,
+  getUnhealthyClients,
+} from '../services/self-healing/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } from './helpers.js';
@@ -38,6 +46,106 @@ const log = createLogger({ module: 'ObservabilityAPI' });
  */
 function getWindowMinutes(url: URL): number {
   return parsePositiveInt(url.searchParams.get('window'), 60, 1440);
+}
+
+/**
+ * Aggregate self-healing dashboard data from all sources
+ */
+async function getSelfHealingDashboardData() {
+  // Get circuit breaker data
+  const httpClients = getAllClientStats();
+  const circuitStats = getAllCircuitStats();
+  const unhealthyClients = getUnhealthyClients();
+
+  // Get anomaly history (last hour)
+  const anomalyHistory = getAnomalyHistory(60);
+
+  // Get restart history
+  const restartHistory = getRestartHistory();
+
+  // Calculate overall health
+  const openCircuits = httpClients.filter((c) => c.state === 'open').length;
+  const halfOpenCircuits = httpClients.filter((c) => c.state === 'half_open').length;
+  const unhealthyCount = unhealthyClients.length;
+
+  let overallHealth: 'healthy' | 'degraded' | 'critical' = 'healthy';
+  if (openCircuits > 2 || unhealthyCount > 2) {
+    overallHealth = 'critical';
+  } else if (openCircuits > 0 || halfOpenCircuits > 0 || unhealthyCount > 0) {
+    overallHealth = 'degraded';
+  }
+
+  // Calculate anomalies in last 5 minutes
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+  const anomaliesLast5Min = anomalyHistory.filter(
+    (a) => a.timestamp && new Date(a.timestamp).getTime() > fiveMinutesAgo && a.isAnomaly
+  ).length;
+
+  // Get successful auto-heals today (restarts that succeeded)
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const autoHealsToday = restartHistory.filter(
+    (r) => r.success && new Date(r.timestamp).getTime() > todayStart.getTime()
+  ).length;
+
+  // Calculate uptime based on circuit health over time
+  const totalCircuits = httpClients.length || 1;
+  const healthyCircuits = httpClients.filter((c) => c.state === 'closed').length;
+  const uptimePercent = healthyCircuits / totalCircuits;
+
+  // Transform circuit data for dashboard
+  const circuits = httpClients.map((client) => {
+    const total = client.totalRequests || 1;
+    const successRate = ((client.totalSuccesses || 0) / total) * 100;
+    return {
+      name: client.name,
+      state: client.state,
+      successRate: `${successRate.toFixed(1)}%`,
+      totalRequests: client.totalRequests || 0,
+      failures: client.failures || 0,
+      lastStateChange: client.lastStateChange,
+    };
+  });
+
+  // Health monitors (derived from circuit breakers - maps to services)
+  const healthMonitors = httpClients.map((client) => ({
+    name: client.name,
+    displayName: formatServiceName(client.name),
+    healthy: client.state === 'closed',
+    latencyMs: undefined, // Not tracked in circuit stats
+    lastCheck: client.lastStateChange ? new Date(client.lastStateChange).toISOString() : undefined,
+  }));
+
+  return {
+    overallHealth,
+    circuits,
+    healthMonitors,
+    anomalyHistory: anomalyHistory.slice(0, 60), // Last 60 data points
+    restartHistory: restartHistory.slice(0, 10), // Last 10 restarts
+    stats: {
+      anomaliesLast5Min,
+      autoHealsToday,
+      uptimePercent,
+      totalCircuits,
+      healthyCircuits,
+      openCircuits,
+      halfOpenCircuits,
+    },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Format service name for display
+ */
+function formatServiceName(name: string): string {
+  // Convert snake_case or kebab-case to Title Case
+  return name
+    .replace(/[-_]/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 /**
@@ -139,6 +247,13 @@ export async function handleObservabilityRoutes(
       const limit = limitParam ? parseInt(limitParam, 10) : 50;
       const alerts = observabilityHub.getRecentAlerts(limit);
       sendJSON(res, { alerts, count: alerts.length });
+      return true;
+    }
+
+    // GET /api/observability/self-healing - Self-healing dashboard data
+    if (pathname === '/api/observability/self-healing' && req.method === 'GET') {
+      const selfHealingData = await getSelfHealingDashboardData();
+      sendJSON(res, selfHealingData);
       return true;
     }
 

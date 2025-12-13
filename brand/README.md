@@ -2,7 +2,9 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-This directory contains Ferni's complete brand guidelines and design system documentation.
+This directory contains Ferni's brand **ASSETS** (logos, icons, favicons, social graphics).
+
+📚 **For brand DOCUMENTATION**, see [`design-system/brand/`](../design-system/brand/README.md)
 
 ---
 
@@ -34,54 +36,70 @@ This directory contains Ferni's complete brand guidelines and design system docu
 
 ---
 
-## Documentation Index
+## Assets in This Directory
 
-### Core Brand
+### Logos (`logos/`)
 
-| Doc | Size | Description |
-|-----|------|-------------|
-| [FERNI-BRAND-GUIDELINES.md](./FERNI-BRAND-GUIDELINES.md) | 18KB | Core brand identity, colors, typography |
-| [FERNI-UNIVERSE-BIBLE.md](./FERNI-UNIVERSE-BIBLE.md) | 28KB | Brand universe, personality, storytelling |
-| [BRAND-VOICE-GUIDE.md](./BRAND-VOICE-GUIDE.md) | 7KB | Voice, tone, writing style |
-| [BRAND-POSITIONING-EXPLORATION.md](./BRAND-POSITIONING-EXPLORATION.md) | 8KB | Market positioning research |
+| File | Description |
+|------|-------------|
+| `ferni-logo.svg` | Primary logo (SVG) |
+| `ferni-logo-*.png` | PNG exports at various sizes |
+| `ferni-logo-dark.svg` | Dark mode variant |
+| `ferni-logo-simple.svg` | Simplified logo |
+| `ferni-text-logo.svg` | Text-only wordmark |
+| `logo-wordmark-*.svg` | Horizontal/stacked wordmarks |
+| `ferni-logo.lottie.json` | Animated logo (Lottie) |
 
-### Design System
+### App Icons (`icons/`)
 
-| Doc | Size | Description |
-|-----|------|-------------|
-| [FERNI-SCREEN-GUIDELINES.md](./FERNI-SCREEN-GUIDELINES.md) | 40KB | Complete UI/screen design standards |
-| [FERNI-DESIGN-OPS.md](./FERNI-DESIGN-OPS.md) | 22KB | Design operations workflow |
-| [FERNI-2025-DESIGN-DIRECTION.md](./FERNI-2025-DESIGN-DIRECTION.md) | 6KB | 2025 design direction |
+| File | Description |
+|------|-------------|
+| `app-icon-*.svg` | Source SVG icons |
+| `png/ios-*.png` | iOS app icons (all sizes) |
+| `png/android-*.png` | Android app icons (all sizes) |
+| `png/orb-*.png` | Alternative orb-style icons |
 
-### Specialized Systems
+### Favicons (`favicons/`)
 
-| Doc | Size | Description |
-|-----|------|-------------|
-| [BETTER-THAN-HUMAN.md](./BETTER-THAN-HUMAN.md) | 10KB | Superhuman EQ specification |
-| [FERNI-SONIC-IDENTITY.md](./FERNI-SONIC-IDENTITY.md) | 20KB | Sound design, audio branding |
-| [FERNI-HAPTICS.md](./FERNI-HAPTICS.md) | 17KB | Haptic feedback design |
-| [FERNI-SYNESTHESIA.md](./FERNI-SYNESTHESIA.md) | 16KB | Cross-sensory design approach |
-| [FERNI-RITUALS.md](./FERNI-RITUALS.md) | 16KB | Brand rituals, ceremonies |
+| File | Description |
+|------|-------------|
+| `favicon-16.svg` | 16x16 favicon |
+| `favicon-32.svg` | 32x32 favicon |
+| `favicon-192.svg` | 192x192 favicon |
 
-### Visual Guidelines
+### Social Media (`social/`)
 
-| Doc | Size | Description |
-|-----|------|-------------|
-| [FERNI-ILLUSTRATION-SYSTEM.md](./FERNI-ILLUSTRATION-SYSTEM.md) | 16KB | Illustration style guide |
-| [FERNI-IMAGERY-GUIDELINES.md](./FERNI-IMAGERY-GUIDELINES.md) | 11KB | Photography, image curation |
-| [FERNI-DATA-VISUALIZATION.md](./FERNI-DATA-VISUALIZATION.md) | 18KB | Charts, graphs, data display |
-| [FERNI-EMPTY-ERROR-STATES.md](./FERNI-EMPTY-ERROR-STATES.md) | 16KB | Error and empty state design |
+| File | Description |
+|------|-------------|
+| `facebook-cover-1200x630.svg` | Facebook cover |
+| `twitter-header-1500x500.svg` | Twitter/X header |
+| `linkedin-banner-1584x396.svg` | LinkedIn banner |
+| `instagram-post-1080.svg` | Instagram post |
+| `youtube-banner-2560x1440.svg` | YouTube banner |
+| `profile-400.svg` | Profile picture |
 
-### Assets
+### Design Tokens
 
-| Doc | Description |
-|-----|-------------|
-| [SOUND-ASSET-MANIFEST.md](./SOUND-ASSET-MANIFEST.md) | Sound file inventory |
-| [ferni-design-tokens.css](./ferni-design-tokens.css) | CSS design tokens |
-| [brand-book.html](./brand-book.html) | Interactive brand book |
-| `logos/` | Logo files (SVG, PNG) |
-| `icons/` | App and UI icons |
-| `favicons/` | Browser favicons |
+| File | Description |
+|------|-------------|
+| `ferni-design-tokens.css` | CSS custom properties for all design tokens |
+| `brand-book.html` | Interactive brand reference guide |
+
+---
+
+## Brand Documentation
+
+All brand guidelines and documentation live in the design system:
+
+| Document | Location |
+|----------|----------|
+| **Core Brand** | [`design-system/brand/FERNI-BRAND-GUIDELINES.md`](../design-system/brand/FERNI-BRAND-GUIDELINES.md) |
+| **Screen Design** | [`design-system/brand/FERNI-SCREEN-GUIDELINES.md`](../design-system/brand/FERNI-SCREEN-GUIDELINES.md) |
+| **Better Than Human EQ** | [`design-system/brand/BETTER-THAN-HUMAN.md`](../design-system/brand/BETTER-THAN-HUMAN.md) |
+| **Voice Guide** | [`design-system/brand/BRAND-VOICE-GUIDE.md`](../design-system/brand/BRAND-VOICE-GUIDE.md) |
+| **Universe Bible** | [`design-system/brand/FERNI-UNIVERSE-BIBLE.md`](../design-system/brand/FERNI-UNIVERSE-BIBLE.md) |
+| **Sonic Identity** | [`design-system/brand/FERNI-SONIC-IDENTITY.md`](../design-system/brand/FERNI-SONIC-IDENTITY.md) |
+| **Full Index** | [`design-system/brand/README.md`](../design-system/brand/README.md) |
 
 ---
 
@@ -99,7 +117,7 @@ font-family: var(--font-display);
 
 ### In Design Tools
 
-Export assets from `logos/` and `icons/` directories. Use the brand book for color/typography reference.
+Export assets from `logos/` and `icons/` directories. See `brand-book.html` for interactive reference.
 
 ---
 
@@ -107,10 +125,10 @@ Export assets from `logos/` and `icons/` directories. Use the brand book for col
 
 | Doc | Location |
 |-----|----------|
-| Frontend design standards | [`frontend-typescript/CLAUDE.md`](../frontend-typescript/CLAUDE.md) |
-| Design system architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
-| Emotion system | [`docs/architecture/FERNI-EMOTION-SYSTEM.md`](../docs/architecture/FERNI-EMOTION-SYSTEM.md) |
+| Brand Guidelines (Full) | [`design-system/brand/`](../design-system/brand/README.md) |
+| Frontend Design Standards | [`frontend-typescript/CLAUDE.md`](../frontend-typescript/CLAUDE.md) |
+| Design System Architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
 
 ---
 
-*Total brand documentation: ~250KB across 18 files*
+*Last Updated: December 2024*

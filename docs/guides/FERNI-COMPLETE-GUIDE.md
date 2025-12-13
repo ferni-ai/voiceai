@@ -104,8 +104,8 @@
 
 | File | Purpose |
 |------|---------|
-| `/brand/FERNI-SCREEN-GUIDELINES.md` | Complete design system (typography, colors, spacing) |
-| `/brand/FERNI-BRAND-GUIDELINES.md` | Brand voice, values, personality |
+| `/design-system/brand/FERNI-SCREEN-GUIDELINES.md` | Complete design system (typography, colors, spacing) |
+| `/design-system/brand/FERNI-BRAND-GUIDELINES.md` | Brand voice, values, personality |
 | `/brand/ferni-design-tokens.css` | CSS custom properties for implementation |
 | `/brand/brand-book.html` | Visual brand book (print to PDF) |
 
@@ -643,7 +643,7 @@ gcloud secrets versions access latest --secret=secret-name
 
 | Asset | Path |
 |-------|------|
-| Brand Guidelines | `/brand/FERNI-SCREEN-GUIDELINES.md` |
+| Brand Guidelines | `/design-system/brand/FERNI-SCREEN-GUIDELINES.md` |
 | Design Tokens | `/brand/ferni-design-tokens.css` |
 | Landing Page | `/promo/ferni-website/` |
 | Frontend App | `/frontend-typescript/` |

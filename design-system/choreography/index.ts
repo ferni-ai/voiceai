@@ -14,6 +14,7 @@ export * from './celebration-moments.js';
 export * from './error-recovery.js';
 export * from './toast-notifications.js';
 export * from './loading-states.js';
+export * from './ai-landing-interactions.js';
 
 // ============================================================================
 // CORE TYPES

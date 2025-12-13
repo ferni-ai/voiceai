@@ -9,7 +9,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
-import { getAdminHeaders } from '../admin-api.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_HANDOFF,
   ICON_HISTORY,
@@ -402,8 +402,9 @@ function renderHealthItem(name: string, status: 'healthy' | 'degraded' | 'down',
 
 async function fetchHandoffMetrics(): Promise<HandoffMetrics> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/diagnostics/handoff/metrics', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (response.ok) {
       return await response.json();
@@ -423,8 +424,9 @@ async function fetchHandoffMetrics(): Promise<HandoffMetrics> {
 
 async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/diagnostics/handoff/recent', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (response.ok) {
       const data = await response.json();
@@ -440,8 +442,9 @@ async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
 
 async function fetchServiceHealth(): Promise<ServiceHealth[]> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/diagnostics/services', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (response.ok) {
       const data = await response.json();

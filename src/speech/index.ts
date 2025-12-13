@@ -31,6 +31,26 @@ export {
 } from './session-cleanup.js';
 
 // ============================================================================
+// SESSION DEBUG & MONITORING (For diagnostics)
+// ============================================================================
+
+export {
+  checkForLeaks,
+  cleanupSessionTracking,
+  getAllSessionsDebugInfo,
+  getSessionDebugInfo,
+  getSpeechModuleDebugInfo,
+  logModuleState,
+  trackBackchannel,
+  trackEmotionDetected,
+  trackProsodyAnalysis,
+  trackSessionStart,
+  trackTurnPrediction,
+  type SpeechModuleDebugInfo,
+  type SpeechSessionDebugInfo,
+} from './session-debug.js';
+
+// ============================================================================
 // SESSION SERVICE MANAGER (Abstraction for session-scoped services)
 // ============================================================================
 

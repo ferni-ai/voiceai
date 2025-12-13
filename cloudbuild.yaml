@@ -25,10 +25,12 @@ steps:
   # - Cache layers persist for 1 week
   # - Parallel stage builds in Dockerfile
   # - No more --no-cache needed - cache is invalidated by file changes
+  # - Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
     args:
       - '--dockerfile=docker/Dockerfile.agent'
       - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
+      - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:$COMMIT_SHA'
       - '--cache=true'
       - '--cache-ttl=${_CACHE_TTL}'
       - '--snapshot-mode=redo'

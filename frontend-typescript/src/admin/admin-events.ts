@@ -9,7 +9,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/toast.ui.js';
-import { getAdminHeaders } from './admin-api.js';
+import { getAdminHeadersAsync } from './admin-api.js';
 
 const log = createLogger('AdminEvents');
 
@@ -18,11 +18,12 @@ async function adminFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
+  const adminHeaders = await getAdminHeadersAsync();
   return fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...getAdminHeaders(),
+      ...adminHeaders,
       ...options.headers,
     },
   });
@@ -1014,11 +1015,12 @@ export async function sendApiRequest(
   log.debug({ method, url }, 'Sending API request');
   
   try {
+    const adminHeaders = await getAdminHeadersAsync();
     const options: RequestInit = {
       method,
       headers: {
         'Content-Type': 'application/json',
-        ...getAdminHeaders(),
+        ...adminHeaders,
       },
     };
     

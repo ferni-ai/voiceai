@@ -582,7 +582,7 @@ npm run deploy
 - **Layout**: `src/_includes/layouts/story-brand.njk`
 - **Styles**: `src/css/story-brand.css`
 - **Data**: `src/_data/site.json`
-- **Brand**: `brand/FERNI-BRAND-GUIDELINES.md`
+- **Brand**: `design-system/brand/FERNI-BRAND-GUIDELINES.md`
 - **Design Tokens**: `css/design-tokens.css`
 
 ---

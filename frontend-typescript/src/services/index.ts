@@ -27,3 +27,11 @@ export * from './ritual-engine.service.js';
 export * from './avatar-state.service.js';
 export * from './voice-analyzer.service.js';
 export * from './voice-auth.service.js';
+
+// ============================================================================
+// 🌱 PROGRESSIVE RELATIONSHIP FEATURES
+// ============================================================================
+
+export * from './progressive-features.service.js';
+export * from './team-unlock.service.js';
+export * from './growth-journey.service.js';

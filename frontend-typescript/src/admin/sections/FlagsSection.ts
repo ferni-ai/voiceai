@@ -9,7 +9,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
-import { getAdminHeaders } from '../admin-api.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_SUCCESS,
   ICON_ERROR,
@@ -346,8 +346,9 @@ function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
 
 async function fetchFlags(): Promise<FeatureFlag[]> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/flags', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (response.ok) {
       const data = await response.json();

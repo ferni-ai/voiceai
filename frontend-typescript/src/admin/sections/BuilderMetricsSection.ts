@@ -10,7 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeaders } from '../admin-api.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import { ICON_ACTIVITY, ICON_REFRESH, ICON_WARNING, ICON_ZAP, iconSm } from '../icons.js';
 
 const log = createLogger('BuilderMetricsSection');
@@ -53,8 +53,9 @@ let lastData: BuilderMetricsSummary | null = null;
 
 async function fetchBuilderMetrics(): Promise<BuilderMetricsSummary | null> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/admin/builder-metrics', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -70,8 +71,9 @@ async function fetchBuilderMetrics(): Promise<BuilderMetricsSummary | null> {
 
 export async function fetchWarnings(): Promise<string[]> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/admin/builder-metrics/warnings', {
-      headers: getAdminHeaders(),
+      headers,
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);

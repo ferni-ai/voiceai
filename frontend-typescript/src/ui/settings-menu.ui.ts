@@ -19,6 +19,8 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+// Milestones - for journey progress indicator
+import { getCelebratedCount, getTotalMilestonesCount } from './ferni-milestones.ui.js';
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 
@@ -45,7 +47,6 @@ export interface SettingsMenuUICallbacks {
   onExportDataClick?: () => void;
   onOnboardingClick?: () => void;
   onThemeToggle?: () => void;
-  onRelationshipProgressClick?: () => void;
   onNotificationSettingsClick?: () => void;
   onSpotifyClick?: () => void;
   onTeamHuddleClick?: () => void;
@@ -130,6 +131,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
   globe:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  chevronRight:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
 };
 
 // ============================================================================
@@ -333,7 +336,7 @@ class SettingsMenuUI {
           <button class="settings-menu__close" aria-label="Close menu">${ICONS.close}</button>
         </header>
 
-        <!-- Relationship Stage Banner -->
+        <!-- Relationship Stage Banner (compact) -->
         <div class="settings-menu__stage-banner">
           <div class="settings-menu__stage-info">
             <span class="settings-menu__stage-label">Your stage</span>
@@ -361,8 +364,8 @@ class SettingsMenuUI {
         <nav class="settings-menu__nav">
           <section class="settings-menu__section">
             <h3>Your Journey</h3>
-            ${this.renderMenuItem('relationship', ICONS.heart, 'Journey with Ferni')}
-            ${this.renderMenuItem('trust-journey', ICONS.sparkles, 'Trust & Growth')}
+            ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
+            ${this.renderMenuItem('trust-journey', ICONS.sparkles, 'Trust Details')}
             ${this.renderMenuItem('history', ICONS.history, 'Conversation History')}
             ${this.renderMenuItem('analytics', ICONS.analytics, 'Progress Analytics')}
             ${this.renderMenuItem('predictions', ICONS.target, 'Prediction Accuracy')}
@@ -381,7 +384,6 @@ class SettingsMenuUI {
             <h3>Fun</h3>
             ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Music Games')}
             ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
-            ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
             ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
             ${this.renderMenuItem('support-ferni', ICONS.seedling, 'Support Ferni')}
           </section>
@@ -449,6 +451,7 @@ class SettingsMenuUI {
         this.handleAction(action);
       });
     });
+
   }
 
   private handleAction(action: string | undefined): void {
@@ -484,9 +487,6 @@ class SettingsMenuUI {
         break;
       case 'team':
         this.callbacks.onTeamHuddleClick?.();
-        break;
-      case 'relationship':
-        this.callbacks.onRelationshipProgressClick?.();
         break;
       case 'notifications':
         this.callbacks.onNotificationSettingsClick?.();

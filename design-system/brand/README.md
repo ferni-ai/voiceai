@@ -1,8 +1,10 @@
-# Ferni Brand Assets
+# Ferni Brand Documentation
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-This directory contains Ferni's complete brand guidelines and design system documentation.
+This is the **canonical location** for all Ferni brand guidelines and design system documentation.
+
+📦 **For brand ASSETS** (logos, icons, favicons), see [`brand/`](../../brand/README.md)
 
 ---
 
@@ -40,10 +42,11 @@ This directory contains Ferni's complete brand guidelines and design system docu
 
 | Doc | Size | Description |
 |-----|------|-------------|
-| [FERNI-BRAND-GUIDELINES.md](./FERNI-BRAND-GUIDELINES.md) | 18KB | Core brand identity, colors, typography |
+| [FERNI-BRAND-GUIDELINES.md](./FERNI-BRAND-GUIDELINES.md) | 21KB | Core brand identity, colors, typography |
 | [FERNI-UNIVERSE-BIBLE.md](./FERNI-UNIVERSE-BIBLE.md) | 28KB | Brand universe, personality, storytelling |
 | [BRAND-VOICE-GUIDE.md](./BRAND-VOICE-GUIDE.md) | 7KB | Voice, tone, writing style |
 | [BRAND-POSITIONING-EXPLORATION.md](./BRAND-POSITIONING-EXPLORATION.md) | 8KB | Market positioning research |
+| [COMMUNITY-FUNDED-BRAND-STRATEGY.md](./COMMUNITY-FUNDED-BRAND-STRATEGY.md) | 8KB | Community funding approach |
 
 ### Design System
 
@@ -53,11 +56,11 @@ This directory contains Ferni's complete brand guidelines and design system docu
 | [FERNI-DESIGN-OPS.md](./FERNI-DESIGN-OPS.md) | 22KB | Design operations workflow |
 | [FERNI-2025-DESIGN-DIRECTION.md](./FERNI-2025-DESIGN-DIRECTION.md) | 6KB | 2025 design direction |
 
-### Specialized Systems
+### Superhuman Experience
 
 | Doc | Size | Description |
 |-----|------|-------------|
-| [BETTER-THAN-HUMAN.md](./BETTER-THAN-HUMAN.md) | 10KB | Superhuman EQ specification |
+| [BETTER-THAN-HUMAN.md](./BETTER-THAN-HUMAN.md) | 13KB | **Superhuman EQ specification** (source of truth) |
 | [FERNI-SONIC-IDENTITY.md](./FERNI-SONIC-IDENTITY.md) | 20KB | Sound design, audio branding |
 | [FERNI-HAPTICS.md](./FERNI-HAPTICS.md) | 17KB | Haptic feedback design |
 | [FERNI-SYNESTHESIA.md](./FERNI-SYNESTHESIA.md) | 16KB | Cross-sensory design approach |
@@ -72,16 +75,32 @@ This directory contains Ferni's complete brand guidelines and design system docu
 | [FERNI-DATA-VISUALIZATION.md](./FERNI-DATA-VISUALIZATION.md) | 18KB | Charts, graphs, data display |
 | [FERNI-EMPTY-ERROR-STATES.md](./FERNI-EMPTY-ERROR-STATES.md) | 16KB | Error and empty state design |
 
-### Assets
+### Supporting Files
 
-| Doc | Description |
-|-----|-------------|
+| File | Description |
+|------|-------------|
 | [SOUND-ASSET-MANIFEST.md](./SOUND-ASSET-MANIFEST.md) | Sound file inventory |
-| [ferni-design-tokens.css](./ferni-design-tokens.css) | CSS design tokens |
 | [brand-book.html](./brand-book.html) | Interactive brand book |
-| `logos/` | Logo files (SVG, PNG) |
-| `icons/` | App and UI icons |
-| `favicons/` | Browser favicons |
+
+---
+
+## File Organization
+
+```
+voiceai/
+├── brand/                      # Brand ASSETS
+│   ├── logos/                  # Logo files (SVG, PNG)
+│   ├── icons/                  # App and UI icons
+│   ├── favicons/               # Browser favicons
+│   ├── social/                 # Social media graphics
+│   ├── ferni-design-tokens.css # CSS design tokens
+│   └── brand-book.html         # Interactive brand guide
+│
+└── design-system/brand/        # Brand DOCUMENTATION (you are here)
+    ├── FERNI-BRAND-GUIDELINES.md
+    ├── BETTER-THAN-HUMAN.md
+    └── ... (all .md files)
+```
 
 ---
 
@@ -99,7 +118,7 @@ font-family: var(--font-display);
 
 ### In Design Tools
 
-Export assets from `logos/` and `icons/` directories. Use the brand book for color/typography reference.
+Export assets from [`brand/logos/`](../../brand/logos/) and [`brand/icons/`](../../brand/icons/). Use the brand book for color/typography reference.
 
 ---
 
@@ -107,10 +126,13 @@ Export assets from `logos/` and `icons/` directories. Use the brand book for col
 
 | Doc | Location |
 |-----|----------|
-| Frontend design standards | [`frontend-typescript/CLAUDE.md`](../frontend-typescript/CLAUDE.md) |
-| Design system architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
-| Emotion system | [`docs/architecture/FERNI-EMOTION-SYSTEM.md`](../docs/architecture/FERNI-EMOTION-SYSTEM.md) |
+| Frontend design standards | [`frontend-typescript/CLAUDE.md`](../../frontend-typescript/CLAUDE.md) |
+| Design system architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
+| Emotion system | [`docs/architecture/FERNI-EMOTION-SYSTEM.md`](../../docs/architecture/FERNI-EMOTION-SYSTEM.md) |
+| Brand assets | [`brand/README.md`](../../brand/README.md) |
 
 ---
 
-*Total brand documentation: ~250KB across 18 files*
+*Total brand documentation: ~260KB across 19 files*
+
+*Last Updated: December 2024*

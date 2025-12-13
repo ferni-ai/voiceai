@@ -552,8 +552,8 @@ GET /api/tools/feedback   - User feedback on tools
 
 ## 📚 References
 
-- **Brand Guidelines:** `design-system/brand/FERNI-BRAND-GUIDELINES.md`
-- **Screen Guidelines:** `design-system/brand/FERNI-SCREEN-GUIDELINES.md`
+- **Brand Guidelines:** `design-system/design-system/brand/FERNI-BRAND-GUIDELINES.md`
+- **Screen Guidelines:** `design-system/design-system/brand/FERNI-SCREEN-GUIDELINES.md`
 - **Design Tokens:** `design-system/tokens/*.json`
 - **Generated CSS:** `design-system/dist/tokens.css`
 - **Code Standards:** `CLAUDE.md`

@@ -10,7 +10,7 @@ export { initAdminPortal, destroyAdminPortal, adminPortalState, ADMIN_SECTIONS }
 export type { AdminSection } from './AdminPortal.js';
 
 // Admin API utilities
-export { getAdminApiKey, getAdminHeaders, adminGet, adminPost } from './admin-api.js';
+export { getAdminApiKey, getAdminHeaders, getAdminHeadersAsync, adminGet, adminPost } from './admin-api.js';
 
 // Event handlers for programmatic access
 export {

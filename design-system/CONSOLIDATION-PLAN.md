@@ -103,8 +103,8 @@ voiceai/
 
 4. **Move brand guidelines**
    ```bash
-   mv brand/FERNI-BRAND-GUIDELINES.md design-system/brand/GUIDELINES.md
-   mv brand/FERNI-SCREEN-GUIDELINES.md design-system/brand/SCREEN-GUIDELINES.md
+   mv design-system/brand/FERNI-BRAND-GUIDELINES.md design-system/brand/GUIDELINES.md
+   mv design-system/brand/FERNI-SCREEN-GUIDELINES.md design-system/brand/SCREEN-GUIDELINES.md
    mv brand/brand-book.html design-system/brand/brand-book.html
    ```
 
@@ -164,8 +164,8 @@ ln -s design-system/brand brand
 
 | Old Location | New Location | Notes |
 |--------------|--------------|-------|
-| `brand/FERNI-BRAND-GUIDELINES.md` | `design-system/brand/GUIDELINES.md` | |
-| `brand/FERNI-SCREEN-GUIDELINES.md` | `design-system/brand/SCREEN-GUIDELINES.md` | |
+| `design-system/brand/FERNI-BRAND-GUIDELINES.md` | `design-system/brand/GUIDELINES.md` | |
+| `design-system/brand/FERNI-SCREEN-GUIDELINES.md` | `design-system/brand/SCREEN-GUIDELINES.md` | |
 | `brand/brand-book.html` | `design-system/brand/brand-book.html` | |
 | `brand/ferni-design-tokens.css` | DELETE | Use `design-system/dist/tokens.css` |
 | `brand/logos/*.svg` | `design-system/assets/logos/` | Keep only masters |

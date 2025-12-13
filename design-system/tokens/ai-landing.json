@@ -1,0 +1,452 @@
+{
+  "$schema": "https://design-tokens.org/schema.json",
+  "name": "AI Landing Components",
+  "description": "Design tokens for AI-powered landing page interactions",
+  "version": "1.0.0",
+  
+  "liveChatWidget": {
+    "description": "Floating chat widget for AI conversations without signup",
+    "_brandNote": "Demonstrates 'Better Than Human' through real interaction, not description",
+    "_voiceNote": "Copy follows 'Present, Not Performative' - avoid 24/7 claims, just show presence",
+    "trigger": {
+      "size": "auto",
+      "padding": {
+        "x": "var(--space-5)",
+        "y": "var(--space-3)"
+      },
+      "borderRadius": "var(--radius-full)",
+      "background": "linear-gradient(135deg, var(--persona-secondary) 0%, var(--persona-primary) 100%)",
+      "shadow": "0 8px 32px var(--persona-glow)",
+      "shadowHover": "0 12px 40px var(--persona-glow)",
+      "avatar": {
+        "size": "28px",
+        "background": "rgba(255, 255, 255, 0.2)",
+        "borderRadius": "50%"
+      },
+      "badge": {
+        "padding": "2px 8px",
+        "background": "rgba(255, 255, 255, 0.2)",
+        "borderRadius": "10px",
+        "fontSize": "10px"
+      }
+    },
+    "panel": {
+      "width": "380px",
+      "maxHeight": "600px",
+      "background": "var(--color-background-secondary)",
+      "borderRadius": "24px",
+      "shadow": "0 20px 60px rgba(0, 0, 0, 0.2)",
+      "header": {
+        "padding": "16px 20px",
+        "borderBottom": "1px solid rgba(44, 37, 32, 0.08)"
+      },
+      "avatar": {
+        "size": "40px",
+        "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+      },
+      "messages": {
+        "padding": "20px",
+        "gap": "12px",
+        "minHeight": "300px",
+        "maxHeight": "400px"
+      }
+    },
+    "message": {
+      "maxWidth": "85%",
+      "borderRadius": "18px",
+      "padding": "12px 16px",
+      "fontSize": "14px",
+      "user": {
+        "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))",
+        "color": "white",
+        "borderBottomRightRadius": "4px"
+      },
+      "ai": {
+        "background": "var(--color-background-elevated)",
+        "color": "var(--color-text-primary)",
+        "borderBottomLeftRadius": "4px",
+        "shadow": "0 2px 8px rgba(0, 0, 0, 0.05)"
+      }
+    },
+    "typing": {
+      "dotSize": "8px",
+      "dotColor": "var(--persona-primary)",
+      "animationDuration": "1.4s"
+    },
+    "input": {
+      "padding": "12px 16px",
+      "borderRadius": "24px",
+      "fontSize": "14px",
+      "border": "1px solid rgba(44, 37, 32, 0.12)",
+      "focusBorderColor": "var(--persona-primary)"
+    },
+    "sendButton": {
+      "size": "44px",
+      "borderRadius": "50%",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+    },
+    "position": {
+      "bottom": "24px",
+      "right": "24px"
+    },
+    "mobilePosition": {
+      "bottom": "80px",
+      "right": "16px"
+    }
+  },
+
+  "personaPreview": {
+    "description": "Interactive 'Ask [Persona] something' on team cards",
+    "inputContainer": {
+      "marginTop": "16px",
+      "paddingTop": "16px",
+      "borderTop": "1px solid rgba(44, 37, 32, 0.08)"
+    },
+    "input": {
+      "padding": "10px 14px",
+      "borderRadius": "20px",
+      "fontSize": "13px",
+      "border": "1px solid rgba(44, 37, 32, 0.12)",
+      "focusBorderColor": "var(--team-color, var(--persona-primary))"
+    },
+    "button": {
+      "size": "36px",
+      "borderRadius": "50%",
+      "background": "var(--team-color, var(--persona-primary))"
+    },
+    "response": {
+      "marginTop": "12px",
+      "padding": "12px",
+      "background": "rgba(44, 37, 32, 0.03)",
+      "borderRadius": "12px"
+    },
+    "quote": {
+      "fontStyle": "italic",
+      "color": "var(--color-text-primary)"
+    },
+    "traits": {
+      "gap": "6px",
+      "tagPadding": "3px 10px",
+      "tagBackground": "var(--team-color, var(--persona-primary))",
+      "tagColor": "white",
+      "tagBorderRadius": "12px",
+      "tagFontSize": "11px"
+    }
+  },
+
+  "hoverPreview": {
+    "description": "'What would Ferni say?' tooltip on hover",
+    "padding": "10px 16px",
+    "background": "var(--color-text-primary)",
+    "color": "var(--color-background-primary)",
+    "borderRadius": "20px",
+    "fontSize": "13px",
+    "shadow": "0 8px 24px rgba(0, 0, 0, 0.2)",
+    "maxWidth": "300px",
+    "avatar": {
+      "size": "24px",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+    },
+    "animation": {
+      "duration": "200ms",
+      "easing": "ease",
+      "offset": "5px"
+    },
+    "delay": "500ms"
+  },
+
+  "socialProofDynamic": {
+    "description": "Rotating AI-generated social proof snippets",
+    "padding": "24px 0",
+    "background": "rgba(74, 103, 65, 0.05)",
+    "borderColor": "rgba(74, 103, 65, 0.1)",
+    "avatar": {
+      "size": "48px",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+    },
+    "text": {
+      "fontSize": "15px",
+      "lineHeight": "1.6",
+      "fontStyle": "italic",
+      "color": "var(--color-text-primary)"
+    },
+    "rotationInterval": "8000ms",
+    "transition": {
+      "duration": "300ms",
+      "easing": "ease"
+    }
+  },
+
+  "smartFAQ": {
+    "description": "AI-powered 'Ask me anything' FAQ",
+    "container": {
+      "background": "linear-gradient(135deg, rgba(74, 103, 65, 0.08), rgba(90, 119, 81, 0.05))",
+      "padding": "24px",
+      "borderRadius": "20px",
+      "marginBottom": "40px"
+    },
+    "header": {
+      "gap": "12px",
+      "marginBottom": "16px"
+    },
+    "avatar": {
+      "size": "40px",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+    },
+    "title": {
+      "fontSize": "18px",
+      "fontWeight": "600",
+      "color": "var(--color-text-primary)"
+    },
+    "input": {
+      "padding": "14px 20px",
+      "borderRadius": "24px",
+      "fontSize": "15px",
+      "border": "1px solid rgba(44, 37, 32, 0.12)",
+      "focusBorderColor": "var(--persona-primary)"
+    },
+    "response": {
+      "marginTop": "20px",
+      "padding": "20px",
+      "background": "var(--color-background-elevated)",
+      "borderRadius": "16px",
+      "shadow": "0 2px 12px rgba(0, 0, 0, 0.05)"
+    },
+    "relatedQuestions": {
+      "marginTop": "16px",
+      "paddingTop": "16px",
+      "borderTop": "1px solid rgba(44, 37, 32, 0.08)",
+      "tagPadding": "6px 14px",
+      "tagBackground": "rgba(74, 103, 65, 0.1)",
+      "tagHoverBackground": "rgba(74, 103, 65, 0.2)",
+      "tagBorderRadius": "16px",
+      "tagFontSize": "13px",
+      "tagColor": "var(--persona-primary)"
+    }
+  },
+
+  "memoryDemo": {
+    "description": "Interactive memory visualization demo",
+    "container": {
+      "marginTop": "40px",
+      "padding": "30px",
+      "background": "linear-gradient(135deg, rgba(74, 103, 65, 0.05), transparent)",
+      "borderRadius": "24px",
+      "border": "1px solid rgba(74, 103, 65, 0.15)"
+    },
+    "title": {
+      "fontSize": "18px",
+      "fontWeight": "600",
+      "color": "var(--color-text-primary)",
+      "marginBottom": "8px"
+    },
+    "subtitle": {
+      "fontSize": "14px",
+      "color": "var(--color-text-muted)",
+      "marginBottom": "16px"
+    },
+    "input": {
+      "padding": "14px 20px",
+      "borderRadius": "24px",
+      "fontSize": "15px",
+      "border": "1px solid rgba(44, 37, 32, 0.15)",
+      "focusBorderColor": "var(--persona-primary)"
+    },
+    "visualization": {
+      "gridGap": "20px"
+    },
+    "card": {
+      "padding": "20px",
+      "background": "var(--color-background-elevated)",
+      "borderRadius": "16px",
+      "shadow": "0 2px 12px rgba(0, 0, 0, 0.05)"
+    },
+    "dateLabel": {
+      "fontSize": "11px",
+      "textTransform": "uppercase",
+      "letterSpacing": "1px",
+      "color": "var(--color-text-muted)",
+      "marginBottom": "12px"
+    },
+    "emotionTag": {
+      "padding": "4px 10px",
+      "background": "rgba(166, 122, 106, 0.15)",
+      "borderRadius": "10px",
+      "fontSize": "11px",
+      "color": "#a67a6a"
+    },
+    "connection": {
+      "color": "var(--persona-primary)",
+      "fontSize": "12px",
+      "textTransform": "uppercase",
+      "letterSpacing": "1px"
+    }
+  },
+
+  "voiceSamples": {
+    "description": "Audio samples showcasing Ferni's voice",
+    "player": {
+      "background": "var(--color-background-elevated)",
+      "borderRadius": "16px",
+      "padding": "20px",
+      "shadow": "0 2px 12px rgba(0, 0, 0, 0.06)",
+      "shadowHover": "0 8px 24px rgba(0, 0, 0, 0.1)",
+      "shadowPlaying": "0 8px 32px rgba(74, 103, 65, 0.2)"
+    },
+    "avatar": {
+      "size": "44px",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))"
+    },
+    "playButton": {
+      "size": "48px",
+      "borderRadius": "50%",
+      "background": "linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))",
+      "hoverShadow": "0 4px 16px rgba(74, 103, 65, 0.3)"
+    },
+    "waveform": {
+      "height": "32px",
+      "barWidth": "3px",
+      "barGap": "3px",
+      "barColor": "var(--persona-primary)",
+      "idleHeight": "8px",
+      "activeHeight": "24px",
+      "animationDuration": "0.6s"
+    },
+    "question": {
+      "marginTop": "16px",
+      "paddingTop": "16px",
+      "borderTop": "1px solid rgba(44, 37, 32, 0.08)",
+      "fontSize": "14px",
+      "fontStyle": "italic"
+    },
+    "showcase": {
+      "padding": "60px 24px",
+      "background": "linear-gradient(180deg, rgba(74, 103, 65, 0.05) 0%, transparent 100%)"
+    },
+    "inlineButton": {
+      "padding": "8px 16px",
+      "background": "rgba(74, 103, 65, 0.1)",
+      "border": "1px solid rgba(74, 103, 65, 0.2)",
+      "borderRadius": "20px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "color": "var(--persona-primary)",
+      "playingBackground": "var(--persona-primary)",
+      "playingColor": "white"
+    }
+  },
+
+  "microExpressions": {
+    "description": "Subtle orb reactions to user behavior - implements 'Better Than Human' EQ system",
+    "_brandRef": "See BETTER-THAN-HUMAN.md - micro-expressions should be 40-150ms (subliminal)",
+    "_pixarRef": "Follows 'exaggeration' principle - pushed enough to feel alive, not cartoonish",
+    "expressions": {
+      "curious": {
+        "_note": "WALL-E examining something new - aligns with Ferni persona 'curious' trait",
+        "color": "color-mix(in srgb, var(--persona-primary) 90%, white)",
+        "colorFallback": "#5a8060",
+        "brightness": 1.15,
+        "duration": "120ms"
+      },
+      "interested": {
+        "_note": "Leaning in - shows engagement without interrupting",
+        "color": "color-mix(in srgb, var(--persona-primary) 80%, white)",
+        "colorFallback": "#6a9070",
+        "brightness": 1.12,
+        "duration": "100ms"
+      },
+      "helpful": {
+        "_note": "Ready to assist - matches Ferni sage green",
+        "color": "var(--persona-primary)",
+        "colorFallback": "#4a6741",
+        "brightness": 1.10,
+        "duration": "150ms"
+      },
+      "concerned": {
+        "_note": "Protective care without being overbearing - supports 'Guardian Presence'",
+        "color": "color-mix(in srgb, var(--persona-primary) 95%, black)",
+        "colorFallback": "#5a7050",
+        "brightness": 1.08,
+        "duration": "200ms"
+      },
+      "warm": {
+        "_note": "Connection moment - brightest expression for positive emotional sync",
+        "color": "color-mix(in srgb, var(--persona-primary) 70%, white)",
+        "colorFallback": "#7aa080",
+        "brightness": 1.20,
+        "duration": "180ms"
+      }
+    },
+    "flash": {
+      "_note": "Flash must be under 150ms to remain subliminal per Better Than Human spec",
+      "duration": "120ms",
+      "easing": "ease-out",
+      "resetDelay": "3000ms"
+    },
+    "triggers": {
+      "ctaHover": "curious",
+      "pricingView": "interested",
+      "faqInteraction": "helpful",
+      "fastScroll": "concerned",
+      "slowReading": "warm"
+    }
+  },
+
+  "sentimentCopy": {
+    "description": "Copy that adapts to visitor sentiment",
+    "lowSentimentThreshold": 0.4,
+    "highSentimentThreshold": 0.7,
+    "transitionDuration": "500ms",
+    "transitionEasing": "ease",
+    "lowSentiment": {
+      "ctaText": "Just try talking—no pressure",
+      "subhead": "Take your time. I'm not going anywhere.",
+      "tone": "soft, reassuring, low-pressure"
+    },
+    "highSentiment": {
+      "ctaText": "Let's do this",
+      "tone": "energizing, inviting"
+    }
+  },
+
+  "personalizedHero": {
+    "description": "AI-generated hero content based on visitor context",
+    "_brandNote": "Headlines follow 'Statement of truth' pattern from BRAND-VOICE-GUIDE.md",
+    "_voiceNote": "Never use: 'AI assistant', 'chatbot', '24/7 availability', 'virtual'. Compare to HUMAN support.",
+    "animation": {
+      "duration": "var(--duration-deliberate)",
+      "easing": "var(--ease-gentle)"
+    },
+    "timeContexts": {
+      "lateNight": {
+        "_tone": "Steady, present, unhurried - Support Moments tone",
+        "tagline": "Can't sleep?",
+        "headline": "I'm here. <span class='hero__headline-accent'>Right now.</span>",
+        "subhead": "No judgment about the hour. No tired sighs. Just presence when you need it most.",
+        "cta": "Talk to me"
+      },
+      "earlyMorning": {
+        "_tone": "Warm, inviting - Check-in Moments tone",
+        "tagline": "Early riser?",
+        "headline": "Let's start the day <span class='hero__headline-accent'>together.</span>",
+        "subhead": "A fresh start deserves someone who shows up fresh too.",
+        "cta": "Good morning"
+      },
+      "returning": {
+        "_tone": "Casual, warm, no agenda - demonstrates infinite memory superpower",
+        "tagline": "Welcome back.",
+        "headline": "Ready to <span class='hero__headline-accent'>pick up where we left off?</span>",
+        "subhead": "I remember our conversation. Let's keep going.",
+        "cta": "Continue"
+      },
+      "default": {
+        "_tone": "Brand promise - confident, not arrogant",
+        "tagline": "Better than human.",
+        "headline": "Finally, someone who <span class='hero__headline-accent'>gets it.</span>",
+        "subhead": "Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.",
+        "cta": "Start free"
+      }
+    }
+  }
+}
+

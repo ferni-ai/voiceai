@@ -10,7 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeaders } from '../admin-api.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_ACTIVITY,
   ICON_EXTERNAL,
@@ -622,8 +622,9 @@ function renderQuickLink(label: string, url: string): string {
 
 async function fetchOperationsData(): Promise<OperationsData> {
   try {
+    const headers = await getAdminHeadersAsync();
     const response = await fetch('/api/v1/admin/operations', {
-      headers: getAdminHeaders(),
+      headers,
     });
 
     if (response.ok) {

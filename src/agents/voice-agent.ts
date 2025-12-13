@@ -3031,6 +3031,29 @@ export default defineAgent({
       diag.state('Humanization signal emitter initialized');
 
       // ===============================================
+      // 💚 TRUST SIGNAL EMITTER
+      // Bridges backend trust systems to frontend UI
+      // Shows "Ferni noticed..." cards for growth, wins, etc.
+      // ===============================================
+      const { setSignalEmitter } =
+        await import('../services/trust-systems/trust-signal-emitter.js');
+      setSignalEmitter((signal) => {
+        const publisher = getFrontendPublisher();
+        if (publisher.isConnected()) {
+          // Send as 'trust_signal' type - frontend listens for this
+          void publisher.sendData('trust_signal', {
+            signalType: signal.type,
+            title: signal.title,
+            message: signal.message,
+            personaId: signal.personaId || sessionPersona,
+            timing: signal.timing,
+            metadata: signal.metadata,
+          });
+        }
+      });
+      diag.state('Trust signal emitter initialized');
+
+      // ===============================================
       // PARALLEL INITIALIZATION: Non-critical services
       // ===============================================
       // These run in parallel for faster session start (~100ms savings)
@@ -3405,10 +3428,11 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // DISABLE pre-spawned processes to debug job routing
-      numIdleProcesses: 0,
-      // Increase timeout for safety margin
-      initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
+      // Keep warm processes ready for instant job assignment
+      // Without this, spawning a new process takes ~1 minute and rooms timeout!
+      numIdleProcesses: 1,
+      // Increase timeout for safety margin (5 minutes for cold starts)
+      initializeProcessTimeout: 300 * 1000,
       // Custom request function with self-healing (circuit breaker + retry + AI diagnosis)
       requestFunc: requestFuncWithSelfHealing,
     })

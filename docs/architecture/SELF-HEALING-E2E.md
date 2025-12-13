@@ -504,6 +504,30 @@ export function trackJobMetrics(job: JobTrace): void {
   - External API errors (Spotify, Calendar, Weather)
   - Process/container errors
 
+### Phase 6: CLI Integration ✅ COMPLETE
+
+- [x] `ferni health` - Run all health monitors
+- [x] `ferni circuits` - View circuit breaker status
+- [x] `ferni restart <service>` - Restart Cloud Run services with cooldown protection
+- [x] `ferni diagnose <error>` - AI-powered error diagnosis (40+ patterns)
+- [x] `ferni anomalies` - View detected anomalies
+- [x] `ferni self-heal` - Unified self-healing command group
+
+### Phase 7: Voice AI Integration ✅ COMPLETE
+
+- [x] Conversation health awareness service (`conversation-health.ts`)
+  - Real-time health context during conversations
+  - Proactive service degradation communication
+  - Recovery announcements when services come back
+  - Human-friendly error handling
+- [x] LLM context injection (`injection-builders.ts`)
+  - Health context injected into system prompts
+  - Warm communication guidance for degraded services
+  - Category-specific phrases (music, weather, calendar, etc.)
+- [x] Capability checking before tool execution
+  - Pre-check services before attempting operations
+  - Graceful degradation with user-friendly messages
+
 ### Implemented Files
 
 | File | Purpose |

@@ -65,151 +65,159 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 export function render(): string {
   return `
-    <div class="admin-section business-metrics-section">
+    <div class="admin-section business-metrics-section" role="region" aria-label="Business Metrics Dashboard">
       <div class="section-header">
-        <h2>${ICONS.chart} Business Metrics</h2>
+        <h2><span aria-hidden="true">${ICONS.chart}</span> Business Metrics</h2>
         <div class="header-actions">
-          <span class="live-indicator">
-            <span class="live-dot"></span>
-            <span id="concurrent-count">0</span> active now
+          <span class="live-indicator" role="status" aria-live="polite" aria-atomic="true">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="concurrent-count" aria-label="Active users now">0</span> active now
           </span>
-          <button class="btn-secondary" onclick="window.businessMetrics?.refresh()">
-            ${ICONS.refresh} Refresh
+          <button class="btn-secondary" onclick="window.businessMetrics?.refresh()" aria-label="Refresh business metrics">
+            <span aria-hidden="true">${ICONS.refresh}</span> Refresh
           </button>
         </div>
       </div>
 
-      <!-- Key Metrics Cards -->
-      <div class="metrics-grid">
-        <div class="metric-card highlight">
-          <div class="metric-icon">${ICONS.team}</div>
+      <!-- Key Metrics Cards - Live region for screen readers -->
+      <div class="metrics-grid" role="region" aria-label="Key metrics" aria-live="polite" aria-atomic="false">
+        <article class="metric-card highlight" aria-labelledby="dau-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS.team}</div>
           <div class="metric-content">
-            <div class="metric-value" id="dau-value">--</div>
-            <div class="metric-label">Daily Active Users</div>
-            <div class="metric-trend" id="dau-trend"></div>
+            <div class="metric-value" id="dau-value" aria-describedby="dau-label">--</div>
+            <div class="metric-label" id="dau-label">Daily Active Users</div>
+            <div class="metric-trend" id="dau-trend" role="status" aria-live="polite"></div>
           </div>
-        </div>
+        </article>
 
-        <div class="metric-card">
-          <div class="metric-icon">${ICONS.chart}</div>
+        <article class="metric-card" aria-labelledby="wau-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS.chart}</div>
           <div class="metric-content">
-            <div class="metric-value" id="wau-value">--</div>
-            <div class="metric-label">Weekly Active Users</div>
+            <div class="metric-value" id="wau-value" aria-describedby="wau-label">--</div>
+            <div class="metric-label" id="wau-label">Weekly Active Users</div>
           </div>
-        </div>
+        </article>
 
-        <div class="metric-card">
-          <div class="metric-icon">${ICONS.chart}</div>
+        <article class="metric-card" aria-labelledby="mau-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS.chart}</div>
           <div class="metric-content">
-            <div class="metric-value" id="mau-value">--</div>
-            <div class="metric-label">Monthly Active Users</div>
+            <div class="metric-value" id="mau-value" aria-describedby="mau-label">--</div>
+            <div class="metric-label" id="mau-label">Monthly Active Users</div>
           </div>
-        </div>
+        </article>
 
-        <div class="metric-card">
-          <div class="metric-icon">${ICONS['trend-up']}</div>
+        <article class="metric-card" aria-labelledby="sessions-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS['trend-up']}</div>
           <div class="metric-content">
-            <div class="metric-value" id="sessions-value">--</div>
-            <div class="metric-label">Sessions Today</div>
-            <div class="metric-trend" id="sessions-trend"></div>
+            <div class="metric-value" id="sessions-value" aria-describedby="sessions-label">--</div>
+            <div class="metric-label" id="sessions-label">Sessions Today</div>
+            <div class="metric-trend" id="sessions-trend" role="status" aria-live="polite"></div>
           </div>
-        </div>
+        </article>
 
-        <div class="metric-card">
-          <div class="metric-icon">${ICONS.history}</div>
+        <article class="metric-card" aria-labelledby="duration-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS.history}</div>
           <div class="metric-content">
-            <div class="metric-value" id="avg-duration">--</div>
-            <div class="metric-label">Avg Session (min)</div>
+            <div class="metric-value" id="avg-duration" aria-describedby="duration-label">--</div>
+            <div class="metric-label" id="duration-label">Avg Session (min)</div>
           </div>
-        </div>
+        </article>
 
-        <div class="metric-card">
-          <div class="metric-icon">${ICONS.sparkles}</div>
+        <article class="metric-card" aria-labelledby="subscriber-label">
+          <div class="metric-icon" aria-hidden="true">${ICONS.sparkles}</div>
           <div class="metric-content">
-            <div class="metric-value" id="subscriber-pct">--</div>
-            <div class="metric-label">Subscriber Sessions</div>
+            <div class="metric-value" id="subscriber-pct" aria-describedby="subscriber-label">--</div>
+            <div class="metric-label" id="subscriber-label">Subscriber Sessions</div>
           </div>
-        </div>
+        </article>
       </div>
 
       <!-- Subscription Metrics -->
-      <div class="subsection">
-        <h3>${ICONS.shield} Subscription Metrics</h3>
-        <div class="metrics-grid small">
-          <div class="metric-card">
+      <section class="subsection" aria-labelledby="subscription-heading">
+        <h3 id="subscription-heading"><span aria-hidden="true">${ICONS.shield}</span> Subscription Metrics</h3>
+        <div class="metrics-grid small" role="region" aria-live="polite">
+          <article class="metric-card" aria-labelledby="active-subs-label">
             <div class="metric-content">
-              <div class="metric-value" id="active-subs">--</div>
-              <div class="metric-label">Active Subscribers</div>
+              <div class="metric-value" id="active-subs" aria-describedby="active-subs-label">--</div>
+              <div class="metric-label" id="active-subs-label">Active Subscribers</div>
             </div>
-          </div>
-          <div class="metric-card">
+          </article>
+          <article class="metric-card" aria-labelledby="mrr-label">
             <div class="metric-content">
-              <div class="metric-value" id="mrr-value">$--</div>
-              <div class="metric-label">MRR</div>
+              <div class="metric-value" id="mrr-value" aria-describedby="mrr-label">$--</div>
+              <div class="metric-label" id="mrr-label">MRR</div>
             </div>
-          </div>
-          <div class="metric-card">
+          </article>
+          <article class="metric-card" aria-labelledby="conversion-label">
             <div class="metric-content">
-              <div class="metric-value" id="conversion-rate">--%</div>
-              <div class="metric-label">Conversion Rate</div>
+              <div class="metric-value" id="conversion-rate" aria-describedby="conversion-label">--%</div>
+              <div class="metric-label" id="conversion-label">Conversion Rate</div>
             </div>
-          </div>
-          <div class="metric-card">
+          </article>
+          <article class="metric-card" aria-labelledby="churn-label">
             <div class="metric-content">
-              <div class="metric-value" id="churn-rate">--%</div>
-              <div class="metric-label">Churn Rate</div>
+              <div class="metric-value" id="churn-rate" aria-describedby="churn-label">--%</div>
+              <div class="metric-label" id="churn-label">Churn Rate</div>
             </div>
-          </div>
+          </article>
         </div>
-      </div>
+      </section>
 
       <!-- Two Column Layout -->
       <div class="two-column">
         <!-- Top Personas -->
-        <div class="subsection">
-          <h3>${ICONS.user} Top Personas</h3>
-          <div class="persona-list" id="top-personas">
-            <div class="loading">Loading...</div>
+        <section class="subsection" aria-labelledby="personas-heading">
+          <h3 id="personas-heading"><span aria-hidden="true">${ICONS.user}</span> Top Personas</h3>
+          <div class="persona-list" id="top-personas" role="list" aria-label="Persona usage rankings">
+            <div class="loading" role="status">Loading...</div>
           </div>
-        </div>
+        </section>
 
-        <!-- Peak Hours -->
-        <div class="subsection">
-          <h3>${ICONS.history} Usage by Hour</h3>
-          <div class="hour-chart" id="hour-chart">
-            <div class="loading">Loading...</div>
+        <!-- Peak Hours Chart -->
+        <section class="subsection" aria-labelledby="hours-heading">
+          <h3 id="hours-heading"><span aria-hidden="true">${ICONS.history}</span> Usage by Hour</h3>
+          <div class="hour-chart" id="hour-chart" role="img" aria-label="Sessions by hour bar chart">
+            <div class="loading" role="status">Loading...</div>
           </div>
-        </div>
+          <!-- Screen reader accessible data table (visually hidden) -->
+          <table class="sr-only" id="hour-chart-data" aria-label="Sessions by hour data">
+            <caption>Session counts for each hour of the day</caption>
+            <thead><tr><th scope="col">Hour</th><th scope="col">Sessions</th></tr></thead>
+            <tbody id="hour-chart-tbody"></tbody>
+          </table>
+        </section>
       </div>
 
       <!-- User Breakdown -->
-      <div class="subsection">
-        <h3>${ICONS.team} User Breakdown (Today)</h3>
-        <div class="user-breakdown" id="user-breakdown">
-          <div class="breakdown-bar">
-            <div class="bar-segment new" id="new-users-bar" style="width: 0%"></div>
-            <div class="bar-segment returning" id="returning-users-bar" style="width: 0%"></div>
+      <section class="subsection" aria-labelledby="breakdown-heading">
+        <h3 id="breakdown-heading"><span aria-hidden="true">${ICONS.team}</span> User Breakdown (Today)</h3>
+        <div class="user-breakdown" id="user-breakdown" role="figure" aria-labelledby="breakdown-heading">
+          <div class="breakdown-bar" role="img" aria-label="User breakdown bar chart">
+            <div class="bar-segment new" id="new-users-bar" style="width: 0%" role="presentation" aria-hidden="true"></div>
+            <div class="bar-segment returning" id="returning-users-bar" style="width: 0%" role="presentation" aria-hidden="true"></div>
           </div>
-          <div class="breakdown-legend">
-            <span class="legend-item new">
-              <span class="legend-dot"></span>
-              New: <span id="new-users-count">0</span>
+          <div class="breakdown-legend" role="list">
+            <span class="legend-item new" role="listitem">
+              <span class="legend-dot" aria-hidden="true"></span>
+              New: <span id="new-users-count" aria-label="New users count">0</span>
             </span>
-            <span class="legend-item returning">
-              <span class="legend-dot"></span>
-              Returning: <span id="returning-users-count">0</span>
+            <span class="legend-item returning" role="listitem">
+              <span class="legend-dot" aria-hidden="true"></span>
+              Returning: <span id="returning-users-count" aria-label="Returning users count">0</span>
             </span>
           </div>
+          <!-- Screen reader summary -->
+          <p class="sr-only" id="breakdown-summary" aria-live="polite">User breakdown: Loading data...</p>
         </div>
-      </div>
+      </section>
 
       <!-- Recent Subscription Events -->
-      <div class="subsection">
-        <h3>${ICONS['trend-up']} Recent Subscription Events</h3>
-        <div class="event-list" id="subscription-events">
+      <section class="subsection" aria-labelledby="events-heading">
+        <h3 id="events-heading"><span aria-hidden="true">${ICONS['trend-up']}</span> Recent Subscription Events</h3>
+        <div class="event-list" id="subscription-events" role="log" aria-label="Recent subscription events" aria-live="polite">
           <div class="empty-state">No recent events</div>
         </div>
-      </div>
+      </section>
     </div>
 
     <style>
@@ -474,6 +482,53 @@ export function render(): string {
         text-align: center;
         padding: var(--space-md);
       }
+
+      /* Accessibility: Screen reader only class */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Accessibility: Focus visible styles */
+      .btn-secondary:focus-visible,
+      .metric-card:focus-visible,
+      .persona-item:focus-visible,
+      .event-item:focus-visible {
+        outline: 2px solid var(--admin-accent, #4a6741);
+        outline-offset: 2px;
+      }
+
+      /* Accessibility: Reduced motion support */
+      @media (prefers-reduced-motion: reduce) {
+        .live-dot,
+        .bar-segment,
+        .hour-bar {
+          animation: none;
+          transition: none;
+        }
+      }
+
+      /* Accessibility: High contrast mode support */
+      @media (forced-colors: active) {
+        .live-dot {
+          background: CanvasText;
+        }
+        .bar-segment.new,
+        .bar-segment.returning {
+          forced-color-adjust: none;
+        }
+        .metric-trend.up,
+        .metric-trend.down {
+          color: CanvasText;
+        }
+      }
     </style>
   `;
 }
@@ -522,14 +577,18 @@ async function fetchConcurrent(): Promise<number> {
 // ============================================================================
 
 function updateUI(analytics: AnalyticsSummary): void {
-  // DAU
+  // DAU with accessible trend indicator
   const dauEl = document.getElementById('dau-value');
   const dauTrendEl = document.getElementById('dau-trend');
   if (dauEl) dauEl.textContent = analytics.today.uniqueUsers.toString();
   if (dauTrendEl) {
     const trend = analytics.trends.usersVsYesterday;
-    dauTrendEl.textContent = `${trend >= 0 ? '+' : ''}${trend}% vs yesterday`;
-    dauTrendEl.className = `metric-trend ${trend >= 0 ? 'up' : 'down'}`;
+    const trendDirection = trend >= 0 ? 'up' : 'down';
+    const trendIcon = trend >= 0 ? '↑' : '↓';
+    // Include icon for visual users and descriptive text for screen readers
+    dauTrendEl.innerHTML = `<span aria-hidden="true">${trendIcon}</span> ${trend >= 0 ? '+' : ''}${trend}% vs yesterday`;
+    dauTrendEl.className = `metric-trend ${trendDirection}`;
+    dauTrendEl.setAttribute('aria-label', `${Math.abs(trend)}% ${trendDirection} compared to yesterday`);
   }
 
   // WAU & MAU
@@ -538,14 +597,17 @@ function updateUI(analytics: AnalyticsSummary): void {
   if (wauEl) wauEl.textContent = analytics.thisWeek.uniqueUsers.toString();
   if (mauEl) mauEl.textContent = analytics.thisMonth.uniqueUsers.toString();
 
-  // Sessions
+  // Sessions with accessible trend indicator
   const sessionsEl = document.getElementById('sessions-value');
   const sessionsTrendEl = document.getElementById('sessions-trend');
   if (sessionsEl) sessionsEl.textContent = analytics.today.totalSessions.toString();
   if (sessionsTrendEl) {
     const trend = analytics.trends.sessionsVsYesterday;
-    sessionsTrendEl.textContent = `${trend >= 0 ? '+' : ''}${trend}% vs yesterday`;
-    sessionsTrendEl.className = `metric-trend ${trend >= 0 ? 'up' : 'down'}`;
+    const trendDirection = trend >= 0 ? 'up' : 'down';
+    const trendIcon = trend >= 0 ? '↑' : '↓';
+    sessionsTrendEl.innerHTML = `<span aria-hidden="true">${trendIcon}</span> ${trend >= 0 ? '+' : ''}${trend}% vs yesterday`;
+    sessionsTrendEl.className = `metric-trend ${trendDirection}`;
+    sessionsTrendEl.setAttribute('aria-label', `${Math.abs(trend)}% ${trendDirection} compared to yesterday`);
   }
 
   // Avg duration
@@ -560,21 +622,24 @@ function updateUI(analytics: AnalyticsSummary): void {
     subscriberPctEl.textContent = `${pct}%`;
   }
 
-  // Concurrent
+  // Concurrent - use aria-label for context
   const concurrentEl = document.getElementById('concurrent-count');
-  if (concurrentEl) concurrentEl.textContent = analytics.currentConcurrent.toString();
+  if (concurrentEl) {
+    concurrentEl.textContent = analytics.currentConcurrent.toString();
+    concurrentEl.setAttribute('aria-label', `${analytics.currentConcurrent} users active now`);
+  }
 
-  // Top personas
+  // Top personas with accessible list items
   const personasEl = document.getElementById('top-personas');
   if (personasEl) {
     if (analytics.topPersonas.length === 0) {
-      personasEl.innerHTML = '<div class="empty-state">No data yet</div>';
+      personasEl.innerHTML = '<div class="empty-state" role="status">No data yet</div>';
     } else {
       personasEl.innerHTML = analytics.topPersonas
         .map(
-          (p) => `
-        <div class="persona-item">
-          <span class="persona-name">${p.personaId}</span>
+          (p, index) => `
+        <div class="persona-item" role="listitem" tabindex="0" aria-label="${p.personaId}: ${p.sessions} sessions, rank ${index + 1}">
+          <span class="persona-name">${escapeHtml(p.personaId)}</span>
           <span class="persona-count">${p.sessions} sessions</span>
         </div>
       `
@@ -583,34 +648,74 @@ function updateUI(analytics: AnalyticsSummary): void {
     }
   }
 
-  // Hour chart
+  // Hour chart with accessible data table
   const hourChartEl = document.getElementById('hour-chart');
+  const hourChartTbody = document.getElementById('hour-chart-tbody');
   if (hourChartEl) {
     const maxHour = Math.max(...analytics.today.byHour, 1);
+    // Visual bar chart
     hourChartEl.innerHTML = analytics.today.byHour
       .map((count, hour) => {
         const height = Math.max(4, (count / maxHour) * 100);
         const isPeak = analytics.peakHours.includes(hour);
-        return `<div class="hour-bar ${isPeak ? 'peak' : ''}" style="height: ${height}%" title="${hour}:00 - ${count} sessions"></div>`;
+        const timeLabel = `${hour.toString().padStart(2, '0')}:00`;
+        // Use aria-hidden since we have an accessible table alternative
+        return `<div class="hour-bar ${isPeak ? 'peak' : ''}" style="height: ${height}%" aria-hidden="true" data-hour="${hour}" data-count="${count}"><span class="sr-only">${timeLabel}: ${count} sessions${isPeak ? ' (peak)' : ''}</span></div>`;
       })
       .join('');
+    
+    // Update accessible data table
+    if (hourChartTbody) {
+      hourChartTbody.innerHTML = analytics.today.byHour
+        .map((count, hour) => {
+          const timeLabel = `${hour.toString().padStart(2, '0')}:00`;
+          const isPeak = analytics.peakHours.includes(hour);
+          return `<tr><td>${timeLabel}${isPeak ? ' (peak)' : ''}</td><td>${count}</td></tr>`;
+        })
+        .join('');
+    }
+    
+    // Update aria-label with summary
+    const totalSessions = analytics.today.byHour.reduce((a, b) => a + b, 0);
+    const peakHour = analytics.peakHours[0] ?? 0;
+    hourChartEl.setAttribute('aria-label', `Sessions by hour bar chart. Total: ${totalSessions} sessions. Peak hour: ${peakHour}:00`);
   }
 
-  // User breakdown
+  // User breakdown with accessible summary
   const newUsersBar = document.getElementById('new-users-bar') as HTMLElement;
   const returningUsersBar = document.getElementById('returning-users-bar') as HTMLElement;
   const newUsersCount = document.getElementById('new-users-count');
   const returningUsersCount = document.getElementById('returning-users-count');
+  const breakdownSummary = document.getElementById('breakdown-summary');
 
   const totalUsers = analytics.today.newUsers + analytics.today.returningUsers;
   if (totalUsers > 0) {
     const newPct = (analytics.today.newUsers / totalUsers) * 100;
     const returningPct = (analytics.today.returningUsers / totalUsers) * 100;
-    if (newUsersBar) newUsersBar.style.width = `${newPct}%`;
-    if (returningUsersBar) returningUsersBar.style.width = `${returningPct}%`;
+    if (newUsersBar) {
+      newUsersBar.style.width = `${newPct}%`;
+      newUsersBar.setAttribute('aria-label', `New users: ${newPct.toFixed(1)}%`);
+    }
+    if (returningUsersBar) {
+      returningUsersBar.style.width = `${returningPct}%`;
+      returningUsersBar.setAttribute('aria-label', `Returning users: ${returningPct.toFixed(1)}%`);
+    }
+    // Update screen reader summary
+    if (breakdownSummary) {
+      breakdownSummary.textContent = `User breakdown: ${analytics.today.newUsers} new users (${newPct.toFixed(1)}%), ${analytics.today.returningUsers} returning users (${returningPct.toFixed(1)}%)`;
+    }
   }
   if (newUsersCount) newUsersCount.textContent = analytics.today.newUsers.toString();
   if (returningUsersCount) returningUsersCount.textContent = analytics.today.returningUsers.toString();
+}
+
+/**
+ * Escape HTML to prevent XSS in dynamic content
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function updateSubscriptionUI(metrics: SubscriptionMetrics): void {
@@ -625,19 +730,28 @@ function updateSubscriptionUI(metrics: SubscriptionMetrics): void {
   if (conversionRate) conversionRate.textContent = `${metrics.conversionRate.toFixed(1)}%`;
   if (churnRate) churnRate.textContent = `${metrics.churnRate.toFixed(1)}%`;
 
-  if (eventsList && metrics.recentEvents.length > 0) {
-    eventsList.innerHTML = metrics.recentEvents
-      .slice(0, 10)
-      .map(
-        (event) => `
-      <div class="event-item">
-        <span class="event-type ${event.type}">${event.type}</span>
-        ${event.amount ? `<span class="event-amount">$${event.amount}</span>` : ''}
-        <span class="event-time">${new Date(event.timestamp).toLocaleTimeString()}</span>
-      </div>
-    `
-      )
-      .join('');
+  if (eventsList) {
+    if (metrics.recentEvents.length === 0) {
+      eventsList.innerHTML = '<div class="empty-state" role="status">No recent events</div>';
+    } else {
+      eventsList.innerHTML = metrics.recentEvents
+        .slice(0, 10)
+        .map(
+          (event) => {
+            const time = new Date(event.timestamp).toLocaleTimeString();
+            const amountText = event.amount ? ` for $${event.amount}` : '';
+            const ariaLabel = `${event.type} event${amountText} at ${time}`;
+            return `
+        <article class="event-item" role="article" tabindex="0" aria-label="${escapeHtml(ariaLabel)}">
+          <span class="event-type ${escapeHtml(event.type)}">${escapeHtml(event.type)}</span>
+          ${event.amount ? `<span class="event-amount">$${event.amount}</span>` : ''}
+          <time class="event-time" datetime="${event.timestamp}">${time}</time>
+        </article>
+      `;
+          }
+        )
+        .join('');
+    }
   }
 }
 

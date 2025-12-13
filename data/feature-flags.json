@@ -392,5 +392,115 @@
     "category": "landing-intelligence",
     "createdAt": "2025-12-12T00:00:00.000Z",
     "updatedAt": "2025-12-12T00:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-live-chat",
+    "name": "Live Chat Widget",
+    "description": "AI chat conversations without signup (10 msg limit)",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 50,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-persona-previews",
+    "name": "Persona Preview Cards",
+    "description": "Ask any team member a question on hover",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-smart-faq",
+    "name": "Smart FAQ",
+    "description": "AI-powered FAQ with related questions",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-personalized-hero",
+    "name": "Personalized Hero",
+    "description": "Dynamic hero content based on time/context",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 50,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-social-proof",
+    "name": "Dynamic Social Proof",
+    "description": "Rotating AI-generated testimonial snippets",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 50,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-hover-previews",
+    "name": "Hover Previews",
+    "description": "What would Ferni say? tooltips",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 50,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-voice-samples",
+    "name": "Voice Samples",
+    "description": "Pre-recorded audio demos of Ferni's voice",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-micro-expressions",
+    "name": "Micro Expressions",
+    "description": "Subtle orb reactions to user behavior",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-memory-demo",
+    "name": "Memory Visualization Demo",
+    "description": "Interactive demo showing infinite memory",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
+  },
+  {
+    "id": "landing-ai-sentiment-copy",
+    "name": "Sentiment-Reactive Copy",
+    "description": "Adjust CTA copy based on detected sentiment",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 30,
+    "category": "landing-ai",
+    "createdAt": "2025-12-13T00:00:00.000Z",
+    "updatedAt": "2025-12-13T12:00:00.000Z"
   }
 ]

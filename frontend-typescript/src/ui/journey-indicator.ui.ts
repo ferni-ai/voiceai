@@ -394,6 +394,9 @@ export function disposeJourneyIndicator(): void {
   indicator?.remove();
   indicator = null;
   isInitialized = false;
+  
+  // Clean up injected styles
+  document.getElementById('journey-indicator-styles')?.remove();
 }
 
 // ============================================================================

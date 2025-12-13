@@ -63,6 +63,13 @@
       "trailingSlash": false,
       "rewrites": [
         {
+          "source": "/api/landing/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/404.html"
         }
@@ -130,6 +137,13 @@
       "cleanUrls": true,
       "trailingSlash": false,
       "rewrites": [
+        {
+          "source": "/api/landing/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
         {
           "source": "**",
           "destination": "/404.html"
