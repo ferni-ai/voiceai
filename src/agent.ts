@@ -12,15 +12,32 @@
  * See src/personas/ for available personas and how to add new ones.
  *
  * ARCHITECTURE:
- * - This file imports voice-worker.ts (lightweight main process bootstrap)
- * - voice-worker.ts handles CLI, IPC, health server, resource warmup
- * - voice-worker.ts spawns child processes that run voice-agent-child.ts
- * - voice-agent-child.ts loads the full agent logic
+ * Two modes available:
  *
- * This separation ensures fast startup and clean architecture.
+ * 1. SINGLE-PROCESS MODE (production default):
+ *    - All jobs run in main process
+ *    - No child process forking
+ *    - Instant job startup after initial load
+ *    - Set USE_SINGLE_PROCESS=true or default in production
+ *
+ * 2. MULTI-PROCESS MODE (development):
+ *    - Jobs run in forked child processes
+ *    - Process isolation
+ *    - Slower cold starts on Cloud Run
+ *    - Set USE_SINGLE_PROCESS=false
+ *
  * See src/agents/LOADING-ARCHITECTURE.md for details.
  */
 
-// Import to trigger side effects (CLI startup)
-// Using voice-worker.ts for lightweight main process bootstrap
-import './agents/voice-worker.js';
+// Choose worker mode based on environment
+const useSingleProcess = process.env.USE_SINGLE_PROCESS !== 'false';
+
+if (useSingleProcess) {
+  // SINGLE-PROCESS MODE: All jobs run in main process
+  // This eliminates child process overhead (30-120s → <100ms per job)
+  await import('./agents/voice-worker-single-process.js');
+} else {
+  // MULTI-PROCESS MODE: Jobs run in forked child processes
+  // Better isolation but slower cold starts
+  await import('./agents/voice-worker.js');
+}

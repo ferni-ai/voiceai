@@ -1,0 +1,458 @@
+/**
+ * Single-Process Voice Worker
+ *
+ * A custom LiveKit agents worker that runs ALL jobs in the main process.
+ * This bypasses the SDK's child process model entirely.
+ *
+ * HOW IT WORKS:
+ * ------------
+ * 1. Connect to LiveKit server via WebSocket (same as SDK)
+ * 2. Receive job dispatch messages
+ * 3. Accept jobs and run entry() directly in main process
+ * 4. No forking, no child processes, instant job startup
+ *
+ * WHY:
+ * ----
+ * LiveKit's default SDK forks child processes for each job.
+ * On Cloud Run, this causes 30-120 second cold starts per job.
+ * This worker eliminates that overhead entirely.
+ */
+
+import 'dotenv/config';
+
+// ============================================================================
+// STARTUP LOGGING
+// ============================================================================
+const _startTime = Date.now();
+const _logPrefix = () => `[${new Date().toISOString()}] [single-process-worker]`;
+
+const log = (msg: string, data?: Record<string, unknown>) => {
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  process.stderr.write(`${_logPrefix()} ${msg}${dataStr}\n`);
+};
+
+log('🚀 Single-Process Voice Worker starting', {
+  pid: process.pid,
+  nodeVersion: process.version,
+  env: process.env.NODE_ENV || 'development',
+});
+
+// ============================================================================
+// PHASE 1: LOAD ALL MODULES UPFRONT
+// ============================================================================
+log('Phase 1: Loading voice agent modules...');
+const moduleLoadStart = Date.now();
+
+import { AccessToken } from 'livekit-server-sdk';
+import { Room, RoomEvent } from '@livekit/rtc-node';
+import { JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
+import { JobType, ServerMessage, WorkerMessage } from '@livekit/protocol';
+import type { Job } from '@livekit/protocol';
+import { WebSocket } from 'ws';
+import { EventEmitter } from 'node:events';
+
+// Load voice agent session runner
+import { runVoiceAgentSession } from './voice-agent-session.js';
+import { startup } from '../startup.js';
+
+const moduleLoadTime = Date.now() - moduleLoadStart;
+log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
+const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
+
+if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+  log('ERROR: Missing LiveKit credentials');
+  process.exit(1);
+}
+
+// ============================================================================
+// PHASE 2: HEALTH SERVER
+// ============================================================================
+import { startHealthCheckServer } from './shared/health-server.js';
+log('Phase 2: Starting health server...');
+startHealthCheckServer(AGENT_NAME);
+
+// ============================================================================
+// PHASE 3: INITIALIZE STARTUP
+// ============================================================================
+log('Phase 3: Running startup initialization...');
+const startupStart = Date.now();
+await startup();
+const startupTime = Date.now() - startupStart;
+log('Startup complete', { startupTimeMs: startupTime });
+
+// ============================================================================
+// PHASE 4: RESOURCE WARMUP
+// ============================================================================
+import { warmupResources, setupIPCHandler } from './shared/resource-server.js';
+log('Phase 4: Warming up resources...');
+const warmupStart = Date.now();
+setupIPCHandler();
+await warmupResources();
+const warmupTime = Date.now() - warmupStart;
+log('Resources warmed', { warmupTimeMs: warmupTime });
+
+// ============================================================================
+// JOB METRICS
+// ============================================================================
+let totalJobs = 0;
+let completedJobs = 0;
+let failedJobs = 0;
+let activeJobs = 0;
+let workerId = `worker-${process.pid}`;
+
+// ============================================================================
+// IN-PROCESS JOB RUNNER
+// ============================================================================
+
+class InProcessInferenceExecutor {
+  async doInference(method: string, _data: unknown): Promise<unknown> {
+    throw new Error(`Inference not supported: ${method}`);
+  }
+}
+
+interface JobInfo {
+  job: Job;
+  url: string;
+  token: string;
+  acceptArgs: {
+    name: string;
+    identity: string;
+    metadata: string;
+  };
+}
+
+async function runJobInProcess(info: JobInfo): Promise<void> {
+  const jobId = info.job.id;
+  const startTime = Date.now();
+
+  activeJobs++;
+  totalJobs++;
+
+  log('Starting job in-process', {
+    jobId,
+    roomName: info.job.room?.name,
+    activeJobs,
+    totalJobs,
+  });
+
+  const room = new Room();
+  const closeEvent = new EventEmitter();
+  let connected = false;
+  let shutdown = false;
+
+  room.on(RoomEvent.Disconnected, () => {
+    if (!shutdown) {
+      log('Room disconnected', { jobId });
+      closeEvent.emit('close', false);
+    }
+  });
+
+  const onConnect = () => {
+    connected = true;
+    log('Room connected', { jobId });
+  };
+
+  const onShutdown = (reason: string) => {
+    shutdown = true;
+    log('Shutdown requested', { jobId, reason });
+    closeEvent.emit('close', true, reason);
+  };
+
+  const proc = new JobProcess();
+
+  // Create RunningJobInfo structure that JobContext expects
+  const runningJobInfo = {
+    acceptArguments: info.acceptArgs,
+    job: info.job,
+    url: info.url,
+    token: info.token,
+    workerId,
+  };
+
+  const ctx = new JobContext(
+    proc,
+    runningJobInfo,
+    room,
+    onConnect,
+    onShutdown,
+    new InProcessInferenceExecutor()
+  );
+
+  try {
+    const unconnectedTimeout = setTimeout(() => {
+      if (!connected && !shutdown) {
+        log('WARNING: Room not connected after 10s', { jobId });
+      }
+    }, 10000);
+
+    await runWithJobContextAsync(ctx, async () => {
+      try {
+        await runVoiceAgentSession(ctx);
+      } finally {
+        clearTimeout(unconnectedTimeout);
+      }
+    });
+
+    // Wait for graceful close
+    await new Promise<void>((resolve) => {
+      if (!ctx.room.isConnected) {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(() => resolve(), 30000);
+      closeEvent.once('close', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+
+    completedJobs++;
+    activeJobs--;
+    log('Job completed', {
+      jobId,
+      durationMs: Date.now() - startTime,
+      success: true,
+    });
+
+  } catch (error) {
+    failedJobs++;
+    activeJobs--;
+    log('Job failed', {
+      jobId,
+      durationMs: Date.now() - startTime,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+
+  } finally {
+    try {
+      if (ctx.room.isConnected) {
+        await ctx.room.disconnect();
+      }
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+// ============================================================================
+// PHASE 5: CONNECT TO LIVEKIT SERVER
+// ============================================================================
+log('Phase 5: Connecting to LiveKit server...');
+
+let ws: WebSocket | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+
+async function connectToLiveKit(): Promise<void> {
+  // Create worker JWT token
+  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+  token.addGrant({ agent: true });
+  const jwt = await token.toJwt();
+
+  // Build WebSocket URL
+  const url = new URL(LIVEKIT_URL);
+  url.protocol = url.protocol.replace('http', 'ws');
+  url.pathname = '/agent';
+
+  log('Connecting to LiveKit', { url: url.toString() });
+
+  return new Promise((resolve, reject) => {
+    ws = new WebSocket(url.toString(), {
+      headers: { authorization: `Bearer ${jwt}` },
+    });
+
+    ws.on('open', () => {
+      log('Connected to LiveKit server');
+      reconnectAttempts = 0;
+
+      // Register worker
+      const registerMsg = new WorkerMessage({
+        message: {
+          case: 'register',
+          value: {
+            type: JobType.JT_ROOM,
+            version: '0.1.0',
+            name: AGENT_NAME,
+            agentName: AGENT_NAME,
+          },
+        },
+      });
+      ws!.send(registerMsg.toBinary());
+
+      resolve();
+    });
+
+    ws.on('message', async (data: Buffer) => {
+      try {
+        const msg = new ServerMessage();
+        msg.fromBinary(new Uint8Array(data));
+        await handleServerMessage(msg);
+      } catch (error) {
+        log('Error handling message', { error: String(error) });
+      }
+    });
+
+    ws.on('close', (code) => {
+      log('WebSocket closed', { code });
+      scheduleReconnect();
+    });
+
+    ws.on('error', (error) => {
+      log('WebSocket error', { error: error.message });
+      reject(error);
+    });
+  });
+}
+
+function scheduleReconnect(): void {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    log('Max reconnect attempts reached, exiting');
+    process.exit(1);
+  }
+
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+  reconnectAttempts++;
+
+  log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
+  setTimeout(() => connectToLiveKit().catch(console.error), delay);
+}
+
+// Map to track pending job assignments
+const pendingAssignments = new Map<string, {
+  resolve: (assignment: proto.JobAssignment) => void;
+  reject: (error: Error) => void;
+}>();
+
+async function handleServerMessage(msg: ServerMessage): Promise<void> {
+  const message = msg.message;
+  if (!message) return;
+
+  switch (message.case) {
+    case 'register': {
+      workerId = message.value.workerId || workerId;
+      log('Worker registered', {
+        workerId,
+        serverVersion: message.value.serverInfo?.version,
+      });
+      break;
+    }
+
+    case 'availability': {
+      // Server is asking if we can handle a job
+      const job = message.value.job;
+      if (!job) return;
+
+      log('Job availability request', { jobId: job.id, roomName: job.room?.name });
+
+      // Always accept for now (single instance)
+      const response = new WorkerMessage({
+        message: {
+          case: 'availability',
+          value: {
+            jobId: job.id,
+            available: true,
+            participantIdentity: `${AGENT_NAME}-${process.pid}`,
+            participantName: AGENT_NAME,
+            participantMetadata: JSON.stringify({ singleProcess: true }),
+          },
+        },
+      });
+      ws?.send(response.toBinary());
+      break;
+    }
+
+    case 'assignment': {
+      // Server assigned us a job
+      const assignment = message.value;
+      const jobId = assignment.job?.id;
+
+      log('Job assignment received', { jobId });
+
+      if (!jobId || !assignment.job) {
+        log('Invalid assignment - no job');
+        return;
+      }
+
+      // Run the job in-process
+      runJobInProcess({
+        job: assignment.job,
+        url: assignment.url || LIVEKIT_URL,
+        token: assignment.token || '',
+        acceptArgs: {
+          name: AGENT_NAME,
+          identity: assignment.participantIdentity || `${AGENT_NAME}-${process.pid}`,
+          metadata: assignment.participantMetadata || '',
+        },
+      }).catch((error) => {
+        log('Job execution failed', { jobId, error: String(error) });
+      });
+      break;
+    }
+
+    case 'termination': {
+      log('Job termination received', { jobId: message.value.jobId });
+      // TODO: Implement job cancellation
+      break;
+    }
+
+    default:
+      log('Unknown message type', { case: message.case });
+  }
+}
+
+// Connect to LiveKit
+await connectToLiveKit();
+
+// ============================================================================
+// DIAGNOSTIC SUMMARY
+// ============================================================================
+setInterval(() => {
+  log('Diagnostic summary', {
+    uptimeMs: Date.now() - _startTime,
+    memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    totalJobs,
+    completedJobs,
+    failedJobs,
+    activeJobs,
+    workerId,
+  });
+}, 60000);
+
+const totalStartupTime = Date.now() - _startTime;
+log('✅ Single-process worker ready', {
+  totalStartupMs: totalStartupTime,
+  moduleLoadMs: moduleLoadTime,
+  startupMs: startupTime,
+  warmupMs: warmupTime,
+  workerId,
+  mode: 'SINGLE_PROCESS',
+});
+
+// ============================================================================
+// GRACEFUL SHUTDOWN
+// ============================================================================
+const shutdown = async (signal: string) => {
+  log(`Received ${signal}, shutting down...`, { activeJobs });
+
+  ws?.close();
+
+  const shutdownStart = Date.now();
+  while (activeJobs > 0 && Date.now() - shutdownStart < 30000) {
+    await new Promise((r) => setTimeout(r, 1000));
+    log('Waiting for active jobs...', { activeJobs });
+  }
+
+  log('Shutdown complete', { totalJobs, completedJobs, failedJobs });
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
