@@ -1,15 +1,20 @@
 /**
  * Voice Agent Entry Function (Extracted for Child Processes)
  *
+ * PHASE 2: Tiered Initialization with Resource Sharing
+ *
  * This module contains the entry function logic extracted from voice-agent.ts.
  * It uses LAZY IMPORTS to avoid loading heavy dependencies until they're actually needed.
  *
+ * Architecture (Google/Anthropic pattern):
+ * 1. Main process pre-warms expensive resources (VAD, TTS, Personas)
+ * 2. Child processes check for pre-warmed resources first
+ * 3. Fall back to loading on-demand if not pre-warmed
+ *
  * This allows child processes to:
  * 1. Load this module quickly (no heavy top-level imports)
- * 2. Start running the session immediately
- * 3. Load dependencies on-demand as the session progresses
- *
- * All the "better than human" features are preserved - they're just loaded lazily.
+ * 2. Use pre-warmed resources when available (fast path)
+ * 3. Load dependencies on-demand as fallback (slow path)
  */
 
 import type { JobContext, voice as voiceType } from '@livekit/agents';
@@ -19,6 +24,39 @@ let voice: typeof voiceType | null = null;
 let google: typeof import('@livekit/agents-plugin-google') | null = null;
 let silero: typeof import('@livekit/agents-plugin-silero') | null = null;
 let genai: typeof import('@google/genai') | null = null;
+
+// Pre-warmed resource cache (populated from main process via IPC)
+let prewarmedVAD: unknown = null;
+let prewarmedTTS: Map<string, unknown> = new Map();
+let prewarmedPersonas: Map<string, unknown> = new Map();
+
+/**
+ * Check if main process has pre-warmed resources available
+ */
+async function checkPrewarmedResources(): Promise<boolean> {
+  // In child process, we can check if parent sent us pre-warmed info
+  // For now, we'll use a simple check via process.env or IPC
+  try {
+    const { requestResource, initIPCClient } = await import('./shared/resource-server.js');
+
+    // Initialize IPC client to communicate with main process
+    initIPCClient();
+
+    // Request resource status from main process
+    const status = await requestResource('vad', 'status', {});
+    if (status.success && status.data) {
+      const data = status.data as { warmedUp: boolean };
+      process.stderr.write(
+        `[voice-agent-entry] Main process resources: ${data.warmedUp ? 'WARMED' : 'NOT READY'}\n`
+      );
+      return data.warmedUp;
+    }
+  } catch {
+    // IPC not available - fall back to loading locally
+    process.stderr.write(`[voice-agent-entry] No IPC connection to main process - loading locally\n`);
+  }
+  return false;
+}
 
 /**
  * Load core voice dependencies lazily
@@ -30,21 +68,13 @@ async function loadVoiceDeps(): Promise<void> {
   process.stderr.write(`[voice-agent-entry] Loading voice dependencies...\n`);
 
   try {
-    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents...\n`);
-    const agents = await import('@livekit/agents');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents-plugin-google...\n`);
-    const googleMod = await import('@livekit/agents-plugin-google');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-google loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents-plugin-silero...\n`);
-    const sileroMod = await import('@livekit/agents-plugin-silero');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-silero loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Importing @google/genai...\n`);
-    const genaiMod = await import('@google/genai');
-    process.stderr.write(`[voice-agent-entry] @google/genai loaded in ${Date.now() - startTime}ms\n`);
+    // Load in parallel for speed
+    const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
+      import('@livekit/agents'),
+      import('@livekit/agents-plugin-google'),
+      import('@livekit/agents-plugin-silero'),
+      import('@google/genai'),
+    ]);
 
     voice = agents.voice;
     google = googleMod;

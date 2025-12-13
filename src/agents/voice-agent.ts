@@ -3294,6 +3294,29 @@ if (!process.send) {
   }
 
   diag.info('CLI.runApp called - worker running');
+
+  // ============================================================================
+  // PHASE 2: PRE-WARM EXPENSIVE RESOURCES (Background)
+  // ============================================================================
+  // Google/Anthropic pattern: Main process owns resources, children request access
+  // This runs AFTER the worker is ready, so it doesn't block startup
+  try {
+    const { warmupResources, setupIPCHandler } = await import('./shared/resource-server.js');
+
+    // Setup IPC handler for child process requests
+    setupIPCHandler();
+
+    // Warmup resources in background (non-blocking)
+    warmupResources()
+      .then(() => {
+        diag.info('Resource warmup complete - VAD, TTS, Personas ready for fast session starts');
+      })
+      .catch((error) => {
+        diag.warn('Resource warmup failed (non-fatal)', { error: String(error) });
+      });
+  } catch {
+    // Non-fatal - warmup is an optimization
+  }
 } else {
   diag.info('Child process detected - skipping cli.runApp');
 }
