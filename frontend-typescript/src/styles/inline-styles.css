@@ -2662,8 +2662,12 @@ body {
   justify-content: center;
   /* Moderate padding - not excessive */
   padding: var(--space-lg);
+  /* Bottom padding ensures helperText has breathing room from viewport edge */
+  padding-bottom: max(var(--space-xl), env(safe-area-inset-bottom, 16px));
   /* Tight gap for compact layout */
   gap: var(--space-md);
+  /* CRITICAL: Allow flex children to shrink below content size - fixes overflow issues */
+  min-height: 0;
   /* NOTE: Do NOT add contain here - causes visible box in Safari */
 }
 
@@ -5911,6 +5915,10 @@ body {
   transition:
     opacity 0.3s ease,
     color 0.3s ease;
+  /* CRITICAL: Prevent flex from collapsing this element - ensures visibility */
+  flex-shrink: 0;
+  /* Minimum bottom margin for breathing room */
+  margin-bottom: var(--space-sm, 8px);
 }
 
 /* On hover - subtle emphasis */
@@ -10838,6 +10846,240 @@ body.ambient-aurora {
     align-items: center;
     gap: var(--space-lg);
     padding: var(--space-xs);
+  }
+}
+
+/* ------------------------------------------------------------------------
+   SHORT VIEWPORT FIX - Holistic approach for content visibility
+   
+   The problem: Fixed element heights (avatars, buttons, waveforms) combined
+   with fixed margins can push bottom content (helperText) out of view.
+   
+   This fix ensures ALL content remains visible by:
+   1. Using height-based queries, not just width
+   2. Scaling elements proportionally to available space
+   3. Guaranteeing helperText visibility at all viewport sizes
+   ------------------------------------------------------------------------ */
+
+/* Short viewport - content risks being cut off */
+@media (max-height: 600px) {
+  .header {
+    padding-top: calc(var(--space-xs) + env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-xs);
+    gap: var(--space-xs);
+  }
+  
+  .avatar-container {
+    /* Scale avatar to fit - max 100px on very short viewports */
+    width: min(100px, 15vh);
+    height: min(100px, 15vh);
+  }
+  
+  #avatarRing {
+    inset: -8px;
+    border-width: 2px;
+  }
+  
+  #personaName {
+    font-size: var(--text-base);
+    margin-top: var(--space-xs);
+  }
+  
+  #personaSubtitle {
+    font-size: var(--text-xs);
+    margin-top: 2px;
+  }
+  
+  .main {
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 12px));
+    /* Allow scrolling if content still overflows */
+    overflow-y: auto;
+    /* Prevent flex from stretching content */
+    justify-content: flex-start;
+  }
+  
+  #waveformContainer {
+    height: 40px;
+    max-width: 200px;
+  }
+  
+  .waveform-bars {
+    height: 28px;
+  }
+  
+  .btn-primary {
+    min-height: 40px;
+    padding: 10px 24px;
+    font-size: var(--text-sm);
+  }
+  
+  #helperText {
+    font-size: var(--text-xs);
+    margin-top: var(--space-xs);
+    /* Ensure helperText is always visible with guaranteed bottom margin */
+    margin-bottom: var(--space-sm);
+    /* Prevent text from being clipped */
+    flex-shrink: 0;
+  }
+  
+  /* Hide secondary elements that take up space */
+  #teamRoster,
+  .entrance-roster,
+  .garden-widget-wrapper,
+  #gardenWidgetContainer {
+    display: none !important;
+  }
+  
+  /* Compact thinking float */
+  .thinking-float {
+    bottom: -24px;
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+  
+  .status-whisper {
+    bottom: -28px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Very short viewport - extreme compression */
+@media (max-height: 500px) {
+  .header {
+    padding: var(--space-2xs) var(--space-sm);
+    padding-top: calc(var(--space-2xs) + env(safe-area-inset-top, 0px));
+  }
+  
+  .avatar-container {
+    width: min(80px, 14vh);
+    height: min(80px, 14vh);
+  }
+  
+  #avatarRing {
+    inset: -6px;
+    border-width: 1.5px;
+  }
+  
+  #personaName {
+    font-size: var(--text-sm);
+    margin-top: var(--space-2xs);
+  }
+  
+  #personaSubtitle {
+    font-size: var(--text-2xs);
+  }
+  
+  .main {
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+    padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom, 8px));
+  }
+  
+  #waveformContainer {
+    height: 32px;
+    max-width: 160px;
+  }
+  
+  .waveform-bars {
+    height: 22px;
+  }
+  
+  .btn-primary {
+    min-height: 36px;
+    padding: 8px 20px;
+    font-size: var(--text-xs);
+  }
+  
+  #helperText {
+    font-size: var(--text-2xs);
+    margin-top: var(--space-2xs);
+    margin-bottom: var(--space-xs);
+    flex-shrink: 0;
+  }
+  
+  .thinking-float,
+  .status-whisper {
+    display: none;
+  }
+}
+
+/* Extremely short viewport (e.g., landscape with keyboard open) */
+@media (max-height: 400px) {
+  .header {
+    padding: 4px var(--space-xs);
+    padding-top: calc(4px + env(safe-area-inset-top, 0px));
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #coach {
+    flex-direction: row;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+  
+  .coach-info {
+    text-align: left;
+  }
+  
+  .avatar-container {
+    width: min(60px, 12vh);
+    height: min(60px, 12vh);
+  }
+  
+  #avatarRing {
+    inset: -4px;
+    border-width: 1.5px;
+  }
+  
+  #personaName {
+    font-size: var(--text-xs);
+    margin-top: 0;
+  }
+  
+  #personaSubtitle {
+    font-size: var(--text-2xs);
+    margin-top: 0;
+  }
+  
+  .main {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-2xs);
+  }
+  
+  #waveformContainer {
+    height: 28px;
+    max-width: 140px;
+  }
+  
+  .btn-primary {
+    min-height: 32px;
+    min-width: auto;
+    padding: 6px 16px;
+    font-size: var(--text-2xs);
+  }
+  
+  #helperText {
+    font-size: var(--text-2xs);
+    margin: 0;
+    flex-shrink: 0;
+    width: 100%;
+    text-align: center;
+  }
+  
+  /* Compact controls */
+  .controls-row {
+    padding: 0;
+  }
+  
+  .quick-actions {
+    display: none;
   }
 }
 
