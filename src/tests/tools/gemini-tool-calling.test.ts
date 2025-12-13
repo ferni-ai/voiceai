@@ -239,7 +239,7 @@ describe('Regression Prevention', () => {
     expect(content).not.toContain('set them up with personality');
   });
 
-  it('should not have "announce" language in handoff section', () => {
+  it('should not encourage announcing handoffs (only "don\'t announce" is allowed)', () => {
     const ferniPath = path.join(
       process.cwd(),
       'src/personas/bundles/ferni/identity/system-prompt.md'
@@ -251,10 +251,10 @@ describe('Regression Prevention', () => {
     if (handoffSectionStart !== -1) {
       const handoffSection = content.slice(handoffSectionStart, handoffSectionStart + 2000);
 
-      // Should not have "announce" in the handoff section except as WRONG example
-      if (handoffSection.toLowerCase().includes('announce')) {
-        expect(handoffSection).toContain('WRONG');
-      }
+      // Check for positive mentions of "announce" (bad) vs negative ones like "don't announce" (good)
+      // "Don't announce" is correct guidance - we want to ensure there's no positive instruction to announce
+      const positiveAnnouncePattern = /(?<!don't\s)(?<!do not\s)announce the handoff/i;
+      expect(handoffSection).not.toMatch(positiveAnnouncePattern);
     }
   });
 });

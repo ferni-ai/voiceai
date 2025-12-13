@@ -88,14 +88,20 @@ async function loadPersonaLocally(personaId: string): Promise<PersonaConfig | nu
 
 /** Connect to room with timeout */
 async function connectToRoom(ctx: JobContext): Promise<void> {
+  process.stderr.write(`[voice-agent-entry] Connecting to room...\n`);
   const connectStart = Date.now();
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000)
   );
-  await Promise.race([ctx.connect(), timeout]);
-  process.stderr.write(
-    `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
-  );
+  try {
+    await Promise.race([ctx.connect(), timeout]);
+    process.stderr.write(
+      `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
+    );
+  } catch (err) {
+    process.stderr.write(`[voice-agent-entry] Connect FAILED: ${err}\n`);
+    throw err;
+  }
 }
 
 /** Create session components (VAD, TTS, Agent, Session) */
