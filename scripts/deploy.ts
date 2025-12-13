@@ -226,6 +226,54 @@ function removeTag(serviceName: string, tag: string): void {
   }
 }
 
+/**
+ * Delete old revisions that no longer receive traffic
+ * 
+ * CRITICAL: This prevents "zombie" LiveKit workers!
+ * Old Cloud Run revisions with min-instances>0 keep running even with 0% traffic.
+ * They stay registered with LiveKit but have stale connections.
+ * LiveKit dispatches jobs to ALL registered workers, including these zombies.
+ * Result: Jobs fail because the old workers can't actually process them.
+ */
+function cleanupOldRevisions(serviceName: string, keepLatest: number = 2): void {
+  try {
+    // Get all revisions sorted by creation time (newest first)
+    const revisionList = exec(
+      `gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' --sort-by='~metadata.creationTimestamp'`,
+      { silent: true }
+    ).trim();
+
+    if (!revisionList) return;
+
+    const revisions = revisionList.split('\n').filter(Boolean);
+    
+    // Keep the latest N revisions, delete the rest
+    const toDelete = revisions.slice(keepLatest);
+    
+    if (toDelete.length === 0) {
+      log.info(`No old revisions to clean up (${revisions.length} total, keeping ${keepLatest})`);
+      return;
+    }
+
+    log.info(`Cleaning up ${toDelete.length} old revision(s) to prevent zombie LiveKit workers...`);
+    
+    for (const revision of toDelete) {
+      try {
+        exec(
+          `gcloud run revisions delete ${revision} --region=${CONFIG.region} --quiet`,
+          { silent: true }
+        );
+        log.success(`  Deleted: ${revision}`);
+      } catch (err) {
+        // Revision might have traffic or be in use
+        log.warn(`  Could not delete ${revision} (may still have traffic)`);
+      }
+    }
+  } catch (err) {
+    log.warn('Could not clean up old revisions (non-fatal)');
+  }
+}
+
 // ============================================================================
 // DEPLOYMENT FUNCTIONS
 // ============================================================================
@@ -465,6 +513,21 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
 
       # Clean up green tag
       gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+
+      echo ""
+      echo "Step 6/6: Cleaning up old revisions (prevents zombie LiveKit workers)..."
+      # Delete old revisions to prevent stale LiveKit connections
+      # Keep only the 2 most recent revisions
+      OLD_REVISIONS=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' --sort-by='~metadata.creationTimestamp' | tail -n +3)
+      if [ -n "\$OLD_REVISIONS" ]; then
+        for rev in \$OLD_REVISIONS; do
+          echo "  Deleting old revision: \$rev"
+          gcloud run revisions delete \$rev --region=${CONFIG.region} --quiet 2>/dev/null || echo "  (could not delete \$rev - may still have traffic)"
+        done
+        echo "  ✅ Old revisions cleaned up"
+      else
+        echo "  No old revisions to clean up"
+      fi
     `;
 
     log.info('Starting async blue-green deployment...');
@@ -548,6 +611,12 @@ ${colors.bold}Or check Cloud Build:${colors.reset}
 
   // Clean up green tag
   removeTag(serviceName, 'green');
+
+  // CRITICAL: Delete old revisions to prevent zombie LiveKit workers
+  // Old revisions with min-instances>0 keep running and stay registered with LiveKit
+  // but have stale WebSocket connections that can't actually process jobs
+  log.info('Cleaning up old revisions (prevents zombie LiveKit workers)...');
+  cleanupOldRevisions(serviceName, 2);
 
   const url = getServiceUrl(serviceName);
   log.success(`Zero-downtime deployment complete: ${url}`);
