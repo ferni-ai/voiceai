@@ -231,9 +231,10 @@ async function initTiltParallax(): Promise<void> {
   }
 
   // iOS 13+ requires permission
-  if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+  const DOE = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
+  if (typeof DOE.requestPermission === 'function') {
     try {
-      const permission = await (DeviceOrientationEvent as any).requestPermission();
+      const permission = await DOE.requestPermission();
       if (permission === 'granted') {
         tiltState.hasPermission = true;
       } else {
@@ -310,12 +311,13 @@ function updateTiltParallax(): void {
  * Request tilt permission (for iOS - must be called from user gesture)
  */
 export async function requestTiltPermission(): Promise<boolean> {
-  if (typeof (DeviceOrientationEvent as any).requestPermission !== 'function') {
+  const DOE = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
+  if (typeof DOE.requestPermission !== 'function') {
     return true; // Permission not required
   }
 
   try {
-    const permission = await (DeviceOrientationEvent as any).requestPermission();
+    const permission = await DOE.requestPermission();
     if (permission === 'granted') {
       tiltState.hasPermission = true;
       if (!tiltState.enabled) {

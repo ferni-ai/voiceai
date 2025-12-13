@@ -53,19 +53,73 @@ process.stderr.write(
 // AGENT DEFINITION - This is what the child process needs
 // ============================================================================
 
+// Cache for preloaded modules - exported so voice-agent-entry can use them
+export let _preloadedDeps: {
+  voice: typeof import('@livekit/agents').voice | null;
+  google: typeof import('@livekit/agents-plugin-google') | null;
+  silero: typeof import('@livekit/agents-plugin-silero') | null;
+  genai: typeof import('@google/genai') | null;
+} = { voice: null, google: null, silero: null, genai: null };
+
+/** Get preloaded dependencies (if available) */
+export function getPreloadedDeps() {
+  return _preloadedDeps;
+}
+
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
-    // Ultra-fast prewarm - just mark as ready
-    const prewarmTime = Date.now() - _startTime;
+    const prewarmStart = Date.now();
     process.stderr.write(
       `\n${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n` +
-      `${_logPrefix()} [PREWARM] Child process prewarmed and ready\n` +
-      `${_logPrefix()} [PREWARM] Time since module start: ${prewarmTime}ms\n` +
-      `${_logPrefix()} [PREWARM] Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\n` +
-      `${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n\n`
+      `${_logPrefix()} [PREWARM] Starting dependency preload...\n`
     );
+
+    try {
+      // Preload ALL heavy dependencies in parallel during prewarm
+      // This way they're cached before entry() is called
+      const [agents, google, silero, genai] = await Promise.all([
+        import('@livekit/agents').then(m => {
+          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents loaded\n`);
+          return m;
+        }),
+        import('@livekit/agents-plugin-google').then(m => {
+          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents-plugin-google loaded\n`);
+          return m;
+        }),
+        import('@livekit/agents-plugin-silero').then(m => {
+          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents-plugin-silero loaded\n`);
+          return m;
+        }),
+        import('@google/genai').then(m => {
+          process.stderr.write(`${_logPrefix()} [PREWARM] @google/genai loaded\n`);
+          return m;
+        }),
+      ]);
+
+      // Cache them
+      _preloadedDeps = {
+        voice: agents.voice,
+        google,
+        silero,
+        genai,
+      };
+      proc.userData.preloadedDeps = _preloadedDeps;
+
+      const prewarmTime = Date.now() - prewarmStart;
+      process.stderr.write(
+        `${_logPrefix()} [PREWARM] ✅ All dependencies preloaded in ${prewarmTime}ms\n` +
+        `${_logPrefix()} [PREWARM] Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\n` +
+        `${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n\n`
+      );
+    } catch (err) {
+      process.stderr.write(
+        `${_logPrefix()} [PREWARM] ⚠️ Preload failed (will load in entry): ${err}\n` +
+        `${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n\n`
+      );
+    }
+
     proc.userData.prewarmComplete = true;
-    proc.userData.prewarmTime = prewarmTime;
+    proc.userData.prewarmTime = Date.now() - _startTime;
   },
 
   entry: async (ctx: JobContext) => {

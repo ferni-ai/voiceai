@@ -28,29 +28,36 @@ interface PersonaConfig {
 // HELPER FUNCTIONS (extracted to keep main function under 80 lines)
 // ============================================================================
 
-/** Load core voice dependencies lazily with detailed logging */
-async function loadVoiceDeps(): Promise<void> {
+/** Load core voice dependencies - uses preloaded from prewarm if available */
+async function loadVoiceDeps(preloaded?: {
+  voice: typeof voiceType | null;
+  google: typeof import('@livekit/agents-plugin-google') | null;
+  silero: typeof import('@livekit/agents-plugin-silero') | null;
+  genai: typeof import('@google/genai') | null;
+}): Promise<void> {
   if (voice) return;
   const startTime = Date.now();
-  process.stderr.write(`[voice-agent-entry] Loading voice dependencies...\n`);
+
+  // Check if deps were preloaded in prewarm
+  if (preloaded?.voice && preloaded?.google && preloaded?.silero && preloaded?.genai) {
+    process.stderr.write(`[voice-agent-entry] Using PRELOADED voice dependencies ✅\n`);
+    voice = preloaded.voice;
+    google = preloaded.google;
+    silero = preloaded.silero;
+    genai = preloaded.genai;
+    return;
+  }
+
+  process.stderr.write(`[voice-agent-entry] Loading voice dependencies (not preloaded)...\n`);
 
   try {
-    // Load each dependency individually with logging to identify which one fails
-    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents...\n`);
-    const agents = await import('@livekit/agents');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents-plugin-google...\n`);
-    const googleMod = await import('@livekit/agents-plugin-google');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-google loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents-plugin-silero...\n`);
-    const sileroMod = await import('@livekit/agents-plugin-silero');
-    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-silero loaded in ${Date.now() - startTime}ms\n`);
-
-    process.stderr.write(`[voice-agent-entry] Loading @google/genai...\n`);
-    const genaiMod = await import('@google/genai');
-    process.stderr.write(`[voice-agent-entry] @google/genai loaded in ${Date.now() - startTime}ms\n`);
+    // Load in parallel for speed
+    const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
+      import('@livekit/agents'),
+      import('@livekit/agents-plugin-google'),
+      import('@livekit/agents-plugin-silero'),
+      import('@google/genai'),
+    ]);
 
     voice = agents.voice;
     google = googleMod;
@@ -224,10 +231,20 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   let session: any = null;
 
   try {
-    // Step 1: Load voice dependencies (with retry)
+    // Step 1: Load voice dependencies (use preloaded if available)
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
-    await withResilience(loadVoiceDeps, {
+
+    // Try to get preloaded deps from prewarm
+    let preloaded: Parameters<typeof loadVoiceDeps>[0] = undefined;
+    try {
+      const { getPreloadedDeps } = await import('./voice-agent-child.js');
+      preloaded = getPreloadedDeps();
+    } catch {
+      /* not running as child process */
+    }
+
+    await withResilience(() => loadVoiceDeps(preloaded), {
       maxRetries: 2,
       baseDelay: 1000,
       operationName: 'load-voice-deps',

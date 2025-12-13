@@ -12,6 +12,7 @@
 | **Contribute**             | [CONTRIBUTING.md](../CONTRIBUTING.md)       |
 | **Deploy**                 | [DEPLOYMENT.md](../DEPLOYMENT.md)           |
 | **Run commands**           | [SCRIPTS.md](../SCRIPTS.md)                 |
+| **Check implementation status** | [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) 🆕 |
 
 ---
 

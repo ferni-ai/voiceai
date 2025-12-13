@@ -489,7 +489,7 @@ let progress: MilestoneProgress = {
 };
 
 let isInitialized = false;
-let celebrationQueue: Milestone[] = [];
+const celebrationQueue: Milestone[] = [];
 let isCelebrating = false;
 
 // ============================================================================

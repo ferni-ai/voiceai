@@ -142,14 +142,16 @@ async function fetchDashboardData(): Promise<void> {
     const scenariosData = await scenariosRes.json();
 
     // Generate mock persona health from fingerprint data
-    state.personaHealth = Object.entries(healthData.fingerprint_summary || {}).map(([id, data]: [string, any]) => ({
+    type FingerprintData = { signaturePhrases?: number };
+    const fingerprints = (healthData.fingerprint_summary || {}) as Record<string, FingerprintData>;
+    state.personaHealth = Object.entries(fingerprints).map(([id, data]) => ({
       personaId: id,
       score: 75 + Math.floor(Math.random() * 20),
       voiceConsistency: 80 + Math.floor(Math.random() * 15),
       status: 'healthy' as const,
       trend: 'stable' as const,
       lastEvaluated: new Date().toISOString(),
-      signatureUsage: data.signaturePhrases || 0,
+      signatureUsage: data.signaturePhrases ?? 0,
       antiPatternViolations: 0,
     }));
 
@@ -815,7 +817,7 @@ export function isEvalOpsDashboardVisible(): boolean {
 
 // Expose to window for dev panel
 if (typeof window !== 'undefined') {
-  (window as any).evalopsDashboard = {
+  (window as unknown as Record<string, unknown>).evalopsDashboard = {
     show: showEvalOpsDashboard,
     hide: hideEvalOpsDashboard,
     refresh: fetchDashboardData,

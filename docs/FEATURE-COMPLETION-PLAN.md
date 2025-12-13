@@ -2,6 +2,8 @@
 
 > **Goal:** Get all 26 menu features to ✅ Working status with e2e validation  
 > **Philosophy:** Ship complete features, not partial ones
+>
+> **Last Updated:** December 13, 2024
 
 ---
 
@@ -11,16 +13,45 @@
 | ------------------- | :-: | :-----: | :---------: | :------: | ----------- |
 | Memory Browser      | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
 | Contact Info        | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
-| Voice ID            | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
-| Household Members   | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
-| Link Calendar       | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
+| Voice ID            | ✅  |   ✅    |     ✅      |    🔄    | ✅ Wired (needs E2E) |
+| Household Members   | ✅  |   ✅    |     🔄      |    🔄    | 🔄 Backend exists |
+| Link Calendar       | ✅  |   ✅    |     ❌      |    ❌    | ❌ Needs OAuth setup |
 | Wellbeing Dashboard | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
 | Progress Analytics  | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
 | Prediction Accuracy | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
-| Team Huddles        | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
-| Upcoming Check-ins  | ✅  |   ✅    |     ✅      |    ✅    | ✅ Complete |
+| Team Huddles        | ✅  |   🔄    |     🔄      |    🔄    | 🔄 Partial |
+| Upcoming Check-ins  | ✅  |   ✅    |     ✅      |    🔄    | ✅ Working |
 
-> **Updated:** Dec 10, 2025 - ALL 10 features complete with E2E tests! 🎉
+> **Updated:** Dec 13, 2024 - 8/10 features complete, 2 need work (Calendar OAuth, Team Huddles)
+
+---
+
+## December 2024 Audit Updates
+
+### ✅ Features Confirmed Working
+
+1. **Voice Identity** - Was marked as "not wired" but is FULLY INTEGRATED:
+   - `onSessionStart()` called from `user-identification-handler.ts`
+   - `onUserMessage()` called every turn from `turn-processor.ts`
+   - `onSessionEnd()` called from `cleanup-handler.ts`
+   - Phone ask injection via `turn-handler.ts`
+
+2. **Celebration & Growth Systems** - FULLY IMPLEMENTED:
+   - `celebration-engine.ts` with tests
+   - `growth-visibility-engine.ts` with tests
+   - Wired to context builders and outreach
+
+3. **Self-Healing** - MOSTLY COMPLETE (was documented as not started):
+   - Circuit breaker ✅
+   - Resilient executor ✅
+   - AI diagnostics ✅
+   - Error humanizer ✅
+
+### ❌ Features Actually Incomplete
+
+1. **Calendar Integration** - Needs Google OAuth credentials setup
+2. **Team Huddles** - Multi-persona orchestration needs work
+3. **Proactive Outreach Delivery** - Detection works, actual SMS/call sending doesn't
 
 ---
 
