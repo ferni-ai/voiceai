@@ -82,51 +82,22 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 
 # Patch LiveKit agents library to increase initialization timeout
 # The library has hardcoded 10s/30s timeouts that are too short for Cloud Run cold starts
-# NOTE: Must patch BOTH worker.js AND worker.cjs as pnpm/npm may use either
-RUN node -e " \
-  const fs = require('fs'); \
-  const path = require('path'); \
-  const glob = require('path'); \
-  const patchFile = (filePath) => { \
-    if (!fs.existsSync(filePath)) return false; \
-    let content = fs.readFileSync(filePath, 'utf8'); \
-    let patched = false; \
-    const patches = [ \
-      ['initializeTimeout: 3e4', 'initializeTimeout: 3e5 /* PATCHED 5min */'], \
-      ['initializeProcessTimeout = 10 * 1e3', 'initializeProcessTimeout = 300 * 1e3 /* PATCHED 5min */'], \
-      ['initializeProcessTimeout=10*1e3', 'initializeProcessTimeout=300*1e3/* PATCHED */'], \
-    ]; \
-    for (const [search, replace] of patches) { \
-      if (content.includes(search)) { \
-        content = content.replace(new RegExp(search.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&'), 'g'), replace); \
-        patched = true; \
-        console.log('Patched: ' + search + ' in ' + filePath); \
-      } \
-    } \
-    if (patched) fs.writeFileSync(filePath, content); \
-    return patched; \
-  }; \
-  const agentsDir = 'node_modules/@livekit/agents/dist'; \
-  const pnpmDir = 'node_modules/.pnpm/@livekit+agents@*/node_modules/@livekit/agents/dist'; \
-  let totalPatched = 0; \
-  for (const dir of [agentsDir]) { \
-    for (const file of ['worker.js', 'worker.cjs', 'worker.mjs']) { \
-      const filePath = path.join(__dirname, dir, file); \
-      if (patchFile(filePath)) totalPatched++; \
-    } \
-  } \
-  const pnpmGlob = path.join(__dirname, 'node_modules/.pnpm'); \
-  if (fs.existsSync(pnpmGlob)) { \
-    const pnpmDirs = fs.readdirSync(pnpmGlob).filter(d => d.startsWith('@livekit+agents@')); \
-    for (const pdir of pnpmDirs) { \
-      for (const file of ['worker.js', 'worker.cjs', 'worker.mjs']) { \
-        const filePath = path.join(pnpmGlob, pdir, 'node_modules/@livekit/agents/dist', file); \
-        if (patchFile(filePath)) totalPatched++; \
-      } \
-    } \
-  } \
-  console.log('[patch-livekit-timeout] Total files patched: ' + totalPatched); \
-"
+# Use find to locate ALL worker.js/cjs files and patch them with sed
+RUN echo "=== Patching LiveKit SDK timeouts ===" && \
+    find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
+      echo "Checking: {}"; \
+      if grep -q "initializeTimeout: 3e4" "{}"; then \
+        sed -i "s/initializeTimeout: 3e4/initializeTimeout: 3e5 \/* PATCHED 5min *\//g" "{}"; \
+        echo "  Patched initializeTimeout in {}"; \
+      fi; \
+      if grep -q "initializeProcessTimeout = 10 \* 1e3" "{}"; then \
+        sed -i "s/initializeProcessTimeout = 10 \* 1e3/initializeProcessTimeout = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
+        echo "  Patched initializeProcessTimeout in {}"; \
+      fi \
+    ' && \
+    echo "=== Verifying patches ===" && \
+    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -4 || echo "Direct path not found" && \
+    find node_modules/.pnpm -name "worker.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -4 || echo "pnpm path check done"
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
