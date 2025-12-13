@@ -3174,8 +3174,7 @@ function updateWhitelistInput(): void {
 }
 
 function addCurrentUserToWhitelist(): void {
-  const { appState } = require('../state/app.state.js');
-  const userId = appState.getState().deviceId;
+  const userId = appState.get('deviceId');
   if (userId) {
     addToWhitelist(userId);
     updateWhitelistInput();
@@ -3186,8 +3185,7 @@ function addCurrentUserToWhitelist(): void {
 }
 
 function removeCurrentUserFromWhitelist(): void {
-  const { appState } = require('../state/app.state.js');
-  const userId = appState.getState().deviceId;
+  const userId = appState.get('deviceId');
   if (userId) {
     removeFromWhitelist(userId);
     updateWhitelistInput();
