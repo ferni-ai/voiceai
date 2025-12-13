@@ -12,31 +12,23 @@
 
 import express from 'express';
 import { createLogger } from '../../utils/logger.js';
+import { getVectorStore, type VectorStore } from '../../memory/vector-store.js';
+import { embed } from '../../memory/embeddings.js';
+import type { VectorSearchOptions } from '../../memory/vector-store-interface.js';
 
 const log = createLogger('memory-service');
 
 // Lazy-loaded modules
-let memoryStore: Awaited<ReturnType<typeof import('../../memory/store-factory.js').createStore>> | null = null;
-let vectorStore: Awaited<ReturnType<typeof import('../../memory/vector-store.js').getVectorStore>> | null = null;
-let embeddings: typeof import('../../memory/embeddings.js') | null = null;
+let vectorStore: VectorStore | null = null;
 
 async function ensureInitialized(): Promise<void> {
-  if (!memoryStore) {
-    log.info('Initializing memory store...');
-    const factory = await import('../../memory/store-factory.js');
-    memoryStore = await factory.createStore();
-    log.info('Memory store initialized');
-  }
-
   if (!vectorStore) {
-    const vectorModule = await import('../../memory/vector-store.js');
-    vectorStore = await vectorModule.getVectorStore();
+    log.info('Initializing vector store...');
+    vectorStore = getVectorStore();
+    if (!vectorStore.isInitialized) {
+      await vectorStore.initialize();
+    }
     log.info('Vector store initialized');
-  }
-
-  if (!embeddings) {
-    embeddings = await import('../../memory/embeddings.js');
-    log.info('Embeddings initialized');
   }
 }
 
@@ -104,24 +96,22 @@ app.post('/ferni.memory.v1.MemoryService/Recall', async (req, res) => {
   try {
     await ensureInitialized();
 
-    // Get query embedding
-    const queryEmbedding = await embeddings!.embed(request.query);
-
-    // Search vector store
-    const results = await vectorStore!.search(queryEmbedding, {
-      limit: request.limit || 5,
+    // Search vector store using text query (it handles embedding internally)
+    const searchOptions: VectorSearchOptions = {
+      topK: request.limit || 5,
       filter: { userId: request.userId },
-    });
+      minScore: request.threshold || 0.5,
+    };
 
-    // Filter by threshold
-    const threshold = request.threshold || 0.5;
-    const filteredResults = results.filter(r => r.score >= threshold);
+    const results = await vectorStore!.search(request.query, searchOptions);
 
     const response: RecallResponse = {
-      memories: filteredResults.map(r => ({
-        content: r.document.content,
+      memories: results.map(r => ({
+        content: r.document.text,
         relevance: r.score,
-        timestamp: r.document.timestamp || Date.now(),
+        timestamp: r.document.metadata?.timestamp instanceof Date
+          ? r.document.metadata.timestamp.getTime()
+          : Date.now(),
         category: r.document.metadata?.category as string | undefined,
       })),
     };
@@ -152,17 +142,20 @@ app.post('/ferni.memory.v1.MemoryService/Store', async (req, res) => {
     await ensureInitialized();
 
     // Generate embedding
-    const embedding = await embeddings!.embed(request.content);
+    const embedding = await embed(request.content);
 
-    // Store in vector store
+    // Store in vector store using addDocument
     const id = crypto.randomUUID();
-    await vectorStore!.upsert({
+    await vectorStore!.addDocument({
       id,
-      userId: request.userId,
-      content: request.content,
+      text: request.content,
       embedding,
-      metadata: request.metadata || {},
-      timestamp: Date.now(),
+      metadata: {
+        source: 'memory-service',
+        userId: request.userId,
+        timestamp: new Date(),
+        ...request.metadata,
+      },
     });
 
     const response: StoreResponse = {
@@ -194,28 +187,29 @@ app.post('/ferni.memory.v1.MemoryService/Search', async (req, res) => {
   try {
     await ensureInitialized();
 
-    // Get query embedding
-    const queryEmbedding = await embeddings!.embed(request.query);
-
     // Build filter
     const filter: Record<string, unknown> = { userId: request.userId };
     if (request.filters?.category) {
-      filter['metadata.category'] = request.filters.category;
+      filter.category = request.filters.category;
     }
 
-    // Search
-    const results = await vectorStore!.search(queryEmbedding, {
-      limit: request.limit || 10,
+    // Search using text query
+    const searchOptions: VectorSearchOptions = {
+      topK: request.limit || 10,
       filter,
-    });
+    };
+
+    const results = await vectorStore!.search(request.query, searchOptions);
 
     res.json({
       results: results.map(r => ({
         id: r.document.id,
-        content: r.document.content,
+        content: r.document.text,
         score: r.score,
         metadata: r.document.metadata,
-        timestamp: r.document.timestamp,
+        timestamp: r.document.metadata?.timestamp instanceof Date
+          ? r.document.metadata.timestamp.getTime()
+          : undefined,
       })),
       totalCount: results.length,
     });
@@ -236,13 +230,15 @@ app.post('/ferni.memory.v1.MemoryService/Delete', async (req, res) => {
   try {
     await ensureInitialized();
 
+    let deletedCount = 0;
     if (memoryIds && memoryIds.length > 0) {
       for (const id of memoryIds) {
-        await vectorStore!.delete(id);
+        const deleted = vectorStore!.removeDocument(id);
+        if (deleted) deletedCount++;
       }
     }
 
-    res.json({ success: true, deletedCount: memoryIds?.length || 0 });
+    res.json({ success: true, deletedCount });
 
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
@@ -258,13 +254,15 @@ app.post('/ferni.memory.v1.MemoryService/GetStats', async (req, res) => {
   try {
     await ensureInitialized();
 
-    const stats = await vectorStore!.getStats(userId);
+    // getStats() takes no arguments - returns global stats
+    const stats = vectorStore!.getStats();
 
     res.json({
       userId,
-      totalMemories: stats?.documentCount || 0,
-      totalSize: stats?.totalSize || 0,
-      lastUpdated: stats?.lastUpdated || new Date().toISOString(),
+      totalMemories: stats.documentCount || 0,
+      bySource: stats.bySource || {},
+      byCategory: stats.byCategory || {},
+      lastUpdated: new Date().toISOString(),
     });
 
   } catch (error) {

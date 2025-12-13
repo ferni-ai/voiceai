@@ -11,11 +11,12 @@
  */
 
 import express from 'express';
-import { createLogger } from '../../utils/logger.js';
-import { initializeToolRegistry, getToolRegistry } from '../../tools/registry/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { toolRegistry } from '../../tools/registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../tools/registry/types.js';
+import { initializeToolRegistry } from '../../tools/registry/loader.js';
 
-const log = createLogger('tool-service');
+const log = getLogger().child({ module: 'tool-service' });
 
 // ============================================================================
 // TYPES
@@ -78,13 +79,8 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
   log.info({ toolId: request.toolId, userId: request.context?.userId }, 'Executing tool');
 
   try {
-    const registry = getToolRegistry();
-    if (!registry) {
-      throw new Error('Tool registry not initialized');
-    }
-
     // Get tool definition
-    const toolDef = registry.getById(request.toolId);
+    const toolDef = toolRegistry.get(request.toolId);
     if (!toolDef) {
       const response: ExecuteResponse = {
         status: 'EXECUTION_STATUS_NOT_FOUND',
@@ -165,20 +161,15 @@ app.post('/ferni.tools.v1.ToolService/ListTools', async (req, res) => {
   const { agentId, subscriptionTier, domains, tags } = req.body;
 
   try {
-    const registry = getToolRegistry();
-    if (!registry) {
-      throw new Error('Tool registry not initialized');
-    }
-
     let tools: ToolDefinition[] = [];
 
     if (domains && domains.length > 0) {
       for (const domain of domains) {
-        const domainTools = registry.getByDomain(domain);
+        const domainTools = toolRegistry.getByDomain(domain);
         tools.push(...domainTools);
       }
     } else {
-      tools = registry.getAllTools();
+      tools = toolRegistry.getAll();
     }
 
     // Filter by tags if provided
@@ -213,12 +204,7 @@ app.post('/ferni.tools.v1.ToolService/GetTool', async (req, res) => {
   const { toolId } = req.body;
 
   try {
-    const registry = getToolRegistry();
-    if (!registry) {
-      throw new Error('Tool registry not initialized');
-    }
-
-    const tool = registry.getById(toolId);
+    const tool = toolRegistry.get(toolId);
     if (!tool) {
       return res.status(404).json({ error: 'Tool not found' });
     }
@@ -264,10 +250,9 @@ async function main() {
   const port = parseInt(process.env.PORT || '50051', 10);
 
   log.info('Initializing tool registry...');
-  await initializeToolRegistry();
+  await initializeAllDomains();
 
-  const registry = getToolRegistry();
-  const toolCount = registry?.getAllTools().length || 0;
+  const toolCount = toolRegistry.getAll().length;
   log.info({ toolCount }, 'Tool registry initialized');
 
   app.listen(port, '0.0.0.0', () => {

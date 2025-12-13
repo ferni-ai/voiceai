@@ -115,8 +115,9 @@ export interface PreloadedDeps {
   lightweightResilience: typeof import('./shared/lightweight-resilience.js') | null;
   // Pre-loaded heavy resources (not modules)
   vadModel: unknown | null;
-  // Flag indicating main process cache is available
+  // Flags indicating preload status
   personaBundlesReady: boolean;
+  cartesiaTTSPrewarmed: boolean;
 }
 
 export const _preloadedDeps: PreloadedDeps = {
@@ -131,6 +132,7 @@ export const _preloadedDeps: PreloadedDeps = {
   lightweightResilience: null,
   vadModel: null,
   personaBundlesReady: false,
+  cartesiaTTSPrewarmed: false,
 };
 
 /** Log current dependency state */
@@ -178,7 +180,7 @@ log('SYNC', 'Prewarm synchronization initialized', { state: _prewarmState });
 // 3. If critical deps aren't loaded, entry falls back to dynamic imports
 // 4. No arbitrary timeout - we check actual state, not elapsed time
 
-const CRITICAL_DEPS = ['voice', 'google', 'silero', 'voiceAgentSession'] as const;
+const CRITICAL_DEPS = ['voice', 'google', 'silero'] as const;
 
 /** Check if critical dependencies are loaded */
 function areCriticalDepsLoaded(): boolean {
@@ -357,21 +359,9 @@ export default defineAgent({
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // OPTIMIZATION: Pre-warm TTS connection (fire-and-forget)
+        // OPTIMIZATION: TTS prewarm will happen after Phase 2 imports lightweight-tts
+        // We don't import it here to avoid duplicate imports.
         // ══════════════════════════════════════════════════════════════════════
-        // Creates TTS instance during prewarm. The instance will be reused by
-        // the first session if the voiceId matches (default: Ferni).
-        let ttsPrewarmPromise: Promise<void> | null = null;
-        import('./shared/lightweight-tts.js')
-          .then((lightweightTTS) => {
-            log('PREWARM', '🎤 Pre-warming TTS connection...');
-            ttsPrewarmPromise = lightweightTTS.prewarmTTSConnection();
-            return ttsPrewarmPromise;
-          })
-          .then(() => log('PREWARM', '✅ TTS pre-warmed'))
-          .catch(() => {
-            /* Best effort - TTS will be created normally */
-          });
 
         // ══════════════════════════════════════════════════════════════════════
         // PHASE 2: LIGHTWEIGHT Internal modules ONLY
@@ -457,6 +447,19 @@ export default defineAgent({
         logDepsState();
 
         // ══════════════════════════════════════════════════════════════════════
+        // OPTIMIZATION: Pre-warm TTS connection (fire-and-forget)
+        // ══════════════════════════════════════════════════════════════════════
+        // Now that we have lightweightTTS loaded, pre-warm a TTS instance.
+        // This runs in parallel with Phase 3 (VAD wait + cache check).
+        let ttsPrewarmPromise: Promise<void> | null = null;
+        if (_preloadedDeps.lightweightTTS) {
+          log('PREWARM', '🎤 Pre-warming TTS connection...');
+          ttsPrewarmPromise = _preloadedDeps.lightweightTTS.prewarmTTSConnection()
+            .then(() => log('PREWARM', '✅ TTS pre-warmed'))
+            .catch(() => { /* Best effort */ });
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // PHASE 3: Wait for VAD + Check cache (VAD already loading in parallel!)
         // ══════════════════════════════════════════════════════════════════════
         // VAD model loading was started right after Phase 1 (runs in parallel with Phase 2)
@@ -496,6 +499,12 @@ export default defineAgent({
 
         logTiming('Phase 3 TOTAL (VAD wait + cache check)', Date.now() - phase3Start);
         log('PREWARM', 'Phase 3 complete', { mem: _memMB(), elapsed: _elapsed() });
+
+        // Wait for TTS prewarm (should already be done by now, but make sure)
+        if (ttsPrewarmPromise) {
+          await ttsPrewarmPromise;
+          _preloadedDeps.cartesiaTTSPrewarmed = true;
+        }
 
         // Store in proc userData for debugging
         proc.userData.preloadedDeps = _preloadedDeps;

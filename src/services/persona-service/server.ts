@@ -12,21 +12,14 @@
 
 import express from 'express';
 import { createLogger } from '../../utils/logger.js';
+import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 
 const log = createLogger('persona-service');
 
 // Lazy-loaded modules (avoid heavy imports at startup)
-let agentRegistry: Awaited<ReturnType<typeof import('../../personas/registry/unified-registry.js').getAgentRegistry>> | null = null;
 let bundleLoader: typeof import('../../personas/bundles/loader.js') | null = null;
 
 async function ensureInitialized(): Promise<void> {
-  if (!agentRegistry) {
-    log.info('Initializing agent registry...');
-    const registryModule = await import('../../personas/registry/unified-registry.js');
-    agentRegistry = await registryModule.getAgentRegistry();
-    log.info('Agent registry initialized');
-  }
-
   if (!bundleLoader) {
     bundleLoader = await import('../../personas/bundles/loader.js');
     log.info('Bundle loader initialized');
@@ -84,7 +77,7 @@ app.post('/ferni.personas.v1.PersonaService/GetSystemPrompt', async (req, res) =
   try {
     await ensureInitialized();
 
-    const agent = await agentRegistry!.getAgent(request.personaId);
+    const agent = await AgentRegistry.getAgentOrNull(request.personaId);
     if (!agent) {
       return res.status(404).json({ error: `Persona '${request.personaId}' not found` });
     }
@@ -137,7 +130,7 @@ app.post('/ferni.personas.v1.PersonaService/GetPersona', async (req, res) => {
   try {
     await ensureInitialized();
 
-    const agent = await agentRegistry!.getAgent(request.personaId);
+    const agent = await AgentRegistry.getAgentOrNull(request.personaId);
     if (!agent) {
       return res.status(404).json({ error: `Persona '${request.personaId}' not found` });
     }
@@ -163,7 +156,7 @@ app.post('/ferni.personas.v1.PersonaService/ListPersonas', async (req, res) => {
   try {
     await ensureInitialized();
 
-    const agents = await agentRegistry!.getAllAgents();
+    const agents = await AgentRegistry.getAllAgents();
 
     const response = {
       personas: agents.map(agent => ({
@@ -206,7 +199,7 @@ async function main() {
   // Pre-initialize to catch startup errors
   await ensureInitialized();
 
-  const agentCount = (await agentRegistry!.getAllAgents()).length;
+  const agentCount = (await AgentRegistry.getAllAgents()).length;
   log.info({ agentCount }, 'Agent registry ready');
 
   app.listen(port, '0.0.0.0', () => {

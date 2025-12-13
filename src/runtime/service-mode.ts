@@ -159,16 +159,21 @@ export interface IRuntime {
 // ============================================================================
 
 class LocalToolService implements IToolService {
-  private registry: Awaited<ReturnType<typeof import('../tools/registry/index.js').initializeToolRegistry>> | null = null;
-  private builder: typeof import('../tools/builder.js') | null = null;
+  private initialized = false;
+  private toolRegistry: typeof import('../tools/registry/index.js').toolRegistry | null = null;
 
   async initialize(): Promise<void> {
-    const [registryModule, builderModule] = await Promise.all([
+    if (this.initialized) return;
+
+    const [registryModule, domainsModule] = await Promise.all([
       import('../tools/registry/index.js'),
-      import('../tools/builder.js'),
+      import('../tools/domains/index.js'),
     ]);
-    this.registry = await registryModule.initializeToolRegistry();
-    this.builder = builderModule;
+
+    // Initialize all tool domains
+    await domainsModule.initializeAllDomains();
+    this.toolRegistry = registryModule.toolRegistry;
+    this.initialized = true;
     log.info('Local tool service initialized');
   }
 
@@ -180,12 +185,12 @@ class LocalToolService implements IToolService {
     const startTime = Date.now();
 
     try {
-      if (!this.registry) {
+      if (!this.initialized) {
         await this.initialize();
       }
 
       // Get tool from registry
-      const toolDef = await this.registry!.getTool(toolId);
+      const toolDef = this.toolRegistry!.get(toolId);
       if (!toolDef) {
         return {
           status: 'failed',
@@ -203,6 +208,11 @@ class LocalToolService implements IToolService {
         userId: context.userId,
         agentId: context.agentId,
         agentDisplayName: context.agentDisplayName,
+        services: {
+          has: () => false,
+          get: () => { throw new Error('Service not available'); },
+          getOptional: () => undefined,
+        },
       });
 
       // Execute
@@ -210,8 +220,8 @@ class LocalToolService implements IToolService {
 
       return {
         status: 'success',
-        data: result.data || result,
-        summary: result.summary || JSON.stringify(result).slice(0, 200),
+        data: typeof result === 'object' ? result : { value: result },
+        summary: typeof result === 'string' ? result : JSON.stringify(result).slice(0, 200),
         metadata: {
           executionTimeMs: Date.now() - startTime,
           cacheHit: false,
@@ -236,11 +246,11 @@ class LocalToolService implements IToolService {
   }
 
   async listTools(agentId: string, subscriptionTier: string): Promise<Array<{ id: string; name: string; description: string; domain: string }>> {
-    if (!this.registry) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
-    const tools = await this.registry!.getAllTools();
+    const tools = this.toolRegistry!.getAll();
     return tools.map((t) => ({
       id: t.id,
       name: t.name,
@@ -252,7 +262,7 @@ class LocalToolService implements IToolService {
   async health(): Promise<{ healthy: boolean; latencyMs: number }> {
     const start = Date.now();
     try {
-      if (!this.registry) {
+      if (!this.initialized) {
         await this.initialize();
       }
       return { healthy: true, latencyMs: Date.now() - start };
@@ -263,16 +273,20 @@ class LocalToolService implements IToolService {
 }
 
 class LocalPersonaService implements IPersonaService {
-  private registry: Awaited<ReturnType<typeof import('../personas/registry/unified-registry.js').getAgentRegistry>> | null = null;
+  private initialized = false;
+  private AgentRegistry: typeof import('../personas/registry/unified-registry.js').AgentRegistry | null = null;
   private bundleLoader: typeof import('../personas/bundles/loader.js') | null = null;
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     const [registryModule, loaderModule] = await Promise.all([
       import('../personas/registry/unified-registry.js'),
       import('../personas/bundles/loader.js'),
     ]);
-    this.registry = await registryModule.getAgentRegistry();
+    this.AgentRegistry = registryModule.AgentRegistry;
     this.bundleLoader = loaderModule;
+    this.initialized = true;
     log.info('Local persona service initialized');
   }
 
@@ -285,11 +299,11 @@ class LocalPersonaService implements IPersonaService {
     greeting: string;
     voiceConfig: { provider: string; voiceId: string };
   }> {
-    if (!this.registry || !this.bundleLoader) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
-    const agent = await this.registry!.getAgent(params.personaId);
+    const agent = await this.AgentRegistry!.getAgentOrNull(params.personaId);
     if (!agent) {
       throw new Error(`Persona '${params.personaId}' not found`);
     }
@@ -314,11 +328,11 @@ class LocalPersonaService implements IPersonaService {
     description: string;
     capabilities: string[];
   } | null> {
-    if (!this.registry) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
-    const agent = await this.registry!.getAgent(personaId);
+    const agent = await this.AgentRegistry!.getAgentOrNull(personaId);
     if (!agent) return null;
 
     return {
@@ -332,7 +346,7 @@ class LocalPersonaService implements IPersonaService {
   async health(): Promise<{ healthy: boolean; latencyMs: number }> {
     const start = Date.now();
     try {
-      if (!this.registry) {
+      if (!this.initialized) {
         await this.initialize();
       }
       return { healthy: true, latencyMs: Date.now() - start };
@@ -343,11 +357,20 @@ class LocalPersonaService implements IPersonaService {
 }
 
 class LocalMemoryService implements IMemoryService {
-  private memorySystem: Awaited<ReturnType<typeof import('../memory/index.js').getMemorySystem>> | null = null;
+  private initialized = false;
+  private vectorStore: import('../memory/vector-store.js').VectorStore | null = null;
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     const memoryModule = await import('../memory/index.js');
-    this.memorySystem = await memoryModule.getMemorySystem();
+    const result = await memoryModule.initializeMemorySystem({
+      skipFirestoreInit: true, // Lazy initialization for faster startup
+      indexPersona: false, // Skip persona indexing in service mode
+      rehydrateConversations: false, // Skip rehydration in service mode
+    });
+    this.vectorStore = result.vectorStore as import('../memory/vector-store.js').VectorStore;
+    this.initialized = true;
     log.info('Local memory service initialized');
   }
 
@@ -356,15 +379,22 @@ class LocalMemoryService implements IMemoryService {
     query: string,
     options?: { limit?: number; threshold?: number }
   ): Promise<Array<{ content: string; relevance: number; timestamp: number }>> {
-    if (!this.memorySystem) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
-    const memories = await this.memorySystem!.recall(userId, query, options);
-    return memories.map((m) => ({
-      content: m.content,
-      relevance: m.relevance || 0,
-      timestamp: m.timestamp || Date.now(),
+    const results = await this.vectorStore!.search(query, {
+      topK: options?.limit || 5,
+      filter: { userId },
+      minScore: options?.threshold || 0.5,
+    });
+
+    return results.map((r) => ({
+      content: r.document.text,
+      relevance: r.score,
+      timestamp: r.document.metadata?.timestamp instanceof Date
+        ? r.document.metadata.timestamp.getTime()
+        : Date.now(),
     }));
   }
 
@@ -373,18 +403,33 @@ class LocalMemoryService implements IMemoryService {
     content: string,
     metadata?: Record<string, unknown>
   ): Promise<{ id: string }> {
-    if (!this.memorySystem) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
-    const id = await this.memorySystem!.store(userId, content, metadata);
+    const { embed } = await import('../memory/embeddings.js');
+    const embedding = await embed(content);
+    const id = crypto.randomUUID();
+
+    await this.vectorStore!.addDocument({
+      id,
+      text: content,
+      embedding,
+      metadata: {
+        source: 'runtime',
+        userId,
+        timestamp: new Date(),
+        ...metadata,
+      },
+    });
+
     return { id };
   }
 
   async health(): Promise<{ healthy: boolean; latencyMs: number }> {
     const start = Date.now();
     try {
-      if (!this.memorySystem) {
+      if (!this.initialized) {
         await this.initialize();
       }
       return { healthy: true, latencyMs: Date.now() - start };

@@ -17,8 +17,9 @@
 #
 # See docs/AGENT-MANAGEMENT.md for details
 
-substitutions:
-  _CACHE_TTL: '24h'  # 1 day cache (reduced from 1 week)
+# Substitutions disabled for fresh build
+# substitutions:
+#   _CACHE_TTL: '24h'
 
 steps:
   # Build with Kaniko (much better caching than docker build)
