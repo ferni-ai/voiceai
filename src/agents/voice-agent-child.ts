@@ -118,7 +118,7 @@ export interface PreloadedDeps {
   personaBundlesReady: boolean;
 }
 
-export let _preloadedDeps: PreloadedDeps = {
+export const _preloadedDeps: PreloadedDeps = {
   voice: null, google: null, silero: null, genai: null,
   resourceServer: null, e2eDiagnostics: null, warmGreeting: null,
   selfHealing: null, voiceManager: null, personas: null,
@@ -162,25 +162,49 @@ const _prewarmReady = new Promise<void>((resolve, reject) => {
 
 log('SYNC', 'Prewarm synchronization initialized', { state: _prewarmState });
 
-// Timeout: If prewarm takes > 55s, reject
-// NOTE: Cold starts can take 30-40s for imports like @google/genai and silero
-// We set this to 55s to allow for slow cold starts while still having a safety net
-const PREWARM_TIMEOUT_MS = 55000;
-const _prewarmTimeout = setTimeout(() => {
+// ============================================================================
+// SMART READINESS CHECK (No hard timeout!)
+// ============================================================================
+// Instead of a fixed timeout, we use a progress-based approach:
+// 1. Entry can proceed as soon as CRITICAL deps are loaded (voice, google, silero)
+// 2. Non-critical deps can load in background
+// 3. If critical deps aren't loaded, entry falls back to dynamic imports
+// 4. No arbitrary timeout - we check actual state, not elapsed time
+
+const CRITICAL_DEPS = ['voice', 'google', 'silero', 'voiceAgentSession'] as const;
+
+/** Check if critical dependencies are loaded */
+function areCriticalDepsLoaded(): boolean {
+  return CRITICAL_DEPS.every(dep => _preloadedDeps[dep] !== null);
+}
+
+/** Get loading progress as a percentage */
+function getLoadingProgress(): { loaded: number; total: number; percent: number; critical: boolean } {
+  const allDeps = Object.entries(_preloadedDeps).filter(([k]) => k !== 'personaBundlesReady');
+  const loaded = allDeps.filter(([_, v]) => v !== null).length;
+  const total = allDeps.length;
+  const critical = areCriticalDepsLoaded();
+  return { loaded, total, percent: Math.round((loaded / total) * 100), critical };
+}
+
+// Safety timeout - only logs a warning, doesn't reject
+// This is just for monitoring, not for control flow
+const SAFETY_TIMEOUT_MS = 120000; // 2 minutes - just for logging
+const _safetyTimeout = setTimeout(() => {
   if (_prewarmState === 'running' || _prewarmState === 'pending') {
-    _prewarmState = 'timeout';
-    log('SYNC', `🚨 PREWARM TIMEOUT - took more than ${PREWARM_TIMEOUT_MS / 1000} seconds!`, {
+    const progress = getLoadingProgress();
+    log('SYNC', `⚠️ Prewarm still running after ${SAFETY_TIMEOUT_MS / 1000}s (monitoring only)`, {
       elapsed: _elapsed(),
       state: _prewarmState,
+      progress: `${progress.loaded}/${progress.total} (${progress.percent}%)`,
+      criticalReady: progress.critical,
       entryWaiting: _entryWaitingCount,
     });
     logDepsState();
-    if (_prewarmReject) {
-      _prewarmReject(new Error(`Prewarm timeout - took more than ${PREWARM_TIMEOUT_MS / 1000} seconds`));
-      _prewarmReject = null;
-    }
+    // NOTE: We do NOT reject here - we just log for monitoring
+    // Entry will proceed when deps are ready OR fall back to dynamic imports
   }
-}, PREWARM_TIMEOUT_MS);
+}, SAFETY_TIMEOUT_MS);
 
 export function getPreloadedDeps(): PreloadedDeps {
   return _preloadedDeps;
@@ -395,7 +419,7 @@ export default defineAgent({
       logDepsState();
 
       // Signal that prewarm is complete - entry() can now use deps
-      clearTimeout(_prewarmTimeout);
+      clearTimeout(_safetyTimeout);
       if (_prewarmResolve) {
         log('SYNC', '🔓 Signaling prewarm complete to waiting entry() calls', {
           waitingCount: _entryWaitingCount,
@@ -417,7 +441,7 @@ export default defineAgent({
 
       // Even on failure, resolve so entry() doesn't hang forever
       // Entry will fall back to dynamic imports
-      clearTimeout(_prewarmTimeout);
+      clearTimeout(_safetyTimeout);
       if (_prewarmResolve) {
         log('SYNC', '⚠️ Resolving prewarm (failed) so entry() can proceed with fallbacks');
         _prewarmResolve();
@@ -451,32 +475,82 @@ export default defineAgent({
 
     try {
       // ══════════════════════════════════════════════════════════════════════
-      // WAIT FOR PREWARM
+      // SMART READINESS CHECK (No hard timeout!)
       // ══════════════════════════════════════════════════════════════════════
-      // CRITICAL: Wait for prewarm to complete before using preloaded deps!
-      // The LiveKit SDK does NOT await prewarm(), so entry() can be called
-      // while prewarm is still loading.
+      // Instead of a fixed timeout, we poll for readiness:
+      // 1. Check if critical deps are loaded
+      // 2. If yes, proceed immediately
+      // 3. If no, wait a bit and check again
+      // 4. After reasonable attempts, fall back to dynamic imports
+      // This adapts to actual loading speed rather than guessing with a timeout
       
       _entryWaitingCount++;
-      log('SYNC', '⏳ Waiting for prewarm to complete...', {
+      const MAX_WAIT_ATTEMPTS = 60; // 60 * 500ms = 30s max, but we check progress
+      const POLL_INTERVAL_MS = 500;
+      let attempts = 0;
+      let lastProgress = 0;
+      let stalledCount = 0;
+
+      log('SYNC', '⏳ Checking dependency readiness...', {
         prewarmState: _prewarmState,
         entryWaitingCount: _entryWaitingCount,
         elapsed: _elapsed(),
       });
 
       const prewarmWaitStart = Date.now();
-      await _prewarmReady;
+
+      // Smart polling loop - adapts to actual progress
+      while (!areCriticalDepsLoaded() && attempts < MAX_WAIT_ATTEMPTS) {
+        const progress = getLoadingProgress();
+        
+        // Log progress every 5 attempts (2.5s)
+        if (attempts % 5 === 0) {
+          log('SYNC', `Loading progress: ${progress.loaded}/${progress.total} (${progress.percent}%)`, {
+            attempt: attempts,
+            elapsed: _elapsed(),
+            criticalReady: progress.critical,
+          });
+        }
+
+        // Check if we're making progress
+        if (progress.loaded === lastProgress) {
+          stalledCount++;
+          // If stalled for 10 seconds with no progress, break and use fallback
+          if (stalledCount >= 20) {
+            log('SYNC', '⚠️ Loading appears stalled, will use dynamic imports as fallback', {
+              stalledFor: `${stalledCount * POLL_INTERVAL_MS}ms`,
+              progress: `${progress.loaded}/${progress.total}`,
+            });
+            break;
+          }
+        } else {
+          stalledCount = 0; // Reset stall counter if we made progress
+          lastProgress = progress.loaded;
+        }
+
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), POLL_INTERVAL_MS);
+        });
+        attempts++;
+      }
+
       const prewarmWaitMs = Date.now() - prewarmWaitStart;
       _entryWaitingCount--;
+      const finalProgress = getLoadingProgress();
 
-      log('SYNC', '✅ Prewarm ready!', {
-        waitedMs: prewarmWaitMs,
-        prewarmState: _prewarmState,
-        entryWaitingCount: _entryWaitingCount,
-      });
-
-      if (prewarmWaitMs > 100) {
-        log('TIMING', `⚠️ Entry waited ${prewarmWaitMs}ms for prewarm - this indicates race condition was hit`);
+      if (areCriticalDepsLoaded()) {
+        log('SYNC', '✅ Critical deps ready!', {
+          waitedMs: prewarmWaitMs,
+          attempts,
+          progress: `${finalProgress.loaded}/${finalProgress.total} (${finalProgress.percent}%)`,
+        });
+      } else {
+        log('SYNC', '⚠️ Proceeding with fallback - some deps will load dynamically', {
+          waitedMs: prewarmWaitMs,
+          attempts,
+          progress: `${finalProgress.loaded}/${finalProgress.total} (${finalProgress.percent}%)`,
+          criticalReady: finalProgress.critical,
+        });
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -484,15 +558,13 @@ export default defineAgent({
       // ══════════════════════════════════════════════════════════════════════
       logDepsState();
 
-      // Verify critical deps are loaded
-      const criticalDeps = ['voice', 'google', 'silero', 'voiceAgentSession'];
-      const missingCritical = criticalDeps.filter(
-        dep => _preloadedDeps[dep as keyof PreloadedDeps] === null
+      // Identify which critical deps need dynamic import
+      const missingCritical = CRITICAL_DEPS.filter(
+        dep => _preloadedDeps[dep] === null
       );
       
       if (missingCritical.length > 0) {
-        log('ERROR', `Missing critical dependencies: ${missingCritical.join(', ')}`);
-        log('ENTRY', 'Will fall back to dynamic imports for missing deps');
+        log('ENTRY', `Will dynamically import: ${missingCritical.join(', ')}`);
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -542,7 +614,9 @@ export default defineAgent({
           await ctx.connect();
         }
         log('ENTRY', 'Waiting for room disconnect...');
-        await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
+        await new Promise<void>((resolve) => {
+          ctx.room.on('disconnected', () => resolve());
+        });
       } catch (cleanupErr) {
         log('ERROR', `Cleanup failed: ${cleanupErr}`);
       }
