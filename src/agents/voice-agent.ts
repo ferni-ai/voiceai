@@ -3185,23 +3185,23 @@ if (!process.send) {
   const { registerShutdownSignalHandlers } = await import('./shared/shutdown-handler.js');
   registerShutdownSignalHandlers();
 
+  // Use lightweight child entry point for spawned processes
+  // This avoids loading 51 heavy imports in child processes, allowing them to respond
+  // to the SDK within the timeout window
+  const childAgentPath = fileURLToPath(new URL('./voice-agent-child.js', import.meta.url));
+
   cli.runApp(
     new WorkerOptions({
-      agent: fileURLToPath(import.meta.url),
+      // CRITICAL: Point to lightweight child file, NOT this file!
+      // Child processes load voice-agent-child.js which has minimal imports
+      // and dynamically loads the full agent when entry() is called
+      agent: childAgentPath,
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // DISABLED: numIdleProcesses causes child process to timeout during initialization
-      // The LiveKit SDK has an internal 30-second timeout in supervised_proc.js that
-      // we cannot override. Our 40+ top-level imports take >30s to load in the child
-      // process, causing "runner initialization timed out" errors.
-      // TODO: Refactor to use lazy imports for ALL modules, then re-enable this.
-      numIdleProcesses: 0,
-      // Increase timeout for heavy initialization (bundles + startup + services)
-      // The prewarm function calls startup() which does 10+ async operations:
-      // - memory system (Firestore), services, bundles, schedulers,
-      // - team handlers, community insights, agent evolution, analytics, persistence
-      // Cold start can take 180-240s on busy clusters; set to 300s for safety margin
+      // RE-ENABLE idle processes now that we have lightweight child entry
+      numIdleProcesses: 1,
+      // Increase timeout for safety margin
       initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
     })
   );
