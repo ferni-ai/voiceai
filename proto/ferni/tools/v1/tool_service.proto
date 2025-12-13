@@ -1,0 +1,535 @@
+// Tool Service gRPC API
+//
+// This service provides stateless tool execution for the Ferni voice agent platform.
+// Tools are executed outside the voice worker process, enabling:
+// - Independent scaling of tools vs voice sessions
+// - Consistent tool behavior across all agents
+// - Rate limiting and quota enforcement per tenant
+//
+// Usage:
+//   buf generate proto/  # Generate TypeScript clients
+//   buf lint proto/      # Validate proto definitions
+
+syntax = "proto3";
+
+package ferni.tools.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/ferni-ai/proto/tools/v1;toolsv1";
+
+// ============================================================================
+// TOOL SERVICE
+// ============================================================================
+
+// ToolService provides stateless tool execution for voice agents.
+// All tools registered in the platform can be executed through this service.
+service ToolService {
+  // Execute a single tool synchronously.
+  // Returns the full result when the tool completes.
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+
+  // Execute a tool with streaming results.
+  // Use for long-running tools that can provide incremental progress/results.
+  rpc ExecuteStream(ExecuteRequest) returns (stream ExecuteStreamResponse);
+
+  // Execute multiple tools in a single request.
+  // Supports parallel, sequential, or pipeline execution strategies.
+  rpc ExecuteBatch(ExecuteBatchRequest) returns (ExecuteBatchResponse);
+
+  // List available tools, optionally filtered by agent or domain.
+  rpc ListTools(ListToolsRequest) returns (ListToolsResponse);
+
+  // Get detailed information about a specific tool.
+  rpc GetTool(GetToolRequest) returns (GetToolResponse);
+
+  // Health check for service monitoring.
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// ============================================================================
+// EXECUTION MESSAGES
+// ============================================================================
+
+// Request to execute a tool.
+message ExecuteRequest {
+  // Tool identifier in format "domain.toolName" (e.g., "habitCoaching.createHabit").
+  // Required.
+  string tool_id = 1;
+
+  // Tool parameters as structured data.
+  // Must conform to the tool's parameter schema.
+  google.protobuf.Struct parameters = 2;
+
+  // Execution context providing user, session, and agent information.
+  // Required.
+  ToolContext context = 3;
+
+  // Override the default timeout (30s).
+  // Maximum allowed is 5 minutes.
+  google.protobuf.Duration timeout = 4;
+
+  // Idempotency key for safe retries.
+  // If provided, duplicate requests with the same key return cached results.
+  string idempotency_key = 5;
+}
+
+// Context for tool execution.
+message ToolContext {
+  // User ID making the request.
+  // Required.
+  string user_id = 1;
+
+  // Current session/conversation ID.
+  // Required.
+  string session_id = 2;
+
+  // Agent ID executing the tool (e.g., "ferni", "maya-santos").
+  // Required.
+  string agent_id = 3;
+
+  // Agent display name for humanized outputs (e.g., "Ferni", "Maya").
+  string agent_display_name = 4;
+
+  // User's subscription tier (affects tool availability).
+  SubscriptionTier subscription_tier = 5;
+
+  // Recent conversation turns for tool relevance/context.
+  // Typically last 3-5 turns.
+  repeated ConversationTurn recent_turns = 6;
+
+  // Domain-specific configuration overrides.
+  // Keys are domain names, values are domain-specific config objects.
+  map<string, google.protobuf.Struct> domain_config = 7;
+
+  // Distributed tracing context.
+  TraceContext trace = 8;
+
+  // Tenant ID for multi-tenant deployments.
+  // Empty for single-tenant.
+  string tenant_id = 9;
+}
+
+// User subscription tier.
+enum SubscriptionTier {
+  SUBSCRIPTION_TIER_UNSPECIFIED = 0;
+  SUBSCRIPTION_TIER_FREE = 1;
+  SUBSCRIPTION_TIER_FRIEND = 2;   // Paid tier
+  SUBSCRIPTION_TIER_PARTNER = 3;  // Premium tier
+}
+
+// A single conversation turn.
+message ConversationTurn {
+  // Role: "user" or "assistant"
+  string role = 1;
+  // Message content
+  string content = 2;
+  // When this turn occurred
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// Distributed tracing context (W3C Trace Context compatible).
+message TraceContext {
+  string trace_id = 1;
+  string span_id = 2;
+  string parent_span_id = 3;
+}
+
+// Response from tool execution.
+message ExecuteResponse {
+  // Execution status.
+  ExecutionStatus status = 1;
+
+  // Tool result (populated on success).
+  ToolResult result = 2;
+
+  // Error details (populated on failure).
+  ToolError error = 3;
+
+  // Execution metadata.
+  ExecutionMetadata metadata = 4;
+}
+
+// Successful tool execution result.
+message ToolResult {
+  // Structured result data.
+  // Schema depends on the specific tool.
+  google.protobuf.Struct data = 1;
+
+  // Human-readable summary for voice output.
+  // Should be natural, conversational text.
+  string summary = 2;
+
+  // Suggested follow-up actions.
+  repeated SuggestedAction suggested_actions = 3;
+
+  // Side effects that occurred during execution.
+  repeated SideEffect side_effects = 4;
+}
+
+// A suggested follow-up action.
+message SuggestedAction {
+  // Tool ID to execute
+  string tool_id = 1;
+  // Human-readable description
+  string description = 2;
+  // Suggested parameters
+  google.protobuf.Struct suggested_params = 3;
+  // Priority (higher = more relevant)
+  int32 priority = 4;
+}
+
+// A side effect that occurred during tool execution.
+message SideEffect {
+  // Type of side effect (e.g., "memory_created", "notification_sent")
+  string type = 1;
+  // Human-readable description
+  string description = 2;
+  // Additional details
+  google.protobuf.Struct details = 3;
+}
+
+// Tool execution status.
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  EXECUTION_STATUS_SUCCESS = 1;
+  EXECUTION_STATUS_PARTIAL = 2;      // Some data returned, but incomplete
+  EXECUTION_STATUS_FAILED = 3;
+  EXECUTION_STATUS_TIMEOUT = 4;
+  EXECUTION_STATUS_RATE_LIMITED = 5;
+  EXECUTION_STATUS_UNAUTHORIZED = 6;
+  EXECUTION_STATUS_NOT_FOUND = 7;    // Tool not found
+}
+
+// Error information for failed executions.
+message ToolError {
+  // Machine-readable error code (e.g., "TOOL_NOT_FOUND", "INVALID_PARAMS").
+  string code = 1;
+
+  // Developer-readable error message.
+  string message = 2;
+
+  // User-friendly error message for voice output.
+  // Should be natural and not expose internal details.
+  string user_message = 3;
+
+  // Whether this error is retryable.
+  bool retryable = 4;
+
+  // Suggested retry delay (if retryable).
+  google.protobuf.Duration retry_after = 5;
+
+  // Additional error context.
+  google.protobuf.Struct details = 6;
+}
+
+// Metadata about tool execution.
+message ExecutionMetadata {
+  // Time spent executing the tool.
+  google.protobuf.Duration execution_time = 1;
+
+  // Tool version used.
+  string tool_version = 2;
+
+  // Cache status.
+  CacheStatus cache_status = 3;
+
+  // Rate limit information.
+  RateLimitInfo rate_limit = 4;
+
+  // Which service instance handled the request.
+  string served_by = 5;
+}
+
+// Cache status for the request.
+enum CacheStatus {
+  CACHE_STATUS_UNSPECIFIED = 0;
+  CACHE_STATUS_MISS = 1;
+  CACHE_STATUS_HIT = 2;
+  CACHE_STATUS_STALE = 3;  // Returned stale data while refreshing
+}
+
+// Rate limit information.
+message RateLimitInfo {
+  // Requests remaining in current window.
+  int32 remaining = 1;
+  // Total limit for the window.
+  int32 limit = 2;
+  // When the limit resets.
+  google.protobuf.Timestamp reset_at = 3;
+}
+
+// ============================================================================
+// STREAMING EXECUTION
+// ============================================================================
+
+// Response message for streaming execution.
+message ExecuteStreamResponse {
+  oneof response {
+    // Progress update during execution.
+    ExecutionProgress progress = 1;
+    // Partial/incremental result.
+    PartialResult partial = 2;
+    // Final result (terminates the stream).
+    ExecuteResponse final = 3;
+  }
+}
+
+// Progress update during long-running tool execution.
+message ExecutionProgress {
+  // Progress percentage (0-100).
+  int32 percent = 1;
+  // Current step description.
+  string step = 2;
+  // Estimated time remaining.
+  google.protobuf.Duration eta = 3;
+}
+
+// Partial/incremental result from a streaming tool.
+message PartialResult {
+  // Chunk of streaming data.
+  google.protobuf.Struct chunk = 1;
+  // Sequence number for ordering.
+  int32 sequence = 2;
+  // Is this the last chunk? (final will follow)
+  bool is_last = 3;
+}
+
+// ============================================================================
+// BATCH EXECUTION
+// ============================================================================
+
+// Request to execute multiple tools.
+message ExecuteBatchRequest {
+  // Tool execution requests.
+  repeated ExecuteRequest requests = 1;
+
+  // Execution strategy.
+  BatchStrategy strategy = 2;
+
+  // Overall timeout for the entire batch.
+  google.protobuf.Duration timeout = 3;
+
+  // Stop on first failure?
+  bool fail_fast = 4;
+}
+
+// Batch execution strategy.
+enum BatchStrategy {
+  BATCH_STRATEGY_UNSPECIFIED = 0;
+  BATCH_STRATEGY_PARALLEL = 1;    // Execute all in parallel
+  BATCH_STRATEGY_SEQUENTIAL = 2;  // Execute in order
+  BATCH_STRATEGY_PIPELINE = 3;    // Chain outputs to inputs
+}
+
+// Response from batch execution.
+message ExecuteBatchResponse {
+  // Results in same order as requests.
+  repeated ExecuteResponse responses = 1;
+
+  // Overall batch status.
+  BatchStatus status = 2;
+
+  // Total execution time for the batch.
+  google.protobuf.Duration total_time = 3;
+}
+
+// Overall batch execution status.
+enum BatchStatus {
+  BATCH_STATUS_UNSPECIFIED = 0;
+  BATCH_STATUS_ALL_SUCCESS = 1;
+  BATCH_STATUS_PARTIAL_SUCCESS = 2;
+  BATCH_STATUS_ALL_FAILED = 3;
+}
+
+// ============================================================================
+// TOOL DISCOVERY
+// ============================================================================
+
+// Request to list available tools.
+message ListToolsRequest {
+  // Filter by domain(s).
+  repeated string domains = 1;
+
+  // Filter by tag(s).
+  repeated string tags = 2;
+
+  // Filter by agent (tools available to this agent).
+  string agent_id = 3;
+
+  // Filter by subscription tier.
+  SubscriptionTier subscription_tier = 4;
+
+  // Include deprecated tools?
+  bool include_deprecated = 5;
+
+  // Pagination: max results to return.
+  int32 page_size = 6;
+
+  // Pagination: token from previous response.
+  string page_token = 7;
+}
+
+// Response with list of tools.
+message ListToolsResponse {
+  // Tools matching the filter.
+  repeated ToolSummary tools = 1;
+
+  // Token for next page (empty if no more results).
+  string next_page_token = 2;
+
+  // Total number of tools matching the filter.
+  int32 total_count = 3;
+}
+
+// Summary information about a tool.
+message ToolSummary {
+  // Tool ID (e.g., "habitCoaching.createHabit").
+  string id = 1;
+
+  // Display name.
+  string name = 2;
+
+  // Short description.
+  string description = 3;
+
+  // Primary domain.
+  string domain = 4;
+
+  // Tags for categorization/search.
+  repeated string tags = 5;
+
+  // Minimum required subscription tier.
+  SubscriptionTier required_tier = 6;
+
+  // Is this tool deprecated?
+  bool deprecated = 7;
+
+  // Deprecation message (if deprecated).
+  string deprecation_message = 8;
+}
+
+// Request to get a specific tool's details.
+message GetToolRequest {
+  // Tool ID.
+  string tool_id = 1;
+}
+
+// Response with full tool details.
+message GetToolResponse {
+  // Full tool definition.
+  ToolDefinition tool = 1;
+}
+
+// Full tool definition with schema and examples.
+message ToolDefinition {
+  // Tool ID.
+  string id = 1;
+
+  // Display name.
+  string name = 2;
+
+  // Full description.
+  string description = 3;
+
+  // Primary domain.
+  string domain = 4;
+
+  // Additional domains.
+  repeated string additional_domains = 5;
+
+  // Tags for categorization.
+  repeated string tags = 6;
+
+  // JSON Schema for parameters.
+  google.protobuf.Struct parameter_schema = 7;
+
+  // JSON Schema for result.
+  google.protobuf.Struct result_schema = 8;
+
+  // Example usages.
+  repeated ToolExample examples = 9;
+
+  // Rate limits.
+  ToolRateLimits rate_limits = 10;
+
+  // Required subscription tier.
+  SubscriptionTier required_tier = 11;
+
+  // Does this tool support streaming?
+  bool supports_streaming = 12;
+
+  // Tool version.
+  string version = 13;
+
+  // When this tool was last updated.
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+// Example usage of a tool.
+message ToolExample {
+  // Description of what this example demonstrates.
+  string description = 1;
+
+  // Example parameters.
+  google.protobuf.Struct parameters = 2;
+
+  // Expected result.
+  google.protobuf.Struct expected_result = 3;
+}
+
+// Rate limits for a tool.
+message ToolRateLimits {
+  // Max requests per minute.
+  int32 requests_per_minute = 1;
+
+  // Max requests per hour.
+  int32 requests_per_hour = 2;
+
+  // Max requests per day.
+  int32 requests_per_day = 3;
+}
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+// Health check request.
+message HealthRequest {}
+
+// Health check response.
+message HealthResponse {
+  // Overall service health.
+  ServiceHealth status = 1;
+
+  // Health of individual components.
+  map<string, ComponentHealth> components = 2;
+
+  // Response timestamp.
+  google.protobuf.Timestamp timestamp = 3;
+
+  // Service version.
+  string version = 4;
+}
+
+// Service health status.
+enum ServiceHealth {
+  SERVICE_HEALTH_UNSPECIFIED = 0;
+  SERVICE_HEALTH_HEALTHY = 1;
+  SERVICE_HEALTH_DEGRADED = 2;
+  SERVICE_HEALTH_UNHEALTHY = 3;
+}
+
+// Health of an individual component.
+message ComponentHealth {
+  // Component health status.
+  ServiceHealth status = 1;
+
+  // Status message.
+  string message = 2;
+
+  // Response latency for this component.
+  google.protobuf.Duration latency = 3;
+}

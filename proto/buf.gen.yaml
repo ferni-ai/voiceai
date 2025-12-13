@@ -1,0 +1,29 @@
+# buf.gen.yaml - Code generation configuration
+# https://buf.build/docs/configuration/v2/buf-gen-yaml
+
+version: v2
+
+managed:
+  enabled: true
+
+plugins:
+  # TypeScript/JavaScript (Connect-ES)
+  - remote: buf.build/connectrpc/es
+    out: ../src/services/tool-service/gen
+    opt:
+      - target=ts
+
+  # TypeScript service stubs (Connect-ES)
+  - remote: buf.build/connectrpc/es
+    out: ../src/services/tool-service/gen
+    opt:
+      - target=ts
+
+  # Go (optional, for future Go services)
+  # - remote: buf.build/protocolbuffers/go
+  #   out: ../gen/go
+  #   opt:
+  #     - paths=source_relative
+
+inputs:
+  - directory: .

@@ -280,7 +280,6 @@ async function connectToLiveKit(): Promise<void> {
           value: {
             type: JobType.JT_ROOM,
             version: '0.1.0',
-            name: AGENT_NAME,
             agentName: AGENT_NAME,
           },
         },
@@ -325,11 +324,17 @@ function scheduleReconnect(): void {
   setTimeout(() => connectToLiveKit().catch(console.error), delay);
 }
 
-// Map to track pending job assignments
-const pendingAssignments = new Map<string, {
-  resolve: (assignment: proto.JobAssignment) => void;
-  reject: (error: Error) => void;
-}>();
+// Track pending jobs - we store the accept args we send in availability response
+// so we can use them when we get the assignment
+interface PendingJob {
+  job: Job;
+  acceptArgs: {
+    name: string;
+    identity: string;
+    metadata: string;
+  };
+}
+const pendingJobs = new Map<string, PendingJob>();
 
 async function handleServerMessage(msg: ServerMessage): Promise<void> {
   const message = msg.message;
@@ -352,6 +357,14 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
 
       log('Job availability request', { jobId: job.id, roomName: job.room?.name });
 
+      // Store the accept args for when we get the assignment
+      const acceptArgs = {
+        name: AGENT_NAME,
+        identity: `${AGENT_NAME}-${process.pid}`,
+        metadata: JSON.stringify({ singleProcess: true }),
+      };
+      pendingJobs.set(job.id, { job, acceptArgs });
+
       // Always accept for now (single instance)
       const response = new WorkerMessage({
         message: {
@@ -359,9 +372,9 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           value: {
             jobId: job.id,
             available: true,
-            participantIdentity: `${AGENT_NAME}-${process.pid}`,
-            participantName: AGENT_NAME,
-            participantMetadata: JSON.stringify({ singleProcess: true }),
+            participantIdentity: acceptArgs.identity,
+            participantName: acceptArgs.name,
+            participantMetadata: acceptArgs.metadata,
           },
         },
       });
@@ -381,15 +394,19 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         return;
       }
 
+      // Get the pending job info (we stored it when we responded to availability)
+      const pending = pendingJobs.get(jobId);
+      pendingJobs.delete(jobId);
+
       // Run the job in-process
       runJobInProcess({
         job: assignment.job,
         url: assignment.url || LIVEKIT_URL,
         token: assignment.token || '',
-        acceptArgs: {
+        acceptArgs: pending?.acceptArgs || {
           name: AGENT_NAME,
-          identity: assignment.participantIdentity || `${AGENT_NAME}-${process.pid}`,
-          metadata: assignment.participantMetadata || '',
+          identity: `${AGENT_NAME}-${process.pid}`,
+          metadata: '',
         },
       }).catch((error) => {
         log('Job execution failed', { jobId, error: String(error) });

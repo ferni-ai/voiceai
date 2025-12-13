@@ -1,0 +1,21 @@
+# buf.yaml - Protocol buffer configuration
+# https://buf.build/docs/configuration/v2/buf-yaml
+
+version: v2
+
+modules:
+  - path: .
+    name: buf.build/ferni-ai/proto
+
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX  # We use v1, v2 in package names
+
+breaking:
+  use:
+    - FILE
+
+deps:
+  - buf.build/googleapis/googleapis

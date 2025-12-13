@@ -29,6 +29,9 @@
  * See src/agents/LOADING-ARCHITECTURE.md for details.
  */
 
+// Make this file a module (required for top-level await)
+export {};
+
 // Choose worker mode based on environment
 const useSingleProcess = process.env.USE_SINGLE_PROCESS !== 'false';
 
