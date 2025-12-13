@@ -577,25 +577,32 @@ export class BreathDetector {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, BreathDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const breathDetectorRegistry = createSessionRegistry(
+  (sessionId: string) => new BreathDetector(),
+  { name: 'BreathDetector', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(breathDetectorRegistry);
 
 export function getBreathDetector(sessionId: string): BreathDetector {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new BreathDetector());
-  }
-  return instances.get(sessionId)!;
+  return breathDetectorRegistry.get(sessionId);
 }
 
 export function resetBreathDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  breathDetectorRegistry.reset(sessionId);
 }
 
 export function resetAllBreathDetectors(): void {
-  instances.clear();
+  breathDetectorRegistry.resetAll();
+}
+
+export function getActiveBreathDetectorCount(): number {
+  return breathDetectorRegistry.getActiveCount();
 }
 
 export default BreathDetector;

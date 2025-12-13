@@ -486,25 +486,32 @@ export class EnergyDynamicsTracker {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, EnergyDynamicsTracker>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const energyDynamicsRegistry = createSessionRegistry(
+  (sessionId: string) => new EnergyDynamicsTracker(),
+  { name: 'EnergyDynamics', cleanup: (tracker) => tracker.reset(), verbose: false }
+);
+
+registerGlobalRegistry(energyDynamicsRegistry);
 
 export function getEnergyDynamicsTracker(sessionId: string): EnergyDynamicsTracker {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new EnergyDynamicsTracker());
-  }
-  return instances.get(sessionId)!;
+  return energyDynamicsRegistry.get(sessionId);
 }
 
 export function resetEnergyDynamicsTracker(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  energyDynamicsRegistry.reset(sessionId);
 }
 
 export function resetAllEnergyDynamicsTrackers(): void {
-  instances.clear();
+  energyDynamicsRegistry.resetAll();
+}
+
+export function getActiveEnergyDynamicsCount(): number {
+  return energyDynamicsRegistry.getActiveCount();
 }
 
 export default EnergyDynamicsTracker;

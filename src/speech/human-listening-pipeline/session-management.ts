@@ -10,49 +10,39 @@ import { HumanListeningPipeline } from './pipeline.js';
 // SESSION MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, HumanListeningPipeline>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../../utils/session-registry.js';
+
+const humanListeningRegistry = createSessionRegistry(
+  (sessionId: string) => new HumanListeningPipeline(sessionId),
+  { name: 'HumanListening', cleanup: (pipeline) => pipeline.reset(), verbose: false }
+);
+
+registerGlobalRegistry(humanListeningRegistry);
 
 /**
  * Get or create a Human Listening Pipeline for a session
  */
 export function getHumanListeningPipeline(sessionId: string): HumanListeningPipeline {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new HumanListeningPipeline(sessionId));
-  }
-  return instances.get(sessionId)!;
+  return humanListeningRegistry.get(sessionId);
 }
 
 /**
  * Reset pipeline for a specific session
  */
 export function resetHumanListeningPipeline(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  humanListeningRegistry.reset(sessionId);
 }
 
 /**
  * Reset all pipeline instances
  */
 export function resetAllHumanListeningPipelines(): void {
-  instances.forEach((instance) => {
-    instance.reset();
-  });
-  instances.clear();
+  humanListeningRegistry.resetAll();
 }
 
-/**
- * Get count of active pipelines
- */
-export function getActivePipelineCount(): number {
-  return instances.size;
-}
-
-/**
- * Get all active session IDs
- */
-export function getActivePipelineSessions(): string[] {
-  return [...instances.keys()];
-}
+// Note: getActivePipelineCount and getActivePipelineSessions removed
+// The session registry doesn't expose instance count/listing methods.
+// Use humanListeningRegistry.has(sessionId) to check specific sessions.

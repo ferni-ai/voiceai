@@ -1370,6 +1370,17 @@ class VoiceAIApp {
       void marketplaceUI.open();
     });
 
+    // 🌱 Garden Widget - Plant seed flow integration
+    window.addEventListener('ferni:open-plant-seed', ((e: CustomEvent) => {
+      const detail = e.detail as { type: 'one-time' | 'monthly' } | undefined;
+      const userId = appState.get('deviceId');
+      if (userId) {
+        // Open Ferni Fund modal - user can choose contribution type
+        log.debug('Plant seed requested', { type: detail?.type });
+        void ferniFundUI.open(userId);
+      }
+    }) as EventListener);
+
     // 💬 Dev Panel transcript injection
     window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
       const { type, text, isFinal } = e.detail;

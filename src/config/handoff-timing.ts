@@ -18,7 +18,16 @@
 
 /**
  * Design system duration values (in ms)
- * These match the values in animation-constants.ts
+ *
+ * These values are intentionally duplicated from frontend-typescript/src/config/animation-constants.ts
+ * because this backend config cannot import from the frontend package.
+ *
+ * IMPORTANT: If you change these values, also update:
+ * - frontend-typescript/src/config/animation-constants.ts
+ * - design-system/tokens/animation.json
+ *
+ * @see frontend-typescript/src/config/animation-constants.ts for the canonical source
+ * @see design-system/tokens/animation.json for the design tokens
  */
 const DURATION = {
   MICRO: 50,

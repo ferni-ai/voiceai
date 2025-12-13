@@ -1,5 +1,8 @@
 /**
- * Wellbeing API Routes
+ * @deprecated This Express Router is NOT MOUNTED in production.
+ * Use handleWellbeingRoutes from './wellbeing-handler.js' instead.
+ *
+ * Wellbeing API Routes (DEPRECATED)
  *
  * REST API endpoints for the wellbeing dashboard:
  * - GET /api/wellbeing/dashboard - Full dashboard data

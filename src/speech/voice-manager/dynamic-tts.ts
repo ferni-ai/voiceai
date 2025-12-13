@@ -9,7 +9,7 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { getCurrentAgent } from '../../tools/handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
-import { getVoiceManager, normalizeAgentId } from './manager.js';
+import { normalizeAgentId } from './manager.js';
 import type { VoiceAgentId } from './types.js';
 
 // ============================================================================
@@ -29,7 +29,6 @@ export class DynamicTTS extends tts.TTS {
   readonly label = 'dynamic-cartesia-tts';
 
   private ttsInstances = new Map<VoiceAgentId, cartesia.TTS>();
-  private voiceManager: ReturnType<typeof getVoiceManager>;
 
   constructor() {
     // Call parent with sample rate and channels
@@ -55,8 +54,6 @@ export class DynamicTTS extends tts.TTS {
         })
       );
     }
-
-    this.voiceManager = getVoiceManager();
 
     getLogger().info({ personas: personaIds }, 'DynamicTTS initialized with all persona voices');
   }

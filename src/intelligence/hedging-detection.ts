@@ -446,25 +446,32 @@ export class HedgingDetector {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, HedgingDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const hedgingDetectorRegistry = createSessionRegistry(
+  (sessionId: string) => new HedgingDetector(),
+  { name: 'HedgingDetector', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(hedgingDetectorRegistry);
 
 export function getHedgingDetector(sessionId: string): HedgingDetector {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new HedgingDetector());
-  }
-  return instances.get(sessionId)!;
+  return hedgingDetectorRegistry.get(sessionId);
 }
 
 export function resetHedgingDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  hedgingDetectorRegistry.reset(sessionId);
 }
 
 export function resetAllHedgingDetectors(): void {
-  instances.clear();
+  hedgingDetectorRegistry.resetAll();
+}
+
+export function getActiveHedgingDetectorCount(): number {
+  return hedgingDetectorRegistry.getActiveCount();
 }
 
 export default HedgingDetector;

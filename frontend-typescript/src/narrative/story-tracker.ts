@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 import { type StoryBeat, type NarrativeContext } from './narrative-director.js';
 import { type StoryArcDefinition } from './story-arcs.js';
 
@@ -483,18 +484,66 @@ export class StoryTracker {
   }
   
   /**
-   * Sync to remote (Firestore)
+   * Sync to remote via backend API
    * Called externally when network available
+   * 
+   * Backend route: PUT /api/story-journey/:userId
    */
   async syncToRemote(): Promise<void> {
-    if (!this.syncEnabled || !this.pendingSync) return;
+    if (!this.syncEnabled || !this.pendingSync || !this.userId) return;
     
-    // TODO: Implement Firestore sync
-    // const docRef = doc(db, 'story_journeys', this.userId);
-    // await setDoc(docRef, this.journey, { merge: true });
+    try {
+      // Use PUT to update full journey - backend expects this at /api/story-journey/:userId
+      const response = await fetch(`/api/story-journey/${this.userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': this.userId,
+        },
+        body: JSON.stringify(this.journey),
+      });
+      
+      if (response.ok) {
+        this.pendingSync = false;
+        log.debug('Synced to remote');
+      } else {
+        log.warn('Remote sync failed', { status: response.status });
+        // Keep pendingSync = true to retry later
+      }
+    } catch (error) {
+      log.warn('Remote sync error', { error });
+      // Keep pendingSync = true to retry later
+    }
+  }
+  
+  /**
+   * Load from remote via backend API
+   * Called on init when user is authenticated
+   * 
+   * Backend route: GET /api/story-journey/:userId
+   */
+  async loadFromRemote(): Promise<boolean> {
+    if (!this.syncEnabled || !this.userId) return false;
     
-    this.pendingSync = false;
-    log.debug('Synced to remote');
+    try {
+      const response = await apiGet<StoryJourney>(`/api/story-journey/${this.userId}`);
+      
+      if (response.ok && response.data) {
+        // Only use remote data if it's newer than local
+        const remoteDate = response.data.lastInteractionAt || 0;
+        const localDate = this.journey.lastInteractionAt || 0;
+        
+        if (remoteDate > localDate) {
+          this.journey = { ...this.journey, ...response.data };
+          this.save();
+          log.info('Loaded journey from remote');
+          return true;
+        }
+      }
+    } catch (error) {
+      log.debug('Remote load skipped', { error });
+    }
+    return false;
   }
   
   /**

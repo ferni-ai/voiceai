@@ -20,7 +20,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = createLogger({ module: 'HandoffContext' });
-const DEBUG_HANDOFF = process.env.DEBUG_HANDOFF === 'true';
+import { isDebugEnabled } from '../../config/feature-flags.js';
+
+// Use centralized feature flag system for debug toggle
+const DEBUG_HANDOFF = isDebugEnabled('handoff');
 import {
   getCurrentAgent,
   suggestHandoff,

@@ -69,6 +69,10 @@ export interface FeatureFlags {
     handoff: boolean;
     /** Audio/prosody debug logging */
     audio: boolean;
+    /** Music player debug logging */
+    music: boolean;
+    /** iTunes API debug logging */
+    itunes: boolean;
   };
 
   /**
@@ -209,6 +213,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
     tools: false,
     handoff: false,
     audio: false,
+    music: false,
+    itunes: false,
   },
   experimental: {
     sessionContext: false,
@@ -278,6 +284,8 @@ const ENV_MAPPINGS: Record<string, string> = {
   DEBUG_TOOLS: 'debug.tools',
   DEBUG_HANDOFF: 'debug.handoff',
   DEBUG_AUDIO: 'debug.audio',
+  DEBUG_MUSIC: 'debug.music',
+  DEBUG_ITUNES: 'debug.itunes',
 
   // Humanization
   HUMANIZATION_ENABLED: 'humanization.enabled',

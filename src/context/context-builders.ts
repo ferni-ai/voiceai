@@ -2,6 +2,10 @@
  * Pure context-building helpers.
  *
  * These functions are deterministic and side-effect free.
+ * They transform user profile and conversation state into context strings
+ * for LLM prompt injection.
+ *
+ * @module context/context-builders
  */
 
 import {
@@ -11,7 +15,11 @@ import {
 } from '../personas/shared/index.js';
 import type { PersonaId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
-import type { ConversationState, EmotionResult, PhaseGuidance } from './types.js';
+import type { ConversationState, EmotionResult, HandoffRecord, PhaseGuidance } from './types.js';
+
+// ============================================================================
+// RELATIONSHIP CONTEXT
+// ============================================================================
 
 export function buildRelationshipContext(userProfile?: UserProfile): string {
   if (!userProfile) {
@@ -58,6 +66,10 @@ export function buildRelationshipContext(userProfile?: UserProfile): string {
   return sections.join('\n');
 }
 
+// ============================================================================
+// EMOTIONAL CONTEXT
+// ============================================================================
+
 export function buildEmotionalContext(
   userProfile: UserProfile | undefined,
   emotion?: EmotionResult,
@@ -90,6 +102,10 @@ export function buildEmotionalContext(
 
   return sections.join('\n');
 }
+
+// ============================================================================
+// TOPIC CONTEXT
+// ============================================================================
 
 export function buildTopicContext(
   userProfile: UserProfile | undefined,
@@ -132,9 +148,17 @@ function maybeAvoidTopics(userProfile?: UserProfile): string | undefined {
   return avoidTopics.length > 0 ? `Avoid: ${avoidTopics.join(', ')}` : undefined;
 }
 
+// ============================================================================
+// PHASE GUIDANCE
+// ============================================================================
+
 export function buildPhaseGuidance(guidance: PhaseGuidance): string {
   return `\nPhase: ${guidance.phase}\nVoice: ${guidance.voiceMode}\nFocus: ${guidance.focus}\nAsk: ${guidance.shouldAsk.slice(0, 2).join(' | ')}\nAvoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}\n`.trim();
 }
+
+// ============================================================================
+// CONTINUITY CONTEXT
+// ============================================================================
 
 export function buildContinuityContext(userProfile?: UserProfile): string {
   if (!userProfile || userProfile.totalConversations <= 1) {
@@ -170,48 +194,99 @@ export function buildContinuityContext(userProfile?: UserProfile): string {
   return sections.length > 0 ? `[CONTINUITY]\n${sections.join('\n')}` : '';
 }
 
-export function buildSharedContent(
-  options: {
-    userProfile?: UserProfile;
-    currentPersona: PersonaId;
-    previousPersona?: PersonaId;
-  },
-  injectionOptions?: {
-    isGreeting?: boolean;
-    isClosing?: boolean;
-    isHandoff?: boolean;
-    mentionTeammate?: string;
-    lastUserMessage?: string;
+// ============================================================================
+// HANDOFF CHAIN
+// ============================================================================
+
+/**
+ * Build a description of the handoff chain for context.
+ * Example: "Ferni → Peter (turn 5) → Maya (turn 12)"
+ */
+export function buildHandoffChainDescription(
+  handoffHistory: HandoffRecord[],
+  currentPersona?: PersonaId
+): string {
+  if (handoffHistory.length === 0) {
+    return currentPersona || '';
   }
+
+  const parts: string[] = [handoffHistory[0].fromPersona];
+
+  for (const handoff of handoffHistory) {
+    parts.push(`→ ${handoff.toPersona} (turn ${handoff.turnCount})`);
+  }
+
+  return parts.join(' ');
+}
+
+/**
+ * Get persona names that have been involved in this conversation.
+ */
+export function getInvolvedPersonas(
+  currentPersona: PersonaId,
+  handoffHistory: HandoffRecord[]
+): PersonaId[] {
+  const personas = new Set<PersonaId>();
+  personas.add(currentPersona);
+
+  for (const handoff of handoffHistory) {
+    personas.add(handoff.fromPersona);
+    personas.add(handoff.toPersona);
+  }
+
+  return Array.from(personas);
+}
+
+// ============================================================================
+// SHARED CONTENT OPTIONS
+// ============================================================================
+
+export interface SharedContentOptions {
+  userProfile?: UserProfile;
+  currentPersona: PersonaId;
+  previousPersona?: PersonaId;
+  /** Full handoff history for richer context */
+  handoffHistory?: HandoffRecord[];
+}
+
+export interface InjectionOptions {
+  isGreeting?: boolean;
+  isClosing?: boolean;
+  isHandoff?: boolean;
+  mentionTeammate?: string;
+  lastUserMessage?: string;
+}
+
+// ============================================================================
+// SHARED CONTENT BUILDING
+// ============================================================================
+
+export function buildSharedContent(
+  options: SharedContentOptions,
+  injectionOptions?: InjectionOptions
 ): InjectedContent {
-  const { userProfile, currentPersona, previousPersona } = options;
+  const { userProfile, currentPersona, previousPersona, handoffHistory } = options;
 
-  const sharedContext = {
-    currentPersona,
-    userName: userProfile?.name,
-    relationshipStage: userProfile?.relationshipStage,
-    conversationCount: userProfile?.totalConversations,
-    lastConversationSummary: userProfile?.lastConversationSummary,
-    previousPersona,
-    daysSinceLastContact: undefined as number | undefined,
-    activeLifeEvents: undefined as
-      | Array<{
-          type: string;
-          title: string;
-          status: string;
-          date?: Date;
-          emotionalSignificance: string;
-        }>
-      | undefined,
-    recentLifeMilestones: undefined as string[] | undefined,
-  };
-
+  // Calculate derived values
+  let daysSinceLastContact: number | undefined;
   if (userProfile?.lastContact) {
     const lastContact = new Date(userProfile.lastContact);
-    sharedContext.daysSinceLastContact = Math.floor(
+    daysSinceLastContact = Math.floor(
       (Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
     );
   }
+
+  // Build active life events
+  let activeLifeEvents:
+    | Array<{
+        type: string;
+        title: string;
+        status: string;
+        date?: Date;
+        emotionalSignificance: string;
+      }>
+    | undefined;
+  let recentLifeMilestones: string[] | undefined;
 
   if (userProfile?.lifeEvents && userProfile.lifeEvents.length > 0) {
     const activeEvents = userProfile.lifeEvents.filter(
@@ -219,7 +294,7 @@ export function buildSharedContent(
     );
 
     if (activeEvents.length > 0) {
-      sharedContext.activeLifeEvents = activeEvents.map((e) => ({
+      activeLifeEvents = activeEvents.map((e) => ({
         type: e.type,
         title: e.title,
         status: e.status,
@@ -237,26 +312,39 @@ export function buildSharedContent(
     });
 
     if (recentCompletions.length > 0) {
-      sharedContext.recentLifeMilestones = recentCompletions.map((e) => e.title);
+      recentLifeMilestones = recentCompletions.map((e) => e.title);
     }
   }
+
+  // Build the shared context object matching SharedContentContext interface
+  const sharedContext = {
+    currentPersona,
+    userName: userProfile?.name,
+    relationshipStage: userProfile?.relationshipStage,
+    conversationCount: userProfile?.totalConversations,
+    lastConversationSummary: userProfile?.lastConversationSummary,
+    previousPersona,
+    daysSinceLastContact,
+    activeLifeEvents,
+    recentLifeMilestones,
+    // Add handoff chain metadata
+    handoffChain:
+      handoffHistory && handoffHistory.length > 0
+        ? buildHandoffChainDescription(handoffHistory, currentPersona)
+        : undefined,
+    involvedPersonas:
+      handoffHistory && handoffHistory.length > 0
+        ? getInvolvedPersonas(currentPersona, handoffHistory)
+        : undefined,
+    handoffCount: handoffHistory?.length,
+  };
 
   return injectSharedContent(sharedContext, injectionOptions);
 }
 
 export function getFormattedSharedContent(
-  options: {
-    userProfile?: UserProfile;
-    currentPersona: PersonaId;
-    previousPersona?: PersonaId;
-  },
-  injectionOptions?: {
-    isGreeting?: boolean;
-    isClosing?: boolean;
-    isHandoff?: boolean;
-    mentionTeammate?: string;
-    lastUserMessage?: string;
-  }
+  options: SharedContentOptions,
+  injectionOptions?: InjectionOptions
 ): string {
   return formatForPrompt(buildSharedContent(options, injectionOptions));
 }

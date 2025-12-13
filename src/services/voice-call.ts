@@ -5,10 +5,18 @@
  * Also handles incoming call routing to LiveKit agents.
  */
 
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Voice registry for consistent voice ID resolution
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
+
+// Circuit breaker for Cartesia TTS - prevents hammering a failing TTS service
+const cartesiaCircuitBreaker = getCircuitBreaker('cartesia-tts-voice-call', {
+  failureThreshold: 5,
+  resetTimeout: 60_000, // 1 minute
+  successThreshold: 2,
+});
 
 // Environment
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
@@ -62,28 +70,30 @@ export async function generatePersonaVoice(
   const voiceId = getVoiceId(personaId);
 
   try {
-    const response = await fetch('https://api.cartesia.ai/tts/bytes', {
-      method: 'POST',
-      headers: {
-        'X-API-Key': CARTESIA_API_KEY,
-        'Cartesia-Version': '2024-06-10',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model_id: 'sonic-english',
-        transcript: text,
-        voice: {
-          mode: 'id',
-          id: voiceId,
+    const response = await cartesiaCircuitBreaker.execute(() =>
+      fetch('https://api.cartesia.ai/tts/bytes', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': CARTESIA_API_KEY,
+          'Cartesia-Version': '2024-06-10',
+          'Content-Type': 'application/json',
         },
-        output_format: {
-          container: 'mp3',
-          encoding: 'mp3',
-          sample_rate: 44100, // Standard CD quality - required for proper playback
-        },
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
+        body: JSON.stringify({
+          model_id: 'sonic-english',
+          transcript: text,
+          voice: {
+            mode: 'id',
+            id: voiceId,
+          },
+          output_format: {
+            container: 'mp3',
+            encoding: 'mp3',
+            sample_rate: 44100, // Standard CD quality - required for proper playback
+          },
+        }),
+        signal: AbortSignal.timeout(30000),
+      })
+    );
 
     if (!response.ok) {
       const error = await response.text();

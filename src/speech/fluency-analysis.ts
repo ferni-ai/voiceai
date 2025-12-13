@@ -444,25 +444,32 @@ export class FluencyAnalyzer {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, FluencyAnalyzer>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const fluencyAnalyzerRegistry = createSessionRegistry(
+  (sessionId: string) => new FluencyAnalyzer(),
+  { name: 'FluencyAnalyzer', cleanup: (analyzer) => analyzer.reset(), verbose: false }
+);
+
+registerGlobalRegistry(fluencyAnalyzerRegistry);
 
 export function getFluencyAnalyzer(sessionId: string): FluencyAnalyzer {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new FluencyAnalyzer());
-  }
-  return instances.get(sessionId)!;
+  return fluencyAnalyzerRegistry.get(sessionId);
 }
 
 export function resetFluencyAnalyzer(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  fluencyAnalyzerRegistry.reset(sessionId);
 }
 
 export function resetAllFluencyAnalyzers(): void {
-  instances.clear();
+  fluencyAnalyzerRegistry.resetAll();
+}
+
+export function getActiveFluencyAnalyzerCount(): number {
+  return fluencyAnalyzerRegistry.getActiveCount();
 }
 
 export default FluencyAnalyzer;

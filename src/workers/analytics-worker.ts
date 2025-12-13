@@ -11,13 +11,20 @@
  * - Update agent evolution metrics
  * - Track emotional patterns
  * - Generate learning signals
- *
- * NOTE: Currently uses stub implementations. Will be connected to
- * actual analytics services as they're migrated to this async pattern.
  */
 
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import type { EventPayload } from '../services/async-events/index.js';
+
+// Analytics service imports
+import {
+  getCommunityInsights,
+  saveCommunityInsightsToFirestore,
+} from '../intelligence/community-insights.js';
+import {
+  getAgentEvolution,
+  saveAgentEvolutionToFirestore,
+} from '../intelligence/agent-evolution.js';
 
 // ============================================================================
 // ANALYTICS WORKER
@@ -29,7 +36,7 @@ export class AnalyticsWorker extends LocalWorker {
   private emotionBatch: EventPayload[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
 
-  // In-memory stats (will be persisted to analytics store in future)
+  // In-memory stats
   private turnCount = 0;
   private interactionCount = 0;
   private emotionCount = 0;
@@ -118,7 +125,7 @@ export class AnalyticsWorker extends LocalWorker {
 
   /**
    * Flush interaction batch to analytics store.
-   * TODO: Connect to actual tool-usage-analytics when refactored
+   * Records engagement signals for community learning.
    */
   private async flushInteractionBatch(): Promise<void> {
     if (this.interactionBatch.length === 0) return;
@@ -128,32 +135,59 @@ export class AnalyticsWorker extends LocalWorker {
 
     this.log.debug({ count: batch.length }, 'Flushing interaction batch');
 
-    // Group by user for efficient storage
-    const byUser = new Map<string, EventPayload[]>();
-    for (const event of batch) {
-      const userId = event.userId || 'anonymous';
-      const existing = byUser.get(userId) || [];
-      existing.push(event);
-      byUser.set(userId, existing);
+    try {
+      const communityInsights = getCommunityInsights();
+
+      // Group by user for efficient storage
+      const byUser = new Map<string, EventPayload[]>();
+      for (const event of batch) {
+        const userId = event.userId || 'anonymous';
+        const existing = byUser.get(userId) || [];
+        existing.push(event);
+        byUser.set(userId, existing);
+      }
+
+      // Record engagement signals to community insights
+      for (const [, events] of byUser) {
+        for (const event of events) {
+          const personaId = event.personaId;
+          const responseType = event.data.responseType as string || 'general';
+          const topic = event.data.topic as string || 'unknown';
+          const engagementScore = event.data.engagementScore as number ?? 0.5;
+
+          if (personaId) {
+            communityInsights.recordEngagementSignal({
+              personaId,
+              responseType,
+              topic,
+              engagementScore,
+              timestamp: new Date(),
+            });
+          }
+        }
+      }
+
+      // Persist analytics
+      await saveCommunityInsightsToFirestore();
+
+      this.interactionCount += batch.length;
+
+      this.log.debug(
+        {
+          users: byUser.size,
+          interactions: batch.length,
+          totalInteractions: this.interactionCount,
+        },
+        'Interaction batch flushed'
+      );
+    } catch (error) {
+      this.log.warn({ error: String(error) }, 'Failed to flush interaction batch');
     }
-
-    // For now, just count and log
-    // Future: Store aggregated interactions to analytics store
-    this.interactionCount += batch.length;
-
-    this.log.debug(
-      {
-        users: byUser.size,
-        interactions: batch.length,
-        totalInteractions: this.interactionCount,
-      },
-      'Interaction batch flushed (stub)'
-    );
   }
 
   /**
-   * Flush emotion batch to emotion tracking.
-   * TODO: Connect to community-insights when refactored
+   * Flush emotion batch to community insights.
+   * Records response strategy signals for collective learning.
    */
   private async flushEmotionBatch(): Promise<void> {
     if (this.emotionBatch.length === 0) return;
@@ -163,22 +197,47 @@ export class AnalyticsWorker extends LocalWorker {
 
     this.log.debug({ count: batch.length }, 'Flushing emotion batch');
 
-    // For now, just count and log
-    // Future: Use initializeCommunityInsights, record emotional patterns
-    this.emotionCount += batch.length;
+    try {
+      const communityInsights = getCommunityInsights();
 
-    this.log.debug(
-      {
-        emotions: batch.length,
-        totalEmotions: this.emotionCount,
-      },
-      'Emotion batch flushed (stub)'
-    );
+      for (const event of batch) {
+        const emotion = event.data.emotion as string | undefined;
+        const topic = event.data.topic as string || 'general';
+        const personaId = event.personaId;
+        const engagementScore = event.data.engagementScore as number ?? 0.5;
+
+        if (emotion && personaId) {
+          // Record as engagement signal (emotion detection is a type of engagement)
+          communityInsights.recordEngagementSignal({
+            personaId,
+            responseType: `emotion_${emotion}`,
+            topic,
+            engagementScore,
+            timestamp: new Date(),
+          });
+        }
+      }
+
+      // Persist community insights
+      await saveCommunityInsightsToFirestore();
+
+      this.emotionCount += batch.length;
+
+      this.log.debug(
+        {
+          emotions: batch.length,
+          totalEmotions: this.emotionCount,
+        },
+        'Emotion batch flushed'
+      );
+    } catch (error) {
+      this.log.warn({ error: String(error) }, 'Failed to flush emotion batch');
+    }
   }
 
   /**
    * Handle pattern detection for agent evolution.
-   * TODO: Connect to agent-evolution when refactored
+   * Creates adjustments from detected patterns to improve AI behavior.
    */
   private async handlePatternDetected(
     userId: string | undefined,
@@ -187,22 +246,47 @@ export class AnalyticsWorker extends LocalWorker {
   ): Promise<void> {
     this.log.debug({ pattern: data.pattern, userId }, 'Processing pattern detection');
 
-    // For now, just log
-    // Future: Use initializeAgentEvolution, record patterns
+    try {
+      const agentEvolution = getAgentEvolution();
 
-    this.log.debug(
-      {
-        pattern: data.pattern,
-        personaId,
-        frequency: data.frequency,
-      },
-      'Pattern recorded (stub)'
-    );
+      if (personaId && data.bestStrategy) {
+        // Create adjustment from detected pattern
+        agentEvolution.createAdjustmentFromCommunityPattern(personaId, {
+          context: {
+            userEmotion: data.userEmotion as string | undefined,
+            topic: data.topic as string | undefined,
+            relationshipStage: data.relationshipStage as string | undefined,
+          },
+          bestStrategy: data.bestStrategy as string,
+          improvement: data.improvement as number ?? 0.1,
+          confidence: data.confidence as number ?? 0.5,
+        });
+      }
+
+      // Update story rankings for this persona
+      if (personaId) {
+        agentEvolution.updateStoryRankings(personaId);
+      }
+
+      // Persist changes
+      await saveAgentEvolutionToFirestore();
+
+      this.log.debug(
+        {
+          pattern: data.pattern,
+          personaId,
+          bestStrategy: data.bestStrategy,
+        },
+        'Pattern recorded as adjustment'
+      );
+    } catch (error) {
+      this.log.warn({ error: String(error) }, 'Failed to handle pattern detection');
+    }
   }
 
   /**
    * Handle community insight for collective learning.
-   * TODO: Connect to community-insights when refactored
+   * Records response signals that improve responses across all users.
    */
   private async handleCommunityInsight(
     userId: string | undefined,
@@ -211,17 +295,34 @@ export class AnalyticsWorker extends LocalWorker {
   ): Promise<void> {
     this.log.debug({ insight: data.insight, userId }, 'Processing community insight');
 
-    // For now, just log
-    // Future: Record to community insights engine
+    try {
+      const communityInsights = getCommunityInsights();
 
-    this.log.debug(
-      {
-        insight: data.insight,
-        personaId,
-        sentiment: data.sentiment,
-      },
-      'Community insight recorded (stub)'
-    );
+      if (personaId && data.topic) {
+        // Record as engagement signal
+        communityInsights.recordEngagementSignal({
+          personaId,
+          responseType: data.responseType as string || 'insight',
+          topic: data.topic as string,
+          engagementScore: data.engagementScore as number ?? 0.7,
+          timestamp: new Date(),
+        });
+      }
+
+      // Persist changes
+      await saveCommunityInsightsToFirestore();
+
+      this.log.debug(
+        {
+          insight: data.insight,
+          personaId,
+          topic: data.topic,
+        },
+        'Community insight recorded'
+      );
+    } catch (error) {
+      this.log.warn({ error: String(error) }, 'Failed to handle community insight');
+    }
   }
 
   /**

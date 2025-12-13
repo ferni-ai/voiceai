@@ -643,22 +643,27 @@ export class FFTAnalyzerService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, FFTAnalyzerService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const fftAnalyzerRegistry = createSessionRegistry(
+  (sessionId: string) => new FFTAnalyzerService(sessionId),
+  { name: 'FFTAnalyzer', cleanup: (analyzer) => analyzer.reset(), verbose: false }
+);
+
+registerGlobalRegistry(fftAnalyzerRegistry);
 
 export function getFFTAnalyzer(sessionId: string): FFTAnalyzerService {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new FFTAnalyzerService(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return fftAnalyzerRegistry.get(sessionId);
 }
 
 export function resetFFTAnalyzer(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '📊 FFT analyzer service reset');
-  }
+  fftAnalyzerRegistry.reset(sessionId);
+  log.debug({ sessionId }, '📊 FFT analyzer service reset');
+}
+
+export function getActiveFFTAnalyzerCount(): number {
+  return fftAnalyzerRegistry.getActiveCount();
 }

@@ -443,25 +443,32 @@ export class VolumeDynamicsTracker {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, VolumeDynamicsTracker>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const volumeDynamicsRegistry = createSessionRegistry(
+  (sessionId: string) => new VolumeDynamicsTracker(),
+  { name: 'VolumeDynamics', cleanup: (tracker) => tracker.reset(), verbose: false }
+);
+
+registerGlobalRegistry(volumeDynamicsRegistry);
 
 export function getVolumeDynamicsTracker(sessionId: string): VolumeDynamicsTracker {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new VolumeDynamicsTracker());
-  }
-  return instances.get(sessionId)!;
+  return volumeDynamicsRegistry.get(sessionId);
 }
 
 export function resetVolumeDynamicsTracker(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  volumeDynamicsRegistry.reset(sessionId);
 }
 
 export function resetAllVolumeDynamicsTrackers(): void {
-  instances.clear();
+  volumeDynamicsRegistry.resetAll();
+}
+
+export function getActiveVolumeDynamicsCount(): number {
+  return volumeDynamicsRegistry.getActiveCount();
 }
 
 export default VolumeDynamicsTracker;

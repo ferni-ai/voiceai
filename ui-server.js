@@ -115,6 +115,21 @@ import { handleAppleRoutes, isAppleRoute } from './dist/api/apple-iap-routes.js'
 // Rate limiting and auth for sensitive endpoints
 import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
+// DDoS protection utilities
+import {
+  hardenServer,
+  handleHealthEndpoint,
+  handleSecurityMonitoring,
+  addRequestId,
+  getClientIp,
+  createOAuthStateManager,
+  registerDDoSAlertCallback,
+  startDDoSMonitoring,
+} from './dist/utils/ddos-protection.js';
+
+// Slack notifications for DDoS alerting
+import { notifyDDoSAlert } from './dist/services/slack-notifications.js';
+
 // API v1 Routes (new unified admin API)
 import { handleV1Routes } from './dist/api/v1/index.js';
 
@@ -172,8 +187,8 @@ const GOOGLE_CALENDAR_SCOPES = [
 ].join(' ');
 const GOOGLE_CALENDAR_TOKENS_FILE = path.join(process.cwd(), '.google-calendar-tokens.json');
 
-// Google Calendar OAuth state storage (temporary, for CSRF protection)
-const googleOAuthStates = new Map();
+// Google Calendar OAuth state storage (using DDoS-protected state manager)
+const googleOAuthStates = createOAuthStateManager(5 * 60 * 1000); // 5 minute expiry
 
 // Google Calendar token management
 function loadGoogleCalendarUsers() {
@@ -682,6 +697,9 @@ function getCorsOrigin(req) {
 
 // HTTP server
 const server = http.createServer(async (req, res) => {
+  // Add request ID for tracing
+  const requestId = addRequestId(req, res);
+
   // Enable CORS with origin validation
   const corsOrigin = getCorsOrigin(req);
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
@@ -700,6 +718,20 @@ const server = http.createServer(async (req, res) => {
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
+
+  // ============================================================================
+  // HEALTH ENDPOINT WITH RATE LIMITING (DDoS Protection)
+  // ============================================================================
+  if (handleHealthEndpoint(req, res, pathname, 'bogle-ui')) {
+    return;
+  }
+
+  // ============================================================================
+  // SECURITY MONITORING ENDPOINT (Admin Only)
+  // ============================================================================
+  if (handleSecurityMonitoring(req, res, pathname)) {
+    return;
+  }
 
   // ============================================================================
   // GLOBAL RATE LIMITING (applied to all API routes)
@@ -1572,20 +1604,17 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Generate state for CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
-    googleOAuthStates.set(state, {
+    // Generate state for CSRF protection (using DDoS-protected state manager)
+    const state = googleOAuthStates.create({
       user_id: userId || 'anonymous',
       return_url: returnUrl || '/',
-      created_at: Date.now(),
     });
 
-    // Clean up old states (older than 10 minutes)
-    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
-    for (const [key, value] of googleOAuthStates.entries()) {
-      if (value.created_at < tenMinutesAgo) {
-        googleOAuthStates.delete(key);
-      }
+    if (!state) {
+      console.error('❌ Google Calendar OAuth: State limit reached (possible attack)');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
+      return;
     }
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -1616,15 +1645,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Verify state
-    const stateData = googleOAuthStates.get(state);
+    // Verify state (one-time use - automatically deleted on consume)
+    const stateData = googleOAuthStates.consume(state);
     if (!stateData) {
-      console.error('❌ Google Calendar OAuth: Invalid state');
+      console.error('❌ Google Calendar OAuth: Invalid or expired state');
       res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
       res.end();
       return;
     }
-    googleOAuthStates.delete(state);
 
     try {
       // Exchange code for tokens
@@ -2916,6 +2944,17 @@ const server = http.createServer(async (req, res) => {
   serveStaticFile(pathname, res, req);
 });
 
+// Harden server with DDoS protection (timeouts, connection limits)
+hardenServer(server);
+
+// Register DDoS alerting to Slack
+registerDDoSAlertCallback(async (details) => {
+  await notifyDDoSAlert(details);
+});
+
+// Start automatic DDoS monitoring (checks every 30s, alerts to Slack)
+const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -2923,6 +2962,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`  📍 Server: http://0.0.0.0:${PORT}`);
   console.log(`  🔗 LiveKit: ${LIVEKIT_URL}`);
+  console.log('  🛡️  DDoS Protection: ENABLED (Slack alerts active)');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 

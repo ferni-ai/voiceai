@@ -251,7 +251,7 @@ function checkStreakMilestones(): void {
     const milestoneId = `streak-${days}`;
 
     if (state.currentStreak === days && !state.awardedMilestones.includes(milestoneId)) {
-      const rewardKey = `streak${days}` as keyof typeof SEED_REWARDS;
+      const rewardKey = `streak${days}`;
       const reward = SEED_REWARDS[rewardKey];
 
       if (reward) {

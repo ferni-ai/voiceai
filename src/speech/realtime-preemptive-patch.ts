@@ -415,22 +415,27 @@ export function hookRealtimePreemptive(
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, RealtimePreemptiveProcessor>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const realtimePreemptiveRegistry = createSessionRegistry(
+  (sessionId: string) => new RealtimePreemptiveProcessor(sessionId),
+  { name: 'RealtimePreemptive', cleanup: (processor) => processor.reset(), verbose: false }
+);
+
+registerGlobalRegistry(realtimePreemptiveRegistry);
 
 export function getRealtimePreemptiveProcessor(sessionId: string): RealtimePreemptiveProcessor {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new RealtimePreemptiveProcessor(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return realtimePreemptiveRegistry.get(sessionId);
 }
 
 export function resetRealtimePreemptiveProcessor(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '⚡ Realtime preemptive processor reset');
-  }
+  realtimePreemptiveRegistry.reset(sessionId);
+  log.debug({ sessionId }, '⚡ Realtime preemptive processor reset');
+}
+
+export function getActiveRealtimePreemptiveCount(): number {
+  return realtimePreemptiveRegistry.getActiveCount();
 }

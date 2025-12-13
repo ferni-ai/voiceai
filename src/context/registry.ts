@@ -1,25 +1,73 @@
 /**
- * ContextManager registry (per-session singleton instances).
+ * ContextManager Registry
+ *
+ * Per-session singleton instances with automatic cleanup.
+ *
+ * Features:
+ * - Per-session singleton pattern
+ * - TTL-based automatic cleanup (30 min default)
+ * - Max cache size limit (1000 sessions default)
+ * - LRU eviction when cache is full
+ *
+ * @module context/registry
  */
 
 import { createSessionId, type SessionId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 import { ContextManager } from './context-manager.class.js';
 
-const contextManagers = new Map<SessionId, ContextManager>();
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
+/** Session TTL in milliseconds (30 minutes) */
+const SESSION_TTL_MS = 30 * 60 * 1000;
+
+/** Maximum number of cached context managers */
+const MAX_CACHE_SIZE = 1000;
+
+/** Cleanup interval in milliseconds (5 minutes) */
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+const contextManagers = new Map<SessionId, ContextManager>();
+const sessionTimestamps = new Map<SessionId, number>();
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Get or create a ContextManager for a session.
+ * Automatically updates the session's last-accessed timestamp.
+ */
 export function getContextManager(
   sessionId: string | SessionId,
   userProfile?: UserProfile
 ): ContextManager {
   const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
 
+  // Update timestamp (touch)
+  sessionTimestamps.set(brandedId, Date.now());
+
   let manager = contextManagers.get(brandedId);
 
   if (!manager) {
+    // Evict oldest if at capacity
+    if (contextManagers.size >= MAX_CACHE_SIZE) {
+      evictOldestSession();
+    }
+
     manager = new ContextManager(brandedId, userProfile);
     contextManagers.set(brandedId, manager);
+
+    getLogger().debug({ sessionId: brandedId }, 'Created new ContextManager');
   } else if (userProfile) {
     manager.setUserProfile(userProfile);
   }
@@ -27,20 +75,170 @@ export function getContextManager(
   return manager;
 }
 
+/**
+ * Check if a ContextManager exists for a session.
+ */
 export function hasContextManager(sessionId: string | SessionId): boolean {
   const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
   return contextManagers.has(brandedId);
 }
 
+/**
+ * Remove a specific session's ContextManager.
+ */
 export function removeContextManager(sessionId: string | SessionId): void {
   const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
-  contextManagers.delete(brandedId);
+
+  if (contextManagers.has(brandedId)) {
+    contextManagers.delete(brandedId);
+    sessionTimestamps.delete(brandedId);
+    getLogger().debug({ sessionId: brandedId }, 'Removed ContextManager');
+  }
 }
 
+/**
+ * Get the count of active context managers.
+ */
 export function getContextManagerCount(): number {
   return contextManagers.size;
 }
 
+/**
+ * Clear all context managers (useful for testing).
+ */
 export function clearAllContextManagers(): void {
+  const count = contextManagers.size;
   contextManagers.clear();
+  sessionTimestamps.clear();
+
+  if (count > 0) {
+    getLogger().debug({ count }, 'Cleared all ContextManagers');
+  }
+}
+
+/**
+ * Touch a session to update its last-accessed time.
+ * Useful when you want to keep a session alive without getting the manager.
+ */
+export function touchSession(sessionId: string | SessionId): void {
+  const brandedId = typeof sessionId === 'string' ? createSessionId(sessionId) : sessionId;
+
+  if (contextManagers.has(brandedId)) {
+    sessionTimestamps.set(brandedId, Date.now());
+  }
+}
+
+/**
+ * Get statistics about the registry.
+ */
+export function getRegistryStats(): {
+  activeCount: number;
+  maxSize: number;
+  ttlMs: number;
+  oldestSessionAgeMs: number | null;
+} {
+  let oldestAge: number | null = null;
+  const now = Date.now();
+
+  for (const timestamp of sessionTimestamps.values()) {
+    const age = now - timestamp;
+    if (oldestAge === null || age > oldestAge) {
+      oldestAge = age;
+    }
+  }
+
+  return {
+    activeCount: contextManagers.size,
+    maxSize: MAX_CACHE_SIZE,
+    ttlMs: SESSION_TTL_MS,
+    oldestSessionAgeMs: oldestAge,
+  };
+}
+
+// ============================================================================
+// CLEANUP
+// ============================================================================
+
+/**
+ * Start the automatic cleanup interval.
+ * Should be called during application startup.
+ */
+export function startRegistryCleanup(): void {
+  if (cleanupIntervalId !== null) {
+    return; // Already running
+  }
+
+  cleanupIntervalId = setInterval(() => {
+    cleanupExpiredSessions();
+  }, CLEANUP_INTERVAL_MS);
+
+  // Don't prevent process exit
+  if (cleanupIntervalId.unref) {
+    cleanupIntervalId.unref();
+  }
+
+  getLogger().debug('Started ContextManager registry cleanup interval');
+}
+
+/**
+ * Stop the automatic cleanup interval.
+ * Should be called during application shutdown.
+ */
+export function stopRegistryCleanup(): void {
+  if (cleanupIntervalId !== null) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+    getLogger().debug('Stopped ContextManager registry cleanup interval');
+  }
+}
+
+/**
+ * Manually trigger cleanup of expired sessions.
+ * Removes sessions that haven't been accessed within TTL.
+ */
+export function cleanupExpiredSessions(): number {
+  const now = Date.now();
+  const expiredIds: SessionId[] = [];
+
+  for (const [id, timestamp] of sessionTimestamps.entries()) {
+    if (now - timestamp > SESSION_TTL_MS) {
+      expiredIds.push(id);
+    }
+  }
+
+  for (const id of expiredIds) {
+    contextManagers.delete(id);
+    sessionTimestamps.delete(id);
+  }
+
+  if (expiredIds.length > 0) {
+    getLogger().debug({ count: expiredIds.length }, 'Cleaned up expired ContextManagers');
+  }
+
+  return expiredIds.length;
+}
+
+// ============================================================================
+// INTERNAL HELPERS
+// ============================================================================
+
+/**
+ * Evict the oldest (least recently accessed) session to make room for new ones.
+ */
+function evictOldestSession(): void {
+  let oldestId: SessionId | null = null;
+  let oldestTime = Infinity;
+
+  for (const [id, timestamp] of sessionTimestamps.entries()) {
+    if (timestamp < oldestTime) {
+      oldestTime = timestamp;
+      oldestId = id;
+    }
+  }
+
+  if (oldestId !== null) {
+    contextManagers.delete(oldestId);
+    sessionTimestamps.delete(oldestId);
+    getLogger().debug({ sessionId: oldestId }, 'Evicted oldest ContextManager (cache full)');
+  }
 }

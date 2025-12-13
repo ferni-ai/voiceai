@@ -22,7 +22,7 @@ export async function shutdownServices(): Promise<void> {
 
   // Clear context managers
   try {
-    const { clearAllContextManagers } = await import('../context/context-manager.js');
+    const { clearAllContextManagers } = await import('../context/index.js');
     clearAllContextManagers();
     getLogger().info('Cleared context managers');
   } catch (error) {

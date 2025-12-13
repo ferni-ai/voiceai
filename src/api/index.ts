@@ -9,12 +9,16 @@
 
 // Route handlers
 export { handleBrandRoutes } from './brand-routes.js';
+export { handleCameoAnalyticsRoutes } from './cameo-analytics-routes.js';
+export { handleCalendarRoutes } from './calendar-routes.js';
 export { handleCommandsRoutes } from './commands-routes.js';
 export { handleWidgetRoutes } from './widget-routes.js';
 export { handleDORARoutes } from './dora-routes.js';
 export { handleEngagementRoutes } from './engagement-routes.js';
 export { handleFeatureFlagsRoutes } from './feature-flags-routes.js';
+export { handleGardenRoutes } from './garden-routes.js';
 export { handleGDPRRoutes } from './gdpr-routes.js';
+export { handleHouseholdRoutes } from './household-routes.js';
 export {
   clearDashboardCache,
   getDashboardHtml,
@@ -27,9 +31,15 @@ export {
   handleDiagnosticsRoutes,
   setupHandoffDiagnosticsRoutes,
 } from './handoff-diagnostics.js';
+export { handleLandingIntelligenceRoutes } from './landing-intelligence-handler.js';
+export { handleLandingOptimizationRoutes } from './landing-optimization-handler.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleOptimizerRoutes } from './optimizer-routes.js';
+export { handleStoryJourneyRoutes } from './story-journey-routes.js';
 export { handleToolsAnalyticsRoutes } from './tools-analytics-routes.js';
+export { handleTrustExportRoutes } from './trust-export-routes.js';
+export { handleTrustJourneyRoutes } from './trust-journey-routes.js';
+export { handleTrustSystemsRoutes } from './trust-systems-routes.js';
 export { handlePerformanceRoutes } from './performance-routes.js';
 export {
   handleSubscriptionRequest,
@@ -37,6 +47,7 @@ export {
   routeSubscriptionRequest,
 } from './subscription-routes.js';
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
+export { handleWellbeingRoutes } from './wellbeing-handler.js';
 
 // Helpers
 export {

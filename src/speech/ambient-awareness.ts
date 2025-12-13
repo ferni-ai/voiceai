@@ -512,32 +512,39 @@ export class AmbientAwarenessService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const sessionInstances = new Map<string, AmbientAwarenessService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const ambientAwarenessRegistry = createSessionRegistry(
+  (sessionId: string) => new AmbientAwarenessService(),
+  { name: 'AmbientAwareness', cleanup: (service) => service.reset(), verbose: false }
+);
+
+registerGlobalRegistry(ambientAwarenessRegistry);
 
 /**
  * Get or create ambient awareness service for a session
  */
 export function getAmbientAwarenessService(sessionId: string): AmbientAwarenessService {
-  if (!sessionInstances.has(sessionId)) {
-    sessionInstances.set(sessionId, new AmbientAwarenessService());
-  }
-  return sessionInstances.get(sessionId)!;
+  return ambientAwarenessRegistry.get(sessionId);
 }
 
 /**
  * Reset ambient awareness for a session
  */
 export function resetAmbientAwareness(sessionId: string): void {
-  const instance = sessionInstances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    sessionInstances.delete(sessionId);
-  }
+  ambientAwarenessRegistry.reset(sessionId);
+}
+
+export function getActiveAmbientAwarenessCount(): number {
+  return ambientAwarenessRegistry.getActiveCount();
 }
 
 /**
  * Reset all instances
  */
 export function resetAllAmbientAwareness(): void {
-  sessionInstances.clear();
+  ambientAwarenessRegistry.resetAll();
 }

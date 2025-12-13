@@ -201,27 +201,41 @@ async function createSession(
 // ============================================================================
 
 /**
- * Run a full voice agent session with Phase 3 resource sharing.
+ * Run a full voice agent session with Phase 3 resource sharing + self-healing.
  */
 export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
   const jobId = ctx.job.id;
   const roomName = ctx.job.room?.name || 'unknown';
 
-  // Import E2E diagnostics
+  // Import E2E diagnostics and self-healing
   const { e2e } = await import('./shared/e2e-diagnostics.js');
+  const { withResilience, analyzeFailure, humanizeError } = await import(
+    '../services/self-healing/index.js'
+  );
+
+  // Track current phase for error diagnosis
+  let currentPhase: 'deps' | 'persona' | 'connect' | 'session' | 'greeting' | 'running' = 'deps';
 
   e2e.childEntry(jobId);
   process.stderr.write(`[voice-agent-entry] Starting session pid=${process.pid}\n`);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let session: any = null;
+
   try {
-    // Step 1: Load voice dependencies
+    // Step 1: Load voice dependencies (with retry)
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
-    await loadVoiceDeps();
+    await withResilience(loadVoiceDeps, {
+      maxRetries: 2,
+      baseDelay: 1000,
+      operationName: 'load-voice-deps',
+    });
     e2e.resourceLoaded('voice-dependencies', Date.now() - depsStart);
 
     // Step 2: Get persona (from cache or load locally)
+    currentPhase = 'persona';
     const metadata = ctx.job.metadata ? JSON.parse(ctx.job.metadata) : {};
     const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
 
@@ -242,37 +256,101 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.resourceLoaded(`persona:${personaId}`, Date.now() - personaStart);
     process.stderr.write(`[voice-agent-entry] Using persona: ${persona?.name || personaId}\n`);
 
-    // Step 3: Connect to room
+    // Step 3: Connect to room (with retry for transient network issues)
+    currentPhase = 'connect';
     e2e.sessionConnecting(roomName, ctx.job.participant?.identity || 'unknown');
     const connectStart = Date.now();
-    await connectToRoom(ctx);
-    e2e.sessionConnected(jobId, roomName, ctx.room.localParticipant?.identity || 'agent', Date.now() - connectStart);
+    await withResilience(() => connectToRoom(ctx), {
+      maxRetries: 3,
+      baseDelay: 500,
+      maxDelay: 5000,
+      operationName: 'room-connect',
+      onRetry: (attempt, error) => {
+        e2e.warn('SESSION', `Room connect retry (attempt ${attempt})`, {
+          error: error.message,
+          roomName,
+        });
+      },
+    });
+    e2e.sessionConnected(
+      jobId,
+      roomName,
+      ctx.room.localParticipant?.identity || 'agent',
+      Date.now() - connectStart
+    );
 
     // Step 4: Create and start session
+    currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
     const systemPrompt =
       cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
-    const { session, agent } = await createSession(persona, systemPrompt);
+    const created = await createSession(persona, systemPrompt);
+    session = created.session;
 
-    await session.start({ agent, room: ctx.room });
+    await session.start({ agent: created.agent, room: ctx.room });
     e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
     e2e.sessionStarted(jobId, personaId);
     process.stderr.write(`[voice-agent-entry] Session started in ${Date.now() - startTime}ms!\n`);
 
     // Step 5: Say greeting
+    currentPhase = 'greeting';
     const { getWarmGreeting } = await import('./shared/warm-greeting.js');
     await session.say(
       getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?"
     );
+
+    // Running normally
+    currentPhase = 'running';
 
     // Wait for disconnect
     await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
-    e2e.captureError('SESSION', errObj, { jobId, roomName, phase: 'entry' });
-    process.stderr.write(`[voice-agent-entry] ERROR: ${error}\n`);
+    e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
+    process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
+
+    // Run AI diagnosis - map phase to valid stage type
+    const stageMap: Record<typeof currentPhase, 'unknown' | 'session' | 'entry'> = {
+      deps: 'entry',
+      persona: 'entry',
+      connect: 'session',
+      session: 'session',
+      greeting: 'session',
+      running: 'session',
+    };
+    try {
+      const diagnosis = await analyzeFailure([errObj.message, errObj.stack || ''], {
+        jobId,
+        stage: stageMap[currentPhase],
+        timing: { totalMs: Date.now() - startTime },
+        errorType: errObj.name,
+        errorMessage: errObj.message,
+      });
+
+      e2e.custom('DIAGNOSIS', `AI analysis for session ${jobId}`, {
+        phase: currentPhase,
+        rootCause: diagnosis.rootCause,
+        confidence: diagnosis.confidence,
+        autoFixable: diagnosis.autoFixable,
+      });
+
+      // If session is connected, explain to user what happened
+      if (session && ctx.room.isConnected && diagnosis.humanExplanation) {
+        const humanized = humanizeError(errObj);
+        if (humanized.shouldNotifyUser) {
+          try {
+            await session.say(humanized.userMessage);
+          } catch {
+            /* can't speak, just log */
+          }
+        }
+      }
+    } catch {
+      /* diagnosis is best-effort */
+    }
+
     // Fallback: connect and wait
     try {
       if (!ctx.room.isConnected) await ctx.connect();

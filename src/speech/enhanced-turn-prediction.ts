@@ -467,22 +467,27 @@ export class EnhancedTurnPredictionService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, EnhancedTurnPredictionService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const enhancedTurnPredictorRegistry = createSessionRegistry(
+  (sessionId: string) => new EnhancedTurnPredictionService(sessionId),
+  { name: 'EnhancedTurnPredictor', cleanup: (service) => service.reset(), verbose: false }
+);
+
+registerGlobalRegistry(enhancedTurnPredictorRegistry);
 
 export function getEnhancedTurnPredictor(sessionId: string): EnhancedTurnPredictionService {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new EnhancedTurnPredictionService(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return enhancedTurnPredictorRegistry.get(sessionId);
 }
 
 export function resetEnhancedTurnPredictor(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '🎯 Enhanced turn predictor reset');
-  }
+  enhancedTurnPredictorRegistry.reset(sessionId);
+  log.debug({ sessionId }, '🎯 Enhanced turn predictor reset');
+}
+
+export function getActiveEnhancedTurnPredictorCount(): number {
+  return enhancedTurnPredictorRegistry.getActiveCount();
 }

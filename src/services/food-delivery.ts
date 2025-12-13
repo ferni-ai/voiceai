@@ -18,9 +18,23 @@
  */
 
 import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+
+// Circuit breakers for food delivery APIs
+const doorDashCircuitBreaker = getCircuitBreaker('doordash-api', {
+  failureThreshold: 5,
+  resetTimeout: 120_000, // 2 minutes
+  successThreshold: 2,
+});
+
+const uberCircuitBreaker = getCircuitBreaker('uber-eats-api', {
+  failureThreshold: 5,
+  resetTimeout: 120_000, // 2 minutes
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -139,13 +153,15 @@ async function searchDoorDash(
   if (DOORDASH_API_KEY && DOORDASH_DEVELOPER_ID) {
     try {
       // DoorDash Drive API endpoint
-      const response = await fetch('https://openapi.doordash.com/drive/v2/stores', {
-        headers: {
-          Authorization: `Bearer ${DOORDASH_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
+      const response = await doorDashCircuitBreaker.execute(() =>
+        fetch('https://openapi.doordash.com/drive/v2/stores', {
+          headers: {
+            Authorization: `Bearer ${DOORDASH_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(10000),
+        })
+      );
 
       if (response.ok) {
         const data = (await response.json()) as {
@@ -212,25 +228,27 @@ async function createDoorDashDelivery(order: {
     // Create JWT for authentication
     const jwt = await createDoorDashJWT();
 
-    const response = await fetch('https://openapi.doordash.com/drive/v2/deliveries', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        external_delivery_id: `delivery_${Date.now()}`,
-        pickup_address: order.pickupAddress,
-        pickup_phone_number: order.pickupPhone,
-        pickup_instructions: order.pickupInstructions,
-        dropoff_address: order.dropoffAddress,
-        dropoff_phone_number: order.dropoffPhone,
-        dropoff_instructions: order.dropoffInstructions,
-        order_value: Math.round(order.orderValue * 100), // cents
-        tip: order.tip ? Math.round(order.tip * 100) : undefined,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+    const response = await doorDashCircuitBreaker.execute(() =>
+      fetch('https://openapi.doordash.com/drive/v2/deliveries', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          external_delivery_id: `delivery_${Date.now()}`,
+          pickup_address: order.pickupAddress,
+          pickup_phone_number: order.pickupPhone,
+          pickup_instructions: order.pickupInstructions,
+          dropoff_address: order.dropoffAddress,
+          dropoff_phone_number: order.dropoffPhone,
+          dropoff_instructions: order.dropoffInstructions,
+          order_value: Math.round(order.orderValue * 100), // cents
+          tip: order.tip ? Math.round(order.tip * 100) : undefined,
+        }),
+        signal: AbortSignal.timeout(15000),
+      })
+    );
 
     if (response.ok) {
       const data = (await response.json()) as {
@@ -323,19 +341,21 @@ async function getUberToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch('https://login.uber.com/oauth/v2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: UBER_CLIENT_ID,
-        client_secret: UBER_CLIENT_SECRET,
-        grant_type: 'client_credentials',
-        scope: 'eats.deliveries',
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+    const response = await uberCircuitBreaker.execute(() =>
+      fetch('https://login.uber.com/oauth/v2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: UBER_CLIENT_ID,
+          client_secret: UBER_CLIENT_SECRET,
+          grant_type: 'client_credentials',
+          scope: 'eats.deliveries',
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+    );
 
     if (response.ok) {
       const data = (await response.json()) as { access_token: string; expires_in: number };

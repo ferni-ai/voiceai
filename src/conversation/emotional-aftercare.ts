@@ -591,24 +591,33 @@ export class EmotionalAftercareEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, EmotionalAftercareEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const emotionalAftercareRegistry = createSessionRegistry(
+  (sessionId: string) => new EmotionalAftercareEngine(),
+  { name: 'EmotionalAftercare', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(emotionalAftercareRegistry);
 
 export function getEmotionalAftercareEngine(sessionId: string): EmotionalAftercareEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new EmotionalAftercareEngine());
-  }
-  return instances.get(sessionId)!;
+  return emotionalAftercareRegistry.get(sessionId);
 }
 
 export function resetEmotionalAftercareEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = emotionalAftercareRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearEmotionalAftercareEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  emotionalAftercareRegistry.reset(sessionId);
+}
+
+export function getActiveEmotionalAftercareCount(): number {
+  return emotionalAftercareRegistry.getActiveCount();
 }
 
 export default EmotionalAftercareEngine;

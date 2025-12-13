@@ -573,26 +573,46 @@ export function analyzePronunciationNeeds(text: string): string[] {
 }
 
 // ============================================================================
-// SINGLETON MANAGEMENT
+// SESSION REGISTRY MANAGEMENT
 // ============================================================================
 
-const sessionInstances = new Map<string, PronunciationMemoryService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+/**
+ * Session registry for pronunciation memory services.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const pronunciationMemoryRegistry = createSessionRegistry(
+  (sessionId: string) => new PronunciationMemoryService(sessionId),
+  {
+    name: 'PronunciationMemory',
+    cleanup: (service) => service.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(pronunciationMemoryRegistry);
 
 export function getPronunciationMemory(sessionId: string): PronunciationMemoryService {
-  if (!sessionInstances.has(sessionId)) {
-    sessionInstances.set(sessionId, new PronunciationMemoryService(sessionId));
-  }
-  return sessionInstances.get(sessionId)!;
+  return pronunciationMemoryRegistry.get(sessionId);
 }
 
 export function resetPronunciationMemory(sessionId: string): void {
-  const instance = sessionInstances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    sessionInstances.delete(sessionId);
-  }
+  pronunciationMemoryRegistry.reset(sessionId);
 }
 
 export function resetAllPronunciationMemory(): void {
-  sessionInstances.clear();
+  pronunciationMemoryRegistry.resetAll();
+}
+
+export function hasPronunciationMemory(sessionId: string): boolean {
+  return pronunciationMemoryRegistry.has(sessionId);
+}
+
+export function getActivePronunciationMemoryCount(): number {
+  return pronunciationMemoryRegistry.getActiveCount();
 }

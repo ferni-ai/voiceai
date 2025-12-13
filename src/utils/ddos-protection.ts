@@ -536,6 +536,95 @@ export function detectDDoSPattern(): {
 }
 
 // ============================================================================
+// DDOS ALERTING
+// ============================================================================
+
+/** Callback for DDoS alerts */
+type DDoSAlertCallback = (details: {
+  confidence: 'low' | 'medium' | 'high';
+  details: string;
+  stats: {
+    total: number;
+    topIps: Array<[string, number]>;
+    topEndpoints: Array<[string, number]>;
+  };
+  server: string;
+}) => Promise<void>;
+
+let ddosAlertCallback: DDoSAlertCallback | null = null;
+let lastAlertTime = 0;
+const ALERT_COOLDOWN_MS = 300_000; // 5 minutes between alerts
+
+/**
+ * Register a callback to be called when DDoS is detected.
+ *
+ * @example
+ * ```ts
+ * import { registerDDoSAlertCallback } from './utils/ddos-protection.js';
+ * import { notifyDDoSAlert } from './services/slack-notifications.js';
+ *
+ * registerDDoSAlertCallback(async (details) => {
+ *   await notifyDDoSAlert(details);
+ * });
+ * ```
+ */
+export function registerDDoSAlertCallback(callback: DDoSAlertCallback): void {
+  ddosAlertCallback = callback;
+}
+
+/**
+ * Check for DDoS and trigger alert if detected.
+ * Called periodically by monitoring systems.
+ */
+export async function checkAndAlertDDoS(serverName: string = 'unknown'): Promise<void> {
+  if (!ddosAlertCallback) return;
+
+  const pattern = detectDDoSPattern();
+
+  // Only alert on medium or high confidence
+  if (!pattern.detected || pattern.confidence === 'low') return;
+
+  // Enforce cooldown to prevent alert spam
+  const now = Date.now();
+  if (now - lastAlertTime < ALERT_COOLDOWN_MS) return;
+
+  lastAlertTime = now;
+  const stats = getRateLimitStats(60_000);
+
+  await ddosAlertCallback({
+    confidence: pattern.confidence,
+    details: pattern.details,
+    stats: {
+      total: stats.total,
+      topIps: Object.entries(stats.byIp)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5) as Array<[string, number]>,
+      topEndpoints: Object.entries(stats.byEndpoint)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5) as Array<[string, number]>,
+    },
+    server: serverName,
+  });
+}
+
+/**
+ * Start automatic DDoS monitoring with alerting.
+ * Checks every 30 seconds for attack patterns.
+ */
+export function startDDoSMonitoring(serverName: string, intervalMs: number = 30_000): () => void {
+  const interval = setInterval(() => {
+    checkAndAlertDDoS(serverName).catch((err) => {
+      // Silently ignore alert failures to prevent cascading issues
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[DDoS Monitor] Alert failed:', err);
+      }
+    });
+  }, intervalMs);
+
+  return () => clearInterval(interval);
+}
+
+// ============================================================================
 // MONITORING ENDPOINT
 // ============================================================================
 

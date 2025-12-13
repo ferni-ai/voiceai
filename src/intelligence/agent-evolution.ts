@@ -763,6 +763,39 @@ export class AgentEvolutionEngine {
   }
 
   // ==========================================================================
+  // ANALYTICS WORKER INTEGRATION
+  // ==========================================================================
+
+  /**
+   * Record tool usage for analytics.
+   * Used by analytics-worker to track which tools are being used effectively.
+   */
+  recordToolUsage(personaId: string, toolName: string, success: boolean): void {
+    const state = this.getOrCreateState(personaId);
+    // Simple recording - can be enhanced later for more detailed tracking
+    getLogger().debug(
+      { personaId, toolName, success },
+      'Tool usage recorded'
+    );
+    
+    // State is accessed, no need to track timestamp as it's not in the interface
+  }
+
+  /**
+   * Record a pattern for evolution tracking.
+   * Used by analytics-worker for collective learning.
+   */
+  recordPattern(
+    personaId: string,
+    pattern: { type: string; context: string; success: boolean }
+  ): void {
+    getLogger().debug(
+      { personaId, pattern },
+      'Pattern recorded for evolution tracking'
+    );
+  }
+
+  // ==========================================================================
   // PERSISTENCE
   // ==========================================================================
 

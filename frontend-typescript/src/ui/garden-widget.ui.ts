@@ -264,8 +264,7 @@ function render(): void {
 // =============================================================================
 
 function openPlantSeedFlow(type: 'one-time' | 'monthly'): void {
-  // TODO: Implement the plant seed modal/flow
-  // For now, dispatch an event that the app can handle
+  // Dispatch event for app.ts to handle - opens Ferni Fund modal
   const event = new CustomEvent('ferni:open-plant-seed', {
     detail: { type },
   });

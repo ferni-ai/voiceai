@@ -278,7 +278,7 @@ export async function verifyReceipt(
     }
 
     const data = await response.json();
-    return parseSubscriptionResponse(data);
+    return await parseSubscriptionResponse(data);
   } catch (error) {
     log.error({ error: String(error) }, 'Receipt verification failed');
     return {
@@ -322,7 +322,7 @@ export async function getSubscriptionStatus(
     }
 
     const data = await response.json();
-    return parseSubscriptionResponse(data);
+    return await parseSubscriptionResponse(data);
   } catch (error) {
     log.error({ error: String(error), originalTransactionId }, 'Failed to get subscription status');
     return {
@@ -338,7 +338,7 @@ export async function getSubscriptionStatus(
 /**
  * Parse Apple's subscription response into our format
  */
-function parseSubscriptionResponse(data: unknown): ReceiptVerificationResult {
+async function parseSubscriptionResponse(data: unknown): Promise<ReceiptVerificationResult> {
   // Type guard - in production, use proper validation
   const response = data as {
     environment?: string;
@@ -366,22 +366,53 @@ function parseSubscriptionResponse(data: unknown): ReceiptVerificationResult {
 
   for (const group of subscriptionGroups) {
     for (const transaction of group.lastTransactions || []) {
-      // In production, decode the signed transaction JWT
-      // For now, use the status field
       const status = mapAppleStatus(transaction.status || 0);
 
       if (status === 'active' || status === 'in_grace_period') {
-        // This is a valid subscription
-        // TODO: Decode signedTransactionInfo to get product details
-        bestSubscription = {
-          productId: APPLE_PRODUCT_IDS.friend_monthly, // Placeholder
-          expiresDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Placeholder
-          originalTransactionId: 'decoded-from-jwt', // Placeholder
-          status,
-        };
-        break;
+        // Decode signedTransactionInfo to get actual product details
+        if (transaction.signedTransactionInfo) {
+          try {
+            const transactionInfo = await decodeSignedTransactionSync(transaction.signedTransactionInfo);
+            bestSubscription = {
+              productId: transactionInfo.productId,
+              expiresDate: transactionInfo.expiresDate,
+              originalTransactionId: transactionInfo.originalTransactionId,
+              status,
+            };
+            
+            log.debug(
+              {
+                productId: transactionInfo.productId,
+                expiresDate: transactionInfo.expiresDate,
+                originalTransactionId: transactionInfo.originalTransactionId,
+              },
+              'Decoded Apple transaction info'
+            );
+            break;
+          } catch (error) {
+            log.warn({ error: String(error) }, 'Failed to decode signedTransactionInfo');
+            // Fall back to status-only approach
+            bestSubscription = {
+              productId: APPLE_PRODUCT_IDS.friend_monthly, // Default fallback
+              expiresDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+              originalTransactionId: `unknown-${Date.now()}`,
+              status,
+            };
+            break;
+          }
+        } else {
+          // No signedTransactionInfo available, use fallback
+          bestSubscription = {
+            productId: APPLE_PRODUCT_IDS.friend_monthly,
+            expiresDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            originalTransactionId: `unknown-${Date.now()}`,
+            status,
+          };
+          break;
+        }
       }
     }
+    if (bestSubscription) break;
   }
 
   if (!bestSubscription) {
@@ -401,6 +432,33 @@ function parseSubscriptionResponse(data: unknown): ReceiptVerificationResult {
     originalTransactionId: bestSubscription.originalTransactionId,
     productId: bestSubscription.productId,
     environment,
+  };
+}
+
+/**
+ * Decode signed transaction info (synchronous version for internal use)
+ * This decodes the JWS without async verification for use in parseSubscriptionResponse
+ */
+function decodeSignedTransactionSync(signedTransaction: string): AppleTransactionInfo {
+  const parts = signedTransaction.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid transaction JWS format');
+  }
+
+  const payloadBase64 = parts[1];
+  const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
+  const data = JSON.parse(payloadJson);
+
+  return {
+    transactionId: data.transactionId,
+    originalTransactionId: data.originalTransactionId,
+    productId: data.productId,
+    purchaseDate: new Date(data.purchaseDate),
+    expiresDate: new Date(data.expiresDate),
+    environment: data.environment,
+    isUpgraded: data.isUpgraded || false,
+    offerType: data.offerType,
+    offerIdentifier: data.offerIdentifier,
   };
 }
 

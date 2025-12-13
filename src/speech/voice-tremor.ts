@@ -520,25 +520,32 @@ export class VoiceTremorDetector {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, VoiceTremorDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const voiceTremorRegistry = createSessionRegistry(
+  (sessionId: string) => new VoiceTremorDetector(),
+  { name: 'VoiceTremor', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(voiceTremorRegistry);
 
 export function getVoiceTremorDetector(sessionId: string): VoiceTremorDetector {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new VoiceTremorDetector());
-  }
-  return instances.get(sessionId)!;
+  return voiceTremorRegistry.get(sessionId);
 }
 
 export function resetVoiceTremorDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  voiceTremorRegistry.reset(sessionId);
 }
 
 export function resetAllVoiceTremorDetectors(): void {
-  instances.clear();
+  voiceTremorRegistry.resetAll();
+}
+
+export function getActiveVoiceTremorCount(): number {
+  return voiceTremorRegistry.getActiveCount();
 }
 
 export default VoiceTremorDetector;

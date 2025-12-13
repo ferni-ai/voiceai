@@ -576,24 +576,33 @@ export class SubtextDetectionEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, SubtextDetectionEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const subtextDetectionRegistry = createSessionRegistry(
+  (sessionId: string) => new SubtextDetectionEngine(),
+  { name: 'SubtextDetection', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(subtextDetectionRegistry);
 
 export function getSubtextDetectionEngine(sessionId: string): SubtextDetectionEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new SubtextDetectionEngine());
-  }
-  return instances.get(sessionId)!;
+  return subtextDetectionRegistry.get(sessionId);
 }
 
 export function resetSubtextDetectionEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = subtextDetectionRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearSubtextDetectionEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  subtextDetectionRegistry.reset(sessionId);
+}
+
+export function getActiveSubtextDetectionCount(): number {
+  return subtextDetectionRegistry.getActiveCount();
 }
 
 export default SubtextDetectionEngine;

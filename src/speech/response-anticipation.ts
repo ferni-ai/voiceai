@@ -600,22 +600,27 @@ export function generatePrefetchContext(
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, ResponseAnticipationService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const responseAnticipationRegistry = createSessionRegistry(
+  (sessionId: string) => new ResponseAnticipationService(sessionId),
+  { name: 'ResponseAnticipation', cleanup: (service) => service.reset(), verbose: false }
+);
+
+registerGlobalRegistry(responseAnticipationRegistry);
 
 export function getResponseAnticipationService(sessionId: string): ResponseAnticipationService {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new ResponseAnticipationService(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return responseAnticipationRegistry.get(sessionId);
 }
 
 export function resetResponseAnticipationService(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '🎯 Response anticipation service reset');
-  }
+  responseAnticipationRegistry.reset(sessionId);
+  log.debug({ sessionId }, '🎯 Response anticipation service reset');
+}
+
+export function getActiveResponseAnticipationCount(): number {
+  return responseAnticipationRegistry.getActiveCount();
 }

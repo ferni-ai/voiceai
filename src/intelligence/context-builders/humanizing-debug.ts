@@ -9,9 +9,10 @@
  */
 
 import type { HumanizingResult } from './humanizing.js';
+import { isDebugEnabled } from '../../config/feature-flags.js';
 
-// Check if debug is enabled
-const DEBUG = process.env.DEBUG_HUMANIZING === 'true';
+// Use centralized feature flag system for debug toggle
+const DEBUG = isDebugEnabled('humanizing');
 
 // Colors for terminal output
 const colors = {

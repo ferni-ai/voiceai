@@ -508,25 +508,32 @@ export class EngagementScorer {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, EngagementScorer>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const engagementScorerRegistry = createSessionRegistry(
+  (sessionId: string) => new EngagementScorer(),
+  { name: 'EngagementScorer', cleanup: (scorer) => scorer.reset(), verbose: false }
+);
+
+registerGlobalRegistry(engagementScorerRegistry);
 
 export function getEngagementScorer(sessionId: string): EngagementScorer {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new EngagementScorer());
-  }
-  return instances.get(sessionId)!;
+  return engagementScorerRegistry.get(sessionId);
 }
 
 export function resetEngagementScorer(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  engagementScorerRegistry.reset(sessionId);
 }
 
 export function resetAllEngagementScorers(): void {
-  instances.clear();
+  engagementScorerRegistry.resetAll();
+}
+
+export function getActiveEngagementScorerCount(): number {
+  return engagementScorerRegistry.getActiveCount();
 }
 
 export default EngagementScorer;

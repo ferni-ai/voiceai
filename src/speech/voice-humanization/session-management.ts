@@ -2,47 +2,77 @@
  * Voice Humanization Session Management
  *
  * Session-scoped instance management for the voice humanization service.
+ * Uses the centralized SessionRegistry pattern for consistent lifecycle management.
  */
 
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../../utils/session-registry.js';
 import { VoiceHumanizationService } from './service.js';
 
 // ============================================================================
-// SESSION MANAGEMENT
+// SESSION REGISTRY
 // ============================================================================
 
-const sessionInstances = new Map<string, VoiceHumanizationService>();
+/**
+ * Session registry for voice humanization services.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const voiceHumanizationRegistry = createSessionRegistry(
+  (sessionId: string) => new VoiceHumanizationService(sessionId),
+  {
+    name: 'VoiceHumanization',
+    cleanup: (service) => service.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(voiceHumanizationRegistry);
+
+// ============================================================================
+// PUBLIC API (backwards compatible)
+// ============================================================================
 
 /**
  * Get or create voice humanization service for a session
  */
 export function getVoiceHumanizationService(sessionId: string): VoiceHumanizationService {
-  if (!sessionInstances.has(sessionId)) {
-    sessionInstances.set(sessionId, new VoiceHumanizationService(sessionId));
-  }
-  return sessionInstances.get(sessionId)!;
+  return voiceHumanizationRegistry.get(sessionId);
 }
 
 /**
  * Reset voice humanization service for a session
  */
 export function resetVoiceHumanization(sessionId: string): void {
-  const instance = sessionInstances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    sessionInstances.delete(sessionId);
-  }
+  voiceHumanizationRegistry.reset(sessionId);
 }
 
 /**
  * Reset all instances
  */
 export function resetAllVoiceHumanization(): void {
-  sessionInstances.clear();
+  voiceHumanizationRegistry.resetAll();
 }
 
 /**
  * Get count of active sessions
  */
 export function getActiveVoiceHumanizationCount(): number {
-  return sessionInstances.size;
+  return voiceHumanizationRegistry.getActiveCount();
+}
+
+/**
+ * Check if a session has an active voice humanization service
+ */
+export function hasVoiceHumanization(sessionId: string): boolean {
+  return voiceHumanizationRegistry.has(sessionId);
+}
+
+/**
+ * Get all active session IDs (for monitoring/debugging)
+ */
+export function getActiveVoiceHumanizationSessionIds(): string[] {
+  return voiceHumanizationRegistry.getActiveSessionIds();
 }

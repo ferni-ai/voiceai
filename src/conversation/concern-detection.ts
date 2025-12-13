@@ -832,28 +832,48 @@ export class ConcernDetectionEngine {
 }
 
 // ============================================================================
-// SINGLETON
+// SESSION REGISTRY
 // ============================================================================
 
-const instances = new Map<string, ConcernDetectionEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+/**
+ * Session registry for concern detection engines.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const concernDetectionRegistry = createSessionRegistry(
+  (sessionId: string) => new ConcernDetectionEngine(),
+  {
+    name: 'ConcernDetection',
+    cleanup: (engine) => engine.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(concernDetectionRegistry);
 
 export function getConcernDetectionEngine(sessionId: string): ConcernDetectionEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new ConcernDetectionEngine());
-  }
-  return instances.get(sessionId)!;
+  return concernDetectionRegistry.get(sessionId);
 }
 
 export function resetConcernDetectionEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  concernDetectionRegistry.reset(sessionId);
 }
 
 export function resetAllConcernDetectionEngines(): void {
-  instances.clear();
+  concernDetectionRegistry.resetAll();
+}
+
+export function hasConcernDetectionEngine(sessionId: string): boolean {
+  return concernDetectionRegistry.has(sessionId);
+}
+
+export function getActiveConcernDetectionCount(): number {
+  return concernDetectionRegistry.getActiveCount();
 }
 
 export default ConcernDetectionEngine;

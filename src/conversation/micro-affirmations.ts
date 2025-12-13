@@ -710,24 +710,33 @@ export class MicroAffirmationEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, MicroAffirmationEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const microAffirmationRegistry = createSessionRegistry(
+  (sessionId: string) => new MicroAffirmationEngine(),
+  { name: 'MicroAffirmation', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(microAffirmationRegistry);
 
 export function getMicroAffirmationEngine(sessionId: string): MicroAffirmationEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new MicroAffirmationEngine());
-  }
-  return instances.get(sessionId)!;
+  return microAffirmationRegistry.get(sessionId);
 }
 
 export function resetMicroAffirmationEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = microAffirmationRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearMicroAffirmationEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  microAffirmationRegistry.reset(sessionId);
+}
+
+export function getActiveMicroAffirmationCount(): number {
+  return microAffirmationRegistry.getActiveCount();
 }
 
 export default MicroAffirmationEngine;

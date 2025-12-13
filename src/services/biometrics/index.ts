@@ -15,7 +15,21 @@
  */
 
 import { getStore } from '../../memory/store-factory.js';
+import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
+
+// Circuit breakers for biometric platform APIs
+const terraCircuitBreaker = getCircuitBreaker('terra-biometrics', {
+  failureThreshold: 5,
+  resetTimeout: 120_000, // 2 minutes
+  successThreshold: 2,
+});
+
+const whoopCircuitBreaker = getCircuitBreaker('whoop-api', {
+  failureThreshold: 5,
+  resetTimeout: 120_000, // 2 minutes
+  successThreshold: 2,
+});
 
 // Import types from dedicated types module
 export type {
@@ -318,22 +332,24 @@ export async function generateTerraSession(
       options?.redirectUrl ||
       `${process.env.APP_URL || 'https://app.ferni.ai'}/api/v1/integrations/biometrics/callback/terra`;
 
-    const response = await fetch('https://api.tryterra.co/v2/auth/generateWidgetSession', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'dev-id': config.terra.devId,
-        'x-api-key': config.terra.apiKey,
-      },
-      body: JSON.stringify({
-        reference_id: userId,
-        providers: options?.providers?.join(',') || undefined,
-        language: options?.language || 'en',
-        auth_success_redirect_url: redirectUrl,
-        auth_failure_redirect_url: `${redirectUrl}?error=auth_failed`,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+    const response = await terraCircuitBreaker.execute(() =>
+      fetch('https://api.tryterra.co/v2/auth/generateWidgetSession', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'dev-id': config.terra.devId,
+          'x-api-key': config.terra.apiKey,
+        },
+        body: JSON.stringify({
+          reference_id: userId,
+          providers: options?.providers?.join(',') || undefined,
+          language: options?.language || 'en',
+          auth_success_redirect_url: redirectUrl,
+          auth_failure_redirect_url: `${redirectUrl}?error=auth_failed`,
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -962,9 +978,11 @@ async function fetchOuraData(userId: string, accessToken: string): Promise<Biome
 
 async function fetchWhoopData(userId: string, accessToken: string): Promise<BiometricSnapshot> {
   // Fetch recovery data
-  const recoveryResponse = await fetch('https://api.prod.whoop.com/developer/v1/recovery?limit=1', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const recoveryResponse = await whoopCircuitBreaker.execute(() =>
+    fetch('https://api.prod.whoop.com/developer/v1/recovery?limit=1', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  );
 
   let recoveryData: RecoveryData | null = null;
   let hrvData: HRVData | null = null;

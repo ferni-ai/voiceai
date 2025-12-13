@@ -32,7 +32,7 @@ import {
 } from '../integrations/dynamic-speed-integration.js';
 
 // Context manager
-import { getContextManager, removeContextManager } from '../../context/context-manager.js';
+import { getContextManager, removeContextManager } from '../../context/index.js';
 
 // Speech module types
 import type { EmotionalMomentum } from '../../speech/emotional-contagion.js';

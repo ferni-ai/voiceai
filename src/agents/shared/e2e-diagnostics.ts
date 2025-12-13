@@ -393,10 +393,12 @@ export const e2e = {
     return metrics;
   },
 
-  // Log a periodic summary
+  // Log a periodic summary with self-healing status
   logSummary(): void {
     const now = Date.now();
     logSection('DIAGNOSTIC SUMMARY');
+
+    // Core metrics
     log('INFO', 'SUMMARY', 'Current state', {
       uptimeMs: now - processMetrics.startTime,
       memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
@@ -409,10 +411,31 @@ export const e2e = {
       idleMs: now - processMetrics.lastActivityTime,
     });
 
+    // Log circuit breaker states (if available)
+    // Uses fire-and-forget pattern to avoid blocking
+    void (async () => {
+      try {
+        const { getAllCircuitStats } = await import('../../services/self-healing/circuit-breaker.js');
+        const circuits = getAllCircuitStats();
+        if (circuits.length > 0) {
+          log('INFO', 'CIRCUITS', 'Circuit breaker states', {
+            circuits: circuits.map((c) => ({
+              name: c.name,
+              state: c.state,
+              failures: c.failures,
+              totalRequests: c.totalRequests,
+            })),
+          });
+        }
+      } catch {
+        /* self-healing not loaded yet */
+      }
+    })();
+
     // Log any active jobs
     if (activeJobs.size > 0) {
       log('INFO', 'SUMMARY', 'Active jobs:', {
-        jobs: Array.from(activeJobs.values()).map(j => ({
+        jobs: Array.from(activeJobs.values()).map((j) => ({
           jobId: j.jobId,
           status: j.status,
           ageMs: now - j.receivedAt,

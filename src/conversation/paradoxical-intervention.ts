@@ -530,24 +530,33 @@ export class ParadoxicalInterventionEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, ParadoxicalInterventionEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const paradoxicalInterventionRegistry = createSessionRegistry(
+  (sessionId: string) => new ParadoxicalInterventionEngine(),
+  { name: 'ParadoxicalIntervention', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(paradoxicalInterventionRegistry);
 
 export function getParadoxicalInterventionEngine(sessionId: string): ParadoxicalInterventionEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new ParadoxicalInterventionEngine());
-  }
-  return instances.get(sessionId)!;
+  return paradoxicalInterventionRegistry.get(sessionId);
 }
 
 export function resetParadoxicalInterventionEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = paradoxicalInterventionRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearParadoxicalInterventionEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  paradoxicalInterventionRegistry.reset(sessionId);
+}
+
+export function getActiveParadoxicalInterventionCount(): number {
+  return paradoxicalInterventionRegistry.getActiveCount();
 }
 
 export default ParadoxicalInterventionEngine;

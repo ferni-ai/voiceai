@@ -1209,31 +1209,49 @@ export class ProactiveMemoryEngine {
 }
 
 // ============================================================================
-// SINGLETON
+// SESSION REGISTRY
 // ============================================================================
 
-const instances = new Map<string, ProactiveMemoryEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+/**
+ * Session registry for proactive memory engines.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const proactiveMemoryRegistry = createSessionRegistry(
+  (sessionId: string) => new ProactiveMemoryEngine(sessionId),
+  {
+    name: 'ProactiveMemory',
+    cleanup: (engine) => engine.clearAll(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(proactiveMemoryRegistry);
 
 export function getProactiveMemoryEngine(sessionId: string): ProactiveMemoryEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new ProactiveMemoryEngine(sessionId));
-  }
-  return instances.get(sessionId)!;
+  return proactiveMemoryRegistry.get(sessionId);
 }
 
 export function resetProactiveMemoryEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = proactiveMemoryRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearProactiveMemoryEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.clearAll();
-    instances.delete(sessionId);
-  }
+  proactiveMemoryRegistry.reset(sessionId);
+}
+
+export function hasProactiveMemoryEngine(sessionId: string): boolean {
+  return proactiveMemoryRegistry.has(sessionId);
+}
+
+export function getActiveProactiveMemoryCount(): number {
+  return proactiveMemoryRegistry.getActiveCount();
 }
 
 export default ProactiveMemoryEngine;

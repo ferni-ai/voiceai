@@ -15,6 +15,21 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+// DDoS protection utilities
+import {
+  hardenServer,
+  handleHealthEndpoint,
+  handleSecurityMonitoring,
+  addRequestId,
+  createOAuthStateManager,
+  registerDDoSAlertCallback,
+  startDDoSMonitoring,
+  getClientIp,
+} from './dist/utils/ddos-protection.js';
+
+// Slack notifications for DDoS alerting
+import { notifyDDoSAlert } from './dist/services/slack-notifications.js';
+
 const PORT = process.env.TOKEN_SERVER_PORT || 3001;
 
 // ============================================================================
@@ -120,8 +135,8 @@ const GOOGLE_CALENDAR_SCOPES = [
 // File to store user Spotify tokens (per device_id)
 const SPOTIFY_USERS_FILE = path.join(process.cwd(), '.spotify-users.json');
 
-// Spotify OAuth state storage (temporary, for CSRF protection)
-const oauthStates = new Map();
+// Spotify OAuth state storage (using DDoS-protected state manager with auto-expiry)
+const oauthStates = createOAuthStateManager(5 * 60 * 1000); // 5 minute expiry
 
 // ============================================================================
 // DEMO SESSION RATE LIMITING
@@ -562,6 +577,9 @@ async function createRoomWithAgent(roomName, personaId, deviceId, userName, fire
 
 // HTTP server
 const server = http.createServer(async (req, res) => {
+  // Add request ID for tracing
+  const requestId = addRequestId(req, res);
+
   // Enable CORS with origin validation
   const corsOrigin = getCorsOrigin(req);
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
@@ -578,10 +596,13 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
-  // Health check endpoint
-  if (pathname === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+  // Health endpoint with DDoS rate limiting
+  if (handleHealthEndpoint(req, res, pathname, 'token-server')) {
+    return;
+  }
+
+  // Security monitoring endpoint (admin only)
+  if (handleSecurityMonitoring(req, res, pathname)) {
     return;
   }
 
@@ -793,19 +814,17 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Generate state for CSRF protection (includes device_id and return URL)
-    const state = crypto.randomBytes(16).toString('hex');
-    oauthStates.set(state, {
+    // Generate state for CSRF protection (using DDoS-protected state manager)
+    const state = oauthStates.create({
       device_id,
       return_url: return_url || '/',
-      created_at: Date.now(),
     });
 
-    // Clean up old states (older than 10 minutes)
-    for (const [key, value] of oauthStates.entries()) {
-      if (Date.now() - value.created_at > 10 * 60 * 1000) {
-        oauthStates.delete(key);
-      }
+    if (!state) {
+      console.error('❌ OAuth state limit reached (possible attack)');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
+      return;
     }
 
     // Build Spotify authorization URL
@@ -847,16 +866,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Validate state
-    const stateData = oauthStates.get(state);
+    // Validate state (one-time use - automatically deleted on consume)
+    const stateData = oauthStates.consume(state);
     if (!stateData) {
-      console.error('❌ Invalid OAuth state');
+      console.error('❌ Invalid or expired OAuth state');
       res.writeHead(302, { Location: '/?spotify_error=invalid_state' });
       res.end();
       return;
     }
-
-    oauthStates.delete(state);
     const { device_id, return_url } = stateData;
 
     try {
@@ -1225,6 +1242,17 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// Harden server with DDoS protection (timeouts, connection limits)
+hardenServer(server);
+
+// Register DDoS alerting to Slack
+registerDDoSAlertCallback(async (details) => {
+  await notifyDDoSAlert(details);
+});
+
+// Start automatic DDoS monitoring (checks every 30s, alerts to Slack)
+const stopDDoSMonitoring = startDDoSMonitoring('token-server', 30_000);
+
 server.listen(PORT, () => {
   console.log('');
   console.log('🎫 LiveKit Token Server (with Agent Dispatch + OAuth)');
@@ -1234,6 +1262,8 @@ server.listen(PORT, () => {
   console.log(`🤖 Agent Name: ${AGENT_NAME}`);
   console.log(`🎵 Spotify: ${SPOTIFY_CLIENT_ID ? '✅ Configured' : '❌ Not configured'}`);
   console.log(`📅 Google Calendar: ${GOOGLE_CLIENT_ID ? '✅ Configured' : '❌ Not configured'}`);
+  console.log(`🛡️  DDoS Alerting: Slack notifications active`);
+  console.log(`🛡️  DDoS Protection: ✅ Enabled`);
   console.log('');
   console.log('LiveKit Endpoints:');
   console.log(`  GET /token?room=ROOM&username=NAME&device_id=ID&persona_id=ferni`);

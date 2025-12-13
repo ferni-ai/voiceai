@@ -11,7 +11,10 @@ import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js
 import { createLogger, getLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'iTunes' });
-const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
+import { isDebugEnabled } from '../config/feature-flags.js';
+
+// Use centralized feature flag system for debug toggle
+const DEBUG_ITUNES = isDebugEnabled('itunes');
 
 // 🐛 FIX: iTunes API returns full track duration (e.g., 3 min), but previews are always 30 seconds
 // We MUST use this constant for duration, not trackTimeMillis from the API

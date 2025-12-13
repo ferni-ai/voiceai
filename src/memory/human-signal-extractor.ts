@@ -86,12 +86,25 @@ const DATE_PATTERNS = [
   { pattern: /(\d+) years? (?:married|together)/i, type: 'anniversary' as const },
 
   // Loss anniversaries
+  // Patterns for "passed away on October 5", "died in 2020", etc.
   {
-    pattern: /(?:passed away|died|lost) (?:.{0,20}) (?:on |in )(\w+ \d+|\d{4})/i,
+    // Direct: "passed away on October 5" or "died in 2020"
+    pattern: /(?:passed away|died|lost)(?: \w+)? (?:on |in )(\w+ \d+|\d{4})/i,
     type: 'loss_anniversary' as const,
   },
   {
-    pattern: /it(?:'s| will be) (\d+) years? since (?:.*) (?:passed|died|lost)/i,
+    // With subject: "my mom passed away on October 5" - captures who between passed and date
+    pattern: /(?:my |our |the )?\w+ (?:passed away|died) (?:on |in )(\w+ \d+|\d{4})/i,
+    type: 'loss_anniversary' as const,
+  },
+  {
+    // Loss with person reference: "I lost my mom on October 5"
+    pattern: /(?:i |we )lost (?:my |our )?\w+ (?:on |in )(\w+ \d+|\d{4})/i,
+    type: 'loss_anniversary' as const,
+  },
+  {
+    // Time since loss: "it's been 5 years since she passed"
+    pattern: /it(?:'s| will be| has been) (\d+) years? since (?:.*?) (?:passed|died|lost)/i,
     type: 'loss_anniversary' as const,
   },
 
@@ -117,8 +130,19 @@ function extractDates(turns: ConversationTurn[], context: ExtractionContext): Im
     for (const { pattern, type } of DATE_PATTERNS) {
       const match = turn.content.match(pattern);
       if (match) {
-        // Parse the date (simplified - could be enhanced)
-        const dateText = match[2] || match[1];
+        // Parse the date - check all capture groups for a valid date
+        // Some patterns have optional groups so we try match[2], match[1], etc.
+        let dateText: string | undefined;
+        for (let i = match.length - 1; i >= 1; i--) {
+          if (match[i] && isLikelyDateText(match[i])) {
+            dateText = match[i];
+            break;
+          }
+        }
+        // Fallback to old behavior if no date-like text found
+        if (!dateText) {
+          dateText = match[2] || match[1];
+        }
         const parsed = parseFlexibleDate(dateText);
 
         if (parsed) {
@@ -145,6 +169,35 @@ function extractDates(turns: ConversationTurn[], context: ExtractionContext): Im
   }
 
   return dates;
+}
+
+/**
+ * Check if a string looks like date text (month name, year, or date format)
+ */
+function isLikelyDateText(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  
+  // Month names
+  const monthNames = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december',
+  ];
+  
+  // Check for month name (with optional day)
+  if (monthNames.some(m => lower.includes(m))) return true;
+  
+  // Check for year (4 digits in reasonable range)
+  const yearMatch = text.match(/^(\d{4})$/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1], 10);
+    if (year >= 1900 && year <= 2100) return true;
+  }
+  
+  // Check for MM/DD or similar formats
+  if (/\d+\/\d+/.test(text)) return true;
+  
+  return false;
 }
 
 /**
@@ -178,6 +231,16 @@ function parseFlexibleDate(dateText: string): { month: number; day: number; year
   const slashMatch = dateText.match(/(\d+)\/(\d+)/);
   if (slashMatch) {
     return { month: parseInt(slashMatch[1], 10), day: parseInt(slashMatch[2], 10) };
+  }
+
+  // Year-only (for loss anniversaries like "in 2019")
+  // Use January 1st as placeholder for year-only dates
+  const yearOnlyMatch = dateText.match(/^(\d{4})$/);
+  if (yearOnlyMatch) {
+    const year = parseInt(yearOnlyMatch[1], 10);
+    if (year >= 1900 && year <= 2100) {
+      return { month: 1, day: 1, year };
+    }
   }
 
   return null;

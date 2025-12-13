@@ -548,22 +548,27 @@ export class WordTimingRhythmService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, WordTimingRhythmService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const wordTimingRegistry = createSessionRegistry(
+  (sessionId: string) => new WordTimingRhythmService(sessionId),
+  { name: 'WordTimingRhythm', cleanup: (service) => service.reset(), verbose: false }
+);
+
+registerGlobalRegistry(wordTimingRegistry);
 
 export function getWordTimingRhythmService(sessionId: string): WordTimingRhythmService {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new WordTimingRhythmService(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return wordTimingRegistry.get(sessionId);
 }
 
 export function resetWordTimingRhythmService(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '🎵 Word-timing rhythm service reset');
-  }
+  wordTimingRegistry.reset(sessionId);
+  log.debug({ sessionId }, '🎵 Word-timing rhythm service reset');
+}
+
+export function getActiveWordTimingCount(): number {
+  return wordTimingRegistry.getActiveCount();
 }

@@ -43,6 +43,11 @@ import { abTestingService } from '../../tools/ab-testing.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
 import { autoOptimizer } from '../../tools/auto-optimizer.js';
 
+// Session State Management (Single Source of Truth)
+import { createSessionStateManager, type SessionStateManager } from '../session/session-state.js';
+import { createUserDataProxy } from '../session/user-data-proxy.js';
+import type { UserData } from '../shared/types.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -77,36 +82,19 @@ export interface SessionInitResult {
   isFirstConversation: boolean;
   /** Full trial status */
   trialStatus: TrialCheckResult | null;
-  /** Initialized user data object */
-  userData: UserDataInit;
+  /** Initialized user data (Proxy to SessionStateManager - single source of truth) */
+  userData: UserData;
+  /** Session state manager (direct access for new code patterns) */
+  sessionStateManager: SessionStateManager;
   /** Cleanup function for periodic sync (call on session end) */
   stopPeriodicSync: (() => void) | null;
 }
 
-/** User data initialized by this handler - compatible with UserData from shared/types */
-export interface UserDataInit {
-  name?: string;
-  userId?: string;
-  isReturningUser: boolean;
-  services: SessionServices;
-  turnCount: number;
-  preferredAccent?: EnglishAccent;
-  bundleRuntimeState: {
-    relationshipTurns: number;
-    currentMode: 'listening' | 'active';
-    storiesToldThisSession: string[];
-  };
-  conversationState: ReturnType<typeof getConversationState>;
-  isTrialUser: boolean;
-  isFirstConversation: boolean;
-  trialStatus?: {
-    inTrial: boolean;
-    timeRemainingMs: number;
-    approachingEnd: boolean;
-    trialEnded: boolean;
-  };
-  hasSpokenTrialEndPrompt: boolean;
-}
+/**
+ * @deprecated Use `UserData` from `shared/types.js` instead.
+ * This alias is kept for backward compatibility only.
+ */
+export type UserDataInit = UserData;
 
 // ============================================================================
 // MAIN HANDLER
@@ -242,7 +230,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   }
 
   // ================================================================
-  // INITIALIZE USER DATA
+  // INITIALIZE CONVERSATION STATE
   // ================================================================
   const conversationState = getConversationState(sessionId, userId || 'default', sessionPersona.id);
 
@@ -250,21 +238,51 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     conversationState.setUserName(userName || services.userProfile?.name || '');
   }
 
-  const userData: UserDataInit = {
-    name: userName || services.userProfile?.name,
+  // ================================================================
+  // INITIALIZE SESSION STATE MANAGER (Single Source of Truth)
+  // All state is managed here; UserData is a proxy to this manager
+  // ================================================================
+  const relationshipTurns = services.userProfile?.totalConversations
+    ? Math.min(services.userProfile.totalConversations * 5, 300)
+    : 0;
+
+  const sessionStateManager = createSessionStateManager(sessionId, sessionPersona.id, {
     userId,
+    userName: userName || services.userProfile?.name,
     isReturningUser,
+    identificationSource: userId ? 'metadata' : 'anonymous',
     services,
-    turnCount: 0,
-    preferredAccent: userAccent as EnglishAccent,
-    bundleRuntimeState: {
-      relationshipTurns: services.userProfile?.totalConversations
-        ? Math.min(services.userProfile.totalConversations * 5, 300)
-        : 0,
-      currentMode: 'listening',
-      storiesToldThisSession: [],
-    },
     conversationState,
+  });
+
+  // Initialize bundle state with relationship turns
+  sessionStateManager.updateBundleState({
+    relationshipTurns,
+    currentMode: 'listening',
+    storiesToldThisSession: [],
+  });
+
+  diag.session('Session state manager initialized', {
+    sessionId,
+    personaId: sessionPersona.id,
+    hasUserId: !!userId,
+    isReturning: isReturningUser,
+  });
+
+  // ================================================================
+  // CREATE USER DATA PROXY (Single Source of Truth)
+  // userData now delegates to sessionStateManager for all reads/writes
+  // Direct fields (services, conversationState, trial) stored on proxy
+  // ================================================================
+  const userData = createUserDataProxy(sessionStateManager, {
+    // Service references (stored directly, not in state manager)
+    services,
+    conversationState,
+
+    // Voice preferences
+    preferredAccent: userAccent as EnglishAccent,
+
+    // Trial state (stored directly for rapid access)
     isTrialUser,
     isFirstConversation,
     trialStatus: trialStatus
@@ -276,12 +294,13 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         }
       : undefined,
     hasSpokenTrialEndPrompt: false,
-  };
+  });
 
-  diag.session('Conversation state initialized', {
+  diag.session('UserData proxy created (single source of truth)', {
     sessionId,
     userId: userId || 'default',
     agentId: sessionPersona.id,
+    proxyEnabled: true,
   });
 
   // ================================================================
@@ -322,6 +341,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     isFirstConversation,
     trialStatus,
     userData,
+    sessionStateManager,
     stopPeriodicSync: stopSync,
   };
 }

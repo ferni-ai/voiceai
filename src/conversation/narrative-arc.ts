@@ -570,28 +570,48 @@ export class NarrativeArcTracker {
 }
 
 // ============================================================================
-// SINGLETON
+// SESSION REGISTRY
 // ============================================================================
 
-const instances = new Map<string, NarrativeArcTracker>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+/**
+ * Session registry for narrative arc trackers.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const narrativeArcRegistry = createSessionRegistry(
+  (sessionId: string) => new NarrativeArcTracker(),
+  {
+    name: 'NarrativeArc',
+    cleanup: (tracker) => tracker.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(narrativeArcRegistry);
 
 export function getNarrativeArcTracker(sessionId: string): NarrativeArcTracker {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new NarrativeArcTracker());
-  }
-  return instances.get(sessionId)!;
+  return narrativeArcRegistry.get(sessionId);
 }
 
 export function resetNarrativeArcTracker(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  narrativeArcRegistry.reset(sessionId);
 }
 
 export function resetAllNarrativeArcTrackers(): void {
-  instances.clear();
+  narrativeArcRegistry.resetAll();
+}
+
+export function hasNarrativeArcTracker(sessionId: string): boolean {
+  return narrativeArcRegistry.has(sessionId);
+}
+
+export function getActiveNarrativeArcCount(): number {
+  return narrativeArcRegistry.getActiveCount();
 }
 
 export default NarrativeArcTracker;

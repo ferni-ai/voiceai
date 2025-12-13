@@ -599,25 +599,32 @@ export class SelfSoothingDetector {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, SelfSoothingDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const selfSoothingRegistry = createSessionRegistry(
+  (sessionId: string) => new SelfSoothingDetector(),
+  { name: 'SelfSoothing', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(selfSoothingRegistry);
 
 export function getSelfSoothingDetector(sessionId: string): SelfSoothingDetector {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new SelfSoothingDetector());
-  }
-  return instances.get(sessionId)!;
+  return selfSoothingRegistry.get(sessionId);
 }
 
 export function resetSelfSoothingDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  selfSoothingRegistry.reset(sessionId);
 }
 
 export function resetAllSelfSoothingDetectors(): void {
-  instances.clear();
+  selfSoothingRegistry.resetAll();
+}
+
+export function getActiveSelfSoothingCount(): number {
+  return selfSoothingRegistry.getActiveCount();
 }
 
 export default SelfSoothingDetector;

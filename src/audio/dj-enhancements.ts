@@ -501,26 +501,39 @@ export class ThinkingMusicController {
 
   /**
    * Monitor music player state to detect when thinking music ends naturally.
-   * This ensures isPlaying is properly reset even if onMusicEnded() isn't called.
+   * Uses event emitter pattern instead of polling for better efficiency.
    */
-  private naturalEndMonitorInterval: NodeJS.Timeout | null = null;
+  private stateChangeListener: ((state: string) => void) | null = null;
 
   private setupNaturalEndMonitor(): void {
-    // Clear any existing monitor
-    if (this.naturalEndMonitorInterval) {
-      clearInterval(this.naturalEndMonitorInterval);
-    }
+    // Clear any existing listener
+    this.clearStateChangeListener();
 
     const player = getMusicPlayer();
 
-    // Check every 500ms if music is still playing
-    this.naturalEndMonitorInterval = setInterval(() => {
-      if (this.isPlaying && !player.isPlaying()) {
+    // 🎧 Use event emitter instead of polling (more efficient)
+    this.stateChangeListener = (state: string) => {
+      if (this.isPlaying && (state === 'stopped' || state === 'idle')) {
         // Music ended naturally - reset state
-        log.debug('Thinking music detected as ended (monitor)');
+        log.debug('Thinking music detected as ended (event listener)');
         this.onMusicEnded();
       }
-    }, 500);
+    };
+
+    // Register the listener
+    player.on('stateChange', this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void);
+  }
+
+  private clearStateChangeListener(): void {
+    if (this.stateChangeListener) {
+      try {
+        const player = getMusicPlayer();
+        player.off('stateChange', this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void);
+      } catch {
+        // Player might not be initialized
+      }
+      this.stateChangeListener = null;
+    }
   }
 
   private stopThinkingMusic(): void {
@@ -552,11 +565,8 @@ export class ThinkingMusicController {
       clearTimeout(this.maxDurationTimer);
       this.maxDurationTimer = null;
     }
-    // Clear natural end monitor
-    if (this.naturalEndMonitorInterval) {
-      clearInterval(this.naturalEndMonitorInterval);
-      this.naturalEndMonitorInterval = null;
-    }
+    // Clear natural end state change listener
+    this.clearStateChangeListener();
   }
 }
 

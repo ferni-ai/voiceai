@@ -6,8 +6,16 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 
 const log = getLogger().child({ module: 'TwilioSMS' });
+
+// Circuit breaker for Twilio API - prevents hammering a failing service
+const twilioCircuitBreaker = getCircuitBreaker('twilio-sms', {
+  failureThreshold: 5, // Open circuit after 5 failures
+  resetTimeout: 60_000, // Try again after 60s (Twilio errors often need time to clear)
+  successThreshold: 2, // Need 2 successes to close
+});
 
 // Lazy-loaded Twilio client
 let twilioClient: ReturnType<typeof import('twilio')> | null = null;
@@ -49,7 +57,7 @@ export function isTwilioConfigured(): boolean {
 }
 
 /**
- * Send an SMS message
+ * Send an SMS message (with circuit breaker protection)
  *
  * @param to - Phone number to send to (E.164 format)
  * @param body - Message body
@@ -64,22 +72,30 @@ export async function sendSMS(to: string, body: string): Promise<string | null> 
     return null;
   }
 
+  // Check if circuit breaker allows the request
+  if (!twilioCircuitBreaker.canRequest()) {
+    log.warn({ to: to.slice(-4) }, 'SMS not sent - Twilio circuit breaker is open');
+    return null;
+  }
+
   try {
-    // Ensure phone number is in E.164 format
-    const formattedTo = formatPhoneNumber(to);
+    return await twilioCircuitBreaker.execute(async () => {
+      // Ensure phone number is in E.164 format
+      const formattedTo = formatPhoneNumber(to);
 
-    const message = await client.messages.create({
-      body,
-      to: formattedTo,
-      from,
+      const message = await client.messages.create({
+        body,
+        to: formattedTo,
+        from,
+      });
+
+      log.info(
+        { messageSid: message.sid, to: formattedTo.slice(-4), status: message.status },
+        '📱 SMS sent successfully'
+      );
+
+      return message.sid;
     });
-
-    log.info(
-      { messageSid: message.sid, to: formattedTo.slice(-4), status: message.status },
-      '📱 SMS sent successfully'
-    );
-
-    return message.sid;
   } catch (error) {
     log.error({ error: String(error), to: to.slice(-4) }, '❌ Failed to send SMS');
     return null;

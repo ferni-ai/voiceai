@@ -36,7 +36,7 @@ import {
   type SubscriptionResponse,
 } from '../types/seed-fund.types.js';
 import { createPaymentIntent, isStripeConfigured } from '../services/stripe-payments.js';
-import { createCheckoutSession } from '../services/stripe-subscription.js';
+import { createCheckoutSession, createPortalSession } from '../services/stripe-subscription.js';
 
 const log = createLogger({ module: 'GardenAPI' });
 
@@ -377,7 +377,10 @@ async function handleStartMonthly(
 
 /**
  * PUT /api/garden/subscription
- * Update monthly amount
+ * Update monthly amount - redirects to Stripe billing portal
+ * 
+ * Users can manage their subscription (update amount, change payment method,
+ * view invoices) through Stripe's hosted billing portal.
  */
 async function handleUpdateMonthly(
   req: IncomingMessage,
@@ -385,23 +388,55 @@ async function handleUpdateMonthly(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody<{ newAmount: number }>(req);
+    const body = await parseBody<{ newAmount?: number }>(req);
     const { newAmount } = body;
 
-    if (!newAmount || newAmount < 5) {
+    if (newAmount !== undefined && newAmount < 5) {
       sendError(res, 'Monthly amount must be at least $5', 400);
       return;
     }
 
-    // TODO: Update Stripe subscription
-    const response: SubscriptionResponse = {
-      success: true,
-      error: 'Stripe subscription update not yet configured',
-    };
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      log.warn({ userId }, 'Stripe not configured for subscription update');
+      const response: SubscriptionResponse = {
+        success: false,
+        error: 'Subscription system not configured',
+      };
+      sendJSON(res, response);
+      return;
+    }
 
-    log.info({ userId, newAmount }, 'Update monthly request');
+    // Get the base URL for return redirect
+    const host = req.headers.host || 'localhost:3002';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const returnUrl = `${protocol}://${host}/garden`;
 
-    sendJSON(res, response);
+    try {
+      // Create billing portal session - users can update subscription here
+      const portalResult = await createPortalSession(userId, returnUrl);
+
+      log.info({ userId }, 'Garden subscription portal session created');
+
+      const response: SubscriptionResponse = {
+        success: true,
+        checkoutUrl: portalResult.url,
+      };
+
+      sendJSON(res, response);
+    } catch (error) {
+      // User may not have a Stripe customer ID yet
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not have a Stripe customer ID')) {
+        const response: SubscriptionResponse = {
+          success: false,
+          error: 'No active subscription found. Please subscribe first.',
+        };
+        sendJSON(res, response);
+        return;
+      }
+      throw error;
+    }
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to update subscription');
     sendError(res, 'Failed to update subscription');
@@ -410,23 +445,58 @@ async function handleUpdateMonthly(
 
 /**
  * DELETE /api/garden/subscription
- * Cancel monthly contribution
+ * Cancel monthly contribution - redirects to Stripe billing portal
+ * 
+ * Users can cancel their subscription through Stripe's hosted billing portal,
+ * which handles all the edge cases (proration, final invoice, etc.)
  */
 async function handleCancelMonthly(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
   userId: string
 ): Promise<void> {
   try {
-    // TODO: Cancel Stripe subscription
-    const response: SubscriptionResponse = {
-      success: true,
-      error: 'Stripe subscription cancellation not yet configured',
-    };
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+      log.warn({ userId }, 'Stripe not configured for subscription cancellation');
+      const response: SubscriptionResponse = {
+        success: false,
+        error: 'Subscription system not configured',
+      };
+      sendJSON(res, response);
+      return;
+    }
 
-    log.info({ userId }, 'Cancel monthly request');
+    // Get the base URL for return redirect
+    const host = req.headers.host || 'localhost:3002';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const returnUrl = `${protocol}://${host}/garden`;
 
-    sendJSON(res, response);
+    try {
+      // Create billing portal session - users can cancel subscription here
+      const portalResult = await createPortalSession(userId, returnUrl);
+
+      log.info({ userId }, 'Garden cancellation portal session created');
+
+      const response: SubscriptionResponse = {
+        success: true,
+        checkoutUrl: portalResult.url,
+      };
+
+      sendJSON(res, response);
+    } catch (error) {
+      // User may not have a Stripe customer ID
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not have a Stripe customer ID')) {
+        const response: SubscriptionResponse = {
+          success: false,
+          error: 'No active subscription found.',
+        };
+        sendJSON(res, response);
+        return;
+      }
+      throw error;
+    }
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to cancel subscription');
     sendError(res, 'Failed to cancel subscription');

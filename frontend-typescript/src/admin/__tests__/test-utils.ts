@@ -217,7 +217,12 @@ type MockResponses = {
  */
 export function createMockFetch(responses: MockResponses): typeof fetch {
   return async (input: RequestInfo | URL): Promise<Response> => {
-    const url = typeof input === 'string' ? input : input.toString();
+    // Safely extract URL string from various input types
+    const url = typeof input === 'string' 
+      ? input 
+      : input instanceof URL 
+        ? input.href 
+        : input.url;
 
     for (const [endpoint, { status, body }] of Object.entries(responses)) {
       if (url.includes(endpoint)) {

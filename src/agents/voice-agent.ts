@@ -2259,6 +2259,17 @@ export default defineAgent({
               // Non-fatal - greeting will generate on demand
             }
 
+            // Pre-load persona bundles for faster handoffs (non-blocking)
+            try {
+              const { preloadAllBundles } = await import('../personas/bundles/preloader.js');
+              // Fire-and-forget - bundles will load in background
+              preloadAllBundles().catch(() => {
+                // Non-fatal - bundles will load on demand
+              });
+            } catch {
+              // Non-fatal - bundles will load on demand
+            }
+
             // Warm caches in background (non-blocking)
             try {
               const { warmCachesOnStartup } = await import('../services/cache-warming.js');
@@ -3280,36 +3291,107 @@ if (!process.send) {
   const childAgentPath = fileURLToPath(new URL('./voice-agent-child.js', import.meta.url));
 
   // ============================================================================
-  // CUSTOM REQUEST FUNC WITH E2E DIAGNOSTICS
+  // SELF-HEALING IMPORTS
   // ============================================================================
-  // This provides full visibility into the job accept flow
+  const { createCircuitBreaker, withResilience, analyzeFailure, humanizeError } = await import(
+    '../services/self-healing/index.js'
+  );
+
+  // Create circuit breaker for job acceptance
+  // Trips after 5 failures in 60s, recovers after 30s
+  const acceptCircuit = createCircuitBreaker('job-accept', {
+    failureThreshold: 5,
+    recoveryTimeout: 30_000,
+    successThreshold: 2,
+    failureWindow: 60_000,
+    onStateChange: (name, oldState, newState) => {
+      e2e.custom('CIRCUIT', `Circuit "${name}" changed: ${oldState} → ${newState}`, {
+        name,
+        oldState,
+        newState,
+      });
+      if (newState === 'open') {
+        e2e.warn('CIRCUIT', '🔴 Job accept circuit OPEN - failing fast', { name });
+      } else if (newState === 'closed') {
+        e2e.custom('CIRCUIT', '🟢 Job accept circuit CLOSED - normal operation', { name });
+      }
+    },
+  });
+
+  // ============================================================================
+  // CUSTOM REQUEST FUNC WITH SELF-HEALING
+  // ============================================================================
+  // Full E2E diagnostics + circuit breaker + retry + AI diagnosis
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestFuncWithDiagnostics = async (req: any) => {
+  const requestFuncWithSelfHealing = async (req: any) => {
     const jobId = req.id;
     const roomName = req.room?.name || 'unknown';
     const reqAgentName = req.agentName || 'unknown';
+    const acceptStart = Date.now();
 
     // Log job received
     e2e.jobReceived(jobId, roomName, reqAgentName);
 
     try {
-      // Log that we're calling accept
-      e2e.jobAccepting(jobId);
-      const acceptStart = Date.now();
-
-      // Call accept - this signals to LiveKit that we're available
-      await req.accept();
+      // Execute through circuit breaker with retry
+      await acceptCircuit.execute(async () => {
+        await withResilience(
+          async () => {
+            e2e.jobAccepting(jobId);
+            await req.accept();
+          },
+          {
+            maxRetries: 2,
+            baseDelay: 500,
+            maxDelay: 2000,
+            operationName: `job-accept:${jobId}`,
+            onRetry: (attempt, error, delay) => {
+              e2e.warn('JOB', `Retrying accept (attempt ${attempt})`, {
+                jobId,
+                error: error.message,
+                nextDelayMs: delay,
+              });
+            },
+          }
+        );
+      });
 
       // Log successful accept
       const acceptDuration = Date.now() - acceptStart;
       e2e.jobAccepted(jobId, acceptDuration);
-
-      // Note: After accept() returns, we wait for assignment response from LiveKit
-      // If the assignment doesn't arrive within ASSIGNMENT_TIMEOUT (7.5s), it times out
     } catch (error) {
-      // Log failed accept
-      const acceptDuration = Date.now() - Date.now();
-      e2e.jobAcceptFailed(jobId, error instanceof Error ? error : new Error(String(error)), acceptDuration);
+      // Log failed accept with AI diagnosis
+      const acceptDuration = Date.now() - acceptStart;
+      const err = error instanceof Error ? error : new Error(String(error));
+      e2e.jobAcceptFailed(jobId, err, acceptDuration);
+
+      // Run AI diagnosis in background (don't block)
+      analyzeFailure([err.message, err.stack || ''], {
+        jobId,
+        stage: 'accept',
+        timing: { acceptDuration },
+        errorType: err.name,
+        errorMessage: err.message,
+      })
+        .then((diagnosis) => {
+          e2e.custom('DIAGNOSIS', `AI root cause analysis for job ${jobId}`, {
+            rootCause: diagnosis.rootCause,
+            confidence: diagnosis.confidence,
+            autoFixable: diagnosis.autoFixable,
+            fixType: diagnosis.fixType,
+          });
+
+          // Log human explanation for potential user communication
+          const humanized = humanizeError(err);
+          e2e.custom('HUMANIZED', humanized.userMessage, {
+            severity: humanized.severity,
+            shouldNotify: humanized.shouldNotifyUser,
+          });
+        })
+        .catch(() => {
+          /* diagnosis is best-effort */
+        });
+
       throw error;
     }
   };
@@ -3327,8 +3409,8 @@ if (!process.send) {
       numIdleProcesses: 0,
       // Increase timeout for safety margin
       initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
-      // Custom request function with full diagnostics
-      requestFunc: requestFuncWithDiagnostics,
+      // Custom request function with self-healing (circuit breaker + retry + AI diagnosis)
+      requestFunc: requestFuncWithSelfHealing,
     })
   );
 

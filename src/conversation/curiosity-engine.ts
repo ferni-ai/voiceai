@@ -618,24 +618,33 @@ export class CuriosityEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, CuriosityEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const curiosityEngineRegistry = createSessionRegistry(
+  (userId: string) => new CuriosityEngine(),
+  { name: 'CuriosityEngine', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(curiosityEngineRegistry);
 
 export function getCuriosityEngine(userId: string): CuriosityEngine {
-  if (!instances.has(userId)) {
-    instances.set(userId, new CuriosityEngine());
-  }
-  return instances.get(userId)!;
+  return curiosityEngineRegistry.get(userId);
 }
 
 export function resetCuriosityEngine(userId: string): void {
-  const instance = instances.get(userId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = curiosityEngineRegistry.get(userId);
+  engine.reset();
 }
 
 export function clearCuriosityEngine(userId: string): void {
-  instances.delete(userId);
+  curiosityEngineRegistry.reset(userId);
+}
+
+export function getActiveCuriosityEngineCount(): number {
+  return curiosityEngineRegistry.getActiveCount();
 }
 
 export default CuriosityEngine;

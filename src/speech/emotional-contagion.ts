@@ -395,35 +395,61 @@ export class EmotionalContagionService {
 }
 
 // ============================================================================
-// SINGLETON MANAGEMENT
+// SESSION REGISTRY
 // ============================================================================
 
-const sessionInstances = new Map<string, EmotionalContagionService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+/**
+ * Session registry for emotional contagion services.
+ * Provides automatic cleanup and lifecycle management.
+ */
+const emotionalContagionRegistry = createSessionRegistry(
+  (sessionId: string) => new EmotionalContagionService(sessionId),
+  {
+    name: 'EmotionalContagion',
+    cleanup: (service) => service.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(emotionalContagionRegistry);
 
 /**
  * Get or create emotional contagion service for a session
  */
 export function getEmotionalContagionService(sessionId: string): EmotionalContagionService {
-  if (!sessionInstances.has(sessionId)) {
-    sessionInstances.set(sessionId, new EmotionalContagionService(sessionId));
-  }
-  return sessionInstances.get(sessionId)!;
+  return emotionalContagionRegistry.get(sessionId);
 }
 
 /**
  * Reset emotional contagion for a session
  */
 export function resetEmotionalContagion(sessionId: string): void {
-  const instance = sessionInstances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    sessionInstances.delete(sessionId);
-  }
+  emotionalContagionRegistry.reset(sessionId);
 }
 
 /**
  * Reset all instances
  */
 export function resetAllEmotionalContagion(): void {
-  sessionInstances.clear();
+  emotionalContagionRegistry.resetAll();
+}
+
+/**
+ * Check if a session has emotional contagion service
+ */
+export function hasEmotionalContagion(sessionId: string): boolean {
+  return emotionalContagionRegistry.has(sessionId);
+}
+
+/**
+ * Get count of active emotional contagion sessions
+ */
+export function getActiveEmotionalContagionCount(): number {
+  return emotionalContagionRegistry.getActiveCount();
 }

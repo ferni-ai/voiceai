@@ -510,22 +510,27 @@ export class MultiSignalLaughterDetector {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const instances = new Map<string, MultiSignalLaughterDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const laughterDetectorRegistry = createSessionRegistry(
+  (sessionId: string) => new MultiSignalLaughterDetector(sessionId),
+  { name: 'LaughterDetector', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(laughterDetectorRegistry);
 
 export function getMultiSignalLaughterDetector(sessionId: string): MultiSignalLaughterDetector {
-  let instance = instances.get(sessionId);
-  if (!instance) {
-    instance = new MultiSignalLaughterDetector(sessionId);
-    instances.set(sessionId, instance);
-  }
-  return instance;
+  return laughterDetectorRegistry.get(sessionId);
 }
 
 export function resetMultiSignalLaughterDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-    log.debug({ sessionId }, '😂 Multi-signal laughter detector reset');
-  }
+  laughterDetectorRegistry.reset(sessionId);
+  log.debug({ sessionId }, '😂 Multi-signal laughter detector reset');
+}
+
+export function getActiveLaughterDetectorCount(): number {
+  return laughterDetectorRegistry.getActiveCount();
 }

@@ -1,27 +1,38 @@
 /**
- * Session Context - Architecture Design
+ * Session Context - DEPRECATED Architecture Draft
  *
- * Unified session state management that would replace fragmented singletons.
- * This provides a single object containing all session-scoped state and services.
+ * @deprecated This module is an abandoned architecture draft. Do NOT use for new code.
  *
- * Benefits:
- * - Single source of truth for session state
- * - Clean lifecycle management (create → use → cleanup)
- * - Easy testing via dependency injection
- * - Clear ownership of all session data
+ * The intended unified session state management was never completed.
+ * Use these alternatives instead:
  *
- * STATUS: ARCHITECTURE DRAFT - Types are exported and can be used, but the
- * `createSessionContext` function is NOT integrated with voice-agent.ts yet.
+ * - **ContextManager** (`src/context/`) - For conversation context and prompt building
+ * - **SessionStateManager** (`src/agents/session/`) - For session lifecycle and state
+ * - **Trust Systems** (`src/services/trust-systems/`) - For relationship context
  *
- * MIGRATION PATH:
- * 1. Align interfaces with actual service implementations
- * 2. Update voice-agent.ts to use SessionContext
- * 3. Deprecate SessionServices in favor of SessionContext
+ * STATUS: DEPRECATED - Types remain exported for backward compatibility only.
+ * No new features will be added to this module.
+ *
+ * HISTORY:
+ * This was designed to be a unified session state container but:
+ * 1. The interfaces never aligned with actual service implementations
+ * 2. ContextManager evolved to handle most of the intended functionality
+ * 3. SessionStateManager now handles session lifecycle concerns
+ *
+ * WHAT TO USE INSTEAD:
+ * ```typescript
+ * // For context building:
+ * import { getContextManager, wireContextIntegrations } from '../context/index.js';
+ * const cm = getContextManager(sessionId, userProfile);
+ * await wireContextIntegrations(cm, { userId, enableTrust: true });
+ *
+ * // For session state:
+ * import { SessionStateManager } from '../agents/session/index.js';
+ * ```
  *
  * NOTE: Other `SessionContext` types exist in:
  * - src/agents/voice-agent/types.ts (simpler, used by voice agent)
  * - src/personas/session-runtime.ts (minimal, used by persona runtime)
- * These need consolidation as part of the migration.
  *
  * @module services/session-context
  */

@@ -78,10 +78,7 @@ describe('Date Extraction', () => {
     });
   });
 
-  // TODO: Loss anniversary extraction has a greedy regex issue
-  // The pattern /(?:passed away|died|lost) (?:.{0,20}) (?:on |in )/ is too greedy
-  // Skip this test for now - the feature works for certain phrasings
-  it.skip('should mark loss anniversaries as sensitive', () => {
+  it('should mark loss anniversaries as sensitive', () => {
     const turns: TestTurn[] = [
       { role: 'user', content: "She passed away on October 5" },
     ];
@@ -94,6 +91,36 @@ describe('Date Extraction', () => {
       type: 'loss_anniversary',
       sentiment: 'sensitive',
       wantsAcknowledgment: false,
+    });
+  });
+
+  it('should extract loss anniversary with subject', () => {
+    const turns: TestTurn[] = [
+      { role: 'user', content: "My mom passed away on March 15" },
+    ];
+
+    const result = extractHumanSignals(turns, createContext());
+
+    const lossAnniversaries = result.importantDates.filter(d => d.type === 'loss_anniversary');
+    expect(lossAnniversaries.length).toBeGreaterThanOrEqual(1);
+    expect(lossAnniversaries[0]).toMatchObject({
+      type: 'loss_anniversary',
+      sentiment: 'sensitive',
+    });
+  });
+
+  it('should extract loss anniversary with "I lost"', () => {
+    const turns: TestTurn[] = [
+      { role: 'user', content: "I lost my father in 2019" },
+    ];
+
+    const result = extractHumanSignals(turns, createContext());
+
+    const lossAnniversaries = result.importantDates.filter(d => d.type === 'loss_anniversary');
+    expect(lossAnniversaries.length).toBeGreaterThanOrEqual(1);
+    expect(lossAnniversaries[0]).toMatchObject({
+      type: 'loss_anniversary',
+      sentiment: 'sensitive',
     });
   });
 });

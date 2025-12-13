@@ -36,6 +36,7 @@
 import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { exec } from 'child_process';
+import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -46,7 +47,10 @@ import { createLogger, getLogger } from '../utils/safe-logger.js';
 type AgentSession = any;
 
 const log = createLogger({ module: 'MusicPlayer' });
-const DEBUG_MUSIC = process.env.DEBUG_MUSIC === 'true';
+import { isDebugEnabled } from '../config/feature-flags.js';
+
+// Use centralized feature flag system for debug toggle
+const DEBUG_MUSIC = isDebugEnabled('music');
 
 // Extract BackgroundAudioPlayer from the voice namespace
 const { BackgroundAudioPlayer } = voice;
@@ -131,6 +135,35 @@ export type OnMusicStateChangeCallback = (
 ) => void;
 
 // ============================================================================
+// EVENT EMITTER TYPES
+// ============================================================================
+
+/**
+ * 🎧 Music Player Events (EventEmitter Pattern)
+ *
+ * Allows multiple listeners without overwriting each other.
+ * Legacy setOnXxxCallback methods still work for backward compatibility.
+ *
+ * Events:
+ * - 'trackEnded': Fired when a track finishes playing
+ * - 'stateChange': Fired when playback state changes
+ * - 'midSongMoment': Fired during exciting parts of a track (30% chance)
+ */
+export interface MusicPlayerEvents {
+  trackEnded: [track: MusicTrack, wasAmbient: boolean];
+  stateChange: [state: MusicState, track: MusicTrack | null, isAmbient: boolean];
+  midSongMoment: [track: MusicTrack, momentType: 'buildup' | 'drop' | 'highlight'];
+}
+
+export interface TypedMusicPlayerEmitter {
+  on<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
+  once<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
+  off<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
+  emit<K extends keyof MusicPlayerEvents>(event: K, ...args: MusicPlayerEvents[K]): boolean;
+  removeAllListeners<K extends keyof MusicPlayerEvents>(event?: K): this;
+}
+
+// ============================================================================
 // MUSIC PLAYER CLASS
 // ============================================================================
 
@@ -146,6 +179,9 @@ export class CallMusicPlayer {
     isAmbientMode: false,
     isChangingTrack: false, // DJ crossfade in progress
   };
+
+  // 🎧 EventEmitter for multiple listeners (new pattern)
+  private readonly events: TypedMusicPlayerEmitter = new EventEmitter() as TypedMusicPlayerEmitter;
 
   // LiveKit BackgroundAudioPlayer
   private backgroundPlayer: InstanceType<typeof BackgroundAudioPlayer> | null = null;
@@ -242,25 +278,94 @@ export class CallMusicPlayer {
   /**
    * Set callback for when track ends
    * The agent can use this to acknowledge the music ended
+   *
+   * @deprecated Use on('trackEnded', callback) instead for multiple listeners
    */
   setOnTrackEndedCallback(callback: OnTrackEndedCallback): void {
+    // Legacy: store for backward compatibility
     this.onTrackEndedCallback = callback;
+    // Also register with event emitter for proper multi-listener support
+    this.events.on('trackEnded', callback);
   }
 
   /**
    * Set callback for music state changes
    * Used to notify frontend so avatar can dance!
+   *
+   * @deprecated Use on('stateChange', callback) instead for multiple listeners
    */
   setOnMusicStateChangeCallback(callback: OnMusicStateChangeCallback): void {
+    // Legacy: store for backward compatibility
     this.onMusicStateChangeCallback = callback;
+    // Also register with event emitter for proper multi-listener support
+    this.events.on('stateChange', callback);
   }
 
   /**
    * 🎤 Set callback for "Wait for it..." mid-song moments
    * These are the magic DJ interjections that make music feel alive!
+   *
+   * @deprecated Use on('midSongMoment', callback) instead for multiple listeners
    */
   setOnMidSongMomentCallback(callback: OnMidSongMomentCallback): void {
+    // Legacy: store for backward compatibility
     this.onMidSongMomentCallback = callback;
+    // Also register with event emitter for proper multi-listener support
+    this.events.on('midSongMoment', callback);
+  }
+
+  // ==========================================================================
+  // 🎧 EVENT EMITTER METHODS (Recommended)
+  // ==========================================================================
+
+  /**
+   * Register an event listener
+   *
+   * Events:
+   * - 'trackEnded': (track: MusicTrack, wasAmbient: boolean) => void
+   * - 'stateChange': (state: MusicState, track: MusicTrack | null, isAmbient: boolean) => void
+   * - 'midSongMoment': (track: MusicTrack, momentType: 'buildup' | 'drop' | 'highlight') => void
+   */
+  on<K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ): this {
+    this.events.on(event, listener);
+    return this;
+  }
+
+  /**
+   * Register a one-time event listener
+   */
+  once<K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ): this {
+    this.events.once(event, listener);
+    return this;
+  }
+
+  /**
+   * Remove an event listener
+   */
+  off<K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ): this {
+    this.events.off(event, listener);
+    return this;
+  }
+
+  /**
+   * Remove all listeners for an event (or all events)
+   */
+  removeAllListeners<K extends keyof MusicPlayerEvents>(event?: K): this {
+    this.events.removeAllListeners(event);
+    // Also clear legacy callbacks
+    if (!event || event === 'trackEnded') this.onTrackEndedCallback = null;
+    if (!event || event === 'stateChange') this.onMusicStateChangeCallback = null;
+    if (!event || event === 'midSongMoment') this.onMidSongMomentCallback = null;
+    return this;
   }
 
   /**
@@ -397,17 +502,14 @@ export class CallMusicPlayer {
 
     this.midSongMomentTimer = setTimeout(() => {
       // Only fire if still playing the same track
-      if (
-        this.state.isPlaying &&
-        this.state.currentTrack?.name === track.name &&
-        this.onMidSongMomentCallback
-      ) {
+      if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
         // Pick moment type - mostly "buildup" with occasional "highlight"
         const momentType = Math.random() < 0.7 ? 'buildup' : 'highlight';
 
         getLogger().info({ track: track.name, momentType }, '🎤 Mid-song moment triggered!');
 
-        this.onMidSongMomentCallback(track, momentType);
+        // Emit to all listeners via EventEmitter
+        this.events.emit('midSongMoment', track, momentType);
       }
     }, momentTime);
 
@@ -422,22 +524,21 @@ export class CallMusicPlayer {
    *
    * 🎧 CRITICAL: This is how the frontend learns about music state changes.
    * The frontend uses this to show/hide the Now Playing UI and animate the avatar.
+   *
+   * Uses EventEmitter pattern - all registered listeners receive the event.
    */
   private notifyStateChange(state: MusicState): void {
-    if (this.onMusicStateChangeCallback) {
-      getLogger().debug(
-        {
-          state,
-          track: this.state.currentTrack?.name,
-          isAmbient: this.state.isAmbientMode,
-        },
-        '🎧 Notifying music state change'
-      );
-      this.onMusicStateChangeCallback(state, this.state.currentTrack, this.state.isAmbientMode);
-    } else {
-      // This should only happen during initialization
-      getLogger().debug({ state }, '🎧 No state change callback registered (expected during init)');
-    }
+    getLogger().debug(
+      {
+        state,
+        track: this.state.currentTrack?.name,
+        isAmbient: this.state.isAmbientMode,
+      },
+      '🎧 Notifying music state change'
+    );
+
+    // Emit to all listeners via EventEmitter
+    this.events.emit('stateChange', state, this.state.currentTrack, this.state.isAmbientMode);
   }
 
   /**
@@ -624,9 +725,9 @@ export class CallMusicPlayer {
 
         this.onTrackEnded();
 
-        // Call the callback so agent can respond
-        if (endedTrack && this.onTrackEndedCallback) {
-          this.onTrackEndedCallback(endedTrack, wasAmbient);
+        // Emit trackEnded event to all listeners
+        if (endedTrack) {
+          this.events.emit('trackEnded', endedTrack, wasAmbient);
         }
 
         // Clean up temp file (after callback, in case callback needs track info)
@@ -724,43 +825,32 @@ export class CallMusicPlayer {
     // 🐛 FIX: downloadAudio now returns actual duration from ffprobe
     const downloadPromise = this.downloadAudio(url, track.name);
 
-    // Wait for DJ transition moment (agent speaks during this)
-    // 1.5 seconds is enough for a quick DJ callout
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 1500);
-    });
-
-    // Stop the current track (quick fade handled by the short wait above)
-    if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
-      this.currentPlayHandle.stop();
-    }
-
-    // Wait for download to complete
+    // 🎧 OPTIMIZED CROSSFADE: Download first, then do minimal transition
+    // The agent speaks the transition phrase while we're downloading
+    // Once download is ready, we do a quick swap (<500ms gap)
     const downloadResult = await downloadPromise;
 
+    // Check download success BEFORE stopping current track
     if (!downloadResult) {
-      log.error('Failed to download new track for crossfade - recovering state');
+      log.error('Failed to download new track for crossfade - keeping current playback');
       this.state.isChangingTrack = false;
-
-      // 🎧 RECOVERY: Try to gracefully handle the failure
-      // If we had a previous track, notify that we stopped (don't leave UI hanging)
-      this.state.isPlaying = false;
-      this.state.currentTrack = null;
-      this.currentPlayHandle = null;
-      this.currentAudioPath = null;
-      this.notifyStateChange('stopped');
-
-      // Clean up the old track's temp file if it exists
-      if (previousAudioPath) {
-        this.cleanupTempFile(previousAudioPath);
-      }
-
+      // Keep current track playing, just notify the transition failed
       getLogger().warn(
         { fromTrack: previousTrack.name, toTrack: track.name },
-        '🎧 Crossfade failed - download error, playback stopped'
+        '🎧 Crossfade download failed - keeping current track'
       );
-
       return { success: false, previousTrack };
+    }
+
+    // Quick transition moment (agent has already started speaking)
+    // 500ms is enough for the track to fade briefly without noticeable silence
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 500);
+    });
+
+    // Stop the current track immediately after brief fade
+    if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
+      this.currentPlayHandle.stop();
     }
 
     const { path: audioPath, actualDurationMs } = downloadResult;
@@ -879,8 +969,9 @@ export class CallMusicPlayer {
 
       this.onTrackEnded();
 
-      if (endedTrack && this.onTrackEndedCallback) {
-        this.onTrackEndedCallback(endedTrack, wasAmbient);
+      // Emit trackEnded event to all listeners
+      if (endedTrack) {
+        this.events.emit('trackEnded', endedTrack, wasAmbient);
       }
 
       this.cleanupTempFile(audioPath);

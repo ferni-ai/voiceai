@@ -1070,7 +1070,7 @@ function renderMainView(content: HTMLElement): void {
     input.addEventListener('change', (e) => {
       const setting = (e.target as HTMLInputElement).dataset.setting as keyof Household['settings'];
       const value = (e.target as HTMLInputElement).checked;
-      handleSettingChange(setting, value);
+      void handleSettingChange(setting, value);
     });
   });
 }
@@ -1321,14 +1321,44 @@ async function handleRemoveMember(userId: string): Promise<void> {
   renderContent();
 }
 
-function handleSettingChange(setting: keyof Household['settings'], value: boolean): void {
+async function handleSettingChange(setting: keyof Household['settings'], value: boolean): Promise<void> {
   if (!household) return;
 
   household.settings[setting] = value;
   callbacks.onSettingsChanged?.(household.settings);
   log.debug('Setting changed:', setting, value);
 
-  // TODO: Persist to backend when settings API is available
+  // Persist to backend via PATCH /api/household/:userId/settings
+  try {
+    const userId = localStorage.getItem('ferni_user_id');
+    if (!userId) {
+      log.debug('No userId - settings saved locally only');
+      return;
+    }
+
+    // Map frontend settings to backend format
+    const backendSettings = {
+      voiceIdentification: household.settings.autoIdentify,
+      // Other settings can be added here as needed
+    };
+
+    const response = await fetch(`/api/household/${userId}/settings`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': userId,
+      },
+      body: JSON.stringify(backendSettings),
+    });
+
+    if (!response.ok) {
+      log.warn('Failed to persist setting:', { setting, status: response.status });
+      // Settings are already applied locally - continue silently
+    }
+  } catch (err) {
+    log.warn('Error persisting setting:', err);
+    // Settings already applied locally - continue silently
+  }
 }
 
 // ============================================================================

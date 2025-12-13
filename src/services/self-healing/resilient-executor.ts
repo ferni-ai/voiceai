@@ -1,0 +1,159 @@
+/**
+ * Resilient Executor
+ *
+ * Automatic retry with exponential backoff for transient failures.
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'resilient-executor' });
+
+export interface RetryOptions {
+  /** Maximum number of retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Base delay in ms (default: 1000) */
+  baseDelay?: number;
+  /** Maximum delay in ms (default: 30000) */
+  maxDelay?: number;
+  /** Jitter factor 0-1 to randomize delays (default: 0.1) */
+  jitter?: number;
+  /** Custom function to determine if error is retryable */
+  shouldRetry?: (error: Error, attempt: number) => boolean;
+  /** Callback on each retry attempt */
+  onRetry?: (attempt: number, error: Error, nextDelay: number) => void;
+  /** Operation name for logging */
+  operationName?: string;
+}
+
+// Default retryable error patterns
+const RETRYABLE_PATTERNS = [
+  /ECONNRESET/i,
+  /ETIMEDOUT/i,
+  /ENOTFOUND/i,
+  /socket hang up/i,
+  /network/i,
+  /timeout/i,
+  /temporarily unavailable/i,
+  /rate limit/i,
+  /429/,
+  /503/,
+  /502/,
+];
+
+function isRetryableError(error: Error): boolean {
+  const errorStr = `${error.name} ${error.message}`;
+  return RETRYABLE_PATTERNS.some((pattern) => pattern.test(errorStr));
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function calculateDelay(
+  attempt: number,
+  baseDelay: number,
+  maxDelay: number,
+  jitter: number
+): number {
+  // Exponential backoff: baseDelay * 2^attempt
+  let delay = baseDelay * Math.pow(2, attempt);
+
+  // Apply jitter
+  if (jitter > 0) {
+    const jitterAmount = delay * jitter * (Math.random() * 2 - 1);
+    delay += jitterAmount;
+  }
+
+  // Cap at maxDelay
+  return Math.min(delay, maxDelay);
+}
+
+/**
+ * Execute an operation with automatic retry and exponential backoff.
+ *
+ * @example
+ * ```typescript
+ * const result = await withResilience(
+ *   () => fetchFromAPI(),
+ *   { maxRetries: 3, operationName: 'api-fetch' }
+ * );
+ * ```
+ */
+interface RetryContext {
+  err: Error;
+  attempt: number;
+  opName: string;
+  opts: Required<Pick<RetryOptions, 'baseDelay' | 'maxDelay' | 'jitter'>>;
+  onRetry?: (attempt: number, error: Error, nextDelay: number) => void;
+}
+
+/** Handle retry failure (extracted to reduce complexity) */
+function handleRetryFailure(err: Error, attempt: number, opName: string): never {
+  log.warn(
+    { attempt, operationName: opName, error: err.message, willRetry: false },
+    'Operation failed, no more retries'
+  );
+  throw err;
+}
+
+/** Log and prepare retry (extracted to reduce complexity) */
+function prepareRetry(ctx: RetryContext): number {
+  const { err, attempt, opName, opts, onRetry } = ctx;
+  const delay = calculateDelay(attempt, opts.baseDelay, opts.maxDelay, opts.jitter);
+  log.debug(
+    { attempt, operationName: opName, error: err.message, nextDelayMs: delay },
+    `Retrying in ${delay}ms`
+  );
+  onRetry?.(attempt + 1, err, delay);
+  return delay;
+}
+
+export async function withResilience<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    baseDelay = 1000,
+    maxDelay = 30000,
+    jitter = 0.1,
+    shouldRetry = isRetryableError,
+    onRetry,
+    operationName = 'operation',
+  } = options;
+
+  const opts = { baseDelay, maxDelay, jitter };
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) log.debug({ attempt, operationName }, `Retry attempt ${attempt}`);
+      const result = await operation(); // eslint-disable-line no-await-in-loop
+      if (attempt > 0) log.info({ attempt, operationName }, `Succeeded after ${attempt} retries`);
+      return result;
+    } catch (error) {
+      lastError = error as Error;
+      const canRetry = attempt < maxRetries && shouldRetry(lastError, attempt);
+      if (!canRetry) handleRetryFailure(lastError, attempt, operationName);
+      const delay = prepareRetry({ err: lastError, attempt, opName: operationName, opts, onRetry });
+      await sleep(delay); // eslint-disable-line no-await-in-loop
+    }
+  }
+
+  throw lastError ?? new Error(`${operationName} failed after ${maxRetries} retries`);
+}
+
+/**
+ * Create a resilient version of an async function
+ */
+export function makeResilient<T extends (...args: unknown[]) => Promise<unknown>>(
+  fn: T,
+  options: RetryOptions = {}
+): T {
+  async function resilientFn(...args: Parameters<T>): Promise<ReturnType<T>> {
+    return withResilience(async () => fn(...args), options) as Promise<ReturnType<T>>;
+  }
+  return resilientFn as T;
+}

@@ -17,7 +17,7 @@ import {
   getContextManager,
   removeContextManager,
   type ContextManager,
-} from '../context/context-manager.js';
+} from '../context/index.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { getEmotionDetector } from '../intelligence/emotion-detector.js';
 import { getTopicTracker } from '../intelligence/topic-tracker.js';

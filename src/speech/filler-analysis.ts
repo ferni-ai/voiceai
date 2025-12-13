@@ -555,25 +555,32 @@ export class FillerAnalyzer {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, FillerAnalyzer>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const fillerAnalyzerRegistry = createSessionRegistry(
+  (sessionId: string) => new FillerAnalyzer(),
+  { name: 'FillerAnalyzer', cleanup: (analyzer) => analyzer.reset(), verbose: false }
+);
+
+registerGlobalRegistry(fillerAnalyzerRegistry);
 
 export function getFillerAnalyzer(sessionId: string): FillerAnalyzer {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new FillerAnalyzer());
-  }
-  return instances.get(sessionId)!;
+  return fillerAnalyzerRegistry.get(sessionId);
 }
 
 export function resetFillerAnalyzer(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  fillerAnalyzerRegistry.reset(sessionId);
 }
 
 export function resetAllFillerAnalyzers(): void {
-  instances.clear();
+  fillerAnalyzerRegistry.resetAll();
+}
+
+export function getActiveFillerAnalyzerCount(): number {
+  return fillerAnalyzerRegistry.getActiveCount();
 }
 
 export default FillerAnalyzer;

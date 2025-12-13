@@ -528,3 +528,61 @@ export async function notifyCrisisAlert(
 ): Promise<boolean> {
   return getSlackNotifications().notifyCrisisAlert(details);
 }
+
+// ============================================================================
+// SECURITY ALERTING
+// ============================================================================
+
+export interface DDoSAlertDetails {
+  /** Detection confidence level */
+  confidence: 'low' | 'medium' | 'high';
+  /** Human-readable details */
+  details: string;
+  /** Rate limit stats */
+  stats: {
+    total: number;
+    topIps: Array<[string, number]>;
+    topEndpoints: Array<[string, number]>;
+  };
+  /** Server that detected the attack */
+  server: string;
+}
+
+/**
+ * Send a DDoS attack alert to Slack
+ *
+ * @param details - DDoS detection details
+ * @returns Whether the alert was sent successfully
+ */
+export async function notifyDDoSAlert(details: DDoSAlertDetails): Promise<boolean> {
+  const severityMap: Record<string, 'info' | 'warning' | 'error'> = {
+    low: 'warning',
+    medium: 'error',
+    high: 'error',
+  };
+
+  const topIpsText = details.stats.topIps
+    .map(([ip, count]) => `• \`${ip}\`: ${count} hits`)
+    .join('\n');
+
+  const topEndpointsText = details.stats.topEndpoints
+    .map(([endpoint, count]) => `• \`${endpoint}\`: ${count} hits`)
+    .join('\n');
+
+  return getSlackNotifications().notify({
+    type: 'crisis_alert',
+    title: `🛡️ DDoS Attack Detected (${details.confidence} confidence)`,
+    message: details.details,
+    severity: severityMap[details.confidence],
+    metadata: {
+      server: details.server,
+      totalRateLimits: details.stats.total,
+      topIps: topIpsText,
+      topEndpoints: topEndpointsText,
+    },
+    actionUrl: process.env.DASHBOARD_URL
+      ? `${process.env.DASHBOARD_URL}/security`
+      : undefined,
+    actionText: 'View Security Dashboard',
+  });
+}

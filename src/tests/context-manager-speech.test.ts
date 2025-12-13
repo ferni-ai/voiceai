@@ -12,7 +12,7 @@ import {
   getContextManager,
   removeContextManager,
   type SpeechInsightsContext,
-} from '../context/context-manager.js';
+} from '../context/index.js';
 import type { SpeedControlResult } from '../speech/adaptive-ssml/dynamic-speed-control.js';
 import type { EmotionalMomentum, ProsodyContinuityHints } from '../speech/emotional-contagion.js';
 import type { HumanListeningResult } from '../speech/human-listening-pipeline/types.js';

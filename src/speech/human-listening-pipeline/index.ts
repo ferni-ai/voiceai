@@ -36,8 +36,6 @@ export {
   getHumanListeningPipeline,
   resetHumanListeningPipeline,
   resetAllHumanListeningPipelines,
-  getActivePipelineCount,
-  getActivePipelineSessions,
 } from './session-management.js';
 
 // ============================================================================

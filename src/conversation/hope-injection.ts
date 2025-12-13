@@ -617,24 +617,33 @@ export class HopeInjectionEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, HopeInjectionEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const hopeInjectionRegistry = createSessionRegistry(
+  (sessionId: string) => new HopeInjectionEngine(),
+  { name: 'HopeInjection', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(hopeInjectionRegistry);
 
 export function getHopeInjectionEngine(sessionId: string): HopeInjectionEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new HopeInjectionEngine());
-  }
-  return instances.get(sessionId)!;
+  return hopeInjectionRegistry.get(sessionId);
 }
 
 export function resetHopeInjectionEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = hopeInjectionRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearHopeInjectionEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  hopeInjectionRegistry.reset(sessionId);
+}
+
+export function getActiveHopeInjectionCount(): number {
+  return hopeInjectionRegistry.getActiveCount();
 }
 
 export default HopeInjectionEngine;

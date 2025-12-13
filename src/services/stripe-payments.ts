@@ -14,8 +14,16 @@ import { getConfig } from '../config/environment.js';
 import { getStore } from '../memory/store-factory.js';
 import { createDefaultMonetizationData, type UserMonetizationData } from '../types/monetization.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'StripePayments' });
+
+// Circuit breaker for Stripe API - prevents hammering a failing payment service
+const stripeCircuitBreaker = getCircuitBreaker('stripe-payments', {
+  failureThreshold: 3, // Open circuit after 3 failures (payments are critical)
+  resetTimeout: 60_000, // Try again after 60s
+  successThreshold: 2, // Need 2 successes to close
+});
 
 // ============================================================================
 // STRIPE TYPES (for one-time payments)
@@ -148,19 +156,21 @@ export async function createPaymentIntent(params: {
     journey_companion: 'Season Companion - Support your journey',
   };
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: 'usd',
-    description: description || descriptions[type],
-    metadata: {
-      ferni_user_id: userId,
-      payment_type: type,
-      ...metadata,
-    },
-    automatic_payment_methods: {
-      enabled: true,
-    },
-  });
+  const paymentIntent = await stripeCircuitBreaker.execute(() =>
+    stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'usd',
+      description: description || descriptions[type],
+      metadata: {
+        ferni_user_id: userId,
+        payment_type: type,
+        ...metadata,
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    })
+  );
 
   log.info(
     {
@@ -188,7 +198,9 @@ export async function verifyPayment(paymentIntentId: string): Promise<{
   userId: string;
 }> {
   const stripe = await getStripe();
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentIntent = await stripeCircuitBreaker.execute(() =>
+    stripe.paymentIntents.retrieve(paymentIntentId)
+  );
 
   const succeeded = paymentIntent.status === 'succeeded';
   const type = (paymentIntent.metadata.payment_type as PaymentType) || 'tip';

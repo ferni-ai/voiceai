@@ -15,7 +15,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
 import {
   getActiveBoundaries,
   getGrowthPatterns,
@@ -103,12 +103,17 @@ function sendError(res: ServerResponse, message: string, status = 400): void {
   res.end(JSON.stringify({ error: message }));
 }
 
-function getUserIdFromRequest(req: IncomingMessage, parsedUrl: URL): string | null {
-  const headerUserId = req.headers['x-user-id'] as string;
-  if (headerUserId) return headerUserId;
+/**
+ * Get userId from authenticated context
+ * SECURITY: userId should come from auth, not query params (to prevent IDOR)
+ */
+function getUserIdFromAuth(auth: AuthContext, parsedUrl: URL): string | null {
+  // Primary: use authenticated userId
+  if (auth.userId) return auth.userId;
 
+  // Fallback for admin accessing another user's data
   const queryUserId = parsedUrl.searchParams.get('userId');
-  if (queryUserId) return queryUserId;
+  if (queryUserId && auth.isAdmin) return queryUserId;
 
   return null;
 }
@@ -203,7 +208,13 @@ export async function handleTrustJourneyRoutes(
     return true; // Rate limited
   }
 
-  const userId = getUserIdFromRequest(req, parsedUrl);
+  // Require authentication
+  const auth = (await requireAuth(req, res, { allowDevMode: true })) as AuthContext | null;
+  if (!auth) {
+    return true; // 401 already sent
+  }
+
+  const userId = getUserIdFromAuth(auth, parsedUrl);
   if (!userId) {
     sendError(res, 'User ID required', 401);
     return true;

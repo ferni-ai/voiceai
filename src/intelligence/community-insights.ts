@@ -737,6 +737,43 @@ export class CommunityInsightsEngine {
   }
 
   // ==========================================================================
+  // ANALYTICS WORKER INTEGRATION
+  // ==========================================================================
+
+  /**
+   * Record an emotional pattern for collective learning.
+   * Used by analytics-worker to aggregate anonymous emotional patterns.
+   */
+  recordEmotionalPattern(
+    emotion: string,
+    intensity: number,
+    topic: string | undefined,
+    personaId: string | undefined
+  ): void {
+    getLogger().debug(
+      { emotion, intensity, topic, personaId },
+      'Emotional pattern recorded for community insights'
+    );
+    // Could be enhanced to track emotion → topic correlations
+  }
+
+  /**
+   * Record an insight from conversation analysis.
+   * Used by analytics-worker for collective learning.
+   */
+  recordInsight(insight: {
+    type: string;
+    topic?: string;
+    emotion?: string;
+    personaId?: string;
+  }): void {
+    getLogger().debug(
+      { insight },
+      'Insight recorded for community learning'
+    );
+  }
+
+  // ==========================================================================
   // STATISTICS
   // ==========================================================================
 

@@ -542,24 +542,33 @@ export class RelationshipEventsEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, RelationshipEventsEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const relationshipEventsRegistry = createSessionRegistry(
+  (userId: string) => new RelationshipEventsEngine(),
+  { name: 'RelationshipEvents', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(relationshipEventsRegistry);
 
 export function getRelationshipEventsEngine(userId: string): RelationshipEventsEngine {
-  if (!instances.has(userId)) {
-    instances.set(userId, new RelationshipEventsEngine());
-  }
-  return instances.get(userId)!;
+  return relationshipEventsRegistry.get(userId);
 }
 
 export function resetRelationshipEventsEngine(userId: string): void {
-  const instance = instances.get(userId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = relationshipEventsRegistry.get(userId);
+  engine.reset();
 }
 
 export function clearRelationshipEventsEngine(userId: string): void {
-  instances.delete(userId);
+  relationshipEventsRegistry.reset(userId);
+}
+
+export function getActiveRelationshipEventsCount(): number {
+  return relationshipEventsRegistry.getActiveCount();
 }
 
 export default RelationshipEventsEngine;

@@ -951,7 +951,22 @@ export class PredictiveAnticipationEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, PredictiveAnticipationEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+// Note: This uses userId as key for cross-session learning when available
+const predictiveAnticipationRegistry = createSessionRegistry(
+  (key: string) => {
+    // Key format: "sessionId" or "sessionId:userId"
+    const [sessionId, userId] = key.includes(':') ? key.split(':') : [key, undefined];
+    return new PredictiveAnticipationEngine(sessionId, userId);
+  },
+  { name: 'PredictiveAnticipation', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(predictiveAnticipationRegistry);
 
 export function getPredictiveAnticipationEngine(
   sessionId: string,
@@ -959,23 +974,22 @@ export function getPredictiveAnticipationEngine(
 ): PredictiveAnticipationEngine {
   // Use userId for cross-session learning, fall back to sessionId
   const key = userId || sessionId;
-  if (!instances.has(key)) {
-    instances.set(key, new PredictiveAnticipationEngine(sessionId, userId));
-  }
-  return instances.get(key)!;
+  return predictiveAnticipationRegistry.get(key);
 }
 
 export function resetPredictiveAnticipationEngine(sessionId: string, userId?: string): void {
   const key = userId || sessionId;
-  const instance = instances.get(key);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = predictiveAnticipationRegistry.get(key);
+  engine.reset();
 }
 
 export function clearPredictiveAnticipationEngine(sessionId: string, userId?: string): void {
   const key = userId || sessionId;
-  instances.delete(key);
+  predictiveAnticipationRegistry.reset(key);
+}
+
+export function getActivePredictiveAnticipationCount(): number {
+  return predictiveAnticipationRegistry.getActiveCount();
 }
 
 export default PredictiveAnticipationEngine;

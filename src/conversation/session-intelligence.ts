@@ -658,30 +658,43 @@ export class SessionIntelligenceOrchestrator {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, SessionIntelligenceOrchestrator>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+// Note: Uses composite key sessionId:userId for user-scoped intelligence
+const sessionIntelligenceRegistry = createSessionRegistry(
+  (key: string) => {
+    const [sessionId, userId] = key.split(':');
+    return new SessionIntelligenceOrchestrator(sessionId, userId === 'anonymous' ? undefined : userId);
+  },
+  { name: 'SessionIntelligence', cleanup: (orchestrator) => orchestrator.reset(), verbose: false }
+);
+
+registerGlobalRegistry(sessionIntelligenceRegistry);
 
 export function getSessionIntelligence(
   sessionId: string,
   userId?: string
 ): SessionIntelligenceOrchestrator {
   const key = `${sessionId}:${userId || 'anonymous'}`;
-  if (!instances.has(key)) {
-    instances.set(key, new SessionIntelligenceOrchestrator(sessionId, userId));
-  }
-  return instances.get(key)!;
+  return sessionIntelligenceRegistry.get(key);
 }
 
 export function resetSessionIntelligence(sessionId: string, userId?: string): void {
   const key = `${sessionId}:${userId || 'anonymous'}`;
-  const instance = instances.get(key);
-  if (instance) {
-    instance.reset();
-  }
+  const orchestrator = sessionIntelligenceRegistry.get(key);
+  orchestrator.reset();
 }
 
 export function clearSessionIntelligence(sessionId: string, userId?: string): void {
   const key = `${sessionId}:${userId || 'anonymous'}`;
-  instances.delete(key);
+  sessionIntelligenceRegistry.reset(key);
+}
+
+export function getActiveSessionIntelligenceCount(): number {
+  return sessionIntelligenceRegistry.getActiveCount();
 }
 
 export default SessionIntelligenceOrchestrator;

@@ -84,6 +84,13 @@ export {
 // Turn handler
 export { handleUserTurn, type TurnHandlerContext } from './turn-handler.js';
 
+// Audio processor (extracted from sttNode)
+export {
+  processAudioStream,
+  type AudioProcessorContext,
+  type VoiceEmotionResult,
+} from './audio-processor.js';
+
 // Voice humanization init handler
 export {
   setupVoiceHumanizationInit,
@@ -99,8 +106,12 @@ export {
   type UserDataInit,
 } from './session-init-handler.js';
 
-// Speech pipeline (to be added)
-// export * from './speech-pipeline.js';
+// Response processor (post-LLM processing)
+export {
+  processResponse,
+  type ResponseProcessorContext,
+  type ResponseProcessorResult,
+} from './response-processor.js';
 
 // Constants
 export const VOICE_AGENT_VERSION = '1.0.0';

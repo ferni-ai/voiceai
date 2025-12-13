@@ -530,24 +530,33 @@ export class ConversationalRepairEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, ConversationalRepairEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const conversationalRepairRegistry = createSessionRegistry(
+  (sessionId: string) => new ConversationalRepairEngine(),
+  { name: 'ConversationalRepair', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(conversationalRepairRegistry);
 
 export function getConversationalRepairEngine(sessionId: string): ConversationalRepairEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new ConversationalRepairEngine());
-  }
-  return instances.get(sessionId)!;
+  return conversationalRepairRegistry.get(sessionId);
 }
 
 export function resetConversationalRepairEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = conversationalRepairRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearConversationalRepairEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  conversationalRepairRegistry.reset(sessionId);
+}
+
+export function getActiveConversationalRepairCount(): number {
+  return conversationalRepairRegistry.getActiveCount();
 }
 
 export default ConversationalRepairEngine;

@@ -258,10 +258,18 @@ async function buildHandoffToolsForAgent(
  * These are custom tools defined in the agent's tools/ directory.
  *
  * Local tools can be:
- * - prompt: Injects a prompt into the conversation
+ * - prompt: Injects a prompt into the conversation (simplest)
  * - webhook: Calls an external HTTP endpoint
- * - script: Runs a local script (not yet implemented)
+ * - script: Runs a JS/MJS module with a run(params, context) export
  * - mcp: Delegates to an MCP server (uses mcp-integration)
+ *
+ * Script tools support:
+ * - Must be .js or .mjs files
+ * - Must export `run(params, context)` or be a default export function
+ * - Are sandboxed to the bundle directory
+ * - Have a 15s timeout
+ *
+ * @see personas/bundles/local-tools-loader.ts for implementation details
  */
 async function buildLocalToolsForAgent(
   agentId: string,

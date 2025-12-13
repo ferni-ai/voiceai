@@ -492,25 +492,32 @@ export class CognitiveLoadDetector {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, CognitiveLoadDetector>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const cognitiveLoadRegistry = createSessionRegistry(
+  (sessionId: string) => new CognitiveLoadDetector(),
+  { name: 'CognitiveLoad', cleanup: (detector) => detector.reset(), verbose: false }
+);
+
+registerGlobalRegistry(cognitiveLoadRegistry);
 
 export function getCognitiveLoadDetector(sessionId: string): CognitiveLoadDetector {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new CognitiveLoadDetector());
-  }
-  return instances.get(sessionId)!;
+  return cognitiveLoadRegistry.get(sessionId);
 }
 
 export function resetCognitiveLoadDetector(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    instances.delete(sessionId);
-  }
+  cognitiveLoadRegistry.reset(sessionId);
 }
 
 export function resetAllCognitiveLoadDetectors(): void {
-  instances.clear();
+  cognitiveLoadRegistry.resetAll();
+}
+
+export function getActiveCognitiveLoadCount(): number {
+  return cognitiveLoadRegistry.getActiveCount();
 }
 
 export default CognitiveLoadDetector;

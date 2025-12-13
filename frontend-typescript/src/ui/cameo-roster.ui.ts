@@ -745,17 +745,16 @@ if (typeof window !== 'undefined') {
    */
   const cameoRosterHelper = {
     popIn: (personaId: string = 'peter-john') => {
-      /* eslint-disable no-console */
-      console.log('🎬 cameoRoster.popIn called with:', personaId);
+      log.debug('popIn called with:', personaId);
 
       if (!isInitialized) {
-        console.log('🎬 Initializing cameo roster...');
+        log.debug('Initializing cameo roster...');
         initCameoRoster();
       }
 
       // Find elements and log what we found
       const found = findRosterElements();
-      console.log('🎬 Elements found:', {
+      log.debug('Elements found:', {
         found,
         rosterContainer: !!rosterContainer,
         ferniElement: !!ferniElement,
@@ -764,68 +763,64 @@ if (typeof window !== 'undefined') {
       });
 
       if (!found) {
-        console.error('🎬 Cannot pop in - elements not found!');
+        log.error('Cannot pop in - elements not found!');
         return;
       }
 
       testCameoPopIn(personaId);
-      /* eslint-enable no-console */
     },
 
     popOut: () => {
-      /* eslint-disable no-console */
-      console.log('🎬 cameoRoster.popOut called');
-      console.log('🎬 Active cameo:', activeCameoPersona);
-      console.log('🎬 Cameo element:', cameoElement);
-      /* eslint-enable no-console */
+      log.debug('popOut called');
+      log.debug('Active cameo:', activeCameoPersona);
+      log.debug('Cameo element:', cameoElement);
       testCameoPopOut();
     },
 
     demo: async () => {
       const personas = ['peter-john', 'maya-santos', 'alex-chen', 'nayan-patel', 'jordan-taylor'];
-      /* eslint-disable no-console */
-      console.log('🎬 Running cameo roster demo...');
+      log.info('Running cameo roster demo...');
 
       for (const persona of personas) {
-        console.log('🎬 Demo: popping in', persona);
+        log.debug('Demo: popping in', persona);
         testCameoPopIn(persona);
         await new Promise((r) => setTimeout(r, 2500));
-        console.log('🎬 Demo: popping out', persona);
+        log.debug('Demo: popping out', persona);
         testCameoPopOut();
         await new Promise((r) => setTimeout(r, 1000));
       }
 
-      console.log('🎬 Demo complete!');
-      /* eslint-enable no-console */
+      log.info('Demo complete!');
     },
 
     // Debug: show current state
     debug: () => {
-      /* eslint-disable no-console */
-      console.log('🎬 Cameo Roster Debug State:');
-      console.log('  isInitialized:', isInitialized);
-      console.log('  activeCameoPersona:', activeCameoPersona);
-      console.log('  cameoElement:', cameoElement);
-      console.log('  rosterContainer:', rosterContainer);
-      console.log('  ferniElement:', ferniElement);
-      console.log('  teamDivider:', teamDivider);
-      console.log('  marketplaceBtn:', marketplaceBtn);
+      log.debug('Cameo Roster Debug State:', {
+        isInitialized,
+        activeCameoPersona,
+        hasCameoElement: !!cameoElement,
+        hasRosterContainer: !!rosterContainer,
+        hasFerniElement: !!ferniElement,
+        hasTeamDivider: !!teamDivider,
+        hasMarketplaceBtn: !!marketplaceBtn,
+      });
 
       // Try to find elements fresh
       const roster = document.getElementById('teamRoster');
-      console.log('  Fresh roster lookup:', roster);
       if (roster) {
-        console.log('  Roster children:', roster.children.length);
-        console.log('  Ferni in roster:', roster.querySelector('[data-persona-id="ferni"]'));
-        console.log('  Divider in roster:', roster.querySelector('.team-divider'));
-        console.log('  All team members:', roster.querySelectorAll('.team-member').length);
+        log.debug('Fresh roster lookup:', {
+          rosterChildren: roster.children.length,
+          hasFerni: !!roster.querySelector('[data-persona-id="ferni"]'),
+          hasDivider: !!roster.querySelector('.team-divider'),
+          teamMemberCount: roster.querySelectorAll('.team-member').length,
+        });
+      } else {
+        log.debug('Fresh roster lookup: not found');
       }
-      /* eslint-enable no-console */
     },
 
     help: () => {
-      /* eslint-disable no-console */
-      console.log(`
+      log.info(`
 🎬 Cameo Roster Preview Helper
 ════════════════════════════════
 
@@ -845,7 +840,6 @@ HOW IT WORKS:
   4. When done, they slide toward "More" button
   5. Ferni shifts back to original position
       `);
-      /* eslint-enable no-console */
     },
   };
 

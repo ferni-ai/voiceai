@@ -128,45 +128,115 @@ export {
 export { getToolCategories, getToolDocumentation } from './categories.js';
 
 // ============================================================================
-// NOTE: Consolidated tools have been removed
-// Use domain-based tools instead (domains/finance/, domains/memory/, etc.)
+// LEGACY TOOL CREATORS - DEPRECATED
+// ============================================================================
+// These exports are DEPRECATED. Use domain-based tools instead:
+//   - buildAgentTools('agent-id') for agent-specific tool sets
+//   - domains/finance/, domains/memory/, etc. for direct imports
+//
+// Migration guide: docs/TOOL_MIGRATION.md
 // ============================================================================
 
 // ============================================================================
-// FINANCIAL DOMAIN
+// FINANCIAL DOMAIN (DEPRECATED - use domains/finance/)
 // ============================================================================
 
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/finance/` instead.
+ * These legacy creators will be removed in a future version.
+ */
 export { createCalculatorTools } from './calculators.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/finance/` instead.
+ */
 export { createEconomicTools } from './economic.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/research/` instead.
+ */
 export { createMarketDataTools } from './market-data.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/finance/` instead.
+ */
 export { createPersonalFinanceTools } from './personal-finance.js';
 
 // ============================================================================
-// INFORMATION DOMAIN
+// INFORMATION DOMAIN (DEPRECATED - use domains/information/)
 // ============================================================================
 
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/information/` instead.
+ */
 export { createNewsTools } from './news.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/information/` instead.
+ */
 export { createSearchTools } from './search.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/information/` instead.
+ */
 export { createSportsTools } from './sports.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/information/` instead.
+ */
 export { createWeatherTools } from './weather.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/wisdom/` instead.
+ */
 export { createWisdomTools } from './wisdom.js';
 
 // ============================================================================
-// HUMAN CONNECTION DOMAIN
+// HUMAN CONNECTION DOMAIN (DEPRECATED - use domains/wellness/, domains/life-planning/)
 // ============================================================================
 
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/life-planning/` instead.
+ */
 export { createLifeEventsTools } from './life-events.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from conversation tools instead.
+ */
 export { createSmallTalkTools } from './small-talk.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/wellness/` instead.
+ */
 export { createWellnessTools } from './wellness.js';
 
 // ============================================================================
-// CONVERSATION DOMAIN
+// CONVERSATION DOMAIN (DEPRECATED - use domains/awareness/, domains/proactive/)
 // ============================================================================
 
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/awareness/` instead.
+ */
 export { createAwarenessTools } from './awareness.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` instead. Background tools are auto-included.
+ */
 export { createBackgroundTools } from './background-tools.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` instead.
+ */
 export { createConversationTools } from './conversation.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/memory/` instead.
+ */
 export { createMemoryTools } from './memory-tools.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/proactive/` instead.
+ */
 export { createProactiveTools } from './proactive.js';
 
 // ============================================================================
@@ -229,18 +299,28 @@ export {
 export { createPlaidTools } from './plaid.js';
 
 // ============================================================================
-// AGENT DOMAIN
+// AGENT DOMAIN (Active - these are still used)
 // ============================================================================
 
+/**
+ * @deprecated Use domain-based cameo tools from `domains/cameo/` instead.
+ * The legacy cameo tools are being phased out.
+ */
 export {
   cameoTools,
   clearCameoSessionContext,
   createCameoTools,
   setCameoSessionContext,
 } from './cameo.js';
+
 export { createHandoffTools } from './handoff/index.js';
 export { createInsightsAnalysisTools } from './insights-analysis.js';
+
+/**
+ * @deprecated Use `buildAgentTools()` or import from `domains/research/` instead.
+ */
 export { createResearchTools } from './research-tools.js';
+
 export { createTelephonyTools } from './telephony.js';
 
 // ============================================================================

@@ -118,7 +118,7 @@ const ACCENT_OPTIONS: AccentOption[] = [
 // STATE
 // ============================================================================
 
-let state: AccentSettingsState = {
+const state: AccentSettingsState = {
   isOpen: false,
   isLoading: false,
   isSaving: false,

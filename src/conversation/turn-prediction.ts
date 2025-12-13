@@ -576,23 +576,30 @@ export function decidePreemptiveGeneration(
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const sessionInstances = new Map<string, TurnPredictionService>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const turnPredictionRegistry = createSessionRegistry(
+  (sessionId: string) => new TurnPredictionService(),
+  { name: 'TurnPrediction', cleanup: (service) => service.reset(), verbose: false }
+);
+
+registerGlobalRegistry(turnPredictionRegistry);
 
 export function getTurnPredictionService(sessionId: string): TurnPredictionService {
-  if (!sessionInstances.has(sessionId)) {
-    sessionInstances.set(sessionId, new TurnPredictionService());
-  }
-  return sessionInstances.get(sessionId)!;
+  return turnPredictionRegistry.get(sessionId);
 }
 
 export function resetTurnPredictionService(sessionId: string): void {
-  const instance = sessionInstances.get(sessionId);
-  if (instance) {
-    instance.reset();
-    sessionInstances.delete(sessionId);
-  }
+  turnPredictionRegistry.reset(sessionId);
 }
 
 export function resetAllTurnPrediction(): void {
-  sessionInstances.clear();
+  turnPredictionRegistry.resetAll();
+}
+
+export function getActiveTurnPredictionCount(): number {
+  return turnPredictionRegistry.getActiveCount();
 }

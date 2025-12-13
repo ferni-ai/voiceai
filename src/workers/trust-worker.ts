@@ -12,13 +12,32 @@
  *
  * This runs independently of the voice agent, ensuring trust
  * updates don't add latency to conversations.
- *
- * NOTE: Currently uses stub implementations. Will be connected to
- * actual trust systems as they're migrated to this async pattern.
  */
 
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import type { EventPayload } from '../services/async-events/index.js';
+
+// Trust system imports
+import {
+  getUnsaidProfile,
+  getAvoidedTopics,
+  recordDidShare,
+} from '../services/trust-systems/reading-between-lines.js';
+import {
+  getGrowthPatterns,
+  getUnreflectedGrowth,
+  generateGrowthReflection,
+} from '../services/trust-systems/growth-reflection.js';
+import {
+  getUncelebratedWins,
+  getPendingIntentions,
+  generateCelebration,
+} from '../services/trust-systems/small-wins.js';
+import { getDueMoments } from '../services/trust-systems/thinking-of-you.js';
+import {
+  saveTrustProfiles,
+  periodicSync,
+} from '../services/trust-systems/persistence.js';
 
 // ============================================================================
 // TRUST WORKER
@@ -47,24 +66,21 @@ export class TrustWorker extends LocalWorker {
       return;
     }
 
-    // Await a resolved promise to satisfy the async requirement
-    await Promise.resolve();
-
     switch (type) {
       case 'trust:update':
-        this.handleTrustUpdate(userId, personaId, data);
+        await this.handleTrustUpdate(userId, personaId, data);
         break;
 
       case 'trust:milestone':
-        this.handleTrustMilestone(userId, personaId, data);
+        await this.handleTrustMilestone(userId, personaId, data);
         break;
 
       case 'relationship:stage-change':
-        this.handleRelationshipChange(userId, personaId, data);
+        await this.handleRelationshipChange(userId, personaId, data);
         break;
 
       case 'conversation:end':
-        this.handleConversationEnd(userId, personaId, data);
+        await this.handleConversationEnd(userId, personaId, data);
         break;
 
       default:
@@ -74,84 +90,199 @@ export class TrustWorker extends LocalWorker {
 
   /**
    * Handle incremental trust update.
-   * TODO: Connect to actual trust orchestrator when available
+   * Records trust-building interactions and persists to Firestore.
    */
-  private handleTrustUpdate(
+  private async handleTrustUpdate(
     userId: string,
     personaId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     this.log.debug({ userId, personaId, trustDelta: data.trustDelta }, 'Processing trust update');
 
-    // For now, just log the update
-    // Future: Connect to trust orchestrator
-    // const orchestrator = await getTrustOrchestrator(userId);
-    // await orchestrator.recordInteraction({ ... });
+    try {
+      // If user shared something significant, record it
+      if (data.didShare) {
+        recordDidShare(userId);
+        this.log.debug({ userId }, 'Recorded user share');
+      }
 
-    this.log.debug({ userId, reason: data.reason }, 'Trust update recorded (stub)');
+      // Trigger periodic sync to persist any in-memory changes
+      await periodicSync(userId);
+
+      this.log.debug({ userId, reason: data.reason }, 'Trust update recorded');
+    } catch (error) {
+      this.log.warn({ userId, error: String(error) }, 'Failed to process trust update');
+    }
   }
 
   /**
    * Handle trust milestone (significant achievement).
-   * TODO: Connect to actual milestone tracking when available
+   * Triggers celebration momentum and thinking-of-you moments.
    */
-  private handleTrustMilestone(
+  private async handleTrustMilestone(
     userId: string,
     personaId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     this.log.info({ userId, personaId, milestone: data.milestone }, 'Trust milestone reached');
 
-    // For now, just log the milestone
-    // Future: Connect to celebration momentum, thinking-of-you triggers
+    try {
+      // Get any uncelebrated wins to potentially celebrate
+      const uncelebratedWins = getUncelebratedWins(userId);
+      if (uncelebratedWins.length > 0) {
+        const celebration = generateCelebration(userId, uncelebratedWins[0]);
+        if (celebration) {
+          this.log.info(
+            { userId, winType: uncelebratedWins[0].type, celebration: celebration.celebration },
+            'Generated celebration for milestone'
+          );
+        }
+      }
 
-    this.log.info({ userId, milestone: data.milestone }, 'Milestone recorded (stub)');
+      // Check for thinking-of-you moments to schedule
+      const dueMoments = getDueMoments(userId);
+      if (dueMoments.length > 0) {
+        this.log.info(
+          { userId, momentCount: dueMoments.length },
+          'Found due thinking-of-you moments'
+        );
+      }
+
+      // Persist all trust changes
+      await saveTrustProfiles(userId);
+
+      this.log.info({ userId, milestone: data.milestone }, 'Milestone processed');
+    } catch (error) {
+      this.log.warn({ userId, error: String(error) }, 'Failed to process trust milestone');
+    }
   }
 
   /**
    * Handle relationship stage change.
-   * TODO: Connect to growth reflection service when refactored
+   * Triggers growth reflection and updates trust profile.
    */
-  private handleRelationshipChange(
+  private async handleRelationshipChange(
     userId: string,
     personaId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     const { from, to } = data as { from?: string; to?: string };
 
     this.log.info({ userId, from, to }, 'Relationship stage change');
 
-    // For now, just log the change
-    // Future: Use getGrowthPatterns, getUnreflectedGrowth to generate insights
+    try {
+      // Get growth patterns to potentially reflect back
+      const growthPatterns = getGrowthPatterns(userId);
+      const unreflectedGrowth = getUnreflectedGrowth(userId);
 
-    this.log.info({ userId, from, to }, 'Stage transition recorded (stub)');
+      if (unreflectedGrowth.length > 0) {
+        // Generate growth reflection for the most significant unreflected pattern
+        const reflection = generateGrowthReflection(userId, {
+          currentTopic: data.currentTopic as string | undefined,
+          currentEmotion: data.currentEmotion as string | undefined,
+        });
+
+        if (reflection) {
+          this.log.info(
+            {
+              userId,
+              reflectionType: reflection.pattern?.type ?? 'unknown',
+              timing: reflection.timing,
+            },
+            'Generated growth reflection for stage change'
+          );
+        }
+      }
+
+      this.log.debug(
+        {
+          userId,
+          totalPatterns: growthPatterns.length,
+          unreflected: unreflectedGrowth.length,
+        },
+        'Growth patterns analyzed'
+      );
+
+      // Persist changes
+      await saveTrustProfiles(userId);
+
+      this.log.info({ userId, from, to }, 'Stage transition recorded');
+    } catch (error) {
+      this.log.warn({ userId, error: String(error) }, 'Failed to process relationship change');
+    }
   }
 
   /**
    * Handle conversation end - run post-conversation analysis.
-   * TODO: Connect to reading-between-lines, small-wins when refactored
+   * Aggregates insights from reading-between-lines, small-wins, and thinking-of-you.
    */
-  private handleConversationEnd(
+  private async handleConversationEnd(
     userId: string,
     personaId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     this.log.debug({ userId, turnCount: data.turnCount }, 'Processing conversation end');
 
-    // For now, just log the conversation end
-    // Future integrations:
-    // - Reading between lines: getUnsaidProfile, getAvoidedTopics
-    // - Small wins: getUncelebratedWins, getPendingIntentions
-    // - Thinking of you: getDueMoments
+    try {
+      // 1. Reading between lines: Get unsaid profile and avoided topics
+      const unsaidProfile = getUnsaidProfile(userId);
+      const avoidedTopics = getAvoidedTopics(userId);
 
-    this.log.debug(
-      {
-        userId,
-        turnCount: data.turnCount,
-        durationMs: data.durationMs,
-      },
-      'Conversation end processed (stub)'
-    );
+      if (unsaidProfile) {
+        this.log.debug(
+          {
+            userId,
+            avoidedTopicsCount: avoidedTopics.length,
+            falseFinesCount: unsaidProfile.falseFines.length,
+          },
+          'Retrieved unsaid profile'
+        );
+      }
+
+      // 2. Small wins: Check for uncelebrated wins and pending intentions
+      const uncelebratedWins = getUncelebratedWins(userId);
+      const pendingIntentions = getPendingIntentions(userId);
+
+      if (uncelebratedWins.length > 0 || pendingIntentions.length > 0) {
+        this.log.debug(
+          {
+            userId,
+            uncelebratedWins: uncelebratedWins.length,
+            pendingIntentions: pendingIntentions.length,
+          },
+          'Retrieved wins and intentions'
+        );
+      }
+
+      // 3. Thinking of you: Get due moments for proactive outreach
+      const dueMoments = getDueMoments(userId);
+      if (dueMoments.length > 0) {
+        this.log.info(
+          {
+            userId,
+            dueMomentsCount: dueMoments.length,
+            nextMomentType: dueMoments[0]?.type,
+          },
+          'Found due thinking-of-you moments'
+        );
+      }
+
+      // 4. Persist all trust profiles
+      const persistResult = await saveTrustProfiles(userId);
+
+      this.log.info(
+        {
+          userId,
+          turnCount: data.turnCount,
+          durationMs: data.durationMs,
+          savedProfiles: persistResult.saved,
+          failedProfiles: persistResult.failed,
+        },
+        'Conversation end processed'
+      );
+    } catch (error) {
+      this.log.warn({ userId, error: String(error) }, 'Failed to process conversation end');
+    }
   }
 }
 

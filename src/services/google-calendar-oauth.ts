@@ -14,6 +14,7 @@
 
 import crypto from 'node:crypto';
 import { getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -29,6 +30,13 @@ const CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
 ];
+
+// Circuit breaker for Google APIs - prevents hammering a failing service
+const googleCalendarCircuitBreaker = getCircuitBreaker('google-calendar', {
+  failureThreshold: 5, // Open circuit after 5 failures
+  resetTimeout: 30_000, // Try again after 30s
+  successThreshold: 2, // Need 2 successes to close
+});
 
 // ============================================================================
 // TYPES
@@ -399,50 +407,54 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 // ============================================================================
 
 /**
- * List user's calendars
+ * List user's calendars (with circuit breaker protection)
  */
 export async function listCalendars(accessToken: string): Promise<CalendarListEntry[]> {
-  const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  return googleCalendarCircuitBreaker.execute(async () => {
+    const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to list calendars: ${error}`);
+    }
+
+    const data = (await response.json()) as { items: CalendarListEntry[] };
+    return data.items || [];
   });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to list calendars: ${error}`);
-  }
-
-  const data = (await response.json()) as { items: CalendarListEntry[] };
-  return data.items || [];
 }
 
 /**
- * Create a calendar event
+ * Create a calendar event (with circuit breaker protection)
  */
 export async function createEvent(
   accessToken: string,
   calendarId: string,
   event: CalendarEvent
 ): Promise<CalendarEvent> {
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
+  return googleCalendarCircuitBreaker.execute(async () => {
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to create event: ${error}`);
     }
-  );
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create event: ${error}`);
-  }
-
-  const created = (await response.json()) as CalendarEvent;
-  getLogger().info({ eventId: created.id, summary: event.summary }, '📅 Calendar event created');
-  return created;
+    const created = (await response.json()) as CalendarEvent;
+    getLogger().info({ eventId: created.id, summary: event.summary }, '📅 Calendar event created');
+    return created;
+  });
 }
 
 /**

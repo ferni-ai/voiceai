@@ -64,7 +64,7 @@ export type AuthStateCallback = (state: AuthState) => void;
 let currentUser: User | null = null;
 let currentToken: string | null = null;
 let tokenExpiry: number = 0;
-let authStateCallbacks: AuthStateCallback[] = [];
+const authStateCallbacks: AuthStateCallback[] = [];
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 

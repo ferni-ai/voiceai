@@ -33,6 +33,7 @@ import {
   analyzeUserEngagement,
   type ConversationSignalContext,
 } from '../../intelligence/index.js';
+import type { SessionStateManager } from '../session/session-state.js';
 
 // ============================================================================
 // TYPES
@@ -49,11 +50,13 @@ export interface TurnHandlerContext {
   bundleRuntime?: BundleRuntimeEngine;
   /** Session services */
   services: SessionServices;
-  /** User data */
+  /** User data (proxy to SessionStateManager) */
   userData: {
     turnCount?: number;
     extensibilitySessionPrompt?: string;
   };
+  /** Session state manager (single source of truth) */
+  sessionStateManager?: SessionStateManager;
   /** Current session for speaking */
   currentSession?: {
     say: (text: string, opts?: { allowInterruptions?: boolean }) => void;
@@ -92,6 +95,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     bundleRuntime,
     services,
     userData,
+    sessionStateManager,
     currentSession,
     room,
     sendDataMessage,
@@ -175,6 +179,57 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
     // Inject context into LLM
     injectTurnContext(turnCtx, result);
+
+    // ================================================================
+    // UPDATE SESSION STATE MANAGER (Single Source of Truth)
+    // All state updates go through SessionStateManager
+    // ================================================================
+    if (sessionStateManager) {
+      // Increment turn count
+      sessionStateManager.incrementTurn();
+
+      // Update last user message
+      sessionStateManager.setLastUserMessage(userText);
+
+      // Update emotional state from analysis
+      if (result.emotional) {
+        sessionStateManager.setEmotionAnalysis({
+          primary: result.emotional.primary,
+          intensity: result.emotional.intensity,
+          distressLevel: result.emotional.distressLevel,
+        });
+      }
+
+      // Update topic from analysis
+      if (result.analysis?.currentTopic) {
+        sessionStateManager.setTopic(result.analysis.currentTopic);
+      }
+
+      // Update relationship stage from humanizing result
+      if (result.context.humanizingResult?.relationship?.stage) {
+        sessionStateManager.setRelationshipStage(result.context.humanizingResult.relationship.stage);
+      }
+
+      // Update mood from humanizing result
+      if (result.context.humanizingResult?.mood) {
+        sessionStateManager.setMood(result.context.humanizingResult.mood.state);
+      }
+
+      // Record personal themes mentioned in response
+      const themeMentions = result.context.injections
+        ?.filter((i) => i.category === 'memory' || i.category === 'continuity')
+        .map((i) => i.content)
+        .join(' ');
+      if (themeMentions) {
+        sessionStateManager.recordThemesMentioned(themeMentions);
+      }
+
+      diag.state('SessionStateManager updated after turn', {
+        turnCount: sessionStateManager.getTurnCount(),
+        topic: result.analysis?.currentTopic,
+        emotionalPrimary: result.emotional?.primary,
+      });
+    }
 
     // ================================================================
     // EXTENSIBILITY: before_response hook

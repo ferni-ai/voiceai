@@ -573,24 +573,33 @@ export class EnergyRegulationEngine {
 // SINGLETON
 // ============================================================================
 
-const instances = new Map<string, EnergyRegulationEngine>();
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../utils/session-registry.js';
+
+const energyRegulationRegistry = createSessionRegistry(
+  (sessionId: string) => new EnergyRegulationEngine(),
+  { name: 'EnergyRegulation', cleanup: (engine) => engine.reset(), verbose: false }
+);
+
+registerGlobalRegistry(energyRegulationRegistry);
 
 export function getEnergyRegulationEngine(sessionId: string): EnergyRegulationEngine {
-  if (!instances.has(sessionId)) {
-    instances.set(sessionId, new EnergyRegulationEngine());
-  }
-  return instances.get(sessionId)!;
+  return energyRegulationRegistry.get(sessionId);
 }
 
 export function resetEnergyRegulationEngine(sessionId: string): void {
-  const instance = instances.get(sessionId);
-  if (instance) {
-    instance.reset();
-  }
+  const engine = energyRegulationRegistry.get(sessionId);
+  engine.reset();
 }
 
 export function clearEnergyRegulationEngine(sessionId: string): void {
-  instances.delete(sessionId);
+  energyRegulationRegistry.reset(sessionId);
+}
+
+export function getActiveEnergyRegulationCount(): number {
+  return energyRegulationRegistry.getActiveCount();
 }
 
 export default EnergyRegulationEngine;

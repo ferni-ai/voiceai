@@ -9,10 +9,24 @@
  * - Retry logic
  */
 
+import { getCircuitBreaker } from '../../../utils/circuit-breaker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateEmailContent } from '../../brand/index.js';
 
 const log = getLogger().child({ module: 'email-delivery' });
+
+// Circuit breakers for email providers - prevent hammering failing services
+const sendGridCircuitBreaker = getCircuitBreaker('sendgrid-email', {
+  failureThreshold: 5, // Open after 5 failures
+  resetTimeout: 120_000, // Try again after 2 minutes
+  successThreshold: 2, // Need 2 successes to close
+});
+
+const resendCircuitBreaker = getCircuitBreaker('resend-email', {
+  failureThreshold: 5,
+  resetTimeout: 120_000,
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -538,40 +552,42 @@ async function sendViaSendGrid(
 ): Promise<EmailDeliveryResult> {
   const personaName = getPersonaDisplayName(message.personaId);
 
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config!.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [
-        {
-          to: [{ email: message.to, name: message.toName }],
-          subject: message.subject,
+  const response = await sendGridCircuitBreaker.execute(() =>
+    fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config!.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: message.to, name: message.toName }],
+            subject: message.subject,
+          },
+        ],
+        from: {
+          email: config!.fromEmail,
+          name: `${personaName} from ${config!.fromName}`,
         },
-      ],
-      from: {
-        email: config!.fromEmail,
-        name: `${personaName} from ${config!.fromName}`,
-      },
-      reply_to: config!.replyToEmail ? { email: config!.replyToEmail } : undefined,
-      content: [
-        { type: 'text/plain', value: text },
-        { type: 'text/html', value: html },
-      ],
-      tracking_settings: {
-        click_tracking: { enable: config!.trackClicks ?? true },
-        open_tracking: { enable: config!.trackOpens ?? true },
-      },
-      categories: message.tags,
-      custom_args: {
-        userId: message.userId,
-        outreachId: message.outreachId,
-        personaId: message.personaId,
-      },
-    }),
-  });
+        reply_to: config!.replyToEmail ? { email: config!.replyToEmail } : undefined,
+        content: [
+          { type: 'text/plain', value: text },
+          { type: 'text/html', value: html },
+        ],
+        tracking_settings: {
+          click_tracking: { enable: config!.trackClicks ?? true },
+          open_tracking: { enable: config!.trackOpens ?? true },
+        },
+        categories: message.tags,
+        custom_args: {
+          userId: message.userId,
+          outreachId: message.outreachId,
+          personaId: message.personaId,
+        },
+      }),
+    })
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -594,26 +610,28 @@ async function sendViaResend(
 ): Promise<EmailDeliveryResult> {
   const personaName = getPersonaDisplayName(message.personaId);
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config!.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${personaName} <${config!.fromEmail}>`,
-      to: [message.to],
-      subject: message.subject,
-      html,
-      text,
-      reply_to: config!.replyToEmail,
-      tags: message.tags?.map((t) => ({ name: 'category', value: t })),
+  const response = await resendCircuitBreaker.execute(() =>
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
-        'X-User-Id': message.userId,
-        'X-Outreach-Id': message.outreachId,
+        Authorization: `Bearer ${config!.apiKey}`,
+        'Content-Type': 'application/json',
       },
-    }),
-  });
+      body: JSON.stringify({
+        from: `${personaName} <${config!.fromEmail}>`,
+        to: [message.to],
+        subject: message.subject,
+        html,
+        text,
+        reply_to: config!.replyToEmail,
+        tags: message.tags?.map((t) => ({ name: 'category', value: t })),
+        headers: {
+          'X-User-Id': message.userId,
+          'X-Outreach-Id': message.outreachId,
+        },
+      }),
+    })
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();

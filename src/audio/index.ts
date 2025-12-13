@@ -14,6 +14,7 @@ export {
   getMusicPlayer,
   initializeMusicPlayer,
   resetMusicPlayer,
+  type MusicPlayerEvents,
   type MusicPlayerState,
   type MusicState,
   type MusicTrack,
@@ -21,6 +22,7 @@ export {
   type OnMusicStateChangeCallback,
   type OnTrackEndedCallback,
   type SessionMusicEntry,
+  type TypedMusicPlayerEmitter,
 } from './music-player.js';
 
 // Ambient music for silences

@@ -2,40 +2,59 @@
  * Live Backchanneling Session Management
  *
  * Session-scoped instance management for live backchanneling services.
- * Each voice session gets its own breath pause detector and backchanneling service.
+ * Uses the centralized SessionRegistry pattern for consistent lifecycle management.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+} from '../../utils/session-registry.js';
 import { BreathPauseDetector } from './breath-pause.js';
 import { LiveBackchannelingService } from './service.js';
 
-const log = getLogger().child({ module: 'LiveBackchannelSession' });
-
 // ============================================================================
-// SESSION-SCOPED INSTANCES
+// SESSION REGISTRIES
 // ============================================================================
 
-const sessionServices = new Map<string, LiveBackchannelingService>();
-const sessionDetectors = new Map<string, BreathPauseDetector>();
+/**
+ * Session registry for live backchanneling services.
+ */
+const serviceRegistry = createSessionRegistry(
+  (sessionId: string) => new LiveBackchannelingService(),
+  {
+    name: 'LiveBackchanneling',
+    cleanup: (service) => service.reset(),
+    verbose: false,
+  }
+);
+
+/**
+ * Session registry for breath pause detectors.
+ */
+const detectorRegistry = createSessionRegistry(
+  (sessionId: string) => new BreathPauseDetector(),
+  {
+    name: 'BreathPauseDetector',
+    cleanup: (detector) => detector.reset(),
+    verbose: false,
+  }
+);
+
+// Register globally for coordinated session cleanup
+registerGlobalRegistry(serviceRegistry);
+registerGlobalRegistry(detectorRegistry);
+
+// ============================================================================
+// PUBLIC API (backwards compatible)
+// ============================================================================
 
 /**
  * Get or create a session-scoped LiveBackchannelingService
  */
 export function getLiveBackchannelingService(sessionId?: string): LiveBackchannelingService {
   // Backward compatibility: no sessionId = global singleton behavior
-  if (!sessionId) {
-    const globalKey = '__global__';
-    if (!sessionServices.has(globalKey)) {
-      sessionServices.set(globalKey, new LiveBackchannelingService());
-    }
-    return sessionServices.get(globalKey)!;
-  }
-
-  if (!sessionServices.has(sessionId)) {
-    sessionServices.set(sessionId, new LiveBackchannelingService());
-    log.debug({ sessionId }, '🎤 Live backchanneling service created');
-  }
-  return sessionServices.get(sessionId)!;
+  const key = sessionId || '__global__';
+  return serviceRegistry.get(key);
 }
 
 /**
@@ -43,62 +62,25 @@ export function getLiveBackchannelingService(sessionId?: string): LiveBackchanne
  */
 export function getBreathPauseDetector(sessionId?: string): BreathPauseDetector {
   // Backward compatibility: no sessionId = global singleton behavior
-  if (!sessionId) {
-    const globalKey = '__global__';
-    if (!sessionDetectors.has(globalKey)) {
-      sessionDetectors.set(globalKey, new BreathPauseDetector());
-    }
-    return sessionDetectors.get(globalKey)!;
-  }
-
-  if (!sessionDetectors.has(sessionId)) {
-    sessionDetectors.set(sessionId, new BreathPauseDetector());
-    log.debug({ sessionId }, '🫁 Breath pause detector created');
-  }
-  return sessionDetectors.get(sessionId)!;
+  const key = sessionId || '__global__';
+  return detectorRegistry.get(key);
 }
 
 /**
  * Reset live backchanneling for a specific session
  */
 export function resetLiveBackchanneling(sessionId?: string): void {
-  if (!sessionId) {
-    // Reset global singleton
-    const globalService = sessionServices.get('__global__');
-    const globalDetector = sessionDetectors.get('__global__');
-    globalService?.reset();
-    globalDetector?.reset();
-    sessionServices.delete('__global__');
-    sessionDetectors.delete('__global__');
-    return;
-  }
-
-  const service = sessionServices.get(sessionId);
-  const detector = sessionDetectors.get(sessionId);
-
-  service?.reset();
-  detector?.reset();
-
-  sessionServices.delete(sessionId);
-  sessionDetectors.delete(sessionId);
-
-  log.debug({ sessionId }, '🧹 Live backchanneling reset');
+  const key = sessionId || '__global__';
+  serviceRegistry.reset(key);
+  detectorRegistry.reset(key);
 }
 
 /**
  * Reset all live backchanneling services
  */
 export function resetAllLiveBackchanneling(): void {
-  for (const [sessionId, service] of sessionServices) {
-    service.reset();
-    log.debug({ sessionId }, '🧹 Live backchanneling service reset');
-  }
-  for (const [sessionId, detector] of sessionDetectors) {
-    detector.reset();
-    log.debug({ sessionId }, '🧹 Breath pause detector reset');
-  }
-  sessionServices.clear();
-  sessionDetectors.clear();
+  serviceRegistry.resetAll();
+  detectorRegistry.resetAll();
 }
 
 /**
@@ -106,6 +88,20 @@ export function resetAllLiveBackchanneling(): void {
  */
 export function getActiveLiveBackchannelSessionCount(): number {
   // Exclude global singleton from count
-  const hasGlobal = sessionServices.has('__global__') ? 1 : 0;
-  return sessionServices.size - hasGlobal;
+  const hasGlobal = serviceRegistry.has('__global__') ? 1 : 0;
+  return serviceRegistry.getActiveCount() - hasGlobal;
+}
+
+/**
+ * Check if a session has active live backchanneling
+ */
+export function hasLiveBackchanneling(sessionId: string): boolean {
+  return serviceRegistry.has(sessionId);
+}
+
+/**
+ * Get all active session IDs (for monitoring)
+ */
+export function getActiveLiveBackchannelSessionIds(): string[] {
+  return serviceRegistry.getActiveSessionIds().filter(id => id !== '__global__');
 }

@@ -8,9 +8,17 @@
  * - Delivery tracking
  */
 
+import { getCircuitBreaker } from '../../../utils/circuit-breaker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'push-notifications' });
+
+// Circuit breaker for FCM - prevents hammering Google's push service if it's down
+const fcmCircuitBreaker = getCircuitBreaker('fcm-push-notifications', {
+  failureThreshold: 5,
+  resetTimeout: 60_000, // 1 minute
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -424,16 +432,18 @@ async function sendToToken(
     },
   };
 
-  const response = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${config!.firebaseProjectId}/messages:send`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(message),
-    }
+  const response = await fcmCircuitBreaker.execute(() =>
+    fetch(
+      `https://fcm.googleapis.com/v1/projects/${config!.firebaseProjectId}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      }
+    )
   );
 
   if (!response.ok) {

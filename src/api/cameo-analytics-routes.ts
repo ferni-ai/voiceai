@@ -16,7 +16,7 @@ import {
 } from '../services/cameo/cameo-analytics.js';
 import type { CameoPersonaId } from '../services/cameo/types.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { requireAuth } from './auth-middleware.js';
+import { requireAdmin, requireAuth, type AuthContext } from './auth-middleware.js';
 import { sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'CameoAnalyticsAPI' });
@@ -262,9 +262,10 @@ export async function handleCameoAnalyticsRoutes(
 ): Promise<boolean> {
   const method = req.method || 'GET';
 
-  // GET /api/cameo/analytics
+  // GET /api/cameo/analytics (admin only)
   if (pathname === '/api/cameo/analytics' && method === 'GET') {
-    // TODO: Add admin auth check
+    const isAdmin = await requireAdmin(req, res);
+    if (!isAdmin) return true; // 403 already sent
     await handleGetAnalytics(req, res);
     return true;
   }
@@ -272,14 +273,19 @@ export async function handleCameoAnalyticsRoutes(
   // GET /api/cameo/preferences/:userId
   const preferencesMatch = pathname.match(/^\/api\/cameo\/preferences\/([^/]+)$/);
   if (preferencesMatch && method === 'GET') {
-    const userId = preferencesMatch[1];
+    const requestedUserId = preferencesMatch[1];
 
-    // Verify user is authenticated and requesting their own data
-    const authed = await requireAuth(req, res);
-    if (!authed) return true;
+    // Verify user is authenticated
+    const auth = (await requireAuth(req, res)) as AuthContext | null;
+    if (!auth) return true; // 401 already sent
 
-    // For now, allow users to see their own preferences
-    await handleGetPreferences(req, res, userId);
+    // Users can only access their own preferences (unless admin)
+    if (auth.userId !== requestedUserId && !auth.isAdmin) {
+      sendError(res, 'Cannot access other user preferences', 403);
+      return true;
+    }
+
+    await handleGetPreferences(req, res, requestedUserId);
     return true;
   }
 

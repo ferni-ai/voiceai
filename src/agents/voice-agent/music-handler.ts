@@ -19,6 +19,7 @@ import type { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import {
   initializeDJBooth,
+  getMusicHumanization,
   type DJBooth,
   type MusicState,
   type MusicTrack,
@@ -31,6 +32,13 @@ import {
   getMidSongMomentPhrase,
   getMusicStoppedPhrase,
 } from '../../audio/ambient-music.js';
+// 🎵 Music Humanization - spontaneous offers, emotional mirrors
+import {
+  checkSpontaneousMusicMoment,
+  getEmotionalMirrorOffer,
+  getPostMusicCheckIn,
+  type MusicHumanizationController,
+} from '../../audio/music-humanization.js';
 import { isMusicEnabled } from '../../config/environment.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -59,6 +67,8 @@ export interface MusicHandlerContext {
 export interface MusicHandlerResult {
   /** DJ booth instance (for cleanup) */
   djBooth: DJBooth | null;
+  /** Music humanization controller (for spontaneous offers) */
+  musicHumanization: MusicHumanizationController | null;
   /** Cleanup function to clear timers */
   clearTimers: () => void;
   /** Whether music was initialized */
@@ -80,6 +90,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   const { room, session, services, sessionPersona, conversationManager } = ctx;
 
   let djBooth: DJBooth | null = null;
+  let musicHumanization: MusicHumanizationController | null = null;
   let appreciationTimer: NodeJS.Timeout | null = null;
   let readTheRoomTimer: NodeJS.Timeout | null = null;
 
@@ -105,7 +116,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
       diag.session('🎵 [DIAG] Music player skipped - MUSIC_ENABLED is false');
       diag.session('🎵 [DIAG] Set MUSIC_ENABLED=true in environment to enable music');
     }
-    return { djBooth: null, clearTimers, initialized: false };
+    return { djBooth: null, musicHumanization: null, clearTimers, initialized: false };
   }
 
   try {
@@ -178,6 +189,11 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
       hasUserId: !!services.userId,
     });
 
+    // 🎵 Initialize Music Humanization for spontaneous offers and emotional mirroring
+    musicHumanization = getMusicHumanization();
+    musicHumanization.setPersona(sessionPersona.id);
+    diag.state('🎵 Music Humanization initialized', { persona: sessionPersona.id });
+
     // Set up track ended callback
     player.setOnTrackEndedCallback((track, wasAmbient) => {
       if (wasAmbient) {
@@ -228,15 +244,16 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     diag.state('🎵 [DIAG] Music player SUCCESSFULLY initialized (before session.start)', {
       hasDJBooth: !!djBooth,
+      hasMusicHumanization: !!musicHumanization,
       personaId: sessionPersona?.id,
     });
-    return { djBooth, clearTimers, initialized: true };
+    return { djBooth, musicHumanization, clearTimers, initialized: true };
   } catch (musicError) {
     diag.warn('🎵 [DIAG] Music player init FAILED (non-fatal)', {
       error: String(musicError),
       stack: musicError instanceof Error ? musicError.stack : undefined,
     });
-    return { djBooth: null, clearTimers, initialized: false };
+    return { djBooth: null, musicHumanization: null, clearTimers, initialized: false };
   }
 }
 
@@ -482,6 +499,95 @@ async function handleReadTheRoomInterval(
   } catch (e) {
     diag.warn('Failed read-the-room check', { error: String(e) });
   }
+}
+
+// ============================================================================
+// MUSIC HUMANIZATION HELPERS
+// ============================================================================
+
+/**
+ * Check if a spontaneous music offer is appropriate based on emotional state
+ *
+ * Call this after emotion detection in the turn handler to offer music
+ * that mirrors the user's emotional state.
+ *
+ * @param params.emotion - Detected user emotion
+ * @param params.conversationDurationMs - How long the conversation has been going
+ * @param params.personaId - Current persona ID
+ * @param params.session - Voice session for speaking the offer
+ * @returns Whether an offer was made
+ */
+export async function checkEmotionalMusicOffer(params: {
+  emotion: string;
+  emotionalIntensity: number;
+  conversationDurationMs: number;
+  personaId: string;
+  recentTopics?: string[];
+  session: voice.AgentSession<UserData>;
+}): Promise<boolean> {
+  const { emotion, emotionalIntensity, conversationDurationMs, personaId, recentTopics, session } =
+    params;
+
+  // Only offer music when emotion is intense enough
+  if (emotionalIntensity < 0.6) {
+    return false;
+  }
+
+  // Don't offer music in very short conversations (< 2 minutes)
+  if (conversationDurationMs < 2 * 60 * 1000) {
+    return false;
+  }
+
+  try {
+    const musicHumanization = getMusicHumanization();
+
+    // Check for emotional mirror opportunity
+    const emotionalOffer = getEmotionalMirrorOffer(emotion);
+    if (emotionalOffer) {
+      diag.state('🎵 Emotional music mirror offer', {
+        emotion,
+        intensity: emotionalIntensity,
+        offer: emotionalOffer.slice(0, 50),
+      });
+      session.say(emotionalOffer, { allowInterruptions: true });
+      return true;
+    }
+
+    // Check for spontaneous music moment (heavy conversation, celebration, etc.)
+    const spontaneous = checkSpontaneousMusicMoment({
+      conversationDurationMs,
+      timeSinceLastMusicMs: Infinity, // Let the function check internally
+      recentTopics: recentTopics || [],
+      emotionalIntensity,
+      isAwkwardSilence: false,
+      recentAchievement: false,
+    });
+
+    if (spontaneous) {
+      diag.state('🎵 Spontaneous music offer triggered', {
+        type: spontaneous.type,
+        emotion,
+      });
+      session.say(spontaneous.offer, { allowInterruptions: true });
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    diag.warn('Failed to check emotional music offer', { error: String(e) });
+    return false;
+  }
+}
+
+/**
+ * Get a post-music check-in phrase when music ends
+ *
+ * @param personaId - Current persona ID
+ * @param wasRequested - Whether user requested the music (vs ambient)
+ * @returns Check-in phrase to say
+ */
+export function getMusicCheckIn(personaId: string, wasRequested: boolean): string {
+  return getPostMusicCheckIn(personaId, wasRequested);
 }
 
 export default setupMusicHandler;

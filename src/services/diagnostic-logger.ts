@@ -20,8 +20,11 @@ import { getLogger } from '../utils/safe-logger.js';
 // CONFIGURATION
 // ============================================================================
 
+import { isDebugEnabled } from '../config/feature-flags.js';
+
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const DEBUG_AGENT = process.env.DEBUG_AGENT === 'true';
+// Use centralized feature flag system for debug toggle
+const DEBUG_AGENT = isDebugEnabled('agent');
 const LOG_LEVEL = process.env.LOG_LEVEL || (IS_PRODUCTION ? 'info' : 'debug');
 
 // Log levels (lower = more verbose)
