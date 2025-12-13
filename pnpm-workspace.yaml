@@ -22,6 +22,6 @@ packages:
   # Design system
   - 'design-system'
   
-  # Firebase functions
-  - 'functions'
+  # Firebase functions (excluded - requires Node 20, deploy separately)
+  # - 'functions'
 

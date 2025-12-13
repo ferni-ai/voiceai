@@ -8,14 +8,40 @@ See `CORE-PRINCIPLES.md` for our complete philosophy. Every architecture decisio
 
 ## Quick Reference
 ```bash
-npm run quality      # Typecheck + lint + format + test (run before commits)
-npm run quality:check # Code quality metrics (as any, console.log, file size)
-npm run quality:arch  # Architecture layer validation
-npm run quality:full  # All checks combined
-npm run typecheck    # TypeScript only
-npm run lint:fix     # Auto-fix lint issues
-npm test             # Vitest (60% coverage required)
+# Quality checks
+pnpm quality         # Typecheck + lint + format + test (run before commits)
+pnpm quality:check   # Code quality metrics (as any, console.log, file size)
+pnpm quality:arch    # Architecture layer validation
+pnpm quality:full    # All checks combined
+pnpm typecheck       # TypeScript only
+pnpm lint:fix        # Auto-fix lint issues
+pnpm test            # Vitest (60% coverage required)
+
+# Fast builds (esbuild - 12x faster!)
+pnpm build:fast      # Build with esbuild (~0.9s for 1400 files)
+pnpm build:fast:types # Build + generate .d.ts files
+pnpm build:fast:watch # Watch mode for development
+pnpm build           # Traditional tsc build (slower, but full type checking)
 ```
+
+## 📦 Package Manager: pnpm (Preferred)
+
+We use **pnpm** for faster installs and better caching. npm still works but is slower.
+
+```bash
+# Install dependencies (~4x faster than npm)
+pnpm install
+
+# Run any script
+pnpm <script>        # e.g., pnpm dev, pnpm build:fast, pnpm test
+
+# Add a dependency
+pnpm add <package>   # Runtime dependency
+pnpm add -D <package> # Dev dependency
+pnpm add -w <package> # Add to workspace root
+```
+
+**First time setup?** Run `./scripts/migrate-to-pnpm.sh` to generate `pnpm-lock.yaml`.
 
 ## Automated Quality Gates
 
@@ -40,7 +66,7 @@ node token-server.js
 PORT=3002 node ui-server.js
 
 # Terminal 3: Vite Dev Server (port 3004) - Frontend with HMR
-cd frontend-typescript && npm run dev
+cd frontend-typescript && pnpm dev
 ```
 
 **Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
@@ -101,15 +127,49 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 
 **Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
+## ⚡ Build Optimization (pnpm + esbuild)
+
+We use **esbuild** for fast TypeScript compilation and **pnpm** for fast dependency installs.
+
+### Build Time Comparison
+| Build Method | Time | Files | Speedup |
+|--------------|------|-------|---------|
+| `tsc` (old) | 9.5s | 1,400 | baseline |
+| `esbuild` (new) | **0.9s** | 1,400 | **~12x faster** |
+| `npm ci` (old) | ~45s | - | baseline |
+| `pnpm install` | ~11s | - | **~4x faster** |
+
+### Docker Build Times
+| Service | Before | After | Savings |
+|---------|--------|-------|---------|
+| Voice Agent | 15-20 min | **2-4 min** | ~80% |
+| UI Server | 8-12 min | 3-5 min | ~60% |
+
+### How It Works
+1. **Kaniko** in Cloud Build provides aggressive layer caching (1 week TTL)
+2. **pnpm** uses content-addressable storage for faster installs
+3. **esbuild** transpiles TypeScript without type checking (use `build:fast`)
+4. Type declarations (`.d.ts`) are optional - skip them in Docker builds
+
+### When to Use Each
+| Command | Use Case |
+|---------|----------|
+| `pnpm build:fast` | Development, Docker builds (fastest) |
+| `pnpm build:fast:types` | When you need .d.ts files |
+| `pnpm build` | Full tsc build (for debugging type errors) |
+| `pnpm typecheck` | Type checking without emitting files |
+
+**Docs:** See `docs/BUILD-OPTIMIZATIONS.md` for full details.
+
 ## 🎨 Design System (SINGLE SOURCE OF TRUTH)
 
 All design tokens live in `design-system/tokens/*.json`. **Never edit generated files directly.**
 
 ### Quick Commands
 ```bash
-# Via npm scripts
-npm run tokens:sync    # Build & sync all tokens (run after editing JSON)
-npm run tokens:check   # Validate no drift (runs in pre-commit & CI)
+# Via pnpm scripts
+pnpm tokens:sync       # Build & sync all tokens (run after editing JSON)
+pnpm tokens:check      # Validate no drift (runs in pre-commit & CI)
 
 # Via Ferni CLI (recommended)
 ferni tokens sync                        # Build & sync all tokens

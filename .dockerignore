@@ -62,5 +62,6 @@ __tests__/
 data/
 scripts/
 !scripts/patch-livekit-timeout.js
+!scripts/build-fast.ts
 marketplace-agents/
 ferni-speaker/

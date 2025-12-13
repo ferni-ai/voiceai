@@ -23,3 +23,6 @@ prefer-offline=true
 # Maximum concurrent network requests
 network-concurrency=16
 
+# Don't fail on engine version mismatches (allows Node 24 even if package says 20)
+engine-strict=false
+
