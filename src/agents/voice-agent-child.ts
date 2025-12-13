@@ -162,22 +162,25 @@ const _prewarmReady = new Promise<void>((resolve, reject) => {
 
 log('SYNC', 'Prewarm synchronization initialized', { state: _prewarmState });
 
-// Timeout: If prewarm takes > 25s, reject (LiveKit has 30s init timeout)
+// Timeout: If prewarm takes > 55s, reject
+// NOTE: Cold starts can take 30-40s for imports like @google/genai and silero
+// We set this to 55s to allow for slow cold starts while still having a safety net
+const PREWARM_TIMEOUT_MS = 55000;
 const _prewarmTimeout = setTimeout(() => {
   if (_prewarmState === 'running' || _prewarmState === 'pending') {
     _prewarmState = 'timeout';
-    log('SYNC', '🚨 PREWARM TIMEOUT - took more than 25 seconds!', {
+    log('SYNC', `🚨 PREWARM TIMEOUT - took more than ${PREWARM_TIMEOUT_MS / 1000} seconds!`, {
       elapsed: _elapsed(),
       state: _prewarmState,
       entryWaiting: _entryWaitingCount,
     });
     logDepsState();
     if (_prewarmReject) {
-      _prewarmReject(new Error('Prewarm timeout - took more than 25 seconds'));
+      _prewarmReject(new Error(`Prewarm timeout - took more than ${PREWARM_TIMEOUT_MS / 1000} seconds`));
       _prewarmReject = null;
     }
   }
-}, 25000);
+}, PREWARM_TIMEOUT_MS);
 
 export function getPreloadedDeps(): PreloadedDeps {
   return _preloadedDeps;
