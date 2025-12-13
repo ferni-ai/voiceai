@@ -275,12 +275,12 @@ export async function buildLifeCoachingInjections(
 
 /**
  * Build trust systems context injections
- * Includes: small wins, intentions, growth reflections, callbacks
+ * Includes: small wins, intentions, growth reflections, callbacks, unsaid signals
  */
 export async function buildTrustSystemsInjections(
   ctx: InjectionBuilderContext
 ): Promise<ContextInjection[]> {
-  const { userText, services, currentTopic, emotionalState } = ctx;
+  const { userText, services, currentTopic, emotionalState, persona } = ctx;
   const injections: ContextInjection[] = [];
 
   try {
@@ -331,6 +331,85 @@ export async function buildTrustSystemsInjections(
         content: `[⚠️ TOPICS TO AVOID]\n${trustContext.topicsToAvoid.join(', ')}`,
         priority: 90,
       });
+    }
+
+    // =================================================================
+    // 🎧 UNSAID SIGNALS - "Better than Human" Listening
+    // These are things a human friend might miss, but we don't.
+    // =================================================================
+    if (trustContext.unsaidSignals && trustContext.unsaidSignals.length > 0) {
+      // Try to load persona-specific trust phrases
+      let trustPhrases: Record<string, string[]> | null = null;
+      try {
+        const { loadPersonaContent } = await import('../../services/persona-content-loader.js');
+        const content = await loadPersonaContent<{
+          reading_between_lines?: Record<string, string[]>;
+        }>(persona.id, 'trust-phrases');
+        trustPhrases = content?.reading_between_lines ?? null;
+      } catch {
+        // Non-fatal - will use default phrases
+      }
+
+      for (const signal of trustContext.unsaidSignals) {
+        const signalPriority =
+          signal.type === 'emotional_mismatch'
+            ? 85
+            : signal.type === 'permission_seeking'
+              ? 82
+              : signal.type === 'minimizing_pain'
+                ? 80
+                : signal.type === 'deflection'
+                  ? 75
+                  : signal.type === 'unfinished_thought'
+                    ? 72
+                    : 70;
+
+        // Build guidance based on approach
+        const approachGuidance =
+          signal.approach === 'create_space'
+            ? 'Create gentle space for them to share more. Use soft pacing.'
+            : signal.approach === 'gentle_probe'
+              ? 'Ask a gentle, open question to invite them to go deeper.'
+              : signal.approach === 'acknowledge_silently'
+                ? 'Acknowledge what you noticed without pushing. Let them lead.'
+                : 'Wait and listen. They may need a moment.';
+
+        // Get persona-specific phrase for this signal type
+        const signalTypeKey =
+          signal.type === 'emotional_mismatch'
+            ? 'false_fine'
+            : signal.type === 'minimizing_pain'
+              ? 'minimizing_pain'
+              : signal.type;
+        const personaPhrases = trustPhrases?.[signalTypeKey];
+        const personaPhrase = personaPhrases
+          ? personaPhrases[Math.floor(Math.random() * personaPhrases.length)]
+          : null;
+
+        // Use persona phrase if available, otherwise fall back to default
+        const suggestedPhrase = personaPhrase || signal.phrase;
+
+        injections.push({
+          category: 'unsaid',
+          content: `[🎧 UNSAID SIGNAL: ${signal.type.toUpperCase()}]
+What I noticed: "${signal.observation}"
+Underlying: ${signal.underlying}
+Confidence: ${Math.round(signal.confidence * 100)}%
+
+Approach: ${approachGuidance}
+${suggestedPhrase ? `Suggested phrase (in your voice): "${suggestedPhrase}"` : ''}
+
+IMPORTANT: This is "better than human" listening. A friend might miss this signal. You noticed it. Use it gently - don't quote the phrase exactly, make it natural.`,
+          priority: signalPriority,
+        });
+
+        diag.info(`🎧 Unsaid signal detected: ${signal.type}`, {
+          observation: signal.observation.slice(0, 50),
+          confidence: signal.confidence,
+          approach: signal.approach,
+          hasPersonaPhrase: !!personaPhrase,
+        });
+      }
     }
   } catch (error) {
     diag.warn('Trust context failed (non-fatal)', { error: String(error) });
