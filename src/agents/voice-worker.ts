@@ -51,11 +51,25 @@ import { fileURLToPath } from 'node:url';
 // CONFIGURATION
 // ============================================================================
 const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
-const CHILD_AGENT_FILE = './voice-agent-child.js';
 
-// Get absolute path to child agent
-const childAgentPath = fileURLToPath(new URL(CHILD_AGENT_FILE, import.meta.url));
-log('Child agent path', { path: childAgentPath });
+// Use bundled agent for INSTANT startup (2441 modules pre-resolved!)
+// Falls back to unbundled if bundle doesn't exist (dev mode)
+const BUNDLED_AGENT_FILE = './voice-agent-bundle.js';
+const UNBUNDLED_AGENT_FILE = './voice-agent-child.js';
+
+// Check if bundle exists
+import { existsSync } from 'fs';
+const bundlePath = fileURLToPath(new URL(BUNDLED_AGENT_FILE, import.meta.url));
+const unbundledPath = fileURLToPath(new URL(UNBUNDLED_AGENT_FILE, import.meta.url));
+
+const childAgentPath = existsSync(bundlePath) ? bundlePath : unbundledPath;
+const usingBundle = existsSync(bundlePath);
+
+log('Child agent configuration', { 
+  path: childAgentPath,
+  usingBundle,
+  bundleExists: existsSync(bundlePath),
+});
 
 // ============================================================================
 // HEALTH SERVER

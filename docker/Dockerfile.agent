@@ -47,9 +47,15 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Build TypeScript
-# Build TypeScript
-RUN npm run build
+# Copy bundle script
+COPY scripts/bundle-agent.ts ./scripts/
+
+# Build TypeScript + Bundle Agent (2441 modules → 1 file!)
+# The bundle eliminates the 30-120s module loading time in child processes
+RUN npm run build && \
+    echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
+    npx tsx scripts/bundle-agent.ts && \
+    ls -lh dist/agents/voice-agent-bundle.js
 
 # ============================================================================
 # Stage 2: Production

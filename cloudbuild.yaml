@@ -30,8 +30,8 @@ steps:
       - '--dockerfile=docker/Dockerfile.agent'
       - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
       - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:$COMMIT_SHA'
-      - '--cache=false'
-      # - '--cache-ttl=${_CACHE_TTL}'  # Disabled temporarily to force fresh build
+      - '--cache=true'
+      - '--cache-ttl=${_CACHE_TTL}'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'
