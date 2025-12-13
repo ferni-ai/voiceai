@@ -8,11 +8,54 @@
  * - CLOSED: Normal operation, requests flow through
  * - OPEN: Circuit tripped, requests fail immediately
  * - HALF_OPEN: Testing if service recovered
+ *
+ * Integrations (auto-wired):
+ * - Alerting: Slack/email on state changes
+ * - Metrics: GCP Cloud Monitoring export
+ * - Anomaly Detection: Predictive failure prevention
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'circuit-breaker' });
+
+// Lazy imports to avoid circular dependencies
+let alertingHandler: ((name: string, oldState: CircuitState, newState: CircuitState, stats?: CircuitStats) => void) | null = null;
+let metricsHandler: ((name: string, oldState: CircuitState, newState: CircuitState) => void) | null = null;
+
+// Initialize integrations lazily
+async function initializeIntegrations(): Promise<void> {
+  if (alertingHandler && metricsHandler) return;
+  
+  try {
+    // Load alerting
+    const { handleCircuitStateChange } = await import('./circuit-alerting.js');
+    alertingHandler = (name, oldState, newState, stats) => {
+      handleCircuitStateChange(name, oldState, newState, {
+        failures: stats?.failures,
+        successRate: stats?.totalRequests 
+          ? `${((stats.totalSuccesses / stats.totalRequests) * 100).toFixed(1)}%`
+          : undefined,
+      });
+    };
+  } catch {
+    // Alerting not available
+  }
+
+  try {
+    // Load metrics
+    const { recordStateChange, recordCircuitState } = await import('./cloud-metrics.js');
+    metricsHandler = (name, oldState, newState) => {
+      recordStateChange(name, oldState, newState);
+      recordCircuitState(name, newState);
+    };
+  } catch {
+    // Metrics not available
+  }
+}
+
+// Trigger initialization (non-blocking)
+initializeIntegrations().catch(() => {});
 
 export type CircuitState = 'closed' | 'open' | 'half_open';
 
@@ -177,9 +220,30 @@ export class CircuitBreaker {
       this.failureTimestamps = [];
     }
 
-    // Callback
+    // Custom callback
     if (this.options.onStateChange) {
       this.options.onStateChange(this.name, oldState, newState);
+    }
+
+    // Auto-wired integrations (non-blocking)
+    const stats = this.stats;
+    
+    // Send alerts for significant state changes
+    if (alertingHandler) {
+      try {
+        alertingHandler(this.name, oldState, newState, stats);
+      } catch {
+        // Don't let alerting failures affect circuit operation
+      }
+    }
+
+    // Record metrics
+    if (metricsHandler) {
+      try {
+        metricsHandler(this.name, oldState, newState);
+      } catch {
+        // Don't let metrics failures affect circuit operation
+      }
     }
   }
 

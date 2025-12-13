@@ -28,32 +28,27 @@ FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /app
 
-# Install git and enable corepack for pnpm
+# Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/* \
-    && corepack enable && corepack prepare pnpm@latest --activate
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files first (cache layer)
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json package-lock.json* ./
 COPY .npmrc ./
 
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with pnpm (faster than npm ci)
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
-
-# Copy esbuild script
-COPY scripts/build-fast.ts ./scripts/
+# Install dependencies with npm
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Build with esbuild (skip type declarations for production)
-# Falls back to tsc if esbuild script has issues
-RUN pnpm build:fast || pnpm build
+# Build with TypeScript
+RUN npm run build
 
 # ============================================================================
 # Stage 2: Production

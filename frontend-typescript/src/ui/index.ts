@@ -390,6 +390,15 @@ export {
 } from './voice-enrollment.ui.js';
 export type { VoiceEnrollmentOptions } from './voice-enrollment.ui.js';
 
+// Service Health UI - Show service degradation status
+export {
+  cleanupServiceHealthUI,
+  getServiceHealthStatus,
+  hasServiceIssues,
+  initServiceHealthUI,
+  refreshServiceHealth,
+} from './service-health.ui.js';
+
 // Voice ID Badge
 export {
   hideVerifying as hideVoiceIdVerifying,

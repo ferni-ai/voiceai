@@ -25,6 +25,62 @@ import { humanizeError, type HumanizedError } from './error-humanizer.js';
 
 const log = createLogger({ module: 'resilient-http' });
 
+// Lazy import anomaly detection to avoid circular deps
+let anomalyMonitor: {
+  recordLatency: (service: string, latencyMs: number) => void;
+  recordSuccessRate: (service: string, rate: number) => void;
+} | null = null;
+
+// Initialize anomaly detection lazily
+async function initAnomalyDetection(): Promise<void> {
+  if (anomalyMonitor) return;
+  try {
+    const { recordLatency, recordSuccessRate } = await import('./anomaly-detection.js');
+    anomalyMonitor = { recordLatency, recordSuccessRate };
+  } catch {
+    // Anomaly detection not available
+  }
+}
+
+// Trigger initialization (non-blocking)
+initAnomalyDetection().catch(() => {});
+
+// Track success/failure for anomaly detection
+const requestStats = new Map<string, { successes: number; failures: number; lastReport: number }>();
+const STATS_REPORT_INTERVAL_MS = 10000; // Report every 10 seconds
+
+function recordRequestResult(serviceName: string, success: boolean, durationMs: number): void {
+  // Record latency for anomaly detection
+  anomalyMonitor?.recordLatency(serviceName, durationMs);
+
+  // Track success/failure rate
+  let stats = requestStats.get(serviceName);
+  if (!stats) {
+    stats = { successes: 0, failures: 0, lastReport: Date.now() };
+    requestStats.set(serviceName, stats);
+  }
+
+  if (success) {
+    stats.successes++;
+  } else {
+    stats.failures++;
+  }
+
+  // Periodically report success rate
+  const now = Date.now();
+  if (now - stats.lastReport > STATS_REPORT_INTERVAL_MS) {
+    const total = stats.successes + stats.failures;
+    if (total > 0) {
+      const successRate = (stats.successes / total) * 100;
+      anomalyMonitor?.recordSuccessRate(serviceName, successRate);
+    }
+    // Reset for next interval
+    stats.successes = 0;
+    stats.failures = 0;
+    stats.lastReport = now;
+  }
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -327,6 +383,9 @@ export function createResilientClient(
       // Callback for response logging
       options.onResponse?.(url, response.status, durationMs);
 
+      // Record for anomaly detection
+      recordRequestResult(serviceName, true, durationMs);
+
       log.debug(
         { serviceName, url, status: response.status, durationMs, retries },
         'Request succeeded'
@@ -344,6 +403,9 @@ export function createResilientClient(
       const durationMs = Date.now() - startTime;
       const err = error instanceof Error ? error : new Error(String(error));
       const resilientError = createResilientError(err, lastStatusCode);
+
+      // Record for anomaly detection
+      recordRequestResult(serviceName, false, durationMs);
 
       log.warn(
         {

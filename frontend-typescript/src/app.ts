@@ -194,6 +194,8 @@ import { initHouseholdManager, showHouseholdManager } from './ui/household-manag
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
+// Service Health - Show degradation status to users
+import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { growthJourneyUI } from './ui/growth-journey.ui.js';
@@ -1250,6 +1252,9 @@ class VoiceAIApp {
 
     // 🌈 Wellbeing Dashboard - "State of Me" visualization
     this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
+
+    // 🏥 Service Health - Show degradation status to users
+    this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {

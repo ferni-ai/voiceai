@@ -36,6 +36,64 @@ import { isLifeCoachAnalyticsEnabled, trackToolUsage } from '../domains/shared/i
 import type { Tool, ToolContext, ToolDefinition, ToolDomain } from '../registry/types.js';
 import { sanitizePlainText } from '../validation.js';
 
+// Lazy import anomaly detection to avoid circular deps
+let anomalyMonitor: {
+  recordLatency: (service: string, latencyMs: number) => void;
+  recordSuccessRate: (service: string, rate: number) => void;
+} | null = null;
+
+// Initialize anomaly detection lazily
+async function initAnomalyDetection(): Promise<void> {
+  if (anomalyMonitor) return;
+  try {
+    const { recordLatency, recordSuccessRate } = await import(
+      '../../services/self-healing/anomaly-detection.js'
+    );
+    anomalyMonitor = { recordLatency, recordSuccessRate };
+  } catch {
+    // Anomaly detection not available
+  }
+}
+
+// Trigger initialization (non-blocking)
+initAnomalyDetection().catch(() => {});
+
+// Track success/failure for anomaly detection per tool
+const toolStats = new Map<string, { successes: number; failures: number; lastReport: number }>();
+const STATS_REPORT_INTERVAL_MS = 30000; // Report every 30 seconds
+
+function recordToolExecution(toolId: string, success: boolean, durationMs: number): void {
+  // Record latency for anomaly detection
+  anomalyMonitor?.recordLatency(`tool:${toolId}`, durationMs);
+
+  // Track success/failure rate
+  let stats = toolStats.get(toolId);
+  if (!stats) {
+    stats = { successes: 0, failures: 0, lastReport: Date.now() };
+    toolStats.set(toolId, stats);
+  }
+
+  if (success) {
+    stats.successes++;
+  } else {
+    stats.failures++;
+  }
+
+  // Periodically report success rate
+  const now = Date.now();
+  if (now - stats.lastReport > STATS_REPORT_INTERVAL_MS) {
+    const total = stats.successes + stats.failures;
+    if (total > 0) {
+      const successRate = (stats.successes / total) * 100;
+      anomalyMonitor?.recordSuccessRate(`tool:${toolId}`, successRate);
+    }
+    // Reset for next interval
+    stats.successes = 0;
+    stats.failures = 0;
+    stats.lastReport = now;
+  }
+}
+
 // ============================================================================
 // RESULT TYPE
 // ============================================================================
@@ -254,6 +312,9 @@ export function wrapToolExecute(
         log.warn({ toolId, domain, executionTimeMs }, 'Slow tool execution');
       }
 
+      // Record for anomaly detection
+      recordToolExecution(toolId, true, executionTimeMs);
+
       // Analytics success
       tracker?.success({ executionTimeMs, ...params });
 
@@ -275,6 +336,9 @@ export function wrapToolExecute(
 
       // Get human-friendly error message for better UX
       const humanized = humanizeError(err);
+
+      // Record failure for anomaly detection
+      recordToolExecution(toolId, false, executionTimeMs);
 
       log.error(
         { 
