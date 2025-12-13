@@ -668,3 +668,4 @@ log('STARTUP', '📦 Module load complete', {
   mem: _memMB(),
   prewarmState: _prewarmState,
 });
+// Cache bust 1765661593
