@@ -162,6 +162,101 @@ Their words may be masking how they really feel.`,
         );
       }
 
+      // =================================================================
+      // 🎧 BASELINE DEVIATION - "You sound different today"
+      // "Better than Human" - noticing subtle changes from their normal
+      // =================================================================
+      try {
+        const userId = input.services?.userId;
+        if (userId) {
+          // Speech pattern deviations (fillers, hedging, self-soothing)
+          const { detectDeviations } = await import('../../services/human-listening-memory.js');
+          const deviationReport = detectDeviations(userId, sessionId);
+
+          if (deviationReport.hasDeviation && deviationReport.confidence > 0.5) {
+            const deviationDescriptions = deviationReport.deviations
+              .map((d) => `- ${d.description} (${d.severity})`)
+              .join('\n');
+
+            injections.push(
+              createStandardInjection(
+                'human-listening',
+                `[🎧 SPEECH PATTERN DEVIATION - "Something's different"]
+
+I'm noticing changes from their usual speech patterns:
+${deviationDescriptions}
+
+${deviationReport.guidance}
+
+This is "Better than Human" listening - noticing subtle changes a friend might miss.
+Consider gently acknowledging: "Something feels different today. Everything okay?"
+Or weave in naturally: "I'm picking up on something..."`,
+                { category: 'deviation', confidence: deviationReport.confidence }
+              )
+            );
+
+            log.info(
+              {
+                userId,
+                deviationCount: deviationReport.deviations.length,
+                confidence: deviationReport.confidence,
+              },
+              '🎧 Speech pattern deviation detected'
+            );
+          }
+
+          // Voice emotion deviations (energy, pace from prosody)
+          // Build voice signal from available data
+          const voiceSignal = result.audio?.tremor?.detected
+            ? {
+                emotion: result.emotionalUndercurrent?.primary || 'neutral',
+                confidence: result.confidence,
+                characteristics: {
+                  // Infer energy from overall assessment
+                  energy:
+                    result.overallAssessment?.includes('low') ||
+                    result.overallAssessment?.includes('tired')
+                      ? ('low' as const)
+                      : ('normal' as const),
+                  // Infer pace from shouldSlowDown flag
+                  pace: result.shouldSlowDown ? ('rushed' as const) : ('normal' as const),
+                },
+              }
+            : null;
+
+          if (voiceSignal) {
+            const { detectVoiceDeviation } = await import(
+              '../../services/trust-systems/voice-emotion-integration.js'
+            );
+            const voiceDeviation = detectVoiceDeviation(userId, voiceSignal);
+
+            if (voiceDeviation.deviates && voiceDeviation.significance > 0.4) {
+              injections.push(
+                createStandardInjection(
+                  'human-listening',
+                  `[🎧 VOICE DEVIATION - "${voiceDeviation.deviation}"]
+
+Their voice sounds different from their usual baseline:
+- ${voiceDeviation.deviation}
+
+This is subtle but significant. A human friend might not notice.
+Consider a gentle check-in: "You sound a bit different today. How are you really doing?"`,
+                  { category: 'voice-deviation', confidence: voiceDeviation.significance }
+                )
+              );
+
+              log.info(
+                { userId, deviation: voiceDeviation.deviation, significance: voiceDeviation.significance },
+                '🎧 Voice deviation detected - user sounds different than usual'
+              );
+            }
+          }
+        }
+      } catch (deviationError) {
+        // Non-fatal - baseline detection is a bonus
+        log.debug({ error: deviationError }, 'Baseline deviation check failed (non-fatal)');
+      }
+
       log.debug(
         {
           sessionId,
