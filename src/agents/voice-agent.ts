@@ -3191,10 +3191,12 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // RE-ENABLED: numIdleProcesses: 1 keeps one warm child process ready
-      // Previously disabled due to "Ferni going silent" - but lazy Firestore init
-      // should fix the memory pressure that caused that issue (2025-12-13)
-      numIdleProcesses: 1,
+      // DISABLED: numIdleProcesses causes child process to timeout during initialization
+      // The LiveKit SDK has an internal 30-second timeout in supervised_proc.js that
+      // we cannot override. Our 40+ top-level imports take >30s to load in the child
+      // process, causing "runner initialization timed out" errors.
+      // TODO: Refactor to use lazy imports for ALL modules, then re-enable this.
+      numIdleProcesses: 0,
       // Increase timeout for heavy initialization (bundles + startup + services)
       // The prewarm function calls startup() which does 10+ async operations:
       // - memory system (Firestore), services, bundles, schedulers,

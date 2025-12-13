@@ -2679,12 +2679,12 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Moderate padding - not excessive */
-  padding: var(--space-lg);
-  /* Bottom padding ensures helperText has breathing room from viewport edge */
-  padding-bottom: max(var(--space-xl), env(safe-area-inset-bottom, 16px));
+  /* Match 768px styles - tight gap, minimal padding */
+  padding: var(--space-sm);
+  /* Bottom padding: just enough for safe area */
+  padding-bottom: env(safe-area-inset-bottom, var(--space-sm));
   /* Tight gap for compact layout */
-  gap: var(--space-md);
+  gap: var(--space-sm);
   /* CRITICAL: Allow flex children to shrink below content size - fixes overflow issues */
   min-height: 0;
   /* NOTE: Do NOT add contain here - causes visible box in Safari */
@@ -6605,16 +6605,14 @@ body {
   }
 
   .main {
-    /* Desktop: slightly larger gap for spacious feel */
-    gap: var(--space-lg);
-    /* Keep centered (inherits from base) */
-    /* Moderate padding - NOT excessive */
-    padding: var(--space-xl);
+    /* Match 768px styles - tight gap, minimal padding */
+    gap: var(--space-sm);
+    padding: var(--space-sm);
   }
 
   /* Scale controls row */
   .controls {
-    gap: var(--space-lg);
+    gap: var(--space-md);
   }
 }
 
@@ -6623,9 +6621,9 @@ body {
   /* Team roster tokens defined in consolidated section above */
 
   .main {
-    /* Keep gap tight - waveform and button should be close */
-    gap: var(--space-md);
-    padding: var(--space-lg);
+    /* Match 768px styles - tight gap, minimal padding */
+    gap: var(--space-sm);
+    padding: var(--space-sm);
   }
 
   .avatar-container {
@@ -10217,9 +10215,9 @@ body.ambient-aurora {
    ------------------------------------------------------------------------ */
 @media (min-width: 1200px) {
   .main {
-    /* Desktop: slightly larger gap for spacious feel */
-    gap: var(--space-lg);
-    padding: var(--space-xl);
+    /* Match 768px styles - tight gap, minimal padding */
+    gap: var(--space-sm);
+    padding: var(--space-sm);
   }
   
   .avatar-container {
@@ -10552,7 +10550,6 @@ body.ambient-aurora {
   #helperText {
     font-size: var(--text-base);
     margin-top: var(--space-lg);
-    opacity: 0.8;
   }
   
   #waveformContainer {
@@ -10624,7 +10621,6 @@ body.ambient-aurora {
   #helperText {
     font-size: var(--text-sm);
     margin-top: var(--space-md);
-    opacity: 0.8;
   }
   
   #waveformContainer {
@@ -10695,7 +10691,6 @@ body.ambient-aurora {
   #helperText {
     font-size: var(--text-xs);
     margin-top: var(--space-sm);
-    opacity: 0.75;
   }
   
   #waveformContainer {
@@ -10770,7 +10765,6 @@ body.ambient-aurora {
   #helperText {
     font-size: var(--text-2xs);
     margin-top: var(--space-xs);
-    opacity: 0.7;
   }
   
   #waveformContainer {
@@ -11149,5 +11143,40 @@ body.ambient-aurora {
   /* Waveform centered */
   #waveformContainer {
     margin: 0 auto;
+  }
+}
+
+/* ========================================================================
+   HOLISTIC FIX: Override all conflicting .main rules above 768px
+   
+   The CSS above has 19 different .main rules that conflict.
+   This single rule at the end takes precedence and ensures consistent layout.
+   ======================================================================== */
+@media (min-width: 769px) {
+  .main {
+    /* Core layout - same as working 768px styles */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    /* Tight spacing - proven to work */
+    gap: var(--space-sm) !important;
+    padding: var(--space-sm) !important;
+    padding-bottom: env(safe-area-inset-bottom, var(--space-sm)) !important;
+    
+    /* Fill available space but allow shrinking */
+    flex: 1 !important;
+    min-height: 0 !important;
+  }
+  
+  /* Ensure helper text is visible */
+  #helperText {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    margin-top: var(--space-sm) !important;
+    margin-bottom: var(--space-sm) !important;
   }
 }
