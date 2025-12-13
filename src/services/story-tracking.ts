@@ -35,6 +35,10 @@ export interface StoryTellingContext {
   relationshipStage: PersonaRelationshipStage;
   userMood?: string;
   currentTopic?: string;
+  /** Optional bundle runtime for accessing story graph */
+  bundleRuntime?: {
+    getRecommendedStories?: (context: string) => string[];
+  };
 }
 
 export interface StoryResult {
@@ -245,7 +249,78 @@ export function canTellStory(story: Story, relationshipStage: PersonaRelationshi
 }
 
 /**
+ * Story graph context trigger type
+ * Used to match user context to recommended stories from bundle story graphs
+ */
+export interface StoryGraphContextTrigger {
+  recommended_stories: string[];
+  priority: 'high' | 'medium' | 'low';
+  requires_trust?: boolean;
+  timing?: 'after_comfort' | 'immediate';
+}
+
+/**
+ * Story graph configuration from bundle _story-graph.json
+ */
+export interface StoryGraphConfig {
+  context_triggers?: Record<string, StoryGraphContextTrigger>;
+  story_timing_rules?: {
+    minimum_turns_before_first_story?: number;
+    minimum_turns_between_stories?: number;
+    max_stories_per_session?: number;
+    never_tell_story_when?: string[];
+    ideal_moments?: string[];
+  };
+}
+
+// Cache for story graphs per persona
+const storyGraphCache = new Map<string, StoryGraphConfig>();
+
+/**
+ * Register a story graph for a persona (loaded from bundles)
+ */
+export function registerStoryGraph(personaId: string, graph: StoryGraphConfig): void {
+  storyGraphCache.set(personaId, graph);
+  logger.debug({ personaId, triggers: Object.keys(graph.context_triggers || {}).length }, 'Registered story graph');
+}
+
+/**
+ * Detect context triggers in user message/context
+ */
+function detectContextTriggers(userMood: string | undefined, currentTopic: string | undefined): string[] {
+  const triggers: string[] = [];
+  const moodLower = (userMood || '').toLowerCase();
+  const topicLower = (currentTopic || '').toLowerCase();
+  const combined = `${moodLower} ${topicLower}`;
+
+  // Map user context to story graph trigger keys
+  const contextPatterns: Record<string, string[]> = {
+    user_facing_setback: ['setback', 'failed', 'failure', 'didn\'t work', 'went wrong', 'disappointed'],
+    user_made_mistake: ['mistake', 'messed up', 'screwed up', 'regret', 'shouldn\'t have'],
+    user_family_topic: ['family', 'parent', 'sibling', 'brother', 'sister', 'mom', 'dad', 'kids', 'children'],
+    user_travel_topic: ['travel', 'trip', 'vacation', 'abroad', 'country', 'visited'],
+    user_career_question: ['career', 'job', 'work', 'profession', 'salary', 'promotion'],
+    user_feeling_overwhelmed: ['overwhelmed', 'too much', 'stressed', 'can\'t handle', 'drowning'],
+    user_mental_health: ['anxious', 'depressed', 'mental health', 'therapy', 'struggling'],
+    user_questioning_self_worth: ['worth', 'enough', 'good enough', 'deserve', 'value'],
+    user_discussing_patience: ['patience', 'waiting', 'takes time', 'slow'],
+    user_experienced_loss: ['loss', 'lost', 'grief', 'passed away', 'died', 'gone'],
+  };
+
+  for (const [trigger, keywords] of Object.entries(contextPatterns)) {
+    if (keywords.some(kw => combined.includes(kw))) {
+      triggers.push(trigger);
+    }
+  }
+
+  return triggers;
+}
+
+/**
  * Find an appropriate story for the context
+ * 
+ * HUMANIZATION FIX: Now uses story graph context_triggers from bundles
+ * for smarter, persona-specific story selection instead of basic keyword matching.
  */
 export async function findStoryForContext(
   context: StoryTellingContext,
@@ -275,17 +350,50 @@ export async function findStoryForContext(
   // Get stories told for scoring
   const toldStories = await getStoriesTold(userId, personaId);
 
+  // HUMANIZATION FIX: Use story graph context triggers for smarter selection
+  const storyGraph = storyGraphCache.get(personaId);
+  const detectedTriggers = detectContextTriggers(userMood, currentTopic);
+  
+  // Collect recommended stories from matching triggers
+  const graphRecommendations: Map<string, { priority: number; trigger: string }> = new Map();
+  if (storyGraph?.context_triggers) {
+    for (const trigger of detectedTriggers) {
+      const triggerConfig = storyGraph.context_triggers[trigger];
+      if (triggerConfig) {
+        // Check trust requirement
+        if (triggerConfig.requires_trust && relationshipStage === 'stranger') {
+          continue; // Skip stories requiring trust for strangers
+        }
+        
+        const priorityScore = triggerConfig.priority === 'high' ? 10 : triggerConfig.priority === 'medium' ? 5 : 2;
+        for (const storyId of triggerConfig.recommended_stories) {
+          const existing = graphRecommendations.get(storyId);
+          if (!existing || existing.priority < priorityScore) {
+            graphRecommendations.set(storyId, { priority: priorityScore, trigger });
+          }
+        }
+      }
+    }
+  }
+
   // Score stories by relevance
   const scoredStories = eligibleStories.map((story) => {
     let score = 0;
+
+    // HUMANIZATION FIX: Heavy bonus for story graph recommendations
+    const graphRec = graphRecommendations.get(story.id);
+    if (graphRec) {
+      score += graphRec.priority; // 2-10 points based on priority
+      logger.debug({ storyId: story.id, trigger: graphRec.trigger, priority: graphRec.priority }, 'Story matched context trigger');
+    }
 
     // Mood matching
     if (userMood && story.emotionalTags.includes(userMood)) {
       score += 3;
     }
 
-    // Topic relevance (basic keyword matching)
-    if (currentTopic) {
+    // Topic relevance (basic keyword matching as fallback)
+    if (currentTopic && !graphRec) {
       const topicLower = currentTopic.toLowerCase();
       if (
         story.title.toLowerCase().includes(topicLower) ||

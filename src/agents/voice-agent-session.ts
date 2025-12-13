@@ -4,8 +4,8 @@
  * This module is loaded dynamically by voice-agent-child.ts after the agent
  * has responded to the LiveKit SDK's initialization request.
  *
- * By deferring the heavy imports to this point, we ensure the child process
- * can respond within the SDK's timeout window.
+ * IMPORTANT: This module uses a simplified session setup to avoid loading
+ * the full voice-agent.ts with all 51 imports.
  */
 
 import type { JobContext } from '@livekit/agents';
@@ -21,37 +21,87 @@ export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
     `[voice-agent-session] Starting session for room ${roomName} pid=${process.pid}\n`
   );
 
-  // Now we can safely load the full voice agent module
-  // By this point, the child process has already responded to initializeRequest
-  // so there's no timeout pressure
-  process.stderr.write(`[voice-agent-session] Importing voice-agent.js...\n`);
-
   try {
-    // Import the full voice agent - this loads all 51 imports
-    process.stderr.write(`[voice-agent-session] Starting import...\n`);
-    const voiceAgentModule = await import('./voice-agent.js');
-    process.stderr.write(`[voice-agent-session] Import complete.\n`);
+    // Import only what we need, when we need it
+    process.stderr.write(`[voice-agent-session] Loading modules...\n`);
+
+    // Load modules in parallel - these are fast
+    const [
+      { voice },
+      google,
+      silero,
+    ] = await Promise.all([
+      import('@livekit/agents'),
+      import('@livekit/agents-plugin-google'),
+      import('@livekit/agents-plugin-silero'),
+    ]);
 
     process.stderr.write(
-      `[voice-agent-session] Voice agent module loaded in ${Date.now() - startTime}ms\n`
+      `[voice-agent-session] Core modules loaded in ${Date.now() - startTime}ms\n`
     );
 
-    // The voice-agent.ts exports a default agent with entry function
-    const agent = voiceAgentModule.default;
-    process.stderr.write(
-      `[voice-agent-session] Agent type: ${typeof agent}, has entry: ${typeof agent?.entry}\n`
-    );
+    // Get persona configuration (fast - just JSON)
+    const { getPersonaAsync, initializeFromBundles } = await import('../personas/index.js');
+    await initializeFromBundles();
+    
+    // Get persona from job metadata
+    const metadata = ctx.job.metadata ? JSON.parse(ctx.job.metadata) : {};
+    const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
+    const persona = await getPersonaAsync(personaId);
+    process.stderr.write(`[voice-agent-session] Using persona: ${persona?.name || 'unknown'}\n`);
 
-    if (agent && typeof agent.entry === 'function') {
-      process.stderr.write(`[voice-agent-session] Calling agent.entry(ctx)...\n`);
-      await agent.entry(ctx);
-      process.stderr.write(`[voice-agent-session] agent.entry() completed.\n`);
-    } else {
-      process.stderr.write(
-        `[voice-agent-session] WARNING: No entry function found (agent=${!!agent}), running fallback\n`
-      );
-      await runFallbackSession(ctx);
-    }
+    // Create minimal agent using simple voice.Agent
+    process.stderr.write(`[voice-agent-session] Creating simple agent...\n`);
+    
+    const simpleAgent = new voice.Agent({
+      instructions: persona?.systemPrompt || 
+        "You are Ferni, a warm and supportive AI life coach. Be helpful, empathetic, and encouraging.",
+    });
+
+    // Load VAD
+    process.stderr.write(`[voice-agent-session] Loading VAD...\n`);
+    const vad = await silero.VAD.load();
+    process.stderr.write(`[voice-agent-session] VAD loaded.\n`);
+
+    // Create session with Gemini Realtime
+    process.stderr.write(`[voice-agent-session] Creating session...\n`);
+    const session = new voice.AgentSession({
+      vad,
+      llm: new google.beta.realtime.RealtimeModel({
+        model: 'gemini-2.0-flash-exp',
+        temperature: 0.8,
+        language: 'en-US',
+        instructions: persona?.systemPrompt || 
+          "You are Ferni, a warm and supportive AI life coach.",
+      }),
+      voiceOptions: {
+        allowInterruptions: true,
+        minEndpointingDelay: 400,
+        maxEndpointingDelay: 1200,
+      },
+    });
+
+    // Connect to room
+    process.stderr.write(`[voice-agent-session] Connecting to room...\n`);
+    await ctx.connect();
+    process.stderr.write(`[voice-agent-session] Connected to room ${ctx.room.name}\n`);
+
+    // Start the session
+    process.stderr.write(`[voice-agent-session] Starting session...\n`);
+    await session.start({
+      agent: simpleAgent,
+      room: ctx.room,
+    });
+    process.stderr.write(`[voice-agent-session] Session started!\n`);
+
+    // Wait for disconnect
+    await new Promise<void>((resolve) => {
+      ctx.room.on('disconnected', () => {
+        process.stderr.write(`[voice-agent-session] Room disconnected.\n`);
+        resolve();
+      });
+    });
+
   } catch (error) {
     const errorMsg = error instanceof Error ? error.stack || error.message : String(error);
     process.stderr.write(

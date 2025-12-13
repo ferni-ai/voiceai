@@ -207,7 +207,8 @@
         "duration": 1000,
         "volume": -9,
         "preload": false,
-        "category": "persona"
+        "category": "persona",
+        "_note": "LEGACY: Brand accent entrance sound"
       },
       "peter": {
         "file": "ferni-entrance-peter.mp3",

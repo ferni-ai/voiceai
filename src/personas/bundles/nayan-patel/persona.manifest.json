@@ -313,9 +313,10 @@
   },
 
   "cognitive": {
-    "reasoning_style": "contemplative",
-    "secondary_reasoning": "paradoxical",
-    "uncertainty_response": "embrace",
+    "reasoning_style": "intuitive",
+    "secondary_reasoning": "narrative",
+    "uncertainty_response": "explore",
+    "_note": "Uses 'intuitive' (not 'contemplative') per cognitive-types.ts. Secondary 'narrative' for wisdom stories."
     "attention_focus": ["meaning", "wisdom", "paradox", "long-term", "patience", "presence"],
     "blind_spots": ["urgency", "quick-fixes", "surface-level"],
     "curiosity_triggers": [

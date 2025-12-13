@@ -81,6 +81,9 @@ import { resetSessionCatchphraseTracker } from './response-naturalness.js';
 // Unified backchanneling
 import { resetBackchanneling } from './backchanneling/index.js';
 
+// Live backchanneling (real-time during user speech)
+import { resetLiveBackchanneling } from './live-backchanneling/index.js';
+
 // Conversation awareness trackers
 import { resetTangentState } from '../conversation/mid-response-tangents.js';
 import { resetMomentumTracker } from '../conversation/momentum-tracker.js';
@@ -218,11 +221,12 @@ export function cleanupSpeechSession(
   safeCleanup('voiceManager', () => resetSessionVoiceManager(sessionId));
 
   // ============================================================================
-  // BACKCHANNELING (Unified + Legacy)
+  // BACKCHANNELING (Unified + Legacy + Live)
   // ============================================================================
 
   safeCleanup('unifiedBackchanneling', () => resetBackchanneling(sessionId));
   safeCleanup('enhancedBackchanneling', () => resetEnhancedBackchannelingEngine(sessionId));
+  safeCleanup('liveBackchanneling', () => resetLiveBackchanneling(sessionId));
   safeCleanup('catchphraseTracker', () => resetSessionCatchphraseTracker(sessionId));
 
   // ============================================================================
@@ -275,16 +279,17 @@ export function cleanupAllSpeechSessions(reason: 'shutdown' | 'test' = 'shutdown
  * Use only for emergency recovery or testing.
  *
  * This properly clears all internal Maps to prevent memory leaks.
+ * Returns a promise that resolves when cleanup is complete.
  */
-export function emergencySpeechCleanup(): void {
+export async function emergencySpeechCleanup(): Promise<void> {
   log.warn('⚠️ Emergency speech cleanup initiated - clearing all service state');
 
   const clearResults: Record<string, boolean> = {};
 
-  // Helper to safely run clear-all with error handling
-  const safeClearAll = (name: string, fn: () => void): void => {
+  // Helper to safely run async clear-all with error handling
+  const safeClearAll = async (name: string, fn: () => Promise<void>): Promise<void> => {
     try {
-      fn();
+      await fn();
       clearResults[name] = true;
     } catch (error) {
       clearResults[name] = false;
@@ -294,94 +299,80 @@ export function emergencySpeechCleanup(): void {
 
   // Import and call reset-all functions dynamically to avoid circular deps
   // Note: These functions clear ALL instances, not just specific sessions
-  // Fire-and-forget pattern is intentional for emergency cleanup - promises are not awaited
-  /* eslint-disable @typescript-eslint/no-floating-promises */
-  safeClearAll('audioProsody', () => {
-    import('./audio-prosody.js').then((m) => {
+  // All cleanups are properly awaited to ensure completion
+  await Promise.all([
+    safeClearAll('audioProsody', async () => {
+      const m = await import('./audio-prosody.js');
       if ('resetAllAudioProsodyAnalyzers' in m) {
         (m as { resetAllAudioProsodyAnalyzers: () => void }).resetAllAudioProsodyAnalyzers();
       }
-    });
-  });
+    }),
 
-  safeClearAll('humanListening', () => {
-    import('./human-listening-pipeline.js').then((m) => {
+    safeClearAll('humanListening', async () => {
+      const m = await import('./human-listening-pipeline.js');
       m.resetAllHumanListeningPipelines();
-    });
-  });
+    }),
 
-  safeClearAll('voiceHumanization', () => {
-    import('./voice-humanization.js').then((m) => {
+    safeClearAll('voiceHumanization', async () => {
+      const m = await import('./voice-humanization.js');
       m.resetAllVoiceHumanization();
-    });
-  });
+    }),
 
-  safeClearAll('emotionalContagion', () => {
-    import('./emotional-contagion.js').then((m) => {
+    safeClearAll('emotionalContagion', async () => {
+      const m = await import('./emotional-contagion.js');
       m.resetAllEmotionalContagion();
-    });
-  });
+    }),
 
-  safeClearAll('voiceTremor', () => {
-    import('./voice-tremor.js').then((m) => {
+    safeClearAll('voiceTremor', async () => {
+      const m = await import('./voice-tremor.js');
       m.resetAllVoiceTremorDetectors();
-    });
-  });
+    }),
 
-  safeClearAll('volumeDynamics', () => {
-    import('./volume-dynamics.js').then((m) => {
+    safeClearAll('volumeDynamics', async () => {
+      const m = await import('./volume-dynamics.js');
       m.resetAllVolumeDynamicsTrackers();
-    });
-  });
+    }),
 
-  safeClearAll('energyDynamics', () => {
-    import('./energy-dynamics.js').then((m) => {
+    safeClearAll('energyDynamics', async () => {
+      const m = await import('./energy-dynamics.js');
       m.resetAllEnergyDynamicsTrackers();
-    });
-  });
+    }),
 
-  safeClearAll('fluencyAnalyzer', () => {
-    import('./fluency-analysis.js').then((m) => {
+    safeClearAll('fluencyAnalyzer', async () => {
+      const m = await import('./fluency-analysis.js');
       m.resetAllFluencyAnalyzers();
-    });
-  });
+    }),
 
-  safeClearAll('fillerAnalyzer', () => {
-    import('./filler-analysis.js').then((m) => {
+    safeClearAll('fillerAnalyzer', async () => {
+      const m = await import('./filler-analysis.js');
       m.resetAllFillerAnalyzers();
-    });
-  });
+    }),
 
-  safeClearAll('breathDetector', () => {
-    import('./breath-detection.js').then((m) => {
+    safeClearAll('breathDetector', async () => {
+      const m = await import('./breath-detection.js');
       m.resetAllBreathDetectors();
-    });
-  });
+    }),
 
-  safeClearAll('voiceManager', () => {
-    import('./voice-manager.js').then((m) => {
+    safeClearAll('voiceManager', async () => {
+      const m = await import('./voice-manager.js');
       m.resetAllSessionVoiceManagers();
-    });
-  });
+    }),
 
-  safeClearAll('backchanneling', () => {
-    import('./backchanneling/index.js').then((m) => {
+    safeClearAll('backchanneling', async () => {
+      const m = await import('./backchanneling/index.js');
       m.resetAllBackchanneling();
-    });
-  });
+    }),
 
-  safeClearAll('catchphraseTracker', () => {
-    import('./response-naturalness.js').then((m) => {
+    safeClearAll('catchphraseTracker', async () => {
+      const m = await import('./response-naturalness.js');
       m.resetAllCatchphraseTrackers();
-    });
-  });
+    }),
 
-  safeClearAll('cartesiaContexts', () => {
-    import('./cartesia-context-patch.js').then((m) => {
+    safeClearAll('cartesiaContexts', async () => {
+      const m = await import('./cartesia-context-patch.js');
       m.clearAllContexts();
-    });
-  });
-  /* eslint-enable @typescript-eslint/no-floating-promises */
+    }),
+  ]);
 
   // Clear session registry
   activeSessions.clear();

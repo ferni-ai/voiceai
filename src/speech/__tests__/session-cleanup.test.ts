@@ -70,15 +70,15 @@ function createServicesForSession(sessionId: string): void {
 describe('Session Cleanup', () => {
   const testSessionId = 'test-cleanup-session';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Start fresh
-    emergencySpeechCleanup();
+    await emergencySpeechCleanup();
     resetAllSessionVoiceManagers();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up after each test
-    emergencySpeechCleanup();
+    await emergencySpeechCleanup();
     resetAllSessionVoiceManagers();
   });
 
@@ -228,27 +228,48 @@ describe('Session Cleanup', () => {
   // -------------------------------------------------------------------------
 
   describe('Emergency Cleanup', () => {
-    it('should clear session registry immediately', () => {
+    it('should clear session registry and all services', async () => {
       registerSpeechSession('session-1');
       registerSpeechSession('session-2');
       registerSpeechSession('session-3');
 
+      createServicesForSession('session-1');
+      createServicesForSession('session-2');
+      createServicesForSession('session-3');
+
       expect(getActiveSpeechSessionCount()).toBe(3);
 
-      emergencySpeechCleanup();
+      await emergencySpeechCleanup();
 
       expect(getActiveSpeechSessionCount()).toBe(0);
     });
 
-    it('should be safe to call multiple times', () => {
+    it('should be safe to call multiple times', async () => {
       registerSpeechSession('session-1');
 
-      expect(() => {
-        emergencySpeechCleanup();
-        emergencySpeechCleanup();
-        emergencySpeechCleanup();
-      }).not.toThrow();
+      // Multiple calls should not throw
+      await emergencySpeechCleanup();
+      await emergencySpeechCleanup();
+      await emergencySpeechCleanup();
 
+      expect(getActiveSpeechSessionCount()).toBe(0);
+    });
+
+    it('should properly await all service cleanups', async () => {
+      // This test verifies the race condition fix - cleanups are awaited
+      registerSpeechSession('session-1');
+      createServicesForSession('session-1');
+
+      // Start cleanup
+      const cleanupPromise = emergencySpeechCleanup();
+
+      // Should return a promise
+      expect(cleanupPromise).toBeInstanceOf(Promise);
+
+      // Wait for it to complete
+      await cleanupPromise;
+
+      // Registry should be cleared after promise resolves
       expect(getActiveSpeechSessionCount()).toBe(0);
     });
   });

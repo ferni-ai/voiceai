@@ -185,14 +185,18 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
     registerBundleHumanization(manifest.identity.id, manifest.humanization);
   }
 
-  // Register cognitive profile from bundle behaviors
-  if (behaviors.cognitive) {
-    getLogger().debug(`Registering bundle cognitive profile for ${manifest.identity.id}`);
+  // HUMANIZATION FIX: Register cognitive profile from manifest.cognitive (preferred)
+  // or fall back to behaviors.cognitive for backwards compatibility
+  const cognitiveSource = manifest.cognitive || behaviors.cognitive;
+  if (cognitiveSource) {
+    getLogger().debug(
+      `Registering bundle cognitive profile for ${manifest.identity.id} (source: ${manifest.cognitive ? 'manifest' : 'behaviors'})`
+    );
     try {
       const { registerBundleCognitiveProfile, convertBundleCognitive } =
         await import('../cognitive-profiles.js');
       const cognitiveProfile = convertBundleCognitive(
-        behaviors.cognitive as unknown as Record<string, unknown>
+        cognitiveSource as unknown as Record<string, unknown>
       );
       registerBundleCognitiveProfile(manifest.identity.id, cognitiveProfile);
     } catch (error) {

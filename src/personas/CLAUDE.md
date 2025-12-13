@@ -58,10 +58,12 @@ bundles/{persona-id}/
 
 ## Cognitive Profiles
 Defined in `src/personas/cognitive-profiles.ts`:
-- `analytical` - Structured thinking, data-driven
-- `intuitive` - Pattern recognition, holistic
-- `empathetic` - Emotion-first, relationship-focused
-- `practical` - Action-oriented, solution-focused
+- `narrative` - Story-driven reasoning (Ferni)
+- `analytical` - Data-driven, pattern recognition (Peter)
+- `systematic` - Process-oriented, structured (Alex)
+- `empathetic` - Emotion-first, relationship-focused (Maya)
+- `pragmatic` - Action-oriented, solution-focused (Jordan)
+- `intuitive` - Wisdom-based, contemplative (Nayan)
 
 ## Rules
 
@@ -83,11 +85,34 @@ Defined in `src/personas/cognitive-profiles.ts`:
 | Persona | Primary | CSS Variable |
 |---------|---------|--------------|
 | Ferni | `#4a6741` | `--color-ferni` |
-| Jack | `#9a7b5a` | `--color-jack` |
 | Peter | `#3a6b73` | `--color-peter` |
 | Alex | `#5a6b8a` | `--color-alex` |
 | Maya | `#a67a6a` | `--color-maya` |
 | Jordan | `#c4856a` | `--color-jordan` |
+| Nayan | `#b8956a` | `--color-nayan` |
+
+> **Note:** `--color-jack` (`#9a7b5a`, "Warm Cedar") is a legacy brand color still used in some UI components. It's not a persona color.
+
+## Handoff Transition Config
+```json
+"handoff": {
+  "transition": {
+    "style": "warm",    // warm | standard | dramatic | subtle
+    "emoji": "",        // Empty = auto-derive from role/domains
+    "sound": "connect", // Sound file for handoff
+    "delay_multiplier": 1.0
+  }
+}
+```
+
+**Emoji derivation:** When `emoji` is empty (`""`), the `agent-directory.ts` derives it:
+- Coordinator → 🎯
+- Research/invest domains → 📈
+- Wisdom/philosophy → 🧘
+- Communication/email → 📧
+- Budget/habits → 💰
+- Planning/milestone → 🎉
+- Default → ✨
 
 ## Adding a New Persona
 

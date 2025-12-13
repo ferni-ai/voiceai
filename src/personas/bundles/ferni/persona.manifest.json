@@ -399,6 +399,7 @@
     "transition": {
       "style": "warm",
       "emoji": "",
+      "_emoji_note": "Empty string = derive emoji from role/domains via agent-directory.ts. Coordinator gets 🎯.",
       "sound": "connect",
       "delay_multiplier": 1.0
     },

@@ -227,7 +227,7 @@
     "jack": {
       "timingMultiplier": 1.2,
       "easingPreference": "gentle",
-      "description": "Slower, more deliberate"
+      "description": "LEGACY: Slower, more deliberate - brand accent timing"
     },
     "peter": {
       "timingMultiplier": 0.85,

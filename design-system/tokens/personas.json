@@ -51,9 +51,10 @@
     },
     
     "jack": {
-      "name": "Jack",
-      "role": "Wisdom Mentor",
-      "archetype": "The Grandfather Who's Seen Everything",
+      "_note": "LEGACY brand accent color profile. NOT an active persona - use 'nayan' for wisdom/sage. Kept for backward compatibility with --color-jack CSS variable.",
+      "name": "Cedar",
+      "role": "Brand Accent",
+      "archetype": "Warm Cedar Wood - Brand Accent Color",
       
       "colors": {
         "primary": {
@@ -628,7 +629,7 @@
       { "stage": "getting_started", "personas": ["ferni", "maya"] },
       { "stage": "building_trust", "personas": ["ferni", "maya", "peter"] },
       { "stage": "established", "personas": ["ferni", "maya", "peter", "alex", "jordan"] },
-      { "stage": "deep_partnership", "personas": ["ferni", "maya", "peter", "alex", "jordan", "jack", "nayan"] }
+      { "stage": "deep_partnership", "personas": ["ferni", "maya", "peter", "alex", "jordan", "nayan"] }
     ]
   }
 }

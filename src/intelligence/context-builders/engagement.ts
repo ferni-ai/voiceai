@@ -145,10 +145,13 @@ This deepens the relationship. Don't skip it.`
   }
   // -----------------------------------------------
   // RUNNING JOKES WITH RETURNING USERS
+  // HUMANIZATION FIX: Pass personaId for persona-specific jokes
   // -----------------------------------------------
   if (userProfile && userProfile.totalConversations >= 2) {
     const currentTopic = analysis.topics.detected[0] || '';
-    const joke = getRunningJokeCallback(userProfile, currentTopic);
+    // Get persona ID from input if available
+    const personaId = input.persona?.id || input.personaId;
+    const joke = getRunningJokeCallback(userProfile, currentTopic, personaId);
     if (joke) {
       const jokeType = joke.isCallback ? 'callback' : 'setup';
       injections.push(

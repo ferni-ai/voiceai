@@ -100,9 +100,9 @@ export interface VoiceConfig {
  * speaking patterns for each persona.
  *
  * Each persona should feel audibly different:
- * - Jack Bogle: Measured, deliberate, grandfatherly pauses
- * - Peter John: Fast, energetic, animated
- * - Jack B: Natural, warm, conversational
+ * - Nayan: Measured, deliberate, contemplative pauses
+ * - Peter: Fast, energetic, animated
+ * - Ferni: Natural, warm, conversational
  */
 export interface SpeechCharacteristics {
   /**
@@ -111,9 +111,9 @@ export interface SpeechCharacteristics {
    * Higher = faster, more energetic
    *
    * Examples:
-   * - 0.72: Very slow, thoughtful (Jack Bogle)
-   * - 0.85: Moderate, natural (Jack B)
-   * - 1.02: Fast, animated (Peter John)
+   * - 0.82: Very slow, thoughtful (Nayan)
+   * - 0.85: Moderate, natural (Ferni)
+   * - 1.02: Fast, animated (Peter)
    */
   baseSpeedMultiplier: number;
 
@@ -122,9 +122,9 @@ export interface SpeechCharacteristics {
    * Higher = longer pauses between thoughts
    *
    * Examples:
-   * - 1.4: Long pauses, lets things breathe (Jack Bogle)
-   * - 1.0: Natural pacing (Jack B)
-   * - 0.75: Short pauses, keeps momentum (Peter John)
+   * - 1.35: Long pauses, lets things breathe (Nayan)
+   * - 1.0: Natural pacing (Ferni)
+   * - 0.75: Short pauses, keeps momentum (Peter)
    */
   pauseMultiplier: number;
 
@@ -133,9 +133,9 @@ export interface SpeechCharacteristics {
    * Higher = more dynamic speed changes
    *
    * Examples:
-   * - 0.08: Steady, consistent pace (Jack Bogle)
-   * - 0.15: Moderate variation (Jack B)
-   * - 0.25: Highly dynamic, animated (Peter John)
+   * - 0.18: Melodic variation (Nayan)
+   * - 0.15: Moderate variation (Ferni)
+   * - 0.25: Highly dynamic, animated (Peter)
    */
   speedVariation: number;
 
@@ -144,9 +144,9 @@ export interface SpeechCharacteristics {
    * "Hmm", "Ah", etc. before responses
    *
    * Examples:
-   * - 0.6: Frequent, contemplative (Jack Bogle)
-   * - 0.3: Occasional (Jack B)
-   * - 0.15: Rare, quick to respond (Peter John)
+   * - 0.32: Contemplative (Nayan)
+   * - 0.45: Occasional (Ferni)
+   * - 0.15: Rare, quick to respond (Peter)
    */
   thinkingSoundFrequency: number;
 
@@ -160,9 +160,9 @@ export interface SpeechCharacteristics {
 
   /**
    * How sentences typically end prosodically
-   * - 'falling': Definitive, authoritative (Jack Bogle)
-   * - 'rising': Curious, engaging (Peter John)
-   * - 'natural': Varies with content (Jack B)
+   * - 'falling': Definitive, authoritative (Alex)
+   * - 'rising': Curious, engaging (Peter)
+   * - 'natural': Varies with content (Ferni)
    */
   sentenceEndingStyle: 'falling' | 'rising' | 'natural';
 

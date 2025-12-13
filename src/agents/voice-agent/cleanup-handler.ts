@@ -22,11 +22,8 @@ import {
 } from '../../intelligence/index.js';
 import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
-import { resetEnhancedTurnPredictor } from '../../speech/enhanced-turn-prediction.js';
-import { resetFFTAnalyzer } from '../../speech/fft-analyzer.js';
-import { resetMultiSignalLaughterDetector } from '../../speech/multi-signal-laughter.js';
-import { resetResponseAnticipationService } from '../../speech/response-anticipation.js';
-import { resetWordTimingRhythmService } from '../../speech/word-timing-rhythm.js';
+// 🎤 Speech module cleanup - single source of truth for 30+ session-scoped services
+import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
 import { getDJIntegration } from '../dj-integration.js';
 import {
@@ -248,21 +245,25 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
       // Unregister TTS for accent changes
       unregisterSessionTTS(sessionId);
 
-      // Reset all advanced services
-      resetFFTAnalyzer(sessionId);
-      resetEnhancedTurnPredictor(sessionId);
-      resetMultiSignalLaughterDetector(sessionId);
-      resetWordTimingRhythmService(sessionId);
-      resetResponseAnticipationService(sessionId);
+      // 🎤 UNIFIED SPEECH MODULE CLEANUP
+      // Single call cleans up ALL 30+ session-scoped speech services:
+      // - Audio prosody, WPM tracking, backchanneling (standard + enhanced + unified)
+      // - Cognitive speech, TTS context, pronunciation memory, Cartesia context
+      // - Human listening pipeline, voice humanization, turn prediction, emotional contagion
+      // - Voice tremor, volume dynamics, energy dynamics, fluency/filler analysis
+      // - FFT analyzer, laughter detection, breath detection
+      // - Word timing, response anticipation, ambient awareness
+      // - Voice manager, catchphrase tracking, conversation trackers
+      cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
 
       // Finalize unified speech metrics and cleanup dynamic speed
       logMetricsSummary(sessionId);
       finalizeSpeechMetrics(sessionId, true);
       cleanupDynamicSpeed(sessionId);
 
-      diag.session('🎤 Advanced voice humanization services cleaned up');
+      diag.session('🎤 Speech module cleaned up (30+ services)');
     } catch (advVhErr) {
-      diag.warn('🎤 Advanced voice humanization cleanup failed (non-fatal)', {
+      diag.warn('🎤 Speech module cleanup failed (non-fatal)', {
         error: String(advVhErr),
       });
     }
@@ -611,14 +612,12 @@ async function cleanupIdentitySession(sessionId: string): Promise<void> {
 
 async function cleanupHumanListening(sessionId: string): Promise<void> {
   try {
+    // Only clear the context builder result - the speech pipeline is already
+    // cleaned up by cleanupSpeechSession() in STEP 7
     const { clearHumanListeningResult } =
       await import('../../intelligence/context-builders/human-listening.js');
     clearHumanListeningResult(sessionId);
-
-    const { resetHumanListeningPipeline } =
-      await import('../../speech/human-listening-pipeline.js');
-    resetHumanListeningPipeline(sessionId);
-    diag.session('🎧 Human listening session cleaned up');
+    diag.session('🎧 Human listening context cleared');
   } catch (listeningCleanupErr) {
     diag.warn('Human listening cleanup failed (non-fatal)', {
       error: String(listeningCleanupErr),

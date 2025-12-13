@@ -531,13 +531,15 @@ const snapshot = getSpeechMetricsSnapshot();
 
 ### 6. ✅ Enhanced Emergency Cleanup
 
-The `emergencySpeechCleanup()` function now properly clears ALL service Maps:
+The `emergencySpeechCleanup()` function now properly clears ALL service Maps
+and is async to ensure all cleanups complete before returning:
 
 ```typescript
 import { emergencySpeechCleanup } from './session-cleanup.js';
 
 // Clears ALL state from ALL services (use with caution!)
-emergencySpeechCleanup();
+// NOTE: This is async - always await it!
+await emergencySpeechCleanup();
 // Logs: "Emergency speech cleanup complete (14/14 services cleared)"
 ```
 

@@ -369,6 +369,10 @@ export function getPhasePersonality(phase: NarrativePhase): PhasePersonality {
 
 /**
  * Check if we should surface inner world content
+ * 
+ * HUMANIZATION FIX: Increased probabilities to surface more sensory memories
+ * and personal content. The rich inner world content was rarely surfacing
+ * due to overly conservative probability gates.
  */
 export function shouldSurfaceInnerWorld(
   phase: NarrativePhase,
@@ -377,19 +381,41 @@ export function shouldSurfaceInnerWorld(
 ): boolean {
   const personality = PHASE_PERSONALITIES[phase];
 
-  // Must be in a phase where inner world is active
-  if (!personality.innerWorldActive) return false;
+  // HUMANIZATION FIX: Allow inner world in more phases
+  // Building phase can also have light inner world shares (getting to know you)
+  const innerWorldPhases: NarrativePhase[] = ['peak', 'release', 'building'];
+  if (!innerWorldPhases.includes(phase) && !personality.innerWorldActive) return false;
 
-  // Must have sufficient emotional intensity
-  if (emotionalIntensity < 0.5) return false;
+  // HUMANIZATION FIX: Lower the intensity threshold
+  // Emotional moments at 0.35+ can benefit from personal connection
+  if (emotionalIntensity < 0.35) return false;
 
-  // Must have sufficient relationship
+  // HUMANIZATION FIX: Allow light inner world for acquaintances too
+  // Strangers still get no inner world (need some trust first)
   if (relationshipStage === 'stranger') return false;
 
-  // Probability based on phase
-  const probability = phase === 'peak' ? 0.4 : phase === 'release' ? 0.3 : 0.1;
+  // HUMANIZATION FIX: Higher probabilities for surfacing rich content
+  // - Peak: 55% (this is THE moment for personal connection)
+  // - Release: 45% (normalize their experience with yours)
+  // - Building: 25% (light shares to build rapport)
+  // - Other: 15% (occasional surprise shares)
+  const probabilities: Record<NarrativePhase, number> = {
+    peak: 0.55,
+    release: 0.45,
+    building: 0.25,
+    opening: 0.1,
+    closing: 0.15,
+  };
 
-  return Math.random() < probability;
+  const probability = probabilities[phase] ?? 0.15;
+
+  // Bonus for acquaintance+ relationships (they're ready for more)
+  const relationshipBonus =
+    relationshipStage === 'acquaintance' ? 0.05 :
+    relationshipStage === 'friend' ? 0.1 :
+    relationshipStage === 'trusted_advisor' ? 0.15 : 0;
+
+  return Math.random() < (probability + relationshipBonus);
 }
 
 /**

@@ -23,6 +23,8 @@ import {
 } from '../../intelligence/context-builders/persona-memory.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
+import { generateAliveGreeting } from '../../personas/alive-greetings.js';
+import { generateAliveIntro } from '../../personas/alive-intros.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -158,18 +160,79 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     usedWarmGreeting = true;
   }
 
-  // Try bundle runtime for enhanced greeting first (skip if already have greeting)
+  // ===============================================
+  // HUMANIZATION FIX: Try "alive" greeting systems first
+  // These make personas feel like real people caught in a moment
+  // ===============================================
   if (!greeting && bundleRuntime) {
-    const result = await generateBundleGreeting(
-      bundleRuntime,
-      services,
-      userData,
-      isReturningUser,
-      sessionPersona,
-      personaMemories
-    );
-    greeting = result.greeting;
-    hasReferencedLastConversation = result.hasReferencedLastConversation;
+    // PRIORITY 1: Try "caught in a moment" greeting (highest personality)
+    try {
+      const aliveResult = await generateAliveGreeting(bundleRuntime, sessionPersona, {
+        userName: userData.name,
+        isReturningUser,
+        relationshipStage: services.userProfile?.relationshipStage as
+          | 'stranger'
+          | 'acquaintance'
+          | 'friend'
+          | 'trusted_advisor'
+          | undefined,
+        lastConversationSummary: services.userProfile?.lastConversationSummary,
+        usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
+        sessionId,
+      });
+      if (aliveResult) {
+        greeting = aliveResult.greeting;
+        diag.session('Using alive greeting (caught in a moment)', {
+          style: aliveResult.style,
+          components: Object.keys(aliveResult.components).filter(
+            (k) => aliveResult.components[k as keyof typeof aliveResult.components]
+          ),
+        });
+      }
+    } catch (e) {
+      diag.warn('Alive greeting failed, trying alternatives', { error: String(e) });
+    }
+
+    // PRIORITY 2: Try "alive intro" (warm recognition for returning users)
+    if (!greeting && isReturningUser) {
+      try {
+        const introResult = await generateAliveIntro(bundleRuntime, sessionPersona, {
+          userName: userData.name,
+          isReturningUser,
+          relationshipStage: services.userProfile?.relationshipStage as
+            | 'stranger'
+            | 'acquaintance'
+            | 'friend'
+            | 'trusted_advisor'
+            | undefined,
+          meetingCount: services.userProfile?.totalConversations,
+          lastTopic: services.userProfile?.lastConversationSummary?.slice(0, 50),
+        });
+        if (introResult) {
+          greeting = introResult.intro;
+          hasReferencedLastConversation = introResult.referencesLastConversation ?? false;
+          diag.session('Using alive intro (warm recognition)', {
+            style: introResult.style,
+          });
+        }
+      } catch (e) {
+        diag.warn('Alive intro failed, trying bundle greeting', { error: String(e) });
+      }
+    }
+
+    // PRIORITY 3: Bundle runtime standard greeting
+    if (!greeting) {
+      const result = await generateBundleGreeting(
+        bundleRuntime,
+        services,
+        userData,
+        isReturningUser,
+        sessionPersona,
+        personaMemories
+      );
+      greeting = result.greeting;
+      hasReferencedLastConversation = result.hasReferencedLastConversation;
+    }
   } else if (!greeting) {
     // Standard greeting without bundle - include persona memories and proactive context
     const result = await generateStandardGreeting(

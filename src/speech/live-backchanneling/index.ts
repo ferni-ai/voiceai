@@ -51,7 +51,9 @@ export { BreathPauseDetector } from './breath-pause.js';
 // ============================================================================
 
 export {
+  getActiveLiveBackchannelSessionCount,
   getBreathPauseDetector,
   getLiveBackchannelingService,
+  resetAllLiveBackchanneling,
   resetLiveBackchanneling,
 } from './session-management.js';

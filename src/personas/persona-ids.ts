@@ -101,55 +101,69 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
 export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Ferni (Coach)
   ferni: 'ferni',
-  'jack-b': 'ferni',
+  fern: 'ferni', // Short alias
+  'jack-b': 'ferni', // Legacy alias
   coach: 'ferni',
   'life-coach': 'ferni',
-  jackie: 'ferni',
+  jackie: 'ferni', // Legacy alias
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
   peter: 'peter-john',
-  lynch: 'peter-john',
+  john: 'peter-john', // Last name alias
+  lynch: 'peter-john', // Inspired by Peter Lynch
   researcher: 'peter-john',
   'stock-storyteller': 'peter-john',
 
   // Alex Chen (Communicator)
   'alex-chen': 'alex-chen',
   alex: 'alex-chen',
+  chen: 'alex-chen', // Last name alias
   'comm-specialist': 'alex-chen',
   comm: 'alex-chen',
   communications: 'alex-chen',
   communicator: 'alex-chen',
   'generic-advisor': 'alex-chen',
 
-  // Maya Santos (Budgeter)
+  // Maya Santos (Habits Coach)
   'maya-santos': 'maya-santos',
   maya: 'maya-santos',
+  santos: 'maya-santos', // Last name alias
   'spend-save': 'maya-santos',
   spend: 'maya-santos',
   save: 'maya-santos',
   budget: 'maya-santos',
   'habits-coach': 'maya-santos',
+  habits: 'maya-santos',
+  routines: 'maya-santos',
+  wellness: 'maya-santos',
+  'self-care': 'maya-santos',
   'debt-counselor': 'maya-santos',
+  debt: 'maya-santos',
 
   // Jordan Taylor (Planner)
   'jordan-taylor': 'jordan-taylor',
   jordan: 'jordan-taylor',
+  taylor: 'jordan-taylor', // Last name alias
   'event-planner': 'jordan-taylor',
   event: 'jordan-taylor',
   planner: 'jordan-taylor',
   events: 'jordan-taylor',
   'retirement-specialist': 'jordan-taylor',
+  retirement: 'jordan-taylor',
+  milestones: 'jordan-taylor',
 
-  // Nayan Patel (Sage)
+  // Nayan Patel (Sage / Lifetime Advisor)
   'nayan-patel': 'nayan-patel',
   nayan: 'nayan-patel',
   patel: 'nayan-patel',
   sage: 'nayan-patel',
-  'sage-mentor': 'nayan-patel',
+  'sage-mentor': 'nayan-patel', // Legacy role ID
   guru: 'nayan-patel',
   mystic: 'nayan-patel',
+  wisdom: 'nayan-patel',
   'lifetime-advisor': 'nayan-patel',
+  'spiritual-guide': 'nayan-patel',
 };
 
 // ============================================================================

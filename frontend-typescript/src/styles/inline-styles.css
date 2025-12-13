@@ -11163,3 +11163,114 @@ body.ambient-aurora {
     margin: 0 auto;
   }
 }
+
+/* ========================================================================
+   MASTER OVERRIDE: NO RESIZING - Use BASE sizes everywhere!
+   
+   This overrides ALL breakpoints above. One consistent layout.
+   Base sizes from the original design:
+   - Avatar: 120px
+   - Button: 56px height, 16px 40px padding
+   - Waveform: 44px height
+   - Helper text: 14px
+   ======================================================================== */
+
+/* Apply to ALL screen sizes to override conflicting breakpoints */
+.app {
+  padding: var(--space-md) !important;
+  max-width: 600px !important;
+  margin: 0 auto !important;
+}
+
+.header {
+  padding: var(--space-md) !important;
+  gap: var(--space-md) !important;
+}
+
+.main {
+  gap: var(--space-md) !important;
+  padding: var(--space-md) !important;
+}
+
+/* Avatar - BASE SIZE: 120px - NO RESIZING */
+.avatar-container {
+  width: 120px !important;
+  height: 120px !important;
+}
+
+#avatarRing {
+  inset: -10px !important;
+  border-width: 2px !important;
+}
+
+#avatarText {
+  font-size: 2.5rem !important;
+}
+
+/* Thinking float - proportional to 120px avatar */
+.thinking-float {
+  bottom: -28px !important;
+  padding: 5px 12px !important;
+  font-size: 11px !important;
+}
+
+.thinking-float .thinking-dot {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+/* Status whisper */
+.status-whisper {
+  bottom: -32px !important;
+  font-size: 10px !important;
+}
+
+/* Persona name/subtitle - consistent sizing */
+#personaName {
+  font-size: var(--text-xl) !important;
+}
+
+#personaSubtitle {
+  font-size: var(--text-sm) !important;
+}
+
+/* Waveform - BASE SIZE: 44px height */
+#waveformContainer {
+  max-width: 280px !important;
+  height: 44px !important;
+}
+
+.waveform-bars {
+  height: 32px !important;
+  gap: 3px !important;
+}
+
+.waveform-bar {
+  --bar-width: 3px !important;
+}
+
+/* Buttons - BASE SIZE: 56px height, 16px 40px padding */
+.btn, .btn-primary {
+  min-height: 56px !important;
+  padding: 16px 40px !important;
+  font-size: 16px !important;
+}
+
+.btn-secondary {
+  min-height: 48px !important;
+  padding: 12px 28px !important;
+}
+
+/* Helper text - BASE SIZE: 14px - ALWAYS VISIBLE */
+#helperText {
+  font-size: 14px !important;
+  margin-top: var(--space-md) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Controls spacing */
+.controls {
+  gap: var(--space-md) !important;
+}

@@ -137,7 +137,7 @@
       "text": "#ffffff",
       "glow": "rgba(154, 123, 90, 0.28)",
       "tint": "rgba(154, 123, 90, 0.06)",
-      "_note": "Warm cedar brown - experienced, comforting, wise"
+      "_note": "LEGACY: Warm cedar brown brand accent. NOT a persona - use for brand accents. Alias: --color-cedar"
     },
     "peter": {
       "primary": "#3a6b73",

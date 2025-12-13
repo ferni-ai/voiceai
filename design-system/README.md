@@ -205,7 +205,7 @@ onThemeChange((theme) => {
 });
 
 // Set persona when agent changes
-setPersona('jack-bogle');
+setPersona('ferni');
 
 // Read CSS variable values
 const accentColor = getCSSVar('--color-accent-primary');
@@ -290,14 +290,16 @@ Each persona has unique accent colors (earthy, zen-inspired palette):
 | Persona | Primary | Description | Use Case |
 |---------|---------|-------------|----------|
 | ferni | Sage Green (#4a6741) | Deep sage - grounding, wise | Life Coach |
-| jack | Cedar Brown (#9a7b5a) | Warm cedar - experienced, comforting | Wisdom Mentor |
 | peter | Ocean Teal (#3a6b73) | Deep teal - discovery, depth | Research |
 | alex | Soft Indigo (#5a6b8a) | Calm blue - clarity, flow | Communications |
 | maya | Terracotta (#a67a6a) | Dusty rose - nurturing, warmth | Habits/Routines |
 | jordan | Sunset Coral (#c4856a) | Warm coral - celebration, joy | Events/Planning |
-| nayan | Stone Gray (#8a7a6a) | Neutral - synthesis, wisdom | Premium Advisor |
+| nayan | Golden Amber (#b8956a) | Warm amber - wisdom, guidance | Wisdom/Philosophy |
+| jack | Cedar Brown (#9a7b5a) | Warm cedar - brand accent | **LEGACY** Brand Accent |
 
-Set persona: `<body data-persona="jack">` or `<body data-persona="ferni">`
+Set persona: `<body data-persona="ferni">` or `<body data-persona="nayan">`
+
+> **Note:** `jack` (`--color-jack`) is a legacy brand accent color, NOT an active persona. The Jack persona was renamed to Ferni. Use `--color-jack` for brand accent elements only.
 
 ## Premium Features
 
