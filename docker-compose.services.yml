@@ -1,0 +1,157 @@
+# Docker Compose for Local Microservices Development
+#
+# Run the full microservice stack locally for testing:
+#   docker-compose -f docker-compose.services.yml up
+#
+# Or run in hybrid mode (some services local, some in Docker):
+#   docker-compose -f docker-compose.services.yml up tool-service
+#   SERVICE_MODE=hybrid TOOL_SERVICE_URL=http://localhost:50051 pnpm dev
+#
+# Services:
+#   - tool-service:    gRPC tool execution (port 50051)
+#   - persona-service: Persona/agent context (port 50052)
+#   - memory-service:  Memory/embeddings (port 50053)
+#   - agent-runtime:   Voice agent (port 8080)
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # TOOL SERVICE
+  # ============================================================================
+  tool-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.tool-service
+    ports:
+      - "50051:50051"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=50051
+      # Firebase/Firestore (for tools that need persistence)
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - FIRESTORE_PROJECT=${FIRESTORE_PROJECT:-ferni-dev}
+    volumes:
+      # Mount source for hot reload in dev
+      - ./src:/app/src:ro
+      - ./dist:/app/dist:ro
+      # GCP credentials
+      - ${GCP_KEY_PATH:-./secrets/gcp-key.json}:/secrets/gcp-key.json:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:50051/health').then(r => process.exit(r.ok ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # PERSONA SERVICE
+  # ============================================================================
+  persona-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.persona-service
+    ports:
+      - "50052:50052"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=50052
+    volumes:
+      - ./src:/app/src:ro
+      - ./dist:/app/dist:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:50052/health').then(r => process.exit(r.ok ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # MEMORY SERVICE
+  # ============================================================================
+  memory-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.memory-service
+    ports:
+      - "50053:50053"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=50053
+      # Firestore for persistence
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - FIRESTORE_PROJECT=${FIRESTORE_PROJECT:-ferni-dev}
+      # OpenAI for embeddings
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./src:/app/src:ro
+      - ./dist:/app/dist:ro
+      - ${GCP_KEY_PATH:-./secrets/gcp-key.json}:/secrets/gcp-key.json:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:50053/health').then(r => process.exit(r.ok ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # AGENT RUNTIME (Voice worker)
+  # ============================================================================
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - SERVICE_MODE=remote
+      # Point to other services
+      - TOOL_SERVICE_URL=http://tool-service:50051
+      - PERSONA_SERVICE_URL=http://persona-service:50052
+      - MEMORY_SERVICE_URL=http://memory-service:50053
+      # LiveKit
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      # LLM
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      # TTS
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
+    volumes:
+      - ./dist:/app/dist:ro
+    depends_on:
+      tool-service:
+        condition: service_healthy
+      persona-service:
+        condition: service_healthy
+      memory-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # REDIS (Optional - for caching/rate limiting)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis-data:
+
+networks:
+  default:
+    name: ferni-network

@@ -1,8 +1,13 @@
 /**
  * Voice Agent Entry Function (Extracted for Child Processes)
  *
- * ALL heavy modules are accessed via preloaded cache from prewarm.
- * This eliminates ALL dynamic imports during entry for instant startup.
+ * OPTIMIZATION: Uses lightweight modules for hot path operations:
+ * - cache-reader.ts: Zero-dependency persona config loading
+ * - lightweight-resilience.ts: Zero-dependency retry + error humanization
+ * - lightweight-tts.ts: Minimal TTS creation
+ *
+ * Heavy modules (full self-healing with AI diagnostics) are only imported
+ * in the error catch block when actually needed.
  */
 
 import type { JobContext, voice as voiceType } from '@livekit/agents';
@@ -58,15 +63,23 @@ async function getPrewarmedResources(
   preloaded?: Partial<PreloadedDeps>
 ): Promise<{ usePrewarmed: boolean; persona: PersonaConfig | null; systemPrompt: string | null }> {
   try {
-    const resourceServer = preloaded?.resourceServer ?? await import('./shared/resource-server.js');
-    const { isMainProcessWarmedUp, getPrewarmedPersonaConfig, getPrewarmedSystemPrompt } = resourceServer;
+    // Use lightweight cache-reader (zero dependencies) instead of resource-server
+    const cacheReader = preloaded?.cacheReader ?? await import('./shared/cache-reader.js');
 
-    if (await isMainProcessWarmedUp()) {
+    if (cacheReader.isMainProcessWarmedUp()) {
       process.stderr.write(`[voice-agent-entry] Using main process cache ✅\n`);
-      const config = await getPrewarmedPersonaConfig(personaId);
-      const prompt = await getPrewarmedSystemPrompt(personaId);
+      const config = cacheReader.getPersonaConfig(personaId);
+      const prompt = cacheReader.getSystemPrompt(personaId);
       if (config) {
-        return { usePrewarmed: true, persona: config as PersonaConfig, systemPrompt: prompt };
+        return {
+          usePrewarmed: true,
+          persona: {
+            name: config.name,
+            voice: config.voice,
+            systemPrompt: config.systemPrompt,
+          },
+          systemPrompt: prompt,
+        };
       }
     }
   } catch {
@@ -111,8 +124,9 @@ async function loadPersonaLocally(
     }
     
     // If bundle not found, fall back to personas module (slower but comprehensive)
-    process.stderr.write(`[voice-agent-entry] Bundle not found, using personas module...\n`);
-    const personas = preloaded?.personas ?? await import('../personas/index.js');
+    // NOTE: This is a fallback path - normally cache-reader.ts provides persona config
+    process.stderr.write(`[voice-agent-entry] Bundle not found, using personas module (slow fallback)...\n`);
+    const personas = await import('../personas/index.js');
     if (!preloaded?.personaBundlesReady) {
       await personas.initializeFromBundles();
     }
@@ -229,11 +243,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     preloaded = getPreloadedDeps();
   } catch { /* not running as child process */ }
 
-  // Use preloaded modules or fallback to dynamic import
+  // Use LIGHTWEIGHT modules for hot path (zero/minimal dependencies)
+  // Full self-healing (AI diagnostics) is deferred to error catch block
   const e2eDiagnostics = preloaded?.e2eDiagnostics ?? await import('./shared/e2e-diagnostics.js');
-  const selfHealing = preloaded?.selfHealing ?? await import('../services/self-healing/index.js');
+  const lightweightResilience = preloaded?.lightweightResilience ?? await import('./shared/lightweight-resilience.js');
   const { e2e } = e2eDiagnostics;
-  const { withResilience, analyzeFailure, humanizeError } = selfHealing;
+  const { withResilience, humanizeError } = lightweightResilience;
 
   let currentPhase: 'deps' | 'persona' | 'connect' | 'session' | 'greeting' | 'running' = 'deps';
   e2e.childEntry(jobId);
@@ -312,12 +327,23 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
 
-    // Run AI diagnosis
+    // Use lightweight humanizeError for immediate user feedback
+    const humanized = humanizeError(errObj);
+    if (session && ctx.room.isConnected && humanized.shouldNotifyUser) {
+      try {
+        await session.say(humanized.userMessage);
+      } catch { /* can't speak */ }
+    }
+
+    // DEFERRED: Run full AI diagnosis only on errors (not in hot path)
+    // This import only happens when we actually have an error to analyze
     const stageMap: Record<typeof currentPhase, 'unknown' | 'session' | 'entry'> = {
       deps: 'entry', persona: 'entry', connect: 'session',
       session: 'session', greeting: 'session', running: 'session',
     };
     try {
+      // Lazy import full self-healing - only when error occurs
+      const { analyzeFailure } = await import('../services/self-healing/index.js');
       const diagnosis = await analyzeFailure([errObj.message, errObj.stack || ''], {
         jobId, stage: stageMap[currentPhase],
         timing: { totalMs: Date.now() - startTime },
@@ -328,13 +354,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         phase: currentPhase, rootCause: diagnosis.rootCause,
         confidence: diagnosis.confidence, autoFixable: diagnosis.autoFixable,
       });
-
-      if (session && ctx.room.isConnected && diagnosis.humanExplanation) {
-        const humanized = humanizeError(errObj);
-        if (humanized.shouldNotifyUser) {
-          try { await session.say(humanized.userMessage); } catch { /* can't speak */ }
-        }
-      }
     } catch { /* diagnosis is best-effort */ }
 
     try {

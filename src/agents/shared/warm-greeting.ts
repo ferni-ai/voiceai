@@ -7,12 +7,19 @@
  *
  * NOW WITH DYNAMIC SSML - Greetings feel alive, not scripted
  *
+ * ZERO DEPENDENCIES - This module is loaded during prewarm hot path.
+ * Do NOT import heavy modules like safe-logger here.
+ *
  * Performance impact: -100-200ms on first response
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-
-const log = createLogger({ module: 'WarmGreeting' });
+// Lightweight logging (zero dependencies - don't import safe-logger!)
+const _log = (level: string, msg: string, data?: Record<string, unknown>) => {
+  if (process.env.NODE_ENV !== 'production' || level === 'error') {
+    const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+    process.stderr.write(`[warm-greeting] [${level}] ${msg}${dataStr}\n`);
+  }
+};
 
 // ============================================================================
 // WARM GREETING CACHE
@@ -176,7 +183,7 @@ export function prewarmGreeting(personaId: string): void {
     isGeneric: true,
   };
 
-  log.debug({ personaId, greeting: greeting.slice(0, 30) }, 'Prewarmed greeting');
+  _log('debug', 'Prewarmed greeting', { personaId, greeting: greeting.slice(0, 30) });
 }
 
 /**
@@ -189,17 +196,17 @@ export function getWarmGreeting(personaId?: string): string | null {
   // Check if greeting is stale (older than 5 minutes)
   const age = Date.now() - warmGreetingCache.generatedAt;
   if (age > 5 * 60 * 1000) {
-    log.debug('Warm greeting expired');
+    _log('debug', 'Warm greeting expired');
     warmGreetingCache = null;
     return null;
   }
 
   // If personaId provided, check it matches
   if (personaId && warmGreetingCache.personaId !== personaId) {
-    log.debug(
-      { cached: warmGreetingCache.personaId, requested: personaId },
-      'Warm greeting persona mismatch'
-    );
+    _log('debug', 'Warm greeting persona mismatch', {
+      cached: warmGreetingCache.personaId,
+      requested: personaId,
+    });
     return null;
   }
 

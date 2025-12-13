@@ -10,13 +10,18 @@ This document explains the voice agent's loading architecture, the IPC issues we
 src/
 ├── agent.ts                      # Entry point (imports voice-worker.ts)
 └── agents/
-    ├── voice-worker.ts           # ⭐ NEW: Lightweight main process bootstrap
+    ├── voice-worker.ts           # ⭐ Main process bootstrap (lightweight)
     ├── voice-agent-child.ts      # Child process agent definition
     ├── voice-agent-session.ts    # Session orchestration
-    ├── voice-agent-entry.ts      # Full session setup
-    ├── voice-agent.ts            # Full agent (legacy, heavy imports)
+    ├── voice-agent-entry.ts      # Full session setup (uses lightweight modules)
+    ├── voice-agent.ts            # Full agent (legacy, heavy imports - NOT USED)
     └── shared/
-        └── resource-server.ts    # Cache file management
+        ├── cache-reader.ts       # ⭐ Zero-dependency cache file reader
+        ├── lightweight-resilience.ts  # ⭐ Zero-dependency retry + error humanization
+        ├── lightweight-tts.ts    # Minimal TTS creation (only cartesia)
+        ├── resource-server.ts    # Main process cache management (heavier)
+        ├── warm-greeting.ts      # Self-contained greeting strings
+        └── e2e-diagnostics.ts    # Self-contained logging
 ```
 
 ## The Problem
@@ -233,12 +238,41 @@ Child processes check `warmup-status.json` to see if main process has warmed up,
 If preloaded deps aren't available, we fall back to dynamic imports:
 
 ```typescript
-// Priority 1: Preloaded dep (instant)
-const module =
-  _preloadedDeps.voiceAgentSession ??
-  // Priority 2: Dynamic import (slow but works)
-  (await import('./voice-agent-session.js'));
+// Priority 1: Preloaded lightweight dep (instant, zero dependencies)
+const cacheReader = preloaded?.cacheReader ?? await import('./shared/cache-reader.js');
+const lightweightResilience = preloaded?.lightweightResilience ?? await import('./shared/lightweight-resilience.js');
+
+// Priority 2: Dynamic import (slow but works)
+const voiceAgentSession = await import('./voice-agent-session.js');
 ```
+
+### PreloadedDeps (What's Actually Preloaded)
+
+Only modules with zero/minimal dependencies are preloaded:
+
+```typescript
+interface PreloadedDeps {
+  // External packages (Phase 1)
+  voice, google, silero, genai: LiveKit + AI SDKs
+
+  // Lightweight modules (Phase 2) - ZERO DEPENDENCIES
+  cacheReader: Read persona config from JSON files
+  lightweightResilience: Retry + error humanization
+  lightweightTTS: Create TTS without voice-manager chain
+  warmGreeting: Greeting strings
+  e2eDiagnostics: Logging
+
+  // Heavy resources
+  vadModel: Silero VAD model (loaded in Phase 3)
+  personaBundlesReady: Boolean flag
+}
+```
+
+**NOT preloaded** (imported on-demand only when needed):
+- `self-healing/index.js` - Only on errors (AI diagnostics)
+- `personas/index.js` - Only on cache miss
+- `resource-server.ts` - Only in main process
+- `startup.js` - Never in child process
 
 ## Completed Improvements
 
@@ -331,15 +365,67 @@ npm run deploy:agent:async
 
 ## Key Files
 
-| File                        | Purpose                            | Imports |
-| --------------------------- | ---------------------------------- | ------- |
-| `agent.ts`                  | Entry point (imports voice-worker) | 1       |
-| `voice-worker.ts`           | ⭐ Main process bootstrap          | ~10     |
-| `voice-agent-child.ts`      | Child process agent definition     | ~5      |
-| `voice-agent-session.ts`    | Session orchestration              | ~3      |
-| `voice-agent-entry.ts`      | Full session setup                 | ~15     |
-| `voice-agent.ts`            | Full agent logic (legacy)          | ~50     |
-| `shared/resource-server.ts` | Cache file management              | ~5      |
+| File                        | Purpose                            | Imports | Dependencies |
+| --------------------------- | ---------------------------------- | ------- | ------------ |
+| `agent.ts`                  | Entry point (imports voice-worker) | 1       | voice-worker |
+| `voice-worker.ts`           | ⭐ Main process bootstrap          | ~10     | CLI, health  |
+| `voice-agent-child.ts`      | Child process agent definition     | ~5      | LiveKit only |
+| `voice-agent-session.ts`    | Session orchestration              | ~3      | Minimal      |
+| `voice-agent-entry.ts`      | Full session setup                 | ~8      | Lightweight  |
+| `voice-agent.ts`            | Full agent logic (legacy)          | ~50     | DEPRECATED   |
+
+### Shared Modules (Hot Path - Zero/Minimal Dependencies)
+
+| File                        | Purpose                            | Dependencies |
+| --------------------------- | ---------------------------------- | ------------ |
+| `shared/cache-reader.ts`    | ⭐ Read persona config from cache  | fs only      |
+| `shared/lightweight-resilience.ts` | ⭐ Retry + error humanization | NONE        |
+| `shared/lightweight-tts.ts` | Create TTS without voice-manager   | cartesia only |
+| `shared/warm-greeting.ts`   | Greeting strings by persona        | NONE         |
+| `shared/e2e-diagnostics.ts` | Logging and metrics                | NONE         |
+
+### Shared Modules (Main Process Only - Heavier)
+
+| File                        | Purpose                            | Dependencies |
+| --------------------------- | ---------------------------------- | ------------ |
+| `shared/resource-server.ts` | Write cache, full warmup           | safe-logger, personas |
+
+## Lightweight Module Strategy
+
+### Why Lightweight Modules?
+
+The original `voice-agent-entry.ts` imported full modules like:
+- `self-healing/index.js` → 10+ re-exports from multiple files
+- `resource-server.js` → imports `safe-logger` → imports `@livekit/agents`
+
+These cascading imports added 300-500ms to every session start, even though only
+a tiny subset of functionality was needed on the hot path.
+
+### Solution: Zero-Dependency Lightweight Modules
+
+We created purpose-built modules with ZERO external dependencies:
+
+| Heavy Module | Lightweight Alternative | Hot Path Savings |
+| ------------ | ----------------------- | ---------------- |
+| `self-healing/index.js` | `lightweight-resilience.ts` | ~300ms |
+| `resource-server.ts` | `cache-reader.ts` | ~100ms |
+| Full AI diagnostics | Deferred to error path | ~500ms (happy path) |
+
+### Deferred Imports (Error Path Only)
+
+Heavy modules that are only needed on error are imported lazily:
+
+```typescript
+// ✅ HOT PATH: Uses lightweight module
+const { withResilience, humanizeError } = lightweightResilience;
+
+// ✅ ERROR PATH ONLY: Lazy import full AI diagnostics
+} catch (error) {
+  // This import only happens when an error actually occurs
+  const { analyzeFailure } = await import('../services/self-healing/index.js');
+  const diagnosis = await analyzeFailure(...);
+}
+```
 
 ## Benefits of New Architecture
 
@@ -348,3 +434,120 @@ npm run deploy:agent:async
 3. **Clear Separation**: Bootstrap vs agent logic cleanly separated
 4. **Easier Debugging**: Each file has single responsibility
 5. **No Race Conditions**: Warmup happens BEFORE children spawn
+6. **Zero-Dep Hot Path**: Lightweight modules have no import chains
+7. **Deferred Heavy Imports**: Full AI diagnostics only loaded on errors
+
+## Advanced Optimizations
+
+### esbuild Bundle (`voice-agent-bundle.js`)
+
+The child process code is bundled into a single ~24MB file that eliminates
+all import resolution time:
+
+```bash
+# Build the bundle
+npm run build:agent-bundle
+
+# Or build everything for production
+npm run build:production
+```
+
+**How it works:**
+- esbuild bundles `voice-agent-child.ts` + all internal deps
+- External packages (@livekit/*, @google/*) are kept external
+- `voice-worker.ts` auto-detects and uses bundle if available
+- Saves ~2-5 seconds of module resolution time
+
+### Parallel VAD Loading
+
+VAD model loading starts immediately after silero imports (Phase 1)
+and runs in parallel with Phase 2 lightweight module imports:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ TIMELINE                                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ Phase 1: External packages                                      │
+│ ─────────────────────────────────────►                         │
+│                                                                 │
+│          ┌── VAD model loading (in parallel!) ──────────────►  │
+│          │                                                      │
+│          └── Phase 2: Lightweight modules ───►                  │
+│                                                                 │
+│                                   Phase 3: Wait for VAD ►       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### HTTP Preconnect
+
+DNS resolution + TLS handshakes are done during prewarm:
+
+```typescript
+// Fire-and-forget preconnect to APIs
+fetch('https://api.cartesia.ai', { method: 'HEAD' });
+fetch('https://generativelanguage.googleapis.com', { method: 'HEAD' });
+```
+
+### TTS Connection Prewarming
+
+Cartesia TTS instance is created during prewarm and reused:
+
+```typescript
+// Prewarm creates TTS instance
+await prewarmTTSConnection(voiceId);
+
+// First session reuses pre-warmed instance
+const tts = createLightweightTTS(persona, config);
+// Returns pre-warmed TTS if voiceId matches!
+```
+
+### Node.js Production Flags
+
+Dockerfile sets optimized Node.js flags:
+
+```dockerfile
+ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=128 \
+  --no-warnings --dns-result-order=ipv4first --no-deprecation"
+```
+
+### VAD Worker Thread (Optional)
+
+A worker thread can pre-load the VAD model to warm the ONNX runtime:
+
+```typescript
+import { preloadVADInWorker, isVADPreloaded } from './vad-preloader.js';
+
+// Start preloading (non-blocking)
+preloadVADInWorker();
+
+// Later, VAD will load faster in main thread due to file caching
+```
+
+## File Index
+
+| File | Purpose | Dependencies |
+|------|---------|--------------|
+| `voice-agent-bundle.js` | ⚡ Bundled child (instant startup) | External only |
+| `voice-agent-child.ts` | Child process (unbundled) | Minimal |
+| `cache-reader.ts` | Read persona cache | fs only |
+| `lightweight-resilience.ts` | Retry + error humanization | NONE |
+| `lightweight-tts.ts` | TTS creation + prewarm | cartesia |
+| `vad-worker.ts` | Worker thread VAD loader | silero |
+| `vad-preloader.ts` | Spawn VAD worker | worker_threads |
+| `warm-greeting.ts` | Greeting strings | NONE |
+
+## Production Build Commands
+
+```bash
+# Full production build (recommended)
+npm run build:production
+
+# Individual steps
+npm run build:fast          # Transpile TS → JS
+npm run build:agent-bundle  # Create bundled child
+
+# Deploy
+npm run deploy:agent:async
+```

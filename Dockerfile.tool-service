@@ -1,0 +1,70 @@
+# Tool Service Dockerfile
+#
+# Lightweight container for the tool execution service.
+# Runs as a standalone HTTP/gRPC server.
+#
+# Build:
+#   docker build -f Dockerfile.tool-service -t ferni-tool-service .
+#
+# Run:
+#   docker run -p 50051:50051 --env-file .env ferni-tool-service
+
+FROM node:20-slim AS base
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# ============================================================================
+# Dependencies stage
+# ============================================================================
+FROM base AS deps
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies (production only for smaller image)
+RUN pnpm install --frozen-lockfile --prod
+
+# ============================================================================
+# Build stage
+# ============================================================================
+FROM base AS builder
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy source
+COPY tsconfig.json tsconfig.build.json ./
+COPY src ./src
+COPY scripts/build-fast.ts ./scripts/
+
+# Build with esbuild (fast!)
+RUN pnpm build:fast
+
+# ============================================================================
+# Production stage
+# ============================================================================
+FROM node:20-slim AS production
+
+WORKDIR /app
+
+# Install pnpm for runtime
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy production dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=50051
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "fetch('http://localhost:50051/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+# Run the service
+EXPOSE 50051
+CMD ["node", "dist/services/tool-service/server.js"]

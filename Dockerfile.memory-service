@@ -1,0 +1,60 @@
+# Memory Service Dockerfile
+#
+# Container for memory/embeddings service.
+# Requires OpenAI API key for embeddings.
+#
+# Build:
+#   docker build -f Dockerfile.memory-service -t ferni-memory-service .
+#
+# Run:
+#   docker run -p 50053:50053 --env-file .env ferni-memory-service
+
+FROM node:20-slim AS base
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# ============================================================================
+# Dependencies stage
+# ============================================================================
+FROM base AS deps
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+# ============================================================================
+# Build stage
+# ============================================================================
+FROM base AS builder
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig.json tsconfig.build.json ./
+COPY src ./src
+COPY scripts/build-fast.ts ./scripts/
+
+RUN pnpm build:fast
+
+# ============================================================================
+# Production stage
+# ============================================================================
+FROM node:20-slim AS production
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
+
+ENV NODE_ENV=production
+ENV PORT=50053
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "fetch('http://localhost:50053/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+EXPOSE 50053
+CMD ["node", "dist/services/memory-service/server.js"]

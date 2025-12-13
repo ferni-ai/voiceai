@@ -1,196 +1,181 @@
 #!/usr/bin/env npx tsx
 /**
- * Bundle Agent Script
- * 
- * Creates a single-file bundle of the voice agent for instant child process startup.
- * 
- * WHY BUNDLE?
- * -----------
- * Node.js module loading is SLOW - each import() resolves dependencies recursively.
- * Our agent imports 200+ modules → 30-120 seconds on cold start!
- * 
- * By bundling into a single file:
- * - All imports resolved at BUILD time, not runtime
- * - Child process loads ONE file instead of 200+
- * - Startup: 30-120s → 1-3s
- * 
- * USAGE:
- *   npx tsx scripts/bundle-agent.ts
- *   # or
- *   npm run build:agent-bundle
- * 
- * OUTPUT:
- *   dist/agents/voice-agent-bundle.js  (single file, ~2-5MB)
+ * Bundle Voice Agent Child Process
+ *
+ * Creates a single-file bundle of voice-agent-child.ts with all lightweight
+ * internal dependencies inlined. This eliminates import resolution time
+ * during child process startup.
+ *
+ * External packages (@livekit/*, @google/*) are kept external since they're
+ * already in node_modules and bundling them would bloat the output.
+ *
+ * Usage:
+ *   npx tsx scripts/bundle-child.ts
+ *
+ * Output:
+ *   dist/agents/voice-agent-child.bundle.js
  */
 
 import * as esbuild from 'esbuild';
-import * as path from 'path';
-import * as fs from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
-const ROOT = path.resolve(import.meta.dirname, '..');
-const ENTRY = path.join(ROOT, 'src/agents/voice-agent-child.ts');
-const OUTPUT = path.join(ROOT, 'dist/agents/voice-agent-bundle.js');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = dirname(__dirname);
 
-// Packages that MUST be external (native modules, dynamic requires)
-const EXTERNAL_PACKAGES = [
-  // Native modules - can't be bundled
-  '@livekit/rtc-node',
-  'better-sqlite3',
-  'bufferutil',
-  'utf-8-validate',
-  
-  // LiveKit packages - have native deps
-  '@livekit/agents',
-  '@livekit/agents-plugin-google',
-  '@livekit/agents-plugin-silero', 
-  '@livekit/agents-plugin-cartesia',
-  '@livekit/rtc-node',
-  
-  // Google packages - complex native deps
-  '@google-cloud/firestore',
-  '@google-cloud/storage',
-  '@google/genai',
-  '@google/generative-ai',
-  'firebase-admin',
-  
-  // Other native
-  'sharp',
-  'canvas',
-  
-  // Node built-ins
-  'fs', 'path', 'url', 'http', 'https', 'crypto', 'stream', 'util', 'events',
-  'child_process', 'os', 'net', 'tls', 'zlib', 'buffer', 'querystring',
-  'assert', 'string_decoder', 'punycode', 'dns', 'dgram', 'cluster',
-  'readline', 'repl', 'vm', 'v8', 'perf_hooks', 'async_hooks', 'worker_threads',
-  'inspector', 'trace_events', 'constants', 'process', 'module', 'timers',
-  'fs/promises', 'node:fs', 'node:path', 'node:url', 'node:http', 'node:https',
-  'node:crypto', 'node:stream', 'node:util', 'node:events', 'node:child_process',
-  'node:os', 'node:net', 'node:tls', 'node:zlib', 'node:buffer', 'node:querystring',
-];
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
-async function bundle() {
-  console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║  BUNDLING VOICE AGENT                                        ║');
-  console.log('╚══════════════════════════════════════════════════════════════╝');
-  console.log('');
-  console.log(`Entry: ${ENTRY}`);
-  console.log(`Output: ${OUTPUT}`);
-  console.log('');
+const CONFIG = {
+  entry: join(PROJECT_ROOT, 'src/agents/voice-agent-child.ts'),
+  outfile: join(PROJECT_ROOT, 'dist/agents/voice-agent-bundle.js'),
+  target: 'es2022' as const,
+  format: 'esm' as const,
+  platform: 'node' as const,
+
+  // External packages - don't bundle these (they're in node_modules)
+  external: [
+    // LiveKit packages
+    '@livekit/agents',
+    '@livekit/agents-plugin-google',
+    '@livekit/agents-plugin-silero',
+    '@livekit/agents-plugin-cartesia',
+    '@livekit/rtc-node',
+    '@livekit/noise-cancellation-node',
+    // Google packages
+    '@google/genai',
+    '@google/generative-ai',
+    // Node.js built-ins
+    'fs',
+    'fs/promises',
+    'path',
+    'url',
+    'worker_threads',
+    'crypto',
+    'http',
+    'https',
+    'stream',
+    'events',
+    'buffer',
+    'util',
+    'os',
+    'child_process',
+    'net',
+    'tls',
+    'dns',
+    'zlib',
+    'querystring',
+    'assert',
+    // Other external deps
+    'dotenv',
+    'dotenv/config',
+  ],
+};
+
+// ============================================================================
+// COLORS
+// ============================================================================
+
+const colors = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  cyan: '\x1b[36m',
+  red: '\x1b[31m',
+};
+
+const log = {
+  info: (msg: string) => console.log(`${colors.cyan}ℹ${colors.reset} ${msg}`),
+  success: (msg: string) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
+  warn: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  error: (msg: string) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
+};
+
+// ============================================================================
+// BUILD
+// ============================================================================
+
+async function bundleChild(): Promise<void> {
+  console.log(`
+${colors.cyan}╔══════════════════════════════════════════════════════════════╗${colors.reset}
+${colors.cyan}║${colors.reset}  ${colors.bold}BUNDLE VOICE AGENT CHILD${colors.reset}                                  ${colors.cyan}║${colors.reset}
+${colors.cyan}║${colors.reset}  Single-file bundle for faster startup ⚡                     ${colors.cyan}║${colors.reset}
+${colors.cyan}╚══════════════════════════════════════════════════════════════╝${colors.reset}
+`);
 
   const startTime = Date.now();
 
+  // Ensure output directory exists
+  const outDir = dirname(CONFIG.outfile);
+  if (!existsSync(outDir)) {
+    mkdirSync(outDir, { recursive: true });
+  }
+
   try {
-    // Ensure output directory exists
-    const outDir = path.dirname(OUTPUT);
-    if (!fs.existsSync(outDir)) {
-      fs.mkdirSync(outDir, { recursive: true });
-    }
-
     const result = await esbuild.build({
-      entryPoints: [ENTRY],
-      bundle: true,
-      outfile: OUTPUT,
-      platform: 'node',
-      target: 'node20',
-      format: 'esm',
-      
-      // Keep external packages that can't be bundled
-      external: EXTERNAL_PACKAGES,
-      
-      // Source maps for debugging
+      entryPoints: [CONFIG.entry],
+      outfile: CONFIG.outfile,
+      bundle: true, // Bundle all imports!
+      target: CONFIG.target,
+      format: CONFIG.format,
+      platform: CONFIG.platform,
       sourcemap: true,
-      
-      // Don't minify - easier to debug
-      minify: false,
-      
-      // Tree-shake unused code
+      minify: false, // Keep readable for debugging
+      keepNames: true,
       treeShaking: true,
-      
-      // Handle JSON imports
-      loader: {
-        '.json': 'json',
-      },
-      
-      // Define process.env for dead code elimination
-      define: {
-        'process.env.NODE_ENV': '"production"',
-      },
-      
-      // Banner for debugging - includes EARLY logging before any imports
-      banner: {
-        js: `
-/**
- * BUNDLED VOICE AGENT
- * 
- * This file is auto-generated by scripts/bundle-agent.ts
- * DO NOT EDIT DIRECTLY - changes will be overwritten!
- * 
- * Generated: ${new Date().toISOString()}
- * Source: ${ENTRY}
- * 
- * All internal modules are bundled inline.
- * External packages (LiveKit, Google, etc.) are imported at runtime.
- */
+      external: CONFIG.external,
+      logLevel: 'warning',
 
-// EARLY LOGGING - runs BEFORE any imports to verify file is being loaded
-try {
-  process.stderr.write('[BUNDLE] voice-agent-bundle.js loading at ' + new Date().toISOString() + '\\n');
-  process.stderr.write('[BUNDLE] pid=' + process.pid + ', argv=' + JSON.stringify(process.argv) + '\\n');
-  process.stderr.write('[BUNDLE] cwd=' + process.cwd() + '\\n');
-} catch (e) {
-  // Ignore logging errors
-}
-`.trim(),
+      // Add banner to identify this as a bundle
+      banner: {
+        js: `/**
+ * BUNDLED: voice-agent-child.bundle.js
+ * Generated: ${new Date().toISOString()}
+ * 
+ * This is a single-file bundle of voice-agent-child.ts with all lightweight
+ * internal dependencies inlined. External packages are kept external.
+ * 
+ * DO NOT EDIT - regenerate with: npx tsx scripts/bundle-child.ts
+ */
+`,
       },
-      
-      // Log what's happening
-      logLevel: 'info',
-      
-      // Analyze bundle size
+
+      // Metafile for analysis
       metafile: true,
     });
 
-    const duration = Date.now() - startTime;
-    
-    // Get bundle size
-    const stats = fs.statSync(OUTPUT);
-    const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
-    
-    console.log('');
-    console.log('✅ Bundle created successfully!');
-    console.log(`   Size: ${sizeMB} MB`);
-    console.log(`   Time: ${duration}ms`);
-    console.log(`   Output: ${OUTPUT}`);
-    
-    // Analyze what was bundled
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    // Log bundle stats
     if (result.metafile) {
-      const inputs = Object.keys(result.metafile.inputs);
-      console.log(`   Modules bundled: ${inputs.length}`);
-      
-      // Show top 10 largest modules
-      const sortedInputs = inputs
-        .map(name => ({ name, size: result.metafile!.inputs[name].bytes }))
-        .sort((a, b) => b.size - a.size)
-        .slice(0, 10);
-      
-      console.log('');
-      console.log('Top 10 largest bundled modules:');
-      sortedInputs.forEach((m, i) => {
-        const kb = (m.size / 1024).toFixed(1);
-        console.log(`   ${i + 1}. ${m.name} (${kb} KB)`);
-      });
+      const outputs = result.metafile.outputs;
+      const bundleStats = outputs[CONFIG.outfile.replace(PROJECT_ROOT + '/', '')];
+      if (bundleStats) {
+        const sizeKB = Math.round(bundleStats.bytes / 1024);
+        const inputCount = Object.keys(bundleStats.inputs).length;
+        log.success(`Bundle created: ${sizeKB}KB (${inputCount} files inlined)`);
+      }
     }
-    
-    console.log('');
-    console.log('Next steps:');
-    console.log('  1. Update voice-worker.ts to use voice-agent-bundle.js');
-    console.log('  2. Deploy and test');
-    
+
+    log.success(`Completed in ${duration}s`);
+    log.info(`Output: ${CONFIG.outfile}`);
+
+    log.info('Bundle ready. Update voice-worker.ts to use ./voice-agent-bundle.js');
   } catch (error) {
-    console.error('❌ Bundle failed:', error);
+    log.error(`Bundle failed: ${error}`);
     process.exit(1);
   }
 }
 
-bundle();
+// ============================================================================
+// MAIN
+// ============================================================================
+
+bundleChild().catch((error) => {
+  console.error('Bundle failed:', error);
+  process.exit(1);
+});
 

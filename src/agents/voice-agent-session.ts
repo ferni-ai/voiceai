@@ -4,13 +4,15 @@
  * This module is loaded dynamically by voice-agent-child.ts after the agent
  * has responded to the LiveKit SDK's initialization request.
  *
- * ALL modules are preloaded during prewarm - no dynamic imports during session.
+ * It's a thin wrapper that imports voice-agent-entry.ts, which uses
+ * the lightweight preloaded modules (cache-reader, lightweight-resilience, etc.)
  */
 
 import type { JobContext } from '@livekit/agents';
 
 /**
- * Run a voice agent session using preloaded dependencies.
+ * Run a voice agent session.
+ * Imports voice-agent-entry.ts which handles all the session logic.
  */
 export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
@@ -20,22 +22,8 @@ export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   );
 
   try {
-    // Get preloaded entry module (instant!) or fallback to import
-    let runFullVoiceAgentEntry: typeof import('./voice-agent-entry.js').runFullVoiceAgentEntry;
-    try {
-      const { getPreloadedDeps } = await import('./voice-agent-child.js');
-      const preloaded = getPreloadedDeps();
-      if (preloaded?.voiceAgentEntry) {
-        runFullVoiceAgentEntry = preloaded.voiceAgentEntry.runFullVoiceAgentEntry;
-        process.stderr.write(`[voice-agent-session] Using PRELOADED entry module ✅\n`);
-      } else {
-        const mod = await import('./voice-agent-entry.js');
-        runFullVoiceAgentEntry = mod.runFullVoiceAgentEntry;
-      }
-    } catch {
-      const mod = await import('./voice-agent-entry.js');
-      runFullVoiceAgentEntry = mod.runFullVoiceAgentEntry;
-    }
+    // Import entry module (uses lightweight preloaded deps internally)
+    const { runFullVoiceAgentEntry } = await import('./voice-agent-entry.js');
     
     process.stderr.write(
       `[voice-agent-session] Entry ready in ${Date.now() - startTime}ms\n`
