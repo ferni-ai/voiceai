@@ -221,12 +221,7 @@ function coordinateSystems(
       break;
 
     case 'exploration':
-      activate.push(
-        'lovable-presence',
-        'curiosity-engine',
-        'storytelling',
-        'delightful-surprises'
-      );
+      activate.push('lovable-presence', 'curiosity-engine', 'storytelling', 'delightful-surprises');
       // Only activate stories after trust established
       if (ctx.relationshipStage !== 'stranger') {
         activate.push('story-unlocks');
@@ -254,12 +249,7 @@ function coordinateSystems(
       break;
 
     case 'celebration':
-      activate.push(
-        'celebration-growth',
-        'small-wins',
-        'spontaneous-delight',
-        'inside-jokes'
-      );
+      activate.push('celebration-growth', 'small-wins', 'spontaneous-delight', 'inside-jokes');
       break;
 
     case 'departure':
@@ -375,7 +365,9 @@ function generateGuidance(
         parts.push(`✨ They might be ready to go deeper. Create space if it feels right.`);
         break;
       case 'protective_embrace':
-        parts.push(`✨ They just shared something hard. Be protective. "Hey, would you say that to someone you love?"`);
+        parts.push(
+          `✨ They just shared something hard. Be protective. "Hey, would you say that to someone you love?"`
+        );
         break;
       case 'breakthrough_insight':
         parts.push(`✨ Help them see what just happened. Reflect it back.`);
@@ -392,7 +384,9 @@ function generateGuidance(
   // Coaching mode guidance
   switch (coachingMode) {
     case 'paradoxical':
-      parts.push(`🔄 PARADOXICAL MODE: Stop trying to help directly. Ask what would happen if nothing changed.`);
+      parts.push(
+        `🔄 PARADOXICAL MODE: Stop trying to help directly. Ask what would happen if nothing changed.`
+      );
       break;
     case 'supportive':
       parts.push(`💚 SUPPORTIVE MODE: Just be here. Solutions can wait.`);
@@ -512,7 +506,8 @@ export function buildEmotionalContext(params: {
     sessionId: params.sessionId,
     turnCount: params.turnCount,
     sessionCount: params.sessionCount,
-    relationshipStage: (params.relationshipStage as EmotionalContext['relationshipStage']) || 'stranger',
+    relationshipStage:
+      (params.relationshipStage as EmotionalContext['relationshipStage']) || 'stranger',
     userEmotion: params.emotion?.primary || 'neutral',
     emotionIntensity: params.emotion?.intensity ?? 0.5,
     distressLevel: params.emotion?.distressLevel ?? 0,
@@ -540,4 +535,3 @@ export default {
   orchestrateEmotionalJourney,
   buildEmotionalContext,
 };
-

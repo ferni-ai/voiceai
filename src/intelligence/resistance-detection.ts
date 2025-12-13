@@ -71,12 +71,15 @@ export interface SelfProtectiveProfile {
   overallDefensiveness: number;
 
   /** Individual pattern scores */
-  patterns: Record<DefensePattern, {
-    frequency: number; // How often used (0-1)
-    contexts: string[]; // What triggers it
-    effectiveness: number; // How well it works for them (0-1)
-    lastObserved: Date | null;
-  }>;
+  patterns: Record<
+    DefensePattern,
+    {
+      frequency: number; // How often used (0-1)
+      contexts: string[]; // What triggers it
+      effectiveness: number; // How well it works for them (0-1)
+      lastObserved: Date | null;
+    }
+  >;
 
   /** Primary defense mechanisms (top 3) */
   primaryDefenses: DefensePattern[];
@@ -134,10 +137,13 @@ export interface ResistanceProfile {
 // DETECTION PATTERNS
 // ============================================================================
 
-const DEFENSE_PATTERNS: Record<DefensePattern, {
-  patterns: RegExp[];
-  indicators: string[];
-}> = {
+const DEFENSE_PATTERNS: Record<
+  DefensePattern,
+  {
+    patterns: RegExp[];
+    indicators: string[];
+  }
+> = {
   intellectualization: {
     patterns: [
       /\b(logically|technically|objectively|rationally)\b/i,
@@ -253,7 +259,7 @@ const DEFENSE_PATTERNS: Record<DefensePattern, {
       /but\s+(they|he|she)\s+(also|too)/i,
       /at\s+least\s+i\s+(don't|didn't)/i,
     ],
-    indicators: ['Redirecting to others\' issues'],
+    indicators: ["Redirecting to others' issues"],
   },
 };
 
@@ -263,7 +269,10 @@ const AVOIDANCE_TRIGGERS: Array<{
 }> = [
   { pattern: /\b(dad|father|daddy)\b/i, topic: 'father' },
   { pattern: /\b(mom|mother|mommy)\b/i, topic: 'mother' },
-  { pattern: /\b(childhood|growing\s+up|when\s+i\s+was\s+(young|little|a\s+kid))\b/i, topic: 'childhood' },
+  {
+    pattern: /\b(childhood|growing\s+up|when\s+i\s+was\s+(young|little|a\s+kid))\b/i,
+    topic: 'childhood',
+  },
   { pattern: /\b(ex|divorce|breakup|past\s+relationship)\b/i, topic: 'past relationships' },
   { pattern: /\b(money|finances|debt|bills)\b/i, topic: 'finances' },
   { pattern: /\b(weight|body|eating|diet)\b/i, topic: 'body image' },
@@ -411,10 +420,7 @@ export function analyzeResistance(
     // Check if this topic is being avoided
     avoidedTopic = findOrCreateAvoidedTopic(profile, previousTopic);
     avoidedTopic.deflectionPatterns = [
-      ...new Set([
-        ...avoidedTopic.deflectionPatterns,
-        ...defensesDetected.map((d) => d.pattern),
-      ]),
+      ...new Set([...avoidedTopic.deflectionPatterns, ...defensesDetected.map((d) => d.pattern)]),
     ];
     avoidedTopic.evidence.push({
       text: text.substring(0, 200),
@@ -428,7 +434,7 @@ export function analyzeResistance(
   // Check for approach to sensitive topics
   for (const trigger of AVOIDANCE_TRIGGERS) {
     if (trigger.pattern.test(text)) {
-      const topic = trigger.topic;
+      const { topic } = trigger;
       const existing = profile.avoidedTopics.find((t) =>
         t.topic.toLowerCase().includes(topic.toLowerCase())
       );
@@ -439,7 +445,9 @@ export function analyzeResistance(
 
         if (existing) {
           existing.readiness = Math.min(1, existing.readiness + 0.15);
-          existing.readinessSignals.push(`Brought up ${topic} (${new Date().toISOString().split('T')[0]})`);
+          existing.readinessSignals.push(
+            `Brought up ${topic} (${new Date().toISOString().split('T')[0]})`
+          );
         }
       }
     }
@@ -451,7 +459,10 @@ export function analyzeResistance(
     { pattern: /i\s+(want|need)\s+to\s+talk\s+about/i, signal: 'Direct request' },
     { pattern: /i('m| am)\s+ready\s+to/i, signal: 'Stated readiness' },
     { pattern: /i\s+(should|need\s+to)\s+(probably|finally)/i, signal: 'Acknowledgment of need' },
-    { pattern: /this\s+is\s+hard\s+(to\s+say|for\s+me)/i, signal: 'Vulnerability despite difficulty' },
+    {
+      pattern: /this\s+is\s+hard\s+(to\s+say|for\s+me)/i,
+      signal: 'Vulnerability despite difficulty',
+    },
   ];
 
   for (const { pattern, signal } of readinessPatterns) {
@@ -492,9 +503,10 @@ export function analyzeResistance(
  * Find or create an avoided topic
  */
 function findOrCreateAvoidedTopic(profile: ResistanceProfile, topic: string): AvoidedTopic {
-  let existing = profile.avoidedTopics.find((t) =>
-    t.topic.toLowerCase().includes(topic.toLowerCase()) ||
-    topic.toLowerCase().includes(t.topic.toLowerCase())
+  let existing = profile.avoidedTopics.find(
+    (t) =>
+      t.topic.toLowerCase().includes(topic.toLowerCase()) ||
+      topic.toLowerCase().includes(t.topic.toLowerCase())
   );
 
   if (!existing) {
@@ -599,7 +611,7 @@ function determineApproach(
       guidance: "They're not ready. Respect their pace. Don't push.",
       avoidPhrases: [
         "Let's dig deeper",
-        "What are you really feeling",
+        'What are you really feeling',
         "It sounds like you're avoiding",
         "Why don't you want to talk about",
       ],
@@ -612,7 +624,7 @@ function determineApproach(
       strategy: 'gentle_invite',
       guidance: "They're circling something. Create space but don't force entry.",
       avoidPhrases: [
-        "You should talk about",
+        'You should talk about',
         "It's important to discuss",
         "You can't avoid this forever",
       ],
@@ -624,11 +636,7 @@ function determineApproach(
     return {
       strategy: 'reflect_back',
       guidance: "Acknowledge both the humor and what might be underneath. Don't dismiss either.",
-      avoidPhrases: [
-        "Be serious",
-        "This isn't funny",
-        "Stop joking",
-      ],
+      avoidPhrases: ['Be serious', "This isn't funny", 'Stop joking'],
     };
   }
 
@@ -636,12 +644,9 @@ function determineApproach(
   if (defenses.includes('intellectualization')) {
     return {
       strategy: 'gentle_invite',
-      guidance: "Honor their analytical mind, then gently invite feelings. 'And how does that land for you emotionally?'",
-      avoidPhrases: [
-        "Stop analyzing",
-        "How do you FEEL",
-        "Get out of your head",
-      ],
+      guidance:
+        "Honor their analytical mind, then gently invite feelings. 'And how does that land for you emotionally?'",
+      avoidPhrases: ['Stop analyzing', 'How do you FEEL', 'Get out of your head'],
     };
   }
 
@@ -669,8 +674,7 @@ export function identifyGrowthEdges(userId: string): GrowthEdge[] {
       edges.push({
         topic: topic.topic,
         openness: topic.readiness,
-        timing:
-          topic.readiness > 0.7 ? 'now' : topic.readiness > 0.5 ? 'soon' : 'not_yet',
+        timing: topic.readiness > 0.7 ? 'now' : topic.readiness > 0.5 ? 'soon' : 'not_yet',
         readinessIndicators: topic.readinessSignals.slice(-3),
         entryPoint: generateEntryPoint(topic),
         avoidPhrases: generateAvoidPhrases(topic),
@@ -690,17 +694,20 @@ export function identifyGrowthEdges(userId: string): GrowthEdge[] {
  */
 function generateEntryPoint(topic: AvoidedTopic): string {
   const entryPoints: Record<string, string> = {
-    father: "You've mentioned your dad a few times. I'm here if you ever want to explore that more.",
+    father:
+      "You've mentioned your dad a few times. I'm here if you ever want to explore that more.",
     mother: "It sounds like your relationship with your mom is complex. No rush, but I'm curious.",
     childhood: "The past has a way of staying with us. What's one memory that still feels alive?",
-    'past relationships': "Old relationships leave marks. What did you learn about yourself from that time?",
-    finances: "Money stuff can carry so much weight. What would feel lighter if it were resolved?",
-    'body image': "How we relate to our bodies is so personal. What feels true for you right now?",
-    career: "Work takes up so much of life. What would make it feel more meaningful?",
+    'past relationships':
+      'Old relationships leave marks. What did you learn about yourself from that time?',
+    finances: 'Money stuff can carry so much weight. What would feel lighter if it were resolved?',
+    'body image': 'How we relate to our bodies is so personal. What feels true for you right now?',
+    career: 'Work takes up so much of life. What would make it feel more meaningful?',
     mortality: "The big questions aren't easy. What helps you make sense of it all?",
-    failure: "What we call failure often teaches the most. What did yours teach you?",
-    loneliness: "Loneliness is one of those feelings people rarely admit. Thank you for being honest about it.",
-    'future anxiety': "Uncertainty is hard. What would help you feel more grounded right now?",
+    failure: 'What we call failure often teaches the most. What did yours teach you?',
+    loneliness:
+      'Loneliness is one of those feelings people rarely admit. Thank you for being honest about it.',
+    'future anxiety': 'Uncertainty is hard. What would help you feel more grounded right now?',
   };
 
   for (const [key, entry] of Object.entries(entryPoints)) {
@@ -717,19 +724,19 @@ function generateEntryPoint(topic: AvoidedTopic): string {
  */
 function generateAvoidPhrases(topic: AvoidedTopic): string[] {
   const baseAvoid = [
-    "You need to deal with",
+    'You need to deal with',
     "You're clearly avoiding",
-    "This is obviously about",
-    "You should talk about",
+    'This is obviously about',
+    'You should talk about',
     "Why won't you",
   ];
 
   // Add topic-specific avoids
   if (topic.deflectionPatterns.includes('humor')) {
-    baseAvoid.push("Stop joking about this");
+    baseAvoid.push('Stop joking about this');
   }
   if (topic.deflectionPatterns.includes('minimizing')) {
-    baseAvoid.push("This IS a big deal");
+    baseAvoid.push('This IS a big deal');
   }
 
   return baseAvoid;
@@ -829,4 +836,3 @@ export default {
   getResistanceSummary,
   resetResistanceDetection,
 };
-

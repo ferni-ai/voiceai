@@ -90,22 +90,43 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     readTheRoomTimer = null;
   };
 
+  // 🔍 DIAGNOSTIC LOGGING
+  diag.session('🎵 [DIAG] setupMusicHandler called', {
+    hasRoom: !!room,
+    isMusicEnabled: isMusicEnabled(),
+    personaId: sessionPersona?.id,
+  });
+
   if (!room || !isMusicEnabled()) {
+    if (!room) {
+      diag.session('🎵 [DIAG] Music player skipped - NO ROOM provided');
+    }
     if (!isMusicEnabled()) {
-      diag.session('Music player skipped (MUSIC_ENABLED not set)');
+      diag.session('🎵 [DIAG] Music player skipped - MUSIC_ENABLED is false');
+      diag.session('🎵 [DIAG] Set MUSIC_ENABLED=true in environment to enable music');
     }
     return { djBooth: null, clearTimers, initialized: false };
   }
 
   try {
+    diag.session('🎵 [DIAG] Importing audio modules...');
     const { initializeMusicPlayer, getMusicPlayer, getAmbientMusicEndedPhrase } =
       await import('../../audio/index.js');
+
+    diag.session('🎵 [DIAG] Audio modules imported, calling initializeMusicPlayer...');
 
     // Pass the agent session for proper audio mixing with voice
     await initializeMusicPlayer(room, session);
 
+    diag.session('🎵 [DIAG] initializeMusicPlayer completed successfully');
+
     // Set up callback for when ambient music ends - agent comes back in
     const player = getMusicPlayer();
+
+    diag.session('🎵 [DIAG] Music player retrieved', {
+      isInitialized: player.isInitialized(),
+      state: player.getState(),
+    });
 
     // Initialize DJ Booth with user's existing music preferences
     const existingMusicPrefs = services.userProfile?.musicMemory
@@ -205,10 +226,16 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
       }
     );
 
-    diag.state('Music player initialized (before session.start)');
+    diag.state('🎵 [DIAG] Music player SUCCESSFULLY initialized (before session.start)', {
+      hasDJBooth: !!djBooth,
+      personaId: sessionPersona?.id,
+    });
     return { djBooth, clearTimers, initialized: true };
   } catch (musicError) {
-    diag.warn('Music player init failed (non-fatal)', { error: String(musicError) });
+    diag.warn('🎵 [DIAG] Music player init FAILED (non-fatal)', {
+      error: String(musicError),
+      stack: musicError instanceof Error ? musicError.stack : undefined,
+    });
     return { djBooth: null, clearTimers, initialized: false };
   }
 }

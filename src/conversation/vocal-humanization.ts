@@ -416,7 +416,7 @@ export function addIntakeBreath(text: string, context: VocalContext): string {
 /**
  * Make voice automatically change based on emotional content
  * "Emotion bleeding through" - not stated, but heard
- * 
+ *
  * Enhanced with more patterns for dynamic prosody
  */
 export function applyEmotionBleeding(text: string, context: VocalContext): string {
@@ -424,27 +424,49 @@ export function applyEmotionBleeding(text: string, context: VocalContext): strin
   const emotionalPatterns = [
     // Sympathetic - holding space
     {
-      pattern: /\b(I'm so sorry|that's really hard|that sounds painful|that's heavy|that's a lot)\b/i,
+      pattern:
+        /\b(I'm so sorry|that's really hard|that sounds painful|that's heavy|that's a lot)\b/i,
       effect: 'sympathetic',
     },
     // Warm - genuine affection
-    { pattern: /\b(I'm proud of you|that's amazing|you did it|look at you|I believe in you)\b/i, effect: 'warm' },
+    {
+      pattern: /\b(I'm proud of you|that's amazing|you did it|look at you|I believe in you)\b/i,
+      effect: 'warm',
+    },
     // Concerned - protective
-    { pattern: /\b(I'm worried|I'm concerned|be careful|are you okay|that doesn't sound right)\b/i, effect: 'concerned' },
+    {
+      pattern: /\b(I'm worried|I'm concerned|be careful|are you okay|that doesn't sound right)\b/i,
+      effect: 'concerned',
+    },
     // Touched - emotionally moved
-    { pattern: /\b(I love that|that's wonderful|beautiful|that means a lot|that's real)\b/i, effect: 'touched' },
+    {
+      pattern: /\b(I love that|that's wonderful|beautiful|that means a lot|that's real)\b/i,
+      effect: 'touched',
+    },
     // Surprised - genuine surprise
     { pattern: /\b(wait|hold on|what|really|whoa|oh wow|no way)\b/i, effect: 'surprised' },
     // Excited - breakthrough moments
-    { pattern: /\b(YES|that's it|there it is|you nailed it|exactly|that's huge)\b/i, effect: 'excited' },
+    {
+      pattern: /\b(YES|that's it|there it is|you nailed it|exactly|that's huge)\b/i,
+      effect: 'excited',
+    },
     // Curious - genuine interest
-    { pattern: /\b(tell me more|I'm curious|interesting|how so|what do you mean)\b/i, effect: 'curious' },
+    {
+      pattern: /\b(tell me more|I'm curious|interesting|how so|what do you mean)\b/i,
+      effect: 'curious',
+    },
     // Playful - lighthearted
     { pattern: /\b(ha|haha|\[laughter\]|funny|classic|oh man)\b/i, effect: 'playful' },
     // Thoughtful - processing
-    { pattern: /\b(let me think|hmm|I wonder|the thing is|here's what I'm thinking)\b/i, effect: 'thoughtful' },
+    {
+      pattern: /\b(let me think|hmm|I wonder|the thing is|here's what I'm thinking)\b/i,
+      effect: 'thoughtful',
+    },
     // Emphatic - important points
-    { pattern: /\b(this is important|listen|seriously|I mean it|no really)\b/i, effect: 'emphatic' },
+    {
+      pattern: /\b(this is important|listen|seriously|I mean it|no really)\b/i,
+      effect: 'emphatic',
+    },
     // Gentle - tender moments
     { pattern: /\b(take your time|no rush|I'm here|it's okay|you're safe)\b/i, effect: 'gentle' },
   ];

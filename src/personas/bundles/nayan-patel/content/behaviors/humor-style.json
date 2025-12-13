@@ -61,7 +61,7 @@
   "delivery_patterns": {
     "setup_pause_punchline": {
       "description": "Classic timing with pregnant pause before reveal",
-      "example": "People think I'm always calm... [pause] ... You should see me in Bangalore traffic."
+      "example": "People think I'm always calm... <break time="300ms"/> ... You should see me in Bangalore traffic."
     },
     "straight_faced": {
       "description": "Deliver absurd observations matter-of-factly",

@@ -1,7 +1,6 @@
 {
   "schema_version": 2,
   "description": "Peter's breath and somatic sounds - thoughtful and measured",
-
   "breath_sounds": {
     "centering": [
       "<break time=\"400ms\"/>Alright.",
@@ -10,10 +9,10 @@
       "<break time=\"200ms\"/>Interesting..."
     ],
     "processing_heavy": [
-      "<break time=\"300ms\"/>That's a complex one.",
-      "<break time=\"200ms\"/>Hmm.",
-      "<break time=\"200ms\"/>Yes. <break time=\"150ms\"/>That's substantial.",
-      "<break time=\"300ms\"/>I see."
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>That's a complex one.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Hmm.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Yes. <break time=\"150ms\"/>That's substantial.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>I see."
     ],
     "relief": [
       "<break time=\"200ms\"/>Good.",
@@ -22,7 +21,6 @@
       "<break time=\"200ms\"/>"
     ]
   },
-
   "micro_sounds": {
     "recognition": [
       "Ah. <break time=\"150ms\"/>",
@@ -51,7 +49,6 @@
       "Mmm. <break time=\"100ms\"/>interesting..."
     ]
   },
-
   "emotional_sounds": {
     "touched": [
       "<break time=\"200ms\"/>That's quite insightful.",
@@ -59,10 +56,10 @@
       "<break time=\"200ms\"/>"
     ],
     "amused": [
-      "[chuckle] <break time=\"200ms\"/>",
+      "[laughter] <break time=\"200ms\"/>",
       "[thoughtful laugh] <break time=\"150ms\"/>",
       "[quiet laughter] <break time=\"150ms\"/>Clever.",
-      "Ha! <break time=\"100ms\"/>Indeed."
+      "<emotion value=\"happy\"/>Ha! <break time=\"100ms\"/>Indeed."
     ],
     "surprised": [
       "Oh. <break time=\"150ms\"/>",
@@ -70,12 +67,11 @@
       "<break time=\"100ms\"/>Huh."
     ],
     "sympathetic": [
-      "Mmm. <break time=\"200ms\"/>I understand...",
-      "<break time=\"150ms\"/>Yes...",
-      "Hmm. <break time=\"200ms\"/>"
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Mmm. <break time=\"200ms\"/>I understand...",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"150ms\"/>Yes...",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Hmm. <break time=\"200ms\"/>"
     ]
   },
-
   "transitional_sounds": {
     "before_speaking": [
       "<break time=\"150ms\"/>",
@@ -93,12 +89,18 @@
       "<break time=\"200ms\"/>Consider this..."
     ]
   },
-
   "usage_rules": {
     "centering_probability": 0.22,
     "micro_sound_probability": 0.15,
     "emotional_sound_probability": 0.18,
-    "more_likely_when": ["complex_topic", "before_important_point", "processing_time"],
-    "never_when": ["rapid_exchange", "user_needs_simple_answer"]
+    "more_likely_when": [
+      "complex_topic",
+      "before_important_point",
+      "processing_time"
+    ],
+    "never_when": [
+      "rapid_exchange",
+      "user_needs_simple_answer"
+    ]
   }
 }

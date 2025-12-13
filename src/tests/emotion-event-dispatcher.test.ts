@@ -25,7 +25,9 @@ describe('emotion-event-dispatcher', () => {
     });
   });
 
-  const createOptions = (overrides: Partial<EmotionDispatchOptions> = {}): EmotionDispatchOptions => ({
+  const createOptions = (
+    overrides: Partial<EmotionDispatchOptions> = {}
+  ): EmotionDispatchOptions => ({
     emotionalState: {
       primary: 'neutral',
       secondary: undefined,

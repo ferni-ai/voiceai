@@ -446,8 +446,8 @@ function calculatePerspectiveScore(text: string): number {
  * Update trajectory based on new observation
  */
 function updateTrajectory(profile: HopeProfile, observation: HopeObservation): void {
-  const trajectory = profile.trajectory;
-  const observations = profile.observations;
+  const { trajectory } = profile;
+  const { observations } = profile;
   const alpha = 0.3; // Learning rate
 
   // Update current state
@@ -516,7 +516,7 @@ function updateInterventionGuidance(
   trajectory: HopeTrajectory,
   observation: HopeObservation
 ): void {
-  const current = trajectory.current;
+  const { current } = trajectory;
   const risks = observation.risk;
 
   // Determine urgency
@@ -554,7 +554,7 @@ function updateInterventionGuidance(
  * Update hope anchors
  */
 function updateAnchors(profile: HopeProfile, observation: HopeObservation): void {
-  const anchors = profile.trajectory.anchors;
+  const { anchors } = profile.trajectory;
 
   // Track positive topics as potential sources
   if (observation.hopeScore > 0.6) {

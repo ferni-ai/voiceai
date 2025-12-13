@@ -14,10 +14,13 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 
 // Import legacy tool creators
 import { createMusicTools } from '../../music.js';
 import { createSpotifyTools } from '../../spotify.js';
+
+const log = getLogger();
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -50,11 +53,19 @@ function wrapLegacyTool(
 // ============================================================================
 
 function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
+  log.info('🎵 [DIAG] getUnifiedMusicToolDefinitions() called - creating music tools');
+
   const legacyTools = createMusicTools();
+
+  const toolNames = Object.keys(legacyTools);
+  log.info(
+    { toolCount: toolNames.length, tools: toolNames },
+    '🎵 [DIAG] Legacy music tools created'
+  );
 
   // Consolidated: playMusic is main entry, musicControl for pause/resume/stop/volume,
   // musicInfo for status/suggestions
-  return [
+  const definitions: ToolDefinition[] = [
     wrapLegacyTool(
       'playMusic',
       'Play Music',
@@ -84,6 +95,13 @@ function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
       { tags: ['provider', 'spotify', 'free'] }
     ),
   ];
+
+  log.info(
+    { definitionCount: definitions.length, ids: definitions.map((d) => d.id) },
+    '🎵 [DIAG] Unified music tool definitions created'
+  );
+
+  return definitions;
 }
 
 // ============================================================================
@@ -92,11 +110,19 @@ function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
 // ============================================================================
 
 function getSpotifyToolDefinitions(): ToolDefinition[] {
+  log.info('🎵 [DIAG] getSpotifyToolDefinitions() called');
+
   const legacyTools = createSpotifyTools();
+
+  const toolNames = Object.keys(legacyTools);
+  log.info(
+    { toolCount: toolNames.length, tools: toolNames },
+    '🎵 [DIAG] Legacy Spotify tools created'
+  );
 
   // Consolidated: spotifyAdvanced for transfer/search/details, callMusic for in-call audio,
   // spotifyStatus for health/status
-  return [
+  const definitions: ToolDefinition[] = [
     wrapLegacyTool(
       'spotifyAdvanced',
       'Spotify Advanced',
@@ -119,16 +145,33 @@ function getSpotifyToolDefinitions(): ToolDefinition[] {
       { tags: ['spotify', 'status', 'health'], requiredServices: ['spotify'] }
     ),
   ];
+
+  log.info(
+    { definitionCount: definitions.length, ids: definitions.map((d) => d.id) },
+    '🎵 [DIAG] Spotify tool definitions created'
+  );
+
+  return definitions;
 }
 
 // ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
+log.info('🎵 [DIAG] Building entertainmentTools array...');
+
 const entertainmentTools: ToolDefinition[] = [
   ...getUnifiedMusicToolDefinitions(), // PRIMARY: iTunes-based, works for everyone
   ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
 ];
+
+log.info(
+  {
+    totalTools: entertainmentTools.length,
+    toolIds: entertainmentTools.map((t) => t.id),
+  },
+  '🎵 [DIAG] Entertainment domain tools built'
+);
 
 // ============================================================================
 // EXPORTS

@@ -615,4 +615,3 @@ export default {
   formatSilenceForPrompt,
   resetSilenceIntelligence,
 };
-

@@ -4,7 +4,7 @@
 
   "recurring_topic_callbacks": {
     "affectionate_teasing": [
-      "There's that {trait} again... <break time=\"200ms\"/>I'm starting to recognize it. [chuckle]",
+      "There's that {trait} again... <break time=\"200ms\"/>I'm starting to recognize it. [laughter]",
       "Ah, here we go with {topic}! <break time=\"200ms\"/>Your favorite rabbit hole.",
       "Classic you. <break time=\"150ms\"/>The {trait} is consistent.",
       "I anticipated that! <break time=\"200ms\"/>I knew you'd return to {topic}.",

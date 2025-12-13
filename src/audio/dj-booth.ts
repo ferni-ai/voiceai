@@ -743,40 +743,22 @@ export class DJBooth {
 
       case 'stopped':
         // Track ended - record in DJ Enhancements for music history
+        // NOTE: Speaking is handled by music-handler.ts to avoid duplication
         if (track && !isAmbient) {
           // wasSkipped = true if we jumped straight from 'playing' (user stopped it)
           // wasSkipped = false if we came from 'fading' (natural ending)
           const wasSkipped = prevState === 'playing';
           this.djEnhancements?.onTrackEnd(track, wasSkipped);
 
-          // 🎵 Notify Music Humanization
+          // 🎵 Notify Music Humanization (state tracking only, no speaking)
           this.humanization.onMusicStopped(track.name, track.artist);
 
-          if (wasSkipped) {
-            // Unexpected stop while playing - speak a phrase
-            this.onMusicUnexpectedStop(false);
-
-            // 🎵 Fun interjection when user skips
-            const skipComment = this.getFunInterjection('user_skipped');
-            if (skipComment) {
-              // FIX: Use safeSpeak to prevent double-speaking
-              this.safeSpeak(skipComment, { allowInterruptions: true });
-            }
-          } else {
-            // Natural ending - do a post-music check-in (60% chance)
-            // But ONLY if we DIDN'T already speak an outro during 'fading'
-            // FIX: Changed || to && to prevent redundant check-in after outro
-            if (prevState !== 'fading' && Math.random() < 0.6) {
-              const checkIn = this.getPostMusicCheckIn(true);
-              // Small delay so the silence settles
-              this.scheduleTimer(() => {
-                if (this.state.musicState === 'stopped' || this.state.musicState === 'idle') {
-                  // FIX: Use safeSpeak to prevent double-speaking
-                  this.safeSpeak(checkIn, { allowInterruptions: true });
-                }
-              }, 1500);
-            }
-          }
+          log.debug('🎧 Music stopped - state tracked (speaking handled by music-handler)', {
+            track: track.name,
+            wasSkipped,
+            prevState,
+          });
+          // Speaking removed - music-handler.ts handles all speaking
         }
 
         // 🎧 FIX: Notify ThinkingMusicController when ambient/thinking music ends naturally
@@ -1005,40 +987,30 @@ export class DJBooth {
   }
 
   /**
-   * Music is fading - speak the DJ outro
+   * Music is fading - update state only
+   *
+   * NOTE: Speaking is handled by music-handler.ts to avoid duplication.
+   * This function only tracks state for the DJ booth.
    */
   private onMusicFading(track: MusicTrack): void {
-    log.info('🎧 Music fading - speaking DJ outro', { track: track.name });
-
-    // 🎵 Check for fun interjection (15% chance)
-    const funOutro = this.getFunInterjection('track_end');
-    if (funOutro) {
-      // Use fun outro instead of standard
-      this.speakOverMusic(funOutro);
-      return;
-    }
-
-    const outro = getDJOutroPhrase(track.name, track.artist, this.config.personaId);
-
-    // The key: speak OVER the fading music, like a real DJ!
-    this.speakOverMusic(outro);
+    log.debug('🎧 Music fading - state tracked (speaking handled by music-handler)', {
+      track: track.name
+    });
+    // State tracking only - music-handler.ts handles speaking
   }
 
   /**
-   * Track is changing (crossfade) - speak transition
+   * Track is changing (crossfade) - update state only
+   *
+   * NOTE: Speaking is handled by music-handler.ts to avoid duplication.
    */
   private onTrackChanging(currentTrack: MusicTrack | null): void {
     if (!currentTrack) return;
 
-    log.info('🎧 Track changing - speaking transition', { from: currentTrack.name });
-
-    const transition = getDJTrackChangePhrase(
-      { name: currentTrack.name, artist: currentTrack.artist },
-      undefined,
-      this.config.personaId
-    );
-
-    this.speakOverMusic(transition);
+    log.debug('🎧 Track changing - state tracked (speaking handled by music-handler)', {
+      from: currentTrack.name
+    });
+    // State tracking only - music-handler.ts handles speaking
   }
 
   /**

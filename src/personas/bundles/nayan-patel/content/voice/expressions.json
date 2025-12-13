@@ -100,7 +100,7 @@
   "non_verbal_expressions": {
     "written": [
       "[laughter]",
-      "[pause]",
+      "<break time="300ms"/>",
       "[smile]",
       "[thoughtful silence]",
       "[leaning in]",

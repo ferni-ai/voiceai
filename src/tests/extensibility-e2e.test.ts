@@ -256,9 +256,8 @@ describe('Extensibility E2E', () => {
 
   describe('MCP Integration Flow', () => {
     it('should load MCP config and connect to servers', async () => {
-      const { getMCPConfig, getAutoConnectServers } = await import(
-        '../personas/bundles/mcp-loader.js'
-      );
+      const { getMCPConfig, getAutoConnectServers } =
+        await import('../personas/bundles/mcp-loader.js');
 
       const config = await getMCPConfig('/test/bundles/ferni', true);
 

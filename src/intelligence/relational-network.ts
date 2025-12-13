@@ -396,7 +396,7 @@ export function recordPersonMention(
 
   // Update person
   person.lastMentioned = new Date();
-  person.mentionFrequency = (person.mentionFrequency * 0.9) + 0.1;
+  person.mentionFrequency = person.mentionFrequency * 0.9 + 0.1;
 
   // Update emotional tone with moving average
   const alpha = 0.3;
@@ -405,8 +405,7 @@ export function recordPersonMention(
 
   // Track volatility (how much emotional tone varies)
   const toneDiff = Math.abs(
-    getEmotionValence(mention.emotionalTone) -
-      getEmotionValence(person.emotionalTone.typical)
+    getEmotionValence(mention.emotionalTone) - getEmotionValence(person.emotionalTone.typical)
   );
   person.emotionalTone.volatility =
     alpha * toneDiff + (1 - alpha) * person.emotionalTone.volatility;
@@ -718,7 +717,8 @@ export function generateRelationalInsights(userId: string): RelationalInsight[] 
         type: 'pattern',
         subject: person.name,
         observation: `${person.name} comes up often in conversation, and there seems to be some complexity there.`,
-        suggestedApproach: "Acknowledge the complexity without pushing. Let them lead when they're ready.",
+        suggestedApproach:
+          "Acknowledge the complexity without pushing. Let them lead when they're ready.",
         confidence: 0.7,
         shouldSurface: person.emotionalTone.intensity > 0.5,
         surfacePhrase: `You mention ${person.specificRole === person.name ? 'them' : `your ${person.specificRole}`} a lot. It sounds like there's a lot going on there.`,
@@ -728,8 +728,7 @@ export function generateRelationalInsights(userId: string): RelationalInsight[] 
 
   // Tension: Long-unaddressed
   for (const tension of network.unspokenTensions) {
-    const daysSinceMention =
-      (Date.now() - tension.lastMentioned.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceMention = (Date.now() - tension.lastMentioned.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceMention < 30 && tension.avoidanceLevel > 0.6) {
       const person = network.people.get(tension.personId);
       if (person) {
@@ -851,4 +850,3 @@ export default {
   formatRelationalInsightsForPrompt,
   resetRelationalNetwork,
 };
-

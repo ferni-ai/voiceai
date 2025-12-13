@@ -35,10 +35,7 @@ import {
   type StartMonthlyRequest,
   type SubscriptionResponse,
 } from '../types/seed-fund.types.js';
-import {
-  createPaymentIntent,
-  isStripeConfigured,
-} from '../services/stripe-payments.js';
+import { createPaymentIntent, isStripeConfigured } from '../services/stripe-payments.js';
 import { createCheckoutSession } from '../services/stripe-subscription.js';
 
 const log = createLogger({ module: 'GardenAPI' });
@@ -117,16 +114,13 @@ function getFirestore(): admin.firestore.Firestore | null {
 /**
  * GET /api/garden/status
  * Get current fund status (public, no auth required)
- * 
+ *
  * Returns a fallback status if Firestore is unavailable (graceful degradation)
  */
-async function handleGetStatus(
-  _req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleGetStatus(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const db = getFirestore();
-    
+
     // Fallback status when database is unavailable
     // We return 200 with default data rather than an error
     // to prevent broken UI - similar to /api/agents fallback
@@ -303,7 +297,10 @@ async function handlePlantSeed(
       return;
     }
 
-    log.info({ userId, amount, paymentIntentId: paymentResult.paymentIntentId }, 'Plant seed payment intent created');
+    log.info(
+      { userId, amount, paymentIntentId: paymentResult.paymentIntentId },
+      'Plant seed payment intent created'
+    );
 
     const response: PlantSeedResponse = {
       success: true,
@@ -361,7 +358,10 @@ async function handleStartMonthly(
       cancelUrl: `${baseUrl}/garden/cancel`,
     });
 
-    log.info({ userId, amount, sessionId: checkoutResult.sessionId }, 'Garden subscription checkout created');
+    log.info(
+      { userId, amount, sessionId: checkoutResult.sessionId },
+      'Garden subscription checkout created'
+    );
 
     const response: SubscriptionResponse = {
       success: true,
@@ -475,12 +475,12 @@ export async function handleGardenRoutes(
   // This allows users who haven't migrated to Firebase to still use the API
   const auth = await optionalAuthAsync(req);
   const userId = auth?.userId || getUserId(req, parsedUrl);
-  
+
   if (!userId) {
     sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
     return true;
   }
-  
+
   // If we have Firebase auth, update the header so handlers use Firebase UID consistently
   if (auth) {
     (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;

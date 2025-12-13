@@ -575,6 +575,35 @@ import {
 } from './session-manager.js';
 import { shutdownServices as _shutdownServices } from './shutdown.js';
 
+// ============================================================================
+// ASYNC EVENTS (Fire-and-Forget Event System)
+// ============================================================================
+
+export {
+  AsyncEvents,
+  emitConversationStart,
+  emitConversationEnd,
+  emitTrustUpdate,
+  emitAnalyticsInteraction,
+  type EventType,
+  type EventPayload,
+} from './async-events/index.js';
+
+// ============================================================================
+// CONTEXT SERVICE (Future Microservice)
+// ============================================================================
+
+export {
+  ContextService,
+  getContextService,
+  configureContextService,
+  type ContextRequest,
+  type ContextResponse,
+  type ContextInjection,
+  type SearchRequest,
+  type SearchResult,
+} from './context-service/index.js';
+
 export default {
   initializeServices: _initializeServices,
   getGlobalServices: _getGlobalServices,

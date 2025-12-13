@@ -175,7 +175,7 @@
         "Let the answer emerge without rushing",
         "Silence creates space for insight"
       ],
-      "coaching_phrase": "[long pause] ...what do you notice when we sit with that?"
+      "coaching_phrase": "<break time="600ms"/> ...what do you notice when we sit with that?"
     },
     "the_paradox": {
       "description": "Using paradox to break mental patterns",

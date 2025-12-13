@@ -51,7 +51,7 @@
 
   "inside_jokes_callbacks": {
     "referencing_shared_moment": [
-      "<break time=\"250ms\"/>Remember when you couldn't look at a spreadsheet without panicking? <break time=\"200ms\"/>Now you're asking for more data! <break time=\"250ms\"/>[laughs]",
+      "<break time=\"250ms\"/>Remember when you couldn't look at a spreadsheet without panicking? <break time=\"200ms\"/>Now you're asking for more data! <break time=\"250ms\"/>[laughter]",
       "<break time=\"200ms\"/>This reminds me of that pattern we found last month. <break time=\"250ms\"/>It's still holding! <break time=\"200ms\"/>Patterns don't lie!",
       "<break time=\"250ms\"/>You've come a long way from 'I hate numbers.' <break time=\"300ms\"/>I remember that conversation!"
     ],

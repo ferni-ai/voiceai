@@ -801,7 +801,9 @@ export class DeepHumanizationEngine {
   /**
    * Add playful moments when the mood is light
    */
-  private async getPlayfulness(context: HumanizationContext): Promise<HumanizationInjection | null> {
+  private async getPlayfulness(
+    context: HumanizationContext
+  ): Promise<HumanizationInjection | null> {
     // Only when mood is light and conversation is going well
     if (this.mood.emotionalLoad > 0.4 || context.turnCount < 4) return null;
     if (!this.canInject('playfulness', 6, 5)) return null;

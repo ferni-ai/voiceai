@@ -442,7 +442,10 @@ export function assessEnergyState(
     },
     emotionalReserve,
     focus: {
-      level: Math.max(0.2, mentalScore + (engagementSignals.length - distractionSignals.length) * 0.1),
+      level: Math.max(
+        0.2,
+        mentalScore + (engagementSignals.length - distractionSignals.length) * 0.1
+      ),
       distractionSignals,
       engagementSignals,
     },
@@ -456,9 +459,17 @@ export function assessEnergyState(
   const overall = {
     readyForDeep: overallScore > 0.5 && emotionalReserve.canHandleHeavy,
     optimalResponseLength:
-      overallScore < 0.35 ? ('brief' as const) : overallScore > 0.65 ? ('detailed' as const) : ('normal' as const),
+      overallScore < 0.35
+        ? ('brief' as const)
+        : overallScore > 0.65
+          ? ('detailed' as const)
+          : ('normal' as const),
     topicsToAvoid: emotionalReserve.recentDrains.slice(0, 3),
-    suggestedApproach: generateApproach(physical.level, mental.capacity, emotionalReserve.canHandleHeavy),
+    suggestedApproach: generateApproach(
+      physical.level,
+      mental.capacity,
+      emotionalReserve.canHandleHeavy
+    ),
   };
 
   // Record observation
@@ -567,7 +578,10 @@ function recordEnergyObservation(
 
   pattern.observations++;
 
-  log.debug({ userId, hour, energyScore: energyScore.toFixed(2) }, '⚡ Energy observation recorded');
+  log.debug(
+    { userId, hour, energyScore: energyScore.toFixed(2) },
+    '⚡ Energy observation recorded'
+  );
 }
 
 /**
@@ -664,4 +678,3 @@ export default {
   formatEnergyForPrompt,
   resetEnergyStateInference,
 };
-

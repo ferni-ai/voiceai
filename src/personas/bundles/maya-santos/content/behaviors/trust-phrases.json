@@ -51,7 +51,7 @@
 
   "inside_jokes_callbacks": {
     "referencing_shared_moment": [
-      "<break time=\"300ms\"/>Remember when you said you'd never be a morning person? <break time=\"250ms\"/>What time did you wake up today? <break time=\"200ms\"/>[laughs]",
+      "<break time=\"300ms\"/>Remember when you said you'd never be a morning person? <break time=\"250ms\"/>What time did you wake up today? <break time=\"200ms\"/>[laughter]",
       "<break time=\"250ms\"/>This reminds me of that time you swore you'd never track anything. <break time=\"300ms\"/>Now look at you.",
       "<break time=\"300ms\"/>You've come a long way from 'habits don't work for me.' <break time=\"250ms\"/>I remember that conversation."
     ],

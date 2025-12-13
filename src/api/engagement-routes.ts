@@ -93,7 +93,7 @@ export async function handleEngagementRoutes(
   // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
   // This allows users who haven't migrated to Firebase to still use the API
   const auth = await optionalAuthAsync(req);
-  
+
   // If we have Firebase auth, we can use the userId from there
   // Otherwise, individual handlers will get userId from query params/headers
   // We still need SOME form of user identification
@@ -102,7 +102,7 @@ export async function handleEngagementRoutes(
     sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
     return true;
   }
-  
+
   // Store userId in request for handlers to use
   // This normalizes Firebase UID vs device ID for downstream handlers
   if (auth) {

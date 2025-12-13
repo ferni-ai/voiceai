@@ -8,7 +8,13 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile, KeyMoment, FamilyMember, LifeEvent, FinancialGoal } from '../types/user-profile.js';
+import type {
+  UserProfile,
+  KeyMoment,
+  FamilyMember,
+  LifeEvent,
+  FinancialGoal,
+} from '../types/user-profile.js';
 import type {
   HumanMemory,
   ImportantDate,
@@ -147,9 +153,7 @@ async function indexPeople(
   for (const member of familyMembers) {
     const personName = member.name || member.relationship;
     const text = `${userName || 'User'}'s ${member.relationship}${member.name ? ` named ${member.name}` : ''}. ${
-      member.mentionedTopics?.length
-        ? `Discussed: ${member.mentionedTopics.join(', ')}`
-        : ''
+      member.mentionedTopics?.length ? `Discussed: ${member.mentionedTopics.join(', ')}` : ''
     }`;
 
     const doc: VectorDocument = {
@@ -352,7 +356,19 @@ async function indexPersonaMemories(
   let indexed = 0;
 
   // Index each persona's memories
-  const personas = Object.entries(personaMemories) as [string, Array<{ id: string; type: string; name: string; details?: string; tags: string[]; createdAt: Date }>][];
+  const personas = Object.entries(personaMemories) as Array<
+    [
+      string,
+      Array<{
+        id: string;
+        type: string;
+        name: string;
+        details?: string;
+        tags: string[];
+        createdAt: Date;
+      }>,
+    ]
+  >;
 
   for (const [personaId, memories] of personas) {
     if (!memories) continue;
@@ -468,7 +484,9 @@ async function indexPreferences(
 
   // Communication preferences
   const commText = `Communication style: ${profile.communicationStyle}. Speaking pace: ${profile.speakingPace}. Humor appreciation: ${profile.humorAppreciation}. ${
-    profile.preferredTopics.length ? `Likes discussing: ${profile.preferredTopics.join(', ')}. ` : ''
+    profile.preferredTopics.length
+      ? `Likes discussing: ${profile.preferredTopics.join(', ')}. `
+      : ''
   }${profile.avoidTopics.length ? `Avoids: ${profile.avoidTopics.join(', ')}` : ''}`;
 
   const commDoc: VectorDocument = {
@@ -536,7 +554,9 @@ async function indexEntertainment(
   if (musicMemory) {
     if (musicMemory.favoriteArtists.length > 0) {
       const text = `Favorite artists: ${musicMemory.favoriteArtists.join(', ')}. ${
-        musicMemory.favoriteGenres.length ? `Genres: ${musicMemory.favoriteGenres.join(', ')}. ` : ''
+        musicMemory.favoriteGenres.length
+          ? `Genres: ${musicMemory.favoriteGenres.join(', ')}. `
+          : ''
       }${musicMemory.dislikedArtists.length ? `Dislikes: ${musicMemory.dislikedArtists.join(', ')}` : ''}`;
 
       const doc: VectorDocument = {
@@ -597,7 +617,11 @@ async function indexEntertainment(
       }`;
 
       const doc: VectorDocument = {
-        id: generateDocId('entertainment', userId, `game_milestone_${milestone.achievedAt.getTime()}`),
+        id: generateDocId(
+          'entertainment',
+          userId,
+          `game_milestone_${milestone.achievedAt.getTime()}`
+        ),
         text,
         metadata: {
           source: 'user_memory',
@@ -832,11 +856,7 @@ async function indexDreams(
 /**
  * Index fears and worries
  */
-async function indexFears(
-  userId: string,
-  fears: Fear[],
-  store: AnyVectorStore
-): Promise<number> {
+async function indexFears(userId: string, fears: Fear[], store: AnyVectorStore): Promise<number> {
   let indexed = 0;
 
   for (const fear of fears) {
@@ -880,7 +900,9 @@ async function indexGrowthMarkers(
 
   for (const marker of markers) {
     const text = `Growth: ${marker.description}. Before: ${marker.before}. After: ${marker.after}. ${
-      marker.acknowledged ? `Acknowledged (reaction: ${marker.reactionWhenAcknowledged})` : 'Not yet acknowledged'
+      marker.acknowledged
+        ? `Acknowledged (reaction: ${marker.reactionWhenAcknowledged})`
+        : 'Not yet acknowledged'
     }`;
 
     const doc: VectorDocument = {
@@ -1189,7 +1211,7 @@ async function indexHumanMemory(
 
   // Identity components
   if (humanMemory.identity) {
-    const identity = humanMemory.identity;
+    const { identity } = humanMemory;
 
     if (identity.values?.length) {
       counts['value'] = await indexValues(userId, identity.values, store);
@@ -1207,7 +1229,11 @@ async function indexHumanMemory(
   // Growth arc
   if (humanMemory.growthArc) {
     if (humanMemory.growthArc.markers?.length) {
-      counts['growth_marker'] = await indexGrowthMarkers(userId, humanMemory.growthArc.markers, store);
+      counts['growth_marker'] = await indexGrowthMarkers(
+        userId,
+        humanMemory.growthArc.markers,
+        store
+      );
     }
 
     if (humanMemory.growthArc.challenges?.length) {
@@ -1222,7 +1248,11 @@ async function indexHumanMemory(
 
   // Temporal patterns
   if (humanMemory.temporal?.seasonal?.length) {
-    counts['temporal_pattern'] = await indexTemporalPatterns(userId, humanMemory.temporal.seasonal, store);
+    counts['temporal_pattern'] = await indexTemporalPatterns(
+      userId,
+      humanMemory.temporal.seasonal,
+      store
+    );
   }
 
   return counts;
@@ -1364,10 +1394,7 @@ export async function indexUserMemories(
       }
     }
 
-    log.info(
-      { userId, ...result },
-      `Indexed ${result.indexed} user memory documents`
-    );
+    log.info({ userId, ...result }, `Indexed ${result.indexed} user memory documents`);
   } catch (error) {
     log.error({ error, userId }, 'User memory indexing failed');
     result.errors++;
@@ -1576,4 +1603,3 @@ export default {
   batchIndexUserMemories,
   getUserMemoryStats,
 };
-

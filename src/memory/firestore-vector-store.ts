@@ -202,7 +202,7 @@ export class FirestoreVectorStore implements IVectorStore {
    */
   async addDocument(doc: VectorDocument): Promise<void> {
     await this.ensureInitialized();
-    
+
     // Generate embedding if not provided
     let { embedding } = doc;
     if (!embedding) {
@@ -340,7 +340,7 @@ export class FirestoreVectorStore implements IVectorStore {
     }
   ): Promise<VectorSearchResult[]> {
     await this.ensureInitialized();
-    
+
     const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 

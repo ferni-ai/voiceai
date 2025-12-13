@@ -107,20 +107,20 @@ export interface ConversationSession {
   personaId: string;
 
   // State accessors
-  getState(): SessionState;
-  getTurnCount(): number;
-  getComfortLevel(): number;
+  getState: () => SessionState;
+  getTurnCount: () => number;
+  getComfortLevel: () => number;
 
   // Main processing
-  processTurn(input: TurnInput): Promise<TurnResult>;
+  processTurn: (input: TurnInput) => Promise<TurnResult>;
 
   // Event recording
-  recordVulnerability(): void;
-  recordLaughter(): void;
-  recordBreakthrough(): void;
+  recordVulnerability: () => void;
+  recordLaughter: () => void;
+  recordBreakthrough: () => void;
 
   // Lifecycle
-  end(): void;
+  end: () => void;
 }
 
 interface SessionState {
@@ -229,9 +229,7 @@ class ConversationSessionImpl implements ConversationSession {
 
     // Process user message through humanization subsystems
     processUserMessage(this.sessionId, input.userMessage, {
-      voiceEmotion: input.userEmotion
-        ? { primary: input.userEmotion, confidence: 0.8 }
-        : undefined,
+      voiceEmotion: input.userEmotion ? { primary: input.userEmotion, confidence: 0.8 } : undefined,
       topic: input.topic,
     });
 
@@ -300,13 +298,16 @@ class ConversationSessionImpl implements ConversationSession {
       memoryCallback: output.memoryCallback,
       followUpQuestion: output.followUpQuestion,
       confidence,
-      timing: output.metadata?.timing ?? { total: 0, analysis: 0, intelligence: 0, humanization: 0 },
+      timing: output.metadata?.timing ?? {
+        total: 0,
+        analysis: 0,
+        intelligence: 0,
+        humanization: 0,
+      },
     };
   }
 
-  private mapRelationshipDepth(
-    stage: string
-  ): 'new' | 'developing' | 'established' | 'deep' {
+  private mapRelationshipDepth(stage: string): 'new' | 'developing' | 'established' | 'deep' {
     const map: Record<string, 'new' | 'developing' | 'established' | 'deep'> = {
       stranger: 'new',
       acquaintance: 'developing',
@@ -325,9 +326,7 @@ class ConversationSessionImpl implements ConversationSession {
  * Create a new conversation session
  * This is the SINGLE entry point for all conversation humanization
  */
-export function createConversationSession(
-  config: ConversationSessionConfig
-): ConversationSession {
+export function createConversationSession(config: ConversationSessionConfig): ConversationSession {
   // Check for existing session
   if (activeSessions.has(config.sessionId)) {
     log.warn({ sessionId: config.sessionId }, 'Session already exists, returning existing');
@@ -397,4 +396,3 @@ export async function quickHumanize(
 
   return { text: output.text, ssml: output.ssml };
 }
-

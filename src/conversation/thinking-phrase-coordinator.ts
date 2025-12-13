@@ -79,12 +79,15 @@ interface TurnState {
  */
 // NOTE: Most "thinking phrases" are AI clichés. Ferni should use SILENCE or GENUINE REACTIONS instead.
 // These are kept minimal - prefer actual silence followed by a real response.
-const THINKING_PHRASES: Record<string, {
-  general: string[];
-  forQuestions: string[];
-  forEmotional: string[];
-  forProcessing: string[];
-}> = {
+const THINKING_PHRASES: Record<
+  string,
+  {
+    general: string[];
+    forQuestions: string[];
+    forEmotional: string[];
+    forProcessing: string[];
+  }
+> = {
   ferni: {
     general: [
       // Genuine reactions, not narrated thinking
@@ -106,12 +109,7 @@ const THINKING_PHRASES: Record<string, {
       "That's real.",
       'Yeah.',
     ],
-    forProcessing: [
-      'Okay.',
-      'So.',
-      'Right.',
-      'Yeah.',
-    ],
+    forProcessing: ['Okay.', 'So.', 'Right.', 'Yeah.'],
   },
   'nayan-patel': {
     general: [
@@ -119,23 +117,9 @@ const THINKING_PHRASES: Record<string, {
       "You know, that's worth considering...",
       'Now, that brings up an important point...',
     ],
-    forQuestions: [
-      'Hmm.',
-      'Let me think about that.',
-      'Fascinating.',
-    ],
-    forEmotional: [
-      'I see.',
-      'Yeah.',
-      'I get that.',
-      'Understandable.',
-    ],
-    forProcessing: [
-      'So.',
-      'Right.',
-      "Let's see.",
-      'Now.',
-    ],
+    forQuestions: ['Hmm.', 'Let me think about that.', 'Fascinating.'],
+    forEmotional: ['I see.', 'Yeah.', 'I get that.', 'Understandable.'],
+    forProcessing: ['So.', 'Right.', "Let's see.", 'Now.'],
   },
   'peter-john': {
     general: [
@@ -144,24 +128,9 @@ const THINKING_PHRASES: Record<string, {
       "Here's what jumps out at me...",
       'Okay, so...',
     ],
-    forQuestions: [
-      'Hmm.',
-      'Let me think about that.',
-      'Fascinating.',
-      "There's something here.",
-    ],
-    forEmotional: [
-      'I see.',
-      'Yeah.',
-      'I get that.',
-      'Understandable.',
-    ],
-    forProcessing: [
-      'So.',
-      'Right.',
-      "Let's see.",
-      'Now.',
-    ],
+    forQuestions: ['Hmm.', 'Let me think about that.', 'Fascinating.', "There's something here."],
+    forEmotional: ['I see.', 'Yeah.', 'I get that.', 'Understandable.'],
+    forProcessing: ['So.', 'Right.', "Let's see.", 'Now.'],
   },
   'maya-santos': {
     general: [
@@ -170,48 +139,15 @@ const THINKING_PHRASES: Record<string, {
       'You know what I mean?',
       "Here's the thing...",
     ],
-    forQuestions: [
-      'Hmm.',
-      "Let's think about this.",
-      'Okay, so.',
-    ],
-    forEmotional: [
-      'I hear you.',
-      'Yeah.',
-      "That's real.",
-      'I get that.',
-    ],
-    forProcessing: [
-      'So.',
-      'Okay.',
-      'Right.',
-      'Alright then.',
-    ],
+    forQuestions: ['Hmm.', "Let's think about this.", 'Okay, so.'],
+    forEmotional: ['I hear you.', 'Yeah.', "That's real.", 'I get that.'],
+    forProcessing: ['So.', 'Okay.', 'Right.', 'Alright then.'],
   },
   'alex-chen': {
-    general: [
-      'Let me check on that...',
-      'Hmm, one second...',
-      "Okay, so here's the situation...",
-    ],
-    forQuestions: [
-      'Hmm.',
-      'Let me think.',
-      'Okay.',
-      'Interesting.',
-    ],
-    forEmotional: [
-      'I hear you.',
-      'Yeah.',
-      'Got it.',
-      'Understood.',
-    ],
-    forProcessing: [
-      'Right.',
-      'So.',
-      'Okay.',
-      'Alright.',
-    ],
+    general: ['Let me check on that...', 'Hmm, one second...', "Okay, so here's the situation..."],
+    forQuestions: ['Hmm.', 'Let me think.', 'Okay.', 'Interesting.'],
+    forEmotional: ['I hear you.', 'Yeah.', 'Got it.', 'Understood.'],
+    forProcessing: ['Right.', 'So.', 'Okay.', 'Alright.'],
   },
   'jordan-taylor': {
     general: [
@@ -219,44 +155,15 @@ const THINKING_PHRASES: Record<string, {
       'You know what would be amazing?',
       'Oh! I just thought of something!',
     ],
-    forQuestions: [
-      'Ooh!',
-      'Let me think...',
-      'Hmm...',
-    ],
-    forEmotional: [
-      'I hear you.',
-      'Yeah.',
-      "That's real.",
-      'I get that.',
-    ],
-    forProcessing: [
-      'So.',
-      'Okay.',
-      'Right.',
-      'Alright.',
-    ],
+    forQuestions: ['Ooh!', 'Let me think...', 'Hmm...'],
+    forEmotional: ['I hear you.', 'Yeah.', "That's real.", 'I get that.'],
+    forProcessing: ['So.', 'Okay.', 'Right.', 'Alright.'],
   },
   default: {
-    general: [
-      'Okay.',
-      'Right.',
-      'Yeah.',
-    ],
-    forQuestions: [
-      'Right.',
-      'Okay.',
-    ],
-    forEmotional: [
-      'I hear you.',
-      'Yeah.',
-      'I get that.',
-    ],
-    forProcessing: [
-      'Okay.',
-      'So.',
-      'Right.',
-    ],
+    general: ['Okay.', 'Right.', 'Yeah.'],
+    forQuestions: ['Right.', 'Okay.'],
+    forEmotional: ['I hear you.', 'Yeah.', 'I get that.'],
+    forProcessing: ['Okay.', 'So.', 'Right.'],
   },
 };
 
@@ -510,4 +417,3 @@ export function wasPhraseUsedThisTurn(sessionId: string, turnNumber: number): bo
 }
 
 export default ThinkingPhraseCoordinator;
-

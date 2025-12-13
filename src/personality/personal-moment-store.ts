@@ -11,7 +11,12 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import type { PersonalMoment, PersonalMomentTopic, RelationshipStage, ShareDepth } from './types.js';
+import type {
+  PersonalMoment,
+  PersonalMomentTopic,
+  RelationshipStage,
+  ShareDepth,
+} from './types.js';
 
 // Import and re-export transitions (for backwards compatibility)
 export { STANDARD_TRANSITIONS } from './transitions.js';

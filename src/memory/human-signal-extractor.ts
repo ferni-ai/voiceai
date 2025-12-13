@@ -86,12 +86,21 @@ const DATE_PATTERNS = [
   { pattern: /(\d+) years? (?:married|together)/i, type: 'anniversary' as const },
 
   // Loss anniversaries
-  { pattern: /(?:passed away|died|lost) (?:.{0,20}) (?:on |in )(\w+ \d+|\d{4})/i, type: 'loss_anniversary' as const },
-  { pattern: /it(?:'s| will be) (\d+) years? since (?:.*) (?:passed|died|lost)/i, type: 'loss_anniversary' as const },
+  {
+    pattern: /(?:passed away|died|lost) (?:.{0,20}) (?:on |in )(\w+ \d+|\d{4})/i,
+    type: 'loss_anniversary' as const,
+  },
+  {
+    pattern: /it(?:'s| will be) (\d+) years? since (?:.*) (?:passed|died|lost)/i,
+    type: 'loss_anniversary' as const,
+  },
 
   // Milestones
   { pattern: /(\d+) years? sober/i, type: 'milestone' as const },
-  { pattern: /quit (?:smoking|drinking) (\d+) (?:years?|months?) ago/i, type: 'milestone' as const },
+  {
+    pattern: /quit (?:smoking|drinking) (\d+) (?:years?|months?) ago/i,
+    type: 'milestone' as const,
+  },
   { pattern: /started (?:.*) (\d+) (?:years?|months?) ago/i, type: 'milestone' as const },
 ];
 
@@ -122,7 +131,12 @@ function extractDates(turns: ConversationTurn[], context: ExtractionContext): Im
             year: parsed.year,
             significance: type === 'loss_anniversary' ? 'major' : 'meaningful',
             wantsAcknowledgment: type !== 'loss_anniversary', // Default: don't assume for sensitive dates
-            sentiment: type === 'loss_anniversary' ? 'sensitive' : type === 'birthday' ? 'celebratory' : 'neutral',
+            sentiment:
+              type === 'loss_anniversary'
+                ? 'sensitive'
+                : type === 'birthday'
+                  ? 'celebratory'
+                  : 'neutral',
             discoveredAt: now,
           });
         }
@@ -138,8 +152,20 @@ function extractDates(turns: ConversationTurn[], context: ExtractionContext): Im
  */
 function parseFlexibleDate(dateText: string): { month: number; day: number; year?: number } | null {
   // Month name + day
-  const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
-                      'july', 'august', 'september', 'october', 'november', 'december'];
+  const monthNames = [
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
+  ];
   const monthMatch = dateText.toLowerCase().match(/(\w+)\s+(\d+)/);
   if (monthMatch) {
     const monthIdx = monthNames.indexOf(monthMatch[1].toLowerCase());
@@ -300,12 +326,30 @@ function extractFears(turns: ConversationTurn[]): Fear[] {
  * Patterns for detecting stress triggers
  */
 const STRESS_PATTERNS = [
-  { pattern: /(?:work|my job|boss|deadline) (?:is|are) (?:stressing|killing|overwhelming)/i, category: 'work' as const },
-  { pattern: /(?:money|bills|finances) (?:is|are) (?:stressing|worrying|overwhelming)/i, category: 'financial' as const },
-  { pattern: /(?:health|doctor|medical) (?:is|are) (?:stressing|worrying)/i, category: 'health' as const },
-  { pattern: /(?:family|kids|parents|spouse) (?:is|are) (?:stressing|overwhelming)/i, category: 'relationships' as const },
-  { pattern: /(?:running late|too much to do|no time) (?:stresses|overwhelms)/i, category: 'time' as const },
-  { pattern: /(?:not knowing|uncertainty|waiting) (?:is|makes me) (?:anxious|stressed)/i, category: 'uncertainty' as const },
+  {
+    pattern: /(?:work|my job|boss|deadline) (?:is|are) (?:stressing|killing|overwhelming)/i,
+    category: 'work' as const,
+  },
+  {
+    pattern: /(?:money|bills|finances) (?:is|are) (?:stressing|worrying|overwhelming)/i,
+    category: 'financial' as const,
+  },
+  {
+    pattern: /(?:health|doctor|medical) (?:is|are) (?:stressing|worrying)/i,
+    category: 'health' as const,
+  },
+  {
+    pattern: /(?:family|kids|parents|spouse) (?:is|are) (?:stressing|overwhelming)/i,
+    category: 'relationships' as const,
+  },
+  {
+    pattern: /(?:running late|too much to do|no time) (?:stresses|overwhelms)/i,
+    category: 'time' as const,
+  },
+  {
+    pattern: /(?:not knowing|uncertainty|waiting) (?:is|makes me) (?:anxious|stressed)/i,
+    category: 'uncertainty' as const,
+  },
 ];
 
 /**
@@ -429,17 +473,29 @@ function extractChallenges(turns: ConversationTurn[]): ChallengeProgress[] {
 const COMFORT_PATTERNS = [
   { pattern: /(?:it helps|helps me) (?:when|to) (.+)/i, type: 'validation' as const },
   { pattern: /(?:i|we) (?:feel better|calm down) when (.+)/i, type: 'validation' as const },
-  { pattern: /(?:just|i just) (?:need|want) someone to (?:listen|hear)/i, type: 'presence' as const },
+  {
+    pattern: /(?:just|i just) (?:need|want) someone to (?:listen|hear)/i,
+    type: 'presence' as const,
+  },
   { pattern: /(?:talking|venting) (?:helps|makes me feel)/i, type: 'validation' as const },
-  { pattern: /(?:i|we) (?:need|want) (?:a solution|to fix|to solve)/i, type: 'problem_solving' as const },
+  {
+    pattern: /(?:i|we) (?:need|want) (?:a solution|to fix|to solve)/i,
+    type: 'problem_solving' as const,
+  },
   { pattern: /(?:make|makes) me laugh/i, type: 'humor' as const },
-  { pattern: /(?:distract|change the subject|think about something else)/i, type: 'distraction' as const },
+  {
+    pattern: /(?:distract|change the subject|think about something else)/i,
+    type: 'distraction' as const,
+  },
 ];
 
 /**
  * Extract comfort patterns from conversation
  */
-function extractComfortPatterns(turns: ConversationTurn[], context: ExtractionContext): ComfortPattern[] {
+function extractComfortPatterns(
+  turns: ConversationTurn[],
+  context: ExtractionContext
+): ComfortPattern[] {
   const patterns: ComfortPattern[] = [];
   const now = new Date();
 
@@ -485,7 +541,10 @@ function detectInsideJokePotential(turns: ConversationTurn[]): InsideJoke[] {
     // User found something funny
     if (turn.role === 'user' && laughIndicators.test(turn.content)) {
       // Check if they're referencing something shared
-      if (callbackIndicators.test(turn.content) || callbackIndicators.test(nextTurn?.content || '')) {
+      if (
+        callbackIndicators.test(turn.content) ||
+        callbackIndicators.test(nextTurn?.content || '')
+      ) {
         // Extract the reference
         const refMatch = turn.content.match(/(?:remember when|like that time) (.+)/i);
         if (refMatch) {
@@ -622,7 +681,9 @@ function isDuplicateDream(a: Dream, b: Dream): boolean {
   const aWords = new Set(a.description.toLowerCase().split(/\s+/));
   const bWords = new Set(b.description.toLowerCase().split(/\s+/));
   const intersection = [...aWords].filter((w) => bWords.has(w) && w.length > 3);
-  return intersection.length > 3 || a.description.toLowerCase().includes(b.description.toLowerCase());
+  return (
+    intersection.length > 3 || a.description.toLowerCase().includes(b.description.toLowerCase())
+  );
 }
 
 /**
@@ -639,7 +700,10 @@ function isDuplicateFear(a: Fear, b: Fear): boolean {
  * Check if two stress triggers are similar
  */
 function isDuplicateTrigger(a: StressTrigger, b: StressTrigger): boolean {
-  return a.category === b.category && a.trigger.toLowerCase().includes(b.trigger.toLowerCase().slice(0, 30));
+  return (
+    a.category === b.category &&
+    a.trigger.toLowerCase().includes(b.trigger.toLowerCase().slice(0, 30))
+  );
 }
 
 /**
@@ -689,32 +753,21 @@ export function mergeSignalsIntoMemory(
     insideJokes: [
       ...(existing?.insideJokes || []),
       ...extracted.insideJokes.filter(
-        (newJoke) => !(existing?.insideJokes || []).some(
-          (e) => e.reference.toLowerCase() === newJoke.reference.toLowerCase()
-        )
+        (newJoke) =>
+          !(existing?.insideJokes || []).some(
+            (e) => e.reference.toLowerCase() === newJoke.reference.toLowerCase()
+          )
       ),
     ],
     runningThemes: existing?.runningThemes || [],
     userTeachings: existing?.userTeachings || [],
     identity: {
       // Dedupe values by value text
-      values: dedupeArray(
-        existing?.identity?.values || [],
-        extracted.values,
-        isDuplicateValue
-      ),
+      values: dedupeArray(existing?.identity?.values || [], extracted.values, isDuplicateValue),
       // Dedupe dreams by description similarity
-      dreams: dedupeArray(
-        existing?.identity?.dreams || [],
-        extracted.dreams,
-        isDuplicateDream
-      ),
+      dreams: dedupeArray(existing?.identity?.dreams || [], extracted.dreams, isDuplicateDream),
       // Dedupe fears by text similarity
-      fears: dedupeArray(
-        existing?.identity?.fears || [],
-        extracted.fears,
-        isDuplicateFear
-      ),
+      fears: dedupeArray(existing?.identity?.fears || [], extracted.fears, isDuplicateFear),
       formativeExperiences: existing?.identity?.formativeExperiences || [],
       updatedAt: now,
     },
@@ -742,25 +795,18 @@ export function mergeSignalsIntoMemory(
     },
     growthArc: {
       // Growth markers are unique events, but dedupe by description similarity
-      markers: dedupeArray(
-        existing?.growthArc?.markers || [],
-        extracted.growthMarkers,
-        (a, b) => a.description.toLowerCase().includes(b.description.toLowerCase().slice(0, 50))
+      markers: dedupeArray(existing?.growthArc?.markers || [], extracted.growthMarkers, (a, b) =>
+        a.description.toLowerCase().includes(b.description.toLowerCase().slice(0, 50))
       ),
       // Challenges dedupe by challenge text
-      challenges: dedupeArray(
-        existing?.growthArc?.challenges || [],
-        extracted.challenges,
-        (a, b) => a.challenge.toLowerCase().includes(b.challenge.toLowerCase().slice(0, 30))
+      challenges: dedupeArray(existing?.growthArc?.challenges || [], extracted.challenges, (a, b) =>
+        a.challenge.toLowerCase().includes(b.challenge.toLowerCase().slice(0, 30))
       ),
       updatedAt: now,
     },
     unspoken: {
       // Avoidances - merge observations if same topic
-      avoidances: mergeAvoidances(
-        existing?.unspoken?.avoidances || [],
-        extracted.avoidances
-      ),
+      avoidances: mergeAvoidances(existing?.unspoken?.avoidances || [], extracted.avoidances),
       reachOutPatterns: existing?.unspoken?.reachOutPatterns || [],
       energyPatterns: existing?.unspoken?.energyPatterns || [],
       updatedAt: now,
@@ -807,4 +853,3 @@ export default {
   extractHumanSignals,
   mergeSignalsIntoMemory,
 };
-

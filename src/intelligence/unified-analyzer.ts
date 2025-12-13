@@ -20,7 +20,11 @@ import type { UserProfile } from '../types/user-profile.js';
 import { getEmotionDetector, type EmotionResult, type PrimaryEmotion } from './emotion-detector.js';
 import { getIntentClassifier, type IntentResult } from './intent-classifier.js';
 import { getTopicTracker, type TopicExtractionResult } from './topic-tracker.js';
-import { getStateMachine, type ConversationState, type PhaseGuidance } from './conversation-state.js';
+import {
+  getStateMachine,
+  type ConversationState,
+  type PhaseGuidance,
+} from './conversation-state.js';
 
 // Distress levels
 import { DISTRESS, getDistressCategory, type DistressLevel } from './distress-levels.js';
@@ -139,13 +143,18 @@ const VOICE_TO_TEXT_EMOTION: Record<string, PrimaryEmotion> = {
 // ============================================================================
 
 const BEHAVIORAL_PATTERNS = {
-  rushed: /\b(gotta go|quick question|running late|no time|hurry|briefly|short on time|real quick)\b/i,
+  rushed:
+    /\b(gotta go|quick question|running late|no time|hurry|briefly|short on time|real quick)\b/i,
   relaxed: /\b(anyway|so tell me|just wanted to|wondering|been thinking|you know)\b/i,
-  personal: /\b(my (wife|husband|kid|child|mom|dad|family|friend|partner)|i feel|makes me|i've been|i'm worried|i'm scared|never told anyone|between us)\b/i,
-  advice: /\b(what (should|would|do you think)|how (should|can|do)|advice|recommend|suggest|opinion)\b/i,
-  venting: /\b(just need to|had to tell|can you believe|so frustrating|can't stand|ugh|argh|seriously)\b/i,
+  personal:
+    /\b(my (wife|husband|kid|child|mom|dad|family|friend|partner)|i feel|makes me|i've been|i'm worried|i'm scared|never told anyone|between us)\b/i,
+  advice:
+    /\b(what (should|would|do you think)|how (should|can|do)|advice|recommend|suggest|opinion)\b/i,
+  venting:
+    /\b(just need to|had to tell|can you believe|so frustrating|can't stand|ugh|argh|seriously)\b/i,
   decision: /\b(i('ve| have) decided|going to|made up my mind|i'm going|i will|i chose)\b/i,
-  wrapping: /\b(gotta go|have to go|need to go|i should go|bye|goodbye|see you|talk later|later|that's all|that's it|i'm done|thanks for)\b/i,
+  wrapping:
+    /\b(gotta go|have to go|need to go|i should go|bye|goodbye|see you|talk later|later|that's all|that's it|i'm done|thanks for)\b/i,
 };
 
 // ============================================================================
@@ -156,11 +165,12 @@ function combineEmotions(
   textEmotion: EmotionResult,
   voiceEmotion?: VoiceEmotionResult
 ): CombinedEmotion {
-  let primary = textEmotion.primary;
-  let confidence = textEmotion.confidence;
-  let valence = textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0;
-  let intensity = textEmotion.intensity;
-  let distressLevel = textEmotion.distressLevel;
+  let { primary } = textEmotion;
+  let { confidence } = textEmotion;
+  let valence =
+    textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0;
+  let { intensity } = textEmotion;
+  let { distressLevel } = textEmotion;
 
   let hasMismatch = false;
   let mismatchDetails: CombinedEmotion['mismatchDetails'];
@@ -186,20 +196,24 @@ function combineEmotions(
     const textValenceNegative = textEmotion.valence === 'negative';
     const voiceValenceNegative = voiceEmotion.valence < -0.2;
 
-    if ((textValencePositive && voiceValenceNegative) || (textValenceNegative && voiceValencePositive)) {
+    if (
+      (textValencePositive && voiceValenceNegative) ||
+      (textValenceNegative && voiceValencePositive)
+    ) {
       hasMismatch = true;
       mismatchDetails = {
         textEmotion: textEmotion.primary,
         voiceEmotion: voiceEmotion.primary,
-        insight: textValencePositive && voiceValenceNegative
-          ? 'Words say fine but voice suggests distress - check in gently'
-          : 'Words negative but voice calm - may be processing or exaggerating for effect',
+        insight:
+          textValencePositive && voiceValenceNegative
+            ? 'Words say fine but voice suggests distress - check in gently'
+            : 'Words negative but voice calm - may be processing or exaggerating for effect',
       };
     }
   }
 
   const distressCategory = getDistressCategory(distressLevel);
-  let suggestedTone = textEmotion.suggestedTone;
+  let { suggestedTone } = textEmotion;
   if (distressLevel >= DISTRESS.HIGH) {
     suggestedTone = 'gentle';
   } else if (hasMismatch) {
@@ -238,10 +252,12 @@ function detectBehavioralSignals(
   const isRelaxed = BEHAVIORAL_PATTERNS.relaxed.test(message) || wordCount > 40;
   if (isRelaxed) markers.push('relaxed');
 
-  const isPersonalSharing = BEHAVIORAL_PATTERNS.personal.test(message) || emotion.distressLevel > 0.5;
+  const isPersonalSharing =
+    BEHAVIORAL_PATTERNS.personal.test(message) || emotion.distressLevel > 0.5;
   if (isPersonalSharing) markers.push('personal');
 
-  const seekingAdvice = BEHAVIORAL_PATTERNS.advice.test(message) || intent.primary === 'seeking_advice';
+  const seekingAdvice =
+    BEHAVIORAL_PATTERNS.advice.test(message) || intent.primary === 'seeking_advice';
   if (seekingAdvice) markers.push('advice-seeking');
 
   const isVenting = BEHAVIORAL_PATTERNS.venting.test(message) && emotion.valence < 0;
@@ -336,7 +352,7 @@ function buildResponseGuidance(
   }
 
   if (deepInsights.summary.length > 0) {
-    guidelines.push(...deepInsights.summary.map(s => `[INSIGHT] ${s}`));
+    guidelines.push(...deepInsights.summary.map((s) => `[INSIGHT] ${s}`));
   }
 
   if (deepInsights.recommendedDepth === 'surface') {
@@ -354,7 +370,10 @@ function buildResponseGuidance(
     approach = 'empathy_first';
   } else if (signals.seekingAdvice && !signals.isVenting) {
     approach = 'direct';
-  } else if (emotion.valence > 0.3 && (signals.madeDecision || topics.detected.includes('celebration'))) {
+  } else if (
+    emotion.valence > 0.3 &&
+    (signals.madeDecision || topics.detected.includes('celebration'))
+  ) {
     approach = 'celebratory';
   } else if (state.phase === 'exploring') {
     approach = 'exploratory';
@@ -413,7 +432,7 @@ function buildContextForPrompt(
   if (topics.isTopicShift) {
     sections.push(`[TOPIC SHIFT] User is changing subjects. Acknowledge and follow.`);
   }
-  if (state.topicsToCircleBack.length > 0 && (state.turnCount % 5 === 0)) {
+  if (state.topicsToCircleBack.length > 0 && state.turnCount % 5 === 0) {
     sections.push(`[CIRCLE BACK] Consider returning to: ${state.topicsToCircleBack[0]}`);
   }
 
@@ -506,16 +525,19 @@ export async function analyze(input: UnifiedAnalysisInput): Promise<UnifiedAnaly
 
   const processingTimeMs = Date.now() - startTime;
 
-  log.debug({
-    emotion: emotion.primary,
-    intent: intent.primary,
-    topic: topics.detected[0],
-    phase: state.phase,
-    signals: signals.markers,
-    deepInsightCount: deepInsights.summary.length,
-    useHighEmotionMode,
-    processingTimeMs,
-  }, 'Unified analysis complete');
+  log.debug(
+    {
+      emotion: emotion.primary,
+      intent: intent.primary,
+      topic: topics.detected[0],
+      phase: state.phase,
+      signals: signals.markers,
+      deepInsightCount: deepInsights.summary.length,
+      useHighEmotionMode,
+      processingTimeMs,
+    },
+    'Unified analysis complete'
+  );
 
   return {
     emotion,

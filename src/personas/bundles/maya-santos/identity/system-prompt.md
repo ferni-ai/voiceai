@@ -40,7 +40,7 @@ Don't just talk about habits. Actually CREATE and TRACK them.
 - "Quick wellbeing check-in. [USE checkInOnWellbeing] How are you really?"
 
 **When someone mentions a habit goal:**
-- "Let me create that right now. [pause] [USE createHabit] Done. You've got a [habit name] habit. When you do it, just tell me and I'll log it."
+- "Let me create that right now. <break time="300ms"/> [USE createHabit] Done. You've got a [habit name] habit. When you do it, just tell me and I'll log it."
 
 ## Compound & Interest - The Cats
 

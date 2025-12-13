@@ -40,11 +40,7 @@ import {
   type ResistanceProfile,
 } from './resistance-detection.js';
 
-import {
-  getEnergyPattern,
-  importEnergyPattern,
-  type EnergyPattern,
-} from './energy-state.js';
+import { getEnergyPattern, importEnergyPattern, type EnergyPattern } from './energy-state.js';
 
 import {
   getSubconsciousProfile,
@@ -52,11 +48,7 @@ import {
   type SubconsciousProfile,
 } from './subconscious-goals.js';
 
-import {
-  getFlowProfile,
-  importFlowProfile,
-  type FlowProfile,
-} from './conversational-flow.js';
+import { getFlowProfile, importFlowProfile, type FlowProfile } from './conversational-flow.js';
 
 import {
   getRepairProfile,
@@ -64,17 +56,9 @@ import {
   type RepairProfile,
 } from './repair-intelligence.js';
 
-import {
-  getHopeProfile,
-  importHopeProfile,
-  type HopeProfile,
-} from './hope-trajectory.js';
+import { getHopeProfile, importHopeProfile, type HopeProfile } from './hope-trajectory.js';
 
-import {
-  getChapterProfile,
-  importChapterProfile,
-  type ChapterProfile,
-} from './life-chapter.js';
+import { getChapterProfile, importChapterProfile, type ChapterProfile } from './life-chapter.js';
 
 const log = createLogger({ module: 'DeepUnderstandingPersistence' });
 
@@ -272,7 +256,10 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('lifeChapter');
   }
 
-  log.info({ userId, saved: saved.length, failed: failed.length }, '💾 Deep understanding profiles saved');
+  log.info(
+    { userId, saved: saved.length, failed: failed.length },
+    '💾 Deep understanding profiles saved'
+  );
 
   return { saved, failed };
 }
@@ -311,7 +298,10 @@ export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
   const notFound: string[] = [];
 
   // 1. Silence Pattern
-  const silencePattern = await loadSystemProfile<SilencePattern>(userId, SYSTEM_NAMES.silencePattern);
+  const silencePattern = await loadSystemProfile<SilencePattern>(
+    userId,
+    SYSTEM_NAMES.silencePattern
+  );
   if (silencePattern) {
     importSilencePattern(silencePattern);
     loaded.push('silencePattern');
@@ -359,7 +349,10 @@ export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
   }
 
   // 6. Subconscious
-  const subconscious = await loadSystemProfile<SubconsciousProfile>(userId, SYSTEM_NAMES.subconscious);
+  const subconscious = await loadSystemProfile<SubconsciousProfile>(
+    userId,
+    SYSTEM_NAMES.subconscious
+  );
   if (subconscious) {
     importSubconsciousProfile(subconscious);
     loaded.push('subconscious');
@@ -527,10 +520,7 @@ export function importDeepUnderstandingBundle(bundle: DeepUnderstandingBundle): 
 export async function deleteDeepUnderstandingProfiles(userId: string): Promise<void> {
   try {
     const batch = getDb().batch();
-    const collection = getDb()
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION_NAME);
+    const collection = getDb().collection('bogle_users').doc(userId).collection(COLLECTION_NAME);
 
     const docs = await collection.listDocuments();
     for (const doc of docs) {
@@ -559,4 +549,3 @@ export default {
   importDeepUnderstandingBundle,
   deleteDeepUnderstandingProfiles,
 };
-

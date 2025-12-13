@@ -344,9 +344,11 @@ function calculateDepthIndicators(
   const personalPronouns =
     (text.match(/\b(i|me|my|myself|i'm|i've|i'll|i'd)\b/gi) || []).length / words.length;
   const emotionalWords =
-    (text.match(
-      /\b(feel|felt|feeling|happy|sad|angry|scared|anxious|excited|hurt|love|hate|afraid|worried|stressed)\b/gi
-    ) || []).length / words.length;
+    (
+      text.match(
+        /\b(feel|felt|feeling|happy|sad|angry|scared|anxious|excited|hurt|love|hate|afraid|worried|stressed)\b/gi
+      ) || []
+    ).length / words.length;
   const vulnerableTopics = VULNERABLE_TOPIC_PATTERNS.some((p) => p.test(text));
 
   // Specificity (presence of specific details)
@@ -499,10 +501,7 @@ function determineDirection(
   }
 
   // Check stamina at depth
-  if (
-    state.currentDepth === 'deep' ||
-    state.currentDepth === 'vulnerable'
-  ) {
+  if (state.currentDepth === 'deep' || state.currentDepth === 'vulnerable') {
     if (state.turnsAtDepth >= profile.depthStamina) {
       return {
         direction: 'lighten',
@@ -606,7 +605,7 @@ function buildTransition(
         phrases: [
           "Take a breath. I'm here.",
           "That's a lot to sit with. No rush.",
-          "We can pause here. You okay?",
+          'We can pause here. You okay?',
         ],
         avoid: [
           'Are you alright?', // Can increase anxiety
@@ -621,7 +620,7 @@ function buildTransition(
         technique: 'Affirm and leave door open',
         phrases: [
           "Thank you for sharing all of that. I'm here whenever.",
-          "This was meaningful. Take care of yourself.",
+          'This was meaningful. Take care of yourself.',
           "I'm glad we talked. Until next time.",
         ],
         avoid: [
@@ -733,7 +732,10 @@ export function formatFlowForPrompt(analysis: FlowAnalysis): string {
     lines.push('IMPORTANT: They may be overwhelmed. Keep response brief and grounding.');
   }
 
-  if (analysis.transition.phrases.length > 0 && analysis.state.recommendedDirection !== 'maintain') {
+  if (
+    analysis.transition.phrases.length > 0 &&
+    analysis.state.recommendedDirection !== 'maintain'
+  ) {
     lines.push(`Consider: "${analysis.transition.phrases[0]}"`);
   }
 
@@ -781,4 +783,3 @@ export default {
   formatFlowForPrompt,
   resetConversationalFlow,
 };
-

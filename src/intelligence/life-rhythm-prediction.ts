@@ -57,7 +57,10 @@ export interface WeeklyPattern {
   };
 
   /** Per-day emotional baselines */
-  dailyBaselines: Record<number, { avgMood: number; avgEnergy: number; conversationLikelihood: number }>;
+  dailyBaselines: Record<
+    number,
+    { avgMood: number; avgEnergy: number; conversationLikelihood: number }
+  >;
 }
 
 export interface MonthlyPattern {
@@ -313,8 +316,7 @@ export function predictUserState(userId: string, targetTime: Date = new Date()):
 
   // Pre-pay day stress
   if (profile.monthly.payDay.prePayStress) {
-    const daysUntilPayday =
-      (profile.monthly.payDay.dayOfMonth - dayOfMonth + 31) % 31 || 31;
+    const daysUntilPayday = (profile.monthly.payDay.dayOfMonth - dayOfMonth + 31) % 31 || 31;
     if (daysUntilPayday <= 3 && daysUntilPayday > 0) {
       moodScore -= 0.1;
       reasons.push('Approaching pay day - financial stress typical');
@@ -371,10 +373,7 @@ export function predictUserState(userId: string, targetTime: Date = new Date()):
     const targetDay = targetTime.getDate();
 
     // Check if within awareness window
-    const daysUntil = calculateDaysUntil(
-      { month: targetMonth, day: targetDay },
-      anniversary.date
-    );
+    const daysUntil = calculateDaysUntil({ month: targetMonth, day: targetDay }, anniversary.date);
 
     if (daysUntil >= 0 && daysUntil <= anniversary.awarenessWindow) {
       if (anniversary.valence === 'negative') {
@@ -502,7 +501,7 @@ function generateOpener(reasons: string[], tone: string, profile: LifeRhythmProf
       return "Sunday evening check-in. How's the soul doing?";
     }
     if (dayReason?.includes('Monday')) {
-      return 'Mondays, right? Just wanted you to know I\'m here.';
+      return "Mondays, right? Just wanted you to know I'm here.";
     }
     if (dayReason?.includes('weekend') && profile.weekly.weekend.lonelinessPeak) {
       return "Weekend wave. What's on your mind?";
@@ -515,7 +514,7 @@ function generateOpener(reasons: string[], tone: string, profile: LifeRhythmProf
   }
 
   if (tone === 'celebrating') {
-    return 'Good vibes your way! What\'s making you smile?';
+    return "Good vibes your way! What's making you smile?";
   }
 
   return "Hey, hope you're doing well!";
@@ -589,7 +588,10 @@ export function recordConversationObservation(
     if (observation.topics.some((t) => /lonel|alone|isolated/i.test(t))) {
       profile.weekly.weekend.lonelinessPeak = true;
     }
-    if (observation.topics.some((t) => /family|parent|sibling/i.test(t)) && observation.wasStressed) {
+    if (
+      observation.topics.some((t) => /family|parent|sibling/i.test(t)) &&
+      observation.wasStressed
+    ) {
       profile.weekly.weekend.familyStress = true;
     }
   }
@@ -597,10 +599,7 @@ export function recordConversationObservation(
   // Update data quality
   profile.dataQuality.totalObservations++;
   profile.dataQuality.lastUpdated = new Date();
-  profile.dataQuality.weeklyConfidence = Math.min(
-    0.9,
-    profile.dataQuality.totalObservations / 20
-  );
+  profile.dataQuality.weeklyConfidence = Math.min(0.9, profile.dataQuality.totalObservations / 20);
 
   log.debug(
     { userId, day: dayOfWeek, mood: observation.mood },
@@ -638,7 +637,9 @@ export function formatPredictionForPrompt(prediction: RhythmPrediction): string 
     lines.push(`Current context: ${prediction.reasons.join('; ')}`);
   }
 
-  lines.push(`Predicted state: ${prediction.prediction.likelyMood} mood, ${prediction.prediction.likelyEnergy} energy`);
+  lines.push(
+    `Predicted state: ${prediction.prediction.likelyMood} mood, ${prediction.prediction.likelyEnergy} energy`
+  );
 
   if (prediction.approach.shouldReachOut) {
     lines.push(`Approach: ${prediction.approach.tone}`);
@@ -683,4 +684,3 @@ export default {
   formatPredictionForPrompt,
   resetLifeRhythmPrediction,
 };
-

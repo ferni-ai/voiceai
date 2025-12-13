@@ -314,7 +314,7 @@ describe('isMemoryEvent', () => {
       data: {
         memoryId: 'm1',
         memoryType: 'person',
-        content: "User mentioned their sister Sarah",
+        content: 'User mentioned their sister Sarah',
         topics: ['family'],
         emotionalWeight: 'medium',
         personaId: createPersonaId('ferni'),
@@ -488,7 +488,12 @@ describe('isUserEvent', () => {
 describe('isSessionEvent', () => {
   it('returns true for events with userId and sessionId', () => {
     const event: SessionEvent = {
-      ...createSessionEvent('conversation.started', createUserId('u1'), createSessionId('s1'), 'test'),
+      ...createSessionEvent(
+        'conversation.started',
+        createUserId('u1'),
+        createSessionId('s1'),
+        'test'
+      ),
       type: 'conversation.started',
     };
 
@@ -547,7 +552,12 @@ describe('Event type guards integration', () => {
 
   it('session events are also user events', () => {
     const sessionEvent: SessionEvent = {
-      ...createSessionEvent('conversation.started', createUserId('u1'), createSessionId('s1'), 'test'),
+      ...createSessionEvent(
+        'conversation.started',
+        createUserId('u1'),
+        createSessionId('s1'),
+        'test'
+      ),
       type: 'conversation.started',
     };
 
@@ -558,7 +568,12 @@ describe('Event type guards integration', () => {
   it('can filter events by type', () => {
     const events: DomainEvent[] = [
       {
-        ...createSessionEvent('conversation.started', createUserId('u1'), createSessionId('s1'), 'test'),
+        ...createSessionEvent(
+          'conversation.started',
+          createUserId('u1'),
+          createSessionId('s1'),
+          'test'
+        ),
         type: 'conversation.started',
         data: { personaId: createPersonaId('ferni') },
       } as ConversationStartedEvent,

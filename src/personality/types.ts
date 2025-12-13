@@ -285,7 +285,7 @@ export interface HumanPersonalityContext {
   relevantMoment?: RelevanceMatch;
 
   /** User moments extracted from their message (to store) */
-  extractedUserMoments: Omit<UserMomentRecord, 'id' | 'sharedAt'>[];
+  extractedUserMoments: Array<Omit<UserMomentRecord, 'id' | 'sharedAt'>>;
 
   /** Debug info */
   debug: {

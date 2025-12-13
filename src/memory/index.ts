@@ -94,10 +94,7 @@ export {
 } from './user-memory-indexer.js';
 
 // Human Signal Extractor (conversation → human memory)
-export {
-  extractHumanSignals,
-  mergeSignalsIntoMemory,
-} from './human-signal-extractor.js';
+export { extractHumanSignals, mergeSignalsIntoMemory } from './human-signal-extractor.js';
 
 // Summarization
 export {
@@ -485,7 +482,7 @@ let initializingPromise: Promise<MemorySystemResult> | null = null;
  * - Development: VectorStore (ephemeral, in-memory)
  *
  * Optional Redis cache for sessions.
- * 
+ *
  * NOTE: This function is idempotent - subsequent calls return cached result.
  */
 export async function initializeMemorySystem(
@@ -496,12 +493,12 @@ export async function initializeMemorySystem(
     getLogger().debug('Memory system already initialized, returning cached result');
     return cachedMemorySystem;
   }
-  
+
   // If initialization is in progress, wait for it
   if (initializingPromise) {
     return initializingPromise;
   }
-  
+
   // Start initialization
   initializingPromise = doInitializeMemorySystem(config);
   try {
@@ -512,9 +509,7 @@ export async function initializeMemorySystem(
   }
 }
 
-async function doInitializeMemorySystem(
-  config?: MemorySystemConfig
-): Promise<MemorySystemResult> {
+async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<MemorySystemResult> {
   getLogger().info('Initializing memory system...');
 
   const storeType = config?.storeType || detectStoreType();
@@ -533,7 +528,7 @@ async function doInitializeMemorySystem(
   // Initialize vector store - use persistent Firestore store in production
   // With skipFirestoreInit=true, skip the blocking initialize() call - it happens on first use
   let vectorStore: VectorStore | FirestoreVectorStore;
-  
+
   if (usePersistentVectors) {
     getLogger().info({ lazy: skipInit }, 'Using persistent FirestoreVectorStore');
     const firestoreVectorStore = getFirestoreVectorStore();

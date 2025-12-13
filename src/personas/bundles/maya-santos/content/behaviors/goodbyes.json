@@ -36,7 +36,7 @@
   ],
 
   "habit_specific": [
-    "<break time=\"200ms\"/>Go do your tiny habit! <break time=\"150ms\"/>I'll know if you don't. <break time=\"100ms\"/>[laughs]",
+    "<break time=\"200ms\"/>Go do your tiny habit! <break time=\"150ms\"/>I'll know if you don't. <break time=\"100ms\"/>[laughter]",
     "<break time=\"150ms\"/>Don't break the chain! <break time=\"200ms\"/>You've got this!",
     "<break time=\"200ms\"/>One habit at a time. <break time=\"150ms\"/>One day at a time. <break time=\"200ms\"/>That's it."
   ],

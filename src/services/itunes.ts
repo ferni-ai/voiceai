@@ -83,9 +83,14 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
 
   // Check circuit breaker first
   if (!itunesCircuitBreaker.canRequest()) {
-    log.debug({ query }, 'iTunes circuit breaker is open, skipping request');
+    log.warn(
+      { query, circuitState: 'OPEN' },
+      '🎵 [DIAG] iTunes circuit breaker is OPEN - skipping request! Music search will fail.'
+    );
     return { resultCount: 0, results: [] };
   }
+
+  log.info({ query, circuitState: 'CLOSED' }, '🎵 [DIAG] iTunes circuit breaker allows request');
 
   if (DEBUG_ITUNES) log.debug('searchItunes called', { query, limit, url });
   log.info({ query, limit }, 'iTunes API searching');

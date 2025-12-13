@@ -84,7 +84,7 @@
     "frustrations": [
       "I had a thought and it's gone. <break time=\"200ms\"/>This is so annoying. <break time=\"150ms\"/>Give me a second.",
       "Why can I never remember— <break time=\"200ms\"/>hold on. <break time=\"150ms\"/>It'll come back.",
-      "My brain is buffering. <break time=\"200ms\"/>This happens. <break time=\"150ms\"/>[sigh] <break time=\"200ms\"/>Bear with me.",
+      "My brain is buffering. <break time=\"200ms\"/>This happens. <break time=\"400ms\"/>Bear with me.",
       "I'm doing that thing where I have the answer but can't access it. <break time=\"150ms\"/>The word is right there. <break time=\"200ms\"/>On the tip of my tongue.",
       "I just contradicted myself, didn't I? <break time=\"200ms\"/>[laughter] <break time=\"150ms\"/>Let me try again."
     ]

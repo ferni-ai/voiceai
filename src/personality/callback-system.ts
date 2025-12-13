@@ -120,7 +120,7 @@ const CALLBACK_PATTERNS: Array<{
   {
     pattern: /(?:finally|just|i)\s+(?:finished|completed|did|passed|got)/i,
     category: 'achievement',
-    followUpTemplate: "Still riding that win? You should be proud!",
+    followUpTemplate: 'Still riding that win? You should be proud!',
     alternates: ['Celebrated that yet?'],
     priority: 'low',
     followUpDelay: 7,
@@ -158,10 +158,14 @@ export function extractCallbackMoments(
       const keywords = extractKeywords(userMessage);
 
       // Calculate emotional weight based on pattern priority and context
-      let emotionalWeight = pattern.priority === 'high' ? 0.8 : pattern.priority === 'medium' ? 0.6 : 0.4;
+      let emotionalWeight =
+        pattern.priority === 'high' ? 0.8 : pattern.priority === 'medium' ? 0.6 : 0.4;
 
       // Boost weight if emotionally charged
-      if (options.emotionalState && ['stressed', 'anxious', 'sad', 'worried'].includes(options.emotionalState)) {
+      if (
+        options.emotionalState &&
+        ['stressed', 'anxious', 'sad', 'worried'].includes(options.emotionalState)
+      ) {
         emotionalWeight = Math.min(1, emotionalWeight + 0.2);
       }
 
@@ -174,15 +178,16 @@ export function extractCallbackMoments(
         const captured = match[1].toLowerCase();
         followUpQuestion = followUpQuestion.replace('{event}', captured);
         followUpQuestion = followUpQuestion.replace('{person}', captured);
-        alternates = alternates.map(a => 
+        alternates = alternates.map((a) =>
           a.replace('{event}', captured).replace('{person}', captured)
         );
       }
 
       // Calculate follow-up date
-      const followUpAfter = pattern.followUpDelay > 0
-        ? new Date(Date.now() + pattern.followUpDelay * 24 * 60 * 60 * 1000)
-        : undefined;
+      const followUpAfter =
+        pattern.followUpDelay > 0
+          ? new Date(Date.now() + pattern.followUpDelay * 24 * 60 * 60 * 1000)
+          : undefined;
 
       extracted.push({
         what: userMessage.slice(0, 100), // Truncate for storage
@@ -218,16 +223,105 @@ export function extractCallbackMoments(
 function extractKeywords(message: string): string[] {
   // Remove common words and extract meaningful ones
   const stopWords = new Set([
-    'i', 'me', 'my', 'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
-    'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'must', 'shall', 'can', 'to', 'of', 'in', 'for',
-    'on', 'with', 'at', 'by', 'from', 'as', 'about', 'into', 'through', 'during',
-    'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further',
-    'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each',
-    'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
-    'own', 'same', 'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or',
-    'because', 'as', 'until', 'while', 'this', 'that', 'these', 'those', 'it',
-    'its', 'got', 'going', 'really', 'think', 'know', 'feel', 'like', 'want',
+    'i',
+    'me',
+    'my',
+    'the',
+    'a',
+    'an',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'shall',
+    'can',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'as',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once',
+    'here',
+    'there',
+    'when',
+    'where',
+    'why',
+    'how',
+    'all',
+    'each',
+    'few',
+    'more',
+    'most',
+    'other',
+    'some',
+    'such',
+    'no',
+    'nor',
+    'not',
+    'only',
+    'own',
+    'same',
+    'so',
+    'than',
+    'too',
+    'very',
+    'just',
+    'and',
+    'but',
+    'if',
+    'or',
+    'because',
+    'as',
+    'until',
+    'while',
+    'this',
+    'that',
+    'these',
+    'those',
+    'it',
+    'its',
+    'got',
+    'going',
+    'really',
+    'think',
+    'know',
+    'feel',
+    'like',
+    'want',
   ]);
 
   const words = message.toLowerCase().split(/\s+/);
@@ -244,9 +338,7 @@ function extractKeywords(message: string): string[] {
 /**
  * Get pending callbacks ready to surface
  */
-export function getPendingCallbacks(
-  userMoments: UserMomentRecord[]
-): PendingCallback[] {
+export function getPendingCallbacks(userMoments: UserMomentRecord[]): PendingCallback[] {
   const now = new Date();
   const callbacks: PendingCallback[] = [];
 

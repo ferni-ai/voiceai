@@ -153,7 +153,7 @@ export async function handleUserRoutes(
     }
 
     // User is authenticated - fetch their preference
-    const userId = optionalAuth.userId;
+    const { userId } = optionalAuth;
     try {
       const store = getDefaultStore();
       const profile = await store.getProfile(userId);

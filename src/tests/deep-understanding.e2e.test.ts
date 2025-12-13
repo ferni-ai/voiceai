@@ -33,7 +33,10 @@ import {
   resetRelationalNetwork,
   getRelationalNetwork,
 } from '../intelligence/relational-network.js';
-import { analyzeResistance, resetResistanceDetection } from '../intelligence/resistance-detection.js';
+import {
+  analyzeResistance,
+  resetResistanceDetection,
+} from '../intelligence/resistance-detection.js';
 import { assessEnergyState, resetEnergyStateInference } from '../intelligence/energy-state.js';
 import { analyzeSubconscious, resetSubconsciousGoals } from '../intelligence/subconscious-goals.js';
 import { analyzeFlow, resetConversationalFlow } from '../intelligence/conversational-flow.js';
@@ -166,7 +169,15 @@ describe('Silence Intelligence', () => {
     );
 
     // Should return a valid silence type
-    expect(['processing', 'emotional', 'reflective', 'hesitant', 'resistive', 'relational', 'unknown']).toContain(analysis.type);
+    expect([
+      'processing',
+      'emotional',
+      'reflective',
+      'hesitant',
+      'resistive',
+      'relational',
+      'unknown',
+    ]).toContain(analysis.type);
     expect(typeof analysis.confidence).toBe('number');
   });
 
@@ -219,11 +230,7 @@ describe('Life Rhythm Prediction', () => {
 
 describe('Relational Network', () => {
   it('should extract and track person mentions', () => {
-    const mentions = extractPersonMentions(
-      'My mom keeps calling to check on me',
-      'anxious',
-      0.6
-    );
+    const mentions = extractPersonMentions('My mom keeps calling to check on me', 'anxious', 0.6);
 
     expect(mentions.length).toBeGreaterThan(0);
     // Should extract a family-related term
@@ -286,7 +293,7 @@ describe('Resistance Detection', () => {
   it('should detect deflection patterns', () => {
     const analysis = analyzeResistance(
       TEST_USER_ID,
-      "Anyway, have you seen the weather lately?",
+      'Anyway, have you seen the weather lately?',
       'neutral',
       0.4,
       ['weather'],
@@ -312,7 +319,9 @@ describe('Energy State Inference', () => {
     // Should return an energy assessment
     expect(assessment).toBeDefined();
     expect(assessment.physical).toBeDefined();
-    expect(['depleted', 'low', 'moderate', 'high', 'energized']).toContain(assessment.physical.level);
+    expect(['depleted', 'low', 'moderate', 'high', 'energized']).toContain(
+      assessment.physical.level
+    );
   });
 
   it('should adjust for time of day', () => {
@@ -337,13 +346,28 @@ describe('Energy State Inference', () => {
 describe('Subconscious Goals', () => {
   it('should detect unarticulated desires', () => {
     // Build up mentions over multiple calls
-    analyzeSubconscious(TEST_USER_ID, "I keep thinking about whether I should change careers", ['career'], 0.6);
-    analyzeSubconscious(TEST_USER_ID, "Sometimes I wonder what it would be like to start fresh", ['change'], 0.5);
-    analyzeSubconscious(TEST_USER_ID, "I feel stuck but I'm not sure what I want", ['stuck', 'uncertainty'], 0.7);
+    analyzeSubconscious(
+      TEST_USER_ID,
+      'I keep thinking about whether I should change careers',
+      ['career'],
+      0.6
+    );
+    analyzeSubconscious(
+      TEST_USER_ID,
+      'Sometimes I wonder what it would be like to start fresh',
+      ['change'],
+      0.5
+    );
+    analyzeSubconscious(
+      TEST_USER_ID,
+      "I feel stuck but I'm not sure what I want",
+      ['stuck', 'uncertainty'],
+      0.7
+    );
 
     const analysis = analyzeSubconscious(
       TEST_USER_ID,
-      "Everyone seems to know what they want, but I just drift",
+      'Everyone seems to know what they want, but I just drift',
       ['identity', 'purpose'],
       0.65
     );
@@ -434,7 +458,7 @@ describe('Hope Trajectory', () => {
     const analysis = analyzeHope(
       TEST_USER_ID,
       TEST_SESSION_ID,
-      "Things are getting a bit better, slowly",
+      'Things are getting a bit better, slowly',
       ['progress', 'growth'],
       ['hopeful', 'cautious'],
       0.3 // Low stress
@@ -455,7 +479,9 @@ describe('Hope Trajectory', () => {
     );
 
     expect(analysis.alerts.length).toBeGreaterThan(0);
-    expect(analysis.alerts.some((a) => a.type === 'hopelessness' || a.type === 'low_hope')).toBe(true);
+    expect(analysis.alerts.some((a) => a.type === 'hopelessness' || a.type === 'low_hope')).toBe(
+      true
+    );
   });
 });
 
@@ -463,7 +489,7 @@ describe('Life Chapter Awareness', () => {
   it('should detect career transition chapter', () => {
     const analysis = analyzeChapter(
       TEST_USER_ID,
-      "I just got promoted to a management role, and everything is different now",
+      'I just got promoted to a management role, and everything is different now',
       ['career', 'promotion', 'leadership'],
       ['excited', 'anxious']
     );
@@ -535,8 +561,9 @@ describe('Deep Understanding Context Builder Integration', () => {
     await ensureBuildersLoaded();
 
     // Simulate first turn with AI giving advice
-    const { recordResponse } = await import('../intelligence/context-builders/deep-understanding.js');
-    recordResponse(TEST_SESSION_ID, "You should definitely stand up to your boss about this.");
+    const { recordResponse } =
+      await import('../intelligence/context-builders/deep-understanding.js');
+    recordResponse(TEST_SESSION_ID, 'You should definitely stand up to your boss about this.');
 
     // Second turn - user pushes back
     const input = createTestInput(
@@ -590,4 +617,3 @@ describe('All Systems Integration Summary', () => {
     console.log('━'.repeat(50));
   });
 });
-

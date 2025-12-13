@@ -14,10 +14,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Memory system imports
-import {
-  extractHumanSignals,
-  mergeSignalsIntoMemory,
-} from '../memory/human-signal-extractor.js';
+import { extractHumanSignals, mergeSignalsIntoMemory } from '../memory/human-signal-extractor.js';
 import { indexUserMemories, type IndexingResult } from '../memory/user-memory-indexer.js';
 import {
   buildMemoryIndex,
@@ -106,7 +103,7 @@ function createTestConversation(): ConversationTurn[] {
     },
     {
       speaker: 'assistant',
-      text: "It sounds like Michael has really been there for you through this transition. That kind of support is invaluable.",
+      text: 'It sounds like Michael has really been there for you through this transition. That kind of support is invaluable.',
       timestamp: new Date(),
     },
     {
@@ -249,16 +246,12 @@ describe('Memory Index Warming E2E', () => {
     await buildMemoryIndex('test-user-123', profile);
 
     // Get priming memories
-    const memories = await getConversationPrimingMemories(
-      'test-user-123',
-      'ferni',
-      {
-        maxMemories: 5,
-        includeCommitments: true,
-        includeRecentTopics: true,
-        sessionCount: 10,
-      }
-    );
+    const memories = await getConversationPrimingMemories('test-user-123', 'ferni', {
+      maxMemories: 5,
+      includeCommitments: true,
+      includeRecentTopics: true,
+      sessionCount: 10,
+    });
 
     // Should return relevant memories
     expect(memories.length).toBeGreaterThanOrEqual(0);
@@ -284,11 +277,9 @@ describe('Session Priming E2E', () => {
     await buildMemoryIndex('test-user-123', profile);
 
     // Get priming memories
-    const memories = await getConversationPrimingMemories(
-      'test-user-123',
-      'ferni',
-      { maxMemories: 5 }
-    );
+    const memories = await getConversationPrimingMemories('test-user-123', 'ferni', {
+      maxMemories: 5,
+    });
 
     // Generate priming context
     const result = await primer.generatePrimingContext(
@@ -407,14 +398,10 @@ describe('Cross-Persona Memory Handoff', () => {
     await buildMemoryIndex('test-user-123', profile);
 
     // Retrieve memories for handoff to Peter (research specialist)
-    const memories = await getConversationPrimingMemories(
-      'test-user-123',
-      'peter-john',
-      {
-        maxMemories: 3,
-        includeRecentTopics: true,
-      }
-    );
+    const memories = await getConversationPrimingMemories('test-user-123', 'peter-john', {
+      maxMemories: 3,
+      includeRecentTopics: true,
+    });
 
     // Should return memories that Peter can use for context
     expect(Array.isArray(memories)).toBe(true);
@@ -475,11 +462,9 @@ describe('Complete Memory System Flow', () => {
     expect(memoryCount).toBeGreaterThanOrEqual(0);
 
     // 5. PRIME: Generate session priming with real memories
-    const primingMemories = await getConversationPrimingMemories(
-      'test-user-123',
-      'ferni',
-      { maxMemories: 5 }
-    );
+    const primingMemories = await getConversationPrimingMemories('test-user-123', 'ferni', {
+      maxMemories: 5,
+    });
 
     const primer = getSessionPrimer();
     const priming = await primer.generatePrimingContext(
@@ -502,4 +487,3 @@ describe('Complete Memory System Flow', () => {
     expect(Array.isArray(memories)).toBe(true);
   });
 });
-

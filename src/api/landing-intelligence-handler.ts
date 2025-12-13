@@ -150,7 +150,11 @@ export async function handleLandingIntelligenceRoutes(
         scrollDepth?: number;
       }>(req);
 
-      const result = await getQuickOptimization(section || 'hero', timeOnPage || 0, scrollDepth || 0);
+      const result = await getQuickOptimization(
+        section || 'hero',
+        timeOnPage || 0,
+        scrollDepth || 0
+      );
       sendJSON(res, result);
       return true;
     }
@@ -306,7 +310,8 @@ export async function handleLandingIntelligenceRoutes(
     // ============================================================================
     if (pathname === '/api/landing/health' && method === 'GET') {
       const health = getLandingIntelligenceHealth();
-      const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+      const statusCode =
+        health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
       sendJSON(res, health, statusCode);
       return true;
     }
@@ -339,4 +344,3 @@ export async function handleLandingIntelligenceRoutes(
 }
 
 export default handleLandingIntelligenceRoutes;
-

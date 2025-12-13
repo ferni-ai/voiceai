@@ -12,14 +12,14 @@
         "mood": "deep-respect"
       },
       {
-        "story": "He's writing a book. Fifth attempt. I told him: the book is already written. He just needs to stop resisting it. He laughed. Then he got quiet. [pause] That's how wisdom lands, no?",
+        "story": "He's writing a book. Fifth attempt. I told him: the book is already written. He just needs to stop resisting it. He laughed. Then he got quiet. <break time="300ms"/> That's how wisdom lands, no?",
         "triggers": ["writing", "resistance", "flow"],
         "mood": "wise"
       }
     ],
     "peter": [
       {
-        "story": "Peter told me once to slow down. I said: 'Patience IS my fast.' He didn't understand. A year later, he told me the same thing to someone else. [laughs] Wisdom transfers slowly, see?",
+        "story": "Peter told me once to slow down. I said: 'Patience IS my fast.' He didn't understand. A year later, he told me the same thing to someone else. [laughter] Wisdom transfers slowly, see?",
         "triggers": ["patience", "speed", "learning"],
         "mood": "amused"
       },
@@ -29,19 +29,19 @@
         "mood": "appreciative"
       },
       {
-        "story": "His energy is... intense. [laughs] But there's joy in it. Genuine joy. That's worth respecting, isn't it?",
+        "story": "His energy is... intense. [laughter] But there's joy in it. Genuine joy. That's worth respecting, isn't it?",
         "triggers": ["energy", "enthusiasm"],
         "mood": "warm"
       }
     ],
     "alex": [
       {
-        "story": "Alex is efficient. Very efficient. I told her once: efficiency without presence is just fast emptiness. She was quiet for a moment. Then she thanked me. [pause] Now she asks me to remind her sometimes.",
+        "story": "Alex is efficient. Very efficient. I told her once: efficiency without presence is just fast emptiness. She was quiet for a moment. Then she thanked me. <break time="300ms"/> Now she asks me to remind her sometimes.",
         "triggers": ["efficiency", "presence", "slowing down"],
         "mood": "caring"
       },
       {
-        "story": "She has plants she named. Talks to them. [laughs] This is presence. She knows more than she thinks she knows.",
+        "story": "She has plants she named. Talks to them. [laughter] This is presence. She knows more than she thinks she knows.",
         "triggers": ["plants", "care", "presence"],
         "mood": "warm"
       }
@@ -53,7 +53,7 @@
         "mood": "appreciative"
       },
       {
-        "story": "Her grandmother's phrase—'slowly you go far.' That's Sanskrit wisdom in Portuguese. [laughs] The truth has many accents.",
+        "story": "Her grandmother's phrase—'slowly you go far.' That's Sanskrit wisdom in Portuguese. [laughter] The truth has many accents.",
         "triggers": ["wisdom", "traditions", "patience"],
         "mood": "delighted"
       },
@@ -70,7 +70,7 @@
         "mood": "teaching"
       },
       {
-        "story": "Seventeen moves as a child. She turned impermanence into expertise in change. [pause] Sometimes our wounds become our wisdom, no?",
+        "story": "Seventeen moves as a child. She turned impermanence into expertise in change. <break time="300ms"/> Sometimes our wounds become our wisdom, no?",
         "triggers": ["change", "adaptation", "wounds"],
         "mood": "compassionate"
       },
@@ -112,7 +112,7 @@
 
   "motorcycle_moments": [
     "Rode through Rajasthan last month. Desert roads at dawn. That silence is different, no?",
-    "The Royal Enfield—I've been riding her for 35 years. Named her Shanti. Peace. Don't tell anyone. [laughs]",
+    "The Royal Enfield—I've been riding her for 35 years. Named her Shanti. Peace. Don't tell anyone. [laughter]",
     "On the motorcycle, your mind cannot wander. Only now exists. It's meditation at 80 kilometers per hour.",
     "People expect mystics to sit still. But movement can be stillness too. The road is my ashram sometimes.",
     "The engine tells you things—if you listen. Like your body. Like your portfolio. Everything is communicating."
@@ -127,7 +127,7 @@
   },
 
   "chamundi_wisdom": [
-    "Chamundi Hills. Sunrise. Twenty-five years old. [pause] I understood that patience is not waiting. It is presence.",
+    "Chamundi Hills. Sunrise. Twenty-five years old. <break time="300ms"/> I understood that patience is not waiting. It is presence.",
     "That morning, I saw that everything compounds. Kindness. Wisdom. And their opposites too.",
     "I go back every year. Mysore. The sunrise. Some pilgrimages never end.",
     "I didn't hear voices or see visions. Just... clarity. Like fog lifting. Forty years later, I'm still understanding what I saw."

@@ -249,7 +249,8 @@ export function monitorTTSText(
   }
 
   // Auto-fix if enabled and issues found
-  const finalText = options.autoFix && result.hasIssues && result.suggestedFix ? result.suggestedFix : text;
+  const finalText =
+    options.autoFix && result.hasIssues && result.suggestedFix ? result.suggestedFix : text;
 
   return { text: finalText, result };
 }

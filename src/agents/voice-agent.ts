@@ -36,7 +36,9 @@ process.stderr.write(`[voice-agent] ${_startInfo}\n`);
 // Child processes only need the agent definition, not all the plugins
 const IS_CHILD_PROCESS = !!process.send;
 if (IS_CHILD_PROCESS) {
-  process.stderr.write(`[voice-agent] CHILD PROCESS - deferring heavy imports (pid=${process.pid})\n`);
+  process.stderr.write(
+    `[voice-agent] CHILD PROCESS - deferring heavy imports (pid=${process.pid})\n`
+  );
 }
 
 // Core LiveKit imports - needed for both main and child
@@ -70,15 +72,19 @@ process.stderr.write(`[voice-agent] early-logger ready (pid=${process.pid})\n`);
 let google: typeof googleType | null = null;
 let silero: typeof sileroType | null = null;
 let Modality: typeof ModalityType | null = null;
-let TelephonyBackgroundVoiceCancellation: typeof import('@livekit/noise-cancellation-node').TelephonyBackgroundVoiceCancellation | null = null;
-let tagTextWithSsmlPersonaAware: typeof import('../ssml/index.js').tagTextWithSsmlPersonaAware | null = null;
+let TelephonyBackgroundVoiceCancellation:
+  | typeof import('@livekit/noise-cancellation-node').TelephonyBackgroundVoiceCancellation
+  | null = null;
+let tagTextWithSsmlPersonaAware:
+  | typeof import('../ssml/index.js').tagTextWithSsmlPersonaAware
+  | null = null;
 
 async function loadHeavyImports(): Promise<void> {
   if (google) return; // Already loaded
-  
+
   process.stderr.write(`[voice-agent] Loading heavy imports (pid=${process.pid})\n`);
   const start = Date.now();
-  
+
   const [googleModule, sileroModule, genaiModule, ncModule, ssmlModule] = await Promise.all([
     import('@livekit/agents-plugin-google'),
     import('@livekit/agents-plugin-silero'),
@@ -86,14 +92,16 @@ async function loadHeavyImports(): Promise<void> {
     import('@livekit/noise-cancellation-node'),
     import('../ssml/index.js'),
   ]);
-  
+
   google = googleModule;
   silero = sileroModule;
   Modality = genaiModule.Modality;
   TelephonyBackgroundVoiceCancellation = ncModule.TelephonyBackgroundVoiceCancellation;
   tagTextWithSsmlPersonaAware = ssmlModule.tagTextWithSsmlPersonaAware;
-  
-  process.stderr.write(`[voice-agent] Heavy imports loaded (${Date.now() - start}ms, pid=${process.pid})\n`);
+
+  process.stderr.write(
+    `[voice-agent] Heavy imports loaded (${Date.now() - start}ms, pid=${process.pid})\n`
+  );
 }
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
@@ -176,7 +184,10 @@ import { diag } from '../services/diagnostic-logger.js';
 import { getSessionAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
 // Gemini multimodal emotion analysis (experimental feature)
-import { startEmotionStream, clearSession as clearGeminiSession } from '../services/emotion-analysis/hume.js';
+import {
+  startEmotionStream,
+  clearSession as clearGeminiSession,
+} from '../services/emotion-analysis/hume.js';
 import { isExperimentalEnabled } from '../config/feature-flags.js';
 
 // Emotion matching - connect prosody to voice response
@@ -187,10 +198,7 @@ import {
 } from '../speech/emotion-matching.js';
 
 // Conversation dynamics - emotional arc, response length, story timing
-import {
-  getEmotionalArcTracker,
-  getResponseDynamicsEngine,
-} from '../conversation/index.js';
+import { getEmotionalArcTracker, getResponseDynamicsEngine } from '../conversation/index.js';
 
 // 🎭 UNIFIED CONVERSATION HUMANIZATION (replaces scattered humanization calls)
 // NOTE: These are loaded DYNAMICALLY to avoid slowing down agent startup
@@ -534,6 +542,26 @@ class VoiceAgent extends voice.Agent<UserData> {
     // Log final tool count - should be 40-60 per agent for optimal Gemini performance
     const toolNames = Object.keys(toolsForAgent);
     const perfSummary = perfInstrumentation.getSummary();
+
+    // 🔍 DIAGNOSTIC: Check specifically for music tools
+    const musicToolNames = toolNames.filter(
+      (name) =>
+        name.toLowerCase().includes('music') ||
+        name.toLowerCase().includes('spotify') ||
+        name === 'playMusic' ||
+        name === 'pauseMusic'
+    );
+    logger.info(
+      {
+        musicToolCount: musicToolNames.length,
+        musicTools: musicToolNames,
+        hasPlayMusic: toolNames.includes('playMusic'),
+        hasMusicControl: toolNames.includes('musicControl'),
+        hasMusicInfo: toolNames.includes('musicInfo'),
+      },
+      '🎵 [DIAG] Music tools in final agent toolset'
+    );
+
     logger.info(
       {
         personaId: persona.id,
@@ -630,7 +658,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                     {
                       features: humanized.appliedFeatures,
                       pacing: humanized.pacing,
-                      timing: humanized.timing.total.toFixed(0) + 'ms',
+                      timing: `${humanized.timing.total.toFixed(0)}ms`,
                     },
                     'Post-LLM humanization applied'
                   );
@@ -2899,9 +2927,9 @@ export default defineAgent({
       // These run in parallel for faster session start (~100ms savings)
       let utilitiesCleanup: (() => Promise<void>) | undefined;
       let utilitiesProactiveOpener: string | null = null;
-      
+
       const parallelInitStart = Date.now();
-      
+
       const parallelInits = await Promise.allSettled([
         // STEP 6b: Engagement data sender
         (async () => {
@@ -2951,24 +2979,24 @@ export default defineAgent({
           return 'utilities';
         })(),
       ]);
-      
+
       // Log results
       const parallelElapsed = Date.now() - parallelInitStart;
-      const succeeded = parallelInits.filter(r => r.status === 'fulfilled').length;
-      const failed = parallelInits.filter(r => r.status === 'rejected');
-      
+      const succeeded = parallelInits.filter((r) => r.status === 'fulfilled').length;
+      const failed = parallelInits.filter((r) => r.status === 'rejected');
+
       diag.state('Parallel session init complete', {
         elapsedMs: parallelElapsed,
         succeeded,
         failed: failed.length,
         hasProactiveOpener: !!utilitiesProactiveOpener,
       });
-      
+
       // Log any failures (all non-critical)
       for (const failure of failed) {
         if (failure.status === 'rejected') {
-          diag.debug('Parallel init failure (non-critical)', { 
-            error: String(failure.reason).slice(0, 100) 
+          diag.debug('Parallel init failure (non-critical)', {
+            error: String(failure.reason).slice(0, 100),
           });
         }
       }

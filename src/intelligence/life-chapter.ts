@@ -124,11 +124,14 @@ export interface ChapterProfile {
 // CHAPTER DETECTION PATTERNS
 // ============================================================================
 
-const CHAPTER_SIGNALS: Record<ChapterType, {
-  patterns: RegExp[];
-  keywords: string[];
-  emotionalSignatures: string[];
-}> = {
+const CHAPTER_SIGNALS: Record<
+  ChapterType,
+  {
+    patterns: RegExp[];
+    keywords: string[];
+    emotionalSignatures: string[];
+  }
+> = {
   building_career: {
     patterns: [
       /just\s+(started|got)\s+(a\s+)?(new\s+)?(job|position|role)/i,
@@ -493,7 +496,11 @@ export function analyzeChapter(
   profile.metadata.totalEvidence = profile.evidence.length;
 
   log.debug(
-    { userId, chapter: profile.chapter.current.chapter, confidence: profile.chapter.current.confidence },
+    {
+      userId,
+      chapter: profile.chapter.current.chapter,
+      confidence: profile.chapter.current.confidence,
+    },
     '📖 Life chapter updated'
   );
 
@@ -580,7 +587,7 @@ function updateChapterAssessment(profile: ChapterProfile): void {
  * Detect transition state
  */
 function detectTransitionState(profile: ChapterProfile, text: string): void {
-  const transition = profile.chapter.transition;
+  const { transition } = profile.chapter;
 
   // Grief detection (what they're mourning)
   const griefPatterns = [
@@ -650,13 +657,13 @@ function detectTransitionState(profile: ChapterProfile, text: string): void {
  * Identify what they need in this chapter
  */
 function identifyChapterNeeds(profile: ChapterProfile, text: string, emotions: string[]): void {
-  const needs = profile.chapter.needs;
-  const chapter = profile.chapter.current.chapter;
+  const { needs } = profile.chapter;
+  const { chapter } = profile.chapter.current;
 
   // Chapter-specific needs
   const chapterNeeds: Partial<Record<ChapterType, LifeChapter['needs']>> = {
     career_transition: {
-      validation: ['It\'s okay to want more', 'Your feelings are valid'],
+      validation: ["It's okay to want more", 'Your feelings are valid'],
       permission: ['To explore', 'To leave', 'To prioritize yourself'],
       guidance: ['What steps to take', 'How to think about this'],
       witnessing: ['The fear', 'The excitement', 'The uncertainty'],
@@ -668,19 +675,19 @@ function identifyChapterNeeds(profile: ChapterProfile, text: string, emotions: s
       witnessing: ['The pain', 'The history', 'The loss'],
     },
     healing_journey: {
-      validation: ['Your healing matters', 'Progress isn\'t linear'],
+      validation: ['Your healing matters', "Progress isn't linear"],
       permission: ['To take time', 'To set boundaries', 'To feel'],
       guidance: ['When to push vs. rest', 'Resources and support'],
-      witnessing: ['The work you\'re doing', 'How far you\'ve come'],
+      witnessing: ["The work you're doing", "How far you've come"],
     },
     midlife_reflection: {
       validation: ['These questions are normal', 'This matters'],
       permission: ['To question', 'To want more', 'To change'],
       guidance: ['Making sense of the past', 'Choosing the future'],
-      witnessing: ['The life you\'ve built', 'Your growth'],
+      witnessing: ["The life you've built", 'Your growth'],
     },
     identity_exploration: {
-      validation: ['It\'s okay not to know', 'Exploration is growth'],
+      validation: ["It's okay not to know", 'Exploration is growth'],
       permission: ['To experiment', 'To change your mind', 'To be multiple things'],
       guidance: ['How to explore safely', 'Questions to ask yourself'],
       witnessing: ['The search', 'Who you are becoming'],
@@ -710,30 +717,33 @@ function identifyChapterNeeds(profile: ChapterProfile, text: string, emotions: s
  * Build chapter-specific guidance
  */
 function buildChapterGuidance(profile: ChapterProfile): ChapterAnalysis['guidance'] {
-  const chapter = profile.chapter;
+  const { chapter } = profile;
 
   const chapterApproaches: Partial<Record<ChapterType, string>> = {
     career_transition: 'Explore the desire without rushing to solutions. Honor the complexity.',
-    relationship_ending: 'Hold space for grief. Don\'t try to fix or move past too quickly.',
-    healing_journey: 'Celebrate small wins. Don\'t push pace. Affirm their agency in healing.',
-    midlife_reflection: 'Take the questions seriously. Don\'t minimize the search for meaning.',
+    relationship_ending: "Hold space for grief. Don't try to fix or move past too quickly.",
+    healing_journey: "Celebrate small wins. Don't push pace. Affirm their agency in healing.",
+    midlife_reflection: "Take the questions seriously. Don't minimize the search for meaning.",
     identity_exploration: 'Be curious, not directive. Reflect back what you see without judging.',
-    grief_processing: 'Follow their lead. Share space with the loss. Let them talk about the person.',
+    grief_processing:
+      'Follow their lead. Share space with the loss. Let them talk about the person.',
     fresh_start: 'Balance hope with acknowledging what was left behind.',
   };
 
   const approach = chapterApproaches[chapter.current.chapter] || 'Meet them where they are.';
 
   const validate = chapter.needs.validation.slice(0, 2);
-  const explore = chapter.transition.phase === 'entering'
-    ? ['What draws you to this new chapter?', 'What feels different now?']
-    : chapter.transition.phase === 'exiting'
-      ? ['What are you leaving behind?', 'What do you want to carry forward?']
-      : ['What\'s most present for you in this chapter?'];
+  const explore =
+    chapter.transition.phase === 'entering'
+      ? ['What draws you to this new chapter?', 'What feels different now?']
+      : chapter.transition.phase === 'exiting'
+        ? ['What are you leaving behind?', 'What do you want to carry forward?']
+        : ["What's most present for you in this chapter?"];
 
-  const avoid = chapter.transition.grief.length > 0
-    ? ['Rushing past the grief', 'Silver linings', 'Fixing']
-    : ['Dismissing the significance', 'Advice before understanding'];
+  const avoid =
+    chapter.transition.grief.length > 0
+      ? ['Rushing past the grief', 'Silver linings', 'Fixing']
+      : ['Dismissing the significance', 'Advice before understanding'];
 
   return { approach, validate, explore, avoid };
 }
@@ -755,7 +765,7 @@ function generateNarrativeInsight(
   }
 
   // Generate insight based on chapter and transition
-  const chapter = profile.chapter;
+  const { chapter } = profile;
 
   if (chapter.transition.phase === 'entering' && chapter.transition.leaving) {
     return `It sounds like you're in a real transition right now—moving from ${formatChapterName(chapter.transition.leaving)} into ${formatChapterName(chapter.current.chapter)}. That's a significant shift.`;
@@ -876,4 +886,3 @@ export default {
   formatChapterForPrompt,
   resetLifeChapterAwareness,
 };
-

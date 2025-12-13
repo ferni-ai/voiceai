@@ -380,7 +380,10 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       // Check if this is a permanent failure (invalid_grant, etc.)
       if (error instanceof TokenPermanentlyInvalidError) {
         markTokenAsFailed(userId);
-        getLogger().warn({ userId }, 'OAuth token permanently invalid - user needs to re-authenticate');
+        getLogger().warn(
+          { userId },
+          'OAuth token permanently invalid - user needs to re-authenticate'
+        );
       } else {
         getLogger().error({ userId, error }, 'Failed to refresh tokens');
       }

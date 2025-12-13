@@ -164,11 +164,7 @@ const PERSONA_DISFLUENCIES: Record<
 const DEFAULT_DISFLUENCIES = {
   fillers: ['Um...', 'Uh...', 'So...'],
   hedges: ['I think', 'Maybe', 'Probably', 'It seems like'],
-  repairs: [
-    'Actually, let me rephrase.',
-    'Wait—',
-    "No, here's what I mean:",
-  ],
+  repairs: ['Actually, let me rephrase.', 'Wait—', "No, here's what I mean:"],
   thinkingPhrases: ['Okay.', 'Right.', 'Yeah.'], // Brief acknowledgments only
 };
 

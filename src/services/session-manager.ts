@@ -433,7 +433,7 @@ export async function createSessionServices(
       // MEMORY INDEX WARMING - Build index at session START for returning users
       // This ensures semantic retrieval works from turn 1, not just after indexing
       // ========================================================================
-      let primingMemories: import('../memory/advanced-retrieval.js').MemoryItem[] = [];
+      let primingMemories: Array<import('../memory/advanced-retrieval.js').MemoryItem> = [];
       try {
         // Build memory index from user profile (fast if already built)
         await buildMemoryIndex(validatedUserId, userProfile);
@@ -1587,10 +1587,7 @@ export async function createSessionServices(
               });
 
               // Only merge if we found meaningful signals
-              const totalSignals = Object.values(signals).reduce(
-                (sum, arr) => sum + arr.length,
-                0
-              );
+              const totalSignals = Object.values(signals).reduce((sum, arr) => sum + arr.length, 0);
 
               if (totalSignals > 0) {
                 updatedProfile.humanMemory = mergeSignalsIntoMemory(
@@ -1647,21 +1644,41 @@ export async function createSessionServices(
               // Index both profile data AND human-centric memory
               categories: [
                 // Profile data (P1)
-                'key_moment', 'person', 'thread', 'followup', 'life_event', 'goal',
+                'key_moment',
+                'person',
+                'thread',
+                'followup',
+                'life_event',
+                'goal',
                 // Human memory (P0/P1)
-                'important_date', 'value', 'dream', 'fear', 'growth_marker',
-                'challenge', 'comfort_pattern', 'stress_trigger',
+                'important_date',
+                'value',
+                'dream',
+                'fear',
+                'growth_marker',
+                'challenge',
+                'comfort_pattern',
+                'stress_trigger',
               ],
-            }).then((result) => {
-              if (result.indexed > 0) {
-                getLogger().info(
-                  { userId: validatedUserId, indexed: result.indexed, categories: result.categories },
-                  '🧠 User memories indexed for semantic search'
+            })
+              .then((result) => {
+                if (result.indexed > 0) {
+                  getLogger().info(
+                    {
+                      userId: validatedUserId,
+                      indexed: result.indexed,
+                      categories: result.categories,
+                    },
+                    '🧠 User memories indexed for semantic search'
+                  );
+                }
+              })
+              .catch((err) => {
+                getLogger().debug(
+                  { error: String(err) },
+                  'User memory indexing failed (non-blocking)'
                 );
-              }
-            }).catch((err) => {
-              getLogger().debug({ error: String(err) }, 'User memory indexing failed (non-blocking)');
-            });
+              });
           } catch (indexErr) {
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }

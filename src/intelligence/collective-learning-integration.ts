@@ -19,10 +19,7 @@ import {
   type ResponseStrategySignal,
   type StoryResonance,
 } from './community-insights.js';
-import {
-  getAgentEvolution,
-  type PersonaAdjustment,
-} from './agent-evolution.js';
+import { getAgentEvolution, type PersonaAdjustment } from './agent-evolution.js';
 import type { EmotionResult } from './emotion-detector.js';
 import type { IntentResult } from './intent-classifier.js';
 
@@ -99,7 +96,8 @@ export interface BreakthroughSignal {
 class SignalCollector {
   private responseSignals: Array<ResponseStrategySignal & { sessionId: string }> = [];
   private storySignals: Array<StoryUsageSignal & ConversationSignalContext> = [];
-  private breakthroughSignals: Array<BreakthroughSignal & { personaId: string; topic: string }> = [];
+  private breakthroughSignals: Array<BreakthroughSignal & { personaId: string; topic: string }> =
+    [];
 
   private flushIntervalId: ReturnType<typeof setInterval> | null = null;
   private isInitialized = false;
@@ -112,7 +110,7 @@ class SignalCollector {
 
     // Flush signals every 30 seconds
     this.flushIntervalId = setInterval(() => {
-      this.flush().catch(err => {
+      this.flush().catch((err) => {
         log.warn({ error: err }, 'Failed to flush signals');
       });
     }, 30000);
@@ -174,11 +172,14 @@ class SignalCollector {
 
     this.responseSignals.push(signal);
 
-    log.debug({
-      sessionId: context.sessionId,
-      responseType: response.responseType,
-      engagement: reaction.engagementScore,
-    }, 'Response signal recorded');
+    log.debug(
+      {
+        sessionId: context.sessionId,
+        responseType: response.responseType,
+        engagement: reaction.engagementScore,
+      },
+      'Response signal recorded'
+    );
   }
 
   /**
@@ -190,32 +191,34 @@ class SignalCollector {
       ...context,
     });
 
-    log.debug({
-      sessionId: context.sessionId,
-      storyId: story.storyId,
-      reaction: story.reaction,
-    }, 'Story signal recorded');
+    log.debug(
+      {
+        sessionId: context.sessionId,
+        storyId: story.storyId,
+        reaction: story.reaction,
+      },
+      'Story signal recorded'
+    );
   }
 
   /**
    * Record a breakthrough question signal
    */
-  recordBreakthrough(
-    personaId: string,
-    topic: string,
-    breakthrough: BreakthroughSignal
-  ): void {
+  recordBreakthrough(personaId: string, topic: string, breakthrough: BreakthroughSignal): void {
     this.breakthroughSignals.push({
       ...breakthrough,
       personaId,
       topic,
     });
 
-    log.debug({
-      personaId,
-      topic,
-      question: breakthrough.questionPattern.slice(0, 50),
-    }, 'Breakthrough signal recorded');
+    log.debug(
+      {
+        personaId,
+        topic,
+        question: breakthrough.questionPattern.slice(0, 50),
+      },
+      'Breakthrough signal recorded'
+    );
   }
 
   /**
@@ -278,11 +281,14 @@ class SignalCollector {
     this.breakthroughSignals = [];
 
     if (responseCount + storyCount + breakthroughCount > 0) {
-      log.info({
-        responses: responseCount,
-        stories: storyCount,
-        breakthroughs: breakthroughCount,
-      }, '📊 Collective learning signals flushed');
+      log.info(
+        {
+          responses: responseCount,
+          stories: storyCount,
+          breakthroughs: breakthroughCount,
+        },
+        '📊 Collective learning signals flushed'
+      );
     }
 
     return {
@@ -326,7 +332,9 @@ export function analyzeResponseType(response: string): ResponseSignalData['respo
   }
 
   // Check for empathy indicators
-  if (/\b(i understand|that (sounds|must be)|i hear you|that's (hard|tough|difficult))\b/i.test(lower)) {
+  if (
+    /\b(i understand|that (sounds|must be)|i hear you|that's (hard|tough|difficult))\b/i.test(lower)
+  ) {
     return 'empathy';
   }
 
@@ -388,8 +396,10 @@ export function analyzeUserEngagement(
   // Determine emotional shift
   let emotionalShift: UserReactionSignal['emotionalShift'] = 'neutral';
   if (previousEmotion && currentEmotion) {
-    const prevValence = previousEmotion.valence === 'positive' ? 1 : previousEmotion.valence === 'negative' ? -1 : 0;
-    const currValence = currentEmotion.valence === 'positive' ? 1 : currentEmotion.valence === 'negative' ? -1 : 0;
+    const prevValence =
+      previousEmotion.valence === 'positive' ? 1 : previousEmotion.valence === 'negative' ? -1 : 0;
+    const currValence =
+      currentEmotion.valence === 'positive' ? 1 : currentEmotion.valence === 'negative' ? -1 : 0;
 
     if (currValence > prevValence) emotionalShift = 'positive';
     else if (currValence < prevValence) emotionalShift = 'negative';
@@ -528,8 +538,8 @@ export function getCollectiveRecommendations(params: {
   return {
     bestStrategy: strategy?.strategy,
     strategyConfidence: strategy?.confidence,
-    recommendedQuestions: questions.map(q => q.question),
-    personaAdjustments: adjustments.map(a => a.adjustment.content),
+    recommendedQuestions: questions.map((q) => q.question),
+    personaAdjustments: adjustments.map((a) => a.adjustment.content),
   };
 }
 
@@ -549,4 +559,3 @@ export default {
   analyzeResponseLength,
   analyzeUserEngagement,
 };
-

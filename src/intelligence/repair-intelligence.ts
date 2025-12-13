@@ -378,7 +378,9 @@ export function detectMisunderstanding(
   }
 
   // Determine repair strategy
-  const repairStrategy = detected ? determineRepairStrategy(type!, severity, profile) : 'acknowledge';
+  const repairStrategy = detected
+    ? determineRepairStrategy(type!, severity, profile)
+    : 'acknowledge';
 
   // Update profile if misunderstanding detected
   if (detected && type) {
@@ -408,7 +410,8 @@ function buildWhatWentWrong(
   const descriptions: Record<MisunderstandingType, string> = {
     tone: 'The tone may have been off - too casual, too serious, or not matching their energy.',
     content: 'Something was misunderstood about what they said or meant.',
-    intent: 'Their intent was misread - they may have wanted something different than what was provided.',
+    intent:
+      'Their intent was misread - they may have wanted something different than what was provided.',
     timing: 'The timing was off - perhaps pushing when they needed space.',
     assumption: 'An assumption was made that may not be accurate.',
     boundary: 'A boundary may have been crossed - too personal or intrusive.',
@@ -416,7 +419,7 @@ function buildWhatWentWrong(
     focus: 'The focus was on the wrong aspect of what they shared.',
   };
 
-  return descriptions[type] || 'Something in the response didn\'t land well.';
+  return descriptions[type] || "Something in the response didn't land well.";
 }
 
 /**
@@ -474,7 +477,10 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
   const { type, severity, repairStrategy } = detection;
 
   // Strategy-specific repair phrases
-  const repairs: Record<RepairStrategy, { openers: string[]; templates: string[]; avoid: string[] }> = {
+  const repairs: Record<
+    RepairStrategy,
+    { openers: string[]; templates: string[]; avoid: string[] }
+  > = {
     acknowledge: {
       openers: [
         'I hear that.',
@@ -483,7 +489,7 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
         "You're right.",
       ],
       templates: [
-        "I hear that. Let me try again.",
+        'I hear that. Let me try again.',
         "That didn't come out right. What I meant was...",
         "I can see that didn't land. Let's back up.",
       ],
@@ -492,15 +498,15 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
     clarify: {
       openers: [
         'Help me understand better.',
-        'Let me make sure I\'m tracking.',
+        "Let me make sure I'm tracking.",
         'Can you say more about that?',
       ],
       templates: [
-        "Help me understand better - what am I missing?",
+        'Help me understand better - what am I missing?',
         "I want to make sure I'm hearing you right. You're saying...",
-        "Let me check my understanding. Is it that...?",
+        'Let me check my understanding. Is it that...?',
       ],
-      avoid: ["What do you mean?", "I don't understand"],
+      avoid: ['What do you mean?', "I don't understand"],
     },
     reframe: {
       openers: [
@@ -509,76 +515,60 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
         'Coming at it differently...',
       ],
       templates: [
-        "Let me try that differently. What if we looked at it as...",
-        "Maybe I was overcomplicating it. Simply put...",
-        "Different approach: what matters most to you here?",
+        'Let me try that differently. What if we looked at it as...',
+        'Maybe I was overcomplicating it. Simply put...',
+        'Different approach: what matters most to you here?',
       ],
-      avoid: ["What I was TRYING to say", "Let me explain it another way"],
+      avoid: ['What I was TRYING to say', 'Let me explain it another way'],
     },
     apologize: {
-      openers: [
-        "I'm sorry.",
-        "My bad.",
-        "That was out of line.",
-        'I overstepped.',
-      ],
+      openers: ["I'm sorry.", 'My bad.', 'That was out of line.', 'I overstepped.'],
       templates: [
         "I'm sorry. That wasn't my place.",
-        "I overstepped there. Thank you for saying something.",
+        'I overstepped there. Thank you for saying something.',
         "My bad - I shouldn't have assumed that.",
       ],
-      avoid: ["I'm sorry if you felt", "I didn't mean to but", "Sorry but"],
+      avoid: ["I'm sorry if you felt", "I didn't mean to but", 'Sorry but'],
     },
     redirect: {
-      openers: [
-        "Let's shift gears.",
-        "You know what, let's park that.",
-        'Different topic:',
-      ],
+      openers: ["Let's shift gears.", "You know what, let's park that.", 'Different topic:'],
       templates: [
         "Let's shift gears. What would actually be helpful right now?",
         "Putting that aside - what's on your mind?",
-        "Let me follow your lead. Where do you want to go with this?",
+        'Let me follow your lead. Where do you want to go with this?',
       ],
-      avoid: ["Anyway...", "Moving on...", "Let's change the subject"],
+      avoid: ['Anyway...', 'Moving on...', "Let's change the subject"],
     },
     validate: {
-      openers: [
-        "You're right to call that out.",
-        'That makes sense.',
-        'I get it.',
-      ],
+      openers: ["You're right to call that out.", 'That makes sense.', 'I get it.'],
       templates: [
         "You're right to push back on that. I was off base.",
         "That makes sense - I wasn't seeing it from your angle.",
-        "I get why that landed wrong. Thank you for being direct.",
+        'I get why that landed wrong. Thank you for being direct.',
       ],
-      avoid: ["But you have to understand", "From my perspective"],
+      avoid: ['But you have to understand', 'From my perspective'],
     },
     space: {
-      openers: [
-        'Take your time.',
-        'No rush.',
-        "We don't have to go there.",
-      ],
+      openers: ['Take your time.', 'No rush.', "We don't have to go there."],
       templates: [
         "We don't have to go there. I'm here when you're ready.",
-        "No pressure. What would feel good to talk about?",
+        'No pressure. What would feel good to talk about?',
         "I pushed too fast. Let's slow down.",
       ],
-      avoid: ["But eventually we should", "When you're ready we can"],
+      avoid: ['But eventually we should', "When you're ready we can"],
     },
   };
 
   const strategyData = repairs[repairStrategy];
   const opener = strategyData.openers[Math.floor(Math.random() * strategyData.openers.length)];
-  const fullRepair = strategyData.templates[Math.floor(Math.random() * strategyData.templates.length)];
+  const fullRepair =
+    strategyData.templates[Math.floor(Math.random() * strategyData.templates.length)];
 
   // Fallback if repair doesn't land
   const fallback =
     severity === 'significant'
       ? "I hear you. I'll follow your lead."
-      : "Got it. What would be helpful?";
+      : 'Got it. What would be helpful?';
 
   return {
     strategy: repairStrategy,
@@ -634,10 +624,7 @@ export function recordRepairOutcome(
     profile.attempts.shift();
   }
 
-  log.info(
-    { userId, strategy: approach.strategy, outcome },
-    '🔧 Repair outcome recorded'
-  );
+  log.info({ userId, strategy: approach.strategy, outcome }, '🔧 Repair outcome recorded');
 }
 
 // ============================================================================
@@ -663,7 +650,9 @@ export function formatRepairForPrompt(
   }
 
   // Describe the approach without literal scripts
-  lines.push(`Repair approach: Acknowledge the misunderstanding, then ${approach.strategy.toLowerCase()}`);
+  lines.push(
+    `Repair approach: Acknowledge the misunderstanding, then ${approach.strategy.toLowerCase()}`
+  );
 
   return lines.join('\n');
 }
@@ -732,4 +721,3 @@ export default {
   quickRepairCheck,
   resetRepairIntelligence,
 };
-

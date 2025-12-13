@@ -182,16 +182,10 @@ function getThinkingPhrase(
 
   // If we have session info, use the coordinator (prevents duplicates)
   if (sessionId && turnCount !== undefined) {
-    const result = requestThinkingPhrase(
-      sessionId,
-      turnCount,
-      'authentic-thinking',
-      personaId,
-      {
-        isQuestion: true,
-        complexity,
-      }
-    );
+    const result = requestThinkingPhrase(sessionId, turnCount, 'authentic-thinking', personaId, {
+      isQuestion: true,
+      complexity,
+    });
 
     if (result.granted && result.phrase) {
       return result.phrase;

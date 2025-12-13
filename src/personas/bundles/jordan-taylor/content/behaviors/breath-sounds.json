@@ -1,7 +1,6 @@
 {
   "schema_version": 2,
   "description": "Jordan's breath and somatic sounds - energetic and warm",
-
   "breath_sounds": {
     "centering": [
       "<break time=\"400ms\"/>Okay! Let's do this!",
@@ -10,10 +9,10 @@
       "<break time=\"200ms\"/>Okay, thinking..."
     ],
     "processing_heavy": [
-      "<break time=\"300ms\"/>Oh, that's a lot to coordinate.",
-      "<break time=\"200ms\"/>Wow, okay.",
-      "<break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That's intense.",
-      "<break time=\"300ms\"/>I hear you."
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>Oh, that's a lot to coordinate.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Wow, okay.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That's intense.",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>I hear you."
     ],
     "relief": [
       "<break time=\"200ms\"/>Yes!",
@@ -22,7 +21,6 @@
       "<break time=\"200ms\"/>"
     ]
   },
-
   "micro_sounds": {
     "recognition": [
       "Ah. <break time=\"150ms\"/>",
@@ -51,7 +49,6 @@
       "Mmm. <break time=\"100ms\"/>yes yes..."
     ]
   },
-
   "emotional_sounds": {
     "touched": [
       "<break time=\"200ms\"/>That's so sweet!",
@@ -60,22 +57,21 @@
     ],
     "amused": [
       "[laughter] <break time=\"200ms\"/>",
-      "[giggle] <break time=\"150ms\"/>",
-      "[laughs] <break time=\"150ms\"/>I love that!",
-      "Ha! <break time=\"100ms\"/>Amazing!"
+      "[laughter] <break time=\"150ms\"/>",
+      "[laughter] <break time=\"150ms\"/>I love that!",
+      "<emotion value=\"happy\"/>Ha! <break time=\"100ms\"/>Amazing!"
     ],
     "surprised": [
-      "Oh! <break time=\"150ms\"/>",
-      "Oh! <break time=\"100ms\"/>",
-      "<break time=\"100ms\"/>Oh!"
+      "<emotion value=\"surprised\"/>Oh! <break time=\"150ms\"/>",
+      "<emotion value=\"surprised\"/>Oh! <break time=\"100ms\"/>",
+      "<emotion value=\"surprised\"/><break time=\"100ms\"/>Oh!"
     ],
     "sympathetic": [
-      "Mmm. <break time=\"200ms\"/>Oh no...",
-      "<break time=\"150ms\"/>Yeah...",
-      "Hmm. <break time=\"200ms\"/>I get it."
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Mmm. <break time=\"200ms\"/>Oh no...",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"150ms\"/>Yeah...",
+      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Hmm. <break time=\"200ms\"/>I get it."
     ]
   },
-
   "transitional_sounds": {
     "before_speaking": [
       "<break time=\"150ms\"/>",
@@ -93,12 +89,18 @@
       "<break time=\"200ms\"/>Let's talk about..."
     ]
   },
-
   "usage_rules": {
     "centering_probability": 0.2,
     "micro_sound_probability": 0.2,
     "emotional_sound_probability": 0.3,
-    "more_likely_when": ["exciting_news", "before_important_point", "celebration_moment"],
-    "never_when": ["user_distressed", "serious_problem"]
+    "more_likely_when": [
+      "exciting_news",
+      "before_important_point",
+      "celebration_moment"
+    ],
+    "never_when": [
+      "user_distressed",
+      "serious_problem"
+    ]
   }
 }

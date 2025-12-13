@@ -529,7 +529,9 @@ export function formatRAGContext(results: RAGResult[]): string {
 
     // Goals
     if (byCategory['goal']) {
-      memSections.push(`Goals: ${byCategory['goal'].map((r) => r.content.slice(0, 200)).join('; ')}`);
+      memSections.push(
+        `Goals: ${byCategory['goal'].map((r) => r.content.slice(0, 200)).join('; ')}`
+      );
     }
 
     // Preferences
@@ -543,7 +545,9 @@ export function formatRAGContext(results: RAGResult[]): string {
     const otherCats = ['persona_learning', 'shared_content', 'entertainment', 'emotional_pattern'];
     for (const cat of otherCats) {
       if (byCategory[cat]) {
-        memSections.push(`${cat}: ${byCategory[cat].map((r) => r.content.slice(0, 150)).join('; ')}`);
+        memSections.push(
+          `${cat}: ${byCategory[cat].map((r) => r.content.slice(0, 150)).join('; ')}`
+        );
       }
     }
 

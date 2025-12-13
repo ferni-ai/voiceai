@@ -358,10 +358,7 @@ export function analyzeSubconscious(
           });
           existingDesire.signalCount++;
           existingDesire.lastSignal = new Date();
-          existingDesire.confidence = Math.min(
-            0.95,
-            existingDesire.confidence + 0.1
-          );
+          existingDesire.confidence = Math.min(0.95, existingDesire.confidence + 0.1);
 
           analysis.reinforcedDesires.push(existingDesire);
         } else {
@@ -434,9 +431,7 @@ export function analyzeSubconscious(
   // ========== DETECT RECURRING THEMES ==========
 
   for (const topic of topics) {
-    const existing = profile.recurringThemes.find(
-      (t) => calculateSimilarity(t.theme, topic) > 0.6
-    );
+    const existing = profile.recurringThemes.find((t) => calculateSimilarity(t.theme, topic) > 0.6);
 
     if (existing) {
       existing.occurrences.push({
@@ -444,7 +439,8 @@ export function analyzeSubconscious(
         context: text.substring(0, 100),
         emotionIntensity,
       });
-      existing.frequency = existing.occurrences.length / Math.max(1, profile.metadata.totalConversations);
+      existing.frequency =
+        existing.occurrences.length / Math.max(1, profile.metadata.totalConversations);
     } else if (topic.length > 3) {
       profile.recurringThemes.push({
         theme: topic,
@@ -769,4 +765,3 @@ export default {
   getSubconsciousSummary,
   resetSubconsciousGoals,
 };
-

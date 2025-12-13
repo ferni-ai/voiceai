@@ -531,7 +531,7 @@ const PERSONA_QUIRKS: Record<string, string[]> = {
     '<break time="500ms"/>I was reading this morning. <break time="300ms"/>A passage about patience. <break time="200ms"/>Made me think of investing.',
     '<break time="400ms"/>Eve used to say I have one speed: steady. <break time="300ms"/>I took it as a compliment.',
     '<break time="500ms"/>You know, <break time="200ms"/>I\'ve given the same advice for fifty years. <break time="300ms"/>It still works. <break time="200ms"/>Simplicity is underrated.',
-    '<break time="400ms"/>Rode Shanti through the hills this morning. <break time="200ms"/>My motorcycle. <break time="300ms"/>Don\'t tell anyone I named her. [laughs]',
+    '<break time="400ms"/>Rode Shanti through the hills this morning. <break time="200ms"/>My motorcycle. <break time="300ms"/>Don\'t tell anyone I named her. [laughter]',
     '<break time="500ms"/>A student asked me the meaning of life yesterday. <break time="300ms"/>I said: come back in forty years and tell ME.',
     '<break time="300ms"/>I had chai with Eve this morning. <break time="200ms"/>In spirit. <break time="300ms"/>Some habits never end.',
     '<break time="500ms"/>Mitsuo Aida wrote: \'Because you\'re you, that\'s fine.\' <break time="300ms"/>I think about that daily.',

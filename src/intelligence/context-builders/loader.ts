@@ -134,6 +134,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // CONTEXT - Situational awareness
   [BuilderCategory.CONTEXT]: [
+    'dynamic-tool-guidance', // High priority - injects tool hints based on user request
     'intent',
     'topics',
     'discovery',

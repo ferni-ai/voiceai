@@ -397,7 +397,7 @@ describe('Integration: Type utilities together', () => {
   it('combines pick and typedKeys', () => {
     const obj = { a: 1, b: 2, c: 3 };
     const keysToKeep = typedKeys(obj).filter((k) => k !== 'b');
-    const picked = pick(obj, keysToKeep as ('a' | 'c')[]);
+    const picked = pick(obj, keysToKeep as Array<'a' | 'c'>);
 
     expect(picked).toEqual({ a: 1, c: 3 });
   });
