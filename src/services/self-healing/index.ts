@@ -102,3 +102,28 @@ export {
   createAlertingAnomalyHandler,
 } from './anomaly-detection.js';
 export type { MetricWindow, AnomalyConfig, Anomaly, TrendAnalysis } from './anomaly-detection.js';
+
+// Health Monitors - Proactive service health checking
+export {
+  checkServiceHealth,
+  runAllHealthChecks,
+  getCachedHealthStatus,
+  isCapabilityHealthy,
+  getMonitors,
+  startHealthMonitoring,
+  stopHealthMonitoring,
+  isMonitoringActive,
+} from './health-monitors.js';
+export type { HealthCheckResult, HealthMonitor, HealthStatus } from './health-monitors.js';
+
+// Cloud Run Restart - Automatic container recovery
+export {
+  restartService,
+  canRestart,
+  getCooldownRemaining,
+  getRestartHistory,
+  clearCooldown,
+  handleCriticalFailure,
+  setupAutoRestart,
+} from './cloud-run-restart.js';
+export type { RestartOptions, RestartResult } from './cloud-run-restart.js';

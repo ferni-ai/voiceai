@@ -478,6 +478,32 @@ export function trackJobMetrics(job: JobTrace): void {
 - [x] GCP Cloud Monitoring metrics (`src/services/self-healing/cloud-metrics.ts`)
 - [x] Frontend service health UI (`frontend-typescript/src/ui/service-health.ui.ts`)
 
+### Phase 5: Advanced Recovery ✅ COMPLETE
+
+- [x] Health monitors for critical services (`src/services/self-healing/health-monitors.ts`)
+  - LiveKit (voice infrastructure)
+  - Cartesia (TTS)
+  - Deepgram (STT)
+  - Gemini & OpenAI (AI)
+  - Firestore (database)
+  - Memory usage monitoring
+  - Spotify (optional integration)
+- [x] Cloud Run container restart via API (`src/services/self-healing/cloud-run-restart.ts`)
+  - Rolling restart (new revision deployment)
+  - Cooldown protection (5 min between restarts)
+  - Auto-restart on critical failures (OOM, SIGKILL)
+  - Restart history tracking
+- [x] Extended failure patterns (40+ patterns in `ai-diagnostics.ts`)
+  - Voice infrastructure (LiveKit, room management)
+  - TTS/STT errors (Cartesia, Deepgram)
+  - AI errors (Gemini, OpenAI, context limits, safety filters)
+  - Database errors (Firestore, transactions)
+  - Network errors (timeout, DNS, SSL)
+  - Resource errors (memory, file descriptors)
+  - Authentication errors
+  - External API errors (Spotify, Calendar, Weather)
+  - Process/container errors
+
 ### Implemented Files
 
 | File | Purpose |
@@ -485,12 +511,14 @@ export function trackJobMetrics(job: JobTrace): void {
 | `circuit-breaker.ts` | Prevents cascading failures with state machine |
 | `resilient-executor.ts` | Exponential backoff retry with jitter |
 | `resilient-http.ts` | Unified HTTP client with circuit breaker + retry |
-| `ai-diagnostics.ts` | Gemini-powered root cause analysis |
+| `ai-diagnostics.ts` | Gemini-powered root cause analysis (40+ patterns) |
 | `error-humanizer.ts` | Warm, human error explanations |
 | `session-recovery.ts` | Recovery phrases and session continuity |
 | `circuit-alerting.ts` | Slack/email notifications on circuit events |
 | `cloud-metrics.ts` | GCP Cloud Monitoring export |
 | `anomaly-detection.ts` | Statistical anomaly detection + trend analysis |
+| `health-monitors.ts` | Proactive health checks for LiveKit, Cartesia, Gemini, etc. |
+| `cloud-run-restart.ts` | Automatic container restart via Cloud Run Admin API |
 
 ### Updated Integration Points
 
@@ -501,6 +529,11 @@ export function trackJobMetrics(job: JobTrace): void {
 | Tool Execution | Automatic retry in `tool-wrapper.ts` |
 | Frontend API | `fetchWithRetry` + offline detection |
 | Context Service | Resilient remote calls with local fallback |
+| LiveKit | Health monitoring with auto-alerting |
+| Cartesia/Deepgram | Health checks + circuit breakers |
+| Gemini/OpenAI | Health monitoring + rate limit handling |
+| Firestore | Connection monitoring + retry |
+| Cloud Run | Automatic container restart on critical failures |
 
 ---
 

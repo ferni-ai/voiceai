@@ -28,42 +28,28 @@ FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /app
 
-# Install git and enable corepack for pnpm
+# Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/* \
-    && corepack enable && corepack prepare pnpm@latest --activate
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files first (cache layer)
-# Include both lockfiles for compatibility
-COPY package.json pnpm-lock.yaml* package-lock.json* ./
-COPY .npmrc .pnpmrc* ./
+COPY package.json package-lock.json* ./
+COPY .npmrc ./
 
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies - prefer pnpm, fallback to npm
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    --mount=type=cache,target=/root/.npm \
-    if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile --prefer-offline; \
-    else \
-      npm ci --prefer-offline; \
-    fi
-
-# Copy esbuild script
-COPY scripts/build-fast.ts ./scripts/
+# Install dependencies with npm
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Build with esbuild (skip type declarations for production)
-# Falls back to tsc if esbuild script has issues
-RUN if [ -f pnpm-lock.yaml ]; then \
-      pnpm build:fast || pnpm build; \
-    else \
-      npm run build:fast || npm run build; \
-    fi
+# Build TypeScript
+# Build TypeScript
+RUN npm run build
 
 # ============================================================================
 # Stage 2: Production
