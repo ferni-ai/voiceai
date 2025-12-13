@@ -1455,9 +1455,28 @@ html.theme-transitioning *::after {
   animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) 700ms forwards;
 }
 
+/* Helper text entrance - POSITION ONLY, no opacity changes
+   The #helperText rule enforces visibility with !important */
+@keyframes entranceHelperSlideUp {
+  0% {
+    transform: translateY(15px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .app-loaded .entrance-helper {
-  animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: entranceHelperSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-delay: 800ms;
+}
+
+/* CRITICAL: Override any animation states - helper text MUST be visible */
+#helperText.entrance-helper,
+.app-loaded #helperText.entrance-helper,
+.app-loaded .entrance-helper#helperText {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Error recovery animations */
@@ -5912,13 +5931,17 @@ body {
   color: var(--color-text-secondary, #5c544a);
   margin: 0;
   text-align: center;
-  transition:
-    opacity 0.3s ease,
-    color 0.3s ease;
-  /* CRITICAL: Prevent flex from collapsing this element - ensures visibility */
+  /* Prevent flex from collapsing this element */
   flex-shrink: 0;
   /* Minimum bottom margin for breathing room */
   margin-bottom: var(--space-sm, 8px);
+  /* Ensure it takes up space even before animation */
+  min-height: 1.5em;
+  /* CRITICAL: Force visibility - override ALL animation states */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  transform: translateY(0);
 }
 
 /* On hover - subtle emphasis */
@@ -6611,8 +6634,6 @@ body {
     height: 144px;
   }
 
-  /* Connection-heart uses tokens defined above */
-
   /* Scale avatar ring with avatar */
   #avatarRing {
     inset: -12px;
@@ -6633,8 +6654,8 @@ body {
 
   /* Scale status whisper with avatar */
   .status-whisper {
-    bottom: -36px !important;
-    font-size: 10px !important;
+    bottom: -36px;
+    font-size: 10px;
   }
 
   /* Scale avatar text */
@@ -6650,8 +6671,6 @@ body {
   #personaSubtitle {
     font-size: var(--text-sm);
   }
-
-  /* Team roster uses tokens - no overrides needed */
 
   /* Scale waveform */
   #waveformContainer {
@@ -6677,6 +6696,7 @@ body {
   /* Scale helper text */
   #helperText {
     font-size: 13px;
+    margin-top: var(--space-md);
   }
 }
 
@@ -10196,6 +10216,12 @@ body.ambient-aurora {
    DESKTOP LARGE (≥1200px) - Full experience with generous spacing
    ------------------------------------------------------------------------ */
 @media (min-width: 1200px) {
+  .main {
+    /* Desktop: slightly larger gap for spacious feel */
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+  }
+  
   .avatar-container {
     /* Reduced from 220px to fit better on fullscreen */
     width: 150px;
@@ -10454,7 +10480,6 @@ body.ambient-aurora {
   #helperText {
     font-size: var(--text-base);
     margin-top: var(--space-lg);
-    opacity: 0.8;
   }
   
   #waveformContainer {
@@ -10848,6 +10873,7 @@ body.ambient-aurora {
     padding: var(--space-xs);
   }
 }
+
 
 /* ------------------------------------------------------------------------
    SHORT VIEWPORT FIX - Holistic approach for content visibility
