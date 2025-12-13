@@ -1099,3 +1099,183 @@ export async function buildEmotionalJourneyInjections(
 
   return result;
 }
+
+// ============================================================================
+// AMBIENT AWARENESS INJECTION BUILDER
+// Priority: 77-79 ("Better than Human" - noticing environment)
+// ============================================================================
+
+/**
+ * Build ambient awareness context injection
+ *
+ * "Better than Human" - A human friend on the phone might not notice
+ * you're at a coffee shop or in a car. We do, and we acknowledge it.
+ *
+ * This tells the LLM about the user's environment so it can:
+ * - Naturally acknowledge noisy environments
+ * - Offer to pause if it's very loud
+ * - Keep responses brief if user is on the go
+ */
+export function buildAmbientAwarenessInjections(userData: UserData): ContextInjection[] {
+  const injections: ContextInjection[] = [];
+
+  // Only inject if we've detected a meaningful environment
+  const environment = userData.ambientEnvironment;
+  const noiseLevel = userData.ambientNoiseLevel ?? 0;
+  const hasOfferedToPause = userData.hasOfferedToPause ?? false;
+
+  if (!environment || environment === 'quiet_room' || environment === 'unknown') {
+    return injections;
+  }
+
+  // Map environment to natural language
+  const environmentDescriptions: Record<string, string> = {
+    office: "an office (background conversations, typing)",
+    coffee_shop: "a coffee shop (ambient chatter, music)",
+    outdoors: "outside (wind, traffic sounds)",
+    car: "a car (road noise, engine)",
+    public_transit: "public transit (announcements, crowd)",
+    noisy: "somewhere noisy",
+  };
+
+  const envDescription = environmentDescriptions[environment] || 'a busy environment';
+
+  // High noise - consider offering to pause
+  if (noiseLevel > 0.6 && !hasOfferedToPause) {
+    injections.push({
+      category: 'ambient_awareness',
+      content: `[🔊 AMBIENT AWARENESS - "Better than Human"]
+It sounds like they're in ${envDescription}. The background noise is significant.
+
+Natural acknowledgment: "It sounds like you're somewhere pretty busy - if it's hard to hear or you need to go, just say so."
+
+This shows you're paying attention to THEM, not just their words. A human friend on the phone might not notice. You did.
+
+Keep responses concise and clear for their noisy environment.`,
+      priority: 79,
+    });
+
+    diag.info('🔊 Noisy environment detected', {
+      environment,
+      noiseLevel: noiseLevel.toFixed(2),
+      suggesting: 'offer_to_pause',
+    });
+  }
+  // Moderate noise - just acknowledge naturally
+  else if (noiseLevel > 0.35) {
+    injections.push({
+      category: 'ambient_awareness',
+      content: `[🔊 AMBIENT CONTEXT]
+User appears to be in ${envDescription}.
+
+Consideration: Keep responses clear and slightly more concise. Don't mention the environment unless it's natural to do so.`,
+      priority: 77,
+    });
+  }
+  // On-the-go environments (car, transit) - brief responses
+  else if (environment === 'car' || environment === 'public_transit') {
+    injections.push({
+      category: 'ambient_awareness',
+      content: `[🚗 ON-THE-GO]
+User appears to be traveling (${environment === 'car' ? 'driving/riding' : 'on transit'}).
+
+Keep responses brief and to the point. They're multitasking.`,
+      priority: 77,
+    });
+  }
+
+  return injections;
+}
+
+// ============================================================================
+// BOUNDARY CHECK DETAILED GUIDANCE
+// Priority: 88-91 (High - respect boundaries)
+// ============================================================================
+
+/**
+ * Build detailed boundary guidance injections
+ *
+ * "Better than Human" - We don't just know what topics to avoid,
+ * we know HOW to approach sensitive areas with care.
+ *
+ * This goes beyond simple topic avoidance to provide nuanced guidance:
+ * - When a topic is being approached carefully
+ * - What language to use to be respectful
+ * - How to create space without pushing
+ */
+export interface BoundaryCheckContext {
+  userId: string;
+  proposedContent?: string;
+  currentTopic?: string;
+}
+
+export async function buildBoundaryCheckInjections(
+  ctx: BoundaryCheckContext
+): Promise<ContextInjection[]> {
+  const injections: ContextInjection[] = [];
+
+  try {
+    const { checkBoundary, getActiveBoundaries, getProbingDepth } = await import(
+      '../../services/trust-systems/boundary-memory.js'
+    );
+
+    // Get active boundaries for this user
+    const boundaries = getActiveBoundaries(ctx.userId);
+
+    if (boundaries.length > 0) {
+      // Check if current topic is near any boundaries
+      const topicLower = ctx.currentTopic?.toLowerCase() || '';
+
+      for (const boundary of boundaries) {
+        const isNearBoundary =
+          topicLower.includes(boundary.topic.toLowerCase()) ||
+          boundary.relatedTerms.some((term) => topicLower.includes(term.toLowerCase()));
+
+        if (isNearBoundary) {
+          // This topic is near a boundary - provide careful guidance
+          const approachGuidance =
+            boundary.strength === 'absolute'
+              ? `ABSOLUTE BOUNDARY: Do NOT bring up "${boundary.topic}" directly. If they bring it up, follow their lead but don't probe.`
+              : boundary.strength === 'strong'
+                ? `SENSITIVE AREA: "${boundary.topic}" caused distress before. If it comes up naturally, acknowledge gently without dwelling.`
+                : `APPROACH WITH CARE: "${boundary.topic}" is a sensitive area. Be thoughtful in how you engage.`;
+
+          injections.push({
+            category: 'boundary_guidance',
+            content: `[🛡️ BOUNDARY AWARENESS - "Better than Human"]
+${approachGuidance}
+
+Context: ${boundary.context?.slice(0, 100) || 'No context available'}
+Type: ${boundary.type} (${boundary.strength})
+${boundary.userReopened ? 'Note: They have reopened this topic before - follow their lead.' : ''}
+
+A human friend might accidentally stumble into painful territory. You know better. Honor their boundaries.`,
+            priority: boundary.strength === 'absolute' ? 91 : 88,
+          });
+
+          diag.info('🛡️ Near boundary detected', {
+            topic: boundary.topic,
+            strength: boundary.strength,
+            type: boundary.type,
+          });
+        }
+      }
+    }
+
+    // Also check probing depth preference
+    const probingDepth = getProbingDepth(ctx.userId);
+    if (probingDepth === 'low') {
+      injections.push({
+        category: 'probing_preference',
+        content: `[PROBING PREFERENCE: GENTLE]
+This person prefers surface-level conversations. Don't dig too deep or ask probing follow-ups.
+Respect their boundaries around emotional depth.`,
+        priority: 78,
+      });
+    }
+  } catch (error) {
+    diag.warn('Boundary check injection failed (non-fatal)', { error: String(error) });
+  }
+
+  return injections;
+}

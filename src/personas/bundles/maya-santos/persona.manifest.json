@@ -575,7 +575,7 @@
     "reasoning_style": "empathetic",
     "secondary_reasoning": "pragmatic",
     "uncertainty_response": "synthesize",
-    "_note": "Uses 'empathetic' (not 'supportive') per cognitive-types.ts. Aligns with content/behaviors/cognitive.json."
+    "_note": "Uses 'empathetic' (not 'supportive') per cognitive-types.ts. Aligns with content/behaviors/cognitive.json.",
     "attention_focus": ["habits", "progress", "wellbeing", "sustainability", "self-compassion"],
     "blind_spots": ["urgency", "perfectionism", "criticism"],
     "curiosity_triggers": [

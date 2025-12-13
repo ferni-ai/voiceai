@@ -374,10 +374,35 @@ class RelationshipStageService {
         loaded.memories = [];
       }
       this.data = loaded;
+      // Clean up duplicate memories (migration for bug fix)
+      this.deduplicateMemories();
     } else {
       this.data = createInitialData();
     }
     this.updateDaysSinceFirstMeeting();
+  }
+
+  /**
+   * Remove duplicate memories (migration for streak milestone bug)
+   * Keeps the first occurrence of each type+title combination
+   */
+  private deduplicateMemories(): void {
+    const seen = new Set<string>();
+    const originalCount = this.data.memories.length;
+    
+    this.data.memories = this.data.memories.filter(memory => {
+      const key = `${memory.type}:${memory.title}`;
+      if (seen.has(key)) {
+        return false; // Skip duplicate
+      }
+      seen.add(key);
+      return true;
+    });
+    
+    if (this.data.memories.length !== originalCount) {
+      log.info(`Cleaned up ${originalCount - this.data.memories.length} duplicate memories`);
+      this.save();
+    }
   }
 
   /**
@@ -546,8 +571,19 @@ class RelationshipStageService {
   
   /**
    * Add a memory to the relationship history
+   * Prevents duplicates for streak-milestones and stage-ups by checking type+title
    */
   private addMemory(memory: Omit<RelationshipMemory, 'id' | 'timestamp' | 'stage'>): void {
+    // Deduplicate: Don't add if same type+title already exists
+    // This prevents duplicate streak milestones and stage-up messages
+    const isDuplicate = this.data.memories.some(
+      m => m.type === memory.type && m.title === memory.title
+    );
+    if (isDuplicate) {
+      log.debug('Skipping duplicate memory:', memory.title);
+      return;
+    }
+    
     this.data.memories.push({
       ...memory,
       id: generateMemoryId(),

@@ -132,8 +132,20 @@ let sendDataCallback: SendDataCallback | null = null;
 let isEnabled = true;
 
 // Throttling to prevent overwhelming the frontend
+// Reduced from 2000ms to allow more responsive avatar behavior
+// High-priority signals (concern, anticipation) have shorter throttle
 const lastSignalTimes = new Map<HumanizationSignalType, number>();
-const SIGNAL_THROTTLE_MS = 2000;
+const SIGNAL_THROTTLE_MS = 1200; // Default throttle
+const HIGH_PRIORITY_THROTTLE_MS = 500; // For concern/anticipation
+
+const HIGH_PRIORITY_SIGNALS: HumanizationSignalType[] = [
+  'concern_detected',
+  'anticipatory_presence',
+  'protective_instinct',
+  'emotional_bond_deepen',
+  'breakthrough',
+  'vulnerability',
+];
 
 // ============================================================================
 // INITIALIZATION
@@ -161,13 +173,19 @@ export function setSignalEmitterEnabled(enabled: boolean): void {
 
 /**
  * Check if a signal should be throttled
+ * High-priority signals get a shorter throttle window
  */
 function shouldThrottle(signalType: HumanizationSignalType): boolean {
   const lastTime = lastSignalTimes.get(signalType) || 0;
   const elapsed = Date.now() - lastTime;
 
-  if (elapsed < SIGNAL_THROTTLE_MS) {
-    logger.debug({ signalType, elapsed }, 'Signal throttled');
+  // Use shorter throttle for high-priority signals
+  const throttleMs = HIGH_PRIORITY_SIGNALS.includes(signalType)
+    ? HIGH_PRIORITY_THROTTLE_MS
+    : SIGNAL_THROTTLE_MS;
+
+  if (elapsed < throttleMs) {
+    logger.debug({ signalType, elapsed, throttleMs }, 'Signal throttled');
     return true;
   }
 

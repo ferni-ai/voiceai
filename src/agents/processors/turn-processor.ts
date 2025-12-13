@@ -39,6 +39,8 @@ import type {
 // Extracted injection builders (cleaner separation of concerns)
 import {
   buildAdvancedHumanizationInjections,
+  buildAmbientAwarenessInjections,
+  buildBoundaryCheckInjections,
   buildConversationDynamicsInjections,
   buildCrossPersonaInsightsInjection,
   buildHumanLevelInjections,
@@ -1129,7 +1131,20 @@ async function buildContextInjections(
   });
   injections.push(...trustInjections);
 
-  // 2e. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
+  // 2e. Ambient Awareness - "Better than Human" environment detection
+  // A human friend on the phone might not notice you're in a car or coffee shop. We do.
+  const ambientInjections = buildAmbientAwarenessInjections(userData);
+  injections.push(...ambientInjections);
+
+  // 2f. Boundary Check - "Better than Human" detailed boundary guidance
+  // We don't just know what to avoid, we know HOW to approach sensitive areas
+  const boundaryInjections = await buildBoundaryCheckInjections({
+    userId: services.userId || 'unknown',
+    currentTopic,
+  });
+  injections.push(...boundaryInjections);
+
+  // 2g. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
   // This runs silently and stores detected events for later potential prompting
   try {
     const userId = services.userId || 'unknown';

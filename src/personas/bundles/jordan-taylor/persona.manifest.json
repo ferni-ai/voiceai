@@ -313,7 +313,7 @@
     "reasoning_style": "pragmatic",
     "secondary_reasoning": "systematic",
     "uncertainty_response": "converge",
-    "_note": "Uses 'pragmatic' (not 'visionary') per cognitive-types.ts. Aligns with content/behaviors/cognitive.json."
+    "_note": "Uses 'pragmatic' (not 'visionary') per cognitive-types.ts. Aligns with content/behaviors/cognitive.json.",
     "attention_focus": ["milestones", "celebrations", "transitions", "possibilities", "timelines"],
     "blind_spots": ["day-to-day-details", "maintenance", "routine"],
     "curiosity_triggers": [

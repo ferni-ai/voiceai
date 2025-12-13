@@ -6,7 +6,6 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { relationshipStageService } from './relationship-stage.service.js';
 import { apiPost } from '../utils/api.js';
 
 const log = createLogger('ConversationTracker');
@@ -59,9 +58,8 @@ class ConversationTrackerService {
 
     this.messageBuffer = [];
     log.info('Conversation session started', { sessionId, personaId });
-
-    // Track conversation for relationship progression
-    relationshipStageService.recordConversation();
+    // NOTE: Relationship tracking is handled by app.ts connection handler
+    // to avoid double-counting conversations
   }
 
   /**
