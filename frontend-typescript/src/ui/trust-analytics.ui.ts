@@ -109,8 +109,8 @@ const STYLES = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.5);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
   }
 
   /* Modal Card */

@@ -191,36 +191,130 @@ class ContextServiceClient {
   }
   
   // ============================================================================
-  // LOCAL IMPLEMENTATION (Phase 1-2) - Stub for now
+  // LOCAL IMPLEMENTATION (Phase 1-2) - Full Memory Integration
   // ============================================================================
   
   private async buildContextLocal(request: ContextRequest): Promise<ContextResponse> {
-    const { userId, voiceEmotion } = request;
+    const { userId, userMessage, personaId, voiceEmotion } = request;
     
-    log.debug({ userId }, 'Building context locally (stub)');
+    log.debug({ userId, personaId }, 'Building context with memory integration');
     
-    // Return minimal context - will be fully implemented when context builders are refactored
-    // The actual context building happens in voice-agent.ts and turn-processor.ts for now
+    const injections: ContextInjection[] = [];
+    const relevantMemories: RelevantMemory[] = [];
+    let userProfile: ContextResponse['userProfile'] = {};
     
+    // 1. Search for relevant memories using vector store
+    try {
+      const memories = await this.searchLocal({ userId, query: userMessage, limit: 5 });
+      for (const mem of memories) {
+        relevantMemories.push({
+          id: mem.id,
+          content: mem.content,
+          similarity: mem.similarity,
+          timestamp: (mem.metadata?.timestamp as number) || Date.now(),
+          type: (mem.metadata?.type as RelevantMemory['type']) || 'conversation',
+        });
+      }
+      
+      // Add top memories as context injection
+      if (relevantMemories.length > 0) {
+        const topMemories = relevantMemories.slice(0, 3);
+        injections.push({
+          category: 'memory',
+          content: `Relevant context from past conversations:\n${topMemories.map(m => `- ${m.content}`).join('\n')}`,
+          priority: 70,
+          source: 'context-service',
+        });
+      }
+    } catch (memErr) {
+      log.debug({ error: String(memErr) }, 'Memory search unavailable');
+    }
+    
+    // 2. Get user profile
+    try {
+      const memoryModule = await import('../../memory/index.js');
+      const store = await memoryModule.createStore();
+      const profile = await store.getProfile(userId);
+      if (profile) {
+        userProfile = {
+          name: profile.name,
+          relationshipStage: profile.relationshipStage,
+          conversationCount: profile.totalConversations,
+        };
+        
+        // Add relationship context
+        if (profile.relationshipStage) {
+          injections.push({
+            category: 'relationship',
+            content: `User relationship stage: ${profile.relationshipStage}. Conversations: ${profile.totalConversations || 0}.`,
+            priority: 60,
+            source: 'context-service',
+          });
+        }
+      }
+    } catch (profileErr) {
+      log.debug({ error: String(profileErr) }, 'Profile lookup unavailable');
+    }
+    
+    // 3. Determine emotional state
     const emotionalState: EmotionalState = {
       primary: voiceEmotion?.primary || 'neutral',
       intensity: voiceEmotion?.confidence || 0.5,
       needsSupport: voiceEmotion?.primary === 'sad' || voiceEmotion?.primary === 'anxious',
     };
     
+    // Add emotional context if distress detected
+    if (emotionalState.needsSupport) {
+      injections.push({
+        category: 'emotional',
+        content: `User appears to be feeling ${emotionalState.primary}. Approach with extra warmth and care.`,
+        priority: 90,
+        source: 'context-service',
+      });
+    }
+    
+    log.debug({ 
+      userId, 
+      memoriesFound: relevantMemories.length,
+      injectionsAdded: injections.length,
+      hasProfile: !!userProfile.name,
+    }, 'Context built successfully');
+    
     return {
-      injections: [],
-      relevantMemories: [],
+      injections,
+      relevantMemories,
       emotionalState,
-      userProfile: {},
+      userProfile,
       processingTimeMs: 0, // Filled in by caller
     };
   }
   
-  private async searchLocal(_request: SearchRequest): Promise<SearchResult[]> {
-    // Stub implementation - will use vector store when fully integrated
-    log.debug('Search local (stub)');
-    return [];
+  private async searchLocal(request: SearchRequest): Promise<SearchResult[]> {
+    const { query, limit = 5 } = request;
+    
+    try {
+      const memoryModule = await import('../../memory/index.js');
+      
+      // Try to get the vector store
+      const vectorStore = memoryModule.getVectorStore?.();
+      if (!vectorStore) {
+        log.debug('Vector store not available');
+        return [];
+      }
+      
+      // Perform semantic search
+      const results = await vectorStore.search(query, { topK: limit });
+      
+      return results.map(r => ({
+        id: r.document.id,
+        content: r.document.text,
+        similarity: r.score,
+        metadata: r.document.metadata || {},
+      }));
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Search failed');
+      return [];
+    }
   }
   
   // ============================================================================

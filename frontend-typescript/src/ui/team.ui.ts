@@ -264,7 +264,7 @@ function createBanterTextElement(): void {
     max-width: 80%;
     padding: var(--space-sm, 8px) var(--space-md, 16px);
     background: var(--color-bg-glass, rgba(0, 0, 0, 0.6));
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     border-radius: var(--radius-lg, 12px);
     color: var(--color-text-secondary, #a0a0a0);
     font-size: var(--font-size-sm, 0.875rem);

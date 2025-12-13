@@ -374,6 +374,7 @@
     "domains": [
       "memory",
       "handoff",
+      "cameo",
       "wisdom",
       "meaning",
       "presence",

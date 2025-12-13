@@ -368,6 +368,7 @@
     "domains": [
       "memory",
       "handoff",
+      "cameo",
       "life-planning",
       "dreams",
       "engagement",

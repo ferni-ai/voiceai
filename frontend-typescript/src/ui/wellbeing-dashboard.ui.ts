@@ -104,7 +104,7 @@ const styles = `
     position: absolute;
     inset: 0;
     background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-subtle, 20px));
+    backdrop-filter: blur(var(--glass-blur-strong, 24px));
   }
   
   .wellbeing-modal {

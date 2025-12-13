@@ -1021,7 +1021,7 @@ function injectAdminPortalStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(26, 22, 18, 0.8);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .admin-modal-card {

@@ -259,6 +259,7 @@
     "domains": [
       "memory",
       "handoff",
+      "cameo",
       "research",
       "information",
       "stories",

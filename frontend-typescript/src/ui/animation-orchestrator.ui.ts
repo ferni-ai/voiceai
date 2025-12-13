@@ -58,7 +58,6 @@ const activeAnimations = new Map<string, Animation[]>();
 
 // Page load sequence state
 let pageLoadComplete = false;
-let pageLoadPromise: Promise<void> | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -67,6 +66,10 @@ let pageLoadPromise: Promise<void> | null = null;
 /**
  * Initialize the animation orchestrator.
  * Detects device capabilities and sets up animation budget.
+ *
+ * NOTE: Page load animations are now handled SOLELY by CSS (.app-loaded class).
+ * This orchestrator only handles persona transitions, reactions, and celebrations.
+ * This prevents race conditions between multiple animation systems.
  */
 export function initAnimationOrchestrator(): void {
   // Check for reduced motion preference
@@ -80,16 +83,12 @@ export function initAnimationOrchestrator(): void {
   // Check for low-power devices
   detectDeviceCapabilities();
 
-  // Start page load sequence when DOM is ready
-  if (document.readyState === 'complete') {
-    void runPageLoadSequence();
-  } else {
-    window.addEventListener('load', () => {
-      void runPageLoadSequence();
-    });
-  }
+  // NOTE: We no longer auto-run page load sequence here.
+  // CSS entrance animations (.app-loaded) handle page load.
+  // This orchestrator is for persona transitions, reactions, celebrations only.
+  // This fixes the race condition between orchestrator and app.ts adding app-loaded.
 
-  log.debug('🎬 Animation Orchestrator initialized');
+  log.debug('🎬 Animation Orchestrator initialized (page load handled by CSS)');
 }
 
 /**
@@ -115,121 +114,31 @@ function detectDeviceCapabilities(): void {
 // ============================================================================
 
 /**
- * Run the page load animation sequence.
- * 
- * NOTE: The CSS already has entrance animations that trigger via `app-loaded` class.
- * This orchestrator ENHANCES those animations with Pixar-quality touches:
- * - Adds squash/stretch deformation to avatar
- * - Adds secondary "warmth" glow effect
- * - Coordinates timing for buttery-smooth feel
- * 
- * The existing CSS animations remain the primary driver to avoid conflicts.
+ * Run optional page load enhancements.
+ *
+ * IMPORTANT: CSS entrance animations (.app-loaded) are the PRIMARY system.
+ * This function is DISABLED by default to prevent animation conflicts.
+ *
+ * Only call this explicitly if you want Pixar-quality enhancements on top of CSS.
+ * Most of the time, CSS animations alone provide a smooth experience.
  */
 export async function runPageLoadSequence(): Promise<void> {
-  if (pageLoadComplete || prefersReducedMotion()) {
+  // DISABLED: CSS entrance animations handle page load.
+  // This was causing race conditions and double-animations.
+  // Keep this function for API compatibility but make it a no-op.
+
+  if (!pageLoadComplete) {
     pageLoadComplete = true;
-    return;
+    document.body.classList.add('page-load-complete');
   }
 
-  if (pageLoadPromise) return pageLoadPromise;
-
-  pageLoadPromise = new Promise((resolve) => {
-    // Wait for CSS animations to be triggered (app-loaded class is added by app.ts)
-    requestAnimationFrame(() => {
-      // Add secondary Pixar-quality enhancements AFTER CSS animations start
-      
-      // 1. Enhance avatar with secondary squash/stretch layer
-      setTimeout(() => {
-        enhanceAvatarEntrance();
-      }, 150); // After CSS animation starts
-
-      // 2. Add warmth glow as secondary action
-      setTimeout(() => {
-        addEntranceWarmth();
-      }, 400);
-
-      // 3. Add subtle bounce to connect button
-      setTimeout(() => {
-        enhanceControlsEntrance();
-      }, 750);
-
-      // Mark complete after all enhancements
-      setTimeout(() => {
-        pageLoadComplete = true;
-        document.body.classList.add('page-load-complete');
-        resolve();
-      }, 1200);
-    });
-  });
-
-  return pageLoadPromise;
+  return Promise.resolve();
 }
 
-/**
- * Enhance avatar entrance with Pixar squash/stretch.
- * Layered on top of CSS animation for extra juice.
- */
-function enhanceAvatarEntrance(): void {
-  const avatar = document.querySelector('.avatar-container');
-  if (!avatar || !(avatar instanceof HTMLElement)) return;
-
-  // Add subtle squash/stretch as the CSS animation plays
-  // This creates the "Pixar" feel without fighting CSS
-  const enhanceAnimation = avatar.animate([
-    { transform: 'scale(1, 1)' },
-    { transform: 'scale(1.03, 0.97)' }, // Slight horizontal squash
-    { transform: 'scale(0.98, 1.02)' }, // Slight vertical stretch
-    { transform: 'scale(1, 1)' },
-  ], {
-    duration: DURATION.MODERATE,
-    easing: EASING.SPRING,
-    composite: 'add', // Add to existing CSS animation
-  });
-
-  trackAnimation('enhance-avatar', enhanceAnimation);
-}
-
-/**
- * Add warmth glow as secondary action during entrance.
- * Pixar principle: secondary action that doesn't distract.
- */
-function addEntranceWarmth(): void {
-  const avatar = document.querySelector('.avatar-container');
-  if (!avatar || !(avatar instanceof HTMLElement)) return;
-
-  // Subtle brightness pulse
-  const warmthAnimation = avatar.animate([
-    { filter: 'brightness(1)' },
-    { filter: 'brightness(1.08)' },
-    { filter: 'brightness(1)' },
-  ], {
-    duration: DURATION.DRAMATIC,
-    easing: EASING.EASE_IN_OUT,
-  });
-
-  trackAnimation('entrance-warmth', warmthAnimation);
-}
-
-/**
- * Enhance controls entrance with Pixar anticipation.
- */
-function enhanceControlsEntrance(): void {
-  const connectBtn = document.getElementById('connectBtn');
-  if (!connectBtn) return;
-
-  // Add a tiny "ready to be pressed" pulse
-  const pulseAnimation = connectBtn.animate([
-    { transform: 'scale(1)' },
-    { transform: 'scale(1.02)' },
-    { transform: 'scale(1)' },
-  ], {
-    duration: DURATION.SLOW,
-    easing: EASING.SPRING,
-  });
-
-  trackAnimation('controls-enhance', pulseAnimation);
-}
-
+// NOTE: Page load entrance enhancements (enhanceAvatarEntrance, addEntranceWarmth,
+// enhanceControlsEntrance) have been removed. CSS entrance animations in .app-loaded
+// are now the single source of truth for page load. These can be recovered from
+// git history (commit before this change) if ever needed for special occasions.
 
 // ============================================================================
 // PERSONA TRANSITION - Handoff animations

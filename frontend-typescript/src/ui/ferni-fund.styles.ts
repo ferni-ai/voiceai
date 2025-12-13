@@ -33,7 +33,7 @@ export const ferniFundStyles = `
   position: absolute;
   inset: 0;
   background: var(--color-bg-glass);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px));
 }
 
 .ferni-fund-card {

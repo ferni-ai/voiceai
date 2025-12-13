@@ -74,7 +74,8 @@ import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-qu
 // import { initFerniEye } from './ui/ferni-eye.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
-import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
+// DISABLED: No skeleton loading - everything visible immediately
+// import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
@@ -314,8 +315,11 @@ class VoiceAIApp {
       return;
     }
 
-    // Show loading skeleton while initializing
-    initSkeletonUI();
+    // DISABLED: No skeleton loading - everything visible immediately
+    // initSkeletonUI();
+
+    // Add app-loaded class immediately so everything is visible
+    document.body.classList.add('app-loaded');
 
     try {
       // Skip intro - take users straight to the app
@@ -342,40 +346,22 @@ class VoiceAIApp {
 
       this.isInitialized = true;
 
-      // Hide skeleton after a brief delay for smooth transition
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          skeletonUI.hide();
+      // Hide native splash screen on iOS/Android
+      if (isNative()) {
+        void hideSplashScreen(300);
+      }
 
-          // Hide native splash screen on iOS/Android
-          if (isNative()) {
-            void hideSplashScreen(300);
-          }
+      // Mark entrance complete immediately (no animations to wait for)
+      const avatarContainerEl = document.querySelector('.avatar-container');
+      avatarContainerEl?.classList.add('entrance-complete');
 
-          // Trigger entrance animations
-          document.body.classList.add('app-loaded');
+      const rosterContainer = document.querySelector('.entrance-roster');
+      rosterContainer?.classList.add('entrance-complete');
 
-          // CRITICAL: Lock visibility after entrance animations complete.
-          // The avatar is our "WALL-E" and must NEVER disappear!
-          // The team roster must ALWAYS be clickable!
-          // Entrance animations: avatar 700ms, roster up to 1030ms (730ms delay + 300ms anim)
-          setTimeout(() => {
-            const avatarContainerEl = document.querySelector('.avatar-container');
-            avatarContainerEl?.classList.add('entrance-complete');
-
-            const rosterContainer = document.querySelector('.entrance-roster');
-            rosterContainer?.classList.add('entrance-complete');
-
-            // 🎬 FIX: Signal entrance complete to avatar feedback system
-            // This unlocks idle behaviors AFTER entrance animations finish
-            // Prevents animation contention that caused jarring on startup
-            avatarFeedback.setEntranceComplete();
-          }, 1100); // Buffer after all animations complete
-        }, 100);
-      });
+      // Signal entrance complete to avatar feedback system
+      avatarFeedback.setEntranceComplete();
     } catch (error) {
       log.error('Initialization failed:', error);
-      skeletonUI.hide();
       messageUI.show('Having trouble starting up. Try refreshing?', 'error');
     }
   }

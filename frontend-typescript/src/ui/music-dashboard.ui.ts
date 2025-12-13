@@ -565,8 +565,8 @@ class MusicDashboardUI {
         position: absolute;
         inset: 0;
         background: rgba(44, 37, 32, 0.5);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(var(--glass-blur-medium, 16px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
       }
 
       .music-dashboard__card {

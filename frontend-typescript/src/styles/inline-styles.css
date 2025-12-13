@@ -547,8 +547,8 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
 }
 
@@ -593,7 +593,7 @@ body {
   background: rgba(255, 255, 255, 0.8);
   color: var(--color-text-secondary);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -698,7 +698,7 @@ body {
   background: rgba(255, 255, 255, 0.9);
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
 }
 
 /* Zen toast styles are in the main TOAST SYSTEM section */
@@ -725,7 +725,7 @@ body {
 [data-theme='zen'] .footer {
   background: rgba(255, 255, 255, 0.7);
   border-top: 1px solid rgba(0, 0, 0, 0.04);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px));
 }
 
 /* Zen status indicator */
@@ -1291,28 +1291,22 @@ html.theme-transitioning *::after {
        Elements "arrive" with personality, staggered for visual rhythm
        ======================================================================== */
 
-/* Initial hidden state - all entrance elements start invisible
-   EXCEPT controls which must ALWAYS be visible as a fallback */
+/* DISABLED: All entrance elements are now visible immediately
+   No loading animations - everything shows right away */
 .entrance-avatar,
 .entrance-name,
 .entrance-subtitle,
 .entrance-roster,
 .entrance-waveform,
-.entrance-helper {
-  opacity: 0;
-}
-
-/* Controls start visible - never hide the connect button
-   The animation will make it look nice, but visibility is priority */
+.entrance-helper,
 .entrance-controls {
   opacity: 1;
 }
 
-/* Roster stays hidden until JS populates it and app is loaded
-       This prevents flash of hardcoded team members on mobile */
+/* Roster visible immediately (JS will populate it) */
 .roster-initializing {
-  visibility: hidden !important;
-  opacity: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Avatar entrance - SAFARI FIX: Use opacity-only animation to avoid GPU box artifact
@@ -1726,7 +1720,7 @@ html.theme-transitioning *::after {
   width: 90%;
   max-width: 480px;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px));
   border-radius: 24px;
   padding: 48px 40px;
   text-align: center;
@@ -2660,17 +2654,16 @@ body {
 .main {
   position: relative;
   z-index: 1;
-  /* flex: 1 allows growth but max-height prevents infinite expansion */
+  /* flex: 1 to fill remaining space, justify-content: center to center contents */
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Start from top - safer than center for varying screen heights */
-  justify-content: flex-start;
-  /* Minimal padding to maximize above-fold space */
-  padding: var(--space-xl) var(--space-lg) var(--space-lg);
+  justify-content: center;
+  /* Moderate padding - not excessive */
+  padding: var(--space-lg);
   /* Tight gap for compact layout */
-  gap: var(--space-sm);
+  gap: var(--space-md);
   /* NOTE: Do NOT add contain here - causes visible box in Safari */
 }
 
@@ -3159,8 +3152,8 @@ body {
   gap: 8px;
   padding: 6px 14px;
   background: rgba(30, 30, 35, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 
@@ -3923,8 +3916,8 @@ body {
   box-shadow:
     0 1px 3px rgba(44, 37, 32, 0.04),
     0 4px 12px rgba(44, 37, 32, 0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   transition:
     opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -4444,8 +4437,8 @@ body {
 .status-pill {
   padding: 10px 20px;
   background: rgba(40, 40, 45, 0.9);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
   border-radius: 50px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
@@ -4933,8 +4926,8 @@ body {
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-text-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
@@ -5269,8 +5262,8 @@ body {
   margin-top: var(--space-md);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   background: var(--color-bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   /* Imperfect border radius - Wabi-sabi organic feel */
   border-radius: 16px 14px 18px 15px / 14px 16px 15px 17px;
   border: 1px solid var(--color-border-subtle);
@@ -5969,8 +5962,8 @@ body {
   gap: 6px;
   padding: 6px 14px;
   background: var(--color-bg-glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-subtle);
   font-size: var(--text-xs);
@@ -6501,16 +6494,16 @@ body {
   }
 
   .avatar-container {
-    /* φ^1.5 from 80px base ≈ 160px */
-    width: 160px;
-    height: 160px;
+    /* Reduced from 160px to fit better on desktop */
+    width: 120px;
+    height: 120px;
   }
 
   /* Connection-heart uses tokens defined above */
 
   /* Scale avatar ring with avatar */
   #avatarRing {
-    inset: -14px;
+    inset: -12px;
     border-width: 2px;
   }
 
@@ -6581,12 +6574,11 @@ body {
   }
 
   .main {
-    /* Keep gap tight - waveform and button should be close */
+    /* Desktop: slightly larger gap for spacious feel */
     gap: var(--space-lg);
-    /* FIX: Don't vertically center - start from top with padding */
-    justify-content: flex-start;
-    /* Generous top padding to position content nicely */
-    padding: var(--space-3xl) var(--space-lg) var(--space-2xl);
+    /* Keep centered (inherits from base) */
+    /* Moderate padding - NOT excessive */
+    padding: var(--space-xl);
   }
 
   /* Scale controls row */
@@ -6992,11 +6984,8 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
-    padding: 0;
-    flex: 1;
-    /* Center the content vertically for a balanced, intimate feel */
-    justify-content: center;
-    padding-top: 0;
+    padding: var(--space-sm);
+    /* NO flex: 1 - auto margins from base handle centering */
   }
 
   /* Larger touch targets - Apple minimum 44px */
@@ -7640,8 +7629,7 @@ body {
 
   .main {
     gap: var(--space-sm);
-    flex: 1;
-    justify-content: center;
+    /* NO flex: 1 - auto margins from base handle centering */
   }
 
   #waveformContainer {
@@ -7758,8 +7746,7 @@ body {
 
   .main {
     gap: var(--space-md);
-    flex: 1;
-    justify-content: center;
+    /* NO flex: 1 - auto margins from base handle centering */
   }
 
   #waveformContainer {
@@ -8260,8 +8247,8 @@ body {
   gap: 6px;
   padding: 6px 12px;
   background: var(--color-bg-glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-full);
   font-size: var(--text-2xs);
@@ -8336,8 +8323,8 @@ body {
   gap: var(--space-md);
   padding: 8px 16px;
   background: var(--color-bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   opacity: 0;
@@ -8434,8 +8421,8 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--color-bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   border-radius: 50%;
   color: var(--color-text-primary);
   opacity: 0;
@@ -8459,8 +8446,8 @@ body {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   opacity: 0;
   transition: opacity var(--transition-base);
   z-index: var(--z-modal);
@@ -8904,8 +8891,8 @@ body {
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
   background: var(--color-bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-full);
   opacity: 0;
@@ -10202,13 +10189,14 @@ body.ambient-aurora {
    ------------------------------------------------------------------------ */
 @media (min-width: 1200px) {
   .avatar-container {
-    width: 220px;
-    height: 220px;
+    /* Reduced from 220px to fit better on fullscreen */
+    width: 150px;
+    height: 150px;
   }
-  
+
   #avatarRing {
-    inset: -20px;
-    border-width: 3px;
+    inset: -16px;
+    border-width: 2px;
   }
   
   #personaName {
@@ -10247,13 +10235,14 @@ body.ambient-aurora {
    ------------------------------------------------------------------------ */
 @media (min-width: 1025px) and (max-width: 1199px) {
   .avatar-container {
-    width: 200px;
-    height: 200px;
+    /* Reduced from 200px to fit better */
+    width: 140px;
+    height: 140px;
   }
-  
+
   #avatarRing {
-    inset: -18px;
-    border-width: 3px;
+    inset: -14px;
+    border-width: 2px;
   }
   
   #personaName {
@@ -10876,10 +10865,9 @@ body.ambient-aurora {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     gap: var(--space-md);
     padding-top: var(--space-sm);
-    flex: 1;
+    /* NO flex: 1 - auto margins from base handle centering */
   }
 
   /* Controls centered */

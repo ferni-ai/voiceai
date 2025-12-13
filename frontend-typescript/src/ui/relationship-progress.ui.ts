@@ -179,8 +179,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: var(--backdrop-medium);
-      backdrop-filter: blur(var(--glass-blur-strong, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
+      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
     }
     
     .celebration-card {
@@ -335,8 +335,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: var(--backdrop-medium);
-      backdrop-filter: blur(var(--glass-blur-strong, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
+      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
     }
     
     .journey-card {

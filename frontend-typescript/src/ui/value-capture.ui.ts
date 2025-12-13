@@ -132,7 +132,7 @@ const styles = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-strong, 24px));
 }
 
 .value-capture-card {
