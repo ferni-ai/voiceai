@@ -28,24 +28,40 @@ interface PersonaConfig {
 // HELPER FUNCTIONS (extracted to keep main function under 80 lines)
 // ============================================================================
 
-/** Load core voice dependencies lazily */
+/** Load core voice dependencies lazily with detailed logging */
 async function loadVoiceDeps(): Promise<void> {
   if (voice) return;
   const startTime = Date.now();
   process.stderr.write(`[voice-agent-entry] Loading voice dependencies...\n`);
 
-  const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
-    import('@livekit/agents'),
-    import('@livekit/agents-plugin-google'),
-    import('@livekit/agents-plugin-silero'),
-    import('@google/genai'),
-  ]);
+  try {
+    // Load each dependency individually with logging to identify which one fails
+    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents...\n`);
+    const agents = await import('@livekit/agents');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents loaded in ${Date.now() - startTime}ms\n`);
 
-  voice = agents.voice;
-  google = googleMod;
-  silero = sileroMod;
-  genai = genaiMod;
-  process.stderr.write(`[voice-agent-entry] Voice deps loaded in ${Date.now() - startTime}ms\n`);
+    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents-plugin-google...\n`);
+    const googleMod = await import('@livekit/agents-plugin-google');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-google loaded in ${Date.now() - startTime}ms\n`);
+
+    process.stderr.write(`[voice-agent-entry] Loading @livekit/agents-plugin-silero...\n`);
+    const sileroMod = await import('@livekit/agents-plugin-silero');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-silero loaded in ${Date.now() - startTime}ms\n`);
+
+    process.stderr.write(`[voice-agent-entry] Loading @google/genai...\n`);
+    const genaiMod = await import('@google/genai');
+    process.stderr.write(`[voice-agent-entry] @google/genai loaded in ${Date.now() - startTime}ms\n`);
+
+    voice = agents.voice;
+    google = googleMod;
+    silero = sileroMod;
+    genai = genaiMod;
+    process.stderr.write(`[voice-agent-entry] All voice deps loaded in ${Date.now() - startTime}ms\n`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
+    process.stderr.write(`[voice-agent-entry] FATAL: Failed to load voice deps: ${errMsg}\n`);
+    throw err;
+  }
 }
 
 /** Check for pre-warmed resources and get persona config */
@@ -112,45 +128,72 @@ async function createSession(
   session: InstanceType<typeof voiceType.AgentSession>;
   agent: InstanceType<typeof voiceType.Agent>;
 }> {
-  // Load VAD
-  const vadStart = Date.now();
-  const vad = await silero!.VAD.load();
-  process.stderr.write(`[voice-agent-entry] VAD loaded in ${Date.now() - vadStart}ms\n`);
+  const createStart = Date.now();
+  process.stderr.write(`[voice-agent-entry] Creating session components...\n`);
 
-  // Create TTS
-  const { createPersonaAwareTTS } = await import('../speech/voice-manager.js');
-  const voiceConfig = persona?.voice || {
-    voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
-    provider: 'cartesia',
-  };
-  const tts = createPersonaAwareTTS(persona?.name || 'Ferni', {
-    ...voiceConfig,
-    accent: 'american',
-  });
+  // Load VAD with error handling
+  process.stderr.write(`[voice-agent-entry] Loading VAD model...\n`);
+  let vad;
+  try {
+    const vadStart = Date.now();
+    vad = await silero!.VAD.load();
+    process.stderr.write(`[voice-agent-entry] VAD loaded in ${Date.now() - vadStart}ms\n`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
+    process.stderr.write(`[voice-agent-entry] FATAL: VAD load failed: ${errMsg}\n`);
+    throw err;
+  }
 
-  // Create Agent and Session
-  const agent = new voice!.Agent({ instructions: systemPrompt });
-  const session = new voice!.AgentSession({
-    vad,
-    llm: new google!.beta.realtime.RealtimeModel({
-      model: 'gemini-2.0-flash-exp',
-      modalities: [genai!.Modality.TEXT],
-      temperature: 0.8,
-      language: 'en-US',
-      instructions: systemPrompt,
-    }),
-    tts,
-    voiceOptions: {
-      allowInterruptions: true,
-      minEndpointingDelay: 400,
-      maxEndpointingDelay: 1200,
-      minInterruptionWords: 1,
-      minInterruptionDuration: 300,
-      preemptiveGeneration: true,
-    },
-  });
+  // Create TTS with error handling
+  process.stderr.write(`[voice-agent-entry] Creating TTS...\n`);
+  let tts;
+  try {
+    const { createPersonaAwareTTS } = await import('../speech/voice-manager.js');
+    const voiceConfig = persona?.voice || {
+      voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
+      provider: 'cartesia',
+    };
+    tts = createPersonaAwareTTS(persona?.name || 'Ferni', {
+      ...voiceConfig,
+      accent: 'american',
+    });
+    process.stderr.write(`[voice-agent-entry] TTS created in ${Date.now() - createStart}ms\n`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
+    process.stderr.write(`[voice-agent-entry] FATAL: TTS creation failed: ${errMsg}\n`);
+    throw err;
+  }
 
-  return { session, agent };
+  // Create Agent and Session with error handling
+  process.stderr.write(`[voice-agent-entry] Creating LLM and session...\n`);
+  try {
+    const agent = new voice!.Agent({ instructions: systemPrompt });
+    const session = new voice!.AgentSession({
+      vad,
+      llm: new google!.beta.realtime.RealtimeModel({
+        model: 'gemini-2.0-flash-exp',
+        modalities: [genai!.Modality.TEXT],
+        temperature: 0.8,
+        language: 'en-US',
+        instructions: systemPrompt,
+      }),
+      tts,
+      voiceOptions: {
+        allowInterruptions: true,
+        minEndpointingDelay: 400,
+        maxEndpointingDelay: 1200,
+        minInterruptionWords: 1,
+        minInterruptionDuration: 300,
+        preemptiveGeneration: true,
+      },
+    });
+    process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - createStart}ms\n`);
+    return { session, agent };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
+    process.stderr.write(`[voice-agent-entry] FATAL: Session creation failed: ${errMsg}\n`);
+    throw err;
+  }
 }
 
 // ============================================================================
