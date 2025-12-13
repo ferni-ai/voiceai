@@ -210,7 +210,7 @@ ferni-speaker/
 # ===================
 
 data/
-scripts/
-!scripts/patch-livekit-timeout.js
+# scripts/ - now allowing for build-fast.ts
+# !scripts/patch-livekit-timeout.js
 _.tgz
 _.tar.gz
