@@ -49,13 +49,13 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 
 | Check | Threshold | Script |
 |-------|-----------|--------|
-| TypeScript errors | 0 | `npm run typecheck` |
-| ESLint errors | 0 | `npm run lint` |
-| `as any` assertions | ≤30 | `npm run quality:check` |
-| `console.*` usage | ≤100 | `npm run quality:check` |
-| File size | ≤500 lines | `npm run quality:check` |
-| Layer violations | 0 | `npm run quality:arch` |
-| Design tokens (frontend) | 0 | `cd frontend-typescript && npm run lint:tokens` |
+| TypeScript errors | 0 | `pnpm typecheck` |
+| ESLint errors | 0 | `pnpm lint` |
+| `as any` assertions | ≤30 | `pnpm quality:check` |
+| `console.*` usage | ≤100 | `pnpm quality:check` |
+| File size | ≤500 lines | `pnpm quality:check` |
+| Layer violations | 0 | `pnpm quality:arch` |
+| Design tokens (frontend) | 0 | `cd frontend-typescript && pnpm lint:tokens` |
 
 ## 🚀 Development Servers (MUST RUN ALL 3)
 ```bash
@@ -77,10 +77,10 @@ cd frontend-typescript && pnpm dev
 
 ```bash
 # Deploy Voice Agent (blue-green, async)
-npm run deploy:agent:async
+pnpm deploy:agent:async
 
 # Deploy UI (blue-green, async)
-npm run deploy:ui:async
+pnpm deploy:ui:async
 
 # Monitor progress
 tail -f .deploy-logs/*.log
@@ -112,18 +112,18 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 ### ⛔ NEVER DO
 | Wrong | Right |
 |-------|-------|
-| `gcloud run deploy voiceai-agent` | `npm run deploy:agent:async` |
-| `gcloud builds submit && gcloud run deploy` | `npm run deploy:agent:async` |
-| Direct `gcloud` deploy commands | Always use `npm run deploy:*` |
+| `gcloud run deploy voiceai-agent` | `pnpm deploy:agent:async` |
+| `gcloud builds submit && gcloud run deploy` | `pnpm deploy:agent:async` |
+| Direct `gcloud` deploy commands | Always use `pnpm deploy:*` |
 
 **Why?** Direct deploys skip readiness checks and can cause connection failures. The deploy script waits for workers to signal ready before shifting traffic.
 
 | Deploy Command | What it deploys | Blue-Green? |
 |----------------|-----------------|-------------|
-| `npm run deploy:agent:async` | Voice agent | ✅ Yes |
-| `npm run deploy:ui:async` | UI backend APIs | ✅ Yes |
-| `npm run deploy:frontend` | Firebase Hosting | ✅ Yes (preview channel) |
-| `npm run deploy:landing` | Landing page | ✅ Yes (preview channel) |
+| `pnpm deploy:agent:async` | Voice agent | ✅ Yes |
+| `pnpm deploy:ui:async` | UI backend APIs | ✅ Yes |
+| `pnpm deploy:frontend` | Firebase Hosting | ✅ Yes (preview channel) |
+| `pnpm deploy:landing` | Landing page | ✅ Yes (preview channel) |
 
 **Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
@@ -192,18 +192,18 @@ ferni tokens brand                       # Check brand color alignment
 ### Adding a New Persona Color
 1. Edit `design-system/tokens/colors.json` → add to `personas` object
 2. Edit `design-system/tokens/personas.json` → add full persona profile
-3. Run `npm run tokens:sync`
+3. Run `pnpm tokens:sync`
 4. Commit all generated files
 
 ### Adding a New Animation
 1. Edit `design-system/tokens/animation.json`
-2. Run `npm run build:animation-constants`
+2. Run `pnpm build:animation-constants`
 3. Import from `animation-constants.generated.ts`
 
 ### Pre-commit Hook
 Token drift is checked automatically. If you see drift warnings:
 ```bash
-npm run tokens:sync
+pnpm tokens:sync
 git add -A
 ```
 
@@ -217,8 +217,8 @@ GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = f
 Brand colors are validated against `brand/FERNI-BRAND-GUIDELINES.md`:
 
 ```bash
-npm run brand:check    # Validate tokens match brand guidelines
-npm run tokens:check   # Validate generated files match source
+pnpm brand:check    # Validate tokens match brand guidelines
+pnpm tokens:check   # Validate generated files match source
 ```
 
 ### Critical Brand Colors (Never Change Without Design Review)
@@ -264,8 +264,8 @@ ferni: { DEFAULT: '#4a6741' }
 **Before modifying any color**, check the brand guidelines:
 1. Read `brand/FERNI-BRAND-GUIDELINES.md`
 2. Modify `design-system/tokens/colors.json` (source of truth)
-3. Run `npm run tokens:sync`
-4. Run `npm run brand:check`
+3. Run `pnpm tokens:sync`
+4. Run `pnpm brand:check`
 
 ## 🔌 Agent Extensibility System
 
@@ -497,7 +497,7 @@ npm test -- --run context-injection-integration
 | Hardcoded colors `#4a6741` | CSS variables: `var(--color-ferni)` |
 | Hardcoded durations `300` | Constants: `DURATION.SLOW`, `EASING.SPRING` |
 | Edit `*.generated.ts` files | Edit source JSON in `design-system/tokens/` |
-| Edit `design-tokens.css` directly | Run `npm run tokens:sync` after editing JSON |
+| Edit `design-tokens.css` directly | Run `pnpm tokens:sync` after editing JSON |
 
 ### Always Do
 - Await all promises OR handle with proper `.catch()` logging
@@ -506,7 +506,7 @@ npm test -- --run context-injection-integration
 - Write tests for new features (`src/tests/`, Vitest)
 - Use `readonly` for data that shouldn't change
 - Validate at boundaries (user input, API responses)
-- Run `npm run tokens:sync` after editing `design-system/tokens/*.json`
+- Run `pnpm tokens:sync` after editing `design-system/tokens/*.json`
 
 ## File Naming
 | Type | Pattern | Example |
@@ -526,7 +526,7 @@ npm test -- --run context-injection-integration
 
 ## Architecture Layers
 
-Import rules: Lower layers CANNOT import from higher layers (enforced by `npm run quality:arch`).
+Import rules: Lower layers CANNOT import from higher layers (enforced by `pnpm quality:arch`).
 
 ```
 Level 100 (Application):
@@ -622,31 +622,31 @@ Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `st
 ## 🛡️ Agent Guardrails (PREVENT MISTAKES)
 
 **Before making changes, ALWAYS:**
-1. Run `npm run typecheck` - catches type errors immediately
-2. Run `npm run lint` - catches code style issues
-3. Run `npm run tokens:check` - catches design system drift
+1. Run `pnpm typecheck` - catches type errors immediately
+2. Run `pnpm lint` - catches code style issues
+3. Run `pnpm tokens:check` - catches design system drift
 
 **Before suggesting deployment:**
-1. Run `npm run quality` - full quality check
+1. Run `pnpm quality` - full quality check
 2. Test the feature in browser if it's UI
 3. Verify no regressions in related functionality
 
 **Common Agent Mistakes to Avoid:**
 | Mistake | Prevention |
 |---------|------------|
-| Breaking types | Run `npm run typecheck` after EVERY edit |
+| Breaking types | Run `pnpm typecheck` after EVERY edit |
 | Hardcoded colors | Use `var(--color-*)` ALWAYS |
 | console.log | Use `createLogger('Module')` |
 | Editing generated files | Check filename for `.generated.` |
 | Wrong deploy target | Check table in Deployment section |
-| Forgetting to sync tokens | Run `npm run tokens:sync` after token edits |
-| Direct `gcloud run deploy` | **NEVER** - use `npm run deploy:*:async` (blue-green) |
+| Forgetting to sync tokens | Run `pnpm tokens:sync` after token edits |
+| Direct `gcloud run deploy` | **NEVER** - use `pnpm deploy:*:async` (blue-green) |
 
 **If pre-commit fails:**
 ```bash
-npm run lint:fix      # Auto-fix lint issues
-npm run format        # Auto-fix formatting
-npm run tokens:sync   # Fix token drift
+pnpm lint:fix      # Auto-fix lint issues
+pnpm format        # Auto-fix formatting
+pnpm tokens:sync   # Fix token drift
 ```
 
 ## Subdirectory CLAUDE.md Files
