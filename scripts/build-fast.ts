@@ -20,9 +20,8 @@
 import * as esbuild from 'esbuild';
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, cpSync, readdirSync, statSync } from 'fs';
-import { dirname, join, relative, resolve } from 'path';
+import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
-import { glob } from 'fs/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = dirname(__dirname);
@@ -77,30 +76,29 @@ const log = {
 // HELPERS
 // ============================================================================
 
-async function findFiles(dir: string, pattern: string): Promise<string[]> {
+function findFiles(dir: string): string[] {
   const files: string[] = [];
-  const globPattern = join(dir, pattern);
 
-  // Use Node.js glob (available in Node 22+) or fallback to manual
-  try {
-    for await (const file of glob(globPattern)) {
-      files.push(file as string);
-    }
-  } catch {
-    // Fallback: manual recursive search
-    const walk = (d: string) => {
+  // Recursive walk (Node 20 compatible - no glob needed)
+  const walk = (d: string) => {
+    try {
       const entries = readdirSync(d, { withFileTypes: true });
       for (const entry of entries) {
         const fullPath = join(d, entry.name);
         if (entry.isDirectory()) {
-          walk(fullPath);
+          // Skip node_modules and hidden directories
+          if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            walk(fullPath);
+          }
         } else if (entry.isFile() && entry.name.endsWith('.ts')) {
           files.push(fullPath);
         }
       }
-    };
-    walk(dir);
-  }
+    } catch {
+      // Directory might not be readable, skip it
+    }
+  };
+  walk(dir);
 
   return files;
 }
@@ -135,7 +133,7 @@ async function buildWithEsbuild(watch = false): Promise<void> {
 
   // Find all TypeScript files
   log.info('Finding TypeScript files...');
-  const allFiles = await findFiles(CONFIG.srcDir, '**/*.ts');
+  const allFiles = findFiles(CONFIG.srcDir);
 
   // Filter out test files and excluded patterns
   const entryPoints = allFiles.filter((file) => {
