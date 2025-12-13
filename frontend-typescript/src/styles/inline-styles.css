@@ -11147,36 +11147,343 @@ body.ambient-aurora {
 }
 
 /* ========================================================================
-   HOLISTIC FIX: Override all conflicting .main rules above 768px
+   RESPONSIVE LAYOUT SYSTEM - COMPLETE OVERRIDE
    
-   The CSS above has 19 different .main rules that conflict.
-   This single rule at the end takes precedence and ensures consistent layout.
+   This section REPLACES all the conflicting .main rules above.
+   Uses !important to ensure these rules win the cascade.
+   
+   Design principle: Content should ALWAYS fit within viewport.
+   The 768px styles work well - we use those as the baseline for all sizes.
+   
+   Breakpoints:
+   - Base (mobile): < 768px - compact
+   - Tablet+: ≥ 768px - consistent spacing that WORKS
    ======================================================================== */
-@media (min-width: 769px) {
+
+/* --- BASE: All screen sizes (mobile-first) --- */
+.main {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  
+  /* Tight, consistent spacing */
+  gap: var(--space-sm) !important;
+  padding: var(--space-sm) !important;
+  padding-bottom: env(safe-area-inset-bottom, var(--space-sm)) !important;
+}
+
+/* Helper text - ALWAYS visible */
+#helperText {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+  margin-top: var(--space-xs) !important;
+  margin-bottom: var(--space-sm) !important;
+  text-align: center !important;
+}
+
+/* Controls row - centered */
+.controls-row {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+/* Waveform - centered with max width */
+#waveformContainer {
+  width: 100% !important;
+  max-width: 300px !important;
+}
+
+/* --- TABLET AND UP (≥768px) - Same tight spacing, slightly larger max-widths --- */
+@media (min-width: 768px) {
   .main {
-    /* Core layout - same as working 768px styles */
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    
-    /* Tight spacing - proven to work */
     gap: var(--space-sm) !important;
-    padding: var(--space-sm) !important;
-    padding-bottom: env(safe-area-inset-bottom, var(--space-sm)) !important;
-    
-    /* Fill available space but allow shrinking */
-    flex: 1 !important;
-    min-height: 0 !important;
+    padding: var(--space-md) !important;
+    padding-bottom: env(safe-area-inset-bottom, var(--space-md)) !important;
   }
   
-  /* Ensure helper text is visible */
+  #waveformContainer {
+    max-width: 350px !important;
+  }
+  
   #helperText {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    flex-shrink: 0 !important;
+    font-size: 14px !important;
     margin-top: var(--space-sm) !important;
-    margin-bottom: var(--space-sm) !important;
+  }
+}
+
+/* --- DESKTOP (≥1024px) - Comfortable but not excessive --- */
+@media (min-width: 1024px) {
+  .main {
+    gap: var(--space-md) !important;
+    padding: var(--space-lg) !important;
+    padding-bottom: env(safe-area-inset-bottom, var(--space-lg)) !important;
+  }
+  
+  #waveformContainer {
+    max-width: 400px !important;
+  }
+  
+  #helperText {
+    font-size: 15px !important;
+    margin-top: var(--space-md) !important;
+  }
+}
+
+/* --- LARGE DESKTOP (≥1400px) - Generous but capped --- */
+@media (min-width: 1400px) {
+  .main {
+    gap: var(--space-lg) !important;
+    padding: var(--space-xl) !important;
+    padding-bottom: env(safe-area-inset-bottom, var(--space-xl)) !important;
+    /* Cap the main area so it doesn't stretch infinitely */
+    max-width: 800px !important;
+    margin: 0 auto !important;
+  }
+  
+  #waveformContainer {
+    max-width: 450px !important;
+  }
+  
+  #helperText {
+    font-size: 16px !important;
+    margin-top: var(--space-lg) !important;
+  }
+}
+
+/* --- LANDSCAPE MOBILE - Horizontal layout --- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .main {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: var(--space-md) !important;
+    padding: var(--space-xs) var(--space-md) !important;
+  }
+  
+  #waveformContainer {
+    max-width: 200px !important;
+    height: 50px !important;
+  }
+  
+  #helperText {
+    width: 100% !important;
+    font-size: 12px !important;
+    margin-top: var(--space-xs) !important;
+  }
+}
+
+/* --- SHORT VIEWPORT FIX - Ensure content fits --- */
+@media (max-height: 600px) {
+  .main {
+    gap: var(--space-xs) !important;
+    padding: var(--space-xs) !important;
+    padding-bottom: env(safe-area-inset-bottom, var(--space-xs)) !important;
+    /* Allow scrolling if absolutely necessary */
+    overflow-y: auto !important;
+  }
+  
+  #waveformContainer {
+    height: 40px !important;
+  }
+  
+  #helperText {
+    font-size: 12px !important;
+    margin-top: var(--space-2xs) !important;
+    margin-bottom: var(--space-xs) !important;
+  }
+}
+
+/* --- VERY SHORT VIEWPORT - Minimal layout --- */
+@media (max-height: 450px) {
+  .main {
+    gap: var(--space-2xs) !important;
+    padding: var(--space-2xs) !important;
+  }
+  
+  #waveformContainer {
+    height: 30px !important;
+    max-width: 150px !important;
+  }
+  
+  #helperText {
+    font-size: 11px !important;
+    margin: var(--space-2xs) 0 !important;
+  }
+}
+
+/* ========================================================================
+   HEADER / AVATAR / FONT OVERRIDES
+   
+   Like .main, there are 28 different .avatar-container rules causing chaos.
+   This section provides consistent, predictable sizing across all breakpoints.
+   ======================================================================== */
+
+/* --- BASE: Header layout --- */
+.header {
+  padding: var(--space-sm) var(--space-md) !important;
+  margin-top: env(safe-area-inset-top, var(--space-sm)) !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: var(--space-xs) !important;
+}
+
+/* --- BASE: Avatar - consistent small size --- */
+.avatar-container {
+  width: 80px !important;
+  height: 80px !important;
+}
+
+/* --- BASE: Font sizing - compact --- */
+#personaName {
+  font-size: 1.25rem !important;
+  margin: 0 !important;
+  margin-top: var(--space-xs) !important;
+}
+
+#personaSubtitle {
+  font-size: 0.875rem !important;
+  margin: 0 !important;
+}
+
+/* --- TABLET+ (≥768px) - Slightly larger --- */
+@media (min-width: 768px) {
+  .header {
+    padding: var(--space-md) var(--space-lg) !important;
+    gap: var(--space-sm) !important;
+  }
+  
+  .avatar-container {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  
+  #personaName {
+    font-size: 1.5rem !important;
+    margin-top: var(--space-sm) !important;
+  }
+  
+  #personaSubtitle {
+    font-size: 1rem !important;
+  }
+}
+
+/* --- DESKTOP (≥1024px) - Comfortable --- */
+@media (min-width: 1024px) {
+  .header {
+    padding: var(--space-lg) var(--space-xl) !important;
+    gap: var(--space-md) !important;
+  }
+  
+  .avatar-container {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  
+  #personaName {
+    font-size: 1.75rem !important;
+    margin-top: var(--space-md) !important;
+  }
+  
+  #personaSubtitle {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* --- LARGE DESKTOP (≥1400px) - Generous --- */
+@media (min-width: 1400px) {
+  .avatar-container {
+    width: 140px !important;
+    height: 140px !important;
+  }
+  
+  #personaName {
+    font-size: 2rem !important;
+  }
+  
+  #personaSubtitle {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* --- SHORT VIEWPORT - Compress header --- */
+@media (max-height: 700px) {
+  .header {
+    padding: var(--space-xs) var(--space-sm) !important;
+    gap: var(--space-2xs) !important;
+    margin-top: env(safe-area-inset-top, var(--space-2xs)) !important;
+  }
+  
+  .avatar-container {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  
+  #personaName {
+    font-size: 1.125rem !important;
+    margin-top: var(--space-2xs) !important;
+  }
+  
+  #personaSubtitle {
+    font-size: 0.75rem !important;
+  }
+  
+  /* Hide team roster on short screens */
+  #teamRoster {
+    display: none !important;
+  }
+}
+
+/* --- VERY SHORT VIEWPORT - Minimal header --- */
+@media (max-height: 500px) {
+  .header {
+    padding: var(--space-2xs) var(--space-xs) !important;
+    gap: 2px !important;
+  }
+  
+  .avatar-container {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  
+  #personaName {
+    font-size: 1rem !important;
+    margin-top: 2px !important;
+  }
+  
+  #personaSubtitle {
+    font-size: 0.625rem !important;
+  }
+  
+  /* Hide subtitle on very short screens */
+  #personaSubtitle {
+    display: none !important;
+  }
+}
+
+/* --- LANDSCAPE MOBILE - Horizontal header --- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .header {
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: var(--space-md) !important;
+    padding: var(--space-xs) var(--space-md) !important;
+  }
+  
+  .avatar-container {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  
+  #personaName {
+    margin-top: 0 !important;
   }
 }
