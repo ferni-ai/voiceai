@@ -82,20 +82,50 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 
 # Patch LiveKit agents library to increase initialization timeout
 # The library has hardcoded 10s/30s timeouts that are too short for Cloud Run cold starts
+# NOTE: Must patch BOTH worker.js AND worker.cjs as pnpm/npm may use either
 RUN node -e " \
   const fs = require('fs'); \
   const path = require('path'); \
-  const workerPath = path.join(__dirname, 'node_modules/@livekit/agents/dist/worker.js'); \
-  if (!fs.existsSync(workerPath)) { console.log('worker.js not found, skipping patch'); process.exit(0); } \
-  let content = fs.readFileSync(workerPath, 'utf8'); \
-  const p1 = 'initializeTimeout: 3e4'; \
-  const p1r = 'initializeTimeout: 3e5 /* PATCHED 5min */'; \
-  const p2 = 'initializeProcessTimeout = 10 * 1e3'; \
-  const p2r = 'initializeProcessTimeout = 300 * 1e3 /* PATCHED 5min */'; \
-  if (content.includes(p1)) { content = content.replace(p1, p1r); console.log('Patched InferenceProcExecutor timeout'); } \
-  if (content.includes(p2)) { content = content.replace(p2, p2r); console.log('Patched initializeProcessTimeout'); } \
-  fs.writeFileSync(workerPath, content); \
-  console.log('[patch-livekit-timeout] Patch complete'); \
+  const glob = require('path'); \
+  const patchFile = (filePath) => { \
+    if (!fs.existsSync(filePath)) return false; \
+    let content = fs.readFileSync(filePath, 'utf8'); \
+    let patched = false; \
+    const patches = [ \
+      ['initializeTimeout: 3e4', 'initializeTimeout: 3e5 /* PATCHED 5min */'], \
+      ['initializeProcessTimeout = 10 * 1e3', 'initializeProcessTimeout = 300 * 1e3 /* PATCHED 5min */'], \
+      ['initializeProcessTimeout=10*1e3', 'initializeProcessTimeout=300*1e3/* PATCHED */'], \
+    ]; \
+    for (const [search, replace] of patches) { \
+      if (content.includes(search)) { \
+        content = content.replace(new RegExp(search.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&'), 'g'), replace); \
+        patched = true; \
+        console.log('Patched: ' + search + ' in ' + filePath); \
+      } \
+    } \
+    if (patched) fs.writeFileSync(filePath, content); \
+    return patched; \
+  }; \
+  const agentsDir = 'node_modules/@livekit/agents/dist'; \
+  const pnpmDir = 'node_modules/.pnpm/@livekit+agents@*/node_modules/@livekit/agents/dist'; \
+  let totalPatched = 0; \
+  for (const dir of [agentsDir]) { \
+    for (const file of ['worker.js', 'worker.cjs', 'worker.mjs']) { \
+      const filePath = path.join(__dirname, dir, file); \
+      if (patchFile(filePath)) totalPatched++; \
+    } \
+  } \
+  const pnpmGlob = path.join(__dirname, 'node_modules/.pnpm'); \
+  if (fs.existsSync(pnpmGlob)) { \
+    const pnpmDirs = fs.readdirSync(pnpmGlob).filter(d => d.startsWith('@livekit+agents@')); \
+    for (const pdir of pnpmDirs) { \
+      for (const file of ['worker.js', 'worker.cjs', 'worker.mjs']) { \
+        const filePath = path.join(pnpmGlob, pdir, 'node_modules/@livekit/agents/dist', file); \
+        if (patchFile(filePath)) totalPatched++; \
+      } \
+    } \
+  } \
+  console.log('[patch-livekit-timeout] Total files patched: ' + totalPatched); \
 "
 
 # Copy built files from builder
