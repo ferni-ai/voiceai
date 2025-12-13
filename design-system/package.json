@@ -6,9 +6,12 @@
   "scripts": {
     "build": "node build.js",
     "build:strict": "node build.js --strict",
+    "build:content": "node generate-content-tokens.js",
     "check:a11y": "node check-accessibility.js",
     "check:a11y:strict": "node check-accessibility.js --strict",
     "check:a11y:fix": "node check-accessibility.js --fix",
+    "check:brand": "node check-brand.js",
+    "lint:design": "eslint --plugin @ferni/design-system --ext .ts,.tsx,.js,.jsx",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
     "test": "playwright test",

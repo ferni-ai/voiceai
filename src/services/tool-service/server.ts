@@ -96,7 +96,8 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
           cacheStatus: 'CACHE_STATUS_MISS',
         },
       };
-      return res.status(404).json(response);
+      res.status(404).json(response);
+      return;
     }
 
     // Create tool context
@@ -126,7 +127,7 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
       },
       metadata: {
         executionTimeMs: Date.now() - startTime,
-        toolVersion: toolDef.version || '1.0.0',
+        toolVersion: '1.0.0',
         cacheStatus: 'CACHE_STATUS_MISS',
       },
     };
@@ -206,7 +207,8 @@ app.post('/ferni.tools.v1.ToolService/GetTool', async (req, res) => {
   try {
     const tool = toolRegistry.get(toolId);
     if (!tool) {
-      return res.status(404).json({ error: 'Tool not found' });
+      res.status(404).json({ error: 'Tool not found' });
+      return;
     }
 
     res.json({
@@ -219,7 +221,7 @@ app.post('/ferni.tools.v1.ToolService/GetTool', async (req, res) => {
         tags: tool.tags || [],
         requiredTier: 'SUBSCRIPTION_TIER_FREE',
         supportsStreaming: false,
-        version: tool.version || '1.0.0',
+        version: '1.0.0',
       },
     });
 
@@ -250,7 +252,7 @@ async function main() {
   const port = parseInt(process.env.PORT || '50051', 10);
 
   log.info('Initializing tool registry...');
-  await initializeAllDomains();
+  await initializeToolRegistry({ lazyLoading: false });
 
   const toolCount = toolRegistry.getAll().length;
   log.info({ toolCount }, 'Tool registry initialized');

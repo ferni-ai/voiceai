@@ -46,7 +46,7 @@ const moduleLoadStart = Date.now();
 import { AccessToken } from 'livekit-server-sdk';
 import { Room, RoomEvent } from '@livekit/rtc-node';
 import { JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
-import { JobType, ServerMessage, WorkerMessage } from '@livekit/protocol';
+import { JobType, ServerMessage, WorkerMessage, ParticipantPermission } from '@livekit/protocol';
 import type { Job } from '@livekit/protocol';
 import { WebSocket } from 'ws';
 import { EventEmitter } from 'node:events';
@@ -257,7 +257,7 @@ async function connectToLiveKit(): Promise<void> {
   token.addGrant({ agent: true });
   const jwt = await token.toJwt();
 
-  // Build WebSocket URL
+  // Build WebSocket URL (matching SDK: always uses Authorization header, optionally worker_token query)
   const url = new URL(LIVEKIT_URL);
   url.protocol = url.protocol.replace('http', 'ws');
   url.pathname = '/agent';
@@ -273,7 +273,7 @@ async function connectToLiveKit(): Promise<void> {
       log('Connected to LiveKit server');
       reconnectAttempts = 0;
 
-      // Register worker
+      // Register worker with full permissions (matching SDK behavior)
       const registerMsg = new WorkerMessage({
         message: {
           case: 'register',
@@ -281,6 +281,14 @@ async function connectToLiveKit(): Promise<void> {
             type: JobType.JT_ROOM,
             version: '0.1.0',
             agentName: AGENT_NAME,
+            allowedPermissions: new ParticipantPermission({
+              canPublish: true,
+              canSubscribe: true,
+              canPublishData: true,
+              canUpdateMetadata: true,
+              hidden: false,
+              agent: true,
+            }),
           },
         },
       });

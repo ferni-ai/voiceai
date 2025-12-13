@@ -20,6 +20,12 @@ import {
   type ToolExecutionContext,
   type ToolExecutionResult,
 } from './index.js';
+import {
+  executeMarketplaceTool,
+  getTool as getMarketplaceTool,
+  listInstallations,
+  type ExecutionContext as MarketplaceContext,
+} from '../marketplace/index.js';
 
 // ============================================================================
 // TYPES
@@ -63,6 +69,7 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
   private runtime: IRuntime;
   private ctx: ToolExecutionContext;
   private personaId: string;
+  private marketplaceToolIds: Set<string> | null = null;
 
   constructor(runtime: IRuntime, ctx: ToolExecutionContext, personaId: string) {
     this.runtime = runtime;
@@ -70,17 +77,82 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
     this.personaId = personaId;
   }
 
+  /**
+   * Load installed marketplace tools for this user
+   */
+  private async loadMarketplaceToolIds(): Promise<Set<string>> {
+    if (this.marketplaceToolIds) return this.marketplaceToolIds;
+
+    try {
+      const installations = listInstallations(this.ctx.userId, { itemType: 'tool' });
+      this.marketplaceToolIds = new Set(installations.map((i) => i.itemId));
+    } catch {
+      // If marketplace isn't available, return empty set
+      this.marketplaceToolIds = new Set();
+    }
+    return this.marketplaceToolIds;
+  }
+
+  /**
+   * Check if a tool ID is a marketplace tool (prefixed with 'mkt.' or in user's installations)
+   */
+  private async isMarketplaceTool(toolId: string): Promise<boolean> {
+    // Quick check: marketplace tools are prefixed with 'mkt.'
+    if (toolId.startsWith('mkt.')) return true;
+
+    // Check if it's in the user's installed marketplace tools
+    const installedIds = await this.loadMarketplaceToolIds();
+    return installedIds.has(toolId);
+  }
+
   async execute(toolId: string, params: Record<string, unknown>): Promise<ToolExecutionResult> {
+    // Check if this is a marketplace tool
+    if (await this.isMarketplaceTool(toolId)) {
+      // Use marketplace executor
+      const marketplaceCtx: MarketplaceContext = {
+        userId: this.ctx.userId,
+        sessionId: this.ctx.sessionId,
+        agentId: this.ctx.agentId,
+        tenantId: this.ctx.tenantId,
+      };
+
+      // Strip 'mkt.' prefix if present
+      const marketplaceToolId = toolId.startsWith('mkt.') ? toolId.slice(4) : toolId;
+
+      const result = await executeMarketplaceTool(marketplaceToolId, params, marketplaceCtx);
+
+      // Convert marketplace result to runtime result format
+      return {
+        status: result.success ? 'success' : 'failed',
+        data: result.data as Record<string, unknown> | undefined,
+        summary: result.summary,
+        error: result.error
+          ? {
+              code: result.error.code,
+              message: result.error.message,
+              userMessage: result.error.userMessage,
+              retryable: result.error.retryable,
+            }
+          : undefined,
+        metadata: {
+          executionTimeMs: result.durationMs || 0,
+          cacheHit: false,
+        },
+      };
+    }
+
+    // Use standard runtime tools
     return this.runtime.tools.execute(toolId, params, this.ctx);
   }
 
   async getToolDefinitions(): Promise<LLMToolDefinition[]> {
+    // Get standard runtime tools
     const tools = await this.runtime.tools.listTools(
       this.ctx.agentId,
       this.ctx.subscriptionTier
     );
 
-    return tools.map((tool) => ({
+    const definitions: LLMToolDefinition[] = tools.map((tool) => ({
       type: 'function' as const,
       function: {
         name: tool.id,
@@ -92,6 +164,34 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
         },
       },
     }));
+
+    // Also include installed marketplace tools
+    try {
+      const installations = listInstallations(this.ctx.userId, { itemType: 'tool' });
+
+      for (const installation of installations) {
+        const tool = getMarketplaceTool(installation.itemId);
+        if (tool) {
+          definitions.push({
+            type: 'function' as const,
+            function: {
+              // Prefix marketplace tools with 'mkt.' for disambiguation
+              name: `mkt.${tool.id}`,
+              description: tool.description.short,
+              parameters: tool.interface?.parametersSchema || {
+                type: 'object',
+                properties: {},
+                required: [],
+              },
+            },
+          });
+        }
+      }
+    } catch {
+      // Marketplace not available, continue with just runtime tools
+    }
+
+    return definitions;
   }
 
   async getSystemPrompt(): Promise<{

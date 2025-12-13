@@ -22,9 +22,9 @@
  *   // Works the same locally and in cloud!
  */
 
-import { createLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 
-const log = createLogger('service-mode');
+const log = getLogger().child({ module: 'service-mode' });
 
 // ============================================================================
 // TYPES
@@ -165,13 +165,13 @@ class LocalToolService implements IToolService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    const [registryModule, domainsModule] = await Promise.all([
+    const [registryModule, loaderModule] = await Promise.all([
       import('../tools/registry/index.js'),
-      import('../tools/domains/index.js'),
+      import('../tools/registry/loader.js'),
     ]);
 
     // Initialize all tool domains
-    await domainsModule.initializeAllDomains();
+    await loaderModule.initializeToolRegistry({ lazyLoading: false });
     this.toolRegistry = registryModule.toolRegistry;
     this.initialized = true;
     log.info('Local tool service initialized');
@@ -309,15 +309,26 @@ class LocalPersonaService implements IPersonaService {
     }
 
     const bundle = await this.bundleLoader!.loadBundle(params.personaId);
-    const systemPrompt = bundle?.getSystemPrompt?.() || agent.description || '';
-    const greeting = bundle?.getGreeting?.() || `Hello! I'm ${agent.displayName}.`;
+    let systemPrompt = agent.description || '';
+    let greeting = `Hello! I'm ${agent.name}.`;
+
+    // Get richer content from bundle if available
+    if (bundle?.manifest?.identity?.description) {
+      systemPrompt = bundle.manifest.identity.description;
+    }
+    const behaviors = await bundle?.getBehaviors?.();
+    if (behaviors?.greetings?.returning_user?.[0]) {
+      greeting = behaviors.greetings.returning_user[0];
+    } else if (behaviors?.greetings?.new_user?.[0]) {
+      greeting = behaviors.greetings.new_user[0];
+    }
 
     return {
       systemPrompt,
       greeting,
       voiceConfig: {
-        provider: agent.voice?.provider || 'cartesia',
-        voiceId: agent.voice?.voiceId || '',
+        provider: agent.voiceProvider || 'cartesia',
+        voiceId: agent.voiceId || '',
       },
     };
   }
@@ -337,9 +348,9 @@ class LocalPersonaService implements IPersonaService {
 
     return {
       id: agent.id,
-      name: agent.displayName,
+      name: agent.name,
       description: agent.description || '',
-      capabilities: agent.capabilities || [],
+      capabilities: [],
     };
   }
 
@@ -484,7 +495,12 @@ class RemoteToolService implements IToolService {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as {
+        status?: string;
+        result?: { data?: Record<string, unknown>; summary?: string };
+        error?: { code: string; message: string; userMessage: string; retryable: boolean };
+        metadata?: { cacheStatus?: string };
+      };
 
       return {
         status: this.statusFromProto(result.status),
@@ -531,7 +547,7 @@ class RemoteToolService implements IToolService {
       }),
     });
 
-    const result = await response.json();
+    const result = await response.json() as { tools?: Array<{ id: string; name: string; description: string; domain: string }> };
     return result.tools || [];
   }
 
@@ -543,7 +559,7 @@ class RemoteToolService implements IToolService {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
-      const result = await response.json();
+      const result = await response.json() as { status?: string };
       return {
         healthy: result.status === 'SERVICE_HEALTH_HEALTHY',
         latencyMs: Date.now() - start,
@@ -562,7 +578,8 @@ class RemoteToolService implements IToolService {
     return map[tier] || 'SUBSCRIPTION_TIER_FREE';
   }
 
-  private statusFromProto(status: string): ToolExecutionResult['status'] {
+  private statusFromProto(status: string | undefined): ToolExecutionResult['status'] {
+    if (!status) return 'failed';
     const map: Record<string, ToolExecutionResult['status']> = {
       EXECUTION_STATUS_SUCCESS: 'success',
       EXECUTION_STATUS_PARTIAL: 'partial',
@@ -601,7 +618,11 @@ class RemotePersonaService implements IPersonaService {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{
+      systemPrompt: string;
+      greeting: string;
+      voiceConfig: { provider: string; voiceId: string };
+    }>;
   }
 
   async getPersona(personaId: string): Promise<{
@@ -621,7 +642,12 @@ class RemotePersonaService implements IPersonaService {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{
+      id: string;
+      name: string;
+      description: string;
+      capabilities: string[];
+    }>;
   }
 
   async health(): Promise<{ healthy: boolean; latencyMs: number }> {
@@ -657,7 +683,7 @@ class RemoteMemoryService implements IMemoryService {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { memories?: Array<{ content: string; relevance: number; timestamp: number }> };
     return result.memories || [];
   }
 
@@ -676,7 +702,7 @@ class RemoteMemoryService implements IMemoryService {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{ id: string }>;
   }
 
   async health(): Promise<{ healthy: boolean; latencyMs: number }> {

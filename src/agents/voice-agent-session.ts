@@ -4,15 +4,15 @@
  * This module is loaded dynamically by voice-agent-child.ts after the agent
  * has responded to the LiveKit SDK's initialization request.
  *
- * It's a thin wrapper that imports voice-agent-entry.ts, which uses
- * the lightweight preloaded modules (cache-reader, lightweight-resilience, etc.)
+ * Note: voice-agent-entry is NOT preloaded to keep child processes lightweight.
+ * It's imported on-demand when a session starts.
  */
 
 import type { JobContext } from '@livekit/agents';
 
 /**
  * Run a voice agent session.
- * Imports voice-agent-entry.ts which handles all the session logic.
+ * Dynamically imports voice-agent-entry to keep child process lean during prewarm.
  */
 export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
@@ -22,7 +22,7 @@ export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   );
 
   try {
-    // Import entry module (uses lightweight preloaded deps internally)
+    // Import entry module on-demand (not preloaded to keep child lightweight)
     const { runFullVoiceAgentEntry } = await import('./voice-agent-entry.js');
     
     process.stderr.write(

@@ -1,0 +1,183 @@
+{
+  "$schema": "https://ferni.ai/schemas/tool-manifest.v1.json",
+  "manifestVersion": "1.0.0",
+  "id": "weather-forecast",
+  "name": "Weather Forecast",
+  "version": "1.2.0",
+
+  "publisher": {
+    "id": "pub_weatherco",
+    "name": "WeatherCo",
+    "email": "dev@weatherco.example.com",
+    "website": "https://weatherco.example.com",
+    "verified": true
+  },
+
+  "description": {
+    "short": "Get current weather and forecasts for any location worldwide.",
+    "long": "A comprehensive weather tool that provides current conditions, hourly forecasts, and 7-day outlooks. Powered by multiple weather data sources for maximum accuracy. Supports natural language location queries like 'weather in Paris' or 'forecast for 10001'.",
+    "changelog": "## v1.2.0\n- Added air quality index\n- Improved location parsing\n\n## v1.1.0\n- Added 7-day forecast\n- Fixed timezone handling"
+  },
+
+  "metadata": {
+    "category": "information",
+    "tags": ["weather", "forecast", "temperature", "climate", "outdoor"],
+    "icon": "☀️",
+    "docsUrl": "https://weatherco.example.com/docs/ferni-integration",
+    "supportUrl": "https://weatherco.example.com/support"
+  },
+
+  "licensing": {
+    "type": "freemium",
+    "pricing": {
+      "model": "usage-based",
+      "freeTierLimits": {
+        "monthlyExecutions": 100,
+        "restrictedFeatures": ["hourly-forecast", "historical-data"]
+      }
+    }
+  },
+
+  "verification": {
+    "trustLevel": "verified",
+    "verified": true,
+    "verifiedAt": "2025-01-15T00:00:00Z",
+    "verifiedBy": "ferni-security-team",
+    "securityAudit": {
+      "auditor": "FerniSecurityTeam",
+      "auditedAt": "2025-01-10T00:00:00Z",
+      "findings": "none"
+    }
+  },
+
+  "permissions": {
+    "required": [
+      {
+        "scope": "external:http:read",
+        "reason": "Fetches weather data from external weather APIs",
+        "required": true,
+        "usageContext": "Every weather request requires an API call"
+      }
+    ],
+    "optional": [
+      {
+        "scope": "user:profile:read",
+        "reason": "To remember your preferred location",
+        "required": false,
+        "usageContext": "Only used if you enable 'remember my location'"
+      }
+    ]
+  },
+
+  "execution": {
+    "mode": "isolated",
+    "runtime": {
+      "type": "http",
+      "endpoint": "https://api.weatherco.example.com/v1/ferni",
+      "env": [
+        {
+          "name": "WEATHERCO_API_KEY",
+          "description": "API key for WeatherCo service",
+          "required": true,
+          "secret": true
+        }
+      ]
+    },
+    "limits": {
+      "timeoutMs": 5000,
+      "memoryMb": 128,
+      "networkAccess": true,
+      "filesystemAccess": false
+    },
+    "retry": {
+      "maxAttempts": 2,
+      "backoffMs": 1000,
+      "retryableErrors": ["TIMEOUT", "SERVICE_UNAVAILABLE"]
+    }
+  },
+
+  "interface": {
+    "llmDescription": "Get current weather conditions and forecasts. Use this tool when the user asks about weather, temperature, or outdoor conditions for a specific location. Can provide current conditions, hourly forecasts, or 7-day outlooks.",
+    "parametersSchema": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "Location to get weather for. Can be city name, zip code, or coordinates."
+        },
+        "units": {
+          "type": "string",
+          "enum": ["celsius", "fahrenheit"],
+          "default": "fahrenheit",
+          "description": "Temperature units"
+        },
+        "forecastType": {
+          "type": "string",
+          "enum": ["current", "hourly", "daily"],
+          "default": "current",
+          "description": "Type of forecast to retrieve"
+        }
+      },
+      "required": ["location"]
+    },
+    "responseSchema": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "country": { "type": "string" },
+            "coordinates": {
+              "type": "object",
+              "properties": {
+                "lat": { "type": "number" },
+                "lon": { "type": "number" }
+              }
+            }
+          }
+        },
+        "current": {
+          "type": "object",
+          "properties": {
+            "temperature": { "type": "number" },
+            "feelsLike": { "type": "number" },
+            "humidity": { "type": "number" },
+            "conditions": { "type": "string" },
+            "windSpeed": { "type": "number" }
+          }
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-friendly summary for voice response"
+        }
+      }
+    },
+    "examples": [
+      {
+        "name": "Current weather in NYC",
+        "description": "Get current weather for New York City",
+        "parameters": {
+          "location": "New York, NY",
+          "units": "fahrenheit",
+          "forecastType": "current"
+        },
+        "expectedResponse": "It's currently 72°F and partly cloudy in New York City with 45% humidity."
+      },
+      {
+        "name": "Weekly forecast",
+        "description": "Get 7-day forecast for a zip code",
+        "parameters": {
+          "location": "94105",
+          "units": "fahrenheit",
+          "forecastType": "daily"
+        }
+      }
+    ]
+  },
+
+  "compatibility": {
+    "minPlatformVersion": "1.0.0",
+    "requiredFeatures": ["http-tools"]
+  }
+}

@@ -11,10 +11,10 @@
  */
 
 import express from 'express';
-import { createLogger } from '../../utils/logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 
-const log = createLogger('persona-service');
+const log = getLogger().child({ module: 'persona-service' });
 
 // Lazy-loaded modules (avoid heavy imports at startup)
 let bundleLoader: typeof import('../../personas/bundles/loader.js') | null = null;
@@ -79,26 +79,28 @@ app.post('/ferni.personas.v1.PersonaService/GetSystemPrompt', async (req, res) =
 
     const agent = await AgentRegistry.getAgentOrNull(request.personaId);
     if (!agent) {
-      return res.status(404).json({ error: `Persona '${request.personaId}' not found` });
+      res.status(404).json({ error: `Persona '${request.personaId}' not found` });
+      return;
     }
 
     // Try to load bundle for richer content
     let systemPrompt = agent.description || '';
-    let greeting = `Hello! I'm ${agent.displayName}.`;
+    let greeting = `Hello! I'm ${agent.name}.`;
 
     try {
       const bundle = await bundleLoader!.loadBundle(request.personaId);
       if (bundle) {
-        // Get system prompt from bundle if available
-        const identity = bundle.getIdentity?.();
-        if (identity?.systemPrompt) {
-          systemPrompt = identity.systemPrompt;
+        // Get system prompt from manifest identity description
+        if (bundle.manifest?.identity?.description) {
+          systemPrompt = bundle.manifest.identity.description;
         }
 
-        // Get greeting from bundle if available
-        const behaviors = bundle.getBehaviors?.();
-        if (behaviors?.greetings?.length > 0) {
-          greeting = behaviors.greetings[0];
+        // Get greeting from bundle behaviors
+        const behaviors = await bundle.getBehaviors();
+        if (behaviors?.greetings?.returning_user && behaviors.greetings.returning_user.length > 0) {
+          greeting = behaviors.greetings.returning_user[0];
+        } else if (behaviors?.greetings?.new_user && behaviors.greetings.new_user.length > 0) {
+          greeting = behaviors.greetings.new_user[0];
         }
       }
     } catch (bundleError) {
@@ -109,8 +111,8 @@ app.post('/ferni.personas.v1.PersonaService/GetSystemPrompt', async (req, res) =
       systemPrompt,
       greeting,
       voiceConfig: {
-        provider: agent.voice?.provider || 'cartesia',
-        voiceId: agent.voice?.voiceId || '',
+        provider: agent.voiceProvider || 'cartesia',
+        voiceId: agent.voiceId || '',
       },
     };
 
@@ -132,14 +134,15 @@ app.post('/ferni.personas.v1.PersonaService/GetPersona', async (req, res) => {
 
     const agent = await AgentRegistry.getAgentOrNull(request.personaId);
     if (!agent) {
-      return res.status(404).json({ error: `Persona '${request.personaId}' not found` });
+      res.status(404).json({ error: `Persona '${request.personaId}' not found` });
+      return;
     }
 
     const response: GetPersonaResponse = {
       id: agent.id,
-      name: agent.displayName,
+      name: agent.name,
       description: agent.description || '',
-      capabilities: agent.capabilities || [],
+      capabilities: [], // Agent type doesn't have capabilities, derive from roleDescription
     };
 
     res.json(response);
@@ -161,7 +164,7 @@ app.post('/ferni.personas.v1.PersonaService/ListPersonas', async (req, res) => {
     const response = {
       personas: agents.map(agent => ({
         id: agent.id,
-        name: agent.displayName,
+        name: agent.name,
         description: agent.description || '',
         role: agent.role || 'team',
       })),

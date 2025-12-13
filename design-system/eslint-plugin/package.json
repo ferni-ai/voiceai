@@ -1,0 +1,29 @@
+{
+  "name": "@ferni/eslint-plugin-design-system",
+  "version": "1.0.0",
+  "description": "ESLint plugin enforcing Ferni design system compliance",
+  "main": "index.js",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "design-system",
+    "ferni",
+    "accessibility",
+    "a11y",
+    "brand"
+  ],
+  "peerDependencies": {
+    "eslint": ">=8.0.0"
+  },
+  "files": [
+    "index.js",
+    "rules/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ferni-ai/voiceai.git",
+    "directory": "design-system/eslint-plugin"
+  },
+  "license": "MIT"
+}
+

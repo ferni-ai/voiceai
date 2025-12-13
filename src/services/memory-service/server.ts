@@ -11,12 +11,12 @@
  */
 
 import express from 'express';
-import { createLogger } from '../../utils/logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { getVectorStore, type VectorStore } from '../../memory/vector-store.js';
 import { embed } from '../../memory/embeddings.js';
 import type { VectorSearchOptions } from '../../memory/vector-store-interface.js';
 
-const log = createLogger('memory-service');
+const log = getLogger().child({ module: 'memory-service' });
 
 // Lazy-loaded modules
 let vectorStore: VectorStore | null = null;
