@@ -807,7 +807,7 @@ function updateSoulPreview(action: string, value: string): void {
 async function handleSoulAction(action: string, value: string): Promise<void> {
   const soul = await getAvatarSoul();
   if (!soul) {
-    showToast('Avatar Soul not available');
+    toast.info('Avatar Soul not available');
     return;
   }
 
@@ -821,7 +821,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
           value as 'CONTRACTED' | 'NEUTRAL' | 'DILATED' | 'INTERESTED' | 'CONNECTED',
           value === 'CONTRACTED' ? 'fast' : 'slow'
         );
-        showToast(`Pupil: ${value}`);
+        toast.info(`Pupil: ${value}`);
         break;
 
       case 'glow':
@@ -834,7 +834,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
         } else if (value === 'concern') {
           soul.avatarSoul.setGlowBleed(0.25, 'rgba(154, 123, 90, 0.4)');
         }
-        showToast(`Glow: ${value}`);
+        toast.info(`Glow: ${value}`);
         break;
 
       case 'effect':
@@ -849,7 +849,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
         } else if (value === 'growthCelebration') {
           soul.avatarSoul.celebrateGrowth();
         }
-        showToast(`Effect: ${value}`);
+        toast.info(`Effect: ${value}`);
         break;
 
       case 'protective':
@@ -859,14 +859,14 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
           const duration = value === 'mild' ? 2000 : value === 'moderate' ? 4000 : 6000;
           setTimeout(() => soul.avatarSoul.exitProtectiveMode(), duration);
         }
-        showToast(`Protective Mode: ${value}`);
+        toast.info(`Protective Mode: ${value}`);
         break;
 
       case 'thinking':
         // Use pupil contraction + glance for thinking effect
         soul.avatarSoul.setPupilDilation('CONTRACTED', 'fast');
         soul.avatarSoul.glanceAway();
-        showToast(`Thinking: ${value}`);
+        toast.info(`Thinking: ${value}`);
         break;
 
       case 'gaze':
@@ -879,18 +879,18 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
         } else if (value === 'thinking') {
           soul.avatarSoul.glanceAway();
         }
-        showToast(`Gaze: ${value}`);
+        toast.info(`Gaze: ${value}`);
         break;
 
       case 'breathSync':
         // Trigger shimmer as a visual breath cue
         soul.avatarSoul.flashShimmer(0.8);
-        showToast('Breath sync shimmer triggered');
+        toast.info('Breath sync shimmer triggered');
         break;
     }
   } catch (err) {
     log.error('Soul action failed:', err);
-    showToast('Action failed - check console');
+    toast.info('Action failed - check console');
   }
 }
 
@@ -1102,7 +1102,7 @@ async function previewVoice(agentId: string): Promise<void> {
   const agent = state.agents.find((a) => a.id === agentId);
   if (!agent?.voiceId) return;
 
-  showToast(`Opening voice preview for ${agent.name}...`);
+  toast.info(`Opening voice preview for ${agent.name}...`);
 
   try {
     const response = await fetch(`/api/voice/preview/${agent.voiceId}`);
@@ -1111,7 +1111,7 @@ async function previewVoice(agentId: string): Promise<void> {
     // Open Cartesia playground in new tab
     window.open(data.previewUrl, '_blank');
   } catch (err) {
-    showToast('Failed to get voice preview URL');
+    toast.info('Failed to get voice preview URL');
   }
 }
 
@@ -1126,12 +1126,12 @@ async function toggleAgentEnabled(agentId: string, enabled: boolean): Promise<vo
     const data = await response.json();
 
     if (data.success) {
-      showToast(`${enabled ? 'Enabled' : 'Disabled'} ${agentId}`);
+      toast.info(`${enabled ? 'Enabled' : 'Disabled'} ${agentId}`);
     } else {
-      showToast(`Failed to update agent`);
+      toast.info(`Failed to update agent`);
     }
   } catch (err) {
-    showToast('Failed to update agent status');
+    toast.info('Failed to update agent status');
   }
 }
 
@@ -1156,14 +1156,14 @@ async function saveAgentChanges(agentId: string): Promise<void> {
     const data = await response.json();
 
     if (data.success) {
-      showToast('Changes saved');
+      toast.info('Changes saved');
       closeDetailPanel();
       await refreshAgents();
     } else {
-      showToast('Failed to save changes');
+      toast.info('Failed to save changes');
     }
   } catch (err) {
-    showToast('Failed to save agent changes');
+    toast.info('Failed to save agent changes');
   }
 }
 
@@ -1185,12 +1185,12 @@ async function saveNewOrder(): Promise<void> {
     const data = await response.json();
 
     if (data.success) {
-      showToast('Team order saved');
+      toast.info('Team order saved');
     } else {
-      showToast('Failed to save team order');
+      toast.info('Failed to save team order');
     }
   } catch (err) {
-    showToast('Failed to save team order');
+    toast.info('Failed to save team order');
   }
 }
 
@@ -1201,12 +1201,12 @@ function showCreateDialog(): void {
   const template = prompt('Enter template (basic, sage, specialist, coordinator):', 'basic');
   if (!template) return;
 
-  showToast(`Creating agent: ${name} using ${template} template...`);
-  showToast('Run: npm run agents create ' + name + ' --template ' + template);
+  toast.info(`Creating agent: ${name} using ${template} template...`);
+  toast.info('Run: npm run agents create ' + name + ' --template ' + template);
 }
 
 async function validateAllAgents(): Promise<void> {
-  showToast('Validating all agents...');
+  toast.info('Validating all agents...');
 
   try {
     const response = await fetch('/api/agents/validate', {
@@ -1216,19 +1216,19 @@ async function validateAllAgents(): Promise<void> {
     const data = await response.json();
 
     if (data.success) {
-      showToast('✓ All agents valid!');
+      toast.info('✓ All agents valid!');
     } else {
-      showToast('⚠ Validation found issues - check console');
+      toast.info('⚠ Validation found issues - check console');
       log.debug('Validation output:', data.output);
       if (data.errors) log.error('Validation errors:', data.errors);
     }
   } catch (err) {
-    showToast('Failed to run validation');
+    toast.info('Failed to run validation');
   }
 }
 
 async function refreshAgents(): Promise<void> {
-  showToast('Refreshing...');
+  toast.info('Refreshing...');
   state.agents = await fetchAgents(true);
 
   const container = document.getElementById('adminDashboard');
@@ -1242,13 +1242,10 @@ function useTemplate(templateId: string): void {
   const name = prompt(`Enter agent ID for ${templateId} template (lowercase, hyphens only):`);
   if (!name) return;
 
-  showToast(`Creating ${templateId} agent: ${name}...`);
-  showToast('Run: npm run agents create ' + name + ' --template ' + templateId);
+  toast.info(`Creating ${templateId} agent: ${name}...`);
+  toast.info('Run: npm run agents create ' + name + ' --template ' + templateId);
 }
 
-function showToast(message: string): void {
-  toast.info(message);
-}
 
 // ============================================================================
 // STYLES (inline for simplicity)

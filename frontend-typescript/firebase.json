@@ -41,6 +41,13 @@
           }
         },
         {
+          "source": "/usage/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/plaid/**",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -140,6 +147,13 @@
         },
         {
           "source": "/subscription/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/usage/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"

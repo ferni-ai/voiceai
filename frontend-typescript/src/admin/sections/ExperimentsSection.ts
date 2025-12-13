@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { toast } from '../../ui/toast.ui.js';
 import {
   ICON_CHART,
   ICON_PAUSE,
@@ -616,15 +617,7 @@ export function setupEvents(): void {
       case 'create-experiment':
         // Create experiment modal not yet implemented - log and show toast
         log.info('Create experiment requested - feature in development');
-        // Use the admin toast if available, otherwise just log
-        const toastContainer = document.querySelector('.admin-toast-container');
-        if (toastContainer) {
-          const toast = document.createElement('div');
-          toast.className = 'admin-toast';
-          toast.textContent = 'Create experiment coming soon!';
-          toastContainer.appendChild(toast);
-          setTimeout(() => toast.remove(), 3000);
-        }
+        toast.info('Create experiment coming soon!');
         break;
     }
   });

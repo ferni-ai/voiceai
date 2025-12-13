@@ -7,7 +7,7 @@
  * - GET /api/subscription/config
  * - POST /api/subscription/checkout
  * - POST /api/subscription/portal
- * - POST /api/subscription/record-conversation
+ * - POST /api/usage/conversation
  * - POST /api/subscription/webhook
  */
 
@@ -530,14 +530,14 @@ describe('Subscription Routes', () => {
   });
 
   // ============================================================================
-  // POST /api/subscription/record-conversation
+  // POST /api/usage/conversation
   // ============================================================================
 
-  describe('POST /api/subscription/record-conversation', () => {
+  describe('POST /api/usage/conversation', () => {
     it('should return 400 if userId is missing', async () => {
       const response = await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/api/subscription/record-conversation',
+        pathname: '/api/usage/conversation',
         query: {},
         headers: {},
         body: {},
@@ -553,7 +553,7 @@ describe('Subscription Routes', () => {
 
       const response = await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/api/subscription/record-conversation',
+        pathname: '/api/usage/conversation',
         query: {},
         headers: {},
         body: { userId: 'user-123', durationMinutes: 15 },
@@ -569,7 +569,7 @@ describe('Subscription Routes', () => {
 
       await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/api/subscription/record-conversation',
+        pathname: '/api/usage/conversation',
         query: {},
         headers: {},
         body: { userId: 'user-123' },
@@ -583,7 +583,7 @@ describe('Subscription Routes', () => {
 
       const response = await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/api/subscription/record-conversation',
+        pathname: '/api/usage/conversation',
         query: {},
         headers: {},
         body: { userId: 'user-123' },

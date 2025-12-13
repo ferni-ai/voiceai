@@ -618,7 +618,7 @@ function setupEventListeners(overlay: HTMLElement): void {
   // Companion button
   overlay.querySelector('#become-companion-btn')?.addEventListener('click', async () => {
     // In production, this would go through payment flow
-    showToast('Thank you for your support!', 'success');
+    toast.success('Thank you for your support!');
     refreshUI();
   });
 
@@ -696,14 +696,6 @@ function refreshUI(): void {
   }
 }
 
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  // Use shared toast system for consistency
-  if (type === 'error') {
-    toast.error(message);
-  } else {
-    toast.success(message);
-  }
-}
 
 // ============================================================================
 // PUBLIC API

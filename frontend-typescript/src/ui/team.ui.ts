@@ -35,6 +35,7 @@ import { addClass, addListener, getElementById, removeClass } from '../utils/dom
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { marketplaceUI } from './marketplace.ui.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('TeamUI');
 
@@ -1030,67 +1031,12 @@ function showLockedMemberFeedback(
   // Announce to screen readers
   announceToScreenReader(message);
 
-  // Show toast notification (using existing toast system if available)
-  showLockedMemberToast(name, message, status.progress);
+  // Show toast notification with progress hint
+  const progressPercent = Math.round(status.progress * 100);
+  const progressHint = status.progress > 0 ? ` (${progressPercent}% there!)` : '';
+  toast.show({ message: `${message}${progressHint}`, duration: 3500 });
 
   log.debug('Showed locked member feedback:', { personaId, progress: status.progress });
-}
-
-/**
- * Show a toast notification for locked team member.
- * Simple, warm messaging aligned with Ferni brand voice.
- */
-function showLockedMemberToast(_name: string, message: string, progress: number): void {
-  // Try to use existing toast system
-  const existingToast = document.querySelector('.ferni-toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  const toast = document.createElement('div');
-  toast.className = 'ferni-toast ferni-toast--locked';
-
-  // Progress indicator
-  const progressPercent = Math.round(progress * 100);
-  const progressHint = progress > 0 ? ` (${progressPercent}% there!)` : '';
-
-  toast.innerHTML = `
-    <span class="ferni-toast__message">${message}${progressHint}</span>
-  `;
-
-  // Position at bottom center (Ferni toast style)
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--color-background-elevated, rgba(44, 37, 32, 0.95));
-    color: var(--color-text-primary, #faf6f0);
-    padding: var(--space-3, 12px) var(--space-5, 20px);
-    border-radius: var(--radius-full, 9999px);
-    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,0.3));
-    font-size: var(--text-sm, 14px);
-    max-width: 320px;
-    text-align: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-  `;
-
-  document.body.appendChild(toast);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateX(-50%) translateY(0)';
-  });
-
-  // Auto-dismiss after 3.5 seconds
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(-50%) translateY(20px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
 }
 
 /**

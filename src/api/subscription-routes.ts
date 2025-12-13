@@ -767,7 +767,7 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     // With /api prefix
     '/api/subscription/checkout': createCheckout,
     '/api/subscription/portal': createBillingPortal,
-    '/api/subscription/record-conversation': recordConversationUsage,
+    '/api/usage/conversation': recordConversationUsage,
     '/api/subscription/webhook': handleStripeWebhook,
     '/api/subscription/upgrade': createAdminUpgrade,
     '/api/subscription/trial/start': startTrialEndpoint,
@@ -775,7 +775,7 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     // Without /api prefix (frontend calls these directly)
     '/subscription/checkout': createCheckout,
     '/subscription/portal': createBillingPortal,
-    '/subscription/record-conversation': recordConversationUsage,
+    '/usage/conversation': recordConversationUsage,
     '/subscription/trial/start': startTrialEndpoint,
     '/subscription/trial/record-time': recordTrialTimeEndpoint,
     '/subscription/webhook': handleStripeWebhook,

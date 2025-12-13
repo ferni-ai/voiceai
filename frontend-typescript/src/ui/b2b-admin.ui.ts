@@ -17,6 +17,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('B2BAdminUI');
 
@@ -1167,16 +1168,16 @@ function setupTeamListeners(): void {
     const role = roleSelect?.value as 'admin' | 'member';
 
     if (!email || !email.includes('@')) {
-      showToast('Please enter a valid email', 'error');
+      toast.error('Please enter a valid email');
       return;
     }
 
     const success = await sendInvite(email, role);
     if (success) {
-      showToast('Invite sent!', 'success');
+      toast.success('Invite sent!');
       emailInput.value = '';
     } else {
-      showToast('Failed to send invite', 'error');
+      toast.error('Failed to send invite');
     }
   });
 
@@ -1187,9 +1188,9 @@ function setupTeamListeners(): void {
       const userId = btn.getAttribute('data-user');
 
       if (action === 'remove') {
-        showToast('Member removed', 'success');
+        toast.success('Member removed');
       } else if (action === 'promote') {
-        showToast('Member promoted to admin', 'success');
+        toast.success('Member promoted to admin');
       }
 
       // In production, make API call and refresh
@@ -1211,7 +1212,7 @@ function setupSettingsListeners(): void {
 
     // In production, make API call
     log.debug({ welcomeMessage, companyValues }, 'Saving settings');
-    showToast('Settings saved!', 'success');
+    toast.success('Settings saved!');
   });
 }
 
@@ -1225,25 +1226,6 @@ function switchView(view: typeof currentView): void {
 
   // Render content
   renderContent();
-}
-
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  const toast = document.createElement('div');
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: 999px;
-    z-index: 10001;
-    font-size: 0.9rem;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
 }
 
 // ============================================================================

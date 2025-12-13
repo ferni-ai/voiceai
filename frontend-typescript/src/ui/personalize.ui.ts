@@ -24,6 +24,7 @@ import {
   type CosmeticType,
 } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('PersonalizeUI');
 
@@ -663,17 +664,17 @@ function setupEventListeners(overlay: HTMLElement): void {
 function handlePurchase(itemId: string): void {
   const success = purchaseCosmetic(itemId);
   if (success) {
-    showToast("It's yours!");
+    toast.success("It's yours!");
     equipCosmetic(itemId);
   } else {
-    showToast('Could not complete', 'error');
+    toast.error('Could not complete');
   }
 }
 
 function handleEquip(itemId: string): void {
   const success = equipCosmetic(itemId);
   if (success) {
-    showToast('Updated!');
+    toast.success('Updated!');
   }
 }
 
@@ -693,34 +694,6 @@ function refreshUI(): void {
   }
 }
 
-/**
- * Show a toast notification
- * Uses CSS variables for brand-compliant colors
- */
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  // Remove any existing toasts
-  document.querySelectorAll('.personalize-toast').forEach((el) => el.remove());
-
-  const toast = document.createElement('div');
-  toast.className = 'personalize-toast';
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? 'var(--color-semantic-error, #b5453a)' : 'var(--persona-primary, #4a6741)'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: var(--radius-full, 999px);
-    z-index: 10001;
-    font-size: 0.9rem;
-    font-weight: 500;
-    box-shadow: var(--shadow-lg);
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-}
 
 // ============================================================================
 // PUBLIC API

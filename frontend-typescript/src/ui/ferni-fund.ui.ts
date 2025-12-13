@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('FerniFundUI');
 
@@ -392,27 +393,8 @@ async function processContribution(
       setupFormListeners();
     }
 
-    showToast('Payment failed. Please try again.', 'error');
+    toast.error('Payment failed. Please try again.');
   }
-}
-
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  const toast = document.createElement('div');
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? 'var(--color-semantic-error)' : 'var(--persona-primary)'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: 999px;
-    z-index: var(--z-notification);
-    font-size: 0.9rem;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
 }
 
 // ============================================================================

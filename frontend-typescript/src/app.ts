@@ -1733,7 +1733,7 @@ class VoiceAIApp {
     const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
 
     try {
-      const response = await fetch('/subscription/record-conversation', {
+      const response = await fetch('/usage/conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -125,7 +125,7 @@ Content-Type: application/json
 
 ### Record Conversation Usage
 ```http
-POST /api/subscription/record-conversation
+POST /api/usage/conversation
 Content-Type: application/json
 
 {

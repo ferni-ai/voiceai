@@ -17,6 +17,7 @@ import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 // Note: appState imported for future use with evalops state sync
 import type { AppState as _AppState } from '../state/app.state.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('EvalOpsDashboard');
 
@@ -192,10 +193,10 @@ async function runQuickCheck(personaId: string, response: string): Promise<void>
     log.info('Quick check result:', data);
     
     // Update UI with toast
-    showToast(`Voice score: ${data.score}% (${data.status})`);
+    toast.info(`Voice score: ${data.score}% (${data.status})`);
   } catch (error) {
     log.error('Quick check failed:', error);
-    showToast('Quick check failed', 'error');
+    toast.error('Quick check failed');
   }
 }
 
@@ -203,37 +204,14 @@ async function toggleEvaluation(enabled: boolean): Promise<void> {
   state.config.enabled = enabled;
   localStorage.setItem('evalops_enabled', String(enabled));
   renderContent();
-  showToast(enabled ? 'Evaluation enabled' : 'Evaluation disabled');
+  toast.info(enabled ? 'Evaluation enabled' : 'Evaluation disabled');
 }
 
 async function updateSampleRate(rate: number): Promise<void> {
   state.config.sampleRate = rate;
   localStorage.setItem('evalops_sample_rate', String(rate));
   renderContent();
-  showToast(`Sample rate set to ${rate}%`);
-}
-
-// ============================================================================
-// TOAST
-// ============================================================================
-
-function showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
-  const existing = document.querySelector('.evalops-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = `evalops-toast evalops-toast--${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add('evalops-toast--visible');
-  });
-
-  setTimeout(() => {
-    toast.classList.remove('evalops-toast--visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  toast.info(`Sample rate set to ${rate}%`);
 }
 
 // ============================================================================
@@ -726,10 +704,10 @@ function attachContentListeners(): void {
       
       switch (action) {
         case 'run-critical':
-          showToast('Running critical scenarios...');
+          toast.info('Running critical scenarios...');
           break;
         case 'run-full':
-          showToast('Running full test suite...');
+          toast.info('Running full test suite...');
           break;
         case 'test-voice':
           if (personaId) {
@@ -738,7 +716,7 @@ function attachContentListeners(): void {
           }
           break;
         case 'view-fingerprint':
-          showToast(`Viewing fingerprint for ${personaId}`);
+          toast.info(`Viewing fingerprint for ${personaId}`);
           break;
       }
     });

@@ -94,7 +94,7 @@ const STYLES = `
   .service-health-container {
     position: fixed;
     bottom: 20px;
-    left: 20px;
+    right: 20px;
     z-index: 9998;
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 13px;
@@ -163,7 +163,7 @@ const STYLES = `
   .service-health-panel {
     position: absolute;
     bottom: calc(100% + 8px);
-    left: 0;
+    right: 0;
     width: 280px;
     background: var(--color-background-elevated, #FFFDFB);
     border-radius: var(--radius-lg, 12px);
@@ -171,7 +171,7 @@ const STYLES = `
     overflow: hidden;
     opacity: 0;
     transform: translateY(10px) scale(0.95);
-    transform-origin: bottom left;
+    transform-origin: bottom right;
     pointer-events: none;
     transition: all ${DURATION.NORMAL}ms ${EASING.SPRING};
   }

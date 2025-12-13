@@ -178,7 +178,7 @@ Update Stripe Dashboard webhook endpoint to:
 | GET    | `/subscription/config`              | Get tier configuration          |
 | POST   | `/subscription/checkout`            | Create Stripe checkout session  |
 | POST   | `/subscription/portal`              | Create billing portal session   |
-| POST   | `/subscription/record-conversation` | Track conversation usage        |
+| POST   | `/usage/conversation`               | Track conversation usage        |
 | POST   | `/subscription/webhook`             | Stripe webhook handler          |
 
 ---

@@ -409,10 +409,10 @@ describe('Subscription E2E Integration', () => {
   });
 
   // ============================================================================
-  // RECORD CONVERSATION ENDPOINT
+  // USAGE TRACKING ENDPOINT
   // ============================================================================
 
-  describe('POST /subscription/record-conversation', () => {
+  describe('POST /usage/conversation', () => {
     it('should increment conversation count', async () => {
       const currentPeriod = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
       const mockSaveProfile = vi.fn();
@@ -439,7 +439,7 @@ describe('Subscription E2E Integration', () => {
 
       const response = await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/subscription/record-conversation',
+        pathname: '/usage/conversation',
         query: {},
         headers: {},
         body: {
@@ -485,7 +485,7 @@ describe('Subscription E2E Integration', () => {
 
       const response = await handleSubscriptionRequest({
         method: 'POST',
-        pathname: '/subscription/record-conversation',
+        pathname: '/usage/conversation',
         query: {},
         headers: {},
         body: {

@@ -409,26 +409,16 @@ class GamePickerUI {
    * Show success toast
    */
   private showSuccess(message: string): void {
-    this.showToast(message, 'success');
+    log.debug({ message }, '🎮 Toast: success');
+    toast.success(message);
   }
 
   /**
    * Show error toast
    */
   private showError(message: string): void {
-    this.showToast(message, 'error');
-  }
-
-  /**
-   * Show a toast notification
-   */
-  private showToast(message: string, type: 'success' | 'error'): void {
-    log.info({ message, type }, '🎮 Showing toast');
-    if (type === 'success') {
-      toast.success(message);
-    } else {
-      toast.error(message);
-    }
+    log.debug({ message }, '🎮 Toast: error');
+    toast.error(message);
   }
 
   /**

@@ -119,11 +119,21 @@ export interface PreloadedDeps {
 }
 
 export const _preloadedDeps: PreloadedDeps = {
-  voice: null, google: null, silero: null, genai: null,
-  resourceServer: null, e2eDiagnostics: null, warmGreeting: null,
-  selfHealing: null, voiceManager: null, personas: null,
-  startup: null, voiceAgentEntry: null, voiceAgentSession: null,
-  vadModel: null, personaBundlesReady: false,
+  voice: null,
+  google: null,
+  silero: null,
+  genai: null,
+  resourceServer: null,
+  e2eDiagnostics: null,
+  warmGreeting: null,
+  selfHealing: null,
+  voiceManager: null,
+  personas: null,
+  startup: null,
+  voiceAgentEntry: null,
+  voiceAgentSession: null,
+  vadModel: null,
+  personaBundlesReady: false,
 };
 
 /** Log current dependency state */
@@ -134,7 +144,7 @@ const logDepsState = () => {
   const missing = Object.entries(_preloadedDeps)
     .filter(([k, v]) => v === null && k !== 'personaBundlesReady')
     .map(([k]) => k);
-  
+
   log('STATE', `Dependencies: ${loaded.length} loaded, ${missing.length} missing`, {
     loaded: loaded.join(', ') || 'none',
     missing: missing.join(', ') || 'none',
@@ -175,11 +185,16 @@ const CRITICAL_DEPS = ['voice', 'google', 'silero', 'voiceAgentSession'] as cons
 
 /** Check if critical dependencies are loaded */
 function areCriticalDepsLoaded(): boolean {
-  return CRITICAL_DEPS.every(dep => _preloadedDeps[dep] !== null);
+  return CRITICAL_DEPS.every((dep) => _preloadedDeps[dep] !== null);
 }
 
 /** Get loading progress as a percentage */
-function getLoadingProgress(): { loaded: number; total: number; percent: number; critical: boolean } {
+function getLoadingProgress(): {
+  loaded: number;
+  total: number;
+  percent: number;
+  critical: boolean;
+} {
   const allDeps = Object.entries(_preloadedDeps).filter(([k]) => k !== 'personaBundlesReady');
   const loaded = allDeps.filter(([_, v]) => v !== null).length;
   const total = allDeps.length;
@@ -245,19 +260,19 @@ export default defineAgent({
       const phase1Start = Date.now();
 
       const phase1Results = await Promise.allSettled([
-        import('@livekit/agents').then(m => {
+        import('@livekit/agents').then((m) => {
           logTiming('@livekit/agents', Date.now() - phase1Start);
           return m;
         }),
-        import('@livekit/agents-plugin-google').then(m => {
+        import('@livekit/agents-plugin-google').then((m) => {
           logTiming('@livekit/agents-plugin-google', Date.now() - phase1Start);
           return m;
         }),
-        import('@livekit/agents-plugin-silero').then(m => {
+        import('@livekit/agents-plugin-silero').then((m) => {
           logTiming('@livekit/agents-plugin-silero', Date.now() - phase1Start);
           return m;
         }),
-        import('@google/genai').then(m => {
+        import('@google/genai').then((m) => {
           logTiming('@google/genai', Date.now() - phase1Start);
           return m;
         }),
@@ -273,12 +288,21 @@ export default defineAgent({
       // Log failures
       phase1Results.forEach((r, i) => {
         if (r.status === 'rejected') {
-          const names = ['@livekit/agents', '@livekit/agents-plugin-google', '@livekit/agents-plugin-silero', '@google/genai'];
+          const names = [
+            '@livekit/agents',
+            '@livekit/agents-plugin-google',
+            '@livekit/agents-plugin-silero',
+            '@google/genai',
+          ];
           log('ERROR', `Failed to load ${names[i]}: ${r.reason}`);
         }
       });
 
-      logTiming('Phase 1 TOTAL', Date.now() - phase1Start, `${phase1Results.filter(r => r.status === 'fulfilled').length}/4 succeeded`);
+      logTiming(
+        'Phase 1 TOTAL',
+        Date.now() - phase1Start,
+        `${phase1Results.filter((r) => r.status === 'fulfilled').length}/4 succeeded`
+      );
       log('PREWARM', 'Phase 1 complete', { mem: _memMB(), elapsed: _elapsed() });
 
       // Update deps state
@@ -295,39 +319,39 @@ export default defineAgent({
       const phase2Start = Date.now();
 
       const phase2Results = await Promise.allSettled([
-        import('./shared/resource-server.js').then(m => {
+        import('./shared/resource-server.js').then((m) => {
           logTiming('resource-server', Date.now() - phase2Start);
           return m;
         }),
-        import('./shared/e2e-diagnostics.js').then(m => {
+        import('./shared/e2e-diagnostics.js').then((m) => {
           logTiming('e2e-diagnostics', Date.now() - phase2Start);
           return m;
         }),
-        import('./shared/warm-greeting.js').then(m => {
+        import('./shared/warm-greeting.js').then((m) => {
           logTiming('warm-greeting', Date.now() - phase2Start);
           return m;
         }),
-        import('../services/self-healing/index.js').then(m => {
+        import('../services/self-healing/index.js').then((m) => {
           logTiming('self-healing', Date.now() - phase2Start);
           return m;
         }),
-        import('../speech/voice-manager.js').then(m => {
+        import('../speech/voice-manager.js').then((m) => {
           logTiming('voice-manager', Date.now() - phase2Start);
           return m;
         }),
-        import('../personas/index.js').then(m => {
+        import('../personas/index.js').then((m) => {
           logTiming('personas', Date.now() - phase2Start);
           return m;
         }),
-        import('../startup.js').then(m => {
+        import('../startup.js').then((m) => {
           logTiming('startup', Date.now() - phase2Start);
           return m;
         }),
-        import('./voice-agent-entry.js').then(m => {
+        import('./voice-agent-entry.js').then((m) => {
           logTiming('voice-agent-entry', Date.now() - phase2Start);
           return m;
         }),
-        import('./voice-agent-session.js').then(m => {
+        import('./voice-agent-session.js').then((m) => {
           logTiming('voice-agent-session', Date.now() - phase2Start);
           return m;
         }),
@@ -335,8 +359,15 @@ export default defineAgent({
 
       // Extract results
       const moduleNames = [
-        'resourceServer', 'e2eDiagnostics', 'warmGreeting', 'selfHealing',
-        'voiceManager', 'personas', 'startup', 'voiceAgentEntry', 'voiceAgentSession',
+        'resourceServer',
+        'e2eDiagnostics',
+        'warmGreeting',
+        'selfHealing',
+        'voiceManager',
+        'personas',
+        'startup',
+        'voiceAgentEntry',
+        'voiceAgentSession',
       ];
       const modules: Record<string, unknown> = {};
       phase2Results.forEach((r, i) => {
@@ -347,19 +378,27 @@ export default defineAgent({
         }
       });
 
-      logTiming('Phase 2 TOTAL', Date.now() - phase2Start, `${phase2Results.filter(r => r.status === 'fulfilled').length}/9 succeeded`);
+      logTiming(
+        'Phase 2 TOTAL',
+        Date.now() - phase2Start,
+        `${phase2Results.filter((r) => r.status === 'fulfilled').length}/9 succeeded`
+      );
       log('PREWARM', 'Phase 2 complete', { mem: _memMB(), elapsed: _elapsed() });
 
       // Update deps state
-      _preloadedDeps.resourceServer = modules.resourceServer as typeof _preloadedDeps.resourceServer;
-      _preloadedDeps.e2eDiagnostics = modules.e2eDiagnostics as typeof _preloadedDeps.e2eDiagnostics;
+      _preloadedDeps.resourceServer =
+        modules.resourceServer as typeof _preloadedDeps.resourceServer;
+      _preloadedDeps.e2eDiagnostics =
+        modules.e2eDiagnostics as typeof _preloadedDeps.e2eDiagnostics;
       _preloadedDeps.warmGreeting = modules.warmGreeting as typeof _preloadedDeps.warmGreeting;
       _preloadedDeps.selfHealing = modules.selfHealing as typeof _preloadedDeps.selfHealing;
       _preloadedDeps.voiceManager = modules.voiceManager as typeof _preloadedDeps.voiceManager;
       _preloadedDeps.personas = modules.personas as typeof _preloadedDeps.personas;
       _preloadedDeps.startup = modules.startup as typeof _preloadedDeps.startup;
-      _preloadedDeps.voiceAgentEntry = modules.voiceAgentEntry as typeof _preloadedDeps.voiceAgentEntry;
-      _preloadedDeps.voiceAgentSession = modules.voiceAgentSession as typeof _preloadedDeps.voiceAgentSession;
+      _preloadedDeps.voiceAgentEntry =
+        modules.voiceAgentEntry as typeof _preloadedDeps.voiceAgentEntry;
+      _preloadedDeps.voiceAgentSession =
+        modules.voiceAgentSession as typeof _preloadedDeps.voiceAgentSession;
       logDepsState();
 
       // ══════════════════════════════════════════════════════════════════════
@@ -370,22 +409,28 @@ export default defineAgent({
 
       const phase3Results = await Promise.allSettled([
         // VAD model takes ~2s to load
-        silero ? silero.VAD.load().then(model => {
-          _preloadedDeps.vadModel = model;
-          logTiming('Silero VAD model', Date.now() - phase3Start);
-          return model;
-        }) : Promise.reject(new Error('silero not loaded')),
+        silero
+          ? silero.VAD.load().then((model) => {
+              _preloadedDeps.vadModel = model;
+              logTiming('Silero VAD model', Date.now() - phase3Start);
+              return model;
+            })
+          : Promise.reject(new Error('silero not loaded')),
 
         // Initialize persona bundles
-        _preloadedDeps.personas ? _preloadedDeps.personas.initializeFromBundles().then(() => {
-          _preloadedDeps.personaBundlesReady = true;
-          logTiming('Persona bundles', Date.now() - phase3Start);
-        }) : Promise.reject(new Error('personas not loaded')),
+        _preloadedDeps.personas
+          ? _preloadedDeps.personas.initializeFromBundles().then(() => {
+              _preloadedDeps.personaBundlesReady = true;
+              logTiming('Persona bundles', Date.now() - phase3Start);
+            })
+          : Promise.reject(new Error('personas not loaded')),
 
         // Run startup initialization
-        _preloadedDeps.startup ? _preloadedDeps.startup.startup().then(() => {
-          logTiming('Startup initialization', Date.now() - phase3Start);
-        }) : Promise.reject(new Error('startup not loaded')),
+        _preloadedDeps.startup
+          ? _preloadedDeps.startup.startup().then(() => {
+              logTiming('Startup initialization', Date.now() - phase3Start);
+            })
+          : Promise.reject(new Error('startup not loaded')),
       ]);
 
       // Log phase 3 results
@@ -396,7 +441,11 @@ export default defineAgent({
         }
       });
 
-      logTiming('Phase 3 TOTAL', Date.now() - phase3Start, `${phase3Results.filter(r => r.status === 'fulfilled').length}/3 succeeded`);
+      logTiming(
+        'Phase 3 TOTAL',
+        Date.now() - phase3Start,
+        `${phase3Results.filter((r) => r.status === 'fulfilled').length}/3 succeeded`
+      );
       log('PREWARM', 'Phase 3 complete', { mem: _memMB(), elapsed: _elapsed() });
 
       // Store in proc userData for debugging
@@ -430,7 +479,7 @@ export default defineAgent({
     } catch (err) {
       _prewarmState = 'failed';
       const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-      
+
       logBox('PREWARM FAILED');
       log('ERROR', `Prewarm failed: ${errMsg}`, {
         elapsed: _elapsed(),
@@ -483,7 +532,7 @@ export default defineAgent({
       // 3. If no, wait a bit and check again
       // 4. After reasonable attempts, fall back to dynamic imports
       // This adapts to actual loading speed rather than guessing with a timeout
-      
+
       _entryWaitingCount++;
       const MAX_WAIT_ATTEMPTS = 60; // 60 * 500ms = 30s max, but we check progress
       const POLL_INTERVAL_MS = 500;
@@ -502,14 +551,18 @@ export default defineAgent({
       // Smart polling loop - adapts to actual progress
       while (!areCriticalDepsLoaded() && attempts < MAX_WAIT_ATTEMPTS) {
         const progress = getLoadingProgress();
-        
+
         // Log progress every 5 attempts (2.5s)
         if (attempts % 5 === 0) {
-          log('SYNC', `Loading progress: ${progress.loaded}/${progress.total} (${progress.percent}%)`, {
-            attempt: attempts,
-            elapsed: _elapsed(),
-            criticalReady: progress.critical,
-          });
+          log(
+            'SYNC',
+            `Loading progress: ${progress.loaded}/${progress.total} (${progress.percent}%)`,
+            {
+              attempt: attempts,
+              elapsed: _elapsed(),
+              criticalReady: progress.critical,
+            }
+          );
         }
 
         // Check if we're making progress
@@ -559,10 +612,8 @@ export default defineAgent({
       logDepsState();
 
       // Identify which critical deps need dynamic import
-      const missingCritical = CRITICAL_DEPS.filter(
-        dep => _preloadedDeps[dep] === null
-      );
-      
+      const missingCritical = CRITICAL_DEPS.filter((dep) => _preloadedDeps[dep] === null);
+
       if (missingCritical.length > 0) {
         log('ENTRY', `Will dynamically import: ${missingCritical.join(', ')}`);
       }
@@ -574,11 +625,14 @@ export default defineAgent({
 
       // Use preloaded session module or fallback
       const sessionLoadStart = Date.now();
-      const voiceAgentSession = _preloadedDeps.voiceAgentSession 
-        ?? await import('./voice-agent-session.js');
-      
+      const voiceAgentSession =
+        _preloadedDeps.voiceAgentSession ?? (await import('./voice-agent-session.js'));
+
       const sessionLoadMs = Date.now() - sessionLoadStart;
-      log('ENTRY', `Session module: ${_preloadedDeps.voiceAgentSession ? 'PRELOADED ✅' : `imported (${sessionLoadMs}ms)`}`);
+      log(
+        'ENTRY',
+        `Session module: ${_preloadedDeps.voiceAgentSession ? 'PRELOADED ✅' : `imported (${sessionLoadMs}ms)`}`
+      );
 
       // Run the session
       log('ENTRY', '🚀 Calling runVoiceAgentSession...');
@@ -597,7 +651,7 @@ export default defineAgent({
       });
     } catch (err) {
       const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-      
+
       logBox(`SESSION FAILED: Job ${jobId}`);
       log('ERROR', `Session failed: ${errMsg}`, {
         jobId,

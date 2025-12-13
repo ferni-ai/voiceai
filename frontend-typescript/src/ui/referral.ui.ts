@@ -18,6 +18,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('ReferralUI');
 
@@ -211,7 +212,7 @@ async function handleNativeShare(): Promise<void> {
         url: SHARE_CONTENT.url,
       });
       log.info('Shared via native share');
-      showToast('Shared');
+      toast.success('Shared');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         // Fallback to copy
@@ -226,7 +227,7 @@ async function handleNativeShare(): Promise<void> {
 async function handleCopyLink(): Promise<void> {
   try {
     await navigator.clipboard.writeText(`${SHARE_CONTENT.shortMessage}\n\n${SHARE_CONTENT.url}`);
-    showToast('Copied to clipboard');
+    toast.success('Copied to clipboard');
     log.info('Link copied to clipboard');
   } catch {
     log.warn('Could not copy to clipboard');
@@ -245,27 +246,6 @@ function handleSMSShare(): void {
   // sms: works on iOS and Android
   window.open(`sms:?body=${body}`, '_blank');
   log.info('SMS share opened');
-}
-
-function showToast(message: string): void {
-  const existing = document.querySelector('.referral-toast');
-  existing?.remove();
-
-  const toast = document.createElement('div');
-  toast.className = 'referral-toast';
-  toast.textContent = message;
-  toast.setAttribute('role', 'status');
-
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add('referral-toast--visible');
-  });
-
-  setTimeout(() => {
-    toast.classList.remove('referral-toast--visible');
-    setTimeout(() => toast.remove(), DURATION.NORMAL);
-  }, 2000);
 }
 
 // ============================================================================

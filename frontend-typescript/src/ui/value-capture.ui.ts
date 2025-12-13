@@ -15,6 +15,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { contributeValue, formatAmount, loadStripe } from '../services/monetization.service.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('ValueCaptureUI');
 
@@ -733,27 +734,8 @@ async function processContribution(amountCents: number): Promise<void> {
       setupFormListeners();
     }
 
-    showToast('Payment failed. Please try again.', 'error');
+    toast.error('Payment failed. Please try again.');
   }
-}
-
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
-  const toast = document.createElement('div');
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? '#e74c3c' : 'var(--persona-primary, #4a6741)'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: 999px;
-    z-index: 10001;
-    font-size: 0.9rem;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
 }
 
 // ============================================================================
