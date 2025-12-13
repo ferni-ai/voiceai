@@ -205,16 +205,28 @@ async function createSession(
  */
 export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
+  const jobId = ctx.job.id;
+  const roomName = ctx.job.room?.name || 'unknown';
+
+  // Import E2E diagnostics
+  const { e2e } = await import('./shared/e2e-diagnostics.js');
+
+  e2e.childEntry(jobId);
   process.stderr.write(`[voice-agent-entry] Starting session pid=${process.pid}\n`);
 
   try {
     // Step 1: Load voice dependencies
+    e2e.resourceLoading('voice-dependencies');
+    const depsStart = Date.now();
     await loadVoiceDeps();
+    e2e.resourceLoaded('voice-dependencies', Date.now() - depsStart);
 
     // Step 2: Get persona (from cache or load locally)
     const metadata = ctx.job.metadata ? JSON.parse(ctx.job.metadata) : {};
     const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
 
+    e2e.resourceLoading(`persona:${personaId}`);
+    const personaStart = Date.now();
     const {
       usePrewarmed,
       persona: cachedPersona,
@@ -227,17 +239,25 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       await startup();
       persona = await loadPersonaLocally(personaId);
     }
+    e2e.resourceLoaded(`persona:${personaId}`, Date.now() - personaStart);
     process.stderr.write(`[voice-agent-entry] Using persona: ${persona?.name || personaId}\n`);
 
     // Step 3: Connect to room
+    e2e.sessionConnecting(roomName, ctx.job.participant?.identity || 'unknown');
+    const connectStart = Date.now();
     await connectToRoom(ctx);
+    e2e.sessionConnected(jobId, roomName, ctx.room.localParticipant?.identity || 'agent', Date.now() - connectStart);
 
     // Step 4: Create and start session
+    e2e.resourceLoading('agent-session');
+    const sessionStart = Date.now();
     const systemPrompt =
       cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
     const { session, agent } = await createSession(persona, systemPrompt);
 
     await session.start({ agent, room: ctx.room });
+    e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
+    e2e.sessionStarted(jobId, personaId);
     process.stderr.write(`[voice-agent-entry] Session started in ${Date.now() - startTime}ms!\n`);
 
     // Step 5: Say greeting
@@ -248,7 +268,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Wait for disconnect
     await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
+    e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
   } catch (error) {
+    const errObj = error instanceof Error ? error : new Error(String(error));
+    e2e.captureError('SESSION', errObj, { jobId, roomName, phase: 'entry' });
     process.stderr.write(`[voice-agent-entry] ERROR: ${error}\n`);
     // Fallback: connect and wait
     try {

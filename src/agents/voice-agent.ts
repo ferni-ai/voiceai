@@ -2165,6 +2165,10 @@ class VoiceAgent extends voice.Agent<UserData> {
       return;
     }
 
+    // Get SessionStateManager from the UserData proxy (single source of truth)
+    const { getStateManager } = await import('./session/user-data-proxy.js');
+    const sessionStateManager = userData ? getStateManager(userData as UserData) : undefined;
+
     // Delegate to extracted turn handler
     await handleUserTurn({
       turnCtx,
@@ -2173,6 +2177,7 @@ class VoiceAgent extends voice.Agent<UserData> {
       bundleRuntime: this.bundleRuntime,
       services,
       userData: userData as UserData,
+      sessionStateManager,
       currentSession: this._currentSession,
       room: this._room,
       sendDataMessage: this.sendDataMessage.bind(this),
@@ -2451,6 +2456,7 @@ export default defineAgent({
         isFirstConversation,
         trialStatus,
         userData,
+        sessionStateManager,
         stopPeriodicSync,
       } = await initializeSession({
         sessionId,
@@ -2459,6 +2465,13 @@ export default defineAgent({
         userAccent,
         sessionPersona,
         room: ctx.room,
+      });
+
+      // Log that SessionStateManager is now the single source of truth
+      diag.session('Session initialized with SessionStateManager as single source of truth', {
+        sessionId,
+        hasBothSystems: !!sessionStateManager && !!userData,
+        turnCount: sessionStateManager.getTurnCount(),
       });
 
       // ===============================================
@@ -3237,8 +3250,16 @@ if (!process.send) {
 // Static agent name - persona is selected per-session via dispatch metadata
 const agentName = process.env.AGENT_NAME || 'voice-agent';
 
+// ============================================================================
+// E2E DIAGNOSTICS IMPORT
+// ============================================================================
+import { e2e, startHealthLogging } from './shared/e2e-diagnostics.js';
+
 diag.section('STARTING WORKER');
 diag.info('Worker configuration', { defaultPersonaId: DEFAULT_PERSONA_ID, agentName });
+
+// Log startup with E2E diagnostics
+e2e.workerStarting();
 
 // Only run cli.runApp in the main process, not in child processes
 // Child processes are spawned by LiveKit and import this module to get prewarm/entry
@@ -3258,6 +3279,41 @@ if (!process.send) {
   // to the SDK within the timeout window
   const childAgentPath = fileURLToPath(new URL('./voice-agent-child.js', import.meta.url));
 
+  // ============================================================================
+  // CUSTOM REQUEST FUNC WITH E2E DIAGNOSTICS
+  // ============================================================================
+  // This provides full visibility into the job accept flow
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestFuncWithDiagnostics = async (req: any) => {
+    const jobId = req.id;
+    const roomName = req.room?.name || 'unknown';
+    const reqAgentName = req.agentName || 'unknown';
+
+    // Log job received
+    e2e.jobReceived(jobId, roomName, reqAgentName);
+
+    try {
+      // Log that we're calling accept
+      e2e.jobAccepting(jobId);
+      const acceptStart = Date.now();
+
+      // Call accept - this signals to LiveKit that we're available
+      await req.accept();
+
+      // Log successful accept
+      const acceptDuration = Date.now() - acceptStart;
+      e2e.jobAccepted(jobId, acceptDuration);
+
+      // Note: After accept() returns, we wait for assignment response from LiveKit
+      // If the assignment doesn't arrive within ASSIGNMENT_TIMEOUT (7.5s), it times out
+    } catch (error) {
+      // Log failed accept
+      const acceptDuration = Date.now() - Date.now();
+      e2e.jobAcceptFailed(jobId, error instanceof Error ? error : new Error(String(error)), acceptDuration);
+      throw error;
+    }
+  };
+
   cli.runApp(
     new WorkerOptions({
       // CRITICAL: Point to lightweight child file, NOT this file!
@@ -3271,6 +3327,8 @@ if (!process.send) {
       numIdleProcesses: 0,
       // Increase timeout for safety margin
       initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
+      // Custom request function with full diagnostics
+      requestFunc: requestFuncWithDiagnostics,
     })
   );
 
@@ -3279,10 +3337,14 @@ if (!process.send) {
   try {
     const { signalWorkerAcceptingJobs } = await import('./shared/worker-readiness.js');
     signalWorkerAcceptingJobs();
+    e2e.workerReady();
     diag.info('Worker signaled ready for zero-downtime deployments');
   } catch {
     // Non-fatal - readiness tracking is optional
   }
+
+  // Start periodic health logging (every 60 seconds)
+  startHealthLogging(60_000);
 
   // Start LiveKit connection keep-alive monitor
   // This detects when the WebSocket goes stale and forces container restart
