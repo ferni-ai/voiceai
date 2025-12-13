@@ -1,0 +1,32 @@
+# Cloud Build Configuration for Ferni Base Image
+#
+# Pre-builds a Docker image with node_modules installed.
+# Run this weekly or when dependencies change significantly:
+#
+#   gcloud builds submit --config=cloudbuild-base.yaml
+#
+# The resulting image is cached in GCR and used by Dockerfile.agent/Dockerfile.ui
+# to skip npm install on every deploy (~3-5 min savings).
+
+steps:
+  # Build the base image with Kaniko
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - '--dockerfile=docker/Dockerfile.base'
+      - '--destination=gcr.io/$PROJECT_ID/ferni-base:latest'
+      - '--cache=true'
+      - '--cache-ttl=720h'  # 30 days cache for base image
+      - '--snapshot-mode=redo'
+      - '--use-new-run'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+images:
+  - 'gcr.io/$PROJECT_ID/ferni-base:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
+

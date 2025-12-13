@@ -2,6 +2,9 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local", "tsconfig.json"],
   "globalEnv": ["NODE_ENV", "CI"],
+  
+  "// Remote Cache": "Enable with: npx turbo login && npx turbo link",
+  "// Or self-hosted": "Set TURBO_REMOTE_CACHE_URL and TURBO_TOKEN env vars",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

@@ -143,7 +143,83 @@ Both `Dockerfile.agent` and `Dockerfile.ui` now support pnpm:
 - Auto-detect `pnpm-lock.yaml` and use pnpm
 - Fall back to npm if `package-lock.json` only
 
-### Future: Turborepo (Not Yet Implemented)
+---
+
+## Frontend Bundle Analysis
+
+### Current Bundle Sizes (gzipped)
+
+| Chunk | Size | Notes |
+|-------|------|-------|
+| `index.js` | 178KB | Main app - could be split further |
+| `vendor-rtc.js` | 112KB | LiveKit (necessary) |
+| `dev-panel.js` | 106KB | ⚠️ Should exclude in prod |
+| `admin.js` | 69KB | Lazy loaded ✓ |
+| `ui-secondary.js` | 51KB | Lazy loaded ✓ |
+| `vendor.js` | 34KB | Other vendor libs |
+| `ui-engagement.js` | 33KB | Lazy loaded ✓ |
+
+**Total gzipped: ~620KB** (acceptable for a rich app)
+
+### Optimization Opportunities
+
+1. **Exclude dev-panel in production** (saves 106KB)
+   - Already in separate chunk, just needs conditional loading
+
+2. **Further split index.js** (178KB → ~100KB + lazy chunks)
+   - Move heavy services to dynamic imports
+   - Use `lazyService()` from `src/utils/lazy-service.ts`
+
+3. **Tree-shake unused code**
+   - Run `pnpm bundle:analyze` to visualize
+
+### Run Bundle Analyzer
+
+```bash
+pnpm bundle:analyze
+```
+
+---
+
+## Backend Lazy Loading
+
+Heavy services are now lazy-loaded using `src/utils/lazy-service.ts`:
+
+```typescript
+import { lazyServices } from '../utils/lazy-service.js';
+
+// Only loads when called
+const landingService = await lazyServices.landingIntelligence();
+landingService.optimizeLandingPage(...)
+```
+
+**Lazy-loaded services:**
+- `landing-intelligence` - Marketing page optimization
+- `scientific-knowledge` - Research knowledge base
+- `predictive-insights` - ML predictions
+- `wisdom-synthesis` - Wisdom aggregation
+- `behavioral-economics` - Nudge patterns
+- `somatic-intelligence` - Body awareness
+
+---
+
+## Pre-built Base Image
+
+Build a base image weekly to skip `npm install` in deploys:
+
+```bash
+# Build and push base image
+pnpm docker:base
+
+# Then update Dockerfile.agent to use:
+# FROM gcr.io/johnb-2025/ferni-base:latest AS base
+```
+
+Saves ~3-5 minutes per deploy.
+
+---
+
+### Turborepo (Implemented ✓)
 
 ```json
 // turbo.json
