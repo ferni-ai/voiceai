@@ -576,7 +576,7 @@ export function registerDDoSAlertCallback(callback: DDoSAlertCallback): void {
  * Check for DDoS and trigger alert if detected.
  * Called periodically by monitoring systems.
  */
-export async function checkAndAlertDDoS(serverName: string = 'unknown'): Promise<void> {
+export async function checkAndAlertDDoS(serverName = 'unknown'): Promise<void> {
   if (!ddosAlertCallback) return;
 
   const pattern = detectDDoSPattern();
@@ -611,7 +611,7 @@ export async function checkAndAlertDDoS(serverName: string = 'unknown'): Promise
  * Start automatic DDoS monitoring with alerting.
  * Checks every 30 seconds for attack patterns.
  */
-export function startDDoSMonitoring(serverName: string, intervalMs: number = 30_000): () => void {
+export function startDDoSMonitoring(serverName: string, intervalMs = 30_000): () => void {
   const interval = setInterval(() => {
     checkAndAlertDDoS(serverName).catch((err) => {
       // Silently ignore alert failures to prevent cascading issues

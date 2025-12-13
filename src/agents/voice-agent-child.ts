@@ -163,7 +163,7 @@ const logDepsState = () => {
 let _prewarmState: 'pending' | 'running' | 'complete' | 'failed' | 'timeout' = 'pending';
 let _prewarmResolve: (() => void) | null = null;
 let _prewarmReject: ((err: Error) => void) | null = null;
-let _entryWaitingCount = 0;
+const _entryWaitingCount = 0;
 
 const _prewarmReady = new Promise<void>((resolve, reject) => {
   _prewarmResolve = resolve;
@@ -204,6 +204,7 @@ function getLoadingProgress(): {
 
 // Safety timeout - only logs a warning, doesn't reject
 // This is just for monitoring, not for control flow
+// NOTE: Keep in sync with APP_TIMEOUTS.PREWARM_SAFETY_TIMEOUT in src/config/timeouts.ts
 const SAFETY_TIMEOUT_MS = 120000; // 2 minutes - just for logging
 const _safetyTimeout = setTimeout(() => {
   if (_prewarmState === 'running' || _prewarmState === 'pending') {
@@ -252,257 +253,292 @@ export default defineAgent({
       entryWaiting: _entryWaitingCount,
     });
 
-    try {
-      // ══════════════════════════════════════════════════════════════════════
-      // PHASE 1: External packages (LiveKit, Google, Silero, GenAI)
-      // ══════════════════════════════════════════════════════════════════════
-      log('PREWARM', '📦 Phase 1: Loading external packages...');
-      const phase1Start = Date.now();
+    // ══════════════════════════════════════════════════════════════════════
+    // CRITICAL: Return IMMEDIATELY to let SDK send initializeResponse!
+    // The SDK has a 30-second timeout waiting for prewarm to return.
+    // All heavy work happens in background - entry() will wait for it.
+    // ══════════════════════════════════════════════════════════════════════
 
-      const phase1Results = await Promise.allSettled([
-        import('@livekit/agents').then((m) => {
-          logTiming('@livekit/agents', Date.now() - phase1Start);
-          return m;
-        }),
-        import('@livekit/agents-plugin-google').then((m) => {
-          logTiming('@livekit/agents-plugin-google', Date.now() - phase1Start);
-          return m;
-        }),
-        import('@livekit/agents-plugin-silero').then((m) => {
-          logTiming('@livekit/agents-plugin-silero', Date.now() - phase1Start);
-          return m;
-        }),
-        import('@google/genai').then((m) => {
-          logTiming('@google/genai', Date.now() - phase1Start);
-          return m;
-        }),
-      ]);
+    // Fire-and-forget background initialization
+    const doBackgroundInit = async () => {
+      try {
+        // ══════════════════════════════════════════════════════════════════════
+        // PHASE 1: External packages (LiveKit, Google, Silero, GenAI)
+        // ══════════════════════════════════════════════════════════════════════
+        log('PREWARM', '📦 Phase 1: Loading external packages...');
+        const phase1Start = Date.now();
 
-      // Extract results
-      const [agentsResult, googleResult, sileroResult, genaiResult] = phase1Results;
-      const agents = agentsResult.status === 'fulfilled' ? agentsResult.value : null;
-      const google = googleResult.status === 'fulfilled' ? googleResult.value : null;
-      const silero = sileroResult.status === 'fulfilled' ? sileroResult.value : null;
-      const genai = genaiResult.status === 'fulfilled' ? genaiResult.value : null;
+        const phase1Results = await Promise.allSettled([
+          import('@livekit/agents').then((m) => {
+            logTiming('@livekit/agents', Date.now() - phase1Start);
+            return m;
+          }),
+          import('@livekit/agents-plugin-google').then((m) => {
+            logTiming('@livekit/agents-plugin-google', Date.now() - phase1Start);
+            return m;
+          }),
+          import('@livekit/agents-plugin-silero').then((m) => {
+            logTiming('@livekit/agents-plugin-silero', Date.now() - phase1Start);
+            return m;
+          }),
+          import('@google/genai').then((m) => {
+            logTiming('@google/genai', Date.now() - phase1Start);
+            return m;
+          }),
+        ]);
 
-      // Log failures
-      phase1Results.forEach((r, i) => {
-        if (r.status === 'rejected') {
-          const names = [
-            '@livekit/agents',
-            '@livekit/agents-plugin-google',
-            '@livekit/agents-plugin-silero',
-            '@google/genai',
-          ];
-          log('ERROR', `Failed to load ${names[i]}: ${r.reason}`);
-        }
-      });
+        // Extract results
+        const [agentsResult, googleResult, sileroResult, genaiResult] = phase1Results;
+        const agents = agentsResult.status === 'fulfilled' ? agentsResult.value : null;
+        const google = googleResult.status === 'fulfilled' ? googleResult.value : null;
+        const silero = sileroResult.status === 'fulfilled' ? sileroResult.value : null;
+        const genai = genaiResult.status === 'fulfilled' ? genaiResult.value : null;
 
-      logTiming(
-        'Phase 1 TOTAL',
-        Date.now() - phase1Start,
-        `${phase1Results.filter((r) => r.status === 'fulfilled').length}/4 succeeded`
-      );
-      log('PREWARM', 'Phase 1 complete', { mem: _memMB(), elapsed: _elapsed() });
-
-      // Update deps state
-      if (agents) _preloadedDeps.voice = agents.voice;
-      if (google) _preloadedDeps.google = google;
-      if (silero) _preloadedDeps.silero = silero;
-      if (genai) _preloadedDeps.genai = genai;
-      logDepsState();
-
-      // ══════════════════════════════════════════════════════════════════════
-      // PHASE 2: Internal modules
-      // ══════════════════════════════════════════════════════════════════════
-      log('PREWARM', '📦 Phase 2: Loading internal modules...');
-      const phase2Start = Date.now();
-
-      const phase2Results = await Promise.allSettled([
-        import('./shared/resource-server.js').then((m) => {
-          logTiming('resource-server', Date.now() - phase2Start);
-          return m;
-        }),
-        import('./shared/e2e-diagnostics.js').then((m) => {
-          logTiming('e2e-diagnostics', Date.now() - phase2Start);
-          return m;
-        }),
-        import('./shared/warm-greeting.js').then((m) => {
-          logTiming('warm-greeting', Date.now() - phase2Start);
-          return m;
-        }),
-        import('../services/self-healing/index.js').then((m) => {
-          logTiming('self-healing', Date.now() - phase2Start);
-          return m;
-        }),
-        import('../speech/voice-manager.js').then((m) => {
-          logTiming('voice-manager', Date.now() - phase2Start);
-          return m;
-        }),
-        import('../personas/index.js').then((m) => {
-          logTiming('personas', Date.now() - phase2Start);
-          return m;
-        }),
-        import('../startup.js').then((m) => {
-          logTiming('startup', Date.now() - phase2Start);
-          return m;
-        }),
-        import('./voice-agent-entry.js').then((m) => {
-          logTiming('voice-agent-entry', Date.now() - phase2Start);
-          return m;
-        }),
-        import('./voice-agent-session.js').then((m) => {
-          logTiming('voice-agent-session', Date.now() - phase2Start);
-          return m;
-        }),
-      ]);
-
-      // Extract results
-      const moduleNames = [
-        'resourceServer',
-        'e2eDiagnostics',
-        'warmGreeting',
-        'selfHealing',
-        'voiceManager',
-        'personas',
-        'startup',
-        'voiceAgentEntry',
-        'voiceAgentSession',
-      ];
-      const modules: Record<string, unknown> = {};
-      phase2Results.forEach((r, i) => {
-        if (r.status === 'fulfilled') {
-          modules[moduleNames[i]] = r.value;
-        } else {
-          log('ERROR', `Failed to load ${moduleNames[i]}: ${r.reason}`);
-        }
-      });
-
-      logTiming(
-        'Phase 2 TOTAL',
-        Date.now() - phase2Start,
-        `${phase2Results.filter((r) => r.status === 'fulfilled').length}/9 succeeded`
-      );
-      log('PREWARM', 'Phase 2 complete', { mem: _memMB(), elapsed: _elapsed() });
-
-      // Update deps state
-      _preloadedDeps.resourceServer =
-        modules.resourceServer as typeof _preloadedDeps.resourceServer;
-      _preloadedDeps.e2eDiagnostics =
-        modules.e2eDiagnostics as typeof _preloadedDeps.e2eDiagnostics;
-      _preloadedDeps.warmGreeting = modules.warmGreeting as typeof _preloadedDeps.warmGreeting;
-      _preloadedDeps.selfHealing = modules.selfHealing as typeof _preloadedDeps.selfHealing;
-      _preloadedDeps.voiceManager = modules.voiceManager as typeof _preloadedDeps.voiceManager;
-      _preloadedDeps.personas = modules.personas as typeof _preloadedDeps.personas;
-      _preloadedDeps.startup = modules.startup as typeof _preloadedDeps.startup;
-      _preloadedDeps.voiceAgentEntry =
-        modules.voiceAgentEntry as typeof _preloadedDeps.voiceAgentEntry;
-      _preloadedDeps.voiceAgentSession =
-        modules.voiceAgentSession as typeof _preloadedDeps.voiceAgentSession;
-      logDepsState();
-
-      // ══════════════════════════════════════════════════════════════════════
-      // PHASE 3: Heavy resources (VAD model, persona bundles, startup)
-      // ══════════════════════════════════════════════════════════════════════
-      log('PREWARM', '📦 Phase 3: Loading heavy resources (VAD, bundles, startup)...');
-      const phase3Start = Date.now();
-
-      const phase3Results = await Promise.allSettled([
-        // VAD model takes ~2s to load
-        silero
-          ? silero.VAD.load().then((model) => {
-              _preloadedDeps.vadModel = model;
-              logTiming('Silero VAD model', Date.now() - phase3Start);
-              return model;
-            })
-          : Promise.reject(new Error('silero not loaded')),
-
-        // Initialize persona bundles
-        _preloadedDeps.personas
-          ? _preloadedDeps.personas.initializeFromBundles().then(() => {
-              _preloadedDeps.personaBundlesReady = true;
-              logTiming('Persona bundles', Date.now() - phase3Start);
-            })
-          : Promise.reject(new Error('personas not loaded')),
-
-        // Run startup initialization
-        _preloadedDeps.startup
-          ? _preloadedDeps.startup.startup().then(() => {
-              logTiming('Startup initialization', Date.now() - phase3Start);
-            })
-          : Promise.reject(new Error('startup not loaded')),
-      ]);
-
-      // Log phase 3 results
-      const phase3Names = ['VAD model', 'Persona bundles', 'Startup'];
-      phase3Results.forEach((r, i) => {
-        if (r.status === 'rejected') {
-          log('ERROR', `Phase 3 - ${phase3Names[i]} failed: ${r.reason}`);
-        }
-      });
-
-      logTiming(
-        'Phase 3 TOTAL',
-        Date.now() - phase3Start,
-        `${phase3Results.filter((r) => r.status === 'fulfilled').length}/3 succeeded`
-      );
-      log('PREWARM', 'Phase 3 complete', { mem: _memMB(), elapsed: _elapsed() });
-
-      // Store in proc userData for debugging
-      proc.userData.preloadedDeps = _preloadedDeps;
-
-      // ══════════════════════════════════════════════════════════════════════
-      // PREWARM COMPLETE
-      // ══════════════════════════════════════════════════════════════════════
-      _prewarmState = 'complete';
-      const totalTime = Date.now() - prewarmStart;
-
-      logBox('PREWARM COMPLETE');
-      log('PREWARM', '✅ All dependencies preloaded', {
-        totalMs: totalTime,
-        elapsed: _elapsed(),
-        mem: _memMB(),
-        prewarmState: _prewarmState,
-        entryWaiting: _entryWaitingCount,
-      });
-      logDepsState();
-
-      // Signal that prewarm is complete - entry() can now use deps
-      clearTimeout(_safetyTimeout);
-      if (_prewarmResolve) {
-        log('SYNC', '🔓 Signaling prewarm complete to waiting entry() calls', {
-          waitingCount: _entryWaitingCount,
+        // Log failures
+        phase1Results.forEach((r, i) => {
+          if (r.status === 'rejected') {
+            const names = [
+              '@livekit/agents',
+              '@livekit/agents-plugin-google',
+              '@livekit/agents-plugin-silero',
+              '@google/genai',
+            ];
+            log('ERROR', `Failed to load ${names[i]}: ${r.reason}`);
+          }
         });
-        _prewarmResolve();
-        _prewarmResolve = null;
-      }
-    } catch (err) {
-      _prewarmState = 'failed';
-      const errMsg = err instanceof Error ? err.stack || err.message : String(err);
 
-      logBox('PREWARM FAILED');
-      log('ERROR', `Prewarm failed: ${errMsg}`, {
-        elapsed: _elapsed(),
-        mem: _memMB(),
-        prewarmState: _prewarmState,
+        logTiming(
+          'Phase 1 TOTAL',
+          Date.now() - phase1Start,
+          `${phase1Results.filter((r) => r.status === 'fulfilled').length}/4 succeeded`
+        );
+        log('PREWARM', 'Phase 1 complete', { mem: _memMB(), elapsed: _elapsed() });
+
+        // Update deps state
+        if (agents) _preloadedDeps.voice = agents.voice;
+        if (google) _preloadedDeps.google = google;
+        if (silero) _preloadedDeps.silero = silero;
+        if (genai) _preloadedDeps.genai = genai;
+        logDepsState();
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PHASE 2: Internal modules (with detailed per-import logging)
+        // ══════════════════════════════════════════════════════════════════════
+        log('PREWARM', '📦 Phase 2: Loading internal modules...');
+        const phase2Start = Date.now();
+
+        // Helper to wrap imports with timeout detection and detailed logging
+        const importWithTimeout = async <T>(
+          name: string,
+          importFn: () => Promise<T>,
+          timeoutMs = 30000
+        ): Promise<T> => {
+          log('IMPORT', `⏳ Starting: ${name}`);
+          const start = Date.now();
+
+          // Set up timeout warning
+          const timeoutId = setTimeout(() => {
+            log('IMPORT', `⚠️ SLOW: ${name} still loading after ${timeoutMs}ms!`, {
+              elapsed: Date.now() - start,
+              mem: _memMB(),
+            });
+          }, timeoutMs);
+
+          // Periodic progress logging every 5s
+          const progressId = setInterval(() => {
+            log('IMPORT', `⏳ Still waiting: ${name} (${Date.now() - start}ms)`, { mem: _memMB() });
+          }, 5000);
+
+          try {
+            const result = await importFn();
+            clearTimeout(timeoutId);
+            clearInterval(progressId);
+            logTiming(name, Date.now() - phase2Start);
+            return result;
+          } catch (err) {
+            clearTimeout(timeoutId);
+            clearInterval(progressId);
+            log('IMPORT', `❌ FAILED: ${name} after ${Date.now() - start}ms: ${err}`);
+            throw err;
+          }
+        };
+
+        const phase2Results = await Promise.allSettled([
+          importWithTimeout('resource-server', async () => import('./shared/resource-server.js')),
+          importWithTimeout('e2e-diagnostics', async () => import('./shared/e2e-diagnostics.js')),
+          importWithTimeout('warm-greeting', async () => import('./shared/warm-greeting.js')),
+          importWithTimeout(
+            'self-healing',
+            async () => import('../services/self-healing/index.js')
+          ),
+          importWithTimeout('voice-manager', async () => import('../speech/voice-manager.js')),
+          importWithTimeout('personas', async () => import('../personas/index.js')),
+          importWithTimeout('startup', async () => import('../startup.js')),
+          importWithTimeout('voice-agent-entry', async () => import('./voice-agent-entry.js')),
+          importWithTimeout('voice-agent-session', async () => import('./voice-agent-session.js')),
+        ]);
+
+        log('PREWARM', '📦 Phase 2 imports completed, processing results...');
+
+        // Extract results
+        const moduleNames = [
+          'resourceServer',
+          'e2eDiagnostics',
+          'warmGreeting',
+          'selfHealing',
+          'voiceManager',
+          'personas',
+          'startup',
+          'voiceAgentEntry',
+          'voiceAgentSession',
+        ];
+        const modules: Record<string, unknown> = {};
+        phase2Results.forEach((r, i) => {
+          if (r.status === 'fulfilled') {
+            modules[moduleNames[i]] = r.value;
+          } else {
+            log('ERROR', `Failed to load ${moduleNames[i]}: ${r.reason}`);
+          }
+        });
+
+        logTiming(
+          'Phase 2 TOTAL',
+          Date.now() - phase2Start,
+          `${phase2Results.filter((r) => r.status === 'fulfilled').length}/9 succeeded`
+        );
+        log('PREWARM', 'Phase 2 complete', { mem: _memMB(), elapsed: _elapsed() });
+
+        // Update deps state
+        _preloadedDeps.resourceServer =
+          modules.resourceServer as typeof _preloadedDeps.resourceServer;
+        _preloadedDeps.e2eDiagnostics =
+          modules.e2eDiagnostics as typeof _preloadedDeps.e2eDiagnostics;
+        _preloadedDeps.warmGreeting = modules.warmGreeting as typeof _preloadedDeps.warmGreeting;
+        _preloadedDeps.selfHealing = modules.selfHealing as typeof _preloadedDeps.selfHealing;
+        _preloadedDeps.voiceManager = modules.voiceManager as typeof _preloadedDeps.voiceManager;
+        _preloadedDeps.personas = modules.personas as typeof _preloadedDeps.personas;
+        _preloadedDeps.startup = modules.startup as typeof _preloadedDeps.startup;
+        _preloadedDeps.voiceAgentEntry =
+          modules.voiceAgentEntry as typeof _preloadedDeps.voiceAgentEntry;
+        _preloadedDeps.voiceAgentSession =
+          modules.voiceAgentSession as typeof _preloadedDeps.voiceAgentSession;
+        logDepsState();
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PHASE 3: Heavy resources (VAD model, persona bundles, startup)
+        // ══════════════════════════════════════════════════════════════════════
+        log('PREWARM', '📦 Phase 3: Loading heavy resources (VAD, bundles, startup)...');
+        const phase3Start = Date.now();
+
+        const phase3Results = await Promise.allSettled([
+          // VAD model takes ~2s to load
+          silero
+            ? silero.VAD.load().then((model) => {
+                _preloadedDeps.vadModel = model;
+                logTiming('Silero VAD model', Date.now() - phase3Start);
+                return model;
+              })
+            : Promise.reject(new Error('silero not loaded')),
+
+          // Initialize persona bundles
+          _preloadedDeps.personas
+            ? _preloadedDeps.personas.initializeFromBundles().then(() => {
+                _preloadedDeps.personaBundlesReady = true;
+                logTiming('Persona bundles', Date.now() - phase3Start);
+              })
+            : Promise.reject(new Error('personas not loaded')),
+
+          // Run startup initialization
+          _preloadedDeps.startup
+            ? _preloadedDeps.startup.startup().then(() => {
+                logTiming('Startup initialization', Date.now() - phase3Start);
+              })
+            : Promise.reject(new Error('startup not loaded')),
+        ]);
+
+        // Log phase 3 results
+        const phase3Names = ['VAD model', 'Persona bundles', 'Startup'];
+        phase3Results.forEach((r, i) => {
+          if (r.status === 'rejected') {
+            log('ERROR', `Phase 3 - ${phase3Names[i]} failed: ${r.reason}`);
+          }
+        });
+
+        logTiming(
+          'Phase 3 TOTAL',
+          Date.now() - phase3Start,
+          `${phase3Results.filter((r) => r.status === 'fulfilled').length}/3 succeeded`
+        );
+        log('PREWARM', 'Phase 3 complete', { mem: _memMB(), elapsed: _elapsed() });
+
+        // Store in proc userData for debugging
+        proc.userData.preloadedDeps = _preloadedDeps;
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PREWARM COMPLETE
+        // ══════════════════════════════════════════════════════════════════════
+        _prewarmState = 'complete';
+        const totalTime = Date.now() - prewarmStart;
+
+        logBox('PREWARM COMPLETE');
+        log('PREWARM', '✅ All dependencies preloaded', {
+          totalMs: totalTime,
+          elapsed: _elapsed(),
+          mem: _memMB(),
+          prewarmState: _prewarmState,
+          entryWaiting: _entryWaitingCount,
+        });
+        logDepsState();
+
+        // Signal that prewarm is complete - entry() can now use deps
+        clearTimeout(_safetyTimeout);
+        if (_prewarmResolve) {
+          log('SYNC', '🔓 Signaling prewarm complete to waiting entry() calls', {
+            waitingCount: _entryWaitingCount,
+          });
+          _prewarmResolve();
+          _prewarmResolve = null;
+        }
+      } catch (err) {
+        _prewarmState = 'failed';
+        const errMsg = err instanceof Error ? err.stack || err.message : String(err);
+
+        logBox('PREWARM FAILED');
+        log('ERROR', `Prewarm failed: ${errMsg}`, {
+          elapsed: _elapsed(),
+          mem: _memMB(),
+          prewarmState: _prewarmState,
+        });
+        logDepsState();
+
+        // Even on failure, resolve so entry() doesn't hang forever
+        // Entry will fall back to dynamic imports
+        clearTimeout(_safetyTimeout);
+        if (_prewarmResolve) {
+          log('SYNC', '⚠️ Resolving prewarm (failed) so entry() can proceed with fallbacks');
+          _prewarmResolve();
+          _prewarmResolve = null;
+        }
+      }
+
+      proc.userData.prewarmComplete = true;
+      proc.userData.prewarmTime = Date.now() - _startTime;
+      log('PREWARM', 'Background init complete', {
+        prewarmComplete: true,
+        prewarmTimeMs: proc.userData.prewarmTime,
       });
-      logDepsState();
+    };
 
-      // Even on failure, resolve so entry() doesn't hang forever
-      // Entry will fall back to dynamic imports
-      clearTimeout(_safetyTimeout);
-      if (_prewarmResolve) {
-        log('SYNC', '⚠️ Resolving prewarm (failed) so entry() can proceed with fallbacks');
-        _prewarmResolve();
-        _prewarmResolve = null;
-      }
-    }
+    // Start background init (fire-and-forget)
+    doBackgroundInit().catch((err) => {
+      log('ERROR', `Background init crashed: ${err}`);
+    });
 
-    proc.userData.prewarmComplete = true;
-    proc.userData.prewarmTime = Date.now() - _startTime;
-    log('PREWARM', 'Prewarm handler exiting', {
-      prewarmComplete: true,
-      prewarmTimeMs: proc.userData.prewarmTime,
+    // Return IMMEDIATELY - do not wait for background init!
+    // This lets the SDK send initializeResponse within its timeout
+    log('PREWARM', '🚀 Prewarm returning immediately (background init started)', {
+      elapsed: Date.now() - prewarmStart,
+      mem: _memMB(),
     });
   },
 
@@ -524,99 +560,68 @@ export default defineAgent({
 
     try {
       // ══════════════════════════════════════════════════════════════════════
-      // SMART READINESS CHECK (No hard timeout!)
+      // CONNECT TO ROOM IMMEDIATELY!
       // ══════════════════════════════════════════════════════════════════════
-      // Instead of a fixed timeout, we poll for readiness:
-      // 1. Check if critical deps are loaded
-      // 2. If yes, proceed immediately
-      // 3. If no, wait a bit and check again
-      // 4. After reasonable attempts, fall back to dynamic imports
-      // This adapts to actual loading speed rather than guessing with a timeout
+      // The SDK expects ctx.connect() within 10 seconds of entry() being called.
+      // Connect FIRST, before any other operations or imports.
+      // ══════════════════════════════════════════════════════════════════════
+      log('ENTRY', '🔌 Connecting to room IMMEDIATELY...');
+      const connectStart = Date.now();
+      await ctx.connect();
+      log('ENTRY', `✅ Room connected in ${Date.now() - connectStart}ms`);
 
-      _entryWaitingCount++;
-      const MAX_WAIT_ATTEMPTS = 60; // 60 * 500ms = 30s max, but we check progress
-      const POLL_INTERVAL_MS = 500;
-      let attempts = 0;
-      let lastProgress = 0;
-      let stalledCount = 0;
-
-      log('SYNC', '⏳ Checking dependency readiness...', {
+      // ══════════════════════════════════════════════════════════════════════
+      // WAIT FOR CRITICAL DEPENDENCIES
+      // ══════════════════════════════════════════════════════════════════════
+      // CRITICAL FIX: The prewarm() function returns immediately but loads deps
+      // in background. We MUST wait for critical deps before starting session.
+      // Without this, we get race conditions and "assignment for job timed out".
+      // ══════════════════════════════════════════════════════════════════════
+      const progress = getLoadingProgress();
+      log('SYNC', `Deps at entry: ${progress.loaded}/${progress.total}`, {
         prewarmState: _prewarmState,
-        entryWaitingCount: _entryWaitingCount,
+        criticalReady: progress.critical,
         elapsed: _elapsed(),
       });
 
-      const prewarmWaitStart = Date.now();
+      // Wait for prewarm to complete OR timeout after 30s
+      // If prewarm failed or timed out, we'll use dynamic imports as fallback
+      if (_prewarmState === 'running' || _prewarmState === 'pending') {
+        log('SYNC', '⏳ Waiting for prewarm to complete...');
+        const waitStart = Date.now();
 
-      // Smart polling loop - adapts to actual progress
-      while (!areCriticalDepsLoaded() && attempts < MAX_WAIT_ATTEMPTS) {
-        const progress = getLoadingProgress();
+        // Use Promise.race with timeout
+        // NOTE: Keep in sync with APP_TIMEOUTS.PREWARM_WAIT_TIMEOUT in src/config/timeouts.ts
+        const PREWARM_WAIT_TIMEOUT = 30_000; // 30 seconds max wait
+        const timeoutPromise = new Promise<'timeout'>((resolve) => {
+          setTimeout(() => resolve('timeout'), PREWARM_WAIT_TIMEOUT);
+        });
 
-        // Log progress every 5 attempts (2.5s)
-        if (attempts % 5 === 0) {
-          log(
-            'SYNC',
-            `Loading progress: ${progress.loaded}/${progress.total} (${progress.percent}%)`,
-            {
-              attempt: attempts,
-              elapsed: _elapsed(),
-              criticalReady: progress.critical,
-            }
-          );
-        }
+        const result = await Promise.race([
+          _prewarmReady.then(() => 'ready' as const),
+          timeoutPromise,
+        ]);
 
-        // Check if we're making progress
-        if (progress.loaded === lastProgress) {
-          stalledCount++;
-          // If stalled for 10 seconds with no progress, break and use fallback
-          if (stalledCount >= 20) {
-            log('SYNC', '⚠️ Loading appears stalled, will use dynamic imports as fallback', {
-              stalledFor: `${stalledCount * POLL_INTERVAL_MS}ms`,
-              progress: `${progress.loaded}/${progress.total}`,
-            });
-            break;
-          }
+        const waitMs = Date.now() - waitStart;
+        if (result === 'timeout') {
+          log('SYNC', `⚠️ Prewarm wait timed out after ${waitMs}ms, will use fallback imports`, {
+            prewarmState: _prewarmState,
+          });
         } else {
-          stalledCount = 0; // Reset stall counter if we made progress
-          lastProgress = progress.loaded;
+          log('SYNC', `✅ Prewarm signaled ready after ${waitMs}ms`, {
+            prewarmState: _prewarmState,
+          });
         }
-
-        await new Promise<void>((resolve) => {
-          setTimeout(() => resolve(), POLL_INTERVAL_MS);
-        });
-        attempts++;
-      }
-
-      const prewarmWaitMs = Date.now() - prewarmWaitStart;
-      _entryWaitingCount--;
-      const finalProgress = getLoadingProgress();
-
-      if (areCriticalDepsLoaded()) {
-        log('SYNC', '✅ Critical deps ready!', {
-          waitedMs: prewarmWaitMs,
-          attempts,
-          progress: `${finalProgress.loaded}/${finalProgress.total} (${finalProgress.percent}%)`,
-        });
       } else {
-        log('SYNC', '⚠️ Proceeding with fallback - some deps will load dynamically', {
-          waitedMs: prewarmWaitMs,
-          attempts,
-          progress: `${finalProgress.loaded}/${finalProgress.total} (${finalProgress.percent}%)`,
-          criticalReady: finalProgress.critical,
-        });
+        log('SYNC', `Prewarm already ${_prewarmState}, proceeding immediately`);
       }
 
-      // ══════════════════════════════════════════════════════════════════════
-      // CHECK DEPENDENCY STATE
-      // ══════════════════════════════════════════════════════════════════════
-      logDepsState();
-
-      // Identify which critical deps need dynamic import
-      const missingCritical = CRITICAL_DEPS.filter((dep) => _preloadedDeps[dep] === null);
-
-      if (missingCritical.length > 0) {
-        log('ENTRY', `Will dynamically import: ${missingCritical.join(', ')}`);
-      }
+      // Final state check
+      const finalProgress = getLoadingProgress();
+      log('SYNC', `Final deps: ${finalProgress.loaded}/${finalProgress.total}`, {
+        prewarmState: _prewarmState,
+        criticalReady: finalProgress.critical,
+      });
 
       // ══════════════════════════════════════════════════════════════════════
       // START SESSION

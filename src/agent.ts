@@ -10,10 +10,17 @@
  * Default: ferni
  *
  * See src/personas/ for available personas and how to add new ones.
+ *
+ * ARCHITECTURE:
+ * - This file imports voice-worker.ts (lightweight main process bootstrap)
+ * - voice-worker.ts handles CLI, IPC, health server, resource warmup
+ * - voice-worker.ts spawns child processes that run voice-agent-child.ts
+ * - voice-agent-child.ts loads the full agent logic
+ *
+ * This separation ensures fast startup and clean architecture.
+ * See src/agents/LOADING-ARCHITECTURE.md for details.
  */
 
-// Re-export everything from the voice agent
-export * from './agents/voice-agent.js';
-
 // Import to trigger side effects (CLI startup)
-import './agents/voice-agent.js';
+// Using voice-worker.ts for lightweight main process bootstrap
+import './agents/voice-worker.js';

@@ -184,11 +184,11 @@ import { diag } from '../services/diagnostic-logger.js';
 import { getSessionAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
 // Gemini multimodal emotion analysis (experimental feature)
-import {
-  startEmotionStream,
-  clearSession as clearGeminiSession,
-} from '../services/emotion-analysis/hume.js';
 import { isExperimentalEnabled } from '../config/feature-flags.js';
+import {
+  clearSession as clearGeminiSession,
+  startEmotionStream,
+} from '../services/emotion-analysis/hume.js';
 
 // Emotion matching - connect prosody to voice response
 import {
@@ -630,11 +630,13 @@ class VoiceAgent extends voice.Agent<UserData> {
             if (userData?.pendingAmbientAcknowledgment) {
               const acknowledgment = userData.pendingAmbientAcknowledgment;
               userData.pendingAmbientAcknowledgment = null; // Clear after use
-              
+
               // Prepend the ambient acknowledgment (only if response isn't already about pausing)
-              if (!taggedText.toLowerCase().includes('pause') && 
-                  !taggedText.toLowerCase().includes('later') &&
-                  !taggedText.toLowerCase().includes('busy')) {
+              if (
+                !taggedText.toLowerCase().includes('pause') &&
+                !taggedText.toLowerCase().includes('later') &&
+                !taggedText.toLowerCase().includes('busy')
+              ) {
                 taggedText = `${acknowledgment} But if you'd like to keep going - ${taggedText}`;
                 agent.logger.info(
                   { acknowledgment },
@@ -1758,7 +1760,10 @@ class VoiceAgent extends voice.Agent<UserData> {
               const listeningResult = getHumanListeningResult(sessionId);
               if (listeningResult?.audio?.tremor?.detected) {
                 tremorOptions = {
-                  intensity: listeningResult.audio.tremor.intensity as 'subtle' | 'noticeable' | 'pronounced',
+                  intensity: listeningResult.audio.tremor.intensity as
+                    | 'subtle'
+                    | 'noticeable'
+                    | 'pronounced',
                 };
               }
             }
@@ -3316,9 +3321,8 @@ if (!process.send) {
   // ============================================================================
   // SELF-HEALING IMPORTS
   // ============================================================================
-  const { createCircuitBreaker, withResilience, analyzeFailure, humanizeError } = await import(
-    '../services/self-healing/index.js'
-  );
+  const { createCircuitBreaker, withResilience, analyzeFailure, humanizeError } =
+    await import('../services/self-healing/index.js');
 
   // Create circuit breaker for job acceptance
   // Trips after 5 failures in 60s, recovers after 30s
@@ -3419,6 +3423,48 @@ if (!process.send) {
     }
   };
 
+  // ============================================================================
+  // PHASE 1: PRE-WARM EXPENSIVE RESOURCES (BEFORE SPAWNING CHILDREN!)
+  // ============================================================================
+  // CRITICAL: This must happen BEFORE cli.runApp() spawns child processes!
+  // Child processes read from the cache file written by warmupResources().
+  // If we start children before the cache exists, they'll use slow fallbacks.
+  // ============================================================================
+  diag.info('Setting up resource cache BEFORE spawning children...');
+  try {
+    const { warmupResources, setupIPCHandler } = await import('./shared/resource-server.js');
+
+    // Setup IPC handler for child process requests
+    setupIPCHandler();
+    diag.info('IPC handler ready');
+
+    // Warmup resources and WAIT for cache file to be written
+    // This is critical - children need the cache file to exist
+    // We use a timeout so we don't block forever on warmup failures
+    const WARMUP_TIMEOUT = 30_000; // 30 seconds max
+    const warmupWithTimeout = Promise.race([
+      warmupResources(),
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          diag.warn('Resource warmup timeout - proceeding anyway');
+          resolve();
+        }, WARMUP_TIMEOUT);
+      }),
+    ]);
+
+    await warmupWithTimeout;
+    diag.info('Resource cache ready - VAD, TTS, Personas cached for fast child startup');
+  } catch (warmupError) {
+    // Non-fatal but log clearly - children will use slow fallbacks
+    diag.warn('Resource warmup failed (children will use fallbacks)', {
+      error: String(warmupError),
+    });
+  }
+
+  // ============================================================================
+  // PHASE 2: START WORKER (NOW SAFE TO SPAWN CHILDREN)
+  // ============================================================================
+  diag.info('Starting CLI worker...');
   cli.runApp(
     new WorkerOptions({
       // CRITICAL: Point to lightweight child file, NOT this file!
@@ -3461,30 +3507,7 @@ if (!process.send) {
     // Non-fatal - keep-alive is optional
   }
 
-  diag.info('CLI.runApp called - worker running');
-
-  // ============================================================================
-  // PHASE 2: PRE-WARM EXPENSIVE RESOURCES (Background)
-  // ============================================================================
-  // Google/Anthropic pattern: Main process owns resources, children request access
-  // This runs AFTER the worker is ready, so it doesn't block startup
-  try {
-    const { warmupResources, setupIPCHandler } = await import('./shared/resource-server.js');
-
-    // Setup IPC handler for child process requests
-    setupIPCHandler();
-
-    // Warmup resources in background (non-blocking)
-    warmupResources()
-      .then(() => {
-        diag.info('Resource warmup complete - VAD, TTS, Personas ready for fast session starts');
-      })
-      .catch((error) => {
-        diag.warn('Resource warmup failed (non-fatal)', { error: String(error) });
-      });
-  } catch {
-    // Non-fatal - warmup is an optimization
-  }
+  diag.info('CLI.runApp called - worker running with pre-warmed resources');
 } else {
   diag.info('Child process detected - skipping cli.runApp');
 }

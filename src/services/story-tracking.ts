@@ -355,7 +355,7 @@ export async function findStoryForContext(
   const detectedTriggers = detectContextTriggers(userMood, currentTopic);
   
   // Collect recommended stories from matching triggers
-  const graphRecommendations: Map<string, { priority: number; trigger: string }> = new Map();
+  const graphRecommendations = new Map<string, { priority: number; trigger: string }>();
   
   // PRIORITY 1: Use bundle runtime's getRecommendedStories if available
   if (context.bundleRuntime?.getRecommendedStories) {

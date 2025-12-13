@@ -1070,7 +1070,8 @@ class VoiceAIApp {
     });
 
     // 🌟 Living Favicon - Ferni's presence in the browser tab
-    this.safeInit('FaviconManager', () => initFaviconManager());
+    // DISABLED: Animated favicon causing performance issues
+    // this.safeInit('FaviconManager', () => initFaviconManager());
 
     // 🛠️ Dev Panel - Developer testing tools (lazy loaded for 17KB gzipped savings)
     this.safeInit('DevPanel', async () => {

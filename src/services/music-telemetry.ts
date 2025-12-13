@@ -131,7 +131,7 @@ export interface MusicTelemetrySummary {
 // ============================================================================
 
 class MusicTelemetryService {
-  private playbackTraces: Map<string, PlaybackTrace> = new Map();
+  private playbackTraces = new Map<string, PlaybackTrace>();
   private stateTransitions: StateTransition[] = [];
   private currentState: MusicState = 'idle';
   private lastStateChangeTime: number = Date.now();
