@@ -80,12 +80,15 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       npm ci --omit=dev --prefer-offline; \
     fi
 
-# Patch LiveKit agents library to increase initialization timeout
-# The library has hardcoded 10s/30s timeouts that are too short for Cloud Run cold starts
-# Use find to locate ALL worker.js/cjs files and patch them with sed
+# Patch LiveKit agents library to increase ALL timeouts
+# The library has multiple hardcoded timeouts that are too short for Cloud Run cold starts:
+# - initializeTimeout: 30s in worker.js (parent waiting for child init)
+# - initializeProcessTimeout: 10s in worker.js  
+# - ORPHANED_TIMEOUT: 15s in job_proc_lazy_main.js (child ping timeout)
+# Use find+sed to patch ALL files across npm and pnpm directory structures
 RUN echo "=== Patching LiveKit SDK timeouts ===" && \
+    echo "--- Patching worker.js/cjs files ---" && \
     find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
-      echo "Checking: {}"; \
       if grep -q "initializeTimeout: 3e4" "{}"; then \
         sed -i "s/initializeTimeout: 3e4/initializeTimeout: 3e5 \/* PATCHED 5min *\//g" "{}"; \
         echo "  Patched initializeTimeout in {}"; \
@@ -95,9 +98,23 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
         echo "  Patched initializeProcessTimeout in {}"; \
       fi \
     ' && \
+    echo "--- Patching job_proc_lazy_main.js files (ORPHANED_TIMEOUT) ---" && \
+    find node_modules -name "job_proc_lazy_main.js" | xargs -I{} sh -c ' \
+      if grep -q "ORPHANED_TIMEOUT = 15 \* 1e3" "{}"; then \
+        sed -i "s/ORPHANED_TIMEOUT = 15 \* 1e3/ORPHANED_TIMEOUT = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
+        echo "  Patched ORPHANED_TIMEOUT in {}"; \
+      fi \
+    ' && \
+    echo "--- Patching inference_proc_lazy_main.js files (ORPHANED_TIMEOUT) ---" && \
+    find node_modules -name "inference_proc_lazy_main.js" | xargs -I{} sh -c ' \
+      if grep -q "ORPHANED_TIMEOUT = 15 \* 1e3" "{}"; then \
+        sed -i "s/ORPHANED_TIMEOUT = 15 \* 1e3/ORPHANED_TIMEOUT = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
+        echo "  Patched ORPHANED_TIMEOUT in {}"; \
+      fi \
+    ' && \
     echo "=== Verifying patches ===" && \
-    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -4 || echo "Direct path not found" && \
-    find node_modules/.pnpm -name "worker.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -4 || echo "pnpm path check done"
+    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -6 || echo "Direct path not found" && \
+    find node_modules/.pnpm -name "*.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -6 || echo "pnpm verification done"
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
