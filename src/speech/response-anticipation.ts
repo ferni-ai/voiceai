@@ -466,6 +466,34 @@ export class ResponseAnticipationService {
    */
   clearAnticipation(): void {
     this.lastAnticipation = null;
+    this.pendingCacheHit = null;
+  }
+
+  // Track if we have a cache hit ready to use
+  private pendingCacheHit: IntentCategory | null = null;
+
+  /**
+   * Mark that a cache hit is ready to use
+   */
+  markCacheHit(intent: IntentCategory): void {
+    this.pendingCacheHit = intent;
+    this.stats.hits++;
+  }
+
+  /**
+   * Check if there's a cache hit waiting to be used
+   */
+  hasCacheHit(): boolean {
+    return this.pendingCacheHit !== null;
+  }
+
+  /**
+   * Consume the cache hit (returns intent and clears the flag)
+   */
+  consumeCacheHit(): IntentCategory | null {
+    const intent = this.pendingCacheHit;
+    this.pendingCacheHit = null;
+    return intent;
   }
 
   /**
@@ -480,6 +508,7 @@ export class ResponseAnticipationService {
     };
     this.intentCounts.clear();
     this.lastAnticipation = null;
+    this.pendingCacheHit = null;
   }
 }
 

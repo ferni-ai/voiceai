@@ -844,7 +844,8 @@ export class DeepHumanizationEngine {
     userTriggeredSurprise: boolean,
     userSharedVulnerability: boolean
   ): Promise<HumanizationInjection | null> {
-    if (!this.canInject('live_reaction', 4, 8)) return null;
+    // Reduced cooldown: 2-4 turns instead of 4-8 for more aliveness
+    if (!this.canInject('live_reaction', 2, 4)) return null;
 
     const content = await loadBehaviorContent(this.personaId, 'live-reactions');
     if (!content) return null;
@@ -862,25 +863,39 @@ export class DeepHumanizationEngine {
       const movedContent = content.moved as { reactions?: string[] };
       phrases = movedContent.reactions || [];
     } else if (
-      context.userMessage.match(/\b(finally|for the first time|i did it|it worked)\b/i) &&
+      context.userMessage.match(/\b(finally|for the first time|i did it|it worked|managed to|succeeded)\b/i) &&
       content.delight
     ) {
       reactionType = 'delight';
       const delightContent = content.delight as { at_them?: string[] };
       phrases = delightContent.at_them || [];
     } else if (
-      context.userMessage.match(/\b(curious|interesting|tell me|how|why)\b/i) &&
+      context.userMessage.match(/\b(curious|interesting|tell me|how|why|what if)\b/i) &&
       content.curiosity_spikes
     ) {
       reactionType = 'curiosity';
       const curiosityContent = content.curiosity_spikes as { reactions?: string[] };
       phrases = curiosityContent.reactions || [];
+    } else if (content.thinking_reactions && context.userMessage.length > 100) {
+      // Add thinking reactions for complex/long messages
+      reactionType = 'thinking';
+      const thinkingContent = content.thinking_reactions as { reactions?: string[] };
+      phrases = thinkingContent.reactions || [];
+    } else if (
+      context.userMessage.match(/\b(love|hate|amazing|terrible|incredible|awful|best|worst)\b/i) &&
+      content.humor_reactions
+    ) {
+      // React to strong opinions/emotions
+      reactionType = 'connection';
+      const connectionContent = content.connection_moment as { reactions?: string[] };
+      phrases = connectionContent?.reactions || [];
     }
 
     if (!reactionType || phrases.length === 0) return null;
 
-    // 35% probability for reactions
-    if (Math.random() > 0.35) return null;
+    // Increased probability: 55% for surprise/moved (strong triggers), 45% for others
+    const probability = (reactionType === 'genuine_surprise' || reactionType === 'moved') ? 0.55 : 0.45;
+    if (Math.random() > probability) return null;
 
     this.recordInjection('live_reaction');
 
@@ -888,8 +903,8 @@ export class DeepHumanizationEngine {
       type: 'live_reaction',
       content: phrases[Math.floor(Math.random() * phrases.length)],
       placement: 'prefix', // Reactions come BEFORE the main response
-      probability: 0.35,
-      cooldownTurns: 4,
+      probability,
+      cooldownTurns: 2,
     };
   }
 

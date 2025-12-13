@@ -344,12 +344,46 @@ export function formatAliveAwarenessForPrompt(result: AliveAwarenessResult): str
 }
 
 // ============================================================================
-// EXPORTS FOR CONTEXT BUILDER REGISTRY
+// REGISTRATION WITH CONTEXT BUILDER SYSTEM
 // ============================================================================
 
+import { registerContextBuilder } from './index.js';
+
+/**
+ * Wrapper to adapt the alive awareness builder to the standard context builder interface
+ */
+async function buildAliveAwarenessContextWrapper(
+  input: ContextBuilderInput
+): Promise<ContextInjection[]> {
+  const sessionId = input.services?.sessionId || 'anonymous';
+  const personaId = input.persona?.id || 'ferni';
+  const turnCount = input.userData?.turnCount || 0;
+
+  const result = await buildAliveAwarenessContext({
+    ...input,
+    sessionId,
+    personaId,
+    turnCount,
+    currentTopics: input.analysis?.topics?.detected,
+    userEmotion: input.analysis?.emotion?.primary,
+    userEmotionIntensity: input.analysis?.emotion?.intensity,
+    wasPersonalSharing: input.analysis?.emotion?.needsSupport,
+  } as AliveAwarenessInput);
+
+  return result.injections;
+}
+
+registerContextBuilder({
+  name: 'alive_awareness',
+  description: 'Cross-agent memory, physical state, mood drift, temporal anchoring, genuine curiosity',
+  priority: 50, // Run after core context builders
+  build: buildAliveAwarenessContextWrapper,
+});
+
+// Legacy export for backward compatibility
 export const aliveAwarenessBuilder = {
   name: 'alive_awareness',
-  priority: 50, // Run after core context builders
+  priority: 50,
   build: buildAliveAwarenessContext,
   format: formatAliveAwarenessForPrompt,
 };

@@ -4,131 +4,72 @@
  * This module is loaded dynamically by voice-agent-child.ts after the agent
  * has responded to the LiveKit SDK's initialization request.
  *
- * IMPORTANT: This module uses a simplified session setup to avoid loading
- * the full voice-agent.ts with all 51 imports.
+ * IMPORTANT: This module loads the FULL voice-agent.ts with all features:
+ * - Custom VoiceAgent class with humanization
+ * - Trust systems integration
+ * - Persona-aware Cartesia TTS
+ * - Tools and handoffs
+ * - Conversation manager
+ * - Everything that makes Ferni "better than human"
+ *
+ * The child process has already responded to the SDK's initializeRequest,
+ * so we have time to load the full module here.
  */
 
 import type { JobContext } from '@livekit/agents';
 
 /**
- * Run a voice agent session.
+ * Run a voice agent session using the FULL voice agent capabilities.
  * This is called by voice-agent-child.ts after dynamic loading.
  */
 export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
   const roomName = ctx.room?.name || 'unknown';
   process.stderr.write(
-    `[voice-agent-session] Starting session for room ${roomName} pid=${process.pid}\n`
+    `[voice-agent-session] Starting FULL session for room ${roomName} pid=${process.pid}\n`
   );
 
   try {
-    // Import only what we need, when we need it
-    process.stderr.write(`[voice-agent-session] Loading modules...\n`);
+    // Load the full voice agent module
+    // This includes all 51 imports but we're past the child process timeout now
+    process.stderr.write(`[voice-agent-session] Importing full voice-agent.js...\n`);
 
-    // Load modules in parallel - these are fast
-    const [
-      { voice },
-      google,
-      silero,
-    ] = await Promise.all([
-      import('@livekit/agents'),
-      import('@livekit/agents-plugin-google'),
-      import('@livekit/agents-plugin-silero'),
-    ]);
+    const voiceAgentModule = await import('./voice-agent.js');
 
     process.stderr.write(
-      `[voice-agent-session] Core modules loaded in ${Date.now() - startTime}ms\n`
+      `[voice-agent-session] Full voice agent loaded in ${Date.now() - startTime}ms\n`
     );
 
-    // Get persona configuration (fast - just JSON)
-    const { getPersonaAsync, initializeFromBundles } = await import('../personas/index.js');
-    await initializeFromBundles();
-    
-    // Get persona from job metadata
-    const metadata = ctx.job.metadata ? JSON.parse(ctx.job.metadata) : {};
-    const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
-    const persona = await getPersonaAsync(personaId);
-    process.stderr.write(`[voice-agent-session] Using persona: ${persona?.name || 'unknown'}\n`);
+    // Get the agent definition (defineAgent result)
+    const agent = voiceAgentModule.default;
 
-    // Create minimal agent using simple voice.Agent
-    process.stderr.write(`[voice-agent-session] Creating simple agent...\n`);
-    
-    const simpleAgent = new voice.Agent({
-      instructions: persona?.systemPrompt || 
-        "You are Ferni, a warm and supportive AI life coach. Be helpful, empathetic, and encouraging.",
-    });
-
-    // Load VAD
-    process.stderr.write(`[voice-agent-session] Loading VAD...\n`);
-    const vad = await silero.VAD.load();
-    process.stderr.write(`[voice-agent-session] VAD loaded.\n`);
-
-    // Create session with Gemini Realtime
-    process.stderr.write(`[voice-agent-session] Creating session...\n`);
-    const session = new voice.AgentSession({
-      vad,
-      llm: new google.beta.realtime.RealtimeModel({
-        model: 'gemini-2.0-flash-exp',
-        temperature: 0.8,
-        language: 'en-US',
-        instructions: persona?.systemPrompt || 
-          "You are Ferni, a warm and supportive AI life coach.",
-      }),
-      voiceOptions: {
-        allowInterruptions: true,
-        minEndpointingDelay: 400,
-        maxEndpointingDelay: 1200,
-      },
-    });
-
-    // Connect to room
-    process.stderr.write(`[voice-agent-session] Connecting to room...\n`);
-    await ctx.connect();
-    process.stderr.write(`[voice-agent-session] Connected to room ${ctx.room.name}\n`);
-
-    // Start the session
-    process.stderr.write(`[voice-agent-session] Starting session...\n`);
-    await session.start({
-      agent: simpleAgent,
-      room: ctx.room,
-    });
-    process.stderr.write(`[voice-agent-session] Session started!\n`);
-
-    // Wait for disconnect
-    await new Promise<void>((resolve) => {
-      ctx.room.on('disconnected', () => {
-        process.stderr.write(`[voice-agent-session] Room disconnected.\n`);
-        resolve();
-      });
-    });
-
+    if (agent && typeof agent.entry === 'function') {
+      process.stderr.write(`[voice-agent-session] Calling full agent.entry()...\n`);
+      
+      // Call the REAL entry function with all features
+      await agent.entry(ctx);
+      
+      process.stderr.write(`[voice-agent-session] Full session completed.\n`);
+    } else {
+      throw new Error(
+        `Agent entry function not found. Type: ${typeof agent}, Has entry: ${typeof agent?.entry}`
+      );
+    }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.stack || error.message : String(error);
-    process.stderr.write(
-      `[voice-agent-session] ERROR: ${errorMsg}\n`
-    );
-    // Try fallback
-    await runFallbackSession(ctx);
+    process.stderr.write(`[voice-agent-session] ERROR: ${errorMsg}\n`);
+
+    // If full agent fails, connect but don't provide session
+    // User will see agent connected but not responsive - better than crash
+    try {
+      if (!ctx.room.isConnected) {
+        await ctx.connect();
+      }
+      await new Promise<void>((resolve) => {
+        ctx.room.on('disconnected', () => resolve());
+      });
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 }
-
-/**
- * Fallback session if the full agent fails to load.
- * Simply logs an error - the connection will eventually timeout.
- */
-async function runFallbackSession(ctx: JobContext): Promise<void> {
-  process.stderr.write(
-    `[voice-agent-session] CRITICAL: Full agent failed to load. ` +
-      `Room: ${ctx.room.name}, cannot provide session.\n`
-  );
-
-  // Connect and wait - user will see agent connected but not responding
-  // Better than crashing completely
-  await ctx.connect();
-
-  // Wait for disconnect
-  await new Promise<void>((resolve) => {
-    ctx.room.on('disconnected', () => resolve());
-  });
-}
-

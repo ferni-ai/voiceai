@@ -163,6 +163,32 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
+      // 🚀 RESPONSE ANTICIPATION CACHE BYPASS
+      // If we have a high-confidence cached response, say it immediately
+      // This provides instant-feeling responses for common patterns (greetings, etc.)
+      const cached = getCachedResponseIfAvailable(sessionId);
+      if (cached) {
+        diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
+          intent: cached.intent,
+          response: cached.response.slice(0, 50),
+        });
+
+        // Say the cached response immediately (with SSML if available)
+        try {
+          session.say(cached.ssml || cached.response, { allowInterruptions: true });
+
+          // Track that we used a cached response
+          services.addTurn('assistant', cached.response);
+          if (userData) {
+            userData.lastAgentResponse = cached.response;
+            userData.lastAgentResponseTime = Date.now();
+          }
+        } catch (sayErr) {
+          diag.warn('Cached response say failed', { error: String(sayErr) });
+          // Fall through to normal processing
+        }
+      }
+
       processFinalTranscript({
         event,
         room,
@@ -256,15 +282,54 @@ function processResponseAnticipation(sessionId: string, event: TranscriptEvent):
       ) {
         const cached = anticipator.getCompleteResponse();
         if (cached) {
-          diag.state('CACHE HIT - Would use cached response', {
+          // 🚀 CACHE HIT: Store for bypass in processFinalTranscript
+          // The cached response will be used instead of calling LLM for simple intents
+          anticipator.markCacheHit(anticipation.intent);
+          diag.state('⚡ CACHE HIT - Cached response ready', {
             intent: anticipation.intent,
             response: cached.response.slice(0, 50),
+            confidence: anticipation.confidence,
           });
         }
       }
     }
   } catch {
     // Response anticipation is non-critical
+  }
+}
+
+/**
+ * Check if we have a cached response to bypass LLM
+ * Returns the cached response + SSML if available
+ */
+export function getCachedResponseIfAvailable(
+  sessionId: string
+): { response: string; ssml: string; intent: string } | null {
+  const antFlags = getSessionFlags(sessionId);
+  if (!antFlags.useCachedResponses) {
+    return null;
+  }
+
+  try {
+    const anticipator = getResponseAnticipationService(sessionId);
+    if (!anticipator.hasCacheHit()) {
+      return null;
+    }
+
+    const cached = anticipator.getCompleteResponse();
+    if (!cached) {
+      return null;
+    }
+
+    // Clear the cache hit flag after using
+    const intent = anticipator.consumeCacheHit();
+    return {
+      response: cached.response,
+      ssml: cached.ssml,
+      intent: intent || 'unknown',
+    };
+  } catch {
+    return null;
   }
 }
 

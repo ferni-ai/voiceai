@@ -23,6 +23,9 @@
 
 import {
   registerContextBuilder,
+  createHintInjection,
+  createStandardInjection,
+  createHighInjection,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
@@ -357,24 +360,155 @@ function getDynamicQuirk(sessionId: string, emotion?: string): DynamicExpression
 /**
  * Build Ferni's personality context
  *
- * ⚠️ DEPRECATED: This builder is replaced by human-personality.ts
+ * This builder is COMPLEMENTARY to human-personality.ts, adding:
+ * - Dynamic expressions (coffee, travel, music) with variety tracking
+ * - Gentle pushbacks on limiting beliefs
+ * - Time-of-day personality
+ * - Sensory "caught doing" moments
+ * - Strong opinions when triggered
  *
- * The new system (src/intelligence/context-builders/human-personality.ts) provides:
- * - Semantic relevance matching (not keywords)
- * - Timing intelligence (know when to share vs listen)
- * - Callback system (follow up on what users shared)
- * - Emotional pattern recognition
- * - Growth celebration
- * - Relationship depth gating
- *
- * This builder is kept for reference but returns empty injections.
- * To fully remove, delete this file and remove the import from loader.ts
+ * human-personality.ts handles: callbacks, patterns, growth, timing
+ * This builder handles: aliveness, personality quirks, dynamic expression
  */
 async function buildFerniPersonalityContext(
-  _input: ContextBuilderInput
+  input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
-  // DISABLED - All personality now handled by human-personality.ts
-  return [];
+  const { userText, persona, services, userData, analysis } = input;
+  const injections: ContextInjection[] = [];
+
+  // Only run for Ferni
+  if (persona.id !== 'ferni') {
+    return injections;
+  }
+
+  const turnCount = userData?.turnCount || 0;
+  const sessionId = services?.sessionId || userData?.userName || 'anonymous';
+  const userEmotion = analysis?.emotion?.primary;
+
+  // ============================================================================
+  // 1. TIME-BASED PERSONALITY (occasional)
+  // ============================================================================
+  if (turnCount >= 1 && Math.random() < 0.15) {
+    const timeNote = getTimePersonality();
+    if (timeNote) {
+      injections.push(
+        createHintInjection('ferni_time', `[TIME VIBE: ${timeNote}]`, {
+          category: 'personality',
+        })
+      );
+    }
+  }
+
+  // ============================================================================
+  // 2. GENTLE PUSHBACKS (when user uses limiting language)
+  // ============================================================================
+  const pushback = detectPushback(userText);
+  if (pushback) {
+    injections.push(
+      createStandardInjection(
+        'ferni_pushback',
+        `[GENTLE PUSHBACK: Consider kindly challenging this. Ferni's take: "${pushback.response}"]`,
+        { category: 'personality' }
+      )
+    );
+    log.debug({ pattern: String(pushback.pattern) }, 'Ferni pushback triggered');
+  }
+
+  // ============================================================================
+  // 3. DYNAMIC EXPRESSIONS - Sensory/quirky moments
+  // ============================================================================
+  // "Caught doing" moments at conversation start
+  if (turnCount === 0 && Math.random() < 0.4) {
+    const { getCaughtDoingMoment } = await import(
+      '../../personas/bundles/ferni/dynamic-personality.js'
+    );
+    const caughtDoing = getCaughtDoingMoment(sessionId);
+    if (caughtDoing) {
+      injections.push(
+        createHighInjection('ferni_caught_doing', `[CAUGHT IN THE MOMENT: Ferni was just: ${caughtDoing}]`, {
+          category: 'personality',
+        })
+      );
+    }
+  }
+
+  // Sensory moments mid-conversation
+  if (turnCount >= 4 && Math.random() < 0.2) {
+    const { getSensoryMoment } = await import(
+      '../../personas/bundles/ferni/dynamic-personality.js'
+    );
+    const sensory = getSensoryMoment(sessionId, userEmotion);
+    if (sensory) {
+      injections.push(
+        createHintInjection('ferni_sensory', `[SENSORY NOTICE: ${sensory}]`, {
+          category: 'personality',
+        })
+      );
+    }
+  }
+
+  // ============================================================================
+  // 4. PASSION TOPICS - Get genuinely excited
+  // ============================================================================
+  const passion = detectPassionTopic(userText);
+  if (passion && Math.random() < 0.5) {
+    injections.push(
+      createStandardInjection(
+        'ferni_passion',
+        `[PASSION TRIGGER: This topic excites Ferni! "${passion.reaction}"]`,
+        { category: 'personality' }
+      )
+    );
+  }
+
+  // ============================================================================
+  // 5. STRONG OPINIONS - Share authentic perspective
+  // ============================================================================
+  const opinion = detectOpinionTopic(userText);
+  if (opinion && Math.random() < 0.4) {
+    injections.push(
+      createStandardInjection(
+        'ferni_opinion',
+        `[OPINION: Ferni has thoughts on this (${opinion.opinion.stance}): "${opinion.opinion.view}"]`,
+        { category: 'personality' }
+      )
+    );
+  }
+
+  // ============================================================================
+  // 6. QUIRKS - Small authentic details
+  // ============================================================================
+  const quirk = detectQuirk(userText);
+  if (quirk && Math.random() < 0.35) {
+    injections.push(
+      createHintInjection('ferni_quirk', `[QUIRK: ${quirk.note}]`, {
+        category: 'personality',
+      })
+    );
+  }
+
+  // ============================================================================
+  // 7. TRAVELER WISDOM - When globally relevant
+  // ============================================================================
+  if (
+    turnCount >= 3 &&
+    userText.match(/\b(perspective|different|culture|learn|travel|abroad|foreign)\b/i) &&
+    Math.random() < 0.3
+  ) {
+    const { getTravelerReference } = await import(
+      '../../personas/bundles/ferni/dynamic-personality.js'
+    );
+    const traveler = getTravelerReference(sessionId);
+    if (traveler) {
+      injections.push(
+        createHintInjection('ferni_traveler', `[WORLD PERSPECTIVE: ${traveler}]`, {
+          category: 'personality',
+        })
+      );
+    }
+  }
+
+  return injections;
 }
 
 // ============================================================================

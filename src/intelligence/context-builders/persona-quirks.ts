@@ -261,17 +261,38 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
   // =========================================================================
   // 3. PHYSICAL MOMENTS - Grounding in physical reality
   // =========================================================================
-  // Very occasional physical awareness (settling in, sipping coffee, etc.)
-  if (turnCount > 5 && turnCount % 7 === 0 && Math.random() < 0.15) {
+  // More frequent physical awareness for aliveness (every 3-4 turns, 35% chance)
+  if (turnCount >= 2 && turnCount % 3 === 0 && Math.random() < 0.35) {
     const physicalMoments = [
       `[PHYSICAL: ${personaName} might take a moment - sip of coffee, stretch, settle into chair]`,
       `[GROUNDING: A brief physical moment - ${personaName} is present in their space]`,
       `[HUMANIZING: ${personaName} pauses naturally - physical presence matters]`,
+      `[ALIVE: ${personaName} could notice something in their environment - light, sound, a thought]`,
+      `[SENSORY: ${personaName} is embodied - maybe adjust glasses, look out window, shift in seat]`,
     ];
     injections.push(
       createHintInjection(
         'physical_moment',
         physicalMoments[Math.floor(Math.random() * physicalMoments.length)]
+      )
+    );
+  }
+
+  // =========================================================================
+  // 4. MID-SENTENCE SELF-CORRECTIONS - Aliveness through imperfection
+  // =========================================================================
+  // Occasionally prompt for self-interrupts and course corrections
+  if (turnCount >= 3 && Math.random() < 0.2) {
+    const selfCorrections = [
+      `[ALIVE: Consider catching yourself mid-thought - "Actually, wait—" or "No, that's not right—"]`,
+      `[HUMAN: You can start a sentence and change direction - "I was gonna say... actually, here's what I really think."]`,
+      `[IMPERFECT: It's okay to think out loud - "Let me try this... okay no, let me rephrase."]`,
+      `[NATURAL: You might lose a word - "What's that thing called... anyway, you know what I mean."]`,
+    ];
+    injections.push(
+      createHintInjection(
+        'self_correction',
+        selfCorrections[Math.floor(Math.random() * selfCorrections.length)]
       )
     );
   }

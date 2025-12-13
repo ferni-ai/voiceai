@@ -45,6 +45,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'persona-vulnerability': () => import('./persona-vulnerability.js'),
   'persona-mood': () => import('./persona-mood.js'),
   'human-personality': () => import('./human-personality.js'),
+  'ferni-personality': () => import('./ferni-personality.js'), // Ferni-specific: dynamic expressions, pushbacks, passions
   'conversational-superpowers': () => import('./conversational-superpowers.js'),
   'alive-awareness': () => import('./alive-awareness.js'),
   'inner-world-injector': () => import('./inner-world-injector.js'),

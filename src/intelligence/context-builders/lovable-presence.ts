@@ -81,16 +81,17 @@ interface LoadedLovableContent {
 // ============================================================================
 
 const LOVABLE_MOMENTS: LovableMomentType[] = [
-  { type: 'tangent', probability: 0.08, cooldownTurns: 8, requiresRapport: true },
-  { type: 'self_deprecation', probability: 0.12, cooldownTurns: 5, requiresRapport: false },
-  { type: 'specific_detail', probability: 0.15, cooldownTurns: 4, requiresRapport: false },
-  { type: 'oddly_specific_opinion', probability: 0.06, cooldownTurns: 10, requiresRapport: true },
-  { type: 'caught_mid_thought', probability: 0.2, cooldownTurns: 15, requiresRapport: false },
-  { type: 'genuine_reaction', probability: 0.25, cooldownTurns: 3, requiresRapport: false },
-  { type: 'playful_tease', probability: 0.1, cooldownTurns: 6, requiresRapport: true },
-  { type: 'noticing', probability: 0.18, cooldownTurns: 4, requiresRapport: false },
-  { type: 'callback', probability: 0.2, cooldownTurns: 5, requiresRapport: false },
-  { type: 'confession', probability: 0.05, cooldownTurns: 12, requiresRapport: true },
+  // Increased probabilities and reduced cooldowns for more aliveness
+  { type: 'tangent', probability: 0.15, cooldownTurns: 5, requiresRapport: true },
+  { type: 'self_deprecation', probability: 0.2, cooldownTurns: 3, requiresRapport: false },
+  { type: 'specific_detail', probability: 0.25, cooldownTurns: 3, requiresRapport: false },
+  { type: 'oddly_specific_opinion', probability: 0.12, cooldownTurns: 6, requiresRapport: true },
+  { type: 'caught_mid_thought', probability: 0.35, cooldownTurns: 8, requiresRapport: false },
+  { type: 'genuine_reaction', probability: 0.4, cooldownTurns: 2, requiresRapport: false },
+  { type: 'playful_tease', probability: 0.15, cooldownTurns: 4, requiresRapport: true },
+  { type: 'noticing', probability: 0.3, cooldownTurns: 3, requiresRapport: false },
+  { type: 'callback', probability: 0.3, cooldownTurns: 3, requiresRapport: false },
+  { type: 'confession', probability: 0.1, cooldownTurns: 8, requiresRapport: true },
 ];
 
 // Content cache per persona (not session-specific)
@@ -392,8 +393,8 @@ async function buildLovablePresenceContext(
   }
 
   // PERIODIC PERSONALITY INJECTIONS
-  // Cap surprises per session to avoid being manic
-  if (state.surprisesThisSession > 5) {
+  // Cap surprises per session to avoid being manic (increased from 5 to 12)
+  if (state.surprisesThisSession > 12) {
     return injections;
   }
 
