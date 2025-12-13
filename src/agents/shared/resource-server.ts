@@ -1,19 +1,34 @@
 /**
  * Resource Server - Google/Anthropic-style Resource Sharing
  *
- * Pattern: Main process owns expensive resources, child processes request access via IPC.
+ * PHASE 3: Shared cache file approach
  *
  * Why this approach?
- * - VAD models, TTS connections, LLM clients can't be serialized across processes
- * - But we CAN share access to them via message passing
- * - Main process runs inference/requests, returns results to children
+ * - LiveKit SDK manages child process spawning with its own IPC protocol
+ * - We can't easily inject custom IPC into their architecture
+ * - Solution: Write pre-warmed configs to a shared cache file
+ * - Child processes read from this file (fast, no complex IPC)
  *
- * This is the "sidecar" pattern used at Google (Borg) and Anthropic (inference serving).
+ * What's shared via cache file:
+ * - Persona configs (name, voice, system prompt)
+ * - TTS settings (voiceId, provider, model)
+ * - Pre-computed context/prompts
+ *
+ * What's NOT shared (must be loaded per-process):
+ * - VAD model (but OS file cache makes re-load fast)
+ * - TTS WebSocket connections (must be per-process)
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const log = createLogger({ module: 'ResourceServer' });
+
+// Shared cache file location (Cloud Run has /tmp, local dev uses OS temp)
+const CACHE_DIR = process.env.CACHE_DIR || '/tmp/ferni-cache';
+const PERSONA_CACHE_FILE = path.join(CACHE_DIR, 'persona-configs.json');
+const WARMUP_STATUS_FILE = path.join(CACHE_DIR, 'warmup-status.json');
 
 // ============================================================================
 // TYPES
@@ -183,8 +198,63 @@ class ResourceRegistry {
         { durationMs: Date.now() - start, configCount: this.personas.configs.size },
         'Persona configs cached'
       );
+
+      // PHASE 3: Write configs to shared cache file for child processes
+      await this.writeCacheFile();
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to cache persona configs');
+    }
+  }
+
+  /**
+   * PHASE 3: Write pre-warmed configs to cache file for child processes
+   */
+  private async writeCacheFile(): Promise<void> {
+    try {
+      // Ensure cache directory exists
+      if (!fs.existsSync(CACHE_DIR)) {
+        fs.mkdirSync(CACHE_DIR, { recursive: true });
+      }
+
+      // Build serializable cache data
+      const cacheData: Record<string, {
+        name: string;
+        systemPrompt: string;
+        voice: { voiceId: string; provider: string };
+      }> = {};
+
+      for (const [id, config] of this.personas.configs.entries()) {
+        const persona = config as {
+          name?: string;
+          systemPrompt?: string;
+          voice?: { voiceId: string; provider: string };
+        };
+        cacheData[id] = {
+          name: persona.name || id,
+          systemPrompt: persona.systemPrompt || '',
+          voice: persona.voice || { voiceId: '', provider: 'cartesia' },
+        };
+      }
+
+      // Write persona cache
+      fs.writeFileSync(PERSONA_CACHE_FILE, JSON.stringify(cacheData, null, 2));
+
+      // Write warmup status
+      fs.writeFileSync(
+        WARMUP_STATUS_FILE,
+        JSON.stringify({
+          warmedUp: true,
+          timestamp: Date.now(),
+          personaCount: Object.keys(cacheData).length,
+        })
+      );
+
+      log.info(
+        { cacheFile: PERSONA_CACHE_FILE, personaCount: Object.keys(cacheData).length },
+        'PHASE 3: Wrote persona configs to shared cache file'
+      );
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Failed to write cache file (non-fatal)');
     }
   }
 
@@ -312,6 +382,28 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         data: { available: !!tts, personaId: payload.personaId },
       };
 
+    case 'config':
+      // Return TTS configuration for persona (Phase 3: share config, not connection)
+      const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
+      if (personaConfig) {
+        const persona = personaConfig as { voice?: { voiceId: string; provider: string } };
+        return {
+          id: request.id,
+          success: true,
+          data: {
+            voiceId: persona.voice?.voiceId || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+            provider: persona.voice?.provider || 'cartesia',
+            model: 'sonic-3',
+            accent: 'american',
+          },
+        };
+      }
+      return {
+        id: request.id,
+        success: false,
+        error: 'Persona not found',
+      };
+
     default:
       return {
         id: request.id,
@@ -331,6 +423,23 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
         id: request.id,
         success: true,
         data: config,
+      };
+
+    case 'prompt':
+      // Return pre-computed system prompt (Phase 3 optimization)
+      const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
+      if (personaConfig) {
+        const persona = personaConfig as { systemPrompt?: string };
+        return {
+          id: request.id,
+          success: true,
+          data: persona.systemPrompt || null,
+        };
+      }
+      return {
+        id: request.id,
+        success: false,
+        error: 'Persona not found',
       };
 
     case 'list':
@@ -355,13 +464,15 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
 
 let requestId = 0;
 const pendingRequests = new Map<string, { resolve: (r: ResourceResponse) => void; reject: (e: Error) => void }>();
+let ipcInitialized = false;
 
 /**
  * Initialize IPC client in child process
  */
 export function initIPCClient(): void {
+  if (ipcInitialized) return;
   if (!process.send) {
-    log.debug('Not a child process - IPC client not initialized');
+    log.debug({ module: 'ResourceServer' }, 'Not a child process - IPC client not initialized');
     return;
   }
 
@@ -373,7 +484,8 @@ export function initIPCClient(): void {
     }
   });
 
-  log.debug('IPC client initialized');
+  ipcInitialized = true;
+  log.debug({ module: 'ResourceServer' }, 'IPC client initialized');
 }
 
 /**
@@ -409,6 +521,109 @@ export async function requestResource(
     }
   });
 }
+
+// ============================================================================
+// HIGH-LEVEL RESOURCE GETTERS (Child Process API)
+// ============================================================================
+// PHASE 3: These functions read from the shared cache file written by main process
+
+/**
+ * Read persona configs from shared cache file
+ * Returns null if cache doesn't exist (main process hasn't warmed up yet)
+ */
+function readPersonaCache(): Record<string, {
+  name: string;
+  systemPrompt: string;
+  voice: { voiceId: string; provider: string };
+}> | null {
+  try {
+    if (fs.existsSync(PERSONA_CACHE_FILE)) {
+      const data = fs.readFileSync(PERSONA_CACHE_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch {
+    // Cache file not readable
+  }
+  return null;
+}
+
+/**
+ * Check if main process has finished warming up (via cache file)
+ */
+export async function isMainProcessWarmedUp(): Promise<boolean> {
+  try {
+    if (fs.existsSync(WARMUP_STATUS_FILE)) {
+      const data = fs.readFileSync(WARMUP_STATUS_FILE, 'utf-8');
+      const status = JSON.parse(data) as { warmedUp: boolean; timestamp: number };
+
+      // Check if cache is recent (less than 10 minutes old)
+      const cacheAge = Date.now() - status.timestamp;
+      if (cacheAge < 10 * 60 * 1000) {
+        process.stderr.write(
+          `[cache] Main process warmed up ${Math.round(cacheAge / 1000)}s ago\n`
+        );
+        return status.warmedUp;
+      }
+    }
+  } catch {
+    // Cache file not readable
+  }
+  return false;
+}
+
+/**
+ * Get persona config from shared cache file
+ * This is the main Phase 3 optimization - configs are pre-loaded by main process
+ */
+export async function getPrewarmedPersonaConfig(personaId: string): Promise<{
+  name: string;
+  systemPrompt: string;
+  voice: { voiceId: string; provider: string };
+} | null> {
+  const cache = readPersonaCache();
+  if (cache && cache[personaId]) {
+    process.stderr.write(`[cache] Got pre-warmed persona config for ${personaId}\n`);
+    return cache[personaId];
+  }
+  return null;
+}
+
+/**
+ * Get TTS configuration from cache
+ */
+export async function getPrewarmedTTSConfig(personaId: string): Promise<{
+  voiceId: string;
+  provider: string;
+  model: string;
+  accent: string;
+} | null> {
+  const cache = readPersonaCache();
+  if (cache && cache[personaId]) {
+    const persona = cache[personaId];
+    return {
+      voiceId: persona.voice.voiceId,
+      provider: persona.voice.provider,
+      model: 'sonic-3',
+      accent: 'american',
+    };
+  }
+  return null;
+}
+
+/**
+ * Get system prompt from cache
+ */
+export async function getPrewarmedSystemPrompt(personaId: string): Promise<string | null> {
+  const cache = readPersonaCache();
+  if (cache && cache[personaId]) {
+    return cache[personaId].systemPrompt || null;
+  }
+  return null;
+}
+
+// ============================================================================
+// LEGACY IPC FUNCTIONS (kept for compatibility, but cache file is preferred)
+// ============================================================================
 
 // ============================================================================
 // MAIN PROCESS SETUP
