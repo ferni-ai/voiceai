@@ -172,15 +172,44 @@ export function isEmotionRegistered(emotion: string): boolean {
 // ============================================================================
 
 /**
+ * Options for voice tremor adjustment
+ */
+export interface TremorAdjustmentOptions {
+  /** Tremor intensity level from voice analysis */
+  intensity?: 'none' | 'subtle' | 'noticeable' | 'pronounced';
+  /** Tremor type if detected */
+  type?: string;
+}
+
+/**
  * Get voice modulation parameters based on detected user emotion
+ *
+ * @param voiceEmotion - Voice emotion analysis result
+ * @param tremorOptions - Optional voice tremor data for "Better than Human" sensitivity
  */
 export function getEmotionModulation(
-  voiceEmotion: VoiceEmotionResult | null
+  voiceEmotion: VoiceEmotionResult | null,
+  tremorOptions?: TremorAdjustmentOptions
 ): VoiceEmotionModulation {
   // Default to neutral if no emotion detected
   if (!voiceEmotion || voiceEmotion.confidence < 0.3) {
+    const baseResponse = { ...EMOTION_RESPONSES.neutral };
+
+    // 🎭 BETTER THAN HUMAN: Even without clear emotion, respond to voice tremor
+    // Trembling voice = user is stressed, even if they sound "neutral"
+    if (tremorOptions?.intensity === 'pronounced' || tremorOptions?.intensity === 'noticeable') {
+      return {
+        speedAdjust: -0.15, // Slow down
+        volumeAdjust: 0.9, // Softer
+        ssmlHints: { prosodyRate: 'slow', prosodyPitch: 'low', prosodyVolume: 'soft' },
+        responseStyle: { warmth: 'high', energy: 'low', pause: 'more' },
+        matchedEmotion: 'stressed_tremor',
+        confidence: tremorOptions.intensity === 'pronounced' ? 0.8 : 0.6,
+      };
+    }
+
     return {
-      ...EMOTION_RESPONSES.neutral,
+      ...baseResponse,
       matchedEmotion: 'neutral',
       confidence: 0,
     };
@@ -192,11 +221,40 @@ export function getEmotionModulation(
   // Scale adjustments by confidence
   const confidenceScale = voiceEmotion.confidence;
 
+  let speedAdjust = response.speedAdjust * confidenceScale;
+  let volumeAdjust = 1 + (response.volumeAdjust - 1) * confidenceScale;
+  let ssmlHints = { ...response.ssmlHints };
+  const responseStyle = { ...response.responseStyle };
+
+  // 🎭 BETTER THAN HUMAN: Voice tremor overrides - user may be MORE stressed than emotion shows
+  // When voice trembles, they need extra gentleness regardless of detected emotion
+  if (tremorOptions?.intensity === 'pronounced') {
+    // Pronounced tremor = significant stress - go extra gentle
+    speedAdjust = Math.min(speedAdjust, -0.2); // At least 20% slower
+    volumeAdjust = Math.min(volumeAdjust, 0.85); // Definitely softer
+    ssmlHints = { prosodyRate: 'slow', prosodyPitch: 'low', prosodyVolume: 'soft' };
+    responseStyle.warmth = 'high';
+    responseStyle.pause = 'more';
+
+    getLogger().debug(
+      { emotion, tremorIntensity: tremorOptions.intensity },
+      '🎭 Voice tremor override: applying extra-gentle delivery'
+    );
+  } else if (tremorOptions?.intensity === 'noticeable') {
+    // Noticeable tremor = some stress - gentle up a bit
+    speedAdjust = Math.min(speedAdjust, -0.1); // At least 10% slower
+    volumeAdjust = Math.min(volumeAdjust, 0.95); // Slightly softer
+    if (ssmlHints.prosodyVolume !== 'soft') {
+      ssmlHints.prosodyVolume = 'medium'; // Don't be loud
+    }
+    responseStyle.warmth = 'high';
+  }
+
   return {
-    speedAdjust: response.speedAdjust * confidenceScale,
-    volumeAdjust: 1 + (response.volumeAdjust - 1) * confidenceScale,
-    ssmlHints: response.ssmlHints,
-    responseStyle: response.responseStyle,
+    speedAdjust,
+    volumeAdjust,
+    ssmlHints,
+    responseStyle,
     matchedEmotion: emotion,
     confidence: voiceEmotion.confidence,
   };

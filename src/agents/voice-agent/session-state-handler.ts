@@ -14,6 +14,8 @@ import { log, voice } from '@livekit/agents';
 import { checkForAccentChange } from '../../api/session-accent-routes.js';
 import { getDJBooth } from '../../audio/index.js';
 import { getActiveListeningEngine } from '../../conversation/active-listening.js';
+import { getSessionFlags } from '../../config/voice-humanization-flags.js';
+import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
 import {
   getMeaningfulSilenceResponse,
   playAmbientMusicDuringSilence,
@@ -111,8 +113,17 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // Active listening engine for backchannels
   const activeListening = getActiveListeningEngine();
 
+  // Live backchanneling service (breath-pause aware)
+  const voiceFlags = getSessionFlags(sessionId);
+  const liveBackchannelService = voiceFlags.enableLiveBackchanneling
+    ? getLiveBackchannelingService(sessionId)
+    : null;
+  let lastLiveBackchannelAt = 0;
+  const LIVE_BACKCHANNEL_MIN_INTERVAL_MS = 4000; // At least 4s between live backchannels
+  const MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS = 2000; // User must speak 2s+ before live backchannel
+
   // ============================================================
-  // BACKCHANNEL HELPER
+  // BACKCHANNEL HELPER (Regular - after user pauses)
   // ============================================================
   const attemptBackchannel = async () => {
     // Don't backchannel if agent is speaking
@@ -162,6 +173,71 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         });
       } catch (e) {
         getLogger().warn({ error: e }, 'Failed to fire backchannel');
+      }
+    }
+  };
+
+  // ============================================================
+  // LIVE BACKCHANNEL HELPER (During user speech at breath pauses)
+  // "Better than Human" - soft "mm-hmm" while user is still talking
+  // ============================================================
+  const attemptLiveBackchannel = async () => {
+    // Skip if live backchanneling is disabled
+    if (!liveBackchannelService) return;
+
+    // Don't live-backchannel if agent is speaking
+    if (conversationManager.isAgentSpeaking()) return;
+
+    // Don't live-backchannel too frequently
+    if (Date.now() - lastLiveBackchannelAt < LIVE_BACKCHANNEL_MIN_INTERVAL_MS) return;
+
+    // Check breath pause state from userData
+    const isBreathPause = userData.isInBreathPause ?? false;
+    const speechDurationMs = userData.currentSpeechDurationMs ?? 0;
+
+    // Need breath pause and sufficient speech duration
+    if (!isBreathPause || speechDurationMs < MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS) return;
+
+    // Determine if emotional moment
+    const isEmotionalMoment =
+      (userData.lastEmotionAnalysis?.distressLevel ?? 0) > 0.4 ||
+      (userData.lastEmotionAnalysis?.intensity ?? 0) > 0.7 ||
+      silenceContext.recentEmotionalTone === 'heavy';
+
+    // Get live backchannel decision
+    const result = liveBackchannelService.shouldEmitLiveBackchannel({
+      personaId: sessionPersona.id,
+      userSpeakingDurationMs: speechDurationMs,
+      isBreathPause: true,
+      emotion: userData.lastEmotionAnalysis,
+      turnCount: userData.turnCount ?? 0,
+      timeSinceLastBackchannel: Date.now() - lastLiveBackchannelAt,
+      isEmotionalMoment,
+    });
+
+    if (result.shouldBackchannel && result.phrase) {
+      try {
+        // Say the live backchannel (soft volume, allows overlap)
+        session.say(result.phrase, { allowInterruptions: true });
+        lastLiveBackchannelAt = Date.now();
+        userData.lastLiveBackchannelAt = lastLiveBackchannelAt;
+
+        // Track in metrics
+        trackBackchannelEvent(sessionId, {
+          pauseDurationMs: 0, // During speech, not a pause
+          wasTimely: true,
+          category: isEmotionalMoment ? 'empathy' : 'acknowledgment',
+          userEmotion: userData.lastEmotionAnalysis?.primary,
+          mode: 'live',
+        });
+
+        diag.state('🎤 Live backchannel during breath pause', {
+          phrase: result.phrase.slice(0, 30),
+          speechDurationMs,
+          isEmotional: isEmotionalMoment,
+        });
+      } catch (e) {
+        getLogger().debug({ error: e }, 'Live backchannel failed (non-critical)');
       }
     }
   };
@@ -307,6 +383,29 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         backchannelTimer = setTimeout(() => {
           void attemptBackchannel();
         }, BACKCHANNEL_TRIGGER_MS);
+      }
+
+      // 🎤 LIVE BACKCHANNELING: Start polling for breath pauses
+      // Checks every 200ms while user is speaking for natural backchannel opportunities
+      if (liveBackchannelService && (userData.turnCount || 0) >= 2) {
+        const liveBackchannelInterval = setInterval(() => {
+          // Stop polling if user stopped speaking
+          if (!userData.userSpeakingStartTime) {
+            clearInterval(liveBackchannelInterval);
+            return;
+          }
+          void attemptLiveBackchannel();
+        }, 200); // Check every 200ms for breath pauses
+
+        // Store interval reference for cleanup (will be cleared when user stops speaking)
+        // Using a closure to track the interval
+        const originalUserSpeakingStart = userData.userSpeakingStartTime;
+        setTimeout(() => {
+          // Failsafe: Clear interval after 30s max to prevent memory leaks
+          if (userData.userSpeakingStartTime === originalUserSpeakingStart) {
+            clearInterval(liveBackchannelInterval);
+          }
+        }, 30000);
       }
     }
 

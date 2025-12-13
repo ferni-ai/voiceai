@@ -59,6 +59,10 @@ export interface VoiceHumanizationFlags {
   /** Minimum confidence to use cached response (0-1) */
   cacheConfidenceThreshold: number;
 
+  // Phase 6: Live Backchanneling ("Better than Human" active listening)
+  /** Enable live backchanneling during user speech at breath pauses */
+  enableLiveBackchanneling: boolean;
+
   // Rollout controls
   /** Percentage of sessions to enable (0-100) */
   rolloutPercentage: number;
@@ -101,6 +105,9 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   enableResponseAnticipation: true,
   useCachedResponses: true, // Use cached responses for instant feel
   cacheConfidenceThreshold: 0.65, // 65% confidence (slightly lower for more natural flow)
+
+  // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
+  enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
 
   // Rollout: 100% by default
   rolloutPercentage: 100,

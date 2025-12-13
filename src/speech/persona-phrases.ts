@@ -346,39 +346,76 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
 // IMPORTANT: Avoid "Good question" and "Well..." phrases - they sound like inner monologue
 // These are spoken while the agent is thinking, NOT in response to questions
 // Keep these SHORT and active - Ferni doesn't hedge or stall
+/**
+ * HUMANIZATION FIX: Thinking fillers that feel natural, not robotic
+ * 
+ * Key changes:
+ * - More variety to prevent repetition
+ * - Includes incomplete thoughts (how real people think)
+ * - Some are very short (just a breath), others longer
+ * - Persona-appropriate word choices
+ */
 export const THINKING_FILLERS: Record<string, string[]> = {
   ferni: [
-    `${breakTag('250ms')}Hmm...${breakTag('300ms')}`,
-    `${breakTag('200ms')}Let me think...${breakTag('300ms')}`,
-    `${breakTag('200ms')}Okay, so...${breakTag('300ms')}`,
-    `${breakTag('200ms')}Right...${breakTag('300ms')}`,
+    // Short natural sounds
+    `${breakTag('300ms')}Hmm.${breakTag('350ms')}`,
+    `${breakTag('250ms')}Yeah...${breakTag('300ms')}`,
+    // Incomplete thoughts (feels like real thinking)
+    `${breakTag('200ms')}You know, I...${breakTag('400ms')}`,
+    `${breakTag('250ms')}Okay, so...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Right...${breakTag('400ms')}that's...${breakTag('300ms')}`,
+    // Genuine processing
+    `${breakTag('300ms')}I'm thinking...${breakTag('400ms')}`,
+    `${breakTag('200ms')}Give me a second...${breakTag('350ms')}`,
+    // Connected to conversation
+    `${breakTag('250ms')}That's interesting because...${breakTag('400ms')}`,
   ],
   'nayan-patel': [
-    `${breakTag('300ms')}Hmm...${breakTag('400ms')}let me think about that.${breakTag('350ms')}`,
-    `${breakTag('200ms')}You know...${breakTag('400ms')}`,
-    `${breakTag('300ms')}Let me consider that...${breakTag('400ms')}`,
-    `${breakTag('250ms')}That's worth thinking about...${breakTag('350ms')}`,
+    // Wise pauses
+    `${breakTag('400ms')}Hmm.${breakTag('500ms')}`,
+    `${breakTag('300ms')}You know...${breakTag('450ms')}`,
+    // Philosophical incomplete thoughts
+    `${breakTag('350ms')}There's something here...${breakTag('450ms')}`,
+    `${breakTag('300ms')}Let me sit with that...${breakTag('500ms')}`,
+    `${breakTag('400ms')}The question itself...${breakTag('450ms')}`,
+    `${breakTag('300ms')}Worth considering...${breakTag('400ms')}`,
   ],
   'peter-john': [
-    `${breakTag('200ms')}Ooh, interesting!${breakTag('300ms')}Let me think...${breakTag('350ms')}`,
+    // Energetic but thoughtful
+    `${breakTag('200ms')}Ooh!${breakTag('300ms')}Okay...${breakTag('350ms')}`,
     `${breakTag('200ms')}Hmm!${breakTag('350ms')}`,
-    `${breakTag('200ms')}Oh, you know what...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Let me see...${breakTag('300ms')}`,
+    `${breakTag('200ms')}Oh, you know what...${breakTag('400ms')}`,
+    `${breakTag('200ms')}Let me think here...${breakTag('350ms')}`,
+    // Research mode
+    `${breakTag('250ms')}That reminds me of...${breakTag('400ms')}wait...${breakTag('300ms')}`,
+    `${breakTag('200ms')}Interesting...${breakTag('350ms')}`,
   ],
   'maya-santos': [
-    `${breakTag('250ms')}Hmm...${breakTag('400ms')}let me think.${breakTag('300ms')}`,
-    `${breakTag('200ms')}Let me think about this...${breakTag('400ms')}`,
-    `${breakTag('250ms')}Okay...${breakTag('350ms')}`,
+    // Warm, supportive thinking
+    `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
+    `${breakTag('250ms')}Let me think about this...${breakTag('400ms')}`,
+    `${breakTag('300ms')}Okay...${breakTag('350ms')}`,
+    // Connecting to feelings
+    `${breakTag('250ms')}That's...${breakTag('400ms')}yeah.${breakTag('300ms')}`,
+    `${breakTag('300ms')}I want to think about this carefully...${breakTag('400ms')}`,
   ],
   'jordan-taylor': [
-    `${breakTag('200ms')}Ooh!${breakTag('300ms')}Let me think...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Hmm!${breakTag('350ms')}`,
-    `${breakTag('200ms')}Oh, let me see...${breakTag('300ms')}`,
+    // Enthusiastic processing
+    `${breakTag('200ms')}Ooh!${breakTag('300ms')}`,
+    `${breakTag('200ms')}Hmm!${breakTag('300ms')}Let me see...${breakTag('350ms')}`,
+    `${breakTag('250ms')}Oh, okay...${breakTag('350ms')}`,
+    // Planning mode
+    `${breakTag('200ms')}So we could...${breakTag('400ms')}wait...${breakTag('300ms')}`,
+    `${breakTag('250ms')}I'm picturing this...${breakTag('400ms')}`,
   ],
   'alex-chen': [
-    `${breakTag('200ms')}One moment...${breakTag('400ms')}`,
-    `${breakTag('200ms')}Let me check...${breakTag('350ms')}`,
-    `${breakTag('200ms')}One sec...${breakTag('300ms')}`,
+    // Efficient but human
+    `${breakTag('200ms')}One moment...${breakTag('350ms')}`,
+    `${breakTag('250ms')}Let me think...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Okay...${breakTag('300ms')}`,
+    // Processing mode
+    `${breakTag('200ms')}So if we...${breakTag('400ms')}`,
+    `${breakTag('250ms')}Right, so...${breakTag('350ms')}`,
   ],
 };
 

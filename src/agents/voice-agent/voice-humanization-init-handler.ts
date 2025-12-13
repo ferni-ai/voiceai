@@ -30,6 +30,10 @@ import { getMultiSignalLaughterDetector } from '../../speech/multi-signal-laught
 import { getWordTimingRhythmService } from '../../speech/word-timing-rhythm.js';
 import { getResponseAnticipationService } from '../../speech/response-anticipation.js';
 import { getFFTAnalyzer } from '../../speech/fft-analyzer.js';
+import {
+  getBreathPauseDetector,
+  getLiveBackchannelingService,
+} from '../../speech/live-backchanneling/index.js';
 
 // ============================================================================
 // TYPES
@@ -60,6 +64,7 @@ export interface VoiceHumanizationInitResult {
     enableResponseAnticipation: boolean;
     useCachedResponses: boolean;
     enableMetrics: boolean;
+    enableLiveBackchanneling: boolean;
   };
 }
 
@@ -137,6 +142,14 @@ export function setupVoiceHumanizationInit(
     diag.session('📊 FFT spectral analyzer initialized');
   }
 
+  // Initialize live backchanneling (breath-pause-aware "mm-hmm" during user speech)
+  if (voiceFlags.enableLiveBackchanneling) {
+    getBreathPauseDetector(sessionId); // Pre-initialize breath detector
+    getLiveBackchannelingService(sessionId); // Pre-initialize service
+    recordFeatureUsage(sessionId, 'liveBackchanneling', true);
+    diag.session('🎤 Live backchanneling initialized (breath-pause aware)');
+  }
+
   diag.session('🎤 Advanced voice humanization ready', {
     flags: {
       fft: voiceFlags.enableFftAnalysis,
@@ -144,6 +157,7 @@ export function setupVoiceHumanizationInit(
       laughter: voiceFlags.enableMultiSignalLaughter,
       rhythm: voiceFlags.enableWordTimingRhythm,
       anticipation: voiceFlags.enableResponseAnticipation,
+      liveBackchanneling: voiceFlags.enableLiveBackchanneling,
     },
   });
 
@@ -161,6 +175,7 @@ export function setupVoiceHumanizationInit(
       enableResponseAnticipation: voiceFlags.enableResponseAnticipation,
       useCachedResponses: voiceFlags.useCachedResponses,
       enableMetrics: voiceFlags.enableMetrics,
+      enableLiveBackchanneling: voiceFlags.enableLiveBackchanneling,
     },
   };
 }

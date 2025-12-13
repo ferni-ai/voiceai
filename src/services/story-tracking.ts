@@ -351,12 +351,32 @@ export async function findStoryForContext(
   const toldStories = await getStoriesTold(userId, personaId);
 
   // HUMANIZATION FIX: Use story graph context triggers for smarter selection
-  const storyGraph = storyGraphCache.get(personaId);
+  // Try bundle runtime first (preferred), fall back to cached story graph
   const detectedTriggers = detectContextTriggers(userMood, currentTopic);
   
   // Collect recommended stories from matching triggers
   const graphRecommendations: Map<string, { priority: number; trigger: string }> = new Map();
-  if (storyGraph?.context_triggers) {
+  
+  // PRIORITY 1: Use bundle runtime's getRecommendedStories if available
+  if (context.bundleRuntime?.getRecommendedStories) {
+    for (const trigger of detectedTriggers) {
+      const recommendedStoryIds = context.bundleRuntime.getRecommendedStories(trigger);
+      if (recommendedStoryIds.length > 0) {
+        // Bundle runtime recommendations are high priority
+        for (const storyId of recommendedStoryIds) {
+          const existing = graphRecommendations.get(storyId);
+          if (!existing || existing.priority < 8) {
+            graphRecommendations.set(storyId, { priority: 8, trigger });
+          }
+        }
+        logger.debug({ trigger, count: recommendedStoryIds.length }, 'Bundle runtime recommended stories');
+      }
+    }
+  }
+  
+  // PRIORITY 2: Fall back to cached story graph
+  const storyGraph = storyGraphCache.get(personaId);
+  if (storyGraph?.context_triggers && graphRecommendations.size === 0) {
     for (const trigger of detectedTriggers) {
       const triggerConfig = storyGraph.context_triggers[trigger];
       if (triggerConfig) {

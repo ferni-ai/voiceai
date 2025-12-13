@@ -247,6 +247,9 @@ import { trackEmotionDetection } from './integrations/speech-metrics-integration
 // Multi-signal laughter detection (~85% accuracy)
 import { getMultiSignalLaughterDetector } from '../speech/multi-signal-laughter.js';
 
+// Live backchanneling - breath pause detection for "mm-hmm" during user speech
+import { getBreathPauseDetector } from '../speech/live-backchanneling/index.js';
+
 // Word-timing rhythm mirroring
 import { getWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
 
@@ -619,6 +622,26 @@ class VoiceAgent extends voice.Agent<UserData> {
           if (accumulatedText.length > 0) {
             let taggedText = accumulatedText;
             const userData = agent.getUserDataFromContext();
+
+            // ============================================================
+            // 🔊 AMBIENT AWARENESS: Prepend offer to pause for noisy environments
+            // This shows Ferni cares about the user's context
+            // ============================================================
+            if (userData?.pendingAmbientAcknowledgment) {
+              const acknowledgment = userData.pendingAmbientAcknowledgment;
+              userData.pendingAmbientAcknowledgment = null; // Clear after use
+              
+              // Prepend the ambient acknowledgment (only if response isn't already about pausing)
+              if (!taggedText.toLowerCase().includes('pause') && 
+                  !taggedText.toLowerCase().includes('later') &&
+                  !taggedText.toLowerCase().includes('busy')) {
+                taggedText = `${acknowledgment} But if you'd like to keep going - ${taggedText}`;
+                agent.logger.info(
+                  { acknowledgment },
+                  '🔊 Offered to pause due to noisy environment'
+                );
+              }
+            }
 
             // ============================================================
             // 🎭 UNIFIED POST-LLM HUMANIZATION (dynamic import)
@@ -1516,6 +1539,25 @@ class VoiceAgent extends voice.Agent<UserData> {
               } catch {
                 // Detector not initialized yet - ignore
               }
+
+              // 🎤 Live Backchanneling: Feed audio to breath pause detector
+              // Enables "mm-hmm" during user speech at natural breath pauses
+              try {
+                const breathDetector = getBreathPauseDetector(sessionId);
+                breathDetector.processAudioFrame({
+                  data: frame.data,
+                  sampleRate: frame.sampleRate,
+                  channels: frame.channels,
+                });
+
+                // Update userData with breath pause state for session-state-handler
+                if (userData) {
+                  userData.isInBreathPause = breathDetector.isBreathPause();
+                  userData.currentSpeechDurationMs = breathDetector.getCurrentSpeechDuration();
+                }
+              } catch {
+                // Breath detector not initialized - ignore
+              }
             }
           }
         }
@@ -1596,14 +1638,21 @@ class VoiceAgent extends voice.Agent<UserData> {
                   userData.ambientEnvironment = ambient.environment;
                   userData.ambientNoiseLevel = ambient.noiseLevel;
 
-                  // Log if environment changed significantly
-                  if (ambient.recommendations.offerToPause) {
-                    log().debug(
+                  // 🔊 ACT on noisy environment - offer to pause (once per session)
+                  if (
+                    ambient.recommendations.offerToPause &&
+                    !userData.hasOfferedToPause &&
+                    ambient.recommendations.acknowledgment
+                  ) {
+                    userData.pendingAmbientAcknowledgment = ambient.recommendations.acknowledgment;
+                    userData.hasOfferedToPause = true;
+                    log().info(
                       {
                         environment: ambient.environment,
                         noiseLevel: ambient.noiseLevel,
+                        acknowledgment: ambient.recommendations.acknowledgment,
                       },
-                      '🔊 Noisy environment detected'
+                      '🔊 Noisy environment detected - will offer to pause'
                     );
                   }
                 }
@@ -1698,7 +1747,26 @@ class VoiceAgent extends voice.Agent<UserData> {
           }
 
           // Get emotion-based voice modulation for response
-          const modulation = getEmotionModulation(voiceEmotion);
+          // 🎭 BETTER THAN HUMAN: Include tremor data for extra-sensitive delivery
+          // Voice tremor = user is stressed, even if they sound "neutral" emotionally
+          let tremorOptions: { intensity?: 'none' | 'subtle' | 'noticeable' | 'pronounced' } = {};
+          try {
+            const sessionId = userData?.services?.sessionId;
+            if (sessionId) {
+              const { getHumanListeningResult } =
+                await import('../intelligence/context-builders/human-listening.js');
+              const listeningResult = getHumanListeningResult(sessionId);
+              if (listeningResult?.audio?.tremor?.detected) {
+                tremorOptions = {
+                  intensity: listeningResult.audio.tremor.intensity as 'subtle' | 'noticeable' | 'pronounced',
+                };
+              }
+            }
+          } catch {
+            // Non-critical - tremor detection is a bonus
+          }
+
+          const modulation = getEmotionModulation(voiceEmotion, tremorOptions);
           if (userData) {
             userData.emotionModulation = modulation;
           }

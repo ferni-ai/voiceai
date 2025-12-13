@@ -89,6 +89,14 @@ export interface UserData {
   // Voice humanization - laughter detection
   detectedLaughter?: LaughterDetectionResult;
 
+  // Voice humanization - live backchanneling (breath pause detection)
+  /** Whether user is currently in a breath pause (100-400ms silence mid-speech) */
+  isInBreathPause?: boolean;
+  /** How long user has been speaking this utterance (ms) */
+  currentSpeechDurationMs?: number;
+  /** Timestamp of last live backchannel */
+  lastLiveBackchannelAt?: number;
+
   // Voice humanization - ambient awareness
   // Maps to EnvironmentType from ambient-awareness.ts
   ambientEnvironment?:
@@ -101,6 +109,10 @@ export interface UserData {
     | 'noisy'
     | 'unknown';
   ambientNoiseLevel?: number; // 0-1 scale
+  /** Whether we've already offered to pause for noisy environment this session */
+  hasOfferedToPause?: boolean;
+  /** Ambient acknowledgment phrase to inject into next response */
+  pendingAmbientAcknowledgment?: string | null;
 
   // Conversation context for humanization
   lastUserMessage?: string;

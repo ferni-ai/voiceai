@@ -198,6 +198,38 @@ const GENTLE_OBSERVATIONS = {
   ],
 };
 
+// ============================================================================
+// HUMANIZATION FIX: "THINKING OUT LOUD" MOMENTS
+// Real humans don't tell jokes during silence - they process out loud
+// These create genuine connection through visible thought process
+// ============================================================================
+
+/**
+ * Thinking out loud moments - what a real person would say
+ * when they're genuinely processing alongside you
+ */
+const THINKING_OUT_LOUD = {
+  // When user shared something personal
+  afterPersonalShare: [
+    '<emotion value="thoughtful"/><break time="600ms"/>Hmm. <break time="400ms"/>That... <break time="300ms"/>that hits different when I really sit with it.',
+    '<emotion value="thoughtful"/><break time="500ms"/>I keep coming back to what you said. <break time="400ms"/>About {topic}.',
+    '<emotion value="affectionate"/><break time="600ms"/>You know... <break time="400ms"/>I don\'t want to rush past that.',
+    '<emotion value="thoughtful"/><break time="500ms"/>There\'s something important in what you just shared. <break time="400ms"/>I\'m still... <break time="300ms"/>letting it land.',
+  ],
+  // When processing a difficult question
+  afterQuestion: [
+    '<emotion value="curious"/><break time="500ms"/>Hmm. <break time="400ms"/>Good question. <break time="300ms"/>Let me actually think about that.',
+    '<emotion value="thoughtful"/><break time="600ms"/>You know, <break time="300ms"/>I want to give that the thought it deserves.',
+    '<emotion value="curious"/><break time="500ms"/>That\'s not a simple one, is it? <break time="400ms"/>I\'m sitting with it.',
+  ],
+  // Generic processing
+  general: [
+    '<emotion value="thoughtful"/><break time="500ms"/>Hmm. <break time="400ms"/>I\'m thinking.',
+    '<emotion value="curious"/><break time="600ms"/>Something\'s clicking for me here. <break time="300ms"/>Give me a second.',
+    '<emotion value="thoughtful"/><break time="500ms"/>You know what just occurred to me? <break time="400ms"/>Actually, hold on. <break time="300ms"/>Let me think about that more.',
+  ],
+};
+
 /**
  * Music offerings - transform the silence into atmosphere
  */
@@ -337,24 +369,26 @@ const TIME_AWARE_RESPONSES = {
 
 // ============================================================================
 // GENTLE HUMOR (for appropriate personas)
+// HUMANIZATION FIX: Removed robotic "still there?" jokes
+// Real humor is self-deprecating and connected to the moment
 // ============================================================================
 
 const GENTLE_HUMOR = {
   peterLynch: [
-    '<break time="400ms"/>You thinking, or did you fall asleep on me? <break time="300ms"/>Either\'s fine. <break time="200ms"/>I\'ve done both.',
-    '<break time="500ms"/>You know, they say silence is golden. <break time="200ms"/>I say it\'s more like... <break time="300ms"/>platinum? <break time="200ms"/>Sorry. <break time="200ms"/>Stock humor.',
-    '<break time="400ms"/>Still there? <break time="200ms"/>Or are you googling whether I\'m right? <break time="300ms"/>Go ahead. <break time="200ms"/>I\'ll wait. <break time="300ms"/>[laughter]',
-    '<break time="500ms"/>You\'re quiet. <break time="200ms"/>That\'s either deep thought or deep confusion. <break time="300ms"/>Both valid.',
+    // Self-deprecating, not checking if they're there
+    '<break time="500ms"/>You know, they say silence is golden. <break time="200ms"/>I say it\'s more like... <break time="300ms"/>platinum? <break time="200ms"/>Sorry. <break time="200ms"/>Stock humor. <break time="300ms"/>I can\'t help myself.',
+    '<break time="400ms"/>My brain just wandered to thinking about cereal companies. <break time="300ms"/>Don\'t ask me why. <break time="200ms"/>Occupational hazard.',
   ],
   jackB: [
-    '<emotion value="curious"/><break time="400ms"/>Still with me? <break time="150ms"/>Or did I bore you into a coma? <break time="200ms"/>Wouldn\'t be the first time.',
-    '<emotion value="happy"/><break time="300ms"/>You know, my wife says I talk too much. <break time="200ms"/>This is her revenge, isn\'t it? <break time="150ms"/>[laughter]',
-    '<emotion value="happy"/><break time="400ms"/>Processing... <break time="150ms"/>processing... <break time="200ms"/>Sorry. <break time="150ms"/>That\'s my computer impression. <break time="150ms"/>I\'ll stop.',
-    '<emotion value="affectionate"/><break time="300ms"/>Hey, no judgment on the silence. <break time="200ms"/>I once zoned out for so long my coffee got cold. <break time="150ms"/>Twice.',
+    // Vulnerable sharing, not "still there?" checking
+    '<emotion value="affectionate"/><break time="400ms"/>I once zoned out so hard thinking about something someone said... <break time="300ms"/>my coffee went cold. <break time="200ms"/>Twice. <break time="300ms"/>Same cup.',
+    '<emotion value="happy"/><break time="300ms"/>My wife says I get this look when I\'m really thinking. <break time="200ms"/>Like I\'m staring at nothing. <break time="300ms"/>She\'s not wrong.',
+    '<emotion value="curious"/><break time="400ms"/>You know what I was just thinking about? <break time="300ms"/>Actually... <break time="200ms"/>I lost it. <break time="300ms"/>That happens.',
   ],
   jordan: [
-    '<break time="400ms"/>Ooh, the silence of someone making a decision! <break time="300ms"/>I love this part!',
-    '<break time="500ms"/>Take your time. <break time="200ms"/>This isn\'t a timed test. <break time="300ms"/>Unless you want it to be? <break time="200ms"/>No? <break time="200ms"/>Okay good.',
+    // Excited about the moment, not checking in
+    '<break time="400ms"/>I love this part. <break time="300ms"/>The part where something\'s forming but it\'s not ready yet.',
+    '<break time="500ms"/>You know what? <break time="200ms"/>Some of my best ideas came after exactly this kind of pause.',
   ],
 };
 
@@ -560,11 +594,26 @@ export function getMeaningfulSilenceResponse(
   }
 
   // -----------------------------------------------
-  // THIRD SILENCE (25-40s) - Music, humor, observation, or micro-story
+  // THIRD SILENCE (25-40s) - Thinking out loud, observation, music, or micro-story
+  // HUMANIZATION FIX: Prefer "thinking out loud" over jokes - feels more real
   // -----------------------------------------------
   if (silenceDurationSeconds < 40) {
-    // For humorous personas, sometimes use gentle humor (25% chance)
-    if (Math.random() < 0.25 && recentEmotionalTone !== 'heavy') {
+    // PRIORITY 1: "Thinking out loud" moment (40% chance for deep conversations)
+    // This is what real humans do - process out loud, not tell jokes
+    if (turnCount > 3 && Math.random() < 0.4) {
+      const thinkingMoment = getThinkingOutLoudMoment(context, persona);
+      if (thinkingMoment) {
+        return {
+          type: 'gentle_observation', // Using this type but with new content
+          text: thinkingMoment,
+          invitesReply: false,
+        };
+      }
+    }
+
+    // PRIORITY 2: Self-deprecating humor that's about THEM, not checking on user (10% chance)
+    // Much lower chance than before - humor during silence often feels forced
+    if (Math.random() < 0.10 && recentEmotionalTone !== 'heavy') {
       const humor = getPersonaHumor(persona);
       if (humor) {
         return {
@@ -1010,6 +1059,44 @@ function getPersonaHumor(persona: PersonaConfig): string | null {
 
   // Jack Bogle, Maya, Alex - no humor during silence (stay warm/professional)
   return null;
+}
+
+/**
+ * HUMANIZATION FIX: Get a "thinking out loud" moment
+ * 
+ * Real humans don't tell jokes during silence - they process out loud.
+ * This creates genuine connection by showing visible thought process.
+ * 
+ * Prioritizes content that connects to what the user just said.
+ */
+function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConfig): string | null {
+  const { lastUserMessage, memorableMoments, recentEmotionalTone, wasDiscussingTopic } = context;
+
+  // After a personal share - reference what they said
+  if (recentEmotionalTone === 'heavy' || (memorableMoments && memorableMoments.length > 0)) {
+    const templates = THINKING_OUT_LOUD.afterPersonalShare;
+    let response = randomFrom(templates);
+    
+    // Substitute {topic} with something specific they mentioned
+    if (memorableMoments && memorableMoments.length > 0) {
+      response = response.replace('{topic}', memorableMoments[memorableMoments.length - 1]);
+    } else if (wasDiscussingTopic) {
+      response = response.replace('{topic}', wasDiscussingTopic);
+    } else {
+      // Remove the {topic} reference if we don't have anything specific
+      response = response.replace(/<break time="[^"]+"\/>About \{topic\}\./, '');
+    }
+    
+    return response;
+  }
+
+  // After a question from user - show we're genuinely thinking
+  if (lastUserMessage && lastUserMessage.trim().endsWith('?')) {
+    return randomFrom(THINKING_OUT_LOUD.afterQuestion);
+  }
+
+  // Generic thinking moment
+  return randomFrom(THINKING_OUT_LOUD.general);
 }
 
 // ============================================================================

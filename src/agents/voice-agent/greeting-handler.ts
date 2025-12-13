@@ -178,7 +178,6 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
           | undefined,
         lastConversationSummary: services.userProfile?.lastConversationSummary,
         usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-        sessionId,
       });
       if (aliveResult) {
         greeting = aliveResult.greeting;
@@ -210,7 +209,8 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
         });
         if (introResult) {
           greeting = introResult.intro;
-          hasReferencedLastConversation = introResult.referencesLastConversation ?? false;
+          // Alive intros reference last conversation if they include lastTopic
+          hasReferencedLastConversation = !!services.userProfile?.lastConversationSummary;
           diag.session('Using alive intro (warm recognition)', {
             style: introResult.style,
           });
