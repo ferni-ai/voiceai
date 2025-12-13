@@ -86,6 +86,9 @@ importers:
       uuid:
         specifier: 13.0.0
         version: 13.0.0
+      ws:
+        specifier: 8.18.3
+        version: 8.18.3
       zod:
         specifier: 4.1.13
         version: 4.1.13
@@ -121,7 +124,7 @@ importers:
         specifier: 11.0.0
         version: 11.0.0
       '@types/ws':
-        specifier: ^8.18.1
+        specifier: 8.18.1
         version: 8.18.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.48.0
@@ -8765,7 +8768,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.19.1
+      '@types/node': 20.19.25
 
   '@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)':
     dependencies:
