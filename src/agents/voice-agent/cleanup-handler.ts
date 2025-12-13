@@ -14,6 +14,7 @@ import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js
 import { endConversation as endConversationState } from '../../services/conversation-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
+import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
 import {
   onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
@@ -170,6 +171,24 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
         finalSentiment: finalConvState.emotional.sentiment,
       });
     }
+
+    // ================================================================
+    // STEP 3b: Emit conversation:end for async processing (Phase 2 Scaling)
+    // This triggers background workers for trust updates, analytics, learning
+    // ================================================================
+    const sessionDurationMs = services?.sessionStartTime 
+      ? Date.now() - services.sessionStartTime 
+      : 0;
+    
+    emitConversationEnd({
+      sessionId,
+      userId: userId || 'anonymous',
+      personaId: sessionPersona?.id || 'ferni',
+      turnCount: finalConvState?.flow.turnCount || userData?.turnCount || 0,
+      durationMs: sessionDurationMs,
+      emotionalHighlight: finalConvState?.emotional.sentiment,
+    });
+    diag.session('📤 conversation:end emitted for async processing');
 
     // ================================================================
     // STEP 4: End cognitive intelligence session

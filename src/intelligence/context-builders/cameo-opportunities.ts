@@ -1,15 +1,18 @@
 /**
  * Cameo Opportunities Context Builder
  *
- * Creates natural opportunities for Ferni to briefly reference a teammate's perspective
- * without forcing a handoff. This is especially useful when:
+ * Suggests natural opportunities for Ferni to use the inviteCameo tool - having a
+ * teammate pop in briefly with a quick insight before handing back to Ferni.
+ *
+ * This is useful when:
  * - The user is asking for guidance in a specialist area
- * - A teammate is available (unlocked), but a full transfer may be unnecessary
- * - Ferni can "borrow a lens" to make the response feel richer and more human
+ * - A quick perspective from a teammate would add value
+ * - A full handoff isn't needed, but their voice would help
  *
  * IMPORTANT:
- * - If a teammate is locked, do NOT name them.
- * - This builder should never hard-require a tool call. It is a hint, not a command.
+ * - This builder suggests the inviteCameo tool, not just verbal references
+ * - The cameo tool handles voice switching and LLM instruction updates
+ * - This is a hint, not a command - Ferni chooses whether to use it
  */
 
 import { TEAM_MEMBERS, type TeamMemberId } from '../../services/team-unlocks.js';
@@ -20,7 +23,6 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { isTeamMemberUnlocked } from './team-availability.js';
 
 const logger = createLogger({ module: 'CameoOpportunities' });
 
@@ -146,33 +148,27 @@ async function buildCameoOpportunitiesContext(
     return injections;
   }
 
-  // Check subscription tier for unlock logic.
-  const tier: 'free' | 'friend' | 'partner' =
-    (input.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-  const unlocked = isTeamMemberUnlocked(candidate.memberId, input.userProfile, tier);
-
-  if (!unlocked) {
-    // Do NOT name locked teammates - and don't script literal phrases
-    injections.push(
-      createHintInjection(
-        'cameo_opportunity_locked',
-        `[CAMEO OPPORTUNITY]
-This topic touches ${candidate.reason}. You have a teammate who'd be perfect for this, but they aren't available yet.
-Acknowledge you have a colleague who's great at this topic - you'll introduce them as you get to know each other better. For now, work through it together.`,
-        { category: 'team' }
-      )
-    );
-    return injections;
-  }
-
   const name = getMemberDisplayName(candidate.memberId);
-  // Note: Don't provide literal phrases to copy - describe the opportunity
+
+  // Always suggest the inviteCameo tool regardless of unlock status
+  // (The tool handles the actual execution and voice switching)
   injections.push(
     createHintInjection(
       'cameo_opportunity',
-      `[CAMEO OPPORTUNITY]
-This touches ${candidate.reason}. If it feels natural, you can briefly reference ${name}'s perspective on this (without transferring).
-Speak about them like a trusted colleague. Keep it short and natural - only if it genuinely helps.`,
+      `[🎬 CAMEO OPPORTUNITY]
+This touches ${candidate.reason} - ${name}'s specialty.
+
+You can use the inviteCameo tool to have ${name} pop in with a quick insight:
+- They'll briefly speak (1-2 sentences) then hand back to you
+- Their voice will switch to ${name}'s voice, then back
+- Perfect for adding their unique perspective without a full handoff
+
+How to do it naturally:
+1. Say something like "Let me have ${name} share something on this..."
+2. Use the inviteCameo tool with personaId="${candidate.memberId}"
+3. Include the context so they know what topic to address
+
+Only use if it genuinely adds value - cameos are special moments.`,
       { category: 'team' }
     )
   );

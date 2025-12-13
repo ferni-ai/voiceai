@@ -2632,7 +2632,8 @@ body {
   z-index: 1;
   /* Padding + margin-top to ensure avatar ring isn't clipped by #app overflow:hidden */
   padding: var(--space-sm) var(--space-lg) var(--space-xs);
-  margin-top: calc(20px + env(safe-area-inset-top, 0px));
+  /* More generous top margin: 32px base ensures ring visible on Mac + safe area for iOS */
+  margin-top: calc(32px + env(safe-area-inset-top, 0px));
   text-align: center;
   overflow: visible;
 }
@@ -2645,8 +2646,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Minimal padding to maximize above-fold space */
-  padding: var(--space-xs) var(--space-lg);
+  /* Padding: top minimal, sides standard, bottom generous for helperText visibility */
+  padding: var(--space-xs) var(--space-lg) var(--space-xl);
   /* Tight gap for compact layout */
   gap: var(--space-sm);
   /* NOTE: Do NOT add contain here - causes visible box in Safari */
@@ -6576,7 +6577,8 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
-    padding: var(--space-lg);
+    /* Generous padding on all sides including bottom for helperText */
+    padding: var(--space-lg) var(--space-lg) var(--space-xl);
   }
 
   .avatar-container {
@@ -6664,7 +6666,8 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-sm);
-    padding: var(--space-sm);
+    /* Keep bottom padding for helperText visibility */
+    padding: var(--space-sm) var(--space-sm) var(--space-lg);
   }
 
   .header {
@@ -6966,11 +6969,11 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
-    padding: 0;
+    /* Minimal side/top padding, but keep bottom padding for helperText visibility */
+    padding: 0 var(--space-sm) var(--space-lg);
     flex: 1;
     /* Center the content vertically for a balanced, intimate feel */
     justify-content: center;
-    padding-top: 0;
   }
 
   /* Larger touch targets - Apple minimum 44px */
@@ -10747,7 +10750,8 @@ body.ambient-aurora {
   
   .main {
     gap: var(--space-sm);
-    padding-top: var(--space-xs);
+    /* Keep bottom padding for helperText visibility */
+    padding: var(--space-xs) var(--space-xs) var(--space-lg);
   }
 }
 
@@ -10807,22 +10811,23 @@ body.ambient-aurora {
     gap: var(--space-md);
     padding: var(--space-xs) var(--space-md);
   }
-  
+
   #coach {
     flex-direction: row;
     gap: var(--space-md);
   }
-  
+
   .coach-info {
     text-align: left;
   }
-  
+
   .main {
     flex-direction: row;
     justify-content: center;
     align-items: center;
     gap: var(--space-lg);
-    padding: var(--space-xs);
+    /* Keep bottom padding for helperText visibility */
+    padding: var(--space-xs) var(--space-xs) var(--space-md);
   }
 }
 
@@ -10852,10 +10857,11 @@ body.ambient-aurora {
     align-items: center;
     justify-content: flex-start;
     gap: var(--space-md);
-    padding-top: var(--space-sm);
+    /* Keep bottom padding for helperText visibility */
+    padding: var(--space-sm) var(--space-sm) var(--space-lg);
     flex: 1;
   }
-  
+
   /* Controls centered */
   .controls-row {
     width: 100%;

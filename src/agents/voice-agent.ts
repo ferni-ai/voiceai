@@ -2394,6 +2394,23 @@ export default defineAgent({
       });
 
       // ===============================================
+      // STEP 2b: EMIT CONVERSATION START (Phase 2 Scaling)
+      // Fire-and-forget - triggers async background processing
+      // ===============================================
+      try {
+        const { emitConversationStart } = await import('../services/async-events/index.js');
+        emitConversationStart({
+          sessionId,
+          userId: userId || 'anonymous',
+          personaId: sessionPersona.id,
+          isReturning: isReturningUser,
+        });
+        diag.session('📤 conversation:start emitted for async processing');
+      } catch (eventErr) {
+        diag.warn('Event emission failed (non-fatal)', { error: String(eventErr) });
+      }
+
+      // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)
       // FIX BUG #34: Load per-persona meeting counts from both humanizingState and customData
       // (customData is where session-manager persists them on session end)

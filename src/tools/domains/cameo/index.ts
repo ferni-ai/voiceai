@@ -12,7 +12,6 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { isTeamMemberUnlocked } from '../../../intelligence/context-builders/team-availability.js';
 import {
   endCameo,
   executeCameo,
@@ -22,7 +21,6 @@ import {
   type CameoPersonaId,
   type CameoTriggerType,
 } from '../../../services/cameo/index.js';
-import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
@@ -98,33 +96,37 @@ const inviteCameoDef: ToolDefinition = {
     return llm.tool({
       description: `Invite a team member to briefly "pop in" and share a quick insight.
 
-⚠️ CRITICAL: Only use cameos for team members who are NOT on the user's current roster!
-   - If the team member IS on their roster → use handoffToX instead (full handoff)
-   - If the team member is NOT on their roster → use this cameo tool (quick pop-in)
-   
-Use this when:
-- User mentions a topic in someone's domain (Peter for data, Alex for scheduling, etc.)
-- A quick perspective or data point would add value  
-- You want to celebrate something (Jordan would love this!)
-- The user could benefit from wisdom (Nayan's specialty)
-- AND the team member is NOT already on the user's roster
+CAMEO vs HANDOFF:
+- Cameo: Quick 1-2 sentence insight, then automatically returns to you (Ferni)
+- Handoff: Full conversation transfer - user stays with that team member
 
-HOW IT WORKS:
+Use CAMEO when:
+- A quick perspective or data point would add value
+- User mentions a topic in someone's domain (Peter for data, Alex for scheduling, etc.)
+- You want to celebrate something (Jordan would love this!)
+- The user could benefit from brief wisdom (Nayan's specialty)
+- You want to introduce a team member the user hasn't met yet
+
+Use HANDOFF when:
+- User needs extended help in that team member's specialty
+- User explicitly asks to talk to that team member
+- The topic requires a deep dive conversation
+
+HOW CAMEO WORKS:
 1. You introduce the cameo naturally ("Let me have Peter share something...")
 2. Call this tool with the personaId
-3. That team member will pop in with a brief insight (avatar appears in roster)
+3. That team member will pop in with a brief insight (avatar appears)
 4. They speak their insight
-5. They automatically hand back to you (avatar slides out)
+5. They automatically hand back to you
 
 IMPORTANT:
 - Use sparingly - cameos are special moments
-- Don't interrupt deep conversations
+- Don't interrupt deep emotional conversations
 - Let the team member know what topic to address via the context parameter
-- NEVER use for team members already on the roster - use handoff instead
 
 Team members available:
 - peter-john: Research, data, market analysis
-- alex-chen: Scheduling, calendar, communications  
+- alex-chen: Scheduling, calendar, communications
 - maya-santos: Habits, routines, budgeting
 - jordan-taylor: Planning, milestones, celebrations
 - nayan-patel: Wisdom, perspective, patience`,
@@ -158,7 +160,6 @@ Team members available:
           | {
               services?: {
                 sessionId?: string;
-                userProfile?: UserProfile | null;
               };
             }
           | undefined;
@@ -175,42 +176,16 @@ Team members available:
 
         log.info({ sessionId, personaId, context }, '🎬 Cameo tool invoked');
 
-        // FIX: Validate that this team member is NOT on the user's roster
-        // Cameos are for team members the user hasn't unlocked yet.
-        // If they're on the roster, use handoff instead.
-        const userProfile = userData?.services?.userProfile || null;
-        const subscriptionTier =
-          (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-
-        // FIX ISSUE #4: When userProfile is null (not loaded), we can't reliably check unlock status
-        // In this case, err on the side of allowing cameos - the worst case is a brief "hello"
-        // from a team member who might already be unlocked, which is harmless.
-        // However, if userProfile IS loaded (even if empty for new users), trust the check.
-        const hasProfileData =
-          userProfile !== undefined && userData?.services?.userProfile !== undefined;
-
-        if (hasProfileData && isTeamMemberUnlocked(personaId, userProfile, subscriptionTier)) {
-          const persona = CAMEO_PERSONAS[personaId as CameoPersonaKey];
-          log.warn(
-            { personaId, hasProfile: !!userProfile, tier: subscriptionTier },
-            '🎬 Cameo blocked - team member is already on roster'
-          );
-          return {
-            success: false,
-            error: `${persona?.name || personaId} is already on the user's team!`,
-            suggestion: `Use handoffTo${persona?.name || 'X'} for a full handoff instead of a cameo.`,
-            useHandoffInstead: true,
-            targetPersonaId: personaId,
-          };
-        }
-
-        // Log when we allow cameo due to missing profile (helps debug)
-        if (!hasProfileData) {
-          log.debug(
-            { personaId, hasProfile: !!userProfile },
-            '🎬 Cameo allowed (profile not loaded, cannot verify unlock status)'
-          );
-        }
+        // NOTE: Previously we blocked cameos for unlocked team members, suggesting handoff instead.
+        // This was a design choice treating cameos as "preview" for locked members only.
+        // However, cameos are also valuable as a feature - quick pop-ins for insights without
+        // a full handoff. So we now allow cameos regardless of unlock status.
+        //
+        // The distinction is:
+        // - Cameo: Quick 1-2 sentence insight, then return to Ferni (no context switch)
+        // - Handoff: Full conversation transfer with full context (user stays with that persona)
+        //
+        // Both are valid interactions, let the LLM choose appropriately.
 
         // Check if already in a cameo
         if (isInCameo(sessionId)) {

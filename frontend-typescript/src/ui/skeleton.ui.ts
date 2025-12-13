@@ -197,46 +197,9 @@ function addSkeletonStyles(): void {
       }
     }
 
-    /* Trigger entrance animations when skeleton hides */
-    /* Uses design system easings and durations via CSS variables */
-    .skeleton--hidden ~ #app .entrance-avatar {
-      animation: entranceAvatar var(--duration-dramatic, 600ms) var(--ease-ease-out-back, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
-      animation-delay: 100ms;
-    }
-    .skeleton--hidden ~ #app .entrance-name {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 200ms;
-    }
-    .skeleton--hidden ~ #app .entrance-subtitle {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 250ms;
-    }
-    .skeleton--hidden ~ #app .entrance-roster {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 350ms;
-    }
-    .skeleton--hidden ~ #app .entrance-waveform {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 450ms;
-    }
-    .skeleton--hidden ~ #app .entrance-controls {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 550ms;
-    }
-    .skeleton--hidden ~ #app .entrance-helper {
-      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
-      animation-delay: 650ms;
-    }
-
-    @keyframes entranceAvatar {
-      0% { opacity: 0; transform: scale(0.8) translateY(20px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    @keyframes entranceControls {
-      0% { opacity: 0; transform: translateY(10px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
+    /* NOTE: Entrance animations are handled by .app-loaded in inline-styles.css
+       Previously we had duplicate .skeleton--hidden ~ #app animations here
+       which caused double animations and layout shifts. Removed to fix. */
 
     /* Stagger animation for team members */
     .skeleton__team-member:nth-child(2) {

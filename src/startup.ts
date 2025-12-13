@@ -143,6 +143,20 @@ export async function startup(): Promise<AppConfig> {
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
   logger.info('✓ Schedulers running');
 
+  // ============================================================================
+  // BACKGROUND WORKERS (Phase 2 Scaling)
+  // Start async event workers for trust/analytics processing
+  // ============================================================================
+  logger.info('Starting background workers...');
+  const workerStart = Date.now();
+  try {
+    const { startAllWorkers } = await import('./workers/index.js');
+    await startAllWorkers();
+    logger.info(`✓ Background workers ready (${Date.now() - workerStart}ms)`);
+  } catch (workerErr) {
+    logger.warn(`Background workers failed to start (non-fatal): ${workerErr}`);
+  }
+
   // Start Intelligent Outreach Decision Engine
   // This powers "Better Than Human" proactive check-ins, commitment follow-ups,
   // and context-aware outreach based on conversation extractions
@@ -277,6 +291,16 @@ export async function shutdown(): Promise<void> {
     // Stop schedulers
     stopReminderScheduler();
     stopProactiveScheduler();
+
+    // Stop background workers
+    logger.info('Stopping background workers...');
+    try {
+      const { stopAllWorkers } = await import('./workers/index.js');
+      await stopAllWorkers();
+      logger.info('✓ Background workers stopped');
+    } catch (error) {
+      logger.warn(`Background workers stop failed (non-fatal): ${error}`);
+    }
 
     // Save community insights before shutdown
     logger.info('Saving community insights...');
