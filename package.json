@@ -220,7 +220,8 @@
     "livekit-server-sdk": "^2.14.2",
     "pg": "^8.16.3",
     "stripe": "^20.0.0",
-    "twilio": "^5.10.7"
+    "twilio": "^5.10.7",
+    "zod": "4.1.13"
   },
   "optionalDependencies": {
     "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0"
