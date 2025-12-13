@@ -191,6 +191,7 @@ type AnalyticsMockSetup = {
   trackToolUsage: MockInstance;
   isLifeCoachAnalyticsEnabled: MockInstance;
   persistTrackedItem: MockInstance;
+  persistKeyMoment: MockInstance;
 };
 
 /**
