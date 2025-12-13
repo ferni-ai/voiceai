@@ -26,9 +26,9 @@ let silero: typeof import('@livekit/agents-plugin-silero') | null = null;
 let genai: typeof import('@google/genai') | null = null;
 
 // Pre-warmed resource cache (populated from main process via IPC)
-let prewarmedVAD: unknown = null;
-let prewarmedTTS: Map<string, unknown> = new Map();
-let prewarmedPersonas: Map<string, unknown> = new Map();
+const prewarmedVAD: unknown = null;
+const prewarmedTTS = new Map<string, unknown>();
+const prewarmedPersonas = new Map<string, unknown>();
 
 /**
  * Check if main process has pre-warmed resources available
@@ -53,7 +53,9 @@ async function checkPrewarmedResources(): Promise<boolean> {
     }
   } catch {
     // IPC not available - fall back to loading locally
-    process.stderr.write(`[voice-agent-entry] No IPC connection to main process - loading locally\n`);
+    process.stderr.write(
+      `[voice-agent-entry] No IPC connection to main process - loading locally\n`
+    );
   }
   return false;
 }
@@ -117,15 +119,14 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
 
     try {
-      const {
-        isMainProcessWarmedUp,
-        getPrewarmedPersonaConfig,
-        getPrewarmedSystemPrompt,
-      } = await import('./shared/resource-server.js');
+      const { isMainProcessWarmedUp, getPrewarmedPersonaConfig, getPrewarmedSystemPrompt } =
+        await import('./shared/resource-server.js');
 
       const warmedUp = await isMainProcessWarmedUp();
       if (warmedUp) {
-        process.stderr.write(`[voice-agent-entry] Main process warmed up - using IPC for resources\n`);
+        process.stderr.write(
+          `[voice-agent-entry] Main process warmed up - using IPC for resources\n`
+        );
 
         // Get pre-warmed persona config via IPC (fast path)
         prewarmedPersona = await getPrewarmedPersonaConfig(personaId);
@@ -133,7 +134,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         usePrewarmed = !!prewarmedPersona;
 
         if (usePrewarmed) {
-          process.stderr.write(`[voice-agent-entry] Got pre-warmed resources in ${Date.now() - startTime}ms\n`);
+          process.stderr.write(
+            `[voice-agent-entry] Got pre-warmed resources in ${Date.now() - startTime}ms\n`
+          );
         }
       }
     } catch (ipcError) {
@@ -148,29 +151,66 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(`[voice-agent-entry] Services initialized.\n`);
     }
 
-    // STEP 4: Connect to room
+    // STEP 4: Connect to room (with timeout)
     process.stderr.write(`[voice-agent-entry] Connecting to room...\n`);
-    await ctx.connect();
-    process.stderr.write(`[voice-agent-entry] Connected to room ${ctx.room.name}\n`);
+    const connectStart = Date.now();
+    const connectTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000)
+    );
+    try {
+      await Promise.race([ctx.connect(), connectTimeout]);
+      process.stderr.write(
+        `[voice-agent-entry] Connected to room ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
+      );
+    } catch (connectError) {
+      process.stderr.write(
+        `[voice-agent-entry] Connect failed: ${connectError instanceof Error ? connectError.message : String(connectError)}\n`
+      );
+      throw connectError;
+    }
 
     // STEP 5: Get persona configuration (use pre-warmed if available)
-    let persona: { name?: string; voice?: { voiceId: string; provider: string }; systemPrompt?: string } | null = null;
+    let persona: {
+      name?: string;
+      voice?: { voiceId: string; provider: string };
+      systemPrompt?: string;
+    } | null = null;
 
     if (usePrewarmed && prewarmedPersona) {
-      persona = prewarmedPersona as typeof persona;
-      process.stderr.write(`[voice-agent-entry] Using PRE-WARMED persona: ${persona?.name || personaId}\n`);
+      // Cast prewarmed persona to compatible type
+      const prewarmed = prewarmedPersona as Record<string, unknown>;
+      persona = {
+        name: typeof prewarmed.name === 'string' ? prewarmed.name : undefined,
+        voice: prewarmed.voice as { voiceId: string; provider: string } | undefined,
+        systemPrompt:
+          typeof prewarmed.systemPrompt === 'string' ? prewarmed.systemPrompt : undefined,
+      };
+      process.stderr.write(
+        `[voice-agent-entry] Using PRE-WARMED persona: ${persona?.name || personaId}\n`
+      );
     } else {
       const { getPersonaAsync, initializeFromBundles } = await import('../personas/index.js');
       await initializeFromBundles();
-      persona = await getPersonaAsync(personaId);
-      process.stderr.write(`[voice-agent-entry] Loaded persona locally: ${persona?.name || 'unknown'}\n`);
+      const loaded = await getPersonaAsync(personaId);
+      if (loaded) {
+        persona = {
+          name: loaded.name,
+          voice: loaded.voice,
+          systemPrompt: loaded.systemPrompt,
+        };
+      }
+      process.stderr.write(
+        `[voice-agent-entry] Loaded persona locally: ${persona?.name || 'unknown'}\n`
+      );
     }
 
     // STEP 6: Load VAD (model file likely in OS cache from main process)
     process.stderr.write(`[voice-agent-entry] Loading VAD...\n`);
     const vadStart = Date.now();
     const vad = await silero!.VAD.load();
-    process.stderr.write(`[voice-agent-entry] VAD loaded in ${Date.now() - vadStart}ms (OS cache: ${Date.now() - vadStart < 500 ? 'HIT' : 'MISS'})\n`);
+    process.stderr.write(
+      `[voice-agent-entry] VAD loaded in ${Date.now() - vadStart}ms (OS cache: ${Date.now() - vadStart < 500 ? 'HIT' : 'MISS'})\n`
+    );
 
     // STEP 7: Create TTS
     process.stderr.write(`[voice-agent-entry] Creating TTS...\n`);
@@ -186,7 +226,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(`[voice-agent-entry] TTS created.\n`);
 
     // Use pre-warmed system prompt if available
-    const systemPrompt = prewarmedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
+    const systemPrompt =
+      prewarmedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
 
     // STEP 8: Create simple Agent for session start
     process.stderr.write(`[voice-agent-entry] Creating Agent...\n`);
@@ -227,7 +268,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // STEP 11: Say greeting (lazy import)
     const { getWarmGreeting } = await import('./shared/warm-greeting.js');
-    const greeting = getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?";
+    const greeting =
+      getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?";
     await session.say(greeting);
     process.stderr.write(`[voice-agent-entry] Greeting sent.\n`);
 
@@ -255,4 +297,3 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
   }
 }
-

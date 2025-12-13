@@ -250,10 +250,11 @@ export class CuriosityEngine {
   private turnCount = 0;
   private lastCuriosityTurn = -10;
 
-  // Config
-  private readonly MIN_CURIOSITY_INTERVAL = 5;
-  private readonly MAX_FOLLOW_UPS_PER_THREAD = 3;
-  private readonly MAX_CURIOSITY_PER_SESSION = 6;
+  // Config - "Better Than Human" relationship building
+  // Reduced intervals to keep conversations moving forward
+  private readonly MIN_CURIOSITY_INTERVAL = 3; // Was 5 - show genuine interest more often
+  private readonly MAX_FOLLOW_UPS_PER_THREAD = 4; // Was 3 - follow threads more deeply
+  private readonly MAX_CURIOSITY_PER_SESSION = 10; // Was 6 - more engaged conversations
 
   constructor() {
     logger.debug('CuriosityEngine initialized');

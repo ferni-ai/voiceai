@@ -109,6 +109,7 @@ interface ConcernState {
 
 let avatarContainer: HTMLElement | null = null;
 let isInitialized = false;
+let breathSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 const activeListening: ActiveListeningState = {
   isListening: false,
@@ -1445,7 +1446,7 @@ export function initFerniEQ(): void {
   initBetterThanHumanSignalHandlers();
 
   // Periodic breath sync
-  setInterval(() => {
+  breathSyncInterval = setInterval(() => {
     if (breathSync.isEnabled) {
       syncBreathing();
     }
@@ -1459,6 +1460,12 @@ export function initFerniEQ(): void {
  * Dispose the Ferni EQ system.
  */
 export function disposeFerniEQ(): void {
+  // Clear breath sync interval to prevent memory leak
+  if (breathSyncInterval) {
+    clearInterval(breathSyncInterval);
+    breathSyncInterval = null;
+  }
+  
   avatarContainer = null;
   isInitialized = false;
   log.info('Ferni EQ system disposed');

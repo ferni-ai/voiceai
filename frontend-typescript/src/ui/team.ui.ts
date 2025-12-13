@@ -881,6 +881,14 @@ function addMarketplaceButton(): void {
     marketplaceUI.open();
   });
   cleanupFunctions.push(cleanup);
+  
+  // iOS touch fix: Also listen for touchend to ensure taps are captured
+  const touchCleanup = addListener(marketplaceBtn, 'touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    marketplaceUI.open();
+  });
+  cleanupFunctions.push(touchCleanup);
 
   log.debug('Added marketplace button to roster');
 }

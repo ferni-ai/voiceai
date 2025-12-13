@@ -632,7 +632,7 @@ export class ConversationHumanizer {
     let followUpQuestion: HumanizedResponse['followUpQuestion'];
     if (
       !context.userMessage.includes('?') &&
-      this.shouldTrigger(context.turnNumber, 'follow_up_question', 0.35)
+      this.shouldTrigger(context.turnNumber, 'follow_up_question', 0.55)
     ) {
       const questionContext: QuestionContext = {
         topic: context.topic,

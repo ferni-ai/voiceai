@@ -940,7 +940,7 @@ export class ConversationOrchestrator {
       // Follow-up question (if not already a question, with probability)
       if (
         !input.userMessage.includes('?') &&
-        this.shouldTrigger(input.sessionId, input.turnNumber, 'follow_up_question', 0.35)
+        this.shouldTrigger(input.sessionId, input.turnNumber, 'follow_up_question', 0.55)
       ) {
         const questions = getQuestionPatternEngine();
         const context: QuestionContext = {

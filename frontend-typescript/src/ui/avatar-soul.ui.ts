@@ -248,6 +248,7 @@ const glowFrame: number | null = null;
 let pupilTimeline: gsap.core.Timeline | null = null;
 let gazeTimeline: gsap.core.Timeline | null = null;
 let glowTimeline: gsap.core.Timeline | null = null;
+let energyMatchingInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -1467,7 +1468,7 @@ function startAnimationLoops(): void {
   animateGrain();
 
   // Energy matching update loop
-  setInterval(updateEnergyMatching, SOUL_TIMING.ENERGY_UPDATE_INTERVAL);
+  energyMatchingInterval = setInterval(updateEnergyMatching, SOUL_TIMING.ENERGY_UPDATE_INTERVAL);
 
   // Glow pulse loop
   startGlowPulseLoop();
@@ -2007,6 +2008,12 @@ export function disposeAvatarSoul(): void {
   // Clear timers
   if (state.gaze.saccadeTimer) {
     clearTimeout(state.gaze.saccadeTimer);
+  }
+  
+  // Clear energy matching interval
+  if (energyMatchingInterval) {
+    clearInterval(energyMatchingInterval);
+    energyMatchingInterval = null;
   }
 
   // Cancel animation frames

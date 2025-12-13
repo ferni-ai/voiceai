@@ -89,6 +89,8 @@ export function isMarketplaceLoading(): boolean {
 function cleanupOrphanedElements(): void {
   document.querySelectorAll('#marketplaceModal').forEach((el) => el.remove());
   document.querySelectorAll('.marketplace-modal').forEach((el) => el.remove());
+  // Reset reference since we removed the element from DOM
+  marketplaceModal = null;
 }
 
 // ============================================================================
@@ -99,10 +101,13 @@ function cleanupOrphanedElements(): void {
  * Create the marketplace modal element if it doesn't exist
  */
 function ensureModalExists(): HTMLElement {
-  // HMR cleanup first
-  cleanupOrphanedElements();
+  // Check if existing modal is still in the document (not detached)
+  if (marketplaceModal && document.body.contains(marketplaceModal)) {
+    return marketplaceModal;
+  }
   
-  if (marketplaceModal) return marketplaceModal;
+  // HMR cleanup - only if we don't have a valid modal
+  cleanupOrphanedElements();
 
   marketplaceModal = document.createElement('div');
   marketplaceModal.id = 'marketplaceModal';
@@ -196,7 +201,9 @@ function ensureModalExists(): HTMLElement {
   `;
 
   // Add event listeners
+  // Use both click and touchend for reliable iOS support
   marketplaceModal.addEventListener('click', handleModalClick);
+  marketplaceModal.addEventListener('touchend', handleModalTouch, { passive: false });
   marketplaceModal.addEventListener('keydown', handleModalKeydown);
 
   const searchInput = marketplaceModal.querySelector(
@@ -796,6 +803,47 @@ function handleModalKeydown(e: KeyboardEvent): void {
   }
 }
 
+/**
+ * Handle touch events for iOS Safari compatibility
+ * iOS sometimes doesn't fire click events properly on dynamically created elements
+ */
+function handleModalTouch(e: TouchEvent): void {
+  const target = e.target as HTMLElement;
+  
+  // Only handle single-finger taps
+  if (e.touches && e.touches.length > 1) return;
+  
+  // Check if tapping close button or backdrop
+  if (target.closest('[data-action="close"]')) {
+    e.preventDefault();
+    closeMarketplace();
+    return;
+  }
+  
+  // Check if tapping a tab
+  const tab = target.closest('[data-tab]') as HTMLElement;
+  if (tab) {
+    e.preventDefault();
+    const tabName = tab.dataset.tab as 'browse' | 'installed';
+    if (tabName !== currentTab) {
+      currentTab = tabName;
+      updateTabs();
+      void refreshContent();
+    }
+    return;
+  }
+  
+  // Check if tapping agent action button
+  const actionBtn = target.closest('.agent-action') as HTMLElement;
+  if (actionBtn) {
+    e.preventDefault();
+    const agentId = actionBtn.dataset.agentId;
+    if (!agentId) return;
+    void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
+    return;
+  }
+}
+
 function handleSearch(e: Event): void {
   const input = e.target as HTMLInputElement;
   searchQuery = input.value.trim();
@@ -906,6 +954,9 @@ function getMarketplaceStyles(): string {
       background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
       backdrop-filter: blur(var(--glass-blur-subtle, 8px));
       -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      /* iOS touch fix - make backdrop recognize taps */
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .marketplace-container {
@@ -966,6 +1017,11 @@ function getMarketplaceStyles(): string {
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
+      /* iOS touch fixes */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .marketplace-close:hover {
@@ -2358,12 +2414,64 @@ function getMarketplaceStyles(): string {
       color: rgba(44, 37, 32, 0.6);
     }
 
+    /* Zen theme mobile close button */
+    @media (max-width: 640px) {
+      [data-theme="zen"] .marketplace-close {
+        background: rgba(44, 37, 32, 0.08);
+      }
+
+      [data-theme="zen"] .marketplace-close:hover {
+        background: rgba(44, 37, 32, 0.12);
+      }
+    }
+
     /* Responsive */
     @media (max-width: 640px) {
       .marketplace-container {
         width: 100vw;
         max-height: 100vh;
+        max-height: 100dvh; /* Use dynamic viewport height for mobile */
         border-radius: 0;
+      }
+
+      /* Mobile header - proper safe area handling */
+      .marketplace-header {
+        padding: max(var(--space-md, 16px), env(safe-area-inset-top, 0px)) 
+                 var(--space-md, 16px) 
+                 var(--space-sm, 12px);
+        padding-top: calc(max(var(--space-md, 16px), env(safe-area-inset-top, 0px)) + 8px);
+      }
+
+      /* Mobile title row - stack title and close button properly */
+      .marketplace-title-row {
+        gap: var(--space-sm, 12px);
+      }
+
+      /* Smaller title on mobile */
+      .marketplace-title {
+        font-size: 1.25rem;
+        line-height: 1.3;
+      }
+
+      /* Larger tap target for close button on mobile (minimum 44px per accessibility guidelines) */
+      .marketplace-close {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 10;
+        background: var(--color-bg-subtle, rgba(255, 255, 255, 0.1));
+      }
+
+      .marketplace-close svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .marketplace-subtitle {
+        font-size: 0.875rem;
+        margin-bottom: var(--space-md, 16px);
       }
 
       .marketplace-grid {
@@ -2381,6 +2489,32 @@ function getMarketplaceStyles(): string {
       .marketplace-tab {
         flex: 1;
         justify-content: center;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+      }
+
+      /* Content safe area padding */
+      .marketplace-content {
+        padding: var(--space-md, 16px);
+        padding-bottom: max(var(--space-md, 16px), env(safe-area-inset-bottom, 0px));
+      }
+
+      /* Footer safe area */
+      .marketplace-footer {
+        padding: var(--space-sm, 12px) var(--space-md, 16px);
+        padding-bottom: max(var(--space-sm, 12px), env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* Extra small devices - even more compact */
+    @media (max-width: 380px) {
+      .marketplace-title {
+        font-size: 1.1rem;
+      }
+
+      .marketplace-tab {
+        padding: 8px 10px;
+        font-size: 0.75rem;
       }
     }
   `;

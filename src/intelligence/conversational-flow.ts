@@ -452,6 +452,9 @@ function assessCurrentDepth(
 
 /**
  * Determine recommended direction
+ *
+ * "Better Than Human" philosophy: Don't just maintain - move forward.
+ * Real coaches don't passively wait. They guide, probe, and keep things moving.
  */
 function determineDirection(
   state: FlowState,
@@ -460,7 +463,7 @@ function determineDirection(
   profile: FlowProfile,
   turnCount: number
 ): { direction: FlowDirection; reasoning: string } {
-  // Priority: User capacity
+  // Priority: User capacity - ALWAYS respect this
   if (signals.includes('reaching_capacity')) {
     return {
       direction: 'pause',
@@ -476,52 +479,73 @@ function determineDirection(
     };
   }
 
-  // Priority: User pulling back
+  // Priority: User pulling back - but offer a softer invitation
   if (signals.includes('pulling_back')) {
     return {
       direction: 'lighten',
-      reasoning: 'User needs space. Honor their pace.',
+      reasoning: 'User needs space. Lighten up, but stay curious.',
     };
   }
 
-  // Opportunity: User opening up
+  // Opportunity: User opening up - ENGAGE, don't just hold space
   if (signals.includes('opening_up')) {
     return {
-      direction: 'maintain', // Don't push deeper when they're already opening
-      reasoning: "They're opening up. Hold space, don't probe.",
+      direction: 'deepen', // Changed from 'maintain' - they're ready, go with them!
+      reasoning: "They're opening up. Follow their thread deeper with curiosity.",
     };
   }
 
-  // Opportunity: Seeking closeness at surface/medium
-  if (signals.includes('seeking_closeness') && state.currentDepth !== 'deep') {
+  // Opportunity: Seeking closeness at any depth
+  if (signals.includes('seeking_closeness')) {
     return {
       direction: 'deepen',
       reasoning: 'User seeking connection. Gentle invitation to go deeper.',
     };
   }
 
-  // Check stamina at depth
+  // Check stamina at depth - but be more generous
   if (state.currentDepth === 'deep' || state.currentDepth === 'vulnerable') {
-    if (state.turnsAtDepth >= profile.depthStamina) {
+    if (state.turnsAtDepth >= profile.depthStamina + 2) {
+      // Added +2 buffer
       return {
         direction: 'lighten',
-        reasoning: `${state.turnsAtDepth} turns at depth. Time for a breather.`,
+        reasoning: `${state.turnsAtDepth} turns at depth. Offer a breather.`,
       };
     }
   }
 
-  // Early in conversation - don't rush to depth
+  // Early in conversation - build rapport, but ACTIVELY
   if (turnCount < 4 && state.currentDepth === 'surface') {
     return {
-      direction: 'maintain',
-      reasoning: 'Early in conversation. Build rapport before depth.',
+      direction: 'deepen', // Changed from 'maintain' - start building connection
+      reasoning: 'Early in conversation. Actively build rapport with curiosity.',
     };
   }
 
-  // Default: maintain current flow
+  // Mid-conversation at surface - this is where conversations fizzle
+  // BETTER THAN HUMAN: Don't let it stay shallow
+  if (turnCount >= 4 && state.currentDepth === 'surface') {
+    return {
+      direction: 'deepen',
+      reasoning: "Mid-conversation still at surface. Invite them deeper. Don't let it fizzle.",
+    };
+  }
+
+  // Stable at medium depth - this is good, but keep it moving
+  if (signals.includes('stable') && state.currentDepth === 'medium') {
+    // Occasionally prompt to go deeper or explore new ground
+    if (state.turnsAtDepth >= 3) {
+      return {
+        direction: 'deepen',
+        reasoning: 'Stable at medium depth. Gently invite deeper connection.',
+      };
+    }
+  }
+
+  // Default: Keep moving forward, not just maintaining
   return {
     direction: 'maintain',
-    reasoning: 'Conversation flowing naturally. Follow their lead.',
+    reasoning: 'Conversation flowing. Stay curious and keep it moving.',
   };
 }
 
@@ -558,6 +582,8 @@ function findExitPoints(text: string, currentDepth: ConversationDepth): string[]
 
 /**
  * Build transition recommendation
+ *
+ * "Better Than Human" transitions - natural, curious, forward-moving
  */
 function buildTransition(
   direction: FlowDirection,
@@ -568,17 +594,23 @@ function buildTransition(
     case 'deepen':
       return {
         timing: 'when_natural',
-        technique: 'Follow their thread with a deeper question',
+        technique: 'Follow their thread with genuine curiosity - keep it moving',
         phrases: [
-          "What's underneath that for you?",
           'Tell me more about that.',
-          'How does that sit with you?',
-          'What does that bring up?',
+          'What happened next?',
+          'How does that feel?',
+          "What's the hardest part of that?",
+          "What's weighing on you most?",
+          'How long has that been going on?',
+          'What do you think is really going on there?',
+          "What's that like for you?",
         ],
         avoid: [
           'Why do you think that is?', // Can feel interrogative
           "Let's go deeper", // Too explicit
           'What else?', // Can feel dismissive
+          'I see.', // Dead end
+          'That makes sense.', // Dead end
         ],
       };
 

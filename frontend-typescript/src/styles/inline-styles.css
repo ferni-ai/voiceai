@@ -5622,6 +5622,11 @@ body {
   --member-color: var(--color-text-muted, #a89d90);
   background: transparent;
   opacity: 0.6;
+  /* iOS touch fixes */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .team-member--marketplace:hover {

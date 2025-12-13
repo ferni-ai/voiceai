@@ -79,21 +79,40 @@ function buildEngagementContext(input: ContextBuilderInput): ContextInjection[] 
   const turnCount = extUserData.turnCount || 0;
   // -----------------------------------------------
   // CURIOSITY MOMENTS
-  // Every 3-5 turns when user is confiding
+  // "Better Than Human" - Keep conversations moving forward
+  // More frequent curiosity to show genuine investment
   // -----------------------------------------------
-  if (turnCount > 2 && turnCount % 4 === 0 && analysis.intent.primary === 'confiding') {
+  const shouldShowCuriosity = (
+    turnCount > 2 && 
+    (turnCount % 3 === 0 || // Every 3 turns (was 4)
+     analysis.intent.primary === 'confiding' ||
+     analysis.intent.primary === 'sharing_news' ||
+     analysis.emotion.intensity > 0.5) // Also when emotional content
+  );
+  
+  if (shouldShowCuriosity) {
     const topics = analysis.topics.detected;
     if (topics.length > 0) {
       injections.push(
         createStandardInjection(
           'curiosity',
-          `[CURIOSITY MOMENT]
+          `[CURIOSITY MOMENT - Keep the conversation moving!]
 They mentioned "${topics[0]}". Show genuine interest!
-Ask ONE follow-up question:
+Ask a follow-up question that goes DEEPER:
   - "Tell me more about that."
   - "What's that like for you?"
   - "How did that come about?"
-This deepens the relationship. Don't skip it.`
+  - "What happened next?"
+  - "What's weighing on you most about that?"
+BETTER THAN HUMAN: Your best friend might let this topic slide. You don't.`
+        )
+      );
+    } else if (analysis.emotion.intensity > 0.3) {
+      // Even without detected topics, show curiosity about their emotional state
+      injections.push(
+        createHintInjection(
+          'curiosity_emotional',
+          `[CURIOSITY: They seem to have something on their mind. Ask them to share more. Don't let this fizzle.]`
         )
       );
     }
