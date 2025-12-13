@@ -75,22 +75,60 @@ async function getPrewarmedResources(
   return { usePrewarmed: false, persona: null, systemPrompt: null };
 }
 
-/** Load persona from bundles (fallback path) */
+/** Load persona from bundles (fallback path when cache miss) */
 async function loadPersonaLocally(
   personaId: string,
   preloaded?: Partial<PreloadedDeps>
 ): Promise<PersonaConfig | null> {
-  const personas = preloaded?.personas ?? await import('../personas/index.js');
-  // Skip initializeFromBundles if already done during prewarm
-  if (!preloaded?.personaBundlesReady) {
-    await personas.initializeFromBundles();
-  } else {
-    process.stderr.write(`[voice-agent-entry] Using PRELOADED persona bundles ✅\n`);
+  // CRITICAL: Avoid importing personas/index.js - it has a massive import chain!
+  // Instead, try to read from the bundle JSON file directly.
+  process.stderr.write(`[voice-agent-entry] Loading persona ${personaId} from bundles...\n`);
+  
+  try {
+    // Try direct bundle file read first (fast, no heavy imports)
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    // Check common bundle paths
+    const bundlePaths = [
+      `/app/dist/personas/bundles/${personaId}/persona.manifest.json`,
+      `./dist/personas/bundles/${personaId}/persona.manifest.json`,
+    ];
+    
+    for (const bundlePath of bundlePaths) {
+      try {
+        const data = await fs.readFile(bundlePath, 'utf-8');
+        const manifest = JSON.parse(data);
+        process.stderr.write(`[voice-agent-entry] Found bundle at ${bundlePath}\n`);
+        return {
+          name: manifest.name || personaId,
+          voice: manifest.voice || { voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091', provider: 'cartesia' },
+          systemPrompt: manifest.systemPrompt || '',
+        };
+      } catch {
+        // Try next path
+      }
+    }
+    
+    // If bundle not found, fall back to personas module (slower but comprehensive)
+    process.stderr.write(`[voice-agent-entry] Bundle not found, using personas module...\n`);
+    const personas = preloaded?.personas ?? await import('../personas/index.js');
+    if (!preloaded?.personaBundlesReady) {
+      await personas.initializeFromBundles();
+    }
+    const loaded = await personas.getPersonaAsync(personaId);
+    return loaded
+      ? { name: loaded.name, voice: loaded.voice, systemPrompt: loaded.systemPrompt }
+      : null;
+  } catch (error) {
+    process.stderr.write(`[voice-agent-entry] Failed to load persona: ${error}\n`);
+    // Return default Ferni config
+    return {
+      name: 'Ferni',
+      voice: { voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091', provider: 'cartesia' },
+      systemPrompt: 'You are Ferni, a warm and empathetic AI life coach.',
+    };
   }
-  const loaded = await personas.getPersonaAsync(personaId);
-  return loaded
-    ? { name: loaded.name, voice: loaded.voice, systemPrompt: loaded.systemPrompt }
-    : null;
 }
 
 /** Connect to room with timeout */
@@ -130,16 +168,25 @@ async function createSession(
     process.stderr.write(`[voice-agent-entry] VAD loaded\n`);
   }
 
-  // Create TTS - use preloaded voiceManager if available
-  const voiceManager = preloaded?.voiceManager ?? await import('../speech/voice-manager.js');
+  // Create TTS - use lightweight TTS to avoid massive import chain!
+  // The voice-manager.js module has a huge dependency graph that causes 112+ second hangs.
+  // Instead, use lightweight-tts.js which only imports @livekit/agents-plugin-cartesia.
   const voiceConfig = persona?.voice || {
     voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
     provider: 'cartesia',
   };
-  const tts = voiceManager.createPersonaAwareTTS(persona?.name || 'Ferni', {
-    ...voiceConfig,
-    accent: 'american',
-  });
+  
+  let tts: InstanceType<typeof import('@livekit/agents-plugin-cartesia').TTS>;
+  const lightweightTTSMod = preloaded?.lightweightTTS;
+  if (lightweightTTSMod) {
+    tts = lightweightTTSMod.createLightweightTTS(persona?.name || 'Ferni', voiceConfig);
+    process.stderr.write(`[voice-agent-entry] Using PRELOADED lightweight TTS ✅\n`);
+  } else {
+    // Fallback: import lightweight TTS (fast, no heavy deps)
+    const lightweightTTS = await import('./shared/lightweight-tts.js');
+    tts = lightweightTTS.createLightweightTTS(persona?.name || 'Ferni', voiceConfig);
+    process.stderr.write(`[voice-agent-entry] Imported lightweight TTS\n`);
+  }
 
   // Create Agent and Session
   const agent = new voice!.Agent({ instructions: systemPrompt });
@@ -216,9 +263,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     let persona = cachedPersona;
     if (!usePrewarmed) {
-      // Use preloaded startup if available
-      const startup = preloaded?.startup ?? await import('../startup.js');
-      await startup.startup();
+      // CRITICAL: Do NOT import startup.js here!
+      // startup.js has a massive import chain that causes 112+ second hangs.
+      // Instead, try to load persona from bundles directly (much lighter).
+      process.stderr.write(`[voice-agent-entry] Cache miss - loading persona locally...\n`);
       persona = await loadPersonaLocally(personaId, preloaded ?? undefined);
     }
     e2e.resourceLoaded(`persona:${personaId}`, Date.now() - personaStart);

@@ -103,10 +103,12 @@ export interface PreloadedDeps {
   google: typeof import('@livekit/agents-plugin-google') | null;
   silero: typeof import('@livekit/agents-plugin-silero') | null;
   genai: typeof import('@google/genai') | null;
-  // Internal modules
+  // Lightweight internal modules (NO HEAVY IMPORT CHAINS)
   resourceServer: typeof import('./shared/resource-server.js') | null;
   e2eDiagnostics: typeof import('./shared/e2e-diagnostics.js') | null;
   warmGreeting: typeof import('./shared/warm-greeting.js') | null;
+  lightweightTTS: typeof import('./shared/lightweight-tts.js') | null;
+  // Heavy modules - NOT preloaded, imported on-demand if cache miss
   selfHealing: typeof import('../services/self-healing/index.js') | null;
   voiceManager: typeof import('../speech/voice-manager.js') | null;
   personas: typeof import('../personas/index.js') | null;
@@ -126,6 +128,7 @@ export const _preloadedDeps: PreloadedDeps = {
   resourceServer: null,
   e2eDiagnostics: null,
   warmGreeting: null,
+  lightweightTTS: null,
   selfHealing: null,
   voiceManager: null,
   personas: null,
@@ -322,153 +325,127 @@ export default defineAgent({
         logDepsState();
 
         // ══════════════════════════════════════════════════════════════════════
-        // PHASE 2: Internal modules (with detailed per-import logging)
+        // PHASE 2: LIGHTWEIGHT Internal modules ONLY
         // ══════════════════════════════════════════════════════════════════════
-        log('PREWARM', '📦 Phase 2: Loading internal modules...');
+        // CRITICAL FIX: Do NOT import heavy modules here!
+        // - voice-manager.js has a massive import chain (cartesia, handoff, registry, bundles)
+        // - personas/index.js imports 50+ modules
+        // - startup.js imports memory, services, tools
+        // These caused 112+ second hangs!
+        //
+        // Instead, use:
+        // - resource-server.js to read from cache file (fast!)
+        // - lightweight-tts.js for TTS creation (no heavy deps!)
+        // - warm-greeting.js is self-contained
+        // - e2e-diagnostics.js is self-contained
+        // ══════════════════════════════════════════════════════════════════════
+        log('PREWARM', '📦 Phase 2: Loading LIGHTWEIGHT internal modules...');
         const phase2Start = Date.now();
 
-        // Helper to wrap imports with timeout detection and detailed logging
-        const importWithTimeout = async <T>(
-          name: string,
-          importFn: () => Promise<T>,
-          timeoutMs = 30000
-        ): Promise<T> => {
-          log('IMPORT', `⏳ Starting: ${name}`);
-          const start = Date.now();
-
-          // Set up timeout warning
-          const timeoutId = setTimeout(() => {
-            log('IMPORT', `⚠️ SLOW: ${name} still loading after ${timeoutMs}ms!`, {
-              elapsed: Date.now() - start,
-              mem: _memMB(),
-            });
-          }, timeoutMs);
-
-          // Periodic progress logging every 5s
-          const progressId = setInterval(() => {
-            log('IMPORT', `⏳ Still waiting: ${name} (${Date.now() - start}ms)`, { mem: _memMB() });
-          }, 5000);
-
-          try {
-            const result = await importFn();
-            clearTimeout(timeoutId);
-            clearInterval(progressId);
-            logTiming(name, Date.now() - phase2Start);
-            return result;
-          } catch (err) {
-            clearTimeout(timeoutId);
-            clearInterval(progressId);
-            log('IMPORT', `❌ FAILED: ${name} after ${Date.now() - start}ms: ${err}`);
-            throw err;
-          }
-        };
-
+        // Only import lightweight modules that don't have heavy import chains
         const phase2Results = await Promise.allSettled([
-          importWithTimeout('resource-server', async () => import('./shared/resource-server.js')),
-          importWithTimeout('e2e-diagnostics', async () => import('./shared/e2e-diagnostics.js')),
-          importWithTimeout('warm-greeting', async () => import('./shared/warm-greeting.js')),
-          importWithTimeout(
-            'self-healing',
-            async () => import('../services/self-healing/index.js')
-          ),
-          importWithTimeout('voice-manager', async () => import('../speech/voice-manager.js')),
-          importWithTimeout('personas', async () => import('../personas/index.js')),
-          importWithTimeout('startup', async () => import('../startup.js')),
-          importWithTimeout('voice-agent-entry', async () => import('./voice-agent-entry.js')),
-          importWithTimeout('voice-agent-session', async () => import('./voice-agent-session.js')),
+          import('./shared/resource-server.js').then((m) => {
+            logTiming('resource-server', Date.now() - phase2Start);
+            return m;
+          }),
+          import('./shared/e2e-diagnostics.js').then((m) => {
+            logTiming('e2e-diagnostics', Date.now() - phase2Start);
+            return m;
+          }),
+          import('./shared/warm-greeting.js').then((m) => {
+            logTiming('warm-greeting', Date.now() - phase2Start);
+            return m;
+          }),
+          import('./shared/lightweight-tts.js').then((m) => {
+            logTiming('lightweight-tts', Date.now() - phase2Start);
+            return m;
+          }),
         ]);
 
         log('PREWARM', '📦 Phase 2 imports completed, processing results...');
 
         // Extract results
-        const moduleNames = [
-          'resourceServer',
-          'e2eDiagnostics',
-          'warmGreeting',
-          'selfHealing',
-          'voiceManager',
-          'personas',
-          'startup',
-          'voiceAgentEntry',
-          'voiceAgentSession',
-        ];
-        const modules: Record<string, unknown> = {};
-        phase2Results.forEach((r, i) => {
-          if (r.status === 'fulfilled') {
-            modules[moduleNames[i]] = r.value;
-          } else {
-            log('ERROR', `Failed to load ${moduleNames[i]}: ${r.reason}`);
-          }
-        });
+        const [resourceServerResult, e2eResult, warmGreetingResult, lightweightTTSResult] =
+          phase2Results;
 
         logTiming(
           'Phase 2 TOTAL',
           Date.now() - phase2Start,
-          `${phase2Results.filter((r) => r.status === 'fulfilled').length}/9 succeeded`
+          `${phase2Results.filter((r) => r.status === 'fulfilled').length}/4 succeeded`
         );
         log('PREWARM', 'Phase 2 complete', { mem: _memMB(), elapsed: _elapsed() });
 
-        // Update deps state
+        // Update deps state - only what we actually imported
         _preloadedDeps.resourceServer =
-          modules.resourceServer as typeof _preloadedDeps.resourceServer;
+          resourceServerResult.status === 'fulfilled'
+            ? (resourceServerResult.value as typeof _preloadedDeps.resourceServer)
+            : null;
         _preloadedDeps.e2eDiagnostics =
-          modules.e2eDiagnostics as typeof _preloadedDeps.e2eDiagnostics;
-        _preloadedDeps.warmGreeting = modules.warmGreeting as typeof _preloadedDeps.warmGreeting;
-        _preloadedDeps.selfHealing = modules.selfHealing as typeof _preloadedDeps.selfHealing;
-        _preloadedDeps.voiceManager = modules.voiceManager as typeof _preloadedDeps.voiceManager;
-        _preloadedDeps.personas = modules.personas as typeof _preloadedDeps.personas;
-        _preloadedDeps.startup = modules.startup as typeof _preloadedDeps.startup;
-        _preloadedDeps.voiceAgentEntry =
-          modules.voiceAgentEntry as typeof _preloadedDeps.voiceAgentEntry;
-        _preloadedDeps.voiceAgentSession =
-          modules.voiceAgentSession as typeof _preloadedDeps.voiceAgentSession;
+          e2eResult.status === 'fulfilled'
+            ? (e2eResult.value as typeof _preloadedDeps.e2eDiagnostics)
+            : null;
+        _preloadedDeps.warmGreeting =
+          warmGreetingResult.status === 'fulfilled'
+            ? (warmGreetingResult.value as typeof _preloadedDeps.warmGreeting)
+            : null;
+
+        // Store lightweight TTS factory for use in entry
+        if (lightweightTTSResult.status === 'fulfilled') {
+          _preloadedDeps.lightweightTTS = lightweightTTSResult.value as typeof _preloadedDeps.lightweightTTS;
+        }
+
+        // NOTE: These are intentionally NOT imported - they cause 112+ second hangs:
+        // - voiceManager (use lightweightTTS instead)
+        // - personas (get from cache file instead)
+        // - startup (not needed - cache has everything)
+        // - voiceAgentEntry (imported on-demand in entry())
+        // - voiceAgentSession (imported on-demand in entry())
+        // - selfHealing (imported on-demand if needed)
         logDepsState();
 
         // ══════════════════════════════════════════════════════════════════════
-        // PHASE 3: Heavy resources (VAD model, persona bundles, startup)
+        // PHASE 3: VAD Model ONLY (persona configs come from cache file!)
         // ══════════════════════════════════════════════════════════════════════
-        log('PREWARM', '📦 Phase 3: Loading heavy resources (VAD, bundles, startup)...');
+        // CRITICAL FIX: Do NOT initialize persona bundles or startup here!
+        // - Persona bundles require importing personas/index.js (causes 112s hang)
+        // - Startup requires importing memory, services, tools (causes 112s hang)
+        // Instead, we read from cache file written by main process (instant!)
+        // ══════════════════════════════════════════════════════════════════════
+        log('PREWARM', '📦 Phase 3: Loading VAD model...');
         const phase3Start = Date.now();
 
-        const phase3Results = await Promise.allSettled([
-          // VAD model takes ~2s to load
-          silero
-            ? silero.VAD.load().then((model) => {
-                _preloadedDeps.vadModel = model;
-                logTiming('Silero VAD model', Date.now() - phase3Start);
-                return model;
-              })
-            : Promise.reject(new Error('silero not loaded')),
-
-          // Initialize persona bundles
-          _preloadedDeps.personas
-            ? _preloadedDeps.personas.initializeFromBundles().then(() => {
-                _preloadedDeps.personaBundlesReady = true;
-                logTiming('Persona bundles', Date.now() - phase3Start);
-              })
-            : Promise.reject(new Error('personas not loaded')),
-
-          // Run startup initialization
-          _preloadedDeps.startup
-            ? _preloadedDeps.startup.startup().then(() => {
-                logTiming('Startup initialization', Date.now() - phase3Start);
-              })
-            : Promise.reject(new Error('startup not loaded')),
-        ]);
-
-        // Log phase 3 results
-        const phase3Names = ['VAD model', 'Persona bundles', 'Startup'];
-        phase3Results.forEach((r, i) => {
-          if (r.status === 'rejected') {
-            log('ERROR', `Phase 3 - ${phase3Names[i]} failed: ${r.reason}`);
+        // VAD model is the only heavy resource we need to load in child
+        // Persona configs are read from cache file (written by main process)
+        if (silero) {
+          try {
+            const vadModel = await silero.VAD.load();
+            _preloadedDeps.vadModel = vadModel;
+            logTiming('Silero VAD model', Date.now() - phase3Start);
+            log('PREWARM', '✅ VAD model loaded');
+          } catch (vadError) {
+            log('ERROR', `VAD model failed to load: ${vadError}`);
+            // Non-fatal - will be loaded on-demand in entry()
           }
-        });
+        } else {
+          log('WARN', 'Silero not available, VAD will be loaded on-demand');
+        }
 
-        logTiming(
-          'Phase 3 TOTAL',
-          Date.now() - phase3Start,
-          `${phase3Results.filter((r) => r.status === 'fulfilled').length}/3 succeeded`
-        );
+        // Check if main process cache is available
+        if (_preloadedDeps.resourceServer) {
+          try {
+            const isWarmed = await _preloadedDeps.resourceServer.isMainProcessWarmedUp();
+            if (isWarmed) {
+              log('PREWARM', '✅ Main process cache available - persona configs ready');
+              _preloadedDeps.personaBundlesReady = true; // Signal that we have configs via cache
+            } else {
+              log('WARN', 'Main process cache not ready - entry() will load on-demand');
+            }
+          } catch (cacheError) {
+            log('WARN', `Cache check failed: ${cacheError}`);
+          }
+        }
+
+        logTiming('Phase 3 TOTAL', Date.now() - phase3Start);
         log('PREWARM', 'Phase 3 complete', { mem: _memMB(), elapsed: _elapsed() });
 
         // Store in proc userData for debugging
