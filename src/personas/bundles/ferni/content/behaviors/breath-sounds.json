@@ -35,9 +35,9 @@
       "Mhm. <break time=\"100ms\"/>"
     ],
     "soft_laugh": [
-      "[soft laughter]",
-      "[gentle chuckle]",
-      "[quiet laugh]",
+      "Ha. <break time=\"150ms\"/>",
+      "Heh. <break time=\"150ms\"/>",
+      "Hah. <break time=\"150ms\"/>",
       "Heh. <break time=\"150ms\"/>"
     ],
     "wistful": [
@@ -59,9 +59,9 @@
       "<break time=\"200ms\"/>"
     ],
     "amused": [
-      "[laughter] <break time=\"200ms\"/>",
-      "[chuckle] <break time=\"150ms\"/>",
-      "[laughs] <break time=\"150ms\"/>I love that.",
+      "Ha! <break time=\"200ms\"/>",
+      "Heh. <break time=\"150ms\"/>",
+      "Ha! <break time=\"150ms\"/>I love that.",
       "Ha! <break time=\"100ms\"/>Yeah."
     ],
     "surprised": [

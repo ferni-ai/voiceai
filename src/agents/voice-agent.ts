@@ -32,7 +32,14 @@ process.stderr.write(`[voice-agent] ${_startInfo}\n`);
 // ============================================================================
 // EARLY STARTUP LOGGING
 // ============================================================================
-import { Modality } from '@google/genai';
+// CRITICAL: Check if we're a child process BEFORE heavy imports
+// Child processes only need the agent definition, not all the plugins
+const IS_CHILD_PROCESS = !!process.send;
+if (IS_CHILD_PROCESS) {
+  process.stderr.write(`[voice-agent] CHILD PROCESS - deferring heavy imports (pid=${process.pid})\n`);
+}
+
+// Core LiveKit imports - needed for both main and child
 import {
   WorkerOptions,
   cli,
@@ -43,17 +50,51 @@ import {
   type JobProcess,
   type llm,
 } from '@livekit/agents';
-import * as google from '@livekit/agents-plugin-google';
-import * as silero from '@livekit/agents-plugin-silero';
-import { TelephonyBackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 import 'dotenv/config';
-import { ReadableStream } from 'node:stream/web';
 import { fileURLToPath } from 'node:url';
+
+// These imports are deferred and loaded dynamically in functions that need them
+// to speed up child process startup (which only needs the agent definition)
+import type { Modality as ModalityType } from '@google/genai';
+import type * as googleType from '@livekit/agents-plugin-google';
+import type * as sileroType from '@livekit/agents-plugin-silero';
+
+// Lightweight imports - fast to load
+import { ReadableStream } from 'node:stream/web';
 import { TextEncoder } from 'node:util';
-import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import { DEBUG_STARTUP, earlyLog } from './shared/early-logger.js';
 
 process.stderr.write(`[voice-agent] early-logger ready (pid=${process.pid})\n`);
+
+// Heavy imports - only load in main process or when actually needed
+let google: typeof googleType | null = null;
+let silero: typeof sileroType | null = null;
+let Modality: typeof ModalityType | null = null;
+let TelephonyBackgroundVoiceCancellation: typeof import('@livekit/noise-cancellation-node').TelephonyBackgroundVoiceCancellation | null = null;
+let tagTextWithSsmlPersonaAware: typeof import('../ssml/index.js').tagTextWithSsmlPersonaAware | null = null;
+
+async function loadHeavyImports(): Promise<void> {
+  if (google) return; // Already loaded
+  
+  process.stderr.write(`[voice-agent] Loading heavy imports (pid=${process.pid})\n`);
+  const start = Date.now();
+  
+  const [googleModule, sileroModule, genaiModule, ncModule, ssmlModule] = await Promise.all([
+    import('@livekit/agents-plugin-google'),
+    import('@livekit/agents-plugin-silero'),
+    import('@google/genai'),
+    import('@livekit/noise-cancellation-node'),
+    import('../ssml/index.js'),
+  ]);
+  
+  google = googleModule;
+  silero = sileroModule;
+  Modality = genaiModule.Modality;
+  TelephonyBackgroundVoiceCancellation = ncModule.TelephonyBackgroundVoiceCancellation;
+  tagTextWithSsmlPersonaAware = ssmlModule.tagTextWithSsmlPersonaAware;
+  
+  process.stderr.write(`[voice-agent] Heavy imports loaded (${Date.now() - start}ms, pid=${process.pid})\n`);
+}
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   nodeVersion: process.version,
@@ -757,7 +798,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                 responseDynamics.recordMessage('agent', accumulatedText);
               } else {
                 // Fallback: use persona-aware SSML tagging
-                taggedText = tagTextWithSsmlPersonaAware(accumulatedText, {
+                taggedText = tagTextWithSsmlPersonaAware!(accumulatedText, {
                   personaId: agent.persona.id,
                   humanize: true,
                 });
@@ -2185,6 +2226,10 @@ export default defineAgent({
       // Non-fatal
     }
 
+    // CRITICAL: Load heavy imports before using google/silero/etc
+    // These are deferred to speed up child process startup
+    await loadHeavyImports();
+
     diag.section('ENTRY FUNCTION CALLED');
     diag.entry('Job received', {
       jobId: ctx.job.id,
@@ -2371,7 +2416,7 @@ export default defineAgent({
       let { vad } = ctx.proc.userData;
 
       if (!vad) {
-        vad = await silero.VAD.load();
+        vad = await silero!.VAD.load();
         ctx.proc.userData.vad = vad;
       }
 
@@ -2430,10 +2475,10 @@ export default defineAgent({
       registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent);
 
       const session = new voice.AgentSession({
-        vad: vad as silero.VAD,
-        llm: new google.beta.realtime.RealtimeModel({
+        vad: vad as sileroType.VAD,
+        llm: new google!.beta.realtime.RealtimeModel({
           model: 'gemini-2.0-flash-exp',
-          modalities: [Modality.TEXT],
+          modalities: [Modality!.TEXT],
           temperature: 0.8,
           language: 'en-US',
           instructions: sessionPersona.systemPrompt,
@@ -2753,7 +2798,7 @@ export default defineAgent({
         // Web browsers handle their own echo cancellation via audioCaptureDefaults
         inputOptions: isPhoneCall
           ? {
-              noiseCancellation: TelephonyBackgroundVoiceCancellation(),
+              noiseCancellation: TelephonyBackgroundVoiceCancellation!(),
             }
           : undefined,
       });
