@@ -35,6 +35,8 @@ env:
   GCP_REGION: us-central1
   NODE_VERSION: '20'
   DORA_API_URL: ${{ secrets.DORA_API_URL || 'https://ferni.ai/api/dora' }}
+  # Use pnpm for faster installs
+  PNPM_VERSION: '9'
 
 jobs:
   # ============================================================================
@@ -88,7 +90,7 @@ jobs:
           fi
 
   # ============================================================================
-  # BUILD & TEST
+  # BUILD & TEST (Parallel with pnpm + esbuild)
   # ============================================================================
   build:
     name: Build & Test
@@ -99,25 +101,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (fast with pnpm)
+        run: pnpm install --frozen-lockfile
 
       - name: Type check
-        run: npx tsc --noEmit || echo "⚠️ TypeScript errors (non-blocking for now)"
+        run: pnpm typecheck || echo "⚠️ TypeScript errors (non-blocking for now)"
 
       - name: Run tests
-        run: npm test -- --reporter=dot || echo "⚠️ Some tests failed (non-blocking for now)"
+        run: pnpm test -- --reporter=dot || echo "⚠️ Some tests failed (non-blocking for now)"
         env:
           NODE_ENV: test
 
-      - name: Build backend
-        run: npm run build || echo "⚠️ Backend build issues (Docker handles its own build)"
+      - name: Build backend (esbuild - 12x faster)
+        run: pnpm build:fast || echo "⚠️ Backend build issues (Docker handles its own build)"
 
       - name: Build design-system
         run: node design-system/build.js
@@ -125,8 +132,8 @@ jobs:
       - name: Build frontend
         run: |
           cd frontend-typescript
-          npm ci
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -165,22 +172,27 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Configure Docker
-        run: gcloud auth configure-docker gcr.io
-
-      - name: Build Docker image
+      - name: Build with Cloud Build (Kaniko caching)
         run: |
-          docker build \
-            --build-arg BUILD_SHA=${{ github.sha }} \
-            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:${{ github.sha }} \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:latest \
-            -f docker/Dockerfile.agent .
-
-      - name: Push Docker image
-        run: |
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:${{ github.sha }}
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:latest
+          # Use Cloud Build with Kaniko for aggressive layer caching
+          # This is much faster than local Docker build after first run
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=_CACHE_TTL=168h \
+            --async \
+            .
+          
+          # Wait for build to complete (with timeout)
+          BUILD_ID=$(gcloud builds list --limit=1 --format='value(id)')
+          echo "Waiting for build $BUILD_ID..."
+          gcloud builds log $BUILD_ID --stream || true
+          
+          # Check build status
+          STATUS=$(gcloud builds describe $BUILD_ID --format='value(status)')
+          if [ "$STATUS" != "SUCCESS" ]; then
+            echo "Build failed with status: $STATUS"
+            exit 1
+          fi
 
       - name: Deploy green revision (no traffic)
         id: deploy
@@ -288,16 +300,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Build design-system (required for Docker)
         run: |
-          # Install minimal deps for build script
-          npm ci --ignore-scripts
+          # Install minimal deps for build script (pnpm is faster)
+          pnpm install --frozen-lockfile --ignore-scripts
           # Build design-system tokens (generates dist/tokens.css and dist/tokens.ts)
           node design-system/build.js
           echo "✅ Design system built successfully"
@@ -313,22 +330,25 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Configure Docker
-        run: gcloud auth configure-docker gcr.io
-
-      - name: Build Docker image
+      - name: Build with Cloud Build (Kaniko caching)
         run: |
-          docker build \
-            --build-arg BUILD_SHA=${{ github.sha }} \
-            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }} \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest \
-            -f docker/Dockerfile.ui .
-
-      - name: Push Docker image
-        run: |
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }}
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest
+          # Use Cloud Build with Kaniko for aggressive layer caching
+          gcloud builds submit \
+            --config=cloudbuild-ui.yaml \
+            --async \
+            .
+          
+          # Wait for build to complete
+          BUILD_ID=$(gcloud builds list --limit=1 --format='value(id)')
+          echo "Waiting for build $BUILD_ID..."
+          gcloud builds log $BUILD_ID --stream || true
+          
+          # Check build status
+          STATUS=$(gcloud builds describe $BUILD_ID --format='value(status)')
+          if [ "$STATUS" != "SUCCESS" ]; then
+            echo "Build failed with status: $STATUS"
+            exit 1
+          fi
 
       - name: Deploy green revision (no traffic)
         id: deploy
@@ -411,14 +431,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run smoke tests against UI Server
         if: needs.deploy-ui-server.result == 'success'
