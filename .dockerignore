@@ -60,8 +60,7 @@ __tests__/
 .DS_Store
 *.log
 data/
-scripts/
-!scripts/patch-livekit-timeout.js
-!scripts/build-fast.ts
+# Allow needed scripts
+# scripts/ - not ignoring anymore, need build-fast.ts and patch-livekit-timeout.js
 marketplace-agents/
 ferni-speaker/

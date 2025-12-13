@@ -8,8 +8,21 @@
  *   import { createMockContext, executeWithContext, assertNoPlaceholders } from '../__tests__/test-utils.js';
  */
 
-import { vi } from 'vitest';
+import { vi, type MockInstance } from 'vitest';
 import type { ServiceRegistry, ToolContext, ToolDefinition } from '../registry/types.js';
+
+// ============================================================================
+// TYPE DEFINITIONS FOR MOCKS
+// ============================================================================
+
+/** Mock logger type - avoids pnpm module path issues */
+type MockLogger = {
+  debug: MockInstance;
+  info: MockInstance;
+  warn: MockInstance;
+  error: MockInstance;
+  child: MockInstance;
+};
 
 // ============================================================================
 // MOCK FACTORIES
@@ -18,7 +31,7 @@ import type { ServiceRegistry, ToolContext, ToolDefinition } from '../registry/t
 /**
  * Create a mock logger that captures calls
  */
-export function createMockLogger() {
+export function createMockLogger(): MockLogger {
   return {
     debug: vi.fn(),
     info: vi.fn(),
@@ -154,10 +167,36 @@ export function assertContainsKeywords(result: string, keywords: string[]): void
 // MOCK SETUP HELPERS
 // ============================================================================
 
+/** Logger mock setup return type */
+type LoggerMockSetup = {
+  getLogger: () => MockLogger;
+  safeLog: () => MockLogger;
+  createLogger: () => MockLogger;
+};
+
+/** LiveKit mock setup return type */
+type LiveKitMockSetup = {
+  llm: { tool: MockInstance };
+  log: MockLogger;
+};
+
+/** Persistence mock setup return type */
+type PersistenceMockSetup = {
+  persistTrackedItem: MockInstance;
+  persistKeyMoment: MockInstance;
+};
+
+/** Analytics mock setup return type */
+type AnalyticsMockSetup = {
+  trackToolUsage: MockInstance;
+  isLifeCoachAnalyticsEnabled: MockInstance;
+  persistTrackedItem: MockInstance;
+};
+
 /**
  * Standard mocks for safe-logger
  */
-export function setupLoggerMock() {
+export function setupLoggerMock(): LoggerMockSetup {
   return {
     getLogger: () => createMockLogger(),
     safeLog: () => createMockLogger(),
@@ -168,7 +207,7 @@ export function setupLoggerMock() {
 /**
  * Standard mocks for @livekit/agents
  */
-export function setupLiveKitMock() {
+export function setupLiveKitMock(): LiveKitMockSetup {
   return {
     llm: {
       tool: vi.fn((config) => ({
@@ -184,7 +223,7 @@ export function setupLiveKitMock() {
 /**
  * Standard mocks for persistence
  */
-export function setupPersistenceMock() {
+export function setupPersistenceMock(): PersistenceMockSetup {
   return {
     persistTrackedItem: vi.fn(),
     persistKeyMoment: vi.fn(),
@@ -194,7 +233,7 @@ export function setupPersistenceMock() {
 /**
  * Standard mocks for analytics
  */
-export function setupAnalyticsMock() {
+export function setupAnalyticsMock(): AnalyticsMockSetup {
   return {
     trackToolUsage: vi.fn(() => ({
       success: vi.fn(),

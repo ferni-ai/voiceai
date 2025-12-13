@@ -373,7 +373,7 @@ describe('Context Manager Speech Insights', () => {
         }),
       });
 
-      expect(insights.emotionalMomentum?.warmth).toBe('high');
+      expect((insights.emotionalMomentum as { warmth?: string })?.warmth).toBe('high');
       expect(insights.speechGuidance).toContain('warm');
     });
 

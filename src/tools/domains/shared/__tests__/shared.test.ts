@@ -404,7 +404,8 @@ describe('Shared Domain Utilities', () => {
       });
 
       it('should return false for disabled domains', () => {
-        expect(isLifeCoachDomainEnabled('disabled-domain')).toBe(false);
+        // Cast to test invalid domain handling
+        expect(isLifeCoachDomainEnabled('disabled-domain' as unknown as Parameters<typeof isLifeCoachDomainEnabled>[0])).toBe(false);
       });
     });
 
