@@ -29,21 +29,36 @@ async function loadVoiceDeps(): Promise<void> {
   const startTime = Date.now();
   process.stderr.write(`[voice-agent-entry] Loading voice dependencies...\n`);
 
-  const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
-    import('@livekit/agents'),
-    import('@livekit/agents-plugin-google'),
-    import('@livekit/agents-plugin-silero'),
-    import('@google/genai'),
-  ]);
+  try {
+    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents...\n`);
+    const agents = await import('@livekit/agents');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents loaded in ${Date.now() - startTime}ms\n`);
 
-  voice = agents.voice;
-  google = googleMod;
-  silero = sileroMod;
-  genai = genaiMod;
+    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents-plugin-google...\n`);
+    const googleMod = await import('@livekit/agents-plugin-google');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-google loaded in ${Date.now() - startTime}ms\n`);
 
-  process.stderr.write(
-    `[voice-agent-entry] Voice dependencies loaded in ${Date.now() - startTime}ms\n`
-  );
+    process.stderr.write(`[voice-agent-entry] Importing @livekit/agents-plugin-silero...\n`);
+    const sileroMod = await import('@livekit/agents-plugin-silero');
+    process.stderr.write(`[voice-agent-entry] @livekit/agents-plugin-silero loaded in ${Date.now() - startTime}ms\n`);
+
+    process.stderr.write(`[voice-agent-entry] Importing @google/genai...\n`);
+    const genaiMod = await import('@google/genai');
+    process.stderr.write(`[voice-agent-entry] @google/genai loaded in ${Date.now() - startTime}ms\n`);
+
+    voice = agents.voice;
+    google = googleMod;
+    silero = sileroMod;
+    genai = genaiMod;
+
+    process.stderr.write(
+      `[voice-agent-entry] All voice dependencies loaded in ${Date.now() - startTime}ms\n`
+    );
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.stack || error.message : String(error);
+    process.stderr.write(`[voice-agent-entry] ERROR loading deps: ${errorMsg}\n`);
+    throw error;
+  }
 }
 
 /**

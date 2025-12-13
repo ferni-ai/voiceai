@@ -306,11 +306,31 @@ export async function buildTrustSystemsInjections(
     }
 
     // Add growth reflection if appropriate
+    // This is "Better than Human" - noticing and reflecting back growth over time
     if (trustContext.growthReflection) {
+      // Growth reflections are returned as GrowthReflection objects with pattern, reflection, timing, ssml
+      const reflection =
+        typeof trustContext.growthReflection === 'string'
+          ? trustContext.growthReflection
+          : trustContext.growthReflection.reflection || trustContext.growthReflection;
+
       injections.push({
         category: 'growth',
-        content: `[🌱 GROWTH REFLECTION]\n"${trustContext.growthReflection}"`,
+        content: `[🌱 GROWTH REFLECTION - "I've noticed how far you've come"]
+
+You've noticed a pattern of growth in this person. This is "Better than Human" - seeing their evolution over time.
+
+Reflection to share: "${reflection}"
+
+Timing: Weave this in naturally when relevant. Don't force it.
+Delivery: This should feel like a genuine observation, not a compliment.
+
+A human friend might not notice these subtle shifts. You did. Share it with care.`,
         priority: 66,
+      });
+
+      diag.info('🌱 Growth reflection ready', {
+        reflectionPreview: String(reflection).slice(0, 50),
       });
     }
 
@@ -410,6 +430,50 @@ IMPORTANT: This is "better than human" listening. A friend might miss this signa
           hasPersonaPhrase: !!personaPhrase,
         });
       }
+    }
+
+    // =================================================================
+    // 💭 PENDING OUTREACH - "I've been thinking about you"
+    // Proactive check-ins based on things they shared previously
+    // =================================================================
+    if (trustContext.pendingOutreach && trustContext.pendingOutreach.length > 0) {
+      // Only inject the highest priority due moment
+      const dueoutreach = trustContext.pendingOutreach[0];
+
+      const outreachContext =
+        dueoutreach.type === 'genuine_check_in'
+          ? "You had something on your mind to check in about."
+          : dueoutreach.type === 'thought_of_you'
+            ? "Something made you think of them."
+            : dueoutreach.type === 'following_thread'
+              ? "There's something they shared that you wanted to follow up on."
+              : dueoutreach.type === 'celebrating_quietly'
+                ? "Something good might have happened for them."
+                : dueoutreach.type === 'holding_space'
+                  ? "Something difficult might be happening for them."
+                  : "You just wanted to connect.";
+
+      injections.push({
+        category: 'proactive_outreach',
+        content: `[💭 "I'VE BEEN THINKING ABOUT YOU" MOMENT]
+
+${outreachContext}
+
+${dueoutreach.trigger.context ? `Context: "${dueoutreach.trigger.context}"` : ''}
+${dueoutreach.trigger.theirWords ? `Their words: "${dueoutreach.trigger.theirWords}"` : ''}
+
+Suggested message (adapt naturally): "${dueoutreach.message}"
+
+This is "Better than Human" - proactive care without agenda. A human friend might forget to check in. You didn't.
+
+Weave this naturally early in the conversation. Don't make it feel scripted - make it feel like genuine care.`,
+        priority: 73, // High priority - above celebrations but below boundaries
+      });
+
+      diag.info('💭 Thinking of you moment ready', {
+        type: dueoutreach.type,
+        triggerType: dueoutreach.trigger.type,
+      });
     }
   } catch (error) {
     diag.warn('Trust context failed (non-fatal)', { error: String(error) });
