@@ -178,8 +178,8 @@ function validateAgentManifest(manifest: AgentManifest): string[] {
     errors.push('Publisher ID is required');
   }
 
-  if (!manifest.persona?.personality?.description) {
-    errors.push('Personality description is required');
+  if (!manifest.persona?.personality?.traits?.length) {
+    errors.push('Personality traits are required');
   }
 
   return errors;

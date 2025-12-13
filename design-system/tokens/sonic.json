@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Sonic Identity Tokens - Complete audio brand system",
+  
+  "meta": {
+    "name": "Ferni Sonic Identity",
+    "version": "1.0.0",
+    "description": "Audio design tokens defining Ferni's sonic brand - from the core note to persona signatures"
+  },
+
+  "philosophy": {
+    "_documentation": "Sound is 50% of the experience. Every sound should feel inevitable, warm, supportive, and memorable.",
+    "principles": [
+      "Feel inevitable - like it couldn't be any other way",
+      "Convey warmth - even functional sounds feel human",
+      "Support, not distract - audio serves the experience",
+      "Create memory - sounds become associated with feelings"
+    ],
+    "aesthetic": {
+      "references": [
+        "Ólafur Arnalds - Warm piano, gentle electronics, breathing space",
+        "Max Richter - Emotional depth, cinematic restraint",
+        "Nils Frahm - Organic imperfection, felt piano hammers",
+        "Apple - Functional clarity, satisfying feedback",
+        "Studio Ghibli - Whimsy without excess, natural sounds"
+      ],
+      "notFerni": [
+        "Clinical beeps and boops",
+        "Aggressive notification sounds",
+        "Generic UI sounds",
+        "Synthesized without humanity",
+        "Loud or startling",
+        "Emotionally manipulative"
+      ]
+    }
+  },
+
+  "coreElements": {
+    "_documentation": "The foundational sonic building blocks of Ferni's identity",
+    
+    "ferniNote": {
+      "description": "The foundational sound of Ferni's identity",
+      "note": "C4",
+      "frequency": 261.63,
+      "name": "Middle C - Universal, grounding",
+      "timbre": "Warm piano with soft felt, slight reverb",
+      "character": "Like a breath, not a strike",
+      "duration": 800,
+      "decayType": "natural",
+      "usage": "Basis for all Ferni-specific sounds"
+    },
+    "warmthPad": {
+      "description": "Ambient undertone for presence",
+      "chord": "Cmaj7",
+      "notes": ["C4", "E4", "G4", "B4"],
+      "frequencies": [261.63, 329.63, 392.00, 493.88],
+      "timbre": "Soft synth pad with warmth filter",
+      "character": "Barely noticeable, subconscious comfort",
+      "volume": -24,
+      "usage": "Subtle background during active connection"
+    },
+    "theBreath": {
+      "description": "Organic rhythm element",
+      "sound": "Soft inhale/exhale texture",
+      "character": "Not literal breath, but the feeling",
+      "duration": 1200,
+      "cycle": { "inhale": 500, "hold": 200, "exhale": 500 },
+      "usage": "Transitions, thinking moments"
+    }
+  },
+
+  "personaSonicSignatures": {
+    "_documentation": "Each persona has a unique sonic 'color' - subtle variations on the Ferni foundation",
+    
+    "ferni": {
+      "description": "Warm, centered - the anchor",
+      "interval": "unison",
+      "intervalName": "Perfect Unison / Perfect 5th",
+      "baseNote": "C4",
+      "secondaryNote": "G4",
+      "texture": "felt-piano",
+      "register": "middle",
+      "character": "Home base, grounding",
+      "chordVoicing": ["C4", "G4"],
+      "timbreAdjustments": { "warmth": 1.0, "brightness": 0.8 }
+    },
+    "peter": {
+      "description": "Curious, bright - discovery energy",
+      "interval": "major6th",
+      "intervalName": "Major 6th",
+      "baseNote": "C4",
+      "secondaryNote": "A4",
+      "texture": "clear-piano",
+      "register": "higher",
+      "character": "Inquisitive, searching",
+      "chordVoicing": ["C4", "E4", "A4"],
+      "timbreAdjustments": { "warmth": 0.8, "brightness": 1.2 }
+    },
+    "alex": {
+      "description": "Clear, empathetic - connection energy",
+      "interval": "perfect4th",
+      "intervalName": "Perfect 4th",
+      "baseNote": "C4",
+      "secondaryNote": "F4",
+      "texture": "bell-like",
+      "register": "middle",
+      "character": "Pure, communicative",
+      "chordVoicing": ["C4", "F4", "A4"],
+      "timbreAdjustments": { "warmth": 0.9, "brightness": 1.0, "bell": 0.3 }
+    },
+    "maya": {
+      "description": "Steady, reliable - structure energy",
+      "interval": "root",
+      "intervalName": "Root / Octave",
+      "baseNote": "C4",
+      "secondaryNote": "C5",
+      "texture": "rhythmic",
+      "register": "grounded",
+      "character": "Reliable, rhythmic",
+      "chordVoicing": ["C3", "C4"],
+      "timbreAdjustments": { "warmth": 1.0, "brightness": 0.7, "attack": 0.8 }
+    },
+    "jordan": {
+      "description": "Joyful, sparkly - celebration energy",
+      "interval": "major7th",
+      "intervalName": "Major 7th",
+      "baseNote": "C4",
+      "secondaryNote": "B4",
+      "texture": "effervescent",
+      "register": "light",
+      "character": "Uplifting, bright",
+      "chordVoicing": ["C4", "E4", "G4", "B4"],
+      "timbreAdjustments": { "warmth": 0.9, "brightness": 1.3, "sparkle": 0.4 }
+    },
+    "nayan": {
+      "description": "Deep, integrative - wisdom energy",
+      "interval": "octave",
+      "intervalName": "Octave (full range)",
+      "baseNote": "C3",
+      "secondaryNote": "C5",
+      "texture": "resonant",
+      "register": "full-range",
+      "character": "Expansive, integrative",
+      "chordVoicing": ["C3", "G3", "C4", "E4", "C5"],
+      "timbreAdjustments": { "warmth": 1.1, "brightness": 0.8, "reverb": 1.3 }
+    }
+  },
+
+  "soundEvents": {
+    "_documentation": "Complete library of sound events with musical specifications",
+    
+    "startup": {
+      "filename": "ferni-startup.mp3",
+      "description": "The first moment—Ferni coming alive",
+      "duration": 2000,
+      "character": "Soft piano note rising, like waking up gently",
+      "emotionalGoal": "Hello, I'm here",
+      "peakVolume": -6,
+      "startVolume": -12,
+      "layers": ["felt-piano", "breath-texture"],
+      "musicalSequence": [
+        { "time": 0, "note": "C4", "velocity": "pp" },
+        { "time": 400, "note": "C4", "velocity": "swell" },
+        { "time": 800, "note": "E4", "velocity": "mp" },
+        { "time": 1200, "note": "G4", "velocity": "p" },
+        { "time": 1600, "note": "fade", "velocity": "ppp" }
+      ]
+    },
+    "connectionSuccess": {
+      "filename": "connection-success.mp3",
+      "description": "Trust established—connection made",
+      "duration": 1200,
+      "character": "Warm resolution, like a gentle 'yes'",
+      "emotionalGoal": "We're connected",
+      "peakVolume": -6,
+      "layers": ["piano-chord", "soft-pad-resolution"],
+      "musicalSequence": [
+        { "time": 0, "chord": null, "velocity": null },
+        { "time": 300, "chord": "Cmaj7", "velocity": "mp" },
+        { "time": 600, "chord": "hold", "velocity": "decay" },
+        { "time": 900, "chord": "fade", "velocity": "pp" }
+      ]
+    },
+    "connectionLost": {
+      "filename": "connection-lost.mp3",
+      "description": "Graceful goodbye—disconnection",
+      "duration": 1500,
+      "character": "Gentle descent, like a soft 'see you soon'",
+      "emotionalGoal": "Goodbye for now (not sad)",
+      "peakVolume": -9,
+      "layers": ["piano-arpeggio-down"],
+      "musicalSequence": [
+        { "time": 0, "note": "G4", "velocity": "mp" },
+        { "time": 300, "note": "E4", "velocity": "p" },
+        { "time": 600, "note": "C4", "velocity": "pp" },
+        { "time": 900, "note": "hold", "velocity": "ppp" }
+      ]
+    },
+    "thinking": {
+      "filename": "thinking.mp3",
+      "description": "Processing—AI is considering",
+      "duration": 3000,
+      "loopable": true,
+      "character": "Subtle ambient texture, contemplative",
+      "emotionalGoal": "I'm really thinking about this",
+      "volume": -18,
+      "layers": ["soft-pad", "gentle-modulation"]
+    },
+    "messageSent": {
+      "filename": "message-sent.mp3",
+      "description": "User message acknowledged",
+      "duration": 400,
+      "character": "Light, confirming",
+      "emotionalGoal": "Got it",
+      "volume": -9,
+      "layers": ["single-soft-tone"]
+    },
+    "celebrationSmall": {
+      "filename": "celebration-small.mp3",
+      "description": "Small win detected",
+      "duration": 1800,
+      "character": "Ascending warmth, like a gentle cheer",
+      "emotionalGoal": "That's worth celebrating",
+      "layers": ["piano", "subtle-sparkle"],
+      "musicalSequence": [
+        { "time": 0, "note": "C4", "velocity": "p" },
+        { "time": 300, "note": "E4", "velocity": "mp" },
+        { "time": 500, "note": "G4", "velocity": "mf" },
+        { "time": 700, "note": "C5", "velocity": "mp" },
+        { "time": 1000, "note": "hold", "velocity": "p" }
+      ]
+    },
+    "celebrationBig": {
+      "filename": "celebration-big.mp3",
+      "description": "Major milestone",
+      "duration": 2500,
+      "character": "Full celebration, triumphant but tasteful",
+      "emotionalGoal": "This is a big deal",
+      "layers": ["piano-chord", "pad", "subtle-bells"],
+      "musicalSequence": [
+        { "time": 0, "chord": "Fmaj7", "velocity": "p" },
+        { "time": 500, "chord": "G", "velocity": "mp" },
+        { "time": 1000, "chord": "Am7", "velocity": "mf" },
+        { "time": 1500, "chord": "Cmaj7", "velocity": "f" },
+        { "time": 2000, "chord": "hold", "velocity": "mp" }
+      ]
+    },
+    "notificationGentle": {
+      "filename": "notification-gentle.mp3",
+      "description": "'Thinking of you' push notification",
+      "duration": 800,
+      "character": "Single warm bell, like a gentle tap",
+      "emotionalGoal": "I thought of you",
+      "volume": -9,
+      "layers": ["soft-bell", "resonance"]
+    },
+    "errorGraceful": {
+      "filename": "error-graceful.mp3",
+      "description": "Something went wrong—gracefully",
+      "duration": 600,
+      "character": "Soft, questioning, not alarming",
+      "emotionalGoal": "Hmm, that didn't work",
+      "layers": ["soft-piano", "minor-2nd-interval"],
+      "musicalSequence": [
+        { "time": 0, "note": "C4", "velocity": "mp" },
+        { "time": 200, "note": "Db4", "velocity": "p" },
+        { "time": 400, "note": "hold", "velocity": "pp" }
+      ]
+    },
+    "sessionEnd": {
+      "filename": "session-end.mp3",
+      "description": "Satisfying close—session ending",
+      "duration": 2000,
+      "character": "Warm resolution, complete feeling",
+      "emotionalGoal": "That was meaningful",
+      "layers": ["piano-resolution", "pad"],
+      "musicalSequence": [
+        { "time": 0, "chord": "Am7", "velocity": "mp" },
+        { "time": 500, "chord": "G/B", "velocity": "mp" },
+        { "time": 1000, "chord": "Cmaj7", "velocity": "p" },
+        { "time": 1500, "chord": "hold", "velocity": "pp" }
+      ]
+    }
+  },
+
+  "handoffSounds": {
+    "_documentation": "Each handoff blends source and target persona's sonic colors",
+    
+    "toFerni": {
+      "filename": "handoff-to-ferni.mp3",
+      "duration": 1500,
+      "character": "Returning home, warm welcome",
+      "transition": "Resolve to C major"
+    },
+    "toPeter": {
+      "filename": "handoff-to-peter.mp3",
+      "duration": 1500,
+      "character": "Brightening, ascending",
+      "transition": "Move to major 6th interval"
+    },
+    "toAlex": {
+      "filename": "handoff-to-alex.mp3",
+      "duration": 1500,
+      "character": "Clarifying, bell-like",
+      "transition": "Perfect 4th resolution"
+    },
+    "toMaya": {
+      "filename": "handoff-to-maya.mp3",
+      "duration": 1500,
+      "character": "Grounding, rhythmic",
+      "transition": "Settle to root"
+    },
+    "toJordan": {
+      "filename": "handoff-to-jordan.mp3",
+      "duration": 1500,
+      "character": "Lifting, sparkling",
+      "transition": "Rise to major 7th"
+    },
+    "toNayan": {
+      "filename": "handoff-to-nayan.mp3",
+      "duration": 1500,
+      "character": "Deepening, expanding",
+      "transition": "Open to full octave"
+    }
+  },
+
+  "emotionalSounds": {
+    "_documentation": "Sounds that respond to detected emotional states",
+    
+    "empathy": {
+      "description": "When Ferni shows understanding",
+      "character": "Warm, holding",
+      "chord": "Am7",
+      "duration": 800,
+      "volume": -12
+    },
+    "encouragement": {
+      "description": "When Ferni cheers user on",
+      "character": "Uplifting, gentle",
+      "progression": ["C", "G/B", "Am"],
+      "duration": 1200,
+      "volume": -9
+    },
+    "curiosity": {
+      "description": "When Ferni is intrigued",
+      "character": "Rising, questioning",
+      "interval": "major 2nd up",
+      "duration": 600,
+      "volume": -12
+    },
+    "concern": {
+      "description": "When Ferni detects distress",
+      "character": "Gentle, present",
+      "chord": "Fmaj7",
+      "duration": 1000,
+      "volume": -15
+    }
+  },
+
+  "ambientSoundscapes": {
+    "_documentation": "Background audio for different states",
+    
+    "idle": {
+      "description": "Subtle presence during waiting",
+      "character": "Almost imperceptible warmth",
+      "volume": -24,
+      "layers": ["warmth-pad", "gentle-breath-texture"]
+    },
+    "connected": {
+      "description": "Active conversation background",
+      "character": "Present but not intrusive",
+      "volume": -21,
+      "layers": ["warmth-pad", "subtle-pulse"]
+    },
+    "thinking": {
+      "description": "AI processing moment",
+      "character": "Contemplative, active",
+      "volume": -18,
+      "layers": ["thinking-texture", "gentle-movement"]
+    }
+  },
+
+  "technicalSpecs": {
+    "_documentation": "Technical specifications for audio assets",
+    
+    "format": {
+      "primary": "mp3",
+      "fallback": "ogg",
+      "lossless": "wav"
+    },
+    "quality": {
+      "bitrate": "192kbps",
+      "sampleRate": 44100,
+      "channels": "stereo"
+    },
+    "normalization": {
+      "target": -14,
+      "unit": "LUFS",
+      "truePeak": -1,
+      "note": "Matches streaming platform standards"
+    },
+    "loopPoints": {
+      "note": "For loopable sounds, ensure seamless loop points",
+      "crossfade": 50,
+      "unit": "ms"
+    }
+  },
+
+  "accessibility": {
+    "_documentation": "Audio accessibility considerations",
+    
+    "principles": [
+      "Never make audio the only feedback channel",
+      "Always pair with visual feedback",
+      "Provide option to disable all sounds",
+      "Respect system mute/volume settings",
+      "Avoid sudden loud sounds"
+    ],
+    "screenReaderConsiderations": [
+      "Audio cues should not conflict with screen reader output",
+      "Important state changes should have text alternatives",
+      "Background audio should be pausable"
+    ]
+  }
+}
+
