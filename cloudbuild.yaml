@@ -18,13 +18,12 @@
 # See docs/AGENT-MANAGEMENT.md for details
 
 substitutions:
-  _CACHE_TTL: '168h'  # 1 week cache
+  _CACHE_TTL: '24h'  # 1 day cache (reduced from 1 week)
 
 steps:
   # Build with Kaniko (much better caching than docker build)
-  # - Cache layers persist for 1 week
+  # - Cache layers persist for 24 hours
   # - Parallel stage builds in Dockerfile
-  # - No more --no-cache needed - cache is invalidated by file changes
   # - Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
     args:
