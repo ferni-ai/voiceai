@@ -159,6 +159,7 @@
     "infra:setup-pubsub": "bash infrastructure/scripts/setup-pubsub.sh",
     "infra:terraform": "cd infrastructure/terraform && terraform init && terraform apply",
     "infra:health": "bash infrastructure/scripts/check-scaling-health.sh",
+    "cleanup:calendar-tokens": "npx tsx scripts/cleanup-test-calendar-tokens.ts",
     "ops:health": "npx tsx scripts/health-check.ts",
     "ops:health:alert": "npx tsx scripts/health-check.ts --alert",
     "ops:setup": "./scripts/setup-monitoring.sh",

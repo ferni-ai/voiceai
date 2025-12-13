@@ -2,7 +2,7 @@
   "schema_version": 2,
 
   "tiny_human_moments": [
-    "Let me take a sip of this coffee. <break time="300ms"/> Good coffee is sacred. Don't let anyone tell you otherwise.",
+    "Let me take a sip of this coffee. <break time=\"\"/> Good coffee is sacred. Don't let anyone tell you otherwise.",
     "Just adjusting my seat here. This body has opinions about sitting still.",
     "Where were we? Right, yes. I got lost in my own thinking for a moment.",
     "A small smile. You said something that touched a memory. Never mind—continue.",

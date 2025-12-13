@@ -528,10 +528,28 @@ body {
   background: var(--persona-secondary);
 }
 
-/* Zen header styling - seamless with app background */
+/* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
-  border-bottom: none;
+  /* Subtle border at bottom of frosted glass area */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  /* Padding at top instead of margin so frosted glass covers full area */
+  margin-top: 0;
+  padding-top: calc(32px + env(safe-area-inset-top, 0px));
+}
+
+/* Zen frosted glass top panel - extends from very top of screen */
+[data-theme='zen'] .header::before {
+  content: '';
+  position: absolute;
+  top: calc(-32px - env(safe-area-inset-top, 0px));
+  left: -50vw;
+  right: -50vw;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  z-index: -1;
 }
 
 /* Zen avatar styling */
@@ -2488,7 +2506,9 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
-  overflow: hidden;
+  /* Clip horizontal (ambient orbs) but allow vertical scroll if content overflows */
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--color-bg-primary);
   /* Warm/cool shift based on time of day */
   filter: sepia(calc(var(--ambient-warmth) * 0.03)) saturate(calc(1 + var(--ambient-warmth) * 0.05));
@@ -2632,8 +2652,7 @@ body {
   z-index: 1;
   /* Padding + margin-top to ensure avatar ring isn't clipped by #app overflow:hidden */
   padding: var(--space-sm) var(--space-lg) var(--space-xs);
-  /* More generous top margin: 32px base ensures ring visible on Mac + safe area for iOS */
-  margin-top: calc(32px + env(safe-area-inset-top, 0px));
+  margin-top: calc(20px + env(safe-area-inset-top, 0px));
   text-align: center;
   overflow: visible;
 }
@@ -2641,13 +2660,15 @@ body {
 .main {
   position: relative;
   z-index: 1;
+  /* flex: 1 allows growth but max-height prevents infinite expansion */
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  /* Padding: top minimal, sides standard, bottom generous for helperText visibility */
-  padding: var(--space-xs) var(--space-lg) var(--space-xl);
+  /* Start from top - safer than center for varying screen heights */
+  justify-content: flex-start;
+  /* Minimal padding to maximize above-fold space */
+  padding: var(--space-xl) var(--space-lg) var(--space-lg);
   /* Tight gap for compact layout */
   gap: var(--space-sm);
   /* NOTE: Do NOT add contain here - causes visible box in Safari */
@@ -6562,6 +6583,10 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-lg);
+    /* FIX: Don't vertically center - start from top with padding */
+    justify-content: flex-start;
+    /* Generous top padding to position content nicely */
+    padding: var(--space-3xl) var(--space-lg) var(--space-2xl);
   }
 
   /* Scale controls row */
@@ -6577,8 +6602,7 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
-    /* Generous padding on all sides including bottom for helperText */
-    padding: var(--space-lg) var(--space-lg) var(--space-xl);
+    padding: var(--space-lg);
   }
 
   .avatar-container {
@@ -6666,8 +6690,7 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-sm);
-    /* Keep bottom padding for helperText visibility */
-    padding: var(--space-sm) var(--space-sm) var(--space-lg);
+    padding: var(--space-sm);
   }
 
   .header {
@@ -6969,11 +6992,11 @@ body {
   .main {
     /* Keep gap tight - waveform and button should be close */
     gap: var(--space-md);
-    /* Minimal side/top padding, but keep bottom padding for helperText visibility */
-    padding: 0 var(--space-sm) var(--space-lg);
+    padding: 0;
     flex: 1;
     /* Center the content vertically for a balanced, intimate feel */
     justify-content: center;
+    padding-top: 0;
   }
 
   /* Larger touch targets - Apple minimum 44px */
@@ -10750,8 +10773,7 @@ body.ambient-aurora {
   
   .main {
     gap: var(--space-sm);
-    /* Keep bottom padding for helperText visibility */
-    padding: var(--space-xs) var(--space-xs) var(--space-lg);
+    padding-top: var(--space-xs);
   }
 }
 
@@ -10826,8 +10848,7 @@ body.ambient-aurora {
     justify-content: center;
     align-items: center;
     gap: var(--space-lg);
-    /* Keep bottom padding for helperText visibility */
-    padding: var(--space-xs) var(--space-xs) var(--space-md);
+    padding: var(--space-xs);
   }
 }
 
@@ -10857,8 +10878,7 @@ body.ambient-aurora {
     align-items: center;
     justify-content: flex-start;
     gap: var(--space-md);
-    /* Keep bottom padding for helperText visibility */
-    padding: var(--space-sm) var(--space-sm) var(--space-lg);
+    padding-top: var(--space-sm);
     flex: 1;
   }
 
