@@ -71,10 +71,11 @@
       "delighted": "[laughter] Oh! [laughter]"
     },
     "thinking": {
-      "short": "Hmm...",
-      "medium": "Hmm... <break time=\"200ms\"/>",
-      "deep": "Hmm... <break time=\"400ms\"/>let me think...",
-      "with_realization": "Hmm... <break time=\"200ms\"/>oh! <break time=\"100ms\"/>"
+      "_NOTE": "Use SILENCE for thinking, not filler phrases",
+      "short": "<break time=\"300ms\"/>",
+      "medium": "<break time=\"400ms\"/>",
+      "deep": "<break time=\"500ms\"/>That's a hard one.<break time=\"300ms\"/>",
+      "with_realization": "<break time=\"300ms\"/>Oh! <break time=\"150ms\"/>"
     },
     "acknowledgment": {
       "soft": "<volume ratio=\"0.75\"/>Yeah...</volume>",
@@ -89,9 +90,9 @@
       "delighted": "Oh! <break time=\"100ms\"/>[laughter]"
     },
     "concern": {
-      "mild": "Hmm...",
-      "moderate": "<volume ratio=\"0.75\"/>Oh...",
-      "deep": "<volume ratio=\"0.75\"/>Oh no..."
+      "mild": "<break time=\"200ms\"/>",
+      "moderate": "Oh...",
+      "deep": "Oh no..."
     }
   },
   "pacing_variations": {
@@ -161,7 +162,7 @@
       "checking_in": "<break time=\"300ms\"/>How are you feeling about all this?<break time=\"200ms\"/>"
     },
     "wrapping_up": {
-      "gentle": "<break time=\"300ms\"/>Well...<break time=\"200ms\"/>",
+      "gentle": "<break time=\"300ms\"/>So...<break time=\"200ms\"/>",
       "summarizing": "<break time=\"200ms\"/>So, to sum up...<break time=\"100ms\"/>",
       "closing": "<break time=\"300ms\"/>Before we go...<break time=\"200ms\"/>"
     }

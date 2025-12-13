@@ -2176,6 +2176,15 @@ export default defineAgent({
     const _entryStartTime = Date.now(); // Reserved for entry timing metrics
     const logger = log();
 
+    // Record job dispatch for keep-alive monitoring
+    // This prevents Cloud Run from killing the container thinking it's idle
+    try {
+      const { recordJobDispatch } = await import('./shared/livekit-keepalive.js');
+      recordJobDispatch();
+    } catch {
+      // Non-fatal
+    }
+
     diag.section('ENTRY FUNCTION CALLED');
     diag.entry('Job received', {
       jobId: ctx.job.id,
@@ -3113,6 +3122,15 @@ if (!process.send) {
     diag.info('Worker signaled ready for zero-downtime deployments');
   } catch {
     // Non-fatal - readiness tracking is optional
+  }
+
+  // Start LiveKit connection keep-alive monitor
+  // This detects when the WebSocket goes stale and forces container restart
+  try {
+    const { startKeepalive } = await import('./shared/livekit-keepalive.js');
+    startKeepalive();
+  } catch {
+    // Non-fatal - keep-alive is optional
   }
 
   diag.info('CLI.runApp called - worker running');

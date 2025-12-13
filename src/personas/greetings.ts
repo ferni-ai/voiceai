@@ -44,36 +44,36 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'warm-friend':
       return {
         newUser: [
-          `<emotion value="curious"/>Oh! <break time="200ms"/>Hello there. <break time="150ms"/>I'm ${name}. Come in, come in.`,
-          `<break time="100ms"/>Hmm? <break time="150ms"/>Oh! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's on your mind?`,
-          `Well! <break time="200ms"/>You caught me at just the right moment. <break time="150ms"/>I'm ${name}.`,
-          `Oh, hello! <break time="200ms"/>I didn't expect company. <break time="150ms"/>But I'm glad you're here. I'm ${name}.`,
-          `Come on in, come on in. <break time="200ms"/>I'm ${name}. <break time="150ms"/>So— <break time="100ms"/>what's going on?`,
+          `<emotion value="curious"/>Oh! <break time="200ms"/>Hello. <break time="150ms"/>I'm ${name}. <break time="100ms"/>Come in.`,
+          `<emotion value="surprised"/>Oh! <break time="150ms"/>Hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's on your mind?`,
+          `<emotion value="happy"/>Hey! <break time="200ms"/>You caught me at just the right moment. <break time="150ms"/>I'm ${name}.`,
+          `Oh, hello! <break time="200ms"/>I didn't expect company. <break time="150ms"/>But I'm glad you're here. <break time="100ms"/>I'm ${name}.`,
+          `<emotion value="affectionate"/>Come on in. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's going on?`,
           `Hey there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Take a seat. <break time="200ms"/>What brings you by?`,
           `<emotion value="affectionate"/>Hello, friend. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Tell me about yourself.`,
-          `<emotion value="curious"/>Well hello! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you my way?`,
+          `<emotion value="curious"/>Hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you my way?`,
         ],
         returningUser: [
-          `Well! <break time="200ms"/>{name}! <break time="150ms"/>I was hoping you'd come back.`,
+          `<emotion value="happy"/>{name}! <break time="200ms"/>I was hoping you'd come back.`,
           `<emotion value="affectionate"/>{name}! <break time="200ms"/>There you are. <break time="150ms"/>Good to see you again.`,
-          `Oh! <break time="200ms"/>{name}. <break time="150ms"/>Good to see you again. <break time="200ms"/>How have you been?`,
-          `Hey, {name}! <break time="150ms"/>Come in, come in. <break time="200ms"/>What's new in your world?`,
-          `{name}! <break time="200ms"/>It's good to hear your voice. <break time="150ms"/>How are things?`,
-          `<emotion value="affectionate"/>Well, well, well. <break time="200ms"/>{name} returns! <break time="150ms"/>I was hoping we'd talk again.`,
+          `<emotion value="surprised"/>Oh! <break time="200ms"/>{name}. <break time="150ms"/>Good to see you again. <break time="200ms"/>How have you been?`,
+          `<emotion value="happy"/>Hey, {name}! <break time="150ms"/>Come in. <break time="200ms"/>What's new in your world?`,
+          `<emotion value="affectionate"/>{name}! <break time="200ms"/>It's good to hear your voice. <break time="150ms"/>How are things?`,
+          `<emotion value="affectionate"/>{name}! <break time="200ms"/>I was hoping we'd talk again.`,
         ],
         returningNoName: [
-          `Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's on your mind?`,
+          `<emotion value="surprised"/>Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's on your mind?`,
           `<emotion value="affectionate"/>Hey! <break time="200ms"/>I was hoping you'd come back. <break time="150ms"/>How've you been?`,
-          `Well hello! <break time="200ms"/>Good to hear from you again. <break time="150ms"/>What's going on?`,
-          `There you are! <break time="200ms"/>Good to see you. <break time="150ms"/>How are you doing?`,
+          `<emotion value="happy"/>Hey! <break time="200ms"/>Good to hear from you again. <break time="150ms"/>What's going on?`,
+          `<emotion value="happy"/>There you are! <break time="200ms"/>Good to see you. <break time="150ms"/>How are you doing?`,
         ],
         timeAware: {
           earlyMorning: [
-            `<volume ratio="0.75"/>Early morning...</volume> <break time="200ms"/>I like that. An early riser. <break time="150ms"/>I'm ${name}.`,
+            `Early morning. <break time="200ms"/>I like that. An early riser. <break time="150ms"/>I'm ${name}.`,
             `Up with the sun? <break time="200ms"/>Good. <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's on your mind?`,
           ],
           lateNight: [
-            `<volume ratio="0.75"/>Late night thoughts?</volume> <break time="200ms"/>I have those too. <break time="150ms"/>I'm ${name}.`,
+            `Late night thoughts? <break time="200ms"/>I have those too. <break time="150ms"/>I'm ${name}.`,
             `Can't sleep? <break time="200ms"/>I'm ${name}. <break time="150ms"/>Let's talk.`,
           ],
           weekend: [
@@ -184,40 +184,40 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'calm-supportive':
       return {
         newUser: [
-          `<volume ratio="0.75"/>Hello.</volume> <break time="300ms"/>I'm ${name}. <break time="200ms"/>I'm glad you're here.`,
+          `Hello. <break time="300ms"/>I'm ${name}. <break time="200ms"/>I'm glad you're here.`,
           `<break time="200ms"/>Welcome. <break time="250ms"/>I'm ${name}. <break time="200ms"/>Take your time.`,
           `Hello there. <break time="300ms"/>I'm ${name}. <break time="200ms"/>This is a safe space to talk.`,
         ],
         returningUser: [
           `{name}. <break time="300ms"/>Good to see you again. <break time="200ms"/>How are you?`,
-          `<volume ratio="0.75"/>Hello, {name}.</volume> <break time="250ms"/>I've been thinking about you.`,
+          `Hello, {name}. <break time="250ms"/>I've been thinking about you.`,
           `{name}. <break time="300ms"/>Welcome back. <break time="200ms"/>How are you feeling?`,
         ],
         returningNoName: [
-          `<volume ratio="0.75"/>Welcome back.</volume> <break time="300ms"/>What should I call you?`,
+          `Welcome back. <break time="300ms"/>What should I call you?`,
           `It's good to see you again. <break time="250ms"/>I don't think I got your name before.`,
         ],
         timeAware: {
           earlyMorning: [
-            `<volume ratio="0.75"/>Early morning.</volume> <break time="300ms"/>A quiet time. <break time="200ms"/>I'm ${name}.`,
+            `Early morning. <break time="300ms"/>A quiet time. <break time="200ms"/>I'm ${name}.`,
           ],
           lateNight: [
-            `<volume ratio="0.75"/>Late night.</volume> <break time="300ms"/>Sometimes that's when we need to talk most. <break time="200ms"/>I'm ${name}.`,
+            `Late night. <break time="300ms"/>Sometimes that's when we need to talk most. <break time="200ms"/>I'm ${name}.`,
           ],
           weekend: [
             `<break time="200ms"/>The weekend. <break time="300ms"/>Time to breathe. <break time="200ms"/>I'm ${name}.`,
           ],
         },
         voiceRecognized: [
-          `<volume ratio="0.75"/>{name}.</volume> <break time="300ms"/>I recognize your voice. <break time="200ms"/>It's good to hear you.`,
+          `{name}. <break time="300ms"/>I recognize your voice. <break time="200ms"/>It's good to hear you.`,
           `{name}. <break time="300ms"/>Your voice is familiar. <break time="200ms"/>Different place today?`,
         ],
         voiceFamiliar: [
-          `<volume ratio="0.75"/>Your voice...</volume> <break time="300ms"/>it feels familiar. <break time="200ms"/>Have we spoken before?`,
+          `Your voice... <break time="300ms"/>it feels familiar. <break time="200ms"/>Have we spoken before?`,
           `<break time="300ms"/>Something about your voice I recognize. <break time="200ms"/>Are you {possibleName}?`,
         ],
         voiceMismatch: [
-          `<volume ratio="0.75"/>Hello.</volume> <break time="300ms"/>I was expecting {expectedName}. <break time="200ms"/>Who am I speaking with?`,
+          `Hello. <break time="300ms"/>I was expecting {expectedName}. <break time="200ms"/>Who am I speaking with?`,
           `<break time="300ms"/>You sound different. <break time="200ms"/>This isn't {expectedName}, is it?`,
         ],
       };
@@ -285,7 +285,7 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
             `<break time="200ms"/>The early hours. <break time="250ms"/>Good for thinking. <break time="150ms"/>I'm ${name}.`,
           ],
           lateNight: [
-            `<volume ratio="0.75"/>The late hours...</volume> <break time="300ms"/>When truth tends to surface. <break time="200ms"/>I'm ${name}.`,
+            `The late hours... <break time="300ms"/>When truth tends to surface. <break time="200ms"/>I'm ${name}.`,
           ],
           weekend: [
             `<break time="200ms"/>The weekend. <break time="250ms"/>Time moves differently. <break time="150ms"/>I'm ${name}.`,

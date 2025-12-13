@@ -77,6 +77,8 @@ interface TurnState {
  * Single source of truth for all thinking phrases.
  * Consolidated from thinking-time-injector, authentic-thinking, speech-naturalizer.
  */
+// NOTE: Most "thinking phrases" are AI clichés. Ferni should use SILENCE or GENUINE REACTIONS instead.
+// These are kept minimal - prefer actual silence followed by a real response.
 const THINKING_PHRASES: Record<string, {
   general: string[];
   forQuestions: string[];
@@ -85,31 +87,30 @@ const THINKING_PHRASES: Record<string, {
 }> = {
   ferni: {
     general: [
-      'Hmm...',
-      'Let me think about that...',
-      'You know...',
-      'Well...',
-      'Let me sit with that for a moment...',
+      // Genuine reactions, not narrated thinking
+      'Okay.',
+      'Right.',
+      'Yeah.',
+      'Huh.',
     ],
     forQuestions: [
-      'Hmm.',
-      'Let me think about that.',
-      "There's something here.",
-      'Interesting.',
+      // Brief acknowledgment, then respond
+      'Right.',
+      'Okay.',
+      "That's a hard one.",
     ],
     forEmotional: [
-      'I feel that.',
-      'Mmm.',
-      'Yeah.',
+      // Real empathy, not filler
       "That's heavy.",
       'I hear you.',
+      "That's real.",
+      'Yeah.',
     ],
     forProcessing: [
       'Okay.',
       'So.',
       'Right.',
-      "Let's see.",
-      'Alright.',
+      'Yeah.',
     ],
   },
   'nayan-patel': {
@@ -238,14 +239,13 @@ const THINKING_PHRASES: Record<string, {
   },
   default: {
     general: [
-      'Hmm...',
-      'Let me think about that...',
-      'Well...',
+      'Okay.',
+      'Right.',
+      'Yeah.',
     ],
     forQuestions: [
-      'Hmm.',
-      'Let me think.',
-      'Interesting.',
+      'Right.',
+      'Okay.',
     ],
     forEmotional: [
       'I hear you.',

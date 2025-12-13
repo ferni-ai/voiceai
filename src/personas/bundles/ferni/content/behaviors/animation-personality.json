@@ -34,11 +34,11 @@
     "style": "curious-tilt",
     "dot_behavior": "bouncy-wave",
     "messages": [
-      "Hmm, let me think...",
-      "Ooh, good one...",
-      "Let me ponder that...",
-      "Thinking...",
-      "Mulling it over..."
+      "Give me a second...",
+      "That's a good one...",
+      "Sitting with that...",
+      "Processing...",
+      "One moment..."
     ],
     "secondary_actions": ["subtle-glow-pulse", "gentle-breathe"]
   },

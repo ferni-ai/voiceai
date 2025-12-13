@@ -82,7 +82,7 @@ const PERSONA_DISFLUENCIES: Record<
   }
 > = {
   'nayan-patel': {
-    fillers: ['Well...', 'Now...', 'You see...', 'Look...'],
+    fillers: ['Now...', 'You see...', 'Look...'],
     hedges: ['I believe', 'In my view', 'Generally speaking', 'As I see it'],
     repairs: [
       'Let me rephrase that.',
@@ -90,8 +90,8 @@ const PERSONA_DISFLUENCIES: Record<
       "No, wait—here's a better way to say it.",
     ],
     thinkingPhrases: [
-      'Hmm, let me think about that...',
-      "You know, that's worth considering...",
+      // Prefer silence, then respond. These are last resort.
+      "That's worth considering...",
       'Now, that brings up an important point...',
     ],
   },
@@ -104,9 +104,10 @@ const PERSONA_DISFLUENCIES: Record<
       'Let me try again.',
     ],
     thinkingPhrases: [
-      'Hmm... let me sit with that.',
-      "That's a powerful question...",
-      "I'm feeling into this...",
+      // Ferni should prefer SILENCE over filler phrases
+      // These are genuine reactions, not narrated thinking
+      "That's heavy.",
+      "That's a hard one.",
       'You know what...',
     ],
   },
@@ -159,15 +160,16 @@ const PERSONA_DISFLUENCIES: Record<
 };
 
 // Default patterns for unknown personas
+// NOTE: Minimized "thinking phrases" - prefer silence over AI-sounding filler
 const DEFAULT_DISFLUENCIES = {
-  fillers: ['Um...', 'Uh...', 'Well...', 'So...'],
+  fillers: ['Um...', 'Uh...', 'So...'],
   hedges: ['I think', 'Maybe', 'Probably', 'It seems like'],
   repairs: [
     'Actually, let me rephrase.',
-    'Wait—let me think about this.',
+    'Wait—',
     "No, here's what I mean:",
   ],
-  thinkingPhrases: ['Hmm...', 'Let me think...', "That's interesting..."],
+  thinkingPhrases: ['Okay.', 'Right.', 'Yeah.'], // Brief acknowledgments only
 };
 
 // ============================================================================

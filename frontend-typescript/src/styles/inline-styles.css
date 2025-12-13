@@ -1275,15 +1275,21 @@ html.theme-transitioning *::after {
        Elements "arrive" with personality, staggered for visual rhythm
        ======================================================================== */
 
-/* Initial hidden state - all entrance elements start invisible */
+/* Initial hidden state - all entrance elements start invisible
+   EXCEPT controls which must ALWAYS be visible as a fallback */
 .entrance-avatar,
 .entrance-name,
 .entrance-subtitle,
 .entrance-roster,
 .entrance-waveform,
-.entrance-controls,
 .entrance-helper {
   opacity: 0;
+}
+
+/* Controls start visible - never hide the connect button
+   The animation will make it look nice, but visibility is priority */
+.entrance-controls {
+  opacity: 1;
 }
 
 /* Roster stays hidden until JS populates it and app is loaded
@@ -1426,18 +1432,9 @@ html.theme-transitioning *::after {
   animation-delay: 600ms;
 }
 
-/* CRITICAL FALLBACK: Ensure controls are visible even without animation
-   If app-loaded class isn't added or animation fails, show controls after 2s */
-.entrance-controls {
-  animation: fallbackReveal 0ms linear 2000ms forwards;
-}
-
-@keyframes fallbackReveal {
-  to { opacity: 1; }
-}
-
-/* When app-loaded is present, the entrance animation overrides the fallback */
+/* Controls entrance animation - starts from opacity: 1, just adds the slide-up effect */
 .app-loaded .entrance-controls {
+  opacity: 0;
   animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) 700ms forwards;
 }
 
@@ -2628,8 +2625,8 @@ body {
 .header {
   position: relative;
   z-index: 1;
-  /* Apple-style padding: generous top, tighter bottom */
-  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  /* Reduced padding for better above-fold content visibility */
+  padding: var(--space-sm) var(--space-lg) var(--space-xs);
   text-align: center;
 }
 

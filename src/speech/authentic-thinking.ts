@@ -154,14 +154,15 @@ export function analyzeQuestionComplexity(userText: string): number {
  * @deprecated Use ThinkingPhraseCoordinator instead.
  * Kept for backwards compatibility with tests.
  */
+// NOTE: Removed "Well..." from all personas - it sounds like AI inner monologue/stalling
 const personaThinkingPhrases: Record<string, string[]> = {
-  ferni: ['Hmm...', 'Let me think about that...', 'You know...', 'Well...'],
-  'nayan-patel': ['Hmm...', 'You know...', 'Well...', 'Let me think...'],
+  ferni: ['Hmm...', 'Let me think about that...', 'You know...', 'Okay, so...'],
+  'nayan-patel': ['Hmm...', 'You know...', 'Let me consider that...', 'Let me think...'],
   'peter-john': ['Hmm, let me think...', 'You know what...', "Here's what jumps out..."],
   'maya-santos': ['Hmm...', "Let's see...", 'You know...'],
   'alex-chen': ['Let me think...', 'Hmm...', "Okay, let's see..."],
   'jordan-taylor': ['Let me think...', 'Hmm...', 'You know what...'],
-  default: ['Hmm...', 'Let me think about that...', 'Well...'],
+  default: ['Hmm...', 'Let me think about that...', 'You know...'],
 };
 
 /**
@@ -290,10 +291,10 @@ export function generateThinkingSSML(pause: ThinkingPause): string {
     parts.push(`<break time="${Math.round(pause.pauseDurationMs * 0.3)}ms"/>`);
   }
 
-  // Soft entry
+  // Soft entry - removed "Well..." as it sounds like AI inner monologue
+  // Just use a pause instead for a softer entry
   if (pause.softEntry && !pause.thinkingPhrase) {
-    parts.push('Well... ');
-    parts.push(`<break time="100ms"/>`);
+    parts.push(`<break time="200ms"/>`);
   }
 
   return parts.join('');

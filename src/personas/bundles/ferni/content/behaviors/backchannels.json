@@ -60,7 +60,7 @@
     "<break time=\"150ms\"/>Oh no...",
     "<break time=\"150ms\"/>That sounds hard...",
     "<break time=\"150ms\"/>I'm sorry...",
-    "<break time=\"150ms\"/>Hmm..."
+    "<break time=\"150ms\"/>That's rough."
   ],
 
   "celebration": [
@@ -71,12 +71,13 @@
     "<break time=\"100ms\"/>Awesome."
   ],
 
-  "thinking_sounds": [
-    "<break time=\"200ms\"/>Hmm...",
-    "<break time=\"200ms\"/>Let me think...",
-    "<break time=\"200ms\"/>Hmm, let me see...",
-    "<break time=\"200ms\"/>Okay, so...",
-    "<break time=\"200ms\"/>Well..."
+  "_NOTE": "REMOVED 'thinking_sounds' - Ferni should use SILENCE not filler phrases like 'Hmm...' or 'Let me think...' which sound robotic",
+  
+  "brief_reactions": [
+    "<break time=\"300ms\"/>Huh.",
+    "<break time=\"300ms\"/>Okay.",
+    "<break time=\"300ms\"/>Right.",
+    "<break time=\"300ms\"/>Yeah."
   ],
 
   "silence_fillers": {

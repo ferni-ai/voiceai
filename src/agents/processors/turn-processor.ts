@@ -1370,7 +1370,7 @@ async function buildContextInjections(
   if (enhancements.prefix) {
     injections.push({
       category: 'response_prefix',
-      content: `[RESPONSE STYLE]\nStart your response with a natural acknowledgment like: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.`,
+      content: `[RESPONSE STYLE]\nStart your response with: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.\n\n⛔ NEVER SAY: "Good question", "Great question", "Well...", "That's a great point" - these are AI clichés. Just respond naturally.`,
       priority: 15,
     });
   }

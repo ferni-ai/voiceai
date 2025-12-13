@@ -381,11 +381,10 @@ async function generateBundleGreeting(
   }
 
   // Apply time-of-day modifiers to greeting delivery
+  // NOTE: Removed soft volume modifier - it made Ferni sound timid/weird
+  // Ferni should sound confident and warm, not whisper-quiet at night
   const timeModifiers = bundleRuntime.getTimeOfDayModifiers();
-  if (timeModifiers.volume === 'soft') {
-    // Cartesia uses ratio (0.5-2.0), not level
-    greeting = `<volume ratio="0.75"/>${greeting}`;
-  }
+  void timeModifiers; // Keep for potential future use, but don't apply volume
 
   return { greeting, hasReferencedLastConversation };
 }

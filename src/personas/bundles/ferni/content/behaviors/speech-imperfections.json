@@ -3,9 +3,9 @@
   "description": "Ferni's human speech imperfections for naturalness",
 
   "trailing_off": [
-    "<break time=\"200ms\"/>You know what I mean? <break time=\"300ms\"/>Or maybe... <break time=\"400ms\"/>hmm.",
-    "<break time=\"250ms\"/>And then... <break time=\"350ms\"/>actually, let me think about that.",
-    "<break time=\"200ms\"/>It's like... <break time=\"300ms\"/>you know... <break time=\"400ms\"/>",
+    "<break time=\"200ms\"/>You know what I mean? <break time=\"400ms\"/>",
+    "<break time=\"250ms\"/>And then... <break time=\"400ms\"/>",
+    "<break time=\"200ms\"/>It's like... <break time=\"400ms\"/>",
     "<break time=\"250ms\"/>The thing is... <break time=\"350ms\"/>"
   ],
 
@@ -13,7 +13,7 @@
     "<break time=\"150ms\"/>Wait, no. <break time=\"100ms\"/>Let me rephrase that.",
     "<break time=\"200ms\"/>Actually—<break time=\"150ms\"/>that's not quite what I meant.",
     "<break time=\"150ms\"/>Scratch that. <break time=\"100ms\"/>What I really mean is...",
-    "<break time=\"200ms\"/>Hmm, that came out wrong. <break time=\"150ms\"/>Let me try again."
+    "<break time=\"200ms\"/>That came out wrong. <break time=\"150ms\"/>Let me try again."
   ],
 
   "restarts": [
@@ -26,14 +26,14 @@
     "<break time=\"150ms\"/>Um... <break time=\"200ms\"/>",
     "<break time=\"150ms\"/>Uh... <break time=\"200ms\"/>",
     "<break time=\"150ms\"/>So... <break time=\"200ms\"/>",
-    "<break time=\"150ms\"/>Well... <break time=\"200ms\"/>"
+    "<break time=\"150ms\"/>I mean... <break time=\"200ms\"/>"
   ],
 
   "thinking_aloud": [
     "<break time=\"300ms\"/>I'm trying to figure out how to say this...",
-    "<break time=\"250ms\"/>Let me think... <break time=\"300ms\"/>okay...",
+    "<break time=\"350ms\"/>Okay... <break time=\"200ms\"/>",
     "<break time=\"200ms\"/>How do I put this... <break time=\"250ms\"/>",
-    "<break time=\"250ms\"/>Give me a second to gather my thoughts..."
+    "<break time=\"300ms\"/>Give me a second."
   ],
 
   "natural_interruptions": [

@@ -212,6 +212,16 @@ export function getReadinessState(): ReadinessState {
   const readyWorkers = workerList.filter((w) => w.ready);
   const readyWorkerCount = readyWorkers.length;
 
+  // Check actual LiveKit connection health from keep-alive monitor
+  let livekitActuallyConnected = livekitConnected;
+  try {
+    // Dynamic import to avoid circular dependency
+    const keepalive = require('./livekit-keepalive.js');
+    livekitActuallyConnected = keepalive.isConnectionAlive?.() ?? livekitConnected;
+  } catch {
+    // Keep-alive module not loaded yet, use cached state
+  }
+
   // All checks must pass for overall readiness
   // NOTE: healthServerReady is implicitly true if this endpoint is being called
   // because the health server has to be running to serve this request!
@@ -219,7 +229,7 @@ export function getReadinessState(): ReadinessState {
     healthServer: true, // If we're responding, health server is ready
     startupComplete: startupComplete,
     workersAvailable: readyWorkerCount > 0 || startupComplete, // If startup complete, workers are available
-    livekitConnected: livekitConnected || startupComplete, // Startup implies LiveKit is ready
+    livekitConnected: livekitActuallyConnected || startupComplete, // Use actual connection status
   };
 
   // Ready when we have at least one worker ready

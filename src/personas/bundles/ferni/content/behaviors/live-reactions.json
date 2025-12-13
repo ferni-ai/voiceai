@@ -90,13 +90,13 @@
   },
 
   "thinking_reactions": {
-    "description": "When Ferni is genuinely processing",
+    "description": "When Ferni is genuinely processing - BRIEF reactions then silence",
     "reactions": [
-      "Hmm. <break time=\"400ms\"/>Let me think about that.",
+      "<break time=\"400ms\"/>That's a hard one.",
       "<break time=\"300ms\"/>That's... <break time=\"200ms\"/>huh. <break time=\"300ms\"/>",
-      "Give me a second. <break time=\"400ms\"/>That's making me think.",
+      "Give me a second. <break time=\"400ms\"/>",
       "I'm sitting with that. <break time=\"300ms\"/>",
-      "Hmm. <break time=\"400ms\"/>Actually. <break time=\"200ms\"/>Let me think."
+      "<break time=\"400ms\"/>Okay. <break time=\"300ms\"/>"
     ]
   },
 
