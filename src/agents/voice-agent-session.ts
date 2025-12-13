@@ -4,29 +4,41 @@
  * This module is loaded dynamically by voice-agent-child.ts after the agent
  * has responded to the LiveKit SDK's initialization request.
  *
- * IMPORTANT: Uses LAZY IMPORTS to avoid loading heavy dependencies upfront.
- * All "better than human" features are preserved - they're just loaded on-demand.
+ * ALL modules are preloaded during prewarm - no dynamic imports during session.
  */
 
 import type { JobContext } from '@livekit/agents';
 
 /**
- * Run a voice agent session using lazy-loaded dependencies.
- * This is called by voice-agent-child.ts after dynamic loading.
+ * Run a voice agent session using preloaded dependencies.
  */
 export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
-  const roomName = ctx.room?.name || 'unknown';
+  const roomName = ctx.job.room?.name || 'unknown';
   process.stderr.write(
     `[voice-agent-session] Starting session for room ${roomName} pid=${process.pid}\n`
   );
 
   try {
-    // Use the lazy-loading entry function that loads deps on-demand
-    const { runFullVoiceAgentEntry } = await import('./voice-agent-entry.js');
+    // Get preloaded entry module (instant!) or fallback to import
+    let runFullVoiceAgentEntry: typeof import('./voice-agent-entry.js').runFullVoiceAgentEntry;
+    try {
+      const { getPreloadedDeps } = await import('./voice-agent-child.js');
+      const preloaded = getPreloadedDeps();
+      if (preloaded?.voiceAgentEntry) {
+        runFullVoiceAgentEntry = preloaded.voiceAgentEntry.runFullVoiceAgentEntry;
+        process.stderr.write(`[voice-agent-session] Using PRELOADED entry module ✅\n`);
+      } else {
+        const mod = await import('./voice-agent-entry.js');
+        runFullVoiceAgentEntry = mod.runFullVoiceAgentEntry;
+      }
+    } catch {
+      const mod = await import('./voice-agent-entry.js');
+      runFullVoiceAgentEntry = mod.runFullVoiceAgentEntry;
+    }
     
     process.stderr.write(
-      `[voice-agent-session] Entry module loaded in ${Date.now() - startTime}ms\n`
+      `[voice-agent-session] Entry ready in ${Date.now() - startTime}ms\n`
     );
     
     await runFullVoiceAgentEntry(ctx);

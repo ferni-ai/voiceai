@@ -501,33 +501,65 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
       done
 
       echo ""
-      echo "Step 5/5: Shifting 100% traffic to ready revision..."
+      echo "Step 5/6: Shifting 100% traffic to ready revision..."
       gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=\$REVISION=100 --quiet
       SERVICE_URL=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')
+
+      # Clean up green tag
+      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
+
+      echo ""
+      echo "Step 6/6: Cleaning up old revisions (CRITICAL for LiveKit voice agents)..."
+      echo "  ⚠️  Old revisions with min-instances>0 stay running even with 0% traffic"
+      echo "  ⚠️  They register with LiveKit but have stale WebSocket connections"
+      echo "  ⚠️  LiveKit dispatches jobs to ALL workers, including these zombies"
+      echo "  ⚠️  Result: Jobs fail because old workers can't actually process them"
+      echo ""
+      
+      # Wait a moment for traffic to fully shift
+      sleep 5
+      
+      # Get the current revision that has 100% traffic
+      CURRENT_REVISION=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.traffic[0].revisionName)')
+      echo "  Current active revision: \$CURRENT_REVISION"
+      
+      # Delete ALL other revisions - we only want ONE revision running for voice agents
+      ALL_REVISIONS=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)')
+      DELETED_COUNT=0
+      
+      for rev in \$ALL_REVISIONS; do
+        if [ "\$rev" != "\$CURRENT_REVISION" ]; then
+          echo "  Deleting zombie revision: \$rev"
+          if gcloud run revisions delete \$rev --region=${CONFIG.region} --quiet 2>/dev/null; then
+            DELETED_COUNT=\$((DELETED_COUNT + 1))
+          else
+            echo "    (could not delete \$rev - may be the 'latest' revision marker)"
+          fi
+        fi
+      done
+      
+      if [ \$DELETED_COUNT -gt 0 ]; then
+        echo "  ✅ Deleted \$DELETED_COUNT zombie revision(s)"
+      else
+        echo "  ✅ No zombie revisions found"
+      fi
+      
+      # Verify only one revision is running
+      REVISION_COUNT=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' | wc -l | tr -d ' ')
+      echo ""
+      echo "  📊 Revision count: \$REVISION_COUNT (should be 1-2)"
+      
+      if [ \$REVISION_COUNT -gt 2 ]; then
+        echo "  ⚠️  WARNING: Multiple revisions still running. May need manual cleanup:"
+        echo "     gcloud run revisions list --service=${serviceName} --region=${CONFIG.region}"
+      fi
 
       echo ""
       echo "🟢 ZERO-DOWNTIME DEPLOYMENT COMPLETE"
       echo "  Revision: \$REVISION"
       echo "  URL: \$SERVICE_URL"
       echo "  Status: Workers verified ready before traffic shift"
-
-      # Clean up green tag
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-
-      echo ""
-      echo "Step 6/6: Cleaning up old revisions (prevents zombie LiveKit workers)..."
-      # Delete old revisions to prevent stale LiveKit connections
-      # Keep only the 2 most recent revisions
-      OLD_REVISIONS=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' --sort-by='~metadata.creationTimestamp' | tail -n +3)
-      if [ -n "\$OLD_REVISIONS" ]; then
-        for rev in \$OLD_REVISIONS; do
-          echo "  Deleting old revision: \$rev"
-          gcloud run revisions delete \$rev --region=${CONFIG.region} --quiet 2>/dev/null || echo "  (could not delete \$rev - may still have traffic)"
-        done
-        echo "  ✅ Old revisions cleaned up"
-      else
-        echo "  No old revisions to clean up"
-      fi
+      echo "  Zombies: Cleaned up"
     `;
 
     log.info('Starting async blue-green deployment...');

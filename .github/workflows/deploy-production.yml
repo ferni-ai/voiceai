@@ -272,6 +272,63 @@ jobs:
             echo "Shifted $TRAFFIC_PERCENT% traffic to green revision"
           fi
 
+      - name: Cleanup zombie revisions (CRITICAL for LiveKit)
+        if: steps.health.outputs.healthy == 'true'
+        run: |
+          # CRITICAL: Old Cloud Run revisions with min-instances>0 keep running even with 0% traffic.
+          # For voice agents, these "zombies" register with LiveKit but have stale WebSocket connections.
+          # LiveKit dispatches jobs to ALL registered workers, including zombies, causing failures:
+          # - "runner initialization timed out"
+          # - "assignment for job timed out"
+          # - "LiveKit worker connection is dead"
+          #
+          # Solution: Delete ALL revisions except the one with traffic.
+          
+          echo "🧟 Cleaning up zombie revisions..."
+          
+          # Wait for traffic to fully shift
+          sleep 5
+          
+          # Get the current revision that has traffic
+          CURRENT_REVISION=$(gcloud run services describe voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(status.traffic[0].revisionName)')
+          
+          echo "Active revision: $CURRENT_REVISION"
+          
+          # Get ALL revisions
+          ALL_REVISIONS=$(gcloud run revisions list \
+            --service=voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(name)')
+          
+          DELETED_COUNT=0
+          
+          for rev in $ALL_REVISIONS; do
+            if [ "$rev" != "$CURRENT_REVISION" ]; then
+              echo "  Deleting zombie: $rev"
+              if gcloud run revisions delete $rev --region=${{ env.GCP_REGION }} --quiet 2>/dev/null; then
+                DELETED_COUNT=$((DELETED_COUNT + 1))
+              else
+                echo "    (could not delete $rev - may be marked as 'latest')"
+              fi
+            fi
+          done
+          
+          echo "✅ Deleted $DELETED_COUNT zombie revision(s)"
+          
+          # Verify only expected revisions remain
+          REMAINING=$(gcloud run revisions list \
+            --service=voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(name)' | wc -l | tr -d ' ')
+          
+          echo "📊 Remaining revisions: $REMAINING (should be 1-2)"
+          
+          if [ "$REMAINING" -gt 2 ]; then
+            echo "⚠️ WARNING: Multiple revisions still running. Manual cleanup may be needed."
+          fi
+
       - name: Rollback on failure
         if: steps.health.outputs.healthy != 'true'
         run: |

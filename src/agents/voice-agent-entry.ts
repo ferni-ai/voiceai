@@ -1,23 +1,19 @@
 /**
  * Voice Agent Entry Function (Extracted for Child Processes)
  *
- * PHASE 2: Tiered Initialization with Resource Sharing
- *
- * Architecture (Google/Anthropic pattern):
- * 1. Main process pre-warms expensive resources (VAD, TTS, Personas)
- * 2. Child processes check for pre-warmed resources first
- * 3. Fall back to loading on-demand if not pre-warmed
+ * ALL heavy modules are accessed via preloaded cache from prewarm.
+ * This eliminates ALL dynamic imports during entry for instant startup.
  */
 
 import type { JobContext, voice as voiceType } from '@livekit/agents';
+import type { PreloadedDeps } from './voice-agent-child.js';
 
-// Lazy-loaded module cache
+// Lazy-loaded module cache (populated from preloaded or dynamic import)
 let voice: typeof voiceType | null = null;
 let google: typeof import('@livekit/agents-plugin-google') | null = null;
 let silero: typeof import('@livekit/agents-plugin-silero') | null = null;
 let genai: typeof import('@google/genai') | null = null;
 
-// Types
 interface PersonaConfig {
   name?: string;
   voice?: { voiceId: string; provider: string };
@@ -25,22 +21,16 @@ interface PersonaConfig {
 }
 
 // ============================================================================
-// HELPER FUNCTIONS (extracted to keep main function under 80 lines)
+// HELPER FUNCTIONS
 // ============================================================================
 
 /** Load core voice dependencies - uses preloaded from prewarm if available */
-async function loadVoiceDeps(preloaded?: {
-  voice: typeof voiceType | null;
-  google: typeof import('@livekit/agents-plugin-google') | null;
-  silero: typeof import('@livekit/agents-plugin-silero') | null;
-  genai: typeof import('@google/genai') | null;
-}): Promise<void> {
+async function loadVoiceDeps(preloaded?: Partial<PreloadedDeps>): Promise<void> {
   if (voice) return;
   const startTime = Date.now();
 
-  // Check if deps were preloaded in prewarm
   if (preloaded?.voice && preloaded?.google && preloaded?.silero && preloaded?.genai) {
-    process.stderr.write(`[voice-agent-entry] Using PRELOADED voice dependencies ✅\n`);
+    process.stderr.write(`[voice-agent-entry] Using PRELOADED voice deps ✅\n`);
     voice = preloaded.voice;
     google = preloaded.google;
     silero = preloaded.silero;
@@ -48,49 +38,35 @@ async function loadVoiceDeps(preloaded?: {
     return;
   }
 
-  process.stderr.write(`[voice-agent-entry] Loading voice dependencies (not preloaded)...\n`);
-
-  try {
-    // Load in parallel for speed
-    const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
-      import('@livekit/agents'),
-      import('@livekit/agents-plugin-google'),
-      import('@livekit/agents-plugin-silero'),
-      import('@google/genai'),
-    ]);
-
-    voice = agents.voice;
-    google = googleMod;
-    silero = sileroMod;
-    genai = genaiMod;
-    process.stderr.write(`[voice-agent-entry] All voice deps loaded in ${Date.now() - startTime}ms\n`);
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-    process.stderr.write(`[voice-agent-entry] FATAL: Failed to load voice deps: ${errMsg}\n`);
-    throw err;
-  }
+  process.stderr.write(`[voice-agent-entry] Loading voice deps (not preloaded)...\n`);
+  const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
+    import('@livekit/agents'),
+    import('@livekit/agents-plugin-google'),
+    import('@livekit/agents-plugin-silero'),
+    import('@google/genai'),
+  ]);
+  voice = agents.voice;
+  google = googleMod;
+  silero = sileroMod;
+  genai = genaiMod;
+  process.stderr.write(`[voice-agent-entry] Voice deps loaded in ${Date.now() - startTime}ms\n`);
 }
 
 /** Check for pre-warmed resources and get persona config */
-async function getPrewarmedResources(personaId: string): Promise<{
-  usePrewarmed: boolean;
-  persona: PersonaConfig | null;
-  systemPrompt: string | null;
-}> {
+async function getPrewarmedResources(
+  personaId: string,
+  preloaded?: Partial<PreloadedDeps>
+): Promise<{ usePrewarmed: boolean; persona: PersonaConfig | null; systemPrompt: string | null }> {
   try {
-    const { isMainProcessWarmedUp, getPrewarmedPersonaConfig, getPrewarmedSystemPrompt } =
-      await import('./shared/resource-server.js');
+    const resourceServer = preloaded?.resourceServer ?? await import('./shared/resource-server.js');
+    const { isMainProcessWarmedUp, getPrewarmedPersonaConfig, getPrewarmedSystemPrompt } = resourceServer;
 
     if (await isMainProcessWarmedUp()) {
-      process.stderr.write(`[voice-agent-entry] Main process warmed - using cache\n`);
+      process.stderr.write(`[voice-agent-entry] Using main process cache ✅\n`);
       const config = await getPrewarmedPersonaConfig(personaId);
       const prompt = await getPrewarmedSystemPrompt(personaId);
       if (config) {
-        return {
-          usePrewarmed: true,
-          persona: config as PersonaConfig,
-          systemPrompt: prompt,
-        };
+        return { usePrewarmed: true, persona: config as PersonaConfig, systemPrompt: prompt };
       }
     }
   } catch {
@@ -100,10 +76,18 @@ async function getPrewarmedResources(personaId: string): Promise<{
 }
 
 /** Load persona from bundles (fallback path) */
-async function loadPersonaLocally(personaId: string): Promise<PersonaConfig | null> {
-  const { getPersonaAsync, initializeFromBundles } = await import('../personas/index.js');
-  await initializeFromBundles();
-  const loaded = await getPersonaAsync(personaId);
+async function loadPersonaLocally(
+  personaId: string,
+  preloaded?: Partial<PreloadedDeps>
+): Promise<PersonaConfig | null> {
+  const personas = preloaded?.personas ?? await import('../personas/index.js');
+  // Skip initializeFromBundles if already done during prewarm
+  if (!preloaded?.personaBundlesReady) {
+    await personas.initializeFromBundles();
+  } else {
+    process.stderr.write(`[voice-agent-entry] Using PRELOADED persona bundles ✅\n`);
+  }
+  const loaded = await personas.getPersonaAsync(personaId);
   return loaded
     ? { name: loaded.name, voice: loaded.voice, systemPrompt: loaded.systemPrompt }
     : null;
@@ -116,21 +100,17 @@ async function connectToRoom(ctx: JobContext): Promise<void> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000)
   );
-  try {
-    await Promise.race([ctx.connect(), timeout]);
-    process.stderr.write(
-      `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
-    );
-  } catch (err) {
-    process.stderr.write(`[voice-agent-entry] Connect FAILED: ${err}\n`);
-    throw err;
-  }
+  await Promise.race([ctx.connect(), timeout]);
+  process.stderr.write(
+    `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
+  );
 }
 
 /** Create session components (VAD, TTS, Agent, Session) */
 async function createSession(
   persona: PersonaConfig | null,
-  systemPrompt: string
+  systemPrompt: string,
+  preloaded?: Partial<PreloadedDeps>
 ): Promise<{
   session: InstanceType<typeof voiceType.AgentSession>;
   agent: InstanceType<typeof voiceType.Agent>;
@@ -138,92 +118,77 @@ async function createSession(
   const createStart = Date.now();
   process.stderr.write(`[voice-agent-entry] Creating session components...\n`);
 
-  // Load VAD with error handling
-  process.stderr.write(`[voice-agent-entry] Loading VAD model...\n`);
-  let vad;
-  try {
-    const vadStart = Date.now();
+  // Use preloaded VAD model (instant!) or load fresh
+  type VADType = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
+  let vad: VADType;
+  if (preloaded?.vadModel) {
+    vad = preloaded.vadModel as VADType;
+    process.stderr.write(`[voice-agent-entry] Using PRELOADED VAD model ✅\n`);
+  } else {
+    process.stderr.write(`[voice-agent-entry] Loading VAD model (not preloaded)...\n`);
     vad = await silero!.VAD.load();
-    process.stderr.write(`[voice-agent-entry] VAD loaded in ${Date.now() - vadStart}ms\n`);
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-    process.stderr.write(`[voice-agent-entry] FATAL: VAD load failed: ${errMsg}\n`);
-    throw err;
+    process.stderr.write(`[voice-agent-entry] VAD loaded\n`);
   }
 
-  // Create TTS with error handling
-  process.stderr.write(`[voice-agent-entry] Creating TTS...\n`);
-  let tts;
-  try {
-    const { createPersonaAwareTTS } = await import('../speech/voice-manager.js');
-    const voiceConfig = persona?.voice || {
-      voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
-      provider: 'cartesia',
-    };
-    tts = createPersonaAwareTTS(persona?.name || 'Ferni', {
-      ...voiceConfig,
-      accent: 'american',
-    });
-    process.stderr.write(`[voice-agent-entry] TTS created in ${Date.now() - createStart}ms\n`);
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-    process.stderr.write(`[voice-agent-entry] FATAL: TTS creation failed: ${errMsg}\n`);
-    throw err;
-  }
+  // Create TTS - use preloaded voiceManager if available
+  const voiceManager = preloaded?.voiceManager ?? await import('../speech/voice-manager.js');
+  const voiceConfig = persona?.voice || {
+    voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
+    provider: 'cartesia',
+  };
+  const tts = voiceManager.createPersonaAwareTTS(persona?.name || 'Ferni', {
+    ...voiceConfig,
+    accent: 'american',
+  });
 
-  // Create Agent and Session with error handling
-  process.stderr.write(`[voice-agent-entry] Creating LLM and session...\n`);
-  try {
-    const agent = new voice!.Agent({ instructions: systemPrompt });
-    const session = new voice!.AgentSession({
-      vad,
-      llm: new google!.beta.realtime.RealtimeModel({
-        model: 'gemini-2.0-flash-exp',
-        modalities: [genai!.Modality.TEXT],
-        temperature: 0.8,
-        language: 'en-US',
-        instructions: systemPrompt,
-      }),
-      tts,
-      voiceOptions: {
-        allowInterruptions: true,
-        minEndpointingDelay: 400,
-        maxEndpointingDelay: 1200,
-        minInterruptionWords: 1,
-        minInterruptionDuration: 300,
-        preemptiveGeneration: true,
-      },
-    });
-    process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - createStart}ms\n`);
-    return { session, agent };
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-    process.stderr.write(`[voice-agent-entry] FATAL: Session creation failed: ${errMsg}\n`);
-    throw err;
-  }
+  // Create Agent and Session
+  const agent = new voice!.Agent({ instructions: systemPrompt });
+  const session = new voice!.AgentSession({
+    vad,
+    llm: new google!.beta.realtime.RealtimeModel({
+      model: 'gemini-2.0-flash-exp',
+      modalities: [genai!.Modality.TEXT],
+      temperature: 0.8,
+      language: 'en-US',
+      instructions: systemPrompt,
+    }),
+    tts,
+    voiceOptions: {
+      allowInterruptions: true,
+      minEndpointingDelay: 400,
+      maxEndpointingDelay: 1200,
+      minInterruptionWords: 1,
+      minInterruptionDuration: 300,
+      preemptiveGeneration: true,
+    },
+  });
+  process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - createStart}ms\n`);
+  return { session, agent };
 }
 
 // ============================================================================
 // MAIN ENTRY FUNCTION
 // ============================================================================
 
-/**
- * Run a full voice agent session with Phase 3 resource sharing + self-healing.
- */
 export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const startTime = Date.now();
   const jobId = ctx.job.id;
   const roomName = ctx.job.room?.name || 'unknown';
 
-  // Import E2E diagnostics and self-healing
-  const { e2e } = await import('./shared/e2e-diagnostics.js');
-  const { withResilience, analyzeFailure, humanizeError } = await import(
-    '../services/self-healing/index.js'
-  );
+  // Get preloaded deps (instant, no imports needed!)
+  let preloaded: PreloadedDeps | null = null;
+  try {
+    const { getPreloadedDeps } = await import('./voice-agent-child.js');
+    preloaded = getPreloadedDeps();
+  } catch { /* not running as child process */ }
 
-  // Track current phase for error diagnosis
+  // Use preloaded modules or fallback to dynamic import
+  const e2eDiagnostics = preloaded?.e2eDiagnostics ?? await import('./shared/e2e-diagnostics.js');
+  const selfHealing = preloaded?.selfHealing ?? await import('../services/self-healing/index.js');
+  const { e2e } = e2eDiagnostics;
+  const { withResilience, analyzeFailure, humanizeError } = selfHealing;
+
   let currentPhase: 'deps' | 'persona' | 'connect' | 'session' | 'greeting' | 'running' = 'deps';
-
   e2e.childEntry(jobId);
   process.stderr.write(`[voice-agent-entry] Starting session pid=${process.pid}\n`);
 
@@ -231,23 +196,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   let session: any = null;
 
   try {
-    // Step 1: Load voice dependencies (use preloaded if available)
+    // Step 1: Load voice dependencies
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
-
-    // Try to get preloaded deps from prewarm
-    let preloaded: Parameters<typeof loadVoiceDeps>[0] = undefined;
-    try {
-      const { getPreloadedDeps } = await import('./voice-agent-child.js');
-      preloaded = getPreloadedDeps();
-    } catch {
-      /* not running as child process */
-    }
-
-    await withResilience(() => loadVoiceDeps(preloaded), {
-      maxRetries: 2,
-      baseDelay: 1000,
-      operationName: 'load-voice-deps',
+    await withResilience(() => loadVoiceDeps(preloaded ?? undefined), {
+      maxRetries: 2, baseDelay: 1000, operationName: 'load-voice-deps',
     });
     e2e.resourceLoaded('voice-dependencies', Date.now() - depsStart);
 
@@ -258,51 +211,37 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     e2e.resourceLoading(`persona:${personaId}`);
     const personaStart = Date.now();
-    const {
-      usePrewarmed,
-      persona: cachedPersona,
-      systemPrompt: cachedPrompt,
-    } = await getPrewarmedResources(personaId);
+    const { usePrewarmed, persona: cachedPersona, systemPrompt: cachedPrompt } =
+      await getPrewarmedResources(personaId, preloaded ?? undefined);
 
     let persona = cachedPersona;
     if (!usePrewarmed) {
-      const { startup } = await import('../startup.js');
-      await startup();
-      persona = await loadPersonaLocally(personaId);
+      // Use preloaded startup if available
+      const startup = preloaded?.startup ?? await import('../startup.js');
+      await startup.startup();
+      persona = await loadPersonaLocally(personaId, preloaded ?? undefined);
     }
     e2e.resourceLoaded(`persona:${personaId}`, Date.now() - personaStart);
     process.stderr.write(`[voice-agent-entry] Using persona: ${persona?.name || personaId}\n`);
 
-    // Step 3: Connect to room (with retry for transient network issues)
+    // Step 3: Connect to room
     currentPhase = 'connect';
     e2e.sessionConnecting(roomName, ctx.job.participant?.identity || 'unknown');
     const connectStart = Date.now();
     await withResilience(() => connectToRoom(ctx), {
-      maxRetries: 3,
-      baseDelay: 500,
-      maxDelay: 5000,
-      operationName: 'room-connect',
+      maxRetries: 3, baseDelay: 500, maxDelay: 5000, operationName: 'room-connect',
       onRetry: (attempt, error) => {
-        e2e.warn('SESSION', `Room connect retry (attempt ${attempt})`, {
-          error: error.message,
-          roomName,
-        });
+        e2e.warn('SESSION', `Room connect retry (attempt ${attempt})`, { error: error.message, roomName });
       },
     });
-    e2e.sessionConnected(
-      jobId,
-      roomName,
-      ctx.room.localParticipant?.identity || 'agent',
-      Date.now() - connectStart
-    );
+    e2e.sessionConnected(jobId, roomName, ctx.room.localParticipant?.identity || 'agent', Date.now() - connectStart);
 
     // Step 4: Create and start session
     currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
-    const systemPrompt =
-      cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
-    const created = await createSession(persona, systemPrompt);
+    const systemPrompt = cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
+    const created = await createSession(persona, systemPrompt, preloaded ?? undefined);
     session = created.session;
 
     await session.start({ agent: created.agent, room: ctx.room });
@@ -310,17 +249,14 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.sessionStarted(jobId, personaId);
     process.stderr.write(`[voice-agent-entry] Session started in ${Date.now() - startTime}ms!\n`);
 
-    // Step 5: Say greeting
+    // Step 5: Say greeting - use preloaded warmGreeting
     currentPhase = 'greeting';
-    const { getWarmGreeting } = await import('./shared/warm-greeting.js');
+    const warmGreeting = preloaded?.warmGreeting ?? await import('./shared/warm-greeting.js');
     await session.say(
-      getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?"
+      warmGreeting.getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?"
     );
 
-    // Running normally
     currentPhase = 'running';
-
-    // Wait for disconnect
     await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
   } catch (error) {
@@ -328,52 +264,34 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
 
-    // Run AI diagnosis - map phase to valid stage type
+    // Run AI diagnosis
     const stageMap: Record<typeof currentPhase, 'unknown' | 'session' | 'entry'> = {
-      deps: 'entry',
-      persona: 'entry',
-      connect: 'session',
-      session: 'session',
-      greeting: 'session',
-      running: 'session',
+      deps: 'entry', persona: 'entry', connect: 'session',
+      session: 'session', greeting: 'session', running: 'session',
     };
     try {
       const diagnosis = await analyzeFailure([errObj.message, errObj.stack || ''], {
-        jobId,
-        stage: stageMap[currentPhase],
+        jobId, stage: stageMap[currentPhase],
         timing: { totalMs: Date.now() - startTime },
-        errorType: errObj.name,
-        errorMessage: errObj.message,
+        errorType: errObj.name, errorMessage: errObj.message,
       });
 
       e2e.custom('DIAGNOSIS', `AI analysis for session ${jobId}`, {
-        phase: currentPhase,
-        rootCause: diagnosis.rootCause,
-        confidence: diagnosis.confidence,
-        autoFixable: diagnosis.autoFixable,
+        phase: currentPhase, rootCause: diagnosis.rootCause,
+        confidence: diagnosis.confidence, autoFixable: diagnosis.autoFixable,
       });
 
-      // If session is connected, explain to user what happened
       if (session && ctx.room.isConnected && diagnosis.humanExplanation) {
         const humanized = humanizeError(errObj);
         if (humanized.shouldNotifyUser) {
-          try {
-            await session.say(humanized.userMessage);
-          } catch {
-            /* can't speak, just log */
-          }
+          try { await session.say(humanized.userMessage); } catch { /* can't speak */ }
         }
       }
-    } catch {
-      /* diagnosis is best-effort */
-    }
+    } catch { /* diagnosis is best-effort */ }
 
-    // Fallback: connect and wait
     try {
       if (!ctx.room.isConnected) await ctx.connect();
       await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }
 }

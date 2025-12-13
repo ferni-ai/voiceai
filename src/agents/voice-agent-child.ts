@@ -4,7 +4,7 @@
  * This file is designed to load INSTANTLY (<1 second) for LiveKit SDK child processes.
  * It only imports the absolute minimum needed for the agent definition.
  *
- * The heavy imports are loaded dynamically in the entry() function when a job starts.
+ * ALL heavy modules are preloaded during prewarm() so entry() is instant.
  *
  * E2E DIAGNOSTICS:
  * - PREWARM logs are emitted immediately after child spawn
@@ -24,21 +24,16 @@ process.stderr.write(
 // CRITICAL: Catch uncaught errors in child process to debug silent failures
 process.on('uncaughtException', (err) => {
   process.stderr.write(
-    `\n${_logPrefix()} [ERROR] ══════════════════════════════════════════════\n` +
-    `${_logPrefix()} [ERROR] UNCAUGHT EXCEPTION\n` +
+    `\n${_logPrefix()} [ERROR] UNCAUGHT EXCEPTION\n` +
     `${_logPrefix()} [ERROR] ${err.message}\n` +
-    `${_logPrefix()} [ERROR] Stack: ${err.stack}\n` +
-    `${_logPrefix()} [ERROR] ══════════════════════════════════════════════\n\n`
+    `${_logPrefix()} [ERROR] Stack: ${err.stack}\n\n`
   );
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   process.stderr.write(
-    `\n${_logPrefix()} [WARN] ══════════════════════════════════════════════\n` +
-    `${_logPrefix()} [WARN] UNHANDLED REJECTION\n` +
-    `${_logPrefix()} [WARN] ${reason}\n` +
-    `${_logPrefix()} [WARN] ══════════════════════════════════════════════\n\n`
+    `\n${_logPrefix()} [WARN] UNHANDLED REJECTION: ${reason}\n\n`
   );
 });
 
@@ -50,72 +45,124 @@ process.stderr.write(
 );
 
 // ============================================================================
-// AGENT DEFINITION - This is what the child process needs
+// PRELOADED DEPENDENCIES CACHE - ALL modules preloaded during prewarm
 // ============================================================================
 
-// Cache for preloaded modules - exported so voice-agent-entry can use them
-export let _preloadedDeps: {
+export interface PreloadedDeps {
+  // External packages
   voice: typeof import('@livekit/agents').voice | null;
   google: typeof import('@livekit/agents-plugin-google') | null;
   silero: typeof import('@livekit/agents-plugin-silero') | null;
   genai: typeof import('@google/genai') | null;
-} = { voice: null, google: null, silero: null, genai: null };
+  // Internal modules
+  resourceServer: typeof import('./shared/resource-server.js') | null;
+  e2eDiagnostics: typeof import('./shared/e2e-diagnostics.js') | null;
+  warmGreeting: typeof import('./shared/warm-greeting.js') | null;
+  selfHealing: typeof import('../services/self-healing/index.js') | null;
+  voiceManager: typeof import('../speech/voice-manager.js') | null;
+  personas: typeof import('../personas/index.js') | null;
+  startup: typeof import('../startup.js') | null;
+  voiceAgentEntry: typeof import('./voice-agent-entry.js') | null;
+  voiceAgentSession: typeof import('./voice-agent-session.js') | null;
+  // Pre-loaded heavy resources (not just modules)
+  vadModel: unknown | null; // Silero VAD - takes ~2s to load
+  personaBundlesReady: boolean; // Whether initializeFromBundles() completed
+}
 
-/** Get preloaded dependencies (if available) */
-export function getPreloadedDeps() {
+export let _preloadedDeps: PreloadedDeps = {
+  voice: null, google: null, silero: null, genai: null,
+  resourceServer: null, e2eDiagnostics: null, warmGreeting: null,
+  selfHealing: null, voiceManager: null, personas: null,
+  startup: null, voiceAgentEntry: null, voiceAgentSession: null,
+  vadModel: null, personaBundlesReady: false,
+};
+
+export function getPreloadedDeps(): PreloadedDeps {
   return _preloadedDeps;
 }
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
     const prewarmStart = Date.now();
-    process.stderr.write(
-      `\n${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n` +
-      `${_logPrefix()} [PREWARM] Starting dependency preload...\n`
-    );
+    process.stderr.write(`\n${_logPrefix()} [PREWARM] Starting FULL dependency preload...\n`);
 
     try {
-      // Preload ALL heavy dependencies in parallel during prewarm
-      // This way they're cached before entry() is called
+      // PHASE 1: External packages
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 1: External packages...\n`);
       const [agents, google, silero, genai] = await Promise.all([
-        import('@livekit/agents').then(m => {
-          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents loaded\n`);
-          return m;
+        import('@livekit/agents'),
+        import('@livekit/agents-plugin-google'),
+        import('@livekit/agents-plugin-silero'),
+        import('@google/genai'),
+      ]);
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 1 done: ${Date.now() - prewarmStart}ms\n`);
+
+      // PHASE 2: ALL internal modules (eliminate ALL dynamic imports during entry)
+      const phase2Start = Date.now();
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 2: Internal modules...\n`);
+      const [
+        resourceServer, e2eDiagnostics, warmGreeting, selfHealing,
+        voiceManager, personas, startup, voiceAgentEntry, voiceAgentSession,
+      ] = await Promise.all([
+        import('./shared/resource-server.js'),
+        import('./shared/e2e-diagnostics.js'),
+        import('./shared/warm-greeting.js'),
+        import('../services/self-healing/index.js'),
+        import('../speech/voice-manager.js'),
+        import('../personas/index.js'),
+        import('../startup.js'),
+        import('./voice-agent-entry.js'),
+        import('./voice-agent-session.js'),
+      ]);
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 2 done: ${Date.now() - phase2Start}ms\n`);
+
+      // PHASE 3: Load heavy resources (VAD model, persona bundles)
+      const phase3Start = Date.now();
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 3: Heavy resources (VAD, bundles)...\n`);
+      
+      let vadModel: unknown = null;
+      let personaBundlesReady = false;
+      
+      // Load VAD model and persona bundles in parallel
+      await Promise.all([
+        // VAD model takes ~2s to load - do it now so createSession is instant
+        silero.VAD.load().then(model => {
+          vadModel = model;
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ✓ VAD model loaded\n`);
+        }).catch(err => {
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ⚠️ VAD failed: ${err}\n`);
         }),
-        import('@livekit/agents-plugin-google').then(m => {
-          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents-plugin-google loaded\n`);
-          return m;
+        // Initialize persona bundles so getPersonaAsync is fast
+        personas.initializeFromBundles().then(() => {
+          personaBundlesReady = true;
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ✓ Persona bundles initialized\n`);
+        }).catch(err => {
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ⚠️ Bundles failed: ${err}\n`);
         }),
-        import('@livekit/agents-plugin-silero').then(m => {
-          process.stderr.write(`${_logPrefix()} [PREWARM] @livekit/agents-plugin-silero loaded\n`);
-          return m;
-        }),
-        import('@google/genai').then(m => {
-          process.stderr.write(`${_logPrefix()} [PREWARM] @google/genai loaded\n`);
-          return m;
+        // Run startup initialization
+        startup.startup().then(() => {
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ✓ Startup complete\n`);
+        }).catch(err => {
+          process.stderr.write(`${_logPrefix()} [PREWARM]   ⚠️ Startup failed: ${err}\n`);
         }),
       ]);
+      process.stderr.write(`${_logPrefix()} [PREWARM] Phase 3 done: ${Date.now() - phase3Start}ms\n`);
 
-      // Cache them
+      // Cache everything
       _preloadedDeps = {
-        voice: agents.voice,
-        google,
-        silero,
-        genai,
+        voice: agents.voice, google, silero, genai,
+        resourceServer, e2eDiagnostics, warmGreeting, selfHealing,
+        voiceManager, personas, startup, voiceAgentEntry, voiceAgentSession,
+        vadModel, personaBundlesReady,
       };
       proc.userData.preloadedDeps = _preloadedDeps;
 
-      const prewarmTime = Date.now() - prewarmStart;
       process.stderr.write(
-        `${_logPrefix()} [PREWARM] ✅ All dependencies preloaded in ${prewarmTime}ms\n` +
-        `${_logPrefix()} [PREWARM] Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\n` +
-        `${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n\n`
+        `${_logPrefix()} [PREWARM] ✅ ALL deps + resources preloaded in ${Date.now() - prewarmStart}ms, ` +
+        `memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB\n\n`
       );
     } catch (err) {
-      process.stderr.write(
-        `${_logPrefix()} [PREWARM] ⚠️ Preload failed (will load in entry): ${err}\n` +
-        `${_logPrefix()} [PREWARM] ══════════════════════════════════════════════\n\n`
-      );
+      process.stderr.write(`${_logPrefix()} [PREWARM] ⚠️ Failed: ${err}\n\n`);
     }
 
     proc.userData.prewarmComplete = true;
@@ -128,56 +175,32 @@ export default defineAgent({
     const roomName = ctx.job.room?.name || 'unknown';
 
     process.stderr.write(
-      `\n${_logPrefix()} [ENTRY] ══════════════════════════════════════════════\n` +
-      `${_logPrefix()} [ENTRY] Session entry started\n` +
-      `${_logPrefix()} [ENTRY] Job ID: ${jobId}\n` +
-      `${_logPrefix()} [ENTRY] Room: ${roomName}\n` +
-      `${_logPrefix()} [ENTRY] Time since module start: ${Date.now() - _startTime}ms\n` +
-      `${_logPrefix()} [ENTRY] ══════════════════════════════════════════════\n\n`
+      `\n${_logPrefix()} [ENTRY] Job=${jobId} Room=${roomName} ` +
+      `sinceStart=${Date.now() - _startTime}ms\n`
     );
 
     try {
-      // NOW load the heavy stuff - we have time during entry()
-      const loadStart = Date.now();
-      process.stderr.write(`${_logPrefix()} [ENTRY] Loading full agent module...\n`);
-
-      // Dynamic import of the full voice agent
-      const { runVoiceAgentSession } = await import('./voice-agent-session.js');
-
-      const loadTime = Date.now() - loadStart;
+      // Use preloaded session module (instant!) or fallback
+      const voiceAgentSession = _preloadedDeps.voiceAgentSession 
+        ?? await import('./voice-agent-session.js');
+      
       process.stderr.write(
-        `${_logPrefix()} [ENTRY] ✅ Full agent module loaded in ${loadTime}ms\n`
+        `${_logPrefix()} [ENTRY] Session module: ${_preloadedDeps.voiceAgentSession ? 'PRELOADED' : 'imported'}\n`
       );
 
-      // Run the actual session
-      process.stderr.write(`${_logPrefix()} [ENTRY] Starting voice session...\n`);
-      await runVoiceAgentSession(ctx);
+      await voiceAgentSession.runVoiceAgentSession(ctx);
 
-      const totalTime = Date.now() - entryStart;
       process.stderr.write(
-        `\n${_logPrefix()} [ENTRY] ══════════════════════════════════════════════\n` +
-        `${_logPrefix()} [ENTRY] ✅ Session completed normally\n` +
-        `${_logPrefix()} [ENTRY] Total duration: ${totalTime}ms\n` +
-        `${_logPrefix()} [ENTRY] ══════════════════════════════════════════════\n\n`
+        `${_logPrefix()} [ENTRY] ✅ Session completed in ${Date.now() - entryStart}ms\n\n`
       );
     } catch (err) {
       const errMsg = err instanceof Error ? err.stack || err.message : String(err);
-      process.stderr.write(
-        `\n${_logPrefix()} [ERROR] ══════════════════════════════════════════════\n` +
-        `${_logPrefix()} [ERROR] Session entry FAILED\n` +
-        `${_logPrefix()} [ERROR] Job ID: ${jobId}\n` +
-        `${_logPrefix()} [ERROR] ${errMsg}\n` +
-        `${_logPrefix()} [ERROR] ══════════════════════════════════════════════\n\n`
-      );
+      process.stderr.write(`\n${_logPrefix()} [ERROR] Session FAILED: ${errMsg}\n\n`);
 
-      // Try to connect and wait so LiveKit doesn't see an immediate failure
       try {
         if (!ctx.room.isConnected) await ctx.connect();
         await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
-      } catch {
-        // Ignore cleanup errors
-      }
+      } catch { /* ignore */ }
     }
   },
 });
-

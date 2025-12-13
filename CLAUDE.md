@@ -127,6 +127,39 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 
 **Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
+### 🧟 Zombie Revision Prevention (CRITICAL for Voice Agent)
+
+**The Problem:** Old Cloud Run revisions with `min-instances>0` keep running even with 0% HTTP traffic. For voice agents using LiveKit, these "zombies" register with LiveKit on startup but have stale WebSocket connections. LiveKit dispatches jobs to ALL registered workers (including zombies), causing failures:
+- `"runner initialization timed out"`
+- `"assignment for job timed out"`
+- `"LiveKit worker connection is dead"`
+
+**The Solution:** The deploy script automatically cleans up old revisions after successful deployment.
+
+```bash
+# Check for zombie revisions
+pnpm ops:zombies
+
+# Fix zombie revisions (delete them)
+pnpm ops:zombies:fix
+
+# Quick fix for voice agent only
+pnpm ops:zombies:fix:agent
+```
+
+**If you see these symptoms in production:**
+1. Run `pnpm ops:zombies` to check
+2. Run `pnpm ops:zombies:fix:agent` to fix
+3. Verify with `gcloud run revisions list --service=voiceai-agent --region=us-central1`
+
+**The deploy script handles this automatically by:**
+1. Deploying with `--no-traffic` and `--tag green`
+2. Health checking the new revision
+3. Shifting 100% traffic to the new revision
+4. **Deleting ALL old revisions** (not just leaving them with 0% traffic)
+
+**Key files:** `scripts/cleanup-zombies.ts`, `scripts/deploy.ts`
+
 ## ⚡ Build Optimization (pnpm + esbuild)
 
 We use **esbuild** for fast TypeScript compilation and **pnpm** for fast dependency installs.
@@ -214,7 +247,7 @@ GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = f
 
 ### Brand Alignment (Automated)
 
-Brand colors are validated against `brand/FERNI-BRAND-GUIDELINES.md`:
+Brand colors are validated against `design-system/brand/FERNI-BRAND-GUIDELINES.md`:
 
 ```bash
 pnpm brand:check    # Validate tokens match brand guidelines
@@ -262,7 +295,7 @@ ferni: { DEFAULT: '#4a6741' }
 ```
 
 **Before modifying any color**, check the brand guidelines:
-1. Read `brand/FERNI-BRAND-GUIDELINES.md`
+1. Read `design-system/brand/FERNI-BRAND-GUIDELINES.md`
 2. Modify `design-system/tokens/colors.json` (source of truth)
 3. Run `pnpm tokens:sync`
 4. Run `pnpm brand:check`
@@ -324,7 +357,7 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design System**: `design-system/README.md` (tokens, animations, colors)
 - **Design System Audit**: `docs/audits/DESIGN-SYSTEM-AUDIT.md` (consolidation status)
-- **Emotional Intelligence**: `brand/BETTER-THAN-HUMAN.md`
+- **Emotional Intelligence**: `design-system/brand/BETTER-THAN-HUMAN.md`
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 
@@ -373,7 +406,7 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 | Ignore user breathing patterns | Sync breathing gradually |
 | Wait for explicit "I'm sad" | Detect distress signals early |
 
-**Reference:** `brand/BETTER-THAN-HUMAN.md` for full documentation.
+**Reference:** `design-system/brand/BETTER-THAN-HUMAN.md` for full documentation.
 
 ### Backend → Frontend Integration
 
