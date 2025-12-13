@@ -7,6 +7,7 @@
  * - Error handling with Result types
  * - Performance monitoring
  * - Deprecation warnings
+ * - **Self-healing resilience** (retry with backoff)
  *
  * This enables standardizing tool behavior across all domains without
  * modifying each tool individually.
@@ -18,6 +19,7 @@
  *   enableAnalytics: true,
  *   enableValidation: true,
  *   enableErrorHandling: true,
+ *   enableResilience: true, // NEW: automatic retry
  * });
  *
  * // Or use the factory for new tools
@@ -29,6 +31,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { withResilience, humanizeError } from '../../services/self-healing/index.js';
 import { isLifeCoachAnalyticsEnabled, trackToolUsage } from '../domains/shared/index.js';
 import type { Tool, ToolContext, ToolDefinition, ToolDomain } from '../registry/types.js';
 import { sanitizePlainText } from '../validation.js';
@@ -89,6 +92,15 @@ export interface WrapperOptions {
   /** Show deprecation warnings */
   enableDeprecationWarnings?: boolean;
 
+  /**
+   * Enable self-healing resilience (retry with backoff)
+   * When enabled, transient failures will be automatically retried
+   */
+  enableResilience?: boolean;
+
+  /** Maximum retry attempts when resilience is enabled (default: 2) */
+  maxRetries?: number;
+
   /** Custom validation function */
   customValidator?: (params: Record<string, unknown>) => { valid: boolean; error?: string };
 
@@ -97,6 +109,30 @@ export interface WrapperOptions {
 
   /** Maximum execution time before warning (ms) */
   slowExecutionThresholdMs?: number;
+
+  /** Custom function to determine if error is retryable */
+  shouldRetry?: (error: Error) => boolean;
+}
+
+// Default: errors that indicate transient failures worth retrying
+const DEFAULT_RETRYABLE_PATTERNS = [
+  /timeout/i,
+  /network/i,
+  /ECONNRESET/i,
+  /ETIMEDOUT/i,
+  /socket hang up/i,
+  /fetch failed/i,
+  /temporarily unavailable/i,
+  /rate limit/i,
+  /429/,
+  /502/,
+  /503/,
+  /504/,
+];
+
+function isDefaultRetryable(error: Error): boolean {
+  const errorStr = `${error.name} ${error.message}`;
+  return DEFAULT_RETRYABLE_PATTERNS.some((pattern) => pattern.test(errorStr));
 }
 
 const DEFAULT_OPTIONS: WrapperOptions = {
@@ -105,7 +141,10 @@ const DEFAULT_OPTIONS: WrapperOptions = {
   enableErrorHandling: true,
   enablePerformanceTracking: true,
   enableDeprecationWarnings: true,
+  enableResilience: true, // Enable by default for all tools
+  maxRetries: 2,
   slowExecutionThresholdMs: 2000,
+  shouldRetry: isDefaultRetryable,
 };
 
 // ============================================================================
@@ -161,8 +200,34 @@ export function wrapToolExecute(
         }
       }
 
-      // Execute the original tool
-      const result = await originalExecute(params, execContext);
+      // Execute the original tool - with or without resilience
+      let result: unknown;
+      
+      if (opts.enableResilience) {
+        // Wrap execution with self-healing retry logic
+        result = await withResilience(
+          () => originalExecute(params, execContext),
+          {
+            maxRetries: opts.maxRetries ?? 2,
+            baseDelay: 500, // Tools should retry quickly
+            maxDelay: 3000,
+            operationName: `tool:${toolId}`,
+            shouldRetry: (error) => {
+              // Use custom retry logic if provided, else use default
+              const shouldRetryFn = opts.shouldRetry ?? isDefaultRetryable;
+              return shouldRetryFn(error);
+            },
+            onRetry: (attempt, error, delay) => {
+              log.debug(
+                { toolId, domain, attempt, error: error.message, delay },
+                'Tool execution retry'
+              );
+            },
+          }
+        );
+      } else {
+        result = await originalExecute(params, execContext);
+      }
 
       // Execute after_tool_call hook (non-blocking, fire-and-forget)
       try {
@@ -205,13 +270,32 @@ export function wrapToolExecute(
       return result;
     } catch (error) {
       const executionTimeMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = err.message;
 
-      log.error({ toolId, domain, error: errorMessage, executionTimeMs }, 'Tool execution error');
-      tracker?.error(error instanceof Error ? error : new Error(errorMessage));
+      // Get human-friendly error message for better UX
+      const humanized = humanizeError(err);
+
+      log.error(
+        { 
+          toolId, 
+          domain, 
+          error: errorMessage, 
+          executionTimeMs,
+          severity: humanized.severity,
+          technicalSummary: humanized.technicalSummary,
+        }, 
+        'Tool execution error'
+      );
+      tracker?.error(err);
 
       if (opts.enableErrorHandling) {
-        return failure(errorMessage, 'EXECUTION_ERROR', {
+        // Use humanized message for user-facing errors when appropriate
+        const userMessage = humanized.shouldNotifyUser 
+          ? humanized.userMessage 
+          : errorMessage;
+        
+        return failure(userMessage, 'EXECUTION_ERROR', {
           executionTimeMs,
           toolId,
           domain,

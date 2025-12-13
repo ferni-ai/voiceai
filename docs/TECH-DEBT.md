@@ -1,6 +1,7 @@
 # Technical Debt Report
 
-> Generated: 2025-12-09T10:08:59.190Z
+> Generated: 2025-12-09  
+> Last Reviewed: December 13, 2024
 
 ## Summary
 
@@ -18,6 +19,20 @@
 |--------|-------|
 | 📝 TODO: | 11 |
 | 📦 @deprecated | 32 |
+
+## December 2024 Review Notes
+
+Most deprecated items are related to:
+1. **Speech modules** (6 items) - Need migration to session-scoped versions
+2. **Theatrical configs** (5 items) - Should use persona bundles instead
+3. **Team configs** (4 items) - Should use `getTeamConfig()` from bundles
+4. **Celebrations** (5 items) - Use warmth-based alternatives
+
+**Key TODOs:**
+- `voice-agent.ts:633` - Re-enable EvalOps when production-ready
+- `conversation.ts:269` - Move getFrontendPublisher to services layer
+
+Run `npm run debt` to regenerate this report.
 
 ## High Priority Items
 

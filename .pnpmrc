@@ -1,0 +1,25 @@
+# pnpm-specific configuration
+#
+# These settings only apply when using pnpm.
+# See .npmrc for shared settings.
+
+# ============================================================================
+# PNPM SETTINGS
+# ============================================================================
+
+# Use hoisted node_modules for compatibility with tools that expect flat structure
+# (Cloud Run, some bundlers, etc.)
+shamefully-hoist=true
+
+# Strict peer dependencies - warn but don't fail
+strict-peer-dependencies=false
+
+# Auto-install peers
+auto-install-peers=true
+
+# Prefer offline mode when packages are cached
+prefer-offline=true
+
+# Maximum concurrent network requests
+network-concurrency=16
+

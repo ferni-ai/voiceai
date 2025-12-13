@@ -4,6 +4,11 @@
  * Centralized helper for making authenticated API calls.
  * Handles userId injection for all backend requests.
  *
+ * Self-healing features:
+ * - Automatic retry with exponential backoff for transient failures
+ * - Offline detection
+ * - Request timeout handling
+ *
  * Authentication strategy:
  * - PRIMARY: Firebase Auth token (Authorization: Bearer header)
  * - FALLBACK: X-User-Id header for user identification (migration)
@@ -13,6 +18,7 @@
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
 import { isDevelopment } from './environment.js';
 import { createLogger } from './logger.js';
+import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 
 const log = createLogger('API');
 
@@ -126,13 +132,32 @@ export async function getApiHeadersAsync(includeJson = true): Promise<HeadersIni
   return headers;
 }
 
+// Default retry options for API calls
+const DEFAULT_RETRY_OPTIONS: FetchRetryOptions = {
+  maxRetries: 2,
+  initialDelay: 500,
+  maxDelay: 3000,
+  timeout: 15000,
+  // Don't retry on 401/403 (auth errors) or 400 (bad request)
+  retryStatusCodes: [408, 429, 500, 502, 503, 504],
+  retryOnNetworkError: true,
+};
+
 /**
- * Make an authenticated GET request.
+ * Make an authenticated GET request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
  */
 export async function apiGet<T = unknown>(
   path: string,
-  params?: Record<string, string>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
+  params?: Record<string, string>,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API GET skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
   try {
     const url = new URL(path, window.location.origin);
 
@@ -152,28 +177,44 @@ export async function apiGet<T = unknown>(
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(false);
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers,
-    });
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      url.toString(),
+      { method: 'GET', headers },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (result.error) {
       // 401 errors are expected before auth completes - use debug level
-      if (response.status === 401) {
+      if (result.status === 401) {
         log.debug('API GET unauthorized (auth pending)', { path });
       } else {
-        log.warn('API GET failed', { path, status: response.status, error: errorData });
+        log.warn('API GET failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
       }
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
-        status: response.status,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
       };
     }
 
-    const data = await response.json();
-    return { ok: true, data, status: response.status };
+    if (result.retries > 0) {
+      log.debug('API GET succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
   } catch (err) {
     log.error('API GET error', { path, error: err });
     return { ok: false, error: String(err), status: 0 };
@@ -181,12 +222,20 @@ export async function apiGet<T = unknown>(
 }
 
 /**
- * Make an authenticated POST request.
+ * Make an authenticated POST request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
  */
 export async function apiPost<T = unknown>(
   path: string,
-  body?: unknown
-): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
+  body?: unknown,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API POST skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
   try {
     const userId = getUserId();
 
@@ -197,29 +246,48 @@ export async function apiPost<T = unknown>(
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(true);
 
-    const response = await fetch(path, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(finalBody),
-    });
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      path,
+      { 
+        method: 'POST', 
+        headers,
+        body: JSON.stringify(finalBody),
+      },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (result.error) {
       // 401 errors are expected before auth completes - use debug level
-      if (response.status === 401) {
+      if (result.status === 401) {
         log.debug('API POST unauthorized (auth pending)', { path });
       } else {
-        log.warn('API POST failed', { path, status: response.status, error: errorData });
+        log.warn('API POST failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
       }
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
-        status: response.status,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
       };
     }
 
-    const data = await response.json();
-    return { ok: true, data, status: response.status };
+    if (result.retries > 0) {
+      log.debug('API POST succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
   } catch (err) {
     log.error('API POST error', { path, error: err });
     return { ok: false, error: String(err), status: 0 };
@@ -227,12 +295,20 @@ export async function apiPost<T = unknown>(
 }
 
 /**
- * Make an authenticated DELETE request.
+ * Make an authenticated DELETE request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
  */
 export async function apiDelete<T = unknown>(
   path: string,
-  params?: Record<string, string>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number }> {
+  params?: Record<string, string>,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API DELETE skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
   try {
     const url = new URL(path, window.location.origin);
 
@@ -252,28 +328,44 @@ export async function apiDelete<T = unknown>(
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(false);
 
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers,
-    });
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      url.toString(),
+      { method: 'DELETE', headers },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (result.error) {
       // 401 errors are expected before auth completes - use debug level
-      if (response.status === 401) {
+      if (result.status === 401) {
         log.debug('API DELETE unauthorized (auth pending)', { path });
       } else {
-        log.warn('API DELETE failed', { path, status: response.status, error: errorData });
+        log.warn('API DELETE failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
       }
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
-        status: response.status,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
       };
     }
 
-    const data = await response.json();
-    return { ok: true, data, status: response.status };
+    if (result.retries > 0) {
+      log.debug('API DELETE succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
   } catch (err) {
     log.error('API DELETE error', { path, error: err });
     return { ok: false, error: String(err), status: 0 };

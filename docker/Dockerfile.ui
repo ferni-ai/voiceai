@@ -1,14 +1,15 @@
 # syntax=docker/dockerfile:1.4
 # ============================================================================
-# FERNI UI SERVER DOCKERFILE (OPTIMIZED)
+# FERNI UI SERVER DOCKERFILE (OPTIMIZED WITH PNPM)
 # ============================================================================
 # Multi-stage build for the main UI server.
 # Includes: backend API, frontend app, engagement routes, etc.
 #
 # OPTIMIZATIONS:
+# - pnpm for ~40% faster dependency installs
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Uses pre-built ferni-speaker image (avoids Rust build on every deploy)
-# - Cache mounts for npm ci
+# - Cache mounts for pnpm store
 #
 # Build:
 #   docker build -f docker/Dockerfile.ui -t ferni-ui .
@@ -21,26 +22,33 @@ ARG NODE_VERSION=20
 ARG PROJECT_ID=johnb-2025
 
 # ============================================================================
-# Stage 1: Build Backend TypeScript
+# Stage 1: Build Backend TypeScript (with pnpm + esbuild)
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS backend-builder
 
-# Install git for GitHub dependencies
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install git and enable pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-COPY package*.json ./
+# Copy package files and configs
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Use cache mount for npm to speed up repeated builds
-RUN --mount=type=cache,target=/root/.npm \
-    CI=true npm ci
+# Install dependencies with pnpm
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
 
+# Copy build script and source
+COPY scripts/build-fast.ts ./scripts/
 COPY src/ ./src/
 
-RUN npm run build
+# Build with esbuild (falls back to tsc)
+RUN pnpm build:fast || pnpm build
 
 # ============================================================================
 # Stage 2: Build Frontend (runs in parallel with backend)
@@ -50,32 +58,33 @@ FROM node:${NODE_VERSION}-slim AS frontend-builder
 # Build arg for admin API key (passed from Cloud Build)
 ARG VITE_ADMIN_API_KEY=""
 
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
 # Copy design-system dist (needed for @design-system imports)
 COPY design-system/dist ./design-system/dist/
 
 # Copy frontend package files
-COPY frontend-typescript/package*.json ./frontend-typescript/
+COPY frontend-typescript/package.json frontend-typescript/pnpm-lock.yaml* ./frontend-typescript/
 
 WORKDIR /app/frontend-typescript
 
-# Use cache mount for npm to speed up repeated builds
-RUN --mount=type=cache,target=/root/.npm \
-    CI=true npm ci
+# Install with pnpm
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline || npm ci
 
 COPY frontend-typescript/ ./
 
 # Set env var for Vite build (bakes into the bundle)
 ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
 
-RUN npm run build
+RUN pnpm build || npm run build
 
 # ============================================================================
 # Stage 3: Pull pre-built ferni-speaker (instead of building Rust)
 # ============================================================================
-# This stage simply references the pre-built speaker image.
-# Build the speaker image separately with: gcloud builds submit --config=cloudbuild-speaker.yaml
 ARG PROJECT_ID
 FROM gcr.io/${PROJECT_ID}/ferni-speaker:latest AS speaker-prebuilt
 
@@ -86,24 +95,24 @@ FROM node:${NODE_VERSION}-slim AS production
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files and install production dependencies
-COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
+
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
 
 # Copy UI server
 COPY ui-server.js ./
 
 # Copy built backend (compiled TypeScript)
 COPY --from=backend-builder /app/dist ./dist/
-
-# NOTE: Do NOT copy src/api/ here - the .ts files would overwrite compiled .js files
-# All API routes are already in dist/ from the backend-builder stage
 
 # Copy persona bundles
 COPY src/personas/bundles ./src/personas/bundles/

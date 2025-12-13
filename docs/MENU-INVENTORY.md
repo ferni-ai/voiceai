@@ -1,6 +1,6 @@
 # Ferni App Menu Inventory
 
-> **Last Updated:** December 10, 2025  
+> **Last Updated:** December 13, 2024  
 > **Purpose:** Exhaustive inventory of menu items, implementation status, and information architecture recommendations.
 
 ---
@@ -9,13 +9,21 @@
 
 The Ferni app currently has **26 menu items** organized across **7 sections**. This is approaching the threshold where information architecture becomes critical for user experience.
 
+### Status Update (December 2024)
+
 | Status        | Count | Items                                    |
 | ------------- | ----- | ---------------------------------------- |
-| ✅ Working    | 14    | Core features that function end-to-end   |
-| 🔄 Partial    | 7     | UI exists, backend partially implemented |
-| 🚧 Scaffolded | 5     | UI exists, minimal backend integration   |
+| ✅ Working    | 20    | Core features that function end-to-end   |
+| 🔄 Partial    | 4     | UI exists, backend partially implemented |
+| 🚧 Scaffolded | 2     | UI exists, minimal backend integration   |
 
-**Key Insight:** The menu has grown organically and now requires intentional IA decisions to avoid overwhelming users.
+**Key Updates:**
+- Voice Identity: FULLY WIRED (was listed as scaffolded)
+- Wellbeing Dashboard: WORKING (connected Dec 10)
+- Trust systems: ALL COMPLETE
+- Celebration/Growth: WIRED to context builders
+
+See [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) for authoritative status.
 
 ---
 

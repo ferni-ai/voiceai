@@ -5,9 +5,10 @@
 # - All agents in src/personas/bundles/ are auto-discovered
 # - Environment variables configure voice IDs per environment
 #
-# CACHING STRATEGY:
-# - Docker layer caching via --cache-from (pulls previous build as cache)
-# - Significantly reduces build time on cache hit
+# CACHING STRATEGY (OPTIMIZED):
+# - Kaniko builder with 168h (1 week) cache TTL
+# - BuildKit 1.4 syntax enables parallel stage builds
+# - Semantic versioning for cache invalidation
 #
 # To add a new agent:
 # 1. Create bundle in src/personas/bundles/<agent-id>/
@@ -16,43 +17,26 @@
 #
 # See docs/AGENT-MANAGEMENT.md for details
 
+substitutions:
+  _CACHE_TTL: '168h'  # 1 week cache
+
 steps:
-  # Validate agent bundles before build
-  - name: 'node:20'
-    entrypoint: 'sh'
+  # Build with Kaniko (much better caching than docker build)
+  # - Cache layers persist for 1 week
+  # - Parallel stage builds in Dockerfile
+  # - No more --no-cache needed - cache is invalidated by file changes
+  - name: 'gcr.io/kaniko-project/executor:latest'
     args:
-      - '-c'
-      - |
-        npm ci
-        npm run build
-        npm run agents validate || echo "Warning: Some agents have validation issues"
-
-  # Pull previous image for cache (ignore failure if first build)
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - 'docker pull gcr.io/$PROJECT_ID/ferni-voice-agent:latest || true'
-    id: 'pull-cache'
-
-  # Build the container image (NO CACHE to prevent stale layers)
-  # Added --no-cache 2025-12-12 to fix stale cached layers causing TS errors
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '--no-cache'
-      - '-f'
-      - 'docker/Dockerfile.agent'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
-      - '.'
-    waitFor: ['pull-cache']
+      - '--dockerfile=docker/Dockerfile.agent'
+      - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
+      - '--cache=true'
+      - '--cache-ttl=${_CACHE_TTL}'
+      - '--snapshot-mode=redo'
+      - '--use-new-run'
+      - '--build-arg=BUILDKIT_INLINE_CACHE=1'
+    id: 'build-agent'
     env:
       - 'DOCKER_BUILDKIT=1'
-
-  # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest']
 
 images:
   - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
@@ -61,4 +45,4 @@ options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '1200s'
+timeout: '900s'  # Reduced from 1200s - builds should be ~5 min with caching

@@ -1,0 +1,27 @@
+# pnpm Workspace Configuration
+#
+# This enables pnpm's workspace protocol for the monorepo structure.
+# Benefits:
+#   - ~40% faster installs than npm
+#   - Content-addressable storage (deduplication)
+#   - Better disk space usage
+#   - Stricter dependency resolution
+#
+# Usage:
+#   pnpm install        # Install all dependencies
+#   pnpm build          # Run build in all packages
+#   pnpm -r build       # Run build recursively in all packages
+
+packages:
+  # Main application
+  - '.'
+  
+  # Frontend app
+  - 'frontend-typescript'
+  
+  # Design system
+  - 'design-system'
+  
+  # Firebase functions
+  - 'functions'
+

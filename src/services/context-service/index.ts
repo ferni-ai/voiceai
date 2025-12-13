@@ -4,6 +4,11 @@
  * Client for the future Context microservice.
  * Currently runs in-process with stub implementations, designed for easy extraction.
  * 
+ * Self-healing features (for remote mode):
+ * - Circuit breaker prevents cascading failures
+ * - Automatic retry with exponential backoff
+ * - Graceful degradation to local processing
+ * 
  * The Context Service will handle:
  * - Building conversation context with RAG
  * - Semantic memory search
@@ -22,6 +27,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createResilientClient, type ResilientClient } from '../self-healing/index.js';
 
 const log = createLogger({ module: 'ContextService' });
 
@@ -127,9 +133,20 @@ const defaultConfig: ContextServiceConfig = {
 class ContextServiceClient {
   private config: ContextServiceConfig;
   private cache = new Map<string, { response: ContextResponse; expiresAt: number }>();
+  private remoteClient: ResilientClient | null = null;
   
   constructor(config: Partial<ContextServiceConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
+    
+    // Initialize resilient client for remote mode
+    if (this.config.useRemote && this.config.remoteUrl) {
+      this.remoteClient = createResilientClient('context-service', {
+        timeout: this.config.timeoutMs,
+        maxRetries: 2,
+        failureThreshold: 3, // Open circuit after 3 failures
+        recoveryTimeout: 30000, // Try again after 30s
+      });
+    }
   }
   
   /**
@@ -318,61 +335,74 @@ class ContextServiceClient {
   }
   
   // ============================================================================
-  // REMOTE IMPLEMENTATION (Phase 3+)
+  // REMOTE IMPLEMENTATION (Phase 3+) - with self-healing
   // ============================================================================
   
   private async buildContextRemote(request: ContextRequest): Promise<ContextResponse> {
-    if (!this.config.remoteUrl) {
+    if (!this.config.remoteUrl || !this.remoteClient) {
       throw new Error('Remote URL not configured');
     }
     
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
-    
-    try {
-      const response = await fetch(`${this.config.remoteUrl}/context/build`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Context service error: ${response.status}`);
-      }
-      
-      return await response.json() as ContextResponse;
-      
-    } finally {
-      clearTimeout(timeout);
+    // Check if circuit is healthy - if not, fall back to local
+    if (!this.remoteClient.isHealthy()) {
+      log.debug('Context service circuit is open, falling back to local');
+      return this.buildContextLocal(request);
     }
+    
+    const { data, error } = await this.remoteClient.post<ContextResponse>(
+      `${this.config.remoteUrl}/context/build`,
+      request
+    );
+    
+    if (error || !data) {
+      log.warn(
+        { error: error?.message, code: error?.code },
+        'Remote context build failed, falling back to local'
+      );
+      return this.buildContextLocal(request);
+    }
+    
+    return data;
   }
   
   private async searchRemote(request: SearchRequest): Promise<SearchResult[]> {
-    if (!this.config.remoteUrl) {
+    if (!this.config.remoteUrl || !this.remoteClient) {
       throw new Error('Remote URL not configured');
     }
     
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
-    
-    try {
-      const response = await fetch(`${this.config.remoteUrl}/context/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Context service error: ${response.status}`);
-      }
-      
-      return await response.json() as SearchResult[];
-      
-    } finally {
-      clearTimeout(timeout);
+    // Check if circuit is healthy - if not, fall back to local
+    if (!this.remoteClient.isHealthy()) {
+      log.debug('Context service circuit is open, falling back to local search');
+      return this.searchLocal(request);
     }
+    
+    const { data, error } = await this.remoteClient.post<SearchResult[]>(
+      `${this.config.remoteUrl}/context/search`,
+      request
+    );
+    
+    if (error || !data) {
+      log.warn(
+        { error: error?.message, code: error?.code },
+        'Remote search failed, falling back to local'
+      );
+      return this.searchLocal(request);
+    }
+    
+    return data;
+  }
+  
+  /**
+   * Get health status for remote service
+   */
+  getRemoteHealth(): { healthy: boolean; stats?: ReturnType<ResilientClient['getStats']> } {
+    if (!this.remoteClient) {
+      return { healthy: true }; // Local mode is always healthy
+    }
+    return {
+      healthy: this.remoteClient.isHealthy(),
+      stats: this.remoteClient.getStats(),
+    };
   }
   
   // ============================================================================

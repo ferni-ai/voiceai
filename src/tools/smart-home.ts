@@ -3,6 +3,11 @@
  *
  * Control lights, thermostats, locks, and other smart home devices.
  *
+ * Now with self-healing resilience:
+ * - Circuit breakers prevent cascading failures to smart home platforms
+ * - Automatic retry with exponential backoff
+ * - Graceful degradation when devices are offline
+ *
  * Supported Platforms:
  * - Home Assistant (most flexible, self-hosted)
  * - SmartThings (Samsung)
@@ -16,6 +21,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  getHomeAssistantClient,
+  getHueClient,
+  getLifxClient,
+} from '../services/self-healing/index.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -55,76 +65,93 @@ interface DeviceCommand {
 }
 
 // ============================================================================
-// HOME ASSISTANT API
+// HOME ASSISTANT API (with self-healing)
 // ============================================================================
 
-async function homeAssistantRequest(
+async function homeAssistantRequest<T = unknown>(
   endpoint: string,
   method: 'GET' | 'POST' = 'GET',
   body?: unknown
-): Promise<unknown> {
+): Promise<T | null> {
   if (!HOME_ASSISTANT_URL || !HOME_ASSISTANT_TOKEN) {
     throw new Error('Home Assistant not configured');
   }
 
-  const url = `${HOME_ASSISTANT_URL}/api/${endpoint}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Home Assistant error: ${response.status}`);
+  const haClient = getHomeAssistantClient();
+  
+  // Check circuit health - fail fast if Home Assistant is down
+  if (!haClient.isHealthy()) {
+    getLogger().debug('Home Assistant circuit is open, skipping request');
+    return null;
   }
 
-  return response.json();
+  const url = `${HOME_ASSISTANT_URL}/api/${endpoint}`;
+  
+  if (method === 'POST') {
+    const { data, error } = await haClient.post<T>(url, body, {
+      headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
+    });
+    
+    if (error) {
+      getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
+      return null;
+    }
+    return data;
+  } else {
+    const { data, error } = await haClient.get<T>(url, {
+      headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
+    });
+    
+    if (error) {
+      getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
+      return null;
+    }
+    return data;
+  }
 }
 
+// Type for Home Assistant states response
+type HomeAssistantState = {
+  entity_id?: string;
+  attributes?: { friendly_name?: string; [key: string]: unknown };
+  state?: string;
+};
+
 async function getHomeAssistantDevices(): Promise<SmartDevice[]> {
-  try {
-    const states = (await homeAssistantRequest('states')) as Array<{
-      entity_id?: string;
-      attributes?: { friendly_name?: string; [key: string]: unknown };
-      state?: string;
-    }>;
-
-    return states
-      .filter((s) => {
-        const domain = s.entity_id?.split('.')[0];
-        return ['light', 'switch', 'climate', 'lock', 'fan', 'cover', 'media_player'].includes(
-          domain || ''
-        );
-      })
-      .map((s) => {
-        const domain = s.entity_id?.split('.')[0] || 'other';
-        const typeMap: Record<string, SmartDevice['type']> = {
-          light: 'light',
-          switch: 'switch',
-          climate: 'thermostat',
-          lock: 'lock',
-          fan: 'fan',
-          cover: 'cover',
-          media_player: 'media',
-        };
-
-        return {
-          id: s.entity_id || '',
-          name: s.attributes?.friendly_name || s.entity_id || 'Unknown',
-          type: typeMap[domain] || 'other',
-          state: s.state || 'unknown',
-          attributes: s.attributes,
-          platform: 'home_assistant' as const,
-        };
-      });
-  } catch (error) {
-    getLogger().warn({ error }, 'Home Assistant error');
+  const states = await homeAssistantRequest<HomeAssistantState[]>('states');
+  
+  if (!states) {
     return [];
   }
+
+  return states
+    .filter((s) => {
+      const domain = s.entity_id?.split('.')[0];
+      return ['light', 'switch', 'climate', 'lock', 'fan', 'cover', 'media_player'].includes(
+        domain || ''
+      );
+    })
+    .map((s) => {
+      const domain = s.entity_id?.split('.')[0] || 'other';
+      const typeMap: Record<string, SmartDevice['type']> = {
+        light: 'light',
+        switch: 'switch',
+        climate: 'thermostat',
+        lock: 'lock',
+        fan: 'fan',
+        cover: 'cover',
+        media_player: 'media',
+      };
+
+      return {
+        id: s.entity_id || '',
+        name: s.attributes?.friendly_name || s.entity_id || 'Unknown',
+        type: typeMap[domain] || 'other',
+        state: s.state || 'unknown',
+        attributes: s.attributes,
+        platform: 'home_assistant' as const,
+      };
+    });
 }
 
 async function callHomeAssistantService(
@@ -133,128 +160,168 @@ async function callHomeAssistantService(
   entityId: string,
   data?: Record<string, unknown>
 ): Promise<boolean> {
-  try {
-    await homeAssistantRequest(`services/${domain}/${service}`, 'POST', {
-      entity_id: entityId,
-      ...data,
-    });
-    return true;
-  } catch (error) {
-    getLogger().error({ error, domain, service, entityId }, 'Home Assistant service call failed');
-    return false;
-  }
-}
-
-// ============================================================================
-// PHILIPS HUE API
-// ============================================================================
-
-async function hueRequest(
-  endpoint: string,
-  method: 'GET' | 'PUT' = 'GET',
-  body?: unknown
-): Promise<unknown> {
-  if (!HUE_BRIDGE_IP || !HUE_USERNAME) {
-    throw new Error('Hue not configured');
-  }
-
-  const url = `http://${HUE_BRIDGE_IP}/api/${HUE_USERNAME}/${endpoint}`;
-  const response = await fetch(url, {
-    method,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(5000),
+  const result = await homeAssistantRequest(`services/${domain}/${service}`, 'POST', {
+    entity_id: entityId,
+    ...data,
   });
-
-  return response.json();
+  
+  return result !== null;
 }
+
+// ============================================================================
+// PHILIPS HUE API (with self-healing)
+// ============================================================================
+
+// Type for Hue lights response
+type HueLightsResponse = Record<
+  string,
+  {
+    name?: string;
+    state?: { on?: boolean; bri?: number };
+  }
+>;
 
 async function getHueLights(): Promise<SmartDevice[]> {
-  try {
-    const lights = (await hueRequest('lights')) as Record<
-      string,
-      {
-        name?: string;
-        state?: { on?: boolean; bri?: number };
-      }
-    >;
-
-    return Object.entries(lights).map(([id, light]) => ({
-      id: `hue_${id}`,
-      name: light.name || `Hue Light ${id}`,
-      type: 'light' as const,
-      state: light.state?.on ? 'on' : 'off',
-      attributes: { brightness: light.state?.bri },
-      platform: 'hue' as const,
-    }));
-  } catch (error) {
-    getLogger().warn({ error }, 'Hue API error');
+  if (!HUE_BRIDGE_IP || !HUE_USERNAME) {
     return [];
   }
+
+  const hueClient = getHueClient();
+  
+  // Check circuit health
+  if (!hueClient.isHealthy()) {
+    getLogger().debug('Hue circuit is open, skipping request');
+    return [];
+  }
+
+  const url = `http://${HUE_BRIDGE_IP}/api/${HUE_USERNAME}/lights`;
+  const { data: lights, error } = await hueClient.get<HueLightsResponse>(url);
+
+  if (error || !lights) {
+    if (error) {
+      getLogger().warn({ error: error.message }, 'Hue API error');
+    }
+    return [];
+  }
+
+  return Object.entries(lights).map(([id, light]) => ({
+    id: `hue_${id}`,
+    name: light.name || `Hue Light ${id}`,
+    type: 'light' as const,
+    state: light.state?.on ? 'on' : 'off',
+    attributes: { brightness: light.state?.bri },
+    platform: 'hue' as const,
+  }));
 }
 
 async function setHueLight(lightId: string, on: boolean, brightness?: number): Promise<boolean> {
-  try {
-    const id = lightId.replace('hue_', '');
-    const body: { on: boolean; bri?: number } = { on };
-    if (brightness !== undefined) {
-      body.bri = Math.round(brightness * 2.54); // Convert 0-100 to 0-254
-    }
-    await hueRequest(`lights/${id}/state`, 'PUT', body);
-    return true;
-  } catch (error) {
-    getLogger().error({ error, lightId }, 'Hue light control failed');
+  if (!HUE_BRIDGE_IP || !HUE_USERNAME) {
     return false;
   }
-}
 
-// ============================================================================
-// LIFX API
-// ============================================================================
-
-async function lifxRequest(
-  endpoint: string,
-  method: 'GET' | 'PUT' | 'POST' = 'GET',
-  body?: unknown
-): Promise<unknown> {
-  if (!LIFX_TOKEN) {
-    throw new Error('LIFX not configured');
+  const hueClient = getHueClient();
+  
+  if (!hueClient.isHealthy()) {
+    getLogger().debug('Hue circuit is open, cannot control light');
+    return false;
   }
 
-  const url = `https://api.lifx.com/v1/${endpoint}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${LIFX_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(10000),
-  });
+  const id = lightId.replace('hue_', '');
+  const body: { on: boolean; bri?: number } = { on };
+  if (brightness !== undefined) {
+    body.bri = Math.round(brightness * 2.54); // Convert 0-100 to 0-254
+  }
 
-  return response.json();
+  const url = `http://${HUE_BRIDGE_IP}/api/${HUE_USERNAME}/lights/${id}/state`;
+  const { error } = await hueClient.put(url, body);
+
+  if (error) {
+    getLogger().warn({ error: error.message, lightId }, 'Hue light control failed');
+    return false;
+  }
+
+  return true;
 }
+
+// ============================================================================
+// LIFX API (with self-healing)
+// ============================================================================
+
+// Type for LIFX lights response
+type LifxLight = {
+  id?: string;
+  label?: string;
+  power?: string;
+  brightness?: number;
+};
 
 async function getLifxLights(): Promise<SmartDevice[]> {
-  try {
-    const lights = (await lifxRequest('lights/all')) as Array<{
-      id?: string;
-      label?: string;
-      power?: string;
-      brightness?: number;
-    }>;
-
-    return lights.map((light) => ({
-      id: `lifx_${light.id}`,
-      name: light.label || 'LIFX Light',
-      type: 'light' as const,
-      state: light.power || 'off',
-      attributes: { brightness: Math.round((light.brightness || 0) * 100) },
-      platform: 'lifx' as const,
-    }));
-  } catch (error) {
-    getLogger().warn({ error }, 'LIFX API error');
+  if (!LIFX_TOKEN) {
     return [];
   }
+
+  const lifxClient = getLifxClient();
+  
+  // Check circuit health
+  if (!lifxClient.isHealthy()) {
+    getLogger().debug('LIFX circuit is open, skipping request');
+    return [];
+  }
+
+  const { data: lights, error } = await lifxClient.get<LifxLight[]>(
+    'https://api.lifx.com/v1/lights/all',
+    { headers: { Authorization: `Bearer ${LIFX_TOKEN}` } }
+  );
+
+  if (error || !lights) {
+    if (error) {
+      getLogger().warn({ error: error.message }, 'LIFX API error');
+    }
+    return [];
+  }
+
+  return lights.map((light) => ({
+    id: `lifx_${light.id}`,
+    name: light.label || 'LIFX Light',
+    type: 'light' as const,
+    state: light.power || 'off',
+    attributes: { brightness: Math.round((light.brightness || 0) * 100) },
+    platform: 'lifx' as const,
+  }));
+}
+
+async function setLifxLight(
+  lightId: string,
+  power?: 'on' | 'off',
+  brightness?: number
+): Promise<boolean> {
+  if (!LIFX_TOKEN) {
+    return false;
+  }
+
+  const lifxClient = getLifxClient();
+  
+  if (!lifxClient.isHealthy()) {
+    getLogger().debug('LIFX circuit is open, cannot control light');
+    return false;
+  }
+
+  const id = lightId.replace('lifx_', '');
+  const { error } = await lifxClient.put(
+    `https://api.lifx.com/v1/lights/${id}/state`,
+    {
+      power,
+      brightness: brightness !== undefined ? brightness / 100 : undefined,
+    },
+    { headers: { Authorization: `Bearer ${LIFX_TOKEN}` } }
+  );
+
+  if (error) {
+    getLogger().warn({ error: error.message, lightId }, 'LIFX light control failed');
+    return false;
+  }
+
+  return true;
 }
 
 // ============================================================================
@@ -340,16 +407,12 @@ export async function controlDevice(
 
     case 'lifx':
       if (device.type === 'light') {
-        try {
-          await lifxRequest(`lights/${device.id.replace('lifx_', '')}/state`, 'PUT', {
-            power:
-              action === 'on' || action === 'set' ? 'on' : action === 'off' ? 'off' : undefined,
-            brightness: typeof value === 'number' ? value / 100 : undefined,
-          });
-          success = true;
-        } catch {
-          success = false;
-        }
+        const lifxPower = action === 'on' || action === 'set' ? 'on' : action === 'off' ? 'off' : undefined;
+        success = await setLifxLight(
+          device.id,
+          lifxPower,
+          typeof value === 'number' ? value : undefined
+        );
       }
       break;
   }

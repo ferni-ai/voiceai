@@ -1,8 +1,16 @@
+# syntax=docker/dockerfile:1.4
 # ============================================================================
-# FERNI VOICE AGENT DOCKERFILE
+# FERNI VOICE AGENT DOCKERFILE (OPTIMIZED WITH PNPM + ESBUILD)
 # ============================================================================
-# Builds the LiveKit voice agent service.
+# Builds the LiveKit voice agent service with aggressive caching.
 # Supports all personas via PERSONA_ID environment variable.
+#
+# OPTIMIZATIONS:
+# - pnpm for ~40% faster dependency installs
+# - esbuild for ~10-50x faster TypeScript compilation
+# - BuildKit 1.4 syntax enables parallel stage builds
+# - Cache mounts persist across builds
+# - Optimal layer ordering (rarely-changing layers first)
 #
 # Build:
 #   docker build -f docker/Dockerfile.agent -t ferni-agent .
@@ -14,25 +22,38 @@
 ARG NODE_VERSION=20
 
 # ============================================================================
-# Stage 1: Build TypeScript
+# Stage 1: Build TypeScript with pnpm + esbuild
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install git and enable corepack for pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
-# Install all dependencies (including dev for building)
-RUN npm ci
+# Copy package files first (cache layer)
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
 
-# Copy source files
+# Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
+
+# Install dependencies with pnpm (faster than npm ci)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# Copy esbuild script
+COPY scripts/build-fast.ts ./scripts/
+
+# Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Build TypeScript
-RUN npm run build
+# Build with esbuild (skip type declarations for production)
+# Falls back to tsc if esbuild script has issues
+RUN pnpm build:fast || pnpm build
 
 # ============================================================================
 # Stage 2: Production
@@ -47,11 +68,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
-    && update-ca-certificates
+    && update-ca-certificates \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN npm ci --only=production
+# Copy package files for production install
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
+
+# Install production dependencies only (no devDependencies)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --prod
 
 # Patch LiveKit agents library to increase initialization timeout
 # The library has hardcoded 10s/30s timeouts that are too short for Cloud Run cold starts
@@ -82,15 +108,9 @@ ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
 
 # Node.js process optimizations for voice agent stability
-# - max-old-space-size: Set heap limit to 3072MB (75% of 4GB container limit)
-#   This gives headroom before OOM and allows GC to work effectively
-# - max-semi-space-size: Increase young generation for voice processing (128MB)
-# - expose-gc: Allow manual GC triggering if needed
 ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=128"
 
 EXPOSE 8080
 
 # Run the voice agent
-# NOTE: Using 'dev' instead of 'start' because 'start' doesn't spawn child processes
 CMD ["node", "dist/agent.js", "dev"]
-

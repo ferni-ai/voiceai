@@ -243,4 +243,11 @@ All routes support multiple authentication methods:
 
 ---
 
-*Last updated: 2025-12-08*
+*Last updated: December 13, 2024*
+
+> Note: This is a subset of the API. For complete API documentation, see:
+> - `docs/API-DOCUMENTATION.md` for full reference
+> - `src/api/` for route implementations
+> - Observability routes: `/api/observability/*`
+> - Trust routes: `/api/trust/*`
+> - Voice identity: `/api/voice/*`

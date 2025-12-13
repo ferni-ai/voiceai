@@ -9,8 +9,11 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:fast": "npx tsx scripts/build-fast.ts",
+    "build:fast:types": "npx tsx scripts/build-fast.ts --types",
+    "build:fast:watch": "npx tsx scripts/build-fast.ts --watch",
     "build:bundle": "node scripts/build-bundle.js",
-    "build:prod": "npm run build && npm run build:bundle",
+    "build:prod": "npm run build:fast && npm run build:bundle",
     "dev": "tsx src/agent.ts dev",
     "dev:jack": "PERSONA_ID=jack-bogle tsx src/agent.ts dev",
     "dev:jack-b": "PERSONA_ID=jack-b tsx src/agent.ts dev",
