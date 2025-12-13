@@ -116,7 +116,7 @@ async function bundle() {
         'process.env.NODE_ENV': '"production"',
       },
       
-      // Banner for debugging
+      // Banner for debugging - includes EARLY logging before any imports
       banner: {
         js: `
 /**
@@ -131,6 +131,15 @@ async function bundle() {
  * All internal modules are bundled inline.
  * External packages (LiveKit, Google, etc.) are imported at runtime.
  */
+
+// EARLY LOGGING - runs BEFORE any imports to verify file is being loaded
+try {
+  process.stderr.write('[BUNDLE] voice-agent-bundle.js loading at ' + new Date().toISOString() + '\\n');
+  process.stderr.write('[BUNDLE] pid=' + process.pid + ', argv=' + JSON.stringify(process.argv) + '\\n');
+  process.stderr.write('[BUNDLE] cwd=' + process.cwd() + '\\n');
+} catch (e) {
+  // Ignore logging errors
+}
 `.trim(),
       },
       
