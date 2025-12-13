@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni - Zen Aurora</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ========================================
+       BASE RESET & VARIABLES
+       ======================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    :root {
+      /* Ferni Core */
+      --ferni-sage: #4a6741;
+      --ferni-sage-dark: #3d5a35;
+      --ferni-sage-light: #5a7751;
+      --ferni-glow: rgba(74, 103, 65, 0.35);
+      
+      /* Dark Theme */
+      --void: #0a0908;
+      --midnight: #12100e;
+      --twilight: #1a1714;
+      --dusk: #252220;
+      --surface: #2a2623;
+      
+      /* Text */
+      --text-primary: #f5f1e8;
+      --text-secondary: rgba(245, 241, 232, 0.7);
+      --text-muted: rgba(245, 241, 232, 0.4);
+      
+      /* Personas */
+      --peter-teal: #3a6b73;
+      --maya-terracotta: #a67a6a;
+      --alex-indigo: #5a6b8a;
+      --jordan-coral: #c4856a;
+      --nayan-amber: #b8956a;
+      
+      /* Animation */
+      --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: var(--void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* ========================================
+       LAYOUT
+       ======================================== */
+    .page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px 80px;
+    }
+    
+    .header {
+      text-align: center;
+      max-width: 600px;
+      margin-bottom: 60px;
+    }
+    
+    .header-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ferni-sage-light);
+      margin-bottom: 16px;
+    }
+    
+    .header h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 48px;
+      font-weight: 300;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    
+    .header p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    
+    /* Phone Grid */
+    .phone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 48px;
+      max-width: 1200px;
+      width: 100%;
+      justify-items: center;
+    }
+    
+    .phone-wrapper {
+      text-align: center;
+    }
+    
+    .phone-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    
+    /* ========================================
+       ZEN AURORA PHONE
+       ======================================== */
+    .phone {
+      position: relative;
+      width: 340px;
+      height: 680px;
+      border-radius: 48px;
+      overflow: hidden;
+      background: var(--midnight);
+    }
+    
+    /* Aurora Background - Subtle, Atmospheric */
+    .aurora-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    
+    .aurora-gradient {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background: 
+        radial-gradient(ellipse 50% 35% at 30% 70%, rgba(74, 103, 65, 0.12), transparent 50%),
+        radial-gradient(ellipse 40% 30% at 70% 30%, rgba(58, 107, 115, 0.08), transparent 50%),
+        radial-gradient(ellipse 45% 25% at 50% 90%, rgba(184, 149, 106, 0.06), transparent 50%);
+      animation: aurora-drift 30s ease-in-out infinite;
+    }
+    
+    @keyframes aurora-drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(2%, 1%) scale(1.02); }
+      66% { transform: translate(-1%, 2%) scale(0.98); }
+    }
+    
+    /* Subtle noise texture */
+    .noise {
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.015;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    
+    /* Glass overlay */
+    .glass {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, 
+        rgba(18, 16, 14, 0.3) 0%, 
+        rgba(18, 16, 14, 0.6) 50%,
+        rgba(18, 16, 14, 0.4) 100%);
+      backdrop-filter: blur(80px);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 48px;
+    }
+    
+    /* Content */
+    .content {
+      position: relative;
+      z-index: 10;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 56px 28px 40px;
+    }
+    
+    /* ========================================
+       HEADER
+       ======================================== */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .greeting {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    
+    .greeting strong {
+      color: var(--text-secondary);
+    }
+    
+    .menu-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 5px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 10px;
+      transition: background 0.2s ease;
+    }
+    
+    .menu-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .menu-line {
+      height: 1.5px;
+      background: var(--text-muted);
+      border-radius: 1px;
+      transition: all 0.2s ease;
+    }
+    
+    .menu-line:first-child { width: 18px; }
+    .menu-line:last-child { width: 14px; }
+    
+    .menu-btn:hover .menu-line {
+      background: var(--text-secondary);
+    }
+    
+    /* ========================================
+       AVATAR WITH BREATHING RINGS
+       ======================================== */
+    .avatar-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .avatar-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+    }
+    
+    /* Breathing Rings - The heartbeat of Ferni */
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid;
+      pointer-events: none;
+    }
+    
+    /* Ring 1 - Outermost, slowest */
+    .ring-1 {
+      inset: -40px;
+      border-color: rgba(74, 103, 65, 0.08);
+      animation: ring-breathe 6s ease-in-out infinite;
+    }
+    
+    /* Ring 2 */
+    .ring-2 {
+      inset: -28px;
+      border-color: rgba(74, 103, 65, 0.12);
+      animation: ring-breathe 6s ease-in-out infinite;
+      animation-delay: -1.5s;
+    }
+    
+    /* Ring 3 */
+    .ring-3 {
+      inset: -16px;
+      border-color: rgba(74, 103, 65, 0.18);
+      animation: ring-breathe 6s ease-in-out infinite;
+      animation-delay: -3s;
+    }
+    
+    /* Ring 4 - Closest, most visible */
+    .ring-4 {
+      inset: -4px;
+      border-color: rgba(74, 103, 65, 0.25);
+      animation: ring-breathe 6s ease-in-out infinite;
+      animation-delay: -4.5s;
+    }
+    
+    @keyframes ring-breathe {
+      0%, 100% { 
+        transform: scale(1); 
+        opacity: 1;
+        border-color: rgba(74, 103, 65, 0.15);
+      }
+      50% { 
+        transform: scale(1.04); 
+        opacity: 0.7;
+        border-color: rgba(74, 103, 65, 0.25);
+      }
+    }
+    
+    /* Ambient glow under avatar */
+    .avatar-glow {
+      position: absolute;
+      inset: -30px;
+      background: radial-gradient(circle, var(--ferni-glow), transparent 60%);
+      filter: blur(30px);
+      opacity: 0.6;
+      animation: glow-breathe 6s ease-in-out infinite;
+    }
+    
+    @keyframes glow-breathe {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    
+    /* Avatar Core */
+    .avatar {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, var(--ferni-sage-light), var(--ferni-sage-dark));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: avatar-breathe 6s ease-in-out infinite;
+      box-shadow: 
+        0 8px 32px rgba(74, 103, 65, 0.25),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 4px 12px rgba(255, 255, 255, 0.08);
+    }
+    
+    @keyframes avatar-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); }
+    }
+    
+    .initials {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 56px;
+      font-weight: 300;
+      color: white;
+      letter-spacing: 2px;
+    }
+    
+    /* ========================================
+       NAME & STATUS
+       ======================================== */
+    .name-section {
+      margin-top: 36px;
+      text-align: center;
+    }
+    
+    .name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 48px;
+      font-weight: 300;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+    }
+    
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      margin-bottom: 20px;
+    }
+    
+    /* Status Indicator */
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: rgba(74, 103, 65, 0.1);
+      border: 1px solid rgba(74, 103, 65, 0.15);
+      border-radius: 100px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--ferni-sage);
+      border-radius: 50%;
+      animation: status-pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes status-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    
+    .status span {
+      font-size: 13px;
+      color: var(--ferni-sage-light);
+      font-weight: 500;
+    }
+    
+    /* ========================================
+       TEAM
+       ======================================== */
+    .team {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: auto;
+      margin-bottom: 24px;
+    }
+    
+    .team-member {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.4s var(--ease-gentle);
+      opacity: 0.5;
+      position: relative;
+    }
+    
+    .team-member::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .team-member:hover {
+      opacity: 0.9;
+      transform: translateY(-4px);
+    }
+    
+    .team-member.active {
+      opacity: 1;
+    }
+    
+    .team-member.active::before {
+      border-color: rgba(74, 103, 65, 0.5);
+    }
+    
+    .team-add {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      opacity: 0.4;
+    }
+    
+    .team-add:hover {
+      opacity: 0.7;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    /* ========================================
+       CONNECT BUTTON
+       ======================================== */
+    .connect-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(74, 103, 65, 0.3);
+      border-radius: 18px;
+      padding: 18px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.4s var(--ease-gentle);
+      letter-spacing: 0.03em;
+    }
+    
+    .connect-btn:hover {
+      background: var(--ferni-sage);
+      border-color: var(--ferni-sage);
+      color: white;
+      box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+    }
+    
+    /* ========================================
+       CONNECTED STATE
+       ======================================== */
+    .phone.connected .avatar-container {
+      width: 200px;
+      height: 200px;
+    }
+    
+    .phone.connected .initials {
+      font-size: 64px;
+    }
+    
+    .phone.connected .ring-1 { animation-duration: 4s; }
+    .phone.connected .ring-2 { animation-duration: 4s; }
+    .phone.connected .ring-3 { animation-duration: 4s; }
+    .phone.connected .ring-4 { animation-duration: 4s; }
+    
+    .phone.connected .avatar-glow {
+      opacity: 0.9;
+      animation-duration: 4s;
+    }
+    
+    .phone.connected .avatar {
+      box-shadow: 
+        0 8px 48px rgba(74, 103, 65, 0.35),
+        0 0 80px rgba(74, 103, 65, 0.2),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 4px 12px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Waveform - Minimal bars */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 36px;
+      margin-top: 28px;
+    }
+    
+    .wave-bar {
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to top, var(--ferni-sage), var(--ferni-sage-light));
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite;
+    }
+    
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.25); opacity: 0.5; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+    
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.12s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.24s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.12s; }
+    .wave-bar:nth-child(5) { animation-delay: 0s; }
+    
+    .speaking-label {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--ferni-sage-light);
+    }
+    
+    /* Transcript */
+    .transcript {
+      margin-top: auto;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    
+    .transcript-line {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 17px;
+      font-style: italic;
+      color: var(--text-primary);
+      line-height: 1.6;
+      opacity: 0.9;
+    }
+    
+    /* End button */
+    .end-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 16px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .end-btn:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text-secondary);
+    }
+    
+    /* ========================================
+       LISTENING STATE
+       ======================================== */
+    .phone.listening .ring-1,
+    .phone.listening .ring-2,
+    .phone.listening .ring-3,
+    .phone.listening .ring-4 {
+      animation-duration: 8s;
+    }
+    
+    .phone.listening .avatar-glow {
+      opacity: 0.4;
+      animation-duration: 8s;
+    }
+    
+    .phone.listening .avatar {
+      animation-duration: 8s;
+      box-shadow: 
+        0 8px 32px rgba(74, 103, 65, 0.2),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 4px 12px rgba(255, 255, 255, 0.08);
+    }
+    
+    .listening-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    
+    .listening-line {
+      width: 24px;
+      height: 1px;
+      background: rgba(74, 103, 65, 0.3);
+    }
+    
+    .listening-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--ferni-sage);
+      border-radius: 50%;
+      animation: listening-pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes listening-pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    
+    /* ========================================
+       REFLECTION STATE (Post-call)
+       ======================================== */
+    .phone.reflection .avatar-container {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .phone.reflection .initials {
+      font-size: 36px;
+    }
+    
+    .phone.reflection .ring-1 { inset: -24px; }
+    .phone.reflection .ring-2 { inset: -16px; }
+    .phone.reflection .ring-3 { inset: -8px; }
+    .phone.reflection .ring-4 { inset: -2px; }
+    
+    .phone.reflection .avatar-glow {
+      opacity: 0.3;
+      inset: -15px;
+    }
+    
+    .reflection-content {
+      margin-top: 32px;
+      text-align: center;
+    }
+    
+    .reflection-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+      letter-spacing: 0.01em;
+    }
+    
+    .reflection-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+    
+    .reflection-quote {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px;
+      font-style: italic;
+      color: var(--text-primary);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    
+    .reflection-source {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .reflection-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 36px;
+      font-weight: 300;
+      color: var(--text-primary);
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+    
+    .continue-btn {
+      width: 100%;
+      background: var(--ferni-sage);
+      border: none;
+      border-radius: 18px;
+      padding: 18px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-gentle);
+      letter-spacing: 0.03em;
+      margin-top: auto;
+    }
+    
+    .continue-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(74, 103, 65, 0.35);
+    }
+    
+    /* ========================================
+       TEAM VIEW STATE
+       ======================================== */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      width: 100%;
+    }
+    
+    .team-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 18px;
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s var(--ease-gentle);
+    }
+    
+    .team-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    .team-card-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .team-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    
+    .team-card-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    .team-card.locked {
+      opacity: 0.45;
+    }
+    
+    .team-card.locked .team-card-avatar {
+      filter: grayscale(0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <p class="header-eyebrow">Zen Aurora</p>
+      <h1>Breathing Rings, Atmospheric Calm</h1>
+      <p>Concentric rings pulse like a heartbeat—gentle, meditative, alive. The aurora backdrop creates atmosphere without distraction. Every animation serves presence, not spectacle.</p>
+    </div>
+    
+    <div class="phone-grid">
+      
+      <!-- IDLE STATE -->
+      <div class="phone-wrapper">
+        <div class="phone-label">Home / Idle</div>
+        <div class="phone">
+          <div class="aurora-bg">
+            <div class="aurora-gradient"></div>
+          </div>
+          <div class="noise"></div>
+          <div class="glass"></div>
+          
+          <div class="content">
+            <div class="top-bar">
+              <span class="greeting">Welcome back</span>
+              <div class="menu-btn">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+              </div>
+            </div>
+            
+            <div class="avatar-section">
+              <div class="avatar-container">
+                <div class="avatar-glow"></div>
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+                <div class="ring ring-4"></div>
+                <div class="avatar">
+                  <span class="initials">FE</span>
+                </div>
+              </div>
+              
+              <div class="name-section">
+                <h2 class="name">Ferni</h2>
+                <p class="subtitle">building something together</p>
+                <div class="status">
+                  <span class="status-dot"></span>
+                  <span>ready to listen</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="team">
+              <div class="team-member active" style="background: linear-gradient(145deg, var(--ferni-sage-light), var(--ferni-sage-dark));">FE</div>
+              <div class="team-member" style="background: linear-gradient(145deg, #4a7b83, var(--peter-teal));">PJ</div>
+              <div class="team-member" style="background: linear-gradient(145deg, #b68a7a, var(--maya-terracotta));">MS</div>
+              <div class="team-member" style="background: linear-gradient(145deg, #6a7b9a, var(--alex-indigo));">AC</div>
+              <div class="team-member team-add">+</div>
+            </div>
+            
+            <button class="connect-btn">begin</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- CONNECTED - SPEAKING -->
+      <div class="phone-wrapper">
+        <div class="phone-label">Connected / Speaking</div>
+        <div class="phone connected">
+          <div class="aurora-bg">
+            <div class="aurora-gradient" style="animation-duration: 20s;"></div>
+          </div>
+          <div class="noise"></div>
+          <div class="glass"></div>
+          
+          <div class="content">
+            <div class="top-bar">
+              <span class="greeting">Connected</span>
+              <div class="menu-btn">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+              </div>
+            </div>
+            
+            <div class="avatar-section">
+              <div class="avatar-container">
+                <div class="avatar-glow"></div>
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+                <div class="ring ring-4"></div>
+                <div class="avatar">
+                  <span class="initials">FE</span>
+                </div>
+              </div>
+              
+              <div class="waveform">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+              </div>
+              
+              <span class="speaking-label">speaking</span>
+            </div>
+            
+            <div class="transcript">
+              <p class="transcript-line">"I hear what you're saying about feeling overwhelmed. Let's take this one step at a time..."</p>
+            </div>
+            
+            <button class="end-btn">end</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- CONNECTED - LISTENING -->
+      <div class="phone-wrapper">
+        <div class="phone-label">Connected / Listening</div>
+        <div class="phone connected listening">
+          <div class="aurora-bg">
+            <div class="aurora-gradient" style="animation-duration: 35s;"></div>
+          </div>
+          <div class="noise"></div>
+          <div class="glass"></div>
+          
+          <div class="content">
+            <div class="top-bar">
+              <span class="greeting">Connected</span>
+              <div class="menu-btn">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+              </div>
+            </div>
+            
+            <div class="avatar-section">
+              <div class="avatar-container">
+                <div class="avatar-glow"></div>
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+                <div class="ring ring-4"></div>
+                <div class="avatar">
+                  <span class="initials">FE</span>
+                </div>
+              </div>
+              
+              <div class="listening-indicator">
+                <div class="listening-line"></div>
+                <div class="listening-dot"></div>
+                <div class="listening-line"></div>
+              </div>
+            </div>
+            
+            <div class="transcript">
+              <p class="transcript-line">"I've been thinking about what you said last time about priorities..."</p>
+            </div>
+            
+            <button class="end-btn">end</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- REFLECTION (Post-call) -->
+      <div class="phone-wrapper">
+        <div class="phone-label">After Call / Reflection</div>
+        <div class="phone reflection">
+          <div class="aurora-bg">
+            <div class="aurora-gradient" style="animation-duration: 40s;"></div>
+          </div>
+          <div class="noise"></div>
+          <div class="glass"></div>
+          
+          <div class="content">
+            <div class="top-bar">
+              <span class="greeting">Session complete</span>
+              <div class="menu-btn">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+              </div>
+            </div>
+            
+            <div class="avatar-section" style="justify-content: flex-start; padding-top: 16px;">
+              <div class="avatar-container">
+                <div class="avatar-glow"></div>
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+                <div class="ring ring-4"></div>
+                <div class="avatar">
+                  <span class="initials">FE</span>
+                </div>
+              </div>
+              
+              <div class="reflection-content">
+                <h3 class="reflection-title">a moment to reflect</h3>
+                
+                <div class="reflection-card">
+                  <p class="reflection-quote">"You mentioned feeling overwhelmed by choices. Remember: you don't have to have all the answers today."</p>
+                  <p class="reflection-source">— from today's conversation</p>
+                </div>
+                
+                <div class="reflection-stats">
+                  <div class="stat">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">minutes</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">insights</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">day streak</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button class="continue-btn">continue later</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- TEAM VIEW -->
+      <div class="phone-wrapper">
+        <div class="phone-label">Team View</div>
+        <div class="phone">
+          <div class="aurora-bg">
+            <div class="aurora-gradient"></div>
+          </div>
+          <div class="noise"></div>
+          <div class="glass"></div>
+          
+          <div class="content">
+            <div class="top-bar">
+              <span class="greeting"><strong>Your team</strong></span>
+              <div class="menu-btn">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+              </div>
+            </div>
+            
+            <div class="avatar-section" style="justify-content: flex-start; padding-top: 16px;">
+              <div class="team-grid">
+                <div class="team-card">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, var(--ferni-sage-light), var(--ferni-sage-dark));">FE</div>
+                  <div class="team-card-name">Ferni</div>
+                  <div class="team-card-role">Life Coach</div>
+                </div>
+                <div class="team-card">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, #4a7b83, var(--peter-teal));">PJ</div>
+                  <div class="team-card-name">Peter</div>
+                  <div class="team-card-role">Research</div>
+                </div>
+                <div class="team-card">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, #b68a7a, var(--maya-terracotta));">MS</div>
+                  <div class="team-card-name">Maya</div>
+                  <div class="team-card-role">Habits</div>
+                </div>
+                <div class="team-card">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, #6a7b9a, var(--alex-indigo));">AC</div>
+                  <div class="team-card-name">Alex</div>
+                  <div class="team-card-role">Communications</div>
+                </div>
+                <div class="team-card locked">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, #d4956a, var(--jordan-coral));">JT</div>
+                  <div class="team-card-name">Jordan</div>
+                  <div class="team-card-role">🔒 Events</div>
+                </div>
+                <div class="team-card locked">
+                  <div class="team-card-avatar" style="background: linear-gradient(145deg, #c8a57a, var(--nayan-amber));">NP</div>
+                  <div class="team-card-name">Nayan</div>
+                  <div class="team-card-role">🔒 Wisdom</div>
+                </div>
+              </div>
+            </div>
+            
+            <button class="connect-btn" style="margin-top: auto;">start with ferni</button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <script>
+    // Team member clicks
+    document.querySelectorAll('.team-member').forEach(el => {
+      el.addEventListener('click', function() {
+        this.parentElement.querySelectorAll('.active').forEach(a => a.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
+

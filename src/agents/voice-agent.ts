@@ -3267,8 +3267,8 @@ if (!process.send) {
       agentName,
       // Enable production mode for proper settings (port, load thresholds)
       production: true,
-      // RE-ENABLE idle processes now that we have lightweight child entry
-      numIdleProcesses: 1,
+      // DISABLE pre-spawned processes to debug job routing
+      numIdleProcesses: 0,
       // Increase timeout for safety margin
       initializeProcessTimeout: 300 * 1000, // 300 seconds (5 minutes)
     })
