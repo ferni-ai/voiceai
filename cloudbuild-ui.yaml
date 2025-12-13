@@ -25,11 +25,12 @@ steps:
       - '--build-arg=PROJECT_ID=$PROJECT_ID'
       - '--snapshot-mode=redo'
       - '--use-new-run'
+      - '--push-retry=3'
     id: 'build-ui'
     secretEnv: ['GITHUB_PAT', 'ADMIN_API_KEY']
 
-images:
-  - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
+# Note: Kaniko pushes directly, so 'images:' section not needed
+# (can cause false "failed to find" errors due to timing)
 
 options:
   machineType: 'E2_HIGHCPU_8'

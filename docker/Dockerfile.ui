@@ -52,35 +52,33 @@ RUN pnpm build:fast || pnpm build
 
 # ============================================================================
 # Stage 2: Build Frontend (runs in parallel with backend)
+# Note: frontend-typescript uses npm (not pnpm) with package-lock.json
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS frontend-builder
 
 # Build arg for admin API key (passed from Cloud Build)
 ARG VITE_ADMIN_API_KEY=""
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
 # Copy design-system dist (needed for @design-system imports)
 COPY design-system/dist ./design-system/dist/
 
-# Copy frontend package files
-COPY frontend-typescript/package.json frontend-typescript/pnpm-lock.yaml* ./frontend-typescript/
+# Copy frontend package files (npm-based)
+COPY frontend-typescript/package.json frontend-typescript/package-lock.json ./frontend-typescript/
 
 WORKDIR /app/frontend-typescript
 
-# Install with pnpm
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline || npm ci
+# Install with npm (frontend uses npm, not pnpm)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 
 COPY frontend-typescript/ ./
 
 # Set env var for Vite build (bakes into the bundle)
 ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
 
-RUN pnpm build || npm run build
+RUN npm run build
 
 # ============================================================================
 # Stage 3: Pull pre-built ferni-speaker (instead of building Rust)
