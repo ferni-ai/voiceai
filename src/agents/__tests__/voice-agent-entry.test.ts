@@ -10,9 +10,9 @@
  * @module agents/__tests__/voice-agent-entry
  */
 
-import { describe, expect, it } from 'vitest';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { describe, expect, it } from 'vitest';
 
 // Get the directory of the current file
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -202,7 +202,9 @@ describe('Voice Agent Entry - Helper Functions', () => {
     const { parsePersonaFromMetadata } = await import('../voice-agent/index.js');
 
     expect(parsePersonaFromMetadata(JSON.stringify({ persona_id: 'ferni' }))).toBe('ferni');
-    expect(parsePersonaFromMetadata(JSON.stringify({ personaId: 'peter-john' }))).toBe('peter-john');
+    expect(parsePersonaFromMetadata(JSON.stringify({ personaId: 'peter-john' }))).toBe(
+      'peter-john'
+    );
     expect(parsePersonaFromMetadata(undefined)).toBeNull();
     expect(parsePersonaFromMetadata('invalid')).toBeNull();
   });

@@ -5332,167 +5332,119 @@ img[loading='lazy']:not([data-src]) {
 }
 
 /* ============================================================================
-   OUR STORY SECTION - The Human Story of AI Building AI
+   OUR STORY SECTION - Apple-Bold Storytelling
    ============================================================================ */
 
 .story {
-  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
-  padding: 120px 0;
+  background: var(--color-bg-primary);
 }
 
-.story__content {
-  max-width: 680px;
+/* Each block is a full-breath moment */
+.story__block {
+  text-align: center;
+  padding: clamp(80px, 15vh, 140px) var(--space-6);
+  max-width: 900px;
   margin: 0 auto;
 }
 
-.story__chapter {
-  margin-bottom: var(--space-10);
+.story__block:not(:last-child) {
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.story__chapter:last-of-type {
-  margin-bottom: var(--space-12);
-}
-
-.story__text {
-  font-family: var(--font-body);
-  font-size: var(--text-lg);
-  line-height: 1.75;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-4);
-}
-
-.story__text:last-child {
-  margin-bottom: 0;
-}
-
-.story__text--lead {
-  font-size: var(--text-xl);
-  line-height: 1.6;
-  color: var(--color-text-primary);
-}
-
-.story__text--highlight {
+.story__eyebrow {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.4;
-  color: var(--color-text-primary);
-  text-align: center;
-  padding: var(--space-6) 0;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ferni-green);
+  margin-bottom: var(--space-6);
 }
 
-.story__text--small {
-  font-size: var(--text-base);
+/* Huge headlines - the Apple way */
+.story__headline {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-8);
+  letter-spacing: -0.02em;
+}
+
+.story__headline em {
+  color: var(--color-ferni-green);
+  font-style: italic;
+}
+
+/* Minimal supporting text */
+.story__subtext {
+  font-family: var(--font-body);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Bold punchline */
+.story__punchline {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-ferni-green);
+  margin-top: var(--space-10);
+}
+
+/* Subtle aside */
+.story__aside {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-style: italic;
   color: var(--color-text-muted);
-  font-style: italic;
+  margin-top: var(--space-6);
 }
 
-.story__text strong {
+/* Final block styling */
+.story__block--final {
+  padding-top: clamp(60px, 12vh, 100px);
+  padding-bottom: clamp(60px, 12vh, 100px);
+}
+
+.story__closer {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
-.story__text em {
-  font-style: italic;
-  color: var(--color-accent);
+  margin-bottom: var(--space-6);
 }
 
 .story__signature {
-  text-align: center;
-  padding-top: var(--space-8);
-  border-top: 1px solid var(--color-border-subtle);
-  margin-top: var(--space-8);
-}
-
-.story__author {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-1);
+  color: var(--color-ferni-green);
 }
 
-.story__author-sub {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-/* Tablet landscape */
-@media (max-width: 1024px) {
-  .story {
-    padding: 100px 0;
-  }
-}
-
-/* Tablet portrait */
+/* Mobile adjustments */
 @media (max-width: 768px) {
-  .story {
-    padding: 80px 0;
+  .story__block {
+    padding: clamp(60px, 12vh, 100px) var(--space-5);
   }
 
-  .story__content {
-    max-width: 100%;
-    padding: 0 var(--space-5);
+  .story__headline {
+    font-size: clamp(2rem, 8vw, 3rem);
   }
 
-  .story__text {
-    font-size: var(--text-base);
-  }
-
-  .story__text--lead {
-    font-size: var(--text-lg);
-  }
-
-  .story__text--highlight {
-    font-size: var(--text-xl);
-    padding: var(--space-5) 0;
-  }
-
-  .story__chapter {
-    margin-bottom: var(--space-8);
-  }
-
-  .story__author {
-    font-size: var(--text-lg);
+  .story__subtext {
+    font-size: 1.125rem;
   }
 }
 
-/* Mobile */
+/* Small mobile */
 @media (max-width: 480px) {
-  .story {
-    padding: 60px 0;
-  }
-
-  .story__content {
-    padding: 0 var(--space-4);
-  }
-
-  .story__text {
-    font-size: var(--text-sm);
-    line-height: 1.7;
-  }
-
-  .story__text--lead {
-    font-size: var(--text-base);
-  }
-
-  .story__text--highlight {
-    font-size: var(--text-lg);
-    padding: var(--space-4) 0;
-  }
-
-  .story__signature {
-    padding-top: var(--space-6);
-    margin-top: var(--space-6);
-  }
-
-  .story__author {
-    font-size: var(--text-base);
-  }
-
-  .story__author-sub {
-    font-size: var(--text-xs);
+  .story__block {
+    padding: clamp(48px, 10vh, 80px) var(--space-4);
   }
 }
 

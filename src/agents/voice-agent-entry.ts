@@ -279,7 +279,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Use 'as unknown as PersonaConfig' for fallback since we don't have all required fields
     const sessionPersona = (persona || {
       id: personaId,
-      name: personaId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      name: personaId
+        .split('-')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' '),
       voice: { voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091', provider: 'cartesia' },
       systemPrompt: cachedPrompt || `You are ${personaId}, a helpful AI assistant.`,
     }) as unknown as PersonaConfig;
@@ -484,7 +487,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant...\n`);
     const participant = await Promise.race([
       ctx.waitForParticipant(),
-      new Promise<null>((resolve) => { setTimeout(() => { resolve(null); }, 2000); }),
+      new Promise<null>((resolve) => {
+        setTimeout(() => {
+          resolve(null);
+        }, 2000);
+      }),
     ]);
 
     if (participant) {
@@ -548,7 +555,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       autoOptimizer,
     });
     session.on(voice!.AgentSessionEventTypes.UserInputTranscribed, (event: unknown) => {
-      transcriptHandler.handler(event as import('./voice-agent/transcript-handler.js').TranscriptEvent);
+      transcriptHandler.handler(
+        event as import('./voice-agent/transcript-handler.js').TranscriptEvent
+      );
     });
 
     // HANDOFF HANDLER
@@ -604,9 +613,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // FRONTEND PUBLISHER
     try {
-      const { initializeFrontendPublisher, getFrontendPublisher } = await import(
-        './realtime/index.js'
-      );
+      const { initializeFrontendPublisher, getFrontendPublisher } =
+        await import('./realtime/index.js');
       initializeFrontendPublisher(ctx.room);
 
       const { initFrontendSignal } = await import('../services/frontend-signal.js');
@@ -618,7 +626,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       });
       process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
     } catch (pubErr) {
-      process.stderr.write(`[voice-agent-entry] Frontend publisher failed (non-fatal): ${pubErr}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Frontend publisher failed (non-fatal): ${pubErr}\n`
+      );
     }
 
     // =========================================================================
@@ -644,7 +654,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       });
     } catch (greetingErr) {
       // Fallback to simple greeting
-      process.stderr.write(`[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`
+      );
       const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
       await session.say(fallbackGreeting).waitForPlayout();
     }
