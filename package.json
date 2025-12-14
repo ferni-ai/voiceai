@@ -283,9 +283,6 @@
     "ws": "8.18.3",
     "zod": "4.1.13"
   },
-  "optionalDependencies": {
-    "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0"
-  },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
     "@clack/prompts": "^0.11.0",
@@ -315,6 +312,7 @@
     "vitest": "^4.0.14"
   },
   "optionalDependencies": {
+    "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0",
     "node-pty": "1.0.0"
   },
   "engines": {

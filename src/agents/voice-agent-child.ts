@@ -377,8 +377,9 @@ export default defineAgent({
         for (const url of preconnectUrls) {
           fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
             .then(() => log('PREWARM', `🔗 Preconnected to ${new URL(url).hostname}`))
-            .catch(() => {
-              /* Best effort - ignore failures */
+            .catch((err) => {
+              // Best effort preconnect - log at debug level for troubleshooting
+              log('PREWARM', `⚠️ Preconnect failed for ${new URL(url).hostname}: ${err}`);
             });
         }
 

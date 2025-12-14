@@ -166,7 +166,13 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           text: event.transcript,
           isSpeaking: true,
           // Detect tone from voice emotion if available
-          tone: userData.voiceEmotion?.primary as 'neutral' | 'excited' | 'sad' | 'frustrated' | 'curious' | undefined,
+          tone: userData.voiceEmotion?.primary as
+            | 'neutral'
+            | 'excited'
+            | 'sad'
+            | 'frustrated'
+            | 'curious'
+            | undefined,
         });
       } catch {
         // Sesame processing is non-critical
@@ -257,8 +263,9 @@ function sendPartialTranscript(room: Room, transcript: string): void {
         ),
         { reliable: false } // Use unreliable for partial transcripts (low latency)
       )
-      .catch(() => {
-        // Non-blocking
+      .catch((err) => {
+        // Non-blocking - log at debug for troubleshooting transcript publish failures
+        getLogger().debug({ error: String(err) }, 'Transcript publish failed (non-critical)');
       });
   }
 }

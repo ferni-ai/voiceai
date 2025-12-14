@@ -123,7 +123,16 @@ export function getVoiceIdForPersona(personaId: string): string {
     'generic-advisor': VOICE_IDS.GENERIC,
   };
 
-  return defaults[normalized] || VOICE_IDS.FERNI;
+  const voiceId = defaults[normalized];
+  if (!voiceId) {
+    // FIX: Log warning when falling back to Ferni's voice for debugging
+    log.warn(
+      { personaId, normalized },
+      '⚠️ Unknown persona ID in voice lookup - falling back to Ferni voice'
+    );
+    return VOICE_IDS.FERNI;
+  }
+  return voiceId;
 }
 
 // =============================================================================

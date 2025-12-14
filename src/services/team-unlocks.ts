@@ -489,12 +489,16 @@ export function getTeamUnlockState(
 
 /**
  * Check if a specific team member is available for a user.
+ *
+ * NOTE: This inherits BYPASS_TEAM_UNLOCKS behavior from getTeamUnlockState().
+ * When BYPASS_TEAM_UNLOCKS=true, all members are considered available.
  */
 export function isTeamMemberAvailable(
   memberId: TeamMemberId,
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
+  // Note: getTeamUnlockState handles BYPASS_TEAM_UNLOCKS check
   const state = getTeamUnlockState(profile, tier);
   return state.unlockedMembers.includes(memberId);
 }

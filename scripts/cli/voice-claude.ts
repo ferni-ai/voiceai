@@ -45,6 +45,24 @@ const CONFIG = {
 };
 
 // ============================================================================
+// SOUND EFFECTS
+// ============================================================================
+
+const SOUNDS_DIR = join(PROJECT_ROOT, 'design-system', 'assets', 'sounds');
+
+function playSound(soundName: 'connect' | 'disconnect'): void {
+  const soundPath = join(SOUNDS_DIR, `${soundName}.mp3`);
+  if (!existsSync(soundPath)) return;
+
+  // Use afplay on macOS, aplay on Linux (both are non-blocking with &)
+  const player = process.platform === 'darwin' ? 'afplay' : 'aplay';
+  spawn(player, [soundPath], {
+    stdio: 'ignore',
+    detached: true,
+  }).unref();
+}
+
+// ============================================================================
 // MCP NARRATION QUEUE (Reads from ferni-mcp-server.ts)
 // ============================================================================
 
@@ -502,12 +520,85 @@ async function connectVoiceToClaude(
   });
 
   room.on(RoomEvent.Disconnected, () => {
+    playSound('disconnect');
     console.log(`\n${colors.yellow}Disconnected from voice${colors.reset}`);
   });
 
   room.on(RoomEvent.ParticipantConnected, (participant) => {
     if (participant.identity?.includes('agent')) {
+      playSound('connect');
       console.log(`${colors.green}Ferni joined - ready to help with coding!${colors.reset}`);
+    }
+  });
+
+  room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+    if (participant.identity?.includes('agent')) {
+      playSound('disconnect');
+      console.log(`${colors.yellow}Ferni left${colors.reset}`);
+    }
+  });
+
+  // Track audio playback processes for cleanup
+  let audioPlayProcess: ChildProcess | null = null;
+
+  // Handle audio tracks from Ferni - PIPE TO SPEAKERS
+  room.on(RoomEvent.TrackSubscribed, async (track, publication, participant) => {
+    // Only handle audio tracks from the agent
+    if (track.kind !== lk.TrackKind.KIND_AUDIO) return;
+    if (!participant.identity?.includes('agent')) return;
+
+    if (options.debug) {
+      console.log(`${colors.dim}[TRACK] Subscribed to audio from ${participant.identity}${colors.reset}`);
+    }
+
+    try {
+      const { AudioStream } = lk;
+
+      // Create audio stream to receive frames
+      const audioStream = new AudioStream(track);
+
+      // Spawn sox play process to play audio
+      // Format: 16-bit signed PCM, 48kHz (LiveKit default), mono
+      const PLAYBACK_SAMPLE_RATE = 48000;
+      const PLAYBACK_CHANNELS = 1;
+
+      audioPlayProcess = spawn('sox', [
+        '-t', 'raw',              // Input is raw PCM
+        '-b', '16',               // 16-bit
+        '-e', 'signed-integer',   // Signed integers
+        '-r', String(PLAYBACK_SAMPLE_RATE),  // Sample rate (48kHz default for LiveKit)
+        '-c', String(PLAYBACK_CHANNELS),     // Mono
+        '-',                      // Read from stdin
+        '-d',                     // Output to default audio device (speakers)
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      audioPlayProcess.on('error', (err) => {
+        console.log(`${colors.yellow}Audio playback error: ${err.message}${colors.reset}`);
+      });
+
+      audioPlayProcess.stderr?.on('data', (data) => {
+        // Suppress sox WARN messages about audio format
+        const msg = data.toString();
+        if (!msg.includes('WARN') && options.debug) {
+          console.log(`${colors.dim}[sox] ${msg}${colors.reset}`);
+        }
+      });
+
+      console.log(`${colors.green}Audio playback active - you'll hear Ferni speak!${colors.reset}`);
+
+      // Pipe audio frames to sox
+      for await (const frame of audioStream) {
+        if (audioPlayProcess && !audioPlayProcess.killed && audioPlayProcess.stdin) {
+          // Convert samples to Buffer (16-bit signed PCM)
+          const samples = frame.data;
+          const buffer = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
+          audioPlayProcess.stdin.write(buffer);
+        }
+      }
+    } catch (err) {
+      console.log(`${colors.yellow}Audio stream error: ${(err as Error).message}${colors.reset}`);
     }
   });
 
@@ -685,10 +776,13 @@ ${colors.dim}Commands:${colors.reset}
     output: process.stdout,
   });
 
-  // Cleanup helper for mic process
-  const cleanupMic = () => {
+  // Cleanup helper for mic and audio playback processes
+  const cleanupAudio = () => {
     if (micProcess && !micProcess.killed) {
       micProcess.kill();
+    }
+    if (audioPlayProcess && !audioPlayProcess.killed) {
+      audioPlayProcess.kill();
     }
   };
 
@@ -698,7 +792,7 @@ ${colors.dim}Commands:${colors.reset}
     if (cmd === 'exit' || cmd === 'quit') {
       console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
       if (mcpPollInterval) clearInterval(mcpPollInterval);
-      cleanupMic();
+      cleanupAudio();
       claudeState.process?.kill();
       await room.disconnect();
       dispose();
@@ -720,7 +814,7 @@ ${colors.dim}Commands:${colors.reset}
   process.on('SIGINT', async () => {
     console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
     if (mcpPollInterval) clearInterval(mcpPollInterval);
-    cleanupMic();
+    cleanupAudio();
     claudeState.process?.kill();
     await room.disconnect();
     dispose();

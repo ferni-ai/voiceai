@@ -1074,6 +1074,9 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
 
       if (!room?.localParticipant) {
         log.error('No room or local participant for handoff');
+        // FIX: Show user feedback when room is unavailable
+        const { toast } = await import('./toast.ui.js');
+        toast.error('Connection lost. Please reconnect.');
         return;
       }
 
@@ -1094,6 +1097,10 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
       closeMarketplace();
     } catch (err) {
       log.error('Failed to send handoff request:', err);
+      // FIX: Show user feedback on handoff failure
+      const { toast } = await import('./toast.ui.js');
+      toast.error('Handoff failed. Please try again.');
+      soundUI.play('click');
     }
   } else {
     // Preview the persona theme when disconnected

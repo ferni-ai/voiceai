@@ -12,17 +12,11 @@
  * @module NotificationDelivery
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import type { OutreachItem } from './outreach-integration.js';
-import {
-  routeToPersona,
-  formatEmailMessage,
-  formatPushNotification,
-  getPersonaGreeting,
-  getOutreachVoiceConfig,
-  type FormatContext,
-} from '../outreach/persona-outreach-formatter.js';
+import { getPersonaColor } from '../../config/brand-colors.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { getOutreachVoiceConfig, routeToPersona } from '../outreach/persona-outreach-formatter.js';
+import type { OutreachItem } from './outreach-integration.js';
 
 const log = createLogger({ module: 'NotificationDelivery' });
 
@@ -455,19 +449,10 @@ function getPushTitle(item: OutreachItem): string {
   }
 }
 
-// Persona brand colors for emails
-const PERSONA_COLORS: Record<string, string> = {
-  ferni: '#4a6741', // Sage green
-  'maya-santos': '#a67a6a', // Warm terracotta
-  'alex-chen': '#5a6b8a', // Professional blue
-  'peter-john': '#3a6b73', // Teal
-  'jordan-taylor': '#c4856a', // Warm coral
-  'nayan-patel': '#7a6b8a', // Calm purple
-  'jack-b': '#9a7b5a', // Warm brown
-};
+// Persona brand colors now centralized in config/brand-colors.ts
 
 function generateEmailHtml(item: OutreachItem, name: string, personaId = 'ferni'): string {
-  const accentColor = PERSONA_COLORS[personaId] || PERSONA_COLORS.ferni;
+  const accentColor = getPersonaColor(personaId);
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0];
 

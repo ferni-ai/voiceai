@@ -11,8 +11,10 @@
  * This powers the automated recommendation and experimentation system.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import type { FeedbackRecord } from './feedback-collector.js';
+
+const log = createLogger({ module: 'PatternAnalyzer' });
 
 // ============================================================================
 // TYPES
@@ -158,8 +160,9 @@ export class PatternAnalyzer {
         .then(({ optimizationPersistence }) => {
           optimizationPersistence.bufferSession(session);
         })
-        .catch(() => {
-          // Persistence failure is non-critical
+        .catch((err) => {
+          // Persistence failure is non-critical - log at debug for troubleshooting
+          log.debug({ error: String(err) }, 'Session persistence failed (non-critical)');
         });
 
       // Keep only last 1000 sessions in memory

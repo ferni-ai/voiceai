@@ -8,6 +8,10 @@
  * - First-time vs returning cameo variations
  */
 
+import {
+  getPersonaColor as getBrandPersonaColor,
+  getPersonaGlowColor as getBrandPersonaGlowColor,
+} from '../../config/brand-colors.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { PERSONA_CAMEO_CONFIGS, getRandomHandback, getRandomIntroduction } from './cameo-timing.js';
 import type { CameoPersonaId, CameoTriggerType } from './types.js';
@@ -389,16 +393,20 @@ export function getBestPersonaForTopic(topic: string): CameoPersonaId | null {
 
 /**
  * Get persona color for UI transitions
+ * Uses centralized brand colors with cameo config override
  */
 export function getPersonaColor(personaId: CameoPersonaId): string {
-  return PERSONA_CAMEO_CONFIGS[personaId]?.color || '#4a6741'; // Ferni green fallback
+  // Prefer cameo config, fall back to centralized brand colors
+  return PERSONA_CAMEO_CONFIGS[personaId]?.color || getBrandPersonaColor(personaId);
 }
 
 /**
  * Get persona glow color for avatar effects
+ * Uses centralized brand colors with cameo config override
  */
 export function getPersonaGlowColor(personaId: CameoPersonaId): string {
-  return PERSONA_CAMEO_CONFIGS[personaId]?.glowColor || 'rgba(74, 103, 65, 0.5)';
+  // Prefer cameo config, fall back to centralized brand colors
+  return PERSONA_CAMEO_CONFIGS[personaId]?.glowColor || getBrandPersonaGlowColor(personaId);
 }
 
 /**

@@ -188,6 +188,59 @@
   "common": {
     "learnMore": "Learn more",
     "getStarted": "Get Started",
-    "scrollToExplore": "Scroll to explore"
+    "getStartedFree": "Get Started Free",
+    "scrollToExplore": "Scroll to explore",
+    "callPhone": "Call"
+  },
+
+  "faq": {
+    "sectionTitle": "Frequently Asked Questions",
+    "eyebrow": "Questions & Answers",
+    "headline": "Frequently asked",
+    "headlineBreak": "questions.",
+    "items": []
+  },
+
+  "accessibility": {
+    "nextStory": "Next story",
+    "toggleMenu": "Toggle menu",
+    "languageSelector": "Select language",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": { "fullName": "Peter John" },
+    "maya": { "fullName": "Maya Santos" },
+    "alex": { "fullName": "Alex Chen" },
+    "jordan": { "fullName": "Jordan Taylor" }
+  },
+
+  "footer": {
+    "tagline": "Someone who actually understands.",
+    "copyright": "Ferni AI. All rights reserved.",
+    "allRightsReserved": "All rights reserved.",
+    "madeBy": "Made with ♥ by AI, for humans.",
+    "product": "Product",
+    "company": "Company",
+    "developers": "Developers",
+    "connect": "Connect",
+    "legal": "Legal"
+  },
+
+  "hero": {
+    "eyebrow": "Meet Your AI Coach",
+    "headline": "Better than",
+    "headlineAccent": "human.",
+    "subhead": "Finally, someone who actually listens.",
+    "subheadLine2": "And remembers everything.",
+    "cta": {
+      "primary": "Meet Ferni",
+      "secondary": "Call Ferni",
+      "talkNow": "Talk to Ferni now"
+    }
   }
 }

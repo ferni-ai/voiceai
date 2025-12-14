@@ -514,7 +514,7 @@ button {
   background: 0 0;
   border: none;
   cursor: pointer;
-  padding: 10px;
+  padding: var(--space-2_5);
   z-index: 9999;
 }
 .hamburger-line {
@@ -1173,7 +1173,7 @@ button {
 }
 .feature-hero {
   text-align: center;
-  padding: 200px 20px;
+  padding: var(--space-48) var(--space-5);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -1203,7 +1203,7 @@ button {
   grid-template-columns: 1fr 1fr;
   min-height: 80vh;
   align-items: center;
-  padding: 100px 60px;
+  padding: var(--space-24) var(--space-16);
   gap: var(--space-20);
 }
 .feature-block.reverse {
@@ -1458,7 +1458,7 @@ button {
   display: flex;
   justify-content: center;
   gap: var(--space-16);
-  padding: 100px 20px;
+  padding: var(--space-24) var(--space-5);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
 }
@@ -1495,7 +1495,7 @@ button {
   }
 }
 .demo {
-  padding: 160px 0;
+  padding: var(--space-40) 0;
   background: var(--color-bg-secondary);
 }
 .demo-container {
@@ -1566,7 +1566,7 @@ button {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 14px 18px;
+  padding: var(--space-3_5) 18px;
   font-size: 15px;
   color: var(--color-text);
   line-height: 1.5;
@@ -1587,7 +1587,7 @@ button {
   margin-bottom: var(--space-6);
 }
 .demo-suggestion {
-  padding: 10px 16px;
+  padding: var(--space-2_5) var(--space-4);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -1686,7 +1686,7 @@ button {
   text-decoration: underline;
 }
 .team {
-  padding: 160px 0;
+  padding: var(--space-40) 0;
   background: var(--color-bg);
 }
 .team-carousel {
@@ -1701,7 +1701,7 @@ button {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: 48px 32px;
+  padding: var(--space-12) var(--space-8);
   text-align: center;
   transition: all var(--transition-slow);
   box-shadow: var(--shadow-sm);
@@ -1783,7 +1783,7 @@ button {
   line-height: 1.6;
 }
 .how-it-works {
-  padding: 160px 0;
+  padding: var(--space-40) 0;
   background: var(--color-bg-secondary);
 }
 .connect-options {
@@ -1791,13 +1791,13 @@ button {
   grid-template-columns: 1fr auto 1fr;
   gap: var(--space-10);
   align-items: center;
-  margin-bottom: 80px;
+  margin-bottom: var(--space-20);
 }
 .connect-option {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: 48px 40px;
+  padding: var(--space-12) var(--space-10);
   text-align: center;
   transition: all var(--transition-slow);
   box-shadow: var(--shadow-sm);
@@ -1900,7 +1900,7 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 16px 24px;
+  padding: var(--space-4) var(--space-6);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -1928,7 +1928,7 @@ button {
   color: var(--color-text-muted);
 }
 .cta {
-  padding: 200px 0;
+  padding: var(--space-48) 0;
   position: relative;
   overflow: hidden;
   background: var(--color-bg);
@@ -1976,7 +1976,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
-  padding: 16px 32px;
+  padding: var(--space-4) var(--space-8);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -2003,7 +2003,7 @@ button {
   letter-spacing: 0.02em;
 }
 .testimonials {
-  padding: 160px 0;
+  padding: var(--space-40) 0;
   background: var(--color-bg-secondary);
   position: relative;
 }
@@ -2050,7 +2050,7 @@ button {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider);
-  padding: 6px 12px;
+  padding: var(--space-1_5) var(--space-3);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
 }
@@ -2101,7 +2101,7 @@ button {
   color: var(--color-text-muted);
 }
 .faq {
-  padding: 160px 0;
+  padding: var(--space-40) 0;
   background: var(--color-bg);
 }
 .faq-grid {
@@ -2168,12 +2168,12 @@ button {
 }
 .developers {
   background: linear-gradient(180deg, var(--color-bg) 0, #e8e4db 100%);
-  padding: 120px 0;
+  padding: var(--space-28) 0;
   position: relative;
 }
 .developers .section-header {
   text-align: center;
-  margin-bottom: 64px;
+  margin-bottom: var(--space-16);
 }
 .developers .section-description {
   max-width: 600px;
@@ -2186,12 +2186,12 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-6);
-  margin-bottom: 64px;
+  margin-bottom: var(--space-16);
 }
 .developer-card {
   background: #fff;
   border-radius: var(--radius-lg);
-  padding: 40px 32px;
+  padding: var(--space-10) var(--space-8);
   border: 1px solid var(--color-border);
   transition: all var(--transition-base);
   position: relative;
@@ -2251,7 +2251,7 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 6px 12px;
+  padding: var(--space-1_5) var(--space-3);
   border-radius: var(--radius-sm);
 }
 .developer-card__link {
@@ -2284,7 +2284,7 @@ button {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.7);
   max-width: 600px;
-  margin: 0 auto 32px;
+  margin: 0 auto var(--space-8);
 }
 .developer-cta__form {
   display: flex;
@@ -2294,7 +2294,7 @@ button {
 }
 .developer-cta__input {
   flex: 1;
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   font-size: 16px;
   border: none;
   border-radius: var(--radius-md);
@@ -2313,7 +2313,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 16px 28px;
+  padding: var(--space-4) var(--space-7);
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
@@ -2332,7 +2332,7 @@ button {
 .developer-cta__note {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 @media (max-width: 1024px) {
   .developers-grid {
@@ -2340,7 +2340,7 @@ button {
     gap: var(--space-5);
   }
   .developer-cta {
-    padding: 48px 32px;
+    padding: var(--space-12) var(--space-8);
   }
   .developer-cta__form {
     flex-direction: column;
@@ -2351,10 +2351,10 @@ button {
     padding: var(--space-20) 0;
   }
   .developer-card {
-    padding: 32px 24px;
+    padding: var(--space-8) var(--space-6);
   }
   .developer-cta {
-    padding: 40px 24px;
+    padding: var(--space-10) var(--space-6);
   }
   .developer-cta__title {
     font-size: 24px;
@@ -2372,7 +2372,7 @@ button {
 }
 .privacy-dark__header {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: var(--space-20);
   opacity: 0;
   transform: translateY(30px);
   transition:
@@ -2400,7 +2400,7 @@ button {
   letter-spacing: -0.03em;
   /* High contrast: white text on dark background */
   color: #f5f1e8;
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   /* Override gradient for dark backgrounds */
   background: none;
   -webkit-background-clip: unset;
@@ -2420,7 +2420,7 @@ button {
 }
 .privacy-dark__card {
   text-align: center;
-  padding: 32px 20px;
+  padding: var(--space-8) var(--space-5);
   opacity: 1;
   transform: translateY(0);
   transition:
@@ -2463,7 +2463,7 @@ button {
   font-size: 19px;
   font-weight: 600;
   color: #f5f1e8 !important; /* Light cream text on dark background */
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   letter-spacing: -0.01em;
 }
 .privacy-dark__card-text {
@@ -2474,7 +2474,7 @@ button {
 }
 .privacy-dark__footer {
   text-align: center;
-  margin-top: 60px;
+  margin-top: var(--space-16);
 }
 .privacy-dark__link {
   display: inline-block;
@@ -2498,7 +2498,7 @@ button {
     padding: var(--space-20) 0;
   }
   .privacy-dark__header {
-    margin-bottom: 48px;
+    margin-bottom: var(--space-12);
   }
   .privacy-dark__subhead {
     font-size: 17px;
@@ -2508,7 +2508,7 @@ button {
     gap: var(--space-4);
   }
   .privacy-dark__card {
-    padding: 24px 16px;
+    padding: var(--space-6) var(--space-4);
   }
 }
 .newsletter {
@@ -2551,7 +2551,7 @@ button {
   font-size: 32px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .newsletter-description {
   font-size: 16px;
@@ -2570,7 +2570,7 @@ button {
 }
 .form-group input {
   flex: 1;
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -2595,7 +2595,7 @@ button {
   display: none;
   align-items: center;
   gap: var(--space-3);
-  padding: 20px 24px;
+  padding: var(--space-5) var(--space-6);
   background: rgba(61, 122, 82, 0.1);
   border: 1px solid rgba(61, 122, 82, 0.3);
   border-radius: var(--radius-md);
@@ -2610,7 +2610,7 @@ button {
   display: none;
 }
 .footer {
-  padding: 80px 0 40px;
+  padding: var(--space-20) 0 var(--space-10);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
 }
@@ -2694,7 +2694,7 @@ button {
   color: var(--color-accent);
 }
 .footer-bottom {
-  padding-top: 40px;
+  padding-top: var(--space-10);
   border-top: 1px solid var(--color-border);
   text-align: center;
   display: flex;
@@ -2804,7 +2804,7 @@ button {
   }
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 40px 20px;
+    gap: var(--space-10) var(--space-5);
   }
 }
 @media (max-width: 768px) {
@@ -2843,13 +2843,13 @@ button {
     display: none;
   }
   .feature-hero {
-    padding: 120px 20px;
+    padding: var(--space-28) var(--space-5);
   }
   .feature-hero-headline {
     font-size: clamp(48px, 12vw, 80px);
   }
   .feature-block {
-    padding: 60px 20px;
+    padding: var(--space-16) var(--space-5);
     min-height: auto;
     gap: var(--space-10);
   }
@@ -2872,7 +2872,7 @@ button {
   .trust-row {
     flex-direction: column;
     gap: var(--space-5);
-    padding: 60px 20px;
+    padding: var(--space-16) var(--space-5);
   }
   .features-grid,
   .team-track {
@@ -2912,10 +2912,10 @@ button {
   .features,
   .how-it-works,
   .team {
-    padding: 100px 0;
+    padding: var(--space-24) 0;
   }
   .cta {
-    padding: 120px 20px;
+    padding: var(--space-28) var(--space-5);
   }
   .cta-options {
     flex-direction: column;
@@ -2925,7 +2925,7 @@ button {
     display: none;
   }
   .team-card {
-    padding: 32px 24px;
+    padding: var(--space-8) var(--space-6);
   }
   .team-avatar {
     width: 60px;
@@ -2947,10 +2947,10 @@ button {
   }
   .footer-links {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: var(--space-8);
   }
   .newsletter-card {
-    padding: 32px 24px;
+    padding: var(--space-8) var(--space-6);
     border-radius: var(--radius-xl);
   }
   .newsletter-headline {
@@ -2968,12 +2968,12 @@ button {
     grid-template-columns: 1fr;
   }
   .testimonials {
-    padding: 100px 0;
+    padding: var(--space-24) 0;
   }
 }
 @media (max-width: 768px) {
   .faq {
-    padding: 100px 0;
+    padding: var(--space-24) 0;
   }
   .faq-question {
     padding: var(--space-5);
@@ -2982,13 +2982,13 @@ button {
     font-size: 15px;
   }
   .faq-answer p {
-    padding: 0 20px 20px;
+    padding: 0 var(--space-5) var(--space-5);
     font-size: 14px;
   }
 }
 @media (max-width: 768px) {
   .newsletter {
-    padding: 60px 0;
+    padding: var(--space-16) 0;
   }
   .newsletter-card {
     flex-direction: column;
@@ -3003,12 +3003,12 @@ button {
   }
 }
 .ai-company {
-  padding: 120px 0;
+  padding: var(--space-28) 0;
   background: linear-gradient(180deg, var(--color-bg) 0, var(--color-bg-secondary) 100%);
 }
 .ai-company .section-header {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: var(--space-20);
 }
 .company-ceo {
   max-width: 600px;
@@ -3083,14 +3083,14 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-ferni);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .ceo-name {
   font-family: var(--font-display);
   font-size: 32px;
   font-weight: 700;
   color: var(--color-text);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
 }
 .ceo-bio {
   font-family: var(--font-body);
@@ -3101,7 +3101,7 @@ button {
 }
 .company-founders {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: var(--space-20);
 }
 .founders-label {
   font-family: var(--font-body);
@@ -3110,13 +3110,13 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-muted);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 .founders-subtitle {
   font-family: var(--font-body);
   font-size: 15px;
   color: var(--color-text-secondary);
-  margin: 0 0 40px;
+  margin: 0 0 var(--space-10);
 }
 .founders-grid {
   display: flex;
@@ -3182,13 +3182,13 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-muted);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 .team-section-subtitle {
   font-family: var(--font-body);
   font-size: 15px;
   color: var(--color-text-secondary);
-  margin: 0 0 40px;
+  margin: 0 0 var(--space-10);
 }
 .employees-grid {
   display: flex;
@@ -3202,7 +3202,7 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 16px 24px;
+  padding: var(--space-4) var(--space-6);
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
@@ -3250,7 +3250,7 @@ button {
 }
 .company-tagline {
   text-align: center;
-  padding-top: 40px;
+  padding-top: var(--space-10);
   border-top: 1px solid var(--color-border);
 }
 .company-tagline p {
@@ -3267,7 +3267,7 @@ button {
   .ceo-card {
     flex-direction: column;
     text-align: center;
-    padding: 32px 24px;
+    padding: var(--space-8) var(--space-6);
   }
   .ceo-avatar {
     width: 100px;

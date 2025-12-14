@@ -49,6 +49,24 @@ const CONFIG = {
 };
 
 // ============================================================================
+// SOUND EFFECTS
+// ============================================================================
+
+const SOUNDS_DIR = join(PROJECT_ROOT, 'design-system', 'assets', 'sounds');
+
+function playSound(soundName: 'connect' | 'disconnect'): void {
+  const soundPath = join(SOUNDS_DIR, `${soundName}.mp3`);
+  if (!existsSync(soundPath)) return;
+
+  // Use afplay on macOS, aplay on Linux (both are non-blocking with &)
+  const player = process.platform === 'darwin' ? 'afplay' : 'aplay';
+  spawn(player, [soundPath], {
+    stdio: 'ignore',
+    detached: true,
+  }).unref();
+}
+
+// ============================================================================
 // COLORS
 // ============================================================================
 
@@ -125,11 +143,81 @@ async function connectToRoom(
 
   // Handle participants
   room.on(RoomEvent.ParticipantConnected, (participant) => {
+    if (participant.identity?.includes('agent')) {
+      playSound('connect');
+    }
     console.log(`${colors.green}Agent joined: ${participant.identity}${colors.reset}`);
   });
 
   room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+    if (participant.identity?.includes('agent')) {
+      playSound('disconnect');
+    }
     console.log(`${colors.yellow}Agent left: ${participant.identity}${colors.reset}`);
+  });
+
+  // Track audio playback process for cleanup
+  let audioPlayProcess: ChildProcess | null = null;
+
+  // Handle audio tracks from agent - PIPE TO SPEAKERS
+  room.on(RoomEvent.TrackSubscribed, async (track, publication, participant) => {
+    // Only handle audio tracks from the agent
+    if (track.kind !== lk.TrackKind.KIND_AUDIO) return;
+    if (!participant.identity?.includes('agent')) return;
+
+    if (options.debug) {
+      console.log(`${colors.dim}[TRACK] Subscribed to audio from ${participant.identity}${colors.reset}`);
+    }
+
+    try {
+      const { AudioStream } = lk;
+
+      // Create audio stream to receive frames
+      const audioStream = new AudioStream(track);
+
+      // Spawn sox play process to play audio
+      // Format: 16-bit signed PCM, 48kHz (LiveKit default), mono
+      const PLAYBACK_SAMPLE_RATE = 48000;
+      const PLAYBACK_CHANNELS = 1;
+
+      audioPlayProcess = spawn('sox', [
+        '-t', 'raw',              // Input is raw PCM
+        '-b', '16',               // 16-bit
+        '-e', 'signed-integer',   // Signed integers
+        '-r', String(PLAYBACK_SAMPLE_RATE),  // Sample rate (48kHz default for LiveKit)
+        '-c', String(PLAYBACK_CHANNELS),     // Mono
+        '-',                      // Read from stdin
+        '-d',                     // Output to default audio device (speakers)
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      audioPlayProcess.on('error', (err) => {
+        console.log(`${colors.yellow}Audio playback error: ${err.message}${colors.reset}`);
+      });
+
+      audioPlayProcess.stderr?.on('data', (data) => {
+        // Suppress sox WARN messages about audio format
+        const msg = data.toString();
+        if (!msg.includes('WARN') && options.debug) {
+          console.log(`${colors.dim}[sox] ${msg}${colors.reset}`);
+        }
+      });
+
+      console.log(`${colors.green}Audio playback active - you'll hear Ferni speak!${colors.reset}`);
+
+      // Pipe audio frames to sox
+      for await (const frame of audioStream) {
+        if (audioPlayProcess && !audioPlayProcess.killed && audioPlayProcess.stdin) {
+          // Convert samples to Buffer (16-bit signed PCM)
+          const samples = frame.data;
+          const buffer = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
+          audioPlayProcess.stdin.write(buffer);
+        }
+      }
+    } catch (err) {
+      console.log(`${colors.yellow}Audio stream error: ${(err as Error).message}${colors.reset}`);
+    }
   });
 
   // Handle transcription (what the agent says and what we say)
@@ -262,10 +350,13 @@ async function connectToRoom(
     console.log(`${colors.dim}The agent may not be able to hear you.${colors.reset}`);
   }
 
-  // Cleanup microphone process on exit
-  const cleanupMic = () => {
+  // Cleanup microphone and audio playback processes on exit
+  const cleanupAudio = () => {
     if (micProcess && !micProcess.killed) {
       micProcess.kill();
+    }
+    if (audioPlayProcess && !audioPlayProcess.killed) {
+      audioPlayProcess.kill();
     }
   };
 
@@ -294,7 +385,7 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
   rl.on('line', async (line) => {
     if (line.trim().toLowerCase() === 'exit' || line.trim().toLowerCase() === 'quit') {
       console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
-      cleanupMic();
+      cleanupAudio();
       await room.disconnect();
       dispose();
       console.log(`${colors.green}Goodbye!${colors.reset}\n`);
@@ -305,7 +396,7 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
   // Handle Ctrl+C
   process.on('SIGINT', async () => {
     console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
-    cleanupMic();
+    cleanupAudio();
     await room.disconnect();
     dispose();
     console.log(`${colors.green}Goodbye!${colors.reset}\n`);

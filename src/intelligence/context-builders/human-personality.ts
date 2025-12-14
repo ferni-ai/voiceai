@@ -184,7 +184,10 @@ async function buildHumanPersonalityContext(
     intensity: emotionalIntensity,
     topics: detectedTopics,
     context: userText.slice(0, 100),
-  }).catch(() => {}); // Ignore errors - don't block on persistence
+  }).catch((err) => {
+    // Non-blocking persistence - log at debug level for troubleshooting
+    log.debug({ error: String(err) }, 'Emotional data persistence failed (non-critical)');
+  });
 
   // ============================================================================
   // 2. CALLBACKS - THE SMILE FACTOR (Highest Priority)
