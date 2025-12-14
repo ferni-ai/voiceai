@@ -19,7 +19,12 @@
     "src/services/trust-systems/__tests__/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
+    "**/__tests__/**/*",
     "src/conversation/humanization/persistence.ts",
-    "src/conversation/humanization/prosody-bridge.ts"
+    "src/conversation/humanization/prosody-bridge.ts",
+    "src/marketplace/**/*",
+    "src/tasks/scheduled/marketplace-billing-jobs.ts",
+    "src/api/scheduled-jobs-handler.ts",
+    "src/api/marketplace-routes.ts"
   ]
 }

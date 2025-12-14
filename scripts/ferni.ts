@@ -25,6 +25,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { existsSync, readFileSync } from 'fs';
+import { config as dotenvConfig } from 'dotenv';
 
 // ============================================================================
 // CONFIGURATION
@@ -32,6 +33,9 @@ import { existsSync, readFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = dirname(__dirname);
+
+// Load .env file from project root
+dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 

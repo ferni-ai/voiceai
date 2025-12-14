@@ -178,6 +178,70 @@ async function runMemoryHealthCheck(res: ServerResponse): Promise<void> {
 }
 
 // ============================================================================
+// MARKETPLACE BILLING JOBS
+// ============================================================================
+
+async function runMarketplaceDailyAggregation(res: ServerResponse): Promise<void> {
+  try {
+    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const result = await marketplaceBillingJobs.runDailyUsageAggregation();
+    log.info({ result }, 'Marketplace daily aggregation completed');
+    sendJson(res, 200, { success: true, job: 'marketplaceDailyAggregation', result });
+  } catch (error) {
+    log.error({ error }, 'Marketplace daily aggregation failed');
+    sendJson(res, 500, { success: false, job: 'marketplaceDailyAggregation', error: String(error) });
+  }
+}
+
+async function runMarketplaceWeeklyReports(res: ServerResponse): Promise<void> {
+  try {
+    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const result = await marketplaceBillingJobs.runWeeklyUsageReports();
+    log.info({ result }, 'Marketplace weekly reports completed');
+    sendJson(res, 200, { success: true, job: 'marketplaceWeeklyReports', result });
+  } catch (error) {
+    log.error({ error }, 'Marketplace weekly reports failed');
+    sendJson(res, 500, { success: false, job: 'marketplaceWeeklyReports', error: String(error) });
+  }
+}
+
+async function runMarketplaceMonthlyRevenue(res: ServerResponse): Promise<void> {
+  try {
+    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const result = await marketplaceBillingJobs.runMonthlyRevenueCalculation();
+    log.info({ result }, 'Marketplace monthly revenue calculation completed');
+    sendJson(res, 200, { success: true, job: 'marketplaceMonthlyRevenue', result });
+  } catch (error) {
+    log.error({ error }, 'Marketplace monthly revenue calculation failed');
+    sendJson(res, 500, { success: false, job: 'marketplaceMonthlyRevenue', error: String(error) });
+  }
+}
+
+async function runMarketplacePublisherPayouts(res: ServerResponse): Promise<void> {
+  try {
+    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const result = await marketplaceBillingJobs.runPublisherPayouts();
+    log.info({ result }, 'Marketplace publisher payouts completed');
+    sendJson(res, 200, { success: true, job: 'marketplacePublisherPayouts', result });
+  } catch (error) {
+    log.error({ error }, 'Marketplace publisher payouts failed');
+    sendJson(res, 500, { success: false, job: 'marketplacePublisherPayouts', error: String(error) });
+  }
+}
+
+async function runMarketplaceQuarterlyCleanup(res: ServerResponse): Promise<void> {
+  try {
+    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const result = await marketplaceBillingJobs.runQuarterlyCleanup();
+    log.info({ result }, 'Marketplace quarterly cleanup completed');
+    sendJson(res, 200, { success: true, job: 'marketplaceQuarterlyCleanup', result });
+  } catch (error) {
+    log.error({ error }, 'Marketplace quarterly cleanup failed');
+    sendJson(res, 500, { success: false, job: 'marketplaceQuarterlyCleanup', error: String(error) });
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -258,12 +322,52 @@ export async function handleScheduledJobsRoutes(
     return true;
   }
 
+  // MARKETPLACE BILLING JOBS
+
+  // POST /api/jobs/marketplace-daily-aggregation
+  if (pathname === '/api/jobs/marketplace-daily-aggregation' && req.method === 'POST') {
+    await runMarketplaceDailyAggregation(res);
+    return true;
+  }
+
+  // POST /api/jobs/marketplace-weekly-reports
+  if (pathname === '/api/jobs/marketplace-weekly-reports' && req.method === 'POST') {
+    await runMarketplaceWeeklyReports(res);
+    return true;
+  }
+
+  // POST /api/jobs/marketplace-monthly-revenue
+  if (pathname === '/api/jobs/marketplace-monthly-revenue' && req.method === 'POST') {
+    await runMarketplaceMonthlyRevenue(res);
+    return true;
+  }
+
+  // POST /api/jobs/marketplace-publisher-payouts
+  if (pathname === '/api/jobs/marketplace-publisher-payouts' && req.method === 'POST') {
+    await runMarketplacePublisherPayouts(res);
+    return true;
+  }
+
+  // POST /api/jobs/marketplace-quarterly-cleanup
+  if (pathname === '/api/jobs/marketplace-quarterly-cleanup' && req.method === 'POST') {
+    await runMarketplaceQuarterlyCleanup(res);
+    return true;
+  }
+
   // GET /api/jobs/status - List job configurations
   if (pathname === '/api/jobs/status' && req.method === 'GET') {
     try {
       const { wellbeingJobs } = await import('../tasks/scheduled/wellbeing-jobs.js');
-      const configs = wellbeingJobs.getJobConfigs();
-      sendJson(res, 200, { jobs: configs });
+      const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+      const wellbeingConfigs = wellbeingJobs.getJobConfigs();
+      const marketplaceConfigs = marketplaceBillingJobs.getJobConfigs();
+      sendJson(res, 200, {
+        jobs: [...wellbeingConfigs, ...marketplaceConfigs],
+        categories: {
+          wellbeing: wellbeingConfigs,
+          marketplace: marketplaceConfigs,
+        },
+      });
     } catch (error) {
       sendJson(res, 500, { error: String(error) });
     }
