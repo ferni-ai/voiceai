@@ -47,7 +47,7 @@ import { refreshMarketplaceAgents } from './team.ui.js';
 const log = createLogger('Marketplace');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // PERSONA COLORS - Use CSS variables from design system tokens.css

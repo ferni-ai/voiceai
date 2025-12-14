@@ -331,6 +331,11 @@ function handleAgentDropped(agentId: string): void {
             log.warn('Failed to refresh roster after removal:', err);
           });
         });
+    } else {
+      // Element not found (edge case) - still rebuild roster
+      void loadDynamicAgents().catch((err) => {
+        log.warn('Failed to refresh roster after removal:', err);
+      });
     }
 
     return;
