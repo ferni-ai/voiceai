@@ -14,6 +14,7 @@
  * - GET /api/observability/personas - Persona health metrics
  * - GET /api/observability/alerts - Recent alerts
  * - GET /api/observability/self-healing - Self-healing dashboard (circuits, anomalies, restarts)
+ * - GET /api/observability/intelligence - Collective learning & intelligence metrics
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -35,6 +36,10 @@ import {
   getRestartHistory,
   getUnhealthyClients,
 } from '../services/self-healing/index.js';
+import {
+  getCommunityInsights,
+  getCollectiveLearningSchedulerStatus,
+} from '../intelligence/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } from './helpers.js';
@@ -131,6 +136,75 @@ async function getSelfHealingDashboardData() {
       openCircuits,
       halfOpenCircuits,
     },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Get collective learning & intelligence metrics
+ */
+function getIntelligenceMetrics() {
+  // Get community insights metrics
+  const communityInsights = getCommunityInsights();
+  const insightsStats = communityInsights.getStats();
+  const insightsData = communityInsights.exportInsights();
+
+  // Get scheduler status
+  const schedulerStatus = getCollectiveLearningSchedulerStatus();
+
+  // Calculate derived metrics - top breakthrough questions
+  const topQuestions = insightsData.effectiveQuestions
+    .sort((a, b) => b.avgBreakthroughRate - a.avgBreakthroughRate)
+    .slice(0, 5)
+    .map((q) => ({
+      pattern: q.questionPattern.slice(0, 100),
+      personaId: q.personaId,
+      topic: q.topic,
+      breakthroughRate: `${(q.avgBreakthroughRate * 100).toFixed(1)}%`,
+      sampleSize: q.sampleSize,
+    }));
+
+  // Top resonating stories
+  const topStories = insightsData.storyResonance
+    .sort((a, b) => b.overallEffectiveness - a.overallEffectiveness)
+    .slice(0, 5)
+    .map((s) => ({
+      storyId: s.storyId,
+      personaId: s.personaId,
+      effectiveness: `${(s.overallEffectiveness * 100).toFixed(1)}%`,
+      sampleSize: s.sampleSize,
+      reactions: s.userReactions,
+    }));
+
+  // Response pattern insights - extract strategy effectiveness
+  const topPatterns = insightsData.patterns
+    .slice(0, 5)
+    .map((p) => ({
+      id: p.id,
+      context: p.context,
+      topStrategy: p.strategies[0]
+        ? {
+            type: p.strategies[0].type,
+            avgEngagement: p.strategies[0].avgEngagement.toFixed(2),
+            sampleSize: p.strategies[0].sampleSize,
+          }
+        : null,
+    }));
+
+  return {
+    scheduler: {
+      isRunning: schedulerStatus.isRunning,
+      uptimeMs: schedulerStatus.uptimeMs,
+    },
+    communityInsights: {
+      totalPatterns: insightsStats.totalPatterns,
+      totalEffectiveQuestions: insightsStats.totalEffectiveQuestions,
+      totalStoryResonance: insightsStats.totalStoryResonance,
+      avgPatternConfidence: insightsStats.avgPatternConfidence,
+    },
+    topBreakthroughQuestions: topQuestions,
+    topResonatingStories: topStories,
+    topResponsePatterns: topPatterns,
     timestamp: new Date().toISOString(),
   };
 }
@@ -254,6 +328,13 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/self-healing' && req.method === 'GET') {
       const selfHealingData = await getSelfHealingDashboardData();
       sendJSON(res, selfHealingData);
+      return true;
+    }
+
+    // GET /api/observability/intelligence - Collective learning & intelligence metrics
+    if (pathname === '/api/observability/intelligence' && req.method === 'GET') {
+      const intelligenceData = getIntelligenceMetrics();
+      sendJSON(res, intelligenceData);
       return true;
     }
 

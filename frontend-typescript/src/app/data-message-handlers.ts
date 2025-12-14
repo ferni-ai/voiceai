@@ -228,6 +228,11 @@ export function handleDataMessage(message: DataMessage): void {
       handleTrustSignal(message as TrustSignalEvent);
       break;
 
+    case 'breath_sync':
+      // 🫁 Ferni EQ: Breath sync quality from backend for avatar breathing animation
+      handleBreathSync(message as BreathSyncEvent);
+      break;
+
     default:
   }
 }
@@ -382,6 +387,84 @@ function handleVoiceProsody(event: VoiceProsodyEvent): void {
   if (event.pauseDuration !== undefined && event.pauseDuration > 200) {
     ferni.detectUserBreathRate([event.pauseDuration]);
   }
+}
+
+// ============================================================================
+// BREATH SYNC HANDLER - Ferni EQ Avatar Breathing Synchronization
+// ============================================================================
+
+/**
+ * Breath sync event from backend
+ */
+interface BreathSyncEvent extends DataMessage {
+  type: 'breath_sync';
+  syncQuality: number; // 0-1, how well synced with user
+  pacing: number; // 0.5-2, overall pacing adjustment
+  hasBreathMarkers: boolean; // Whether breath markers were inserted in speech
+  adjustedBreaks: number; // Number of adjusted breaks
+}
+
+/**
+ * Handle breath sync data from backend for Ferni EQ avatar breathing
+ *
+ * This enables "Better than Human" breathing synchronization:
+ * 1. Avatar breathing matches user's detected breath rate
+ * 2. Creates subconscious calming effect through mirror neurons
+ * 3. Enhances feeling of presence and connection
+ */
+function handleBreathSync(event: BreathSyncEvent): void {
+  log.debug('🫁 Breath sync received', {
+    syncQuality: event.syncQuality,
+    pacing: event.pacing,
+    hasBreathMarkers: event.hasBreathMarkers,
+  });
+
+  // Only apply if sync quality is meaningful (> 30%)
+  if (event.syncQuality < 0.3) {
+    log.debug('🫁 Breath sync quality too low, skipping');
+    return;
+  }
+
+  // Enable breath sync on the Ferni EQ system
+  ferni.setBreathSyncEnabled(true);
+
+  // Convert pacing to breath rate
+  // Pacing of 1.0 = normal (15 BPM), 1.2 = faster (18 BPM), 0.8 = slower (12 BPM)
+  const baseBreathRate = 15; // breaths per minute
+  const adjustedRate = baseBreathRate * event.pacing;
+
+  // Generate synthetic pause durations to simulate detected breath pattern
+  // Backend pacing guides us, we create consistent intervals
+  const msPerBreath = 60000 / adjustedRate;
+  const pauseDurations = [
+    msPerBreath * 0.95,
+    msPerBreath * 1.02,
+    msPerBreath * 0.98,
+    msPerBreath * 1.01,
+    msPerBreath * 0.97,
+  ];
+
+  // Feed the breath rate to Ferni EQ
+  ferni.detectUserBreathRate(pauseDurations);
+
+  // Trigger sync if quality is good
+  if (event.syncQuality > 0.6) {
+    ferni.syncBreathing();
+    log.info('🫁 Breath sync activated', {
+      rate: adjustedRate.toFixed(1),
+      quality: event.syncQuality.toFixed(2),
+    });
+  }
+
+  // Dispatch event for presence UI to adjust avatar breathing
+  window.dispatchEvent(
+    new CustomEvent('ferni:breath-sync', {
+      detail: {
+        rate: adjustedRate,
+        depth: event.syncQuality > 0.7 ? 'deep' : event.syncQuality > 0.5 ? 'medium' : 'shallow',
+      },
+    })
+  );
 }
 
 /**

@@ -1147,6 +1147,17 @@ export async function createSessionServices(
                 'connected', // High engagement = connected reaction
                 signal.engagementScore
               );
+              // 📊 OBSERVABILITY: Track effective stories
+              getLogger().info(
+                {
+                  storyId,
+                  personaId,
+                  topic,
+                  engagement: signal.engagementScore.toFixed(2),
+                  outcome: 'positive',
+                },
+                '📖 Story resonated with user (high engagement)'
+              );
             }
           } catch {
             // Community insights not available
@@ -1165,6 +1176,16 @@ export async function createSessionServices(
                 topic,
                 conversationPhase, // context string
                 signal.engagementScore // engagementLift
+              );
+              // 📊 OBSERVABILITY: Track breakthrough questions
+              getLogger().info(
+                {
+                  questionPattern: questionAsked.slice(0, 80),
+                  personaId,
+                  topic,
+                  engagement: signal.engagementScore.toFixed(2),
+                },
+                '💡 Breakthrough question detected (high engagement)'
               );
             }
           } catch {
@@ -1206,6 +1227,17 @@ export async function createSessionServices(
                 },
                 'indifferent', // Low engagement = indifferent reaction
                 signal.engagementScore
+              );
+              // 📊 OBSERVABILITY: Track stories that didn't land
+              getLogger().debug(
+                {
+                  storyId,
+                  personaId,
+                  topic,
+                  engagement: signal.engagementScore.toFixed(2),
+                  outcome: 'negative',
+                },
+                '📖 Story did not resonate (low engagement)'
               );
             }
           } catch {
