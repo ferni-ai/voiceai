@@ -1029,6 +1029,18 @@ function handleModalTouch(e: TouchEvent): void {
     return;
   }
 
+  // Roster add/remove action buttons on employee cards (iOS touch)
+  const rosterActionBtn = target.closest('[data-roster-action]') as HTMLElement;
+  if (rosterActionBtn) {
+    e.preventDefault();
+    const action = rosterActionBtn.dataset.rosterAction;
+    const personaId = rosterActionBtn.dataset.personaId;
+    if (action && personaId) {
+      void handleRosterAction(action as 'add' | 'remove', personaId);
+    }
+    return;
+  }
+
   // FIX BUG: Handle employee-card taps in the team narrative section
   const employeeCard = target.closest('.employee-card') as HTMLElement;
   if (employeeCard) {
@@ -1162,6 +1174,42 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
     // Close marketplace to show the updated theme
     closeMarketplace();
   }
+}
+
+/**
+ * Handle roster add/remove actions for team members.
+ * Allows users to manage which unlocked team members appear in their roster.
+ */
+async function handleRosterAction(action: 'add' | 'remove', personaId: string): Promise<void> {
+  log.debug('Roster action:', { action, personaId });
+
+  const { toast } = await import('./toast.ui.js');
+  const memberConfig = getTeamMember(personaId as TeamMemberId);
+  const name = memberConfig?.displayName || personaId;
+
+  if (action === 'add') {
+    rosterPreferences.addMember(personaId as RosterTeamMemberId);
+    soundUI.play('success');
+    toast.success(`${name} added to your roster`);
+    log.info('Added team member to roster from marketplace:', personaId);
+  } else {
+    rosterPreferences.removeMember(personaId as RosterTeamMemberId);
+    soundUI.play('click');
+    toast.info(`${name} removed from roster`);
+    log.info('Removed team member from roster from marketplace:', personaId);
+  }
+
+  // Refresh both marketplace content (to update button state) and team roster
+  await refreshContent();
+  
+  // Dynamically import to refresh the roster UI
+  const { teamUI } = await import('./team.ui.js');
+  // Rebuild the roster to reflect the change
+  void import('../services/agents.service.js').then(async () => {
+    // The roster will rebuild on the next frame - trigger a re-render
+    // by dispatching a custom event that team.ui.ts can listen for
+    document.dispatchEvent(new CustomEvent('ferni:roster-changed'));
+  });
 }
 
 function handleSearch(e: Event): void {
@@ -2810,6 +2858,77 @@ function getMarketplaceStyles(): string {
       height: 48px;
       transform: translate(-50%, -50%);
       pointer-events: none;
+    }
+
+    /* Roster action buttons for unlocked team members */
+    .employee-roster-action {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border: none;
+      border-radius: var(--radius-full, 9999px);
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .employee-roster-action svg {
+      flex-shrink: 0;
+    }
+
+    /* "In Roster" state - subtle, shows current status */
+    .employee-roster-action--remove {
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      opacity: 0.9;
+    }
+
+    .employee-roster-action--remove:hover {
+      background: var(--color-error, #c75450);
+      opacity: 1;
+    }
+
+    .employee-roster-action--remove:hover span::after {
+      content: ' ✕';
+    }
+
+    /* "Add to Roster" state - action button */
+    .employee-roster-action--add {
+      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.08));
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+    }
+
+    .employee-roster-action--add:hover {
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border-color: transparent;
+    }
+
+    /* Hide roster action for cards being clicked/tapped */
+    .employee-card:active .employee-roster-action {
+      pointer-events: none;
+    }
+
+    /* Zen theme roster action styles */
+    [data-theme="zen"] .employee-roster-action--add {
+      background: rgba(44, 37, 32, 0.04);
+      color: rgba(44, 37, 32, 0.7);
+      border-color: rgba(44, 37, 32, 0.12);
+    }
+
+    [data-theme="zen"] .employee-roster-action--add:hover {
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border-color: transparent;
+    }
+
+    [data-theme="zen"] .employee-roster-action--remove:hover {
+      background: var(--color-error, #c75450);
     }
 
     .team-narrative-footer {

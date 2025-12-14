@@ -147,6 +147,25 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(almostThereCleanup);
 
+    // Listen for roster changes (from marketplace UI add/remove actions)
+    const rosterChangedHandler = () => {
+      log.debug('Roster changed event received, rebuilding roster');
+      void loadDynamicAgents().catch((err) => {
+        log.warn('Failed to refresh roster after roster change:', err);
+      });
+    };
+    document.addEventListener('ferni:roster-changed', rosterChangedHandler);
+    cleanupFunctions.push(() => document.removeEventListener('ferni:roster-changed', rosterChangedHandler));
+
+    // Subscribe to roster preferences changes
+    const rosterPrefsCleanup = rosterPreferences.onChange(() => {
+      log.debug('Roster preferences changed, rebuilding roster');
+      void loadDynamicAgents().catch((err) => {
+        log.warn('Failed to refresh roster after preferences change:', err);
+      });
+    });
+    cleanupFunctions.push(rosterPrefsCleanup);
+
     // Build team roster
     buildTeamRoster();
 

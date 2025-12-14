@@ -24,6 +24,8 @@ import { CAMEO_SOUNDS, getCameoPersonaColors } from '../config/cameo-config.js';
 import type { DataMessage } from '../types/events.js';
 import { createLogger } from '../utils/logger.js';
 import { audioService, type SoundEffect } from './audio.service.js';
+import { isTeamMemberUnlocked, type TeamMemberId } from './team-unlock.service.js';
+import { rosterPreferences, type TeamMemberId as RosterTeamMemberId } from './roster-preferences.service.js';
 
 const log = createLogger('CameoService');
 
@@ -344,11 +346,29 @@ class CameoService {
    *
    * NOTE: Sound is played in handleCameoStarting (which fires first).
    * This handler focuses on state updates and triggering UI callbacks.
+   * 
+   * AUTO-ADD TO ROSTER: If this team member is unlocked but not in the user's
+   * roster, we automatically add them so they appear visually when Ferni
+   * calls them back.
    */
   private async handleCameoStart(message: CameoDataMessage): Promise<void> {
     const { personaId, personaName, isFirstCameo, cameoId } = message;
 
     log.info('🎬 Cameo started (voice switched)', { personaId, personaName, isFirstCameo });
+
+    // AUTO-ADD TO ROSTER: If this team member is unlocked but not in the user's
+    // roster, add them so they show up visually when Ferni calls them.
+    // This creates the "Ferni brought them back" experience.
+    const isUnlocked = isTeamMemberUnlocked(personaId as TeamMemberId);
+    const isInRoster = rosterPreferences.isMemberVisible(personaId as RosterTeamMemberId);
+    
+    if (isUnlocked && !isInRoster) {
+      log.info('🎬 Auto-adding team member to roster (Ferni called them back):', personaId);
+      rosterPreferences.addMember(personaId as RosterTeamMemberId);
+      
+      // Dispatch event to trigger roster rebuild so they appear
+      document.dispatchEvent(new CustomEvent('ferni:roster-changed'));
+    }
 
     // Clear any existing cleanup timer (in case of rapid cameos)
     this.clearCleanupTimer();
