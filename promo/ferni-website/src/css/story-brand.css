@@ -949,6 +949,77 @@ button {
   border-color: rgba(196, 133, 106, 0.2);
 }
 
+/* Team Card Preview Input */
+.team-card__preview-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.team-card__preview-input input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--radius-full);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.team-card__preview-input input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.team-card__preview-input input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+}
+
+.team-card__preview-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.team-card__preview-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+}
+
+.team-card__preview-btn:active {
+  transform: scale(0.95);
+}
+
+.team-card__preview-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.team-card__preview-response {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
 /* ============================================
    UNIFIED PERSONA AVATAR SYSTEM
    All avatars are circles with consistent styling

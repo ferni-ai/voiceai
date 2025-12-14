@@ -1,6 +1,6 @@
 /**
- * Persona Quiz - "Which advisor helps YOUR challenge?"
- * =====================================================
+ * Persona Quiz - "Who can help with YOUR challenge?"
+ * ===================================================
  * Interactive quiz to match users with the right Ferni persona
  */
 
@@ -217,7 +217,7 @@
           </button>
         </div>
         <p class="quiz__result-note">
-          All six advisors work together. Start with ${persona.name}, and they'll bring in the right specialist when you need one.
+          All six specialists work together. Start with ${persona.name}, and they'll bring in the right help when you need it.
         </p>
       </div>
     `;
