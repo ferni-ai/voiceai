@@ -25,16 +25,14 @@
  * For Ferni's use case (single concurrent call per instance), this is perfect.
  */
 
-import { Room, RoomEvent } from '@livekit/rtc-node';
-import { EventEmitter } from 'node:events';
-import * as os from 'node:os';
-import * as path from 'node:path';
 import {
   JobContext,
   JobProcess,
   type RunningJobInfo,
   runWithJobContextAsync,
 } from '@livekit/agents';
+import { Room, RoomEvent } from '@livekit/rtc-node';
+import { EventEmitter } from 'node:events';
 import type { Logger } from 'pino';
 
 // ============================================================================
@@ -150,7 +148,7 @@ export class InProcessJobExecutor {
     this.activeJobs.set(jobId, { ctx, room, startTime, task: jobTask });
 
     // Don't await - let it run in background
-    jobTask.finally(() => {
+    void jobTask.finally(() => {
       this.activeJobs.delete(jobId);
     });
   }

@@ -22,6 +22,8 @@ import {
 // Milestones - for journey progress indicator
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
+// i18n for translations
+import { t, SUPPORTED_LOCALES, getLocale, setLocale, type SupportedLocale } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -220,7 +222,7 @@ class SettingsMenuUI {
     spotifyItem.style.display = 'flex';
     const label = spotifyItem.querySelector('.settings-menu__label');
     if (label) {
-      label.textContent = this.spotifyLinked ? 'Spotify Connected' : 'Link Spotify';
+      label.textContent = this.spotifyLinked ? t('menu.items.spotifyConnected') : t('menu.items.linkSpotify');
     }
 
     // Add/remove linked class for styling
@@ -256,7 +258,7 @@ class SettingsMenuUI {
   private createTrigger(): void {
     this.trigger = document.createElement('button');
     this.trigger.className = 'settings-trigger';
-    this.trigger.setAttribute('aria-label', 'Open settings menu');
+    this.trigger.setAttribute('aria-label', t('accessibility.openSettings'));
     this.trigger.innerHTML = ICONS.menu;
 
     this.trigger.addEventListener('click', () => this.toggle());
@@ -346,15 +348,15 @@ class SettingsMenuUI {
       <div class="settings-menu__backdrop"></div>
       <div class="settings-menu__card">
         <header class="settings-menu__header">
-          <h2>Menu</h2>
-          <button class="settings-menu__close" aria-label="Close menu">${ICONS.close}</button>
+          <h2>${t('menu.title')}</h2>
+          <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
 
         <!-- Relationship Stage Banner (compact) -->
         <div class="settings-menu__stage-banner">
           <div class="settings-menu__stage-info">
-            <span class="settings-menu__stage-label">Your stage</span>
-            <span class="settings-menu__stage-name">${stageName}</span>
+            <span class="settings-menu__stage-label">${t('menu.yourStage')}</span>
+            <span class="settings-menu__stage-name">${t(`stages.${currentStage}`)}</span>
           </div>
           ${
             progress.nextStage
@@ -363,11 +365,11 @@ class SettingsMenuUI {
               <div class="settings-menu__stage-bar">
                 <div class="settings-menu__stage-fill" style="width: ${Math.round(progress.progress * 100)}%"></div>
               </div>
-              <span class="settings-menu__stage-next">Next: ${STAGE_NAMES[progress.nextStage]}</span>
+              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: t(`stages.${progress.nextStage}`) })}</span>
             </div>
           `
               : `
-            <span class="settings-menu__stage-max">Max level!</span>
+            <span class="settings-menu__stage-max">${t('menu.maxLevel')}</span>
           `
           }
         </div>
@@ -379,60 +381,61 @@ class SettingsMenuUI {
           <!-- SECTION 1: Your Journey -->
           ${this.renderCollapsibleSection(
             'journey',
-            'Your Journey',
+            t('menu.sections.journey'),
             expandedSections.has('journey'),
             `
-            ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
-            ${this.renderMenuItem('trust-journey', ICONS.sparkles, 'Trust Details')}
-            ${this.renderMenuItem('analytics', ICONS.analytics, 'Progress Analytics')}
-            ${this.renderMenuItem('predictions', ICONS.target, 'Prediction Accuracy')}
+            ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
+            ${this.renderMenuItem('trust-journey', ICONS.sparkles, t('menu.items.trustDetails'))}
+            ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
+            ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
           `
           )}
 
           <!-- SECTION 2: Insights -->
           ${this.renderCollapsibleSection(
             'insights',
-            'Insights',
+            t('menu.sections.insights'),
             expandedSections.has('insights'),
             `
-            ${this.renderMenuItem('cognitive', ICONS.brain, "What I've Learned")}
-            ${this.renderMenuItem('conversation-memory', ICONS.memory, 'Memory Browser')}
-            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, 'Wellbeing Dashboard')}
-            ${this.renderMenuItem('history', ICONS.history, 'Conversation History')}
+            ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
+            ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
+            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
+            ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
           )}
 
           <!-- SECTION 3: Sessions & Fun -->
           ${this.renderCollapsibleSection(
             'sessions',
-            'Sessions & Fun',
+            t('menu.sections.sessions'),
             expandedSections.has('sessions'),
             `
-            ${this.renderMenuItemWithBadge('video-settings', ICONS.video, 'Video Sessions', 'NEW')}
-            ${this.renderMenuItemWithBadge('group-coaching', ICONS.users, 'Group Coaching', 'NEW')}
-            ${this.renderMenuItem('team', ICONS.team, 'Team Huddles')}
-            ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Games')}
-            ${this.renderMenuItem('music-dashboard', ICONS.music, 'Musical You')}
+            ${this.renderMenuItemWithBadge('video-settings', ICONS.video, t('menu.items.videoSessions'), t('common.new'))}
+            ${this.renderMenuItemWithBadge('group-coaching', ICONS.users, t('menu.items.groupCoaching'), t('common.new'))}
+            ${this.renderMenuItem('team', ICONS.team, t('menu.items.teamHuddles'))}
+            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
           `
           )}
 
           <!-- SECTION 4: Customize -->
           ${this.renderCollapsibleSection(
             'customize',
-            'Customize',
+            t('menu.sections.customize'),
             expandedSections.has('customize'),
             `
-            ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
-            ${this.renderMenuItem('accent-settings', ICONS.globe, 'Voice Accent')}
-            ${this.renderMenuItem('commands', ICONS.commands, 'Guided Practices')}
-            ${this.renderMenuItem('ritual', ICONS.ritual, 'Create Custom Practice')}
-            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, 'Health & Fitness', 'NEW')}
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, 'Calendar')}
-            ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
-            ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
+            ${this.renderMenuItem('personalize', ICONS.palette, t('menu.items.personalize'))}
+            ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
+            ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
+            ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
+            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, t('menu.items.healthFitness'), t('common.new'))}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
+            ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
+            ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
+            ${this.renderLanguageSelector()}
             <button class="settings-menu__item" data-action="spotify" style="display: none;">
               <span class="settings-menu__icon">${ICONS.music}</span>
-              <span class="settings-menu__label">Link Spotify</span>
+              <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
             </button>
           `
           )}
@@ -440,15 +443,15 @@ class SettingsMenuUI {
           <!-- SECTION 5: Account & Security -->
           ${this.renderCollapsibleSection(
             'account',
-            'Account & Security',
+            t('menu.sections.account'),
             expandedSections.has('account'),
             `
-            ${this.renderMenuItem('subscription', ICONS.infinity, 'Your Plan')}
-            ${this.renderMenuItem('billing', ICONS.creditCard, 'Manage Billing')}
-            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, 'Voice ID')}
-            ${this.renderMenuItem('household', ICONS.household, 'Household Members')}
-            ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
-            ${this.renderMenuItem('export', ICONS.download, 'Export Data')}
+            ${this.renderMenuItem('subscription', ICONS.infinity, t('menu.items.yourPlan'))}
+            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.manageBilling'))}
+            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
+            ${this.renderMenuItem('household', ICONS.household, t('menu.items.householdMembers'))}
+            ${this.renderMenuItem('contact-settings', ICONS.heart, t('menu.items.contactInfo'))}
+            ${this.renderMenuItem('export', ICONS.download, t('menu.items.exportData'))}
           `
           )}
 
@@ -457,9 +460,9 @@ class SettingsMenuUI {
 
           <!-- Bottom Quick Actions -->
           <div class="settings-menu__quick-actions">
-            ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
-            ${this.renderMenuItem('support-ferni', ICONS.seedling, 'Support Ferni')}
-            ${this.renderMenuItem('help', ICONS.help, 'Take the Tour')}
+            ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
+            ${this.renderMenuItem('support-ferni', ICONS.seedling, t('menu.items.supportFerni'))}
+            ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
           </div>
         </nav>
       </div>
@@ -497,6 +500,44 @@ class SettingsMenuUI {
         this.handleAction(action);
       });
     });
+
+    // Bind language selector events
+    this.bindLanguageSelectorEvents();
+  }
+
+  /**
+   * Bind events for the language selector dropdown
+   */
+  private bindLanguageSelectorEvents(): void {
+    if (!this.panel) return;
+
+    // Toggle language dropdown
+    const toggleBtn = this.panel.querySelector('[data-action="toggle-language"]');
+    const languageList = this.panel.querySelector('.settings-menu__language-list');
+
+    if (toggleBtn && languageList) {
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = languageList.getAttribute('data-expanded') === 'true';
+        languageList.setAttribute('data-expanded', isExpanded ? 'false' : 'true');
+        toggleBtn.classList.toggle('settings-menu__item--expanded', !isExpanded);
+      });
+    }
+
+    // Handle language selection
+    this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const htmlBtn = btn as HTMLElement;
+        const locale = htmlBtn.dataset.locale as SupportedLocale;
+
+        if (locale) {
+          await setLocale(locale);
+          // Re-render the entire menu to reflect language change
+          this.renderContent();
+        }
+      });
+    });
   }
 
   /**
@@ -531,7 +572,7 @@ class SettingsMenuUI {
 
     return this.renderCollapsibleSection(
       'admin',
-      'Admin',
+      t('menu.sections.admin'),
       expandedSections.has('admin'),
       `
       ${this.renderMenuItemWithBadge('marketplace-admin', ICONS.analytics, 'Marketplace Queue', 'ADMIN')}
@@ -572,6 +613,41 @@ class SettingsMenuUI {
         <span class="settings-menu__label">${label}</span>
         <span class="settings-menu__badge">${badge}</span>
       </button>
+    `;
+  }
+
+  /**
+   * Render the language selector with current language and dropdown
+   */
+  private renderLanguageSelector(): string {
+    const currentLocale = getLocale();
+    const currentLang = SUPPORTED_LOCALES.find(l => l.code === currentLocale);
+
+    return `
+      <div class="settings-menu__language-selector">
+        <button class="settings-menu__item settings-menu__item--expandable" data-action="toggle-language">
+          <span class="settings-menu__icon">${ICONS.globe}</span>
+          <span class="settings-menu__label">${t('menu.items.language')}</span>
+          <span class="settings-menu__language-current">
+            <span class="settings-menu__language-flag">${currentLang?.flag || ''}</span>
+            <span class="settings-menu__language-name">${currentLang?.nativeName || currentLocale}</span>
+          </span>
+          <span class="settings-menu__chevron">${ICONS.chevronRight}</span>
+        </button>
+        <div class="settings-menu__language-list" data-expanded="false">
+          ${SUPPORTED_LOCALES.map(lang => `
+            <button
+              class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
+              data-action="set-language"
+              data-locale="${lang.code}"
+            >
+              <span class="settings-menu__language-flag">${lang.flag}</span>
+              <span class="settings-menu__language-name">${lang.nativeName}</span>
+              ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
+            </button>
+          `).join('')}
+        </div>
+      </div>
     `;
   }
 
@@ -997,6 +1073,119 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
+         LANGUAGE SELECTOR
+         ======================================================================== */
+      .settings-menu__language-selector {
+        position: relative;
+      }
+
+      .settings-menu__item--expandable {
+        justify-content: flex-start;
+      }
+
+      .settings-menu__language-current {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        margin-left: auto;
+        color: var(--color-text-secondary);
+        font-size: var(--text-sm);
+      }
+
+      .settings-menu__language-flag {
+        font-size: 1.1em;
+      }
+
+      .settings-menu__language-name {
+        font-family: var(--font-body);
+      }
+
+      .settings-menu__chevron {
+        width: 16px;
+        height: 16px;
+        color: var(--color-text-muted);
+        transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+        flex-shrink: 0;
+      }
+
+      .settings-menu__chevron svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .settings-menu__item--expanded .settings-menu__chevron {
+        transform: rotate(90deg);
+      }
+
+      .settings-menu__language-list {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows ${DURATION.NORMAL}ms ${EASING.STANDARD};
+        overflow: hidden;
+        padding-left: var(--space-6, 24px);
+      }
+
+      .settings-menu__language-list[data-expanded="true"] {
+        grid-template-rows: 1fr;
+      }
+
+      .settings-menu__language-list > * {
+        overflow: hidden;
+      }
+
+      .settings-menu__language-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        width: 100%;
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        margin-bottom: 2px;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-md, 0.5rem);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        text-align: left;
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        color: var(--color-text-primary);
+      }
+
+      .settings-menu__language-option:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .settings-menu__language-option--active {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .settings-menu__language-option--active .settings-menu__language-name {
+        font-weight: var(--font-weight-medium, 500);
+      }
+
+      .settings-menu__language-check {
+        margin-left: auto;
+        color: var(--color-accent-primary, #2d5a3d);
+        font-weight: var(--font-weight-semibold, 600);
+      }
+
+      /* RTL support for language selector */
+      [dir="rtl"] .settings-menu__language-list {
+        padding-left: 0;
+        padding-right: var(--space-6, 24px);
+      }
+
+      [dir="rtl"] .settings-menu__language-current {
+        margin-left: 0;
+        margin-right: auto;
+      }
+
+      [dir="rtl"] .settings-menu__language-check {
+        margin-left: 0;
+        margin-right: auto;
+      }
+
+      /* ========================================================================
          LOCKED FEATURE STATE
          ======================================================================== */
       .settings-menu__item--locked {
@@ -1227,6 +1416,27 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__badge {
         background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
+      }
+
+      /* Dark Theme - Language Selector */
+      [data-theme="midnight"] .settings-menu__language-current {
+        color: var(--color-text-secondary, #e8e2da);
+      }
+
+      [data-theme="midnight"] .settings-menu__language-option {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .settings-menu__language-option:hover {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .settings-menu__language-option--active {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .settings-menu__language-check {
+        color: var(--color-accent-secondary, #7cb36b);
       }
 
       /* ========================================================================

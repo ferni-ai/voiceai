@@ -24,6 +24,7 @@ import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('SubscriptionUI');
 

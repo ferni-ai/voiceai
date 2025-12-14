@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "en-GB",
+    "name": "English (UK)",
+    "direction": "ltr"
+  },
+
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "continue": "Continue",
+    "skip": "Skip",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "download": "Download",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "new": "NEW"
+  },
+
+  "menu": {
+    "title": "Menu",
+    "yourStage": "Your stage",
+    "nextStage": "Next: {stage}",
+    "maxLevel": "Max level!",
+    "sections": {
+      "journey": "Your Journey",
+      "insights": "Insights",
+      "sessions": "Sessions & Fun",
+      "customize": "Customise",
+      "account": "Account & Security",
+      "admin": "Admin"
+    },
+    "items": {
+      "yourJourney": "Your Journey",
+      "trustDetails": "Trust Details",
+      "progressAnalytics": "Progress Analytics",
+      "predictionAccuracy": "Prediction Accuracy",
+      "whatILearned": "What I've Learnt",
+      "memoryBrowser": "Memory Browser",
+      "wellbeingDashboard": "Wellbeing Dashboard",
+      "conversationHistory": "Conversation History",
+      "videoSessions": "Video Sessions",
+      "groupCoaching": "Group Coaching",
+      "teamHuddles": "Team Huddles",
+      "playGames": "Play Games",
+      "musicalYou": "Musical You",
+      "personalize": "Personalise",
+      "voiceAccent": "Voice Accent",
+      "guidedPractices": "Guided Practices",
+      "createPractice": "Create Custom Practice",
+      "healthFitness": "Health & Fitness",
+      "calendar": "Calendar",
+      "notifications": "Notifications",
+      "toggleTheme": "Toggle Theme",
+      "linkSpotify": "Link Spotify",
+      "spotifyConnected": "Spotify Connected",
+      "yourPlan": "Your Plan",
+      "manageBilling": "Manage Billing",
+      "voiceId": "Voice ID",
+      "householdMembers": "Household Members",
+      "contactInfo": "Contact Info",
+      "exportData": "Export Data",
+      "shareFerni": "Share Ferni",
+      "supportFerni": "Support Ferni",
+      "takeTour": "Take the Tour",
+      "language": "Language"
+    }
+  },
+
+  "session": {
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "listening": "Listening...",
+    "thinking": "Thinking...",
+    "speaking": "Speaking...",
+    "tapToSpeak": "Tap to speak",
+    "holdToSpeak": "Hold to speak",
+    "releaseToSend": "Release to send",
+    "endSession": "End Session",
+    "sessionEnded": "Session ended",
+    "goodbye": "Goodbye",
+    "end": "End",
+    "untilNextTime": "Until next time...",
+    "endConversation": "End conversation",
+    "endConversationGoodbye": "End conversation - Goodbye"
+  },
+
+  "subscription": {
+    "free": "Free",
+    "friend": "Friend",
+    "partner": "Partner",
+    "upgrade": "Upgrade",
+    "currentPlan": "Current Plan",
+    "planDetails": "Plan Details",
+    "features": "Features",
+    "unlimitedConversations": "Unlimited conversations",
+    "allTeamMembers": "All team members",
+    "prioritySupport": "Priority support",
+    "advancedInsights": "Advanced insights"
+  },
+
+  "team": {
+    "meetTheTeam": "Meet the Team",
+    "selectMember": "Select a team member",
+    "currentlyWith": "Currently with {name}",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "Life Coach",
+        "bio": "Your main point of contact. Asks the questions that unlock insight."
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "Sage & Mentor",
+        "bio": "Your lifetime mentor with wisdom and patience."
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "Research & Discovery",
+        "bio": "Spots patterns nobody else sees."
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "Communication",
+        "bio": "Your Chief of Staff and communication coach."
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "Habits & Routines",
+        "bio": "Helps you build habits that stick."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "Planning & Events",
+        "bio": "Turns vague dreams into lived experiences."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "Stranger",
+    "acquaintance": "Acquaintance",
+    "friend": "Friend",
+    "closeFriend": "Close Friend",
+    "confidant": "Confidant",
+    "soulmate": "Soulmate"
+  },
+
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{n} minutes ago",
+    "hoursAgo": "{n} hours ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{n} days ago"
+  },
+
+  "milestones": {
+    "ourStory": "Our Story So Far",
+    "everyMomentMatters": "Every moment matters.",
+    "journeyWith": "My Journey with Ferni",
+    "categories": {
+      "relationship": "Our Relationship",
+      "team": "Team Connection",
+      "conversation": "Our Conversations",
+      "discovery": "Discovery",
+      "sweet": "Sweet Moment",
+      "milestone": "Milestone"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "Connection lost. Reconnecting...",
+    "reconnected": "Reconnected!",
+    "microphoneBlocked": "Microphone access required",
+    "sessionTimeout": "Session timed out"
+  },
+
+  "errors": {
+    "connectionFailed": "Failed to connect. Please try again.",
+    "microphoneAccess": "Please allow microphone access to continue.",
+    "networkError": "Network error. Please check your connection.",
+    "sessionExpired": "Your session has expired. Please refresh.",
+    "somethingWrong": "Something went wrong. Please try again."
+  },
+
+  "onboarding": {
+    "welcome": "Welcome",
+    "letsGetStarted": "Let's get started",
+    "whatIsYourName": "What would you like me to call you?",
+    "niceName": "Nice to meet you, {name}!",
+    "howAreYouFeeling": "How are you feeling today?",
+    "readyToBegin": "Ready to begin?"
+  },
+
+  "accessibility": {
+    "closeMenu": "Close menu",
+    "openSettings": "Open settings",
+    "muteAudio": "Mute audio",
+    "unmuteAudio": "Unmute audio",
+    "endCall": "End call",
+    "skipToContent": "Skip to main content"
+  }
+}

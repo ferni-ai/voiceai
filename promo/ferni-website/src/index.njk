@@ -619,6 +619,24 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
+{# PERSONA QUIZ - Which advisor helps YOUR challenge? #}
+<section class="section quiz-section" id="quiz">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Find Your Guide</p>
+      <h2 class="section__title">Which advisor helps your challenge?</h2>
+      <p class="section__subtitle">Take 30 seconds to discover which specialist fits your needs best.</p>
+    </div>
+
+    <div class="persona-quiz" data-persona-quiz>
+      {# Quiz content injected by JS #}
+      <div class="quiz__content">
+        <p class="quiz__step">Loading...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 {# TEAM #}
 <section class="section" id="team">
   <div class="container">
@@ -1431,6 +1449,32 @@ description: Six AI specialists who actually listen, remember everything, and he
           <p>Your coach has other clients and charges $200+ per session. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
         </div>
       </details>
+    </div>
+  </div>
+</section>
+
+{# TESTIMONIALS - What people are saying #}
+<section class="section section-testimonials" id="testimonials">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">What People Say</p>
+      <h2 class="section__title">Real conversations. Real impact.</h2>
+      <p class="section__subtitle">Hear from people who've found their someone who gets it.</p>
+    </div>
+
+    <div class="testimonials-grid content-grid">
+      {%- for testimonial in site.testimonials %}
+      <div class="card card-testimonial{% if testimonial.featured %} card--featured{% endif %}">
+        <p class="testimonial-quote">"{{ testimonial.quote }}"</p>
+        <div class="testimonial-author">
+          <div class="testimonial-author-initials">{{ testimonial.initials }}</div>
+          <div class="testimonial-author-info">
+            <p class="testimonial-author-name">{{ testimonial.author }}</p>
+            <p class="testimonial-author-context">{{ testimonial.role }}</p>
+          </div>
+        </div>
+      </div>
+      {%- endfor %}
     </div>
   </div>
 </section>

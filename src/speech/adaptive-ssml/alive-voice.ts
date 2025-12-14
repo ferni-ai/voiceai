@@ -18,6 +18,10 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { addContextualLaughter } from './contextual-laughter.js';
+import {
+  applyPersonaSpeechTraitsSync,
+  hasCustomSpeechTraits,
+} from './persona-speech-traits-loader.js';
 
 const log = getLogger().child({ module: 'AliveVoice' });
 
@@ -531,12 +535,37 @@ export interface PersonaFingerprint {
 /**
  * Apply persona-specific voice fingerprint.
  * Makes each agent sound distinctly themselves.
+ *
+ * This function applies two layers of persona-specific processing:
+ * 1. Basic fingerprint (speed, emotion, special patterns)
+ * 2. Detailed speech traits (catchphrases, vocabulary, cadence)
  */
 export function applyPersonaFingerprint(text: string, context: AliveVoiceContext): string {
   const personaId = context.personaId || 'ferni';
   const fingerprint = PERSONA_FINGERPRINTS[personaId] || PERSONA_FINGERPRINTS.ferni;
 
   let result = text;
+
+  // =========================================================================
+  // LAYER 1: Apply detailed speech traits from persona bundles
+  // These add persona-specific catchphrases, vocabulary emphasis, cadence, etc.
+  // =========================================================================
+  if (hasCustomSpeechTraits(personaId)) {
+    const emotion = context.userEmotion || fingerprint.defaultEmotion;
+    const laughterCount = (result.match(/\[laughter\]/gi) || []).length;
+
+    result = applyPersonaSpeechTraitsSync(result, personaId, {
+      emotion,
+      baseSpeed: fingerprint.baseSpeed,
+      laughterCount,
+    });
+
+    log.debug({ personaId }, 'Applied detailed persona speech traits');
+  }
+
+  // =========================================================================
+  // LAYER 2: Apply basic fingerprint (speed, emotion, patterns)
+  // =========================================================================
 
   // Apply base speed if no speed tag exists
   if (!result.includes('<speed ratio=')) {

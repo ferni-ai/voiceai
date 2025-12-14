@@ -15,10 +15,10 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import {
-  getYahooFinanceClient,
   getAlphaVantageClient,
   getGoogleApisClient,
   getWikipediaClient,
+  getYahooFinanceClient,
 } from './self-healing/index.js';
 
 const logger = getLogger();
@@ -52,7 +52,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
   // Check if circuit is healthy before making request
   if (!yahooClient.isHealthy()) {
     logger.debug('Yahoo Finance circuit is open, trying Alpha Vantage directly');
-    return await getStockQuoteAlphaVantage(symbol);
+    return getStockQuoteAlphaVantage(symbol);
   }
 
   const { data, error, status } = await yahooClient.get<YahooFinanceResponse>(
@@ -86,7 +86,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
     );
   }
 
-  return await getStockQuoteAlphaVantage(symbol);
+  return getStockQuoteAlphaVantage(symbol);
 }
 
 // Type for Alpha Vantage response
@@ -386,4 +386,4 @@ export async function getHistoricalEvent(): Promise<string | null> {
 // EXPORTS
 // ============================================================================
 
-export { getStockFallback, getMarketFallback, getWeatherFallback };
+export { getMarketFallback, getStockFallback, getWeatherFallback };

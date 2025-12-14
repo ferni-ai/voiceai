@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "fr",
+    "name": "Français",
+    "direction": "ltr"
+  },
+
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "next": "Suivant",
+    "back": "Retour",
+    "done": "Terminé",
+    "continue": "Continuer",
+    "skip": "Ignorer",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "share": "Partager",
+    "download": "Télécharger",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "new": "NOUVEAU"
+  },
+
+  "menu": {
+    "title": "Menu",
+    "yourStage": "Votre étape",
+    "nextStage": "Suivant : {stage}",
+    "maxLevel": "Niveau maximum !",
+    "sections": {
+      "journey": "Votre Parcours",
+      "insights": "Perspectives",
+      "sessions": "Sessions et Divertissement",
+      "customize": "Personnaliser",
+      "account": "Compte et Sécurité",
+      "admin": "Admin"
+    },
+    "items": {
+      "yourJourney": "Votre Parcours",
+      "trustDetails": "Détails de Confiance",
+      "progressAnalytics": "Analyse de Progrès",
+      "predictionAccuracy": "Précision des Prédictions",
+      "whatILearned": "Ce que J'ai Appris",
+      "memoryBrowser": "Explorateur de Mémoire",
+      "wellbeingDashboard": "Tableau de Bien-être",
+      "conversationHistory": "Historique des Conversations",
+      "videoSessions": "Sessions Vidéo",
+      "groupCoaching": "Coaching de Groupe",
+      "teamHuddles": "Réunions d'Équipe",
+      "playGames": "Jouer",
+      "musicalYou": "Votre Musique",
+      "personalize": "Personnaliser",
+      "voiceAccent": "Accent Vocal",
+      "guidedPractices": "Pratiques Guidées",
+      "createPractice": "Créer une Pratique",
+      "healthFitness": "Santé et Fitness",
+      "calendar": "Calendrier",
+      "notifications": "Notifications",
+      "toggleTheme": "Changer le Thème",
+      "linkSpotify": "Lier Spotify",
+      "spotifyConnected": "Spotify Connecté",
+      "yourPlan": "Votre Plan",
+      "manageBilling": "Gérer la Facturation",
+      "voiceId": "ID Vocal",
+      "householdMembers": "Membres du Foyer",
+      "contactInfo": "Coordonnées",
+      "exportData": "Exporter les Données",
+      "shareFerni": "Partager Ferni",
+      "supportFerni": "Soutenir Ferni",
+      "takeTour": "Faire le Tour",
+      "language": "Langue"
+    }
+  },
+
+  "session": {
+    "connecting": "Connexion...",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté",
+    "listening": "Écoute...",
+    "thinking": "Réflexion...",
+    "speaking": "Parle...",
+    "tapToSpeak": "Appuyez pour parler",
+    "holdToSpeak": "Maintenez pour parler",
+    "releaseToSend": "Relâchez pour envoyer",
+    "endSession": "Terminer la Session",
+    "sessionEnded": "Session terminée",
+    "goodbye": "Au revoir",
+    "end": "Terminer",
+    "untilNextTime": "À la prochaine...",
+    "endConversation": "Terminer la conversation",
+    "endConversationGoodbye": "Terminer la conversation - Au revoir"
+  },
+
+  "subscription": {
+    "free": "Gratuit",
+    "friend": "Ami",
+    "partner": "Partenaire",
+    "upgrade": "Améliorer",
+    "currentPlan": "Plan Actuel",
+    "planDetails": "Détails du Plan",
+    "features": "Fonctionnalités",
+    "unlimitedConversations": "Conversations illimitées",
+    "allTeamMembers": "Tous les membres de l'équipe",
+    "prioritySupport": "Support prioritaire",
+    "advancedInsights": "Perspectives avancées"
+  },
+
+  "team": {
+    "meetTheTeam": "Rencontrez l'Équipe",
+    "selectMember": "Sélectionnez un membre",
+    "currentlyWith": "Actuellement avec {name}",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "Coach de Vie",
+        "bio": "Votre point de contact principal. Pose les questions qui débloquent la perspicacité."
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "Sage et Mentor",
+        "bio": "Votre mentor à vie avec sagesse et patience."
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "Recherche et Découverte",
+        "bio": "Détecte des motifs que personne d'autre ne voit."
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "Communication",
+        "bio": "Votre chef de cabinet et coach en communication."
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "Habitudes et Routines",
+        "bio": "Vous aide à construire des habitudes durables."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "Planification et Événements",
+        "bio": "Transforme les rêves vagues en expériences vécues."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "Inconnu",
+    "acquaintance": "Connaissance",
+    "friend": "Ami",
+    "closeFriend": "Ami Proche",
+    "confidant": "Confident",
+    "soulmate": "Âme Sœur"
+  },
+
+  "time": {
+    "justNow": "À l'instant",
+    "minutesAgo": "Il y a {n} minutes",
+    "hoursAgo": "Il y a {n} heures",
+    "yesterday": "Hier",
+    "daysAgo": "Il y a {n} jours"
+  },
+
+  "milestones": {
+    "ourStory": "Notre Histoire Jusqu'ici",
+    "everyMomentMatters": "Chaque moment compte.",
+    "journeyWith": "Mon Parcours avec Ferni",
+    "categories": {
+      "relationship": "Notre Relation",
+      "team": "Connexion d'Équipe",
+      "conversation": "Nos Conversations",
+      "discovery": "Découverte",
+      "sweet": "Moment Doux",
+      "milestone": "Étape"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "Connexion perdue. Reconnexion...",
+    "reconnected": "Reconnecté !",
+    "microphoneBlocked": "Accès au microphone requis",
+    "sessionTimeout": "Session expirée"
+  },
+
+  "errors": {
+    "connectionFailed": "Échec de connexion. Veuillez réessayer.",
+    "microphoneAccess": "Veuillez autoriser l'accès au microphone pour continuer.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "sessionExpired": "Votre session a expiré. Veuillez actualiser.",
+    "somethingWrong": "Une erreur s'est produite. Veuillez réessayer."
+  },
+
+  "onboarding": {
+    "welcome": "Bienvenue",
+    "letsGetStarted": "Commençons",
+    "whatIsYourName": "Comment souhaitez-vous que je vous appelle ?",
+    "niceName": "Enchanté, {name} !",
+    "howAreYouFeeling": "Comment vous sentez-vous aujourd'hui ?",
+    "readyToBegin": "Prêt à commencer ?"
+  },
+
+  "accessibility": {
+    "closeMenu": "Fermer le menu",
+    "openSettings": "Ouvrir les paramètres",
+    "muteAudio": "Couper le son",
+    "unmuteAudio": "Activer le son",
+    "endCall": "Terminer l'appel",
+    "skipToContent": "Aller au contenu principal"
+  }
+}

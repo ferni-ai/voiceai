@@ -10,7 +10,7 @@
  * - Uses shared components from engagement-components.ts
  * - Respects prefers-reduced-motion
  * - Centered floating modal with backdrop blur
- * 
+ *
  * DESIGN PRINCIPLES:
  *   - Transparent about what AI knows
  *   - Non-creepy presentation of learned info
@@ -19,9 +19,9 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
+  escapeHtml,
   ICONS,
   injectSharedStyles,
-  escapeHtml,
   renderCloseButton,
   STAGGER_DELAYS,
 } from './engagement-components.js';
@@ -45,7 +45,22 @@ export interface LearningPattern {
   pattern: string;
   frequency: number;
   examples: string[];
-  category?: 'timing' | 'communication' | 'engagement' | 'interests' | 'emotional' | 'relationship' | 'voice' | 'life' | 'goals' | 'knowledge' | 'preferences' | 'boundaries' | 'achievements' | 'continuity' | 'relationships';
+  category?:
+    | 'timing'
+    | 'communication'
+    | 'engagement'
+    | 'interests'
+    | 'emotional'
+    | 'relationship'
+    | 'voice'
+    | 'life'
+    | 'goals'
+    | 'knowledge'
+    | 'preferences'
+    | 'boundaries'
+    | 'achievements'
+    | 'continuity'
+    | 'relationships';
 }
 
 export interface CognitiveInsightsData {
@@ -68,7 +83,12 @@ export interface CognitiveInsightsData {
  */
 export interface SuperhumanInsight {
   id: string;
-  type: 'date_reminder' | 'growth_celebration' | 'inside_joke' | 'topic_absence' | 'comfort_application';
+  type:
+    | 'date_reminder'
+    | 'growth_celebration'
+    | 'inside_joke'
+    | 'topic_absence'
+    | 'comfort_application';
   priority: 'high' | 'medium' | 'low';
   content: string;
   naturalPhrase: string;
@@ -120,7 +140,7 @@ const TYPE_LABELS: Record<string, string> = {
   fact: 'Facts about you',
   preference: 'Your preferences',
   goal: 'Your goals',
-  pattern: 'Patterns I\'ve noticed',
+  pattern: "Patterns I've noticed",
   relationship: 'Connections',
 };
 
@@ -137,10 +157,10 @@ class CognitiveInsightsUI {
   initialize(): void {
     // HMR protection
     if (this.panel) return;
-    
+
     // Clean up orphaned elements
-    document.querySelectorAll('.cognitive-insights').forEach(el => el.remove());
-    
+    document.querySelectorAll('.cognitive-insights').forEach((el) => el.remove());
+
     injectSharedStyles();
     this.injectStyles();
     this.createPanel();
@@ -161,13 +181,16 @@ class CognitiveInsightsUI {
 
   hide(): void {
     if (!this.panel) return;
-    
+
     this.panel.classList.remove('cognitive-insights--visible');
     this.isVisible = false;
-    
-    setTimeout(() => {
-      this.callbacks.onClose?.();
-    }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
+
+    setTimeout(
+      () => {
+        this.callbacks.onClose?.();
+      },
+      prefersReducedMotion() ? 0 : DURATION.NORMAL
+    );
   }
 
   toggle(data?: CognitiveInsightsData): void {
@@ -183,7 +206,7 @@ class CognitiveInsightsUI {
     this.panel.className = 'cognitive-insights';
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-modal', 'true');
-    this.panel.setAttribute('aria-label', 'What I\'ve learned about you');
+    this.panel.setAttribute('aria-label', "What I've learned about you");
 
     this.panel.innerHTML = `
       <div class="cognitive-insights__backdrop"></div>
@@ -203,10 +226,10 @@ class CognitiveInsightsUI {
     // Bind events
     const backdrop = this.panel.querySelector('.cognitive-insights__backdrop');
     backdrop?.addEventListener('click', () => this.hide());
-    
+
     const closeBtn = this.panel.querySelector('.engagement-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
-    
+
     // Close on escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isVisible) {
@@ -235,12 +258,14 @@ class CognitiveInsightsUI {
 
       <!-- Memory Sections -->
       <div class="cognitive-insights__sections">
-        ${Object.entries(groupedMemories).map(([type, memories]) => 
-          this.renderMemorySection(type, memories)
-        ).join('')}
+        ${Object.entries(groupedMemories)
+          .map(([type, memories]) => this.renderMemorySection(type, memories))
+          .join('')}
       </div>
 
-      ${data.superhumanInsights && data.superhumanInsights.length > 0 ? `
+      ${
+        data.superhumanInsights && data.superhumanInsights.length > 0
+          ? `
         <!-- Superhuman Insights - Proactive Memory -->
         <div class="cognitive-insights__superhuman">
           <div class="cognitive-insights__superhuman-header">
@@ -252,12 +277,16 @@ class CognitiveInsightsUI {
             Here are some things I'm keeping in mind for our next conversation:
           </p>
           <div class="cognitive-insights__superhuman-list">
-            ${data.superhumanInsights.map(insight => this.renderSuperhumanInsight(insight)).join('')}
+            ${data.superhumanInsights.map((insight) => this.renderSuperhumanInsight(insight)).join('')}
           </div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
-      ${data.patterns.length > 0 ? `
+      ${
+        data.patterns.length > 0
+          ? `
         <!-- Patterns -->
         <div class="cognitive-insights__patterns">
           <div class="cognitive-insights__patterns-header">
@@ -269,7 +298,8 @@ class CognitiveInsightsUI {
           </p>
           ${this.renderPatternsByCategory(data.patterns)}
         </div>
-      ` : `
+      `
+          : `
         <!-- Empty Patterns with encouragement -->
         <div class="cognitive-insights__patterns cognitive-insights__patterns--empty">
           <div class="cognitive-insights__patterns-header">
@@ -281,11 +311,12 @@ class CognitiveInsightsUI {
             <span class="cognitive-insights__patterns-hint">Keep sharing - the best insights come over time.</span>
           </div>
         </div>
-      `}
+      `
+      }
     `;
 
     // Bind delete buttons
-    content.querySelectorAll('.cognitive-insights__memory-delete').forEach(btn => {
+    content.querySelectorAll('.cognitive-insights__memory-delete').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = (btn as HTMLElement).dataset.id;
@@ -309,7 +340,7 @@ class CognitiveInsightsUI {
 
   private renderMemorySection(type: string, memories: CognitiveMemory[]): string {
     const icon = MEMORY_ICONS[type] || MEMORY_ICONS['fact'];
-    const title = TYPE_LABELS[type] || (type.charAt(0).toUpperCase() + type.slice(1) + 's');
+    const title = TYPE_LABELS[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
 
     return `
       <section class="cognitive-insights__section">
@@ -352,19 +383,33 @@ class CognitiveInsightsUI {
   private renderPattern(pattern: LearningPattern): string {
     // Confidence indicator based on frequency
     const confidence = pattern.frequency >= 5 ? 'high' : pattern.frequency >= 3 ? 'medium' : 'low';
-    const confidenceLabel = pattern.frequency >= 5 ? 'Strong pattern' : pattern.frequency >= 3 ? 'Emerging pattern' : 'Early observation';
-    
+    const confidenceLabel =
+      pattern.frequency >= 5
+        ? 'Strong pattern'
+        : pattern.frequency >= 3
+          ? 'Emerging pattern'
+          : 'Early observation';
+
     return `
       <div class="cognitive-insights__pattern cognitive-insights__pattern--${confidence}">
         <div class="cognitive-insights__pattern-content">
           <p class="cognitive-insights__pattern-text">${escapeHtml(pattern.pattern)}</p>
-          ${pattern.examples.length > 0 ? `
+          ${
+            pattern.examples.length > 0
+              ? `
             <div class="cognitive-insights__pattern-examples">
-              ${pattern.examples.slice(0, 2).map(ex => `
+              ${pattern.examples
+                .slice(0, 2)
+                .map(
+                  (ex) => `
                 <span class="cognitive-insights__pattern-example">"${escapeHtml(ex)}"</span>
-              `).join('')}
+              `
+                )
+                .join('')}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         <div class="cognitive-insights__pattern-meta">
           <span class="cognitive-insights__pattern-confidence">${confidenceLabel}</span>
@@ -379,9 +424,13 @@ class CognitiveInsightsUI {
    */
   private renderSuperhumanInsight(insight: SuperhumanInsight): string {
     const icon = MEMORY_ICONS[insight.type] || MEMORY_ICONS['growth_celebration'];
-    const priorityClass = insight.priority === 'high' ? 'superhuman-insight--high' : 
-                          insight.priority === 'medium' ? 'superhuman-insight--medium' : '';
-    
+    const priorityClass =
+      insight.priority === 'high'
+        ? 'superhuman-insight--high'
+        : insight.priority === 'medium'
+          ? 'superhuman-insight--medium'
+          : '';
+
     const typeLabels: Record<string, string> = {
       date_reminder: 'Important Date',
       growth_celebration: 'Growth Moment',
@@ -389,7 +438,7 @@ class CognitiveInsightsUI {
       topic_absence: 'Check-in',
       comfort_application: 'How to Help',
     };
-    
+
     const toneEmoji: Record<string, string> = {
       celebratory: '🎉',
       gentle: '💙',
@@ -417,80 +466,80 @@ class CognitiveInsightsUI {
   private renderPatternsByCategory(patterns: LearningPattern[]): string {
     // Category configuration
     const CATEGORY_CONFIG: Record<string, { label: string; icon: string; order: number }> = {
-      relationship: { 
-        label: 'Our Relationship', 
+      relationship: {
+        label: 'Our Relationship',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
-        order: 1 
+        order: 1,
       },
-      communication: { 
-        label: 'How You Communicate', 
+      communication: {
+        label: 'How You Communicate',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-        order: 2 
+        order: 2,
       },
-      interests: { 
-        label: 'What Excites You', 
+      interests: {
+        label: 'What Excites You',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-        order: 3 
+        order: 3,
       },
-      engagement: { 
-        label: 'How You Engage', 
+      engagement: {
+        label: 'How You Engage',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-        order: 4 
+        order: 4,
       },
-      timing: { 
-        label: 'When You\'re Around', 
+      timing: {
+        label: "When You're Around",
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-        order: 5 
+        order: 5,
       },
-      goals: { 
-        label: 'What You\'re Working Toward', 
+      goals: {
+        label: "What You're Working Toward",
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
-        order: 6 
+        order: 6,
       },
-      achievements: { 
-        label: 'What You\'ve Accomplished', 
+      achievements: {
+        label: "What You've Accomplished",
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
-        order: 7 
+        order: 7,
       },
-      voice: { 
-        label: 'How You Speak', 
+      voice: {
+        label: 'How You Speak',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
-        order: 8 
+        order: 8,
       },
-      life: { 
-        label: 'Where You Are in Life', 
+      life: {
+        label: 'Where You Are in Life',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-        order: 9 
+        order: 9,
       },
-      boundaries: { 
-        label: 'What I\'m Mindful Of', 
+      boundaries: {
+        label: "What I'm Mindful Of",
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-        order: 10 
+        order: 10,
       },
-      emotional: { 
-        label: 'How You Feel', 
+      emotional: {
+        label: 'How You Feel',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-        order: 11 
+        order: 11,
       },
-      knowledge: { 
-        label: 'What You Know', 
+      knowledge: {
+        label: 'What You Know',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
-        order: 12 
+        order: 12,
       },
-      preferences: { 
-        label: 'What You Prefer', 
+      preferences: {
+        label: 'What You Prefer',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-        order: 13 
+        order: 13,
       },
-      continuity: { 
-        label: 'What We\'re Continuing', 
+      continuity: {
+        label: "What We're Continuing",
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
-        order: 14 
+        order: 14,
       },
-      relationships: { 
-        label: 'People in Your Life', 
+      relationships: {
+        label: 'People in Your Life',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-        order: 15 
+        order: 15,
       },
     };
 
@@ -513,12 +562,11 @@ class CognitiveInsightsUI {
     }
 
     // Sort categories by order
-    const sortedCategories = Object.entries(grouped)
-      .sort((a, b) => {
-        const orderA = CATEGORY_CONFIG[a[0]]?.order || 99;
-        const orderB = CATEGORY_CONFIG[b[0]]?.order || 99;
-        return orderA - orderB;
-      });
+    const sortedCategories = Object.entries(grouped).sort((a, b) => {
+      const orderA = CATEGORY_CONFIG[a[0]]?.order || 99;
+      const orderB = CATEGORY_CONFIG[b[0]]?.order || 99;
+      return orderA - orderB;
+    });
 
     // Render grouped patterns
     let html = '<div class="cognitive-insights__patterns-grouped">';
@@ -534,7 +582,7 @@ class CognitiveInsightsUI {
             <h4 class="cognitive-insights__pattern-category-title">${escapeHtml(config.label)}</h4>
           </div>
           <div class="cognitive-insights__patterns-list">
-            ${categoryPatterns.map(p => this.renderPattern(p)).join('')}
+            ${categoryPatterns.map((p) => this.renderPattern(p)).join('')}
           </div>
         </div>
       `;
@@ -549,7 +597,7 @@ class CognitiveInsightsUI {
             <h4 class="cognitive-insights__pattern-category-title">Other Observations</h4>
           </div>
           <div class="cognitive-insights__patterns-list">
-            ${uncategorized.map(p => this.renderPattern(p)).join('')}
+            ${uncategorized.map((p) => this.renderPattern(p)).join('')}
           </div>
         </div>
       `;
@@ -1304,12 +1352,12 @@ export async function fetchSuperhumanInsights(): Promise<{
     const response = await fetch('/api/cognitive/superhuman-insights', {
       credentials: 'include',
     });
-    
+
     if (!response.ok) {
       console.warn('Failed to fetch superhuman insights:', response.status);
       return null;
     }
-    
+
     const data = await response.json();
     return {
       insights: data.insights || [],
@@ -1329,7 +1377,7 @@ export async function loadCognitiveInsightsWithSuperhuman(
   baseData: CognitiveInsightsData
 ): Promise<CognitiveInsightsData> {
   const superhuman = await fetchSuperhumanInsights();
-  
+
   if (superhuman) {
     return {
       ...baseData,
@@ -1338,7 +1386,7 @@ export async function loadCognitiveInsightsWithSuperhuman(
       topicAbsences: superhuman.topicAbsences,
     };
   }
-  
+
   return baseData;
 }
 

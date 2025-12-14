@@ -72,7 +72,8 @@
       "exportData": "Export Data",
       "shareFerni": "Share Ferni",
       "supportFerni": "Support Ferni",
-      "takeTour": "Take the Tour"
+      "takeTour": "Take the Tour",
+      "language": "Language"
     }
   },
 
@@ -87,7 +88,12 @@
     "holdToSpeak": "Hold to speak",
     "releaseToSend": "Release to send",
     "endSession": "End Session",
-    "sessionEnded": "Session ended"
+    "sessionEnded": "Session ended",
+    "goodbye": "Goodbye",
+    "end": "End",
+    "untilNextTime": "Until next time...",
+    "endConversation": "End conversation",
+    "endConversationGoodbye": "End conversation - Goodbye"
   },
 
   "subscription": {
@@ -194,7 +200,240 @@
     "whatIsYourName": "What would you like me to call you?",
     "niceName": "Nice to meet you, {name}!",
     "howAreYouFeeling": "How are you feeling today?",
-    "readyToBegin": "Ready to begin?"
+    "readyToBegin": "Ready to begin?",
+    "ariaLabel": "Welcome tour",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Ferni",
+        "description": "Your personal team of AI life coaches. Each brings unique wisdom to support your journey."
+      },
+      "voice": {
+        "title": "Just Speak",
+        "description": "Tap the center to start a conversation. Speak naturally - Ferni listens and responds in real time."
+      },
+      "personas": {
+        "title": "Meet Your Team",
+        "description": "Six unique coaches with different perspectives. Each understands your history with the team."
+      },
+      "rituals": {
+        "title": "Daily Practices",
+        "description": "Build consistency with short daily rituals. Track streaks and celebrate progress."
+      },
+      "ready": {
+        "title": "You're Ready",
+        "description": "That's all you need to know. Discover more as you go."
+      }
+    },
+    "buttons": {
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "begin": "Let's begin"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "SUBSCRIPTION",
+    "title": "Manage Your Plan",
+    "expiresLabel": "Access until",
+    "renewsLabel": "Renews",
+    "billedThrough": "Billed through",
+    "buttons": {
+      "upgrade": "Upgrade to Premium",
+      "restore": "Restore Purchases",
+      "restoring": "Restoring...",
+      "manageApple": "Manage in Settings",
+      "manageStripe": "Manage Billing"
+    },
+    "apple": {
+      "instructionsTitle": "To cancel or change your plan:",
+      "step1": "Open Settings on your device",
+      "step2": "Tap your name at the top",
+      "step3": "Tap \"Subscriptions\"",
+      "step4": "Find and tap \"Ferni\"",
+      "note": "Apple requires subscriptions to be managed through iOS Settings"
+    },
+    "stripe": {
+      "note": "Update payment method, view invoices, or cancel anytime"
+    },
+    "restore": {
+      "noFound": "No purchases found",
+      "failed": "Restore failed"
+    },
+    "status": {
+      "free": "You're on the free plan. Ferni is always here for you.",
+      "active": "Your subscription is active. Thank you for being a supporter!",
+      "canceled": "Your subscription will end soon, but you're welcome back anytime.",
+      "pastDue": "There was an issue with your payment. Please update your payment method.",
+      "default": "You're subscribed. Thank you for your support!"
+    },
+    "freeNote": "Unlock unlimited sessions, the full team, and personalization"
+  },
+
+  "musicDashboard": {
+    "title": "Musical You",
+    "loading": "Analyzing your musical DNA...",
+    "empty": {
+      "title": "Let's Discover Your Musical DNA!",
+      "hint": "Play {count} more games for full insights"
+    },
+    "error": {
+      "hint": "Play some music games to build your profile!"
+    },
+    "buttons": {
+      "startPlaying": "Start Playing",
+      "playGame": "Play Name That Tune"
+    },
+    "sections": {
+      "journey": "Your Journey",
+      "strengths": "Where You Shine",
+      "growth": "Room to Grow",
+      "milestones": "Achievements",
+      "moments": "Memorable Moments",
+      "personaStats": "Who You've Played With"
+    },
+    "stats": {
+      "gamesPlayed": "Games Played",
+      "bestStreak": "Best Streak",
+      "minutes": "Minutes",
+      "thisWeek": "This Week"
+    },
+    "favorite": {
+      "label": "Favorite:"
+    },
+    "milestone": {
+      "nextLabel": "Next Goal"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "Group Coaching",
+    "loading": "Loading...",
+    "participantsLabel": "participants",
+    "buttons": {
+      "start": "Start",
+      "join": "Join"
+    },
+    "empty": {
+      "title": "No active sessions",
+      "hint": "Create a new session to get started"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "Couple",
+        "description": "Navigate relationship dynamics together"
+      },
+      "family": {
+        "name": "Family",
+        "description": "Build stronger family connections"
+      },
+      "team": {
+        "name": "Team",
+        "description": "Improve workplace collaboration"
+      },
+      "peer": {
+        "name": "Peer Support",
+        "description": "Connect with others on similar journeys"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "Video Sessions",
+    "loading": "Loading...",
+    "intro": "Choose how you want to appear in your coaching sessions.",
+    "controls": {
+      "title": "Quick Controls"
+    },
+    "camera": {
+      "on": "Camera On",
+      "off": "Camera Off"
+    },
+    "screen": {
+      "on": "Stop Sharing",
+      "off": "Share Screen"
+    },
+    "modes": {
+      "title": "Display Mode",
+      "avatarOnly": {
+        "label": "Avatar Only",
+        "description": "Just Ferni's avatar, no video"
+      },
+      "video": {
+        "label": "Video",
+        "description": "See yourself and Ferni"
+      },
+      "hybrid": {
+        "label": "Hybrid",
+        "description": "Avatar with optional video"
+      }
+    },
+    "quality": {
+      "title": "Video Quality",
+      "auto": "Auto (Recommended)",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low (Save Data)"
+    },
+    "note": "Video sessions work best with good lighting and a stable internet connection.",
+    "buttons": {
+      "retry": "Try Again"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "Health & Fitness",
+    "loading": "Loading...",
+    "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
+    "sections": {
+      "devices": "Devices",
+      "features": "What Ferni can see"
+    },
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect"
+    },
+    "features": {
+      "stress": "Stress detection from HRV",
+      "sleep": "Sleep quality analysis",
+      "activity": "Activity tracking"
+    },
+    "privacy": {
+      "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "Sync with Apple Watch and iPhone health data"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "Connect your Fitbit device"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "Sync with Garmin wearables"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "Sleep and readiness insights"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "Recovery and strain tracking"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "Sending code...",
+      "withCode": "Verify with code"
+    },
+    "buttons": {
+      "saving": "Saving...",
+      "save": "Save"
+    }
   },
 
   "accessibility": {

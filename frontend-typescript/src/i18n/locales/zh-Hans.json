@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "zh-Hans",
+    "name": "简体中文",
+    "direction": "ltr"
+  },
+
+  "common": {
+    "loading": "加载中...",
+    "error": "出了点问题",
+    "retry": "重试",
+    "cancel": "取消",
+    "save": "保存",
+    "close": "关闭",
+    "next": "下一步",
+    "back": "返回",
+    "done": "完成",
+    "continue": "继续",
+    "skip": "跳过",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "share": "分享",
+    "download": "下载",
+    "copy": "复制",
+    "copied": "已复制！",
+    "new": "新"
+  },
+
+  "menu": {
+    "title": "菜单",
+    "yourStage": "您的阶段",
+    "nextStage": "下一步：{stage}",
+    "maxLevel": "最高级别！",
+    "sections": {
+      "journey": "您的旅程",
+      "insights": "洞察",
+      "sessions": "会话与乐趣",
+      "customize": "自定义",
+      "account": "账户与安全",
+      "admin": "管理员"
+    },
+    "items": {
+      "yourJourney": "您的旅程",
+      "trustDetails": "信任详情",
+      "progressAnalytics": "进度分析",
+      "predictionAccuracy": "预测准确度",
+      "whatILearned": "我学到的",
+      "memoryBrowser": "记忆浏览器",
+      "wellbeingDashboard": "健康仪表板",
+      "conversationHistory": "对话历史",
+      "videoSessions": "视频会话",
+      "groupCoaching": "团体辅导",
+      "teamHuddles": "团队会议",
+      "playGames": "玩游戏",
+      "musicalYou": "音乐的你",
+      "personalize": "个性化",
+      "voiceAccent": "语音口音",
+      "guidedPractices": "引导练习",
+      "createPractice": "创建练习",
+      "healthFitness": "健康与健身",
+      "calendar": "日历",
+      "notifications": "通知",
+      "toggleTheme": "切换主题",
+      "linkSpotify": "连接Spotify",
+      "spotifyConnected": "Spotify已连接",
+      "yourPlan": "您的计划",
+      "manageBilling": "管理账单",
+      "voiceId": "语音ID",
+      "householdMembers": "家庭成员",
+      "contactInfo": "联系信息",
+      "exportData": "导出数据",
+      "shareFerni": "分享Ferni",
+      "supportFerni": "支持Ferni",
+      "takeTour": "开始导览",
+      "language": "语言"
+    }
+  },
+
+  "session": {
+    "connecting": "连接中...",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "listening": "正在听...",
+    "thinking": "正在思考...",
+    "speaking": "正在说...",
+    "tapToSpeak": "点击说话",
+    "holdToSpeak": "按住说话",
+    "releaseToSend": "松开发送",
+    "endSession": "结束会话",
+    "sessionEnded": "会话已结束",
+    "goodbye": "再见",
+    "end": "结束",
+    "untilNextTime": "下次再见...",
+    "endConversation": "结束对话",
+    "endConversationGoodbye": "结束对话 - 再见"
+  },
+
+  "subscription": {
+    "free": "免费",
+    "friend": "朋友",
+    "partner": "伙伴",
+    "upgrade": "升级",
+    "currentPlan": "当前计划",
+    "planDetails": "计划详情",
+    "features": "功能",
+    "unlimitedConversations": "无限对话",
+    "allTeamMembers": "所有团队成员",
+    "prioritySupport": "优先支持",
+    "advancedInsights": "高级洞察"
+  },
+
+  "team": {
+    "meetTheTeam": "认识团队",
+    "selectMember": "选择团队成员",
+    "currentlyWith": "当前与{name}在一起",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "人生教练",
+        "bio": "您的主要联系人。提出能够解锁洞察力的问题。"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "智者与导师",
+        "bio": "充满智慧和耐心的终身导师。"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "研究与发现",
+        "bio": "发现别人看不到的模式。"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "沟通",
+        "bio": "您的首席助理和沟通教练。"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "习惯与日常",
+        "bio": "帮助您建立持久的习惯。"
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "规划与活动",
+        "bio": "将模糊的梦想变成真实的体验。"
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "陌生人",
+    "acquaintance": "熟人",
+    "friend": "朋友",
+    "closeFriend": "好友",
+    "confidant": "知己",
+    "soulmate": "灵魂伴侣"
+  },
+
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{n}分钟前",
+    "hoursAgo": "{n}小时前",
+    "yesterday": "昨天",
+    "daysAgo": "{n}天前"
+  },
+
+  "milestones": {
+    "ourStory": "我们的故事",
+    "everyMomentMatters": "每一刻都很重要。",
+    "journeyWith": "我与Ferni的旅程",
+    "categories": {
+      "relationship": "我们的关系",
+      "team": "团队联系",
+      "conversation": "我们的对话",
+      "discovery": "发现",
+      "sweet": "甜蜜时刻",
+      "milestone": "里程碑"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "连接丢失。正在重新连接...",
+    "reconnected": "已重新连接！",
+    "microphoneBlocked": "需要麦克风访问权限",
+    "sessionTimeout": "会话已超时"
+  },
+
+  "errors": {
+    "connectionFailed": "连接失败。请重试。",
+    "microphoneAccess": "请允许麦克风访问以继续。",
+    "networkError": "网络错误。请检查您的连接。",
+    "sessionExpired": "您的会话已过期。请刷新。",
+    "somethingWrong": "出了点问题。请重试。"
+  },
+
+  "onboarding": {
+    "welcome": "欢迎",
+    "letsGetStarted": "让我们开始吧",
+    "whatIsYourName": "您希望我怎么称呼您？",
+    "niceName": "很高兴认识您，{name}！",
+    "howAreYouFeeling": "今天感觉怎么样？",
+    "readyToBegin": "准备好开始了吗？"
+  },
+
+  "accessibility": {
+    "closeMenu": "关闭菜单",
+    "openSettings": "打开设置",
+    "muteAudio": "静音",
+    "unmuteAudio": "取消静音",
+    "endCall": "结束通话",
+    "skipToContent": "跳到主要内容"
+  }
+}

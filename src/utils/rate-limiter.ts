@@ -112,7 +112,9 @@ export class RateLimiter {
   async waitForToken(tokens = 1): Promise<void> {
     while (!this.tryConsume(tokens)) {
       const waitTime = this.getWaitTime(tokens);
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, waitTime);
+      });
     }
   }
 

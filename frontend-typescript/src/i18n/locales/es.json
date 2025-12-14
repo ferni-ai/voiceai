@@ -72,7 +72,8 @@
       "exportData": "Exportar Datos",
       "shareFerni": "Compartir Ferni",
       "supportFerni": "Apoyar a Ferni",
-      "takeTour": "Hacer el Tour"
+      "takeTour": "Hacer el Tour",
+      "language": "Idioma"
     }
   },
 
@@ -87,7 +88,12 @@
     "holdToSpeak": "Mant\u00e9n para hablar",
     "releaseToSend": "Suelta para enviar",
     "endSession": "Terminar Sesi\u00f3n",
-    "sessionEnded": "Sesi\u00f3n terminada"
+    "sessionEnded": "Sesi\u00f3n terminada",
+    "goodbye": "Adi\u00f3s",
+    "end": "Terminar",
+    "untilNextTime": "Hasta la pr\u00f3xima...",
+    "endConversation": "Terminar conversaci\u00f3n",
+    "endConversationGoodbye": "Terminar conversaci\u00f3n - Adi\u00f3s"
   },
 
   "subscription": {

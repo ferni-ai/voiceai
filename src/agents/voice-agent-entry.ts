@@ -99,9 +99,9 @@ async function loadPersonaLocally(
 async function connectToRoom(ctx: JobContext): Promise<void> {
   process.stderr.write(`[voice-agent-entry] Connecting to room...\n`);
   const connectStart = Date.now();
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000)
-  );
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000);
+  });
   await Promise.race([ctx.connect(), timeout]);
   process.stderr.write(
     `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
@@ -300,7 +300,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
 
     currentPhase = 'running';
-    await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
+    await new Promise<void>((resolve) => {
+      ctx.room.on('disconnected', () => resolve());
+    });
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
@@ -350,7 +352,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     try {
       if (!ctx.room.isConnected) await ctx.connect();
-      await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
+      await new Promise<void>((resolve) => {
+        ctx.room.on('disconnected', () => resolve());
+      });
     } catch {
       /* ignore */
     }

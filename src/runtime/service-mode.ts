@@ -22,6 +22,7 @@
  *   // Works the same locally and in cloud!
  */
 
+import { randomUUID } from 'node:crypto';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'service-mode' });
@@ -428,7 +429,7 @@ class LocalMemoryService implements IMemoryService {
 
     const { embed } = await import('../memory/embeddings.js');
     const embedding = await embed(content);
-    const id = crypto.randomUUID();
+    const id = randomUUID();
 
     await this.vectorStore!.addDocument({
       id,

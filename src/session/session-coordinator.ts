@@ -26,8 +26,12 @@ import {
   getUnifiedEmotionalMemory,
   type UnifiedEmotionalMemory,
 } from '../memory/emotional-memory-unified.js';
-import type { MemoryStore, RAGContext, VectorStore } from '../memory/index.js';
-import { getRAGContext } from '../memory/index.js';
+import {
+  getRAGContext,
+  type MemoryStore,
+  type RAGContext,
+  type VectorStore,
+} from '../memory/index.js';
 
 // Intelligence module
 import {

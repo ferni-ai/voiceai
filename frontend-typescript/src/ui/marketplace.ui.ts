@@ -18,12 +18,18 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
 import {
   getMemberStatus,
+  getTeamMember,
   isFullTeamUnlocked,
+  isTeamMemberUnlocked,
   TEAM_MEMBERS,
+  type TeamMemberId,
 } from '../services/team-unlock.service.js';
+import { appState } from '../state/app.state.js';
+import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
 import {
   requestPermissionConsent,
@@ -567,6 +573,60 @@ async function renderInstalledTab(): Promise<void> {
 }
 
 /**
+ * Render an employee card for the team narrative section.
+ * FIX BUG: Shows locked state indicator for team members not yet unlocked.
+ */
+function renderEmployeeCard(
+  personaId: string,
+  initials: string,
+  name: string,
+  role: string
+): string {
+  const gradient = getPersonaGradient(personaId);
+  const glow = getPersonaGlow(personaId);
+  const avatarStyle = `background: ${gradient}; --avatar-glow: ${glow}; --avatar-primary: var(--persona-primary);`;
+
+  // Check if this team member is locked
+  const isLocked = !isTeamMemberUnlocked(personaId as TeamMemberId);
+  const status = getMemberStatus(personaId as TeamMemberId);
+  const lockedClass = isLocked ? 'employee-card--locked' : '';
+
+  // Lock icon for locked members
+  const lockIcon = isLocked
+    ? `<div class="employee-lock-indicator" aria-hidden="true">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>`
+    : '';
+
+  // Progress indicator for locked members with progress
+  const progressRing =
+    isLocked && status.progress > 0
+      ? `<svg class="employee-progress-ring" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--color-border-subtle, rgba(255,255,255,0.1))" stroke-width="2"/>
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--persona-primary, #4a6741)" stroke-width="2"
+            stroke-dasharray="${status.progress * 94}, 94"
+            stroke-linecap="round"
+            transform="rotate(-90 18 18)"/>
+        </svg>`
+      : '';
+
+  return `
+    <div class="employee-card ${lockedClass}" data-persona="${personaId}" data-locked="${isLocked}">
+      <div class="employee-avatar-container">
+        ${progressRing}
+        <div class="employee-avatar${isLocked ? ' employee-avatar--locked' : ''}" style="${avatarStyle}">${initials}</div>
+        ${lockIcon}
+      </div>
+      <span class="employee-name">${name}</span>
+      <span class="employee-role">${role}</span>
+    </div>
+  `;
+}
+
+/**
  * Render the "Meet the Team" narrative section
  * The first company built by AI, run by AI.
  *
@@ -632,31 +692,11 @@ function renderTeamNarrative(): string {
         <div class="leadership-section">
           <span class="leadership-label">Core Team</span>
           <div class="leadership-grid employees">
-            <div class="employee-card" data-persona="peter-john">
-              <div class="employee-avatar" style="${getAvatarStyle('peter-john')}">PJ</div>
-              <span class="employee-name">Peter</span>
-              <span class="employee-role">Research</span>
-            </div>
-            <div class="employee-card" data-persona="alex-chen">
-              <div class="employee-avatar" style="${getAvatarStyle('alex-chen')}">AC</div>
-              <span class="employee-name">Alex</span>
-              <span class="employee-role">Communication</span>
-            </div>
-            <div class="employee-card" data-persona="maya-santos">
-              <div class="employee-avatar" style="${getAvatarStyle('maya-santos')}">MS</div>
-              <span class="employee-name">Maya</span>
-              <span class="employee-role">Habits</span>
-            </div>
-            <div class="employee-card" data-persona="jordan-taylor">
-              <div class="employee-avatar" style="${getAvatarStyle('jordan-taylor')}">JD</div>
-              <span class="employee-name">Jordan</span>
-              <span class="employee-role">Planning</span>
-            </div>
-            <div class="employee-card" data-persona="nayan-patel">
-              <div class="employee-avatar" style="${getAvatarStyle('nayan-patel')}">NA</div>
-              <span class="employee-name">Nayan</span>
-              <span class="employee-role">Wisdom</span>
-            </div>
+            ${renderEmployeeCard('peter-john', 'PJ', 'Peter', 'Research')}
+            ${renderEmployeeCard('alex-chen', 'AC', 'Alex', 'Communication')}
+            ${renderEmployeeCard('maya-santos', 'MS', 'Maya', 'Habits')}
+            ${renderEmployeeCard('jordan-taylor', 'JT', 'Jordan', 'Planning')}
+            ${renderEmployeeCard('nayan-patel', 'NP', 'Nayan', 'Wisdom')}
           </div>
         </div>
       </div>
@@ -867,6 +907,27 @@ function handleModalClick(e: Event): void {
     return;
   }
 
+  // FIX BUG: Handle employee-card clicks in the team narrative section
+  // These are the core team members (Peter, Alex, Maya, Jordan, Nayan)
+  const employeeCard = target.closest('.employee-card') as HTMLElement;
+  if (employeeCard) {
+    const personaId = employeeCard.dataset.persona;
+    if (personaId) {
+      void handleEmployeeCardClick(personaId);
+    }
+    return;
+  }
+
+  // Handle leader-card clicks (CEO Ferni, and co-founders)
+  const leaderCard = target.closest('.leader-card') as HTMLElement;
+  if (leaderCard) {
+    const personaId = leaderCard.querySelector('[data-persona]')?.getAttribute('data-persona');
+    if (personaId && personaId === 'ferni') {
+      void handleEmployeeCardClick(personaId);
+    }
+    return;
+  }
+
   // Agent install/uninstall
   const actionBtn = target.closest('.agent-action') as HTMLElement;
   if (actionBtn) {
@@ -924,6 +985,28 @@ function handleModalTouch(e: TouchEvent): void {
     return;
   }
 
+  // FIX BUG: Handle employee-card taps in the team narrative section
+  const employeeCard = target.closest('.employee-card') as HTMLElement;
+  if (employeeCard) {
+    e.preventDefault();
+    const personaId = employeeCard.dataset.persona;
+    if (personaId) {
+      void handleEmployeeCardClick(personaId);
+    }
+    return;
+  }
+
+  // Handle leader-card taps (CEO Ferni)
+  const leaderCard = target.closest('.leader-card') as HTMLElement;
+  if (leaderCard) {
+    e.preventDefault();
+    const personaId = leaderCard.querySelector('[data-persona]')?.getAttribute('data-persona');
+    if (personaId && personaId === 'ferni') {
+      void handleEmployeeCardClick(personaId);
+    }
+    return;
+  }
+
   // Check if tapping agent action button
   const actionBtn = target.closest('.agent-action') as HTMLElement;
   if (actionBtn) {
@@ -943,6 +1026,102 @@ function handleModalTouch(e: TouchEvent): void {
       void showAgentDetail(agentId);
     }
     return;
+  }
+}
+
+/**
+ * Handle clicks on employee cards in the team narrative section.
+ * This allows users to tap on core team members to preview or handoff.
+ *
+ * FIX BUG: Employee cards in marketplace narrative now support clicking.
+ */
+async function handleEmployeeCardClick(personaId: string): Promise<void> {
+  log.debug('Employee card clicked:', personaId);
+
+  // Validate persona ID
+  if (!isKnownPersonaId(personaId as PersonaId)) {
+    log.warn('Unknown persona ID clicked:', personaId);
+    return;
+  }
+
+  // Check if this persona is locked (Ferni is always unlocked)
+  const isLocked = personaId !== 'ferni' && !isTeamMemberUnlocked(personaId as TeamMemberId);
+
+  if (isLocked) {
+    // Show locked member feedback
+    const memberConfig = getTeamMember(personaId as TeamMemberId);
+    const name = memberConfig?.displayName || personaId;
+    const message =
+      memberConfig?.teaserMessage ||
+      `${name} isn't available yet. Keep talking to Ferni to unlock more teammates!`;
+
+    // Import toast dynamically to avoid circular dependency
+    const { toast } = await import('./toast.ui.js');
+    toast.info(message);
+    soundUI.play('click');
+    return;
+  }
+
+  const connectionState = appState.get('connection');
+
+  if (connectionState === 'connected') {
+    // Send handoff request when connected
+    log.debug('Connected - sending handoff request to:', personaId);
+
+    try {
+      const { connectionService } = await import('../services/connection.service.js');
+      const room = connectionService.getRoom();
+
+      if (!room?.localParticipant) {
+        log.error('No room or local participant for handoff');
+        return;
+      }
+
+      const message = JSON.stringify({
+        type: 'handoff_request',
+        target: personaId,
+        timestamp: Date.now(),
+      });
+
+      await room.localParticipant.publishData(new TextEncoder().encode(message), {
+        reliable: true,
+      });
+
+      log.info('Handoff request sent from marketplace to:', personaId);
+      soundUI.play('switch');
+
+      // Close marketplace after initiating handoff
+      closeMarketplace();
+    } catch (err) {
+      log.error('Failed to send handoff request:', err);
+    }
+  } else {
+    // Preview the persona theme when disconnected
+    log.debug('Not connected - previewing theme for:', personaId);
+
+    const persona = getPersona(personaId as PersonaId);
+
+    // Update selectedPersona for when Connect is clicked
+    appState.set('selectedPersona', persona);
+    appState.set('activePersona', persona);
+
+    // Update document theme
+    document.body.setAttribute('data-persona', personaId);
+
+    // Update waveform theme
+    void import('../ui/waveform.ui.js').then(({ waveformUI }) => {
+      waveformUI.setPersona(personaId as PersonaId);
+    });
+
+    // Update coach UI
+    void import('../ui/coach.ui.js').then(({ coachUI }) => {
+      coachUI.updatePersona(persona);
+    });
+
+    soundUI.play('switch');
+
+    // Close marketplace to show the updated theme
+    closeMarketplace();
   }
 }
 
@@ -1065,7 +1244,7 @@ async function showAgentDetail(agentId: string): Promise<void> {
     // Fetch reviews (mock for now - would call API)
     const reviews = await fetchAgentReviews(agentId);
     const stats = await fetchAgentReviewStats(agentId);
-    const isInstalled = marketplaceService.isInstalled(agentId);
+    const isInstalled = marketplaceService.isAgentInstalled(agentId);
 
     // Create or update detail panel
     renderDetailPanel(agent, reviews, stats, isInstalled);
@@ -2548,6 +2727,50 @@ function getMarketplaceStyles(): string {
       font-family: 'Inter', var(--font-body, sans-serif);
       font-size: 0.65rem;
       color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    }
+
+    /* Locked employee card styles - FIX BUG: Visual locked indicators */
+    .employee-avatar-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .employee-card--locked {
+      opacity: 0.7;
+      cursor: pointer;
+    }
+
+    .employee-card--locked:hover {
+      opacity: 0.85;
+    }
+
+    .employee-avatar--locked {
+      filter: grayscale(40%);
+    }
+
+    .employee-lock-indicator {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--color-bg-elevated, rgba(50, 45, 40, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .employee-progress-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
     }
 
     .team-narrative-footer {

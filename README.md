@@ -247,56 +247,167 @@ See [`design-system/brand/FERNI-BRAND-GUIDELINES.md`](./design-system/brand/FERN
 
 ## Ferni CLI
 
-The Ferni CLI provides a unified interface for development, deployment, and agent creation.
+The Ferni CLI provides a unified interface for development, deployment, platform oversight, and the entire SDLC.
 
-### Install Globally (Recommended)
-
-```bash
-npm link    # Run once from project root
-```
-
-Now use `ferni` from anywhere:
+### Install
 
 ```bash
-ferni                      # Interactive menu
-ferni deploy ui            # Deploy UI server
-ferni agents new           # Create new AI agent (conversational wizard)
-ferni status               # Check service health
-ferni logs agent --tail    # Stream logs
-ferni doctor               # System diagnostics
+# Option 1: Global binary (standalone, no dependencies)
+sudo cp dist/ferni /usr/local/bin/
+
+# Option 2: npm link (development)
+npm link
 ```
 
-### Create New Marketplace Agents
-
-The CLI includes a beautiful conversational wizard for creating new AI agents:
+### Quick Reference
 
 ```bash
-ferni agents new
+ferni                      # Interactive mode - explore all commands
+ferni --help               # Full command list
 ```
 
-```
-┌   🤖 Ferni Agent Builder
+### Development
 
-Welcome! Let's build something amazing together.
+| Command | Description |
+|---------|-------------|
+| `ferni dev start` | Start all development servers |
+| `ferni deploy ui` | Deploy UI server (blue-green) |
+| `ferni deploy agent` | Deploy voice agent (blue-green) |
+| `ferni deploy gce` | Deploy voice agent to GCE |
+| `ferni test quick` | Quick validation tests |
+| `ferni quality all` | Run all quality checks |
+| `ferni pr create` | Create a pull request |
+| `ferni release create` | Create a new release |
 
-◆  What's your agent's name?
-│  e.g., Atlas, Luna, Sage, River
+### Operations
 
-◆  Choose a personality preset
-│  ○ Warm & Supportive - Like a caring friend
-│  ○ Direct Coach - Results-focused mentor
-│  ○ Calm Guide - Peaceful, thoughtful presence
-│  ...
-```
+| Command | Description |
+|---------|-------------|
+| `ferni status` | Check all service health |
+| `ferni logs agent --tail` | Stream agent logs |
+| `ferni doctor` | Run system diagnostics |
+| `ferni db status` | Check database health |
+| `ferni env check` | Validate environment |
+| `ferni secrets check` | Audit secret rotation |
+| `ferni costs summary` | View cloud costs |
 
-The wizard generates all required files: manifest, system prompt, biography, behaviors, and registry entry.
+### Platform Oversight
 
-### Alternative: npm scripts
+| Command | Description |
+|---------|-------------|
+| `ferni rollback agent` | Rollback to previous version |
+| `ferni metrics agent` | View real-time metrics |
+| `ferni sessions active` | List active user sessions |
+| `ferni sla report` | Check SLA compliance |
+| `ferni traffic canary 10` | Canary 10% traffic to new version |
+| `ferni alerts active` | Show active alerts |
+| `ferni oncall who` | Who's on call right now? |
+| `ferni runbook list` | List available runbooks |
+| `ferni backup create` | Create database backup |
+
+### Chaos & Testing
+
+| Command | Description |
+|---------|-------------|
+| `ferni chaos latency 500` | Inject 500ms latency |
+| `ferni chaos error 10` | Inject 10% error rate |
+| `ferni experiments list` | List A/B experiments |
+| `ferni experiments results` | View experiment results |
+
+### Developer Experience
+
+| Command | Description |
+|---------|-------------|
+| `ferni init full` | Initialize dev environment |
+| `ferni context prod` | Switch to production context |
+| `ferni tunnel gce` | SSH tunnel to GCE instance |
+| `ferni replay list` | List session replays |
+| `ferni cache clear` | Clear CDN/Redis cache |
+| `ferni notify slack` | Send Slack notification |
+
+### Self-Healing
+
+| Command | Description |
+|---------|-------------|
+| `ferni self-heal health` | System health overview |
+| `ferni circuits status` | Circuit breaker states |
+| `ferni restart agent` | Restart voice agent |
+| `ferni diagnose` | AI-powered error diagnosis |
+| `ferni anomalies recent` | View detected anomalies |
+
+### AI Automation
+
+| Command | Description |
+|---------|-------------|
+| `ferni ai` | Start AI coding session |
+| `ferni review` | AI code review |
+| `ferni test-gen` | Generate tests with AI |
+| `ferni docs generate` | AI-powered documentation |
+| `ferni security audit` | Security vulnerability scan |
+
+### Agent Management
+
+| Command | Description |
+|---------|-------------|
+| `ferni agents new` | Create new AI agent (wizard) |
+| `ferni personas list` | List all personas |
+| `ferni tools list` | List all LLM tools |
+| `ferni voices preview` | Preview available voices |
+| `ferni tokens sync` | Sync design tokens |
+
+### Live Voice Conversation
+
+**Talk to Ferni from your terminal** - uses the full platform with all 70+ context builders, memory, and real-time voice.
 
 ```bash
-npm run ferni              # Same as global `ferni`
-npm run ferni deploy ui    # Deploy
-npm run ferni test quick   # Quick tests
+# Start a voice conversation
+ferni voice                    # Talk to Ferni
+ferni voice --persona maya     # Talk to Maya
+ferni voice --debug            # Show debug info
+```
+
+**Prerequisites:**
+1. Token server running: `node token-server.js`
+2. Agent running: `pnpm agent:dev`
+
+**How it works:**
+- Connects to the REAL platform via LiveKit
+- Your mic → Gemini Live STT → Context Builders → LLM → Cartesia TTS → Your speakers
+- Full persistent memory and all persona capabilities
+
+### Voice Pipeline Debugging
+
+Debug the pipeline step-by-step: Question → Context → Gemini → SSML → Cartesia → Audio
+
+```bash
+# See full pipeline
+ferni debug voice "How are you feeling today?"
+
+# With audio playback
+ferni debug voice --play "Tell me about habits"
+
+# Different persona
+ferni debug voice --persona maya --play "What's one small habit?"
+
+# Interactive mode
+ferni debug voice --interactive
+```
+
+**What you'll see:**
+1. **User Input** - Your question
+2. **Context Injections** - What we add (time, emotion, persona guidance)
+3. **Gemini Response** - Raw LLM output with token counts
+4. **SSML Transformation** - Emotion detection + tags added
+5. **Cartesia TTS** - Audio generation (with `--play`)
+
+### Build Binary
+
+```bash
+# Build standalone macOS binary (67MB)
+npx tsx scripts/build-cli-binary.ts --release
+
+# Install globally
+sudo cp dist/ferni /usr/local/bin/
 ```
 
 See [`SCRIPTS.md`](./SCRIPTS.md) for all commands.

@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "ar",
+    "name": "العربية",
+    "direction": "rtl"
+  },
+
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "حاول مرة أخرى",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "close": "إغلاق",
+    "next": "التالي",
+    "back": "رجوع",
+    "done": "تم",
+    "continue": "متابعة",
+    "skip": "تخطي",
+    "confirm": "تأكيد",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "share": "مشاركة",
+    "download": "تحميل",
+    "copy": "نسخ",
+    "copied": "تم النسخ!",
+    "new": "جديد"
+  },
+
+  "menu": {
+    "title": "القائمة",
+    "yourStage": "مرحلتك",
+    "nextStage": "التالي: {stage}",
+    "maxLevel": "أعلى مستوى!",
+    "sections": {
+      "journey": "رحلتك",
+      "insights": "رؤى",
+      "sessions": "جلسات ومرح",
+      "customize": "تخصيص",
+      "account": "الحساب والأمان",
+      "admin": "المشرف"
+    },
+    "items": {
+      "yourJourney": "رحلتك",
+      "trustDetails": "تفاصيل الثقة",
+      "progressAnalytics": "تحليلات التقدم",
+      "predictionAccuracy": "دقة التنبؤ",
+      "whatILearned": "ما تعلمته",
+      "memoryBrowser": "متصفح الذاكرة",
+      "wellbeingDashboard": "لوحة الرفاهية",
+      "conversationHistory": "سجل المحادثات",
+      "videoSessions": "جلسات الفيديو",
+      "groupCoaching": "التدريب الجماعي",
+      "teamHuddles": "اجتماعات الفريق",
+      "playGames": "العب ألعاب",
+      "musicalYou": "أنت الموسيقي",
+      "personalize": "تخصيص",
+      "voiceAccent": "لهجة الصوت",
+      "guidedPractices": "ممارسات موجهة",
+      "createPractice": "إنشاء ممارسة",
+      "healthFitness": "الصحة واللياقة",
+      "calendar": "التقويم",
+      "notifications": "الإشعارات",
+      "toggleTheme": "تبديل المظهر",
+      "linkSpotify": "ربط Spotify",
+      "spotifyConnected": "Spotify متصل",
+      "yourPlan": "خطتك",
+      "manageBilling": "إدارة الفواتير",
+      "voiceId": "معرف الصوت",
+      "householdMembers": "أفراد الأسرة",
+      "contactInfo": "معلومات الاتصال",
+      "exportData": "تصدير البيانات",
+      "shareFerni": "مشاركة Ferni",
+      "supportFerni": "دعم Ferni",
+      "takeTour": "ابدأ الجولة",
+      "language": "اللغة"
+    }
+  },
+
+  "session": {
+    "connecting": "جارٍ الاتصال...",
+    "connected": "متصل",
+    "disconnected": "غير متصل",
+    "listening": "أستمع...",
+    "thinking": "أفكر...",
+    "speaking": "أتحدث...",
+    "tapToSpeak": "انقر للتحدث",
+    "holdToSpeak": "اضغط مع الاستمرار للتحدث",
+    "releaseToSend": "اترك للإرسال",
+    "endSession": "إنهاء الجلسة",
+    "sessionEnded": "انتهت الجلسة",
+    "goodbye": "مع السلامة",
+    "end": "إنهاء",
+    "untilNextTime": "إلى اللقاء...",
+    "endConversation": "إنهاء المحادثة",
+    "endConversationGoodbye": "إنهاء المحادثة - مع السلامة"
+  },
+
+  "subscription": {
+    "free": "مجاني",
+    "friend": "صديق",
+    "partner": "شريك",
+    "upgrade": "ترقية",
+    "currentPlan": "الخطة الحالية",
+    "planDetails": "تفاصيل الخطة",
+    "features": "الميزات",
+    "unlimitedConversations": "محادثات غير محدودة",
+    "allTeamMembers": "جميع أعضاء الفريق",
+    "prioritySupport": "دعم ذو أولوية",
+    "advancedInsights": "رؤى متقدمة"
+  },
+
+  "team": {
+    "meetTheTeam": "تعرف على الفريق",
+    "selectMember": "اختر عضو الفريق",
+    "currentlyWith": "حالياً مع {name}",
+    "members": {
+      "ferni": {
+        "name": "فيرني",
+        "role": "مدرب حياة",
+        "bio": "نقطة اتصالك الرئيسية. يطرح الأسئلة التي تفتح البصيرة."
+      },
+      "nayan": {
+        "name": "نيان",
+        "role": "حكيم ومرشد",
+        "bio": "مرشدك مدى الحياة بالحكمة والصبر."
+      },
+      "peter": {
+        "name": "بيتر",
+        "role": "البحث والاكتشاف",
+        "bio": "يكتشف أنماطاً لا يراها أحد غيره."
+      },
+      "alex": {
+        "name": "أليكس",
+        "role": "التواصل",
+        "bio": "رئيس موظفيك ومدرب التواصل."
+      },
+      "maya": {
+        "name": "مايا",
+        "role": "العادات والروتين",
+        "bio": "تساعدك على بناء عادات تدوم."
+      },
+      "jordan": {
+        "name": "جوردان",
+        "role": "التخطيط والفعاليات",
+        "bio": "يحول الأحلام الغامضة إلى تجارب حية."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "غريب",
+    "acquaintance": "معرفة",
+    "friend": "صديق",
+    "closeFriend": "صديق مقرب",
+    "confidant": "موضع ثقة",
+    "soulmate": "توأم الروح"
+  },
+
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {n} دقائق",
+    "hoursAgo": "منذ {n} ساعات",
+    "yesterday": "أمس",
+    "daysAgo": "منذ {n} أيام"
+  },
+
+  "milestones": {
+    "ourStory": "قصتنا حتى الآن",
+    "everyMomentMatters": "كل لحظة مهمة.",
+    "journeyWith": "رحلتي مع Ferni",
+    "categories": {
+      "relationship": "علاقتنا",
+      "team": "اتصال الفريق",
+      "conversation": "محادثاتنا",
+      "discovery": "اكتشاف",
+      "sweet": "لحظة حلوة",
+      "milestone": "إنجاز"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "انقطع الاتصال. جارٍ إعادة الاتصال...",
+    "reconnected": "تم إعادة الاتصال!",
+    "microphoneBlocked": "مطلوب الوصول إلى الميكروفون",
+    "sessionTimeout": "انتهت مهلة الجلسة"
+  },
+
+  "errors": {
+    "connectionFailed": "فشل الاتصال. يرجى المحاولة مرة أخرى.",
+    "microphoneAccess": "يرجى السماح بالوصول إلى الميكروفون للمتابعة.",
+    "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
+    "sessionExpired": "انتهت صلاحية جلستك. يرجى التحديث.",
+    "somethingWrong": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+  },
+
+  "onboarding": {
+    "welcome": "مرحباً",
+    "letsGetStarted": "لنبدأ",
+    "whatIsYourName": "بماذا تحب أن أناديك؟",
+    "niceName": "سعيد بلقائك، {name}!",
+    "howAreYouFeeling": "كيف تشعر اليوم؟",
+    "readyToBegin": "هل أنت مستعد للبدء؟"
+  },
+
+  "accessibility": {
+    "closeMenu": "إغلاق القائمة",
+    "openSettings": "فتح الإعدادات",
+    "muteAudio": "كتم الصوت",
+    "unmuteAudio": "إلغاء كتم الصوت",
+    "endCall": "إنهاء المكالمة",
+    "skipToContent": "تخطي إلى المحتوى الرئيسي"
+  }
+}

@@ -16,6 +16,8 @@
  *   const proxiedTools = await createProxiedToolSet(toolSet, options);
  */
 
+/* global AbortController */
+
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';

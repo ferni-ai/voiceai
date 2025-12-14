@@ -20,6 +20,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
+  getCollectiveLearningSchedulerStatus,
+  getCommunityInsights,
+} from '../intelligence/index.js';
+import {
   connectionHealthMetrics,
   costMetrics,
   errorMetrics,
@@ -36,10 +40,6 @@ import {
   getRestartHistory,
   getUnhealthyClients,
 } from '../services/self-healing/index.js';
-import {
-  getCommunityInsights,
-  getCollectiveLearningSchedulerStatus,
-} from '../intelligence/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } from './helpers.js';
@@ -177,19 +177,17 @@ function getIntelligenceMetrics() {
     }));
 
   // Response pattern insights - extract strategy effectiveness
-  const topPatterns = insightsData.patterns
-    .slice(0, 5)
-    .map((p) => ({
-      id: p.id,
-      context: p.context,
-      topStrategy: p.strategies[0]
-        ? {
-            type: p.strategies[0].type,
-            avgEngagement: p.strategies[0].avgEngagement.toFixed(2),
-            sampleSize: p.strategies[0].sampleSize,
-          }
-        : null,
-    }));
+  const topPatterns = insightsData.patterns.slice(0, 5).map((p) => ({
+    id: p.id,
+    context: p.context,
+    topStrategy: p.strategies[0]
+      ? {
+          type: p.strategies[0].type,
+          avgEngagement: p.strategies[0].avgEngagement.toFixed(2),
+          sampleSize: p.strategies[0].sampleSize,
+        }
+      : null,
+  }));
 
   return {
     scheduler: {

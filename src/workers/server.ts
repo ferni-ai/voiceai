@@ -12,11 +12,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import {
-  startTrustWorker,
-  startAnalyticsWorker,
-  getTrustWorker,
   getAnalyticsWorker,
+  getTrustWorker,
   startAllWorkers,
+  startAnalyticsWorker,
+  startTrustWorker,
   stopAllWorkers,
 } from './index.js';
 
@@ -180,8 +180,12 @@ async function main(): Promise<void> {
     process.exit(0);
   };
 
-  process.on('SIGTERM', async () => shutdown('SIGTERM'));
-  process.on('SIGINT', async () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
 
   // Keep alive
   log.info('Worker server running. Press Ctrl+C to stop.');

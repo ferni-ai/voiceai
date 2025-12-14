@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "he",
+    "name": "עברית",
+    "direction": "rtl"
+  },
+
+  "common": {
+    "loading": "טוען...",
+    "error": "משהו השתבש",
+    "retry": "נסה שוב",
+    "cancel": "ביטול",
+    "save": "שמור",
+    "close": "סגור",
+    "next": "הבא",
+    "back": "חזרה",
+    "done": "סיום",
+    "continue": "המשך",
+    "skip": "דלג",
+    "confirm": "אישור",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "share": "שתף",
+    "download": "הורד",
+    "copy": "העתק",
+    "copied": "הועתק!",
+    "new": "חדש"
+  },
+
+  "menu": {
+    "title": "תפריט",
+    "yourStage": "השלב שלך",
+    "nextStage": "הבא: {stage}",
+    "maxLevel": "רמה מקסימלית!",
+    "sections": {
+      "journey": "המסע שלך",
+      "insights": "תובנות",
+      "sessions": "פגישות ובידור",
+      "customize": "התאמה אישית",
+      "account": "חשבון ואבטחה",
+      "admin": "ניהול"
+    },
+    "items": {
+      "yourJourney": "המסע שלך",
+      "trustDetails": "פרטי אמון",
+      "progressAnalytics": "ניתוח התקדמות",
+      "predictionAccuracy": "דיוק תחזיות",
+      "whatILearned": "מה למדתי",
+      "memoryBrowser": "דפדפן זיכרונות",
+      "wellbeingDashboard": "לוח רווחה",
+      "conversationHistory": "היסטוריית שיחות",
+      "videoSessions": "פגישות וידאו",
+      "groupCoaching": "אימון קבוצתי",
+      "teamHuddles": "ישיבות צוות",
+      "playGames": "שחק משחקים",
+      "musicalYou": "האני המוזיקלי",
+      "personalize": "התאם אישית",
+      "voiceAccent": "מבטא קולי",
+      "guidedPractices": "תרגולים מודרכים",
+      "createPractice": "צור תרגול",
+      "healthFitness": "בריאות וכושר",
+      "calendar": "יומן",
+      "notifications": "התראות",
+      "toggleTheme": "החלף ערכת נושא",
+      "linkSpotify": "חבר Spotify",
+      "spotifyConnected": "Spotify מחובר",
+      "yourPlan": "התוכנית שלך",
+      "manageBilling": "ניהול חיובים",
+      "voiceId": "זיהוי קולי",
+      "householdMembers": "בני משפחה",
+      "contactInfo": "פרטי קשר",
+      "exportData": "ייצא נתונים",
+      "shareFerni": "שתף את Ferni",
+      "supportFerni": "תמוך ב-Ferni",
+      "takeTour": "התחל סיור",
+      "language": "שפה"
+    }
+  },
+
+  "session": {
+    "connecting": "מתחבר...",
+    "connected": "מחובר",
+    "disconnected": "מנותק",
+    "listening": "מקשיב...",
+    "thinking": "חושב...",
+    "speaking": "מדבר...",
+    "tapToSpeak": "הקש לדיבור",
+    "holdToSpeak": "לחץ והחזק לדיבור",
+    "releaseToSend": "שחרר לשליחה",
+    "endSession": "סיים פגישה",
+    "sessionEnded": "הפגישה הסתיימה",
+    "goodbye": "להתראות",
+    "end": "סיים",
+    "untilNextTime": "עד הפעם הבאה...",
+    "endConversation": "סיים שיחה",
+    "endConversationGoodbye": "סיים שיחה - להתראות"
+  },
+
+  "subscription": {
+    "free": "חינם",
+    "friend": "חבר",
+    "partner": "שותף",
+    "upgrade": "שדרג",
+    "currentPlan": "תוכנית נוכחית",
+    "planDetails": "פרטי תוכנית",
+    "features": "תכונות",
+    "unlimitedConversations": "שיחות ללא הגבלה",
+    "allTeamMembers": "כל חברי הצוות",
+    "prioritySupport": "תמיכה בעדיפות",
+    "advancedInsights": "תובנות מתקדמות"
+  },
+
+  "team": {
+    "meetTheTeam": "הכירו את הצוות",
+    "selectMember": "בחר חבר צוות",
+    "currentlyWith": "כרגע עם {name}",
+    "members": {
+      "ferni": {
+        "name": "פרני",
+        "role": "מאמן חיים",
+        "bio": "נקודת הקשר העיקרית שלך. שואל את השאלות שפותחות תובנות."
+      },
+      "nayan": {
+        "name": "נאיאן",
+        "role": "חכם ומנטור",
+        "bio": "המנטור שלך לכל החיים עם חוכמה וסבלנות."
+      },
+      "peter": {
+        "name": "פיטר",
+        "role": "מחקר וגילוי",
+        "bio": "מזהה דפוסים שאף אחד אחר לא רואה."
+      },
+      "alex": {
+        "name": "אלכס",
+        "role": "תקשורת",
+        "bio": "ראש הצוות שלך ומאמן תקשורת."
+      },
+      "maya": {
+        "name": "מאיה",
+        "role": "הרגלים ושגרות",
+        "bio": "עוזרת לך לבנות הרגלים שנשארים."
+      },
+      "jordan": {
+        "name": "ג'ורדן",
+        "role": "תכנון ואירועים",
+        "bio": "הופך חלומות מעורפלים לחוויות ממשיות."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "זר",
+    "acquaintance": "מכר",
+    "friend": "חבר",
+    "closeFriend": "חבר קרוב",
+    "confidant": "איש סוד",
+    "soulmate": "נפש תאומה"
+  },
+
+  "time": {
+    "justNow": "עכשיו",
+    "minutesAgo": "לפני {n} דקות",
+    "hoursAgo": "לפני {n} שעות",
+    "yesterday": "אתמול",
+    "daysAgo": "לפני {n} ימים"
+  },
+
+  "milestones": {
+    "ourStory": "הסיפור שלנו עד כה",
+    "everyMomentMatters": "כל רגע חשוב.",
+    "journeyWith": "המסע שלי עם Ferni",
+    "categories": {
+      "relationship": "היחסים שלנו",
+      "team": "חיבור צוותי",
+      "conversation": "השיחות שלנו",
+      "discovery": "גילוי",
+      "sweet": "רגע מתוק",
+      "milestone": "אבן דרך"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "החיבור אבד. מתחבר מחדש...",
+    "reconnected": "התחברת מחדש!",
+    "microphoneBlocked": "נדרשת גישה למיקרופון",
+    "sessionTimeout": "הפגישה פגה"
+  },
+
+  "errors": {
+    "connectionFailed": "החיבור נכשל. אנא נסה שוב.",
+    "microphoneAccess": "אנא אפשר גישה למיקרופון להמשך.",
+    "networkError": "שגיאת רשת. אנא בדוק את החיבור שלך.",
+    "sessionExpired": "הפגישה שלך פגה. אנא רענן.",
+    "somethingWrong": "משהו השתבש. אנא נסה שוב."
+  },
+
+  "onboarding": {
+    "welcome": "ברוך הבא",
+    "letsGetStarted": "בוא נתחיל",
+    "whatIsYourName": "איך תרצה שאקרא לך?",
+    "niceName": "נעים להכיר, {name}!",
+    "howAreYouFeeling": "איך אתה מרגיש היום?",
+    "readyToBegin": "מוכן להתחיל?"
+  },
+
+  "accessibility": {
+    "closeMenu": "סגור תפריט",
+    "openSettings": "פתח הגדרות",
+    "muteAudio": "השתק",
+    "unmuteAudio": "בטל השתקה",
+    "endCall": "סיים שיחה",
+    "skipToContent": "דלג לתוכן הראשי"
+  }
+}

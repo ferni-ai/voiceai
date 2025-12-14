@@ -7,16 +7,16 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, sendJSON, sendJSONCached, sendError } from '../helpers.js';
 import { API_ERRORS } from '../error-messages.js';
+import { requireUserId, sendError, sendJSON, sendJSONCached } from '../helpers.js';
 import {
   type AnyRecord,
-  type UIMemory,
   type Pattern,
-  mapMemoryTypeToUIType,
-  formatMemoryContent,
+  type UIMemory,
   calculateConfidence,
+  formatMemoryContent,
   getPersonaName,
+  mapMemoryTypeToUIType,
 } from './types.js';
 
 const log = createLogger({ module: 'MemoriesAPI' });
@@ -309,19 +309,27 @@ export async function handleGetSuperhumanInsights(
     }));
 
     log.info(
-      { userId, insightCount: uiInsights.length, highPriority: uiInsights.filter((i) => i.priority === 'high').length },
+      {
+        userId,
+        insightCount: uiInsights.length,
+        highPriority: uiInsights.filter((i) => i.priority === 'high').length,
+      },
       'Returning superhuman insights'
     );
 
-    sendJSONCached(res, {
-      insights: uiInsights,
-      temporalContext: context.temporalContext,
-      topicAbsences,
-      comfortGuidance: {
-        stressLevel: context.comfortGuidance.stressLevel,
-        supportType: context.comfortGuidance.supportType,
+    sendJSONCached(
+      res,
+      {
+        insights: uiInsights,
+        temporalContext: context.temporalContext,
+        topicAbsences,
+        comfortGuidance: {
+          stressLevel: context.comfortGuidance.stressLevel,
+          supportType: context.comfortGuidance.supportType,
+        },
       },
-    }, 300); // Cache for 5 minutes
+      300
+    ); // Cache for 5 minutes
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get superhuman insights');
     sendError(res, API_ERRORS.OPERATION_FAILED, 500);

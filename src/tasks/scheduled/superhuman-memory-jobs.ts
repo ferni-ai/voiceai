@@ -10,16 +10,15 @@
  * These jobs ensure the superhuman memory system stays fresh and performant.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 import {
   buildSuperhumanContext,
   cleanupDeliveryRecords,
   type SuperhumanContext,
 } from '../../intelligence/superhuman-memory.js';
 import { indexUserMemories, type IndexingResult } from '../../memory/user-memory-indexer.js';
-import { getFirestoreStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
 const log = getLogger();
 
@@ -67,7 +66,10 @@ async function getUsersNeedingReindex(limit: number = 50): Promise<UserProfile[]
 
     // Get users whose profile was updated but memory not re-indexed
     // We look for users where lastMemoryIndexAt < lastUpdated (or doesn't exist)
-    const snapshot = await db.collection('bogle_users').limit(limit * 2).get();
+    const snapshot = await db
+      .collection('bogle_users')
+      .limit(limit * 2)
+      .get();
 
     const needsReindex: UserProfile[] = [];
 
@@ -311,30 +313,30 @@ export class SuperhumanContextPrecomputeJob extends ScheduledJob<
     };
   }
 
-  private async storePrecomputedContext(
-    userId: string,
-    context: SuperhumanContext
-  ): Promise<void> {
+  private async storePrecomputedContext(userId: string, context: SuperhumanContext): Promise<void> {
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Store in a separate collection for quick access
-      await db.collection('superhuman_context').doc(userId).set({
-        userId,
-        insights: context.insights.map((i) => ({
-          id: i.id,
-          type: i.type,
-          priority: i.priority,
-          naturalPhrase: i.naturalPhrase,
-          context: i.context,
-        })),
-        temporalContext: context.temporalContext,
-        topicAbsenceCount: context.topicAbsences.length,
-        hasComfortGuidance: context.comfortGuidance.stressLevel !== 'none',
-        precomputedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      });
+      await db
+        .collection('superhuman_context')
+        .doc(userId)
+        .set({
+          userId,
+          insights: context.insights.map((i) => ({
+            id: i.id,
+            type: i.type,
+            priority: i.priority,
+            naturalPhrase: i.naturalPhrase,
+            context: i.context,
+          })),
+          temporalContext: context.temporalContext,
+          topicAbsenceCount: context.topicAbsences.length,
+          hasComfortGuidance: context.comfortGuidance.stressLevel !== 'none',
+          precomputedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        });
     } catch (error) {
       log.warn({ error, userId }, 'Could not store precomputed context');
     }

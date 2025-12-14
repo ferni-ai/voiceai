@@ -11,8 +11,8 @@
  * 3. Cloud Functions (event-driven, auto-scaling)
  */
 
-import { createLogger } from '../utils/safe-logger.js';
 import type { EventPayload, EventType } from '../services/async-events/index.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -173,8 +173,8 @@ export abstract class BaseWorker {
         on: (event: string, handler: (arg: unknown) => void) => void;
       };
 
-      sub.on('message', async (message) => {
-        await this.handleMessage(message as PubSubMessage);
+      sub.on('message', (message) => {
+        void this.handleMessage(message as PubSubMessage);
       });
 
       sub.on('error', (error) => {

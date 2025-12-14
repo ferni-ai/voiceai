@@ -380,13 +380,29 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni voices generate-samples',
     ],
   },
+  voice: {
+    name: 'Voice',
+    description: 'Live voice conversation with Ferni',
+    icon: '🎙️',
+    handler: handleVoice,
+    subcommands: [],
+    examples: [
+      'ferni voice',
+      'ferni voice --persona maya',
+      'ferni voice --debug',
+    ],
+  },
   debug: {
     name: 'Debug',
     description: 'Troubleshooting workflows',
     icon: '🐛',
     handler: handleDebug,
-    subcommands: ['capture', 'logs', 'errors', 'health', 'env', 'network'],
-    examples: ['ferni debug capture', 'ferni debug errors', 'ferni debug health'],
+    subcommands: ['capture', 'logs', 'errors', 'health', 'env', 'network', 'voice'],
+    examples: [
+      'ferni debug voice "How are you?"',
+      'ferni debug voice --interactive',
+      'ferni debug voice --persona maya --play "Tell me about habits"',
+    ],
   },
   integrations: {
     name: 'Integrations',
@@ -2970,6 +2986,15 @@ async function handleVoices(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// VOICE COMMAND - Live conversation with Ferni
+// ============================================================================
+
+async function handleVoice(args: string[]): Promise<void> {
+  const { handleVoiceLive } = await import('./cli/voice-live.js');
+  await handleVoiceLive(args);
+}
+
+// ============================================================================
 // DEBUG COMMAND
 // ============================================================================
 
@@ -3194,6 +3219,12 @@ async function handleDebug(args: string[]): Promise<void> {
     console.log(`\n  ${colors.cyan}DNS Resolution:${colors.reset}`);
     const dnsCheck = execCommand('nslookup googleapis.com 2>/dev/null | grep "Address" | tail -1');
     console.log(`    googleapis.com: ${dnsCheck || 'failed'}`);
+  }
+
+  if (subcommand === 'voice') {
+    // Voice pipeline debugger
+    const { handleVoiceDebug } = await import('./cli/voice-debug.js');
+    await handleVoiceDebug(args.slice(1));
   }
 }
 

@@ -82,6 +82,23 @@ export {
 } from './contextual-laughter.js';
 
 // ============================================================================
+// PERSONA SPEECH TRAITS - Detailed Persona-Specific Patterns
+// ============================================================================
+
+export {
+  applyPersonaSpeechTraits,
+  applyPersonaSpeechTraitsSync,
+  clearTraitRegistry,
+  getPersonaTraitsSync,
+  getPersonasWithSpeechTraits,
+  hasCustomSpeechTraits,
+  preloadAllTraits,
+  type PersonaSpeechTraitConfig,
+  type SpeechTraitContext,
+  type SpeechTraitProcessor,
+} from './persona-speech-traits-loader.js';
+
+// ============================================================================
 // AUDIO SMOOTHING
 // ============================================================================
 

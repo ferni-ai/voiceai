@@ -8,7 +8,7 @@
  * - Event emitter pattern for state changes
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies before imports
 vi.mock('../utils/safe-logger.js', () => ({
@@ -38,7 +38,10 @@ vi.mock('@livekit/agents', () => ({
     BackgroundAudioPlayer: vi.fn().mockImplementation(() => ({
       start: vi.fn(),
       play: vi.fn(() => ({
-        waitForPlayout: () => new Promise((resolve) => setTimeout(resolve, 100)),
+        waitForPlayout: () =>
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          }),
         done: () => false,
         stop: vi.fn(),
       })),

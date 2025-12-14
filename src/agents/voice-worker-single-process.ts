@@ -43,28 +43,28 @@ log('🚀 Single-Process Voice Worker starting', {
 log('Phase 1: Loading voice agent modules...');
 const moduleLoadStart = Date.now();
 
-import { AccessToken } from 'livekit-server-sdk';
-import { Room, RoomEvent } from '@livekit/rtc-node';
-import { JobContext, JobProcess, runWithJobContextAsync, initializeLogger } from '@livekit/agents';
+import { initializeLogger, JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
 import {
   JobType,
+  ParticipantPermission,
   ServerMessage,
   WorkerMessage,
-  ParticipantPermission,
   WorkerStatus,
+  type Job,
 } from '@livekit/protocol';
-import type { Job } from '@livekit/protocol';
-import { WebSocket } from 'ws';
+import { Room, RoomEvent } from '@livekit/rtc-node';
+import { AccessToken } from 'livekit-server-sdk';
 import { EventEmitter } from 'node:events';
+import { WebSocket } from 'ws';
 
 // Load voice agent session runner
-import { runVoiceAgentSession } from './voice-agent-session.js';
 import { startup } from '../startup.js';
 import {
   markLivekitConnected,
   markLivekitDisconnected,
   signalWorkerAcceptingJobs,
 } from './shared/worker-readiness.js';
+import { runVoiceAgentSession } from './voice-agent-session.js';
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
@@ -104,7 +104,7 @@ log('Startup complete', { startupTimeMs: startupTime });
 // ============================================================================
 // PHASE 4: RESOURCE WARMUP
 // ============================================================================
-import { warmupResources, setupIPCHandler } from './shared/resource-server.js';
+import { setupIPCHandler, warmupResources } from './shared/resource-server.js';
 log('Phase 4: Warming up resources...');
 const warmupStart = Date.now();
 setupIPCHandler();
@@ -375,15 +375,17 @@ async function connectToLiveKit(): Promise<void> {
       lastPongTime = Date.now();
     });
 
-    ws.on('message', async (data: Buffer) => {
-      try {
-        const msg = new ServerMessage();
-        msg.fromBinary(new Uint8Array(data));
-        log('Server message received', { case: msg.message?.case });
-        await handleServerMessage(msg);
-      } catch (error) {
-        log('Error handling message', { error: String(error) });
-      }
+    ws.on('message', (data: Buffer) => {
+      void (async () => {
+        try {
+          const msg = new ServerMessage();
+          msg.fromBinary(new Uint8Array(data));
+          log('Server message received', { case: msg.message?.case });
+          await handleServerMessage(msg);
+        } catch (error) {
+          log('Error handling message', { error: String(error) });
+        }
+      })();
     });
 
     ws.on('close', (code) => {
@@ -410,7 +412,9 @@ function scheduleReconnect(): void {
   reconnectAttempts++;
 
   log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
-  setTimeout(async () => connectToLiveKit().catch(console.error), delay);
+  setTimeout(() => {
+    void connectToLiveKit().catch(console.error);
+  }, delay);
 }
 
 // Track pending jobs - we store the accept args we send in availability response
@@ -591,7 +595,9 @@ const shutdown = async (signal: string) => {
 
   const shutdownStart = Date.now();
   while (activeJobs > 0 && Date.now() - shutdownStart < 30000) {
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise<void>((r) => {
+      setTimeout(r, 1000);
+    });
     log('Waiting for active jobs...', { activeJobs });
   }
 
@@ -599,5 +605,9 @@ const shutdown = async (signal: string) => {
   process.exit(0);
 };
 
-process.on('SIGTERM', async () => shutdown('SIGTERM'));
-process.on('SIGINT', async () => shutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});

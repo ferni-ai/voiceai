@@ -21,7 +21,6 @@
 import { createLogger } from '../utils/safe-logger.js';
 
 // Import from the two source systems
-import type { EmotionalMemoryEngine as UserEmotionEngine } from '../intelligence/emotional-memory.js';
 import {
   getEmotionalMemory as getUserEmotionMemory,
   removeEmotionalMemory as removeUserEmotionMemory,
@@ -29,12 +28,13 @@ import {
   type EmotionalContext,
   type EmotionalMoment,
   type EmotionalPattern,
+  type EmotionalMemoryEngine as UserEmotionEngine,
 } from '../intelligence/emotional-memory.js';
 
-import type { EmotionalMemoryEngine as BondingEngine } from '../conversation/superhuman/emotional-memory.js';
 import {
   clearEmotionalMemory as clearBondingMemory,
   getEmotionalMemory as getBondingMemory,
+  type EmotionalMemoryEngine as BondingEngine,
 } from '../conversation/superhuman/emotional-memory.js';
 
 import type { EmotionalBond, RelationshipStage } from '../conversation/superhuman/types.js';

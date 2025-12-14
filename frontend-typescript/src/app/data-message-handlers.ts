@@ -285,7 +285,13 @@ function handlePartialTranscript(event: PartialTranscriptEvent): void {
  */
 interface TrustSignalEvent extends DataMessage {
   type: 'trust_signal';
-  signalType: 'growth' | 'boundary' | 'callback' | 'small_win' | 'thinking_of_you' | 'reading_lines';
+  signalType:
+    | 'growth'
+    | 'boundary'
+    | 'callback'
+    | 'small_win'
+    | 'thinking_of_you'
+    | 'reading_lines';
   title: string;
   message: string;
   personaId?: string;
@@ -295,7 +301,7 @@ interface TrustSignalEvent extends DataMessage {
 
 /**
  * Handle trust signal from backend
- * 
+ *
  * Dispatches a custom event that the trust-signals.ui.ts listens for.
  * This creates the "Ferni noticed..." floating cards.
  */

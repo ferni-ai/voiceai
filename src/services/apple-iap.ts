@@ -372,9 +372,7 @@ async function parseSubscriptionResponse(data: unknown): Promise<ReceiptVerifica
         // Decode signedTransactionInfo to get actual product details
         if (transaction.signedTransactionInfo) {
           try {
-            const transactionInfo = await decodeSignedTransactionSync(
-              transaction.signedTransactionInfo
-            );
+            const transactionInfo = decodeSignedTransactionSync(transaction.signedTransactionInfo);
             bestSubscription = {
               productId: transactionInfo.productId,
               expiresDate: transactionInfo.expiresDate,

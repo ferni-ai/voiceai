@@ -196,9 +196,8 @@ async function runUserMemoryReindex(res: ServerResponse): Promise<void> {
 
 async function runSuperhumanContextPrecompute(res: ServerResponse): Promise<void> {
   try {
-    const { SuperhumanContextPrecomputeJob } = await import(
-      '../tasks/scheduled/superhuman-memory-jobs.js'
-    );
+    const { SuperhumanContextPrecomputeJob } =
+      await import('../tasks/scheduled/superhuman-memory-jobs.js');
     const job = new SuperhumanContextPrecomputeJob();
     const result = await job.run({});
     log.info({ result }, 'Superhuman context pre-computation completed');
@@ -215,9 +214,8 @@ async function runSuperhumanContextPrecompute(res: ServerResponse): Promise<void
 
 async function runInsightDeliveryCleanup(res: ServerResponse): Promise<void> {
   try {
-    const { InsightDeliveryCleanupJob } = await import(
-      '../tasks/scheduled/superhuman-memory-jobs.js'
-    );
+    const { InsightDeliveryCleanupJob } =
+      await import('../tasks/scheduled/superhuman-memory-jobs.js');
     const job = new InsightDeliveryCleanupJob();
     const result = await job.run({});
     log.info({ result }, 'Insight delivery cleanup completed');

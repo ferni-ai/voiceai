@@ -15,6 +15,7 @@ import {
   hide,
 } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ControlsUI');
 
@@ -208,38 +209,38 @@ function updateMuteButton(muted: boolean): void {
  */
 function updateWrapUpState(isWrappingUp: boolean): void {
   if (!elements?.disconnectBtn) return;
-  
+
   if (isWrappingUp) {
     // Add wrap-up styling - warm, inviting goodbye state
     addClass(elements.disconnectBtn, 'btn-wrap-up');
-    
+
     // Update button text to be warmer
     const textSpan = elements.disconnectBtn.querySelector('.btn-text');
     if (textSpan) {
-      textSpan.textContent = 'Goodbye';
+      textSpan.textContent = t('session.goodbye');
     } else {
       // Fallback for buttons without .btn-text
-      elements.disconnectBtn.setAttribute('data-wrap-up-text', 'Goodbye');
+      elements.disconnectBtn.setAttribute('data-wrap-up-text', t('session.goodbye'));
     }
-    
+
     // Add pulsing attention animation
     addClass(elements.disconnectBtn, 'btn-attention');
-    
+
     // Update aria label for accessibility
-    elements.disconnectBtn.setAttribute('aria-label', 'End conversation - Goodbye');
+    elements.disconnectBtn.setAttribute('aria-label', t('session.endConversationGoodbye'));
   } else {
     // Reset to normal disconnect state
     removeClass(elements.disconnectBtn, 'btn-wrap-up');
     removeClass(elements.disconnectBtn, 'btn-attention');
     removeClass(elements.disconnectBtn, 'btn-closing'); // Clear closing state too
-    
+
     // Reset button text
     const textSpan = elements.disconnectBtn.querySelector('.btn-text');
     if (textSpan) {
-      textSpan.textContent = 'End';
+      textSpan.textContent = t('session.end');
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
-    elements.disconnectBtn.setAttribute('aria-label', 'End conversation');
+    elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
   }
 }
 
@@ -249,17 +250,17 @@ function updateWrapUpState(isWrappingUp: boolean): void {
  */
 export function showClosingState(): void {
   if (!elements?.disconnectBtn) return;
-  
+
   // Remove attention pulse, add closing state
   removeClass(elements.disconnectBtn, 'btn-attention');
   addClass(elements.disconnectBtn, 'btn-closing');
-  
+
   // Change text to show it's happening
   const textSpan = elements.disconnectBtn.querySelector('.btn-text');
   if (textSpan) {
-    textSpan.textContent = 'Until next time...';
+    textSpan.textContent = t('session.untilNextTime');
   }
-  
+
   // Disable the button during ceremony
   elements.disconnectBtn.disabled = true;
 }

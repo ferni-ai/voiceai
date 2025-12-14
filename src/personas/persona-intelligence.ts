@@ -16,11 +16,11 @@
 import { getLogger } from '../utils/safe-logger.js';
 
 // Relationship Memory
-import type { RelationshipMemoryEngine } from './relationship-memory/index.js';
 import {
   getRelationshipEngine,
   type RelationshipContext,
   type RelationshipMemory,
+  type RelationshipMemoryEngine,
   type RelationshipStage,
   type SharedMomentType,
 } from './relationship-memory/index.js';
@@ -45,8 +45,7 @@ import {
 } from './shared/team-chemistry.js';
 
 // Cognitive Profiles (existing system)
-import type { CognitiveIntelligenceEngine } from './cognitive-intelligence.js';
-import { getCognitiveEngine } from './cognitive-intelligence.js';
+import { getCognitiveEngine, type CognitiveIntelligenceEngine } from './cognitive-intelligence.js';
 import { getCognitiveProfile } from './cognitive-profiles.js';
 import type { CognitiveProfile } from './cognitive-types.js';
 

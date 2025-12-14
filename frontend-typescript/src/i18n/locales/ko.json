@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "locale": "ko",
+    "name": "한국어",
+    "direction": "ltr"
+  },
+
+  "common": {
+    "loading": "로딩 중...",
+    "error": "문제가 발생했습니다",
+    "retry": "다시 시도",
+    "cancel": "취소",
+    "save": "저장",
+    "close": "닫기",
+    "next": "다음",
+    "back": "뒤로",
+    "done": "완료",
+    "continue": "계속",
+    "skip": "건너뛰기",
+    "confirm": "확인",
+    "delete": "삭제",
+    "edit": "편집",
+    "share": "공유",
+    "download": "다운로드",
+    "copy": "복사",
+    "copied": "복사됨!",
+    "new": "새로운"
+  },
+
+  "menu": {
+    "title": "메뉴",
+    "yourStage": "당신의 단계",
+    "nextStage": "다음: {stage}",
+    "maxLevel": "최고 레벨!",
+    "sections": {
+      "journey": "당신의 여정",
+      "insights": "인사이트",
+      "sessions": "세션 및 재미",
+      "customize": "사용자 정의",
+      "account": "계정 및 보안",
+      "admin": "관리자"
+    },
+    "items": {
+      "yourJourney": "당신의 여정",
+      "trustDetails": "신뢰 상세",
+      "progressAnalytics": "진행 분석",
+      "predictionAccuracy": "예측 정확도",
+      "whatILearned": "내가 배운 것",
+      "memoryBrowser": "기억 브라우저",
+      "wellbeingDashboard": "웰빙 대시보드",
+      "conversationHistory": "대화 기록",
+      "videoSessions": "영상 세션",
+      "groupCoaching": "그룹 코칭",
+      "teamHuddles": "팀 허들",
+      "playGames": "게임 하기",
+      "musicalYou": "뮤지컬 유",
+      "personalize": "개인화",
+      "voiceAccent": "음성 악센트",
+      "guidedPractices": "가이드 연습",
+      "createPractice": "연습 만들기",
+      "healthFitness": "건강 및 피트니스",
+      "calendar": "캘린더",
+      "notifications": "알림",
+      "toggleTheme": "테마 전환",
+      "linkSpotify": "Spotify 연결",
+      "spotifyConnected": "Spotify 연결됨",
+      "yourPlan": "당신의 플랜",
+      "manageBilling": "결제 관리",
+      "voiceId": "음성 ID",
+      "householdMembers": "가구 구성원",
+      "contactInfo": "연락처 정보",
+      "exportData": "데이터 내보내기",
+      "shareFerni": "Ferni 공유",
+      "supportFerni": "Ferni 후원",
+      "takeTour": "투어 시작",
+      "language": "언어"
+    }
+  },
+
+  "session": {
+    "connecting": "연결 중...",
+    "connected": "연결됨",
+    "disconnected": "연결 해제됨",
+    "listening": "듣는 중...",
+    "thinking": "생각하는 중...",
+    "speaking": "말하는 중...",
+    "tapToSpeak": "탭하여 말하기",
+    "holdToSpeak": "길게 눌러 말하기",
+    "releaseToSend": "놓아서 보내기",
+    "endSession": "세션 종료",
+    "sessionEnded": "세션 종료됨",
+    "goodbye": "안녕히 가세요",
+    "end": "종료",
+    "untilNextTime": "다음에 또 만나요...",
+    "endConversation": "대화 종료",
+    "endConversationGoodbye": "대화 종료 - 안녕히 가세요"
+  },
+
+  "subscription": {
+    "free": "무료",
+    "friend": "친구",
+    "partner": "파트너",
+    "upgrade": "업그레이드",
+    "currentPlan": "현재 플랜",
+    "planDetails": "플랜 상세",
+    "features": "기능",
+    "unlimitedConversations": "무제한 대화",
+    "allTeamMembers": "모든 팀 멤버",
+    "prioritySupport": "우선 지원",
+    "advancedInsights": "고급 인사이트"
+  },
+
+  "team": {
+    "meetTheTeam": "팀 소개",
+    "selectMember": "팀 멤버 선택",
+    "currentlyWith": "현재 {name}와 함께",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "라이프 코치",
+        "bio": "당신의 주요 연락처. 통찰력을 열어주는 질문을 합니다."
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "현자 및 멘토",
+        "bio": "지혜와 인내심을 가진 평생 멘토."
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "연구 및 발견",
+        "bio": "아무도 보지 못하는 패턴을 발견합니다."
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "커뮤니케이션",
+        "bio": "당신의 비서실장이자 커뮤니케이션 코치."
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "습관 및 루틴",
+        "bio": "지속되는 습관을 만드는 것을 도와줍니다."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "기획 및 이벤트",
+        "bio": "막연한 꿈을 실제 경험으로 바꿉니다."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "낯선 사람",
+    "acquaintance": "아는 사람",
+    "friend": "친구",
+    "closeFriend": "가까운 친구",
+    "confidant": "절친한 친구",
+    "soulmate": "소울메이트"
+  },
+
+  "time": {
+    "justNow": "방금",
+    "minutesAgo": "{n}분 전",
+    "hoursAgo": "{n}시간 전",
+    "yesterday": "어제",
+    "daysAgo": "{n}일 전"
+  },
+
+  "milestones": {
+    "ourStory": "지금까지 우리의 이야기",
+    "everyMomentMatters": "모든 순간이 소중합니다.",
+    "journeyWith": "Ferni와의 여정",
+    "categories": {
+      "relationship": "우리의 관계",
+      "team": "팀 연결",
+      "conversation": "우리의 대화",
+      "discovery": "발견",
+      "sweet": "달콤한 순간",
+      "milestone": "마일스톤"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "연결이 끊어졌습니다. 다시 연결 중...",
+    "reconnected": "다시 연결되었습니다!",
+    "microphoneBlocked": "마이크 접근 권한이 필요합니다",
+    "sessionTimeout": "세션이 만료되었습니다"
+  },
+
+  "errors": {
+    "connectionFailed": "연결에 실패했습니다. 다시 시도해 주세요.",
+    "microphoneAccess": "계속하려면 마이크 접근을 허용해 주세요.",
+    "networkError": "네트워크 오류. 연결을 확인해 주세요.",
+    "sessionExpired": "세션이 만료되었습니다. 새로고침해 주세요.",
+    "somethingWrong": "문제가 발생했습니다. 다시 시도해 주세요."
+  },
+
+  "onboarding": {
+    "welcome": "환영합니다",
+    "letsGetStarted": "시작해 볼까요",
+    "whatIsYourName": "뭐라고 불러드릴까요?",
+    "niceName": "만나서 반가워요, {name}님!",
+    "howAreYouFeeling": "오늘 기분이 어떠세요?",
+    "readyToBegin": "시작할 준비가 되셨나요?"
+  },
+
+  "accessibility": {
+    "closeMenu": "메뉴 닫기",
+    "openSettings": "설정 열기",
+    "muteAudio": "오디오 음소거",
+    "unmuteAudio": "오디오 음소거 해제",
+    "endCall": "통화 종료",
+    "skipToContent": "본문으로 건너뛰기"
+  }
+}

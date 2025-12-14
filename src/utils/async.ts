@@ -93,24 +93,26 @@ export function debounceAsync<TArgs extends unknown[], TResult>(
       pendingReject = reject;
     });
 
-    timeoutId = setTimeout(async () => {
-      const currentArgs = lastArgs;
-      const currentResolve = pendingResolve;
-      const currentReject = pendingReject;
+    timeoutId = setTimeout(() => {
+      void (async () => {
+        const currentArgs = lastArgs;
+        const currentResolve = pendingResolve;
+        const currentReject = pendingReject;
 
-      // Reset state
-      timeoutId = null;
-      pendingPromise = null;
-      pendingResolve = null;
-      pendingReject = null;
-      lastArgs = null;
+        // Reset state
+        timeoutId = null;
+        pendingPromise = null;
+        pendingResolve = null;
+        pendingReject = null;
+        lastArgs = null;
 
-      try {
-        const result = await fn(...(currentArgs as TArgs));
-        currentResolve?.(result);
-      } catch (error) {
-        currentReject?.(error instanceof Error ? error : new Error(String(error)));
-      }
+        try {
+          const result = await fn(...(currentArgs as TArgs));
+          currentResolve?.(result);
+        } catch (error) {
+          currentReject?.(error instanceof Error ? error : new Error(String(error)));
+        }
+      })();
     }, delayMs);
 
     return pendingPromise;
@@ -193,20 +195,22 @@ export function throttleAsync<TArgs extends unknown[], TResult>(
       const remaining = intervalMs - timeSinceLastCall;
 
       pendingPromise = new Promise<TResult>((resolve, reject) => {
-        timeoutId = setTimeout(async () => {
-          timeoutId = null;
-          lastCallTime = Date.now();
+        timeoutId = setTimeout(() => {
+          void (async () => {
+            timeoutId = null;
+            lastCallTime = Date.now();
 
-          if (lastArgs) {
-            const currentArgs = lastArgs;
-            lastArgs = null;
-            try {
-              const result = await fn(...currentArgs);
-              resolve(result);
-            } catch (error) {
-              reject(error);
+            if (lastArgs) {
+              const currentArgs = lastArgs;
+              lastArgs = null;
+              try {
+                const result = await fn(...currentArgs);
+                resolve(result);
+              } catch (error) {
+                reject(error);
+              }
             }
-          }
+          })();
         }, remaining);
       });
     }
@@ -330,7 +334,7 @@ export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {})
   } = options;
 
   const log = getLogger();
-  let lastError: Error;
+  let lastError: Error = new Error('No error captured');
   let delay = initialDelay;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -370,7 +374,7 @@ export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {})
     }
   }
 
-  throw lastError!;
+  throw lastError;
 }
 
 // ============================================================================
@@ -449,7 +453,9 @@ export async function sequence<T>(tasks: Array<() => Promise<T>>): Promise<T[]> 
  * Sleep for a given number of milliseconds.
  */
 export async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 /**

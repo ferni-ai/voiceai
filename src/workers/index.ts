@@ -23,13 +23,13 @@
  * - Production: Workers can run as separate Cloud Run services with Pub/Sub
  */
 
+export * from './analytics-worker.js';
 export * from './base-worker.js';
 export * from './trust-worker.js';
-export * from './analytics-worker.js';
 
 import { createLogger } from '../utils/safe-logger.js';
-import { getTrustWorker, startTrustWorker } from './trust-worker.js';
 import { getAnalyticsWorker, startAnalyticsWorker } from './analytics-worker.js';
+import { getTrustWorker, startTrustWorker } from './trust-worker.js';
 
 const log = createLogger({ module: 'Workers' });
 
@@ -105,10 +105,9 @@ export async function runStandaloneTrustWorker(): Promise<void> {
   const worker = await startTrustWorker();
 
   // Handle shutdown
-  process.on('SIGTERM', async () => {
+  process.on('SIGTERM', () => {
     log.info('SIGTERM received, shutting down');
-    await worker.stop();
-    process.exit(0);
+    void worker.stop().then(() => process.exit(0));
   });
 
   log.info('Trust worker running');
@@ -128,10 +127,9 @@ export async function runStandaloneAnalyticsWorker(): Promise<void> {
   const worker = await startAnalyticsWorker();
 
   // Handle shutdown
-  process.on('SIGTERM', async () => {
+  process.on('SIGTERM', () => {
     log.info('SIGTERM received, shutting down');
-    await worker.stop();
-    process.exit(0);
+    void worker.stop().then(() => process.exit(0));
   });
 
   log.info('Analytics worker running');
@@ -144,7 +142,7 @@ export async function runStandaloneAnalyticsWorker(): Promise<void> {
 // If run directly, start the specified worker type
 const workerType = process.env.WORKER_TYPE;
 if (workerType && process.argv[1]?.includes('workers')) {
-  (async () => {
+  void (async () => {
     switch (workerType) {
       case 'trust':
         await runStandaloneTrustWorker();
