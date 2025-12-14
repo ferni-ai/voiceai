@@ -1,15 +1,15 @@
 /**
  * Ferni Demo Widget - Talk to Ferni without signing up
- * 
+ *
  * Embeddable voice widget for the landing page that lets visitors
  * try Ferni with a rate-limited demo session.
- * 
+ *
  * Usage:
  *   <script src="/js/demo-widget.js"></script>
  *   <div id="ferni-demo-widget"></div>
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Configuration
@@ -40,7 +40,7 @@
   // ============================================================================
   // STYLES
   // ============================================================================
-  
+
   const styles = `
     .ferni-demo-trigger {
       position: fixed;
@@ -540,7 +540,7 @@
   // ============================================================================
   // HTML TEMPLATES
   // ============================================================================
-  
+
   function createTriggerButton() {
     return `
       <button class="ferni-demo-trigger" aria-label="Talk to Ferni">
@@ -554,7 +554,7 @@
       </button>
     `;
   }
-  
+
   function createModal() {
     return `
       <div class="ferni-demo-overlay" role="dialog" aria-modal="true" aria-labelledby="ferni-demo-title">
@@ -638,19 +638,19 @@
   // ============================================================================
   // DOM MANIPULATION
   // ============================================================================
-  
+
   let container, trigger, overlay, modal;
   let statusEl, actionBtn, timerEl, waveformEl, avatarOrb, errorEl, infoEl;
-  
+
   function injectStyles() {
     if (document.getElementById('ferni-demo-styles')) return;
-    
+
     const styleEl = document.createElement('style');
     styleEl.id = 'ferni-demo-styles';
     styleEl.textContent = styles;
     document.head.appendChild(styleEl);
   }
-  
+
   function createDOM() {
     container = document.getElementById(CONFIG.containerId);
     if (!container) {
@@ -658,9 +658,9 @@
       container.id = CONFIG.containerId;
       document.body.appendChild(container);
     }
-    
+
     container.innerHTML = createTriggerButton() + createModal();
-    
+
     // Cache DOM references
     trigger = container.querySelector('.ferni-demo-trigger');
     overlay = container.querySelector('.ferni-demo-overlay');
@@ -672,33 +672,33 @@
     avatarOrb = container.querySelector('.ferni-demo-avatar-orb');
     errorEl = container.querySelector('.ferni-demo-error');
     infoEl = container.querySelector('.ferni-demo-info');
-    
+
     // Event listeners
     trigger.addEventListener('click', openModal);
     container.querySelector('.ferni-demo-backdrop').addEventListener('click', closeModal);
     container.querySelector('.ferni-demo-close').addEventListener('click', closeModal);
     actionBtn.addEventListener('click', handleActionClick);
-    
+
     // Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && state.isOpen) closeModal();
     });
   }
-  
+
   async function openModal() {
     state.isOpen = true;
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
-    
+
     // Track event
     if (window.FerniExperiments) {
       window.FerniExperiments.trackConversionForAll('demo_modal_opened');
     }
-    
+
     // Proactively check demo status (don't block UI)
     checkDemoStatus();
   }
-  
+
   /**
    * Check demo status proactively - shows warm messaging before user hits a wall
    */
@@ -714,24 +714,24 @@
       console.log('Could not check demo status:', err.message);
     }
   }
-  
+
   /**
    * Update UI based on proactive status check
    */
   function updateProactiveUI() {
     const status = state.demoStatus;
     if (!status) return;
-    
+
     const infoEl = container.querySelector('.ferni-demo-info');
     const infoTitle = infoEl.querySelector('.ferni-demo-info-title');
     const infoMessage = infoEl.querySelector('.ferni-demo-info-message');
-    
+
     // Clear any existing cooldown countdown
     if (state.cooldownInterval) {
       clearInterval(state.cooldownInterval);
       state.cooldownInterval = null;
     }
-    
+
     // Case 1: In cooldown - show warm countdown
     if (status.inCooldown && status.cooldownRemaining > 0) {
       infoEl.style.display = 'block';
@@ -747,7 +747,7 @@
       `;
       return;
     }
-    
+
     // Case 2: No sessions left - warm invitation to create account
     if (status.sessionsRemaining === 0) {
       infoEl.style.display = 'block';
@@ -762,49 +762,48 @@
         </svg>
         Create Free Account
       `;
-      actionBtn.onclick = () => window.location.href = CONFIG.upgradeUrl;
+      actionBtn.onclick = () => (window.location.href = CONFIG.upgradeUrl);
       return;
     }
-    
+
     // Case 3: Last session - gentle heads up
     if (status.sessionsRemaining === 1) {
       infoEl.style.display = 'block';
       infoEl.querySelector('.ferni-demo-info-icon').textContent = '💚';
       infoTitle.textContent = 'Your last free chat today';
-      infoMessage.textContent = "Make it count! Or create a free account for unlimited conversations.";
+      infoMessage.textContent =
+        'Make it count! Or create a free account for unlimited conversations.';
       // Still allow starting
       actionBtn.disabled = false;
     }
-    
+
     // Case 4: Sessions available - maybe show count if low
     else if (status.sessionsRemaining <= 2) {
       infoEl.style.display = 'block';
       infoEl.querySelector('.ferni-demo-info-icon').textContent = '💚';
       infoTitle.textContent = `${status.sessionsRemaining} free chats left today`;
-      infoMessage.textContent = "Each one is a 3-minute window into real connection.";
+      infoMessage.textContent = 'Each one is a 3-minute window into real connection.';
       actionBtn.disabled = false;
     }
-    
+
     // Update badge on trigger button
     updateTriggerBadge(status.sessionsRemaining);
   }
-  
+
   /**
    * Start a live countdown for cooldown period
    */
   function startCooldownCountdown(seconds) {
     let remaining = seconds;
     const infoMessage = container.querySelector('.ferni-demo-info-message');
-    
+
     const updateCountdown = () => {
       const mins = Math.floor(remaining / 60);
       const secs = remaining % 60;
-      const timeStr = mins > 0 
-        ? `${mins}:${secs.toString().padStart(2, '0')}`
-        : `${secs}s`;
-      
+      const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+
       infoMessage.innerHTML = `Taking a quick breather between conversations.<br>Ready again in <span class="ferni-demo-countdown">${timeStr}</span>`;
-      
+
       if (remaining <= 0) {
         clearInterval(state.cooldownInterval);
         state.cooldownInterval = null;
@@ -822,11 +821,11 @@
       }
       remaining--;
     };
-    
+
     updateCountdown();
     state.cooldownInterval = setInterval(updateCountdown, 1000);
   }
-  
+
   /**
    * Update the trigger button badge showing sessions remaining
    */
@@ -834,7 +833,7 @@
     // Remove existing badge
     const existingBadge = trigger.querySelector('.ferni-demo-badge');
     if (existingBadge) existingBadge.remove();
-    
+
     // Add badge if sessions are limited
     if (sessionsRemaining <= 2) {
       const badge = document.createElement('span');
@@ -851,53 +850,53 @@
       trigger.appendChild(badge);
     }
   }
-  
+
   function closeModal() {
     state.isOpen = false;
     overlay.classList.remove('open');
     document.body.style.overflow = '';
-    
+
     // Disconnect if connected
     if (state.isConnected) {
       disconnectSession();
     }
-    
+
     // Clear cooldown countdown
     if (state.cooldownInterval) {
       clearInterval(state.cooldownInterval);
       state.cooldownInterval = null;
     }
   }
-  
+
   // ============================================================================
   // LIVEKIT CONNECTION
   // ============================================================================
-  
+
   async function startSession() {
     state.isConnecting = true;
     state.error = null;
     updateUI();
-    
+
     try {
       // Get demo token
       const response = await fetch(CONFIG.tokenEndpoint);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to start demo');
       }
-      
+
       CONFIG.livekitUrl = data.url;
       state.sessionTimeRemaining = data.session_duration_minutes * 60;
-      
+
       // Load LiveKit SDK dynamically if not loaded
       if (!window.LivekitClient) {
         await loadLivekitSDK();
       }
-      
+
       // Connect to room
       const room = new window.LivekitClient.Room();
-      
+
       room.on('trackSubscribed', (track, publication, participant) => {
         if (track.kind === 'audio' && participant.identity !== 'Visitor') {
           const audioEl = track.attach();
@@ -906,7 +905,7 @@
           avatarOrb.classList.add('speaking');
         }
       });
-      
+
       room.on('trackUnsubscribed', (track) => {
         if (track.kind === 'audio') {
           const audioEl = document.getElementById('ferni-demo-audio');
@@ -914,79 +913,82 @@
           avatarOrb.classList.remove('speaking');
         }
       });
-      
+
       room.on('disconnected', () => {
         state.isConnected = false;
         state.isTalking = false;
         updateUI();
       });
-      
+
       // Connect
       await room.connect(CONFIG.livekitUrl, data.token);
-      
+
       // Enable microphone
       await room.localParticipant.setMicrophoneEnabled(true);
-      
+
       state.room = room;
       state.isConnected = true;
       state.isConnecting = false;
       state.isTalking = true;
-      
+
       // Start timer
       startTimer();
-      
+
       // Track conversion
       if (window.FerniExperiments) {
         window.FerniExperiments.trackConversionForAll('demo_session_started');
       }
-      
+
       updateUI();
-      
     } catch (error) {
       console.error('Demo session error:', error);
       state.isConnecting = false;
-      
+
       // Parse error for brand-aligned messaging
       const errorMsg = error.message || 'Something unexpected happened';
-      
+
       // Check if it's a rate limit error (429)
-      if (errorMsg.includes('wait') || errorMsg.includes('sessions') || errorMsg.includes('limit')) {
+      if (
+        errorMsg.includes('wait') ||
+        errorMsg.includes('sessions') ||
+        errorMsg.includes('limit')
+      ) {
         // Re-check status to get accurate cooldown info
         await checkDemoStatus();
       } else {
         state.error = errorMsg;
       }
-      
+
       updateUI();
     }
   }
-  
+
   function disconnectSession() {
     if (state.room) {
       state.room.disconnect();
       state.room = null;
     }
-    
+
     if (state.timerInterval) {
       clearInterval(state.timerInterval);
       state.timerInterval = null;
     }
-    
+
     state.isConnected = false;
     state.isTalking = false;
     state.sessionTimeRemaining = 0;
-    
+
     // Remove audio element
     const audioEl = document.getElementById('ferni-demo-audio');
     if (audioEl) audioEl.remove();
-    
+
     updateUI();
   }
-  
+
   function startTimer() {
     state.timerInterval = setInterval(() => {
       state.sessionTimeRemaining--;
-      
+
       if (state.sessionTimeRemaining <= 0) {
         disconnectSession();
         state.error = 'Demo session ended. Create a free account for unlimited conversations!';
@@ -995,27 +997,27 @@
         updateTimerDisplay();
       }
     }, 1000);
-    
+
     updateTimerDisplay();
   }
-  
+
   function updateTimerDisplay() {
     const minutes = Math.floor(state.sessionTimeRemaining / 60);
     const seconds = state.sessionTimeRemaining % 60;
     const timerText = timerEl.querySelector('.ferni-demo-timer-text');
     timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
+
     // Warning state when under 30 seconds
     timerEl.classList.toggle('warning', state.sessionTimeRemaining <= 30);
   }
-  
+
   async function loadLivekitSDK() {
     return new Promise((resolve, reject) => {
       if (window.LivekitClient) {
         resolve();
         return;
       }
-      
+
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/livekit-client@2.0.0/dist/livekit-client.umd.js';
       script.onload = resolve;
@@ -1023,11 +1025,11 @@
       document.head.appendChild(script);
     });
   }
-  
+
   // ============================================================================
   // UI UPDATES
   // ============================================================================
-  
+
   function handleActionClick() {
     if (state.isConnected) {
       disconnectSession();
@@ -1035,30 +1037,32 @@
       startSession();
     }
   }
-  
+
   function updateUI() {
     const infoEl = container.querySelector('.ferni-demo-info');
-    
+
     // Error state - warm, not alarming
     if (state.error) {
       errorEl.style.display = 'block';
       infoEl.style.display = 'none';
-      
+
       // Brand-voice error messages
       const errorTitle = errorEl.querySelector('.ferni-demo-error-title');
       const errorMessage = errorEl.querySelector('.ferni-demo-error-message');
-      
+
       if (state.error.includes('microphone') || state.error.includes('permission')) {
         errorTitle.textContent = "I can't hear you yet";
-        errorMessage.textContent = "Please allow microphone access so we can talk. I promise I'm a good listener.";
+        errorMessage.textContent =
+          "Please allow microphone access so we can talk. I promise I'm a good listener.";
       } else if (state.error.includes('network') || state.error.includes('connect')) {
-        errorTitle.textContent = "Lost you for a second";
-        errorMessage.textContent = "Check your internet connection and let's try again. I'll be right here.";
+        errorTitle.textContent = 'Lost you for a second';
+        errorMessage.textContent =
+          "Check your internet connection and let's try again. I'll be right here.";
       } else {
         errorTitle.textContent = "Let's try that again";
         errorMessage.textContent = state.error;
       }
-      
+
       actionBtn.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -1074,9 +1078,9 @@
       avatarOrb.classList.remove('listening', 'speaking');
       return;
     }
-    
+
     errorEl.style.display = 'none';
-    
+
     // Connecting state
     if (state.isConnecting) {
       statusEl.textContent = 'Connecting to Ferni...';
@@ -1086,7 +1090,7 @@
       waveformEl.classList.remove('active');
       return;
     }
-    
+
     // Connected state
     if (state.isConnected) {
       statusEl.textContent = 'Ferni is listening...';
@@ -1105,7 +1109,7 @@
       avatarOrb.classList.add('listening');
       return;
     }
-    
+
     // Default state
     statusEl.textContent = 'Click the button below to start';
     statusEl.classList.add('subtle');
@@ -1122,22 +1126,22 @@
     timerEl.style.display = 'none';
     waveformEl.classList.remove('active');
     avatarOrb.classList.remove('listening', 'speaking');
-    
+
     // Re-check status to show proactive info if needed
     if (state.demoStatus) {
       updateProactiveUI();
     }
   }
-  
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
-  
+
   function init() {
     injectStyles();
     createDOM();
     console.log('🎯 Ferni Demo Widget loaded');
-    
+
     // Proactively check status on load to show badge if limited
     checkDemoStatus().then(() => {
       if (state.demoStatus) {
@@ -1145,19 +1149,18 @@
       }
     });
   }
-  
+
   // Start when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-  
+
   // Expose for debugging
   window.FerniDemo = {
     open: openModal,
     close: closeModal,
     state: () => state,
   };
-  
 })();

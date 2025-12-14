@@ -977,8 +977,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           await ctx.room.localParticipant?.publishData(new TextEncoder().encode(failureMessage), {
             reliable: true,
           });
-        } catch {
-          // Last resort - just log it
+        } catch (sendErr) {
+          // Last resort - FIX BUG: Log even non-critical errors for debugging
+          logger.debug({ error: String(sendErr) }, 'Failed to send handoff_failed message');
         }
 
         // FIX: Emit completion event even on failure so executor doesn't timeout

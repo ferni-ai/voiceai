@@ -20,7 +20,7 @@
  *   3. Handoff tool is automatically available!
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -29,20 +29,9 @@ import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
 
-// Safe logger that doesn't throw if not initialized
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    // Fall back to console if LiveKit logger not initialized
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
+// FIX BUG: Use safe-logger utility instead of console fallback
+// This follows project conventions and provides consistent logging
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

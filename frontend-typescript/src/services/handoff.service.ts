@@ -441,8 +441,9 @@ class HandoffService {
           // Play disconnect sound as "failure" indicator
           await audioService.playSound(SOUND_EFFECTS.DISCONNECT as SoundEffect);
           log.debug('Played recovery sound after failed handoff');
-        } catch {
-          // Non-critical - ignore if sound fails
+        } catch (soundErr) {
+          // Non-critical - FIX BUG: Log for debugging even if not re-throwing
+          log.debug('Recovery sound failed to play:', soundErr);
         }
         this._soundPlayedForCurrentHandoff = false;
       }
