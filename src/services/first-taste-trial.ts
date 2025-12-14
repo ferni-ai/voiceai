@@ -330,11 +330,11 @@ export async function isEligibleForTrial(userId: string): Promise<boolean> {
  */
 export function getTrialWelcomePrompt(): string {
   const prompts = [
-    "Hey! I'm Ferni. I'm really glad you're here. This is our first conversation, and I want to make it count. What's on your mind?",
+    "Hey! I'm Ferni. I'm really glad you're here. Before we dive in - what's your name?",
 
-    "Hi there! I'm Ferni. You know what? I'm genuinely excited to meet you. Tell me - what brought you here today?",
+    "Hi! I'm Ferni. You know what? I'm genuinely excited to meet you. What should I call you?",
 
-    "Welcome! I'm Ferni, and I've been looking forward to this. Our first conversation together. What would you like to talk about?",
+    "Welcome! I'm Ferni, and I've been looking forward to this. First things first - who am I talking to?",
   ];
 
   return prompts[Math.floor(Math.random() * prompts.length)];

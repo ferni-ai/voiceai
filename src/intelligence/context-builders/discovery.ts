@@ -11,8 +11,8 @@
  * Extracted from jack-bogle.ts lines 689-707
  */
 import {
-  registerContextBuilder,
   createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
@@ -33,18 +33,18 @@ function buildDiscoveryContext(input: ContextBuilderInput): ContextInjection[] {
   const hasGoals = userProfile?.goals && userProfile.goals.length > 0;
   const hasLifeStage = !!userProfile?.lifeStage;
   const hasName = !!(userData.name || userProfile?.name);
-  // Only for new users, turns 2-6
-  if (!isNewUser || turnCount < 2 || turnCount > 6) {
+  // Only for new users, turns 1-6
+  if (!isNewUser || turnCount < 1 || turnCount > 6) {
     return injections;
   }
   // -----------------------------------------------
-  // NAME DISCOVERY (turn 2)
+  // NAME DISCOVERY (turns 1-2) - Ask early, it matters!
   // -----------------------------------------------
-  if (!hasName && turnCount === 2) {
+  if (!hasName && turnCount <= 2) {
     injections.push(
       createStandardInjection(
         'discovery_name',
-        `[DISCOVERY: You don't know their name yet. Find a natural moment to ask: "By the way, I didn't catch your name?"]`
+        `[DISCOVERY: You don't know their name yet. Ask naturally and early - names matter for real connection. Try: "I'm Ferni, by the way. What's your name?" or "By the way, I didn't catch your name?" IMPORTANT: Don't use placeholder names like "friend" - just talk directly until you know their actual name.]`
       )
     );
   }
