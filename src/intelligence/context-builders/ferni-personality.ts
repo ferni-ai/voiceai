@@ -19,13 +19,21 @@
  * but HOW he expresses it varies naturally each session.
  *
  * @module FerniPersonalityContextBuilder
+ *
+ * @deprecated PHASE 3 CLEANUP NOTE (2024-12):
+ * This builder is being phased out in favor of the unified personality system:
+ * - Use `personality/memory-adapter.ts` for semantic relevance matching
+ * - Use `context-builders/human-personality.ts` for callbacks and timing
+ * - Use `personas/bundles/ferni/dynamic-personality.ts` for variety-tracked expressions
+ *
+ * Random injection rates have been reduced to prevent repetitive personality mentions.
+ * Personality should emerge through RELEVANCE (matching user context), not RANDOMNESS.
  */
 
 import {
-  registerContextBuilder,
   createHintInjection,
   createStandardInjection,
-  createHighInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
@@ -386,9 +394,10 @@ async function buildFerniPersonalityContext(
   const userEmotion = analysis?.emotion?.primary;
 
   // ============================================================================
-  // 1. TIME-BASED PERSONALITY (occasional)
+  // 1. TIME-BASED PERSONALITY (rare - reduced from 0.15 to 0.05)
+  // @deprecated Prefer context-driven mentions over random time-based ones
   // ============================================================================
-  if (turnCount >= 1 && Math.random() < 0.15) {
+  if (turnCount >= 1 && Math.random() < 0.05) {
     const timeNote = getTimePersonality();
     if (timeNote) {
       injections.push(
@@ -416,27 +425,30 @@ async function buildFerniPersonalityContext(
 
   // ============================================================================
   // 3. DYNAMIC EXPRESSIONS - Sensory/quirky moments
+  // @deprecated Reduced rates - prefer human-personality.ts for contextual sharing
   // ============================================================================
-  // "Caught doing" moments at conversation start
-  if (turnCount === 0 && Math.random() < 0.4) {
-    const { getCaughtDoingMoment } = await import(
-      '../../personas/bundles/ferni/dynamic-personality.js'
-    );
+  // "Caught doing" moments at conversation start (reduced from 0.4 to 0.15)
+  if (turnCount === 0 && Math.random() < 0.15) {
+    const { getCaughtDoingMoment } =
+      await import('../../personas/bundles/ferni/dynamic-personality.js');
     const caughtDoing = getCaughtDoingMoment(sessionId);
     if (caughtDoing) {
       injections.push(
-        createHighInjection('ferni_caught_doing', `[CAUGHT IN THE MOMENT: Ferni was just: ${caughtDoing}]`, {
-          category: 'personality',
-        })
+        createHintInjection(
+          'ferni_caught_doing',
+          `[CAUGHT IN THE MOMENT: Ferni was just: ${caughtDoing}]`,
+          {
+            category: 'personality',
+          }
+        )
       );
     }
   }
 
-  // Sensory moments mid-conversation
-  if (turnCount >= 4 && Math.random() < 0.2) {
-    const { getSensoryMoment } = await import(
-      '../../personas/bundles/ferni/dynamic-personality.js'
-    );
+  // Sensory moments mid-conversation (reduced from 0.2 to 0.08)
+  if (turnCount >= 4 && Math.random() < 0.08) {
+    const { getSensoryMoment } =
+      await import('../../personas/bundles/ferni/dynamic-personality.js');
     const sensory = getSensoryMoment(sessionId, userEmotion);
     if (sensory) {
       injections.push(
@@ -448,10 +460,11 @@ async function buildFerniPersonalityContext(
   }
 
   // ============================================================================
-  // 4. PASSION TOPICS - Get genuinely excited
+  // 4. PASSION TOPICS - Get genuinely excited (reduced from 0.5 to 0.25)
+  // These are contextual - triggered by user's topic, so kept higher
   // ============================================================================
   const passion = detectPassionTopic(userText);
-  if (passion && Math.random() < 0.5) {
+  if (passion && Math.random() < 0.25) {
     injections.push(
       createStandardInjection(
         'ferni_passion',
@@ -462,10 +475,11 @@ async function buildFerniPersonalityContext(
   }
 
   // ============================================================================
-  // 5. STRONG OPINIONS - Share authentic perspective
+  // 5. STRONG OPINIONS - Share authentic perspective (reduced from 0.4 to 0.2)
+  // These are contextual - triggered by user's topic
   // ============================================================================
   const opinion = detectOpinionTopic(userText);
-  if (opinion && Math.random() < 0.4) {
+  if (opinion && Math.random() < 0.2) {
     injections.push(
       createStandardInjection(
         'ferni_opinion',
@@ -476,10 +490,11 @@ async function buildFerniPersonalityContext(
   }
 
   // ============================================================================
-  // 6. QUIRKS - Small authentic details
+  // 6. QUIRKS - Small authentic details (reduced from 0.35 to 0.12)
+  // @deprecated Prefer human-personality.ts which uses semantic relevance
   // ============================================================================
   const quirk = detectQuirk(userText);
-  if (quirk && Math.random() < 0.35) {
+  if (quirk && Math.random() < 0.12) {
     injections.push(
       createHintInjection('ferni_quirk', `[QUIRK: ${quirk.note}]`, {
         category: 'personality',
@@ -488,16 +503,15 @@ async function buildFerniPersonalityContext(
   }
 
   // ============================================================================
-  // 7. TRAVELER WISDOM - When globally relevant
+  // 7. TRAVELER WISDOM - When globally relevant (reduced from 0.3 to 0.15)
   // ============================================================================
   if (
     turnCount >= 3 &&
     userText.match(/\b(perspective|different|culture|learn|travel|abroad|foreign)\b/i) &&
-    Math.random() < 0.3
+    Math.random() < 0.15
   ) {
-    const { getTravelerReference } = await import(
-      '../../personas/bundles/ferni/dynamic-personality.js'
-    );
+    const { getTravelerReference } =
+      await import('../../personas/bundles/ferni/dynamic-personality.js');
     const traveler = getTravelerReference(sessionId);
     if (traveler) {
       injections.push(

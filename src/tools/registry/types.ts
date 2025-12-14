@@ -319,10 +319,36 @@ export interface StrictToolInterface {
 }
 
 /**
+ * Strict tool interface for our custom implementations.
+ *
+ * Use this when building tools that need full type safety.
+ * For LiveKit compatibility, use the flexible `Tool` type instead.
+ */
+export interface BaseTool {
+  /** Description shown to the LLM */
+  description: string;
+
+  /**
+   * Execute the tool with provided parameters.
+   * Returns string for simple responses, or object for structured data.
+   */
+  execute: (params: Record<string, unknown>) => Promise<unknown>;
+
+  /**
+   * Parameter schema - can be JSON Schema or Zod schema.
+   * Optional when tool takes no parameters.
+   */
+  parameters?: unknown;
+
+  /** Tool name (optional, defaults to ID) */
+  name?: string;
+}
+
+/**
  * A callable tool function (LiveKit agents compatible)
  *
  * This type is intentionally flexible to accommodate:
- * 1. LiveKit's FunctionTool with Zod schemas
+ * 1. LiveKit's FunctionTool with complex generic signatures
  * 2. Our custom tool implementations
  * 3. Third-party tool formats
  *
@@ -331,7 +357,9 @@ export interface StrictToolInterface {
  * - Different tool formats have different execute() signatures
  * - JSON Schema and Zod parameters are not directly compatible
  *
- * For strict typing in custom implementations, use StrictToolInterface.
+ * For strict typing in custom implementations, use `BaseTool` interface.
+ * Use `isTool()` type guard to validate unknown objects.
+ * Use `assertTool()` to throw if validation fails.
  *
  * NOTE: This uses a permissive type to avoid breaking existing code.
  * Tools should still implement description and execute at minimum.
@@ -342,10 +370,21 @@ export type Tool = any;
 /**
  * Type guard to check if an object has the minimum Tool structure
  */
-export function isTool(obj: unknown): obj is StrictToolInterface {
+export function isTool(obj: unknown): obj is Tool {
   if (typeof obj !== 'object' || obj === null) return false;
   const tool = obj as Record<string, unknown>;
   return typeof tool.description === 'string' && typeof tool.execute === 'function';
+}
+
+/**
+ * Assert that an object is a valid Tool, throwing if not
+ */
+export function assertTool(obj: unknown, name = 'tool'): asserts obj is Tool {
+  if (!isTool(obj)) {
+    throw new Error(
+      `${name} must be a valid Tool with 'description' (string) and 'execute' (function)`
+    );
+  }
 }
 
 /**

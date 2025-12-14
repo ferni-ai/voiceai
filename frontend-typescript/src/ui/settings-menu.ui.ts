@@ -20,7 +20,6 @@ import {
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
 // Milestones - for journey progress indicator
-import { getCelebratedCount, getTotalMilestonesCount } from './ferni-milestones.ui.js';
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 
@@ -67,6 +66,9 @@ export interface SettingsMenuUICallbacks {
   onYourJourneyClick?: () => void;
   onShareFerniClick?: () => void;
   onAccentSettingsClick?: () => void;
+  onWearableSettingsClick?: () => void;
+  onVideoSettingsClick?: () => void;
+  onGroupCoachingClick?: () => void;
   onClose?: () => void;
 }
 
@@ -131,6 +133,12 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
   globe:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  watch:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><polyline points="12 10 12 12 13 13"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></svg>',
+  video:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>',
+  users:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   chevronRight:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
 };
@@ -159,6 +167,7 @@ class SettingsMenuUI {
   private isVisible = false;
   private spotifyLinked = false;
   private spotifyConfigured = false;
+  private expandedSections: Set<string> = new Set(['journey', 'insights']);
 
   initialize(): void {
     // Check for existing elements (HMR protection)
@@ -328,6 +337,10 @@ class SettingsMenuUI {
     const stageName = STAGE_NAMES[currentStage];
     const progress = relationshipStageService.getProgressToNextStage();
 
+    // Track which sections are expanded (default: first two open)
+    const expandedSections = this.expandedSections || new Set(['journey', 'insights']);
+    this.expandedSections = expandedSections;
+
     this.panel.innerHTML = `
       <div class="settings-menu__backdrop"></div>
       <div class="settings-menu__card">
@@ -362,69 +375,88 @@ class SettingsMenuUI {
         ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
-          <section class="settings-menu__section">
-            <h3>Your Journey</h3>
+          <!-- SECTION 1: Your Journey -->
+          ${this.renderCollapsibleSection(
+            'journey',
+            'Your Journey',
+            expandedSections.has('journey'),
+            `
             ${this.renderMenuItem('your-journey', ICONS.heart, 'Your Journey')}
             ${this.renderMenuItem('trust-journey', ICONS.sparkles, 'Trust Details')}
-            ${this.renderMenuItem('history', ICONS.history, 'Conversation History')}
             ${this.renderMenuItem('analytics', ICONS.analytics, 'Progress Analytics')}
             ${this.renderMenuItem('predictions', ICONS.target, 'Prediction Accuracy')}
-          </section>
+          `
+          )}
 
-          <section class="settings-menu__section">
-            <h3>Insights</h3>
+          <!-- SECTION 2: Insights -->
+          ${this.renderCollapsibleSection(
+            'insights',
+            'Insights',
+            expandedSections.has('insights'),
+            `
             ${this.renderMenuItem('cognitive', ICONS.brain, "What I've Learned")}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, 'Memory Browser')}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, 'Wellbeing Dashboard')}
-            ${this.renderMenuItem('music-dashboard', ICONS.music, 'Musical You')}
-            ${this.renderMenuItem('team', ICONS.team, 'Team Huddles')}
-          </section>
-          
-          <section class="settings-menu__section">
-            <h3>Fun</h3>
-            ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Music Games')}
-            ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
-            ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
-            ${this.renderMenuItem('support-ferni', ICONS.seedling, 'Support Ferni')}
-          </section>
+            ${this.renderMenuItem('history', ICONS.history, 'Conversation History')}
+          `
+          )}
 
-          <section class="settings-menu__section">
-            <h3>Customize</h3>
+          <!-- SECTION 3: Sessions & Fun -->
+          ${this.renderCollapsibleSection(
+            'sessions',
+            'Sessions & Fun',
+            expandedSections.has('sessions'),
+            `
+            ${this.renderMenuItemWithBadge('video-settings', ICONS.video, 'Video Sessions', 'NEW')}
+            ${this.renderMenuItemWithBadge('group-coaching', ICONS.users, 'Group Coaching', 'NEW')}
+            ${this.renderMenuItem('team', ICONS.team, 'Team Huddles')}
+            ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Games')}
+            ${this.renderMenuItem('music-dashboard', ICONS.music, 'Musical You')}
+          `
+          )}
+
+          <!-- SECTION 4: Customize -->
+          ${this.renderCollapsibleSection(
+            'customize',
+            'Customize',
+            expandedSections.has('customize'),
+            `
+            ${this.renderMenuItem('personalize', ICONS.palette, 'Personalize')}
+            ${this.renderMenuItem('accent-settings', ICONS.globe, 'Voice Accent')}
+            ${this.renderMenuItem('commands', ICONS.commands, 'Guided Practices')}
+            ${this.renderMenuItem('ritual', ICONS.ritual, 'Create Custom Practice')}
+            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, 'Health & Fitness', 'NEW')}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, 'Calendar')}
+            ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
+            ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
             <button class="settings-menu__item" data-action="spotify" style="display: none;">
               <span class="settings-menu__icon">${ICONS.music}</span>
               <span class="settings-menu__label">Link Spotify</span>
             </button>
-            ${this.renderMenuItem('accent-settings', ICONS.globe, 'Voice Accent')}
-            ${this.renderMenuItem('ritual', ICONS.ritual, 'Create a Practice')}
-            ${this.renderMenuItem('commands', ICONS.commands, 'Start a Practice')}
-            ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
-            ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
-            <!-- Calendar settings hidden until backend is configured -->
-            <button class="settings-menu__item" data-action="calendar-settings" style="display: none;">
-              <span class="settings-menu__icon">${ICONS.calendar}</span>
-              <span class="settings-menu__label">Link Calendar</span>
-            </button>
-            ${this.renderMenuItem('outreach-schedule', ICONS.calendar, 'Upcoming Check-ins')}
-            ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
-          </section>
+          `
+          )}
 
-          <section class="settings-menu__section">
-            <h3>Security</h3>
-            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, 'Voice ID')}
-            ${this.renderMenuItem('household', ICONS.household, 'Household Members')}
-          </section>
-
-          <section class="settings-menu__section">
-            <h3>Account</h3>
+          <!-- SECTION 5: Account & Security -->
+          ${this.renderCollapsibleSection(
+            'account',
+            'Account & Security',
+            expandedSections.has('account'),
+            `
             ${this.renderMenuItem('subscription', ICONS.infinity, 'Your Plan')}
             ${this.renderMenuItem('billing', ICONS.creditCard, 'Manage Billing')}
-          </section>
-
-          <section class="settings-menu__section">
-            <h3>Your Data</h3>
+            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, 'Voice ID')}
+            ${this.renderMenuItem('household', ICONS.household, 'Household Members')}
+            ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
             ${this.renderMenuItem('export', ICONS.download, 'Export Data')}
+          `
+          )}
+
+          <!-- Bottom Quick Actions -->
+          <div class="settings-menu__quick-actions">
+            ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
+            ${this.renderMenuItem('support-ferni', ICONS.seedling, 'Support Ferni')}
             ${this.renderMenuItem('help', ICONS.help, 'Take the Tour')}
-          </section>
+          </div>
         </nav>
       </div>
     `;
@@ -434,6 +466,16 @@ class SettingsMenuUI {
       .querySelector('.settings-menu__backdrop')
       ?.addEventListener('click', () => this.hide());
     this.panel.querySelector('.settings-menu__close')?.addEventListener('click', () => this.hide());
+
+    // Bind collapsible section toggle events
+    this.panel.querySelectorAll('.settings-menu__section-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const sectionId = (header as HTMLElement).dataset.section;
+        if (sectionId) {
+          this.toggleSection(sectionId);
+        }
+      });
+    });
 
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -451,7 +493,82 @@ class SettingsMenuUI {
         this.handleAction(action);
       });
     });
+  }
 
+  /**
+   * Render a collapsible section with header and expandable content
+   */
+  private renderCollapsibleSection(
+    id: string,
+    title: string,
+    isExpanded: boolean,
+    content: string
+  ): string {
+    return `
+      <section class="settings-menu__section ${isExpanded ? 'settings-menu__section--expanded' : ''}">
+        <button class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
+          <h3>${title}</h3>
+          <span class="settings-menu__section-chevron">${ICONS.chevronRight}</span>
+        </button>
+        <div class="settings-menu__section-content">
+          ${content}
+        </div>
+      </section>
+    `;
+  }
+
+  /**
+   * Render a menu item with a badge (NEW, count, etc.)
+   */
+  private renderMenuItemWithBadge(
+    action: string,
+    icon: string,
+    label: string,
+    badge: string
+  ): string {
+    const isLocked = this.isFeatureLocked(action);
+    const requiredStage = this.getRequiredStage(action);
+    const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
+    const stageName = requiredStage ? STAGE_NAMES[requiredStage] : '';
+
+    if (isLocked) {
+      return `
+        <button class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
+          <span class="settings-menu__icon">${icon}</span>
+          <span class="settings-menu__label-wrap">
+            <span class="settings-menu__label">${label}</span>
+            <span class="settings-menu__unlock-hint">Unlock at ${stageName}</span>
+          </span>
+          <span class="settings-menu__lock-icon">${ICONS.lock}</span>
+        </button>
+      `;
+    }
+
+    return `
+      <button class="settings-menu__item" data-action="${action}">
+        <span class="settings-menu__icon">${icon}</span>
+        <span class="settings-menu__label">${label}</span>
+        <span class="settings-menu__badge">${badge}</span>
+      </button>
+    `;
+  }
+
+  /**
+   * Toggle a collapsible section
+   */
+  private toggleSection(sectionId: string): void {
+    if (!this.expandedSections) {
+      this.expandedSections = new Set(['journey', 'insights']);
+    }
+
+    if (this.expandedSections.has(sectionId)) {
+      this.expandedSections.delete(sectionId);
+    } else {
+      this.expandedSections.add(sectionId);
+    }
+
+    // Re-render content to update UI
+    this.renderContent();
   }
 
   private handleAction(action: string | undefined): void {
@@ -544,6 +661,15 @@ class SettingsMenuUI {
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();
+        break;
+      case 'wearable-settings':
+        this.callbacks.onWearableSettingsClick?.();
+        break;
+      case 'video-settings':
+        this.callbacks.onVideoSettingsClick?.();
+        break;
+      case 'group-coaching':
+        this.callbacks.onGroupCoachingClick?.();
         break;
     }
   }
@@ -705,19 +831,88 @@ class SettingsMenuUI {
       }
 
       .settings-menu__section {
-        padding: 0 var(--space-6, 24px);
-        margin-bottom: var(--space-4, 16px);
+        padding: 0 var(--space-4, 16px);
+        margin-bottom: var(--space-2, 8px);
       }
 
-      .settings-menu__section h3 {
+      /* Collapsible Section Header */
+      .settings-menu__section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: var(--space-3, 12px) var(--space-2, 8px);
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-md, 8px);
+        cursor: pointer;
+        transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__section-header:hover {
+        background: var(--color-background-secondary, rgba(0, 0, 0, 0.03));
+      }
+
+      .settings-menu__section-header h3 {
         font-family: var(--font-display);
-        font-size: var(--text-xs);
+        font-size: var(--text-sm);
         font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        text-transform: none;
+        letter-spacing: normal;
+        margin: 0;
+      }
+
+      .settings-menu__section-chevron {
+        width: 16px;
+        height: 16px;
         color: var(--color-text-muted);
+        transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__section-chevron svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .settings-menu__section--expanded .settings-menu__section-chevron {
+        transform: rotate(90deg);
+      }
+
+      /* Section Content - collapsible */
+      .settings-menu__section-content {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows ${DURATION.NORMAL}ms ${EASING.STANDARD};
+        overflow: hidden;
+      }
+
+      .settings-menu__section--expanded .settings-menu__section-content {
+        grid-template-rows: 1fr;
+      }
+
+      .settings-menu__section-content > * {
+        overflow: hidden;
+      }
+
+      /* Quick Actions at bottom */
+      .settings-menu__quick-actions {
+        padding: var(--space-4, 16px) var(--space-4, 16px);
+        margin-top: var(--space-2, 8px);
+        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
+      }
+
+      /* Badge for NEW items */
+      .settings-menu__badge {
+        padding: 2px 8px;
+        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
-        margin: 0 0 var(--space-2) 0;
-        padding: var(--space-2) 0;
+        letter-spacing: 0.05em;
+        border-radius: var(--radius-full, 9999px);
+        margin-left: auto;
       }
 
       .settings-menu__item {
@@ -725,8 +920,8 @@ class SettingsMenuUI {
         align-items: center;
         gap: var(--space-3, 12px);
         width: 100%;
-        padding: var(--space-3, 12px);
-        margin-bottom: var(--space-1, 4px);
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        margin-bottom: 2px;
         background: transparent;
         border: none;
         border-radius: var(--radius-md, 0.5rem);
@@ -986,6 +1181,27 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__stage-bar {
         background: var(--color-background-tertiary, #504540);
+      }
+
+      /* Dark Theme - Collapsible Sections */
+      [data-theme="midnight"] .settings-menu__section-header:hover {
+        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
+      }
+
+      [data-theme="midnight"] .settings-menu__section-header h3 {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .settings-menu__section-chevron {
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      [data-theme="midnight"] .settings-menu__quick-actions {
+        border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+      }
+
+      [data-theme="midnight"] .settings-menu__badge {
+        background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
       }
 
       /* ========================================================================

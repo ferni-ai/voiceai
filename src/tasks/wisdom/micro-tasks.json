@@ -1,0 +1,54 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "micro",
+  "description": "Quick, natural conversational moments (1-2 turns)",
+  "tasks": [
+    {
+      "id": "quick_acknowledge",
+      "name": "Quick Acknowledgment",
+      "priority": 9,
+      "triggers": {
+        "intents": ["confiding", "venting", "sharing_news"],
+        "customCondition": "requiresEmpathy && distressLevel < 0.6"
+      },
+      "instructions": {
+        "base": "Simply ACKNOWLEDGE what they said. Nothing more.\n\nGood: \"I hear you.\" \"That's a lot to carry.\" \"Thank you for sharing that.\"\n\nDO NOT: Offer advice, try to fix it, change subject, add \"but...\"",
+        "ifDistressed": "Extra gentle. Extra brief. \"I'm here.\" is enough."
+      },
+      "completion": {
+        "afterTurns": 1
+      }
+    },
+    {
+      "id": "quick_celebrate",
+      "name": "Quick Celebration",
+      "priority": 8,
+      "triggers": {
+        "emotions": ["joy", "excitement", "pride"],
+        "intents": ["sharing_news"],
+        "customCondition": "valence === 'positive' && intensity > 0.6"
+      },
+      "instructions": {
+        "base": "They shared something wonderful! CELEBRATE with them!\n\nMatch their energy. Be genuinely happy for them.\n\"That's wonderful!\" \"I'm so happy for you!\" \"What an achievement!\"\n\nDO NOT: Downplay it. Rush to next topic. Add caveats.\nLet them enjoy this moment."
+      },
+      "completion": {
+        "afterTurns": 1
+      }
+    },
+    {
+      "id": "quick_validate",
+      "name": "Quick Validation",
+      "priority": 8,
+      "triggers": {
+        "keywords": "\\b(am i crazy|is it wrong|should i feel|normal to|stupid for|bad for|wrong to want)\\b",
+        "customCondition": "emotion === 'fear' && distressLevel < 0.6"
+      },
+      "instructions": {
+        "base": "They need validation, not advice.\n\n\"That makes complete sense.\" \"Of course you feel that way.\"\n\"There's nothing wrong with that.\" \"You're not crazy for thinking that.\"\n\nDO NOT: Add \"but...\" or immediately pivot to solutions."
+      },
+      "completion": {
+        "afterTurns": 1
+      }
+    }
+  ]
+}

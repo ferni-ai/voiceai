@@ -3091,10 +3091,10 @@ export default defineAgent({
           return 'cognitive';
         })(),
 
-        // STEP 6d: Game engine
+        // STEP 6d: Game engine (session-scoped to prevent state mixing)
         (async () => {
-          const { getGameEngine } = await import('../services/games/index.js');
-          const engine = getGameEngine(sessionPersona.id);
+          const { getSessionGameEngine } = await import('../services/games/index.js');
+          const engine = getSessionGameEngine(sessionId, sessionPersona.id);
           if (userId) {
             await engine.initializeForUser(userId);
           }

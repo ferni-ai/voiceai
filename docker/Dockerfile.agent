@@ -47,12 +47,14 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Copy bundle script
+# Copy build scripts
 COPY scripts/bundle-agent.ts ./scripts/
+COPY scripts/build-fast.ts ./scripts/
 
 # Build TypeScript + Bundle Agent (2441 modules → 1 file!)
 # The bundle eliminates the 30-120s module loading time in child processes
-RUN npm run build && \
+# Using build:fast (esbuild) for faster builds - type errors are caught in CI
+RUN npm run build:fast && \
     echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
     npx tsx scripts/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js
@@ -136,7 +138,8 @@ COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 # Set environment variables
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
-# Enable single-process mode to avoid Cloud Run child process forking issues
+# Single-process mode: All jobs run in main process (eliminates child process spawn overhead)
+# This gives ~100x faster job startup (instant vs 30-120s with child processes)
 ENV USE_SINGLE_PROCESS=true
 
 # Node.js process optimizations for voice agent stability and fast startup

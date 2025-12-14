@@ -1,31 +1,40 @@
 /**
  * SSML Tag Helpers
  *
- * Helper functions for generating SSML tags.
+ * Helper functions for generating valid Cartesia Sonic-3 SSML tags.
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/ssml-tags
+ *
+ * @module ssml/tags
  */
 
-import { CARTESIA_EMOTIONS, type CartesiaEmotion } from './types.js';
+import { EMOTION_KEYWORDS } from './constants.js';
+import { CARTESIA_EMOTIONS, CARTESIA_SUPPORTED_EMOTIONS, type CartesiaEmotion } from './types.js';
 
 // =============================================================================
-// TAG GENERATION HELPERS
+// VALUE CLAMPING
 // =============================================================================
 
 /**
- * Clamp speed to valid range (0.6 - 1.5)
+ * Clamp speed to Cartesia's valid range (0.6 - 1.5)
  */
 export function clampSpeed(speed: number): number {
   return Math.max(0.6, Math.min(1.5, speed));
 }
 
 /**
- * Clamp volume to valid range (0.5 - 2.0)
+ * Clamp volume to Cartesia's valid range (0.5 - 2.0)
  */
 export function clampVolume(volume: number): number {
   return Math.max(0.5, Math.min(2.0, volume));
 }
 
+// =============================================================================
+// TAG GENERATION
+// =============================================================================
+
 /**
- * Generate speed tag
+ * Generate SSML speed tag with clamped value
+ * @param ratio - Speed ratio (will be clamped to 0.6-1.5)
  */
 export function speedTag(ratio: number): string {
   const clamped = clampSpeed(ratio);
@@ -33,7 +42,8 @@ export function speedTag(ratio: number): string {
 }
 
 /**
- * Generate volume tag
+ * Generate SSML volume tag with clamped value
+ * @param ratio - Volume ratio (will be clamped to 0.5-2.0)
  */
 export function volumeTag(ratio: number): string {
   const clamped = clampVolume(ratio);
@@ -41,7 +51,8 @@ export function volumeTag(ratio: number): string {
 }
 
 /**
- * Generate break tag
+ * Generate SSML break tag
+ * @param time - Time in ms or s (e.g., "500ms", "1s", "1.5s")
  */
 export function breakTag(time: string): string {
   // Validate time format (e.g., "500ms", "1s", "1.5s")
@@ -52,25 +63,20 @@ export function breakTag(time: string): string {
 }
 
 /**
- * Generate emotion tag (only for Cartesia-supported emotions)
+ * Generate SSML emotion tag (only for Cartesia-supported emotions)
+ * Returns empty string if emotion is not directly supported
+ * @param emotion - Emotion value
  */
 export function emotionTag(emotion: string): string {
-  const validEmotions = [
-    CARTESIA_EMOTIONS.ANGRY,
-    CARTESIA_EMOTIONS.SAD,
-    CARTESIA_EMOTIONS.SURPRISED,
-    CARTESIA_EMOTIONS.CURIOUS,
-    CARTESIA_EMOTIONS.AFFECTIONATE,
-  ];
-
-  if (validEmotions.includes(emotion as (typeof validEmotions)[number])) {
+  if (CARTESIA_SUPPORTED_EMOTIONS.includes(emotion as CartesiaEmotion)) {
     return `<emotion value="${emotion}"/>`;
   }
   return '';
 }
 
 /**
- * Generate spell tag for acronyms/letters
+ * Generate SSML spell tag for letter-by-letter pronunciation
+ * @param text - Text to spell out (typically acronyms)
  */
 export function spellTag(text: string): string {
   // Only wrap if it looks like something to spell out
@@ -86,6 +92,7 @@ export function spellTag(text: string): string {
 
 /**
  * Map detected emotions to Cartesia-supported emotions
+ * Falls back to 'neutral' for unsupported emotions
  */
 export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
   const mapping: Record<string, CartesiaEmotion> = {
@@ -96,7 +103,7 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
     curious: CARTESIA_EMOTIONS.CURIOUS,
     affectionate: CARTESIA_EMOTIONS.AFFECTIONATE,
 
-    // Extended mappings
+    // Extended mappings (to supported emotions)
     frustrated: CARTESIA_EMOTIONS.ANGRY,
     disappointed: CARTESIA_EMOTIONS.SAD,
     shocked: CARTESIA_EMOTIONS.SURPRISED,
@@ -112,7 +119,7 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
     joyful: CARTESIA_EMOTIONS.AFFECTIONATE,
     grateful: CARTESIA_EMOTIONS.AFFECTIONATE,
 
-    // Neutral states (no emotion tag)
+    // Neutral states (no emotion tag needed)
     neutral: CARTESIA_EMOTIONS.NEUTRAL,
     calm: CARTESIA_EMOTIONS.CALM,
     thoughtful: CARTESIA_EMOTIONS.THOUGHTFUL,
@@ -124,11 +131,12 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
 
 /**
  * Get contextual emotion based on text content and base emotion
+ * Analyzes text for emotional cues and returns appropriate Cartesia emotion
  */
 export function getContextualEmotion(text: string, baseEmotion: string): CartesiaEmotion {
   const lowerText = text.toLowerCase();
 
-  // Check for emotional context clues
+  // Check for emotional context clues (longer phrases first)
   if (/\b(unfortunately|sadly|regret|sorry to|i'm afraid)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.SAD;
   }
@@ -151,4 +159,33 @@ export function getContextualEmotion(text: string, baseEmotion: string): Cartesi
 
   // Fall back to mapped base emotion
   return mapToCartesiaEmotion(baseEmotion);
+}
+
+/**
+ * Detect emotion from text using keyword analysis
+ * Returns the dominant emotion found in the text
+ */
+export function detectEmotionFromKeywords(text: string): CartesiaEmotion {
+  const lowerText = text.toLowerCase();
+  const emotionCounts: Record<string, number> = {};
+
+  // Count emotion keyword matches
+  for (const [keyword, emotion] of Object.entries(EMOTION_KEYWORDS)) {
+    if (lowerText.includes(keyword)) {
+      emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+    }
+  }
+
+  // Find dominant emotion
+  let maxCount = 0;
+  let dominantEmotion = 'neutral';
+
+  for (const [emotion, count] of Object.entries(emotionCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantEmotion = emotion;
+    }
+  }
+
+  return mapToCartesiaEmotion(dominantEmotion);
 }

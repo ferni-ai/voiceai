@@ -7,14 +7,14 @@
  * - Reference scores, rounds, etc.
  */
 
+import { getSessionGameEngine } from '../../services/games/game-engine.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
   createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { getGameEngine } from '../../services/games/game-engine.js';
-import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 
@@ -26,7 +26,14 @@ async function buildGameContext(input: ContextBuilderInput): Promise<ContextInje
 
   try {
     const personaId = input.persona?.id || 'ferni';
-    const engine = getGameEngine(personaId);
+    const sessionId = input.services?.sessionId;
+
+    if (!sessionId) {
+      log.debug('🎮 No session ID available for game context');
+      return injections;
+    }
+
+    const engine = getSessionGameEngine(sessionId, personaId);
 
     if (!engine.isGameActive()) {
       return injections;

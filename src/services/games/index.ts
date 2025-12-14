@@ -59,47 +59,47 @@ export type * from './types.js';
 // Game Engine - import first so we can use it locally
 import {
   GameEngine,
+  getActiveGameEngineCount,
   getGameEngine,
-  resetGameEngine,
   // Session-scoped (preferred)
   getSessionGameEngine,
-  resetSessionGameEngine,
-  getActiveGameEngineCount,
   resetAllGameEngines,
+  resetGameEngine,
+  resetSessionGameEngine,
 } from './game-engine.js';
 
 export {
   GameEngine,
+  getActiveGameEngineCount,
   getGameEngine,
-  resetGameEngine,
   // Session-scoped (preferred)
   getSessionGameEngine,
-  resetSessionGameEngine,
-  getActiveGameEngineCount,
   resetAllGameEngines,
+  resetGameEngine,
+  resetSessionGameEngine,
 };
 
 // Text Game Engine
 import {
   TextGameEngine,
-  getTextGameEngine,
-  resetTextGameEngine,
+  getActiveTextGameEngineCount,
   // Session-scoped (preferred)
   getSessionTextGameEngine,
-  resetSessionTextGameEngine,
-  getActiveTextGameEngineCount,
+  getTextGameEngine,
   resetAllTextGameEngines,
+  resetSessionTextGameEngine,
+  resetTextGameEngine,
 } from './text-game-engine.js';
 
 export {
   TextGameEngine,
-  getTextGameEngine,
-  resetTextGameEngine,
+  getActiveTextGameEngineCount,
   // Session-scoped (preferred)
   getSessionTextGameEngine,
-  resetSessionTextGameEngine,
-  getActiveTextGameEngineCount,
+  getTextGameEngine,
   resetAllTextGameEngines,
+  resetSessionTextGameEngine,
+  resetTextGameEngine,
 };
 
 // Music Games
@@ -293,6 +293,31 @@ export function getSessionGameContext(sessionId: string): {
         ? getSessionTextGameType(sessionId)
         : null,
   };
+}
+
+/**
+ * Reset game activity tracking for a specific session
+ * This is a session-scoped wrapper around the global activity tracker
+ */
+export function resetSessionGameActivity(sessionId: string): void {
+  // End any active games for this session
+  try {
+    const engine = getSessionGameEngine(sessionId);
+    if (engine.isGameActive()) {
+      engine.endGame();
+    }
+  } catch {
+    // Engine not found for this session - that's fine
+  }
+
+  try {
+    const textEngine = getSessionTextGameEngine(sessionId);
+    if (textEngine.isGameActive()) {
+      textEngine.endGame();
+    }
+  } catch {
+    // Text engine not found for this session - that's fine
+  }
 }
 
 // ============================================================================

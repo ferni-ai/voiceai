@@ -3,7 +3,7 @@
  * Handles financial term pronunciations and protection markers
  */
 
-import { FINANCIAL_PRONUNCIATIONS, FINANCIAL_START, FINANCIAL_END } from './constants.js';
+import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from '../../ssml/constants.js';
 
 /**
  * Apply financial pronunciation dictionary to text

@@ -17,6 +17,9 @@ module.exports = function (eleventyConfig) {
   // JS - including new hero-demo.js
   eleventyConfig.addPassthroughCopy({'src/js': 'js'});
   
+  // Audio - voice samples for landing page demo
+  eleventyConfig.addPassthroughCopy({'src/audio': 'audio'});
+  
   // Videos
   eleventyConfig.addPassthroughCopy({'videos': 'videos'});
 

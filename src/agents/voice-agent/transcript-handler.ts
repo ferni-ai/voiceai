@@ -39,6 +39,10 @@ import type { SessionServices } from '../../services/index.js';
 import { recordCacheAttempt, recordLatency } from '../../services/voice-humanization-metrics.js';
 import { getHumanListeningPipeline } from '../../speech/human-listening-pipeline.js';
 import { getResponseAnticipationService } from '../../speech/response-anticipation.js';
+import {
+  processPartialTranscript as processSesamePartial,
+  startNewTurn as startSesameTurn,
+} from '../../speech/sesame-inspired/index.js';
 import type { ConversationContext as FeedbackContext } from '../../tools/feedback-collector.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
@@ -151,6 +155,22 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // ===============================================
     if (event.transcript && !event.isFinal && event.transcript.length > 10) {
       sendPartialTranscript(room, event.transcript);
+
+      // ===============================================
+      // SESAME-INSPIRED ANTICIPATORY PROSODY
+      // Pre-compute response prosody while user is still speaking
+      // This enables faster, more natural responses
+      // ===============================================
+      try {
+        processSesamePartial(sessionId, {
+          text: event.transcript,
+          isSpeaking: true,
+          // Detect tone from voice emotion if available
+          tone: userData.voiceEmotion?.primary as 'neutral' | 'excited' | 'sad' | 'frustrated' | 'curious' | undefined,
+        });
+      } catch {
+        // Sesame processing is non-critical
+      }
     }
 
     // ===============================================
@@ -352,6 +372,17 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
     autoOptimizer,
   } = ctx;
 
+  // ===============================================
+  // SESAME-INSPIRED: START NEW TURN
+  // Signal turn boundary to reset anticipatory prosody state
+  // This enables fresh anticipation for the next user utterance
+  // ===============================================
+  try {
+    startSesameTurn(sessionId);
+  } catch {
+    // Sesame processing is non-critical
+  }
+
   userData.turnCount = (userData.turnCount || 0) + 1;
 
   // Record turn in voice humanization for rhythm learning
@@ -385,7 +416,7 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
   silenceContext.lastUserMessage = event.transcript;
 
   // Process game topic change detection
-  processGameTopicChange(event.transcript, silenceContext);
+  processGameTopicChange(event.transcript, silenceContext, sessionId);
 
   // Dynamic tool loading based on conversation topic
   dynamicToolLoader
@@ -542,24 +573,31 @@ function processHumanListeningPipeline(
 /**
  * Process game topic change detection
  */
-function processGameTopicChange(transcript: string, silenceContext: SilenceContext): void {
+function processGameTopicChange(
+  transcript: string,
+  silenceContext: SilenceContext,
+  sessionId: string
+): void {
   void (async () => {
     try {
-      const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } =
-        await import('../../services/games/index.js');
+      const {
+        isSessionGameActive,
+        getSessionGameType,
+        detectTopicChange,
+        getSessionGameEngine,
+        resetSessionGameActivity,
+      } = await import('../../services/games/index.js');
 
-      if (isGameCurrentlyActive()) {
+      if (isSessionGameActive(sessionId)) {
         type GameType = import('../../services/games/types.js').GameType;
-        const gameType = getCurrentGameType() as GameType | null;
+        const gameType = getSessionGameType(sessionId) as GameType | null;
         const hasChangedTopic = detectTopicChange(transcript, gameType);
 
         if (hasChangedTopic) {
           // User seems to have moved on from the game
-          const { getGameEngine, resetGameActivity } =
-            await import('../../services/games/index.js');
-          const engine = getGameEngine();
+          const engine = getSessionGameEngine(sessionId);
           const gameSession = engine.endGame();
-          resetGameActivity();
+          resetSessionGameActivity(sessionId);
 
           diag.state('Game auto-ended due to topic change', {
             gameType,
@@ -569,8 +607,8 @@ function processGameTopicChange(transcript: string, silenceContext: SilenceConte
         }
 
         // Update silence context to reflect game state
-        silenceContext.isGameActive = isGameCurrentlyActive();
-        silenceContext.activeGameType = getCurrentGameType() || undefined;
+        silenceContext.isGameActive = isSessionGameActive(sessionId);
+        silenceContext.activeGameType = getSessionGameType(sessionId) || undefined;
       }
     } catch {
       // Games module not loaded - that's fine

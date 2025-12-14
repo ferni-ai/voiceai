@@ -1,0 +1,25 @@
+{
+  "hosting": {
+    "site": "ferni-design-system",
+    "public": "site-build",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/playground", "destination": "/playground/index.html" },
+      { "source": "/playground/**", "destination": "/playground/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**/*.css",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }]
+      },
+      {
+        "source": "**/*.js",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }]
+      },
+      {
+        "source": "**/*.json",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      }
+    ]
+  }
+}

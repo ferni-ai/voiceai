@@ -11,34 +11,42 @@
  * making it easy to wire up rich, relationship-aware interactions.
  */
 
+import type { RelationshipStage, UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile, RelationshipStage } from '../types/user-profile.js';
-import type { BundleRuntimeEngine, BundleRuntimeState } from './bundles/runtime.js';
-import { loadBundleById } from './bundles/loader.js';
 import { createBundleRuntime } from './bundles/index.js';
+import { loadBundleById } from './bundles/loader.js';
+import type { BundleRuntimeEngine, BundleRuntimeState } from './bundles/runtime.js';
 
 // Import shared utilities
 import {
-  generateWelcomeBack,
-  isMilestoneConversation,
-  getMilestoneMessage,
-} from './shared/welcome-back.js';
-import {
-  type LifeEvent,
   findEventsToAcknowledge,
   generateEventAcknowledgment,
   getUpcomingEventMention,
   isEventSoon,
+  type LifeEvent,
 } from './shared/life-events.js';
 import {
   generateCallback,
-  getDeepeningQuestion,
   getAcknowledgment,
-  getStageGreeting,
+  getDeepeningQuestion,
   getStageClosing,
+  getStageGreeting,
   shouldSharePersonalStory,
 } from './shared/relationship-building.js';
-import { getOpinionAbout, getHandoffWarmth, getCasualMention } from './shared/team-dynamics.js';
+import { getCasualMention, getHandoffWarmth, getOpinionAbout } from './shared/team-dynamics.js';
+import {
+  generateWelcomeBack,
+  getMilestoneMessage,
+  isMilestoneConversation,
+} from './shared/welcome-back.js';
+
+// Import new intelligence systems
+import {
+  PersonaIntelligenceEngine,
+  getPersonaIntelligence,
+  type UnifiedPromptInjection,
+} from './persona-intelligence.js';
+import type { RelationshipMemory, SharedMomentType } from './relationship-memory/index.js';
 
 const log = getLogger();
 
@@ -51,6 +59,10 @@ export interface SessionRuntimeConfig {
   userProfile?: UserProfile;
   lifeEvents?: LifeEvent[];
   initialState?: Partial<BundleRuntimeState>;
+  /** Enable the unified persona intelligence engine */
+  enableIntelligence?: boolean;
+  /** Existing relationship memory to restore (for returning users) */
+  existingRelationshipMemory?: RelationshipMemory;
 }
 
 export interface SessionContext {
@@ -60,6 +72,8 @@ export interface SessionContext {
   relationshipStage?: RelationshipStage;
   currentTopic?: string;
   detectedEmotion?: string;
+  /** Current emotional state for handoff context */
+  emotionalState?: 'high_emotion' | 'excited' | 'struggling' | 'neutral';
 }
 
 export interface WelcomeBackResult {
@@ -77,6 +91,8 @@ export interface SessionEnhancements {
   acknowledgment?: string;
   storyRecommended: boolean;
   teamMention?: string;
+  /** Unified intelligence prompt injection */
+  intelligenceInjection?: UnifiedPromptInjection;
 }
 
 // ============================================================================
@@ -90,17 +106,25 @@ export class SessionBundleRuntimeManager {
   private lifeEvents: LifeEvent[] = [];
   private initialized = false;
 
+  // New intelligence engine
+  private intelligenceEngine: PersonaIntelligenceEngine | null = null;
+  private userId?: string;
+
   constructor(config: SessionRuntimeConfig) {
     this.personaId = config.personaId;
     this.userProfile = config.userProfile;
     this.lifeEvents = config.lifeEvents || [];
+    this.userId = config.userProfile?.id;
   }
 
   /**
    * Initialize the session runtime.
    * Loads the bundle and initializes the runtime engine.
    */
-  async initialize(): Promise<boolean> {
+  async initialize(options?: {
+    enableIntelligence?: boolean;
+    existingRelationshipMemory?: RelationshipMemory;
+  }): Promise<boolean> {
     if (this.initialized) {
       log.debug({ personaId: this.personaId }, 'Session runtime already initialized');
       return true;
@@ -121,12 +145,25 @@ export class SessionBundleRuntimeManager {
 
         log.info({ personaId: this.personaId }, 'Session runtime initialized');
         this.initialized = true;
-        return true;
       } else {
         log.debug({ personaId: this.personaId }, 'No bundle found for session runtime');
         this.initialized = true; // Mark as initialized even without bundle
-        return false;
       }
+
+      // Initialize intelligence engine if we have a user ID
+      if (options?.enableIntelligence !== false && this.userId) {
+        this.intelligenceEngine = getPersonaIntelligence(
+          this.personaId,
+          this.userId,
+          options?.existingRelationshipMemory
+        );
+        log.info(
+          { personaId: this.personaId, userId: this.userId },
+          'Intelligence engine initialized'
+        );
+      }
+
+      return this.bundleRuntime !== null;
     } catch (error) {
       log.warn(
         { personaId: this.personaId, error: String(error) },
@@ -252,6 +289,13 @@ export class SessionBundleRuntimeManager {
       if (otherTeammate) {
         enhancements.teamMention = getCasualMention(otherTeammate) || undefined;
       }
+    }
+
+    // Intelligence injection (unified prompt context)
+    if (this.intelligenceEngine) {
+      enhancements.intelligenceInjection = this.intelligenceEngine.buildPromptInjection(
+        context.currentTopic
+      );
     }
 
     return enhancements;
@@ -381,6 +425,145 @@ export class SessionBundleRuntimeManager {
   }
 
   // ============================================================================
+  // INTELLIGENCE ENGINE
+  // ============================================================================
+
+  /**
+   * Get the intelligence engine (if initialized).
+   */
+  getIntelligenceEngine(): PersonaIntelligenceEngine | null {
+    return this.intelligenceEngine;
+  }
+
+  /**
+   * Check if intelligence engine is available.
+   */
+  hasIntelligenceEngine(): boolean {
+    return this.intelligenceEngine !== null;
+  }
+
+  /**
+   * Start an intelligence session (tracks relationship progression).
+   */
+  startIntelligenceSession(): void {
+    if (this.intelligenceEngine) {
+      this.intelligenceEngine.startSession();
+    }
+  }
+
+  /**
+   * End an intelligence session with summary.
+   */
+  endIntelligenceSession(
+    sessionMood: 'positive' | 'neutral' | 'struggling' | 'crisis',
+    sessionEnergy: 'high' | 'medium' | 'low',
+    topics: string[]
+  ): void {
+    if (this.intelligenceEngine) {
+      this.intelligenceEngine.endSession(sessionMood, sessionEnergy, topics);
+    }
+  }
+
+  /**
+   * Build unified prompt injection for LLM.
+   * Combines relationship, cognitive, predictive, and team context.
+   */
+  buildIntelligencePromptInjection(currentTopic?: string): UnifiedPromptInjection | null {
+    if (!this.intelligenceEngine) return null;
+    return this.intelligenceEngine.buildPromptInjection(currentTopic);
+  }
+
+  /**
+   * Record a significant moment in the relationship.
+   */
+  recordMoment(
+    type: SharedMomentType,
+    summary: string,
+    options?: {
+      topic?: string;
+      userPhrase?: string;
+      ourResponse?: string;
+      significance?: number;
+      tags?: string[];
+    }
+  ): void {
+    if (this.intelligenceEngine) {
+      this.intelligenceEngine.recordMoment(type, summary, options);
+    }
+  }
+
+  /**
+   * Get a persona-appropriate question.
+   */
+  getPersonaQuestion(type: 'starter' | 'deep_dive' = 'starter'): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getQuestion(type);
+  }
+
+  /**
+   * Get a disagreement phrase.
+   */
+  getDisagreementPhrase(intensity: 'mild' | 'moderate' | 'strong' = 'mild'): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getDisagreement(intensity);
+  }
+
+  /**
+   * Get silence response based on duration.
+   */
+  getSilenceResponse(durationMs: number): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getSilenceResponse(durationMs);
+  }
+
+  /**
+   * Get team reference about another persona.
+   */
+  getTeamReference(
+    aboutPersona: string,
+    type: 'admiration' | 'playful_teasing' = 'admiration'
+  ): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getTeamRef(aboutPersona, type);
+  }
+
+  /**
+   * Generate handoff note for another persona.
+   */
+  generateHandoffNote(
+    toPersona: string,
+    topic: string,
+    emotionalState: 'high_emotion' | 'excited' | 'struggling' | 'neutral'
+  ): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.generateHandoff(toPersona, topic, emotionalState);
+  }
+
+  /**
+   * Get current relationship stage.
+   */
+  getIntelligenceRelationshipStage(): string | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getRelationshipStage();
+  }
+
+  /**
+   * Get current trust score (0-1).
+   */
+  getTrustScore(): number | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getTrustScore();
+  }
+
+  /**
+   * Export relationship memory for persistence.
+   */
+  exportRelationshipMemory(): RelationshipMemory | undefined {
+    if (!this.intelligenceEngine) return undefined;
+    return this.intelligenceEngine.getRelationshipMemory();
+  }
+
+  // ============================================================================
   // BUNDLE RUNTIME PASSTHROUGH
   // ============================================================================
 
@@ -487,12 +670,52 @@ export class SessionBundleRuntimeManager {
 
 /**
  * Create and initialize a SessionBundleRuntimeManager.
+ *
+ * @param config - Session configuration including persona, user profile, and options
+ * @returns Initialized session runtime manager with optional intelligence engine
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const session = await createSessionRuntime({
+ *   personaId: 'ferni',
+ *   userProfile: user,
+ * });
+ *
+ * // With intelligence engine for relationship tracking
+ * const session = await createSessionRuntime({
+ *   personaId: 'ferni',
+ *   userProfile: user,
+ *   enableIntelligence: true,
+ *   existingRelationshipMemory: savedMemory, // Optional - restore from persistence
+ * });
+ *
+ * // Start intelligence session
+ * session.startIntelligenceSession();
+ *
+ * // Get prompt injection for LLM
+ * const injection = session.buildIntelligencePromptInjection('career');
+ * // Use injection.combined in system prompt
+ *
+ * // Record significant moment
+ * session.recordMoment('breakthrough', 'User realized their fear pattern');
+ *
+ * // End session
+ * session.endIntelligenceSession('positive', 'high', ['career', 'growth']);
+ *
+ * // Export memory for persistence
+ * const memory = session.exportRelationshipMemory();
+ * await saveToDatabase(memory);
+ * ```
  */
 export async function createSessionRuntime(
   config: SessionRuntimeConfig
 ): Promise<SessionBundleRuntimeManager> {
   const manager = new SessionBundleRuntimeManager(config);
-  await manager.initialize();
+  await manager.initialize({
+    enableIntelligence: config.enableIntelligence,
+    existingRelationshipMemory: config.existingRelationshipMemory,
+  });
   return manager;
 }
 

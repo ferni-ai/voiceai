@@ -263,6 +263,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           roomName,
         });
       },
+      // CRITICAL: Disconnect before retry to prevent "Participant already exists" race condition.
+      // When room.connect() times out, the connection may still be happening in background.
+      // Without disconnect, retry creates a duplicate participant identity.
+      onBeforeRetry: async () => {
+        process.stderr.write(`[voice-agent-entry] Disconnecting room before retry...\n`);
+        await ctx.room.disconnect();
+      },
     });
     e2e.sessionConnected(
       jobId,

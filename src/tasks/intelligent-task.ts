@@ -30,6 +30,19 @@ export interface TaskContext {
   turnCount?: number;
 }
 
+/**
+ * Interface for any task that can be executed in a task group.
+ * This allows both AgentTask and IntelligentTask instances to be added.
+ */
+export interface ExecutableTask<TResult = unknown> {
+  /** Task instructions */
+  instructions: string;
+  /** Start the task and return result */
+  start(session: voice.AgentSession<unknown>, context?: TaskContext): Promise<TResult>;
+  /** Set context (optional - only IntelligentTask requires this) */
+  setContext?(context: TaskContext): void;
+}
+
 export interface AdaptiveInstructions {
   base: string;
   ifDistressed?: string;
@@ -250,7 +263,7 @@ export class IntelligentTaskGroup {
   private _tasks = new Map<
     string,
     {
-      factory: () => IntelligentTask<any>;
+      factory: () => ExecutableTask<unknown>;
       id: string;
       description: string;
       priority?: number;
@@ -260,7 +273,7 @@ export class IntelligentTaskGroup {
   >();
   private _taskOrder: string[] = [];
   private _context: TaskContext = {};
-  private _supportTaskFactory?: () => IntelligentTask<any>;
+  private _supportTaskFactory?: () => ExecutableTask<unknown>;
 
   /**
    * Set the shared context for all tasks
@@ -272,15 +285,17 @@ export class IntelligentTaskGroup {
   /**
    * Set a support task to be triggered when user becomes distressed
    */
-  setSupportTask(factory: () => IntelligentTask<any>): void {
+  setSupportTask(factory: () => ExecutableTask<unknown>): void {
     this._supportTaskFactory = factory;
   }
 
   /**
-   * Add a task to the group
+   * Add a task to the group.
+   *
+   * Accepts any ExecutableTask (AgentTask, IntelligentTask, or custom implementations).
    */
   add<T>(
-    factory: () => IntelligentTask<T>,
+    factory: () => ExecutableTask<T>,
     options: {
       id: string;
       description: string;
@@ -324,7 +339,9 @@ export class IntelligentTaskGroup {
 
       // Create task with context
       const task = taskInfo.factory();
-      task.setContext(this._context);
+      if (task.setContext) {
+        task.setContext(this._context);
+      }
 
       getLogger().info(`IntelligentTaskGroup: Starting task "${taskId}"`);
 
@@ -353,7 +370,9 @@ export class IntelligentTaskGroup {
 
             // Insert support task at front
             const supportTask = this._supportTaskFactory();
-            supportTask.setContext(this._context);
+            if (supportTask.setContext) {
+              supportTask.setContext(this._context);
+            }
             await supportTask.start(session);
           }
         }

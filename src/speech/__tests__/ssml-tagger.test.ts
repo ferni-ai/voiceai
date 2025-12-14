@@ -256,10 +256,10 @@ describe('Emotion Detection', () => {
     expect(emotion).toBe('curious');
   });
 
-  it('should return affectionate (default warmth) for neutral text', () => {
-    // The SSML tagger defaults to affectionate for warm personality
+  it('should return neutral for text without emotion keywords', () => {
+    // The canonical SSML tagger defaults to neutral when no emotion keywords are found
     const emotion = detectEmotion('The weather is average today.');
-    expect(emotion).toBe('affectionate');
+    expect(emotion).toBe('neutral');
   });
 });
 
@@ -268,30 +268,34 @@ describe('Pacing Detection', () => {
     const { speed, reason } = detectPacing(
       'Let me think about this... carefully consider all options.'
     );
-    expect(speed).toBeLessThan(0.75); // Ellipsis triggers thoughtful pacing
-    expect(reason).toBe('thoughtful');
+    expect(speed).toBeLessThan(0.95); // Slow keywords + ellipsis trigger slower pacing
+    expect(reason).toContain('slow'); // Contains slow pace indicator
+    // Text contains multiple slow keywords: 'think', 'carefully', 'consider', 'careful'
+    // The first match is used as the reason indicator
   });
 
-  it('should return enthusiastic speed for exclamatory text with fast keywords', () => {
-    // "excited" is a FAST_PACE_KEYWORD, and "!" triggers enthusiastic
+  it('should return faster speed for exclamatory text with fast keywords', () => {
+    // "excited" is a FAST_PACE_KEYWORD, and "!" triggers faster pacing
     const { speed, reason } = detectPacing('Yes! I am so excited about this news!');
-    // Enthusiastic pacing is around 0.85 * variation
-    expect(speed).toBeGreaterThan(0.7);
-    expect(speed).toBeLessThan(0.95);
-    expect(reason).toBe('enthusiastic');
+    // Fast keywords should increase speed
+    expect(speed).toBeGreaterThan(0.9);
+    expect(reason).toContain('fast'); // Contains fast pace indicator
+    expect(reason).toContain('excited'); // "excited" is a fast keyword
   });
 
-  it('should return conversational speed for neutral text', () => {
+  it('should return normal speed for neutral text', () => {
     const { speed, reason } = detectPacing('This is a normal sentence.');
-    // Conversational is around 0.8 * variation (0.95-1.05)
-    expect(speed).toBeGreaterThan(0.7);
-    expect(speed).toBeLessThan(0.9);
-    expect(reason).toBe('conversational');
+    // Normal text gets base speed adjusted for punctuation
+    expect(speed).toBeGreaterThan(0.8);
+    expect(speed).toBeLessThan(1.2);
+    expect(reason).toBe('normal');
   });
 
-  it('should return inquisitive speed for questions', () => {
+  it('should adjust speed for questions', () => {
     const { speed, reason } = detectPacing('What do you think about this idea?');
-    expect(reason).toBe('inquisitive');
+    // Questions with "think" get slow adjustment + question adjustment
+    expect(speed).toBeLessThan(1.0);
+    expect(reason).toContain('question'); // Contains question indicator
   });
 });
 

@@ -1,0 +1,433 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Brand Guardrails",
+    "description": "Machine-readable brand rules for AI assistants, linters, and automated enforcement",
+    "version": "1.0.0"
+  },
+
+  "language": {
+    "_documentation": "Words and phrases that define or violate the Ferni voice",
+
+    "forbiddenWords": {
+      "critical": [
+        "chatbot",
+        "bot",
+        "AI assistant",
+        "virtual assistant",
+        "digital companion",
+        "artificial intelligence",
+        "machine learning",
+        "algorithm",
+        "neural network",
+        "NLP",
+        "natural language processing"
+      ],
+      "corporate": [
+        "utilize",
+        "leverage",
+        "synergy",
+        "optimize",
+        "streamline",
+        "facilitate",
+        "implement",
+        "paradigm",
+        "scalable",
+        "robust",
+        "enterprise",
+        "solution",
+        "platform",
+        "functionality",
+        "deliverable"
+      ],
+      "dehumanizing": ["user", "users", "end user", "customer", "consumer", "subscriber"],
+      "clinical": [
+        "therapy",
+        "therapist",
+        "treatment",
+        "diagnosis",
+        "clinical",
+        "patient",
+        "mental health professional"
+      ],
+      "legal": [
+        "advisor",
+        "financial advice",
+        "legal advice",
+        "medical advice",
+        "professional advice"
+      ]
+    },
+
+    "forbiddenPhrases": [
+      "As an AI",
+      "I'm designed to",
+      "My programming",
+      "I don't have feelings",
+      "I'm just a",
+      "I'm not human",
+      "Unlike other AI",
+      "Better than other chatbots",
+      "24/7 availability",
+      "Unlimited conversations",
+      "Natural language processing",
+      "Powered by AI",
+      "AI-powered",
+      "Machine learning technology"
+    ],
+
+    "preferredReplacements": {
+      "user": "you",
+      "users": "people",
+      "utilize": "use",
+      "leverage": "use",
+      "implement": "do",
+      "facilitate": "help",
+      "functionality": "feature",
+      "optimize": "improve",
+      "robust": "strong",
+      "scalable": "growing",
+      "streamline": "simplify",
+      "leverage": "use",
+      "paradigm": "approach",
+      "synergy": "together",
+      "deliverable": "work"
+    },
+
+    "brandWords": {
+      "preferred": [
+        "present",
+        "notice",
+        "remember",
+        "celebrate",
+        "show up",
+        "hold space",
+        "in your corner",
+        "genuine",
+        "warm",
+        "grounded",
+        "wise",
+        "human"
+      ]
+    }
+  },
+
+  "colors": {
+    "_documentation": "Color rules to maintain brand consistency",
+
+    "forbidden": {
+      "purples": ["#800080", "#9b59b6", "#8b5cf6", "#a855f7", "#7c3aed", "#6366f1"],
+      "neons": ["#00ff00", "#ff00ff", "#00ffff", "#ffff00", "#ff0000"],
+      "coolGrays": ["#808080", "#6b7280", "#4b5563", "#374151"],
+      "pureBlack": ["#000000"],
+      "pureWhite": ["#ffffff"]
+    },
+
+    "allowedPalette": {
+      "backgrounds": {
+        "primary": "#FFFDFB",
+        "secondary": "#FAF8F5",
+        "elevated": "#FFFDFB",
+        "dark": "#0c0a08"
+      },
+      "text": {
+        "primary": "#2C2520",
+        "secondary": "#5C544A",
+        "muted": "#756A5E",
+        "dimmed": "#A89D90"
+      },
+      "personas": {
+        "ferni": "#4a6741",
+        "peter": "#3a6b73",
+        "alex": "#5a6b8a",
+        "maya": "#a67a6a",
+        "jordan": "#c4856a",
+        "nayan": "#b8956a"
+      }
+    },
+
+    "rules": [
+      {
+        "id": "no-purple",
+        "description": "Purple is not a Ferni brand color",
+        "pattern": "/#[89ab][0-9a-f][5-9a-f][0-9a-f][ef][0-9a-f]/i",
+        "severity": "error"
+      },
+      {
+        "id": "no-neon",
+        "description": "Neon colors violate the earthy, warm brand",
+        "pattern": "/#[0-9a-f]{2}ff[0-9a-f]{2}|#ff[0-9a-f]{4}/i",
+        "severity": "error"
+      },
+      {
+        "id": "use-css-variables",
+        "description": "Use CSS variables instead of hardcoded hex values",
+        "severity": "warning"
+      }
+    ]
+  },
+
+  "typography": {
+    "_documentation": "Typography rules for brand consistency",
+
+    "allowedFonts": {
+      "display": ["Plus Jakarta Sans", "DM Serif Display", "Fraunces"],
+      "body": ["Inter", "DM Sans", "Source Sans 3"],
+      "mono": ["JetBrains Mono"]
+    },
+
+    "forbiddenFonts": ["Comic Sans", "Papyrus", "Impact", "Arial Black", "Brush Script"],
+
+    "rules": [
+      {
+        "id": "no-all-caps-body",
+        "description": "Body text should not be all caps",
+        "severity": "warning"
+      },
+      {
+        "id": "max-exclamation",
+        "description": "Limit exclamation marks - never more than one",
+        "pattern": "/!{2,}/",
+        "severity": "error"
+      }
+    ]
+  },
+
+  "icons": {
+    "_documentation": "Icon usage rules",
+
+    "forbidden": {
+      "emoji": true,
+      "reason": "Use Lucide SVG icons instead of emoji for UI elements"
+    },
+
+    "allowed": {
+      "library": "Lucide",
+      "strokeWeight": "1.5-2px",
+      "corners": "rounded",
+      "style": "outlined"
+    },
+
+    "emojiExceptions": ["*.md", "*.txt", "chat messages", "user-generated content"]
+  },
+
+  "accessibility": {
+    "_documentation": "Accessibility requirements that are non-negotiable",
+
+    "wcag": {
+      "level": "AA",
+      "version": "2.1"
+    },
+
+    "requirements": [
+      {
+        "id": "color-contrast-normal",
+        "description": "Normal text must have 4.5:1 contrast ratio",
+        "minRatio": 4.5
+      },
+      {
+        "id": "color-contrast-large",
+        "description": "Large text (18pt+) must have 3:1 contrast ratio",
+        "minRatio": 3.0
+      },
+      {
+        "id": "touch-target",
+        "description": "Interactive elements must be at least 44x44px",
+        "minSize": 44
+      },
+      {
+        "id": "focus-visible",
+        "description": "Focus states must be visible",
+        "required": true
+      },
+      {
+        "id": "reduced-motion",
+        "description": "Respect prefers-reduced-motion",
+        "required": true
+      }
+    ],
+
+    "forbiddenPatterns": [
+      {
+        "id": "no-persona-text-color",
+        "description": "Never use persona colors for text - they fail contrast",
+        "pattern": "color:\\s*var\\(--persona-",
+        "severity": "error"
+      }
+    ]
+  },
+
+  "animation": {
+    "_documentation": "Motion design constraints",
+
+    "forbidden": [
+      {
+        "id": "no-infinite-spin",
+        "description": "No infinite spinning animations",
+        "pattern": "animation.*infinite.*rotate"
+      },
+      {
+        "id": "no-blink",
+        "description": "No blinking or flashing",
+        "pattern": "animation.*blink|@keyframes.*opacity.*0.*1.*0"
+      },
+      {
+        "id": "no-shake-error",
+        "description": "Don't shake elements to indicate errors",
+        "pattern": "shake.*error|error.*shake"
+      }
+    ],
+
+    "maxDurations": {
+      "microInteraction": 150,
+      "standard": 400,
+      "pageTransition": 800,
+      "celebration": 1500,
+      "absolute": 5000
+    },
+
+    "reducedMotionFallbacks": {
+      "required": true,
+      "allowedInReducedMotion": ["opacity", "color"],
+      "forbiddenInReducedMotion": ["transform", "scale", "rotate", "translateX", "translateY"]
+    }
+  },
+
+  "components": {
+    "_documentation": "Component-level brand rules",
+
+    "buttons": {
+      "shape": "pill",
+      "borderRadius": "9999px",
+      "minHeight": 44,
+      "minPadding": "16px 32px",
+      "requiresAriaLabel": "when icon-only"
+    },
+
+    "modals": {
+      "position": "centered",
+      "backdropBlur": "20px",
+      "animation": "scale-fade",
+      "forbiddenPositions": ["side-panel", "bottom-sheet"]
+    },
+
+    "toasts": {
+      "position": "bottom-center",
+      "shape": "pill",
+      "duration": {
+        "info": 2500,
+        "success": 2500,
+        "warning": 2500,
+        "error": 4000
+      },
+      "maxLength": 50
+    },
+
+    "avatars": {
+      "requiresBreathing": true,
+      "requiresGlow": true,
+      "glowColorSource": "persona"
+    }
+  },
+
+  "copy": {
+    "_documentation": "Copywriting rules for brand voice",
+
+    "headlines": {
+      "maxWords": 10,
+      "endWithPeriod": true,
+      "noExclamation": true,
+      "sentenceCase": true
+    },
+
+    "body": {
+      "maxSentenceWords": 20,
+      "preferShort": true,
+      "activeVoice": true,
+      "secondPerson": true
+    },
+
+    "cta": {
+      "maxWords": 3,
+      "verbFirst": true,
+      "examples": ["Start talking", "Begin", "Meet Ferni", "Try free"]
+    },
+
+    "errorMessages": {
+      "blameSystem": true,
+      "offerSolution": true,
+      "warmTone": true,
+      "example": "Hmm. Something's not working right. (That's on me, not you.)"
+    }
+  },
+
+  "testing": {
+    "_documentation": "Brand compliance test rules",
+
+    "voiceTests": [
+      {
+        "id": "friend-test",
+        "question": "Would a real friend say this?",
+        "failsIf": "sounds robotic, corporate, or performative"
+      },
+      {
+        "id": "spoken-test",
+        "question": "Does this sound natural spoken aloud?",
+        "failsIf": "sounds awkward or stiff when read"
+      },
+      {
+        "id": "overselling-test",
+        "question": "Are we overselling ourselves?",
+        "failsIf": "makes claims we can't back up"
+      },
+      {
+        "id": "underselling-test",
+        "question": "Are we underselling ourselves?",
+        "failsIf": "uses 'feels human' instead of 'better than human'"
+      }
+    ],
+
+    "designTests": [
+      {
+        "id": "warmth-test",
+        "question": "Does this feel warm and inviting?",
+        "failsIf": "feels cold, clinical, or corporate"
+      },
+      {
+        "id": "simplicity-test",
+        "question": "Is this as simple as it could be?",
+        "failsIf": "has unnecessary elements or complexity"
+      },
+      {
+        "id": "persona-test",
+        "question": "Does this embody our brand personality?",
+        "traits": ["warm", "grounded", "wise", "present", "human"]
+      }
+    ]
+  },
+
+  "enforcement": {
+    "_documentation": "How to enforce these rules",
+
+    "preCommit": {
+      "required": true,
+      "checks": ["language", "colors", "accessibility"]
+    },
+
+    "ci": {
+      "required": true,
+      "failBuild": ["accessibility", "colors.forbidden"],
+      "warn": ["language", "copy"]
+    },
+
+    "codeReview": {
+      "checklist": [
+        "No forbidden words or phrases",
+        "All colors use CSS variables",
+        "Accessibility requirements met",
+        "Copy follows brand voice",
+        "Animations respect reduced motion"
+      ]
+    }
+  }
+}

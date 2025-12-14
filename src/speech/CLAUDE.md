@@ -31,12 +31,12 @@ src/speech/
 │   ├── emotion-mapping.ts       # VAD emotion mapping
 │   ├── session-management.ts    # Session handling & metrics
 │   └── index.ts                 # Re-exports
-├── ssml-tagger/                  # SSML generation (split module)
-│   ├── types.ts
-│   ├── constants.ts
-│   ├── detection.ts
+├── ssml-tagger/                  # DEPRECATED - Now re-exports from src/ssml/
+│   ├── types.ts                 # → Re-exports from ../../ssml/types.js
+│   ├── constants.ts             # → Re-exports from ../../ssml/constants.js
+│   ├── detection.ts             # → Re-exports from ../../ssml/detection.js
 │   ├── financial.ts
-│   ├── jack-bogle.ts
+│   ├── jack-bogle.ts            # → Re-exports from persona bundle
 │   ├── processors.ts
 │   └── index.ts
 ├── voice-manager/                # Session-scoped voice management
@@ -46,6 +46,64 @@ src/speech/
 ├── session-cleanup.ts            # Unified session cleanup (IMPORTANT!)
 └── [other modules]
 ```
+
+## SSML Architecture (Important!)
+
+### Canonical SSML Source: `src/ssml/`
+
+The **canonical source** for all SSML functionality is now `src/ssml/`, NOT `src/speech/ssml-tagger/`.
+
+```
+src/ssml/                    ← CANONICAL SSML SOURCE
+    ↑
+    │ imports
+    │
+src/speech/                  ← Voice/audio processing
+├── ssml-tagger/             ← DEPRECATED (re-exports from src/ssml/)
+├── adaptive-ssml/           ← Advanced SSML features (uses src/ssml/)
+└── ...
+```
+
+### Import Guidelines
+
+```typescript
+// ✅ CORRECT - Import from canonical ssml module
+import {
+  tagTextWithSsmlPersonaAware,
+  sanitizeSsml,
+  detectEmotion,
+  FINANCIAL_PRONUNCIATIONS,
+  CARTESIA_EMOTIONS,
+} from '../ssml/index.js';
+
+// ⚠️ ALSO OK - Import through speech module (re-exports canonical)
+import { tagTextWithSsmlPersonaAware, sanitizeSsml } from '../speech/index.js';
+
+// ❌ DEPRECATED - Don't import directly from ssml-tagger
+import { tagTextWithSsml } from '../speech/ssml-tagger/index.js';
+import { FINANCIAL_PRONUNCIATIONS } from '../speech/ssml-tagger/constants.js';
+```
+
+### Jack Bogle (Peter John) Speech Traits
+
+Character-specific speech patterns are in the persona bundle, NOT in ssml-tagger:
+
+```typescript
+// ✅ CORRECT - Import from persona bundle
+import {
+  applyPeterJohnSpeechTraits,
+  addCatchphraseEmphasis,
+  addWisdomCadence,
+  PETER_JOHN_SPEECH_CONFIG,
+} from '../personas/bundles/peter-john/speech-traits.js';
+
+// ❌ DEPRECATED - Don't import from ssml-tagger
+import { addCatchphraseEmphasis } from '../speech/ssml-tagger/jack-bogle.js';
+```
+
+See `src/ssml/CLAUDE.md` for complete SSML module documentation.
+
+---
 
 ## Key Concepts
 
@@ -314,6 +372,24 @@ These functions are deprecated and will be removed in a future version:
 | `getWPMTracker()`                    | `getSessionWPMTracker(sessionId)`           |
 | `shouldInjectCatchphrase()` (3 args) | `shouldInjectCatchphrase(sessionId, ...)`   |
 
+### SSML Module Consolidation (NEW!)
+
+| Deprecated Import                                 | Use Instead                                             |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `import { ... } from './ssml-tagger/constants'`   | `import { ... } from '../ssml/constants'`               |
+| `import { ... } from './ssml-tagger/types'`       | `import { ... } from '../ssml/types'`                   |
+| `import { ... } from './ssml-tagger/detection'`   | `import { ... } from '../ssml/detection'`               |
+| `import { sanitizeSsml } from './ssml-tagger'`    | `import { sanitizeSsml } from '../ssml'`                |
+| `import { tagTextWithSsml } from './ssml-tagger'` | `import { tagTextWithSsmlPersonaAware } from '../ssml'` |
+
+### Jack Bogle Speech Traits (NEW!)
+
+| Deprecated Import                                | Use Instead                                                          |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| `import { ... } from './ssml-tagger/jack-bogle'` | `import { ... } from '../personas/bundles/peter-john/speech-traits'` |
+| `addCatchphraseEmphasis` from ssml-tagger        | `addCatchphraseEmphasis` from persona bundle                         |
+| `addWisdomCadence` from ssml-tagger              | `addWisdomCadence` from persona bundle                               |
+
 ### Unified Module Replacements
 
 | Deprecated                 | Use Instead                                          |
@@ -562,11 +638,11 @@ npm test -- --run src/speech/__tests__/
 
 Files over 500 lines have been split into subdirectories:
 
-| Original File | New Directory | Contents |
-|---------------|---------------|----------|
-| `advanced-humanization.ts` | `advanced-humanization/` | emotions, fillers, breath-groups, rhythm, pipeline |
-| `fft-analyzer.ts` | `fft-analyzer/` | fft-core, spectral-analysis, environment, laughter, service |
-| `response-anticipation.ts` | `response-anticipation/` | types, patterns, prefetch, service |
+| Original File              | New Directory            | Contents                                                    |
+| -------------------------- | ------------------------ | ----------------------------------------------------------- |
+| `advanced-humanization.ts` | `advanced-humanization/` | emotions, fillers, breath-groups, rhythm, pipeline          |
+| `fft-analyzer.ts`          | `fft-analyzer/`          | fft-core, spectral-analysis, environment, laughter, service |
+| `response-anticipation.ts` | `response-anticipation/` | types, patterns, prefetch, service                          |
 
 The original files now re-export from subdirectories for backwards compatibility.
 

@@ -691,6 +691,23 @@ export async function loadBundle(
         behaviors.world_class_coaching = await loadJsonFile(worldClassCoachingPath);
       }
 
+      // ========================================================================
+      // PREDICTIVE INTELLIGENCE - Anticipatory patterns & proactive engagement
+      // ========================================================================
+
+      // Load predictive intelligence (pattern recognition, follow-ups, concern detection)
+      const predictiveIntelligencePath = join(behaviorsPath, 'predictive-intelligence.json');
+      if (await fileExists(predictiveIntelligencePath)) {
+        behaviors['predictive-intelligence'] = await loadJsonFile(predictiveIntelligencePath);
+        getLogger().debug({ bundlePath }, 'Loaded predictive-intelligence behaviors');
+      }
+
+      // Load better-than-human behaviors (superhuman capabilities)
+      const betterThanHumanPath = join(behaviorsPath, 'better-than-human.json');
+      if (await fileExists(betterThanHumanPath)) {
+        behaviors['better-than-human'] = await loadJsonFile(betterThanHumanPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },

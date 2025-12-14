@@ -11,27 +11,98 @@
  * - Musical personality insights
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import type {
-  GameType,
-  GameState,
-  GameResult,
-  GameSession,
-  GameHistory,
-  IGameEngine,
-} from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
-  recordGuess,
   analyzeDifficulty,
   checkMilestones,
-  getPersonalityComment,
   getConversationCallback,
-  type DifficultyRecommendation,
+  getPersonalityComment,
+  recordGuess,
   type MilestoneEvent,
 } from './game-intelligence.js';
+import type {
+  GameHistory,
+  GameResult,
+  GameSession,
+  GameState,
+  GameType,
+  IGameEngine,
+} from './types.js';
 
 const log = getLogger();
+
+// ============================================================================
+// ERROR ANALYTICS
+// ============================================================================
+
+/**
+ * Game error categories for analytics tracking
+ */
+type GameErrorCategory =
+  | 'game_start_failed'
+  | 'answer_evaluation_failed'
+  | 'music_search_failed'
+  | 'persistence_failed'
+  | 'memory_initialization_failed';
+
+/**
+ * Track game-related errors for analytics
+ * Structured logging that can be picked up by monitoring systems
+ */
+function trackGameError(
+  category: GameErrorCategory,
+  error: unknown,
+  context?: Record<string, unknown>
+): void {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : undefined;
+
+  log.error(
+    {
+      category,
+      errorMessage,
+      errorStack,
+      timestamp: new Date().toISOString(),
+      ...context,
+    },
+    `🎮 GAME_ERROR: ${category}`
+  );
+}
+
+// ============================================================================
+// INPUT SANITIZATION
+// ============================================================================
+
+/**
+ * Maximum allowed answer length to prevent memory/processing issues
+ */
+const MAX_ANSWER_LENGTH = 500;
+
+/**
+ * Sanitize user input for game answers
+ * - Trims whitespace
+ * - Limits length
+ * - Removes control characters
+ * - Escapes potential injection patterns
+ */
+function sanitizeAnswer(answer: string): string {
+  if (typeof answer !== 'string') {
+    return '';
+  }
+
+  return (
+    answer
+      // Remove control characters (except newlines/tabs)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      // Trim whitespace
+      .trim()
+      // Limit length
+      .slice(0, MAX_ANSWER_LENGTH)
+      // Normalize multiple spaces to single space
+      .replace(/\s+/g, ' ')
+  );
+}
 
 // ============================================================================
 // GAME ENGINE
@@ -94,7 +165,7 @@ export class GameEngine implements IGameEngine {
         '🎮 Game memory loaded for user'
       );
     } catch (error) {
-      log.warn({ error, userId }, '🎮 Failed to load game memory, using empty');
+      trackGameError('memory_initialization_failed', error, { userId });
       const { createEmptyGameMemory } = await import('./game-persistence.js');
       this.gameMemory = createEmptyGameMemory();
     }
@@ -111,7 +182,7 @@ export class GameEngine implements IGameEngine {
       await forceSaveGameMemory(this.userId);
       log.debug({ userId: this.userId }, '🎮 Flushed game memory to storage');
     } catch (error) {
-      log.warn({ error, userId: this.userId }, '🎮 Failed to flush game memory');
+      trackGameError('persistence_failed', error, { userId: this.userId, action: 'flush' });
     }
   }
 
@@ -212,6 +283,17 @@ export class GameEngine implements IGameEngine {
       };
     }
 
+    // 🛡️ INPUT SANITIZATION: Clean and validate user input
+    const sanitizedAnswer = sanitizeAnswer(answer);
+    if (!sanitizedAnswer) {
+      return {
+        correct: false,
+        pointsEarned: 0,
+        feedback: "I didn't catch that. Could you say it again?",
+        gameOver: false,
+      };
+    }
+
     // ✨ Calculate guess timing
     const guessTimeMs = Date.now() - this.roundStartTime;
 
@@ -219,7 +301,7 @@ export class GameEngine implements IGameEngine {
 
     // Let the game implementation evaluate the answer
     const result = await this.gameImplementation.evaluateAnswer(
-      answer,
+      sanitizedAnswer,
       this.state.gameData,
       this.state.currentRound
     );
@@ -435,10 +517,11 @@ export class GameEngine implements IGameEngine {
         '🎮 Game persisted to Firestore'
       );
     } catch (error) {
-      log.warn(
-        { error, userId: this.userId },
-        '🎮 Failed to persist game - will retry on session end'
-      );
+      trackGameError('persistence_failed', error, {
+        userId: this.userId,
+        gameType: session.gameType,
+        action: 'save_session',
+      });
     }
   }
 

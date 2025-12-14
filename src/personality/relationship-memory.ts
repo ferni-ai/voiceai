@@ -8,6 +8,31 @@
  * Persistence: Uses Firestore for long-term storage, with in-memory cache.
  *
  * @module personality/relationship-memory
+ *
+ * @deprecated MIGRATION GUIDE (2024-12):
+ * This module duplicates functionality now available in the memory module.
+ * For new code, prefer:
+ *
+ * 1. **Relationship tracking**: Use `personas/relationship-memory/` engine
+ *    ```typescript
+ *    import { getRelationshipEngine } from '../personas/relationship-memory/index.js';
+ *    const engine = getRelationshipEngine(userId, personaId);
+ *    ```
+ *
+ * 2. **Shared moment storage**: Use `memory/user-memory-indexer.ts`
+ *    with the 'shared_story' category for semantic retrieval.
+ *
+ * 3. **Stage progression**: Use `personality/emotional-patterns.ts`
+ *    for relationship stage management.
+ *
+ * 4. **Unified emotional memory**: Use `memory/emotional-memory-unified.ts`
+ *    ```typescript
+ *    import { getUnifiedEmotionalMemory } from '../memory/emotional-memory-unified.js';
+ *    const memory = getUnifiedEmotionalMemory({ userId, personaId });
+ *    ```
+ *
+ * The new systems use semantic search and integrate with the unified
+ * memory architecture for better cross-session continuity.
  */
 
 import { getFirestore } from 'firebase-admin/firestore';

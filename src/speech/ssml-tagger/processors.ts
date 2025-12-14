@@ -1,33 +1,26 @@
 /**
  * SSML Text Processing Functions
- * Core functions for adding natural speech elements
+ *
+ * Core functions for adding natural speech elements.
+ * Some functions are persona-specific (Jack Bogle) and should be
+ * migrated to persona bundles.
  */
 
 import {
-  FINANCIAL_START,
-  FINANCIAL_END,
-  REFLECTION_PHRASES,
-  CONTEMPLATIVE_PAUSE_PHRASES,
-  TRANSITION_PHRASES,
   BREATH_POINTS,
-} from './constants.js';
+  CONTEMPLATIVE_PAUSE_PHRASES,
+  FINANCIAL_END,
+  FINANCIAL_START,
+  REFLECTION_PHRASES,
+  TRANSITION_PHRASES,
+} from '../../ssml/constants.js';
 
-/**
- * Clamp speed to Cartesia's valid range: 0.6-1.5
- */
-export function clampSpeed(speed: number): number {
-  return Math.max(0.6, Math.min(1.5, speed));
-}
-
-/**
- * Clamp volume to Cartesia's valid range: 0.5-2.0
- */
-export function clampVolume(volume: number): number {
-  return Math.max(0.5, Math.min(2.0, volume));
-}
+// Re-export clamping functions from canonical source
+export { clampSpeed, clampVolume, mapToCartesiaEmotion } from '../../ssml/tags.js';
 
 /**
  * Add thinking sounds and reflection at natural transition points
+ * Note: This function adds natural speech patterns that work for all personas.
  */
 export function addThinkingSounds(text: string): string {
   let result = text;
@@ -208,42 +201,4 @@ export function addNaturalPauses(text: string, _baseSpeed: number): string {
   });
 
   return result;
-}
-
-/**
- * Map detected emotion to Cartesia emotion vocabulary
- */
-export function mapToCartesiaEmotion(detected: string): string {
-  const emotionMap: Record<string, string> = {
-    neutral: 'neutral',
-    happy: 'content',
-    sad: 'sympathetic',
-    angry: 'frustrated',
-    fearful: 'calm',
-    surprised: 'curious',
-    disgusted: 'skeptical',
-    anticipation: 'anticipation',
-    curious: 'curious',
-    affectionate: 'affectionate',
-    nostalgic: 'nostalgic',
-    wistful: 'wistful',
-    grateful: 'grateful',
-    proud: 'proud',
-    contemplative: 'contemplative',
-    determined: 'determined',
-    sympathetic: 'sympathetic',
-    calm: 'calm',
-    peaceful: 'peaceful',
-    content: 'content',
-    enthusiastic: 'enthusiastic',
-    amazed: 'amazed',
-    hesitant: 'hesitant',
-    apologetic: 'apologetic',
-    disappointed: 'disappointed',
-    resigned: 'resigned',
-    confident: 'confident',
-    skeptical: 'skeptical',
-  };
-
-  return emotionMap[detected.toLowerCase()] || 'neutral';
 }

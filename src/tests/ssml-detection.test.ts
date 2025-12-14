@@ -8,7 +8,7 @@
  * - Vocal cues (laughter, sighs, disfluencies, etc.)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock the constants module
 vi.mock('../ssml/constants.js', () => ({
@@ -30,6 +30,7 @@ vi.mock('../ssml/constants.js', () => ({
   FAST_PACE_KEYWORDS: ['quickly', 'hurry', 'urgent', 'exciting', 'amazing'],
   EMPHASIS_KEYWORDS: ['very', 'really', 'absolutely', 'definitely', 'extremely'],
   WHISPER_KEYWORDS: ['secret', 'quietly', 'between us', 'confidential'],
+  CONTRASTIVE_PATTERNS: [/\b(but|however|although)\b/gi],
   LAUGHTER_PATTERNS: [/\bhaha\b/gi, /\blol\b/gi, /\blmao\b/gi, /😂/g, /🤣/g],
   SIGH_PATTERNS: [/\*sigh\*/gi, /\bsigh\b/gi],
   DISFLUENCY_PATTERNS: [/\bum+\b/gi, /\buh+\b/gi, /\bhmm+\b/gi],
@@ -37,7 +38,7 @@ vi.mock('../ssml/constants.js', () => ({
   SARCASTIC_PATTERNS: [/\bsure\b.*\bright\b/gi, /\byeah\b.*\bsure\b/gi],
 }));
 
-import { detectEmotion, detectPacing, detectVolume, detectVocalCues } from '../ssml/detection.js';
+import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from '../ssml/detection.js';
 
 describe('SSML Detection', () => {
   describe('detectEmotion', () => {

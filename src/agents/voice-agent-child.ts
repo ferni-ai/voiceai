@@ -59,6 +59,30 @@ const logTiming = (operation: string, durationMs: number, details?: string) => {
 };
 
 // ============================================================================
+// CLOUD RUN TCP RELAY CONFIGURATION
+// ============================================================================
+// Cloud Run doesn't support UDP outbound, so WebRTC must use TCP relay (TURN).
+// Without this, the SDK tries UDP first (fails), then times out (85+ seconds)
+// before falling back to TCP. By forcing relay mode, we skip UDP entirely.
+// K_SERVICE is set by Cloud Run to indicate we're in their environment.
+const IS_CLOUD_RUN = !!process.env.K_SERVICE;
+
+// RTC configuration for forcing TCP relay on Cloud Run
+// Using raw numeric values to avoid importing @livekit/rtc-node (keeps startup fast)
+// Values from @livekit/rtc-node/src/proto/room_pb.ts:
+// - IceTransportType.TRANSPORT_RELAY = 0 (forces TCP-only, no UDP attempts)
+// - ContinualGatheringPolicy.GATHER_CONTINUALLY = 1
+import type { RtcConfiguration } from '@livekit/rtc-node';
+let _rtcConfig: RtcConfiguration | undefined;
+if (IS_CLOUD_RUN) {
+  _rtcConfig = {
+    iceTransportType: 0, // TRANSPORT_RELAY
+    continualGatheringPolicy: 1, // GATHER_CONTINUALLY
+    iceServers: [],
+  };
+}
+
+// ============================================================================
 // STARTUP LOGGING
 // ============================================================================
 
@@ -608,9 +632,13 @@ export default defineAgent({
       // The SDK expects ctx.connect() within 10 seconds of entry() being called.
       // Connect FIRST, before any other operations or imports.
       // ══════════════════════════════════════════════════════════════════════
-      log('ENTRY', '🔌 Connecting to room IMMEDIATELY...');
+      log('ENTRY', '🔌 Connecting to room IMMEDIATELY...', {
+        tcpRelayMode: IS_CLOUD_RUN,
+        reason: IS_CLOUD_RUN ? 'Cloud Run (no UDP)' : 'standard',
+      });
       const connectStart = Date.now();
-      await ctx.connect();
+      // Pass rtcConfig to force TCP relay on Cloud Run (skips UDP timeout)
+      await ctx.connect(undefined, undefined, _rtcConfig);
       log('ENTRY', `✅ Room connected in ${Date.now() - connectStart}ms`);
 
       // ══════════════════════════════════════════════════════════════════════
@@ -707,7 +735,7 @@ export default defineAgent({
       try {
         if (!ctx.room.isConnected) {
           log('ENTRY', 'Attempting to connect to room for graceful handling...');
-          await ctx.connect();
+          await ctx.connect(undefined, undefined, _rtcConfig);
         }
         log('ENTRY', 'Waiting for room disconnect...');
         await new Promise<void>((resolve) => {

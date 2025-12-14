@@ -1,0 +1,899 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Motion Sequences",
+    "description": "Choreographed multi-step animation sequences for key brand moments",
+    "version": "1.0.0"
+  },
+
+  "sequences": {
+    "_documentation": "Complete animation choreographies for important user moments",
+
+    "onboarding_reveal": {
+      "id": "onboarding_reveal",
+      "name": "First Meeting",
+      "description": "First-time user sees Ferni for the first time - our most important moment",
+      "trigger": "first_app_open",
+      "totalDuration": 4500,
+      "interruptible": false,
+      "emotion": "welcoming",
+      "steps": [
+        {
+          "element": "backdrop",
+          "animation": "fadeIn",
+          "delay": 0,
+          "duration": 800,
+          "easing": "expoOut",
+          "properties": { "opacity": [0, 1] },
+          "description": "Warm backdrop fades in"
+        },
+        {
+          "element": "avatar",
+          "animation": "breatheIn",
+          "delay": 400,
+          "duration": 1200,
+          "easing": "gentle",
+          "properties": {
+            "scale": [0.8, 1],
+            "opacity": [0, 1],
+            "filter": ["blur(10px)", "blur(0)"]
+          },
+          "description": "Avatar materializes with soft breath"
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "pulseIn",
+          "delay": 600,
+          "duration": 1000,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0, 0.6],
+            "scale": [0.9, 1.05, 1]
+          },
+          "description": "Persona glow awakens"
+        },
+        {
+          "element": "greeting",
+          "animation": "typewriter",
+          "delay": 1600,
+          "duration": 1500,
+          "easing": "linear",
+          "properties": {
+            "text": "Hey. I'm Ferni.",
+            "speed": 50
+          },
+          "description": "Greeting types out naturally"
+        },
+        {
+          "element": "cta",
+          "animation": "fadeSlideUp",
+          "delay": 3500,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "opacity": [0, 1],
+            "translateY": [16, 0]
+          },
+          "description": "CTA appears, inviting conversation"
+        }
+      ],
+      "sound": {
+        "track": "system.startup",
+        "delay": 300,
+        "volume": 0.7
+      },
+      "haptic": {
+        "pattern": "warmWelcome",
+        "delay": 500
+      }
+    },
+
+    "connection_establishing": {
+      "id": "connection_establishing",
+      "name": "Reaching Out",
+      "description": "Voice connection being established",
+      "trigger": "connection_start",
+      "totalDuration": 2000,
+      "interruptible": false,
+      "emotion": "anticipatory",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "anticipate",
+          "delay": 0,
+          "duration": 200,
+          "easing": "anticipate",
+          "properties": {
+            "scale": [1, 0.97]
+          },
+          "description": "Brief anticipation"
+        },
+        {
+          "element": "connectionRing",
+          "animation": "pulseGrow",
+          "delay": 200,
+          "duration": 800,
+          "easing": "expoOut",
+          "properties": {
+            "scale": [0, 1.5],
+            "opacity": [0.5, 0]
+          },
+          "repeat": 3,
+          "stagger": 400,
+          "description": "Ripples emanate from avatar"
+        },
+        {
+          "element": "statusText",
+          "animation": "fadeIn",
+          "delay": 100,
+          "duration": 300,
+          "properties": {
+            "opacity": [0, 1],
+            "text": "Connecting..."
+          }
+        }
+      ],
+      "sound": {
+        "track": "system.connecting",
+        "delay": 0,
+        "loop": true,
+        "fadeOutOnComplete": true
+      }
+    },
+
+    "connection_success": {
+      "id": "connection_success",
+      "name": "We're Connected",
+      "description": "Voice connection successfully established",
+      "trigger": "livekit_connected",
+      "totalDuration": 1200,
+      "interruptible": true,
+      "emotion": "reassuring",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "settleBounce",
+          "delay": 0,
+          "duration": 500,
+          "easing": "spring",
+          "properties": {
+            "scale": [0.97, 1.03, 1],
+            "translateY": [0, -4, 0]
+          },
+          "description": "Satisfying arrival bounce"
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "pulse",
+          "delay": 100,
+          "duration": 600,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0.6, 1, 0.7],
+            "scale": [1, 1.15, 1]
+          },
+          "description": "Glow pulses with life"
+        },
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 200,
+          "duration": 300,
+          "properties": {
+            "text": "Connected",
+            "color": "var(--color-semantic-success)"
+          }
+        },
+        {
+          "element": "waveform",
+          "animation": "fadeIn",
+          "delay": 400,
+          "duration": 400,
+          "easing": "decelerate",
+          "properties": {
+            "opacity": [0, 1]
+          },
+          "description": "Waveform appears, ready to listen"
+        }
+      ],
+      "sound": {
+        "track": "system.connectionSuccess",
+        "delay": 0,
+        "volume": 0.8
+      },
+      "haptic": {
+        "pattern": "presence",
+        "delay": 100
+      }
+    },
+
+    "handoff_transition": {
+      "id": "handoff_transition",
+      "name": "Passing the Conversation",
+      "description": "One persona hands off to another",
+      "trigger": "persona_switch",
+      "totalDuration": 2200,
+      "interruptible": false,
+      "emotion": "transitioning",
+      "steps": [
+        {
+          "element": "currentAvatar",
+          "animation": "fadeGlow",
+          "delay": 0,
+          "duration": 400,
+          "easing": "accelerate",
+          "properties": {
+            "opacity": [1, 0],
+            "scale": [1, 0.9],
+            "filter": ["blur(0)", "blur(8px)"]
+          },
+          "description": "Current persona gently fades"
+        },
+        {
+          "element": "transitionGlow",
+          "animation": "colorShift",
+          "delay": 200,
+          "duration": 800,
+          "easing": "gentle",
+          "properties": {
+            "backgroundColor": ["var(--prev-persona-primary)", "var(--next-persona-primary)"],
+            "opacity": [0.3, 0.6, 0.3]
+          },
+          "description": "Color transitions between personas"
+        },
+        {
+          "element": "newAvatar",
+          "animation": "breatheIn",
+          "delay": 700,
+          "duration": 800,
+          "easing": "spring",
+          "properties": {
+            "opacity": [0, 1],
+            "scale": [0.9, 1.02, 1],
+            "filter": ["blur(8px)", "blur(0)"]
+          },
+          "description": "New persona materializes"
+        },
+        {
+          "element": "nameTag",
+          "animation": "slideUp",
+          "delay": 1200,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "opacity": [0, 1],
+            "translateY": [12, 0]
+          },
+          "description": "Name appears with personality"
+        }
+      ],
+      "sound": {
+        "track": "persona.{nextPersonaId}",
+        "delay": 600,
+        "volume": 0.6
+      },
+      "haptic": {
+        "pattern": "personaSignature",
+        "delay": 700
+      }
+    },
+
+    "celebration_small": {
+      "id": "celebration_small",
+      "name": "Small Win",
+      "description": "Quick acknowledgment of achievement",
+      "trigger": "achievement_small",
+      "totalDuration": 1200,
+      "interruptible": true,
+      "emotion": "proud",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "nod",
+          "delay": 0,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "translateY": [0, -4, 0],
+            "rotate": [0, 2, 0]
+          },
+          "description": "Approving nod"
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "celebrate",
+          "delay": 50,
+          "duration": 600,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0.6, 1, 0.6],
+            "scale": [1, 1.2, 1]
+          }
+        },
+        {
+          "element": "sparkle",
+          "animation": "burst",
+          "delay": 100,
+          "duration": 500,
+          "easing": "expoOut",
+          "properties": {
+            "particles": 5,
+            "spread": 30,
+            "size": "small"
+          },
+          "description": "Subtle sparkle effect"
+        }
+      ],
+      "sound": {
+        "track": "celebration.small",
+        "delay": 0,
+        "volume": 0.5
+      },
+      "haptic": {
+        "pattern": "success",
+        "delay": 50
+      }
+    },
+
+    "celebration_big": {
+      "id": "celebration_big",
+      "name": "Major Achievement",
+      "description": "Full celebration for significant accomplishments",
+      "trigger": "achievement_major",
+      "totalDuration": 3500,
+      "interruptible": false,
+      "emotion": "ecstatic",
+      "steps": [
+        {
+          "element": "overlay",
+          "animation": "fadeIn",
+          "delay": 0,
+          "duration": 300,
+          "properties": {
+            "opacity": [0, 1],
+            "backgroundColor": "rgba(0,0,0,0.3)"
+          }
+        },
+        {
+          "element": "avatar",
+          "animation": "joyBounce",
+          "delay": 100,
+          "duration": 600,
+          "easing": "spring",
+          "properties": {
+            "scale": [1, 1.15, 0.95, 1.05, 1],
+            "translateY": [0, -20, 0, -8, 0]
+          },
+          "description": "Pixar-style joy bounce"
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "radiate",
+          "delay": 200,
+          "duration": 1000,
+          "easing": "expoOut",
+          "properties": {
+            "opacity": [0.6, 1],
+            "scale": [1, 2],
+            "filter": ["blur(20px)", "blur(40px)"]
+          },
+          "description": "Glow radiates outward"
+        },
+        {
+          "element": "confetti",
+          "animation": "burst",
+          "delay": 300,
+          "duration": 2500,
+          "properties": {
+            "particles": 50,
+            "colors": ["var(--persona-primary)", "var(--color-accent)", "#FFD700", "#FF6B6B"],
+            "spread": 180,
+            "gravity": 0.8
+          },
+          "description": "Confetti celebration"
+        },
+        {
+          "element": "achievementCard",
+          "animation": "popIn",
+          "delay": 600,
+          "duration": 500,
+          "easing": "spring",
+          "properties": {
+            "scale": [0.5, 1.05, 1],
+            "opacity": [0, 1]
+          }
+        },
+        {
+          "element": "achievementText",
+          "animation": "typewriter",
+          "delay": 1100,
+          "duration": 800,
+          "properties": {
+            "speed": 40
+          }
+        }
+      ],
+      "sound": {
+        "track": "celebration.big",
+        "delay": 100,
+        "volume": 0.8
+      },
+      "haptic": {
+        "pattern": "celebration",
+        "delay": 100
+      }
+    },
+
+    "streak_milestone": {
+      "id": "streak_milestone",
+      "name": "Consistency Streak",
+      "description": "Celebrating consecutive day milestones",
+      "trigger": "streak_milestone",
+      "totalDuration": 3000,
+      "interruptible": false,
+      "emotion": "impressed",
+      "steps": [
+        {
+          "element": "streakFlame",
+          "animation": "ignite",
+          "delay": 0,
+          "duration": 500,
+          "easing": "spring",
+          "properties": {
+            "scale": [0, 1.2, 1],
+            "opacity": [0, 1]
+          },
+          "description": "Flame ignites"
+        },
+        {
+          "element": "streakNumber",
+          "animation": "countUp",
+          "delay": 300,
+          "duration": 800,
+          "easing": "expoOut",
+          "properties": {
+            "from": 0,
+            "to": "{streakCount}"
+          },
+          "description": "Number counts up dramatically"
+        },
+        {
+          "element": "streakRing",
+          "animation": "draw",
+          "delay": 400,
+          "duration": 1000,
+          "easing": "expoOut",
+          "properties": {
+            "strokeDashoffset": [283, 0]
+          },
+          "description": "Ring draws around number"
+        },
+        {
+          "element": "avatar",
+          "animation": "impressed",
+          "delay": 800,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "translateY": [0, -6, 0],
+            "rotate": [0, -3, 0]
+          },
+          "description": "Impressed lean-back"
+        },
+        {
+          "element": "streakMessage",
+          "animation": "fadeSlideUp",
+          "delay": 1500,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "opacity": [0, 1],
+            "translateY": [8, 0]
+          }
+        }
+      ],
+      "sound": {
+        "track": "celebration.streak",
+        "delay": 0,
+        "volume": 0.7
+      },
+      "haptic": {
+        "pattern": "success",
+        "delay": 300
+      }
+    },
+
+    "deep_moment": {
+      "id": "deep_moment",
+      "name": "Breakthrough",
+      "description": "Emotional or cognitive breakthrough - subtle, supportive",
+      "trigger": "emotional_breakthrough",
+      "totalDuration": 3000,
+      "interruptible": true,
+      "emotion": "supportive",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "softenExpression",
+          "delay": 0,
+          "duration": 800,
+          "easing": "gentle",
+          "properties": {
+            "expression": "empathetic"
+          },
+          "description": "Expression softens"
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "warmPulse",
+          "delay": 200,
+          "duration": 2000,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0.5, 0.8, 0.6],
+            "scale": [1, 1.1, 1.05]
+          },
+          "description": "Warm, slow pulse"
+        },
+        {
+          "element": "ambientLight",
+          "animation": "warmShift",
+          "delay": 400,
+          "duration": 2000,
+          "easing": "gentle",
+          "properties": {
+            "filter": ["brightness(1)", "brightness(1.05)", "brightness(1.02)"]
+          },
+          "description": "Subtle ambient warmth"
+        }
+      ],
+      "sound": {
+        "track": "notification.gentle",
+        "delay": 500,
+        "volume": 0.3
+      },
+      "haptic": {
+        "pattern": "empathy",
+        "delay": 200
+      }
+    },
+
+    "session_end": {
+      "id": "session_end",
+      "name": "Until Next Time",
+      "description": "Graceful session conclusion",
+      "trigger": "session_ending",
+      "totalDuration": 2500,
+      "interruptible": true,
+      "emotion": "grateful",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "gratefulNod",
+          "delay": 0,
+          "duration": 600,
+          "easing": "gentle",
+          "properties": {
+            "translateY": [0, -3, 0],
+            "rotate": [0, 2, 0]
+          },
+          "description": "Appreciative nod"
+        },
+        {
+          "element": "farewell",
+          "animation": "fadeIn",
+          "delay": 400,
+          "duration": 400,
+          "properties": {
+            "opacity": [0, 1]
+          }
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "fadeOut",
+          "delay": 1000,
+          "duration": 1000,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0.6, 0]
+          },
+          "description": "Glow gently fades"
+        },
+        {
+          "element": "avatar",
+          "animation": "breatheOut",
+          "delay": 1200,
+          "duration": 1200,
+          "easing": "gentle",
+          "properties": {
+            "scale": [1, 0.95],
+            "opacity": [1, 0],
+            "filter": ["blur(0)", "blur(8px)"]
+          },
+          "description": "Avatar breathes away"
+        }
+      ],
+      "sound": {
+        "track": "system.sessionEnd",
+        "delay": 0,
+        "volume": 0.5
+      },
+      "haptic": {
+        "pattern": "goodbye",
+        "delay": 400
+      }
+    },
+
+    "team_unlock": {
+      "id": "team_unlock",
+      "name": "New Friend",
+      "description": "Team member becomes available",
+      "trigger": "persona_unlocked",
+      "totalDuration": 4000,
+      "interruptible": false,
+      "emotion": "welcoming",
+      "steps": [
+        {
+          "element": "overlay",
+          "animation": "fadeIn",
+          "delay": 0,
+          "duration": 400,
+          "properties": {
+            "opacity": [0, 1]
+          }
+        },
+        {
+          "element": "mysteryOrb",
+          "animation": "materialize",
+          "delay": 300,
+          "duration": 600,
+          "easing": "spring",
+          "properties": {
+            "scale": [0, 1.1, 1],
+            "opacity": [0, 1],
+            "filter": ["blur(20px)", "blur(0)"]
+          }
+        },
+        {
+          "element": "newPersonaAvatar",
+          "animation": "reveal",
+          "delay": 900,
+          "duration": 800,
+          "easing": "expoOut",
+          "properties": {
+            "clipPath": ["circle(0%)", "circle(100%)"]
+          },
+          "description": "New persona revealed inside orb"
+        },
+        {
+          "element": "confetti",
+          "animation": "burst",
+          "delay": 1200,
+          "duration": 2000,
+          "properties": {
+            "particles": 40,
+            "colors": ["var(--new-persona-primary)", "var(--color-accent)"]
+          }
+        },
+        {
+          "element": "newPersonaName",
+          "animation": "typewriter",
+          "delay": 1600,
+          "duration": 600,
+          "properties": {
+            "speed": 50
+          }
+        },
+        {
+          "element": "newPersonaBio",
+          "animation": "fadeSlideUp",
+          "delay": 2200,
+          "duration": 400,
+          "easing": "spring",
+          "properties": {
+            "opacity": [0, 1],
+            "translateY": [12, 0]
+          }
+        },
+        {
+          "element": "meetButton",
+          "animation": "pulseAttention",
+          "delay": 2800,
+          "duration": 600,
+          "easing": "spring",
+          "repeat": 2,
+          "properties": {
+            "scale": [1, 1.05, 1]
+          }
+        }
+      ],
+      "sound": {
+        "track": "celebration.teamUnlock",
+        "delay": 800,
+        "volume": 0.8
+      },
+      "haptic": {
+        "pattern": "celebration",
+        "delay": 900
+      }
+    },
+
+    "error_recovery": {
+      "id": "error_recovery",
+      "name": "Getting Back on Track",
+      "description": "Recovering from an error state gracefully",
+      "trigger": "error_resolved",
+      "totalDuration": 1500,
+      "interruptible": true,
+      "emotion": "reassuring",
+      "steps": [
+        {
+          "element": "errorIndicator",
+          "animation": "fadeOut",
+          "delay": 0,
+          "duration": 300,
+          "properties": {
+            "opacity": [1, 0]
+          }
+        },
+        {
+          "element": "avatar",
+          "animation": "relievedSigh",
+          "delay": 200,
+          "duration": 500,
+          "easing": "gentle",
+          "properties": {
+            "scale": [0.98, 1.02, 1],
+            "translateY": [0, -2, 0]
+          },
+          "description": "Relieved settling motion"
+        },
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 400,
+          "duration": 300,
+          "properties": {
+            "text": "We're back.",
+            "color": "var(--color-semantic-success)"
+          }
+        },
+        {
+          "element": "avatarGlow",
+          "animation": "stabilize",
+          "delay": 500,
+          "duration": 800,
+          "easing": "gentle",
+          "properties": {
+            "opacity": [0.3, 0.6],
+            "scale": [0.95, 1]
+          }
+        }
+      ],
+      "sound": {
+        "track": "system.recovered",
+        "delay": 200,
+        "volume": 0.4
+      },
+      "haptic": {
+        "pattern": "gentle",
+        "delay": 300
+      }
+    }
+  },
+
+  "animationLibrary": {
+    "_documentation": "Reusable animation definitions referenced by sequences",
+
+    "fadeIn": {
+      "keyframes": [
+        { "offset": 0, "opacity": 0 },
+        { "offset": 1, "opacity": 1 }
+      ]
+    },
+    "fadeOut": {
+      "keyframes": [
+        { "offset": 0, "opacity": 1 },
+        { "offset": 1, "opacity": 0 }
+      ]
+    },
+    "fadeSlideUp": {
+      "keyframes": [
+        { "offset": 0, "opacity": 0, "transform": "translateY(16px)" },
+        { "offset": 1, "opacity": 1, "transform": "translateY(0)" }
+      ]
+    },
+    "breatheIn": {
+      "keyframes": [
+        { "offset": 0, "opacity": 0, "transform": "scale(0.9)", "filter": "blur(8px)" },
+        { "offset": 0.6, "opacity": 1, "transform": "scale(1.02)", "filter": "blur(0)" },
+        { "offset": 1, "opacity": 1, "transform": "scale(1)", "filter": "blur(0)" }
+      ]
+    },
+    "joyBounce": {
+      "keyframes": [
+        { "offset": 0, "transform": "scale(1) translateY(0)" },
+        { "offset": 0.2, "transform": "scale(1.15) translateY(-20px)" },
+        { "offset": 0.4, "transform": "scale(0.95) translateY(0)" },
+        { "offset": 0.6, "transform": "scale(1.05) translateY(-8px)" },
+        { "offset": 0.8, "transform": "scale(0.98) translateY(0)" },
+        { "offset": 1, "transform": "scale(1) translateY(0)" }
+      ]
+    },
+    "spring": {
+      "keyframes": [
+        { "offset": 0, "transform": "scale(0.9)" },
+        { "offset": 0.5, "transform": "scale(1.05)" },
+        { "offset": 0.75, "transform": "scale(0.98)" },
+        { "offset": 1, "transform": "scale(1)" }
+      ]
+    },
+    "nod": {
+      "keyframes": [
+        { "offset": 0, "transform": "translateY(0) rotate(0)" },
+        { "offset": 0.3, "transform": "translateY(-4px) rotate(2deg)" },
+        { "offset": 0.6, "transform": "translateY(0) rotate(0)" },
+        { "offset": 1, "transform": "translateY(0) rotate(0)" }
+      ]
+    },
+    "typewriter": {
+      "type": "procedural",
+      "description": "Text appears character by character",
+      "parameters": ["text", "speed"]
+    }
+  },
+
+  "reducedMotion": {
+    "_documentation": "Alternative sequences for prefers-reduced-motion",
+
+    "simplifications": {
+      "celebration_big": {
+        "description": "Simplified celebration without confetti",
+        "removeSteps": ["confetti"],
+        "modifySteps": {
+          "avatar": { "duration": 300, "properties": { "scale": [1, 1.02, 1] } }
+        }
+      },
+      "onboarding_reveal": {
+        "description": "Simpler reveal without complex animations",
+        "modifySteps": {
+          "avatar": { "duration": 400, "animation": "fadeIn" },
+          "greeting": { "animation": "fadeIn", "duration": 300 }
+        }
+      },
+      "handoff_transition": {
+        "description": "Simple crossfade instead of complex transition",
+        "replaceWith": [
+          { "element": "currentAvatar", "animation": "fadeOut", "duration": 300 },
+          { "element": "newAvatar", "animation": "fadeIn", "delay": 200, "duration": 300 }
+        ]
+      }
+    }
+  },
+
+  "orchestration": {
+    "_documentation": "Rules for playing and coordinating sequences",
+
+    "priorities": {
+      "description": "Higher priority sequences can interrupt lower",
+      "levels": {
+        "critical": ["connection_success", "error_recovery"],
+        "high": ["celebration_big", "team_unlock"],
+        "normal": ["handoff_transition", "celebration_small", "streak_milestone"],
+        "low": ["deep_moment", "session_end"]
+      }
+    },
+
+    "queuing": {
+      "maxQueue": 3,
+      "dropLowPriority": true,
+      "mergeConsecutiveSame": true
+    },
+
+    "timing": {
+      "minGapBetweenSequences": 500,
+      "maxConcurrent": 1,
+      "allowOverlap": false
+    }
+  }
+}

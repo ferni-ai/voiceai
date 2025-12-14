@@ -10,14 +10,32 @@
  * THAT makes people smile. Not "I drink coffee."
  *
  * @module personality/callback-system
+ *
+ * @deprecated MIGRATION GUIDE (2024-12):
+ * This module uses pattern-based extraction. For new code, prefer:
+ *
+ * 1. **Callback storage**: Use `personality/memory-adapter.ts`
+ *    ```typescript
+ *    import { getPendingCallbacksFromProfile, formatCallbackForPrompt } from './memory-adapter.js';
+ *    const callbacks = getPendingCallbacksFromProfile(userProfile);
+ *    ```
+ *
+ * 2. **Moment extraction**: Use `intelligence/human-signal-extractor.ts`
+ *    which uses LLM-based extraction for higher accuracy.
+ *
+ * 3. **Follow-up timing**: Use `personality/timing-intelligence.ts`
+ *    for context-aware timing decisions.
+ *
+ * The memory-adapter integrates with the memory module's KeyMoment system
+ * for persistent storage and semantic retrieval.
  */
 
 import { createLogger } from '../utils/safe-logger.js';
 import type {
-  UserMomentRecord,
-  UserMomentCategory,
-  PendingCallback,
   CallbackExtractionOptions,
+  PendingCallback,
+  UserMomentCategory,
+  UserMomentRecord,
 } from './types.js';
 
 const log = createLogger({ module: 'CallbackSystem' });

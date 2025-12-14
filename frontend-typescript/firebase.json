@@ -62,7 +62,21 @@
           }
         },
         {
+          "source": "/health/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/auth/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/calendar/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"
@@ -174,7 +188,21 @@
           }
         },
         {
+          "source": "/health/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/auth/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/calendar/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"

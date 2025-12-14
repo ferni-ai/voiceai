@@ -252,6 +252,27 @@ export {
 } from './memory-metrics.js';
 
 // ============================================================================
+// UNIFIED EMOTIONAL MEMORY (coordinates user emotions + bonding)
+// ============================================================================
+
+export {
+  clearAllUnifiedEmotionalMemories,
+  clearUnifiedEmotionalMemory,
+  getUnifiedEmotionalMemory,
+  UnifiedEmotionalMemory,
+  type EmotionalBond,
+  type EmotionalCheckIn,
+  type EmotionalContext as UnifiedEmotionalContext,
+  type EmotionalMemoryConfig,
+  type EmotionalMoment,
+  type EmotionalPattern,
+  type RelationshipStage,
+  type UnifiedEmotionalState,
+  type UserEmotionalContext,
+  type UserEmotionalMoment,
+} from './emotional-memory-unified.js';
+
+// ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================
 

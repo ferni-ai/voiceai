@@ -14,11 +14,10 @@
  * Run with: npx vitest run src/agents/__tests__/voice-agent-e2e.test.ts
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { fork, type ChildProcess } from 'child_process';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { EventEmitter } from 'events';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../../..');
@@ -251,7 +250,7 @@ describe('Voice Agent Child Module Structure', () => {
 describe('Prewarm/Entry Synchronization', () => {
   it('should have _prewarmReady Promise that entry waits for', async () => {
     const childModule = await import('../voice-agent-child.js');
-    
+
     // waitForPrewarm should return a Promise
     const promise = childModule.waitForPrewarm();
     expect(promise).toBeInstanceOf(Promise);
@@ -260,7 +259,7 @@ describe('Prewarm/Entry Synchronization', () => {
   it('should track prewarm state correctly', async () => {
     const childModule = await import('../voice-agent-child.js');
     const getState = (childModule as any).getPrewarmState;
-    
+
     if (getState) {
       const state = getState();
       // State should be one of: pending, running, complete, failed, timeout
@@ -273,7 +272,7 @@ describe('Prewarm/Entry Synchronization', () => {
     // Note: In real tests, we'd need module isolation
     const childModule = await import('../voice-agent-child.js');
     const deps = childModule.getPreloadedDeps();
-    
+
     // This checks the structure exists
     expect(deps).toBeDefined();
     expect(deps.voice).toBeDefined(); // May be null or loaded depending on prior runs
@@ -296,7 +295,7 @@ describe('Startup Timing Budgets', () => {
     // Our prewarm timeout should be 25s to leave buffer
     const LIVEKIT_TIMEOUT = 30000;
     const OUR_PREWARM_TIMEOUT = 25000;
-    
+
     expect(OUR_PREWARM_TIMEOUT).toBeLessThan(LIVEKIT_TIMEOUT);
   });
 });
@@ -308,7 +307,7 @@ describe('Startup Timing Budgets', () => {
 describe.skip('Full Startup Flow Integration', () => {
   // These tests require module isolation to properly test the startup flow
   // In a real CI environment, each test would spawn a fresh Node process
-  
+
   let runner: MockLiveKitRunner;
 
   beforeEach(async () => {
@@ -316,28 +315,32 @@ describe.skip('Full Startup Flow Integration', () => {
     await runner.loadModule();
   });
 
-  it('should complete prewarm before entry uses deps', async () => {
-    const mockProc = createMockJobProcess();
-    const mockCtx = createMockJobContext();
+  it(
+    'should complete prewarm before entry uses deps',
+    async () => {
+      const mockProc = createMockJobProcess();
+      const mockCtx = createMockJobContext();
 
-    // Start prewarm (fire-and-forget like LiveKit)
-    runner.startPrewarm(mockProc);
+      // Start prewarm (fire-and-forget like LiveKit)
+      runner.startPrewarm(mockProc);
 
-    // Immediately call entry (simulating race condition)
-    // Entry should wait for prewarm to complete
-    const entryPromise = runner.callEntry(mockCtx);
+      // Immediately call entry (simulating race condition)
+      // Entry should wait for prewarm to complete
+      const entryPromise = runner.callEntry(mockCtx);
 
-    // Wait for prewarm
-    await runner.waitForPrewarm();
+      // Wait for prewarm
+      await runner.waitForPrewarm();
 
-    // Deps should be loaded
-    const deps = runner.getDepsState();
-    expect(deps?.voice).not.toBeNull();
+      // Deps should be loaded
+      const deps = runner.getDepsState();
+      expect(deps?.voice).not.toBeNull();
 
-    // Clean up
-    mockCtx.room.simulateDisconnect();
-    await entryPromise.catch(() => {}); // Entry may fail due to mocks
-  }, CONFIG.TEST_TIMEOUT);
+      // Clean up
+      mockCtx.room.simulateDisconnect();
+      await entryPromise.catch(() => {}); // Entry may fail due to mocks
+    },
+    CONFIG.TEST_TIMEOUT
+  );
 
   it('should handle prewarm failure gracefully', async () => {
     // This test would inject a failure into prewarm
@@ -370,7 +373,7 @@ describe('Chaos Tests', () => {
 
     it('should have synchronization mechanism in place', async () => {
       const childModule = await import('../voice-agent-child.js');
-      
+
       // Verify the fix components exist
       expect(childModule.waitForPrewarm).toBeDefined();
       expect(childModule.getPreloadedDeps).toBeDefined();
@@ -382,7 +385,7 @@ describe('Chaos Tests', () => {
       // The timeout is set in the module, we verify the design
       const PREWARM_TIMEOUT = 25000;
       const LIVEKIT_TIMEOUT = 30000;
-      
+
       expect(LIVEKIT_TIMEOUT - PREWARM_TIMEOUT).toBeGreaterThanOrEqual(5000);
     });
   });
@@ -427,7 +430,7 @@ describe('Dependency Loading', () => {
   it('should load VAD model in phase 3', async () => {
     const childModule = await import('../voice-agent-child.js');
     const deps = childModule.getPreloadedDeps();
-    
+
     // VAD model is heavy and loaded in phase 3
     expect(deps).toHaveProperty('vadModel');
   });
@@ -484,7 +487,7 @@ describe('Logging Coverage', () => {
 describe('Health Check Requirements', () => {
   it('should be able to report prewarm state', async () => {
     const childModule = await import('../voice-agent-child.js');
-    
+
     // getPrewarmState should be exported
     const getState = (childModule as any).getPrewarmState;
     expect(getState).toBeDefined();
@@ -493,11 +496,15 @@ describe('Health Check Requirements', () => {
   it('should be able to report dependency state', async () => {
     const childModule = await import('../voice-agent-child.js');
     const deps = childModule.getPreloadedDeps();
-    
+
     // Should be able to enumerate loaded vs missing
-    const loaded = Object.entries(deps).filter(([k, v]) => v !== null && k !== 'personaBundlesReady');
-    const missing = Object.entries(deps).filter(([k, v]) => v === null && k !== 'personaBundlesReady');
-    
+    const loaded = Object.entries(deps).filter(
+      ([k, v]) => v !== null && k !== 'personaBundlesReady'
+    );
+    const missing = Object.entries(deps).filter(
+      ([k, v]) => v === null && k !== 'personaBundlesReady'
+    );
+
     expect(Array.isArray(loaded)).toBe(true);
     expect(Array.isArray(missing)).toBe(true);
   });
@@ -518,4 +525,3 @@ describe('CI/CD Integration', () => {
     expect(CONFIG.TEST_TIMEOUT).toBeGreaterThanOrEqual(30000);
   });
 });
-

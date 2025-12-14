@@ -25,8 +25,15 @@ export interface RetryOptions {
   maxDelay?: number;
   /** Operation name for logging */
   operationName?: string;
-  /** Callback on each retry */
+  /** Callback on each retry (synchronous, for logging) */
   onRetry?: (attempt: number, error: Error, nextDelayMs: number) => void;
+  /**
+   * Async cleanup before retry - use this to disconnect/cleanup resources.
+   * Called BEFORE the delay, allowing cleanup to complete before retry.
+   * This prevents race conditions like "Participant already exists" when
+   * a slow first connection completes while retry is in progress.
+   */
+  onBeforeRetry?: () => Promise<void>;
 }
 
 export interface HumanizedError {
@@ -62,7 +69,8 @@ export async function withResilience<T>(
   fn: () => Promise<T>,
   options: RetryOptions
 ): Promise<T> {
-  const { maxRetries, baseDelay, maxDelay = 30000, operationName, onRetry } = options;
+  const { maxRetries, baseDelay, maxDelay = 30000, operationName, onRetry, onBeforeRetry } =
+    options;
 
   let lastError: Error = new Error('No attempts made');
 
@@ -93,6 +101,19 @@ export async function withResilience<T>(
           `[lightweight-resilience] ${operationName} failed (attempt ${attempt}/${maxRetries + 1}), ` +
             `retrying in ${Math.round(delay)}ms: ${lastError.message}\n`
         );
+      }
+
+      // Run async cleanup BEFORE the delay - this prevents race conditions
+      // where a slow first connection completes while the retry is waiting
+      if (onBeforeRetry) {
+        try {
+          await onBeforeRetry();
+        } catch (cleanupError) {
+          // Log but don't fail - cleanup errors shouldn't prevent retry
+          process.stderr.write(
+            `[lightweight-resilience] ${operationName} cleanup warning: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}\n`
+          );
+        }
       }
 
       // Wait before retry

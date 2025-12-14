@@ -122,62 +122,62 @@ body {
      Based on φ = 1.618, base unit = 8px (Fibonacci sequence)
      Creates mathematically harmonious proportions across all UI elements
      ======================================================================== */
-  
+
   /* Fibonacci/Golden sizes - use for component dimensions */
-  --size-xs: 8px;      /* φ^0 - base unit */
-  --size-sm: 13px;     /* φ^1 */
-  --size-md: 21px;     /* φ^2 */
-  --size-lg: 34px;     /* φ^3 */
-  --size-xl: 55px;     /* φ^4 */
-  --size-2xl: 89px;    /* φ^5 */
-  --size-3xl: 144px;   /* φ^6 */
-  --size-4xl: 233px;   /* φ^7 - for large screens */
-  
+  --size-xs: 8px; /* φ^0 - base unit */
+  --size-sm: 13px; /* φ^1 */
+  --size-md: 21px; /* φ^2 */
+  --size-lg: 34px; /* φ^3 */
+  --size-xl: 55px; /* φ^4 */
+  --size-2xl: 89px; /* φ^5 */
+  --size-3xl: 144px; /* φ^6 */
+  --size-4xl: 233px; /* φ^7 - for large screens */
+
   /* ========================================
      AVATAR SIZING - φ-based proportions
      Relationship: Avatar / Button ≈ φ² (2.618)
      Using smaller sizes that work with existing layout
      ======================================== */
-  --avatar-hero: 120px;         /* Base hero size - balanced */
-  --avatar-hero-lg: 110px;      /* Desktop smaller */
-  --avatar-hero-md: 100px;      /* Tablet */
-  --avatar-hero-sm: 90px;       /* Mobile */
-  --avatar-hero-xs: 80px;       /* Small mobile minimum */
-  --avatar-ring-gap: 10px;      /* Ring offset from avatar */
+  --avatar-hero: 120px; /* Base hero size - balanced */
+  --avatar-hero-lg: 110px; /* Desktop smaller */
+  --avatar-hero-md: 100px; /* Tablet */
+  --avatar-hero-sm: 90px; /* Mobile */
+  --avatar-hero-xs: 80px; /* Small mobile minimum */
+  --avatar-ring-gap: 10px; /* Ring offset from avatar */
   --avatar-ring-width: 2px;
-  --avatar-text-ratio: 0.3;     /* Avatar text = 30% of avatar size */
-  
+  --avatar-text-ratio: 0.3; /* Avatar text = 30% of avatar size */
+
   /* ========================================
      BUTTON SIZING - φ relationship to avatar
      120px / 48px ≈ 2.5 (close to φ²)
      ======================================== */
-  --btn-height-lg: 52px;        /* Desktop */
-  --btn-height-md: 48px;        /* Tablet */
-  --btn-height-sm: 46px;        /* Mobile */
-  --btn-height-xs: 44px;        /* Small mobile */
-  --btn-padding-x: 32px;        /* Horizontal padding */
-  --btn-padding-y: 14px;        /* Vertical padding */
-  --btn-min-width: 140px;       /* Minimum width */
-  --btn-radius: 26px;           /* ~height/2 for pill shape */
-  
+  --btn-height-lg: 52px; /* Desktop */
+  --btn-height-md: 48px; /* Tablet */
+  --btn-height-sm: 46px; /* Mobile */
+  --btn-height-xs: 44px; /* Small mobile */
+  --btn-padding-x: 32px; /* Horizontal padding */
+  --btn-padding-y: 14px; /* Vertical padding */
+  --btn-min-width: 140px; /* Minimum width */
+  --btn-radius: 26px; /* ~height/2 for pill shape */
+
   /* ========================================
      WAVEFORM SIZING - Visual harmony with button
      Slightly smaller than button for hierarchy
      ======================================== */
-  --waveform-height-lg: 48px;   /* Desktop */
-  --waveform-height-md: 44px;   /* Tablet */
-  --waveform-height-sm: 40px;   /* Mobile */
-  --waveform-height-xs: 36px;   /* Small */
+  --waveform-height-lg: 48px; /* Desktop */
+  --waveform-height-md: 44px; /* Tablet */
+  --waveform-height-sm: 40px; /* Mobile */
+  --waveform-height-xs: 36px; /* Small */
   --waveform-bar-width: 4px;
   --waveform-bar-gap: 4px;
-  
+
   /* ========================================
      TEAM ROSTER - Proportional to hero
      ======================================== */
-  --roster-container-lg: 52px;  /* Desktop container */
-  --roster-container-md: 48px;  /* Tablet */
-  --roster-container-sm: 44px;  /* Mobile */
-  --roster-avatar-lg: 42px;     /* 80% of container */
+  --roster-container-lg: 52px; /* Desktop container */
+  --roster-container-md: 48px; /* Tablet */
+  --roster-container-sm: 44px; /* Mobile */
+  --roster-avatar-lg: 42px; /* 80% of container */
   --roster-avatar-md: 38px;
   --roster-avatar-sm: 36px;
   --roster-gap-lg: 8px;
@@ -2829,6 +2829,8 @@ body {
   align-items: center;
   /* Golden ratio spacing: φ-derived gap for visual harmony */
   gap: var(--space-md);
+  /* Ensure halo glow isn't clipped */
+  overflow: visible;
 }
 
 .avatar-container {
@@ -2841,6 +2843,10 @@ body {
   transform-origin: center center;
   /* border-radius: 50% ensures any Safari layer boundary matches the circular avatar shape */
   border-radius: 50%;
+  /* HALO BREATHING ROOM: The glow/halo extends ~40-60px beyond avatar when speaking.
+     This margin reserves space so the halo isn't cut off or overlapping other elements.
+     The negative margin is compensated by the parent's layout. */
+  margin: 30px;
 }
 
 /* Reaction animations applied via JS classes */
@@ -4654,7 +4660,7 @@ body {
   padding: 14px 32px;
   min-width: 140px;
   border: none;
-  border-radius: 26px;  /* ~height/2 for perfect pill */
+  border-radius: 26px; /* ~height/2 for perfect pill */
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
@@ -7241,6 +7247,8 @@ body {
     /* HERO AVATAR: 150px - balanced size that fits viewport with button visible */
     width: 150px;
     height: 150px;
+    /* Scale margin for larger halo expansion */
+    margin: 38px;
   }
 
   /* Center the content - avatar as hero */
@@ -7345,6 +7353,8 @@ body {
            Pro Max phones have the real estate for commanding presence */
     width: 180px;
     height: 180px;
+    /* Scale margin for larger halo expansion */
+    margin: 40px;
   }
 
   /* Center vertically - hero avatar layout */
@@ -10446,6 +10456,8 @@ body.ambient-aurora {
   .avatar-container {
     width: 180px;
     height: 180px;
+    /* Scale margin for larger halo expansion */
+    margin: 45px;
   }
 
   #avatarRing {
@@ -10646,6 +10658,8 @@ body.ambient-aurora {
   .avatar-container {
     width: 200px;
     height: 200px;
+    /* Scale margin for larger halo expansion */
+    margin: 50px;
   }
 
   #avatarRing {

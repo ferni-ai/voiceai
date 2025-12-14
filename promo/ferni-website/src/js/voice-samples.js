@@ -1,14 +1,22 @@
 /**
- * Voice Samples - Hear Ferni Without Full Demo
+ * Voice Samples - Hear the Ferni Team Respond
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Provides pre-recorded or TTS audio samples showcasing Ferni's voice
- * responses to common questions.
+ * Showcases how each persona in the Ferni team responds with their
+ * distinct voice and personality. Six voices, one conversation.
+ *
+ * Personas:
+ * - Ferni: Life Coach - warm, empathetic, measured
+ * - Peter: Research Guide - curious, analytical, quick
+ * - Maya: Habit Architect - practical, efficient, action-oriented
+ * - Alex: Communications Coach - clear, supportive, communication-focused
+ * - Jordan: Celebration Catalyst - energetic, optimistic, celebratory
+ * - Nayan: Wisdom Guide - measured, wise, philosophical
  *
  * Features:
  * - Pre-recorded audio snippets for common topics
  * - TTS fallback for dynamic samples
- * - Inline audio players throughout the page
+ * - Persona-colored UI elements
  * - Voice waveform visualization
  *
  * @module voice-samples
@@ -24,57 +32,84 @@
   const CONFIG = {
     // TTS endpoint (optional - uses browser TTS as fallback)
     ttsEndpoint: null, // '/api/landing/tts'
-    
+
     // Pre-recorded samples (mp3 files)
     samplesPath: '/audio/samples/',
-    
+
     // Whether to enable the feature
     enabled: true,
-    
+
     // Use browser TTS as fallback
     useBrowserTTS: true,
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SAMPLE DATA
+  // Each persona has a distinct voice:
+  // - Ferni: warm, measured, empathetic ("I hear that", "Take your time")
+  // - Peter: curious, quick, analytical ("Interesting", "Let's explore that")
+  // - Maya: practical, efficient, action-oriented ("Here's the plan", "Start small")
+  // - Alex: clear, supportive, communication-focused ("Here's one way to say it")
+  // - Jordan: energetic, celebratory, optimistic ("That's exciting!")
+  // - Nayan: measured, wise, philosophical ("That's worth sitting with")
   // ═══════════════════════════════════════════════════════════════════════════
 
   const VOICE_SAMPLES = {
     'career-advice': {
       question: "I'm thinking about changing careers but I'm scared",
-      response: "That fear makes sense. A career change is a big deal. What is it specifically that scares you—the uncertainty, leaving something familiar, or something else? Let's unpack that together.",
+      response:
+        "That fear makes sense. Career changes are big. What is it specifically—the uncertainty, leaving something familiar, or something else? Let's sit with that together.",
       duration: 12,
       persona: 'ferni',
     },
-    'stress': {
+    stress: {
       question: "I'm feeling really overwhelmed lately",
-      response: "I hear you. Overwhelm is heavy. Before we try to fix anything, can you just tell me—what's weighing on you the most right now? Sometimes naming it helps.",
+      response:
+        "I hear that. Overwhelm is heavy. Before we try to fix anything, what's weighing on you most right now? Sometimes just naming it helps.",
       duration: 11,
       persona: 'ferni',
     },
-    'habits': {
-      question: "How do I actually stick to a habit?",
-      response: "Here's the secret: make it embarrassingly small. Want to exercise? Start with putting on your shoes. That's it. Once that's automatic, we build from there. What habit are you working on?",
+    habits: {
+      question: 'How do I actually stick to a habit?',
+      response:
+        "Here's the plan: make it embarrassingly small. Want to exercise? Start with putting on your shoes. That's it. Once that's automatic, we build. What habit are we working on?",
       duration: 13,
       persona: 'maya',
     },
-    'relationship': {
-      question: "I don't know if this relationship is working",
-      response: "That's a heavy thing to sit with. When you say it's not working—what does that look like day to day? And more importantly, what would 'working' feel like to you?",
+    relationship: {
+      question: 'I need to have a hard conversation with someone',
+      response:
+        "That takes courage. Let's find the right words. What's the core thing you need them to understand? We can practice it together until it feels right.",
       duration: 12,
-      persona: 'ferni',
+      persona: 'alex',
     },
-    'decision': {
+    decision: {
       question: "I have a big decision to make and I'm stuck",
-      response: "Being stuck usually means something. Either we're scared of the wrong choice, or part of us already knows and isn't ready to admit it. What's the decision you're wrestling with?",
+      response:
+        "Interesting. Being stuck usually tells us something. Let's explore both paths—what do you gain and what do you risk with each? Sometimes the answer's already there.",
       duration: 13,
       persona: 'peter',
     },
-    'sleep': {
+    sleep: {
       question: "It's 3am and I can't stop thinking",
-      response: "I'm here. 3am thoughts hit different, don't they? You don't have to figure anything out right now. Just tell me what's keeping you up. Sometimes that's enough.",
+      response:
+        "I'm here. 3am thoughts hit different. You don't have to figure anything out right now. Just tell me what's keeping you up. Sometimes that's enough.",
       duration: 11,
       persona: 'ferni',
+    },
+    meaning: {
+      question: "I feel like I'm just going through the motions",
+      response:
+        "That's worth sitting with. Going through the motions often means something deeper is asking for attention. What would a day that felt meaningful actually look like?",
+      duration: 13,
+      persona: 'nayan',
+    },
+    celebration: {
+      question: "I got the promotion but I don't feel excited",
+      response:
+        "Wait—you got the promotion? That's huge! Let's not skip past this. You worked for this. What would celebrating actually look like? You deserve to feel this.",
+      duration: 12,
+      persona: 'jordan',
     },
   };
 
@@ -105,7 +140,7 @@
     if (!state.synthesis) return null;
 
     const voices = state.synthesis.getVoices();
-    
+
     // Prefer these voices for a warm, natural sound
     const preferred = [
       'Samantha', // macOS
@@ -115,12 +150,12 @@
     ];
 
     for (const name of preferred) {
-      const voice = voices.find(v => v.name.includes(name));
+      const voice = voices.find((v) => v.name.includes(name));
       if (voice) return voice;
     }
 
     // Fall back to any English voice
-    return voices.find(v => v.lang.startsWith('en')) || voices[0];
+    return voices.find((v) => v.lang.startsWith('en')) || voices[0];
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -142,7 +177,7 @@
 
     // Try pre-recorded audio first
     const audioUrl = CONFIG.samplesPath + sampleId + '.mp3';
-    
+
     try {
       const audio = new Audio(audioUrl);
       audio.addEventListener('ended', () => stopAudio());
@@ -150,7 +185,7 @@
         // Fall back to TTS
         playTTS(sample.response, buttonEl);
       });
-      
+
       await audio.play();
     } catch {
       // Fall back to TTS
@@ -165,11 +200,11 @@
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     if (state.preferredVoice) {
       utterance.voice = state.preferredVoice;
     }
-    
+
     utterance.rate = 0.95; // Slightly slower for warmth
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
@@ -200,20 +235,22 @@
     const sample = VOICE_SAMPLES[sampleId];
     if (!sample) return null;
 
-    const player = document.createElement('div');
-    player.className = 'voice-sample';
-    player.dataset.sampleId = sampleId;
-
+    // Persona design tokens - see design-system/tokens/persona-kits.json
     const personas = {
-      ferni: { name: 'Ferni', color: '#4a6741', initials: 'FE' },
-      maya: { name: 'Maya', color: '#a67a6a', initials: 'MY' },
-      peter: { name: 'Peter', color: '#3a6b73', initials: 'PL' },
-      alex: { name: 'Alex', color: '#5a6b8a', initials: 'AX' },
-      jordan: { name: 'Jordan', color: '#c4856a', initials: 'JD' },
-      nayan: { name: 'Nayan', color: '#b8956a', initials: 'NP' },
+      ferni: { name: 'Ferni', role: 'Life Coach', color: '#4a6741', initials: 'FE' },
+      maya: { name: 'Maya', role: 'Habit Architect', color: '#a67a6a', initials: 'MY' },
+      peter: { name: 'Peter', role: 'Research Guide', color: '#3a6b73', initials: 'PL' },
+      alex: { name: 'Alex', role: 'Communications Coach', color: '#5a6b8a', initials: 'AX' },
+      jordan: { name: 'Jordan', role: 'Celebration Catalyst', color: '#c4856a', initials: 'JD' },
+      nayan: { name: 'Nayan', role: 'Wisdom Guide', color: '#b8956a', initials: 'NP' },
     };
 
     const persona = personas[sample.persona] || personas.ferni;
+
+    const player = document.createElement('div');
+    player.className = 'voice-sample';
+    player.dataset.sampleId = sampleId;
+    player.style.setProperty('--persona-color', persona.color);
 
     player.innerHTML = `
       <div class="voice-sample__header">
@@ -222,9 +259,9 @@
         </div>
         <div class="voice-sample__info">
           <span class="voice-sample__persona">${persona.name}</span>
-          <span class="voice-sample__topic">${options.topic || 'Sample Response'}</span>
+          <span class="voice-sample__role">${persona.role}</span>
         </div>
-        <button class="voice-sample__play" aria-label="Play voice sample">
+        <button class="voice-sample__play" aria-label="Play voice sample" style="--persona-color: ${persona.color}">
           <svg class="voice-sample__icon-play" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
           </svg>
@@ -234,23 +271,34 @@
         </button>
       </div>
       
-      ${options.showQuestion ? `
+      ${
+        options.showQuestion
+          ? `
         <div class="voice-sample__question">
           <span class="voice-sample__q-label">Q:</span>
           "${sample.question}"
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       
       <div class="voice-sample__waveform">
-        ${Array(20).fill(0).map(() => '<div class="voice-sample__bar"></div>').join('')}
+        ${Array(20)
+          .fill(0)
+          .map(() => '<div class="voice-sample__bar"></div>')
+          .join('')}
       </div>
       
-      ${options.showTranscript ? `
+      ${
+        options.showTranscript
+          ? `
         <div class="voice-sample__transcript">
           <span class="voice-sample__a-label">Response:</span>
           "${sample.response}"
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
 
     // Bind play button
@@ -313,16 +361,24 @@
     voiceShowcase.className = 'voice-samples-showcase';
     voiceShowcase.innerHTML = `
       <div class="voice-samples-showcase__header">
-        <h3 class="voice-samples-showcase__title">Hear how Ferni responds</h3>
-        <p class="voice-samples-showcase__subtitle">No signup required—just listen</p>
+        <p class="voice-samples-showcase__eyebrow">YOUR TEAM</p>
+        <h3 class="voice-samples-showcase__title">Six voices. One conversation.</h3>
+        <p class="voice-samples-showcase__subtitle">Each brings something different—hear how they respond</p>
       </div>
       <div class="voice-samples-showcase__grid"></div>
     `;
 
     const grid = voiceShowcase.querySelector('.voice-samples-showcase__grid');
 
-    // Add sample players
-    const samplesToShow = ['stress', 'habits', 'decision', 'sleep'];
+    // Add sample players - show diverse personas
+    const samplesToShow = [
+      'stress',
+      'habits',
+      'relationship',
+      'decision',
+      'meaning',
+      'celebration',
+    ];
     samplesToShow.forEach((sampleId) => {
       const player = createSamplePlayer(sampleId, {
         showQuestion: true,
@@ -362,7 +418,7 @@
       }
       
       .voice-sample.is-playing {
-        box-shadow: 0 8px 32px rgba(74, 103, 65, 0.2);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--persona-color, #4a6741) 25%, transparent);
       }
       
       .voice-sample__header {
@@ -396,16 +452,19 @@
         font-size: 15px;
       }
       
-      .voice-sample__topic {
+      .voice-sample__role {
         display: block;
         font-size: 12px;
         color: #70605a;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
       }
       
       .voice-sample__play {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
+        background: linear-gradient(135deg, var(--persona-color), color-mix(in srgb, var(--persona-color) 85%, black));
         border: none;
         border-radius: 50%;
         cursor: pointer;
@@ -414,11 +473,12 @@
         align-items: center;
         justify-content: center;
         transition: transform 0.2s, box-shadow 0.2s;
+        flex-shrink: 0;
       }
       
       .voice-sample__play:hover {
         transform: scale(1.05);
-        box-shadow: 0 4px 16px rgba(74, 103, 65, 0.3);
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--persona-color) 40%, transparent);
       }
       
       .voice-sample__icon-play,
@@ -458,7 +518,7 @@
       .voice-sample__bar {
         width: 3px;
         height: 8px;
-        background: #4a6741;
+        background: var(--persona-color, #4a6741);
         border-radius: 2px;
         transition: height 0.1s ease;
       }
@@ -558,25 +618,36 @@
       
       .voice-samples-showcase__header {
         text-align: center;
-        margin-bottom: 40px;
+        margin-bottom: 48px;
+      }
+      
+      .voice-samples-showcase__eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #4a6741;
+        margin: 0 0 12px;
       }
       
       .voice-samples-showcase__title {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: 700;
         color: #2c2520;
-        margin: 0 0 8px;
+        margin: 0 0 12px;
+        line-height: 1.2;
       }
       
       .voice-samples-showcase__subtitle {
-        font-size: 16px;
+        font-size: 18px;
         color: #70605a;
         margin: 0;
+        font-weight: 400;
       }
       
       .voice-samples-showcase__grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
         max-width: 1200px;
         margin: 0 auto;
@@ -586,13 +657,27 @@
          RESPONSIVE
          ═══════════════════════════════════════════════════════════════════════════ */
       
-      @media (max-width: 768px) {
+      @media (max-width: 1024px) {
+        .voice-samples-showcase__grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      
+      @media (max-width: 640px) {
         .voice-samples-showcase__grid {
           grid-template-columns: 1fr;
         }
         
         .voice-sample {
           padding: 16px;
+        }
+        
+        .voice-samples-showcase__title {
+          font-size: 26px;
+        }
+        
+        .voice-samples-showcase__subtitle {
+          font-size: 16px;
         }
       }
       
@@ -623,7 +708,7 @@
     // Find the best TTS voice
     if (state.synthesis) {
       state.preferredVoice = findBestVoice();
-      
+
       // Voices may load asynchronously
       state.synthesis.addEventListener('voiceschanged', () => {
         state.preferredVoice = findBestVoice();
@@ -662,4 +747,3 @@
     setTimeout(init, 200);
   }
 })();
-

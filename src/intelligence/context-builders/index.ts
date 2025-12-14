@@ -364,7 +364,15 @@ export interface ContextBuilderMetrics {
 export type { PersonaConfig, UserProfile };
 
 // Re-export categories and metrics
-export { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
+export {
+  BUILDER_CATEGORIES,
+  BuilderCategory,
+  getBuilderCategory,
+  getBuildersInCategory,
+} from './categories.js';
+
+// Import for internal use
+import { BuilderCategory as BC } from './categories.js';
 export {
   checkPerformanceIssues,
   getAllBuilderMetrics,
@@ -704,6 +712,172 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
 }
 
 // ============================================================================
+// CONDITIONAL BUILDER LOADING
+// ============================================================================
+
+/**
+ * Categories that are ALWAYS run regardless of context
+ */
+const CORE_CATEGORIES: BC[] = [BC.SAFETY, BC.CONTEXT];
+
+/**
+ * Determine which builder categories should be active for this turn
+ *
+ * This optimization reduces the number of builders run per turn from 70+ to ~20-30
+ * by only running builders relevant to the current context.
+ *
+ * @param input - The context builder input
+ * @returns Array of categories that should be active
+ */
+export function determineActiveCategories(input: ContextBuilderInput): BC[] {
+  const categories = new Set<BC>(CORE_CATEGORIES);
+
+  const { analysis, userData, voiceEmotion } = input;
+  const turnCount = userData?.turnCount || 1;
+  const distressLevel = analysis?.emotion?.distressLevel || 0;
+  const emotionIntensity = analysis?.emotion?.intensity || 0;
+
+  // SAFETY - Always included via CORE_CATEGORIES
+
+  // EMOTIONAL - When user shows emotion or needs support
+  if (
+    analysis?.emotion?.needsSupport ||
+    distressLevel >= DISTRESS.LOW ||
+    emotionIntensity > 0.5 ||
+    analysis?.emotion?.valence === 'negative'
+  ) {
+    categories.add(BC.EMOTIONAL);
+  }
+
+  // VOICE - When voice emotion data is available
+  if (voiceEmotion && voiceEmotion.confidence > 0.3) {
+    categories.add(BC.VOICE);
+  }
+
+  // MEMORY - First 3 turns (session priming) + every 5th turn + returning users
+  if (turnCount <= 3 || turnCount % 5 === 0 || userData?.isReturningUser) {
+    categories.add(BC.MEMORY);
+  }
+
+  // PERSONA - Every turn for character consistency, but can be reduced
+  // Run on first turn, then periodically, or when low emotional intensity
+  if (turnCount === 1 || turnCount % 3 === 0 || emotionIntensity < 0.3) {
+    categories.add(BC.PERSONA);
+  }
+
+  // COACHING - When user is seeking advice or in exploring phase
+  if (
+    analysis?.intent?.primary === 'seeking_advice' ||
+    analysis?.intent?.requiresAction ||
+    analysis?.state?.phase === 'advising' ||
+    analysis?.state?.phase === 'exploring'
+  ) {
+    categories.add(BC.COACHING);
+  }
+
+  // COGNITIVE - When complex reasoning or distortions detected
+  if (
+    analysis?.emotion?.mentalHealthSignals?.length ||
+    analysis?.intent?.primary === 'seeking_advice' ||
+    analysis?.topics?.detected?.some((t) =>
+      ['decision', 'problem', 'stuck', 'confused', 'anxiety'].includes(t.toLowerCase())
+    )
+  ) {
+    categories.add(BC.COGNITIVE);
+  }
+
+  // ENGAGEMENT - When positive emotion or during lighter conversation
+  if (
+    analysis?.emotion?.valence === 'positive' ||
+    emotionIntensity < 0.3 ||
+    analysis?.topics?.detected?.some((t) =>
+      ['music', 'game', 'fun', 'story', 'celebration'].includes(t.toLowerCase())
+    )
+  ) {
+    categories.add(BC.ENGAGEMENT);
+  }
+
+  // TEAM - When handoff signals detected or team mentioned
+  if (
+    analysis?.intent?.primary === 'handoff_request' ||
+    input.userText?.toLowerCase().includes('talk to') ||
+    input.userText?.toLowerCase().includes('switch to')
+  ) {
+    categories.add(BC.TEAM);
+  }
+
+  // EXTERNAL - Periodically (every 10 turns) or when external topics mentioned
+  if (
+    turnCount % 10 === 0 ||
+    analysis?.topics?.detected?.some((t) =>
+      ['weather', 'calendar', 'health', 'finance', 'biometric'].includes(t.toLowerCase())
+    )
+  ) {
+    categories.add(BC.EXTERNAL);
+  }
+
+  // HUMANIZING - Most turns to maintain natural speech
+  // Skip only during high distress (focus on support)
+  if (distressLevel < DISTRESS.HIGH) {
+    categories.add(BC.HUMANIZING);
+  }
+
+  // LEARNING - Periodically (every 10 turns)
+  if (turnCount % 10 === 0) {
+    categories.add(BC.LEARNING);
+  }
+
+  return Array.from(categories);
+}
+
+/**
+ * Get builders filtered by active categories
+ *
+ * @param activeCategories - Categories to include
+ * @returns Filtered and sorted builders
+ */
+export function getBuildersByActiveCategories(activeCategories: BC[]): ContextBuilder[] {
+  const activeSet = new Set(activeCategories);
+  const allBuilders = getRegisteredBuilders();
+
+  return allBuilders.filter((builder) => {
+    const category = builder.category || getBuilderCategory(builder.name);
+    return activeSet.has(category);
+  });
+}
+
+/**
+ * Configuration for conditional builder loading
+ */
+export interface ConditionalLoadingConfig {
+  /** If true, use conditional loading (default: true in production) */
+  enabled: boolean;
+  /** If true, log which categories are active (default: false) */
+  logActiveCategories: boolean;
+  /** Override to force specific categories */
+  forceCategories?: BC[];
+}
+
+let conditionalLoadingConfig: ConditionalLoadingConfig = {
+  enabled: process.env.NODE_ENV === 'production' || process.env.CONDITIONAL_BUILDERS === 'true',
+  logActiveCategories: process.env.LOG_BUILDER_CATEGORIES === 'true',
+};
+
+/**
+ * Update conditional loading configuration
+ */
+export function setConditionalLoadingConfig(config: Partial<ConditionalLoadingConfig>): void {
+  conditionalLoadingConfig = { ...conditionalLoadingConfig, ...config };
+}
+
+/**
+ * Get current conditional loading configuration
+ */
+export function getConditionalLoadingConfig(): ConditionalLoadingConfig {
+  return { ...conditionalLoadingConfig };
+}
+
+// ============================================================================
 // MAIN CONTEXT BUILDING
 // ============================================================================
 
@@ -712,6 +886,7 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
  *
  * Features:
  * - Output caching with 5-minute TTL
+ * - Conditional builder loading (only runs relevant categories)
  * - Parallel execution for performance
  * - Per-builder metrics tracking
  * - Error isolation (one failing builder doesn't break others)
@@ -759,8 +934,34 @@ export async function buildConversationContext(
     );
   }
 
-  // Get all registered builders
-  const registeredBuilders = getRegisteredBuilders();
+  // Get builders - conditionally filtered or all
+  let buildersToRun: ContextBuilder[];
+  let activeCategories: BC[] | undefined;
+
+  if (conditionalLoadingConfig.enabled && !conditionalLoadingConfig.forceCategories) {
+    // Determine which categories are relevant for this turn
+    activeCategories = determineActiveCategories(input);
+    buildersToRun = getBuildersByActiveCategories(activeCategories);
+
+    if (conditionalLoadingConfig.logActiveCategories) {
+      log.debug(
+        {
+          activeCategories,
+          totalBuilders: getRegisteredBuilders().length,
+          filteredBuilders: buildersToRun.length,
+          turnCount: input.userData?.turnCount,
+        },
+        'Conditional builder loading active'
+      );
+    }
+  } else if (conditionalLoadingConfig.forceCategories) {
+    // Use forced categories (for testing/debugging)
+    buildersToRun = getBuildersByActiveCategories(conditionalLoadingConfig.forceCategories);
+    activeCategories = conditionalLoadingConfig.forceCategories;
+  } else {
+    // Run all builders (legacy behavior)
+    buildersToRun = getRegisteredBuilders();
+  }
 
   const builderResults: Array<{
     name: string;
@@ -769,9 +970,9 @@ export async function buildConversationContext(
     error?: string;
   }> = [];
 
-  // Run all builders in parallel (sorted by priority)
+  // Run builders in parallel (filtered by active categories, sorted by priority)
   const results = await Promise.allSettled(
-    registeredBuilders.map(async (builder) => {
+    buildersToRun.map(async (builder) => {
       const start = Date.now();
       try {
         const result = await builder.build(input);
@@ -808,7 +1009,7 @@ export async function buildConversationContext(
       injections.push(...result.value);
     } else {
       log.warn(
-        { builder: registeredBuilders[index].name, error: result.reason },
+        { builder: buildersToRun[index].name, error: result.reason },
         'Context builder failed'
       );
     }
@@ -842,6 +1043,7 @@ export async function buildConversationContextWithMetrics(input: ContextBuilderI
     buildersRan: number;
     buildersProducedInjections: number;
     performanceWarnings: string[];
+    conditionalLoadingEnabled: boolean;
   };
 }> {
   const start = Date.now();
@@ -854,15 +1056,20 @@ export async function buildConversationContextWithMetrics(input: ContextBuilderI
   // Get summary for this build
   const summary = getMetricsSummary();
 
+  // Get builder counts including conditional loading info
+  const allBuilderCount = builders.size;
+  const conditionalConfig = getConditionalLoadingConfig();
+
   return {
     injections,
     metrics: {
       totalDurationMs: duration,
       injectionCount: injections.length,
-      builderCount: builders.size,
-      buildersRan: summary.totalBuilds > 0 ? builders.size : 0,
+      builderCount: allBuilderCount,
+      buildersRan: summary.totalBuilds > 0 ? summary.mostActiveBuilders.length : 0,
       buildersProducedInjections: injections.length > 0 ? summary.mostActiveBuilders.length : 0,
       performanceWarnings,
+      conditionalLoadingEnabled: conditionalConfig.enabled,
     },
   };
 }

@@ -143,7 +143,7 @@ import { shouldUseDemoData } from './utils/environment.js';
 import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
-import { getCommandsPanelUI } from './ui/commands.ui.js';
+import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
@@ -160,9 +160,7 @@ import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
-import {
-  initRelationshipProgressUI,
-} from './ui/relationship-progress.ui.js';
+import { initRelationshipProgressUI } from './ui/relationship-progress.ui.js';
 // Trust Journey UI - "Better Than Human" relationship visualization
 import { initTrustJourneyUI, showTrustJourney } from './ui/trust-journey.ui.js';
 // Music Dashboard UI - "Musical You" insights
@@ -181,6 +179,12 @@ import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Settings UI
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
+// Wearable Settings UI - Health & fitness device connections
+import { showWearableSettings } from './ui/wearable-settings.ui.js';
+// Video Settings UI - Video session controls
+import { showVideoSettings } from './ui/video-settings.ui.js';
+// Group Coaching UI - Multi-participant sessions
+import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
 // Voice ID Badge
@@ -269,7 +273,6 @@ import {
 } from './services/music-audio.controller.js';
 
 // 🌟 Living Favicon - Ferni's presence in the browser tab
-import { initFaviconManager } from './ui/favicon-manager.ui.js';
 
 // Panel methods (extracted for file size)
 import {
@@ -1165,6 +1168,46 @@ class VoiceAIApp {
       });
     });
 
+    // 🎯 Commands Panel - for starting predefined practices
+    this.safeInit('CommandsPanelUI', () => {
+      getCommandsPanelUI().initialize();
+      getCommandsPanelUI().setCallbacks({
+        onCommandSelected: async (command, renderedPrompt) => {
+          log.info('Practice selected', { id: command.id, name: command.name });
+
+          // Check if connected to agent
+          const { connectionService } = await import('./services/connection.service.js');
+          const roomState = connectionService.getRoomState();
+          const room = connectionService.getRoom();
+
+          if (!roomState.isConnected || !room?.localParticipant) {
+            messageUI.show('Connect to Ferni first to start a practice', 'info', 3000);
+            return;
+          }
+
+          // Send practice start request via data channel
+          const message = JSON.stringify({
+            type: 'practice_start_request',
+            commandId: command.id,
+            commandName: command.name,
+            prompt: renderedPrompt,
+            timestamp: Date.now(),
+          });
+
+          try {
+            await room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            messageUI.show(`Starting "${command.name}"...`, 'success', 2500);
+          } catch (err) {
+            log.error('Failed to start practice', err);
+            messageUI.show("Couldn't start practice. Try asking Ferni directly!", 'error', 4000);
+          }
+        },
+        onClose: () => log.debug('Commands panel closed'),
+      });
+    });
+
     this.safeInit('PredictionTrackerUI', () => initPredictionTrackerUI());
 
     // 📦 Data Export - with actual export/delete functionality
@@ -1302,6 +1345,9 @@ class VoiceAIApp {
         onYourJourneyClick: () => journeyUI.open(),
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
+        onWearableSettingsClick: () => void showWearableSettings(),
+        onVideoSettingsClick: () => void showVideoSettings(),
+        onGroupCoachingClick: () => void showGroupCoaching(),
       });
 
       // Wire up Spotify state changes to menu
@@ -1328,7 +1374,6 @@ class VoiceAIApp {
     window.addEventListener('ferni:open-team-huddle', () => {
       showTeamHuddle();
     });
-
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -1538,6 +1583,7 @@ class VoiceAIApp {
     statsUI.setPersona(persona.name);
     thinkingUI.setPersona(personaId); // Persona-specific thinking messages
     avatarFeedback.setPersona(personaId); // Persona-specific idle behaviors
+    setCommandsPersonaId(personaId); // Update guided practices for new persona
 
     // Play sound
     soundUI.play('switch');
@@ -2119,6 +2165,7 @@ class VoiceAIApp {
       waveformUI.setPersona(newPersona.id);
       gesturesUI.setCurrentPersona(newPersona.id);
       statsUI.setPersona(newPersona.name);
+      setCommandsPersonaId(newPersona.id); // Update guided practices for new persona
       // Particles disabled for cleaner look
       // void agentParticlesUI.setPersona(newPersona.id);
 

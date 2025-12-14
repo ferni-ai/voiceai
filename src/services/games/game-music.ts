@@ -104,8 +104,29 @@ async function searchSongDirect(query: string): Promise<SearchResult> {
       },
     };
   } catch (error) {
-    log.error({ error, query }, '🎮 Failed to search song');
-    return { found: false, error: 'Search failed' };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isNetworkError =
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('timeout');
+    const isRateLimitError = errorMessage.includes('429') || errorMessage.includes('rate limit');
+
+    log.error(
+      { error: errorMessage, query, isNetworkError, isRateLimitError },
+      '🎮 Failed to search song'
+    );
+
+    // Provide user-friendly error messages
+    if (isRateLimitError) {
+      return { found: false, error: 'Music search is busy right now. Try again in a moment!' };
+    }
+    if (isNetworkError) {
+      return {
+        found: false,
+        error: 'Having trouble connecting to music service. Let me try a different song.',
+      };
+    }
+    return { found: false, error: `Couldn't find "${query}" - let's try a different one!` };
   }
 }
 
@@ -290,31 +311,47 @@ export async function getRandomGameSongs(
   const shuffled = searchQueries.sort(() => Math.random() - 0.5);
   const selectedQueries = shuffled.slice(0, count * 2); // Request more in case some fail
 
+  // 🚀 PERFORMANCE: Parallelize song loading in batches
+  // Load songs in parallel batches of 5 to avoid overwhelming iTunes API
+  const BATCH_SIZE = 5;
   const tracks: GameTrack[] = [];
 
-  for (const query of selectedQueries) {
-    if (tracks.length >= count) break;
+  for (let i = 0; i < selectedQueries.length && tracks.length < count; i += BATCH_SIZE) {
+    const batch = selectedQueries.slice(i, i + BATCH_SIZE);
 
-    try {
-      const result = await findTrack(query);
-      if (result.found && result.track?.previewUrl) {
-        tracks.push({
-          name: result.track.name,
-          artist: result.track.artist,
-          previewUrl: result.track.previewUrl,
-          // 🐛 FIX: Use preview duration, not full track duration from iTunes API
-          duration: ITUNES_PREVIEW_DURATION_MS,
-        });
+    // Fetch batch in parallel
+    const results = await Promise.allSettled(
+      batch.map(async (query) => {
+        try {
+          const result = await findTrack(query);
+          if (result.found && result.track?.previewUrl) {
+            return {
+              name: result.track.name,
+              artist: result.track.artist,
+              previewUrl: result.track.previewUrl,
+              // 🐛 FIX: Use preview duration, not full track duration from iTunes API
+              duration: ITUNES_PREVIEW_DURATION_MS,
+            };
+          }
+          return null;
+        } catch (error) {
+          log.debug({ error, query }, '🎮 Search failed for query');
+          return null;
+        }
+      })
+    );
+
+    // Collect successful results
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value && tracks.length < count) {
+        tracks.push(result.value);
       }
-    } catch {
-      // Skip failed searches
-      continue;
     }
 
-    // Small delay to avoid rate limiting
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 100);
-    });
+    // Small delay between batches to avoid rate limiting
+    if (tracks.length < count && i + BATCH_SIZE < selectedQueries.length) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   log.info({ count: tracks.length, requested: count }, '🎮 Loaded game songs');

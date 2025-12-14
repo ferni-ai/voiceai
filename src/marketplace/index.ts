@@ -23,8 +23,8 @@ export type * from './schema/index.js';
 
 // Executor exports
 export {
-  executeMarketplaceTool,
   executeBatch,
+  executeMarketplaceTool,
   type ExecutionContext,
   type ExecutionOptions,
   type ExecutionResult,
@@ -32,39 +32,34 @@ export {
 
 // Registry exports
 export {
-  // Tools (sync - from cache)
-  registerTool,
-  getTool,
-  listTools,
-  // Tools (async - checks store)
-  getToolAsync,
-
-  // Agents (sync - from cache)
-  registerAgent,
+  clearRegistry,
   getAgent,
-  listAgents,
   // Agents (async - checks store)
   getAgentAsync,
-
-  // Installations
-  installItem,
+  getExecutionHistory,
   getInstallation,
   getInstallationAsync,
-  listInstallations,
-  hasPermission,
-  uninstallItem,
-
-  // Execution tracking
-  recordExecution,
-  getExecutionHistory,
-
   // Marketplace listings
   getListing,
-  searchListings,
-
+  getTool,
+  // Tools (async - checks store)
+  getToolAsync,
+  hasPermission,
   // Initialization
   initializeMarketplaceRegistry,
-  clearRegistry,
+  // Installations
+  installItem,
+  listAgents,
+  listInstallations,
+  listTools,
+  // Execution tracking
+  recordExecution,
+  // Agents (sync - from cache)
+  registerAgent,
+  // Tools (sync - from cache)
+  registerTool,
+  searchListings,
+  uninstallItem,
 } from './registry.js';
 
 // Persistence exports (for advanced use cases)
@@ -73,3 +68,38 @@ export {
   resetMarketplaceStore,
   type MarketplaceStore,
 } from './persistence/index.js';
+
+// Reviews exports
+export {
+  addPublisherResponse,
+  createReview,
+  deleteReview,
+  flagReview,
+  getPendingReviews,
+  getReview,
+  getReviewStats,
+  listReviews,
+  moderateReview,
+  reviewsService,
+  updateReview,
+  voteReview,
+  type Review,
+  type ReviewStats,
+  type ReviewVote,
+} from './reviews/index.js';
+
+// Billing exports
+export {
+  calculateBilling,
+  calculateRevenueShare,
+  checkQuota,
+  getPendingPayouts,
+  getUsageSummary,
+  recordUsage,
+  type BilledAmount,
+  type Quota,
+  type RevenueShare,
+  type UsageMetrics,
+  type UsageRecord,
+  type UsageSummary,
+} from './billing/index.js';

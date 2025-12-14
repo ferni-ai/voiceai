@@ -23,7 +23,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { getGameEngine } from '../../../services/games/game-engine.js';
+import { getSessionGameEngine } from '../../../services/games/game-engine.js';
 import { getTextGameEngine } from '../../../services/games/text-game-engine.js';
 import type { TextGameType } from '../../../services/games/text-game-types.js';
 import type { GameType } from '../../../services/games/types.js';
@@ -79,7 +79,8 @@ Use when user says things like:
           execute: async ({ gameType, rounds }) => {
             try {
               const personaId = ctx.agentId || 'ferni';
-              const gameEngine = getGameEngine(personaId);
+              const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+              const gameEngine = getSessionGameEngine(sessionId, personaId);
 
               const config = rounds ? { rounds } : undefined;
               const welcomeMessage = await gameEngine.startGame(
@@ -119,7 +120,8 @@ Use when:
           }),
           execute: async ({ answer }) => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
               return "We're not playing a game right now. Want to start one?";
@@ -161,7 +163,8 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
               return "We're not playing a game right now!";
@@ -186,7 +189,8 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
               return "We're not playing a game right now!";
@@ -216,7 +220,8 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
               return "We're not playing a game right now!";
@@ -244,7 +249,8 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
             const state = gameEngine.getState();
 
             if (state.status === 'idle') {
@@ -274,7 +280,8 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
+            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const gameEngine = getSessionGameEngine(sessionId, personaId);
             const history = gameEngine.getHistory();
 
             if (history.sessionGames.length === 0) {

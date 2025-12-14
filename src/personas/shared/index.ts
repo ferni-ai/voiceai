@@ -8,71 +8,90 @@
 
 // Content injector - unified access to all shared content
 export {
-  injectSharedContent,
-  getTeammateOpinion,
-  suggestTeammate,
-  createHandoffContext,
   acknowledgeUser,
-  getPersonalizedNameUsage,
-  shouldTellStory,
-  getTimeGreeting,
+  createHandoffContext,
   formatForPrompt,
-  type SharedContentContext,
+  getPersonalizedNameUsage,
+  getTeammateOpinion,
+  getTimeGreeting,
+  injectSharedContent,
+  shouldTellStory,
+  suggestTeammate,
   type InjectedContent,
+  type SharedContentContext,
 } from './content-injector.js';
 
 // Team dynamics - how personas reference and interact with each other
 export {
-  TEAM_OPINIONS,
   HANDOFF_WARMTH,
   TEAM_MENTIONS,
-  type HandoffContext,
+  TEAM_OPINIONS,
   generateHandoffSummary,
-  getOpinionAbout,
-  getHandoffWarmth,
-  getTeamSuggestion,
   getCasualMention,
+  getHandoffWarmth,
+  getOpinionAbout,
+  getTeamSuggestion,
+  type HandoffContext,
 } from './team-dynamics.js';
 
 // Relationship building - deepening connections with users
 export {
-  STAGE_BEHAVIORS,
+  ACKNOWLEDGMENTS,
   CALLBACK_TEMPLATES,
   DEEPENING_QUESTIONS,
-  ACKNOWLEDGMENTS,
+  STAGE_BEHAVIORS,
   generateCallback,
-  getDeepeningQuestion,
   getAcknowledgment,
+  getDeepeningQuestion,
   getNameUsage,
-  getStageGreeting,
   getStageClosing,
+  getStageGreeting,
   getStagePersonalQuestion,
   shouldSharePersonalStory,
 } from './relationship-building.js';
 
 // Welcome back - time-based greetings for returning users
 export {
+  RETURNING_USER_RECOGNITION,
   WELCOME_BACK_BY_TIME,
   WELCOME_BACK_WITH_CONTEXT,
-  RETURNING_USER_RECOGNITION,
   generateWelcomeBack,
+  getMilestoneMessage,
   getTimeBasedGreeting,
   isMilestoneConversation,
-  getMilestoneMessage,
 } from './welcome-back.js';
 
 // Life events - tracking birthdays, anniversaries, milestones
 export {
-  type LifeEvent,
-  type LifeEventType,
   EVENT_ACKNOWLEDGMENTS,
   UPCOMING_EVENT_MENTIONS,
+  createLifeEvent,
+  findEventsToAcknowledge,
+  generateEventAcknowledgment,
   getDaysUntilEvent,
+  getEventTimeBucket,
+  getUpcomingEventMention,
   isEventSoon,
   isEventToday,
-  getEventTimeBucket,
-  generateEventAcknowledgment,
-  getUpcomingEventMention,
-  findEventsToAcknowledge,
-  createLifeEvent,
+  type LifeEvent,
+  type LifeEventType,
 } from './life-events.js';
+
+// Team chemistry - deep team dynamics, inside jokes, handoff context
+export {
+  buildHandoffContext as buildTeamHandoffContext,
+  checkTeamInsideJoke,
+  generateHandoffNote,
+  getAllTeamReferences,
+  getTeamChemistryConfig,
+  getTeamCompliment,
+  getTeamDynamics,
+  getTeamReference,
+  shouldIncludeTeamReference,
+  type TeamChemistryConfig,
+  type HandoffContext as TeamHandoffContext,
+  type TeamInsideJoke,
+  type TeamPairDynamic,
+  type TeamReference,
+  type TeamStory,
+} from './team-chemistry.js';

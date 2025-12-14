@@ -1,9 +1,9 @@
 /**
- * Emotional Memory Evolution
+ * Emotional Memory Evolution (Persona Bonding)
  *
  * > "Your best friend forgets how conversations felt. We don't."
  *
- * This system tracks how the persona FEELS about this specific user over time.
+ * This system tracks how the PERSONA FEELS about this specific user over time.
  * Unlike human memory that fades and distorts, we maintain a growing emotional
  * bond that deepens authentically.
  *
@@ -14,6 +14,15 @@
  * - Surface emotional history appropriately
  *
  * @module @ferni/superhuman/emotional-memory
+ *
+ * @deprecated For new code, prefer using the unified interface:
+ * ```typescript
+ * import { getUnifiedEmotionalMemory } from '../../memory/emotional-memory-unified.js';
+ * const memory = getUnifiedEmotionalMemory({ userId, personaId });
+ * ```
+ *
+ * The unified interface coordinates this PERSONA bonding system with the
+ * USER emotion tracking (intelligence/emotional-memory.ts).
  */
 
 import { createLogger } from '../../utils/safe-logger.js';

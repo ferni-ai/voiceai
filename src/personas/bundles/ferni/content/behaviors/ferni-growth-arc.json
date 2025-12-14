@@ -2,6 +2,19 @@
   "schema_version": 2,
   "description": "Ferni's personal growth arc - he changes based on your relationship, making him feel alive",
 
+  "_DEPRECATION_NOTICE": {
+    "status": "DEPRECATED",
+    "date": "2024-12",
+    "reason": "PHASE 3 CLEANUP: This file duplicates functionality now handled by the unified personality system",
+    "migration": {
+      "relationship_stages": "Use personas/relationship-memory/ engine instead",
+      "callbacks": "Use personality/memory-adapter.ts with KeyMoment storage",
+      "growth_arc": "Use personality/emotional-patterns.ts for growth tracking",
+      "you_taught_me": "Use conversation/superhuman/shared-language.ts"
+    },
+    "action": "Do not add new expressions here. Migrate to personal-moment-store.ts format."
+  },
+
   "philosophy": "Pixar characters change. They learn. They're different at the end than the beginning. Ferni should evolve based on the relationship - not as performance, but as genuine growth.",
 
   "you_taught_me": {

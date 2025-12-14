@@ -82,7 +82,7 @@ export {
   IntelligentTaskGroup,
 } from './intelligent-task.js';
 
-export type { AdaptiveInstructions, TaskContext } from './intelligent-task.js';
+export type { AdaptiveInstructions, ExecutableTask, TaskContext } from './intelligent-task.js';
 
 // ============================================================================
 // SUPPORT TASKS
@@ -244,11 +244,7 @@ export type {
 // ============================================================================
 
 import { FearAddressingTask, GoalSettingTask, WisdomSharingTask } from './advice-tasks.js';
-import {
-  IntelligentTaskGroup,
-  type IntelligentTask,
-  type TaskContext,
-} from './intelligent-task.js';
+import { IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
 import { GoalsTask, SituationAssessmentTask, WelcomeTask } from './onboarding.js';
 import { DeepDiveTask, FollowUpTask, GoodbyeTask } from './relationship-tasks.js';
 import { CheckInTask, EmotionalSupportTask } from './support-tasks.js';
@@ -267,9 +263,8 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
   group.setSupportTask(() => new EmotionalSupportTask());
 
   // Add tasks with intelligent options
-  // Note: Type assertion needed because IntelligentTaskGroup expects a generic task interface
-  // that these specific task types satisfy at runtime but TypeScript can't verify statically
-  group.add(() => new WelcomeTask() as unknown as InstanceType<typeof IntelligentTask>, {
+  // All task types implement ExecutableTask interface
+  group.add(() => new WelcomeTask(), {
     id: 'welcome',
     description: 'Warm greeting and getting to know the user',
     priority: 1,
@@ -282,17 +277,14 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
     skipIfDistressed: false, // Always do this
   });
 
-  group.add(
-    () => new SituationAssessmentTask() as unknown as InstanceType<typeof IntelligentTask>,
-    {
-      id: 'situation',
-      description: 'Understanding what brought them here',
-      priority: 3,
-      skipIfDistressed: true, // Skip if they need support
-    }
-  );
+  group.add(() => new SituationAssessmentTask(), {
+    id: 'situation',
+    description: 'Understanding what brought them here',
+    priority: 3,
+    skipIfDistressed: true, // Skip if they need support
+  });
 
-  group.add(() => new GoalsTask() as unknown as InstanceType<typeof IntelligentTask>, {
+  group.add(() => new GoalsTask(), {
     id: 'goals',
     description: 'Exploring their goals',
     priority: 4,

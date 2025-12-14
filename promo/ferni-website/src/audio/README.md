@@ -1,40 +1,69 @@
 # Voice Sample Audio Files
 
-Pre-recorded audio samples for the landing page voice demo feature.
+Pre-recorded audio samples for the landing page "Six voices. One conversation." demo.
 
-## Required Files
+## Quick Start
 
-Generate these using Cartesia (our TTS provider) with the Ferni voice:
-
-| File | Persona | Script | Duration |
-|------|---------|--------|----------|
-| `ferni-stress.mp3` | Ferni | "That sounds like a lot to carry. What's weighing on you the most right now?" | ~6s |
-| `maya-habits.mp3` | Maya | "Let's make that habit embarrassingly small. What's one tiny step you could take tomorrow?" | ~7s |
-| `peter-decision.mp3` | Peter | "Big decisions deserve a thorough think-through. Let me help you see all the angles here." | ~7s |
-| `ferni-greeting.mp3` | Ferni | "Hey! I'm Ferni. I'm here whenever you need to talk through something. No agenda, no rush." | ~8s |
-| `alex-communication.mp3` | Alex | "Communication is about being heard, not just saying words. Tell me what you really want them to understand." | ~9s |
-| `jordan-celebration.mp3` | Jordan | "That's worth celebrating! Tell me everything - I want to hear how it felt in the moment." | ~7s |
-
-## Generation Script
+Generate all voice samples using the Ferni CLI:
 
 ```bash
-# Use the Cartesia API with our Ferni voice ID
-# See scripts/generate-voice-samples.ts for automated generation
-
-npm run generate:voice-samples
+ferni voices generate-samples
 ```
+
+This uses:
+
+- **Persona voice registry** - Same voice IDs as the production app
+- **Cartesia sonic-3** - Same TTS model as PersonaAwareTTS
+- **Persona-specific voices** - Ferni, Maya, Peter, Alex, Jordan, Nayan
+
+## Samples Generated
+
+| File                | Persona                       | Topic               |
+| ------------------- | ----------------------------- | ------------------- |
+| `stress.mp3`        | Ferni (Life Coach)            | Overwhelm           |
+| `habits.mp3`        | Maya (Habit Architect)        | Building habits     |
+| `relationship.mp3`  | Alex (Communications Coach)   | Hard conversations  |
+| `decision.mp3`      | Peter (Research Guide)        | Decision making     |
+| `meaning.mp3`       | Nayan (Wisdom Guide)          | Finding meaning     |
+| `celebration.mp3`   | Jordan (Celebration Catalyst) | Celebrating wins    |
+| `career-advice.mp3` | Ferni                         | Career change fears |
+| `sleep.mp3`         | Ferni                         | 3am thoughts        |
+
+## Requirements
+
+- `CARTESIA_API_KEY` in your `.env` file
+- Voice IDs configured in `src/config/voice-ids.ts`
 
 ## Audio Format
 
-- Format: MP3
-- Sample rate: 44.1kHz  
-- Channels: Mono
-- Bitrate: 128kbps
-- Normalize to -16 LUFS
+- **Format:** MP3
+- **Sample rate:** 44.1kHz
+- **Model:** Cartesia sonic-3 (same as production)
 
-## Usage
+## Deployment
 
-The `voice-samples.js` module loads these files when the Voice Samples feature flag is enabled.
+After generating samples:
 
-Files are served from `/audio/` on the landing page.
+```bash
+npm run deploy:landing
+```
 
+The samples are served from `/audio/samples/` on the landing page.
+
+## How It Works
+
+The `voice-samples.js` module on the landing page:
+
+1. Tries to load pre-recorded MP3 files first
+2. Falls back to browser TTS if files aren't found
+3. Shows persona name, role, and color for each sample
+
+## Updating Samples
+
+To update the voice samples:
+
+1. Edit responses in `scripts/ferni.ts` → `handleVoices` → `generate-samples`
+2. Regenerate: `ferni voices generate-samples`
+3. Deploy: `npm run deploy:landing`
+
+The sample text should match `promo/ferni-website/src/js/voice-samples.js`.

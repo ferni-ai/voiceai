@@ -1,778 +1,875 @@
 /**
  * Calendar Settings UI
  *
- * Allows users to connect their Google Calendar for smarter outreach timing.
- * A good friend doesn't call when you're in a meeting.
+ * Settings panel for managing Google Calendar integration.
+ * Allows users to connect/disconnect their calendar and manage preferences.
  *
  * DESIGN PRINCIPLES:
- * - Brand-compliant centered modal
- * - Clear connection status
- * - Privacy-focused messaging
- * - Warm, human copy
+ *   - Centered floating modal (brand-compliant)
+ *   - Clear connection status indicator
+ *   - Simple connect/disconnect flow
+ *   - Warmth-focused animations
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
-import { appState } from '../state/app.state.js';
-import { createLogger } from '../utils/logger.js';
+import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
-
-const log = createLogger('CalendarSettings');
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface CalendarStatus {
+export interface CalendarStatus {
   connected: boolean;
   email?: string;
+  calendarName?: string;
   lastSynced?: string;
-  busySlotsToday?: number;
-  configured: boolean;
+  scopes?: string[];
+}
+
+export interface CalendarSettingsCallbacks {
+  onClose?: () => void;
+  onConnectionChange?: (connected: boolean) => void;
 }
 
 // ============================================================================
-// STATE
-// ============================================================================
-
-let settingsPanel: HTMLElement | null = null;
-let styleElement: HTMLStyleElement | null = null;
-let isOpen = false;
-let currentStatus: CalendarStatus = {
-  connected: false,
-  configured: false,
-};
-
-// ============================================================================
-// ICONS (Lucide SVG)
+// ICONS (Lucide-style, 2px stroke, rounded)
 // ============================================================================
 
 const ICONS = {
-  calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
-  check: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
-  close: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
-  clock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  refresh: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
-  unlink: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg>`,
-  shield: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
-  google: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+  </svg>`,
+  unlink: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/>
+    <path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/>
+    <line x1="8" y1="2" x2="8" y2="5"/>
+    <line x1="2" y1="8" x2="5" y2="8"/>
+    <line x1="16" y1="19" x2="16" y2="22"/>
+    <line x1="19" y1="16" x2="22" y2="16"/>
+  </svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+    <path d="M21 3v5h-5"/>
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+    <path d="M8 16H3v5"/>
+  </svg>`,
 };
 
 // ============================================================================
-// API
+// CALENDAR SETTINGS UI CLASS
 // ============================================================================
 
-async function fetchCalendarStatus(): Promise<CalendarStatus> {
-  try {
-    const response = await apiGet<{
-      connected?: boolean;
-      email?: string;
-      lastSynced?: string;
-      busySlotsToday?: number;
-      configured?: boolean;
-    }>('/api/calendar/status');
+class CalendarSettingsUI {
+  private panel: HTMLElement | null = null;
+  private wrapper: HTMLElement | null = null;
+  private callbacks: CalendarSettingsCallbacks = {};
+  private styleElement: HTMLStyleElement | null = null;
+  private isVisible = false;
+  private status: CalendarStatus | null = null;
+  private isLoading = false;
 
-    if (response.ok && response.data) {
-      return {
-        connected: response.data.connected ?? false,
-        email: response.data.email,
-        lastSynced: response.data.lastSynced,
-        busySlotsToday: response.data.busySlotsToday,
-        configured: response.data.configured ?? true,
-      };
-    }
-  } catch (error) {
-    log.warn('Failed to fetch calendar status:', error);
-  }
-  return { connected: false, configured: false };
-}
+  /**
+   * Initialize the settings panel
+   */
+  initialize(): void {
+    if (this.panel) return;
 
-async function disconnectCalendar(): Promise<boolean> {
-  try {
-    const response = await apiPost('/api/calendar/disconnect');
-    return response.ok;
-  } catch (error) {
-    log.error('Failed to disconnect calendar:', error);
-    return false;
-  }
-}
+    // HMR protection
+    document.querySelectorAll('.calendar-settings').forEach((el) => el.remove());
 
-async function syncCalendar(): Promise<boolean> {
-  try {
-    const response = await apiPost('/api/calendar/sync');
-    return response.ok;
-  } catch (error) {
-    log.error('Failed to sync calendar:', error);
-    return false;
-  }
-}
-
-// ============================================================================
-// UI CREATION
-// ============================================================================
-
-function injectStyles(): void {
-  if (styleElement) return;
-
-  styleElement = document.createElement('style');
-  styleElement.setAttribute('data-calendar-settings-styles', '');
-  styleElement.textContent = `
-    /* ========================================================================
-       CALENDAR SETTINGS MODAL
-       ======================================================================== */
-    .calendar-settings-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal, 10000);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
-    }
-
-    .calendar-settings-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .calendar-settings-backdrop {
-      position: absolute;
-      inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.5));
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    }
-
-    .calendar-settings-card {
-      position: relative;
-      width: 90%;
-      max-width: 440px;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(44, 37, 32, 0.25));
-      transform: scale(0.95) translateY(10px);
-      transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
-    }
-
-    .calendar-settings-overlay.open .calendar-settings-card {
-      transform: scale(1) translateY(0);
-    }
-
-    .calendar-settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-    }
-
-    .calendar-settings-title-group {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-1, 4px);
-    }
-
-    .calendar-settings-eyebrow {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xs, 11px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-accent-text, var(--persona-primary, #4a6741));
-    }
-
-    .calendar-settings-eyebrow svg {
-      width: 14px;
-      height: 14px;
-    }
-
-    .calendar-settings-title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xl, 20px);
-      font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
-      margin: 0;
-    }
-
-    .calendar-settings-subtitle {
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: var(--text-sm, 14px);
-      color: var(--color-text-muted, #756A5E);
-      margin: 0;
-    }
-
-    .calendar-settings-close {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      background: var(--color-background-secondary, #F5F1E8);
-      border: none;
-      border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-secondary, #5C544A);
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .calendar-settings-close:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
-    }
-
-    .calendar-settings-close svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    .calendar-settings-content {
-      padding: var(--space-6, 24px);
-    }
-
-    /* Connection Status */
-    .calendar-status {
-      display: flex;
-      align-items: center;
-      gap: var(--space-4, 16px);
-      padding: var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
-      border-radius: var(--radius-lg, 12px);
-      margin-bottom: var(--space-6, 24px);
-    }
-
-    .calendar-status-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-full, 9999px);
-      flex-shrink: 0;
-    }
-
-    .calendar-status-icon svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .calendar-status-icon.connected {
-      background: var(--color-semantic-success-bg, #e8f5e9);
-      color: var(--color-semantic-success, #2e7d32);
-    }
-
-    .calendar-status-icon.disconnected {
-      color: var(--color-text-muted, #756A5E);
-    }
-
-    .calendar-status-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .calendar-status-label {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-base, 16px);
-      font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
-      margin: 0 0 var(--space-1, 4px);
-    }
-
-    .calendar-status-detail {
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: var(--text-sm, 14px);
-      color: var(--color-text-muted, #756A5E);
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Action Buttons */
-    .calendar-actions {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3, 12px);
-    }
-
-    .calendar-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-3, 12px);
-      width: 100%;
-      padding: var(--space-4, 16px);
-      border: none;
-      border-radius: var(--radius-lg, 12px);
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-base, 16px);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .calendar-btn svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .calendar-btn-primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
-    }
-
-    .calendar-btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md, 0 4px 12px rgba(74, 103, 65, 0.3));
-    }
-
-    .calendar-btn-google {
-      background: white;
-      border: 2px solid var(--color-border-default, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-primary, #2C2520);
-    }
-
-    .calendar-btn-google:hover {
-      background: var(--color-background-secondary, #F5F1E8);
-      border-color: var(--color-border-subtle, rgba(44, 37, 32, 0.2));
-    }
-
-    .calendar-btn-secondary {
-      background: var(--color-background-secondary, #F5F1E8);
-      color: var(--color-text-secondary, #5C544A);
-    }
-
-    .calendar-btn-secondary:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-    }
-
-    .calendar-btn-danger {
-      background: transparent;
-      color: var(--color-semantic-error, #c62828);
-      border: 1px solid var(--color-semantic-error, #c62828);
-    }
-
-    .calendar-btn-danger:hover {
-      background: var(--color-semantic-error-bg, #ffebee);
-    }
-
-    .calendar-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    /* Privacy Note */
-    .calendar-privacy {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3, 12px);
-      padding: var(--space-4, 16px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
-      border-radius: var(--radius-lg, 12px);
-      margin-top: var(--space-6, 24px);
-    }
-
-    .calendar-privacy-icon {
-      color: var(--color-text-secondary);
-      flex-shrink: 0;
-    }
-
-    .calendar-privacy-icon svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .calendar-privacy-text {
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
-      line-height: 1.5;
-      margin: 0;
-    }
-
-    /* Busy Slots Preview */
-    .calendar-busy-preview {
-      margin-top: var(--space-4, 16px);
-      padding: var(--space-3, 12px);
-      background: var(--color-background-secondary, #F5F1E8);
-      border-radius: var(--radius-md, 8px);
-    }
-
-    .calendar-busy-label {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xs, 11px);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted, #756A5E);
-      margin: 0 0 var(--space-2, 8px);
-    }
-
-    .calendar-busy-value {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-lg, 18px);
-      font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
-    }
-
-    /* Loading State */
-    .calendar-btn.loading svg {
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    /* Dark Theme */
-    [data-theme="midnight"] .calendar-settings-card {
-      background: var(--color-background-elevated, #70605a);
-    }
-
-    [data-theme="midnight"] .calendar-settings-title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .calendar-settings-subtitle,
-    [data-theme="midnight"] .calendar-status-detail,
-    [data-theme="midnight"] .calendar-privacy-text {
-      color: var(--color-text-secondary, #f0ebe4);
-    }
-
-    [data-theme="midnight"] .calendar-status,
-    [data-theme="midnight"] .calendar-busy-preview {
-      background: var(--color-background-secondary, #60504a);
-    }
-
-    [data-theme="midnight"] .calendar-status-label,
-    [data-theme="midnight"] .calendar-busy-value {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .calendar-btn-google {
-      background: var(--color-background-secondary, #60504a);
-      border-color: var(--color-border-default, rgba(250, 246, 240, 0.15));
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .calendar-btn-secondary {
-      background: var(--color-background-secondary, #60504a);
-      color: var(--color-text-secondary, #f0ebe4);
-    }
-  `;
-  document.head.appendChild(styleElement);
-}
-
-function createSettingsPanel(): HTMLElement {
-  const panel = document.createElement('div');
-  panel.className = 'calendar-settings-overlay';
-  panel.innerHTML = renderContent();
-
-  // Event listeners
-  panel.querySelector('.calendar-settings-backdrop')?.addEventListener('click', close);
-  panel.querySelector('.calendar-settings-close')?.addEventListener('click', close);
-
-  setupActionListeners(panel);
-
-  return panel;
-}
-
-function renderContent(): string {
-  const { connected, email, lastSynced, busySlotsToday, configured } = currentStatus;
-
-  if (!configured) {
-    return `
-      <div class="calendar-settings-backdrop"></div>
-      <div class="calendar-settings-card">
-        <header class="calendar-settings-header">
-          <div class="calendar-settings-title-group">
-            <div class="calendar-settings-eyebrow">
-              ${ICONS.calendar}
-              <span>Calendar</span>
-            </div>
-            <h2 class="calendar-settings-title">Smart Timing</h2>
-            <p class="calendar-settings-subtitle">Coming soon</p>
-          </div>
-          <button class="calendar-settings-close" aria-label="Close">
-            ${ICONS.close}
-          </button>
-        </header>
-        <div class="calendar-settings-content">
-          <p class="calendar-privacy-text" style="text-align: center; padding: var(--space-8, 32px);">
-            Calendar integration is not yet configured. Check back soon!
-          </p>
-        </div>
-      </div>
-    `;
+    this.injectStyles();
+    this.createPanel();
   }
 
-  if (connected) {
-    return `
-      <div class="calendar-settings-backdrop"></div>
-      <div class="calendar-settings-card">
-        <header class="calendar-settings-header">
-          <div class="calendar-settings-title-group">
-            <div class="calendar-settings-eyebrow">
-              ${ICONS.calendar}
-              <span>Calendar</span>
-            </div>
-            <h2 class="calendar-settings-title">Connected</h2>
-            <p class="calendar-settings-subtitle">I know when you're busy</p>
-          </div>
-          <button class="calendar-settings-close" aria-label="Close">
-            ${ICONS.close}
-          </button>
-        </header>
-        <div class="calendar-settings-content">
-          <div class="calendar-status">
-            <div class="calendar-status-icon connected">
-              ${ICONS.check}
-            </div>
-            <div class="calendar-status-info">
-              <p class="calendar-status-label">Google Calendar</p>
-              <p class="calendar-status-detail">${email || 'Connected'}</p>
-            </div>
-          </div>
-
-          ${typeof busySlotsToday === 'number' ? `
-            <div class="calendar-busy-preview">
-              <p class="calendar-busy-label">Events today</p>
-              <p class="calendar-busy-value">${busySlotsToday} ${busySlotsToday === 1 ? 'event' : 'events'}</p>
-            </div>
-          ` : ''}
-
-          <div class="calendar-actions">
-            <button class="calendar-btn calendar-btn-secondary" data-action="sync">
-              ${ICONS.refresh}
-              <span>Sync Now</span>
-            </button>
-            <button class="calendar-btn calendar-btn-danger" data-action="disconnect">
-              ${ICONS.unlink}
-              <span>Disconnect Calendar</span>
-            </button>
-          </div>
-
-          <div class="calendar-privacy">
-            <span class="calendar-privacy-icon">${ICONS.shield}</span>
-            <p class="calendar-privacy-text">
-              I only see when you're free or busy, not what your events are about.
-              ${lastSynced ? `Last synced ${formatRelativeTime(lastSynced)}.` : ''}
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
+  /**
+   * Set callbacks
+   */
+  setCallbacks(callbacks: CalendarSettingsCallbacks): void {
+    this.callbacks = callbacks;
   }
 
-  // Not connected
-  return `
-    <div class="calendar-settings-backdrop"></div>
-    <div class="calendar-settings-card">
-      <header class="calendar-settings-header">
-        <div class="calendar-settings-title-group">
-          <div class="calendar-settings-eyebrow">
-            ${ICONS.calendar}
-            <span>Calendar</span>
-          </div>
-          <h2 class="calendar-settings-title">Smart Timing</h2>
-          <p class="calendar-settings-subtitle">Know when to reach you</p>
-        </div>
-        <button class="calendar-settings-close" aria-label="Close">
+  /**
+   * Show the settings panel
+   */
+  async show(): Promise<void> {
+    this.initialize();
+    if (!this.panel || !this.wrapper) return;
+
+    this.renderLoading();
+    this.panel.classList.add('calendar-settings--visible');
+    this.isVisible = true;
+
+    // Fetch current status
+    await this.loadStatus();
+  }
+
+  /**
+   * Hide the settings panel
+   */
+  hide(): void {
+    if (!this.panel) return;
+
+    this.panel.classList.remove('calendar-settings--visible');
+    this.isVisible = false;
+    this.callbacks.onClose?.();
+  }
+
+  /**
+   * Toggle visibility
+   */
+  toggle(): void {
+    if (this.isVisible) {
+      this.hide();
+    } else {
+      this.show();
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+
+  private createPanel(): void {
+    this.panel = document.createElement('div');
+    this.panel.className = 'calendar-settings';
+    this.panel.setAttribute('role', 'dialog');
+    this.panel.setAttribute('aria-label', 'Calendar Settings');
+
+    this.wrapper = document.createElement('div');
+    this.wrapper.className = 'calendar-settings__wrapper';
+    this.panel.appendChild(this.wrapper);
+
+    // Close on backdrop click
+    this.panel.addEventListener('click', (e) => {
+      if (e.target === this.panel) this.hide();
+    });
+
+    document.body.appendChild(this.panel);
+  }
+
+  private async loadStatus(): Promise<void> {
+    try {
+      const response = await apiGet<{ success: boolean; status: CalendarStatus }>(
+        '/api/calendar/status'
+      );
+
+      if (response.success) {
+        this.status = response.status;
+        this.renderContent();
+      } else {
+        this.renderError('Unable to load calendar status');
+      }
+    } catch {
+      // Assume not connected if API fails
+      this.status = { connected: false };
+      this.renderContent();
+    }
+  }
+
+  private renderLoading(): void {
+    if (!this.wrapper) return;
+
+    this.wrapper.innerHTML = `
+      <header class="calendar-settings__header">
+        <div class="calendar-settings__icon">${ICONS.calendar}</div>
+        <h2 class="calendar-settings__title">Calendar</h2>
+        <button class="calendar-settings__close" aria-label="Close">
           ${ICONS.close}
         </button>
       </header>
-      <div class="calendar-settings-content">
-        <div class="calendar-status">
-          <div class="calendar-status-icon disconnected">
-            ${ICONS.clock}
-          </div>
-          <div class="calendar-status-info">
-            <p class="calendar-status-label">Not Connected</p>
-            <p class="calendar-status-detail">Connect to enable smart timing</p>
+      <div class="calendar-settings__loading">
+        <div class="calendar-settings__spinner"></div>
+        <p>Loading calendar settings...</p>
+      </div>
+    `;
+
+    this.bindCloseButton();
+  }
+
+  private renderContent(): void {
+    if (!this.wrapper || !this.status) return;
+
+    const connectedContent = this.status.connected
+      ? `
+        <div class="calendar-settings__status calendar-settings__status--connected">
+          <div class="calendar-settings__status-icon">${ICONS.check}</div>
+          <div class="calendar-settings__status-text">
+            <span class="calendar-settings__status-label">Connected</span>
+            ${this.status.email ? `<span class="calendar-settings__status-detail">${this.escapeHtml(this.status.email)}</span>` : ''}
           </div>
         </div>
 
-        <div class="calendar-actions">
-          <button class="calendar-btn calendar-btn-google" data-action="connect">
-            ${ICONS.google}
+        ${
+          this.status.calendarName
+            ? `
+          <div class="calendar-settings__info">
+            <span class="calendar-settings__info-label">Calendar</span>
+            <span class="calendar-settings__info-value">${this.escapeHtml(this.status.calendarName)}</span>
+          </div>
+        `
+            : ''
+        }
+
+        ${
+          this.status.lastSynced
+            ? `
+          <div class="calendar-settings__info">
+            <span class="calendar-settings__info-label">Last synced</span>
+            <span class="calendar-settings__info-value">${this.formatDate(this.status.lastSynced)}</span>
+          </div>
+        `
+            : ''
+        }
+
+        <div class="calendar-settings__actions">
+          <button class="calendar-settings__btn calendar-settings__btn--secondary" data-action="sync">
+            ${ICONS.refresh}
+            <span>Sync Now</span>
+          </button>
+          <button class="calendar-settings__btn calendar-settings__btn--danger" data-action="disconnect">
+            ${ICONS.unlink}
+            <span>Disconnect</span>
+          </button>
+        </div>
+      `
+      : `
+        <div class="calendar-settings__status calendar-settings__status--disconnected">
+          <div class="calendar-settings__status-icon">${ICONS.calendar}</div>
+          <div class="calendar-settings__status-text">
+            <span class="calendar-settings__status-label">Not connected</span>
+            <span class="calendar-settings__status-detail">Connect your calendar to enable smart scheduling</span>
+          </div>
+        </div>
+
+        <div class="calendar-settings__benefits">
+          <h3>What you'll get:</h3>
+          <ul>
+            <li>Smart appointment scheduling through voice</li>
+            <li>Context-aware coaching based on your schedule</li>
+            <li>Proactive check-ins that respect your busy times</li>
+            <li>Meeting prep summaries before important events</li>
+          </ul>
+        </div>
+
+        <div class="calendar-settings__actions">
+          <button class="calendar-settings__btn calendar-settings__btn--primary" data-action="connect">
+            ${ICONS.link}
             <span>Connect Google Calendar</span>
           </button>
         </div>
 
-        <div class="calendar-privacy">
-          <span class="calendar-privacy-icon">${ICONS.shield}</span>
-          <p class="calendar-privacy-text">
-            I'll only see when you're free or busy — never the details of your events.
-            A good friend doesn't call when you're in a meeting.
-          </p>
-        </div>
+        <p class="calendar-settings__privacy">
+          We only access your calendar to help you. Your events stay private.
+        </p>
+      `;
+
+    this.wrapper.innerHTML = `
+      <header class="calendar-settings__header">
+        <div class="calendar-settings__icon">${ICONS.calendar}</div>
+        <h2 class="calendar-settings__title">Calendar</h2>
+        <button class="calendar-settings__close" aria-label="Close">
+          ${ICONS.close}
+        </button>
+      </header>
+      <div class="calendar-settings__content">
+        ${connectedContent}
       </div>
-    </div>
-  `;
-}
+    `;
 
-function setupActionListeners(panel: HTMLElement): void {
-  panel.querySelector('[data-action="connect"]')?.addEventListener('click', async () => {
-    const btn = panel.querySelector('[data-action="connect"]') as HTMLButtonElement;
+    this.bindCloseButton();
+    this.bindActions();
+  }
+
+  private renderError(message: string): void {
+    if (!this.wrapper) return;
+
+    this.wrapper.innerHTML = `
+      <header class="calendar-settings__header">
+        <div class="calendar-settings__icon">${ICONS.calendar}</div>
+        <h2 class="calendar-settings__title">Calendar</h2>
+        <button class="calendar-settings__close" aria-label="Close">
+          ${ICONS.close}
+        </button>
+      </header>
+      <div class="calendar-settings__error">
+        <p>${this.escapeHtml(message)}</p>
+        <button class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
+          Try Again
+        </button>
+      </div>
+    `;
+
+    this.bindCloseButton();
+    this.wrapper.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
+      this.renderLoading();
+      this.loadStatus();
+    });
+  }
+
+  private bindCloseButton(): void {
+    this.wrapper?.querySelector('.calendar-settings__close')?.addEventListener('click', () => {
+      this.hide();
+    });
+  }
+
+  private bindActions(): void {
+    // Connect button
+    this.wrapper?.querySelector('[data-action="connect"]')?.addEventListener('click', async () => {
+      await this.connect();
+    });
+
+    // Disconnect button
+    this.wrapper
+      ?.querySelector('[data-action="disconnect"]')
+      ?.addEventListener('click', async () => {
+        await this.disconnect();
+      });
+
+    // Sync button
+    this.wrapper?.querySelector('[data-action="sync"]')?.addEventListener('click', async () => {
+      await this.sync();
+    });
+  }
+
+  private async connect(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    try {
+      // Redirect to Google OAuth flow
+      // Note: Backend expects snake_case user_id parameter
+      const userId = this.getUserId();
+      window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
+    } catch (error) {
+      this.renderError('Failed to connect. Please try again.');
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async disconnect(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    const btn = this.wrapper?.querySelector('[data-action="disconnect"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.classList.add('loading');
+      btn.innerHTML = `${ICONS.refresh}<span>Disconnecting...</span>`;
     }
 
-    const userId = appState.getState().deviceId;
-    const returnUrl = encodeURIComponent(window.location.href + '?calendar_linked=true');
+    try {
+      await apiPost('/api/calendar/disconnect', {});
+      this.status = { connected: false };
+      this.renderContent();
+      this.callbacks.onConnectionChange?.(false);
+    } catch {
+      this.renderError('Failed to disconnect. Please try again.');
+    } finally {
+      this.isLoading = false;
+    }
+  }
 
-    // Redirect to OAuth flow
-    window.location.href = `/auth/google/login?user_id=${userId}&return_url=${returnUrl}`;
-  });
+  private async sync(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
 
-  panel.querySelector('[data-action="sync"]')?.addEventListener('click', async () => {
-    const btn = panel.querySelector('[data-action="sync"]') as HTMLButtonElement;
+    const btn = this.wrapper?.querySelector('[data-action="sync"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.classList.add('loading');
+      btn.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+      btn.classList.add('calendar-settings__btn--syncing');
     }
 
-    const success = await syncCalendar();
-
-    if (success) {
-      currentStatus = await fetchCalendarStatus();
-      updatePanelContent();
+    try {
+      await apiPost('/api/calendar/sync', {});
+      await this.loadStatus();
+    } catch {
+      this.renderError('Failed to sync. Please try again.');
+    } finally {
+      this.isLoading = false;
     }
+  }
 
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('loading');
+  private getUserId(): string {
+    // Get user ID from local storage or auth state
+    return localStorage.getItem('ferni_user_id') || 'anonymous';
+  }
+
+  private formatDate(dateString: string): string {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
     }
-  });
+  }
 
-  panel.querySelector('[data-action="disconnect"]')?.addEventListener('click', async () => {
-    const btn = panel.querySelector('[data-action="disconnect"]') as HTMLButtonElement;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Disconnecting...';
-    }
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
-    const success = await disconnectCalendar();
+  private injectStyles(): void {
+    if (this.styleElement) return;
 
-    if (success) {
-      currentStatus = { connected: false, configured: true };
-      updatePanelContent();
-    } else if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `${ICONS.unlink}<span>Disconnect Calendar</span>`;
-    }
-  });
-}
+    this.styleElement = document.createElement('style');
+    this.styleElement.textContent = `
+      /* ========================================================================
+         CALENDAR SETTINGS OVERLAY
+         ======================================================================== */
+      .calendar-settings {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-modal, 1400);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--ma-rest, 21px);
+        background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
+        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
+      }
 
-function updatePanelContent(): void {
-  if (!settingsPanel) return;
+      .calendar-settings--visible {
+        opacity: 1;
+        visibility: visible;
+      }
 
-  const card = settingsPanel.querySelector('.calendar-settings-card');
-  if (card) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = renderContent();
-    const newCard = tempDiv.querySelector('.calendar-settings-card');
-    if (newCard) {
-      card.innerHTML = newCard.innerHTML;
-      setupActionListeners(settingsPanel);
-    }
+      .calendar-settings__wrapper {
+        width: 100%;
+        max-width: 400px;
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-radius: var(--radius-xl, 1.5rem);
+        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
+        transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
+      }
+
+      .calendar-settings--visible .calendar-settings__wrapper {
+        transform: scale(1);
+      }
+
+      /* ========================================================================
+         HEADER
+         ======================================================================== */
+      .calendar-settings__header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-settings__icon {
+        width: 24px;
+        height: 24px;
+        color: var(--color-accent-primary, #2d5a3d);
+      }
+
+      .calendar-settings__icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .calendar-settings__title {
+        flex: 1;
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin: 0;
+      }
+
+      .calendar-settings__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: var(--color-background-tertiary, #ebe6df);
+        border: none;
+        border-radius: var(--radius-full, 9999px);
+        color: var(--color-text-secondary, #5c544a);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-settings__close:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__close svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ========================================================================
+         CONTENT
+         ======================================================================== */
+      .calendar-settings__content {
+        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
+      }
+
+      /* ========================================================================
+         STATUS
+         ======================================================================== */
+      .calendar-settings__status {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--ma-breath, 13px);
+        border-radius: var(--radius-lg, 0.75rem);
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__status--connected {
+        background: var(--persona-tint, rgba(45, 90, 61, 0.1));
+      }
+
+      .calendar-settings__status--disconnected {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .calendar-settings__status-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-background-elevated, #fffdfb);
+        border-radius: var(--radius-full, 9999px);
+        flex-shrink: 0;
+      }
+
+      .calendar-settings__status--connected .calendar-settings__status-icon {
+        color: var(--color-semantic-success, #3d7a52);
+      }
+
+      .calendar-settings__status--disconnected .calendar-settings__status-icon {
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__status-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .calendar-settings__status-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .calendar-settings__status-label {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__status-detail {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      /* ========================================================================
+         INFO ROWS
+         ======================================================================== */
+      .calendar-settings__info {
+        display: flex;
+        justify-content: space-between;
+        padding: var(--space-2, 8px) 0;
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-settings__info:last-of-type {
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__info-label {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__info-value {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      /* ========================================================================
+         BENEFITS
+         ======================================================================== */
+      .calendar-settings__benefits {
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__benefits h3 {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+        margin: 0 0 var(--space-2, 8px) 0;
+      }
+
+      .calendar-settings__benefits ul {
+        margin: 0;
+        padding: 0 0 0 var(--space-4, 16px);
+        list-style: disc;
+      }
+
+      .calendar-settings__benefits li {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #5c544a);
+        margin-bottom: var(--space-1, 4px);
+        line-height: 1.5;
+      }
+
+      /* ========================================================================
+         ACTIONS
+         ======================================================================== */
+      .calendar-settings__actions {
+        display: flex;
+        gap: var(--space-2, 8px);
+      }
+
+      .calendar-settings__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2, 8px);
+        flex: 1;
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        border: none;
+        border-radius: var(--radius-lg, 0.75rem);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-settings__btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      .calendar-settings__btn--primary {
+        background: var(--color-accent-primary, #2d5a3d);
+        color: white;
+      }
+
+      .calendar-settings__btn--primary:hover {
+        background: var(--color-accent-secondary, #3d7a52);
+      }
+
+      .calendar-settings__btn--secondary {
+        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__btn--secondary:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .calendar-settings__btn--danger {
+        background: transparent;
+        color: var(--color-semantic-error, #b5453a);
+        border: 1px solid var(--color-semantic-error, #b5453a);
+      }
+
+      .calendar-settings__btn--danger:hover {
+        background: var(--color-semantic-error, #b5453a);
+        color: white;
+      }
+
+      .calendar-settings__btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .calendar-settings__btn--syncing svg {
+        animation: calendar-spin 1s linear infinite;
+      }
+
+      @keyframes calendar-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* ========================================================================
+         PRIVACY NOTE
+         ======================================================================== */
+      .calendar-settings__privacy {
+        margin-top: var(--ma-breath, 13px);
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        text-align: center;
+      }
+
+      /* ========================================================================
+         LOADING
+         ======================================================================== */
+      .calendar-settings__loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--ma-vastness, 89px) var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border-radius: 50%;
+        animation: calendar-spin 0.8s linear infinite;
+        margin-bottom: var(--ma-breath, 13px);
+      }
+
+      .calendar-settings__loading p {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-muted, #756a5e);
+        margin: 0;
+      }
+
+      /* ========================================================================
+         ERROR
+         ======================================================================== */
+      .calendar-settings__error {
+        text-align: center;
+        padding: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__error p {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #5c544a);
+        margin: 0 0 var(--ma-breath, 13px) 0;
+      }
+
+      /* ========================================================================
+         DARK THEME
+         ======================================================================== */
+      [data-theme="midnight"] .calendar-settings__wrapper {
+        background: var(--color-background-elevated, #70605a);
+      }
+
+      [data-theme="midnight"] .calendar-settings__title,
+      [data-theme="midnight"] .calendar-settings__status-label,
+      [data-theme="midnight"] .calendar-settings__info-value,
+      [data-theme="midnight"] .calendar-settings__benefits h3 {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-settings__status--connected {
+        background: var(--persona-tint);
+      }
+
+      [data-theme="midnight"] .calendar-settings__status--disconnected {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .calendar-settings__status-icon {
+        background: var(--color-background-elevated, #70605a);
+      }
+
+      [data-theme="midnight"] .calendar-settings__close {
+        background: var(--color-background-tertiary, #685852);
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-settings__btn--secondary {
+        background: var(--color-background-tertiary, #685852);
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      /* ========================================================================
+         MOBILE
+         ======================================================================== */
+      @media (max-width: 480px) {
+        .calendar-settings__wrapper {
+          max-width: 100%;
+          border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
+          margin-top: auto;
+        }
+
+        .calendar-settings__header,
+        .calendar-settings__content {
+          padding: var(--space-4, 16px);
+        }
+
+        .calendar-settings__actions {
+          flex-direction: column;
+        }
+      }
+    `;
+    document.head.appendChild(this.styleElement);
+  }
+
+  destroy(): void {
+    this.hide();
+    this.panel?.remove();
+    this.styleElement?.remove();
+    this.panel = null;
+    this.wrapper = null;
+    this.styleElement = null;
   }
 }
 
-function formatRelativeTime(isoString: string): string {
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
-  return `${Math.floor(diffMins / 1440)} days ago`;
-}
-
 // ============================================================================
-// PUBLIC API
+// SINGLETON EXPORT
 // ============================================================================
 
-/**
- * Open the calendar settings panel
- */
-export async function openCalendarSettings(): Promise<void> {
-  if (isOpen) return;
+let instance: CalendarSettingsUI | null = null;
 
-  injectStyles();
-  currentStatus = await fetchCalendarStatus();
-
-  if (!settingsPanel) {
-    settingsPanel = createSettingsPanel();
-    document.body.appendChild(settingsPanel);
-  } else {
-    updatePanelContent();
+export function getCalendarSettingsUI(): CalendarSettingsUI {
+  if (!instance) {
+    instance = new CalendarSettingsUI();
   }
-
-  // Trigger open animation
-  requestAnimationFrame(() => {
-    settingsPanel?.classList.add('open');
-  });
-
-  isOpen = true;
-  log.info('Opened calendar settings');
+  return instance;
 }
 
-/**
- * Close the calendar settings panel
- */
-export function closeCalendarSettings(): void {
-  if (!isOpen || !settingsPanel) return;
-
-  settingsPanel.classList.remove('open');
-
-  // Remove after animation
-  setTimeout(() => {
-    settingsPanel?.remove();
-    settingsPanel = null;
-  }, DURATION.MODERATE);
-
-  isOpen = false;
-  log.info('Closed calendar settings');
+export function showCalendarSettings(): void {
+  getCalendarSettingsUI().show();
 }
 
-// Alias for module API consistency
-export const close = closeCalendarSettings;
+// Alias for app.ts compatibility
+export const openCalendarSettings = showCalendarSettings;
 
-/**
- * Check if calendar is connected (for external use)
- */
-export function isCalendarConnected(): boolean {
-  return currentStatus.connected;
+export function hideCalendarSettings(): void {
+  getCalendarSettingsUI().hide();
 }
 
-/**
- * Get current calendar status
- */
-export function getCalendarStatus(): CalendarStatus {
-  return { ...currentStatus };
-}
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const calendarSettings = {
-  open: openCalendarSettings,
-  close: closeCalendarSettings,
-  isConnected: isCalendarConnected,
-  getStatus: getCalendarStatus,
-};
-
-export default calendarSettings;
-
+export default CalendarSettingsUI;

@@ -17,10 +17,10 @@
  * @module agents/__tests__/voice-agent-startup
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { spawn, type ChildProcess } from 'child_process';
-import { join, dirname } from 'path';
+import { spawn } from 'child_process';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../../..');
@@ -165,10 +165,14 @@ describe('Voice Agent Startup Timing', () => {
     it('should load core imports within 5 seconds', async () => {
       // This test spawns the child module directly to measure cold start
       // Note: In production, LiveKit spawns the process, but this tests the module load time
-      
-      const result = await spawnWithOutput('node', [
-        '--import', 'tsx/esm',
-        '-e', `
+
+      const result = await spawnWithOutput(
+        'node',
+        [
+          '--import',
+          'tsx/esm',
+          '-e',
+          `
           const start = Date.now();
           import('${distChildPath}').then(() => {
             console.log('LOAD_TIME:' + (Date.now() - start));
@@ -178,14 +182,16 @@ describe('Voice Agent Startup Timing', () => {
             process.exit(1);
           });
         `,
-      ], { timeout: 30000 });
+        ],
+        { timeout: 30000 }
+      );
 
       const loadTimeMatch = result.stdout.match(/LOAD_TIME:(\d+)/);
       expect(loadTimeMatch).toBeTruthy();
-      
+
       const loadTimeMs = parseInt(loadTimeMatch![1], 10);
       console.log(`Module load time: ${loadTimeMs}ms`);
-      
+
       // Core imports should be fast - under 5 seconds
       expect(loadTimeMs).toBeLessThan(5000);
     });
@@ -194,7 +200,7 @@ describe('Voice Agent Startup Timing', () => {
       // This tests the full prewarm sequence
       // In production, LiveKit allows 30s for initialization
       // Our prewarm should complete in 25s to leave buffer
-      
+
       // This is a longer integration test that would need to be run
       // against the actual voice-agent-child module with mocked LiveKit
       expect(true).toBe(true); // Placeholder
@@ -220,13 +226,13 @@ describe('Voice Agent Startup Timing', () => {
       // This verifies the entry() function waits for prewarm
       // by checking that the waitForPrewarm export exists
       const childModule = await import('../voice-agent-child.js');
-      
+
       // The module should have the synchronization mechanism
       expect(typeof childModule.waitForPrewarm).toBe('function');
-      
+
       // Initially, deps are null (before prewarm runs)
       const deps = childModule.getPreloadedDeps();
-      
+
       // This is expected - deps are null until prewarm populates them
       // The key is that entry() WAITS for prewarm before using deps
       expect(deps.voice).toBeNull();
@@ -242,7 +248,7 @@ describe('Voice Agent Startup Timing', () => {
 describe('Voice Agent E2E Scenarios', () => {
   describe.skip('Full Session Lifecycle', () => {
     // These tests require a LiveKit mock or test server
-    
+
     it.todo('should spawn child process when job arrives');
     it.todo('should complete prewarm before entry uses deps');
     it.todo('should handle session from connect to disconnect');
@@ -278,7 +284,7 @@ describe('Startup Benchmarks', () => {
       // Verify targets are reasonable
       expect(targets.totalPrewarmMaxMs).toBeLessThan(targets.prewarmSafetyMarginMs);
       expect(targets.prewarmSafetyMarginMs).toBeLessThan(targets.initializationTimeoutMs);
-      
+
       console.log('Startup Performance Targets:', targets);
     });
   });
@@ -298,17 +304,17 @@ describe('Regression: Issue #PROD-2024-12-13', () => {
    *
    * The fix adds _prewarmReady Promise that entry() awaits.
    */
-  
+
   it('should have the prewarm synchronization fix in place', async () => {
     // Import the module and verify the fix components exist
     const childModule = await import('../voice-agent-child.js');
-    
+
     // 1. waitForPrewarm should exist
     expect(childModule.waitForPrewarm).toBeDefined();
-    
+
     // 2. getPreloadedDeps should exist
     expect(childModule.getPreloadedDeps).toBeDefined();
-    
+
     // 3. The default export should be an agent definition
     expect(childModule.default).toBeDefined();
   });
@@ -317,10 +323,9 @@ describe('Regression: Issue #PROD-2024-12-13', () => {
     // The fix should log how long entry() waited for prewarm
     // This log line: "[ENTRY] Prewarm ready (waited Xms)"
     // helps diagnose timing issues in production
-    
+
     // We verify this by checking the source code structure
     // (In a real E2E test, we'd check actual logs)
     expect(true).toBe(true);
   });
 });
-

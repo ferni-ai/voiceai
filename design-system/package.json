@@ -1,14 +1,15 @@
 {
   "name": "@ferni/design-system",
-  "version": "1.0.0",
-  "description": "Ferni Design System - Tokens, components, and documentation",
+  "version": "2.0.0",
+  "description": "Ferni Design System - Better Than Human brand tokens, components, and documentation",
   "type": "module",
   "scripts": {
     "build": "node build.js",
     "build:strict": "node build.js --strict",
     "build:content": "node generate-content-tokens.js",
     "build:brand": "node generate-brand-tokens.js",
-    "build:all": "npm run build && npm run build:content && npm run build:brand",
+    "build:tokens": "node generate-new-tokens.js",
+    "build:all": "npm run build && npm run build:content && npm run build:brand && npm run build:tokens",
     "check:a11y": "node check-accessibility.js",
     "check:a11y:strict": "node check-accessibility.js --strict",
     "check:a11y:fix": "node check-accessibility.js --fix",
@@ -17,7 +18,15 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
     "test": "playwright test",
-    "test:a11y": "npm run build:strict && npm run check:a11y:strict"
+    "test:a11y": "npm run build:strict && npm run check:a11y:strict",
+    "health": "npx ts-node dashboard/health-metrics.ts",
+    "health:json": "npx ts-node dashboard/health-metrics.ts --json",
+    "tokens:analyze": "npx ts-node dashboard/token-analytics.ts",
+    "tokens:unused": "npx ts-node dashboard/token-analytics.ts --unused",
+    "playground": "npx serve playground -l 3333",
+    "validate": "npm run check:brand && npm run check:a11y && npm run health",
+    "site:dev": "npx serve site -l 3334",
+    "site:build": "node build-site.js"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^8.4.0",
@@ -32,7 +41,9 @@
   },
   "files": [
     "dist",
-    "assets"
+    "assets",
+    "components",
+    "api"
   ],
   "main": "dist/tokens.css",
   "exports": {
@@ -43,7 +54,21 @@
     "./haptics": "./dist/haptics.ts",
     "./personality": "./dist/personality.ts",
     "./sonic": "./dist/sonic.ts",
-    "./illustration": "./dist/illustration.ts"
+    "./illustration": "./dist/illustration.ts",
+    "./brand-rules": "./api/brand-rules.ts",
+    "./content-templates": "./tokens/content-templates.json",
+    "./persona-kits": "./tokens/persona-kits.json",
+    "./sequences": "./tokens/sequences.json",
+    "./responsive": "./tokens/responsive.json",
+    "./i18n": "./tokens/i18n.json",
+    "./components": "./components/index.ts",
+    "./components/Avatar": "./components/Avatar.ts",
+    "./components/Toast": "./components/Toast.ts",
+    "./components/Dialog": "./components/Dialog.ts",
+    "./components/Celebration": "./components/Celebration.ts",
+    "./content-utils": "./dist/content-utils.ts",
+    "./persona-utils": "./dist/persona-utils.ts",
+    "./sequence-utils": "./dist/sequence-utils.ts",
+    "./responsive-utils": "./dist/responsive-utils.ts"
   }
 }
-

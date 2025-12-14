@@ -16,21 +16,17 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  getTool,
-  getInstallation,
-  hasPermission,
-  recordExecution,
-} from '../registry.js';
-import { recordUsage, checkQuota } from '../billing/index.js';
+import { checkQuota, recordUsage } from '../billing/index.js';
+import { getInstallation, getTool, hasPermission, recordExecution } from '../registry.js';
 import type {
   MarketplaceId,
   PermissionScope,
-  ToolExecution,
   ToolManifest,
   TrustLevel,
   UserId,
 } from '../schema/types.js';
+import { getDockerRuntime } from './docker-runtime.js';
+import { getWasmRuntime } from './wasm-runtime.js';
 
 const log = getLogger().child({ module: 'sandbox-executor' });
 
@@ -146,9 +142,7 @@ function canExecute(manifest: ToolManifest): { allowed: boolean; reason?: string
 /**
  * Get resource limits based on trust level
  */
-function getEffectiveLimits(
-  manifest: ToolManifest
-): { timeoutMs: number; maxRetries: number } {
+function getEffectiveLimits(manifest: ToolManifest): { timeoutMs: number; maxRetries: number } {
   const baseLimits = manifest.execution.limits;
   const trustLevel = manifest.verification.trustLevel;
 
@@ -189,10 +183,7 @@ async function executeHttpTool(
   const { timeoutMs } = getEffectiveLimits(manifest);
   const effectiveTimeout = options.timeoutMs ?? timeoutMs;
 
-  log.debug(
-    { toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout },
-    'Executing HTTP tool'
-  );
+  log.debug({ toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout }, 'Executing HTTP tool');
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);
@@ -226,17 +217,142 @@ async function executeHttpTool(
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    const result = await response.json() as { summary?: string; data?: unknown };
+    const result = (await response.json()) as { summary?: string; data?: unknown };
 
     // Extract summary for voice response
     const summary =
       result.summary ||
-      (typeof result.data === 'string' ? result.data : JSON.stringify(result.data ?? result).slice(0, 500));
+      (typeof result.data === 'string'
+        ? result.data
+        : JSON.stringify(result.data ?? result).slice(0, 500));
 
     return { data: result.data || result, summary };
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+// ============================================================================
+// WASM EXECUTOR
+// ============================================================================
+
+/**
+ * Execute a WASM-based tool
+ */
+async function executeWasmTool(
+  manifest: ToolManifest,
+  parameters: Record<string, unknown>,
+  context: ExecutionContext,
+  options: ExecutionOptions
+): Promise<{ data: unknown; summary: string }> {
+  const wasmBytes = manifest.execution.runtime.entrypoint;
+  if (!wasmBytes) {
+    throw new Error('WASM tool missing entrypoint');
+  }
+
+  const runtime = await getWasmRuntime();
+  const { timeoutMs } = getEffectiveLimits(manifest);
+
+  // Compile the module if not already cached
+  const module = await runtime.compileModule(
+    manifest.id,
+    new Uint8Array(Buffer.from(wasmBytes, 'base64'))
+  );
+
+  // Execute the function
+  const wasmResult = await runtime.execute(manifest.id, {
+    function: 'run',
+    args: parameters,
+    limits: {
+      timeoutMs: options.timeoutMs ?? timeoutMs,
+    },
+    trustLevel: manifest.verification.trustLevel,
+  });
+
+  if (!wasmResult.success) {
+    throw new Error(wasmResult.error?.message || 'WASM execution failed');
+  }
+
+  log.debug({ toolId: manifest.id, metrics: wasmResult.metrics }, 'WASM tool executed');
+
+  const summary =
+    typeof wasmResult.data === 'string'
+      ? wasmResult.data
+      : JSON.stringify(wasmResult.data).slice(0, 500);
+
+  return { data: wasmResult.data, summary };
+}
+
+// ============================================================================
+// DOCKER EXECUTOR
+// ============================================================================
+
+/**
+ * Execute a Docker-based tool
+ */
+async function executeDockerTool(
+  manifest: ToolManifest,
+  parameters: Record<string, unknown>,
+  context: ExecutionContext,
+  options: ExecutionOptions & { dockerImage?: string }
+): Promise<{ data: unknown; summary: string }> {
+  const runtime = await getDockerRuntime();
+
+  if (!runtime.isAvailable()) {
+    throw new Error('Docker runtime is not available');
+  }
+
+  // Get image from manifest or options
+  const image = options.dockerImage || manifest.execution.runtime.endpoint;
+  if (!image) {
+    throw new Error('Docker tool missing image configuration');
+  }
+
+  // Get entrypoint command
+  const entrypoint = manifest.execution.runtime.entrypoint;
+  const command = entrypoint ? entrypoint.split(' ') : ['node', 'index.js'];
+
+  const { timeoutMs } = getEffectiveLimits(manifest);
+  const timeoutSeconds = Math.ceil((options.timeoutMs ?? timeoutMs) / 1000);
+
+  // Build environment variables from manifest config
+  const env: Record<string, string> = {};
+  for (const envConfig of manifest.execution.runtime.env || []) {
+    if (!envConfig.secret && envConfig.name) {
+      // Only pass non-secret env vars; secrets would come from secret manager
+      env[envConfig.name] = '';
+    }
+  }
+
+  // Execute in container
+  const dockerResult = await runtime.execute(image, {
+    command,
+    input: parameters,
+    env,
+    limits: {
+      timeoutSeconds,
+      memoryMB: manifest.execution.limits.memoryMb || 256,
+    },
+    trustLevel: manifest.verification.trustLevel,
+    networkAccess: manifest.execution.limits.networkAccess,
+  });
+
+  if (!dockerResult.success) {
+    throw new Error(
+      dockerResult.error?.message || dockerResult.stderr || 'Docker execution failed'
+    );
+  }
+
+  log.debug(
+    { toolId: manifest.id, exitCode: dockerResult.exitCode, metrics: dockerResult.metrics },
+    'Docker tool executed'
+  );
+
+  const data = dockerResult.data || dockerResult.stdout;
+  const summary =
+    typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500);
+
+  return { data, summary };
 }
 
 // ============================================================================
@@ -313,11 +429,7 @@ export async function executeMarketplaceTool(
 
   // Check quota before execution (skip for platform tools)
   if (manifest.verification.trustLevel !== 'platform' && !options.skipPermissionCheck) {
-    const quotaCheck = checkQuota(
-      context.userId,
-      toolId,
-      context.subscriptionTier || 'free'
-    );
+    const quotaCheck = checkQuota(context.userId, toolId, context.subscriptionTier || 'free');
 
     if (!quotaCheck.allowed) {
       log.warn({ toolId, userId: context.userId, reason: quotaCheck.reason }, 'Quota exceeded');
@@ -327,8 +439,8 @@ export async function executeMarketplaceTool(
           code: 'QUOTA_EXCEEDED',
           message: quotaCheck.reason || 'Monthly quota exceeded',
           userMessage: quotaCheck.upgradeRequired
-            ? 'You\'ve reached your monthly limit. Upgrade for more.'
-            : 'You\'ve reached your limit for this tool.',
+            ? "You've reached your monthly limit. Upgrade for more."
+            : "You've reached your limit for this tool.",
           retryable: false,
         },
         executionId: '',
@@ -358,20 +470,28 @@ export async function executeMarketplaceTool(
         break;
 
       case 'wasm':
-        // Future: WASM sandbox execution
-        throw new Error('WASM execution not yet implemented');
+        result = await executeWasmTool(manifest, parameters, context, options);
+        break;
 
       case 'docker':
-        // Future: Docker container execution
-        throw new Error('Docker execution not yet implemented');
+        result = await executeDockerTool(manifest, parameters, context, options);
+        break;
 
       case 'node':
-        // Future: Isolated Node.js VM execution
-        throw new Error('Node.js sandbox execution not yet implemented');
+        // Node.js tools run via Docker for isolation
+        result = await executeDockerTool(manifest, parameters, context, {
+          ...options,
+          dockerImage: 'node:20-alpine',
+        });
+        break;
 
       case 'deno':
-        // Future: Deno sandbox execution
-        throw new Error('Deno execution not yet implemented');
+        // Deno tools run via Docker for isolation
+        result = await executeDockerTool(manifest, parameters, context, {
+          ...options,
+          dockerImage: 'denoland/deno:alpine',
+        });
+        break;
 
       default:
         throw new Error(`Unsupported runtime type: ${manifest.execution.runtime.type}`);
@@ -429,10 +549,7 @@ export async function executeMarketplaceTool(
     const durationMs = Date.now() - startTime;
     const isTimeout = err.name === 'AbortError';
 
-    log.error(
-      { toolId, error: err.message, isTimeout },
-      'Marketplace tool execution failed'
-    );
+    log.error({ toolId, error: err.message, isTimeout }, 'Marketplace tool execution failed');
 
     // Record failed execution
     const execution = recordExecution({
@@ -460,9 +577,10 @@ export async function executeMarketplaceTool(
         userMessage: isTimeout
           ? 'That took too long. Let me try something else.'
           : 'Something went wrong. Let me try a different approach.',
-        retryable: manifest.execution.retry?.retryableErrors?.includes(
-          isTimeout ? 'TIMEOUT' : 'EXECUTION_ERROR'
-        ) || false,
+        retryable:
+          manifest.execution.retry?.retryableErrors?.includes(
+            isTimeout ? 'TIMEOUT' : 'EXECUTION_ERROR'
+          ) || false,
       },
       executionId: execution.id,
       durationMs,
@@ -494,9 +612,7 @@ export async function executeBatch(
   for (let i = 0; i < executions.length; i += MAX_PARALLEL) {
     const batch = executions.slice(i, i + MAX_PARALLEL);
     const batchResults = await Promise.all(
-      batch.map((exec) =>
-        executeMarketplaceTool(exec.toolId, exec.parameters, context, options)
-      )
+      batch.map((exec) => executeMarketplaceTool(exec.toolId, exec.parameters, context, options))
     );
     results.push(...batchResults);
   }

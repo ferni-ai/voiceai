@@ -18,11 +18,11 @@ import { DURATION, EASING, prefersReducedMotion } from '../config/animation-cons
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import {
+  createAnimationConfig,
+  escapeHtml,
   ICONS,
   injectSharedStyles,
-  escapeHtml,
   renderCloseButton,
-  createAnimationConfig,
 } from './engagement-components.js';
 
 const log = createLogger('CommandsUI');
@@ -52,11 +52,11 @@ export interface CommandsUICallbacks {
 // ============================================================================
 
 const COMMANDS_COPY = {
-  title: 'Start a practice',
+  title: 'Guided Practices',
   intro: 'Choose a guided conversation to begin',
   emptyState: {
-    title: 'No practices available',
-    message: 'Commands will appear here as they become available',
+    title: 'No practices yet',
+    message: "Guided practices will appear here based on who you're talking to",
   },
   loading: 'Finding practices...',
   error: {
@@ -120,9 +120,20 @@ class CommandsPanelUI {
 
   initialize(): void {
     if (this.panel) return;
+    // HMR protection: clean up any orphaned elements from previous instances
+    this.cleanupOrphanedElements();
     injectSharedStyles();
     this.injectStyles();
     this.createPanel();
+  }
+
+  /**
+   * HMR Protection: Remove orphaned elements from previous instances
+   * Required per .cursorrules to prevent duplicate elements during hot reload
+   */
+  private cleanupOrphanedElements(): void {
+    document.querySelectorAll('.ferni-commands').forEach((el) => el.remove());
+    document.querySelectorAll('#ferni-commands-styles').forEach((el) => el.remove());
   }
 
   setCallbacks(callbacks: CommandsUICallbacks): void {
@@ -406,40 +417,78 @@ class CommandsPanelUI {
   }
 
   private bindCloseButton(): void {
-    this.wrapper?.querySelector('.engagement-close-btn')?.addEventListener('click', () => this.hide());
+    this.wrapper
+      ?.querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
   }
 
   private bindCommandButtons(): void {
-    this.wrapper?.querySelectorAll('.ferni-commands__item').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const commandId = (btn as HTMLElement).dataset.commandId;
-        const command = this.commands.find((c) => c.id === commandId);
-        if (!command) return;
+    const buttons = this.wrapper?.querySelectorAll('.ferni-commands__item');
+    if (!buttons) return;
 
-        // Add active state
-        btn.classList.add('ferni-commands__item--active');
+    buttons.forEach((btn, index) => {
+      // Click handler
+      btn.addEventListener('click', () => this.selectCommand(btn as HTMLElement));
 
-        // Render the command (get the full prompt)
-        try {
-          const result = await apiPost<{
-            commandId: string;
-            renderedPrompt: string;
-          }>(`/api/commands/${this.personaId}/${commandId}/render`, {});
+      // Keyboard navigation
+      btn.addEventListener('keydown', (e) => {
+        const event = e as KeyboardEvent;
+        const currentIndex = index;
+        let nextIndex = -1;
 
-          if (result.ok && result.data) {
-            log.info('Command selected', { commandId, name: command.name });
-            this.callbacks.onCommandSelected?.(command, result.data.renderedPrompt);
-            this.hide();
-          } else {
-            log.warn('Failed to render command', { error: result.error });
-            btn.classList.remove('ferni-commands__item--active');
-          }
-        } catch (err) {
-          log.error('Error rendering command', { error: err });
-          btn.classList.remove('ferni-commands__item--active');
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            nextIndex = currentIndex < buttons.length - 1 ? currentIndex + 1 : 0;
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            nextIndex = currentIndex > 0 ? currentIndex - 1 : buttons.length - 1;
+            break;
+          case 'Enter':
+          case ' ':
+            event.preventDefault();
+            this.selectCommand(btn as HTMLElement);
+            return;
+        }
+
+        if (nextIndex >= 0) {
+          (buttons[nextIndex] as HTMLElement).focus();
         }
       });
     });
+
+    // Focus first item when panel opens
+    (buttons[0] as HTMLElement)?.focus();
+  }
+
+  private async selectCommand(btn: HTMLElement): Promise<void> {
+    const commandId = btn.dataset.commandId;
+    const command = this.commands.find((c) => c.id === commandId);
+    if (!command) return;
+
+    // Add active state
+    btn.classList.add('ferni-commands__item--active');
+
+    // Render the command (get the full prompt)
+    try {
+      const result = await apiPost<{
+        commandId: string;
+        renderedPrompt: string;
+      }>(`/api/commands/${this.personaId}/${commandId}/render`, {});
+
+      if (result.ok && result.data) {
+        log.info('Command selected', { commandId, name: command.name });
+        this.callbacks.onCommandSelected?.(command, result.data.renderedPrompt);
+        this.hide();
+      } else {
+        log.warn('Failed to render command', { error: result.error });
+        btn.classList.remove('ferni-commands__item--active');
+      }
+    } catch (err) {
+      log.error('Error rendering command', { error: err });
+      btn.classList.remove('ferni-commands__item--active');
+    }
   }
 
   private injectStyles(): void {

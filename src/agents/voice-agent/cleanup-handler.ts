@@ -9,41 +9,39 @@
 
 import { log } from '@livekit/agents';
 import { resetDJBooth } from '../../audio/index.js';
+import {
+  flushLearningSignals,
+  onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
+} from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
+import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
 import { endConversation as endConversationState } from '../../services/conversation-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
-import {
-  onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
-  flushLearningSignals,
-} from '../../intelligence/index.js';
-import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/user-analytics.js';
+import { recordSessionEnd } from '../../services/voice-humanization-metrics.js';
 // 🎤 Speech module cleanup - single source of truth for 30+ session-scoped services
-import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
-import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
-import { getDJIntegration } from '../dj-integration.js';
 import {
   cleanupProsodyBridge,
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
+import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
+import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
+import { getDJIntegration } from '../dj-integration.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
-import {
-  cleanupDynamicSpeed,
-} from '../integrations/dynamic-speed-integration.js';
-import {
-  finalizeSpeechMetrics,
-  logMetricsSummary,
-} from '../integrations/speech-metrics-integration.js';
 import { unregisterSessionTTS } from '../../api/session-accent-routes.js';
 import {
   createFirestoreSuperhumanStore,
   saveSuperhumanData,
 } from '../../services/superhuman-persistence.js';
+import { cleanupDynamicSpeed } from '../integrations/dynamic-speed-integration.js';
+import {
+  finalizeSpeechMetrics,
+  logMetricsSummary,
+} from '../integrations/speech-metrics-integration.js';
 
 // Better-than-human API services cleanup
 import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
@@ -173,10 +171,10 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // STEP 3b: Emit conversation:end for async processing (Phase 2 Scaling)
     // This triggers background workers for trust updates, analytics, learning
     // ================================================================
-    const sessionDurationMs = services?.sessionStartTime 
-      ? Date.now() - services.sessionStartTime 
+    const sessionDurationMs = services?.sessionStartTime
+      ? Date.now() - services.sessionStartTime
       : 0;
-    
+
     emitConversationEnd({
       sessionId,
       userId: userId || 'anonymous',
@@ -325,7 +323,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // STEP 10: Shutdown music and games
     // ================================================================
     await cleanupMusic();
-    await cleanupGames();
+    await cleanupGames(sessionId);
 
     // ================================================================
     // STEP 11: Flush optimization data
@@ -367,7 +365,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
 
     // ================================================================
     // STEP 15: 🎭 UNIFIED CONVERSATION SESSION CLEANUP
-    // Single cleanup that handles: endHumanizationSession, 
+    // Single cleanup that handles: endHumanizationSession,
     // cleanupAdvancedHumanization, and resetConversationOrchestrator
     // ================================================================
     try {
@@ -542,7 +540,6 @@ async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: strin
   } catch (learningErr) {
     diag.warn('Collective learning flush failed (non-fatal)', { error: String(learningErr) });
   }
-
 }
 
 async function cleanupUtilities(utilitiesCleanup: () => Promise<void>): Promise<void> {
@@ -569,12 +566,13 @@ async function cleanupMusic(): Promise<void> {
   }
 }
 
-async function cleanupGames(): Promise<void> {
+async function cleanupGames(sessionId: string): Promise<void> {
   try {
-    const { getGameEngine, resetGameEngine } = await import('../../services/games/index.js');
-    const engine = getGameEngine();
+    const { getSessionGameEngine, resetSessionGameEngine } =
+      await import('../../services/games/index.js');
+    const engine = getSessionGameEngine(sessionId);
     await engine.flushToStorage();
-    resetGameEngine();
+    resetSessionGameEngine(sessionId);
     diag.session('Game engine flushed and reset');
   } catch (e) {
     log().debug({ error: String(e) }, 'Game cleanup failed (non-fatal)');

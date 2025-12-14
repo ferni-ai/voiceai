@@ -372,8 +372,13 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Voice/TTS management',
     icon: '🎤',
     handler: handleVoices,
-    subcommands: ['list', 'preview', 'test', 'compare', 'validate'],
-    examples: ['ferni voices list', 'ferni voices preview cartesia', 'ferni voices test'],
+    subcommands: ['list', 'preview', 'test', 'compare', 'validate', 'generate-samples'],
+    examples: [
+      'ferni voices list',
+      'ferni voices preview cartesia',
+      'ferni voices test',
+      'ferni voices generate-samples',
+    ],
   },
   debug: {
     name: 'Debug',
@@ -2590,6 +2595,239 @@ async function handleVoices(args: string[]): Promise<void> {
     if (allValid) {
       log.success('All personas have voice configurations');
     }
+  }
+
+  if (subcommand === 'generate-samples') {
+    console.log(`${colors.bold}Generating Landing Page Voice Samples${colors.reset}\n`);
+    console.log(
+      `${colors.dim}Using Ferni's full persona pipeline with humanization${colors.reset}\n`
+    );
+
+    // Check for Cartesia API key
+    const apiKey = process.env.CARTESIA_API_KEY;
+    if (!apiKey) {
+      log.error('CARTESIA_API_KEY environment variable not set');
+      log.info('Add it to your .env file or run: export CARTESIA_API_KEY="your-key"');
+      return;
+    }
+
+    // Import the full persona platform
+    const { getVoiceIdForPersona } = await import('../src/config/voice-ids.js');
+    const { humanizeText, addBreathGroupPauses } =
+      await import('../src/speech/advanced-humanization/index.js');
+
+    // Persona configurations matching persona.manifest.json files
+    // Includes speech characteristics and emotional context
+    const PERSONA_CONFIG: Record<
+      string,
+      {
+        canonicalId: string;
+        displayName: string;
+        role: string;
+        emotion: string;
+        agentIntent: string;
+      }
+    > = {
+      ferni: {
+        canonicalId: 'ferni',
+        displayName: 'Ferni',
+        role: 'Life Coach',
+        emotion: 'warm',
+        agentIntent: 'empathizing',
+      },
+      maya: {
+        canonicalId: 'maya-santos',
+        displayName: 'Maya',
+        role: 'Habit Architect',
+        emotion: 'encouraging',
+        agentIntent: 'coaching',
+      },
+      peter: {
+        canonicalId: 'peter-john',
+        displayName: 'Peter',
+        role: 'Research Guide',
+        emotion: 'curious',
+        agentIntent: 'exploring',
+      },
+      alex: {
+        canonicalId: 'alex-chen',
+        displayName: 'Alex',
+        role: 'Communications Coach',
+        emotion: 'supportive',
+        agentIntent: 'guiding',
+      },
+      jordan: {
+        canonicalId: 'jordan-taylor',
+        displayName: 'Jordan',
+        role: 'Celebration Catalyst',
+        emotion: 'excited',
+        agentIntent: 'celebrating',
+      },
+      nayan: {
+        canonicalId: 'nayan-patel',
+        displayName: 'Nayan',
+        role: 'Wisdom Guide',
+        emotion: 'contemplative',
+        agentIntent: 'reflecting',
+      },
+    };
+
+    // Voice samples - written in each persona's authentic voice
+    const VOICE_SAMPLES: Record<string, { response: string; persona: string }> = {
+      stress: {
+        response:
+          "I hear that. Overwhelm is heavy. Before we try to fix anything, what's weighing on you most right now? Sometimes just naming it helps.",
+        persona: 'ferni',
+      },
+      habits: {
+        response:
+          "Here's the plan: make it embarrassingly small. Want to exercise? Start with putting on your shoes. That's it. Once that's automatic, we build. What habit are we working on?",
+        persona: 'maya',
+      },
+      relationship: {
+        response:
+          "That takes courage. Let's find the right words. What's the core thing you need them to understand? We can practice it together until it feels right.",
+        persona: 'alex',
+      },
+      decision: {
+        response:
+          "Interesting. Being stuck usually tells us something. Let's explore both paths—what do you gain and what do you risk with each? Sometimes the answer's already there.",
+        persona: 'peter',
+      },
+      meaning: {
+        response:
+          "That's worth sitting with. Going through the motions often means something deeper is asking for attention. What would a day that felt meaningful actually look like?",
+        persona: 'nayan',
+      },
+      celebration: {
+        response:
+          "Wait—you got the promotion? That's huge! Let's not skip past this. You worked for this. What would celebrating actually look like? You deserve to feel this.",
+        persona: 'jordan',
+      },
+      'career-advice': {
+        response:
+          "That fear makes sense. Career changes are big. What is it specifically—the uncertainty, leaving something familiar, or something else? Let's sit with that together.",
+        persona: 'ferni',
+      },
+      sleep: {
+        response:
+          "I'm here. 3am thoughts hit different. You don't have to figure anything out right now. Just tell me what's keeping you up. Sometimes that's enough.",
+        persona: 'ferni',
+      },
+    };
+
+    const outputDir = join(PROJECT_ROOT, 'promo', 'ferni-website', 'src', 'audio', 'samples');
+    execCommand(`mkdir -p "${outputDir}"`);
+
+    // Show what we're using
+    console.log(`${colors.bold}Platform Features:${colors.reset}`);
+    console.log(`  ${icons.bullet} Voice IDs from persona registry`);
+    console.log(`  ${icons.bullet} Advanced humanization pipeline`);
+    console.log(`  ${icons.bullet} Breath group pauses`);
+    console.log(`  ${icons.bullet} Cartesia sonic-english model`);
+
+    console.log(`\n${colors.bold}Personas:${colors.reset}`);
+    for (const [shortName, config] of Object.entries(PERSONA_CONFIG)) {
+      const voiceId = getVoiceIdForPersona(config.canonicalId);
+      console.log(
+        `  ${colors.cyan}${config.displayName}${colors.reset} (${config.role}): ${voiceId.substring(0, 8)}...`
+      );
+    }
+
+    // Generate each sample
+    const samples = Object.entries(VOICE_SAMPLES);
+    let successCount = 0;
+    let failCount = 0;
+
+    console.log(
+      `\n${colors.bold}Generating ${samples.length} humanized voice samples...${colors.reset}`
+    );
+
+    for (const [sampleId, sample] of samples) {
+      const personaConfig = PERSONA_CONFIG[sample.persona] || PERSONA_CONFIG.ferni;
+      const voiceId = getVoiceIdForPersona(personaConfig.canonicalId);
+
+      console.log(`\n  ${colors.cyan}🎤 ${sampleId}${colors.reset} → ${personaConfig.displayName}`);
+
+      try {
+        // Apply humanization pipeline - breath pauses at natural boundaries
+        // Skip fillers for landing page (want clean demo samples)
+        const humanizedText = addBreathGroupPauses(sample.response, {
+          enabled: true,
+          shortPause: 120,
+          mediumPause: 220,
+          longPause: 350,
+        });
+
+        console.log(`    ${colors.dim}Humanized: +pauses at breath groups${colors.reset}`);
+
+        // Use Cartesia's sonic-english model with persona voice
+        const response = await fetch('https://api.cartesia.ai/tts/bytes', {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+            'Cartesia-Version': '2024-06-10',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model_id: 'sonic-english',
+            transcript: humanizedText,
+            voice: {
+              mode: 'id',
+              id: voiceId,
+            },
+            output_format: {
+              container: 'mp3',
+              encoding: 'mp3',
+              sample_rate: 44100,
+            },
+            language: 'en',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log(
+            `    ${colors.red}${icons.error}${colors.reset} API error: ${response.status}`
+          );
+          log.step(errorText.substring(0, 100));
+          failCount++;
+          continue;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const outputPath = join(outputDir, `${sampleId}.mp3`);
+
+        const { writeFileSync } = await import('fs');
+        writeFileSync(outputPath, buffer);
+
+        const durationEstimate = Math.ceil(sample.response.split(' ').length / 2.5);
+        console.log(
+          `    ${colors.green}${icons.success}${colors.reset} Saved (${(buffer.length / 1024).toFixed(1)}KB, ~${durationEstimate}s)`
+        );
+        successCount++;
+
+        // Rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.log(`    ${colors.red}${icons.error}${colors.reset} Failed: ${error}`);
+        failCount++;
+      }
+    }
+
+    // Summary
+    console.log('\n' + '═'.repeat(50));
+    log.success(`Generated: ${successCount}/${samples.length} samples`);
+    if (failCount > 0) {
+      log.warn(`Failed: ${failCount} samples`);
+    }
+    console.log();
+    log.info(`Output: ${outputDir}`);
+    console.log();
+    log.info('Next steps:');
+    console.log(`  1. Review samples: ${colors.cyan}open ${outputDir}${colors.reset}`);
+    console.log(`  2. Deploy landing page: ${colors.cyan}npm run deploy:landing${colors.reset}`);
   }
 }
 

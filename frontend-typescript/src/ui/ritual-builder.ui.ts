@@ -14,13 +14,13 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
+  createAnimationConfig,
+  escapeAttr,
+  escapeHtml,
   ICONS,
   injectSharedStyles,
-  escapeHtml,
-  escapeAttr,
-  renderCloseButton,
   renderBackButton,
-  createAnimationConfig,
+  renderCloseButton,
 } from './engagement-components.js';
 
 // ============================================================================
@@ -47,7 +47,7 @@ export interface RitualBuilderUICallbacks {
 // ============================================================================
 
 const BUILDER_COPY = {
-  title: 'Create a Practice',
+  title: 'Create Custom Practice',
   templateIntro: 'Choose a starting point or build from scratch',
   customizeTitle: 'Make it yours',
   previewTitle: 'Looking good',
@@ -60,7 +60,7 @@ const BUILDER_COPY = {
   },
   placeholders: {
     name: 'My Morning Practice',
-    description: 'A brief description of what you\'ll do...',
+    description: "A brief description of what you'll do...",
   },
   buttons: {
     preview: 'Preview',
@@ -73,7 +73,7 @@ const BUILDER_COPY = {
     nameRequired: 'Every practice needs a name',
   },
   confirmation: {
-    created: 'Your practice is ready. You\'ve got this.',
+    created: "Your practice is ready. You've got this.",
   },
 };
 
@@ -151,10 +151,21 @@ class RitualBuilderUI {
 
   initialize(): void {
     if (this.panel) return;
+    // HMR protection: clean up any orphaned elements from previous instances
+    this.cleanupOrphanedElements();
     // Inject shared design system styles
     injectSharedStyles();
     this.injectStyles();
     this.createPanel();
+  }
+
+  /**
+   * HMR Protection: Remove orphaned elements from previous instances
+   * Required per .cursorrules to prevent duplicate elements during hot reload
+   */
+  private cleanupOrphanedElements(): void {
+    document.querySelectorAll('.ritual-builder').forEach((el) => el.remove());
+    document.querySelectorAll('#ritual-builder-styles').forEach((el) => el.remove());
   }
 
   setCallbacks(callbacks: RitualBuilderUICallbacks): void {
@@ -263,12 +274,14 @@ class RitualBuilderUI {
   private renderTemplateStep(): void {
     if (!this.wrapper) return;
 
-    const templatesHtml = RITUAL_TEMPLATES.map((t, i) => `
+    const templatesHtml = RITUAL_TEMPLATES.map(
+      (t, i) => `
       <button class="ritual-builder__template" data-index="${i}" aria-label="Choose ${t.humanName}">
         <span class="ritual-builder__template-icon">${ICONS[t.icon]}</span>
         <span class="ritual-builder__template-name">${escapeHtml(t.humanName)}</span>
       </button>
-    `).join('');
+    `
+    ).join('');
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
@@ -284,7 +297,9 @@ class RitualBuilderUI {
     `;
 
     // Bind close button (using shared class)
-    this.wrapper.querySelector('.engagement-close-btn')?.addEventListener('click', () => this.hide());
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
 
     // Bind template buttons
     this.wrapper.querySelectorAll('.ritual-builder__template').forEach((btn) => {
@@ -367,18 +382,26 @@ class RitualBuilderUI {
           <div class="ritual-builder__field">
             <label>${BUILDER_COPY.fieldLabels.duration}</label>
             <select id="ritual-duration" class="engagement-select">
-              ${durationOptions.map((d) => `
+              ${durationOptions
+                .map(
+                  (d) => `
                 <option value="${d}" ${this.ritual.duration === d ? 'selected' : ''}>${d}</option>
-              `).join('')}
+              `
+                )
+                .join('')}
             </select>
           </div>
 
           <div class="ritual-builder__field">
             <label>${BUILDER_COPY.fieldLabels.frequency}</label>
             <select id="ritual-frequency" class="engagement-select">
-              ${frequencyOptions.map(([v, l]) => `
+              ${frequencyOptions
+                .map(
+                  ([v, l]) => `
                 <option value="${v}" ${this.ritual.frequency === v ? 'selected' : ''}>${l}</option>
-              `).join('')}
+              `
+                )
+                .join('')}
             </select>
           </div>
         </div>
@@ -386,7 +409,9 @@ class RitualBuilderUI {
         <div class="ritual-builder__field">
           <label>${BUILDER_COPY.fieldLabels.time}</label>
           <div class="ritual-builder__time-options">
-            ${timeOptions.map((t) => `
+            ${timeOptions
+              .map(
+                (t) => `
               <button 
                 class="ritual-builder__time-btn ${this.ritual.preferredTime === t ? 'ritual-builder__time-btn--active' : ''}" 
                 data-time="${t}"
@@ -394,7 +419,9 @@ class RitualBuilderUI {
               >
                 ${t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
-            `).join('')}
+            `
+              )
+              .join('')}
           </div>
         </div>
       </div>
@@ -405,7 +432,9 @@ class RitualBuilderUI {
     `;
 
     // Bind buttons
-    this.wrapper.querySelector('.engagement-close-btn')?.addEventListener('click', () => this.hide());
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
     this.wrapper.querySelector('.engagement-back-btn')?.addEventListener('click', () => {
       this.currentStep = 0;
       this.renderStep();
@@ -433,10 +462,11 @@ class RitualBuilderUI {
     // Time buttons
     this.wrapper.querySelectorAll('.ritual-builder__time-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this.ritual.preferredTime = (btn as HTMLElement).dataset.time as CustomRitual['preferredTime'];
-        this.wrapper?.querySelectorAll('.ritual-builder__time-btn').forEach((b) =>
-          b.classList.remove('ritual-builder__time-btn--active')
-        );
+        this.ritual.preferredTime = (btn as HTMLElement).dataset
+          .time as CustomRitual['preferredTime'];
+        this.wrapper
+          ?.querySelectorAll('.ritual-builder__time-btn')
+          .forEach((b) => b.classList.remove('ritual-builder__time-btn--active'));
         btn.classList.add('ritual-builder__time-btn--active');
       });
     });
@@ -463,7 +493,8 @@ class RitualBuilderUI {
       weekly: 'Weekly',
     }[this.ritual.frequency];
 
-    const timeLabel = this.ritual.preferredTime.charAt(0).toUpperCase() + this.ritual.preferredTime.slice(1);
+    const timeLabel =
+      this.ritual.preferredTime.charAt(0).toUpperCase() + this.ritual.preferredTime.slice(1);
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
@@ -500,7 +531,9 @@ class RitualBuilderUI {
     `;
 
     // Bind buttons
-    this.wrapper.querySelector('.engagement-close-btn')?.addEventListener('click', () => this.hide());
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
     this.wrapper.querySelector('.engagement-back-btn')?.addEventListener('click', () => {
       this.currentStep = 1;
       this.renderStep();

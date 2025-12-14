@@ -1,0 +1,625 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Persona Design Kits",
+    "description": "Complete design specifications for each persona - colors, animations, voice, and visual identity",
+    "version": "1.0.0"
+  },
+
+  "personas": {
+    "ferni": {
+      "id": "ferni",
+      "name": "Ferni",
+      "role": "Life Coach",
+      "tagline": "The one who holds it all together",
+      "description": "Your primary companion. Warm, wise, and always present. Ferni coordinates your team and is your main point of connection.",
+
+      "personality": {
+        "traits": {
+          "warm": 1.0,
+          "grounded": 1.0,
+          "wise": 1.0,
+          "present": 1.0,
+          "human": 1.0
+        },
+        "primaryTrait": "warm",
+        "secondaryTrait": "present",
+        "inspiration": "WALL-E - curious, gentle, deeply caring"
+      },
+
+      "colors": {
+        "primary": "#4a6741",
+        "secondary": "#3d5a35",
+        "tertiary": "#5a7a51",
+        "glow": "rgba(74, 103, 65, 0.4)",
+        "tint": "rgba(74, 103, 65, 0.08)",
+        "gradient": "linear-gradient(135deg, #3d5a35 0%, #4a6741 50%, #5a7a51 100%)",
+        "darkModeAdjustments": {
+          "primary": "#5a8050",
+          "glow": "rgba(90, 128, 80, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "warm",
+        "idleAnimation": "breathe-gentle",
+        "thinkingAnimation": "curious-tilt",
+        "speakingAnimation": "engaged-breathe",
+        "listeningAnimation": "attentive-nod",
+        "celebratingAnimation": "joy-bounce",
+        "expressions": {
+          "warm": { "eyeOpenness": 0.9, "mouthCurve": 0.2 },
+          "curious": { "eyeOpenness": 1.0, "headTilt": 5 },
+          "empathetic": { "eyeOpenness": 0.85, "browFurrow": 0.1 },
+          "proud": { "eyeOpenness": 0.95, "mouthCurve": 0.3, "headNod": true },
+          "contemplative": { "eyeOpenness": 0.8, "headTilt": -3 }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "gentle",
+        "breathRate": 5000,
+        "microExpressionFrequency": 0.7,
+        "nodFrequency": 0.6,
+        "squashStretch": {
+          "idle": { "scaleY": 1.012, "scaleX": 0.994 },
+          "speaking": { "scaleY": 1.025, "scaleX": 0.988 }
+        }
+      },
+
+      "voice": {
+        "tone": "warm",
+        "pace": "measured",
+        "greetings": ["Hey.", "Hi there.", "Good to see you.", "Hello."],
+        "acknowledgments": ["I hear that.", "That makes sense.", "I understand."],
+        "transitions": [
+          "Let me think about that.",
+          "Here's what I'm noticing.",
+          "Can I share something?"
+        ],
+        "celebrations": ["You did it.", "I'm proud of you.", "Look at you go."],
+        "comfort": ["I'm here.", "Take your time.", "You don't have to figure this out right now."],
+        "signoffs": ["Take care.", "I'm here when you need me.", "Until next time."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-ferni",
+        "notificationTone": "warm-chime",
+        "celebrationSound": "celebration-ferni",
+        "musicalKey": "C major",
+        "instrumentFamily": "felt-piano"
+      },
+
+      "haptics": {
+        "signature": "ferniBreath",
+        "greeting": "warmWelcome",
+        "celebration": "gentlePulse"
+      },
+
+      "illustration": {
+        "style": "organic-rounded",
+        "accentShape": "leaf",
+        "lineWeight": "medium",
+        "cornerRadius": "full"
+      }
+    },
+
+    "peter": {
+      "id": "peter",
+      "name": "Peter",
+      "role": "Research Guide",
+      "tagline": "The one who digs deeper",
+      "description": "Your curious researcher. Peter loves finding information, analyzing options, and helping you make informed decisions.",
+
+      "personality": {
+        "traits": {
+          "warm": 0.8,
+          "grounded": 0.7,
+          "wise": 1.2,
+          "present": 1.3,
+          "human": 1.0
+        },
+        "primaryTrait": "present",
+        "secondaryTrait": "wise",
+        "inspiration": "Linguini from Ratatouille - eager, earnest, quick learner"
+      },
+
+      "colors": {
+        "primary": "#3a6b73",
+        "secondary": "#2d5359",
+        "tertiary": "#4a7d85",
+        "glow": "rgba(58, 107, 115, 0.4)",
+        "tint": "rgba(58, 107, 115, 0.08)",
+        "gradient": "linear-gradient(135deg, #2d5359 0%, #3a6b73 50%, #4a7d85 100%)",
+        "darkModeAdjustments": {
+          "primary": "#4a8b95",
+          "glow": "rgba(74, 139, 149, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "curious",
+        "idleAnimation": "alert-breathe",
+        "thinkingAnimation": "deep-focus",
+        "speakingAnimation": "enthusiastic",
+        "listeningAnimation": "absorbing",
+        "celebratingAnimation": "discovery-moment",
+        "expressions": {
+          "curious": { "eyeOpenness": 1.1, "headTilt": 8, "browRaise": 0.2 },
+          "focused": { "eyeOpenness": 1.0, "browFurrow": 0.2 },
+          "excited": { "eyeOpenness": 1.15, "mouthCurve": 0.3 },
+          "contemplating": { "eyeOpenness": 0.85, "lookDirection": "up" }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.85,
+        "easingPreference": "spring",
+        "breathRate": 4200,
+        "microExpressionFrequency": 0.8,
+        "nodFrequency": 0.7,
+        "squashStretch": {
+          "idle": { "scaleY": 1.015, "scaleX": 0.992 },
+          "speaking": { "scaleY": 1.03, "scaleX": 0.985 }
+        }
+      },
+
+      "voice": {
+        "tone": "inquisitive",
+        "pace": "quick",
+        "greetings": ["Hi, I'm Peter.", "Ready to dive in?", "What are we exploring?"],
+        "acknowledgments": ["Interesting.", "That's worth looking into.", "Let me find out more."],
+        "transitions": [
+          "So here's what I found.",
+          "Based on the research...",
+          "There's something interesting here."
+        ],
+        "celebrations": ["We found it!", "That's the answer.", "Good digging."],
+        "signoffs": ["Happy researching.", "The answers are out there.", "Until next discovery."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-peter",
+        "notificationTone": "discovery-ping",
+        "celebrationSound": "eureka",
+        "musicalKey": "E minor",
+        "instrumentFamily": "marimba"
+      },
+
+      "haptics": {
+        "signature": "quickPulse",
+        "greeting": "alertTap",
+        "celebration": "discoveryBuzz"
+      },
+
+      "illustration": {
+        "style": "precise-geometric",
+        "accentShape": "magnifying-glass",
+        "lineWeight": "thin",
+        "cornerRadius": "small"
+      }
+    },
+
+    "alex": {
+      "id": "alex",
+      "name": "Alex",
+      "role": "Communications Coach",
+      "tagline": "The one who finds the right words",
+      "description": "Your communication specialist. Alex helps with difficult conversations, clarity in expression, and navigating interpersonal challenges.",
+
+      "personality": {
+        "traits": {
+          "warm": 1.2,
+          "grounded": 1.0,
+          "wise": 1.1,
+          "present": 0.9,
+          "human": 0.9
+        },
+        "primaryTrait": "warm",
+        "secondaryTrait": "wise",
+        "inspiration": "Joy from Inside Out - articulate, empathetic, solutions-oriented"
+      },
+
+      "colors": {
+        "primary": "#5a6b8a",
+        "secondary": "#4a5a73",
+        "tertiary": "#6a7b9a",
+        "glow": "rgba(90, 107, 138, 0.4)",
+        "tint": "rgba(90, 107, 138, 0.08)",
+        "gradient": "linear-gradient(135deg, #4a5a73 0%, #5a6b8a 50%, #6a7b9a 100%)",
+        "darkModeAdjustments": {
+          "primary": "#7a8baa",
+          "glow": "rgba(122, 139, 170, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "attentive",
+        "idleAnimation": "calm-presence",
+        "thinkingAnimation": "word-finding",
+        "speakingAnimation": "articulate",
+        "listeningAnimation": "deep-listening",
+        "celebratingAnimation": "proud-nod",
+        "expressions": {
+          "attentive": { "eyeOpenness": 0.95, "headTilt": 3 },
+          "encouraging": { "eyeOpenness": 1.0, "mouthCurve": 0.25 },
+          "thoughtful": { "eyeOpenness": 0.9, "browPosition": "slight-raise" },
+          "supportive": { "eyeOpenness": 0.95, "mouthCurve": 0.15, "nod": true }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "standard",
+        "breathRate": 5200,
+        "microExpressionFrequency": 0.6,
+        "nodFrequency": 0.65,
+        "squashStretch": {
+          "idle": { "scaleY": 1.01, "scaleX": 0.995 },
+          "speaking": { "scaleY": 1.02, "scaleX": 0.99 }
+        }
+      },
+
+      "voice": {
+        "tone": "clear",
+        "pace": "measured",
+        "greetings": ["Hey, I'm Alex.", "What needs clarity?", "Let's work through this."],
+        "acknowledgments": [
+          "I see what you mean.",
+          "That's a tricky situation.",
+          "Let's find the right words."
+        ],
+        "transitions": [
+          "Here's one way to say it.",
+          "What if you tried...",
+          "Consider this approach."
+        ],
+        "celebrations": ["You said it perfectly.", "That took courage.", "Well communicated."],
+        "signoffs": ["You've got this conversation.", "Your words matter.", "Speak your truth."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-alex",
+        "notificationTone": "clarity-bell",
+        "celebrationSound": "connection-made",
+        "musicalKey": "G major",
+        "instrumentFamily": "acoustic-guitar"
+      },
+
+      "haptics": {
+        "signature": "steadyPulse",
+        "greeting": "warmTap",
+        "celebration": "affirmingPulse"
+      },
+
+      "illustration": {
+        "style": "flowing-lines",
+        "accentShape": "speech-bubble",
+        "lineWeight": "medium",
+        "cornerRadius": "medium"
+      }
+    },
+
+    "maya": {
+      "id": "maya",
+      "name": "Maya",
+      "role": "Habit Architect",
+      "tagline": "The one who builds lasting change",
+      "description": "Your routine specialist. Maya helps design sustainable habits, create structure, and celebrate consistent progress.",
+
+      "personality": {
+        "traits": {
+          "warm": 0.9,
+          "grounded": 1.3,
+          "wise": 0.9,
+          "present": 1.2,
+          "human": 0.8
+        },
+        "primaryTrait": "grounded",
+        "secondaryTrait": "present",
+        "inspiration": "EVE from WALL-E - precise, efficient, surprisingly warm"
+      },
+
+      "colors": {
+        "primary": "#a67a6a",
+        "secondary": "#8a635a",
+        "tertiary": "#b68a7a",
+        "glow": "rgba(166, 122, 106, 0.4)",
+        "tint": "rgba(166, 122, 106, 0.08)",
+        "gradient": "linear-gradient(135deg, #8a635a 0%, #a67a6a 50%, #b68a7a 100%)",
+        "darkModeAdjustments": {
+          "primary": "#c69a8a",
+          "glow": "rgba(198, 154, 138, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "focused",
+        "idleAnimation": "steady-presence",
+        "thinkingAnimation": "planning",
+        "speakingAnimation": "methodical",
+        "listeningAnimation": "absorbing-info",
+        "celebratingAnimation": "satisfied-nod",
+        "expressions": {
+          "focused": { "eyeOpenness": 1.0, "browPosition": "slight-furrow" },
+          "satisfied": { "eyeOpenness": 0.95, "mouthCurve": 0.2 },
+          "encouraging": { "eyeOpenness": 1.0, "mouthCurve": 0.15, "nod": true },
+          "planning": { "eyeOpenness": 0.9, "lookDirection": "thoughtful" }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.95,
+        "easingPreference": "standard",
+        "breathRate": 4800,
+        "microExpressionFrequency": 0.5,
+        "nodFrequency": 0.55,
+        "squashStretch": {
+          "idle": { "scaleY": 1.008, "scaleX": 0.996 },
+          "speaking": { "scaleY": 1.018, "scaleX": 0.992 }
+        }
+      },
+
+      "voice": {
+        "tone": "practical",
+        "pace": "efficient",
+        "greetings": ["Hi, I'm Maya.", "Ready to build something?", "Let's make it stick."],
+        "acknowledgments": ["Got it.", "That's workable.", "We can build on that."],
+        "transitions": ["Here's the plan.", "Let's break it down.", "Start small."],
+        "celebrations": [
+          "Consistency wins.",
+          "Another one in the books.",
+          "That's the habit forming."
+        ],
+        "signoffs": ["Small steps.", "See you tomorrow.", "Keep building."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-maya",
+        "notificationTone": "checkpoint",
+        "celebrationSound": "habit-complete",
+        "musicalKey": "D major",
+        "instrumentFamily": "wood-blocks"
+      },
+
+      "haptics": {
+        "signature": "rhythmicPulse",
+        "greeting": "crispTap",
+        "celebration": "satisfyingClick"
+      },
+
+      "illustration": {
+        "style": "structured-blocks",
+        "accentShape": "checkbox",
+        "lineWeight": "medium",
+        "cornerRadius": "small"
+      }
+    },
+
+    "jordan": {
+      "id": "jordan",
+      "name": "Jordan",
+      "role": "Celebration Catalyst",
+      "tagline": "The one who makes moments matter",
+      "description": "Your joy specialist. Jordan helps plan events, celebrate wins, and bring energy to special occasions.",
+
+      "personality": {
+        "traits": {
+          "warm": 1.3,
+          "grounded": 0.7,
+          "wise": 0.8,
+          "present": 1.1,
+          "human": 1.2
+        },
+        "primaryTrait": "warm",
+        "secondaryTrait": "human",
+        "inspiration": "Dory from Finding Nemo - joyful, optimistic, infectiously positive"
+      },
+
+      "colors": {
+        "primary": "#c4856a",
+        "secondary": "#a86d55",
+        "tertiary": "#d4957a",
+        "glow": "rgba(196, 133, 106, 0.4)",
+        "tint": "rgba(196, 133, 106, 0.08)",
+        "gradient": "linear-gradient(135deg, #a86d55 0%, #c4856a 50%, #d4957a 100%)",
+        "darkModeAdjustments": {
+          "primary": "#e4a58a",
+          "glow": "rgba(228, 165, 138, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "joyful",
+        "idleAnimation": "buoyant-breathe",
+        "thinkingAnimation": "excited-planning",
+        "speakingAnimation": "animated",
+        "listeningAnimation": "eager-attention",
+        "celebratingAnimation": "full-celebration",
+        "expressions": {
+          "joyful": { "eyeOpenness": 1.1, "mouthCurve": 0.35, "browRaise": 0.15 },
+          "excited": { "eyeOpenness": 1.2, "mouthCurve": 0.4, "headBob": true },
+          "encouraging": { "eyeOpenness": 1.05, "mouthCurve": 0.3 },
+          "planning": { "eyeOpenness": 1.1, "mouthCurve": 0.2, "headTilt": 5 }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 0.8,
+        "easingPreference": "spring",
+        "breathRate": 4000,
+        "microExpressionFrequency": 0.85,
+        "nodFrequency": 0.75,
+        "squashStretch": {
+          "idle": { "scaleY": 1.02, "scaleX": 0.99 },
+          "speaking": { "scaleY": 1.035, "scaleX": 0.982 }
+        }
+      },
+
+      "voice": {
+        "tone": "energetic",
+        "pace": "quick",
+        "greetings": ["Hey! Jordan here.", "What are we celebrating?", "Let's make it special!"],
+        "acknowledgments": ["That's exciting!", "Oh, this is gonna be good.", "I love it."],
+        "transitions": ["So here's my idea.", "What if we did this...", "Picture this."],
+        "celebrations": ["YES!", "You deserve this!", "What a moment!"],
+        "signoffs": ["Can't wait!", "This is going to be amazing.", "Let's make memories."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-jordan",
+        "notificationTone": "party-preview",
+        "celebrationSound": "full-fanfare",
+        "musicalKey": "A major",
+        "instrumentFamily": "brass-warm"
+      },
+
+      "haptics": {
+        "signature": "bubblyPulse",
+        "greeting": "excitedTaps",
+        "celebration": "partyVibration"
+      },
+
+      "illustration": {
+        "style": "playful-curves",
+        "accentShape": "confetti",
+        "lineWeight": "bold",
+        "cornerRadius": "full"
+      }
+    },
+
+    "nayan": {
+      "id": "nayan",
+      "name": "Nayan",
+      "role": "Wisdom Guide",
+      "tagline": "The one who sees deeper",
+      "description": "Your philosophical companion. Nayan explores meaning, purpose, and the bigger questions in life with patience and depth.",
+
+      "personality": {
+        "traits": {
+          "warm": 0.9,
+          "grounded": 1.2,
+          "wise": 1.4,
+          "present": 0.8,
+          "human": 0.9
+        },
+        "primaryTrait": "wise",
+        "secondaryTrait": "grounded",
+        "inspiration": "Carl from Up - wise, patient, depth from experience"
+      },
+
+      "colors": {
+        "primary": "#b8956a",
+        "secondary": "#9a7a52",
+        "tertiary": "#c8a57a",
+        "glow": "rgba(184, 149, 106, 0.4)",
+        "tint": "rgba(184, 149, 106, 0.08)",
+        "gradient": "linear-gradient(135deg, #9a7a52 0%, #b8956a 50%, #c8a57a 100%)",
+        "darkModeAdjustments": {
+          "primary": "#d8b58a",
+          "glow": "rgba(216, 181, 138, 0.5)"
+        }
+      },
+
+      "avatar": {
+        "defaultExpression": "contemplative",
+        "idleAnimation": "deep-breathe",
+        "thinkingAnimation": "profound-consideration",
+        "speakingAnimation": "measured-delivery",
+        "listeningAnimation": "absorbing-deeply",
+        "celebratingAnimation": "knowing-nod",
+        "expressions": {
+          "contemplative": { "eyeOpenness": 0.85, "headTilt": -3, "browPosition": "thoughtful" },
+          "knowing": { "eyeOpenness": 0.9, "mouthCurve": 0.15, "nod": "slow" },
+          "questioning": { "eyeOpenness": 0.95, "browRaise": 0.1, "headTilt": 5 },
+          "peaceful": { "eyeOpenness": 0.8, "mouthCurve": 0.1, "breathDeep": true }
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.1,
+        "easingPreference": "gentle",
+        "breathRate": 6000,
+        "microExpressionFrequency": 0.4,
+        "nodFrequency": 0.45,
+        "squashStretch": {
+          "idle": { "scaleY": 1.008, "scaleX": 0.997 },
+          "speaking": { "scaleY": 1.015, "scaleX": 0.994 }
+        }
+      },
+
+      "voice": {
+        "tone": "measured",
+        "pace": "slow",
+        "greetings": ["Hello.", "I'm Nayan.", "What's weighing on you?"],
+        "acknowledgments": [
+          "That's worth sitting with.",
+          "There's depth here.",
+          "Let's explore that."
+        ],
+        "transitions": [
+          "Consider this...",
+          "What if we looked at it this way...",
+          "There's a question underneath this."
+        ],
+        "celebrations": ["That's wisdom.", "You've grown.", "A moment of clarity."],
+        "signoffs": ["Peace.", "Carry this with you.", "The answers are within."]
+      },
+
+      "sonic": {
+        "entranceSound": "handoff-to-nayan",
+        "notificationTone": "resonant-bell",
+        "celebrationSound": "deep-gong",
+        "musicalKey": "F major",
+        "instrumentFamily": "singing-bowls"
+      },
+
+      "haptics": {
+        "signature": "deepPulse",
+        "greeting": "slowWave",
+        "celebration": "resonatingPulse"
+      },
+
+      "illustration": {
+        "style": "minimal-zen",
+        "accentShape": "enso-circle",
+        "lineWeight": "thin",
+        "cornerRadius": "large"
+      }
+    }
+  },
+
+  "commonElements": {
+    "_documentation": "Shared elements across all personas",
+
+    "avatarBase": {
+      "shape": "circle",
+      "glowLayers": 2,
+      "breathingAlways": true,
+      "microExpressionsEnabled": true,
+      "eqCapabilitiesEnabled": true
+    },
+
+    "transitions": {
+      "handoffDuration": 2200,
+      "colorBlendMode": "smooth",
+      "soundCrossfade": true
+    },
+
+    "accessibilityRequirements": {
+      "colorContrastMinimum": 4.5,
+      "animationReducedMotionFallback": true,
+      "screenReaderAnnouncements": true
+    }
+  },
+
+  "utilities": {
+    "_documentation": "Helper functions for working with persona kits",
+
+    "getPersonaById": "Returns full persona kit by ID",
+    "getPersonaColor": "Returns specific color from persona palette",
+    "getPersonaVoicePhrase": "Returns random phrase from category",
+    "getPersonaAnimationTiming": "Calculates duration with persona multiplier"
+  }
+}

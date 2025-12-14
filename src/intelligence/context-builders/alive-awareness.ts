@@ -171,8 +171,9 @@ function selectCuriosityQuestion(
   turnCount: number,
   relationshipStage: string
 ): string | null {
-  // Only ask curiosity questions occasionally
-  if (turnCount < 5 || Math.random() > 0.08) return null;
+  // Ask curiosity questions fairly frequently - Ferni should be genuinely curious!
+  // Previously 8% (0.08) was too low - users felt Ferni wasn't asking enough questions
+  if (turnCount < 3 || Math.random() > 0.35) return null;
 
   // Only for established relationships
   if (relationshipStage === 'stranger') return null;

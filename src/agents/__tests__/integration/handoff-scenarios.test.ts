@@ -12,6 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { emotionalStates, users } from '../fixtures/index.js';
 import {
   createMockJobContext,
   createMockSessionServices,
@@ -20,7 +21,6 @@ import {
   type MockVoicePipelineAgent,
   resetAllMocks,
 } from '../mocks/index.js';
-import { emotionalStates, users } from '../fixtures/index.js';
 
 // ============================================================================
 // HANDOFF DETECTION
@@ -155,7 +155,7 @@ describe('Handoff Detection', () => {
     it('should lower confidence during emotional distress', () => {
       // During distress, maintain support rather than handing off
       const shouldDeferHandoff = (
-        emotionalState: typeof emotionalStates.distressed,
+        emotionalState: { distressLevel: number },
         handoffConfidence: number
       ): boolean => {
         if (emotionalState.distressLevel > 0.7) {

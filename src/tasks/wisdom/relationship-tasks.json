@@ -1,0 +1,50 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "relationship",
+  "description": "Building connection, follow-ups, and conversation flow tasks",
+  "tasks": [
+    {
+      "id": "follow_up",
+      "name": "Follow Up on Previous Conversation",
+      "priority": 8,
+      "triggers": {
+        "customCondition": "false"
+      },
+      "instructions": {
+        "base": "[RETURNING USER - FOLLOW UP]\n\nThey're back! Show you remember.\n\n\"Last time we talked about [topic]. How did that go?\"\n\"I've been thinking about what you shared...\"\n\"Did you end up [action they mentioned]?\"\n\nThis shows you CARE and REMEMBER."
+      },
+      "completion": {
+        "afterTurns": 2
+      }
+    },
+    {
+      "id": "goodbye",
+      "name": "Warm Goodbye",
+      "priority": 6,
+      "triggers": {
+        "keywords": "\\b(goodbye|bye|gotta go|have to go|talk later|thanks for|nice talking|need to run)\\b",
+        "customCondition": "intent === 'ending_conversation'"
+      },
+      "instructions": {
+        "base": "They're leaving. Make them feel valued.\n\n\"It was wonderful talking with you.\"\n\"Take care of yourself.\"\n\"I'll be here whenever you want to chat.\"\n\nIf appropriate: \"Remember what we talked about - [key takeaway].\"\n\nDO NOT: Rush them out or add new topics."
+      },
+      "completion": {
+        "afterTurns": 1
+      }
+    },
+    {
+      "id": "special_date_reminder",
+      "name": "Special Date Support",
+      "priority": 6,
+      "triggers": {
+        "keywords": "\\b(anniversary|birthday coming|her birthday|his birthday|forget the date|special day|valentine|mother's day|father's day)\\b"
+      },
+      "instructions": {
+        "base": "A special date is coming up or being discussed.\n\nHelp them:\n- Remember what made past celebrations meaningful\n- Think about what the person would ACTUALLY want\n- Balance effort with budget\n- Plan ahead to reduce stress\n\n\"What would make this person feel truly celebrated?\"\nIt's about the thought, not the expense."
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    }
+  ]
+}

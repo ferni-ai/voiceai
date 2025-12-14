@@ -1,0 +1,533 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Responsive Tokens",
+    "description": "Systematic responsive design patterns and breakpoint behaviors",
+    "version": "1.0.0"
+  },
+
+  "breakpoints": {
+    "_documentation": "Core breakpoints based on common device sizes",
+
+    "mobile": {
+      "name": "Mobile",
+      "min": 0,
+      "max": 767,
+      "columns": 4,
+      "gutter": 16,
+      "margin": 16,
+      "containerMax": "100%",
+      "mediaQuery": "(max-width: 767px)",
+      "cssVar": "--breakpoint-mobile"
+    },
+    "tablet": {
+      "name": "Tablet",
+      "min": 768,
+      "max": 1023,
+      "columns": 8,
+      "gutter": 20,
+      "margin": 24,
+      "containerMax": "100%",
+      "mediaQuery": "(min-width: 768px) and (max-width: 1023px)",
+      "cssVar": "--breakpoint-tablet"
+    },
+    "desktop": {
+      "name": "Desktop",
+      "min": 1024,
+      "max": 1439,
+      "columns": 12,
+      "gutter": 24,
+      "margin": 48,
+      "containerMax": "1200px",
+      "mediaQuery": "(min-width: 1024px) and (max-width: 1439px)",
+      "cssVar": "--breakpoint-desktop"
+    },
+    "wide": {
+      "name": "Wide",
+      "min": 1440,
+      "max": null,
+      "columns": 12,
+      "gutter": 32,
+      "margin": 64,
+      "containerMax": "1400px",
+      "mediaQuery": "(min-width: 1440px)",
+      "cssVar": "--breakpoint-wide"
+    }
+  },
+
+  "typography": {
+    "_documentation": "How typography scales across breakpoints",
+
+    "scale": {
+      "displayXL": {
+        "mobile": { "size": 48, "lineHeight": 1.1, "letterSpacing": -0.02 },
+        "tablet": { "size": 72, "lineHeight": 1.05, "letterSpacing": -0.025 },
+        "desktop": { "size": 96, "lineHeight": 1.0, "letterSpacing": -0.03 },
+        "wide": { "size": 112, "lineHeight": 1.0, "letterSpacing": -0.03 }
+      },
+      "displayLG": {
+        "mobile": { "size": 40, "lineHeight": 1.15, "letterSpacing": -0.02 },
+        "tablet": { "size": 56, "lineHeight": 1.1, "letterSpacing": -0.025 },
+        "desktop": { "size": 80, "lineHeight": 1.05, "letterSpacing": -0.03 },
+        "wide": { "size": 96, "lineHeight": 1.0, "letterSpacing": -0.03 }
+      },
+      "displayMD": {
+        "mobile": { "size": 32, "lineHeight": 1.2, "letterSpacing": -0.015 },
+        "tablet": { "size": 48, "lineHeight": 1.15, "letterSpacing": -0.02 },
+        "desktop": { "size": 64, "lineHeight": 1.1, "letterSpacing": -0.02 },
+        "wide": { "size": 72, "lineHeight": 1.05, "letterSpacing": -0.025 }
+      },
+      "h1": {
+        "mobile": { "size": 28, "lineHeight": 1.25, "letterSpacing": -0.01 },
+        "tablet": { "size": 32, "lineHeight": 1.2, "letterSpacing": -0.015 },
+        "desktop": { "size": 40, "lineHeight": 1.2, "letterSpacing": -0.015 },
+        "wide": { "size": 48, "lineHeight": 1.15, "letterSpacing": -0.02 }
+      },
+      "h2": {
+        "mobile": { "size": 24, "lineHeight": 1.3, "letterSpacing": -0.01 },
+        "tablet": { "size": 28, "lineHeight": 1.25, "letterSpacing": -0.01 },
+        "desktop": { "size": 32, "lineHeight": 1.25, "letterSpacing": -0.01 },
+        "wide": { "size": 36, "lineHeight": 1.2, "letterSpacing": -0.015 }
+      },
+      "h3": {
+        "mobile": { "size": 20, "lineHeight": 1.35, "letterSpacing": 0 },
+        "tablet": { "size": 22, "lineHeight": 1.3, "letterSpacing": 0 },
+        "desktop": { "size": 24, "lineHeight": 1.3, "letterSpacing": -0.01 },
+        "wide": { "size": 28, "lineHeight": 1.25, "letterSpacing": -0.01 }
+      },
+      "body": {
+        "mobile": { "size": 16, "lineHeight": 1.6, "letterSpacing": 0 },
+        "tablet": { "size": 17, "lineHeight": 1.6, "letterSpacing": 0 },
+        "desktop": { "size": 18, "lineHeight": 1.6, "letterSpacing": 0 },
+        "wide": { "size": 18, "lineHeight": 1.6, "letterSpacing": 0 }
+      },
+      "caption": {
+        "mobile": { "size": 12, "lineHeight": 1.4, "letterSpacing": 0.01 },
+        "tablet": { "size": 13, "lineHeight": 1.4, "letterSpacing": 0.01 },
+        "desktop": { "size": 13, "lineHeight": 1.4, "letterSpacing": 0.01 },
+        "wide": { "size": 14, "lineHeight": 1.4, "letterSpacing": 0.01 }
+      }
+    },
+
+    "fluidTypography": {
+      "_documentation": "CSS clamp() values for fluid typography",
+      "displayXL": "clamp(3rem, 2rem + 5vw, 7rem)",
+      "displayLG": "clamp(2.5rem, 2rem + 4vw, 6rem)",
+      "displayMD": "clamp(2rem, 1.5rem + 3vw, 4.5rem)",
+      "h1": "clamp(1.75rem, 1.5rem + 1.5vw, 3rem)",
+      "h2": "clamp(1.5rem, 1.25rem + 1vw, 2.25rem)",
+      "h3": "clamp(1.25rem, 1rem + 0.75vw, 1.75rem)"
+    }
+  },
+
+  "spacing": {
+    "_documentation": "How spacing changes across breakpoints",
+
+    "scale": {
+      "section": {
+        "mobile": 48,
+        "tablet": 80,
+        "desktop": 120,
+        "wide": 160
+      },
+      "sectionInner": {
+        "mobile": 32,
+        "tablet": 48,
+        "desktop": 64,
+        "wide": 80
+      },
+      "cardPadding": {
+        "mobile": 20,
+        "tablet": 28,
+        "desktop": 32,
+        "wide": 40
+      },
+      "containerPadding": {
+        "mobile": 16,
+        "tablet": 24,
+        "desktop": 48,
+        "wide": 64
+      }
+    }
+  },
+
+  "components": {
+    "_documentation": "How components adapt across breakpoints",
+
+    "hero": {
+      "mobile": {
+        "layout": "stacked",
+        "textAlign": "center",
+        "padding": "space-8",
+        "avatarSize": 200,
+        "showSubtitle": true,
+        "ctaLayout": "stacked"
+      },
+      "tablet": {
+        "layout": "stacked",
+        "textAlign": "center",
+        "padding": "space-12",
+        "avatarSize": 280,
+        "showSubtitle": true,
+        "ctaLayout": "inline"
+      },
+      "desktop": {
+        "layout": "split",
+        "textAlign": "left",
+        "padding": "space-16",
+        "avatarSize": 360,
+        "showSubtitle": true,
+        "ctaLayout": "inline"
+      },
+      "wide": {
+        "layout": "split",
+        "textAlign": "left",
+        "padding": "space-24",
+        "avatarSize": 420,
+        "showSubtitle": true,
+        "ctaLayout": "inline"
+      }
+    },
+
+    "personaGrid": {
+      "mobile": {
+        "columns": 1,
+        "gap": 16,
+        "cardVariant": "compact",
+        "showBio": false,
+        "showSpecialties": false
+      },
+      "tablet": {
+        "columns": 2,
+        "gap": 20,
+        "cardVariant": "standard",
+        "showBio": true,
+        "showSpecialties": false
+      },
+      "desktop": {
+        "columns": 3,
+        "gap": 24,
+        "cardVariant": "standard",
+        "showBio": true,
+        "showSpecialties": true
+      },
+      "wide": {
+        "columns": 3,
+        "gap": 32,
+        "cardVariant": "expanded",
+        "showBio": true,
+        "showSpecialties": true
+      }
+    },
+
+    "statsGrid": {
+      "mobile": {
+        "columns": 2,
+        "gap": 12,
+        "cardSize": "small"
+      },
+      "tablet": {
+        "columns": 3,
+        "gap": 16,
+        "cardSize": "medium"
+      },
+      "desktop": {
+        "columns": 4,
+        "gap": 24,
+        "cardSize": "medium"
+      },
+      "wide": {
+        "columns": 4,
+        "gap": 32,
+        "cardSize": "large"
+      }
+    },
+
+    "featureSection": {
+      "mobile": {
+        "layout": "stacked",
+        "imagePosition": "above",
+        "textAlign": "center",
+        "imageSize": "100%"
+      },
+      "tablet": {
+        "layout": "stacked",
+        "imagePosition": "above",
+        "textAlign": "center",
+        "imageSize": "80%"
+      },
+      "desktop": {
+        "layout": "split",
+        "imagePosition": "alternating",
+        "textAlign": "left",
+        "imageSize": "50%"
+      },
+      "wide": {
+        "layout": "split",
+        "imagePosition": "alternating",
+        "textAlign": "left",
+        "imageSize": "50%"
+      }
+    },
+
+    "navigation": {
+      "mobile": {
+        "type": "bottom-tab-bar",
+        "showLabels": true,
+        "maxItems": 5,
+        "menuTrigger": "hamburger"
+      },
+      "tablet": {
+        "type": "top-nav",
+        "showLabels": true,
+        "maxItems": 6,
+        "menuTrigger": "avatar"
+      },
+      "desktop": {
+        "type": "top-nav",
+        "showLabels": true,
+        "maxItems": 8,
+        "menuTrigger": "avatar"
+      },
+      "wide": {
+        "type": "top-nav",
+        "showLabels": true,
+        "maxItems": 10,
+        "menuTrigger": "avatar"
+      }
+    },
+
+    "modal": {
+      "mobile": {
+        "width": "100%",
+        "height": "auto",
+        "maxHeight": "90vh",
+        "position": "bottom",
+        "borderRadius": "24px 24px 0 0",
+        "animation": "slideUp"
+      },
+      "tablet": {
+        "width": "540px",
+        "height": "auto",
+        "maxHeight": "85vh",
+        "position": "center",
+        "borderRadius": "24px",
+        "animation": "scaleFade"
+      },
+      "desktop": {
+        "width": "600px",
+        "height": "auto",
+        "maxHeight": "80vh",
+        "position": "center",
+        "borderRadius": "24px",
+        "animation": "scaleFade"
+      },
+      "wide": {
+        "width": "680px",
+        "height": "auto",
+        "maxHeight": "80vh",
+        "position": "center",
+        "borderRadius": "24px",
+        "animation": "scaleFade"
+      }
+    },
+
+    "toast": {
+      "mobile": {
+        "position": "bottom-center",
+        "offset": 24,
+        "maxWidth": "calc(100% - 32px)"
+      },
+      "tablet": {
+        "position": "bottom-center",
+        "offset": 32,
+        "maxWidth": 400
+      },
+      "desktop": {
+        "position": "bottom-center",
+        "offset": 40,
+        "maxWidth": 450
+      },
+      "wide": {
+        "position": "bottom-center",
+        "offset": 48,
+        "maxWidth": 500
+      }
+    },
+
+    "avatar": {
+      "mobile": {
+        "conversationSize": 180,
+        "sidebarSize": 48,
+        "listSize": 40
+      },
+      "tablet": {
+        "conversationSize": 240,
+        "sidebarSize": 56,
+        "listSize": 48
+      },
+      "desktop": {
+        "conversationSize": 320,
+        "sidebarSize": 64,
+        "listSize": 56
+      },
+      "wide": {
+        "conversationSize": 400,
+        "sidebarSize": 72,
+        "listSize": 64
+      }
+    },
+
+    "button": {
+      "mobile": {
+        "minHeight": 48,
+        "paddingX": 24,
+        "paddingY": 14,
+        "fontSize": 16,
+        "fullWidth": true
+      },
+      "tablet": {
+        "minHeight": 48,
+        "paddingX": 28,
+        "paddingY": 14,
+        "fontSize": 16,
+        "fullWidth": false
+      },
+      "desktop": {
+        "minHeight": 52,
+        "paddingX": 32,
+        "paddingY": 16,
+        "fontSize": 16,
+        "fullWidth": false
+      },
+      "wide": {
+        "minHeight": 56,
+        "paddingX": 40,
+        "paddingY": 18,
+        "fontSize": 18,
+        "fullWidth": false
+      }
+    }
+  },
+
+  "patterns": {
+    "_documentation": "Common responsive patterns",
+
+    "stackToSplit": {
+      "description": "Content stacks vertically on mobile, splits horizontally on desktop",
+      "mobile": "flex-direction: column",
+      "tablet": "flex-direction: column",
+      "desktop": "flex-direction: row",
+      "wide": "flex-direction: row"
+    },
+
+    "hideOnMobile": {
+      "description": "Elements hidden on small screens",
+      "mobile": "display: none",
+      "tablet": "display: block",
+      "desktop": "display: block",
+      "wide": "display: block"
+    },
+
+    "showOnMobileOnly": {
+      "description": "Elements shown only on mobile",
+      "mobile": "display: block",
+      "tablet": "display: none",
+      "desktop": "display: none",
+      "wide": "display: none"
+    },
+
+    "fullWidthMobile": {
+      "description": "Element is full width on mobile, constrained on larger",
+      "mobile": "width: 100%",
+      "tablet": "width: auto",
+      "desktop": "width: auto",
+      "wide": "width: auto"
+    },
+
+    "centeredOnMobile": {
+      "description": "Text centered on mobile, left-aligned on desktop",
+      "mobile": "text-align: center",
+      "tablet": "text-align: center",
+      "desktop": "text-align: left",
+      "wide": "text-align: left"
+    }
+  },
+
+  "touchTargets": {
+    "_documentation": "Minimum touch target sizes by context",
+
+    "primary": {
+      "description": "Primary actions (buttons, main navigation)",
+      "mobile": 48,
+      "tablet": 44,
+      "desktop": 40,
+      "wide": 40
+    },
+    "secondary": {
+      "description": "Secondary actions (links, minor controls)",
+      "mobile": 44,
+      "tablet": 40,
+      "desktop": 36,
+      "wide": 36
+    },
+    "compact": {
+      "description": "Dense layouts (toolbars, tabs)",
+      "mobile": 40,
+      "tablet": 36,
+      "desktop": 32,
+      "wide": 32
+    }
+  },
+
+  "animation": {
+    "_documentation": "Animation adjustments for different devices",
+
+    "mobile": {
+      "durationMultiplier": 0.9,
+      "reduceComplexity": true,
+      "disableParallax": true,
+      "notes": "Faster animations, simpler effects for performance"
+    },
+    "tablet": {
+      "durationMultiplier": 1.0,
+      "reduceComplexity": false,
+      "disableParallax": false
+    },
+    "desktop": {
+      "durationMultiplier": 1.0,
+      "reduceComplexity": false,
+      "disableParallax": false
+    },
+    "wide": {
+      "durationMultiplier": 1.1,
+      "reduceComplexity": false,
+      "disableParallax": false,
+      "notes": "Slightly slower animations feel more elegant on large screens"
+    }
+  },
+
+  "utilities": {
+    "_documentation": "CSS utility class generation config",
+
+    "generate": {
+      "hide": ["mobile", "tablet", "desktop", "wide"],
+      "show": ["mobile", "tablet", "desktop", "wide"],
+      "textAlign": ["mobile", "tablet", "desktop"],
+      "flexDirection": ["mobile", "desktop"],
+      "gridCols": ["mobile", "tablet", "desktop"]
+    },
+
+    "classNamePattern": "{property}-{breakpoint}:{value}",
+    "examples": [
+      "hide-mobile",
+      "show-tablet",
+      "text-center-mobile",
+      "text-left-desktop",
+      "flex-col-mobile",
+      "flex-row-desktop",
+      "grid-cols-1-mobile",
+      "grid-cols-3-desktop"
+    ]
+  }
+}

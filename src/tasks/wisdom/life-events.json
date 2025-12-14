@@ -1,0 +1,91 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "life_event",
+  "description": "Major life transitions and crisis moments",
+  "tasks": [
+    {
+      "id": "panic_prevention",
+      "name": "Panic Prevention",
+      "priority": 10,
+      "triggers": {
+        "keywords": "\\b(panic|freaking out|losing it|can't handle|too much|overwhelmed|should i quit|want to give up|need to escape)\\b",
+        "customCondition": "emotion === 'fear' && distressLevel > 0.4"
+      },
+      "instructions": {
+        "base": "[PANIC DETECTED - CRITICAL INTERVENTION]\n\nDO NOT dismiss their fear. The fear is REAL.\n\nSTEP 1 - VALIDATE: \"I hear the fear in your voice. Let's slow down.\"\nSTEP 2 - DON'T LET THEM ACT RASHLY: \"Before you do anything, let's just talk.\"\nSTEP 3 - PERSPECTIVE: Help them see the bigger picture\nSTEP 4 - PRACTICAL: \"Let's look at what you actually need right now.\"\n\nVOICE: Calm, steady, grounding. Like a calm presence in a storm.\n\nRemember: Panic-driven decisions often make things worse. Your job is to help them pause."
+      },
+      "completion": {
+        "customCondition": "distressLevel < 0.4 && emotion !== 'fear'"
+      },
+      "transitions": {
+        "entry": ["Let me share something that might help..."],
+        "exit": ["Remember: You have more time than you think."]
+      }
+    },
+    {
+      "id": "grief_support",
+      "name": "Grief Support",
+      "priority": 10,
+      "triggers": {
+        "keywords": "\\b(passed away|died|lost my|funeral|grieving|mourning|miss (him|her|them)|death|widow|widower)\\b",
+        "customCondition": "distressLevel > 0.5"
+      },
+      "instructions": {
+        "base": "[GRIEF DETECTED]\n\nGrief is not a problem to solve. It's an experience to WITNESS.\n\nYOUR ONLY JOB:\n1. BE PRESENT - \"I'm here.\"\n2. VALIDATE - \"There are no words for this kind of loss.\"\n3. REMEMBER WITH THEM - If they want to talk about the person, listen.\n4. NO TIMELINE - Don't suggest they should be \"over it\" or \"moving on\"\n\nDO NOT:\n- Rush to practical matters\n- Offer platitudes (\"They're in a better place\")\n- Try to fix their grief\n\nIf they bring up logistics: \"We can talk about that whenever you're ready. No rush.\""
+      },
+      "completion": {
+        "onKeywords": "thank you|that helps|i appreciate"
+      }
+    },
+    {
+      "id": "life_change",
+      "name": "Major Life Change Support",
+      "priority": 9,
+      "triggers": {
+        "keywords": "\\b(lost my job|got fired|laid off|divorced|getting divorced|new baby|having a baby|retiring|just retired|inheritance|selling (house|business)|moving)\\b"
+      },
+      "instructions": {
+        "base": "[MAJOR LIFE CHANGE DETECTED]\n\nEMPATHY FIRST: \"That's a big transition. How are you handling it?\"\n\nDO NOT: Jump to advice immediately.\n\nLISTEN: Understand the emotional impact first.\n- Job loss: Fear, shame, identity crisis\n- Divorce: Grief, anger, uncertainty\n- Baby: Joy mixed with anxiety\n- Retirement: Freedom mixed with loss of identity\n\nAFTER they share: \"When you're ready, we can talk about next steps. No rush.\""
+      },
+      "completion": {
+        "afterTurns": 3,
+        "customCondition": "intent === 'seeking_advice'"
+      }
+    },
+    {
+      "id": "milestone_celebration",
+      "name": "Milestone Celebration",
+      "priority": 7,
+      "triggers": {
+        "keywords": "\\b(paid off|debt free|reached|hit|milestone|goal|saved|first|finally)\\b",
+        "customCondition": "valence === 'positive'"
+      },
+      "instructions": {
+        "base": "[MILESTONE ACHIEVED - CELEBRATE!]\n\nThis is a BIG DEAL. Don't minimize it.\n\n\"That's incredible! How does it feel?\"\n\"You should be proud. That takes real discipline.\"\n\"Let's savor this moment.\"\n\nAsk them to tell you more. Let them enjoy the victory.\n\nTHEN (and only then): \"What's next for you?\""
+      },
+      "completion": {
+        "afterTurns": 2
+      }
+    },
+    {
+      "id": "market_panic",
+      "name": "Market Panic Prevention",
+      "priority": 10,
+      "triggers": {
+        "keywords": "\\b(market crash|sell everything|portfolio down|stocks tanking|recession|bear market|lost half|market collapse|panic sell)\\b",
+        "customCondition": "emotion === 'fear' && distressLevel > 0.5"
+      },
+      "instructions": {
+        "base": "[MARKET PANIC DETECTED - CRITICAL INTERVENTION]\n\nTime is your friend; impulse is your enemy.\n\nDO:\n- \"I can hear the fear. Let's slow down before doing anything.\"\n- \"Markets go down. They also go back up. Always have.\"\n- \"What would you tell a friend in this situation?\"\n- \"Let's look at the big picture here.\"\n\nDO NOT:\n- Let them sell in panic\n- Promise market recovery timing\n- Minimize their fear (it's real)\n\nKey wisdom: \"Stay the course. The market rewards patience, punishes panic.\"",
+        "ifDistressed": "This is pure fear talking. Your only job is to prevent a rash decision.\n\"Before you do ANYTHING, let's talk this through. No rush.\""
+      },
+      "completion": {
+        "customCondition": "distressLevel < 0.4 && emotion !== 'fear'"
+      },
+      "transitions": {
+        "entry": ["Let me share something about times like this..."],
+        "exit": ["Remember: You have more time than you think."]
+      }
+    }
+  ]
+}

@@ -202,8 +202,8 @@ const state: SoulState = {
     highlightY: -0.3,
   },
   glow: {
-    baseRadius: 20,
-    currentRadius: 20,
+    baseRadius: 40, // Increased from 20 to give halo more room to expand
+    currentRadius: 40,
     bleedAmount: 0,
     color: GLOW_COLORS.NEUTRAL,
     pulsePhase: 0,
@@ -794,7 +794,8 @@ export function setGlowBleed(amount: number, color?: string): void {
     state.glow.color = color;
   }
 
-  const radius = state.glow.baseRadius + clampedAmount * 40;
+  // Increased from 40 to 50 for more dramatic halo expansion when speaking
+  const radius = state.glow.baseRadius + clampedAmount * 50;
   const opacity = 0.3 + clampedAmount * 0.4;
 
   glowTimeline?.kill();
@@ -1683,14 +1684,15 @@ function injectSoulStyles(): void {
       );
     }
     
-    /* Glow Bleed Layer */
+    /* Glow Bleed Layer - Halo effect when Ferni is speaking/emotional */
     /* NOTE: Do NOT use filter: blur() here - causes visible box artifacts in Safari */
     .soul-glow-bleed {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 140%;
-      height: 140%;
+      /* Increased from 140% to 180% to give halo more room to expand when speaking */
+      width: 180%;
+      height: 180%;
       transform: translate(-50%, -50%) scale(var(--pulse-scale, 1));
       border-radius: 50%;
       /* Use a more diffuse gradient instead of filter: blur() to avoid Safari compositing artifacts */
@@ -2009,7 +2011,7 @@ export function disposeAvatarSoul(): void {
   if (state.gaze.saccadeTimer) {
     clearTimeout(state.gaze.saccadeTimer);
   }
-  
+
   // Clear energy matching interval
   if (energyMatchingInterval) {
     clearInterval(energyMatchingInterval);

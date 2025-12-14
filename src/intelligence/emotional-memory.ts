@@ -1,12 +1,21 @@
 /**
  * Emotional Memory Engine
  *
- * Tracks emotional states across sessions to enable:
+ * Tracks USER emotional states across sessions to enable:
  * - "Last time we talked, you seemed stressed about work"
  * - "You were really excited about that investment - how's it going?"
  * - "I remember when you were worried about your daughter's college"
  *
  * Creates deeper human connection through emotional continuity.
+ *
+ * @deprecated For new code, prefer using the unified interface:
+ * ```typescript
+ * import { getUnifiedEmotionalMemory } from '../memory/emotional-memory-unified.js';
+ * const memory = getUnifiedEmotionalMemory({ userId, personaId });
+ * ```
+ *
+ * The unified interface coordinates this USER emotion tracking with the
+ * PERSONA bonding system (conversation/superhuman/emotional-memory.ts).
  */
 
 import { getLogger } from '../utils/safe-logger.js';

@@ -4,7 +4,7 @@
  * Unified cleanup function for all speech-related session state.
  * Call this when a voice session ends to prevent memory leaks.
  *
- * This consolidates cleanup across ALL 30+ session-scoped services:
+ * This consolidates cleanup across ALL 35+ session-scoped services:
  * - Audio prosody analyzers
  * - WPM trackers
  * - Backchanneling systems
@@ -32,6 +32,10 @@
  * - Conversation momentum tracker
  * - Mid-response tangent state
  * - Self-awareness feedback loop
+ * - Sesame-inspired: anticipatory prosody
+ * - Sesame-inspired: micro-reactions
+ * - Sesame-inspired: conversation prosody
+ * - Sesame-inspired: rich disfluencies
  */
 
 import { getLogger } from '../utils/safe-logger.js';
@@ -88,6 +92,15 @@ import { resetLiveBackchanneling } from './live-backchanneling/index.js';
 import { resetTangentState } from '../conversation/mid-response-tangents.js';
 import { resetMomentumTracker } from '../conversation/momentum-tracker.js';
 import { resetSelfAwarenessTracker } from '../conversation/self-awareness-loop.js';
+
+// Sesame-inspired prosody (state-of-the-art expressiveness)
+import {
+  resetAnticipatorySession,
+  resetMicroReactionSession,
+  resetConversationState,
+  resetDisfluencySession,
+  resetSesamePipeline,
+} from './sesame-inspired/index.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -236,6 +249,16 @@ export function cleanupSpeechSession(
   safeCleanup('momentumTracker', () => resetMomentumTracker(sessionId));
   safeCleanup('tangentState', () => resetTangentState(sessionId));
   safeCleanup('selfAwareness', () => resetSelfAwarenessTracker(sessionId));
+
+  // ============================================================================
+  // SESAME-INSPIRED PROSODY (State-of-the-art expressiveness)
+  // ============================================================================
+
+  safeCleanup('anticipatoryProsody', () => resetAnticipatorySession(sessionId));
+  safeCleanup('microReactions', () => resetMicroReactionSession(sessionId));
+  safeCleanup('conversationProsody', () => resetConversationState(sessionId));
+  safeCleanup('richDisfluencies', () => resetDisfluencySession(sessionId));
+  safeCleanup('sesamePipeline', () => resetSesamePipeline(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);

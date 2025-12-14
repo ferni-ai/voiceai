@@ -36,6 +36,28 @@ export interface PredictionAccuracyTrend {
   totalPredictions: number;
 }
 
+export interface GrowthInsight {
+  id: string;
+  type: string;
+  area: string;
+  before: string;
+  after: string;
+  evidence: string[];
+  confidence: number;
+  detectedAt: string;
+  surfacedAt?: string;
+  userReaction?: 'resonated' | 'neutral' | 'dismissed';
+}
+
+export interface GrowthSummary {
+  totalInsights: number;
+  surfacedInsights: number;
+  resonatedInsights: number;
+  topGrowthAreas: Array<{ area: string; count: number }>;
+  recentInsights: GrowthInsight[];
+  growthScore: number;
+}
+
 export interface AnalyticsDashboardData {
   // Overview stats
   totalDays: number;
@@ -53,6 +75,10 @@ export interface AnalyticsDashboardData {
   bestDay: string | null; // Day of week
   mostConsistentRitual: string | null;
   improvementAreas: string[];
+
+  // Growth insights (optional - loaded separately)
+  growthSummary?: GrowthSummary;
+  growthInsights?: GrowthInsight[];
 }
 
 export interface AnalyticsDashboardUICallbacks {
@@ -296,6 +322,8 @@ class AnalyticsDashboardUI {
       `
           : ''
       }
+
+      ${data.growthSummary ? this.renderGrowthSection(data.growthSummary, data.growthInsights) : ''}
 
       <div class="analytics__insights">
         <h3>Insights</h3>
@@ -566,6 +594,111 @@ class AnalyticsDashboardUI {
     }
 
     return `<ul class="analytics__insights-list">${items.join('')}</ul>`;
+  }
+
+  private renderGrowthSection(summary: GrowthSummary, insights?: GrowthInsight[]): string {
+    const growthIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>`;
+
+    const sparkleIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+    </svg>`;
+
+    const trendIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+      <polyline points="16 7 22 7 22 13"/>
+    </svg>`;
+
+    // Render growth score as a visual indicator
+    const scoreColor =
+      summary.growthScore >= 70
+        ? 'var(--color-semantic-success, #3d7a52)'
+        : summary.growthScore >= 40
+          ? 'var(--color-semantic-warning, #a67c35)'
+          : 'var(--color-text-muted, #756a5e)';
+
+    // Render top growth areas
+    const topAreas = summary.topGrowthAreas
+      .slice(0, 3)
+      .map(
+        (area) => `
+        <div class="analytics__growth-area">
+          <span class="analytics__growth-area-name">${this.escapeHtml(area.area)}</span>
+          <span class="analytics__growth-area-count">${area.count} insight${area.count !== 1 ? 's' : ''}</span>
+        </div>
+      `
+      )
+      .join('');
+
+    // Render recent insights
+    const recentInsightsList =
+      summary.recentInsights.length > 0
+        ? summary.recentInsights
+            .slice(0, 3)
+            .map(
+              (insight) => `
+          <div class="analytics__growth-insight">
+            <div class="analytics__growth-insight-icon">${sparkleIcon}</div>
+            <div class="analytics__growth-insight-content">
+              <div class="analytics__growth-insight-area">${this.escapeHtml(insight.area)}</div>
+              <div class="analytics__growth-insight-change">
+                <span class="analytics__growth-before">${this.escapeHtml(insight.before)}</span>
+                <span class="analytics__growth-arrow">→</span>
+                <span class="analytics__growth-after">${this.escapeHtml(insight.after)}</span>
+              </div>
+            </div>
+            <div class="analytics__growth-insight-confidence" title="${insight.confidence}% confidence">
+              ${Math.round(insight.confidence)}%
+            </div>
+          </div>
+        `
+            )
+            .join('')
+        : `<div class="analytics__growth-empty">
+            <p>Keep going! Growth insights will appear as patterns emerge.</p>
+          </div>`;
+
+    return `
+      <div class="analytics__growth-section">
+        <div class="analytics__section-header">
+          <h3>Your Growth</h3>
+          <div class="analytics__growth-score" style="--score-color: ${scoreColor}">
+            <span class="analytics__growth-score-value">${summary.growthScore}</span>
+            <span class="analytics__growth-score-label">Growth Score</span>
+          </div>
+        </div>
+
+        <div class="analytics__growth-stats">
+          <div class="analytics__growth-stat">
+            <div class="analytics__growth-stat-icon">${growthIcon}</div>
+            <div class="analytics__growth-stat-value">${summary.totalInsights}</div>
+            <div class="analytics__growth-stat-label">Total Insights</div>
+          </div>
+          <div class="analytics__growth-stat">
+            <div class="analytics__growth-stat-icon">${trendIcon}</div>
+            <div class="analytics__growth-stat-value">${summary.resonatedInsights}</div>
+            <div class="analytics__growth-stat-label">Resonated</div>
+          </div>
+        </div>
+
+        ${
+          summary.topGrowthAreas.length > 0
+            ? `
+          <div class="analytics__growth-areas">
+            <h4>Top Growth Areas</h4>
+            ${topAreas}
+          </div>
+        `
+            : ''
+        }
+
+        <div class="analytics__growth-recent">
+          <h4>Recent Growth</h4>
+          ${recentInsightsList}
+        </div>
+      </div>
+    `;
   }
 
   private animateCharts(): void {
@@ -1275,6 +1408,248 @@ class AnalyticsDashboardUI {
         .analytics__card-label {
           font-size: 10px;
         }
+      }
+
+      /* ========================================================================
+         GROWTH SECTION
+         ======================================================================== */
+      .analytics__growth-section {
+        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .analytics__growth-section .analytics__section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--ma-breath, 13px);
+      }
+
+      .analytics__growth-section h3 {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin: 0;
+      }
+
+      .analytics__growth-section h4 {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 var(--space-2, 8px) 0;
+      }
+
+      .analytics__growth-score {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--space-2, 8px) var(--space-4, 16px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-lg, 0.75rem);
+        border: 2px solid var(--score-color);
+      }
+
+      .analytics__growth-score-value {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-xl, 1.25rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--score-color);
+      }
+
+      .analytics__growth-score-label {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .analytics__growth-stats {
+        display: flex;
+        gap: var(--ma-breath, 13px);
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .analytics__growth-stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--ma-breath, 13px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-lg, 0.75rem);
+      }
+
+      .analytics__growth-stat-icon {
+        color: var(--color-accent-primary, #2d5a3d);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .analytics__growth-stat-value {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .analytics__growth-stat-label {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .analytics__growth-areas {
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .analytics__growth-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-md, 0.5rem);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .analytics__growth-area:last-child {
+        margin-bottom: 0;
+      }
+
+      .analytics__growth-area-name {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+        text-transform: capitalize;
+      }
+
+      .analytics__growth-area-count {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .analytics__growth-recent {
+        margin-top: var(--ma-breath, 13px);
+      }
+
+      .analytics__growth-insight {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-md, 0.5rem);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .analytics__growth-insight:last-child {
+        margin-bottom: 0;
+      }
+
+      .analytics__growth-insight-icon {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--persona-tint, rgba(45, 90, 61, 0.1));
+        color: var(--color-accent-primary, #2d5a3d);
+        border-radius: var(--radius-md, 0.5rem);
+      }
+
+      .analytics__growth-insight-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .analytics__growth-insight-area {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .analytics__growth-insight-change {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+      }
+
+      .analytics__growth-before {
+        color: var(--color-text-muted, #756a5e);
+        text-decoration: line-through;
+        opacity: 0.7;
+      }
+
+      .analytics__growth-arrow {
+        color: var(--color-accent-primary, #2d5a3d);
+        font-weight: bold;
+      }
+
+      .analytics__growth-after {
+        color: var(--color-text-primary, #2c2520);
+        font-weight: var(--font-weight-medium, 500);
+      }
+
+      .analytics__growth-insight-confidence {
+        flex-shrink: 0;
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-accent-primary, #2d5a3d);
+        background: var(--persona-tint, rgba(45, 90, 61, 0.1));
+        padding: var(--space-1, 4px) var(--space-2, 8px);
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      .analytics__growth-empty {
+        text-align: center;
+        padding: var(--ma-rest, 21px);
+        color: var(--color-text-muted, #756a5e);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+      }
+
+      .analytics__growth-empty p {
+        margin: 0;
+      }
+
+      /* Dark Theme - Growth Section */
+      [data-theme="midnight"] .analytics__growth-section h3,
+      [data-theme="midnight"] .analytics__growth-stat-value,
+      [data-theme="midnight"] .analytics__growth-area-name,
+      [data-theme="midnight"] .analytics__growth-after {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .analytics__growth-stat,
+      [data-theme="midnight"] .analytics__growth-area,
+      [data-theme="midnight"] .analytics__growth-insight,
+      [data-theme="midnight"] .analytics__growth-score {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .analytics__growth-insight-icon {
+        background: var(--persona-tint);
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .analytics__growth-insight-confidence {
+        background: var(--persona-tint);
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .analytics__growth-arrow {
+        color: var(--color-accent-secondary, #7cb36b);
       }
 
       /* ========================================================================

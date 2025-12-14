@@ -4,12 +4,14 @@ name: Design System Validation
 # DESIGN SYSTEM CI PIPELINE
 # ============================================================================
 # Validates design system integrity on every PR and push to main.
-# 
+#
 # Checks:
 # - Token drift (JSON → generated files)
 # - Brand compliance (colors, copy, patterns)
 # - Design system violations in code
 # - Accessibility (WCAG AA)
+# - Design system health metrics
+# - Token usage analytics
 # - Storybook builds
 # ============================================================================
 
@@ -38,19 +40,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Check for token drift
         run: node design-system/check-drift.js
-      
+
       - name: Regenerate tokens (verify idempotent)
         run: |
           npm run build:design-system
@@ -61,9 +63,91 @@ jobs:
             exit 1
           fi
           echo "✅ Tokens are in sync"
-      
+
       - name: Validate brand colors
         run: node design-system/check-brand.js
+
+  # ============================================================================
+  # DESIGN SYSTEM HEALTH
+  # ============================================================================
+  health:
+    name: 🌿 Design System Health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run health check
+        id: health
+        run: |
+          cd design-system
+          npm ci
+          npx ts-node dashboard/health-metrics.ts --json > health-report.json
+          cat health-report.json
+
+      - name: Check health score
+        run: |
+          SCORE=$(cat design-system/health-report.json | jq '.overall.score')
+          echo "Design System Health Score: $SCORE/100"
+          if [ "$SCORE" -lt 70 ]; then
+            echo "⚠️ Health score below 70% - review recommended"
+          else
+            echo "✅ Health score is healthy"
+          fi
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-system-health
+          path: design-system/health-report.json
+          retention-days: 30
+
+  # ============================================================================
+  # TOKEN ANALYTICS
+  # ============================================================================
+  token-analytics:
+    name: 📊 Token Analytics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run token analytics
+        run: |
+          cd design-system
+          npm ci
+          npx ts-node dashboard/token-analytics.ts --json > token-analytics.json
+          cat token-analytics.json
+
+      - name: Check token usage
+        run: |
+          USAGE=$(cat design-system/token-analytics.json | jq '.summary.usageRate')
+          echo "Token Usage Rate: $USAGE%"
+          UNUSED=$(cat design-system/token-analytics.json | jq '.summary.unusedTokens')
+          echo "Unused Tokens: $UNUSED"
+
+      - name: Upload analytics report
+        uses: actions/upload-artifact@v4
+        with:
+          name: token-analytics
+          path: design-system/token-analytics.json
+          retention-days: 30
 
   # ============================================================================
   # CODE COMPLIANCE

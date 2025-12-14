@@ -28,20 +28,20 @@ import { getLogger } from '../../utils/safe-logger.js';
 import {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
+  EmptyServiceRegistry,
   validateToolDefinition,
   validateToolSetSpec,
-  EmptyServiceRegistry,
-  type ToolDefinition,
-  type ToolDomain,
-  type ToolCategory,
-  type ToolContext,
-  type ToolSetSpec,
-  type ToolSetResult,
-  type ToolMetadata,
-  type RegistryQueryOptions,
   type RegistryEvent,
   type RegistryEventHandler,
+  type RegistryQueryOptions,
   type Tool,
+  type ToolCategory,
+  type ToolContext,
+  type ToolDefinition,
+  type ToolDomain,
+  type ToolMetadata,
+  type ToolSetResult,
+  type ToolSetSpec,
 } from './types.js';
 
 // ============================================================================
@@ -647,18 +647,21 @@ export function buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult
 // ============================================================================
 
 export {
-  type ToolDefinition,
-  type ToolDomain,
-  type ToolCategory,
-  type ToolContext,
-  type ToolSetSpec,
-  type ToolSetResult,
-  type ToolMetadata,
-  type RegistryQueryOptions,
-  type Tool,
   ALL_TOOL_DOMAINS,
+  assertTool,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  isTool,
+  type BaseTool,
+  type RegistryQueryOptions,
+  type Tool,
+  type ToolCategory,
+  type ToolContext,
+  type ToolDefinition,
+  type ToolDomain,
+  type ToolMetadata,
+  type ToolSetResult,
+  type ToolSetSpec,
 } from './types.js';
 
 export default toolRegistry;

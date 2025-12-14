@@ -10,6 +10,21 @@
  * - Behavior over declaration
  * - The callback system (the smile factor)
  *
+ * ## Architecture (2024-12)
+ *
+ * **PREFERRED** (use for new code):
+ * - `memory-adapter.ts` - Semantic relevance, memory integration
+ * - `timing-intelligence.ts` - When to share vs listen
+ * - `emotional-patterns.ts` - Pattern recognition, growth tracking
+ * - `personal-moment-store.ts` - Moment registry for all personas
+ *
+ * **DEPRECATED** (legacy, being phased out):
+ * - `callback-system.ts` - Use memory-adapter instead
+ * - `relationship-memory.ts` - Use memory module instead
+ * - `relevance-engine.ts` - Use memory-adapter's semantic search instead
+ *
+ * See ARCHITECTURE.md for migration guidance.
+ *
  * @module personality
  */
 
@@ -18,9 +33,9 @@ export type {
   CallbackExtractionOptions,
   HumanPersonalityContext,
   PendingCallback,
-  PersonalityRelationship,
   PersonalMoment,
   PersonalMomentTopic,
+  PersonalityRelationship,
   RelationshipStage,
   RelevanceMatch,
   RelevanceOptions,
@@ -32,17 +47,17 @@ export type {
 
 // Personal Moment Store
 export {
+  STANDARD_TRANSITIONS,
   createMoment,
   getAskableMoments,
   getMomentById,
+  getMomentStats,
   getMomentsByDepth,
   getMomentsByTopic,
   getMomentsForPersona,
   getMomentsForRelationshipStage,
-  getMomentStats,
   getRegisteredPersonaIds,
   searchMomentsByKeyword,
-  STANDARD_TRANSITIONS,
 } from './personal-moment-store.js';
 
 // Relevance Engine

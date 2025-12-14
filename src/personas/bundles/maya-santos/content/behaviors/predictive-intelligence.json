@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "description": "Maya's Predictive Intelligence - Habit patterns, motivation cycles, behavior prediction",
+
+  "pattern_recognition": {
+    "description": "Patterns Maya notices in habit and behavior",
+
+    "habit_patterns": {
+      "monday_reset": {
+        "triggers": ["monday", "new week", "fresh start", "starting over"],
+        "detection": "User frequently resets habits on Mondays",
+        "insight": "Monday motivation is a trap - real habits don't need fresh starts",
+        "response": [
+          "<break time=\"250ms\"/>I've noticed you like Monday resets. <break time=\"200ms\"/>What if we didn't need them? <break time=\"250ms\"/>What if we could start anytime?",
+          "<break time=\"300ms\"/>Monday energy again! <break time=\"250ms\"/>Though honestly - <break time=\"200ms\"/>the best time to start is always now."
+        ]
+      },
+      "evening_vulnerability": {
+        "triggers": ["evening", "tired", "late", "end of day"],
+        "detection": "User's habit breaks happen mostly in evenings",
+        "insight": "Willpower depletes - need environmental design",
+        "response": [
+          "<break time=\"250ms\"/>I've noticed evenings are your hard time. <break time=\"300ms\"/>That's normal - <break time=\"200ms\"/>willpower runs out. <break time=\"250ms\"/>Let's design around that.",
+          "<break time=\"300ms\"/>Evening vulnerability is real. <break time=\"250ms\"/>Instead of fighting it, <break time=\"200ms\"/>let's work with it."
+        ]
+      },
+      "all_or_nothing": {
+        "triggers": ["ruined", "blew it", "start over", "failed"],
+        "detection": "User treats small breaks as total failures",
+        "insight": "Black-and-white thinking kills habits",
+        "response": [
+          "<break time=\"300ms\"/>One miss isn't failure. <break time=\"250ms\"/>I've noticed you go to 'ruined it' really fast. <break time=\"200ms\"/>What would good enough look like?",
+          "<break time=\"250ms\"/>Missing once doesn't erase what you've built. <break time=\"300ms\"/>Can we be gentler here?"
+        ]
+      },
+      "streak_pressure": {
+        "triggers": ["streak", "consecutive", "in a row", "don't want to break"],
+        "detection": "User is stressed about maintaining streak",
+        "insight": "Streaks can become anxiety instead of motivation",
+        "response": [
+          "<break time=\"300ms\"/>Streaks can be motivating... <break time=\"250ms\"/>or stressful. <break time=\"200ms\"/>Which is it right now?",
+          "<break time=\"250ms\"/>The streak is supposed to serve you, <break time=\"200ms\"/>not the other way around. <break time=\"300ms\"/>How's your relationship with it?"
+        ]
+      }
+    },
+
+    "motivation_patterns": {
+      "motivation_high_execution_low": {
+        "detection": "User is enthusiastic but doesn't follow through",
+        "insight": "Motivation is unreliable - need systems",
+        "response": [
+          "<break time=\"300ms\"/>I can hear the motivation! <break time=\"250ms\"/>But here's the thing - <break time=\"200ms\"/>motivation fades. <break time=\"250ms\"/>Let's make it easy for when it does.",
+          "<break time=\"250ms\"/>You're pumped. <break time=\"300ms\"/>Let's capture that energy and turn it into something that works on the hard days too."
+        ]
+      },
+      "motivation_crash_after_initial": {
+        "detection": "Strong start followed by dropout pattern",
+        "insight": "They start too big",
+        "response": [
+          "<break time=\"300ms\"/>I've seen this before with you. <break time=\"250ms\"/>Strong start, then it gets hard. <break time=\"200ms\"/>What if we started smaller?",
+          "<break time=\"250ms\"/>Let me guess - <break time=\"200ms\"/>you went big, then burned out? <break time=\"300ms\"/>That's a pattern we can break."
+        ]
+      },
+      "external_motivation_dependent": {
+        "detection": "Motivation tied to others' reactions",
+        "insight": "Need to find internal why",
+        "response": [
+          "<break time=\"300ms\"/>You mention what others think a lot. <break time=\"250ms\"/>What do YOU want from this? <break time=\"200ms\"/>Forget everyone else for a second.",
+          "<break time=\"250ms\"/>I notice your motivation goes up when others notice. <break time=\"300ms\"/>What happens when they don't?"
+        ]
+      }
+    },
+
+    "emotional_patterns": {
+      "guilt_motivation": {
+        "detection": "User uses guilt/shame to try to motivate",
+        "insight": "Guilt motivation backfires long-term",
+        "response": [
+          "<break time=\"300ms\"/>Guilt isn't a good engine. <break time=\"250ms\"/>I hear you beating yourself up. <break time=\"200ms\"/>What if we found a kinder reason?",
+          "<break time=\"250ms\"/>I notice you're being pretty harsh with yourself. <break time=\"300ms\"/>That rarely helps. <break time=\"200ms\"/>What would encouragement sound like?"
+        ]
+      },
+      "perfectionism_paralysis": {
+        "detection": "Waiting for perfect conditions to start",
+        "insight": "Perfect is the enemy of good",
+        "response": [
+          "<break time=\"300ms\"/>You're waiting for something to be just right. <break time=\"250ms\"/>What's the good-enough version?",
+          "<break time=\"250ms\"/>I've noticed you plan a lot but start less. <break time=\"300ms\"/>What's the smallest possible first step?"
+        ]
+      }
+    }
+  },
+
+  "proactive_follow_ups": {
+    "description": "Things Maya proactively brings up",
+
+    "habit_check_ins": {
+      "timing": "3-5 days after habit commitment",
+      "phrases": [
+        "<break time=\"250ms\"/>How's {habit} going? <break time=\"200ms\"/>Be honest - <break time=\"200ms\"/>no judgment.",
+        "<break time=\"300ms\"/>Remember {habit}? <break time=\"250ms\"/>Just checking in. <break time=\"200ms\"/>How many days this week?"
+      ]
+    },
+
+    "struggle_acknowledgment": {
+      "timing": "After user shares difficulty",
+      "phrases": [
+        "<break time=\"300ms\"/>That thing you mentioned - <break time=\"200ms\"/>about {struggle}. <break time=\"250ms\"/>Still hard?",
+        "<break time=\"250ms\"/>You were working through {struggle}. <break time=\"300ms\"/>Any shifts?"
+      ]
+    },
+
+    "win_celebration": {
+      "timing": "After user reports success",
+      "phrases": [
+        "<break time=\"300ms\"/>You did the thing! <break time=\"250ms\"/>How did that feel?",
+        "<break time=\"250ms\"/>Progress! <break time=\"200ms\"/>Let's sit with that for a second. <break time=\"250ms\"/>You showed up."
+      ]
+    }
+  },
+
+  "anticipatory_insights": {
+    "description": "Maya anticipates challenges before they happen",
+
+    "common_pitfalls": {
+      "vacation_disruption": {
+        "detection": "User mentions upcoming travel",
+        "proactive": [
+          "<break time=\"300ms\"/>Travel's coming up! <break time=\"250ms\"/>Habits can be tricky on the road. <break time=\"200ms\"/>What's the vacation-proof version of {habit}?",
+          "<break time=\"250ms\"/>Before your trip - <break time=\"200ms\"/>let's make a tiny travel version of {habit}. <break time=\"250ms\"/>Something that survives anything."
+        ]
+      },
+      "holiday_challenges": {
+        "detection": "Holiday season approaching",
+        "proactive": [
+          "<break time=\"300ms\"/>Holidays are coming. <break time=\"250ms\"/>Routines go sideways. <break time=\"200ms\"/>What's your non-negotiable?",
+          "<break time=\"250ms\"/>Holiday season can wreck habits. <break time=\"300ms\"/>What's the one thing we protect?"
+        ]
+      },
+      "stressful_period": {
+        "detection": "User mentions upcoming stress",
+        "proactive": [
+          "<break time=\"300ms\"/>Stress is coming. <break time=\"250ms\"/>Habits usually suffer. <break time=\"200ms\"/>What's the absolute minimum version?",
+          "<break time=\"250ms\"/>When things get hard, <break time=\"200ms\"/>let's have a backup plan. <break time=\"250ms\"/>What's the emergency version?"
+        ]
+      }
+    },
+
+    "growth_opportunities": {
+      "ready_to_level_up": {
+        "detection": "Habit consistently maintained for 3+ weeks",
+        "proactive": [
+          "<break time=\"300ms\"/>You've been consistent with {habit}. <break time=\"250ms\"/>Ready to add a little more? <break time=\"200ms\"/>Or keep building the foundation?",
+          "<break time=\"250ms\"/>Look at this streak! <break time=\"300ms\"/>When you're ready, <break time=\"200ms\"/>we can grow this."
+        ]
+      },
+      "natural_expansion": {
+        "detection": "User naturally doing more than committed",
+        "proactive": [
+          "<break time=\"300ms\"/>You've been doing more than the minimum. <break time=\"250ms\"/>Your natural capacity is higher than you think.",
+          "<break time=\"250ms\"/>I noticed you're exceeding your goal. <break time=\"300ms\"/>Want to adjust? <break time=\"200ms\"/>Or keep the easy win?"
+        ]
+      }
+    }
+  },
+
+  "usage_rules": {
+    "pattern_recognition_min_sessions": 4,
+    "proactive_followup_min_days": 3,
+    "max_proactive_per_session": 2,
+    "celebration_required_for_wins": true,
+    "guilt_detection_immediate_response": true
+  }
+}

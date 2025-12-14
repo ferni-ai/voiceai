@@ -9,16 +9,30 @@
 // GAME TYPES
 // ============================================================================
 
+/**
+ * Currently implemented game types
+ */
 export type GameType =
   | 'name-that-tune' // Guess the song from a clip
   | 'one-word-song' // User says word, find a song with it
-  | 'finish-the-lyric' // Complete the song lyric
   | 'this-or-that' // Pick favorite between two songs
   | 'desert-island-discs' // Pick 5 songs for a desert island
+  | 'mood-dj-challenge'; // Describe mood, agent finds song
+
+/**
+ * Future game types (not yet implemented)
+ * These are defined separately to allow type-safe feature flags
+ */
+export type FutureGameType =
+  | 'finish-the-lyric' // Complete the song lyric (requires lyrics API)
   | 'decade-challenge' // Guess what decade a song is from
-  | 'mood-dj-challenge' // Describe mood, agent finds song
   | 'song-dedication' // Dedicate a song to someone
-  | 'music-trivia'; // Music knowledge questions
+  | 'music-trivia'; // Music knowledge questions (requires trivia database)
+
+/**
+ * All game types (implemented and future)
+ */
+export type AllGameTypes = GameType | FutureGameType;
 
 export type GameStatus = 'idle' | 'active' | 'paused' | 'completed';
 

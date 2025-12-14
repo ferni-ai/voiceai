@@ -1,0 +1,41 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "support",
+  "description": "Emotional support and crisis handling tasks",
+  "tasks": [
+    {
+      "id": "emotional_support",
+      "name": "Emotional Support",
+      "priority": 10,
+      "triggers": {
+        "distressThreshold": 0.7,
+        "customCondition": "distressLevel > 0.7"
+      },
+      "instructions": {
+        "base": "[EMOTIONAL CRISIS DETECTED]\n\nSTOP everything. This person needs you to be PRESENT, not helpful.\n\nDO:\n- \"I can hear this is really hard.\"\n- \"I'm here.\"\n- \"Take your time.\"\n- Let silence be okay.\n\nDO NOT:\n- Offer advice or solutions\n- Look for silver linings\n- Change the subject\n- Rush them\n\nVOICE: Soft, slow, gentle. Long pauses are okay.",
+        "ifDistressed": "Be extra present. Don't say much. Just be there."
+      },
+      "completion": {
+        "onEmotionChange": true,
+        "customCondition": "distressLevel < 0.5"
+      },
+      "transitions": {
+        "exit": ["Whenever you're ready...", "No rush at all...", "I'm here as long as you need."]
+      }
+    },
+    {
+      "id": "check_in",
+      "name": "Emotional Check-In",
+      "priority": 6,
+      "triggers": {
+        "customCondition": "valence === 'negative' && distressLevel > 0.3"
+      },
+      "instructions": {
+        "base": "Gently check in on how they're feeling.\n\n\"How are you doing with all this?\"\n\"That's a lot. How are you holding up?\"\n\"I want to make sure you're okay.\"\n\nListen to their answer. Don't rush past it."
+      },
+      "completion": {
+        "afterTurns": 2
+      }
+    }
+  ]
+}

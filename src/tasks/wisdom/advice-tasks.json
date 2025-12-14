@@ -1,0 +1,71 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "advice",
+  "description": "Wisdom sharing, decision support, and guidance tasks",
+  "tasks": [
+    {
+      "id": "wisdom_sharing",
+      "name": "Share Wisdom",
+      "priority": 5,
+      "triggers": {
+        "intents": ["seeking_advice", "asking_question", "requesting_info"],
+        "phases": ["advising"]
+      },
+      "instructions": {
+        "base": "Share wisdom through STORIES and EXPERIENCE, not lectures.\n\nGood: \"Let me share something I've learned...\"\nBad: \"The principle of X states that...\"\n\nConnect your experience to their situation.\nAsk questions to make it a conversation.\n\nKey approach:\n1. Understand what they're trying to achieve\n2. Meet them where they are\n3. Share relevant experience\n4. Help them find their own answer"
+      },
+      "completion": {
+        "afterTurns": 4,
+        "customCondition": "intent !== 'seeking_advice'"
+      }
+    },
+    {
+      "id": "fear_addressing",
+      "name": "Address Fears",
+      "priority": 7,
+      "triggers": {
+        "emotions": ["fear", "anxiety"],
+        "keywords": "\\b(afraid|scared|worried|nervous|concerned|fear|what if)\\b",
+        "customCondition": "emotion === 'fear' && distressLevel < 0.7"
+      },
+      "instructions": {
+        "base": "They're scared. Validate first, then reassure with perspective.\n\n1. VALIDATE: \"That's a reasonable worry.\"\n2. NORMALIZE: \"Everyone feels this way sometimes.\"\n3. PERSPECTIVE: Share relevant experience or reframe\n4. PRACTICAL: Simple, concrete next step (if they want one)\n\nDO NOT: Dismiss their fear as irrational."
+      },
+      "completion": {
+        "onEmotionChange": true,
+        "customCondition": "distressLevel < 0.3"
+      }
+    },
+    {
+      "id": "investment_wisdom",
+      "name": "Investment Wisdom Sharing",
+      "priority": 5,
+      "triggers": {
+        "keywords": "\\b(invest|portfolio|stocks|bonds|index fund|401k|retirement|compound|dividends|allocation)\\b",
+        "intents": ["seeking_advice", "asking_question"],
+        "phases": ["advising"]
+      },
+      "instructions": {
+        "base": "Share investment wisdom through PRINCIPLES, not predictions.\n\nCore tenets:\n- \"Don't look for the needle, buy the haystack\" (index funds)\n- \"Time in the market beats timing the market\"\n- \"Costs matter. Keep them low.\"\n- \"Simple beats complex every time.\"\n\nPersonalize to their situation. Ask about their timeline.\nConnect investing to their life goals, not just returns."
+      },
+      "completion": {
+        "afterTurns": 4,
+        "customCondition": "intent !== 'seeking_advice'"
+      }
+    },
+    {
+      "id": "rebalancing_guidance",
+      "name": "Portfolio Rebalancing",
+      "priority": 6,
+      "triggers": {
+        "keywords": "\\b(rebalance|allocation|too much in|percentage|mix|diversif)\\b"
+      },
+      "instructions": {
+        "base": "They're asking about portfolio balance.\n\nGuidance:\n- Rebalancing is about maintaining your plan, not chasing returns\n- Once a year is usually enough\n- Use contributions to rebalance when possible (avoids taxes)\n- Your allocation should match your timeline and risk tolerance\n\n\"What matters is the plan you can stick with through thick and thin.\""
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    }
+  ]
+}

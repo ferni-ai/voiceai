@@ -54,6 +54,11 @@ import { EventEmitter } from 'node:events';
 // Load voice agent session runner
 import { runVoiceAgentSession } from './voice-agent-session.js';
 import { startup } from '../startup.js';
+import {
+  markLivekitConnected,
+  markLivekitDisconnected,
+  signalWorkerAcceptingJobs,
+} from './shared/worker-readiness.js';
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
@@ -258,6 +263,51 @@ log('Phase 5: Connecting to LiveKit server...');
 let ws: WebSocket | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
+let pingInterval: ReturnType<typeof setInterval> | null = null;
+let lastPongTime = Date.now();
+
+// WebSocket keepalive - detect silent disconnections
+const PING_INTERVAL_MS = 15_000; // Ping every 15 seconds
+const PONG_TIMEOUT_MS = 30_000; // Consider dead if no pong in 30 seconds
+
+function startPingKeepalive(): void {
+  // Clear any existing interval
+  if (pingInterval) {
+    clearInterval(pingInterval);
+  }
+
+  lastPongTime = Date.now();
+
+  pingInterval = setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    // Check if we've received a pong recently
+    const timeSinceLastPong = Date.now() - lastPongTime;
+    if (timeSinceLastPong > PONG_TIMEOUT_MS) {
+      log('WebSocket appears dead (no pong in ' + timeSinceLastPong + 'ms), reconnecting...');
+      markLivekitDisconnected();
+      ws.terminate(); // Force close
+      scheduleReconnect();
+      return;
+    }
+
+    // Send ping
+    try {
+      ws.ping();
+    } catch (error) {
+      log('Ping failed', { error: String(error) });
+    }
+  }, PING_INTERVAL_MS);
+}
+
+function stopPingKeepalive(): void {
+  if (pingInterval) {
+    clearInterval(pingInterval);
+    pingInterval = null;
+  }
+}
 
 async function connectToLiveKit(): Promise<void> {
   // Create worker JWT token
@@ -286,6 +336,8 @@ async function connectToLiveKit(): Promise<void> {
     ws.on('open', () => {
       log('Connected to LiveKit server');
       reconnectAttempts = 0;
+      markLivekitConnected();
+      startPingKeepalive();
 
       // Register worker with full permissions (matching SDK behavior)
       const registerMsg = new WorkerMessage({
@@ -312,6 +364,11 @@ async function connectToLiveKit(): Promise<void> {
       resolve();
     });
 
+    // Handle pong responses for keepalive
+    ws.on('pong', () => {
+      lastPongTime = Date.now();
+    });
+
     ws.on('message', async (data: Buffer) => {
       try {
         const msg = new ServerMessage();
@@ -325,6 +382,8 @@ async function connectToLiveKit(): Promise<void> {
 
     ws.on('close', (code) => {
       log('WebSocket closed', { code });
+      markLivekitDisconnected();
+      stopPingKeepalive();
       scheduleReconnect();
     });
 
@@ -385,7 +444,11 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       });
       ws?.send(statusMsg.toBinary());
       log('Sent WS_AVAILABLE status');
-      
+
+      // Signal that worker is ready to accept jobs (for /health/ready endpoint)
+      signalWorkerAcceptingJobs();
+      log('Worker ready to accept jobs');
+
       // Start periodic status updates (SDK does this every 10 seconds)
       setInterval(() => {
         if (ws?.readyState === WebSocket.OPEN) {
@@ -515,6 +578,9 @@ log('✅ Single-process worker ready', {
 const shutdown = async (signal: string) => {
   log(`Received ${signal}, shutting down...`, { activeJobs });
 
+  // Clean up WebSocket and readiness state
+  markLivekitDisconnected();
+  stopPingKeepalive();
   ws?.close();
 
   const shutdownStart = Date.now();

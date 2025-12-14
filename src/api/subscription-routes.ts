@@ -795,10 +795,15 @@ export function routeSubscriptionRequest(ctx: RequestContext): RouteHandler | nu
 
 /**
  * Check if a path is a subscription API route
- * Matches both /subscription/* and /api/subscription/*
+ * Matches /subscription/*, /api/subscription/*, /usage/*, and /api/usage/*
  */
 export function isSubscriptionRoute(pathname: string): boolean {
-  return pathname.startsWith('/subscription/') || pathname.startsWith('/api/subscription/');
+  return (
+    pathname.startsWith('/subscription/') ||
+    pathname.startsWith('/api/subscription/') ||
+    pathname.startsWith('/usage/') ||
+    pathname.startsWith('/api/usage/')
+  );
 }
 
 /**

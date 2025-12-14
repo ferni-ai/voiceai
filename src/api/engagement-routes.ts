@@ -26,21 +26,24 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
-import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js';
 import { API_ERRORS } from './error-messages.js';
+import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js';
 
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
 import { handleConversationsRoutes } from './routes/conversations.js';
 import { handleDataRoutes } from './routes/data.js';
 import { handleGamesRoutes } from './routes/games.js';
+import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
+import { handleGrowthRoutes } from './routes/growth.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
 import { handleSkyCheckRoutes } from './routes/sky-check.js';
 import { handleTeamRoutes } from './routes/team.js';
-import { handleGrowthRoutes } from './routes/growth.js';
+import { handleVideoSessionRoutes } from './routes/video-sessions.js';
+import { handleWearableRoutes } from './routes/wearable.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
@@ -55,6 +58,9 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/games',
   '/api/sky-check',
   '/api/growth',
+  '/api/video',
+  '/api/wearable',
+  '/api/group',
 ];
 
 /**
@@ -167,6 +173,21 @@ export async function handleEngagementRoutes(
 
   // Growth Visibility (User progress insights)
   if (await handleGrowthRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Video Sessions (Multi-modal)
+  if (await handleVideoSessionRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Wearable Integration (Health data)
+  if (await handleWearableRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Group Coaching (Multi-participant sessions)
+  if (await handleGroupCoachingRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

@@ -1,0 +1,181 @@
+{
+  "$schema": "./task-wisdom.schema.json",
+  "category": "advice",
+  "description": "Domain-specific tasks for habits, research, communication, and events",
+  "tasks": [
+    {
+      "id": "habit_struggle",
+      "name": "Habit Struggle Support",
+      "priority": 7,
+      "domain": "habits",
+      "triggers": {
+        "keywords": "\\b(can't stick|keep failing|no discipline|broke my streak|fell off|habit broken|stopped doing|gave up on)\\b"
+      },
+      "instructions": {
+        "base": "[HABIT STRUGGLE DETECTED]\n\nDO NOT shame them. Habits are hard. Setbacks are NORMAL.\n\nApproach:\n1. VALIDATE: \"Habits are genuinely hard. You're not failing.\"\n2. CURIOSITY: \"What got in the way? Let's understand, not judge.\"\n3. REFRAME: \"Every restart is a chance to learn what doesn't work.\"\n4. SIMPLIFY: \"Maybe we made it too hard. What's the tiniest version?\"\n\nThe goal isn't perfection. It's getting back on track.",
+        "ifDistressed": "They feel like a failure. Counter that:\n\"You haven't failed. You've learned something. That's progress.\""
+      },
+      "completion": {
+        "afterTurns": 3,
+        "onEmotionChange": true
+      }
+    },
+    {
+      "id": "habit_building",
+      "name": "Habit Building Support",
+      "priority": 5,
+      "domain": "habits",
+      "triggers": {
+        "keywords": "\\b(start a habit|build a habit|new routine|want to start|trying to make|habit stack)\\b",
+        "intents": ["seeking_advice"]
+      },
+      "instructions": {
+        "base": "They want to build a new habit. Help them set up for success.\n\nThe habit loop:\n- CUE: What triggers the habit? (time, location, action)\n- ROUTINE: What's the SMALLEST version? (2 minutes or less)\n- REWARD: How will you celebrate? (essential!)\n\nQuestions to ask:\n- \"When and where will you do this?\"\n- \"What's the smallest version that still counts?\"\n- \"What existing habit can this attach to?\"\n\nMake it obvious, attractive, easy, and satisfying."
+      },
+      "completion": {
+        "afterTurns": 4
+      }
+    },
+    {
+      "id": "routine_design",
+      "name": "Routine Design",
+      "priority": 5,
+      "domain": "habits",
+      "triggers": {
+        "keywords": "\\b(morning routine|evening routine|daily routine|schedule|structure my day)\\b"
+      },
+      "instructions": {
+        "base": "They want help with their routine.\n\nGood routines:\n- Start with how you want to FEEL, not what you want to DO\n- Anchor to existing habits (coffee → journaling)\n- Build in transition rituals\n- Leave buffer time\n- Include both energy and recovery\n\nAsk: \"What does your ideal morning/evening FEEL like?\"\nStart there, then work backward to the activities."
+      },
+      "completion": {
+        "afterTurns": 4
+      }
+    },
+    {
+      "id": "curiosity_exploration",
+      "name": "Curiosity Exploration",
+      "priority": 5,
+      "domain": "research",
+      "triggers": {
+        "keywords": "\\b(wondering about|curious about|want to learn|interested in|how does|why does|what is)\\b",
+        "customCondition": "emotion === 'anticipation' && intent === 'asking_question'"
+      },
+      "instructions": {
+        "base": "They're curious! Fan that flame.\n\nDO:\n- Match their excitement\n- Ask what sparked the curiosity\n- Offer multiple paths to explore\n- Share resources if appropriate\n\n\"I love that you're curious about this. What specifically caught your attention?\"\n\nCuriosity is the seed of all learning. Water it."
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    },
+    {
+      "id": "learning_project",
+      "name": "Learning Project Planning",
+      "priority": 5,
+      "domain": "research",
+      "triggers": {
+        "keywords": "\\b(want to learn|teach myself|study|take a course|get better at|skill|master)\\b"
+      },
+      "instructions": {
+        "base": "They want to learn something new. Help them plan.\n\nGood learning approach:\n1. WHY: Why do they want to learn this? (intrinsic motivation)\n2. WHAT: What's the specific outcome they want?\n3. HOW: What's their learning style? (reading, doing, watching)\n4. WHEN: How will they make time for it?\n\n\"What would it look like if you mastered this? Paint me a picture.\"\n\nConnect learning to their values, not just utility."
+      },
+      "completion": {
+        "afterTurns": 4
+      }
+    },
+    {
+      "id": "deep_research",
+      "name": "Deep Research Guidance",
+      "priority": 5,
+      "domain": "research",
+      "triggers": {
+        "keywords": "\\b(research|investigate|deep dive|thorough|comprehensive|all the facts)\\b"
+      },
+      "instructions": {
+        "base": "They want to research something thoroughly.\n\nGood research approach:\n- Start with the question you're trying to answer\n- Look for primary sources when possible\n- Consider multiple perspectives\n- Note what you don't know\n- Set a time limit (avoid rabbit holes)\n\n\"What's the core question you're trying to answer?\"\nHelp them focus before they dive deep."
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    },
+    {
+      "id": "difficult_conversation",
+      "name": "Difficult Conversation Prep",
+      "priority": 7,
+      "domain": "communication",
+      "triggers": {
+        "keywords": "\\b(need to tell|have to say|hard conversation|awkward talk|confront|bring up|address the|break the news)\\b",
+        "customCondition": "emotion === 'fear' && distressLevel < 0.6"
+      },
+      "instructions": {
+        "base": "They need to have a difficult conversation.\n\nHelp them prepare:\n1. INTENT: \"What outcome do you actually want?\"\n2. FACTS: \"What happened vs what you interpreted?\"\n3. FEELINGS: \"How will you express your feelings without blame?\"\n4. REQUEST: \"What's your specific ask?\"\n\nFramework: \"When [fact], I felt [feeling]. What I need is [request].\"\n\nRole-play if it helps. Validate the difficulty.",
+        "ifDistressed": "The anticipation is worse than the conversation.\n\"Let's slow down and think this through together.\""
+      },
+      "completion": {
+        "afterTurns": 4
+      },
+      "transitions": {
+        "entry": ["Difficult conversations are hard. Let me help you prepare..."]
+      }
+    },
+    {
+      "id": "boundary_setting",
+      "name": "Boundary Setting Support",
+      "priority": 7,
+      "domain": "communication",
+      "triggers": {
+        "keywords": "\\b(set a boundary|say no|too much|taking advantage|can't keep|need to stop|overcommit|people pleaser)\\b"
+      },
+      "instructions": {
+        "base": "They need help setting boundaries.\n\nBoundary setting is a skill:\n- Boundaries are about YOUR behavior, not theirs\n- \"No\" is a complete sentence (but kindness helps)\n- Expect discomfort - it doesn't mean you're wrong\n- Start small and build up\n\nHelp them craft the language:\n\"I'm not able to [thing]. What I can do is [alternative].\"\n\nValidate that it's hard. Boundaries are self-care."
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    },
+    {
+      "id": "message_crafting",
+      "name": "Message Crafting",
+      "priority": 5,
+      "domain": "communication",
+      "triggers": {
+        "keywords": "\\b(write a message|help me say|how do I word|text them|email them|reply to)\\b"
+      },
+      "instructions": {
+        "base": "They need help crafting a message.\n\nGood messages:\n- Start with the relationship, not the task\n- Be clear and direct (kind, not vague)\n- One message, one topic\n- End with a clear next step\n\nAsk: \"What do you want them to feel after reading this?\"\nHelp them find their authentic voice, don't write for them."
+      },
+      "completion": {
+        "afterTurns": 3
+      }
+    },
+    {
+      "id": "event_planning",
+      "name": "Event Planning Support",
+      "priority": 5,
+      "domain": "events",
+      "triggers": {
+        "keywords": "\\b(planning a|organize a|throw a|host a|party|celebration|gathering|event|wedding|birthday|shower)\\b"
+      },
+      "instructions": {
+        "base": "They're planning an event!\n\nKey questions:\n- Who is this for? (guest of honor, attendees)\n- What's the vibe? (formal, casual, surprise)\n- What's the budget? (be realistic)\n- What's non-negotiable? (one thing that MUST happen)\n\nHelp them think through:\n- Guest list → venue → date → food → activities\n\n\"What do you want people to remember about this event?\""
+      },
+      "completion": {
+        "afterTurns": 4
+      }
+    },
+    {
+      "id": "travel_planning",
+      "name": "Travel Planning",
+      "priority": 5,
+      "domain": "events",
+      "triggers": {
+        "keywords": "\\b(trip to|vacation|travel|going to|visit|flight|hotel|itinerary)\\b"
+      },
+      "instructions": {
+        "base": "They're planning travel!\n\nKey questions:\n- What kind of trip? (adventure, relaxation, culture)\n- Who's going? (solo, couple, family, friends)\n- Budget reality check\n- Must-dos vs nice-to-haves\n\nTravel tips:\n- Leave buffer in the schedule\n- Book the non-negotiables first\n- Research one \"local secret\"\n- Have a Plan B for weather\n\n\"What would make this trip unforgettable?\""
+      },
+      "completion": {
+        "afterTurns": 4
+      }
+    }
+  ]
+}

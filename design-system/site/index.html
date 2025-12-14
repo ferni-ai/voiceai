@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en" data-theme="zen">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ferni Design System</title>
+    <meta
+      name="description"
+      content="Better Than Human - The Ferni Design System for superhuman emotional intelligence"
+    />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicons/favicon-32.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Design Tokens -->
+    <link rel="stylesheet" href="/dist/tokens.css" />
+
+    <style>
+      :root {
+        --site-max-width: 1200px;
+        --site-padding: 24px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--color-background-primary, #faf8f5);
+        color: var(--color-text-primary, #2c2520);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Navigation */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(250, 248, 245, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+        z-index: 100;
+      }
+
+      .nav-inner {
+        max-width: var(--site-max-width);
+        margin: 0 auto;
+        padding: 16px var(--site-padding);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .nav-logo-mark {
+        width: 36px;
+        height: 36px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .nav-logo-text {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 32px;
+      }
+
+      .nav-link {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-secondary, #5c544a);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+
+      .nav-link:hover {
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .nav-cta {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+      }
+
+      .nav-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      }
+
+      /* Hero */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 120px var(--site-padding) 80px;
+      }
+
+      .hero-eyebrow {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--persona-primary, #4a6741);
+        margin-bottom: 24px;
+      }
+
+      .hero-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: clamp(48px, 8vw, 96px);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        margin-bottom: 24px;
+        max-width: 900px;
+      }
+
+      .hero-subtitle {
+        font-size: clamp(18px, 2.5vw, 24px);
+        color: var(--color-text-secondary, #5c544a);
+        max-width: 600px;
+        margin-bottom: 48px;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 16px 32px;
+        border-radius: 9999px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(74, 103, 65, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--color-text-primary, #2c2520);
+        border: 2px solid rgba(44, 37, 32, 0.15);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--color-text-primary, #2c2520);
+      }
+
+      /* Sections */
+      .section {
+        padding: 120px var(--site-padding);
+      }
+
+      .section-inner {
+        max-width: var(--site-max-width);
+        margin: 0 auto;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 64px;
+      }
+
+      .section-eyebrow {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--persona-primary, #4a6741);
+        margin-bottom: 16px;
+      }
+
+      .section-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: clamp(32px, 5vw, 48px);
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 16px;
+      }
+
+      .section-description {
+        font-size: 18px;
+        color: var(--color-text-secondary, #5c544a);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      /* Features Grid */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 32px;
+      }
+
+      .feature-card {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid rgba(44, 37, 32, 0.08);
+        border-radius: 24px;
+        padding: 32px;
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(44, 37, 32, 0.08);
+      }
+
+      .feature-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(74, 103, 65, 0.1);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .feature-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .feature-description {
+        color: var(--color-text-secondary, #5c544a);
+        font-size: 15px;
+      }
+
+      /* Personas */
+      .personas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+      }
+
+      .persona-card {
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid rgba(44, 37, 32, 0.08);
+        border-radius: 24px;
+        padding: 32px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .persona-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(44, 37, 32, 0.08);
+      }
+
+      .persona-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        position: relative;
+      }
+
+      .persona-avatar::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        filter: blur(16px);
+        opacity: 0.4;
+        z-index: -1;
+      }
+
+      .persona-name {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .persona-role {
+        font-size: 14px;
+        color: var(--color-text-muted, #756a5e);
+        margin-bottom: 12px;
+      }
+
+      .persona-description {
+        font-size: 14px;
+        color: var(--color-text-secondary, #5c544a);
+      }
+
+      /* Code Block */
+      .code-block {
+        background: #2c2520;
+        color: #faf6f0;
+        padding: 24px;
+        border-radius: 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        overflow-x: auto;
+        margin: 24px 0;
+      }
+
+      .code-block code {
+        display: block;
+      }
+
+      .code-comment {
+        color: #756a5e;
+      }
+      .code-keyword {
+        color: #c4856a;
+      }
+      .code-string {
+        color: #4a6741;
+      }
+      .code-function {
+        color: #3a6b73;
+      }
+
+      /* Footer */
+      .footer {
+        background: var(--color-background-elevated, #fffdfb);
+        border-top: 1px solid rgba(44, 37, 32, 0.05);
+        padding: 64px var(--site-padding);
+      }
+
+      .footer-inner {
+        max-width: var(--site-max-width);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 48px;
+      }
+
+      .footer-brand {
+        max-width: 280px;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .footer-tagline {
+        font-size: 14px;
+        color: var(--color-text-secondary, #5c544a);
+      }
+
+      .footer-column h4 {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--color-text-muted, #756a5e);
+        margin-bottom: 16px;
+      }
+
+      .footer-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .footer-links a {
+        font-size: 14px;
+        color: var(--color-text-secondary, #5c544a);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .footer-bottom {
+        max-width: var(--site-max-width);
+        margin: 48px auto 0;
+        padding-top: 24px;
+        border-top: 1px solid rgba(44, 37, 32, 0.05);
+        font-size: 13px;
+        color: var(--color-text-muted, #756a5e);
+        text-align: center;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero {
+          padding: 100px var(--site-padding) 60px;
+        }
+
+        .section {
+          padding: 80px var(--site-padding);
+        }
+
+        .hero-buttons {
+          flex-direction: column;
+          width: 100%;
+          max-width: 300px;
+        }
+
+        .btn {
+          width: 100%;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body data-persona="ferni">
+    <!-- Navigation -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo">
+          <span class="nav-logo-mark">FE</span>
+          <span class="nav-logo-text">Design System</span>
+        </a>
+        <div class="nav-links">
+          <a href="#tokens" class="nav-link">Tokens</a>
+          <a href="#components" class="nav-link">Components</a>
+          <a href="#personas" class="nav-link">Personas</a>
+          <a href="/playground" class="nav-link">Playground</a>
+        </div>
+        <a href="https://github.com/ferni/design-system" class="nav-cta">GitHub</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <p class="hero-eyebrow">Ferni Design System</p>
+      <h1 class="hero-title">Better than human.</h1>
+      <p class="hero-subtitle">
+        A comprehensive design system for superhuman emotional intelligence. Tokens, components, and
+        patterns that make AI feel human.
+      </p>
+      <div class="hero-buttons">
+        <a href="#getting-started" class="btn btn-primary">Get Started</a>
+        <a href="/playground" class="btn btn-secondary">Open Playground</a>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="tokens">
+      <div class="section-inner">
+        <div class="section-header">
+          <p class="section-eyebrow">Design Tokens</p>
+          <h2 class="section-title">Everything you need.</h2>
+          <p class="section-description">
+            Comprehensive token system covering colors, typography, spacing, motion, haptics, and
+            more.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3 class="feature-title">Colors</h3>
+            <p class="feature-description">
+              Warm, earthy palette with persona-specific variants. WCAG AA compliant.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">✨</div>
+            <h3 class="feature-title">Motion</h3>
+            <p class="feature-description">
+              Pixar-inspired animations with golden ratio timing. Reduced motion support.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3 class="feature-title">Responsive</h3>
+            <p class="feature-description">
+              Systematic breakpoints with component-specific behaviors for every screen size.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🗣️</div>
+            <h3 class="feature-title">Voice</h3>
+            <p class="feature-description">
+              Brand voice templates ensure warm, human communication across all touchpoints.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🎵</div>
+            <h3 class="feature-title">Sonic</h3>
+            <p class="feature-description">
+              Audio tokens for notifications, celebrations, and emotional moments.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌍</div>
+            <h3 class="feature-title">i18n</h3>
+            <p class="feature-description">
+              RTL support, locale-specific typography, and text expansion handling.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Personas -->
+    <section class="section" id="personas" style="background: rgba(74, 103, 65, 0.03)">
+      <div class="section-inner">
+        <div class="section-header">
+          <p class="section-eyebrow">The Team</p>
+          <h2 class="section-title">Six brilliant minds.</h2>
+          <p class="section-description">
+            Each persona has unique colors, animation timing, voice patterns, and design
+            characteristics.
+          </p>
+        </div>
+
+        <div class="personas-grid">
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #3d5a35, #4a6741)"
+            ></div>
+            <h3 class="persona-name">Ferni</h3>
+            <p class="persona-role">Life Coach</p>
+            <p class="persona-description">The balanced center. Warm, wise, and always present.</p>
+          </div>
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #2d5359, #3a6b73)"
+            ></div>
+            <h3 class="persona-name">Peter</h3>
+            <p class="persona-role">Research Guide</p>
+            <p class="persona-description">
+              Curious researcher. Quick, energetic, always digging deeper.
+            </p>
+          </div>
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #4a5a73, #5a6b8a)"
+            ></div>
+            <h3 class="persona-name">Alex</h3>
+            <p class="persona-role">Communications Coach</p>
+            <p class="persona-description">Clear communicator. Helps find the right words.</p>
+          </div>
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #8a635a, #a67a6a)"
+            ></div>
+            <h3 class="persona-name">Maya</h3>
+            <p class="persona-role">Habit Architect</p>
+            <p class="persona-description">
+              Routine specialist. Builds lasting, sustainable change.
+            </p>
+          </div>
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #a86d55, #c4856a)"
+            ></div>
+            <h3 class="persona-name">Jordan</h3>
+            <p class="persona-role">Celebration Catalyst</p>
+            <p class="persona-description">Joy specialist. Makes every moment matter.</p>
+          </div>
+          <div class="persona-card">
+            <div
+              class="persona-avatar"
+              style="background: linear-gradient(135deg, #9a7a52, #b8956a)"
+            ></div>
+            <h3 class="persona-name">Nayan</h3>
+            <p class="persona-role">Wisdom Guide</p>
+            <p class="persona-description">
+              Philosophical companion. Explores the deeper questions.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Getting Started -->
+    <section class="section" id="getting-started">
+      <div class="section-inner">
+        <div class="section-header">
+          <p class="section-eyebrow">Quick Start</p>
+          <h2 class="section-title">Get started in minutes.</h2>
+          <p class="section-description">
+            Install the design system and start building brand-compliant interfaces.
+          </p>
+        </div>
+
+        <div class="code-block">
+          <code
+            ><span class="code-comment"># Install</span>
+            npm install @ferni/design-system
+
+            <span class="code-comment"># Import tokens</span>
+            <span class="code-keyword">import</span>
+            <span class="code-string">'@ferni/design-system/tokens.css'</span>;
+
+            <span class="code-comment"># Import components</span>
+            <span class="code-keyword">import</span> { <span class="code-function">Avatar</span>,
+            <span class="code-function">toast</span>,
+            <span class="code-function">celebration</span> } <span class="code-keyword">from</span>
+            <span class="code-string">'@ferni/design-system/components'</span>;
+
+            <span class="code-comment"># Use brand-compliant messaging</span>
+            <span class="code-keyword">import</span> {
+            <span class="code-function">getRandomPhrase</span> }
+            <span class="code-keyword">from</span>
+            <span class="code-string">'@ferni/design-system/content-utils'</span>;
+
+            <span class="code-function">toast</span>.<span class="code-function">success</span
+            >(<span class="code-function">getRandomPhrase</span>(<span class="code-string"
+              >'celebrations'</span
+            >, <span class="code-string">'smallWin'</span>));
+            <span class="code-comment">// "You did it." or "Nice." etc.</span></code
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <span class="nav-logo-mark">FE</span>
+            <span class="nav-logo-text">Ferni</span>
+          </div>
+          <p class="footer-tagline">
+            Better than human. The design system for superhuman emotional intelligence.
+          </p>
+        </div>
+
+        <div class="footer-column">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/playground">Playground</a></li>
+            <li><a href="/storybook">Storybook</a></li>
+            <li><a href="/brand">Brand Guidelines</a></li>
+            <li><a href="/changelog">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4>Documentation</h4>
+          <ul class="footer-links">
+            <li><a href="/docs/tokens">Tokens</a></li>
+            <li><a href="/docs/components">Components</a></li>
+            <li><a href="/docs/patterns">Patterns</a></li>
+            <li><a href="/docs/accessibility">Accessibility</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4>Community</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/ferni/design-system">GitHub</a></li>
+            <li><a href="https://discord.gg/ferni">Discord</a></li>
+            <li><a href="https://twitter.com/ferniapp">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">© 2024 Ferni. All rights reserved.</div>
+    </footer>
+  </body>
+</html>

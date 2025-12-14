@@ -21,6 +21,11 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { getResponseDynamicsEngine } from '../../conversation/index.js';
 import type { UserData } from '../shared/types.js';
+import {
+  enhanceResponseWithSesame,
+  getPreparedResponse,
+} from '../../speech/sesame-inspired/index.js';
+import type { CartesiaEmotion } from '../../speech/cartesia-expressiveness.js';
 
 // ============================================================================
 // TYPES
@@ -66,10 +71,13 @@ export interface EmotionModulation {
  * 2. Unified humanization
  * 3. SSML tagging
  * 4. Response recording
- * 5. Emotion prosody
- * 6. Human listening adjustments
- * 7. Dynamic speed
- * 8. Voice humanization
+ * 5. Sesame-inspired prosody (anticipatory, micro-reactions, disfluencies)
+ * 6. Emotion prosody mirroring
+ * 7. Human listening adjustments
+ * 8. Emotional arc adjustments
+ * 9. Dynamic speed control
+ * 10. Voice humanization
+ * 11. Track response for dynamics
  */
 export async function processResponse(ctx: ResponseProcessorContext): Promise<ResponseProcessorResult> {
   const startTime = Date.now();
@@ -120,7 +128,25 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 5. EMOTION PROSODY MIRRORING
+  // 5. SESAME-INSPIRED PROSODY ENHANCEMENT
+  // Apply anticipatory prosody from partial transcript analysis
+  // Adds micro-reactions, speed/volume, contextual pauses, disfluencies
+  // ============================================================
+  if (sessionId) {
+    const sesameResult = applySesameEnhancement(
+      processedText,
+      sessionId,
+      userData,
+      appliedFeatures
+    );
+    if (sesameResult.wasApplied) {
+      processedText = sesameResult.text;
+      appliedFeatures.push(...sesameResult.features);
+    }
+  }
+
+  // ============================================================
+  // 6. EMOTION PROSODY MIRRORING
   // ============================================================
   const emotionModulation = userData?.emotionModulation;
   if (emotionModulation && emotionModulation.confidence > 0.4) {
@@ -130,7 +156,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 6. HUMAN LISTENING SSML ADJUSTMENTS
+  // 7. HUMAN LISTENING SSML ADJUSTMENTS
   // ============================================================
   if (sessionId) {
     const listeningResult = await applyHumanListeningAdjustments(processedText, sessionId);
@@ -141,7 +167,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 7. EMOTIONAL ARC ADJUSTMENTS
+  // 8. EMOTIONAL ARC ADJUSTMENTS
   // ============================================================
   const arcResult = applyEmotionalArcAdjustments(processedText);
   if (arcResult.wasApplied) {
@@ -150,7 +176,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 8. DYNAMIC SPEED CONTROL
+  // 9. DYNAMIC SPEED CONTROL
   // ============================================================
   if (sessionId && userData) {
     const speedResult = await applyDynamicSpeedControl(processedText, sessionId, persona, userData);
@@ -161,7 +187,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 9. VOICE HUMANIZATION (laughter, contagion, rhythm, breathing)
+  // 10. VOICE HUMANIZATION (laughter, contagion, rhythm, breathing)
   // ============================================================
   if (sessionId) {
     const voiceHumanResult = await applyVoiceHumanization(
@@ -176,7 +202,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   }
 
   // ============================================================
-  // 10. TRACK RESPONSE FOR DYNAMICS
+  // 11. TRACK RESPONSE FOR DYNAMICS
   // ============================================================
   const responseDynamics = getResponseDynamicsEngine();
   responseDynamics.recordMessage('agent', ctx.rawText);
@@ -438,6 +464,72 @@ async function applyHumanListeningAdjustments(
   }
 
   return { text, wasApplied: false };
+}
+
+/**
+ * Apply Sesame-inspired prosody enhancement
+ *
+ * Uses pre-computed anticipatory data from partial transcript processing
+ * to add more natural, responsive prosody to the agent's output.
+ */
+function applySesameEnhancement(
+  text: string,
+  sessionId: string,
+  userData: UserData | undefined,
+  existingFeatures: string[]
+): { text: string; wasApplied: boolean; features: string[] } {
+  try {
+    // Check if we have prepared response from anticipatory processing
+    const prepared = getPreparedResponse(sessionId);
+
+    // Determine the detected emotion to use
+    const detectedEmotion: CartesiaEmotion =
+      (userData?.voiceEmotion?.primary as CartesiaEmotion) ||
+      (userData?.lastEmotionAnalysis?.primary as CartesiaEmotion) ||
+      'neutral';
+
+    const turnNumber = userData?.turnCount || 1;
+
+    // Only apply if we have anticipation data OR on every 3rd turn for natural variation
+    const shouldApply = prepared !== null || turnNumber % 3 === 0;
+
+    if (!shouldApply) {
+      return { text, wasApplied: false, features: [] };
+    }
+
+    // Apply the Sesame enhancement pipeline
+    const result = enhanceResponseWithSesame(
+      sessionId,
+      text,
+      detectedEmotion,
+      turnNumber
+    );
+
+    // Filter out features that were already applied by other processors
+    const newFeatures = result.features.filter(
+      (f) => !existingFeatures.includes(f) && !existingFeatures.includes(`sesame_${f}`)
+    );
+
+    if (newFeatures.length === 0) {
+      return { text, wasApplied: false, features: [] };
+    }
+
+    diag.debug('🎭 Sesame enhancement applied', {
+      sessionId,
+      features: newFeatures,
+      processingMs: result.processingMs,
+      usedAnticipation: prepared !== null,
+    });
+
+    return {
+      text: result.enhanced,
+      wasApplied: true,
+      features: newFeatures.map((f) => `sesame_${f}`),
+    };
+  } catch (error) {
+    diag.debug('Sesame enhancement failed (non-fatal)', { error: String(error) });
+    return { text, wasApplied: false, features: [] };
+  }
 }
 
 /**

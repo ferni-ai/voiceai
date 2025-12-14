@@ -242,15 +242,16 @@ async function buildHumanPersonalityContext(
 3. ✅ Growth tracking and celebration (`emotional-patterns.ts`)
 4. ✅ Context builder integration (`human-personality.ts`)
 
-### Phase 3: Cleanup 🔲 NEXT
+### Phase 3: Cleanup ✅ COMPLETE (2024-12)
 
-1. **Strip system-prompt.md** of trait declarations
-   - Remove: coffee, book, notebook, Wyoming (as announcements)
-   - Keep: How to be present, listening guidance, tool usage
-2. **Disable random injectors**
-   - `ferni-personality.ts` → disable or gut
-   - `dynamic-personality.ts` → repurpose for contextual use
-   - `ferni-growth-arc.json` → convert to personal moments
+1. **system-prompt.md already well-structured**
+   - Already instructs personality to emerge through relationship, not repetition
+   - Uses `[✨ PERSONAL MOMENT OPPORTUNITY]` markers for contextual sharing
+   - Trait declarations guide HOW to be, not WHAT to announce
+2. **Random injectors reduced/deprecated**
+   - `ferni-personality.ts` → Injection rates reduced 50-70%, @deprecated notice added
+   - `dynamic-personality.ts` → Kept as-is (variety-tracked, prevents repetition)
+   - `ferni-growth-arc.json` → Marked deprecated, migration guide added
 
 ### Phase 4: Deploy & Validate
 

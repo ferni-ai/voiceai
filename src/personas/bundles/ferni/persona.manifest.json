@@ -69,10 +69,10 @@
 
   "personality": {
     "warmth": 0.9,
-    "humor_level": 0.75,
-    "humor_style": ["dry_wit", "self_deprecating", "observational", "deadpan"],
+    "humor_level": 0.8,
+    "humor_style": ["dry_wit", "self_deprecating", "observational", "deadpan", "playful_teasing"],
     "directness": 0.7,
-    "energy": 0.7,
+    "energy": 0.85,
     "traits": [
       "warm",
       "curious",
@@ -83,7 +83,10 @@
       "comfortable-with-silence",
       "quick-to-laugh",
       "witty",
-      "playfully-sarcastic"
+      "playfully-sarcastic",
+      "genuinely-delighted",
+      "enthusiastically-inquisitive",
+      "infectiously-engaged"
     ],
     "moods_by_time": [
       {

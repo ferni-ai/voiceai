@@ -11,6 +11,30 @@
  * This is the brain that makes personality feel RELEVANT, not random.
  *
  * @module personality/relevance-engine
+ *
+ * @deprecated MIGRATION GUIDE (2024-12):
+ * This module uses keyword-based relevance matching. For new code, prefer:
+ *
+ * 1. **Semantic relevance**: Use `personality/memory-adapter.ts`
+ *    ```typescript
+ *    import { findRelevantMomentSemantic } from './memory-adapter.js';
+ *    const match = await findRelevantMomentSemantic(personaId, userMessage, {
+ *      relationshipStage: 'friend',
+ *      minSimilarity: 0.5,
+ *    });
+ *    ```
+ *
+ * 2. **Timing decisions**: Use `personality/timing-intelligence.ts`
+ *    to determine WHEN to share, not just WHAT.
+ *    ```typescript
+ *    import { analyzeMessageTiming } from './timing-intelligence.js';
+ *    const timing = analyzeMessageTiming(message, metadata);
+ *    if (timing.personalMomentAppropriate) { ... }
+ *    ```
+ *
+ * The memory-adapter uses embedding-based semantic search which provides
+ * higher quality matches than keyword patterns, especially for nuanced
+ * emotional context.
  */
 
 import { createLogger } from '../utils/safe-logger.js';

@@ -11,19 +11,19 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, sendJSON } from '../helpers.js';
 import {
   generateMusicInsights,
   getConversationalInsight,
   getGameSuggestion,
 } from '../../services/games/game-insights.js';
 import type { GameMemory } from '../../types/user-profile.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { requireUserId, sendJSON } from '../helpers.js';
 
 const log = createLogger({ module: 'GamesAPI' });
 
 // ============================================================================
-// RATE LIMITING
+// RATE LIMITING (User + IP based)
 // ============================================================================
 
 interface RateLimitEntry {
@@ -31,32 +31,102 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-const rateLimits = new Map<string, RateLimitEntry>();
+// User-based rate limiting
+const userRateLimits = new Map<string, RateLimitEntry>();
+// IP-based rate limiting (fallback for unauthenticated requests)
+const ipRateLimits = new Map<string, RateLimitEntry>();
+
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
+const RATE_LIMIT_MAX_REQUESTS_USER = 30; // 30 requests per minute for authenticated users
+const RATE_LIMIT_MAX_REQUESTS_IP = 10; // 10 requests per minute per IP (stricter for anonymous)
 
 /**
- * Check if request is rate limited
+ * Get client IP from request
  */
-function isRateLimited(userId: string): boolean {
+function getClientIP(req: IncomingMessage): string {
+  // Check for forwarded IP (from proxy/load balancer)
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+    return ips.trim();
+  }
+
+  // Check for Cloud Run forwarded IP
+  const realIp = req.headers['x-real-ip'];
+  if (realIp) {
+    return Array.isArray(realIp) ? realIp[0] : realIp;
+  }
+
+  // Fallback to direct connection
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * Check if request is rate limited (user-based)
+ */
+function isUserRateLimited(userId: string): boolean {
   const now = Date.now();
-  const entry = rateLimits.get(userId);
+  const entry = userRateLimits.get(userId);
 
   if (!entry || now > entry.resetAt) {
     // Reset or create entry
-    rateLimits.set(userId, {
+    userRateLimits.set(userId, {
       count: 1,
       resetAt: now + RATE_LIMIT_WINDOW_MS,
     });
     return false;
   }
 
-  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-    log.warn({ userId, count: entry.count }, 'Rate limit exceeded for games API');
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS_USER) {
+    log.warn({ userId, count: entry.count }, 'User rate limit exceeded for games API');
     return true;
   }
 
   entry.count++;
+  return false;
+}
+
+/**
+ * Check if request is rate limited (IP-based)
+ */
+function isIPRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipRateLimits.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    // Reset or create entry
+    ipRateLimits.set(ip, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS_IP) {
+    log.warn({ ip, count: entry.count }, 'IP rate limit exceeded for games API');
+    return true;
+  }
+
+  entry.count++;
+  return false;
+}
+
+/**
+ * Check if request is rate limited (combined user + IP)
+ */
+function isRateLimited(req: IncomingMessage, userId?: string): boolean {
+  const ip = getClientIP(req);
+
+  // Always check IP-based limiting
+  if (isIPRateLimited(ip)) {
+    return true;
+  }
+
+  // If user is authenticated, also check user-based limiting
+  if (userId && isUserRateLimited(userId)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -108,8 +178,8 @@ export async function handleGamesRoutes(
     const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return true;
 
-    // Rate limit check
-    if (isRateLimited(userId)) {
+    // Rate limit check (user + IP based)
+    if (isRateLimited(req, userId)) {
       sendRateLimitResponse(res);
       return true;
     }
@@ -148,6 +218,12 @@ export async function handleGamesRoutes(
     const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return true;
 
+    // Rate limit check
+    if (isRateLimited(req, userId)) {
+      sendRateLimitResponse(res);
+      return true;
+    }
+
     try {
       const profile = await getUserProfileFromStore(userId);
       const suggestion = getGameSuggestion(profile?.gameMemory);
@@ -175,6 +251,12 @@ export async function handleGamesRoutes(
   if (pathname === '/api/games/conversational' && req.method === 'GET') {
     const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return true;
+
+    // Rate limit check
+    if (isRateLimited(req, userId)) {
+      sendRateLimitResponse(res);
+      return true;
+    }
 
     try {
       const profile = await getUserProfileFromStore(userId);

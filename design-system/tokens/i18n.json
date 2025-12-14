@@ -1,0 +1,413 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Internationalization Tokens",
+    "description": "Locale-specific design adjustments and RTL support",
+    "version": "1.0.0"
+  },
+
+  "supportedLocales": {
+    "_documentation": "Locales with specific design considerations",
+
+    "en-US": {
+      "name": "English (US)",
+      "direction": "ltr",
+      "dateFormat": "MMM D, YYYY",
+      "timeFormat": "h:mm A",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "$"
+      }
+    },
+    "en-GB": {
+      "name": "English (UK)",
+      "direction": "ltr",
+      "dateFormat": "D MMM YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "£"
+      }
+    },
+    "es": {
+      "name": "Spanish",
+      "direction": "ltr",
+      "dateFormat": "D [de] MMMM [de] YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ",",
+        "thousands": ".",
+        "currency": "€"
+      }
+    },
+    "fr": {
+      "name": "French",
+      "direction": "ltr",
+      "dateFormat": "D MMMM YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ",",
+        "thousands": " ",
+        "currency": "€"
+      }
+    },
+    "de": {
+      "name": "German",
+      "direction": "ltr",
+      "dateFormat": "D. MMMM YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ",",
+        "thousands": ".",
+        "currency": "€"
+      }
+    },
+    "ja": {
+      "name": "Japanese",
+      "direction": "ltr",
+      "dateFormat": "YYYY年M月D日",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "¥"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans JP', var(--font-body)",
+        "lineHeightMultiplier": 1.2,
+        "letterSpacingAdjust": 0.02
+      }
+    },
+    "ko": {
+      "name": "Korean",
+      "direction": "ltr",
+      "dateFormat": "YYYY년 M월 D일",
+      "timeFormat": "a h:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "₩"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans KR', var(--font-body)",
+        "lineHeightMultiplier": 1.15
+      }
+    },
+    "zh-Hans": {
+      "name": "Chinese (Simplified)",
+      "direction": "ltr",
+      "dateFormat": "YYYY年M月D日",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "¥"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans SC', var(--font-body)",
+        "lineHeightMultiplier": 1.15
+      }
+    },
+    "zh-Hant": {
+      "name": "Chinese (Traditional)",
+      "direction": "ltr",
+      "dateFormat": "YYYY年M月D日",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "NT$"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans TC', var(--font-body)",
+        "lineHeightMultiplier": 1.15
+      }
+    },
+    "ar": {
+      "name": "Arabic",
+      "direction": "rtl",
+      "dateFormat": "D MMMM YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": "٫",
+        "thousands": "٬",
+        "currency": "د.إ"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans Arabic', var(--font-body)",
+        "lineHeightMultiplier": 1.4
+      }
+    },
+    "he": {
+      "name": "Hebrew",
+      "direction": "rtl",
+      "dateFormat": "D בMMMM YYYY",
+      "timeFormat": "HH:mm",
+      "numberFormat": {
+        "decimal": ".",
+        "thousands": ",",
+        "currency": "₪"
+      },
+      "typography": {
+        "fontFamily": "'Noto Sans Hebrew', var(--font-body)",
+        "lineHeightMultiplier": 1.3
+      }
+    }
+  },
+
+  "rtl": {
+    "_documentation": "Right-to-left layout adjustments",
+
+    "enabled": ["ar", "he"],
+
+    "cssLogicalProperties": {
+      "description": "Use CSS logical properties for RTL-aware layouts",
+      "mappings": {
+        "margin-left": "margin-inline-start",
+        "margin-right": "margin-inline-end",
+        "padding-left": "padding-inline-start",
+        "padding-right": "padding-inline-end",
+        "left": "inset-inline-start",
+        "right": "inset-inline-end",
+        "text-align: left": "text-align: start",
+        "text-align: right": "text-align: end",
+        "border-left": "border-inline-start",
+        "border-right": "border-inline-end"
+      }
+    },
+
+    "transforms": {
+      "description": "Elements that need mirroring in RTL",
+      "mirror": [
+        "chevron icons",
+        "arrow icons",
+        "progress indicators",
+        "slider tracks",
+        "carousel controls"
+      ],
+      "preserve": ["clock icons", "checkmarks", "avatar images", "brand logos", "video players"]
+    },
+
+    "layout": {
+      "navigation": {
+        "ltr": "left-to-right reading order",
+        "rtl": "right-to-left reading order"
+      },
+      "menu": {
+        "ltr": "slides from right",
+        "rtl": "slides from left"
+      },
+      "toast": {
+        "position": "bottom-center",
+        "note": "Center position works for both directions"
+      }
+    }
+  },
+
+  "typography": {
+    "_documentation": "Typography adjustments by language family",
+
+    "latinExtended": {
+      "description": "Languages using Latin script with diacritics",
+      "locales": ["es", "fr", "de", "pt", "it", "pl"],
+      "adjustments": {
+        "lineHeight": "var(--leading-normal)",
+        "letterSpacing": "normal"
+      }
+    },
+
+    "cjk": {
+      "description": "Chinese, Japanese, Korean",
+      "locales": ["ja", "ko", "zh-Hans", "zh-Hant"],
+      "adjustments": {
+        "lineHeight": "1.8",
+        "letterSpacing": "0.02em",
+        "wordBreak": "break-all",
+        "fontFeatureSettings": "'palt' 1"
+      },
+      "fallbackFonts": {
+        "ja": ["Hiragino Sans", "Yu Gothic", "Meiryo"],
+        "ko": ["Apple SD Gothic Neo", "Malgun Gothic"],
+        "zh-Hans": ["PingFang SC", "Microsoft YaHei"],
+        "zh-Hant": ["PingFang TC", "Microsoft JhengHei"]
+      }
+    },
+
+    "arabic": {
+      "description": "Arabic script languages",
+      "locales": ["ar"],
+      "adjustments": {
+        "lineHeight": "1.8",
+        "letterSpacing": "0",
+        "fontFeatureSettings": "'liga' 1",
+        "direction": "rtl"
+      }
+    },
+
+    "hebrew": {
+      "description": "Hebrew",
+      "locales": ["he"],
+      "adjustments": {
+        "lineHeight": "1.6",
+        "letterSpacing": "0",
+        "direction": "rtl"
+      }
+    }
+  },
+
+  "content": {
+    "_documentation": "Content formatting by locale",
+
+    "pluralization": {
+      "description": "Languages with complex plural rules",
+      "simple": ["en", "de", "es", "fr", "it", "pt"],
+      "complex": {
+        "ar": "Has 6 plural forms",
+        "ru": "Has 3 plural forms",
+        "pl": "Has 3 plural forms"
+      }
+    },
+
+    "textExpansion": {
+      "description": "Text length varies significantly by language",
+      "baseline": "en",
+      "expansionFactors": {
+        "de": 1.35,
+        "fr": 1.2,
+        "es": 1.25,
+        "it": 1.15,
+        "pt": 1.2,
+        "ja": 0.6,
+        "ko": 0.7,
+        "zh": 0.5,
+        "ar": 1.25,
+        "he": 1.1
+      },
+      "guidelines": {
+        "buttons": "Design for 1.5x expansion",
+        "labels": "Design for 1.3x expansion",
+        "headlines": "May need to wrap differently"
+      }
+    },
+
+    "dateTimePatterns": {
+      "relative": {
+        "en": {
+          "justNow": "just now",
+          "minutesAgo": "{n} minutes ago",
+          "hoursAgo": "{n} hours ago",
+          "yesterday": "yesterday",
+          "daysAgo": "{n} days ago"
+        }
+      },
+      "greeting": {
+        "timeOfDay": {
+          "en": {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+            "night": "Good night"
+          }
+        }
+      }
+    },
+
+    "names": {
+      "description": "Name display order varies by culture",
+      "formats": {
+        "western": "firstName lastName",
+        "eastern": "lastName firstName",
+        "formal": "title lastName"
+      },
+      "localeMapping": {
+        "en": "western",
+        "es": "western",
+        "fr": "western",
+        "de": "western",
+        "ja": "eastern",
+        "ko": "eastern",
+        "zh": "eastern"
+      }
+    }
+  },
+
+  "accessibility": {
+    "_documentation": "Locale-specific accessibility considerations",
+
+    "screenReaderLanguage": {
+      "description": "Ensure screen readers use correct language",
+      "implementation": "<html lang=\"{locale}\">"
+    },
+
+    "pronunciationHints": {
+      "description": "Help screen readers pronounce brand terms",
+      "terms": {
+        "Ferni": {
+          "en": "FER-nee",
+          "es": "FER-ni",
+          "ja": "ファーニ"
+        }
+      }
+    }
+  },
+
+  "css": {
+    "_documentation": "Generated CSS for i18n",
+
+    "variables": {
+      "--direction": "var(--locale-direction, ltr)",
+      "--text-align-start": "var(--locale-text-start, left)",
+      "--text-align-end": "var(--locale-text-end, right)",
+      "--font-family-localized": "var(--locale-font, var(--font-body))",
+      "--line-height-localized": "var(--locale-line-height, var(--leading-normal))"
+    },
+
+    "selectors": {
+      "rtl": "[dir='rtl']",
+      "ltr": "[dir='ltr']",
+      "japanese": "[lang='ja']",
+      "cjk": "[lang='ja'], [lang='ko'], [lang='zh'], [lang^='zh-']",
+      "arabic": "[lang='ar']"
+    }
+  },
+
+  "testing": {
+    "_documentation": "I18n testing requirements",
+
+    "visualTests": [
+      "Test all screens in RTL mode",
+      "Test with longest translation (usually German)",
+      "Test CJK text wrapping",
+      "Test with real translated content, not lorem ipsum"
+    ],
+
+    "functionalTests": [
+      "Date/time formatting",
+      "Number formatting (decimals, thousands)",
+      "Currency display",
+      "Plural forms",
+      "Text direction"
+    ],
+
+    "pseudoLocales": {
+      "description": "Fake locales for testing",
+      "accented": {
+        "name": "Accented English",
+        "transforms": "Replace ASCII with accented equivalents",
+        "example": "Héllö Wörld"
+      },
+      "elongated": {
+        "name": "Elongated",
+        "transforms": "Double vowels to simulate expansion",
+        "example": "Heeelloo Wooorld"
+      },
+      "rtlPseudo": {
+        "name": "RTL Pseudo",
+        "transforms": "Reverse strings, add RTL markers",
+        "example": "‮dlroW olleH‬"
+      }
+    }
+  }
+}

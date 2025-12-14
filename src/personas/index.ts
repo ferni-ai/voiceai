@@ -20,7 +20,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { PersonaConfig, PersonaId, PersonaRegistry, PartialPersonaConfig } from './types.js';
+import type { PartialPersonaConfig, PersonaConfig, PersonaId, PersonaRegistry } from './types.js';
 
 // ============================================================================
 // CORE EXPORTS
@@ -51,38 +51,38 @@ export type * from './types.js';
 
 // Voice Registry - single source of truth for voice IDs and persona ID normalization
 export {
-  initializeVoiceRegistry,
-  getVoiceId,
-  getVoiceEntry,
-  getCanonicalPersonaId,
-  isKnownPersona,
-  getAllPersonaIds,
   getAliasesForPersona,
-  isVoiceRegistryInitialized,
-  resetVoiceRegistry,
+  getAllPersonaIds,
+  getCanonicalPersonaId,
   getFrontendPersonaId,
   getPersonaDisplayName,
+  getVoiceEntry,
+  getVoiceId,
+  initializeVoiceRegistry,
+  isKnownPersona,
+  isVoiceRegistryInitialized,
+  resetVoiceRegistry,
 } from './voice-registry.js';
 
 // Alias for backward compatibility and semantic clarity
 export { getCanonicalPersonaId as normalizePersonaId } from './voice-registry.js';
 
 // Re-export behaviors, greetings, meaningful silence, and easter eggs
-export * from './behaviors.js';
-export * from './greetings.js';
 export { BASE_IDENTITY_RULES, buildSystemPrompt } from './base-identity.js';
+export * from './behaviors.js';
 export {
   checkForEasterEgg,
   getRandomQuirk,
-  type EasterEggResult,
   type DelighterContext,
+  type EasterEggResult,
 } from './easter-eggs.js';
+export * from './greetings.js';
 export {
-  getMeaningfulSilenceResponse,
-  SilenceHandler,
   extractMemorableMoments,
+  getMeaningfulSilenceResponse,
   mergeMemorableMoments,
   playAmbientMusicDuringSilence,
+  SilenceHandler,
   stopAmbientMusic,
   type SilenceContext,
   type SilenceResponse,
@@ -91,27 +91,27 @@ export {
 
 // Theatrical personality - entrances, celebrations, goodbyes
 export {
-  getTheatricalEntrance,
-  getCelebration,
-  getTheatricalGoodbye,
-  getEnhancedBackchannel,
-  getStorytellingIntro,
-  getStoryMusicOffer,
-  THEATRICAL_ENTRANCES,
   CELEBRATION_MOMENTS,
-  THEATRICAL_GOODBYES,
-  STORYTELLING_CONFIGS,
-  ENHANCED_BACKCHANNELS,
-  // Bundle entrance management
-  registerBundleEntrances,
-  clearBundleEntrances,
-  getAllEntrancesForPersona,
-  // Bundle backchannel management
-  registerBundleBackchannels,
   clearBundleBackchannels,
-  getAllBackchannelsForPersona,
+  clearBundleEntrances,
   // Deprecation warnings (for testing)
   clearHardcodedFallbackWarnings,
+  ENHANCED_BACKCHANNELS,
+  getAllBackchannelsForPersona,
+  getAllEntrancesForPersona,
+  getCelebration,
+  getEnhancedBackchannel,
+  getStoryMusicOffer,
+  getStorytellingIntro,
+  getTheatricalEntrance,
+  getTheatricalGoodbye,
+  // Bundle backchannel management
+  registerBundleBackchannels,
+  // Bundle entrance management
+  registerBundleEntrances,
+  STORYTELLING_CONFIGS,
+  THEATRICAL_ENTRANCES,
+  THEATRICAL_GOODBYES,
   type CelebrationType,
   type StorytellingConfig,
 } from './theatrical.js';
@@ -121,12 +121,12 @@ export {
 // ============================================================================
 
 export {
-  SessionBundleRuntimeManager,
   createSessionRuntime,
-  type SessionRuntimeConfig,
+  SessionBundleRuntimeManager,
   type SessionContext,
-  type WelcomeBackResult,
   type SessionEnhancements,
+  type SessionRuntimeConfig,
+  type WelcomeBackResult,
 } from './session-runtime.js';
 
 // ============================================================================
@@ -134,12 +134,12 @@ export {
 // ============================================================================
 
 export {
+  detectUserMoodFromContext,
   generateAliveEntrance,
   getAliveEntrance,
   getAliveEntranceForHandoff,
-  detectUserMoodFromContext,
-  type EntranceContext,
   type AliveEntranceResult,
+  type EntranceContext,
 } from './alive-entrances.js';
 
 // ============================================================================
@@ -358,10 +358,10 @@ export async function getPersonaAsync(id: PersonaId): Promise<PersonaConfig | un
 
 // Re-export bundle functions for convenience
 export {
+  bundleToPersonaConfig,
   discoverAndLoadBundles,
   loadBundleAsPersona,
   loadBundleById,
-  bundleToPersonaConfig,
 } from './bundles/index.js';
 
 // ============================================================================
@@ -384,29 +384,29 @@ export { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
 
 // Export cognitive intelligence types and utilities
 export {
-  getCognitiveGuidance,
   buildCognitivePromptInjection,
+  cognitiveProfiles,
   detectQuestionComplexity,
   detectUserExpertise,
   getCognitiveEngine,
+  getCognitiveGuidance,
+  getCognitiveProfile,
   removeCognitiveEngine,
   resetAllCognitiveEngines,
-  getCognitiveProfile,
-  cognitiveProfiles,
 } from './cognitive-index.js';
 
 export type {
-  CognitiveProfile,
-  CognitiveContext,
-  CognitiveGuidance,
-  ReasoningStyle,
   AttentionFocus,
   AttentionProfile,
-  TheoryOfMindConfig,
   CognitiveBiasConfig,
   CognitiveBiasType,
-  MetacognitionConfig,
+  CognitiveContext,
+  CognitiveGuidance,
+  CognitiveProfile,
   InformationProcessingStyle,
+  MetacognitionConfig,
+  ReasoningStyle,
+  TheoryOfMindConfig,
 } from './cognitive-index.js';
 
 // ============================================================================
@@ -422,19 +422,19 @@ export { AgentRegistry, type Agent } from './registry/unified-registry.js';
 
 export {
   AgentRole,
-  type PersonaId,
-  type PersonaMetadata,
-  ROLE_TO_PERSONA,
-  PERSONA_REGISTRY,
-  resolveAgentId,
   getAgentRoleForPersona,
+  getHandoffToolName,
   getPersonaId,
   getPersonaMetadata,
-  getHandoffToolName,
-  isCoach,
-  isTeamMember,
   getTeamMemberIds,
+  isCoach,
   isKnownPersonaId,
+  isTeamMember,
+  PERSONA_REGISTRY,
+  resolveAgentId,
+  ROLE_TO_PERSONA,
+  type PersonaId,
+  type PersonaMetadata,
 } from './id-mapping.js';
 
 // ============================================================================
@@ -443,23 +443,166 @@ export {
 // ============================================================================
 
 export {
-  CANONICAL_IDS,
-  ALL_CANONICAL_IDS,
   ALIAS_TO_CANONICAL,
+  ALL_CANONICAL_IDS,
+  assertCanonical,
+  CANONICAL_IDS,
   CANONICAL_TO_FRONTEND,
-  FRONTEND_TO_CANONICAL,
   DISPLAY_NAMES,
-  type CanonicalPersonaId,
-  type FrontendPersonaId,
-  toCanonical,
-  toFrontend,
   fromFrontend,
+  FRONTEND_TO_CANONICAL,
   isCanonicalId,
   isKnownId,
   isSamePersona,
-  assertCanonical,
+  toCanonical,
+  toFrontend,
   validateAndLog,
+  type CanonicalPersonaId,
+  type FrontendPersonaId,
 } from './persona-ids.js';
+
+// ============================================================================
+// RELATIONSHIP MEMORY ENGINE
+// ============================================================================
+
+export {
+  clearRelationshipEngine,
+  getRelationshipEngine,
+  getRelationshipPersistence,
+  loadAllRelationshipMemories,
+  loadRelationshipMemory,
+  RELATIONSHIP_STAGE_CONFIGS,
+  RelationshipMemoryEngine,
+  RelationshipMemoryPersistence,
+  saveRelationshipMemory,
+} from './relationship-memory/index.js';
+
+export type {
+  CallbackAttempt,
+  CallbackEffectiveness,
+  EmotionalTrajectory,
+  InsideJoke,
+  InsideJokeSeed,
+  RelationshipContext,
+  RelationshipMemory,
+  RelationshipMilestone,
+  RelationshipMilestoneType,
+  RelationshipPromptInjection,
+  RelationshipStage,
+  RelationshipStageConfig,
+  RelationshipUpdateResult,
+  SharedMoment,
+  SharedMomentType,
+  TemporalPattern,
+} from './relationship-memory/index.js';
+
+// ============================================================================
+// COGNITIVE DIFFERENTIATION
+// ============================================================================
+
+export {
+  alexDifferentiation,
+  cognitiveDifferentiation,
+  ferniDifferentiation,
+  getCognitiveDifferentiation,
+  getDisagreementPhrase,
+  getInsightLeadIn,
+  getPersonaQuestion,
+  jordanDifferentiation,
+  mayaDifferentiation,
+  nayanDifferentiation,
+  peterDifferentiation,
+} from './cognitive-differentiation.js';
+
+export type {
+  CognitiveDifferentiation,
+  DisagreementApproach,
+  DisagreementStyle,
+  InsightFraming,
+  InsightFramingStyle,
+  QuestioningStyle,
+  ResponsePacing,
+  SilenceHandling,
+  SilenceInterpretation,
+} from './cognitive-differentiation.js';
+
+// ============================================================================
+// TEAM CHEMISTRY
+// ============================================================================
+
+export {
+  buildHandoffContext,
+  checkTeamInsideJoke,
+  generateHandoffNote,
+  getAllTeamReferences,
+  getTeamChemistryConfig,
+  getTeamCompliment,
+  getTeamDynamics,
+  getTeamReference,
+  shouldIncludeTeamReference,
+} from './shared/team-chemistry.js';
+
+export type {
+  HandoffContext,
+  TeamChemistryConfig,
+  TeamInsideJoke,
+  TeamPairDynamic,
+  TeamReference,
+  TeamStory,
+} from './shared/team-chemistry.js';
+
+// ============================================================================
+// UNIFIED PERSONA INTELLIGENCE
+// ============================================================================
+
+export {
+  clearPersonaIntelligence,
+  getPersonaIntelligence,
+  PersonaIntelligenceEngine,
+  resetAllPersonaIntelligence,
+} from './persona-intelligence.js';
+
+export type {
+  PersonaIntelligenceConfig,
+  PersonaIntelligenceContext,
+  UnifiedPromptInjection,
+} from './persona-intelligence.js';
+
+// ============================================================================
+// PREDICTIVE INTELLIGENCE
+// ============================================================================
+
+export {
+  analyzePredictively,
+  detectConcerns,
+  detectPatterns,
+  getAnticipatoryInsights,
+  getProactiveFollowUps,
+  loadPredictiveIntelligence,
+} from './predictive-intelligence.js';
+
+export type {
+  AnticipatoryInsight,
+  DetectedConcern,
+  DetectedPattern,
+  PatternMatchContext,
+  PredictiveAnalysis,
+  PredictiveIntelligence,
+  ProactiveFollowUp,
+} from './predictive-intelligence.js';
+
+// ============================================================================
+// MOMENT DETECTION
+// ============================================================================
+
+export {
+  detectMoments,
+  detectPrimaryMoment,
+  getMomentPriority,
+  hasMoment,
+} from './moment-detection.js';
+
+export type { DetectedMoment, MomentDetectionContext } from './moment-detection.js';
 
 // ============================================================================
 // DEFAULT EXPORT

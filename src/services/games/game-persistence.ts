@@ -8,14 +8,9 @@
  * - Game history tracking
  */
 
+import type { GameMemory, GameSessionRecord, UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { GameSession, GameType } from './types.js';
-import type {
-  GameMemory,
-  GameSessionRecord,
-  GameTypeStats,
-  UserProfile,
-} from '../../types/user-profile.js';
 
 const log = getLogger();
 
@@ -272,10 +267,6 @@ function formatGameName(gameType: GameType): string {
     'desert-island-discs': 'Desert Island Discs',
     'this-or-that': 'This or That',
     'mood-dj-challenge': 'Mood DJ Challenge',
-    'finish-the-lyric': 'Finish the Lyric',
-    'decade-challenge': 'Decade Challenge',
-    'song-dedication': 'Song Dedication',
-    'music-trivia': 'Music Trivia',
   };
   return names[gameType] || gameType;
 }

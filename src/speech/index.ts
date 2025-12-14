@@ -173,9 +173,12 @@ export {
   type CognitiveSsmlOptions,
 } from './adaptive-ssml.js';
 
-// Re-export SSML functions
-export { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
-export { sanitizeSsml, tagTextWithSsml } from './ssml-tagger/index.js';
+// Re-export SSML functions from canonical source (src/ssml/)
+export { sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+
+// Legacy tagTextWithSsml (Jack Bogle-specific) - deprecated
+// Use tagTextWithSsmlPersonaAware from '../ssml/index.js' instead
+export { tagTextWithSsml } from './ssml-tagger/index.js';
 
 // ============================================================================
 // RESPONSE NATURALNESS
@@ -598,9 +601,9 @@ export {
 // ============================================================================
 
 export {
+  DEFAULT_SPEED_CONFIG,
   applyDynamicSpeedSsml,
   calculateDynamicSpeed,
-  DEFAULT_SPEED_CONFIG,
   getSpeedControlSession,
   getSpeedTrend,
   recordSpeedDecision,
@@ -618,9 +621,9 @@ export {
 
 export {
   DEFAULT_REALTIME_CONFIG,
+  RealTimeAudioAnalyzer,
   getActiveRealTimeAnalyzerCount,
   getRealTimeAnalyzer,
-  RealTimeAudioAnalyzer,
   resetAllRealTimeAnalyzers,
   resetRealTimeAnalyzer,
   type AnalyzerState,
@@ -656,3 +659,86 @@ export {
   type SpeechPipelineMetrics,
   type UsageMetrics,
 } from './metrics/index.js';
+
+// ============================================================================
+// SESAME-INSPIRED PROSODY (State-of-the-art voice expressiveness)
+// Inspired by Sesame AI's Conversational Speech Model
+// ============================================================================
+
+export {
+  // Anticipatory Prosody - react before user finishes speaking
+  anticipateResponse,
+  detectTrajectory,
+  detectTrajectoryType,
+  getActiveAnticipatorySessionCount,
+  getAnticipatorySession,
+  getImmediateMicroReaction,
+  getLastAnticipation,
+  resetAnticipatorySession,
+  shouldAnticipate,
+  updateAnticipation,
+  // Micro-Reactions - quick vocal reactions (<150ms)
+  COMPOUND_REACTIONS,
+  MICRO_REACTIONS,
+  detectContext,
+  detectContexts,
+  getActiveMicroReactionSessionCount,
+  getCompoundReaction,
+  getMicroReaction,
+  getMicroReactionSession,
+  getReactionsForContext,
+  getSessionMicroReaction,
+  recordReaction,
+  resetMicroReactionSession,
+  selectMicroReaction,
+  shouldUseReaction,
+  // Conversation Prosody - context-aware across turns
+  addContextualPause,
+  applyProsodyRecommendation,
+  calculateTrajectory,
+  getActiveConversationStateCount,
+  getConversationState,
+  getProsodyRecommendation,
+  getSessionProsodyRecommendation,
+  isHeavyTopic,
+  resetConversationState,
+  updateConversationState,
+  // Rich Disfluencies - natural speech patterns
+  DISFLUENCY_PATTERNS,
+  addExcitedInterruption,
+  addRealizationMoment,
+  addThinkingStart,
+  addTrailingOff,
+  findInjectionPoints,
+  getActiveDisfluencySessionCount,
+  getDisfluenciesForEmotion,
+  getDisfluencySession,
+  getRandomSsmlPattern,
+  injectDisfluency,
+  resetDisfluencySession,
+  selectWeightedDisfluency,
+  smartInjectDisfluency,
+  // Pipeline Integration - optimized emotion→SSML path
+  enhanceResponseWithSesame,
+  getActiveSesamePipelineSessionCount,
+  getPreparedResponse,
+  getSesamePipelineMetrics,
+  processPartialTranscript,
+  quickEnhance,
+  resetSesamePipeline,
+  startNewTurn,
+  // Types
+  type AnticipatedResponse,
+  type ConversationEmotionalState,
+  type ConversationProsodyRecommendation,
+  type DisfluencyInjection,
+  type DisfluencyPattern,
+  type DisfluencyType as SesameDisfluencyType, // Aliased to avoid conflict with fluency-analysis
+  type EmotionalTrajectory,
+  type MicroReaction,
+  type MicroReactionContext,
+  type MicroReactionType,
+  type PartialTranscript,
+  type PreparedResponse,
+  type SesameEnhancedResult,
+} from './sesame-inspired/index.js';

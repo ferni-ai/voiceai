@@ -3,6 +3,11 @@
  *
  * Main SSML tagging and sanitization functions.
  * These are the primary exports used throughout the application.
+ *
+ * This is the CANONICAL implementation for SSML processing.
+ * Other modules should import from here or from the ssml index.
+ *
+ * @module ssml/core
  */
 
 import {
@@ -19,7 +24,12 @@ import {
 } from '../speech/advanced-humanization.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { checkTTSText, trackTTSCheck } from '../speech/tts-monitoring.js';
-import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
+import {
+  FINANCIAL_END,
+  FINANCIAL_PRONUNCIATIONS,
+  FINANCIAL_START,
+  STAGE_DIRECTION_KEYWORDS,
+} from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
 
@@ -112,7 +122,6 @@ function handleEmoji(text: string): string {
   }
 
   // Remove any remaining emoji (Unicode ranges for emoji)
-  // This catches emoji not in our replacement list
   result = result.replace(
     /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
     ''
@@ -129,11 +138,9 @@ function handleUrlsAndEmails(text: string): string {
   let result = text;
 
   // Replace URLs with spoken description
-  // Match http(s) URLs
   result = result.replace(
     /https?:\/\/(?:www\.)?([a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+)(?:\/[^\s)]*)?/gi,
     (_, domain: string) => {
-      // Just say the domain name naturally
       const cleanDomain = domain.replace(/\./g, ' dot ');
       return cleanDomain;
     }
@@ -142,7 +149,6 @@ function handleUrlsAndEmails(text: string): string {
   // Replace email addresses
   result = result.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, (email) => {
     const [local, domain] = email.split('@');
-    // Simplify: just mention it's an email
     return `${local} at ${domain.replace(/\./g, ' dot ')}`;
   });
 
@@ -185,7 +191,7 @@ function applyFinancialPronunciations(text: string): string {
   for (const entry of FINANCIAL_PRONUNCIATIONS) {
     // Reset lastIndex for global regex
     entry.pattern.lastIndex = 0;
-    result = result.replace(entry.pattern, (match) => {
+    result = result.replace(entry.pattern, () => {
       // Wrap replacement in protection markers
       return `${FINANCIAL_START}${entry.replacement}${FINANCIAL_END}`;
     });
@@ -233,7 +239,7 @@ export function stripSsmlTags(text: string): string {
 }
 
 // =============================================================================
-// SANITIZATION
+// SANITIZATION - CANONICAL IMPLEMENTATION
 // =============================================================================
 
 /**
@@ -242,6 +248,8 @@ export function stripSsmlTags(text: string): string {
  *
  * CRITICAL: This is the safety net that prevents stage directions from being spoken.
  * Any text in *asterisks* or [brackets] that isn't valid SSML should be stripped.
+ *
+ * This is the CANONICAL implementation - other modules should use this.
  */
 export function sanitizeSsml(text: string): string {
   let result = text;
@@ -281,114 +289,8 @@ export function sanitizeSsml(text: string): string {
   // Remove ALL non-verbal actions that LLMs might generate
   // ================================================
 
-  // Comprehensive list of stage direction keywords
-  const stageDirectionKeywords = [
-    // Breathing/physical
-    'sigh',
-    'breath',
-    'exhale',
-    'inhale',
-    'breathing',
-    'gasp',
-    'yawn',
-    // Expressions
-    'smile',
-    'smiling',
-    'grin',
-    'grinning',
-    'frown',
-    'frowning',
-    'nod',
-    'nodding',
-    'wink',
-    'winking',
-    'blink',
-    'blinking',
-    'smirk',
-    'smirking',
-    'beam',
-    'beaming',
-    'grimace',
-    'grimacing',
-    // Actions
-    'pause',
-    'pausing',
-    'think',
-    'thinking',
-    'clear',
-    'cough',
-    'shift',
-    'lean',
-    'leaning',
-    'settle',
-    'settling',
-    'focus',
-    'attention',
-    'shrug',
-    'shrugging',
-    'gesture',
-    'gesturing',
-    'point',
-    'pointing',
-    'wave',
-    'waving',
-    'tilt',
-    'tilting',
-    // Physical presence
-    'warm',
-    'warmly',
-    'steady',
-    'gentle',
-    'gently',
-    'soft',
-    'softly',
-    'present',
-    'presence',
-    'quietly',
-    'tenderly',
-    // Tone/manner descriptors (often used as stage directions)
-    'teasing',
-    'teasingly',
-    'playful',
-    'playfully',
-    'mischievous',
-    'mischievously',
-    'knowing',
-    'knowingly',
-    'affectionate',
-    'affectionately',
-    // Energy
-    'perk',
-    'energy',
-    'relief',
-    'excited',
-    'excitedly',
-    // Emotions as actions
-    'sympathetic',
-    'empathetic',
-    'concerned',
-    'curious',
-    'curiously',
-    'thoughtful',
-    'thoughtfully',
-    // Misc stage directions
-    "chef's kiss",
-    'taking a breath',
-    'visible',
-    'visibly',
-    'audible',
-    'audibly',
-    'trails off',
-    'voice softens',
-    'voice drops',
-    'voice rises',
-    'beat',
-    'moment',
-    'suddenly',
-  ];
-
   // Build regex pattern for stage directions
-  const keywordPattern = stageDirectionKeywords.join('|');
+  const keywordPattern = STAGE_DIRECTION_KEYWORDS.join('|');
 
   // Remove asterisk-wrapped stage directions: *exhale*, *settles in*, *warm*, etc.
   result = result.replace(new RegExp(`\\*[^*]*(?:${keywordPattern})[^*]*\\*`, 'gi'), '');
@@ -427,7 +329,7 @@ export function sanitizeSsml(text: string): string {
     ''
   );
 
-  // Nuclear option for remaining action verbs - standalone words
+  // Nuclear option for action verbs - standalone words
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bsmiling\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
@@ -465,16 +367,58 @@ export function sanitizeSsml(text: string): string {
   // Clean up excessive breaks
   result = result.replace(/(<break time="[^"]*"\/>){3,}/g, '<break time="200ms"/>');
 
+  // ================================================
+  // CONSOLIDATE MULTIPLE SPEED/VOLUME TAGS
+  // Multiple <speed> or <volume> tags can cause TTS glitches
+  // Keep only the FIRST one (applied nearest to content start)
+  // ================================================
+
+  // Consolidate speed tags - keep only the first, remove extras
+  const speedMatches = result.match(/<speed ratio="([\d.]+)"\/>/g);
+  if (speedMatches && speedMatches.length > 1) {
+    let firstKept = false;
+    result = result.replace(/<speed ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+      if (!firstKept) {
+        firstKept = true;
+        const clamped = Math.max(0.6, Math.min(1.5, parseFloat(ratio)));
+        return `<speed ratio="${clamped.toFixed(2)}"/>`;
+      }
+      return '';
+    });
+  }
+
+  // Consolidate volume tags - keep only the first, remove extras
+  const volumeMatches = result.match(/<volume ratio="([\d.]+)"\/>/g);
+  if (volumeMatches && volumeMatches.length > 1) {
+    let firstKept = false;
+    result = result.replace(/<volume ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+      if (!firstKept) {
+        firstKept = true;
+        const clamped = Math.max(0.5, Math.min(2.0, parseFloat(ratio)));
+        return `<volume ratio="${clamped.toFixed(2)}"/>`;
+      }
+      return '';
+    });
+  }
+
+  // Clamp any remaining single speed/volume tags to valid ranges
+  result = result.replace(/<speed ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+    const clamped = Math.max(0.6, Math.min(1.5, parseFloat(ratio)));
+    return `<speed ratio="${clamped.toFixed(2)}"/>`;
+  });
+  result = result.replace(/<volume ratio="([\d.]+)"\/>/g, (_match, ratio) => {
+    const clamped = Math.max(0.5, Math.min(2.0, parseFloat(ratio)));
+    return `<volume ratio="${clamped.toFixed(2)}"/>`;
+  });
+
   // Clean up multiple spaces
   result = result.replace(/\s{2,}/g, ' ');
 
   // ================================================
   // TTS MONITORING: Check for suspicious patterns that slipped through
-  // This logs warnings if stage directions weren't properly sanitized
   // ================================================
   const monitorResult = checkTTSText(result);
   if (monitorResult.hasIssues) {
-    // Track for analytics
     trackTTSCheck(monitorResult);
   }
 
@@ -494,11 +438,6 @@ interface SsmlTagOptions {
   baseVolume?: number;
   humanize?: boolean;
 
-  // ============================================================================
-  // ADVANCED HUMANIZATION OPTIONS (research-backed natural speech)
-  // See docs/VOICE-HUMANIZATION-RESEARCH.md
-  // ============================================================================
-
   /** Enable natural filler injection ("um", "well", etc.) - default: true */
   naturalFillers?: boolean;
 
@@ -510,11 +449,6 @@ interface SsmlTagOptions {
 
   /** Breath group config */
   breathConfig?: BreathGroupConfig;
-
-  // ============================================================================
-  // THINKING TIME OPTIONS (awareness-based contextual pauses)
-  // See src/conversation/thinking-time-injector.ts
-  // ============================================================================
 
   /** Enable thinking time injection - default: false (must provide context) */
   thinkingTime?: boolean;
@@ -548,8 +482,8 @@ export function tagTextWithSsmlPersonaAware(
 
   const {
     personaId,
-    naturalFillers = true, // Enabled by default
-    breathGroupPacing = true, // Enabled by default
+    naturalFillers = true,
+    breathGroupPacing = true,
     fillerConfig,
     breathConfig,
     thinkingTime = false,
@@ -616,12 +550,9 @@ export function tagTextWithSsmlPersonaAware(
 
   // ============================================================================
   // THINKING TIME - Awareness-based contextual pauses
-  // See src/conversation/thinking-time-injector.ts
   // ============================================================================
 
-  // Apply thinking time pauses/sounds if enabled
   if (thinkingTime && (providedThinkingInjection || thinkingContext)) {
-    // Use provided injection or calculate from context
     const injection =
       providedThinkingInjection ||
       (thinkingContext ? calculateThinkingTime(thinkingContext) : null);
@@ -633,17 +564,14 @@ export function tagTextWithSsmlPersonaAware(
 
   // ============================================================================
   // ADVANCED HUMANIZATION - Research-backed natural speech
-  // See docs/VOICE-HUMANIZATION-RESEARCH.md
   // ============================================================================
 
   // Step 1: Inject natural fillers ("um", "well", "you know")
-  // This adds spontaneity and makes speech feel less robotic
   if (naturalFillers) {
     processedText = injectNaturalFillers(processedText, fillerConfig, personaId);
   }
 
   // Step 2: Add breath group pacing (pauses at natural phrase boundaries)
-  // Mimics human breathing patterns during speech
   if (breathGroupPacing) {
     processedText = addBreathGroupPauses(processedText, breathConfig);
   }

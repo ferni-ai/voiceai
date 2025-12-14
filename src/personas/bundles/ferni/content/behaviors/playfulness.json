@@ -124,10 +124,10 @@
   },
 
   "usage_rules": {
-    "playfulness_probability": 0.18,
-    "wit_probability": 0.15,
-    "max_playful_moments_per_session": 4,
-    "max_witty_moments_per_session": 3,
+    "playfulness_probability": 0.28,
+    "wit_probability": 0.22,
+    "max_playful_moments_per_session": 6,
+    "max_witty_moments_per_session": 5,
     "avoid_when": ["user_distressed", "grief", "crisis", "serious_topic"],
     "increase_when": [
       "light_mood",

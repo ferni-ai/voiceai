@@ -1,48 +1,163 @@
 /**
- * SSML Module Index
+ * SSML Module - Single Source of Truth
  *
- * Re-exports all SSML functionality for backwards compatibility.
- * The main ssml-tagger.ts file imports from this module.
+ * This module provides all SSML (Speech Synthesis Markup Language) functionality
+ * for the Ferni voice AI platform.
+ *
+ * This is the CANONICAL source for all SSML functionality.
+ * Other modules should import from here:
+ *
+ * ```typescript
+ * import {
+ *   tagTextWithSsmlPersonaAware,
+ *   sanitizeSsml,
+ *   detectEmotion,
+ *   CARTESIA_EMOTIONS,
+ * } from '../ssml/index.js';
+ * ```
+ *
+ * @module ssml
  */
 
-// Types
-export * from './types.js';
+// =============================================================================
+// TYPES - All SSML-related type definitions
+// =============================================================================
 
-// Constants
-export * from './constants.js';
+export type {
+  BreathGroupConfig,
+  CartesiaEmotion,
+  DetectedPacing,
+  DetectedVocalCues,
+  DetectedVolume,
+  FillerConfig,
+  PronunciationEntry,
+  SanitizationResult,
+  SsmlTagOptions,
+  TTSCheckResult,
+  TaggingContext,
+  ThinkingContext,
+  ThinkingInjection,
+} from './types.js';
 
-// Tag helpers
 export {
+  ALL_CARTESIA_EMOTIONS,
+  CARTESIA_EMOTIONS,
+  CARTESIA_SUPPORTED_EMOTIONS,
+  isCartesiaSupportedEmotion,
+} from './types.js';
+
+// =============================================================================
+// CONSTANTS - All SSML-related constants
+// =============================================================================
+
+export {
+  ACRONYM_PATTERN,
+  BREATH_POINTS,
+  CONTEMPLATIVE_PAUSE_PHRASES,
+  CONTRASTIVE_PATTERNS,
+  DISFLUENCY_PATTERNS,
+  // Emotion keywords
+  EMOTION_KEYWORDS,
+  // Volume/emphasis keywords
+  EMPHASIS_KEYWORDS,
+  FAST_PACE_KEYWORDS,
+  FINANCIAL_END,
+  // Financial pronunciations
+  FINANCIAL_PRONUNCIATIONS,
+  FINANCIAL_START,
+  LAUGHTER_INVITATIONS,
+  // Vocal cue patterns
+  LAUGHTER_PATTERNS,
+  LIST_PATTERNS,
+  NUMBER_PATTERNS,
+  PARENTHETICAL_PATTERNS,
+  REFLECTION_PHRASES,
+  REPETITION_PATTERNS,
+  SARCASTIC_PATTERNS,
+  SIGH_PATTERNS,
+  // Pacing keywords
+  SLOW_PACE_KEYWORDS,
+  // Stage direction removal
+  STAGE_DIRECTION_KEYWORDS,
+  // Speech flow patterns
+  THINKING_SOUNDS,
+  TRANSITION_PHRASES,
+  WHISPER_KEYWORDS,
+} from './constants.js';
+
+// =============================================================================
+// TAG HELPERS - Functions for generating SSML tags
+// =============================================================================
+
+export {
+  breakTag,
   clampSpeed,
   clampVolume,
-  speedTag,
-  volumeTag,
-  breakTag,
+  detectEmotionFromKeywords,
   emotionTag,
-  spellTag,
-  mapToCartesiaEmotion,
   getContextualEmotion,
+  mapToCartesiaEmotion,
+  speedTag,
+  spellTag,
+  volumeTag,
 } from './tags.js';
 
-// Detection
-export { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
+// =============================================================================
+// DETECTION - Functions for detecting emotion, pacing, volume, and vocal cues
+// =============================================================================
 
-// Core functionality
+export { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
+
+// =============================================================================
+// CORE FUNCTIONALITY - Main SSML processing functions
+// =============================================================================
+
 export {
-  tagTextWithSsmlPersonaAware,
-  tagTextWithSsmlPersonaAware as tagTextWithSsml, // Alias for backwards compatibility
-  stripSsmlTags,
   hasSsmlTags,
   sanitizeSsml,
+  stripSsmlTags,
+  // Alias for backwards compatibility
+  tagTextWithSsmlPersonaAware as tagTextWithSsml,
+  tagTextWithSsmlPersonaAware,
 } from './core.js';
 
-// Re-export thinking time types for consumers
-export type { ThinkingContext, ThinkingInjection } from '../conversation/thinking-time-injector.js';
+// =============================================================================
+// CARTESIA HELPERS - Cartesia-specific utilities
+// =============================================================================
 
-// Regex cache for performance optimization
+export {
+  breakTag as cartesiaBreakTag,
+  emotionTag as cartesiaEmotionTag,
+  speedTag as cartesiaSpeedTag,
+  spellTag as cartesiaSpellTag,
+  volumeTag as cartesiaVolumeTag,
+  clampSpeed as clampCartesiaSpeed,
+  clampVolume as clampCartesiaVolume,
+} from './cartesia.js';
+
+// =============================================================================
+// RE-EXPORT THINKING TIME TYPES
+// =============================================================================
+
+export type {
+  ThinkingContext as ThinkingTimeContext,
+  ThinkingInjection as ThinkingTimeInjection,
+} from '../conversation/thinking-time-injector.js';
+
+// =============================================================================
+// REGEX CACHE - For performance optimization
+// =============================================================================
+
 const regexCacheMap = new Map<string, RegExp>();
 
+/**
+ * Regex cache for performance optimization
+ * Avoids recreating the same regex patterns repeatedly
+ */
 export const regexCache = {
+  /**
+   * Get a cached regex or create and cache a new one
+   */
   get(pattern: string, flags?: string): RegExp {
     const key = `${pattern}:${flags || ''}`;
     let cached = regexCacheMap.get(key);
@@ -52,9 +167,17 @@ export const regexCache = {
     }
     return cached;
   },
+
+  /**
+   * Clear the regex cache (useful for testing)
+   */
   clear(): void {
     regexCacheMap.clear();
   },
+
+  /**
+   * Get the current cache size
+   */
   get size(): number {
     return regexCacheMap.size;
   },

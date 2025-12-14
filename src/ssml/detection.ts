@@ -1,35 +1,44 @@
 /**
- * SSML Detection
+ * SSML Detection Functions
  *
  * Functions for detecting emotion, pacing, volume, and vocal cues in text.
+ * These functions analyze text to determine appropriate SSML parameters.
+ *
+ * @module ssml/detection
  */
 
 import {
-  EMOTION_KEYWORDS,
-  SLOW_PACE_KEYWORDS,
-  FAST_PACE_KEYWORDS,
-  EMPHASIS_KEYWORDS,
-  WHISPER_KEYWORDS,
-  LAUGHTER_PATTERNS,
-  SIGH_PATTERNS,
+  CONTRASTIVE_PATTERNS,
   DISFLUENCY_PATTERNS,
+  EMOTION_KEYWORDS,
+  EMPHASIS_KEYWORDS,
+  FAST_PACE_KEYWORDS,
+  LAUGHTER_PATTERNS,
   REPETITION_PATTERNS,
   SARCASTIC_PATTERNS,
+  SIGH_PATTERNS,
+  SLOW_PACE_KEYWORDS,
+  WHISPER_KEYWORDS,
 } from './constants.js';
-import type { DetectedPacing, DetectedVolume, DetectedVocalCues } from './types.js';
+import type { DetectedPacing, DetectedVocalCues, DetectedVolume } from './types.js';
 
 // =============================================================================
 // EMOTION DETECTION
 // =============================================================================
 
 /**
- * Detect the primary emotion in text
+ * Detect the primary emotion in text using keyword analysis
+ * @param text - Text to analyze
+ * @returns Detected emotion string
  */
 export function detectEmotion(text: string): string {
   const lowerText = text.toLowerCase();
   const emotionCounts: Record<string, number> = {};
 
-  for (const [keyword, emotion] of Object.entries(EMOTION_KEYWORDS)) {
+  // Check for emotion keywords (longer phrases first for specificity)
+  const sortedKeywords = Object.entries(EMOTION_KEYWORDS).sort((a, b) => b[0].length - a[0].length);
+
+  for (const [keyword, emotion] of sortedKeywords) {
     if (lowerText.includes(keyword)) {
       emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
     }
@@ -54,7 +63,10 @@ export function detectEmotion(text: string): string {
 // =============================================================================
 
 /**
- * Detect appropriate pacing for text
+ * Detect appropriate speech pacing for text
+ * Analyzes keywords, punctuation, and sentence structure
+ * @param text - Text to analyze
+ * @returns Speed ratio and reason
  */
 export function detectPacing(text: string): DetectedPacing {
   const lowerText = text.toLowerCase();
@@ -75,16 +87,27 @@ export function detectPacing(text: string): DetectedPacing {
     reason = `fast: ${fastMatches[0]}`;
   }
 
+  // Punctuation analysis
+  const hasQuestion = /\?/.test(text);
+  const hasExclamation = /!/.test(text);
+  const hasEllipsis = /\.{3}|…/.test(text);
+
   // Questions often have slightly different pacing
-  if (/\?/.test(text)) {
+  if (hasQuestion) {
     speed *= 0.98;
     reason += ', question';
   }
 
   // Exclamations can be faster
-  if (/!/.test(text)) {
+  if (hasExclamation) {
     speed *= 1.02;
     reason += ', exclamation';
+  }
+
+  // Ellipsis suggests thoughtful pause
+  if (hasEllipsis) {
+    speed *= 0.95;
+    reason += ', ellipsis';
   }
 
   // Longer sentences naturally slow down
@@ -94,7 +117,18 @@ export function detectPacing(text: string): DetectedPacing {
     reason += ', long sentence';
   }
 
-  return { speed: Math.max(0.6, Math.min(1.5, speed)), reason };
+  // Complex sentence structure
+  const clauseCount = (text.match(/,/g) || []).length;
+  if (clauseCount > 3) {
+    speed *= 0.97;
+    reason += ', complex';
+  }
+
+  // Clamp to valid range
+  return {
+    speed: Math.max(0.6, Math.min(1.5, speed)),
+    reason,
+  };
 }
 
 // =============================================================================
@@ -103,6 +137,9 @@ export function detectPacing(text: string): DetectedPacing {
 
 /**
  * Detect appropriate volume for text
+ * Analyzes emphasis keywords, whisper indicators, and caps
+ * @param text - Text to analyze
+ * @returns Volume ratio and flags
  */
 export function detectVolume(text: string): DetectedVolume {
   const lowerText = text.toLowerCase();
@@ -124,9 +161,19 @@ export function detectVolume(text: string): DetectedVolume {
     hasWhisper = true;
   }
 
-  // All caps increases volume
-  const capsWords = text.match(/\b[A-Z]{2,}\b/g) || [];
-  if (capsWords.length > 0 && capsWords.some((w) => w.length > 3)) {
+  // Check for contrastive patterns
+  const hasContrast = CONTRASTIVE_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
+  if (hasContrast) {
+    volume *= 1.05;
+    hasEmphasis = true;
+  }
+
+  // All caps increases volume (but only meaningful caps, not 2-3 letter words)
+  const capsWords = text.match(/\b[A-Z]{4,}\b/g) || [];
+  if (capsWords.length > 0) {
     volume *= 1.1;
     hasEmphasis = true;
   }
@@ -138,6 +185,7 @@ export function detectVolume(text: string): DetectedVolume {
     hasEmphasis = true;
   }
 
+  // Clamp to valid range
   return {
     volume: Math.max(0.5, Math.min(2.0, volume)),
     hasEmphasis,
@@ -151,6 +199,8 @@ export function detectVolume(text: string): DetectedVolume {
 
 /**
  * Detect vocal cues in text (laughter, sighs, disfluencies, etc.)
+ * @param text - Text to analyze
+ * @returns Detection results for various vocal cues
  */
 export function detectVocalCues(text: string): DetectedVocalCues {
   // Count laughter occurrences
@@ -164,10 +214,30 @@ export function detectVocalCues(text: string): DetectedVocalCues {
   }
 
   const hasLaughter = laughterCount > 0;
-  const hasSigh = SIGH_PATTERNS.some((pattern) => pattern.test(text));
-  const hasDisfluency = DISFLUENCY_PATTERNS.some((pattern) => pattern.test(text));
-  const hasRepetition = REPETITION_PATTERNS.some((pattern) => pattern.test(text));
-  const hasSarcasm = SARCASTIC_PATTERNS.some((pattern) => pattern.test(text));
+
+  // Check for sighs
+  const hasSigh = SIGH_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
+
+  // Check for disfluencies
+  const hasDisfluency = DISFLUENCY_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
+
+  // Check for repetition
+  const hasRepetition = REPETITION_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
+
+  // Check for sarcasm
+  const hasSarcasm = SARCASTIC_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
 
   // Reset lastIndex for all patterns (they have /g flag)
   [

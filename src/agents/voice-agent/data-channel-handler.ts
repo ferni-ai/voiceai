@@ -4,6 +4,7 @@
  * Handles incoming data messages from the frontend via LiveKit data channel:
  * - handoff_request: User clicks a persona in the UI to switch
  * - game_start_request: User starts a game from the UI game picker
+ * - practice_start_request: User starts a guided practice from the UI
  * - voice-pack-change: User changes voice pack from Personalize UI
  *
  * Extracted from voice-agent.ts to reduce file size and improve maintainability.
@@ -105,6 +106,10 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
 
       if (message.type === 'game_start_request') {
         await handleGameStartRequest(message, ctx);
+      }
+
+      if (message.type === 'practice_start_request') {
+        await handlePracticeStartRequest(message, ctx);
       }
 
       if (message.type === 'voice-pack-change') {
@@ -305,8 +310,8 @@ async function handleGameStartRequest(
   getLogger().info({ gameType }, '🎮 User requested game start via UI');
 
   try {
-    const { getGameEngine } = await import('../../services/games/index.js');
-    const engine = getGameEngine(sessionPersona.id);
+    const { getSessionGameEngine } = await import('../../services/games/index.js');
+    const engine = getSessionGameEngine(ctx.sessionId, sessionPersona.id);
 
     // Start the game - returns welcome message
     // Cast gameType since it comes from user input via data channel
@@ -359,6 +364,80 @@ async function handleGameStartRequest(
       gameType,
       success: false,
       error: String(gameErr),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
+      reliable: true,
+    });
+  }
+}
+
+/**
+ * Handle practice_start_request messages - user started a guided practice from UI
+ */
+async function handlePracticeStartRequest(
+  message: { commandId: string; commandName: string; prompt: string },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, session, sessionPersona } = ctx;
+  const { commandId, commandName, prompt } = message;
+
+  getLogger().info(
+    { commandId, commandName, personaId: sessionPersona.id },
+    '🎯 User requested guided practice via UI'
+  );
+
+  try {
+    // Make the agent speak the practice prompt naturally
+    if (prompt && session) {
+      getLogger().info(
+        { commandName, promptLength: prompt.length },
+        '🎯 Agent starting guided practice...'
+      );
+
+      session.generateReply({
+        instructions: `The user has selected the "${commandName}" guided practice.
+
+Begin the practice by saying the following prompt naturally, as if you're starting a guided conversation:
+
+"${prompt}"
+
+Wait for the user to respond before continuing. Be warm and supportive throughout this practice.`,
+      });
+
+      getLogger().info({ commandId }, '🎯 Agent started guided practice');
+    }
+
+    // Send ack to frontend
+    const ackMessage = JSON.stringify({
+      type: 'practice_start_ack',
+      commandId,
+      commandName,
+      success: true,
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+
+    getLogger().info({ commandId, commandName }, '🎯 Guided practice started successfully');
+  } catch (practiceErr) {
+    getLogger().error({ error: String(practiceErr), commandId }, '❌ Practice start failed');
+
+    // Make agent acknowledge the error gracefully
+    if (session) {
+      session.generateReply({
+        instructions: `Apologize briefly - there was a small hiccup starting the practice.
+        Offer to guide them through "${commandName}" by just talking naturally instead.`,
+      });
+    }
+
+    const errorMsg = JSON.stringify({
+      type: 'practice_start_ack',
+      commandId,
+      commandName,
+      success: false,
+      error: String(practiceErr),
       timestamp: Date.now(),
     });
     await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {

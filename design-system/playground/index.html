@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en" data-theme="zen">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ferni Design System Playground</title>
+    <link rel="stylesheet" href="../dist/tokens.css" />
+    <style>
+      :root {
+        --playground-bg: #faf8f5;
+        --playground-card: #fffdfb;
+        --playground-border: rgba(44, 37, 32, 0.08);
+        --playground-text: #2c2520;
+        --playground-text-secondary: #5c544a;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--playground-bg);
+        color: var(--playground-text);
+        line-height: 1.6;
+      }
+
+      /* Layout */
+      .playground {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 100vh;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        background: var(--playground-card);
+        border-right: 1px solid var(--playground-border);
+        padding: 24px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
+      .logo-mark {
+        width: 40px;
+        height: 40px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .logo-text {
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .nav-section {
+        margin-bottom: 24px;
+      }
+
+      .nav-section h3 {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--playground-text-secondary);
+        margin-bottom: 12px;
+      }
+
+      .nav-link {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: var(--playground-text);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+      }
+
+      .nav-link:hover {
+        background: rgba(74, 103, 65, 0.08);
+      }
+
+      .nav-link.active {
+        background: rgba(74, 103, 65, 0.12);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      /* Main Content */
+      .main {
+        padding: 48px;
+        max-width: 1200px;
+      }
+
+      .section {
+        margin-bottom: 64px;
+      }
+
+      .section-header {
+        margin-bottom: 32px;
+      }
+
+      .section-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .section-description {
+        font-size: 16px;
+        color: var(--playground-text-secondary);
+        max-width: 600px;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--playground-card);
+        border: 1px solid var(--playground-border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+
+      .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      /* Color Swatches */
+      .color-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+      }
+
+      .color-swatch {
+        aspect-ratio: 1;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 12px;
+        cursor: pointer;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .color-swatch:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      }
+
+      .color-swatch::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 60%);
+      }
+
+      .color-name {
+        position: relative;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .color-value {
+        position: relative;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.8);
+        font-family: monospace;
+      }
+
+      /* Persona Switcher */
+      .persona-switcher {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+
+      .persona-btn {
+        padding: 12px 20px;
+        border: 2px solid var(--playground-border);
+        border-radius: 999px;
+        background: transparent;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .persona-btn:hover {
+        border-color: var(--btn-color, #4a6741);
+        background: rgba(74, 103, 65, 0.05);
+      }
+
+      .persona-btn.active {
+        border-color: var(--btn-color, #4a6741);
+        background: var(--btn-color, #4a6741);
+        color: white;
+      }
+
+      .persona-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--btn-color, #4a6741);
+      }
+
+      .persona-btn.active .persona-dot {
+        background: white;
+      }
+
+      /* Animation Preview */
+      .animation-preview {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 24px;
+      }
+
+      .animation-card {
+        background: var(--playground-card);
+        border: 1px solid var(--playground-border);
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .animation-demo {
+        width: 60px;
+        height: 60px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 50%;
+        margin: 0 auto 16px;
+      }
+
+      .animation-card:hover .demo-breathe {
+        animation: breathe 3s ease-in-out infinite;
+      }
+
+      .animation-card:hover .demo-bounce {
+        animation: bounce 0.6s ease infinite;
+      }
+
+      .animation-card:hover .demo-pulse {
+        animation: pulse 1s ease infinite;
+      }
+
+      .animation-card:hover .demo-spring {
+        animation: spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-15px);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      @keyframes spring {
+        0% {
+          transform: scale(1);
+        }
+        30% {
+          transform: scale(1.2);
+        }
+        50% {
+          transform: scale(0.9);
+        }
+        70% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .animation-name {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .animation-duration {
+        font-size: 12px;
+        color: var(--playground-text-secondary);
+        font-family: monospace;
+      }
+
+      /* Typography Scale */
+      .type-scale {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .type-sample {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--playground-border);
+      }
+
+      .type-meta {
+        width: 120px;
+        flex-shrink: 0;
+      }
+
+      .type-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--playground-text-secondary);
+      }
+
+      .type-specs {
+        font-size: 11px;
+        color: var(--playground-text-secondary);
+        font-family: monospace;
+      }
+
+      /* Spacing Scale */
+      .spacing-grid {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        padding: 24px;
+        background: rgba(74, 103, 65, 0.05);
+        border-radius: 12px;
+      }
+
+      .spacing-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .spacing-visual {
+        background: var(--persona-primary, #4a6741);
+        border-radius: 4px;
+      }
+
+      .spacing-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--playground-text-secondary);
+      }
+
+      /* Component Preview */
+      .component-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+      }
+
+      .component-preview {
+        background: var(--playground-card);
+        border: 1px solid var(--playground-border);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .preview-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--playground-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .preview-title {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .preview-body {
+        padding: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 150px;
+      }
+
+      /* Button Preview */
+      .btn {
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+      }
+
+      .btn-primary {
+        background: var(--persona-primary, #4a6741);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(74, 103, 65, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        border: 2px solid var(--playground-border);
+        color: var(--playground-text);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--playground-text);
+      }
+
+      /* Avatar Preview */
+      .avatar-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--persona-secondary, #3d5a35),
+          var(--persona-primary, #4a6741)
+        );
+        position: relative;
+        animation: avatar-breathe 5s ease-in-out infinite;
+      }
+
+      .avatar-preview::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        background: var(--persona-glow, rgba(74, 103, 65, 0.3));
+        filter: blur(20px);
+        z-index: -1;
+        animation: glow-pulse 5s ease-in-out infinite;
+      }
+
+      @keyframes avatar-breathe {
+        0%,
+        100% {
+          transform: scale(1) translateY(0);
+        }
+        50% {
+          transform: scale(1.02) translateY(-3px);
+        }
+      }
+
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.1);
+        }
+      }
+
+      /* Toast Preview */
+      .toast-preview {
+        background: var(--playground-text);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      /* Code Block */
+      .code-block {
+        background: #2c2520;
+        color: #f5f1e8;
+        padding: 16px;
+        border-radius: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        overflow-x: auto;
+      }
+
+      .code-block .token-var {
+        color: #7ec8e3;
+      }
+
+      .code-block .token-value {
+        color: #98c379;
+      }
+
+      /* Copy Button */
+      .copy-btn {
+        background: transparent;
+        border: 1px solid var(--playground-border);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .copy-btn:hover {
+        background: rgba(74, 103, 65, 0.1);
+        border-color: var(--persona-primary, #4a6741);
+      }
+
+      /* Contrast Checker */
+      .contrast-checker {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .contrast-input {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .contrast-input label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--playground-text-secondary);
+      }
+
+      .contrast-input input {
+        padding: 12px 16px;
+        border: 1px solid var(--playground-border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: monospace;
+      }
+
+      .contrast-result {
+        padding: 24px;
+        border-radius: 12px;
+        text-align: center;
+      }
+
+      .contrast-ratio {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .contrast-label {
+        font-size: 14px;
+      }
+
+      .contrast-pass {
+        color: #22c55e;
+      }
+
+      .contrast-fail {
+        color: #ef4444;
+      }
+
+      /* Motion Lab */
+      .motion-controls {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+
+      .motion-control {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .motion-control label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--playground-text-secondary);
+      }
+
+      .motion-control select,
+      .motion-control input[type='range'] {
+        padding: 8px 12px;
+        border: 1px solid var(--playground-border);
+        border-radius: 8px;
+        font-size: 14px;
+        min-width: 150px;
+      }
+
+      .motion-stage {
+        background: rgba(74, 103, 65, 0.05);
+        border-radius: 16px;
+        padding: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+      }
+
+      .motion-object {
+        width: 80px;
+        height: 80px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 16px;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .playground {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: relative;
+          height: auto;
+          border-right: none;
+          border-bottom: 1px solid var(--playground-border);
+        }
+
+        .main {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body data-persona="ferni">
+    <div class="playground">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-mark">FE</div>
+          <span class="logo-text">Design System</span>
+        </div>
+
+        <nav>
+          <div class="nav-section">
+            <h3>Foundations</h3>
+            <a href="#colors" class="nav-link active">Colors</a>
+            <a href="#typography" class="nav-link">Typography</a>
+            <a href="#spacing" class="nav-link">Spacing</a>
+            <a href="#shadows" class="nav-link">Shadows</a>
+          </div>
+
+          <div class="nav-section">
+            <h3>Motion</h3>
+            <a href="#animations" class="nav-link">Animations</a>
+            <a href="#motion-lab" class="nav-link">Motion Lab</a>
+            <a href="#easings" class="nav-link">Easings</a>
+          </div>
+
+          <div class="nav-section">
+            <h3>Components</h3>
+            <a href="#buttons" class="nav-link">Buttons</a>
+            <a href="#avatar" class="nav-link">Avatar</a>
+            <a href="#toast" class="nav-link">Toast</a>
+            <a href="#cards" class="nav-link">Cards</a>
+          </div>
+
+          <div class="nav-section">
+            <h3>Tools</h3>
+            <a href="#contrast" class="nav-link">Contrast Checker</a>
+            <a href="#copy-generator" class="nav-link">Copy Generator</a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- Persona Switcher -->
+        <div class="section">
+          <div class="persona-switcher">
+            <button class="persona-btn active" data-persona="ferni" style="--btn-color: #4a6741">
+              <span class="persona-dot"></span>
+              Ferni
+            </button>
+            <button class="persona-btn" data-persona="peter" style="--btn-color: #3a6b73">
+              <span class="persona-dot"></span>
+              Peter
+            </button>
+            <button class="persona-btn" data-persona="alex" style="--btn-color: #5a6b8a">
+              <span class="persona-dot"></span>
+              Alex
+            </button>
+            <button class="persona-btn" data-persona="maya" style="--btn-color: #a67a6a">
+              <span class="persona-dot"></span>
+              Maya
+            </button>
+            <button class="persona-btn" data-persona="jordan" style="--btn-color: #c4856a">
+              <span class="persona-dot"></span>
+              Jordan
+            </button>
+            <button class="persona-btn" data-persona="nayan" style="--btn-color: #b8956a">
+              <span class="persona-dot"></span>
+              Nayan
+            </button>
+          </div>
+        </div>
+
+        <!-- Colors Section -->
+        <section class="section" id="colors">
+          <div class="section-header">
+            <h1 class="section-title">Colors</h1>
+            <p class="section-description">
+              Our earthy, warm color palette. Click any swatch to copy the CSS variable.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Persona Colors</h3>
+            <div class="color-grid">
+              <div
+                class="color-swatch"
+                style="background: var(--persona-primary, #4a6741)"
+                data-var="--persona-primary"
+              >
+                <span class="color-name">Primary</span>
+                <span class="color-value">--persona-primary</span>
+              </div>
+              <div
+                class="color-swatch"
+                style="background: var(--persona-secondary, #3d5a35)"
+                data-var="--persona-secondary"
+              >
+                <span class="color-name">Secondary</span>
+                <span class="color-value">--persona-secondary</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Background Colors</h3>
+            <div class="color-grid">
+              <div
+                class="color-swatch"
+                style="background: #fffdfb; border: 1px solid rgba(0, 0, 0, 0.1)"
+                data-var="--color-background-elevated"
+              >
+                <span class="color-name" style="color: #2c2520">Elevated</span>
+                <span class="color-value" style="color: #5c544a">#FFFDFB</span>
+              </div>
+              <div
+                class="color-swatch"
+                style="background: #faf8f5; border: 1px solid rgba(0, 0, 0, 0.1)"
+                data-var="--color-background-primary"
+              >
+                <span class="color-name" style="color: #2c2520">Primary</span>
+                <span class="color-value" style="color: #5c544a">#FAF8F5</span>
+              </div>
+              <div
+                class="color-swatch"
+                style="background: #f5f1e8"
+                data-var="--color-background-secondary"
+              >
+                <span class="color-name" style="color: #2c2520">Secondary</span>
+                <span class="color-value" style="color: #5c544a">#F5F1E8</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Text Colors</h3>
+            <div class="color-grid">
+              <div class="color-swatch" style="background: #2c2520" data-var="--color-text-primary">
+                <span class="color-name">Primary</span>
+                <span class="color-value">#2C2520</span>
+              </div>
+              <div
+                class="color-swatch"
+                style="background: #5c544a"
+                data-var="--color-text-secondary"
+              >
+                <span class="color-name">Secondary</span>
+                <span class="color-value">#5C544A</span>
+              </div>
+              <div class="color-swatch" style="background: #756a5e" data-var="--color-text-muted">
+                <span class="color-name">Muted</span>
+                <span class="color-value">#756A5E</span>
+              </div>
+              <div class="color-swatch" style="background: #a89d90" data-var="--color-text-dimmed">
+                <span class="color-name">Dimmed</span>
+                <span class="color-value">#A89D90</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Animations Section -->
+        <section class="section" id="animations">
+          <div class="section-header">
+            <h1 class="section-title">Animations</h1>
+            <p class="section-description">Pixar-inspired animations. Hover to preview.</p>
+          </div>
+
+          <div class="animation-preview">
+            <div class="animation-card">
+              <div class="animation-demo demo-breathe"></div>
+              <div class="animation-name">Breathe</div>
+              <div class="animation-duration">5000ms • gentle</div>
+            </div>
+            <div class="animation-card">
+              <div class="animation-demo demo-bounce"></div>
+              <div class="animation-name">Bounce</div>
+              <div class="animation-duration">600ms • spring</div>
+            </div>
+            <div class="animation-card">
+              <div class="animation-demo demo-pulse"></div>
+              <div class="animation-name">Pulse</div>
+              <div class="animation-duration">1000ms • gentle</div>
+            </div>
+            <div class="animation-card">
+              <div class="animation-demo demo-spring"></div>
+              <div class="animation-name">Spring</div>
+              <div class="animation-duration">500ms • spring</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Motion Lab -->
+        <section class="section" id="motion-lab">
+          <div class="section-header">
+            <h1 class="section-title">Motion Lab</h1>
+            <p class="section-description">Experiment with animation timing and easing.</p>
+          </div>
+
+          <div class="card">
+            <div class="motion-controls">
+              <div class="motion-control">
+                <label>Duration</label>
+                <select id="motion-duration">
+                  <option value="100">Fast (100ms)</option>
+                  <option value="200">Normal (200ms)</option>
+                  <option value="300" selected>Slow (300ms)</option>
+                  <option value="500">Deliberate (500ms)</option>
+                  <option value="800">Dramatic (800ms)</option>
+                </select>
+              </div>
+              <div class="motion-control">
+                <label>Easing</label>
+                <select id="motion-easing">
+                  <option value="ease">ease</option>
+                  <option value="ease-out">ease-out</option>
+                  <option value="ease-in-out">ease-in-out</option>
+                  <option value="cubic-bezier(0.34, 1.56, 0.64, 1)" selected>spring</option>
+                  <option value="cubic-bezier(0.16, 1, 0.3, 1)">expo-out</option>
+                </select>
+              </div>
+              <div class="motion-control">
+                <label>Transform</label>
+                <select id="motion-transform">
+                  <option value="scale">Scale</option>
+                  <option value="translateY">Translate Y</option>
+                  <option value="rotate">Rotate</option>
+                </select>
+              </div>
+              <div class="motion-control">
+                <button class="btn btn-primary" id="play-motion">Play Animation</button>
+              </div>
+            </div>
+
+            <div class="motion-stage">
+              <div class="motion-object" id="motion-target"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Components Section -->
+        <section class="section" id="buttons">
+          <div class="section-header">
+            <h1 class="section-title">Buttons</h1>
+            <p class="section-description">Pill-shaped buttons with warm interactions.</p>
+          </div>
+
+          <div class="component-grid">
+            <div class="component-preview">
+              <div class="preview-header">
+                <span class="preview-title">Primary</span>
+                <button class="copy-btn">Copy</button>
+              </div>
+              <div class="preview-body">
+                <button class="btn btn-primary">Start Talking</button>
+              </div>
+            </div>
+            <div class="component-preview">
+              <div class="preview-header">
+                <span class="preview-title">Secondary</span>
+                <button class="copy-btn">Copy</button>
+              </div>
+              <div class="preview-body">
+                <button class="btn btn-secondary">Learn More</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Avatar Section -->
+        <section class="section" id="avatar">
+          <div class="section-header">
+            <h1 class="section-title">Avatar</h1>
+            <p class="section-description">Living, breathing presence with persona colors.</p>
+          </div>
+
+          <div class="component-grid">
+            <div class="component-preview">
+              <div class="preview-header">
+                <span class="preview-title">With Glow</span>
+              </div>
+              <div class="preview-body">
+                <div class="avatar-preview"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Contrast Checker -->
+        <section class="section" id="contrast">
+          <div class="section-header">
+            <h1 class="section-title">Contrast Checker</h1>
+            <p class="section-description">Verify WCAG AA compliance for color combinations.</p>
+          </div>
+
+          <div class="card">
+            <div class="contrast-checker">
+              <div class="contrast-input">
+                <label>Foreground Color</label>
+                <input type="text" id="fg-color" value="#2C2520" placeholder="#000000" />
+              </div>
+              <div class="contrast-input">
+                <label>Background Color</label>
+                <input type="text" id="bg-color" value="#FAF8F5" placeholder="#FFFFFF" />
+              </div>
+            </div>
+            <div
+              class="contrast-result"
+              id="contrast-result"
+              style="margin-top: 24px; background: #faf8f5; color: #2c2520"
+            >
+              <div class="contrast-ratio" id="contrast-ratio">8.5:1</div>
+              <div class="contrast-label contrast-pass" id="contrast-status">✓ WCAG AA Pass</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      // Persona Switcher
+      document.querySelectorAll('.persona-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.persona-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.body.setAttribute('data-persona', btn.dataset.persona);
+        });
+      });
+
+      // Color Swatch Copy
+      document.querySelectorAll('.color-swatch').forEach((swatch) => {
+        swatch.addEventListener('click', () => {
+          const cssVar = swatch.dataset.var;
+          navigator.clipboard.writeText(`var(${cssVar})`);
+          // Show feedback
+          const original = swatch.querySelector('.color-value').textContent;
+          swatch.querySelector('.color-value').textContent = 'Copied!';
+          setTimeout(() => {
+            swatch.querySelector('.color-value').textContent = original;
+          }, 1000);
+        });
+      });
+
+      // Motion Lab
+      document.getElementById('play-motion').addEventListener('click', () => {
+        const target = document.getElementById('motion-target');
+        const duration = document.getElementById('motion-duration').value;
+        const easing = document.getElementById('motion-easing').value;
+        const transform = document.getElementById('motion-transform').value;
+
+        let keyframes;
+        switch (transform) {
+          case 'scale':
+            keyframes = [
+              { transform: 'scale(1)' },
+              { transform: 'scale(1.3)' },
+              { transform: 'scale(1)' },
+            ];
+            break;
+          case 'translateY':
+            keyframes = [
+              { transform: 'translateY(0)' },
+              { transform: 'translateY(-30px)' },
+              { transform: 'translateY(0)' },
+            ];
+            break;
+          case 'rotate':
+            keyframes = [
+              { transform: 'rotate(0deg)' },
+              { transform: 'rotate(15deg)' },
+              { transform: 'rotate(0deg)' },
+            ];
+            break;
+        }
+
+        target.animate(keyframes, {
+          duration: parseInt(duration),
+          easing: easing,
+        });
+      });
+
+      // Contrast Checker
+      function luminance(r, g, b) {
+        const a = [r, g, b].map((v) => {
+          v /= 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        });
+        return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+      }
+
+      function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result
+          ? {
+              r: parseInt(result[1], 16),
+              g: parseInt(result[2], 16),
+              b: parseInt(result[3], 16),
+            }
+          : null;
+      }
+
+      function calculateContrast() {
+        const fgInput = document.getElementById('fg-color');
+        const bgInput = document.getElementById('bg-color');
+        const result = document.getElementById('contrast-result');
+        const ratioEl = document.getElementById('contrast-ratio');
+        const statusEl = document.getElementById('contrast-status');
+
+        const fg = hexToRgb(fgInput.value);
+        const bg = hexToRgb(bgInput.value);
+
+        if (fg && bg) {
+          const l1 = luminance(fg.r, fg.g, fg.b);
+          const l2 = luminance(bg.r, bg.g, bg.b);
+          const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+
+          ratioEl.textContent = ratio.toFixed(1) + ':1';
+          result.style.background = bgInput.value;
+          result.style.color = fgInput.value;
+
+          if (ratio >= 4.5) {
+            statusEl.textContent = '✓ WCAG AA Pass';
+            statusEl.className = 'contrast-label contrast-pass';
+          } else if (ratio >= 3) {
+            statusEl.textContent = '⚠ Large Text Only (3:1)';
+            statusEl.className = 'contrast-label';
+            statusEl.style.color = '#f59e0b';
+          } else {
+            statusEl.textContent = '✗ WCAG AA Fail';
+            statusEl.className = 'contrast-label contrast-fail';
+          }
+        }
+      }
+
+      document.getElementById('fg-color').addEventListener('input', calculateContrast);
+      document.getElementById('bg-color').addEventListener('input', calculateContrast);
+
+      // Nav active state
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-link').forEach((l) => l.classList.remove('active'));
+          link.classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>

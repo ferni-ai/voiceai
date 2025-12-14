@@ -31,8 +31,8 @@ describe('Graceful Degradation', () => {
 
       const fallbackResponses = [
         "I'm having a moment of connection trouble. Could you say that again?",
-        "Let me gather my thoughts. What were you sharing?",
-        "I want to make sure I hear you right. Could you repeat that?",
+        'Let me gather my thoughts. What were you sharing?',
+        'I want to make sure I hear you right. Could you repeat that?',
       ];
 
       const generateWithFallback = async (
@@ -72,7 +72,10 @@ describe('Graceful Degradation', () => {
       ): Promise<CachedAudio> => {
         try {
           const result = await tts.synthesize(text);
-          return { text: result.text, audioData: result.audioFrames[0]?.data || new Float32Array() };
+          return {
+            text: result.text,
+            audioData: new Float32Array(result.audio.buffer),
+          };
         } catch {
           // Return cached fallback
           return audioCache.get('fallback_sorry')!;
@@ -213,11 +216,7 @@ describe('Retry Patterns', () => {
     });
 
     it('should respect maximum delay', async () => {
-      const calculateBackoff = (
-        attempt: number,
-        baseDelay: number,
-        maxDelay: number
-      ): number => {
+      const calculateBackoff = (attempt: number, baseDelay: number, maxDelay: number): number => {
         const delay = baseDelay * Math.pow(2, attempt);
         return Math.min(delay, maxDelay);
       };
