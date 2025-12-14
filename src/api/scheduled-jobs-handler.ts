@@ -178,6 +178,68 @@ async function runMemoryHealthCheck(res: ServerResponse): Promise<void> {
 }
 
 // ============================================================================
+// SUPERHUMAN MEMORY JOBS
+// ============================================================================
+
+async function runUserMemoryReindex(res: ServerResponse): Promise<void> {
+  try {
+    const { UserMemoryReindexJob } = await import('../tasks/scheduled/superhuman-memory-jobs.js');
+    const job = new UserMemoryReindexJob();
+    const result = await job.run({});
+    log.info({ result }, 'User memory re-index completed');
+    sendJson(res, 200, { success: true, job: 'userMemoryReindex', result });
+  } catch (error) {
+    log.error({ error }, 'User memory re-index failed');
+    sendJson(res, 500, { success: false, job: 'userMemoryReindex', error: String(error) });
+  }
+}
+
+async function runSuperhumanContextPrecompute(res: ServerResponse): Promise<void> {
+  try {
+    const { SuperhumanContextPrecomputeJob } = await import(
+      '../tasks/scheduled/superhuman-memory-jobs.js'
+    );
+    const job = new SuperhumanContextPrecomputeJob();
+    const result = await job.run({});
+    log.info({ result }, 'Superhuman context pre-computation completed');
+    sendJson(res, 200, { success: true, job: 'superhumanContextPrecompute', result });
+  } catch (error) {
+    log.error({ error }, 'Superhuman context pre-computation failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'superhumanContextPrecompute',
+      error: String(error),
+    });
+  }
+}
+
+async function runInsightDeliveryCleanup(res: ServerResponse): Promise<void> {
+  try {
+    const { InsightDeliveryCleanupJob } = await import(
+      '../tasks/scheduled/superhuman-memory-jobs.js'
+    );
+    const job = new InsightDeliveryCleanupJob();
+    const result = await job.run({});
+    log.info({ result }, 'Insight delivery cleanup completed');
+    sendJson(res, 200, { success: true, job: 'insightDeliveryCleanup', result });
+  } catch (error) {
+    log.error({ error }, 'Insight delivery cleanup failed');
+    sendJson(res, 500, { success: false, job: 'insightDeliveryCleanup', error: String(error) });
+  }
+}
+
+async function getSuperhumanMetricsEndpoint(res: ServerResponse): Promise<void> {
+  try {
+    const { getSuperhumanMetrics } = await import('../tasks/scheduled/superhuman-memory-jobs.js');
+    const metrics = getSuperhumanMetrics();
+    sendJson(res, 200, { success: true, metrics });
+  } catch (error) {
+    log.error({ error }, 'Failed to get superhuman metrics');
+    sendJson(res, 500, { success: false, error: String(error) });
+  }
+}
+
+// ============================================================================
 // MARKETPLACE BILLING JOBS
 // ============================================================================
 
@@ -336,6 +398,32 @@ export async function handleScheduledJobsRoutes(
   // POST /api/jobs/memory-health-check
   if (pathname === '/api/jobs/memory-health-check' && req.method === 'POST') {
     await runMemoryHealthCheck(res);
+    return true;
+  }
+
+  // SUPERHUMAN MEMORY JOBS
+
+  // POST /api/jobs/user-memory-reindex
+  if (pathname === '/api/jobs/user-memory-reindex' && req.method === 'POST') {
+    await runUserMemoryReindex(res);
+    return true;
+  }
+
+  // POST /api/jobs/superhuman-context-precompute
+  if (pathname === '/api/jobs/superhuman-context-precompute' && req.method === 'POST') {
+    await runSuperhumanContextPrecompute(res);
+    return true;
+  }
+
+  // POST /api/jobs/insight-delivery-cleanup
+  if (pathname === '/api/jobs/insight-delivery-cleanup' && req.method === 'POST') {
+    await runInsightDeliveryCleanup(res);
+    return true;
+  }
+
+  // GET /api/jobs/superhuman-metrics
+  if (pathname === '/api/jobs/superhuman-metrics' && req.method === 'GET') {
+    await getSuperhumanMetricsEndpoint(res);
     return true;
   }
 

@@ -79,6 +79,7 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
+import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
 import { marketplaceUI } from './ui/marketplace.ui.js';
 // Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
@@ -1353,6 +1354,13 @@ class VoiceAIApp {
         onWearableSettingsClick: () => void showWearableSettings(),
         onVideoSettingsClick: () => void showVideoSettings(),
         onGroupCoachingClick: () => void showGroupCoaching(),
+        onMarketplaceAdminClick: () => {
+          // Admin panel requires admin session
+          const adminId = localStorage.getItem('ferni_admin_id');
+          if (adminId) {
+            void openMarketplaceAdmin({ id: adminId, name: 'Admin' });
+          }
+        },
       });
 
       // Wire up Spotify state changes to menu

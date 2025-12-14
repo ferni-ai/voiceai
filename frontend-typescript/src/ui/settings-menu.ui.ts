@@ -452,6 +452,9 @@ class SettingsMenuUI {
           `
           )}
 
+          <!-- SECTION 6: Admin (only visible for admins) -->
+          ${this.renderAdminSection(expandedSections)}
+
           <!-- Bottom Quick Actions -->
           <div class="settings-menu__quick-actions">
             ${this.renderMenuItem('share-ferni', ICONS.share, 'Share Ferni')}
@@ -516,6 +519,24 @@ class SettingsMenuUI {
         </div>
       </section>
     `;
+  }
+
+  /**
+   * Render admin section (only visible when admin mode is enabled)
+   */
+  private renderAdminSection(expandedSections: Set<string>): string {
+    // Check if admin mode is enabled via localStorage
+    const isAdmin = localStorage.getItem('ferni_admin_id');
+    if (!isAdmin) return '';
+
+    return this.renderCollapsibleSection(
+      'admin',
+      'Admin',
+      expandedSections.has('admin'),
+      `
+      ${this.renderMenuItemWithBadge('marketplace-admin', ICONS.analytics, 'Marketplace Queue', 'ADMIN')}
+      `
+    );
   }
 
   /**
@@ -671,6 +692,9 @@ class SettingsMenuUI {
         break;
       case 'group-coaching':
         this.callbacks.onGroupCoachingClick?.();
+        break;
+      case 'marketplace-admin':
+        this.callbacks.onMarketplaceAdminClick?.();
         break;
     }
   }

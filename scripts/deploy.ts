@@ -1,22 +1,15 @@
 #!/usr/bin/env npx tsx
 /**
- * Unified Deployment CLI
+ * Unified Deployment Script
  *
- * Single entry point for all deployments.
- * Replaces: deploy-gcp.sh, deploy-ui.sh, deploy-all.sh, deploy-brand.sh
+ * RECOMMENDED: Use the Ferni CLI instead of calling this directly:
+ *   ferni deploy            # Interactive menu
+ *   ferni deploy gce        # Voice agent to GCE (WebRTC/UDP)
+ *   ferni deploy ui         # UI backend to Cloud Run
+ *   ferni deploy frontend   # Frontend to Firebase
+ *   ferni deploy all        # Deploy everything
  *
- * Usage:
- *   npx tsx scripts/deploy.ts                # Show help
- *   npx tsx scripts/deploy.ts ui             # Deploy UI only
- *   npx tsx scripts/deploy.ts agent          # Deploy voice agent
- *   npx tsx scripts/deploy.ts all            # Deploy everything
- *   npx tsx scripts/deploy.ts brand          # Deploy brand assets
- *   npx tsx scripts/deploy.ts --dry-run ui   # Preview what would be deployed
- *
- * Or via npm:
- *   npm run deploy ui
- *   npm run deploy agent
- *   npm run deploy all
+ * This script is called by the Ferni CLI - use `ferni deploy` for best experience.
  */
 
 import { ChildProcess, execSync, spawn } from 'child_process';
@@ -1128,6 +1121,41 @@ async function deployJoel(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
+async function deployGce(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING VOICE AGENT TO GCE');
+
+  const gceArgs: string[] = [];
+
+  if (options.dryRun) {
+    gceArgs.push('--dry-run');
+  }
+
+  // Spawn the GCE deployment script
+  const gceScript = join(__dirname, 'deploy-gce.ts');
+
+  return new Promise((resolve) => {
+    const child = spawn('npx', ['tsx', gceScript, ...gceArgs], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        log.success('GCE deployment complete!');
+        resolve(true);
+      } else {
+        log.error(`GCE deployment failed with code ${code}`);
+        resolve(false);
+      }
+    });
+
+    child.on('error', (err) => {
+      log.error(`GCE deployment error: ${err.message}`);
+      resolve(false);
+    });
+  });
+}
+
 async function deployEvolution(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING EVOLUTION SCHEDULER');
 
@@ -1348,6 +1376,7 @@ ${colors.bold}Targets:${colors.reset}
   ${colors.green}ui${colors.reset}         Deploy UI backend to Cloud Run (APIs)
   ${colors.green}frontend${colors.reset}   Deploy frontend to Firebase Hosting (app.ferni.ai)
   ${colors.green}agent${colors.reset}      Deploy voice agent to Cloud Run
+  ${colors.green}gce${colors.reset}        Deploy voice agent to GCE (blue-green, WebRTC/UDP)
   ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
   ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
   ${colors.green}joel${colors.reset}       Deploy Joel Dickson (agent + UI)
@@ -1430,6 +1459,10 @@ ${colors.cyan}╚═════════════════════
 
     case 'agent':
       success = await deployAgent(options);
+      break;
+
+    case 'gce':
+      success = await deployGce(options);
       break;
 
     case 'brand':

@@ -53,6 +53,39 @@ export interface CognitiveInsightsData {
   patterns: LearningPattern[];
   totalInteractions: number;
   knowledgeScore: number;
+  // Superhuman Memory Insights
+  superhumanInsights?: SuperhumanInsight[];
+  temporalContext?: {
+    isSpecialDate: boolean;
+    specialDateInfo?: string;
+    seasonalPattern?: string;
+  };
+  topicAbsences?: TopicAbsence[];
+}
+
+/**
+ * Superhuman memory insight - proactive "better than human" intelligence
+ */
+export interface SuperhumanInsight {
+  id: string;
+  type: 'date_reminder' | 'growth_celebration' | 'inside_joke' | 'topic_absence' | 'comfort_application';
+  priority: 'high' | 'medium' | 'low';
+  content: string;
+  naturalPhrase: string;
+  timing: 'greeting' | 'when_relevant' | 'closing' | 'anytime';
+  tone: 'celebratory' | 'gentle' | 'curious' | 'warm' | 'supportive';
+  generatedAt: string;
+}
+
+/**
+ * Topic that has gone quiet
+ */
+export interface TopicAbsence {
+  topic: string;
+  lastMentioned: string;
+  sessionsSince: number;
+  suggestedApproach: 'gentle_check_in' | 'wait_for_them' | 'celebrate_resolution';
+  prompt: string;
 }
 
 export interface CognitiveInsightsUICallbacks {
@@ -71,6 +104,12 @@ const MEMORY_ICONS: Record<string, string> = {
   goal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
   pattern: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   relationship: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  // Superhuman insight icons
+  date_reminder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>`,
+  growth_celebration: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`,
+  inside_joke: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+  topic_absence: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  comfort_application: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
 };
 
 // ============================================================================
@@ -201,6 +240,23 @@ class CognitiveInsightsUI {
         ).join('')}
       </div>
 
+      ${data.superhumanInsights && data.superhumanInsights.length > 0 ? `
+        <!-- Superhuman Insights - Proactive Memory -->
+        <div class="cognitive-insights__superhuman">
+          <div class="cognitive-insights__superhuman-header">
+            <span class="cognitive-insights__superhuman-icon">${MEMORY_ICONS['growth_celebration']}</span>
+            <h3 class="cognitive-insights__superhuman-title">Things I Want to Remember</h3>
+            <span class="cognitive-insights__superhuman-badge">Proactive</span>
+          </div>
+          <p class="cognitive-insights__superhuman-intro">
+            Here are some things I'm keeping in mind for our next conversation:
+          </p>
+          <div class="cognitive-insights__superhuman-list">
+            ${data.superhumanInsights.map(insight => this.renderSuperhumanInsight(insight)).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       ${data.patterns.length > 0 ? `
         <!-- Patterns -->
         <div class="cognitive-insights__patterns">
@@ -313,6 +369,46 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__pattern-meta">
           <span class="cognitive-insights__pattern-confidence">${confidenceLabel}</span>
           <span class="cognitive-insights__pattern-freq">Observed ${pattern.frequency}x</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render a superhuman memory insight
+   */
+  private renderSuperhumanInsight(insight: SuperhumanInsight): string {
+    const icon = MEMORY_ICONS[insight.type] || MEMORY_ICONS['growth_celebration'];
+    const priorityClass = insight.priority === 'high' ? 'superhuman-insight--high' : 
+                          insight.priority === 'medium' ? 'superhuman-insight--medium' : '';
+    
+    const typeLabels: Record<string, string> = {
+      date_reminder: 'Important Date',
+      growth_celebration: 'Growth Moment',
+      inside_joke: 'Shared Memory',
+      topic_absence: 'Check-in',
+      comfort_application: 'How to Help',
+    };
+    
+    const toneEmoji: Record<string, string> = {
+      celebratory: '🎉',
+      gentle: '💙',
+      curious: '🤔',
+      warm: '🌱',
+      supportive: '💪',
+    };
+
+    return `
+      <div class="cognitive-insights__superhuman-insight ${priorityClass}">
+        <div class="cognitive-insights__superhuman-insight-icon">
+          ${icon}
+        </div>
+        <div class="cognitive-insights__superhuman-insight-content">
+          <div class="cognitive-insights__superhuman-insight-header">
+            <span class="cognitive-insights__superhuman-insight-type">${typeLabels[insight.type] || insight.type}</span>
+            <span class="cognitive-insights__superhuman-insight-tone">${toneEmoji[insight.tone] || ''}</span>
+          </div>
+          <p class="cognitive-insights__superhuman-insight-phrase">${escapeHtml(insight.naturalPhrase)}</p>
         </div>
       </div>
     `;

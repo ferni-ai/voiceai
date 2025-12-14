@@ -24,6 +24,63 @@ import { soundUI } from './sound.ui.js';
 const log = createLogger('PermissionConsentUI');
 
 // ============================================================================
+// LUCIDE ICONS (brand-compliant, no emoji)
+// ============================================================================
+
+const LUCIDE = {
+  user: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  brain:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.54"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.54"/></svg>',
+  save: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+  trash:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  calendar:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  calendarPlus:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>',
+  contacts:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="4" width="18" height="18" rx="2"/><circle cx="12" cy="10" r="2"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="16" y1="2" x2="16" y2="4"/></svg>',
+  userPlus:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
+  barChart:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+  checkCircle:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  dollarSign:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  creditCard:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+  heart:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  activity:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+  mail: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+  messageSquare:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  bell: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  globe:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  upload:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>',
+  webhook:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8H12"/></svg>',
+  tool: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  users:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  receipt:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17V7"/></svg>',
+  fileText:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+  filePlus:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>',
+  database:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  hardDrive:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>',
+};
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -93,180 +150,181 @@ const PERMISSION_DISPLAY: Record<
   { icon: string; label: string; category: string; sensitivity: 'low' | 'medium' | 'high' }
 > = {
   'user:profile:read': {
-    icon: '👤',
-    label: 'View your profile',
+    icon: LUCIDE.user,
+    label: 'See your profile',
     category: 'Profile',
     sensitivity: 'low',
   },
   'user:profile:write': {
-    icon: '✏️',
+    icon: LUCIDE.edit,
     label: 'Update your profile',
     category: 'Profile',
     sensitivity: 'medium',
   },
   'user:memory:read': {
-    icon: '🧠',
-    label: 'Access your memories',
+    icon: LUCIDE.brain,
+    label: 'Remember what you share',
     category: 'Memories',
     sensitivity: 'medium',
   },
   'user:memory:write': {
-    icon: '💾',
-    label: 'Create memories',
+    icon: LUCIDE.save,
+    label: 'Save new memories',
     category: 'Memories',
     sensitivity: 'medium',
   },
   'user:memory:delete': {
-    icon: '🗑️',
-    label: 'Delete memories',
+    icon: LUCIDE.trash,
+    label: 'Remove memories',
     category: 'Memories',
     sensitivity: 'high',
   },
   'user:calendar:read': {
-    icon: '📅',
-    label: 'View your calendar',
+    icon: LUCIDE.calendar,
+    label: 'See your schedule',
     category: 'Calendar',
     sensitivity: 'medium',
   },
   'user:calendar:write': {
-    icon: '📝',
-    label: 'Add calendar events',
+    icon: LUCIDE.calendarPlus,
+    label: 'Add to your calendar',
     category: 'Calendar',
     sensitivity: 'medium',
   },
   'user:contacts:read': {
-    icon: '📇',
-    label: 'View your contacts',
+    icon: LUCIDE.contacts,
+    label: 'See your contacts',
     category: 'Contacts',
     sensitivity: 'medium',
   },
   'user:contacts:write': {
-    icon: '➕',
-    label: 'Add/edit contacts',
+    icon: LUCIDE.userPlus,
+    label: 'Add or update contacts',
     category: 'Contacts',
     sensitivity: 'medium',
   },
   'user:habits:read': {
-    icon: '📊',
-    label: 'View your habits',
+    icon: LUCIDE.barChart,
+    label: 'See your habits',
     category: 'Habits',
     sensitivity: 'low',
   },
   'user:habits:write': {
-    icon: '✅',
-    label: 'Track habits',
+    icon: LUCIDE.checkCircle,
+    label: 'Track your habits',
     category: 'Habits',
     sensitivity: 'low',
   },
   'user:finance:read': {
-    icon: '💰',
-    label: 'View financial data',
+    icon: LUCIDE.dollarSign,
+    label: 'See financial info',
     category: 'Finance',
     sensitivity: 'high',
   },
   'user:finance:write': {
-    icon: '💳',
+    icon: LUCIDE.creditCard,
     label: 'Manage finances',
     category: 'Finance',
     sensitivity: 'high',
   },
   'user:health:read': {
-    icon: '❤️',
-    label: 'View health data',
+    icon: LUCIDE.heart,
+    label: 'See health info',
     category: 'Health',
     sensitivity: 'high',
   },
   'user:health:write': {
-    icon: '🏥',
-    label: 'Record health data',
+    icon: LUCIDE.activity,
+    label: 'Track health data',
     category: 'Health',
     sensitivity: 'high',
   },
   'communication:email:send': {
-    icon: '📧',
-    label: 'Send emails',
+    icon: LUCIDE.mail,
+    label: 'Send emails on your behalf',
     category: 'Communication',
     sensitivity: 'medium',
   },
   'communication:sms:send': {
-    icon: '💬',
-    label: 'Send SMS messages',
+    icon: LUCIDE.messageSquare,
+    label: 'Send text messages',
     category: 'Communication',
     sensitivity: 'medium',
   },
   'communication:notify': {
-    icon: '🔔',
-    label: 'Send notifications',
+    icon: LUCIDE.bell,
+    label: 'Send you notifications',
     category: 'Communication',
     sensitivity: 'low',
   },
   'external:http:read': {
-    icon: '🌐',
-    label: 'Fetch web data',
+    icon: LUCIDE.globe,
+    label: 'Look up info online',
     category: 'External',
     sensitivity: 'low',
   },
   'external:http:write': {
-    icon: '📤',
-    label: 'Send web requests',
+    icon: LUCIDE.upload,
+    label: 'Send info to the web',
     category: 'External',
     sensitivity: 'medium',
   },
   'external:webhook:receive': {
-    icon: '📥',
-    label: 'Receive webhooks',
+    icon: LUCIDE.webhook,
+    label: 'Receive updates from services',
     category: 'External',
     sensitivity: 'low',
   },
   'platform:tools:invoke': {
-    icon: '🔧',
-    label: 'Use other tools',
+    icon: LUCIDE.tool,
+    label: 'Work with other capabilities',
     category: 'Platform',
     sensitivity: 'medium',
   },
   'platform:agents:handoff': {
-    icon: '🤝',
-    label: 'Hand off to agents',
+    icon: LUCIDE.users,
+    label: 'Connect you with other coaches',
     category: 'Platform',
     sensitivity: 'low',
   },
   'platform:billing:read': {
-    icon: '📋',
-    label: 'View subscription',
+    icon: LUCIDE.receipt,
+    label: 'See your subscription',
     category: 'Platform',
     sensitivity: 'low',
   },
   'storage:files:read': {
-    icon: '📁',
+    icon: LUCIDE.fileText,
     label: 'Read your files',
     category: 'Storage',
     sensitivity: 'medium',
   },
   'storage:files:write': {
-    icon: '💾',
-    label: 'Save files',
+    icon: LUCIDE.filePlus,
+    label: 'Save files for you',
     category: 'Storage',
     sensitivity: 'medium',
   },
   'storage:blob:read': {
-    icon: '📦',
-    label: 'Access stored data',
+    icon: LUCIDE.database,
+    label: 'Access saved data',
     category: 'Storage',
     sensitivity: 'low',
   },
   'storage:blob:write': {
-    icon: '📤',
-    label: 'Store data',
+    icon: LUCIDE.hardDrive,
+    label: 'Store data for you',
     category: 'Storage',
     sensitivity: 'low',
   },
 };
 
+// Trust badges use simple text characters (brand compliant)
 const TRUST_BADGES: Record<string, { label: string; color: string; icon: string }> = {
   platform: { label: 'By Ferni', color: 'var(--persona-primary)', icon: '✓' },
   verified: { label: 'Verified', color: 'var(--color-semantic-success)', icon: '✓' },
-  community: { label: 'Community', color: 'var(--color-semantic-warning)', icon: '⚡' },
-  unverified: { label: 'Unverified', color: 'var(--color-semantic-error)', icon: '!' },
+  community: { label: 'Community', color: 'var(--color-semantic-warning)', icon: '●' },
+  unverified: { label: 'Review pending', color: 'var(--color-semantic-error)', icon: '○' },
 };
 
 // ============================================================================
@@ -480,9 +538,13 @@ function createModal(item: MarketplaceItem): HTMLElement {
   return el;
 }
 
+// Fallback icon for unknown permissions
+const UNKNOWN_ICON =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
 function renderPermissionItem(permission: PermissionRequest, required: boolean): string {
   const display = PERMISSION_DISPLAY[permission.scope] || {
-    icon: '❓',
+    icon: UNKNOWN_ICON,
     label: permission.scope,
     category: 'Other',
     sensitivity: 'medium',

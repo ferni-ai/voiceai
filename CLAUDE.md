@@ -73,14 +73,18 @@ cd frontend-typescript && pnpm dev
 
 ## 🌐 Production Deployment (Blue-Green)
 
-**⚠️ ALWAYS use the deploy script** - it implements blue-green deployment with health checks:
+**⚠️ ALWAYS use the Ferni CLI** - it's intelligent and handles blue-green deployment with health checks:
 
 ```bash
-# Deploy Voice Agent (blue-green, async)
-pnpm deploy:agent:async
+# Use the Ferni CLI for ALL deployments
+ferni deploy            # Interactive menu
+ferni deploy gce        # Voice agent to GCE (WebRTC/UDP) ← PREFERRED for voice
+ferni deploy ui         # UI backend to Cloud Run
+ferni deploy frontend   # Frontend to Firebase
+ferni deploy all        # Deploy everything
 
-# Deploy UI (blue-green, async)
-pnpm deploy:ui:async
+# Options
+ferni deploy gce --dry-run    # Preview what would happen
 
 # Monitor progress
 tail -f .deploy-logs/*.log
@@ -112,18 +116,19 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 ### ⛔ NEVER DO
 | Wrong | Right |
 |-------|-------|
-| `gcloud run deploy voiceai-agent` | `pnpm deploy:agent:async` |
-| `gcloud builds submit && gcloud run deploy` | `pnpm deploy:agent:async` |
-| Direct `gcloud` deploy commands | Always use `pnpm deploy:*` |
+| `gcloud run deploy voiceai-agent` | `ferni deploy gce` |
+| `ssh vm && docker run` | `ferni deploy gce` |
+| `pnpm deploy:*` scripts directly | `ferni deploy <target>` |
+| Direct `gcloud` deploy commands | Always use `ferni deploy` |
 
-**Why?** Direct deploys skip readiness checks and can cause connection failures. The deploy script waits for workers to signal ready before shifting traffic.
+**Why?** Direct deploys skip readiness checks and can cause connection failures. Ferni CLI is intelligent and handles health checks, blue-green strategy, and cleanup automatically.
 
 | Deploy Command | What it deploys | Blue-Green? |
 |----------------|-----------------|-------------|
-| `pnpm deploy:agent:async` | Voice agent | ✅ Yes |
-| `pnpm deploy:ui:async` | UI backend APIs | ✅ Yes |
-| `pnpm deploy:frontend` | Firebase Hosting | ✅ Yes (preview channel) |
-| `pnpm deploy:landing` | Landing page | ✅ Yes (preview channel) |
+| `ferni deploy gce` | Voice agent to GCE | ✅ Yes |
+| `ferni deploy ui` | UI backend to Cloud Run | ✅ Yes |
+| `ferni deploy frontend` | Firebase Hosting | ✅ Yes (preview channel) |
+| `ferni deploy landing` | Landing page | ✅ Yes (preview channel) |
 
 **Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
@@ -159,6 +164,55 @@ pnpm ops:zombies:fix:agent
 4. **Deleting ALL old revisions** (not just leaving them with 0% traffic)
 
 **Key files:** `scripts/cleanup-zombies.ts`, `scripts/deploy.ts`
+
+## 🖥️ GCE Voice Agent Deployment (PREFERRED for Voice)
+
+**Why GCE instead of Cloud Run?**
+- WebRTC requires **UDP** for real-time voice (Cloud Run only supports TCP)
+- LiveKit workers need persistent connections
+- Better audio quality with direct UDP transport
+- No "choppy audio" issues that occur with Cloud Run
+
+### GCE Blue-Green Deployment
+
+```bash
+# Deploy voice agent to GCE (always use Ferni CLI!)
+ferni deploy gce
+
+# Preview what would happen
+ferni deploy gce --dry-run
+```
+
+### Blue-Green Strategy
+1. **Build & Push** - Docker image to Container Registry
+2. **Deploy to Inactive Slot** - Start new container on alternate port (green)
+3. **Health Check** - Verify `/health` endpoint responds
+4. **Promote** - Stop old container (blue), new one takes over
+5. **Rollback** - If health check fails, old container keeps running
+
+### GCE Configuration
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Instance | `voiceai-agent` | GCE VM name |
+| IP | `34.134.186.63` | Static external IP |
+| Zone | `us-central1-a` | - |
+| Blue Port | `8080` | Primary slot |
+| Green Port | `8081` | Secondary slot |
+
+### GCE vs Cloud Run Decision Matrix
+
+| Requirement | GCE | Cloud Run |
+|-------------|-----|-----------|
+| WebRTC/UDP voice | ✅ Required | ❌ TCP only |
+| Auto-scaling | Manual | ✅ Automatic |
+| Cost at low traffic | Higher | ✅ Pay-per-use |
+| Persistent connections | ✅ Yes | ❌ Timeout limits |
+
+**Voice Agent → Always use GCE** (`ferni deploy gce`)
+**UI/API backends → Use Cloud Run** (`ferni deploy ui`)
+
+**Key files:** `scripts/deploy-gce.ts`, `scripts/deploy.ts`
 
 ## ⚡ Build Optimization (pnpm + esbuild)
 

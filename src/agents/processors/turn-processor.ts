@@ -1763,15 +1763,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // Check if a story was told in the previous response
     const turnCount = userData.turnCount || 1;
     const wasStoryTold = userData.lastStoryTurn === turnCount - 1;
-    const lastStoryId = wasStoryTold && userData.storiesShared?.length
-      ? userData.storiesShared[userData.storiesShared.length - 1]
-      : undefined;
+    const lastStoryId =
+      wasStoryTold && userData.storiesShared?.length
+        ? userData.storiesShared[userData.storiesShared.length - 1]
+        : undefined;
 
     // Extract any question asked in the previous response
     // Match sentences ending with ? that are meaningful questions
-    const questionMatch = userData.lastAgentResponse.match(
-      /(?:^|[.!]\s*)([A-Z][^?]*\?)/g
-    );
+    const questionMatch = userData.lastAgentResponse.match(/(?:^|[.!]\s*)([A-Z][^?]*\?)/g);
     // Use the last question as most questions come at the end
     const questionAsked = questionMatch?.length
       ? questionMatch[questionMatch.length - 1].trim()

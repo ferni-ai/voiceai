@@ -2,12 +2,14 @@
  * Core Adaptive SSML Functions
  *
  * Base adaptive tagging and SSML adjustment functions.
+ * Now integrates Alive Voice features for more human-like speech.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
-import { sanitizeSsml, tagTextWithSsml } from '../ssml-tagger/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type { SpeechContext } from '../speech-context.js';
+import { sanitizeSsml, tagTextWithSsml } from '../ssml-tagger/index.js';
+import { makeVoiceAlive, type AliveVoiceContext } from './alive-voice.js';
 
 // ============================================================================
 // ADAPTIVE TAGGING
@@ -58,7 +60,29 @@ export function tagTextWithSsmlAdaptive(
     );
   }
 
-  return tagged;
+  // =========================================================================
+  // ALIVE VOICE ENHANCEMENTS
+  // Apply sentence-level emotion arcs, dynamic pauses, speed variation,
+  // opening sounds, and persona fingerprints to make speech more human.
+  // =========================================================================
+  const aliveContext: AliveVoiceContext = {
+    personaId,
+    userEmotion: context.userEmotion,
+    topicWeight: context.topicWeight,
+    turnCount: context.turnCount,
+    userEnergy: context.userEnergy,
+  };
+
+  const aliveResult = makeVoiceAlive(tagged, aliveContext);
+
+  if (aliveResult.appliedFeatures.length > 0) {
+    getLogger().debug(
+      { features: aliveResult.appliedFeatures, personaId },
+      'Applied alive voice enhancements'
+    );
+  }
+
+  return aliveResult.text;
 }
 
 // ============================================================================

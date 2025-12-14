@@ -710,3 +710,141 @@ Legacy `remove*` functions now have `reset*` aliases:
 - `removeEnhancedBackchannelingEngine` → `resetEnhancedBackchannelingEngine`
 
 New code should use the `reset*` naming for consistency.
+
+## 🎭 Alive Voice - Making Agents Come Alive
+
+The `alive-voice` module (`adaptive-ssml/alive-voice.ts`) adds human-like qualities to speech:
+
+### Features
+
+| Feature                     | Description                                       | Example                                              |
+| --------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| **Emotion Arcs**            | Mid-sentence emotion shifts based on content      | "That's great! `<emotion caring>` But be careful..." |
+| **Dynamic Pauses**          | Longer pauses for heavy topics, shorter for light | Heavy: 400ms, Light: 150ms                           |
+| **Speed Variation**         | Slow for emphasis, fast for asides                | `<speed 0.88>` for important words                   |
+| **Opening Sounds**          | Context-aware micro-reactions                     | "Oh!" for good news, "Hmm..." for questions          |
+| **Persona Fingerprints**    | Distinct SSML patterns per persona                | Nayan: 0.85 speed, Ferni: 0.92 speed                 |
+| **Future-Proof Nonverbals** | Config-driven nonverbal support                   | Ready for when Cartesia adds `[sigh]`                |
+| **Contextual Laughter**     | Smart laugh timing based on conversation mood     | Knows when "haha" feels natural vs awkward           |
+
+### Usage
+
+```typescript
+import { makeVoiceAlive, PERSONA_FINGERPRINTS } from './adaptive-ssml/alive-voice.js';
+
+const result = makeVoiceAlive("That's wonderful, but take care of yourself.", {
+  personaId: 'ferni',
+  topicWeight: 'medium',
+  isGoodNews: true,
+});
+
+console.log(result.text);
+// <emotion value="happy"/><speed ratio="0.92"/>Oh!<break time="80ms"/> That's wonderful, <emotion value="caring"/>but take care of yourself.
+console.log(result.appliedFeatures);
+// ['persona_fingerprint', 'opening_sound', 'emotion_arcs']
+```
+
+### Persona Fingerprints
+
+Each persona has distinct voice characteristics:
+
+| Persona    | Speed | Default Emotion | Special Patterns                          |
+| ---------- | ----- | --------------- | ----------------------------------------- |
+| **Ferni**  | 0.92  | affectionate    | Slows for "Wyoming", "second chance"      |
+| **Peter**  | 0.88  | calm            | Slows for "index fund", "stay the course" |
+| **Alex**   | 1.02  | curious         | Speeds up for scheduling words            |
+| **Maya**   | 0.98  | happy           | Energizes habit/streak mentions           |
+| **Jordan** | 1.05  | excited         | Celebrates milestones, events             |
+| **Nayan**  | 0.85  | calm            | Long pauses for wisdom, poetry            |
+
+### Emotion Arc Patterns
+
+Detects content shifts and injects appropriate emotion changes:
+
+- **Positive → Concern**: "That's great, but..." → happy → caring
+- **Empathy → Encouragement**: "That's hard, but you've got this" → sympathetic → affectionate
+- **Surprise → Curiosity**: "Wow! Tell me more" → surprised → curious
+- **Thinking → Realization**: "Hmm... actually..." → contemplative → curious
+
+### Integration
+
+Alive Voice is automatically applied in `tagTextWithSsmlAdaptive()`:
+
+```typescript
+// Already integrated in adaptation.ts
+export function tagTextWithSsmlAdaptive(
+  text: string,
+  context: SpeechContext,
+  personaId?: string
+): string {
+  // ... existing tagging ...
+
+  // Alive voice enhancements are automatically applied
+  const aliveResult = makeVoiceAlive(tagged, {
+    personaId,
+    userEmotion: context.userEmotion,
+    topicWeight: context.topicWeight,
+    // ...
+  });
+
+  return aliveResult.text;
+}
+```
+
+### Future-Proofing Nonverbals
+
+When Cartesia adds support for new nonverbals, just flip the config:
+
+```typescript
+// In alive-voice.ts
+export const NONVERBAL_CONFIG = {
+  laughter: { supported: true, bracket: '[laughter]', ... },
+  sigh: { supported: false, bracket: '[sigh]', fallback: '', ... }, // Flip to true when ready!
+};
+```
+
+### Contextual Laughter Timing
+
+The `contextual-laughter.ts` module determines when the agent should laugh:
+
+```typescript
+import { addContextualLaughter } from './adaptive-ssml/contextual-laughter.js';
+
+const { text, decision } = addContextualLaughter(
+  "You're so predictable! Just kidding.",
+  {
+    personaId: 'ferni',
+    turnCount: 5,
+    topicWeight: 'light',
+    comfortLevel: 0.7,
+  },
+  sessionId
+);
+
+// Result: "You're so predictable! Just kidding <break time="100ms"/>haha<break time="150ms"/>."
+```
+
+**When agents WILL laugh:**
+
+- After their own jokes ("Just kidding!", "Don't judge me")
+- After playful teasing ("I'm just teasing you!")
+- When user just laughed (joining in)
+- During light, comfortable moments
+
+**When agents WON'T laugh:**
+
+- During heavy topics (grief, crisis, anxiety)
+- When user is distressed
+- During supportive responses ("I'm so sorry")
+- Too frequently (cooldown per persona)
+
+**Persona Laugh Styles:**
+
+| Persona | Base Probability | Laughs at Own Jokes | Min Turns Between |
+| ------- | ---------------- | ------------------- | ----------------- |
+| Ferni   | 35%              | Yes                 | 3                 |
+| Peter   | 20%              | No (deadpan)        | 5                 |
+| Alex    | 40%              | Yes                 | 2                 |
+| Maya    | 45%              | Yes                 | 2                 |
+| Jordan  | 50%              | Yes                 | 2                 |
+| Nayan   | 15%              | No (subtle)         | 6                 |

@@ -252,6 +252,83 @@ export async function handleDeleteMemory(
 }
 
 /**
+ * GET /api/cognitive/superhuman-insights - Get proactive superhuman memory insights
+ *
+ * Returns insights like upcoming important dates, growth celebrations,
+ * comfort pattern guidance, and topic absences.
+ */
+export async function handleGetSuperhumanInsights(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { getDefaultStore } = await import('../../memory/index.js');
+    const { buildSuperhumanContext } = await import('../../intelligence/superhuman-memory.js');
+
+    const store = getDefaultStore();
+    const profile = await store.getProfile(userId);
+
+    if (!profile) {
+      sendJSON(res, {
+        insights: [],
+        temporalContext: { isSpecialDate: false },
+        message: 'No profile found',
+      });
+      return;
+    }
+
+    // Build superhuman context
+    const context = buildSuperhumanContext(profile, {
+      sessionCount: profile.totalConversations || 0,
+      recentTopics: profile.preferredTopics || [],
+    });
+
+    // Format for UI
+    const uiInsights = context.insights.map((insight) => ({
+      id: insight.id,
+      type: insight.type,
+      priority: insight.priority,
+      content: insight.content,
+      naturalPhrase: insight.naturalPhrase,
+      timing: insight.context.timing,
+      tone: insight.context.tone,
+      generatedAt: insight.generatedAt,
+    }));
+
+    // Format topic absences
+    const topicAbsences = context.topicAbsences.map((absence) => ({
+      topic: absence.topic,
+      lastMentioned: absence.lastMentioned,
+      sessionsSince: absence.sessionsSinceLastMention,
+      suggestedApproach: absence.suggestedApproach,
+      prompt: absence.naturalPrompt,
+    }));
+
+    log.info(
+      { userId, insightCount: uiInsights.length, highPriority: uiInsights.filter((i) => i.priority === 'high').length },
+      'Returning superhuman insights'
+    );
+
+    sendJSONCached(res, {
+      insights: uiInsights,
+      temporalContext: context.temporalContext,
+      topicAbsences,
+      comfortGuidance: {
+        stressLevel: context.comfortGuidance.stressLevel,
+        supportType: context.comfortGuidance.supportType,
+      },
+    }, 300); // Cache for 5 minutes
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get superhuman insights');
+    sendError(res, API_ERRORS.OPERATION_FAILED, 500);
+  }
+}
+
+/**
  * Route handler for memories endpoints
  */
 export async function handleMemoriesRoutes(
@@ -262,6 +339,11 @@ export async function handleMemoriesRoutes(
 ): Promise<boolean> {
   if (pathname === '/api/cognitive/memories' && req.method === 'GET') {
     await handleGetCognitiveMemories(req, res, parsedUrl);
+    return true;
+  }
+
+  if (pathname === '/api/cognitive/superhuman-insights' && req.method === 'GET') {
+    await handleGetSuperhumanInsights(req, res, parsedUrl);
     return true;
   }
 

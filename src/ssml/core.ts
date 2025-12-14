@@ -24,13 +24,9 @@ import {
 } from '../speech/advanced-humanization.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
 import { checkTTSText, trackTTSCheck } from '../speech/tts-monitoring.js';
-import {
-  FINANCIAL_END,
-  FINANCIAL_PRONUNCIATIONS,
-  FINANCIAL_START,
-  STAGE_DIRECTION_KEYWORDS,
-} from './constants.js';
+import { FINANCIAL_END, FINANCIAL_START, STAGE_DIRECTION_KEYWORDS } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
+import { applyPronunciationsOptimized } from './pronunciation-processor.js';
 import { clampSpeed, clampVolume } from './tags.js';
 
 // =============================================================================
@@ -183,21 +179,17 @@ function cleanPunctuation(text: string): string {
 // =============================================================================
 
 /**
- * Apply financial pronunciation dictionary to text
+ * Apply financial pronunciation dictionary to text.
+ *
+ * Uses the optimized processor which:
+ * - Groups patterns by category (digits, uppercase, symbols, etc.)
+ * - Skips entire categories when their required characters aren't present
+ * - Reduces average-case complexity significantly for typical text
+ *
+ * @see pronunciation-processor.ts for implementation details
  */
 function applyFinancialPronunciations(text: string): string {
-  let result = text;
-
-  for (const entry of FINANCIAL_PRONUNCIATIONS) {
-    // Reset lastIndex for global regex
-    entry.pattern.lastIndex = 0;
-    result = result.replace(entry.pattern, () => {
-      // Wrap replacement in protection markers
-      return `${FINANCIAL_START}${entry.replacement}${FINANCIAL_END}`;
-    });
-  }
-
-  return result;
+  return applyPronunciationsOptimized(text);
 }
 
 /**

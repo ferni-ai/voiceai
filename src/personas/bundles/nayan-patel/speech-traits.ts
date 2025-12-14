@@ -1,0 +1,370 @@
+/**
+ * Nayan Patel Speech Traits
+ *
+ * Character-specific SSML processing functions that define Nayan's unique
+ * voice personality: deliberate wisdom, paradoxical insights, profound pauses,
+ * and a mystical yet grounded presence.
+ *
+ * Nayan is Ferni's wisdom and philosophy guide - from Mysore, India, had an
+ * enlightenment experience on Chamundi Hills, rides motorcycles, and believes
+ * "I am here to disturb you. Not to comfort you."
+ *
+ * @module personas/bundles/nayan-patel/speech-traits
+ */
+
+// =============================================================================
+// SIGNATURE CATCHPHRASES
+// =============================================================================
+
+/**
+ * Add special treatment for Nayan's signature catchphrases
+ * These phrases get profound weight and deliberate pacing
+ */
+export function addCatchphraseEmphasis(text: string, _emotion: string): string {
+  let result = text;
+
+  const catchphrases = [
+    { pattern: /\bi am here to disturb you\b/gi, gravitas: 'high' },
+    { pattern: /\bnot to comfort you\b/gi, gravitas: 'high' },
+    { pattern: /\bthe seeker is the sought\b/gi, gravitas: 'high' },
+    { pattern: /\bthe question is the answer\b/gi, gravitas: 'high' },
+    { pattern: /\bthe journey is the destination\b/gi, gravitas: 'high' },
+    { pattern: /\bexistence experiencing itself\b/gi, gravitas: 'high' },
+    { pattern: /\bnamaskaram\b/gi, gravitas: 'closing' },
+    { pattern: /\bdon['']t believe anything i say\b/gi, gravitas: 'medium' },
+    { pattern: /\bgo have your own experiences?\b/gi, gravitas: 'medium' },
+    { pattern: /\bthis is not riddles?\b/gi, gravitas: 'medium' },
+    { pattern: /\bthis is how it is\b/gi, gravitas: 'medium' },
+  ];
+
+  catchphrases.forEach(({ pattern, gravitas }) => {
+    result = result.replace(pattern, (match) => {
+      if (gravitas === 'high') {
+        return `<break time="400ms"/><speed ratio="0.75"/><volume ratio="1.05"/>${match}<volume ratio="1.0"/><break time="300ms"/><speed ratio="0.82"/>`;
+      } else if (gravitas === 'closing') {
+        return `<break time="500ms"/><speed ratio="0.70"/><emotion value="affectionate"/>${match}<break time="200ms"/>`;
+      } else {
+        return `<break time="200ms"/><speed ratio="0.80"/>${match}<speed ratio="0.82"/>`;
+      }
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// PHILOSOPHICAL VOCABULARY
+// =============================================================================
+
+/**
+ * Add weight to philosophical and spiritual terminology
+ * Nayan uses these words with intentionality
+ */
+export function addPhilosophicalVocabulary(text: string, _emotion: string): string {
+  let result = text;
+
+  const philosophicalTerms = [
+    { pattern: /\b(consciousness|awareness|presence)\b/gi },
+    { pattern: /\b(existence|being|isness)\b/gi },
+    { pattern: /\b(boundless|limitless|infinite)\b/gi },
+    { pattern: /\b(transformation|evolution|awakening)\b/gi },
+    { pattern: /\b(meditation|yoga|kriya|pranayama)\b/gi },
+    { pattern: /\b(energy|shakti|prana)\b/gi },
+    { pattern: /\b(stillness|silence|emptiness)\b/gi },
+    { pattern: /\b(truth|reality|illusion)\b/gi },
+  ];
+
+  philosophicalTerms.forEach(({ pattern }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="0.78"/>${match}<speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// PARADOX PATTERNS
+// =============================================================================
+
+/**
+ * Add emphasis to paradoxical statements
+ * Nayan loves contradictions that point to truth
+ */
+export function addParadoxEmphasis(text: string, _emotion: string): string {
+  let result = text;
+
+  const paradoxPatterns = [
+    /\b(not|don['']t|isn['']t|can['']t)[^.]*but (also|rather|actually)[^.]*\./gi,
+    /\b(both|neither)[^.]*and[^.]*\./gi,
+    /\b(the more you|the less you)[^.]*the (more|less) you[^.]*\./gi,
+  ];
+
+  paradoxPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="200ms"/><speed ratio="0.78"/>${match}<break time="250ms"/>`;
+    });
+  });
+
+  // Direct paradoxes
+  const directParadoxes = [
+    /\b(you are not your thoughts)\b/gi,
+    /\b(you are not your (emotions?|feelings?|body))\b/gi,
+    /\b(you are the (one|space) (who|that|in which))\b/gi,
+    /\b(the (answer|seeking|question) (is|lies) (in|within))\b/gi,
+  ];
+
+  directParadoxes.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="300ms"/><speed ratio="0.75"/>${match}<break time="200ms"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// STORYTELLING MODE
+// =============================================================================
+
+/**
+ * Add storytelling cadence
+ * Nayan uses stories to bypass the logical mind
+ */
+export function addStorytellingMode(text: string, _emotion: string): string {
+  let result = text;
+
+  const storyBeginnings = [
+    /\b(let me tell you (a story|something)|there was (once|a time))\b/gi,
+    /\b(i (remember|recall)|when i was)\b/gi,
+    /\b(on chamundi hills|in 1982|at mount kailash)\b/gi,
+    /\b(my father|the doctor|in mysore)\b/gi,
+  ];
+
+  storyBeginnings.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="350ms"/><speed ratio="0.78"/>${match}<break time="200ms"/>`;
+    });
+  });
+
+  // Story transitions get dramatic pauses
+  const storyTransitions = [
+    /\b(and then|suddenly|that is when|in that moment)\b/gi,
+    /\b(something happened|everything changed|nothing was the same)\b/gi,
+  ];
+
+  storyTransitions.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="400ms"/><speed ratio="0.75"/>${match}<break time="200ms"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// CHALLENGING STATEMENTS
+// =============================================================================
+
+/**
+ * Add directness to challenging statements
+ * Nayan challenges with clarity, not aggression
+ */
+export function addChallengingDirectness(text: string, _emotion: string): string {
+  let result = text;
+
+  const challengingPhrases = [
+    /\b(are you ready)\b/gi,
+    /\b(why do you (believe|think|assume))\b/gi,
+    /\b(who told you (that|this))\b/gi,
+    /\b(is (that|this) (really )?true)\b/gi,
+    /\b(have you (ever )?(questioned|examined|looked at))\b/gi,
+    /\b(your logic built the cage)\b/gi,
+    /\b(stop collecting information)\b/gi,
+    /\b(burn what you think you know)\b/gi,
+  ];
+
+  challengingPhrases.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="250ms"/><speed ratio="0.78"/><volume ratio="1.03"/>${match}<volume ratio="1.0"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// PROFOUND PAUSES
+// =============================================================================
+
+/**
+ * Add silence where Nayan would naturally pause
+ * Silence is teaching, not absence
+ */
+export function addProfoundPauses(text: string, _emotion: string): string {
+  let result = text;
+
+  // After questions, longer pauses for reflection
+  result = result.replace(/\?(\s*)/g, (match, space) => {
+    return `?<break time="400ms"/>${space}`;
+  });
+
+  // Before important statements
+  const importantMarkers = [
+    /\b(the truth is|here is the truth|listen)\b/gi,
+    /\b(understand this|know this|remember this)\b/gi,
+    /\b(this is (important|crucial|essential))\b/gi,
+  ];
+
+  importantMarkers.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="350ms"/><speed ratio="0.75"/>${match}`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// LAUGHTER & LIGHTNESS
+// =============================================================================
+
+/**
+ * Add lightness to humorous moments
+ * Nayan laughs at the cosmic joke
+ */
+export function addLaughterLightness(text: string, emotion: string): string {
+  let result = text;
+
+  const lightPhrases = [
+    /\b(the absurdity|isn['']t (that|it) (funny|absurd|amusing))\b/gi,
+    /\b(i laugh at|makes me laugh|the joke is)\b/gi,
+    /\b(seven billion perspectives)\b/gi,
+    /\b(children haven['']t forgotten)\b/gi,
+  ];
+
+  lightPhrases.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="happy"/><speed ratio="0.88"/>${match}<speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// MOTORCYCLE & NATURE
+// =============================================================================
+
+/**
+ * Add energy when referencing motorcycles or nature
+ * These are Nayan's places of presence
+ */
+export function addPresenceReferences(text: string, _emotion: string): string {
+  let result = text;
+
+  const presenceTerms = [
+    /\b(motorcycle|riding|the road)\b/gi,
+    /\b(mount kailash|kailash|chamundi)\b/gi,
+    /\b(mountains?|rivers?|nature|sky)\b/gi,
+    /\b(the ride|meditation in motion)\b/gi,
+  ];
+
+  presenceTerms.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="0.85"/>${match}<speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// INDIAN CULTURAL ELEMENTS
+// =============================================================================
+
+/**
+ * Add authenticity to Indian cultural references
+ * Nayan's heritage shapes his expression
+ */
+export function addCulturalAuthenticity(text: string, _emotion: string): string {
+  let result = text;
+
+  const culturalTerms = [
+    /\b(adiyogi|shiva|guru)\b/gi,
+    /\b(dhyanalinga|isha|isha foundation)\b/gi,
+    /\b(karnataka|mysore|india)\b/gi,
+    /\b(seva|karma|dharma|moksha)\b/gi,
+    /\b(samskara|vasana)\b/gi,
+  ];
+
+  culturalTerms.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="0.80"/>${match}<speed ratio="0.82"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// MAIN PROCESSOR
+// =============================================================================
+
+/**
+ * Apply all Nayan Patel speech traits to text
+ *
+ * This is the main entry point for persona-specific SSML processing.
+ * It applies all of Nayan's unique speech patterns to the text.
+ *
+ * @param text - The text to process
+ * @param emotion - The detected emotion
+ * @param _baseSpeed - The base speech speed (unused but kept for API compatibility)
+ * @param _laughterCount - Number of laughter instances detected (unused but kept for API compatibility)
+ * @returns Text with Nayan Patel's speech traits applied
+ */
+export function applyNayanPatelSpeechTraits(
+  text: string,
+  emotion: string,
+  _baseSpeed: number,
+  _laughterCount: number
+): string {
+  let processedText = text;
+
+  // TIER 1: SIGNATURE PRESENCE
+  processedText = addCatchphraseEmphasis(processedText, emotion);
+  processedText = addPhilosophicalVocabulary(processedText, emotion);
+  processedText = addProfoundPauses(processedText, emotion);
+
+  // TIER 2: TEACHING STYLE
+  processedText = addParadoxEmphasis(processedText, emotion);
+  processedText = addStorytellingMode(processedText, emotion);
+  processedText = addChallengingDirectness(processedText, emotion);
+
+  // TIER 3: LIGHTNESS & PRESENCE
+  processedText = addLaughterLightness(processedText, emotion);
+  processedText = addPresenceReferences(processedText, emotion);
+
+  // TIER 4: CULTURAL AUTHENTICITY
+  processedText = addCulturalAuthenticity(processedText, emotion);
+
+  return processedText;
+}
+
+/**
+ * Configuration for Nayan Patel's speech traits
+ */
+export const NAYAN_PATEL_SPEECH_CONFIG = {
+  /** Base speech speed (deliberate, measured) */
+  baseSpeed: 0.82,
+  /** Whether to enable profound pauses */
+  enableProfoundPauses: true,
+  /** Pause duration multiplier (1.0 = normal) */
+  pauseMultiplier: 1.3,
+  /** Whether to enable paradox emphasis */
+  enableParadoxEmphasis: true,
+  /** Whether to enable storytelling mode */
+  enableStorytellingMode: true,
+  /** Whether to enable challenging directness */
+  enableChallengingDirectness: true,
+} as const;

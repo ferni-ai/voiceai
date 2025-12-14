@@ -15,8 +15,8 @@
 
 import Stripe from 'stripe';
 import { getLogger } from '../../utils/safe-logger.js';
-import { recordUsage, calculateRevenueShare, markPayoutComplete } from './index.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
+import { calculateRevenueShare, markPayoutComplete, recordUsage } from './index.js';
 
 // Firestore helpers for marketplace data
 async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
@@ -25,7 +25,9 @@ async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
   await db.collection('marketplace_purchases').doc(purchase.id).set(purchase);
 }
 
-async function getPurchaseByPaymentIntent(paymentIntentId: string): Promise<MarketplacePurchase | null> {
+async function getPurchaseByPaymentIntent(
+  paymentIntentId: string
+): Promise<MarketplacePurchase | null> {
   const { getFirestore } = await import('firebase-admin/firestore');
   const db = getFirestore();
   const snapshot = await db
@@ -105,10 +107,7 @@ export function isStripeConfigured(): boolean {
 /**
  * Verify Stripe webhook signature
  */
-export function verifyWebhookSignature(
-  payload: string,
-  signature: string
-): Stripe.Event {
+export function verifyWebhookSignature(payload: string, signature: string): Stripe.Event {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_MARKETPLACE;
   if (!webhookSecret) {
     throw new Error('STRIPE_WEBHOOK_SECRET_MARKETPLACE not configured');
@@ -141,10 +140,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
     return;
   }
 
-  log.info(
-    { sessionId: session.id, itemId, itemType, userId },
-    'Marketplace checkout completed'
-  );
+  log.info({ sessionId: session.id, itemId, itemType, userId }, 'Marketplace checkout completed');
 
   // Record the purchase
   const purchase: MarketplacePurchase = {
@@ -172,12 +168,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
   // Calculate revenue share for publisher
   if (publisherId && purchase.amountCents > 0) {
     const period = new Date().toISOString().slice(0, 7); // YYYY-MM
-    calculateRevenueShare(
-      purchase.itemId,
-      publisherId,
-      period,
-      purchase.amountCents
-    );
+    calculateRevenueShare(purchase.itemId, publisherId, period, purchase.amountCents);
   }
 
   // Grant access to the item
@@ -213,20 +204,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
     return;
   }
 
-  log.info(
-    { invoiceId: invoice.id, itemId, userId, billingType },
-    'Marketplace invoice paid'
-  );
+  log.info({ invoiceId: invoice.id, itemId, userId, billingType }, 'Marketplace invoice paid');
 
   // Calculate revenue share
   if (publisherId && invoice.amount_paid > 0) {
     const period = new Date().toISOString().slice(0, 7);
-    calculateRevenueShare(
-      itemId as MarketplaceId,
-      publisherId,
-      period,
-      invoice.amount_paid
-    );
+    calculateRevenueShare(itemId as MarketplaceId, publisherId, period, invoice.amount_paid);
   }
 
   // For usage-based billing, record the usage as paid
@@ -256,10 +239,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void
     return;
   }
 
-  log.warn(
-    { invoiceId: invoice.id, itemId, userId },
-    'Marketplace invoice payment failed'
-  );
+  log.warn({ invoiceId: invoice.id, itemId, userId }, 'Marketplace invoice payment failed');
 
   // Could suspend access here, but we'll be graceful and let them retry
   // TODO: Send notification to user about failed payment
@@ -325,10 +305,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 
   // Uninstall the item (revoke access)
   try {
-    const { uninstallItem } = await import('../index.js');
+    const { uninstallItem, listInstallations } = await import('../index.js');
     // Need to find installation ID first
-    const { listInstallations } = await import('../index.js');
-    const installations = await listInstallations(userId as UserId);
+    const installations = listInstallations(userId as UserId);
     const installation = installations.find((i) => i.itemId === itemId);
 
     if (installation) {

@@ -108,7 +108,9 @@ export type EmotionalExpression =
   | 'processing'   // Taking it in
   | 'realizing'    // Connecting dots
   | 'shifting'     // Changing gears
-  | 'settling';    // Coming to rest
+  | 'settling'     // Coming to rest
+  // Phase 7: Farewell States
+  | 'farewell';    // Warm goodbye - gentle smile with slight melancholy
 
 /**
  * Character-level reactions - how Ferni responds to moments.
@@ -607,6 +609,20 @@ export function setExpression(
       bottomPath: 'M 0,100 Q 50,96 100,100 L 100,100 L 0,100 Z',
       browLeftOpacity: 0,
       browRightOpacity: 0,
+    },
+    // ========================================
+    // FAREWELL STATE - Superhuman goodbye
+    // ========================================
+    farewell: {
+      // Warm goodbye - gentle smile with slight melancholy
+      // Soft squint (happy but tender), slight sparkle for warmth
+      topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
+      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
+      browLeftOpacity: 0.1,
+      browRightOpacity: 0.1,
+      browLeftY: 8,
+      browRightY: 8,
+      sparkle: true, // Warm farewell sparkle
     },
   };
   

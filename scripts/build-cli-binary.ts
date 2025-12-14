@@ -108,6 +108,7 @@ function bundleCli(isRelease: boolean): void {
     `npx esbuild "${entryPoint}" --bundle --platform=node --target=node20 ` +
       `--outfile="${outfile}" --format=cjs ${minify} ${sourcemap} ` +
       `--external:@livekit/* --external:@sentry/* --external:pg-native ` +
+      `--external:@google/* --external:../src/* ` +
       `--define:import.meta.url='"${shimUrl}"'`,
     { stdio: 'inherit' }
   );

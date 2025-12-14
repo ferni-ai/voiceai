@@ -1,12 +1,15 @@
 /**
- * Goodbye Context Builder
+ * Goodbye Context Builder - SUPERHUMAN GOODBYE INTELLIGENCE
  *
- * Handles conversation endings:
- * - Goodbye detection and warm wrap-up
- * - Closing awareness
+ * Handles conversation endings with better-than-human awareness:
+ * - Pre-goodbye detection (anticipate when user is winding down)
+ * - Time-aware goodbyes (morning/evening/late night)
+ * - Emotional echo (acknowledge heavy conversations)
+ * - Personalized sign-off (reference specific topics discussed)
+ * - Warm wrap-up and closing awareness
  * - Interruption and silence recovery
  *
- * Don't rush the ending - it matters.
+ * Don't rush the ending - it matters. Make it memorable.
  *
  * Extracted from jack-bogle.ts lines 669-687, 939-957, 1205-1211
  */
@@ -53,6 +56,139 @@ type ExtendedPersona = PersonaConfig & GoodbyePersonaExtensions;
 // ============================================================================
 const GOODBYE_PATTERNS =
   /\b(goodbye|bye|gotta go|have to go|need to go|talk later|catch you later|take care|see you|until next time|i'm out|signing off|heading out)\b/i;
+
+// ============================================================================
+// SUPERHUMAN GOODBYE INTELLIGENCE
+// ============================================================================
+
+/**
+ * PRE-GOODBYE DETECTION
+ * Detect when user is winding down BEFORE they explicitly say goodbye.
+ * This allows us to anticipate and make the ending feel natural.
+ */
+const PRE_GOODBYE_PATTERNS = [
+  // Trailing off signals
+  /\b(anyway|well|so)\s*[.]{2,}$/i,
+  /\b(anyway|well|so)\s*,?\s*$/i,
+  // Time pressure
+  /\b(getting late|should (probably )?go|need to (get going|run|head out))\b/i,
+  /\b(it's (late|getting late)|time (flies|flew))\b/i,
+  // Wrapping up language
+  /\b(that's (about )?it|that's all|nothing else)\b/i,
+  /\b(i think (that's|we're) (good|done))\b/i,
+  // Short responses after long conversation
+  /^(ok|okay|alright|cool|got it|makes sense|sounds good)[.!]?$/i,
+  // Gratitude often precedes goodbye
+  /\b(thanks for (listening|talking|this|chatting)|appreciate (you|this|it))\b/i,
+];
+
+/**
+ * HEAVY CONVERSATION INDICATORS
+ * Detect emotionally heavy conversations that deserve special acknowledgment.
+ */
+const HEAVY_CONVERSATION_MARKERS = [
+  'death', 'dying', 'passed away', 'funeral', 'grief', 'loss',
+  'divorce', 'breakup', 'separation',
+  'fired', 'laid off', 'job loss',
+  'diagnosis', 'cancer', 'illness', 'hospital',
+  'anxiety', 'depression', 'therapy', 'mental health',
+  'trauma', 'abuse', 'assault',
+  'bankruptcy', 'debt', 'financial ruin',
+];
+
+/**
+ * Detect if user is winding down (pre-goodbye)
+ */
+function detectWindingDown(userText: string, turnCount: number): boolean {
+  // Short responses after turn 5+ often signal winding down
+  if (turnCount > 5 && userText.length < 30) {
+    // Check for closing phrases
+    if (PRE_GOODBYE_PATTERNS.some(p => p.test(userText))) {
+      return true;
+    }
+  }
+
+  // Any pre-goodbye pattern is a signal
+  return PRE_GOODBYE_PATTERNS.some(p => p.test(userText));
+}
+
+/**
+ * Get time-aware goodbye suggestion based on user's local time
+ */
+function getTimeAwareGoodbye(timezone?: string): { timeOfDay: string; suggestion: string } {
+  // Default to a neutral time if no timezone
+  const now = new Date();
+  let hour = now.getHours();
+
+  // Try to use user's timezone if available
+  if (timezone) {
+    try {
+      const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+      hour = userTime.getHours();
+    } catch {
+      // Fall back to server time
+    }
+  }
+
+  if (hour >= 5 && hour < 12) {
+    return {
+      timeOfDay: 'morning',
+      suggestion: 'Have a wonderful day ahead!',
+    };
+  } else if (hour >= 12 && hour < 17) {
+    return {
+      timeOfDay: 'afternoon',
+      suggestion: 'Enjoy the rest of your day!',
+    };
+  } else if (hour >= 17 && hour < 21) {
+    return {
+      timeOfDay: 'evening',
+      suggestion: 'Have a lovely evening!',
+    };
+  } else {
+    return {
+      timeOfDay: 'night',
+      suggestion: 'Rest well tonight. We can continue tomorrow.',
+    };
+  }
+}
+
+/**
+ * Detect if the conversation was emotionally heavy
+ */
+function detectHeavyConversation(conversationHistory: string[]): {
+  isHeavy: boolean;
+  topics: string[];
+} {
+  const allText = conversationHistory.join(' ').toLowerCase();
+  const heavyTopics = HEAVY_CONVERSATION_MARKERS.filter(marker =>
+    allText.includes(marker.toLowerCase())
+  );
+
+  return {
+    isHeavy: heavyTopics.length > 0,
+    topics: heavyTopics,
+  };
+}
+
+/**
+ * Generate personalized sign-off based on conversation topics
+ */
+function generatePersonalizedSignoff(topics: string[], userName?: string): string | null {
+  if (topics.length === 0) return null;
+
+  const topTopic = topics[0]; // Most recent/relevant topic
+  const namePrefix = userName ? `${userName}, ` : '';
+
+  const signoffs = [
+    `${namePrefix}good luck with ${topTopic}!`,
+    `${namePrefix}I'll be thinking about what you shared about ${topTopic}.`,
+    `${namePrefix}keep me posted on ${topTopic}!`,
+    `${namePrefix}wishing you the best with ${topTopic}.`,
+  ];
+
+  return signoffs[Math.floor(Math.random() * signoffs.length)];
+}
 // Default fillers (fallback when no persona provided)
 // These should feel natural and human, not robotic "still there?" prompts
 const DEFAULT_EARLY_FILLERS = [
@@ -184,11 +320,53 @@ function buildGoodbyeContext(input: ContextBuilderInput): ContextInjection[] {
     getLogger().info('Silence filler injected');
   }
   // -----------------------------------------------
-  // GOODBYE DETECTION (with persona-specific goodbye style)
+  // 🌟 SUPERHUMAN: PRE-GOODBYE DETECTION (anticipate endings)
+  // -----------------------------------------------
+  const isWindingDown = detectWindingDown(userText, turnCount);
+  if (isWindingDown && !GOODBYE_PATTERNS.test(userText)) {
+    getLogger().info('Pre-goodbye detected - user winding down');
+    injections.push(
+      createHintInjection(
+        'pre_goodbye',
+        `[WINDING DOWN: User seems to be wrapping up. Don't extend the conversation unnecessarily.
+If they seem ready to go, make it easy for them to leave gracefully.
+Consider: "Is there anything else on your mind, or shall we call it for now?"]`
+      )
+    );
+  }
+
+  // -----------------------------------------------
+  // 🌟 SUPERHUMAN: GET CONVERSATION CONTEXT FOR GOODBYE
+  // -----------------------------------------------
+  const conversationHistory: string[] = [];
+  const historyTracker = input.services?.historyTracker as { getSimpleTurns?: () => Array<{ role: string; content: string }> } | undefined;
+  if (historyTracker?.getSimpleTurns) {
+    const turns = historyTracker.getSimpleTurns();
+    conversationHistory.push(...turns.map((t: { content: string }) => t.content));
+  }
+
+  // Get detected topics for personalized sign-off
+  const detectedTopics = analysis.topics?.detected || [];
+  const userName = input.userProfile?.name;
+  // Try to get timezone from userData (often passed as part of session data)
+  const userTimezone = (input.userData as { timezone?: string })?.timezone;
+
+  // -----------------------------------------------
+  // GOODBYE DETECTION (with SUPERHUMAN enhancements)
   // -----------------------------------------------
   if (GOODBYE_PATTERNS.test(userText)) {
     const personaId = persona?.id;
     getLogger().info({ persona: personaId }, 'Goodbye detected');
+
+    // 🌟 SUPERHUMAN: Time-aware goodbye
+    const timeContext = getTimeAwareGoodbye(userTimezone);
+
+    // 🌟 SUPERHUMAN: Detect heavy conversation
+    const heavyCheck = detectHeavyConversation(conversationHistory);
+
+    // 🌟 SUPERHUMAN: Personalized sign-off
+    const personalizedSignoff = generatePersonalizedSignoff(detectedTopics, userName);
+
     // Get persona-specific goodbye example
     let goodbyeExample = '';
     if (personaId) {
@@ -201,21 +379,42 @@ function buildGoodbyeContext(input: ContextBuilderInput): ContextInjection[] {
         // Fall through to default
       }
     }
+
+    // Build superhuman goodbye guidance
+    let superhumanGuidance = '';
+
+    // Time awareness
+    superhumanGuidance += `\n\n🕐 TIME-AWARE: It's ${timeContext.timeOfDay}. Consider: "${timeContext.suggestion}"`;
+
+    // Emotional echo for heavy conversations
+    if (heavyCheck.isHeavy) {
+      superhumanGuidance += `\n\n💜 EMOTIONAL ECHO: This was a meaningful conversation about ${heavyCheck.topics.slice(0, 2).join(' and ')}.
+Acknowledge the weight of what was shared: "That was a meaningful conversation. Take care of yourself."`;
+    }
+
+    // Personalized sign-off
+    if (personalizedSignoff) {
+      superhumanGuidance += `\n\n✨ PERSONALIZED: Consider referencing what you discussed: "${personalizedSignoff}"`;
+    }
+
     injections.push(
       createStandardInjection(
         'goodbye',
-        `[GOODBYE DETECTED - WARM WRAP-UP]
-Don't rush the ending. It matters.${goodbyeExample}
+        `[GOODBYE DETECTED - SUPERHUMAN WARM WRAP-UP]
+Don't rush the ending. It matters. Make it memorable.${goodbyeExample}${superhumanGuidance}
+
 DO:
   1. Acknowledge what you discussed: "It was good talking about..."
   2. One key takeaway (if appropriate): "If you remember one thing..."
   3. Express warmth genuinely in YOUR style
   4. Leave door open: "I'm here whenever you want to talk."
   5. Use their name if you know it
+  6. Reference the time of day naturally
 DO NOT:
   - Add new information
   - End on a heavy note (unless necessary)
-  - Rush through it`
+  - Rush through it
+  - Be generic - make it personal!`
       )
     );
   }
@@ -243,4 +442,10 @@ export {
   getInterruptionRecovery,
   getClosingBehavior,
   GOODBYE_PATTERNS,
+  // Superhuman goodbye intelligence
+  PRE_GOODBYE_PATTERNS,
+  detectWindingDown,
+  getTimeAwareGoodbye,
+  detectHeavyConversation,
+  generatePersonalizedSignoff,
 };

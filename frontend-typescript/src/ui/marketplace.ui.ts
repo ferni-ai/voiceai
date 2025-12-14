@@ -876,6 +876,16 @@ function handleModalClick(e: Event): void {
     void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
     return;
   }
+
+  // Agent card click (show detail view)
+  const agentCard = target.closest('.marketplace-agent') as HTMLElement;
+  if (agentCard && !target.closest('.agent-action')) {
+    const agentId = agentCard.dataset.agentId;
+    if (agentId) {
+      void showAgentDetail(agentId);
+    }
+    return;
+  }
 }
 
 function handleModalKeydown(e: KeyboardEvent): void {
@@ -921,6 +931,17 @@ function handleModalTouch(e: TouchEvent): void {
     const agentId = actionBtn.dataset.agentId;
     if (!agentId) return;
     void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
+    return;
+  }
+
+  // Check if tapping agent card (show detail view)
+  const agentCard = target.closest('.marketplace-agent') as HTMLElement;
+  if (agentCard && !target.closest('.agent-action')) {
+    e.preventDefault();
+    const agentId = agentCard.dataset.agentId;
+    if (agentId) {
+      void showAgentDetail(agentId);
+    }
     return;
   }
 }
@@ -999,6 +1020,622 @@ function updateTabs(): void {
   if (searchEl) {
     searchEl.style.display = currentTab === 'browse' ? 'flex' : 'none';
   }
+}
+
+// ============================================================================
+// AGENT DETAIL VIEW
+// ============================================================================
+
+interface AgentReview {
+  id: string;
+  userId: string;
+  userName?: string;
+  rating: number;
+  title?: string;
+  body: string;
+  createdAt: string;
+  helpfulCount: number;
+  publisherResponse?: {
+    body: string;
+    respondedAt: string;
+  };
+}
+
+interface ReviewStats {
+  totalReviews: number;
+  averageRating: number;
+  ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+let detailPanel: HTMLElement | null = null;
+
+/**
+ * Show the detail view for an agent with reviews
+ */
+async function showAgentDetail(agentId: string): Promise<void> {
+  try {
+    const registry = await marketplaceService.fetchRegistry();
+    const agent = registry.agents.find((a) => a.id === agentId);
+
+    if (!agent) {
+      log.warn(`Agent not found: ${agentId}`);
+      return;
+    }
+
+    // Fetch reviews (mock for now - would call API)
+    const reviews = await fetchAgentReviews(agentId);
+    const stats = await fetchAgentReviewStats(agentId);
+    const isInstalled = marketplaceService.isInstalled(agentId);
+
+    // Create or update detail panel
+    renderDetailPanel(agent, reviews, stats, isInstalled);
+
+    soundUI.play('switch');
+  } catch (err) {
+    log.error('Failed to load agent details:', err);
+  }
+}
+
+/**
+ * Fetch reviews for an agent (calls API)
+ */
+async function fetchAgentReviews(agentId: string): Promise<AgentReview[]> {
+  try {
+    const response = await fetch(`/api/marketplace/reviews/${agentId}?limit=10&status=approved`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.reviews || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch review stats for an agent
+ */
+async function fetchAgentReviewStats(agentId: string): Promise<ReviewStats> {
+  try {
+    const response = await fetch(`/api/marketplace/reviews/${agentId}/stats`);
+    if (!response.ok) {
+      return {
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      };
+    }
+    return await response.json();
+  } catch {
+    return {
+      totalReviews: 0,
+      averageRating: 0,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+  }
+}
+
+/**
+ * Render the detail panel
+ */
+function renderDetailPanel(
+  agent: MarketplaceAgent,
+  reviews: AgentReview[],
+  stats: ReviewStats,
+  isInstalled: boolean
+): void {
+  // Remove existing panel
+  if (detailPanel) {
+    detailPanel.remove();
+  }
+
+  const initials = agent.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  const gradient = getPersonaGradient(agent.id);
+
+  detailPanel = document.createElement('div');
+  detailPanel.className = 'marketplace-detail';
+  detailPanel.setAttribute('role', 'dialog');
+  detailPanel.setAttribute('aria-labelledby', 'detail-title');
+
+  detailPanel.innerHTML = `
+    <div class="detail-backdrop"></div>
+    <div class="detail-panel">
+      <button class="detail-close" aria-label="Close details">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      <header class="detail-header">
+        <div class="detail-avatar" style="background: ${gradient};">${initials}</div>
+        <div class="detail-meta">
+          <h2 id="detail-title" class="detail-name">${agent.name}</h2>
+          <p class="detail-category">${getCategoryLabel(agent.category)}</p>
+          ${
+            stats.totalReviews > 0
+              ? `
+            <div class="detail-rating">
+              <span class="detail-stars">${renderStars(stats.averageRating)}</span>
+              <span class="detail-rating-value">${stats.averageRating.toFixed(1)}</span>
+              <span class="detail-rating-count">(${stats.totalReviews} ${stats.totalReviews === 1 ? 'review' : 'reviews'})</span>
+            </div>
+          `
+              : ''
+          }
+        </div>
+      </header>
+
+      <div class="detail-content">
+        <section class="detail-section">
+          <h3 class="detail-section-title">About</h3>
+          <p class="detail-description">${agent.description || agent.short_description}</p>
+          <p class="detail-author">Created by ${agent.author}</p>
+        </section>
+
+        ${
+          agent.tags.length > 0
+            ? `
+          <section class="detail-section">
+            <h3 class="detail-section-title">Specialties</h3>
+            <div class="detail-tags">
+              ${agent.tags.map((tag) => `<span class="detail-tag">${tag}</span>`).join('')}
+            </div>
+          </section>
+        `
+            : ''
+        }
+
+        <section class="detail-section">
+          <h3 class="detail-section-title">Reviews</h3>
+          ${
+            reviews.length > 0
+              ? `
+            <div class="detail-reviews">
+              ${reviews.map((review) => renderReviewCard(review)).join('')}
+            </div>
+          `
+              : `
+            <p class="detail-empty-reviews">No reviews yet. Be the first to share your experience!</p>
+          `
+          }
+        </section>
+      </div>
+
+      <footer class="detail-footer">
+        <button class="detail-action ${isInstalled ? 'uninstall' : 'install'}" data-agent-id="${agent.id}">
+          ${isInstalled ? 'Remove from Team' : 'Add to Team'}
+        </button>
+      </footer>
+    </div>
+  `;
+
+  // Add styles
+  if (!document.getElementById('marketplace-detail-styles')) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'marketplace-detail-styles';
+    styleSheet.textContent = getDetailStyles();
+    document.head.appendChild(styleSheet);
+  }
+
+  // Add event listeners
+  detailPanel.querySelector('.detail-backdrop')?.addEventListener('click', closeDetailPanel);
+  detailPanel.querySelector('.detail-close')?.addEventListener('click', closeDetailPanel);
+
+  const actionBtn = detailPanel.querySelector('.detail-action') as HTMLElement;
+  actionBtn?.addEventListener('click', () => {
+    const agentId = actionBtn.dataset.agentId;
+    if (agentId) {
+      closeDetailPanel();
+      void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
+    }
+  });
+
+  document.body.appendChild(detailPanel);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    detailPanel?.classList.add('open');
+  });
+}
+
+/**
+ * Close the detail panel
+ */
+function closeDetailPanel(): void {
+  if (!detailPanel) return;
+
+  detailPanel.classList.remove('open');
+  soundUI.play('switch');
+
+  setTimeout(() => {
+    detailPanel?.remove();
+    detailPanel = null;
+  }, DURATION.SLOW);
+}
+
+/**
+ * Render a review card
+ */
+function renderReviewCard(review: AgentReview): string {
+  const date = new Date(review.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return `
+    <article class="review-card">
+      <header class="review-header">
+        <div class="review-rating">${renderStars(review.rating)}</div>
+        <span class="review-date">${date}</span>
+      </header>
+      ${review.title ? `<h4 class="review-title">${review.title}</h4>` : ''}
+      <p class="review-body">${review.body}</p>
+      ${
+        review.helpfulCount > 0
+          ? `
+        <div class="review-helpful">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+          </svg>
+          ${review.helpfulCount} found this helpful
+        </div>
+      `
+          : ''
+      }
+      ${
+        review.publisherResponse
+          ? `
+        <div class="review-response">
+          <p class="review-response-label">Response from creator:</p>
+          <p class="review-response-body">${review.publisherResponse.body}</p>
+        </div>
+      `
+          : ''
+      }
+    </article>
+  `;
+}
+
+/**
+ * Get styles for the detail panel
+ */
+function getDetailStyles(): string {
+  return `
+    .marketplace-detail {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
+    }
+
+    .marketplace-detail.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .detail-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+    }
+
+    .detail-panel {
+      position: relative;
+      width: 90%;
+      max-width: 480px;
+      max-height: 85vh;
+      background: var(--color-background-elevated, #1a1614);
+      border-radius: var(--radius-2xl, 24px);
+      box-shadow: var(--shadow-2xl);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.95);
+      transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
+    }
+
+    .marketplace-detail.open .detail-panel {
+      transform: scale(1);
+    }
+
+    .detail-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background ${DURATION.FAST}ms;
+      z-index: 1;
+    }
+
+    .detail-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .detail-header {
+      display: flex;
+      gap: 16px;
+      padding: 24px;
+      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .detail-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .detail-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .detail-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text-primary, rgba(255, 255, 255, 0.95));
+      margin: 0 0 4px;
+    }
+
+    .detail-category {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-warm-amber, #C4A265);
+      margin: 0 0 8px;
+    }
+
+    .detail-rating {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-stars {
+      display: flex;
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    .detail-rating-value {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .detail-rating-count {
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
+      font-size: 0.875rem;
+    }
+
+    .detail-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    .detail-section {
+      margin-bottom: 24px;
+    }
+
+    .detail-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-secondary);
+      margin: 0 0 12px;
+    }
+
+    .detail-description {
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      margin: 0 0 8px;
+    }
+
+    .detail-author {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .detail-tag {
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+
+    .detail-reviews {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-empty-reviews {
+      color: var(--color-text-secondary);
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .review-card {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .review-rating {
+      display: flex;
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    .review-date {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+    }
+
+    .review-title {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+    }
+
+    .review-body {
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .review-helpful {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .review-response {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      border-left: 3px solid var(--color-warm-amber, #C4A265);
+    }
+
+    .review-response-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--color-warm-amber);
+      margin: 0 0 6px;
+    }
+
+    .review-response-body {
+      color: var(--color-text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .detail-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .detail-action {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform ${DURATION.FAST}ms, opacity ${DURATION.FAST}ms;
+    }
+
+    .detail-action.install {
+      background: var(--color-primary, #4a6741);
+      color: white;
+    }
+
+    .detail-action.uninstall {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-text-secondary);
+    }
+
+    .detail-action:hover {
+      transform: scale(1.02);
+    }
+
+    .detail-action:active {
+      transform: scale(0.98);
+    }
+
+    /* Zen theme */
+    [data-theme="zen"] .detail-panel {
+      background: var(--color-background-elevated, #FFFDFB);
+    }
+
+    [data-theme="zen"] .detail-close {
+      background: rgba(44, 37, 32, 0.08);
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    [data-theme="zen"] .detail-name,
+    [data-theme="zen"] .detail-description {
+      color: rgba(44, 37, 32, 0.9);
+    }
+
+    [data-theme="zen"] .detail-category,
+    [data-theme="zen"] .detail-author,
+    [data-theme="zen"] .detail-rating-count,
+    [data-theme="zen"] .detail-section-title,
+    [data-theme="zen"] .review-body,
+    [data-theme="zen"] .review-date {
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    [data-theme="zen"] .detail-tag,
+    [data-theme="zen"] .review-card {
+      background: rgba(44, 37, 32, 0.04);
+    }
+
+    [data-theme="zen"] .review-title {
+      color: rgba(44, 37, 32, 0.9);
+    }
+
+    [data-theme="zen"] .detail-action.uninstall {
+      border-color: rgba(44, 37, 32, 0.2);
+      color: rgba(44, 37, 32, 0.7);
+    }
+  `;
 }
 
 // ============================================================================

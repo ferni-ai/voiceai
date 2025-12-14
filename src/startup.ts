@@ -6,12 +6,12 @@
  */
 
 import { getConfig, printConfigSummary, validateConfig, type AppConfig } from './config/index.js';
+import { startBackgroundIndexing } from './memory/background-indexer.js';
 import {
   initializeMemorySystem,
   shutdownMemorySystem,
   type MemorySystemResult,
 } from './memory/index.js';
-import { startBackgroundIndexing } from './memory/background-indexer.js';
 import { initializeFromBundles, listPersonas } from './personas/index.js';
 import {
   initializeServices,
@@ -74,12 +74,16 @@ export async function startup(): Promise<AppConfig> {
   // OPTIMIZATION: Use lazy initialization for Firestore to reduce cold start time
   // The FirestoreStore now auto-initializes on first use, so we can skip the blocking init
   // This reduces startup from ~1100ms to ~400ms
-  const shouldIndexPersona = process.env.SKIP_PERSONA_INDEXING !== 'true' && config.environment !== 'production';
+  const shouldIndexPersona =
+    process.env.SKIP_PERSONA_INDEXING !== 'true' && config.environment !== 'production';
   const isLazyInit = process.env.LAZY_FIRESTORE !== 'false'; // Default to lazy
-  
-  logger.info({ indexPersona: shouldIndexPersona, lazyInit: isLazyInit }, 'Initializing memory system...');
+
+  logger.info(
+    { indexPersona: shouldIndexPersona, lazyInit: isLazyInit },
+    'Initializing memory system...'
+  );
   const memStart = Date.now();
-  
+
   if (isLazyInit) {
     // Lazy mode: Create stores but don't connect to Firestore yet
     // Connection happens on first actual use (saves ~500ms in cold start)
@@ -90,7 +94,9 @@ export async function startup(): Promise<AppConfig> {
       skipFirestoreInit: true, // Skip Firestore init
       rehydrateConversations: false, // Skip rehydration - store not ready yet
     });
-    logger.info(`✓ Memory: LAZY mode (${Date.now() - memStart}ms) - Firestore connects on first use`);
+    logger.info(
+      `✓ Memory: LAZY mode (${Date.now() - memStart}ms) - Firestore connects on first use`
+    );
   } else {
     // Eager mode: Full initialization (original behavior)
     memorySystem = await initializeMemorySystem({
@@ -130,11 +136,13 @@ export async function startup(): Promise<AppConfig> {
     void startBackgroundIndexing(memorySystem.vectorStore, {
       startDelayMs: 5000, // Wait 5s for server to stabilize
       concurrency: 2, // Limit concurrent embedding calls
-    }).then(() => {
-      logger.info('✓ Background persona indexing started (will complete async)');
-    }).catch((err) => {
-      logger.warn(`Background indexing failed to start (non-fatal): ${err}`);
-    });
+    })
+      .then(() => {
+        logger.info('✓ Background persona indexing started (will complete async)');
+      })
+      .catch((err) => {
+        logger.warn(`Background indexing failed to start (non-fatal): ${err}`);
+      });
   }
 
   // Start schedulers (synchronous, just sets up intervals)
@@ -189,9 +197,9 @@ export async function startup(): Promise<AppConfig> {
   // Essential: Must complete before first session (team handlers, persistence)
   // Deferred: Can complete after first greeting (analytics, insights, evolution)
   // ============================================================================
-  
+
   const parallelStart = Date.now();
-  
+
   // ESSENTIAL: These must be ready for first session
   logger.info('Initializing essential services...');
   const essentialInits = await Promise.allSettled([
@@ -207,14 +215,14 @@ export async function startup(): Promise<AppConfig> {
       return 'persistence';
     }),
   ]);
-  
+
   logger.info(`Essential init complete (${Date.now() - parallelStart}ms)`);
 
   // DEFERRED: These run in background AFTER startup completes
   // This allows first greeting to happen ~150ms faster
   const deferredInit = async () => {
     const deferStart = Date.now();
-    
+
     const deferredInits = await Promise.allSettled([
       // Community insights (collective learning) - not needed for first greeting
       import('./intelligence/community-insights.js')
@@ -225,12 +233,13 @@ export async function startup(): Promise<AppConfig> {
         }),
 
       // Collective learning scheduler - runs background aggregation jobs
-      import('./intelligence/collective-learning-scheduler.js')
-        .then(({ startCollectiveLearningScheduler }) => {
+      import('./intelligence/collective-learning-scheduler.js').then(
+        ({ startCollectiveLearningScheduler }) => {
           startCollectiveLearningScheduler();
           logger.debug('✓ Collective learning scheduler started (deferred)');
           return 'collective_learning_scheduler';
-        }),
+        }
+      ),
 
       // Agent evolution (persona self-improvement) - not needed for first greeting
       import('./intelligence/agent-evolution.js')
@@ -248,7 +257,7 @@ export async function startup(): Promise<AppConfig> {
           return 'tool_analytics';
         }),
     ]);
-    
+
     const failures = deferredInits.filter((r) => r.status === 'rejected');
     if (failures.length > 0) {
       for (const failure of failures) {
@@ -257,10 +266,10 @@ export async function startup(): Promise<AppConfig> {
         }
       }
     }
-    
+
     logger.debug(`Deferred init complete (${Date.now() - deferStart}ms)`);
   };
-  
+
   // Fire-and-forget deferred initialization
   setTimeout(() => {
     deferredInit().catch((err) => {

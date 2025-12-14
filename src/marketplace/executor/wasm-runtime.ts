@@ -45,9 +45,7 @@ interface WasmInstance {
   exports: Record<string, unknown>;
 }
 
-interface WasmImports {
-  [module: string]: Record<string, unknown>;
-}
+type WasmImports = Record<string, Record<string, unknown>>;
 
 interface WasmModuleExport {
   name: string;
@@ -174,14 +172,12 @@ export class WasmRuntime {
 
     // Extract exports
     const moduleExports = WebAssembly.Module.exports(compiled);
-    const functionExports = moduleExports
-      .filter((e) => e.kind === 'function')
-      .map((e) => e.name);
+    const functionExports = moduleExports.filter((e) => e.kind === 'function').map((e) => e.name);
 
     // Get memory info
     const memoryExports = moduleExports.filter((e) => e.kind === 'memory');
-    let memoryMin = 1;
-    let memoryMax = 16; // Default 1MB max
+    const memoryMin = 1;
+    const memoryMax = 16; // Default 1MB max
 
     // If module imports memory, we'll provide it
     const imports = WebAssembly.Module.imports(compiled);
@@ -208,10 +204,7 @@ export class WasmRuntime {
   /**
    * Execute a function in a WASM module
    */
-  async execute(
-    moduleId: string,
-    options: WasmExecutionOptions
-  ): Promise<WasmExecutionResult> {
+  async execute(moduleId: string, options: WasmExecutionOptions): Promise<WasmExecutionResult> {
     const startTime = Date.now();
 
     if (!this.initialized) {
@@ -258,9 +251,9 @@ export class WasmRuntime {
     try {
       // Instantiate with timeout
       const instantiatePromise = WebAssembly.instantiate(compiled, imports);
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Execution timeout')), limits.timeoutMs)
-      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Execution timeout')), limits.timeoutMs);
+      });
 
       const instance = await Promise.race([instantiatePromise, timeoutPromise]);
 

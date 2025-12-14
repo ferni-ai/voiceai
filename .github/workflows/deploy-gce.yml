@@ -1,0 +1,336 @@
+name: Deploy Voice Agent to GCE (Blue-Green)
+
+# ============================================================================
+# GCE BLUE-GREEN DEPLOYMENT PIPELINE
+# ============================================================================
+#
+# LOCAL DEPLOYMENT: Use the Ferni CLI instead of this workflow!
+#   ferni deploy gce           # Deploy to GCE
+#   ferni deploy gce --dry-run # Preview deployment
+#
+# This workflow is for CI/CD automation only.
+#
+# Why GCE instead of Cloud Run?
+# - WebRTC requires UDP for real-time voice (Cloud Run only supports TCP)
+# - LiveKit workers need persistent connections
+# - Better audio quality with direct UDP transport
+#
+# BLUE-GREEN STRATEGY:
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │                                                                         │
+# │   BLUE (8080)            GREEN (8081)         PROMOTE                  │
+# │   ┌─────────┐            ┌─────────┐          ┌─────────┐              │
+# │   │ Current │ ─────────> │   New   │ ─────> │   New   │              │
+# │   │ Running │            │ Deploy  │          │  Live   │              │
+# │   └─────────┘            └─────────┘          └─────────┘              │
+# │                          Health Check          Stop Blue               │
+# │                                                                         │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# ============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual deployment)'
+        type: boolean
+        default: false
+      rollback:
+        description: 'Rollback to previous version'
+        type: boolean
+        default: false
+
+concurrency:
+  group: gce-deploy
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: johnb-2025
+  GCP_REGION: us-central1
+  GCP_ZONE: us-central1-a
+  GCE_INSTANCE: voiceai-agent
+  GCE_IP: 34.134.186.63
+  IMAGE_NAME: gcr.io/johnb-2025/voiceai-agent
+
+jobs:
+  # ============================================================================
+  # PREPARE
+  # ============================================================================
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set variables
+        id: vars
+        run: |
+          echo "image_tag=$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Check deployment conditions
+        id: check
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            echo "🔍 Dry run mode - no deployment will occur"
+          else
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================================================
+  # BUILD
+  # ============================================================================
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.should_deploy == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.agent
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.image_tag }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # DEPLOY
+  # ============================================================================
+  deploy:
+    name: Deploy to GCE
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: needs.prepare.outputs.should_deploy == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get secrets
+        id: secrets
+        run: |
+          echo "Getting secrets from Secret Manager..."
+
+          # Fetch each secret and set as env var (masked)
+          LIVEKIT_API_KEY=$(gcloud secrets versions access latest --secret="livekit-api-key")
+          LIVEKIT_API_SECRET=$(gcloud secrets versions access latest --secret="livekit-api-secret")
+          LIVEKIT_URL=$(gcloud secrets versions access latest --secret="livekit-url")
+          OPENAI_API_KEY=$(gcloud secrets versions access latest --secret="openai-api-key")
+          GOOGLE_API_KEY=$(gcloud secrets versions access latest --secret="google-api-key")
+          ANTHROPIC_API_KEY=$(gcloud secrets versions access latest --secret="anthropic-api-key")
+          CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret="cartesia-api-key")
+          DEEPGRAM_API_KEY=$(gcloud secrets versions access latest --secret="deepgram-api-key")
+          ELEVENLABS_API_KEY=$(gcloud secrets versions access latest --secret="elevenlabs-api-key")
+
+          # Mask secrets in logs
+          echo "::add-mask::$LIVEKIT_API_KEY"
+          echo "::add-mask::$LIVEKIT_API_SECRET"
+          echo "::add-mask::$LIVEKIT_URL"
+          echo "::add-mask::$OPENAI_API_KEY"
+          echo "::add-mask::$GOOGLE_API_KEY"
+          echo "::add-mask::$ANTHROPIC_API_KEY"
+          echo "::add-mask::$CARTESIA_API_KEY"
+          echo "::add-mask::$DEEPGRAM_API_KEY"
+          echo "::add-mask::$ELEVENLABS_API_KEY"
+
+          # Save to outputs (still masked)
+          echo "livekit_api_key=$LIVEKIT_API_KEY" >> $GITHUB_OUTPUT
+          echo "livekit_api_secret=$LIVEKIT_API_SECRET" >> $GITHUB_OUTPUT
+          echo "livekit_url=$LIVEKIT_URL" >> $GITHUB_OUTPUT
+          echo "openai_api_key=$OPENAI_API_KEY" >> $GITHUB_OUTPUT
+          echo "google_api_key=$GOOGLE_API_KEY" >> $GITHUB_OUTPUT
+          echo "anthropic_api_key=$ANTHROPIC_API_KEY" >> $GITHUB_OUTPUT
+          echo "cartesia_api_key=$CARTESIA_API_KEY" >> $GITHUB_OUTPUT
+          echo "deepgram_api_key=$DEEPGRAM_API_KEY" >> $GITHUB_OUTPUT
+          echo "elevenlabs_api_key=$ELEVENLABS_API_KEY" >> $GITHUB_OUTPUT
+
+      - name: Detect current slot
+        id: slot
+        run: |
+          echo "Detecting current deployment slot..."
+
+          CURRENT=$(gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker ps --format '{{.Names}}' | grep -E 'voiceai-agent-(blue|green)' || echo 'none'" \
+            2>/dev/null || echo "none")
+
+          if [[ "$CURRENT" == *"blue"* ]]; then
+            echo "current_slot=blue" >> $GITHUB_OUTPUT
+            echo "target_slot=green" >> $GITHUB_OUTPUT
+            echo "target_port=8081" >> $GITHUB_OUTPUT
+          else
+            echo "current_slot=green" >> $GITHUB_OUTPUT
+            echo "target_slot=blue" >> $GITHUB_OUTPUT
+            echo "target_port=8080" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Current: $CURRENT, Target: ${{ steps.slot.outputs.target_slot }}"
+
+      - name: Deploy to target slot
+        run: |
+          TARGET_SLOT=${{ steps.slot.outputs.target_slot }}
+          TARGET_PORT=${{ steps.slot.outputs.target_port }}
+          IMAGE="${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.image_tag }}"
+          CONTAINER_NAME="voiceai-agent-${TARGET_SLOT}"
+
+          echo "🚀 Deploying to ${TARGET_SLOT} slot on port ${TARGET_PORT}"
+
+          # Stop existing container in target slot (if any)
+          gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker stop ${CONTAINER_NAME} 2>/dev/null || true; docker rm ${CONTAINER_NAME} 2>/dev/null || true"
+
+          # Pull new image
+          gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker pull ${IMAGE}"
+
+          # Start new container
+          gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker run -d \
+              --name ${CONTAINER_NAME} \
+              --restart unless-stopped \
+              -p ${TARGET_PORT}:${TARGET_PORT} \
+              -e PORT=${TARGET_PORT} \
+              -e NODE_ENV=production \
+              -e GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }} \
+              -e LIVEKIT_API_KEY='${{ steps.secrets.outputs.livekit_api_key }}' \
+              -e LIVEKIT_API_SECRET='${{ steps.secrets.outputs.livekit_api_secret }}' \
+              -e LIVEKIT_URL='${{ steps.secrets.outputs.livekit_url }}' \
+              -e OPENAI_API_KEY='${{ steps.secrets.outputs.openai_api_key }}' \
+              -e GOOGLE_API_KEY='${{ steps.secrets.outputs.google_api_key }}' \
+              -e ANTHROPIC_API_KEY='${{ steps.secrets.outputs.anthropic_api_key }}' \
+              -e CARTESIA_API_KEY='${{ steps.secrets.outputs.cartesia_api_key }}' \
+              -e DEEPGRAM_API_KEY='${{ steps.secrets.outputs.deepgram_api_key }}' \
+              -e ELEVENLABS_API_KEY='${{ steps.secrets.outputs.elevenlabs_api_key }}' \
+              ${IMAGE}"
+
+      - name: Health check
+        id: health
+        run: |
+          TARGET_PORT=${{ steps.slot.outputs.target_port }}
+          URL="http://${{ env.GCE_IP }}:${TARGET_PORT}/health"
+
+          echo "🏥 Running health checks on ${URL}"
+
+          for i in {1..10}; do
+            echo "Attempt $i/10..."
+
+            if curl -sf --max-time 10 "${URL}" > /dev/null 2>&1; then
+              echo "✅ Health check passed!"
+              echo "healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "❌ Health check failed after 10 attempts"
+          echo "healthy=false" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Promote or rollback
+        if: always()
+        run: |
+          TARGET_SLOT=${{ steps.slot.outputs.target_slot }}
+          CURRENT_SLOT=${{ steps.slot.outputs.current_slot }}
+          HEALTHY="${{ steps.health.outputs.healthy }}"
+
+          if [ "$HEALTHY" == "true" ]; then
+            echo "✅ Promoting ${TARGET_SLOT} to production"
+
+            # Stop old container
+            if [ "$CURRENT_SLOT" != "none" ]; then
+              gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+                --zone=${{ env.GCP_ZONE }} \
+                --command="docker stop voiceai-agent-${CURRENT_SLOT} 2>/dev/null || true; docker rm voiceai-agent-${CURRENT_SLOT} 2>/dev/null || true"
+            fi
+
+            echo "🎉 Deployment successful!"
+          else
+            echo "❌ Rolling back - stopping failed ${TARGET_SLOT} container"
+
+            gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+              --zone=${{ env.GCP_ZONE }} \
+              --command="docker stop voiceai-agent-${TARGET_SLOT} 2>/dev/null || true; docker rm voiceai-agent-${TARGET_SLOT} 2>/dev/null || true"
+
+            echo "Previous deployment still running on ${CURRENT_SLOT}"
+            exit 1
+          fi
+
+      - name: Cleanup old images
+        if: success()
+        run: |
+          echo "🧹 Cleaning up old Docker images..."
+          gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker image prune -f"
+
+  # ============================================================================
+  # ROLLBACK (Manual trigger only)
+  # ============================================================================
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    if: github.event.inputs.rollback == 'true'
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Find previous image
+        id: prev
+        run: |
+          echo "Finding previous image..."
+
+          PREV_TAG=$(gcloud compute ssh sethford@${{ env.GCE_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="docker images ${{ env.IMAGE_NAME }} --format '{{.Tag}}' | head -2 | tail -1")
+
+          echo "previous_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+          echo "Previous tag: ${PREV_TAG}"
+
+      - name: Rollback deployment
+        run: |
+          echo "🔄 Rolling back to ${{ env.IMAGE_NAME }}:${{ steps.prev.outputs.previous_tag }}"
+          # Rollback logic would go here - similar to deploy but with previous image
+          echo "Rollback not yet implemented - use pnpm deploy:gce:rollback locally"

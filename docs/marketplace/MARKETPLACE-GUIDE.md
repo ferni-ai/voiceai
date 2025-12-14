@@ -1,15 +1,15 @@
 # Ferni Marketplace Guide
 
-> Extend Ferni's capabilities with community tools and agents
+> Discover coaches and capabilities that grow with you
 
 ## Overview
 
-The Ferni Marketplace enables users to:
+The Ferni Marketplace is where you find new ways to grow:
 
-- **Browse** curated tools and AI agents
-- **Install** extensions with explicit permission consent
-- **Rate & Review** to help the community
-- **Publish** their own creations (developer portal)
+- **Discover** coaches and capabilities curated for you
+- **Add** what resonates, with clear permission choices
+- **Share** your experience to help others
+- **Create** your own contributions (for developers)
 
 ---
 
@@ -42,18 +42,18 @@ The Ferni Marketplace enables users to:
 
 ---
 
-## For Users
+## For You
 
-### Browsing the Marketplace
+### Finding What You Need
 
-1. Open Settings Menu → **Marketplace**
-2. Browse by category or search
-3. View item details, ratings, and permissions
-4. Click **Add** to install
+1. Open Settings → **Marketplace**
+2. Browse by what matters to you, or search
+3. See what others say, and what access is needed
+4. Click **Add** when something feels right
 
-### Permission Consent
+### Understanding Permissions
 
-Before installing any marketplace item, you'll see:
+Before adding anything, you'll see exactly what it needs:
 
 | Badge        | Meaning                          |
 | ------------ | -------------------------------- |
@@ -61,17 +61,17 @@ Before installing any marketplace item, you'll see:
 | ⭐ Trusted   | Extensively tested by Ferni team |
 | 👥 Community | Community contribution           |
 
-**Required Permissions** - The item won't work without these
-**Optional Permissions** - Enhanced features if you enable them
+**Required** – Needed for it to work
+**Optional** – Your choice, for enhanced experience
 
-### Ratings & Reviews
+### Your Voice Matters
 
-After using an item, you can:
+After spending time with something, you can:
 
-- Rate 1-5 stars
-- Write a review
-- Vote reviews as helpful/unhelpful
-- Flag inappropriate content
+- Share how it's helped you (1-5 stars)
+- Write about your experience
+- Help others by marking helpful reviews
+- Let us know if something feels off
 
 ---
 

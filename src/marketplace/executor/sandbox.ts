@@ -15,6 +15,8 @@
  * - docker: Container isolation (future)
  */
 
+/* global AbortController */
+
 import { getLogger } from '../../utils/safe-logger.js';
 import { checkQuota, recordUsage } from '../billing/index.js';
 import { getInstallation, getTool, hasPermission, recordExecution } from '../registry.js';

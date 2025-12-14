@@ -146,7 +146,7 @@ function normalizeLocale(langCode: string): SupportedLocale | null {
 
   // Try base language
   const baseLang = normalized.split('-')[0];
-  if (LANGUAGE_MAP[baseLang]) {
+  if (baseLang && LANGUAGE_MAP[baseLang]) {
     return LANGUAGE_MAP[baseLang];
   }
 
@@ -262,7 +262,9 @@ export function getLocale(): SupportedLocale {
  * Get locale info for the current or specified locale
  */
 export function getLocaleInfo(locale: SupportedLocale = currentLocale): LocaleInfo {
-  return SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0];
+  const found = SUPPORTED_LOCALES.find((l) => l.code === locale);
+  // Fallback to en-US which is always first
+  return found ?? SUPPORTED_LOCALES[0] as LocaleInfo;
 }
 
 /**

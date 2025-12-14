@@ -848,6 +848,40 @@ export {
   stopCollectiveLearningScheduler,
 } from './collective-learning-scheduler.js';
 
+// ============================================================================
+// SUPERHUMAN MEMORY - "Better than Human" proactive memory intelligence
+// ============================================================================
+
+export {
+  analyzeVoicePatterns,
+  // Main context builder
+  buildSuperhumanContext,
+  // Date awareness
+  checkUpcomingDates,
+  cleanupDeliveryRecords,
+  // Topic absence
+  detectTopicAbsences,
+  // Growth celebration
+  findCelebratableGrowth,
+  // Inside jokes
+  findSurfaceableJokes,
+  // Comfort patterns
+  getComfortGuidance,
+  // Temporal
+  getTemporalContext,
+  // Delivery tracking
+  markInsightDelivered as markSuperhumanInsightDelivered,
+  // Voice patterns
+  recordVoicePattern,
+  wasRecentlyDelivered,
+  type ComfortGuidance,
+  type SuperhumanContext,
+  // Types (renamed to avoid collision with proactive-insight-engine)
+  type ProactiveInsight as SuperhumanInsight,
+  type TopicAbsenceInsight,
+  type VoicePatternObservation,
+} from './superhuman-memory.js';
+
 export default {
   analyzeMessage,
   resetIntelligence,

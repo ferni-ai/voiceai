@@ -18,7 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { MarketplaceId, UserId, TenantId, Pricing } from '../schema/types.js';
+import type { MarketplaceId, Pricing, TenantId, UserId } from '../schema/types.js';
 
 const log = getLogger().child({ module: 'marketplace-billing' });
 
@@ -159,7 +159,11 @@ export function recordUsage(record: Omit<UsageRecord, 'id'>): UsageRecord {
   state.monthlyUsage.set(key, existing);
 
   log.debug(
-    { userId: fullRecord.userId, itemId: fullRecord.itemId, executions: fullRecord.metrics.executions },
+    {
+      userId: fullRecord.userId,
+      itemId: fullRecord.itemId,
+      executions: fullRecord.metrics.executions,
+    },
     'Usage recorded'
   );
 
@@ -172,7 +176,7 @@ export function recordUsage(record: Omit<UsageRecord, 'id'>): UsageRecord {
 export function getUsageSummary(
   userId: UserId,
   itemId: MarketplaceId,
-  subscriptionTier: string = 'free'
+  subscriptionTier = 'free'
 ): UsageSummary {
   const now = new Date();
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -191,9 +195,7 @@ export function getUsageSummary(
     (tierQuota.timeMs > 0 && usage.executionTimeMs >= tierQuota.timeMs);
 
   const usagePercentage =
-    tierQuota.executions > 0
-      ? Math.round((usage.executions / tierQuota.executions) * 100)
-      : 0;
+    tierQuota.executions > 0 ? Math.round((usage.executions / tierQuota.executions) * 100) : 0;
 
   // Calculate next reset (first of next month)
   const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -226,7 +228,7 @@ export function getUsageSummary(
 export function checkQuota(
   userId: UserId,
   itemId: MarketplaceId,
-  subscriptionTier: string = 'free'
+  subscriptionTier = 'free'
 ): { allowed: boolean; reason?: string; upgradeRequired?: boolean } {
   const summary = getUsageSummary(userId, itemId, subscriptionTier);
 
@@ -248,10 +250,7 @@ export function checkQuota(
 /**
  * Calculate billing for a tool based on pricing model
  */
-export function calculateBilling(
-  usage: UsageMetrics,
-  pricing: Pricing
-): BilledAmount {
+export function calculateBilling(usage: UsageMetrics, pricing: Pricing): BilledAmount {
   const breakdown: BilledAmount['breakdown'] = [];
   let totalCents = 0;
 
@@ -339,18 +338,14 @@ export function calculateRevenueShare(
  * Get pending payouts for a publisher
  */
 export function getPendingPayouts(publisherId: string): RevenueShare[] {
-  return state.revenueShares.filter(
-    (s) => s.publisherId === publisherId && s.status !== 'paid'
-  );
+  return state.revenueShares.filter((s) => s.publisherId === publisherId && s.status !== 'paid');
 }
 
 /**
  * Mark payout as completed
  */
 export function markPayoutComplete(shareId: string): void {
-  const share = state.revenueShares.find(
-    (s) => `${s.itemId}:${s.period}` === shareId
-  );
+  const share = state.revenueShares.find((s) => `${s.itemId}:${s.period}` === shareId);
   if (share) {
     share.status = 'paid';
     log.info({ shareId }, 'Payout marked complete');

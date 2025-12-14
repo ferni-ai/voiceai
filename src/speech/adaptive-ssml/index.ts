@@ -45,6 +45,43 @@ export {
 } from './nonverbal-sounds.js';
 
 // ============================================================================
+// ALIVE VOICE - Makes Agents Come Alive
+// ============================================================================
+
+export {
+  NONVERBAL_CONFIG,
+  PERSONA_FINGERPRINTS,
+  addOpeningSound,
+  applyDynamicPauses,
+  applyEmotionArcs,
+  applyPersonaFingerprint,
+  applySpeedVariation,
+  getNonverbal,
+  isNonverbalSupported,
+  makeVoiceAlive,
+  type AliveVoiceContext,
+  type AliveVoiceResult,
+  type NonverbalType,
+  type PersonaFingerprint,
+} from './alive-voice.js';
+
+// ============================================================================
+// CONTEXTUAL LAUGHTER - Smart Laugh Timing
+// ============================================================================
+
+export {
+  LAUGH_TYPES,
+  PERSONA_LAUGH_STYLES,
+  addContextualLaughter,
+  applyLaughter,
+  decideLaughter,
+  resetLaughterSession,
+  type LaughterContext,
+  type LaughterDecision,
+  type PersonaLaughStyle,
+} from './contextual-laughter.js';
+
+// ============================================================================
 // AUDIO SMOOTHING
 // ============================================================================
 

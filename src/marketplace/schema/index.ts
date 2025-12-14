@@ -4,21 +4,21 @@
  * Exports all marketplace types and schemas.
  */
 
-export * from './types.js';
+export type * from './types.js';
 
 // Re-export commonly used types
 export type {
-  MarketplaceId,
-  PublisherId,
-  TenantId,
-  UserId,
-  SemVer,
-  LicenseType,
-  TrustLevel,
-  PermissionScope,
-  ToolManifest,
   AgentManifest,
   Installation,
-  ToolExecution,
+  LicenseType,
+  MarketplaceId,
   MarketplaceListing,
+  PermissionScope,
+  PublisherId,
+  SemVer,
+  TenantId,
+  ToolExecution,
+  ToolManifest,
+  TrustLevel,
+  UserId,
 } from './types.js';

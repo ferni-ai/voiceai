@@ -122,6 +122,17 @@ export {
 } from './core.js';
 
 // =============================================================================
+// PRONUNCIATION PROCESSOR - Optimized pattern matching
+// =============================================================================
+
+export {
+  applyPronunciationsOptimized,
+  estimatePatternChecks,
+  getCategoryStats,
+  resetPronunciationCache,
+} from './pronunciation-processor.js';
+
+// =============================================================================
 // CARTESIA HELPERS - Cartesia-specific utilities
 // =============================================================================
 

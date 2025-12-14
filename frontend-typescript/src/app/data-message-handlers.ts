@@ -938,14 +938,14 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
     delay: event.disconnectDelay,
   });
 
-  // Play disconnect sound
-  soundUI.play('session-end');
+  // Play warm goodbye sound (different from abrupt disconnect)
+  soundUI.play('goodbye');
 
   // Show a brief "See you!" message
   messageUI.show('See you next time!', 'info', 2000);
 
-  // 🎬 Pixar: Final warm farewell expression
-  ferniExpressions.setExpression('happy', 400, 2000);
+  // 🌟 Superhuman: Warm farewell expression - gentle smile with sparkle
+  ferniExpressions.setExpression('farewell', 600, 2500);
 
   // Disconnect after delay (allows sound and animation to play)
   const delay = event.disconnectDelay ?? 2000;
