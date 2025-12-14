@@ -708,6 +708,23 @@ export async function loadBundle(
         behaviors['better-than-human'] = await loadJsonFile(betterThanHumanPath);
       }
 
+      // ========================================================================
+      // GENUINE CURIOSITY - Question-asking behavior configuration
+      // ========================================================================
+
+      // Load genuine curiosity (spontaneous questions, topic-triggered curiosity)
+      const genuineCuriosityPath = join(behaviorsPath, 'genuine-curiosity.json');
+      if (await fileExists(genuineCuriosityPath)) {
+        behaviors['genuine-curiosity'] = await loadJsonFile(genuineCuriosityPath);
+        getLogger().debug({ bundlePath }, 'Loaded genuine-curiosity behaviors');
+      }
+
+      // Load playfulness behaviors (fun, games, creative engagement)
+      const playfulnessPath = join(behaviorsPath, 'playfulness.json');
+      if (await fileExists(playfulnessPath)) {
+        behaviors.playfulness = await loadJsonFile(playfulnessPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },

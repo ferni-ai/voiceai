@@ -167,7 +167,8 @@ This shows you're paying attention across the whole conversation.`
   // ============================================================================
 
   // Add guidance to not end responses as dead-ends
-  if (turnCount >= 2 && Math.random() < 0.4) {
+  // Increased from 40% to 65% - users felt Ferni wasn't asking enough questions
+  if (turnCount >= 2 && Math.random() < 0.65) {
     const endingGuidance = getResponseEndingGuidance(intent, emotion, emotionIntensity);
     if (endingGuidance) {
       injections.push(
