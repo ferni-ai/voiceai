@@ -51,15 +51,15 @@ function getPersonaGradient(personaId: string): string {
 
 /**
  * Get glow color for avatar shadows using CSS variables.
+ * External AI company brand colors are defined in design-system/tokens/colors.json
  */
 function getPersonaGlow(personaId: string): string {
-  // External AI companies have their own brand glow colors
-  const externalGlows: Record<string, string> = {
-    claude: 'rgba(217, 119, 87, 0.35)',
-    gemini: 'rgba(66, 133, 244, 0.35)',
-    gpt: 'rgba(16, 163, 127, 0.35)',
-  };
-  return externalGlows[personaId] || 'var(--persona-glow)';
+  // External AI companies use design token variables
+  const externalBrands = ['claude', 'gemini', 'gpt'];
+  if (externalBrands.includes(personaId)) {
+    return `var(--external-${personaId}-glow)`;
+  }
+  return 'var(--persona-glow)';
 }
 
 // ============================================================================
@@ -91,6 +91,25 @@ function cleanupOrphanedElements(): void {
   document.querySelectorAll('.marketplace-modal').forEach((el) => el.remove());
   // Reset reference since we removed the element from DOM
   marketplaceModal = null;
+}
+
+// ============================================================================
+// ACCESSIBILITY HELPERS
+// ============================================================================
+
+/**
+ * Announce a message to screen readers via ARIA live region.
+ */
+function announceToScreenReader(message: string): void {
+  const announcer = document.createElement('div');
+  announcer.setAttribute('role', 'status');
+  announcer.setAttribute('aria-live', 'polite');
+  announcer.setAttribute('aria-atomic', 'true');
+  announcer.style.cssText =
+    'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;';
+  announcer.textContent = message;
+  document.body.appendChild(announcer);
+  setTimeout(() => announcer.remove(), 1000);
 }
 
 // ============================================================================
@@ -744,7 +763,7 @@ function showEmpty(message: string): void {
 }
 
 /**
- * Set loading state
+ * Set loading state with accessibility announcements
  */
 function setLoading(loading: boolean): void {
   isLoadingState = loading;
@@ -752,12 +771,17 @@ function setLoading(loading: boolean): void {
   const gridEl = marketplaceModal?.querySelector('.marketplace-grid') as HTMLElement;
   const emptyEl = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
 
+  // Set aria-busy on the modal content
+  marketplaceModal?.setAttribute('aria-busy', loading ? 'true' : 'false');
+
   if (loading) {
     if (loadingEl) loadingEl.style.display = 'flex';
     if (gridEl) gridEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
+    announceToScreenReader('Loading marketplace...');
   } else {
     if (loadingEl) loadingEl.style.display = 'none';
+    announceToScreenReader('Marketplace loaded');
   }
 }
 

@@ -36,13 +36,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'happy',
           intensity: 0.7,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Keep it brief' },
         },
         identity: {
@@ -50,7 +50,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 50,
       };
 
       injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
@@ -82,13 +81,13 @@ describe('Turn Processor Utility Functions', () => {
           injections: [],
           elapsedMs: 5,
         },
-        emotionalState: {
+        emotional: {
           primary: 'neutral',
           intensity: 0.5,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Normal response' },
         },
         identity: {
@@ -96,7 +95,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
@@ -124,13 +122,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'neutral',
           intensity: 0.5,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Normal' },
         },
         identity: {
@@ -138,7 +136,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
@@ -167,13 +164,13 @@ describe('Turn Processor Utility Functions', () => {
           injections: [{ category: 'single', content: 'Only one injection', priority: 5 }],
           elapsedMs: 5,
         },
-        emotionalState: {
+        emotional: {
           primary: 'neutral',
           intensity: 0.5,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Normal' },
         },
         identity: {
@@ -181,7 +178,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 20,
       };
 
       injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
@@ -207,13 +203,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'neutral',
           intensity: 0.5,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Normal' },
         },
         identity: {
@@ -221,7 +217,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -244,13 +239,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'happy',
           intensity: 0.8,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Celebrate!' },
         },
         identity: {
@@ -258,7 +253,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -284,13 +278,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'happy',
           intensity: 0.9,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Celebrate!' },
         },
         identity: {
@@ -298,7 +292,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -319,13 +312,13 @@ describe('Turn Processor Utility Functions', () => {
           injections: [{ category: 'aha_moment', content: 'User had a realization!', priority: 10 }],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'excited',
           intensity: 0.85,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Acknowledge insight' },
         },
         identity: {
@@ -333,7 +326,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -354,13 +346,13 @@ describe('Turn Processor Utility Functions', () => {
           injections: [{ category: 'good_news', content: 'User shared good news!', priority: 10 }],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'happy',
           intensity: 0.8,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Share excitement' },
         },
         identity: {
@@ -368,7 +360,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -394,13 +385,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'ecstatic',
           intensity: 0.95,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Big celebration!' },
         },
         identity: {
@@ -408,7 +399,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -438,13 +428,13 @@ describe('Turn Processor Utility Functions', () => {
           ],
           elapsedMs: 10,
         },
-        emotionalState: {
+        emotional: {
           primary: 'happy',
           intensity: 0.9,
           distressLevel: 0,
           trajectory: 'improving',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Celebrate!' },
         },
         identity: {
@@ -452,7 +442,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 30,
       };
 
       const events = getCelebrationEvents(mockResult);
@@ -472,13 +461,13 @@ describe('Turn Processor Utility Functions', () => {
           injections: [],
           elapsedMs: 5,
         },
-        emotionalState: {
+        emotional: {
           primary: 'neutral',
           intensity: 0.5,
           distressLevel: 0,
           trajectory: 'stable',
         },
-        responseGuidance: {
+        response: {
           length: { min: 20, max: 100, guidance: 'Normal' },
         },
         identity: {
@@ -486,7 +475,6 @@ describe('Turn Processor Utility Functions', () => {
           activeAgentId: 'ferni',
           sessionPersonaId: 'ferni',
         },
-        elapsedMs: 20,
       };
 
       const events = getCelebrationEvents(mockResult);

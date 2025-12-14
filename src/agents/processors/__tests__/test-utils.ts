@@ -42,13 +42,18 @@ export const createMockAnalysis = (overrides = {}) => ({
     needsAcknowledgment: false,
     emotionalDepth: 0.3,
   },
+  // Required by ConversationAnalysis
+  contextForPrompt: 'Test context for prompt',
+  suggestedTone: 'warm',
+  priorityFocus: 'general',
   ...overrides,
 });
 
 /**
  * Create mock session services
  */
-export const createMockServices = (overrides = {}) => ({
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export const createMockServices = (overrides = {}): Record<string, unknown> => ({
   sessionId: 'test-session-123',
   userId: 'test-user-456',
   analyze: vi.fn(() => createMockAnalysis()),
@@ -170,7 +175,7 @@ export const createMockUserData = (overrides = {}) => ({
 /**
  * Create a mock chat context (llm.ChatContext)
  */
-export const createMockChatContext = () => ({
+export const createMockChatContext = (): Record<string, unknown> => ({
   addMessage: vi.fn(),
   messages: [],
 });
@@ -178,7 +183,7 @@ export const createMockChatContext = () => ({
 /**
  * Create a mock logger
  */
-export const createMockLogger = () => ({
+export const createMockLogger = (): Record<string, unknown> => ({
   info: vi.fn(),
   debug: vi.fn(),
   warn: vi.fn(),
@@ -194,7 +199,7 @@ export const createMockTurnContext = (overrides: Partial<TurnContext> = {}): Tur
   persona: createMockPersona() as unknown as TurnContext['persona'],
   services: createMockServices() as unknown as TurnContext['services'],
   userData: createMockUserData() as unknown as TurnContext['userData'],
-  logger: createMockLogger(),
+  logger: createMockLogger() as unknown as TurnContext['logger'],
   ...overrides,
 });
 
@@ -406,7 +411,7 @@ export const createMockTurnProcessorResult = (
   overrides: Partial<TurnProcessorResult> = {}
 ): TurnProcessorResult => ({
   analysis: {
-    analysis: createMockAnalysis() as TurnProcessorResult['analysis']['analysis'],
+    analysis: createMockAnalysis() as unknown as TurnProcessorResult['analysis']['analysis'],
     currentTopic: 'general',
     previousTopic: undefined,
     topicChanged: false,
@@ -415,13 +420,13 @@ export const createMockTurnProcessorResult = (
     injections: [],
     elapsedMs: 10,
   },
-  emotionalState: {
+  emotional: {
     primary: 'neutral',
     intensity: 0.5,
     distressLevel: 0,
     trajectory: 'stable',
   },
-  responseGuidance: {
+  response: {
     length: { min: 20, max: 100, guidance: 'Normal response' },
   },
   identity: {
@@ -429,7 +434,6 @@ export const createMockTurnProcessorResult = (
     activeAgentId: 'ferni',
     sessionPersonaId: 'ferni',
   },
-  elapsedMs: 50,
   ...overrides,
 });
 
@@ -441,7 +445,7 @@ export const flushPromises = () => new Promise((resolve) => setImmediate(resolve
 /**
  * Create an emotional user message scenario
  */
-export const createEmotionalScenario = (emotion: string, intensity: number) => {
+export const createEmotionalScenario = (emotion: string, intensity: number): { analysis: ReturnType<typeof createMockAnalysis>; services: Record<string, unknown> } => {
   const analysis = createMockAnalysis({
     emotion: {
       primary: emotion,

@@ -183,19 +183,25 @@ async function runMemoryHealthCheck(res: ServerResponse): Promise<void> {
 
 async function runMarketplaceDailyAggregation(res: ServerResponse): Promise<void> {
   try {
-    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const { marketplaceBillingJobs } =
+      await import('../tasks/scheduled/marketplace-billing-jobs.js');
     const result = await marketplaceBillingJobs.runDailyUsageAggregation();
     log.info({ result }, 'Marketplace daily aggregation completed');
     sendJson(res, 200, { success: true, job: 'marketplaceDailyAggregation', result });
   } catch (error) {
     log.error({ error }, 'Marketplace daily aggregation failed');
-    sendJson(res, 500, { success: false, job: 'marketplaceDailyAggregation', error: String(error) });
+    sendJson(res, 500, {
+      success: false,
+      job: 'marketplaceDailyAggregation',
+      error: String(error),
+    });
   }
 }
 
 async function runMarketplaceWeeklyReports(res: ServerResponse): Promise<void> {
   try {
-    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const { marketplaceBillingJobs } =
+      await import('../tasks/scheduled/marketplace-billing-jobs.js');
     const result = await marketplaceBillingJobs.runWeeklyUsageReports();
     log.info({ result }, 'Marketplace weekly reports completed');
     sendJson(res, 200, { success: true, job: 'marketplaceWeeklyReports', result });
@@ -207,7 +213,8 @@ async function runMarketplaceWeeklyReports(res: ServerResponse): Promise<void> {
 
 async function runMarketplaceMonthlyRevenue(res: ServerResponse): Promise<void> {
   try {
-    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const { marketplaceBillingJobs } =
+      await import('../tasks/scheduled/marketplace-billing-jobs.js');
     const result = await marketplaceBillingJobs.runMonthlyRevenueCalculation();
     log.info({ result }, 'Marketplace monthly revenue calculation completed');
     sendJson(res, 200, { success: true, job: 'marketplaceMonthlyRevenue', result });
@@ -219,25 +226,35 @@ async function runMarketplaceMonthlyRevenue(res: ServerResponse): Promise<void> 
 
 async function runMarketplacePublisherPayouts(res: ServerResponse): Promise<void> {
   try {
-    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const { marketplaceBillingJobs } =
+      await import('../tasks/scheduled/marketplace-billing-jobs.js');
     const result = await marketplaceBillingJobs.runPublisherPayouts();
     log.info({ result }, 'Marketplace publisher payouts completed');
     sendJson(res, 200, { success: true, job: 'marketplacePublisherPayouts', result });
   } catch (error) {
     log.error({ error }, 'Marketplace publisher payouts failed');
-    sendJson(res, 500, { success: false, job: 'marketplacePublisherPayouts', error: String(error) });
+    sendJson(res, 500, {
+      success: false,
+      job: 'marketplacePublisherPayouts',
+      error: String(error),
+    });
   }
 }
 
 async function runMarketplaceQuarterlyCleanup(res: ServerResponse): Promise<void> {
   try {
-    const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
+    const { marketplaceBillingJobs } =
+      await import('../tasks/scheduled/marketplace-billing-jobs.js');
     const result = await marketplaceBillingJobs.runQuarterlyCleanup();
     log.info({ result }, 'Marketplace quarterly cleanup completed');
     sendJson(res, 200, { success: true, job: 'marketplaceQuarterlyCleanup', result });
   } catch (error) {
     log.error({ error }, 'Marketplace quarterly cleanup failed');
-    sendJson(res, 500, { success: false, job: 'marketplaceQuarterlyCleanup', error: String(error) });
+    sendJson(res, 500, {
+      success: false,
+      job: 'marketplaceQuarterlyCleanup',
+      error: String(error),
+    });
   }
 }
 
@@ -358,8 +375,10 @@ export async function handleScheduledJobsRoutes(
   if (pathname === '/api/jobs/status' && req.method === 'GET') {
     try {
       const { wellbeingJobs } = await import('../tasks/scheduled/wellbeing-jobs.js');
-      const { marketplaceBillingJobs } = await import('../tasks/scheduled/marketplace-billing-jobs.js');
-      const wellbeingConfigs = wellbeingJobs.getJobConfigs();
+      const { marketplaceBillingJobs } =
+        await import('../tasks/scheduled/marketplace-billing-jobs.js');
+      const wellbeingConfigsRecord = wellbeingJobs.getJobConfigs();
+      const wellbeingConfigs = Object.values(wellbeingConfigsRecord);
       const marketplaceConfigs = marketplaceBillingJobs.getJobConfigs();
       sendJson(res, 200, {
         jobs: [...wellbeingConfigs, ...marketplaceConfigs],

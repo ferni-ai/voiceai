@@ -10,7 +10,6 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getStore } from '../../memory/store-factory.js';
 import {
   getUsageSummary,
   getUsageHistory,
@@ -74,10 +73,7 @@ export async function runDailyUsageAggregation(): Promise<DailyAggregationResult
   };
 
   try {
-    const store = await getStore();
-
     // Get all active users with marketplace installations
-    // In production, this would query Firestore for users with installations
     const userIds = await getActiveMarketplaceUsers();
 
     for (const userId of userIds) {
@@ -329,7 +325,11 @@ export async function runQuarterlyCleanup(): Promise<{
   errors: string[];
 }> {
   log.info('Starting quarterly cleanup');
-  const result = {
+  const result: {
+    recordsArchived: number;
+    recordsDeleted: number;
+    errors: string[];
+  } = {
     recordsArchived: 0,
     recordsDeleted: 0,
     errors: [],
@@ -358,12 +358,17 @@ export async function runQuarterlyCleanup(): Promise<{
  * Get active marketplace users (users with installations)
  */
 async function getActiveMarketplaceUsers(): Promise<string[]> {
-  // In production, query Firestore for users with marketplace_installations
-  // For now, return empty array (no-op in development)
+  // Query Firestore for users with marketplace installations
   try {
-    const store = await getStore();
-    // This would query the engagement store or installations collection
-    return [];
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    const snapshot = await db.collection('marketplace_installations').get();
+    const userIds = new Set<string>();
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.userId) userIds.add(data.userId);
+    });
+    return Array.from(userIds);
   } catch {
     return [];
   }
@@ -388,13 +393,14 @@ async function sendQuotaWarning(warning: QuotaWarning): Promise<void> {
  * Get publisher's Stripe Connect account ID
  */
 async function getPublisherStripeAccount(publisherId: string): Promise<string | null> {
-  // In production, look up from marketplace_publishers collection
+  // Look up from marketplace_publishers collection in Firestore
   try {
-    const store = await getStore();
-    const publisher = await store.getSetting(`marketplace_publisher:${publisherId}`) as {
-      stripeConnectAccountId?: string;
-    } | null;
-    return publisher?.stripeConnectAccountId || null;
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    const doc = await db.collection('marketplace_publishers').doc(publisherId).get();
+    if (!doc.exists) return null;
+    const data = doc.data() as { stripeConnectAccountId?: string } | undefined;
+    return data?.stripeConnectAccountId || null;
   } catch {
     return null;
   }

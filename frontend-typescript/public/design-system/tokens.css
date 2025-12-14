@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-14T00:00:39.103Z
+ * Build: 2025-12-14T00:53:24.619Z
  */
 
 /* ========================================
@@ -290,6 +290,18 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(74, 85, 104, 0.28);
   --persona-tint: rgba(74, 85, 104, 0.06);
+}
+
+/* ========================================
+   EXTERNAL BRAND COLORS
+   ======================================== */
+:root {
+  --external-claude-primary: #D97757;
+  --external-claude-glow: rgba(217, 119, 87, 0.35);
+  --external-gemini-primary: #4285F4;
+  --external-gemini-glow: rgba(66, 133, 244, 0.35);
+  --external-gpt-primary: #10A37F;
+  --external-gpt-glow: rgba(16, 163, 127, 0.35);
 }
 
 /* ========================================

@@ -148,6 +148,21 @@ function getAnimationDuration(baseDuration: number): number {
   return prefersReducedMotion() ? 0 : baseDuration;
 }
 
+/**
+ * Announce a message to screen readers via ARIA live region.
+ */
+function announceToScreenReader(message: string): void {
+  const announcer = document.createElement('div');
+  announcer.setAttribute('role', 'status');
+  announcer.setAttribute('aria-live', 'polite');
+  announcer.setAttribute('aria-atomic', 'true');
+  announcer.style.cssText =
+    'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;';
+  announcer.textContent = message;
+  document.body.appendChild(announcer);
+  setTimeout(() => announcer.remove(), 1000);
+}
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -175,7 +190,9 @@ export async function openBillingDashboard(options?: { view?: 'usage' | 'revenue
   state.activeView = options?.view || 'usage';
 
   container = createDashboardContainer();
+  container.setAttribute('aria-busy', 'true');
   document.body.appendChild(container);
+  announceToScreenReader('Loading billing dashboard...');
 
   requestAnimationFrame(() => {
     container?.classList.add('billing-dashboard--visible');
@@ -184,6 +201,8 @@ export async function openBillingDashboard(options?: { view?: 'usage' | 'revenue
   await loadBillingData();
   renderDashboard();
   state.loading = false;
+  container?.setAttribute('aria-busy', 'false');
+  announceToScreenReader('Billing dashboard loaded');
 }
 
 /**
@@ -510,13 +529,13 @@ function injectStyles(): void {
     .billing-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
+      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.7));
       backdrop-filter: blur(var(--glass-blur-modal, 20px));
     }
 
     .billing-panel {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
       max-width: 600px;
@@ -866,19 +885,19 @@ function injectStyles(): void {
     /* Dark theme */
     @media (prefers-color-scheme: dark) {
       .billing-panel {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
 
       .billing-title,
       .usage-card-value,
       .usage-item-name,
       .no-usage-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       .billing-subtitle,
       .usage-item-count {
-        color: var(--color-text-secondary, #e8e2da);
+        color: var(--color-text-secondary);
       }
     }
 

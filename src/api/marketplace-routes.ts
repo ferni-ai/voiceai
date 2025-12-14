@@ -126,7 +126,7 @@ function extractParam(pattern: string, path: string, param: string): string | nu
  * Get user ID from request headers (Firebase auth)
  */
 function getUserId(req: IncomingMessage): string | null {
-  return req.headers['x-user-id'] as string || null;
+  return (req.headers['x-user-id'] as string) || null;
 }
 
 /**
@@ -235,14 +235,22 @@ async function handlePublisherRoutes(
     }
 
     try {
-      const body = await parseBody<{ type: 'tool' | 'agent'; manifest: ToolManifest | AgentManifest }>(req);
+      const body = await parseBody<{
+        type: 'tool' | 'agent';
+        manifest: ToolManifest | AgentManifest;
+      }>(req);
 
-      const errors = body.type === 'tool'
-        ? validateToolManifest(body.manifest as ToolManifest)
-        : validateAgentManifest(body.manifest as AgentManifest);
+      const errors =
+        body.type === 'tool'
+          ? validateToolManifest(body.manifest as ToolManifest)
+          : validateAgentManifest(body.manifest as AgentManifest);
 
       if (errors.length > 0) {
-        sendJson(res, 400, { success: false, error: 'Validation failed', validationErrors: errors });
+        sendJson(res, 400, {
+          success: false,
+          error: 'Validation failed',
+          validationErrors: errors,
+        });
         return true;
       }
 
@@ -264,7 +272,10 @@ async function handlePublisherRoutes(
         registerAgent(body.manifest as AgentManifest);
       }
 
-      log.info({ itemId: body.manifest.id, type: body.type, publisherId: publisher.publisherId }, 'Submission accepted');
+      log.info(
+        { itemId: body.manifest.id, type: body.type, publisherId: publisher.publisherId },
+        'Submission accepted'
+      );
       sendJson(res, 200, {
         success: true,
         itemId: body.manifest.id,
@@ -430,7 +441,10 @@ async function handlePublisherRoutes(
     const itemId = pathname.split('/')[4];
 
     try {
-      const body = await parseBody<{ type: 'tool' | 'agent'; manifest: ToolManifest | AgentManifest }>(req);
+      const body = await parseBody<{
+        type: 'tool' | 'agent';
+        manifest: ToolManifest | AgentManifest;
+      }>(req);
 
       const existing = body.type === 'tool' ? getTool(itemId) : getAgent(itemId);
       if (!existing) {
@@ -443,12 +457,17 @@ async function handlePublisherRoutes(
         return true;
       }
 
-      const errors = body.type === 'tool'
-        ? validateToolManifest(body.manifest as ToolManifest)
-        : validateAgentManifest(body.manifest as AgentManifest);
+      const errors =
+        body.type === 'tool'
+          ? validateToolManifest(body.manifest as ToolManifest)
+          : validateAgentManifest(body.manifest as AgentManifest);
 
       if (errors.length > 0) {
-        sendJson(res, 400, { success: false, error: 'Validation failed', validationErrors: errors });
+        sendJson(res, 400, {
+          success: false,
+          error: 'Validation failed',
+          validationErrors: errors,
+        });
         return true;
       }
 
@@ -499,7 +518,8 @@ async function handlePublisherRoutes(
       log.info({ itemId, publisherId: publisher.publisherId }, 'Item deletion requested');
       sendJson(res, 200, {
         success: true,
-        message: 'Item scheduled for removal. Existing installations will continue to work for 30 days.',
+        message:
+          'Item scheduled for removal. Existing installations will continue to work for 30 days.',
       });
       return true;
     } catch (error) {
@@ -671,7 +691,9 @@ async function handleInstallRoutes(
     }
 
     try {
-      const body = await parseBody<{ agentId: string; grantedPermissions?: PermissionScope[] }>(req);
+      const body = await parseBody<{ agentId: string; grantedPermissions?: PermissionScope[] }>(
+        req
+      );
 
       const agent = getAgent(body.agentId);
       if (!agent) {
@@ -687,7 +709,10 @@ async function handleInstallRoutes(
         permissions: body.grantedPermissions || [],
       });
 
-      log.info({ userId, agentId: body.agentId, installationId: installation.id }, 'Agent installed');
+      log.info(
+        { userId, agentId: body.agentId, installationId: installation.id },
+        'Agent installed'
+      );
       sendJson(res, 200, {
         success: true,
         installation: {
@@ -837,9 +862,7 @@ async function handleUsageRoutes(
 
     try {
       const installations = listInstallations(userId);
-      const summaries = installations.map((inst) =>
-        getUsageSummary(userId, inst.itemId, tier)
-      );
+      const summaries = installations.map((inst) => getUsageSummary(userId, inst.itemId, tier));
 
       // Aggregate totals
       const totalExecutions = summaries.reduce((sum, s) => sum + s.totals.executions, 0);
@@ -1003,7 +1026,11 @@ async function handlePaymentRoutes(
       }
 
       // Get pricing (default to free)
-      const pricing = 'pricing' in item ? item.pricing : { model: 'free' as const };
+      type ItemPricing =
+        | { model: 'free' }
+        | { model: 'one-time' | 'subscription'; priceInCents: number };
+      const pricing: ItemPricing =
+        'pricing' in item && item.pricing ? (item.pricing as ItemPricing) : { model: 'free' };
       if (pricing.model === 'free') {
         sendJson(res, 400, { error: 'This item is free, no checkout required' });
         return true;
@@ -1015,14 +1042,18 @@ async function handlePaymentRoutes(
         itemType: body.itemType,
         itemName: item.name,
         publisherId: item.publisher.id,
-        priceInCents: pricing.priceInCents || 0,
-        purchaseType: body.purchaseType || (pricing.model === 'subscription' ? 'subscription' : 'one-time'),
+        priceInCents: pricing.priceInCents,
+        purchaseType:
+          body.purchaseType || (pricing.model === 'subscription' ? 'subscription' : 'one-time'),
         successUrl: body.successUrl || 'https://ferni.ai/marketplace/success',
         cancelUrl: body.cancelUrl || 'https://ferni.ai/marketplace',
         email: body.email,
       });
 
-      log.info({ userId, itemId: body.itemId, sessionId: session.sessionId }, 'Checkout session created');
+      log.info(
+        { userId, itemId: body.itemId, sessionId: session.sessionId },
+        'Checkout session created'
+      );
       sendJson(res, 200, session);
       return true;
     } catch (error) {
@@ -1085,16 +1116,20 @@ export async function handleMarketplaceRoutes(
   }
 
   // Usage/billing routes
-  if (pathname.startsWith('/api/marketplace/usage') ||
-      pathname.startsWith('/api/marketplace/quota') ||
-      pathname.startsWith('/api/marketplace/billing')) {
+  if (
+    pathname.startsWith('/api/marketplace/usage') ||
+    pathname.startsWith('/api/marketplace/quota') ||
+    pathname.startsWith('/api/marketplace/billing')
+  ) {
     return handleUsageRoutes(req, res, pathname, method);
   }
 
   // Payment/webhook routes
-  if (pathname === '/api/marketplace/webhook' ||
-      pathname === '/api/marketplace/checkout' ||
-      pathname.startsWith('/api/marketplace/payment')) {
+  if (
+    pathname === '/api/marketplace/webhook' ||
+    pathname === '/api/marketplace/checkout' ||
+    pathname.startsWith('/api/marketplace/payment')
+  ) {
     return handlePaymentRoutes(req, res, pathname, method);
   }
 
@@ -1105,15 +1140,16 @@ export async function handleMarketplaceRoutes(
  * Check if a path is a marketplace route (for preflight checks)
  */
 export function isMarketplaceRoute(pathname: string): boolean {
-  return pathname.startsWith('/api/marketplace/') && (
-    pathname.startsWith('/api/marketplace/publisher') ||
-    pathname.startsWith('/api/marketplace/browse') ||
-    pathname.startsWith('/api/marketplace/install') ||
-    pathname.startsWith('/api/marketplace/usage') ||
-    pathname.startsWith('/api/marketplace/quota') ||
-    pathname.startsWith('/api/marketplace/billing') ||
-    pathname.startsWith('/api/marketplace/payment') ||
-    pathname === '/api/marketplace/webhook' ||
-    pathname === '/api/marketplace/checkout'
+  return (
+    pathname.startsWith('/api/marketplace/') &&
+    (pathname.startsWith('/api/marketplace/publisher') ||
+      pathname.startsWith('/api/marketplace/browse') ||
+      pathname.startsWith('/api/marketplace/install') ||
+      pathname.startsWith('/api/marketplace/usage') ||
+      pathname.startsWith('/api/marketplace/quota') ||
+      pathname.startsWith('/api/marketplace/billing') ||
+      pathname.startsWith('/api/marketplace/payment') ||
+      pathname === '/api/marketplace/webhook' ||
+      pathname === '/api/marketplace/checkout')
   );
 }
