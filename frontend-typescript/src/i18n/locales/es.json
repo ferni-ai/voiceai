@@ -1,0 +1,208 @@
+{
+  "meta": {
+    "locale": "es",
+    "name": "Espa\u00f1ol",
+    "direction": "ltr"
+  },
+
+  "common": {
+    "loading": "Cargando...",
+    "error": "Algo sali\u00f3 mal",
+    "retry": "Intentar de nuevo",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "next": "Siguiente",
+    "back": "Atr\u00e1s",
+    "done": "Listo",
+    "continue": "Continuar",
+    "skip": "Omitir",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "share": "Compartir",
+    "download": "Descargar",
+    "copy": "Copiar",
+    "copied": "\u00a1Copiado!",
+    "new": "NUEVO"
+  },
+
+  "menu": {
+    "title": "Men\u00fa",
+    "yourStage": "Tu etapa",
+    "nextStage": "Siguiente: {stage}",
+    "maxLevel": "\u00a1Nivel m\u00e1ximo!",
+    "sections": {
+      "journey": "Tu Viaje",
+      "insights": "Perspectivas",
+      "sessions": "Sesiones y Diversi\u00f3n",
+      "customize": "Personalizar",
+      "account": "Cuenta y Seguridad",
+      "admin": "Admin"
+    },
+    "items": {
+      "yourJourney": "Tu Viaje",
+      "trustDetails": "Detalles de Confianza",
+      "progressAnalytics": "An\u00e1lisis de Progreso",
+      "predictionAccuracy": "Precisi\u00f3n de Predicciones",
+      "whatILearned": "Lo Que He Aprendido",
+      "memoryBrowser": "Explorador de Memoria",
+      "wellbeingDashboard": "Panel de Bienestar",
+      "conversationHistory": "Historial de Conversaciones",
+      "videoSessions": "Sesiones de Video",
+      "groupCoaching": "Coaching Grupal",
+      "teamHuddles": "Reuniones de Equipo",
+      "playGames": "Jugar",
+      "musicalYou": "Tu M\u00fasica",
+      "personalize": "Personalizar",
+      "voiceAccent": "Acento de Voz",
+      "guidedPractices": "Pr\u00e1cticas Guiadas",
+      "createPractice": "Crear Pr\u00e1ctica",
+      "healthFitness": "Salud y Fitness",
+      "calendar": "Calendario",
+      "notifications": "Notificaciones",
+      "toggleTheme": "Cambiar Tema",
+      "linkSpotify": "Conectar Spotify",
+      "spotifyConnected": "Spotify Conectado",
+      "yourPlan": "Tu Plan",
+      "manageBilling": "Gestionar Facturaci\u00f3n",
+      "voiceId": "ID de Voz",
+      "householdMembers": "Miembros del Hogar",
+      "contactInfo": "Info de Contacto",
+      "exportData": "Exportar Datos",
+      "shareFerni": "Compartir Ferni",
+      "supportFerni": "Apoyar a Ferni",
+      "takeTour": "Hacer el Tour"
+    }
+  },
+
+  "session": {
+    "connecting": "Conectando...",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "listening": "Escuchando...",
+    "thinking": "Pensando...",
+    "speaking": "Hablando...",
+    "tapToSpeak": "Toca para hablar",
+    "holdToSpeak": "Mant\u00e9n para hablar",
+    "releaseToSend": "Suelta para enviar",
+    "endSession": "Terminar Sesi\u00f3n",
+    "sessionEnded": "Sesi\u00f3n terminada"
+  },
+
+  "subscription": {
+    "free": "Gratis",
+    "friend": "Amigo",
+    "partner": "Socio",
+    "upgrade": "Mejorar",
+    "currentPlan": "Plan Actual",
+    "planDetails": "Detalles del Plan",
+    "features": "Caracter\u00edsticas",
+    "unlimitedConversations": "Conversaciones ilimitadas",
+    "allTeamMembers": "Todos los miembros del equipo",
+    "prioritySupport": "Soporte prioritario",
+    "advancedInsights": "Perspectivas avanzadas"
+  },
+
+  "team": {
+    "meetTheTeam": "Conoce al Equipo",
+    "selectMember": "Selecciona un miembro",
+    "currentlyWith": "Actualmente con {name}",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "Coach de Vida",
+        "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia."
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "Sabio y Mentor",
+        "bio": "Tu mentor de por vida con sabidur\u00eda y paciencia."
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "Investigaci\u00f3n",
+        "bio": "Detecta patrones que nadie m\u00e1s ve."
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "Comunicaci\u00f3n",
+        "bio": "Tu jefe de personal y coach de comunicaci\u00f3n."
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "H\u00e1bitos y Rutinas",
+        "bio": "Te ayuda a construir h\u00e1bitos que perduran."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "Planificaci\u00f3n",
+        "bio": "Convierte sue\u00f1os vagos en experiencias vividas."
+      }
+    }
+  },
+
+  "stages": {
+    "stranger": "Desconocido",
+    "acquaintance": "Conocido",
+    "friend": "Amigo",
+    "closeFriend": "Amigo Cercano",
+    "confidant": "Confidente",
+    "soulmate": "Alma Gemela"
+  },
+
+  "time": {
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {n} minutos",
+    "hoursAgo": "Hace {n} horas",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace {n} d\u00edas"
+  },
+
+  "milestones": {
+    "ourStory": "Nuestra Historia Hasta Ahora",
+    "everyMomentMatters": "Cada momento importa.",
+    "journeyWith": "Mi Viaje con Ferni",
+    "categories": {
+      "relationship": "Nuestra Relaci\u00f3n",
+      "team": "Conexi\u00f3n de Equipo",
+      "conversation": "Nuestras Conversaciones",
+      "discovery": "Descubrimiento",
+      "sweet": "Momento Dulce",
+      "milestone": "Hito"
+    }
+  },
+
+  "notifications": {
+    "connectionLost": "Conexi\u00f3n perdida. Reconectando...",
+    "reconnected": "\u00a1Reconectado!",
+    "microphoneBlocked": "Se requiere acceso al micr\u00f3fono",
+    "sessionTimeout": "La sesi\u00f3n expir\u00f3"
+  },
+
+  "errors": {
+    "connectionFailed": "Error al conectar. Por favor, int\u00e9ntalo de nuevo.",
+    "microphoneAccess": "Por favor, permite el acceso al micr\u00f3fono para continuar.",
+    "networkError": "Error de red. Por favor, verifica tu conexi\u00f3n.",
+    "sessionExpired": "Tu sesi\u00f3n ha expirado. Por favor, actualiza.",
+    "somethingWrong": "Algo sali\u00f3 mal. Por favor, int\u00e9ntalo de nuevo."
+  },
+
+  "onboarding": {
+    "welcome": "Bienvenido",
+    "letsGetStarted": "Empecemos",
+    "whatIsYourName": "\u00bfC\u00f3mo te gustar\u00eda que te llame?",
+    "niceName": "\u00a1Encantado de conocerte, {name}!",
+    "howAreYouFeeling": "\u00bfC\u00f3mo te sientes hoy?",
+    "readyToBegin": "\u00bfListo para empezar?"
+  },
+
+  "accessibility": {
+    "closeMenu": "Cerrar men\u00fa",
+    "openSettings": "Abrir configuraci\u00f3n",
+    "muteAudio": "Silenciar audio",
+    "unmuteAudio": "Activar audio",
+    "endCall": "Terminar llamada",
+    "skipToContent": "Saltar al contenido principal"
+  }
+}
