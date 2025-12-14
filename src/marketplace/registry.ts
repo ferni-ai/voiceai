@@ -71,7 +71,10 @@ async function getStore(): Promise<MarketplaceStore> {
 export function registerTool(manifest: ToolManifest): void {
   const existingVersion = cache.tools.get(manifest.id);
   if (existingVersion && existingVersion.version >= manifest.version) {
-    log.warn({ toolId: manifest.id, version: manifest.version }, 'Tool already registered with same or newer version');
+    log.warn(
+      { toolId: manifest.id, version: manifest.version },
+      'Tool already registered with same or newer version'
+    );
     return;
   }
 
@@ -81,8 +84,10 @@ export function registerTool(manifest: ToolManifest): void {
 
   // Persist to store (async, fire-and-forget)
   getStore()
-    .then((store) => store.saveTool(manifest))
-    .catch((err) => log.warn({ toolId: manifest.id, error: String(err) }, 'Failed to persist tool'));
+    .then(async (store) => store.saveTool(manifest))
+    .catch((err) =>
+      log.warn({ toolId: manifest.id, error: String(err) }, 'Failed to persist tool')
+    );
 }
 
 /**
@@ -158,8 +163,10 @@ export function registerAgent(manifest: AgentManifest): void {
 
   // Persist to store (async, fire-and-forget)
   getStore()
-    .then((store) => store.saveAgent(manifest))
-    .catch((err) => log.warn({ agentId: manifest.id, error: String(err) }, 'Failed to persist agent'));
+    .then(async (store) => store.saveAgent(manifest))
+    .catch((err) =>
+      log.warn({ agentId: manifest.id, error: String(err) }, 'Failed to persist agent')
+    );
 }
 
 /**
@@ -254,7 +261,8 @@ export async function installItem(options: {
     itemId,
     itemVersion: manifest.version,
     userId,
-    tenantId,
+    // Only include tenantId if defined (Firestore rejects undefined values)
+    ...(tenantId && { tenantId }),
     installedAt: now,
     installedBy: userId,
     installSource: 'marketplace',
@@ -290,7 +298,10 @@ export function getInstallation(userId: UserId, itemId: MarketplaceId): Installa
 /**
  * Get installation for a user + item combination (async, checks store)
  */
-export async function getInstallationAsync(userId: UserId, itemId: MarketplaceId): Promise<Installation | null> {
+export async function getInstallationAsync(
+  userId: UserId,
+  itemId: MarketplaceId
+): Promise<Installation | null> {
   // Check cache first
   const cached = getInstallation(userId, itemId);
   if (cached) return cached;
@@ -307,7 +318,10 @@ export async function getInstallationAsync(userId: UserId, itemId: MarketplaceId
 /**
  * List all installations for a user (sync, from cache)
  */
-export function listInstallations(userId: UserId, options?: { itemType?: 'agent' | 'tool' }): Installation[] {
+export function listInstallations(
+  userId: UserId,
+  options?: { itemType?: 'agent' | 'tool' }
+): Installation[] {
   let installations = Array.from(cache.installations.values()).filter(
     (i) => i.userId === userId && i.status === 'active'
   );
@@ -397,16 +411,20 @@ export function recordExecution(execution: Omit<ToolExecution, 'id'>): ToolExecu
 
     // Persist installation usage update (fire-and-forget)
     getStore()
-      .then((store) =>
+      .then(async (store) =>
         store.updateInstallation(installation.id, { usage: installation.usage })
       )
-      .catch((err) => log.warn({ installationId: installation.id, error: String(err) }, 'Failed to persist usage'));
+      .catch((err) =>
+        log.warn({ installationId: installation.id, error: String(err) }, 'Failed to persist usage')
+      );
   }
 
   // Persist execution (fire-and-forget)
   getStore()
-    .then((store) => store.saveExecution(fullExecution))
-    .catch((err) => log.warn({ executionId: fullExecution.id, error: String(err) }, 'Failed to persist execution'));
+    .then(async (store) => store.saveExecution(fullExecution))
+    .catch((err) =>
+      log.warn({ executionId: fullExecution.id, error: String(err) }, 'Failed to persist execution')
+    );
 
   return fullExecution;
 }
@@ -495,16 +513,16 @@ export function getListing(id: MarketplaceId): MarketplaceListing | undefined {
 /**
  * Search marketplace listings
  */
-export function searchListings(query: string, options?: {
-  type?: 'agent' | 'tool';
-  category?: string;
-  trustLevel?: TrustLevel;
-  limit?: number;
-}): MarketplaceListing[] {
-  const allIds = [
-    ...Array.from(cache.tools.keys()),
-    ...Array.from(cache.agents.keys()),
-  ];
+export function searchListings(
+  query: string,
+  options?: {
+    type?: 'agent' | 'tool';
+    category?: string;
+    trustLevel?: TrustLevel;
+    limit?: number;
+  }
+): MarketplaceListing[] {
+  const allIds = [...Array.from(cache.tools.keys()), ...Array.from(cache.agents.keys())];
 
   let listings = allIds
     .map((id) => getListing(id))
