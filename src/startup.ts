@@ -224,6 +224,14 @@ export async function startup(): Promise<AppConfig> {
           return 'community_insights';
         }),
 
+      // Collective learning scheduler - runs background aggregation jobs
+      import('./intelligence/collective-learning-scheduler.js')
+        .then(({ startCollectiveLearningScheduler }) => {
+          startCollectiveLearningScheduler();
+          logger.debug('✓ Collective learning scheduler started (deferred)');
+          return 'collective_learning_scheduler';
+        }),
+
       // Agent evolution (persona self-improvement) - not needed for first greeting
       import('./intelligence/agent-evolution.js')
         .then(({ initializeAgentEvolution }) => initializeAgentEvolution())

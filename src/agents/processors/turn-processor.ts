@@ -100,6 +100,12 @@ import {
   type MismatchResult,
 } from '../../intelligence/voice-text-mismatch.js';
 
+// Cross-session reflection ("Better Than Human" - remember significant moments)
+import {
+  detectReflectionMoment,
+  saveReflectionMoment,
+} from '../../intelligence/cross-session-reflection.js';
+
 // Note: Scientific coaching and cross-persona insights are now handled
 // by injection-builders.ts for cleaner separation of concerns
 
@@ -1806,6 +1812,28 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       // Non-fatal - outreach extraction should never block conversation
       diag.debug('Outreach extraction skipped', { error: String(outreachErr) });
     });
+  }
+
+  // 14. CROSS-SESSION REFLECTION: Detect moments worth reflecting on later
+  // "Better Than Human" - We remember significant moments and reflect on them next session
+  if (services.userProfile && (analysis.emotion.intensity || 0.5) > 0.6) {
+    const reflectionMoment = detectReflectionMoment(
+      userText,
+      currentTopic || 'general',
+      analysis.emotion.primary,
+      analysis.emotion.intensity || 0.5,
+      services.sessionId,
+      ctx.persona.id
+    );
+
+    if (reflectionMoment) {
+      saveReflectionMoment(services.userProfile, reflectionMoment);
+      diag.debug('Reflection moment captured', {
+        type: reflectionMoment.type,
+        topic: reflectionMoment.topic,
+        weight: reflectionMoment.emotionalWeight,
+      });
+    }
   }
 
   // Calculate elapsed time
