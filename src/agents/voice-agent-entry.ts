@@ -227,8 +227,38 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Step 2: Get persona (from cache or load locally)
     currentPhase = 'persona';
-    const metadata = ctx.job.metadata ? JSON.parse(ctx.job.metadata) : {};
-    const personaId = metadata.persona_id || process.env.PERSONA_ID || 'ferni';
+
+    // DEBUG: Log all available metadata sources
+    process.stderr.write(`[voice-agent-entry] DEBUG job.metadata: ${ctx.job.metadata}\n`);
+    process.stderr.write(`[voice-agent-entry] DEBUG room.metadata: ${ctx.job.room?.metadata}\n`);
+
+    // Try job.metadata first (dispatch metadata), then room.metadata (room creation metadata)
+    let metadata: Record<string, unknown> = {};
+    if (ctx.job.metadata) {
+      try {
+        metadata = JSON.parse(ctx.job.metadata);
+      } catch (e) {
+        process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
+      }
+    }
+
+    // FIX: Also check room.metadata as fallback (room metadata from token server)
+    if (!metadata.persona_id && ctx.job.room?.metadata) {
+      try {
+        const roomMeta = JSON.parse(ctx.job.room.metadata);
+        if (roomMeta.persona_id) {
+          metadata = { ...metadata, ...roomMeta };
+          process.stderr.write(
+            `[voice-agent-entry] Using room.metadata for persona_id: ${roomMeta.persona_id}\n`
+          );
+        }
+      } catch (e) {
+        process.stderr.write(`[voice-agent-entry] Failed to parse room.metadata: ${e}\n`);
+      }
+    }
+
+    const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+    process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
 
     e2e.resourceLoading(`persona:${personaId}`);
     const personaStart = Date.now();

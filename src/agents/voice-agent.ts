@@ -2431,11 +2431,26 @@ export default defineAgent({
       const defaultPersonaId = process.env.PERSONA_ID || 'ferni';
       let requestedPersonaId = defaultPersonaId;
 
+      // Try job.metadata first (dispatch metadata), then room.metadata (room creation metadata)
       try {
         if (ctx.job.metadata) {
           const metadata = JSON.parse(ctx.job.metadata);
           if (metadata.persona_id) {
             requestedPersonaId = metadata.persona_id;
+            diag.session('Persona from job.metadata', { personaId: requestedPersonaId });
+          }
+        }
+
+        // FIX BUG: Also check room.metadata as fallback (token server sets room metadata)
+        if (requestedPersonaId === defaultPersonaId && ctx.job.room?.metadata) {
+          try {
+            const roomMeta = JSON.parse(ctx.job.room.metadata);
+            if (roomMeta.persona_id) {
+              requestedPersonaId = roomMeta.persona_id;
+              diag.session('Persona from room.metadata', { personaId: requestedPersonaId });
+            }
+          } catch (roomErr) {
+            diag.warn('Failed to parse room.metadata', { error: String(roomErr) });
           }
         }
       } catch (e) {

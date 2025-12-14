@@ -149,9 +149,12 @@ async function runJobInProcess(info: JobInfo): Promise<void> {
   activeJobs++;
   totalJobs++;
 
+  // DEBUG: Log job metadata to verify persona_id is passed correctly
   log('Starting job in-process', {
     jobId,
     roomName: info.job.room?.name,
+    jobMetadata: info.job.metadata, // Should contain persona_id from dispatch
+    roomMetadata: info.job.room?.metadata, // Room metadata
     activeJobs,
     totalJobs,
   });
