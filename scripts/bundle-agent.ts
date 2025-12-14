@@ -35,18 +35,15 @@ const CONFIG = {
   format: 'esm' as const,
   platform: 'node' as const,
 
-  // External packages - don't bundle these (they're in node_modules)
+  // External packages - only things that can't be bundled
+  // We BUNDLE @livekit/* and @google/* to avoid 35s module resolution on Cloud Run
   external: [
-    // LiveKit packages
-    '@livekit/agents',
-    '@livekit/agents-plugin-google',
-    '@livekit/agents-plugin-silero',
-    '@livekit/agents-plugin-cartesia',
-    '@livekit/rtc-node',
-    '@livekit/noise-cancellation-node',
-    // Google packages
-    '@google/genai',
-    '@google/generative-ai',
+    // Native modules that can't be bundled (have .node binaries)
+    'onnxruntime-node', // Has native .node bindings
+    '@livekit/rtc-node', // Has native bindings
+    '@livekit/noise-cancellation-node', // Has native bindings
+    // Dynamically imported (error path only)
+    '@google/generative-ai', // Only loaded for AI diagnostics
     // Node.js built-ins
     'fs',
     'fs/promises',

@@ -164,12 +164,124 @@ service cloud.firestore {
     // ============================================================================
     // LEARNING SIGNALS
     // ============================================================================
-    
+
     match /learning_signals/{document=**} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() || isServiceAccount();
     }
-    
+
+    // ============================================================================
+    // MARKETPLACE - Tools & Agents Registry
+    // ============================================================================
+
+    // Tool manifests - public read, publisher/admin write
+    match /marketplace_tools/{toolId} {
+      // Anyone can read verified tools
+      allow read: if resource.data.verification.verified == true || isAdmin() || isServiceAccount();
+      // Publishers can only write their own tools
+      allow create: if isSignedIn() && request.resource.data.publisher.id == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.publisher.id == request.auth.uid ||
+        isAdmin() ||
+        isServiceAccount()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Agent manifests - public read, publisher/admin write
+    match /marketplace_agents/{agentId} {
+      // Anyone can read verified agents
+      allow read: if resource.data.verification.verified == true || isAdmin() || isServiceAccount();
+      // Publishers can only write their own agents
+      allow create: if isSignedIn() && request.resource.data.publisher.id == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.publisher.id == request.auth.uid ||
+        isAdmin() ||
+        isServiceAccount()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // MARKETPLACE - User Installations
+    // ============================================================================
+
+    match /marketplace_installations/{installationId} {
+      // Users can only read their own installations
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can install items for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Users can update their own installations (enable/disable)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can uninstall their own items
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Service accounts can manage all installations
+      allow read, write: if isServiceAccount();
+    }
+
+    // ============================================================================
+    // MARKETPLACE - Execution Audit Log
+    // ============================================================================
+
+    match /marketplace_executions/{executionId} {
+      // Users can read their own executions
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Only service accounts can write (backend records executions)
+      allow create: if isServiceAccount();
+      // Executions are immutable
+      allow update, delete: if false;
+      // Publishers can read executions for their tools
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+    }
+
+    // ============================================================================
+    // MARKETPLACE - Usage & Billing
+    // ============================================================================
+
+    match /marketplace_usage/{usageId} {
+      // Users can read their own usage
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Only service accounts can write usage records
+      allow create, update: if isServiceAccount();
+      // Usage records are immutable once created
+      allow delete: if false;
+    }
+
+    // Monthly usage aggregates per user+item
+    match /marketplace_usage_monthly/{aggregateId} {
+      // Users can read their own aggregates
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Only service accounts can write
+      allow write: if isServiceAccount();
+    }
+
+    // ============================================================================
+    // MARKETPLACE - Revenue Share (Publishers)
+    // ============================================================================
+
+    match /marketplace_revenue_shares/{shareId} {
+      // Publishers can read their own revenue shares
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Only service accounts can write (billing system)
+      allow write: if isServiceAccount();
+      // Admins can read all
+      allow read: if isAdmin();
+    }
+
+    // ============================================================================
+    // MARKETPLACE - Publisher Profiles
+    // ============================================================================
+
+    match /marketplace_publishers/{publisherId} {
+      // Public read for verified publishers
+      allow read: if resource.data.verified == true || isAdmin() || isServiceAccount();
+      // Publishers can update their own profile
+      allow create: if isSignedIn() && publisherId == request.auth.uid;
+      allow update: if isSignedIn() && publisherId == request.auth.uid;
+      // Only admins can verify/delete publishers
+      allow delete: if isAdmin();
+    }
+
     // ============================================================================
     // DEFAULT DENY - Everything else is blocked
     // ============================================================================

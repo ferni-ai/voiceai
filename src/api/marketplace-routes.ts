@@ -33,6 +33,12 @@ import {
   getUsageHistory,
   getPendingPayouts,
 } from '../marketplace/billing/index.js';
+import {
+  isStripeConfigured,
+  verifyWebhookSignature,
+  handleWebhookEvent,
+  createMarketplaceCheckout,
+} from '../marketplace/billing/stripe-webhooks.js';
 import type {
   ToolManifest,
   AgentManifest,
@@ -74,6 +80,20 @@ async function parseBody<T>(req: IncomingMessage): Promise<T> {
         reject(new Error('Invalid JSON body'));
       }
     });
+    req.on('error', reject);
+  });
+}
+
+/**
+ * Parse raw body from request (for Stripe webhooks)
+ */
+async function parseRawBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => resolve(body));
     req.on('error', reject);
   });
 }
@@ -908,6 +928,127 @@ async function handleUsageRoutes(
 }
 
 // ============================================================================
+// PAYMENT/WEBHOOK ROUTES
+// ============================================================================
+
+async function handlePaymentRoutes(
+  req: IncomingMessage,
+  res: ServerResponse,
+  pathname: string,
+  method: string
+): Promise<boolean> {
+  // POST /api/marketplace/webhook - Stripe webhook endpoint
+  if (pathname === '/api/marketplace/webhook' && method === 'POST') {
+    if (!isStripeConfigured()) {
+      sendJson(res, 503, { error: 'Stripe not configured' });
+      return true;
+    }
+
+    const signature = req.headers['stripe-signature'] as string;
+    if (!signature) {
+      sendJson(res, 400, { error: 'Missing stripe-signature header' });
+      return true;
+    }
+
+    try {
+      // Must use raw body for signature verification
+      const rawBody = await parseRawBody(req);
+      const event = verifyWebhookSignature(rawBody, signature);
+      await handleWebhookEvent(event);
+
+      log.info({ eventType: event.type, eventId: event.id }, 'Marketplace webhook processed');
+      sendJson(res, 200, { received: true });
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      log.error({ error: err.message }, 'Webhook processing failed');
+      sendJson(res, 400, { error: 'Webhook verification failed' });
+      return true;
+    }
+  }
+
+  // POST /api/marketplace/checkout - Create checkout session
+  if (pathname === '/api/marketplace/checkout' && method === 'POST') {
+    if (!isStripeConfigured()) {
+      sendJson(res, 503, { error: 'Stripe not configured' });
+      return true;
+    }
+
+    const userId = getUserId(req);
+    if (!userId) {
+      sendJson(res, 401, { error: 'Authentication required' });
+      return true;
+    }
+
+    try {
+      const body = await parseBody<{
+        itemId: string;
+        itemType: 'tool' | 'agent';
+        purchaseType?: 'one-time' | 'subscription';
+        successUrl?: string;
+        cancelUrl?: string;
+        email?: string;
+      }>(req);
+
+      if (!body.itemId || !body.itemType) {
+        sendJson(res, 400, { error: 'itemId and itemType are required' });
+        return true;
+      }
+
+      // Get item details
+      const item = body.itemType === 'tool' ? getTool(body.itemId) : getAgent(body.itemId);
+      if (!item) {
+        sendJson(res, 404, { error: `${body.itemType} not found` });
+        return true;
+      }
+
+      // Get pricing (default to free)
+      const pricing = 'pricing' in item ? item.pricing : { model: 'free' as const };
+      if (pricing.model === 'free') {
+        sendJson(res, 400, { error: 'This item is free, no checkout required' });
+        return true;
+      }
+
+      const session = await createMarketplaceCheckout({
+        userId: userId as UserId,
+        itemId: body.itemId as MarketplaceId,
+        itemType: body.itemType,
+        itemName: item.name,
+        publisherId: item.publisher.id,
+        priceInCents: pricing.priceInCents || 0,
+        purchaseType: body.purchaseType || (pricing.model === 'subscription' ? 'subscription' : 'one-time'),
+        successUrl: body.successUrl || 'https://ferni.ai/marketplace/success',
+        cancelUrl: body.cancelUrl || 'https://ferni.ai/marketplace',
+        email: body.email,
+      });
+
+      log.info({ userId, itemId: body.itemId, sessionId: session.sessionId }, 'Checkout session created');
+      sendJson(res, 200, session);
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      log.error({ error: err.message }, 'Checkout creation failed');
+      sendJson(res, 500, { error: 'Failed to create checkout session' });
+      return true;
+    }
+  }
+
+  // GET /api/marketplace/payment/config - Get payment configuration
+  if (pathname === '/api/marketplace/payment/config' && method === 'GET') {
+    sendJson(res, 200, {
+      enabled: isStripeConfigured(),
+      currency: 'usd',
+      platformFeePercent: 20,
+      minPayoutCents: 1000, // $10 minimum payout
+      payoutSchedule: 'monthly', // 15th of each month
+    });
+    return true;
+  }
+
+  return false;
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -950,6 +1091,13 @@ export async function handleMarketplaceRoutes(
     return handleUsageRoutes(req, res, pathname, method);
   }
 
+  // Payment/webhook routes
+  if (pathname === '/api/marketplace/webhook' ||
+      pathname === '/api/marketplace/checkout' ||
+      pathname.startsWith('/api/marketplace/payment')) {
+    return handlePaymentRoutes(req, res, pathname, method);
+  }
+
   return false;
 }
 
@@ -963,6 +1111,9 @@ export function isMarketplaceRoute(pathname: string): boolean {
     pathname.startsWith('/api/marketplace/install') ||
     pathname.startsWith('/api/marketplace/usage') ||
     pathname.startsWith('/api/marketplace/quota') ||
-    pathname.startsWith('/api/marketplace/billing')
+    pathname.startsWith('/api/marketplace/billing') ||
+    pathname.startsWith('/api/marketplace/payment') ||
+    pathname === '/api/marketplace/webhook' ||
+    pathname === '/api/marketplace/checkout'
   );
 }

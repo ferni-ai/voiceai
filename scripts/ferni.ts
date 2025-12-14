@@ -426,6 +426,71 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['recent', 'service', 'stats'],
     examples: ['ferni anomalies', 'ferni anomalies recent', 'ferni anomalies service livekit'],
   },
+  // AI-Powered Automation
+  ai: {
+    name: 'AI',
+    description: 'AI-powered git workflow (commits, PRs, changelog)',
+    icon: '🤖',
+    handler: handleAI,
+    subcommands: ['commit', 'pr', 'changelog'],
+    examples: ['ferni ai commit', 'ferni ai pr', 'ferni ai changelog'],
+  },
+  review: {
+    name: 'Review',
+    description: 'AI-powered code review',
+    icon: '👀',
+    handler: handleReview,
+    subcommands: ['all', 'security', 'perf', 'full'],
+    examples: ['ferni review', 'ferni review security', 'ferni review full'],
+  },
+  copy: {
+    name: 'Copy',
+    description: 'AI-powered content/copy generation in brand voice',
+    icon: '✍️',
+    handler: handleCopy,
+    subcommands: ['error', 'empty', 'loading', 'success', 'toast', 'button', 'check'],
+    examples: ['ferni copy error "connection failed"', 'ferni copy check "your text"'],
+  },
+  'test-gen': {
+    name: 'Test Gen',
+    description: 'AI-powered test generation',
+    icon: '🧪',
+    handler: handleTestGen,
+    subcommands: ['generate', 'suggest'],
+    examples: ['ferni test-gen generate src/services/auth.ts', 'ferni test-gen suggest'],
+  },
+  docs: {
+    name: 'Docs',
+    description: 'AI-powered documentation generation',
+    icon: '📝',
+    handler: handleDocsGen,
+    subcommands: ['generate', 'api', 'component'],
+    examples: ['ferni docs generate src/utils/helpers.ts', 'ferni docs api'],
+  },
+  perf: {
+    name: 'Performance',
+    description: 'Performance monitoring & budget tracking',
+    icon: '⚡',
+    handler: handlePerf,
+    subcommands: ['budget', 'lighthouse', 'track', 'record'],
+    examples: ['ferni perf budget', 'ferni perf lighthouse', 'ferni perf track'],
+  },
+  security: {
+    name: 'Security',
+    description: 'Security scanning & auditing',
+    icon: '🛡️',
+    handler: handleSecurity,
+    subcommands: ['scan', 'secrets', 'deps', 'headers'],
+    examples: ['ferni security scan', 'ferni security secrets', 'ferni security headers'],
+  },
+  onboard: {
+    name: 'Onboard',
+    description: 'Developer onboarding & environment setup',
+    icon: '🌱',
+    handler: handleOnboard,
+    subcommands: ['start', 'check'],
+    examples: ['ferni onboard', 'ferni onboard check'],
+  },
 };
 
 // ============================================================================
@@ -3828,6 +3893,50 @@ async function handleAnomalies(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// AI-POWERED AUTOMATION HANDLERS
+// ============================================================================
+
+async function handleAI(args: string[]): Promise<void> {
+  const { handleAIGit } = await import('./cli/ai-git.js');
+  await handleAIGit(args);
+}
+
+async function handleReview(args: string[]): Promise<void> {
+  const { handleAIReview } = await import('./cli/ai-review.js');
+  await handleAIReview(args);
+}
+
+async function handleCopy(args: string[]): Promise<void> {
+  const { handleAIContent } = await import('./cli/ai-content.js');
+  await handleAIContent(args);
+}
+
+async function handleTestGen(args: string[]): Promise<void> {
+  const { handleAITest } = await import('./cli/ai-test.js');
+  await handleAITest(args);
+}
+
+async function handleDocsGen(args: string[]): Promise<void> {
+  const { handleDocs } = await import('./cli/docs.js');
+  await handleDocs(args);
+}
+
+async function handlePerf(args: string[]): Promise<void> {
+  const { handlePerf: perfHandler } = await import('./cli/perf.js');
+  await perfHandler(args);
+}
+
+async function handleSecurity(args: string[]): Promise<void> {
+  const { handleSecurity: securityHandler } = await import('./cli/security.js');
+  await securityHandler(args);
+}
+
+async function handleOnboard(args: string[]): Promise<void> {
+  const { handleOnboard: onboardHandler } = await import('./cli/onboard.js');
+  await onboardHandler(args);
+}
+
+// ============================================================================
 // INTERACTIVE MODE
 // ============================================================================
 
@@ -3861,7 +3970,8 @@ ${colors.bold}What would you like to do?${colors.reset}
   const devCommands = ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'];
   const opsCommands = ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'];
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'];
-  const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens'];
+  const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'];
+  const aiCommands = ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'];
 
   console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
   let index = 1;
@@ -3898,6 +4008,16 @@ ${colors.bold}What would you like to do?${colors.reset}
 
   console.log(`\n  ${colors.bold}${colors.cyan}Agents & Quality${colors.reset}`);
   for (const key of agentCommands) {
+    const cmd = COMMANDS[key];
+    if (cmd) {
+      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      indexMap[index] = key;
+      index++;
+    }
+  }
+
+  console.log(`\n  ${colors.bold}${colors.yellow}AI Automation${colors.reset}`);
+  for (const key of aiCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
       console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
@@ -3994,7 +4114,8 @@ ${colors.bold}Commands:${colors.reset}
     'Development': ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'],
     'Operations': ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'],
     'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    'Agents & Quality': ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens'],
+    'Agents & Quality': ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'],
+    'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
   };
 
   for (const [category, keys] of Object.entries(categories)) {

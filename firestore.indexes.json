@@ -96,7 +96,6 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
@@ -113,7 +112,6 @@
         { "fieldPath": "earnedAt", "order": "DESCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
@@ -138,7 +136,6 @@
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
@@ -155,7 +152,6 @@
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
@@ -172,7 +168,6 @@
         { "fieldPath": "date", "order": "DESCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "entries",
       "queryScope": "COLLECTION",
@@ -189,13 +184,207 @@
         { "fieldPath": "xp", "order": "DESCENDING" }
       ]
     },
-    
     {
       "collectionGroup": "conversations",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "summarized", "order": "ASCENDING" },
         { "fieldPath": "endedAt", "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_tools",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verification.verified", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_tools",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verification.trustLevel", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_tools",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisher.id", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_tools",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pricing.model", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_agents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verification.verified", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_agents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verification.trustLevel", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_agents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisher.id", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_installations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "installedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_installations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "itemType", "order": "ASCENDING" },
+        { "fieldPath": "installedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_installations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "enabled", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_installations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "itemId", "order": "ASCENDING" },
+        { "fieldPath": "installedAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_executions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_executions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisherId", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_executions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toolId", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_executions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_usage",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_usage",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "itemId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_usage_monthly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "period", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_usage_monthly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "itemId", "order": "ASCENDING" },
+        { "fieldPath": "period", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_revenue_shares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisherId", "order": "ASCENDING" },
+        { "fieldPath": "period", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_revenue_shares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisherId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "payoutDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marketplace_revenue_shares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "payoutDate", "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "marketplace_publishers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "verified", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],
