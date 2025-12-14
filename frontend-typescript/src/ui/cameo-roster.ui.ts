@@ -186,14 +186,14 @@ async function handleCameoStartAsync(
 
   activeCameoPersona = personaId as PersonaId;
 
-  // Get persona colors
+  // Get persona colors - FIX BUG: Use CSS variables as fallbacks instead of hardcoded hex
   const persona = getPersona(personaId as PersonaId);
   const colors = persona.colors || getPersonaColorConfig(personaId);
-  const primaryColor = colors?.primary || '#4a6741';
-  const glowColor = colors?.glow || `${primaryColor}80`; // 50% opacity fallback
+  const primaryColor = colors?.primary || 'var(--persona-primary, #4a6741)';
+  const glowColor = colors?.glow || 'var(--persona-glow, rgba(74, 103, 65, 0.5))';
   const gradient =
     colors?.gradient ||
-    `linear-gradient(135deg, ${colors?.secondary || '#3d5a35'}, ${primaryColor})`;
+    `linear-gradient(135deg, ${colors?.secondary || 'var(--persona-secondary, #3d5a35)'}, ${primaryColor})`;
 
   // Create the cameo avatar element with persona colors
   cameoElement = createCameoElement(

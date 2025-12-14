@@ -608,9 +608,9 @@ function attachMarketplaceAgentListeners(
 
     log.debug('Clicked marketplace agent:', name);
 
-    // Visual feedback
+    // Visual feedback - FIX BUG: Use DURATION constant instead of hardcoded value
     element.classList.add('team-member--clicked');
-    setTimeout(() => element.classList.remove('team-member--clicked'), 300);
+    setTimeout(() => element.classList.remove('team-member--clicked'), DURATION.SLOW);
 
     // Show marketplace modal with agent details
     void marketplaceUI.open();
@@ -836,10 +836,10 @@ function revealRosterWhenReady(container: HTMLElement): void {
     // App is loaded - remove initializing class to trigger entrance animation
     container.classList.remove('roster-initializing');
 
-    // Mark entrance complete after animation
+    // Mark entrance complete after animation - FIX BUG: Use DURATION constant
     setTimeout(() => {
       container.classList.add('entrance-complete');
-    }, 800);
+    }, DURATION.CELEBRATION);
   } else {
     // App not loaded yet - wait for it
     // Use MutationObserver to watch for app-loaded class
@@ -850,10 +850,10 @@ function revealRosterWhenReady(container: HTMLElement): void {
             observer.disconnect();
             container.classList.remove('roster-initializing');
 
-            // Mark entrance complete after animation
+            // Mark entrance complete after animation - FIX BUG: Use DURATION constant
             setTimeout(() => {
               container.classList.add('entrance-complete');
-            }, 800);
+            }, DURATION.CELEBRATION);
             break;
           }
         }
@@ -1009,11 +1009,11 @@ function onTeamMemberClick(personaId: PersonaId): void {
   }
 
   if (current.id === personaId) {
-    // Subtle pulse to acknowledge the tap
+    // Subtle pulse to acknowledge the tap - FIX BUG: Use DURATION constant
     const element = teamMemberElements.get(personaId);
     if (element) {
       addClass(element, 'pulse');
-      setTimeout(() => removeClass(element, 'pulse'), 300);
+      setTimeout(() => removeClass(element, 'pulse'), DURATION.SLOW);
     }
     return;
   }
@@ -1042,10 +1042,10 @@ function showLockedMemberFeedback(
 ): void {
   const element = teamMemberElements.get(personaId);
 
-  // Visual feedback - shake animation
+  // Visual feedback - shake animation - FIX BUG: Use DURATION constant
   if (element) {
     addClass(element, 'team-member--locked-feedback');
-    setTimeout(() => removeClass(element, 'team-member--locked-feedback'), 600);
+    setTimeout(() => removeClass(element, 'team-member--locked-feedback'), DURATION.DRAMATIC);
   }
 
   // Get the teaser message or fallback
