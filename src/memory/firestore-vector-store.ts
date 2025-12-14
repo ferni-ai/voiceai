@@ -109,6 +109,14 @@ export class FirestoreVectorStore implements IVectorStore {
   // Fallback in-memory cache for when Firestore vector search isn't available
   private fallbackCache = new Map<string, { doc: VectorDocument; embedding: number[] }>();
   private useFallback = false;
+  
+  // FIX AUDIT ISSUE: Track health status and recovery attempts
+  private fallbackReason: string | null = null;
+  private lastRecoveryAttempt = 0;
+  private recoveryAttemptCount = 0;
+  private readonly RECOVERY_INTERVAL_MS = 60_000; // Try recovery every 60s
+  private readonly MAX_RECOVERY_ATTEMPTS = 10;
+  private recoveryTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config?: FirestoreVectorConfig) {
     this.config = {
@@ -137,11 +145,25 @@ export class FirestoreVectorStore implements IVectorStore {
       process.env.GCE_METADATA_HOST;
 
     if (!hasCredentials && process.env.NODE_ENV !== 'production') {
-      getLogger().warn(
-        'No Google Cloud credentials found. FirestoreVectorStore using in-memory fallback.'
-      );
       this.useFallback = true;
+      this.fallbackReason = 'No Google Cloud credentials found';
       this._initialized = true;
+      
+      // FIX AUDIT ISSUE: Emit structured warning with risk assessment
+      getLogger().warn(
+        {
+          reason: this.fallbackReason,
+          risk: 'DATA_LOSS_ON_RESTART',
+          mode: 'in-memory',
+          recommendation: 'Set GOOGLE_APPLICATION_CREDENTIALS or deploy to GCP',
+        },
+        '⚠️ CRITICAL: Vector store running in fallback mode - memory data is EPHEMERAL!'
+      );
+      
+      // Schedule recovery attempts in production-like environments
+      if (process.env.NODE_ENV === 'staging') {
+        this.scheduleRecoveryAttempt();
+      }
       return;
     }
 
@@ -156,36 +178,237 @@ export class FirestoreVectorStore implements IVectorStore {
       // Test if vector search is available by checking collection
       const testRef = this.db.collection(this.COLLECTION_NAME);
       if (!testRef.findNearest) {
-        getLogger().warn(
-          'Firestore vector search not available (SDK version too old or index not created). Using fallback mode.'
-        );
         this.useFallback = true;
+        this.fallbackReason = 'Firestore SDK too old or vector index not created';
+        
+        // FIX AUDIT ISSUE: Structured warning
+        getLogger().warn(
+          {
+            reason: this.fallbackReason,
+            risk: 'DATA_LOSS_ON_RESTART',
+            mode: 'in-memory',
+            recommendation: 'Upgrade @google-cloud/firestore to >= 7.1.0 and create vector index',
+          },
+          '⚠️ CRITICAL: Vector store running in fallback mode - findNearest unavailable!'
+        );
       }
 
       // Test connectivity with a simple read operation
       try {
         await testRef.limit(1).get();
       } catch (connError) {
-        getLogger().warn(`Firestore connectivity test failed: ${connError}. Using fallback mode.`);
         this.useFallback = true;
+        this.fallbackReason = `Firestore connectivity failed: ${connError}`;
         this.db = null;
+        
+        // FIX AUDIT ISSUE: Structured warning
+        getLogger().warn(
+          {
+            reason: this.fallbackReason,
+            error: String(connError),
+            risk: 'DATA_LOSS_ON_RESTART',
+            mode: 'in-memory',
+          },
+          '⚠️ CRITICAL: Vector store running in fallback mode - connectivity failed!'
+        );
       }
 
       this._initialized = true;
-      getLogger().info(
-        `FirestoreVectorStore initialized (collection: ${this.COLLECTION_NAME}, fallback: ${this.useFallback})`
-      );
+      
+      // Log final initialization state
+      if (this.useFallback) {
+        // Schedule recovery attempts
+        this.scheduleRecoveryAttempt();
+      } else {
+        getLogger().info(
+          {
+            collection: this.COLLECTION_NAME,
+            healthy: true,
+          },
+          '✅ FirestoreVectorStore initialized successfully with Firestore backend'
+        );
+      }
     } catch (error) {
-      getLogger().error(`FirestoreVectorStore initialization failed: ${error}`);
-      // Enable fallback mode
+      // FIX AUDIT ISSUE: Structured error logging with risk
       this.useFallback = true;
+      this.fallbackReason = `Initialization error: ${error}`;
       this._initialized = true;
-      getLogger().warn('FirestoreVectorStore running in fallback (in-memory) mode');
+      
+      getLogger().error(
+        {
+          error: String(error),
+          reason: this.fallbackReason,
+          risk: 'DATA_LOSS_ON_RESTART',
+          mode: 'in-memory',
+        },
+        '❌ CRITICAL: FirestoreVectorStore initialization failed - running in fallback mode!'
+      );
+      
+      // Schedule recovery
+      this.scheduleRecoveryAttempt();
     }
   }
 
   get isInitialized(): boolean {
     return this._initialized;
+  }
+
+  /**
+   * FIX AUDIT ISSUE: Health check method for monitoring and alerting
+   * Returns comprehensive health status including fallback state
+   */
+  getHealth(): {
+    healthy: boolean;
+    initialized: boolean;
+    usingFallback: boolean;
+    fallbackReason: string | null;
+    risk: 'none' | 'data_loss' | 'degraded_search';
+    recoveryAttempts: number;
+    lastRecoveryAttempt: number | null;
+    cacheSize: number;
+  } {
+    return {
+      healthy: this._initialized && !this.useFallback,
+      initialized: this._initialized,
+      usingFallback: this.useFallback,
+      fallbackReason: this.fallbackReason,
+      risk: this.useFallback ? 'data_loss' : 'none',
+      recoveryAttempts: this.recoveryAttemptCount,
+      lastRecoveryAttempt: this.lastRecoveryAttempt || null,
+      cacheSize: this.fallbackCache.size,
+    };
+  }
+
+  /**
+   * FIX AUDIT ISSUE: Schedule periodic recovery attempts when in fallback mode
+   */
+  private scheduleRecoveryAttempt(): void {
+    // Don't schedule if already scheduled or max attempts reached
+    if (this.recoveryTimer || this.recoveryAttemptCount >= this.MAX_RECOVERY_ATTEMPTS) {
+      return;
+    }
+
+    this.recoveryTimer = setInterval(() => {
+      void (async () => {
+      if (!this.useFallback) {
+        // Recovery succeeded, stop the timer
+        if (this.recoveryTimer) {
+          clearInterval(this.recoveryTimer);
+          this.recoveryTimer = null;
+        }
+        return;
+      }
+
+      this.recoveryAttemptCount++;
+      this.lastRecoveryAttempt = Date.now();
+
+      getLogger().info(
+        {
+          attempt: this.recoveryAttemptCount,
+          maxAttempts: this.MAX_RECOVERY_ATTEMPTS,
+          cacheSize: this.fallbackCache.size,
+        },
+        '🔄 Attempting Firestore vector store recovery...'
+      );
+
+      try {
+        // Reset state and try to reinitialize
+        this._initialized = false;
+        this.useFallback = false;
+        this.fallbackReason = null;
+        this.db = null;
+
+        await this.initialize();
+
+        if (!this.useFallback) {
+          getLogger().info(
+            {
+              attempt: this.recoveryAttemptCount,
+              cacheSize: this.fallbackCache.size,
+            },
+            '✅ Firestore vector store recovered successfully!'
+          );
+
+          // Migrate cached data to Firestore
+          if (this.fallbackCache.size > 0) {
+            await this.migrateCacheToFirestore();
+          }
+
+          // Stop recovery timer
+          if (this.recoveryTimer) {
+            clearInterval(this.recoveryTimer);
+            this.recoveryTimer = null;
+          }
+        }
+      } catch (error) {
+        getLogger().warn(
+          { error: String(error), attempt: this.recoveryAttemptCount },
+          'Recovery attempt failed'
+        );
+      }
+
+      // Stop after max attempts
+      if (this.recoveryAttemptCount >= this.MAX_RECOVERY_ATTEMPTS) {
+        getLogger().error(
+          {
+            attempts: this.recoveryAttemptCount,
+            cacheSize: this.fallbackCache.size,
+            risk: 'DATA_LOSS_ON_RESTART',
+          },
+          '❌ Max recovery attempts reached. Vector store stuck in fallback mode. MANUAL INTERVENTION REQUIRED!'
+        );
+        if (this.recoveryTimer) {
+          clearInterval(this.recoveryTimer);
+          this.recoveryTimer = null;
+        }
+      }
+      })();
+    }, this.RECOVERY_INTERVAL_MS);
+  }
+
+  /**
+   * Migrate cached data to Firestore after recovery
+   */
+  private async migrateCacheToFirestore(): Promise<void> {
+    if (this.useFallback || !this.db || this.fallbackCache.size === 0) {
+      return;
+    }
+
+    getLogger().info(
+      { count: this.fallbackCache.size },
+      '📤 Migrating cached vectors to Firestore...'
+    );
+
+    const entries = Array.from(this.fallbackCache.entries());
+    let migrated = 0;
+    let failed = 0;
+
+    for (const [id, { doc }] of entries) {
+      try {
+        const docRef = this.db.collection(this.COLLECTION_NAME).doc(id);
+        const { FieldValue } = await import('@google-cloud/firestore');
+
+        await docRef.set({
+          text: doc.text,
+          embedding: FieldValue.vector(doc.embedding!),
+          metadata: doc.metadata,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        // Remove from cache after successful migration
+        this.fallbackCache.delete(id);
+        migrated++;
+      } catch (error) {
+        failed++;
+        getLogger().warn({ id, error: String(error) }, 'Failed to migrate document');
+      }
+    }
+
+    getLogger().info(
+      { migrated, failed, remaining: this.fallbackCache.size },
+      '📥 Cache migration complete'
+    );
   }
 
   /**
@@ -661,12 +884,22 @@ export class FirestoreVectorStore implements IVectorStore {
    * Close the connection
    */
   async close(): Promise<void> {
+    // Clean up recovery timer
+    if (this.recoveryTimer) {
+      clearInterval(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+    
     if (this.db) {
       await this.db.terminate();
       this.db = null;
     }
     this.fallbackCache.clear();
     this._initialized = false;
+    this.useFallback = false;
+    this.fallbackReason = null;
+    this.recoveryAttemptCount = 0;
+    this.lastRecoveryAttempt = 0;
   }
 }
 

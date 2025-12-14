@@ -579,8 +579,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       if (extensibilitySessionPrompt) {
         process.stderr.write(`[voice-agent-entry] 🔌 Extensibility hook executed\n`);
         // Store in userData for use in context injection
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (userData as any).extensibilitySessionPrompt = extensibilitySessionPrompt;
+        // FIX AUDIT ISSUE: Property now typed in UserData interface
+        userData.extensibilitySessionPrompt = extensibilitySessionPrompt;
       }
     } catch {
       // Non-critical - extensibility is optional
@@ -915,10 +915,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Engagement data sender
       (async () => {
         try {
-          const { getEngagementDataSender } = await import('../services/engagement-data-sender.js');
-          const engagementDataSender = getEngagementDataSender();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          engagementDataSender.setRoom(ctx.room as any);
+          const mod = await import('../services/engagement-data-sender.js');
+          const engagementDataSender = mod.getEngagementDataSender();
+          // FIX AUDIT ISSUE: Use structural typing - ctx.room has localParticipant with publishData
+          // which matches LiveKitRoomLike interface. Cast to that interface type.
+          engagementDataSender.setRoom(ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]);
           if (userId) {
             await engagementDataSender.sendEngagementData(userId);
           }

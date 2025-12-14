@@ -15,7 +15,8 @@ import {
 import { PERSONA_RITUALS } from './daily-rituals.js';
 
 // Generic interface for LiveKit room-like objects
-interface LiveKitRoomLike {
+// FIX AUDIT ISSUE: Export the interface so consumers can avoid `any` casts
+export interface LiveKitRoomLike {
   localParticipant?: {
     publishData: (data: Uint8Array, options?: { reliable?: boolean }) => Promise<void>;
   };

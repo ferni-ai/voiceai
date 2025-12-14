@@ -22,7 +22,8 @@ import { getTransitionDelay } from '../../config/handoff-timing.js';
 import { AgentDirectory } from '../../personas/agent-directory.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
-import { getCurrentAgent } from '../../tools/handoff/index.js';
+// FIX BUG #1-4: Use session-scoped handoff state instead of global state
+// The global getCurrentAgent() was causing cross-session contamination
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 // Cross-persona banter for warm handoffs
@@ -409,7 +410,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       }
 
       // Get previous persona for logging
-      const prevId = previousAgentId || getCurrentAgent();
+      // FIX BUG #1: Use session-scoped state instead of global getCurrentAgent()
+      const prevId = previousAgentId || services.handoffState.currentAgent;
       const prevPersonaConfig = await getPersonaAsyncCached(prevId);
 
       // FIX BUG: Check if previous persona was found
@@ -429,7 +431,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           greetingPreview: greeting ? greeting.slice(0, 50) : '(none)',
           playSound,
           voiceAgentRefAvailable: !!getVoiceAgentRef(),
-          currentAgentState: getCurrentAgent(),
+          currentAgentState: services.handoffState.currentAgent,
         },
         '🔄 Agent handoff triggered - START'
       );
@@ -617,11 +619,32 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
-        // FIX BUG #6: State sync removed - setCurrentAgent is already called in the handoff tool
-        // before emitting the event. Calling it twice caused race conditions where the
-        // state would indicate "new agent" before the voice actually switched.
-        // The handoff tool (handoff.ts) calls setCurrentAgent() BEFORE emitting voiceSwitch,
-        // so the handler should NOT call it again.
+        // FIX BUG #6: Global state sync removed - the handoff tool calls setCurrentAgent() 
+        // on the GLOBAL state before emitting voiceSwitch.
+        // 
+        // FIX BUG #1-4: But we MUST sync the SESSION-SCOPED state here!
+        // The global state in state.ts causes cross-session contamination.
+        // The session-scoped state in services.handoffState is isolated per-session.
+        // Update it here after voice switch succeeds to ensure session isolation.
+        services.handoffState.currentAgent = persona.id as import('../../services/agent-bus.js').AgentId;
+        
+        // Also mark this persona as met in this session
+        if (!services.handoffState.metPersonas.has(persona.id)) {
+          services.handoffState.metPersonas.add(persona.id);
+        }
+        
+        // Increment meeting count for relationship tracking
+        const currentCount = services.handoffState.perPersonaMeetingCount.get(persona.id) || 0;
+        services.handoffState.perPersonaMeetingCount.set(persona.id, currentCount + 1);
+        
+        logger.debug(
+          { 
+            personaId: persona.id, 
+            sessionId,
+            meetingCount: currentCount + 1,
+          },
+          'Session handoff state updated (isolated from global state)'
+        );
 
         // FIX BUG #24: STEP 4 was missing - music resume
         // FIX BUG #28: Use cached musicPlayerRef instead of re-importing
@@ -864,7 +887,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         const validation = {
           expectedAgent: persona.id,
           expectedName: persona.name,
-          currentAgentTracker: getCurrentAgent(),
+          // FIX BUG #1: Use session-scoped state instead of global getCurrentAgent()
+          currentAgentTracker: services.handoffState.currentAgent,
           voiceAgentPersona: voiceAgentRef?.getPersona()?.id,
           llmInstructionsSet: !!voiceAgentRef?.instructions,
           bundlePersona: voiceAgentRef?.getBundleRuntime()?.getState().personaId,

@@ -21,7 +21,8 @@ import type { ContextUserData } from '../../intelligence/context-builders/index.
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   getAgentContext,
-  getCurrentAgent,
+  // FIX BUG #1-4: getCurrentAgent uses global state causing cross-session contamination
+  // We now use ctx.services.handoffState.currentAgent instead
   getLastHandoff,
   updateUserContextForHandoff,
 } from '../../tools/handoff/index.js';
@@ -682,9 +683,11 @@ function buildResponseGuidance(
  * identity context to override the LLM's original instructions from session start.
  */
 function buildIdentityContext(ctx: TurnContext): IdentityContext {
-  const { persona } = ctx;
+  const { persona, services } = ctx;
 
-  const activeAgentId = getCurrentAgent();
+  // FIX BUG #1-4: Use session-scoped state instead of global getCurrentAgent()
+  // The global state causes cross-session contamination in concurrent sessions
+  const activeAgentId = services.handoffState.currentAgent;
   const sessionPersonaId = persona.id;
 
   // Helper to normalize IDs

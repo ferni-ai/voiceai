@@ -237,6 +237,14 @@ export interface UserData {
 
   /** Last silence analysis from the silence intelligence system */
   lastSilenceAnalysis?: SilenceAnalysis;
+
+  // ============================================================
+  // EXTENSIBILITY: Plugin/Hook System
+  // FIX AUDIT ISSUE: Added typed property to avoid `any` cast
+  // ============================================================
+
+  /** Session prompt from extensibility hooks (injected into context) */
+  extensibilitySessionPrompt?: string | null;
 }
 
 // ============================================================================
