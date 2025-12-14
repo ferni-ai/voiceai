@@ -270,8 +270,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Design system compliance & automation',
     icon: '🎨',
     handler: handleDesign,
-    subcommands: ['check', 'fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'],
-    examples: ['ferni design check', 'ferni design fix --priority', 'ferni design storybook'],
+    subcommands: ['check', 'fix', 'ai-fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'],
+    examples: ['ferni design check', 'ferni design ai-fix', 'ferni design storybook'],
   },
   dev: {
     name: 'Dev',
@@ -1002,6 +1002,36 @@ async function handleDesign(args: string[]): Promise<void> {
     }
   }
 
+  if (subcommand === 'ai-fix') {
+    console.log(`${colors.bold}🤖 AI-Powered Design System Fixer${colors.reset}\n`);
+    console.log(`${colors.dim}Ferni will use AI to intelligently fix violations...${colors.reset}\n`);
+
+    // Check for API key
+    if (!process.env.GOOGLE_API_KEY) {
+      log.error('GOOGLE_API_KEY not set');
+      console.log(`\nTo use AI-powered fixing, set your API key:`);
+      console.log(`  ${colors.cyan}export GOOGLE_API_KEY="your-key"${colors.reset}`);
+      console.log(`\nGet a key at: https://makersuite.google.com/app/apikey`);
+      return;
+    }
+
+    const extraArgs = args.slice(1);
+    const fixArgs = ['design-system/ai-fix.js', ...extraArgs];
+    
+    // If no args, run interactive mode
+    if (extraArgs.length === 0 || extraArgs.every(a => a.startsWith('--'))) {
+      spawn('node', fixArgs, {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit',
+      });
+    } else {
+      spawnSync('node', fixArgs, {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit',
+      });
+    }
+  }
+
   if (subcommand === 'priority') {
     console.log(`${colors.bold}Checking priority UI files only...${colors.reset}\n`);
     console.log(`${colors.dim}Priority files are core user-facing UI components${colors.reset}\n`);
@@ -1085,10 +1115,11 @@ async function handleDesign(args: string[]): Promise<void> {
   }
 
   // Show help if no valid subcommand
-  if (!['check', 'fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'].includes(subcommand)) {
+  if (!['check', 'fix', 'ai-fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'].includes(subcommand)) {
     console.log(`${colors.bold}Available subcommands:${colors.reset}\n`);
     console.log(`  ${colors.cyan}check${colors.reset}        Check all files for violations`);
-    console.log(`  ${colors.cyan}fix${colors.reset}          Auto-fix what's possible (--priority for core files)`);
+    console.log(`  ${colors.cyan}fix${colors.reset}          Rule-based auto-fix (fast, limited)`);
+    console.log(`  ${colors.cyan}ai-fix${colors.reset}       ${colors.magenta}🤖 AI-powered fix (smart, comprehensive)${colors.reset}`);
     console.log(`  ${colors.cyan}priority${colors.reset}     Check priority UI files only`);
     console.log(`  ${colors.cyan}watch${colors.reset}        Watch mode - auto-regenerate tokens`);
     console.log(`  ${colors.cyan}storybook${colors.reset}    Start Storybook for component docs`);
@@ -1097,8 +1128,10 @@ async function handleDesign(args: string[]): Promise<void> {
     console.log();
     console.log(`${colors.dim}Examples:${colors.reset}`);
     console.log(`  ferni design check`);
-    console.log(`  ferni design fix --priority`);
-    console.log(`  ferni design storybook`);
+    console.log(`  ferni design ai-fix                    ${colors.dim}# Interactive mode${colors.reset}`);
+    console.log(`  ferni design ai-fix --batch            ${colors.dim}# Fix all priority files${colors.reset}`);
+    console.log(`  ferni design ai-fix path/to/file.ts    ${colors.dim}# Fix specific file${colors.reset}`);
+    console.log(`  ferni design ai-fix --preview          ${colors.dim}# Preview without applying${colors.reset}`);
   }
 }
 
