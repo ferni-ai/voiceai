@@ -77,7 +77,7 @@ async function getUsersNeedingReindex(limit: number = 50): Promise<UserProfile[]
         updatedAt?: string;
       };
 
-      const profile = { id: doc.id, ...data };
+      const profile = { ...data, id: doc.id };
 
       // If never indexed, or indexed before last update
       if (!data.lastMemoryIndexAt) {
@@ -152,7 +152,7 @@ export class UserMemoryReindexJob extends ScheduledJob<ReindexJobConfig, Reindex
         }
 
         // Run indexing
-        const result: IndexingResult = await indexUserMemories(profile);
+        const result: IndexingResult = await indexUserMemories(profile.id, profile);
 
         totalIndexed += result.indexed;
         totalSkipped += result.skipped;
