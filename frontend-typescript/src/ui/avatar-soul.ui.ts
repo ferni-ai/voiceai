@@ -35,9 +35,13 @@ import { DURATION, EASING, FIBONACCI_DURATION } from '../config/animation-consta
 import { type EmotionId } from '../emotion/emotion-state.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AvatarSoul');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -2002,6 +2006,9 @@ function injectSoulStyles(): void {
  * Dispose the Avatar Soul system.
  */
 export function disposeAvatarSoul(): void {
+  // FIX BUG: Clear all tracked timeouts first
+  clearAllTimeouts();
+
   // Kill all GSAP animations
   if (pupilTimeline) pupilTimeline.kill();
   gazeTimeline?.kill();

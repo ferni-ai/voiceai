@@ -28,8 +28,12 @@
 
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('AvatarLamp');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -95,7 +99,7 @@ export function initAvatarLamp(): void {
 
   if (!avatarContainer || !coachAvatar) {
     log.warn('Avatar elements not found, deferring initialization');
-    setTimeout(initAvatarLamp, 500);
+    trackedTimeout(initAvatarLamp, 500);
     return;
   }
 
@@ -116,6 +120,9 @@ export function initAvatarLamp(): void {
  * Dispose of the Avatar Lamp system.
  */
 export function disposeAvatarLamp(): void {
+  // FIX BUG: Clear all tracked timeouts first
+  clearAllTimeouts();
+
   stopBreathing();
   emotionTimeline?.kill();
 
@@ -182,7 +189,7 @@ export function stopBreathing(): void {
  */
 function pauseBreathingFor(duration: number): void {
   state.breathingTimeline?.pause();
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (state.breathingActive) {
       state.breathingTimeline?.resume();
     }
@@ -575,7 +582,7 @@ export function express(emotion: LampEmotion): void {
 
     case 'confused':
       tilt('left', 0.4);
-      setTimeout(() => tilt('right', 0.3), 400);
+      trackedTimeout(() => tilt('right', 0.3), 400);
       break;
 
     case 'listening':
@@ -584,7 +591,7 @@ export function express(emotion: LampEmotion): void {
 
     case 'thinking':
       look('up');
-      setTimeout(() => tilt('left', 0.3), 200);
+      trackedTimeout(() => tilt('left', 0.3), 200);
       break;
 
     case 'sad':
@@ -593,12 +600,12 @@ export function express(emotion: LampEmotion): void {
 
     case 'empathetic':
       shrink(0.3);
-      setTimeout(() => nod(1, 'slow'), 400);
+      trackedTimeout(() => nod(1, 'slow'), 400);
       break;
 
     case 'proud':
       perkUp();
-      setTimeout(() => bounce(0.3, 1), 400);
+      trackedTimeout(() => bounce(0.3, 1), 400);
       break;
 
     case 'surprised':
@@ -607,7 +614,7 @@ export function express(emotion: LampEmotion): void {
 
     case 'laughing':
       bounce(0.3, 1);
-      setTimeout(() => shake(0.6), 300);
+      trackedTimeout(() => shake(0.6), 300);
       break;
 
     case 'acknowledging':
@@ -616,7 +623,7 @@ export function express(emotion: LampEmotion): void {
 
     case 'encouraging':
       nod(1, 'slow');
-      setTimeout(() => bounce(0.2, 1), 300);
+      trackedTimeout(() => bounce(0.2, 1), 300);
       break;
 
     case 'celebrating':
@@ -674,7 +681,7 @@ function setupEventListeners(): void {
   });
 
   document.addEventListener('ferni:user-speech-end', () => {
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (state.currentEmotion === 'listening') {
         express('neutral');
       }
