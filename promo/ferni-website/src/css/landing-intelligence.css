@@ -886,6 +886,15 @@
   margin: 0;
 }
 
+/* WCAG AA contrast: white text on dark green Ferni card */
+.memory-demo__card--ferni .memory-demo__text {
+  color: #ffffff;
+}
+
+.memory-demo__card--ferni .memory-demo__speaker {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .memory-demo__emotion {
   display: inline-block;
   margin-top: var(--space-2);
@@ -894,12 +903,13 @@
   font-style: italic;
 }
 
-/* Insights Panel */
+/* Insights Panel - WCAG AA compliant contrast */
 .memory-demo__insights {
   background: var(--color-background-elevated, #fffdfb);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(44, 37, 32, 0.12);
   position: sticky;
   top: 100px;
 }
@@ -940,7 +950,7 @@
 
 .memory-demo__insights-list p {
   font-size: 0.85rem;
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, #5c544a);
   margin: 0;
   line-height: 1.4;
 }

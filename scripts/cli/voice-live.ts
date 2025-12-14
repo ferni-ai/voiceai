@@ -43,12 +43,40 @@ const CONFIG = {
 };
 
 // ============================================================================
-// SOUND EFFECTS - Match frontend sound.ui.ts exactly
+// SOUND EFFECTS - Two modes: MP3 (rich) or Synth (lightweight)
 // ============================================================================
 
+// Sound mode: 'mp3' uses pre-recorded sounds, 'synth' generates tones
+// Set FERNI_SOUNDS=mp3 for the macOS app experience
+type SoundMode = 'mp3' | 'synth';
+const SOUND_MODE: SoundMode = (process.env.FERNI_SOUNDS as SoundMode) || 'synth';
+
+// MP3 sound files location
+const SOUNDS_DIR = join(PROJECT_ROOT, 'design-system', 'assets', 'sounds');
+import { existsSync } from 'fs';
+
 /**
- * Sound configurations matching frontend's Web Audio API synthesis.
- * Uses sox to generate matching tones with same frequencies, delays, and durations.
+ * Play an MP3 sound file (richer, pre-recorded sounds).
+ */
+function playSoundMP3(soundName: string): void {
+  const soundPath = join(SOUNDS_DIR, `${soundName}.mp3`);
+  if (!existsSync(soundPath)) {
+    // Fall back to synth if MP3 not found
+    playSoundSynth(soundName as keyof typeof SOUND_CONFIGS);
+    return;
+  }
+
+  // Use afplay on macOS, aplay on Linux
+  const player = process.platform === 'darwin' ? 'afplay' : 'aplay';
+  spawn(player, [soundPath], {
+    stdio: 'ignore',
+    detached: true,
+  }).unref();
+}
+
+/**
+ * Sound configurations for synthesized sounds.
+ * Matches frontend's Web Audio API synthesis.
  */
 interface SoundTone {
   frequency: number;
@@ -62,7 +90,6 @@ interface SoundConfig {
   type: 'sine';
 }
 
-// Sound configs matching frontend sound.ui.ts exactly
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
   // C major chord ascending - connect feel
   connect: {
@@ -110,23 +137,20 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
 };
 
 /**
- * Play a synthesized sound using sox, matching frontend pacing exactly.
+ * Play a synthesized sound using sox.
  */
-function playSound(soundName: 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
+function playSoundSynth(soundName: keyof typeof SOUND_CONFIGS): void {
   const config = SOUND_CONFIGS[soundName];
   if (!config) return;
 
-  // Generate each tone with sox
   for (const tone of config.tones) {
     setTimeout(() => {
-      // sox -n -d synth <duration> sine <freq> vol <volume>
       spawn('sox', [
-        '-n',                           // No input file
-        '-d',                           // Output to default audio device
-        'synth', String(tone.duration), // Duration
-        'sine', String(tone.frequency), // Waveform and frequency
-        'vol', String(tone.volume),     // Volume
-        'fade', 'q', '0.01', String(tone.duration), '0.05', // Quick fade in, longer fade out
+        '-n', '-d',
+        'synth', String(tone.duration),
+        'sine', String(tone.frequency),
+        'vol', String(tone.volume),
+        'fade', 'q', '0.01', String(tone.duration), '0.05',
       ], {
         stdio: 'ignore',
         detached: true,
@@ -136,16 +160,33 @@ function playSound(soundName: 'connect' | 'disconnect' | 'goodbye' | 'hangup'): 
 }
 
 /**
- * Perform the goodbye ceremony matching frontend exactly.
- * Plays: goodbye (2s warm chord) → 400ms pause → hangup (click)
+ * Play a sound - uses MP3 or synth based on FERNI_SOUNDS env var.
+ */
+function playSound(soundName: 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
+  if (SOUND_MODE === 'mp3') {
+    playSoundMP3(soundName);
+  } else {
+    playSoundSynth(soundName);
+  }
+}
+
+/**
+ * Perform the goodbye ceremony.
+ * MP3 mode: plays disconnect.mp3 (simpler, uses existing sound)
+ * Synth mode: plays goodbye chord → pause → hangup click
  */
 async function playGoodbyeCeremony(): Promise<void> {
-  playSound('goodbye');
-  // Wait for goodbye sound (~2s) + 400ms pause
-  await new Promise((resolve) => setTimeout(resolve, 2400));
-  playSound('hangup');
-  // Small pause to let hangup sound play
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  if (SOUND_MODE === 'mp3') {
+    // Use the rich disconnect MP3
+    playSoundMP3('disconnect');
+    await new Promise((resolve) => setTimeout(resolve, 600)); // MP3 is ~500ms
+  } else {
+    // Full synthesized ceremony
+    playSound('goodbye');
+    await new Promise((resolve) => setTimeout(resolve, 2400));
+    playSound('hangup');
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
 }
 
 // ============================================================================

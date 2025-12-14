@@ -274,6 +274,19 @@ class ConnectionService {
 
       // Get connection parameters from state
       const state = appState.getState();
+
+      // Check for claimed demo conversation ("Better than human")
+      let claimedDemoConversation;
+      try {
+        const { getClaimedConversation } = await import('./demo-claim.service.js');
+        claimedDemoConversation = getClaimedConversation() ?? undefined;
+        if (claimedDemoConversation) {
+          log.info('Including claimed demo conversation in connection');
+        }
+      } catch (e) {
+        // Demo claim service not available, continue without
+      }
+
       const tokenRequest: TokenRequest = {
         room: `voice-${Date.now()}`,
         username: state.userName ?? 'User',
@@ -281,6 +294,8 @@ class ConnectionService {
         personaId: state.selectedPersona.id,
         // Firebase UID for cross-device user identification (Priority 2 in voice agent)
         firebaseUid: state.firebaseUid ?? undefined,
+        // Claimed demo conversation (Better than human - remember first conversation)
+        claimedDemoConversation,
       };
 
       // Fetch token
@@ -422,6 +437,11 @@ class ConnectionService {
     // Add Firebase UID if available (Priority 2 for user identification)
     if (request.firebaseUid) {
       params.set('firebase_uid', request.firebaseUid);
+    }
+
+    // Add claimed demo conversation if available (Better than human)
+    if (request.claimedDemoConversation) {
+      params.set('claimed_demo', JSON.stringify(request.claimedDemoConversation));
     }
 
     const url = `${API.TOKEN}?${params.toString()}`;

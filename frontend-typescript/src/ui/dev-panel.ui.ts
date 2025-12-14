@@ -21,6 +21,7 @@
 import { t } from '../i18n/index.js';
 import type { VoiceEmotion } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import {
   relationshipStageService,
   STAGE_NAMES,
@@ -452,6 +453,45 @@ function createPanel(): HTMLElement {
           <button class="dev-action-btn" data-action="trigger-upgrade">
             Test Upgrade Modal
           </button>
+        </div>
+      </section>
+      
+      <!-- 🆕 First-Time User Experience -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.user} First-Time User Experience</h3>
+        <p class="dev-section__desc">Test progressive feature unlocking</p>
+        
+        <div class="dev-ftue-status" id="dev-ftue-status">
+          ${renderFTUEStatus()}
+        </div>
+        
+        <div class="dev-actions">
+          <button class="dev-action-btn dev-action-btn--warning" data-ftue="reset">
+            ${ICONS.refresh} Reset to First-Time User
+          </button>
+          <button class="dev-action-btn" data-ftue="simulate-1">
+            Simulate 1 Conversation
+          </button>
+          <button class="dev-action-btn" data-ftue="simulate-3">
+            Simulate 3 Conversations
+          </button>
+          <button class="dev-action-btn" data-ftue="simulate-5">
+            Simulate 5 Conversations
+          </button>
+          <button class="dev-action-btn" data-ftue="simulate-10">
+            Simulate 10 Conversations
+          </button>
+        </div>
+        
+        <div class="dev-ftue-legend">
+          <h4>Feature Unlock Schedule</h4>
+          <ul>
+            <li><strong>0 convos:</strong> Just Ferni avatar</li>
+            <li><strong>1+ convos:</strong> Greeting, streak badge, subscription badge</li>
+            <li><strong>2+ convos:</strong> Onboarding tour, feature hints, persona intros</li>
+            <li><strong>3+ convos:</strong> Stage celebrations, value capture</li>
+            <li><strong>5+ convos:</strong> Trust signals</li>
+          </ul>
         </div>
       </section>
       

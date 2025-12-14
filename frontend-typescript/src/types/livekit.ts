@@ -71,6 +71,23 @@ export interface TokenRequest {
   readonly personaId: string;
   /** Firebase UID for cross-device user identification */
   readonly firebaseUid?: string;
+  /** 
+   * Claimed demo conversation data (Better than human)
+   * Set when user came from landing page demo and claimed their conversation
+   */
+  readonly claimedDemoConversation?: ClaimedDemoConversation;
+}
+
+/**
+ * Data from a claimed demo session.
+ * "Better than human" - We remember our first conversation.
+ */
+export interface ClaimedDemoConversation {
+  highlights: string[];
+  topics: string[];
+  userMood: string | null;
+  ferniNotes: string;
+  messageCount: number;
 }
 
 // ============================================================================

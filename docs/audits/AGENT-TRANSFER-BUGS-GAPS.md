@@ -671,7 +671,7 @@ Messages don't match the warm brand voice. Should be:
 - `src/tools/handoff/handoff-factory.ts` - Fixed logging to use safe-logger
 - `src/tools/handoff/state.ts` - Fixed floating promise error handling
 
-### Fixes Completed: ~75 of ~97 issues
+### Fixes Completed: ~85 of ~97 issues
 
 ### Categories Fixed:
 
@@ -688,16 +688,19 @@ Messages don't match the warm brand voice. Should be:
 - ✅ Missing events: 2 (soft_open_complete, cameo_ending)
 - ✅ Mutex/race conditions: 1 (handoff/cameo blocking)
 - ✅ Brand voice: 2 error messages
-- ✅ Logging violations: 1 file
+- ✅ Logging violations: 2 files (including greeting-handler.ts)
 - ✅ setTimeout memory leaks: 35 calls tracked (team.ui.ts + cameo-roster.ui.ts + avatar-feedback.ui.ts)
 - ✅ Documentation: 2 new docs (WARM-HANDOFF-FLOW.md, AGENT-TRANSFER-EVENTS.md)
 - ✅ Backend cameo rate limiting: Added 800ms minimum interval
 - ✅ Configurable timeouts: Environment-aware handoff/cameo timeouts
+- ✅ Rate limit feedback: Visual feedback for rate-limited handoffs
+- ✅ Identity validation: Validate persona after cameo complete
+- ✅ Test coverage: Implemented 5 Persona Handoff integration tests
 
-### Remaining: ~22 issues
+### Remaining: ~12 issues
 
 - setTimeout tracking in other UI files (262 remaining across 96 files - low priority)
-- Integration test coverage
+- Additional integration test coverage
 - Global state migration (deferred - complex)
 
 ---

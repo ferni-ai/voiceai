@@ -3208,6 +3208,20 @@ const server = http.createServer(async (req, res) => {
     const persona_id = parsedUrl.searchParams.get('persona_id');
     // Allow frontend to override accent detection
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    // 🎯 "Better than human" - Claimed demo conversation (if user came from landing page)
+    const claimed_demo_raw = parsedUrl.searchParams.get('claimed_demo');
+    let claimed_demo = null;
+    if (claimed_demo_raw) {
+      try {
+        claimed_demo = JSON.parse(claimed_demo_raw);
+        console.log('🎯 Claimed demo conversation detected', {
+          highlights: claimed_demo.highlights?.length || 0,
+          topics: claimed_demo.topics?.length || 0,
+        });
+      } catch (e) {
+        console.warn('Failed to parse claimed_demo:', e.message);
+      }
+    }
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3299,6 +3313,8 @@ const server = http.createServer(async (req, res) => {
             locales: geoData.locales,
             preferredAccent: geoData.detectedAccent,
             countryCode: geoData.countryCode,
+            // 🎯 "Better than human" - Claimed demo conversation
+            claimed_demo_conversation: claimed_demo || undefined,
           };
           await agentDispatch.createDispatch(room, AGENT_NAME, {
             metadata: JSON.stringify(agentMetadata),

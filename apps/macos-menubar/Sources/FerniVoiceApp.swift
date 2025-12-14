@@ -318,6 +318,7 @@ class VoiceSessionManager: ObservableObject {
         // Set up environment
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "")
+        env["FERNI_SOUNDS"] = "mp3"  // Use rich MP3 sounds in the app
         process?.environment = env
 
         // Capture output

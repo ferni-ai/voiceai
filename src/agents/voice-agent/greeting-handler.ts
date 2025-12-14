@@ -67,6 +67,20 @@ export interface GreetingContext {
   session: voice.AgentSession<UserData>;
   /** Function to tag greeting with SSML */
   tagGreeting: (text: string, context: SpeechContext, personaId?: string) => string;
+  /** Claimed demo conversation (if user came from landing page demo) */
+  claimedDemoConversation?: ClaimedDemoConversation;
+}
+
+/**
+ * Data from a claimed demo session.
+ * "Better than human" - We remember our first conversation.
+ */
+export interface ClaimedDemoConversation {
+  highlights: string[];
+  topics: string[];
+  userMood: string | null;
+  ferniNotes: string;
+  messageCount: number;
 }
 
 export interface GreetingResult {
@@ -141,6 +155,28 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
       userId,
       greeting: `${greeting.slice(0, 50)}...`,
     });
+  }
+
+  // ===============================================
+  // CLAIMED DEMO: "Better than human" - Remember our first conversation
+  // If user came from landing page demo and claimed their conversation,
+  // give them a warm "I remember you!" greeting
+  // ===============================================
+  if (!greeting && ctx.claimedDemoConversation) {
+    const demoGreeting = generateClaimedDemoGreeting(
+      ctx.claimedDemoConversation,
+      userName,
+      sessionPersona.id
+    );
+    if (demoGreeting) {
+      greeting = demoGreeting;
+      hasReferencedLastConversation = true;
+      diag.session('Using claimed demo greeting (I remember you!)', {
+        userId,
+        highlights: ctx.claimedDemoConversation.highlights.length,
+        topics: ctx.claimedDemoConversation.topics.length,
+      });
+    }
   }
 
   // Load persona-specific memories for memory-enhanced greetings (skip for trial welcome)
@@ -338,6 +374,99 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Generate a "Better than human" greeting for users who claimed their demo conversation.
+ * This is the magic moment - Ferni remembers them from before they formally signed up.
+ *
+ * Philosophy: "Your best friend forgets. We don't."
+ */
+function generateClaimedDemoGreeting(
+  demoConversation: ClaimedDemoConversation,
+  userName: string | undefined,
+  personaId: string
+): string | null {
+  // Only generate if we have meaningful content to reference
+  if (
+    demoConversation.highlights.length === 0 &&
+    demoConversation.topics.length === 0 &&
+    !demoConversation.ferniNotes
+  ) {
+    return null;
+  }
+
+  const name = userName ? `, ${userName}` : '';
+
+  // Build greeting based on what we remember
+  const greetings: string[] = [];
+
+  // If we have specific highlights, reference them
+  if (demoConversation.highlights.length > 0) {
+    const highlight = demoConversation.highlights[0];
+    greetings.push(
+      `<emotion value="happy"/>Oh!<break time="100ms"/>Hey${name}!<break time="200ms"/>` +
+        `I remember you.<break time="150ms"/>` +
+        `You mentioned ${highlight}.<break time="200ms"/>` +
+        `I've been thinking about that.`
+    );
+    greetings.push(
+      `<emotion value="surprised"/>Wait—<break time="100ms"/>I know you!<break time="200ms"/>` +
+        `We talked about ${highlight} earlier.<break time="150ms"/>` +
+        `<emotion value="affectionate"/>So glad you're back.`
+    );
+  }
+
+  // If we have topics but no specific highlights
+  if (greetings.length === 0 && demoConversation.topics.length > 0) {
+    const topic = demoConversation.topics[0];
+    greetings.push(
+      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
+        `You're back!<break time="200ms"/>` +
+        `I remember we were talking about ${topic}.<break time="150ms"/>` +
+        `Want to pick up where we left off?`
+    );
+    greetings.push(
+      `Oh!<break time="100ms"/>Hey${name}.<break time="150ms"/>` +
+        `<emotion value="affectionate"/>I was hoping you'd come back.<break time="200ms"/>` +
+        `We started something about ${topic}—<break time="100ms"/>` +
+        `want to keep going?`
+    );
+  }
+
+  // If we have Ferni's notes about the conversation
+  if (greetings.length === 0 && demoConversation.ferniNotes) {
+    greetings.push(
+      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
+        `I remember our conversation.<break time="200ms"/>` +
+        `<emotion value="affectionate"/>Really glad you decided to continue.`
+    );
+  }
+
+  // Generic "I remember you" fallback
+  if (greetings.length === 0) {
+    greetings.push(
+      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
+        `Wait—<break time="100ms"/>we've talked before, right?<break time="200ms"/>` +
+        `I remember you.<break time="150ms"/>Welcome back.`
+    );
+    greetings.push(
+      `Oh!<break time="100ms"/><emotion value="happy"/>Hey${name}!<break time="200ms"/>` +
+        `You came back.<break time="150ms"/>` +
+        `<emotion value="affectionate"/>That makes me really happy.`
+    );
+  }
+
+  // Pick a random greeting
+  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+  log().info(`Generated claimed demo greeting for ${personaId}`, {
+    hasHighlights: demoConversation.highlights.length > 0,
+    hasTopics: demoConversation.topics.length > 0,
+    hasFerniNotes: !!demoConversation.ferniNotes,
+  });
+
+  return greeting;
+}
 
 /**
  * Load persona-specific memories for memory-enhanced greetings
