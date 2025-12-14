@@ -15,8 +15,12 @@
 
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 
-// Default Ferni voice
-const DEFAULT_VOICE_ID = 'a0e99841-438c-4a64-b679-ae501e7d6091';
+// Default Ferni voice - MUST match VOICE_IDS.FERNI in config/voice-ids.ts
+// FIX: Previous value 'a0e99841-438c-4a64-b679-ae501e7d6091' was wrong and caused voice inconsistency
+const DEFAULT_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+
+// Use the same model as PersonaAwareTTS for voice consistency
+const DEFAULT_MODEL = 'sonic-3';
 
 // ============================================================================
 // STATE
@@ -63,7 +67,7 @@ export function createLightweightTTS(
   config: VoiceConfig
 ): InstanceType<typeof cartesia.TTS> {
   const voiceId = config.voiceId || DEFAULT_VOICE_ID;
-  const model = config.model || 'sonic-2024-10-01';
+  const model = config.model || DEFAULT_MODEL;
 
   // Return pre-warmed TTS if voiceId matches
   if (_prewarmedTTS && _prewarmedVoiceId === voiceId) {
@@ -123,10 +127,10 @@ export async function prewarmTTSConnection(voiceId: string = DEFAULT_VOICE_ID): 
 
   _prewarmPromise = (async () => {
     try {
-      // Create TTS instance
+      // Create TTS instance - use same model as PersonaAwareTTS for consistency
       const tts = new cartesia.TTS({
         voice: voiceId,
-        model: 'sonic-2024-10-01',
+        model: DEFAULT_MODEL,
         language: 'en',
         encoding: 'pcm_s16le',
         sampleRate: 24000,
