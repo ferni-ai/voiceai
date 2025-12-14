@@ -265,6 +265,14 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['sync', 'check', 'version', 'watch', 'brand'],
     examples: ['ferni tokens sync', 'ferni tokens version patch "Fixed colors"', 'ferni tokens watch'],
   },
+  design: {
+    name: 'Design',
+    description: 'Design system compliance & automation',
+    icon: '🎨',
+    handler: handleDesign,
+    subcommands: ['check', 'fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'],
+    examples: ['ferni design check', 'ferni design fix --priority', 'ferni design storybook'],
+  },
   dev: {
     name: 'Dev',
     description: 'Development workflow management',
@@ -952,6 +960,145 @@ async function handleTokens(args: string[]): Promise<void> {
       cwd: PROJECT_ROOT,
       stdio: 'inherit',
     });
+  }
+}
+
+// ============================================================================
+// DESIGN SYSTEM COMMAND
+// ============================================================================
+
+async function handleDesign(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'check';
+
+  log.header(`🎨 Design System`);
+
+  if (subcommand === 'check') {
+    console.log(`${colors.bold}Checking design system compliance...${colors.reset}\n`);
+
+    const extraArgs = args.slice(1);
+    const checkArgs = ['design-system/check-design-compliance.js', ...extraArgs];
+    
+    spawnSync('node', checkArgs, {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+  }
+
+  if (subcommand === 'fix') {
+    console.log(`${colors.bold}Auto-fixing design system violations...${colors.reset}\n`);
+
+    const isPriority = args.includes('--priority');
+    const checkArgs = ['design-system/check-design-compliance.js', '--fix'];
+    if (isPriority) checkArgs.push('--priority');
+    
+    const result = spawnSync('node', checkArgs, {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    if (result.status === 0) {
+      console.log();
+      log.success('Auto-fix complete. Run "ferni design check" to see remaining issues.');
+    }
+  }
+
+  if (subcommand === 'priority') {
+    console.log(`${colors.bold}Checking priority UI files only...${colors.reset}\n`);
+    console.log(`${colors.dim}Priority files are core user-facing UI components${colors.reset}\n`);
+
+    spawnSync('node', ['design-system/check-design-compliance.js', '--priority'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+  }
+
+  if (subcommand === 'watch') {
+    console.log(`${colors.bold}Starting design token watch mode...${colors.reset}\n`);
+    log.info('Watching for changes in design-system/tokens/');
+    log.info('Tokens will auto-regenerate on change');
+    log.info('Press Ctrl+C to stop\n');
+
+    spawn('node', ['design-system/watch-tokens.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+  }
+
+  if (subcommand === 'storybook') {
+    console.log(`${colors.bold}Starting Storybook...${colors.reset}\n`);
+
+    spawn('npm', ['run', 'storybook'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+      shell: true,
+    });
+  }
+
+  if (subcommand === 'wcag') {
+    console.log(`${colors.bold}Running WCAG accessibility checks...${colors.reset}\n`);
+
+    const result = spawnSync('node', ['design-system/check-accessibility.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+
+    if (result.status === 0) {
+      console.log();
+      log.success('All WCAG AA checks passed');
+    }
+  }
+
+  if (subcommand === 'brand-words') {
+    console.log(`${colors.bold}Checking for forbidden brand words...${colors.reset}\n`);
+    
+    const forbiddenWords = [
+      'chatbot', 'virtual assistant', 'AI assistant', 'bot',
+      'utilize', 'leverage', 'solution', 'platform', 'functionality'
+    ];
+    
+    console.log(`${colors.dim}Scanning for: ${forbiddenWords.join(', ')}${colors.reset}\n`);
+
+    let found = false;
+    for (const word of forbiddenWords) {
+      try {
+        const result = execSync(
+          `grep -rn --include="*.ts" -i "\\b${word}\\b" frontend-typescript/src/ui/ 2>/dev/null | head -5`,
+          { cwd: PROJECT_ROOT, encoding: 'utf8' }
+        );
+        if (result.trim()) {
+          console.log(`${colors.yellow}Found "${word}":${colors.reset}`);
+          console.log(result);
+          found = true;
+        }
+      } catch {
+        // grep returns exit code 1 when no matches
+      }
+    }
+
+    if (!found) {
+      log.success('No forbidden brand words found!');
+    } else {
+      console.log();
+      log.warn('Review the above and replace with brand-compliant language');
+      console.log(`${colors.dim}See: design-system/brand/FERNI-BRAND-GUIDELINES.md${colors.reset}`);
+    }
+  }
+
+  // Show help if no valid subcommand
+  if (!['check', 'fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'].includes(subcommand)) {
+    console.log(`${colors.bold}Available subcommands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}check${colors.reset}        Check all files for violations`);
+    console.log(`  ${colors.cyan}fix${colors.reset}          Auto-fix what's possible (--priority for core files)`);
+    console.log(`  ${colors.cyan}priority${colors.reset}     Check priority UI files only`);
+    console.log(`  ${colors.cyan}watch${colors.reset}        Watch mode - auto-regenerate tokens`);
+    console.log(`  ${colors.cyan}storybook${colors.reset}    Start Storybook for component docs`);
+    console.log(`  ${colors.cyan}wcag${colors.reset}         Run WCAG AA accessibility checks`);
+    console.log(`  ${colors.cyan}brand-words${colors.reset}  Check for forbidden brand words`);
+    console.log();
+    console.log(`${colors.dim}Examples:${colors.reset}`);
+    console.log(`  ferni design check`);
+    console.log(`  ferni design fix --priority`);
+    console.log(`  ferni design storybook`);
   }
 }
 

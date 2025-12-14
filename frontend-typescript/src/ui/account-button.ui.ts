@@ -389,7 +389,7 @@ function applyModalStyles(overlay: HTMLElement): void {
       transform: translateY(-1px);
     }
     .google-btn { color: #1f1f1f; }
-    .apple-btn { color: #000; }
+    .apple-btn { color: var(--color-text-primary, #000); }
     .divider {
       display: flex;
       align-items: center;
