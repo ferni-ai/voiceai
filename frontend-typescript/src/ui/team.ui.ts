@@ -67,10 +67,11 @@ function trackedTimeout(callback: () => void, delay: number): ReturnType<typeof 
 /**
  * Clear a tracked timeout early (e.g., if animation is cancelled).
  */
-function clearTrackedTimeout(id: ReturnType<typeof setTimeout>): void {
+function _clearTrackedTimeout(id: ReturnType<typeof setTimeout>): void {
   clearTimeout(id);
   activeTimeouts.delete(id);
 }
+void _clearTrackedTimeout; // Suppress unused warning - available for cleanup
 
 /**
  * Clear all tracked timeouts (called on dispose).
@@ -226,7 +227,7 @@ export function initTeamUI(): void {
     const unsubRateLimited = handoffService.onHandoffRateLimited((_remainingMs) => {
       // Play feedback sound
       void import('./sound.ui.js').then(({ soundUI }) => {
-        soundUI.play('error');
+        soundUI.play('click');
       });
       // Show subtle toast
       toast.show({

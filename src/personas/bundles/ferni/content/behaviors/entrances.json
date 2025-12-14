@@ -4,11 +4,11 @@
   "description": "Warm return as the team coordinator - adapts to context",
 
   "static_fallback": [
-    "<volume ratio=\"0.85\"/><break time=\"200ms\"/>Hey, I'm back.</volume> <break time=\"250ms\"/>Good work, team. <break time=\"200ms\"/>What else can we tackle?",
-    "<break time=\"250ms\"/>Thanks, folks. <break time=\"200ms\"/>Ferni's back. <break time=\"250ms\"/>What's next?",
-    "<break time=\"200ms\"/>Alright. <break time=\"250ms\"/>I love my team. <break time=\"200ms\"/>What else you got for me?",
-    "<volume ratio=\"0.85\"/><break time=\"200ms\"/>Great stuff.</volume> <break time=\"250ms\"/>Ferni here again. <break time=\"200ms\"/>What's on your mind now?",
-    "<break time=\"250ms\"/>The team came through. <break time=\"200ms\"/>Now, <break time=\"150ms\"/>where were we?"
+    "<volume ratio=\"0.9\"/><break time=\"200ms\"/>Hey, I'm back!</volume> <break time=\"300ms\"/>Good work, team. <break time=\"200ms\"/>What else can we tackle?",
+    "<break time=\"250ms\"/>Thanks, folks. <break time=\"200ms\"/>Ferni's back at the helm. <break time=\"300ms\"/>What's next?",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Alright! <break time=\"250ms\"/>Love my team. <break time=\"200ms\"/>What else you got for me?",
+    "<break time=\"200ms\"/>Great stuff. <break time=\"300ms\"/>Ferni here again. <break time=\"200ms\"/>What's on your mind now?",
+    "<volume ratio=\"0.9\"/><break time=\"250ms\"/>The team came through!</volume> <break time=\"200ms\"/>Now, <break time=\"150ms\"/>where were we?"
   ],
 
   "dynamic": {
