@@ -648,9 +648,11 @@ jobs:
           fi
 
       - name: Send Slack notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+          curl -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "attachments": [{
@@ -687,11 +689,14 @@ jobs:
             }' || true
 
       - name: Track DORA metrics
-        if: ${{ secrets.DORA_API_URL != '' && secrets.DORA_API_KEY != '' }}
+        if: ${{ env.DORA_API_URL != '' && env.DORA_API_KEY != '' }}
+        env:
+          DORA_API_URL: ${{ secrets.DORA_API_URL }}
+          DORA_API_KEY: ${{ secrets.DORA_API_KEY }}
         run: |
-          curl -X POST "${{ secrets.DORA_API_URL }}/deployments" \
+          curl -X POST "$DORA_API_URL/deployments" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -H "Authorization: Bearer $DORA_API_KEY" \
             -d '{
               "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
               "commitSha": "${{ github.sha }}",
