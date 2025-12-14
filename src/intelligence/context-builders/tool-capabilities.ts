@@ -48,36 +48,38 @@ const CORE_CAPABILITIES: CapabilityDef[] = [
   {
     id: 'music',
     emoji: '🎵',
-    name: 'MUSIC',
+    name: 'MUSIC → playMusic(query)',
     toolNames: ['playMusic', 'musicControl', 'musicInfo', 'pauseMusic', 'resumeMusic'],
-    description: 'Play music for users - works for everyone with free previews!',
+    description: 'Play music for users - works for everyone with free 30-second previews!',
     whenToUse:
-      'When user asks for music, seems stressed/anxious, needs a mood shift, or mentions an artist/song. Quick DJ intro then call playMusic.',
+      'TRIGGERS: "play some music", "play [artist]", "play [song]", "I\'m stressed", "help me relax", "put on something [mood]", user seems anxious/overwhelmed. → Brief DJ intro then call playMusic.',
   },
   {
     id: 'weather',
     emoji: '🌤️',
-    name: 'WEATHER',
+    name: 'WEATHER → getWeather(location)',
     toolNames: ['getWeather'],
     description: 'Get current weather and forecasts.',
-    whenToUse: 'When user asks about weather, temperature, or if they should bring an umbrella.',
+    whenToUse:
+      'TRIGGERS: "what\'s the weather", "is it going to rain", "should I bring umbrella", "how cold/hot is it", "weather forecast". → Ask for location if unclear.',
   },
   {
     id: 'search',
     emoji: '🔍',
-    name: 'SEARCH',
+    name: 'SEARCH → searchWeb(query)',
     toolNames: ['searchWeb'],
     description: 'Search the web for information.',
     whenToUse:
-      "When user asks to look something up, wants to know current info, or asks a factual question you're unsure about.",
+      'TRIGGERS: "look up", "search for", "what is [X]", "who is [X]", "when did [X]", "can you find", any factual question you\'re unsure about. → Don\'t guess facts, search instead.',
   },
   {
     id: 'news',
     emoji: '📰',
-    name: 'NEWS',
+    name: 'NEWS → getNews(topic?)',
     toolNames: ['getNews'],
     description: 'Get current news and headlines.',
-    whenToUse: "When user asks what's happening in the news or current events.",
+    whenToUse:
+      'TRIGGERS: "what\'s in the news", "what\'s happening", "current events", "any news about [topic]".',
   },
   {
     id: 'memory',
@@ -91,16 +93,25 @@ const CORE_CAPABILITIES: CapabilityDef[] = [
     ],
     description: 'Remember and recall information about the user.',
     whenToUse:
-      'When user tells you something important about themselves, or asks what you remember.',
+      'TRIGGERS: User shares important personal info (name, family, job, goals), "what do you remember about me", "do you know my [X]".',
   },
   {
     id: 'games',
     emoji: '🎮',
-    name: 'GAMES',
+    name: 'GAMES → startGame(type)',
     toolNames: ['startGame', 'playGame', 'startTextGame'],
     description: 'Play interactive games with the user.',
     whenToUse:
-      "During lighter moments, when user seems bored, or they ask to play. Music games like 'Name That Tune' are great!",
+      'TRIGGERS: "play a game", "I\'m bored", "name that tune", "tic tac toe", "desert island discs", lighter moments, lulls in conversation.',
+  },
+  {
+    id: 'cameo',
+    emoji: '🎬',
+    name: 'CAMEO → inviteCameo(personaId, context)',
+    toolNames: ['inviteCameo', 'checkCameoOpportunity'],
+    description: 'Quick team pop-in (1-2 sentences) then back to you. Not a full handoff.',
+    whenToUse:
+      'TRIGGERS: Topic in someone\'s domain but doesn\'t need full handoff, "what would [name] say", want to celebrate (Jordan!), quick wisdom (Nayan), introduce a team member.',
   },
 ];
 
@@ -111,45 +122,47 @@ const TEAM_CAPABILITIES: CapabilityDef[] = [
   {
     id: 'team-maya',
     emoji: '📊',
-    name: 'MAYA (Habits & Budgets)',
+    name: 'MAYA → handoffToMaya()',
     toolNames: ['handoffToMaya'],
     description: 'Specialist in habits, budgets, spending tracking, and financial routines.',
     whenToUse:
-      'When user needs help with habits, budgets, spending, or wants detailed financial tracking.',
+      'TRIGGERS: "budget", "spending", "habits", "saving money", "track expenses", "financial goals". → Call immediately, don\'t speak first.',
   },
   {
     id: 'team-alex',
     emoji: '📅',
-    name: 'ALEX (Calendar & Email)',
+    name: 'ALEX → handoffToAlex()',
     toolNames: ['handoffToAlex'],
     description: 'Specialist in calendar management, email, scheduling, and communication.',
-    whenToUse: 'When user needs help with calendar, scheduling, email management, or meeting prep.',
+    whenToUse:
+      'TRIGGERS: "calendar", "schedule", "email", "meeting", "appointment", "time management". → Call immediately, don\'t speak first.',
   },
   {
     id: 'team-peter',
     emoji: '📈',
-    name: 'PETER (Research & Investing)',
+    name: 'PETER → handoffToPeter()',
     toolNames: ['handoffToPeter'],
     description: 'Specialist in investment research, market analysis, and portfolio review.',
-    whenToUse: 'When user asks about stocks, investments, market research, or portfolio analysis.',
+    whenToUse:
+      'TRIGGERS: "stocks", "investments", "portfolio", "market", "research [company]", "should I buy/sell". → Call immediately, don\'t speak first.',
   },
   {
     id: 'team-jordan',
     emoji: '🎉',
-    name: 'JORDAN (Life Events)',
+    name: 'JORDAN → handoffToJordan()',
     toolNames: ['handoffToJordan'],
     description: 'Specialist in life milestones, celebrations, event planning.',
     whenToUse:
-      'When user is planning a wedding, birthday, graduation, or other life milestone event.',
+      'TRIGGERS: "wedding", "birthday party", "graduation", "anniversary", "planning an event", "celebration". → Call immediately, don\'t speak first.',
   },
   {
     id: 'team-nayan',
     emoji: '🧘',
-    name: 'NAYAN (Wisdom & Philosophy)',
+    name: 'NAYAN → handoffToNayan()',
     toolNames: ['handoffToNayan'],
     description: 'Specialist in philosophical questions, wisdom, meaning, and deeper reflection.',
     whenToUse:
-      "When user asks deep philosophical questions, seeks wisdom, or wants to explore life's meaning.",
+      'TRIGGERS: "meaning of life", "philosophy", "wisdom", "why am I here", "existential", "deeper questions". → Call immediately, don\'t speak first.',
   },
 ];
 
@@ -163,19 +176,17 @@ const TEAM_CAPABILITIES: CapabilityDef[] = [
 function buildCapabilitiesSection(availableTools: Set<string>, personaId: string): string {
   const lines: string[] = [];
 
-  lines.push('## 🛠️ YOUR ACTIVE CAPABILITIES - USE THESE!');
+  lines.push('## 🛠️ YOUR ACTIVE TOOLS - USE THEM!');
   lines.push('');
-  lines.push(
-    "You have real tools that do real things. Don't just talk about helping - ACTUALLY USE YOUR TOOLS:"
-  );
+  lines.push('You have function calling. When you see these TRIGGERS, call the tool:');
   lines.push('');
 
   // Add core capabilities that are available
   for (const cap of CORE_CAPABILITIES) {
     const hasCapability = cap.toolNames.some((t) => availableTools.has(t));
     if (hasCapability) {
-      lines.push(`${cap.emoji} **${cap.name}**: ${cap.description}`);
-      lines.push(`   → When to use: ${cap.whenToUse}`);
+      lines.push(`${cap.emoji} **${cap.name}**`);
+      lines.push(`   ${cap.whenToUse}`);
       lines.push('');
     }
   }
@@ -183,22 +194,22 @@ function buildCapabilitiesSection(availableTools: Set<string>, personaId: string
   // Add team capabilities for coordinators (like Ferni)
   const isCoordinator = personaId === 'ferni' || availableTools.has('handoffToMaya');
   if (isCoordinator) {
-    lines.push('### 👥 YOUR TEAM (Hand off for specialized help):');
+    lines.push("### 👥 TEAM HANDOFFS (call immediately, don't speak first):");
     for (const cap of TEAM_CAPABILITIES) {
       const hasCapability = cap.toolNames.some((t) => availableTools.has(t));
       if (hasCapability) {
-        lines.push(`${cap.emoji} **${cap.name}**: ${cap.whenToUse}`);
+        lines.push(`${cap.emoji} **${cap.name}** - ${cap.whenToUse}`);
       }
     }
     lines.push('');
   }
 
-  // Add critical reminder
-  lines.push('### ⚡ CRITICAL TOOL USAGE RULES:');
-  lines.push('- When calling a tool, do NOT announce it. Just call it silently.');
-  lines.push('- For music: Brief DJ intro ("Got you..." or "Good choice...") then call playMusic.');
-  lines.push('- For handoffs: Call the handoff tool IMMEDIATELY - do NOT speak first.');
-  lines.push("- Process tool results naturally - don't read them verbatim.");
+  // Add critical rules
+  lines.push('### ⚡ RULES:');
+  lines.push("1. Silent execution - don't announce tool calls");
+  lines.push('2. Music exception - brief DJ intro ("Got you...") then call playMusic');
+  lines.push("3. Handoffs - call tool IMMEDIATELY, don't speak first");
+  lines.push('4. If ambiguous, ask for clarification before calling');
   lines.push('');
 
   return lines.join('\n');
@@ -241,7 +252,7 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
     availableTools.add('rememberAboutMe');
     availableTools.add('whatDoYouKnowAboutMe');
 
-    // Ferni and coordinators have team handoffs
+    // Ferni and coordinators have team handoffs and cameos
     if (personaId === 'ferni') {
       availableTools.add('handoffToMaya');
       availableTools.add('handoffToAlex');
@@ -249,6 +260,9 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
       availableTools.add('handoffToJordan');
       availableTools.add('handoffToNayan');
       availableTools.add('startGame');
+      // Cameo tools for quick team pop-ins
+      availableTools.add('inviteCameo');
+      availableTools.add('checkCameoOpportunity');
     }
 
     const capabilitiesSection = buildCapabilitiesSection(availableTools, personaId);

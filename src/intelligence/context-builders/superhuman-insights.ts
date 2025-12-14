@@ -1,416 +1,399 @@
 /**
  * Superhuman Insights Context Builder
  *
- * This is Ferni's "200%" - capabilities that go BEYOND human friends:
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ * > "Better than human" - We remember what humans forget.
  *
- * 1. Pattern Surfacing - Notice patterns user doesn't see
- * 2. Contradiction Detection - Gently surface when words don't match actions
- * 3. Emotional Weather Reports - Track emotional trends over time
- * 4. The Mirror - Reflect accumulated patterns back
- * 5. Anticipatory Emotion - Respond before they finish speaking
- * 6. Predictive Care - Reach out before hard dates, not after
- * 7. Cross-Session Arc - Track their journey over weeks/months
+ * This builder provides the "magical" moments that make Ferni feel genuinely caring:
  *
- * @module SuperhumanInsightsContextBuilder
+ * 1. TIME-BASED TRIGGERS
+ *    - "Three months ago you mentioned wanting to learn guitar..."
+ *    - "It's been a week since you committed to that new routine..."
+ *    - "Around this time last year, you were going through something similar..."
+ *
+ * 2. CROSS-SESSION REFLECTIONS
+ *    - "I've been thinking about what you said last time..."
+ *    - "Something you mentioned stuck with me..."
+ *
+ * 3. PATTERN RECOGNITION
+ *    - "You've mentioned feeling stuck at work in 3 of our last 5 conversations..."
+ *    - "I notice you tend to be harder on yourself on Mondays..."
+ *
+ * 4. GOAL PROGRESS CHECK-INS
+ *    - "How's that morning routine going? It's been two weeks."
+ *    - "Remember when you said you'd talk to your manager? Any updates?"
+ *
+ * @module intelligence/context-builders/superhuman-insights
  */
 
+import type { UserProfile } from '../../types/user-profile.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
+  BuilderCategory,
+  createHighInjection,
+  createHintInjection,
+  createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-  createHintInjection,
 } from './index.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
-import {
-  loadSuperhumanInsights,
-  loadINoticePower,
-  getRandomPhraseClean,
-} from '../../services/persona-content-loader.js';
+// Cross-session reflection
+import { getReflectionMoments, selectBestReflection } from '../cross-session-reflection.js';
+
+// Subconscious goals
+import { getSubconsciousSummary } from '../subconscious-goals.js';
+
+// Life rhythm prediction
+import { predictUserState } from '../life-rhythm-prediction.js';
 
 const log = createLogger({ module: 'SuperhumanInsights' });
 
 // ============================================================================
-// PATTERN DETECTION
+// SESSION STATE
 // ============================================================================
 
-interface DetectedPattern {
-  type: 'temporal' | 'emotional' | 'behavioral' | 'linguistic';
-  pattern: string;
-  occurrences: number;
-  suggestedInsight: string;
+interface SuperhumanSession {
+  /** Insights already surfaced this session (prevent repetition) */
+  surfacedInsights: Set<string>;
+  /** Turn when each type was last surfaced */
+  lastSurfacedTurn: Record<string, number>;
+  /** Session start time */
+  startTime: Date;
+}
+
+const sessions = new Map<string, SuperhumanSession>();
+
+function getSession(sessionId: string): SuperhumanSession {
+  let session = sessions.get(sessionId);
+  if (!session) {
+    session = {
+      surfacedInsights: new Set(),
+      lastSurfacedTurn: {},
+      startTime: new Date(),
+    };
+    sessions.set(sessionId, session);
+  }
+  return session;
+}
+
+// ============================================================================
+// TIME-BASED INSIGHTS
+// ============================================================================
+
+interface TimeBasedInsight {
+  type: 'anniversary' | 'milestone' | 'follow_up' | 'pattern';
+  content: string;
+  suggestedPhrase: string;
+  priority: 'high' | 'standard' | 'hint';
+  relevance: number;
 }
 
 /**
- * Detect linguistic patterns (repeated words/phrases)
+ * Generate time-based insights from user profile
  */
-function detectLinguisticPatterns(
-  userText: string,
-  recentTopics: string[] = []
-): DetectedPattern | null {
-  const text = userText.toLowerCase();
-  const allContext = [text, ...recentTopics.map((t) => t.toLowerCase())].join(' ');
+function generateTimeBasedInsights(
+  profile: UserProfile | null,
+  currentTopics: string[]
+): TimeBasedInsight[] {
+  if (!profile) return [];
 
-  // Check for repeated concerning phrases
-  const patterns: Array<{ regex: RegExp; type: string; insight: string }> = [
-    {
-      regex: /\bi should\b/gi,
-      type: 'obligation_language',
-      insight: "You keep saying 'I should'. Who's voice is that? Is it yours?",
-    },
-    {
-      regex: /\bi can't\b/gi,
-      type: 'limiting_belief',
-      insight: "You've said 'I can't' a few times now. What would change if you said 'I won't'?",
-    },
-    {
-      regex: /\bi don't deserve\b/gi,
-      type: 'self_worth',
-      insight: "The phrase 'I don't deserve' has come up. Where did that story start?",
-    },
-    {
-      regex: /\bit's fine\b|\bi'm fine\b/gi,
-      type: 'dismissal',
-      insight: "You keep saying 'fine'. That word does a lot of work sometimes. What's underneath?",
-    },
-    {
-      regex: /\balways\b|\bnever\b/gi,
-      type: 'absolute_thinking',
-      insight:
-        "You used 'always' or 'never'. Those absolutes are rarely true. What's the real pattern?",
-    },
-  ];
-
-  for (const pattern of patterns) {
-    const matches = allContext.match(pattern.regex);
-    if (matches && matches.length >= 2) {
-      return {
-        type: 'linguistic',
-        pattern: pattern.type,
-        occurrences: matches.length,
-        suggestedInsight: pattern.insight,
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
- * Detect repeated topic mentions (The Mirror)
- */
-function detectRepeatedTopics(recentTopics: string[]): DetectedPattern | null {
-  if (!recentTopics || recentTopics.length < 3) return null;
-
-  // Count topic occurrences
-  const topicCounts = new Map<string, number>();
-  for (const topic of recentTopics) {
-    const normalized = topic.toLowerCase().trim();
-    topicCounts.set(normalized, (topicCounts.get(normalized) || 0) + 1);
-  }
-
-  // Find topics mentioned 3+ times
-  for (const [topic, count] of topicCounts) {
-    if (count >= 3) {
-      return {
-        type: 'emotional',
-        pattern: `repeated_topic:${topic}`,
-        occurrences: count,
-        suggestedInsight: `You've mentioned ${topic} ${count} times recently. Is there something there we should explore?`,
-      };
-    }
-  }
-
-  return null;
-}
-
-// ============================================================================
-// EMOTIONAL WEATHER
-// ============================================================================
-
-interface EmotionalWeather {
-  trend: 'improving' | 'declining' | 'stable' | 'volatile';
-  insight: string;
-}
-
-/**
- * Analyze emotional trajectory
- */
-function analyzeEmotionalWeather(
-  sessionCount: number,
-  recentEmotions: string[] = []
-): EmotionalWeather | null {
-  if (sessionCount < 3 || recentEmotions.length < 3) return null;
-
-  // Simple trending analysis based on positive/negative emotions
-  const positiveEmotions = ['happy', 'excited', 'hopeful', 'grateful', 'peaceful'];
-  const negativeEmotions = ['sad', 'anxious', 'stressed', 'frustrated', 'worried'];
-
-  let positiveCount = 0;
-  let negativeCount = 0;
-
-  // Weight recent emotions more heavily
-  const recentWeighted = recentEmotions.slice(-5);
-  for (const emotion of recentWeighted) {
-    const lower = emotion.toLowerCase();
-    if (positiveEmotions.some((e) => lower.includes(e))) positiveCount++;
-    if (negativeEmotions.some((e) => lower.includes(e))) negativeCount++;
-  }
-
-  const ratio = positiveCount / (positiveCount + negativeCount + 1);
-
-  if (ratio > 0.6) {
-    return {
-      trend: 'improving',
-      insight: "You've been lighter lately. Something shifted. Do you feel it?",
-    };
-  } else if (ratio < 0.3) {
-    return {
-      trend: 'declining',
-      insight: "The last few conversations have had a heaviness. What's weighing on you?",
-    };
-  }
-
-  return null;
-}
-
-// ============================================================================
-// ANTICIPATORY EMOTION
-// ============================================================================
-
-interface AnticipatoryCue {
-  detected: boolean;
-  type: string;
-  response: string;
-}
-
-/**
- * Detect cues that suggest what's coming before user finishes
- */
-function detectAnticipatoryCues(
-  userText: string,
-  voiceStress?: number,
-  voiceEnergy?: number
-): AnticipatoryCue | null {
-  const text = userText.toLowerCase();
-
-  // Hesitant starts
-  if (/^(um|uh|so|well|i mean|the thing is)/i.test(text)) {
-    return {
-      detected: true,
-      type: 'hesitant_start',
-      response: "Whatever it is... you can say it. I'm listening.",
-    };
-  }
-
-  // Trailing off indicators
-  if (/\.\.\.$|…$/.test(userText)) {
-    return {
-      detected: true,
-      type: 'trailing_off',
-      response: 'You trailed off there. What were you going to say?',
-    };
-  }
-
-  // "I need to tell you" - important incoming
-  if (/i need to (tell|say|share|confess)/i.test(text)) {
-    return {
-      detected: true,
-      type: 'important_incoming',
-      response: "I can feel this is important. Take your time. I'm here.",
-    };
-  }
-
-  // Voice stress indicator
-  if (voiceStress && voiceStress > 0.7) {
-    return {
-      detected: true,
-      type: 'high_stress',
-      response: 'I can hear something in your voice. Whatever it is, you can share it.',
-    };
-  }
-
-  return null;
-}
-
-// ============================================================================
-// PREDICTIVE CARE
-// ============================================================================
-
-/**
- * Check if there are upcoming dates/events to acknowledge
- */
-function checkPredictiveCareNeeds(userData: ContextBuilderInput['userData']): string | null {
+  const insights: TimeBasedInsight[] = [];
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const hourOfDay = now.getHours();
 
-  // Sunday evening anxiety window
-  if (dayOfWeek === 0 && hourOfDay >= 17) {
-    return "It's Sunday evening. For a lot of people, this is when the week ahead starts to weigh in. How are you feeling about tomorrow?";
+  // 1. KEY MOMENTS ANNIVERSARIES
+  const keyMoments = profile.keyMoments || [];
+  for (const moment of keyMoments) {
+    const momentDate = new Date(moment.timestamp);
+    const daysSince = Math.floor((now.getTime() - momentDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Check for significant time intervals
+    if (daysSince === 7) {
+      // One week
+      insights.push({
+        type: 'anniversary',
+        content: `One week ago: ${moment.summary}`,
+        suggestedPhrase: `It's been a week since ${moment.summary.toLowerCase()}. How are you feeling about it now?`,
+        priority: 'standard',
+        relevance: 0.7,
+      });
+    } else if (daysSince === 30 || daysSince === 31) {
+      // One month
+      insights.push({
+        type: 'anniversary',
+        content: `One month ago: ${moment.summary}`,
+        suggestedPhrase: `About a month ago, ${moment.summary.toLowerCase()}. I've been thinking about that.`,
+        priority: 'standard',
+        relevance: 0.75,
+      });
+    } else if (daysSince >= 89 && daysSince <= 91) {
+      // Three months
+      insights.push({
+        type: 'milestone',
+        content: `Three months since: ${moment.summary}`,
+        suggestedPhrase: `You know, it's been about three months since ${moment.summary.toLowerCase()}. How has that been sitting with you?`,
+        priority: 'high',
+        relevance: 0.8,
+      });
+    } else if (daysSince >= 364 && daysSince <= 366) {
+      // One year
+      insights.push({
+        type: 'anniversary',
+        content: `One year anniversary: ${moment.summary}`,
+        suggestedPhrase: `I was thinking... it's been about a year since ${moment.summary.toLowerCase()}. That feels significant.`,
+        priority: 'high',
+        relevance: 0.9,
+      });
+    }
   }
 
-  // Early week check-in
-  if (dayOfWeek === 1 && hourOfDay >= 9 && hourOfDay <= 11) {
-    return "Monday morning. Fresh start or heavy load? How's the week looking?";
+  // 2. GOAL PROGRESS FOLLOW-UPS
+  const goals = profile.customData?.goals as
+    | Array<{
+        goal: string;
+        setDate: string;
+        status?: string;
+      }>
+    | undefined;
+
+  if (goals) {
+    for (const goal of goals) {
+      if (goal.status === 'completed') continue;
+
+      const setDate = new Date(goal.setDate);
+      const daysSince = Math.floor((now.getTime() - setDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysSince >= 6 && daysSince <= 8) {
+        // One week check-in
+        insights.push({
+          type: 'follow_up',
+          content: `Goal set a week ago: ${goal.goal}`,
+          suggestedPhrase: `Hey, it's been about a week since you mentioned ${goal.goal.toLowerCase()}. How's that going?`,
+          priority: 'standard',
+          relevance: 0.7,
+        });
+      } else if (daysSince >= 13 && daysSince <= 15) {
+        // Two week check-in
+        insights.push({
+          type: 'follow_up',
+          content: `Goal set two weeks ago: ${goal.goal}`,
+          suggestedPhrase: `Remember when you committed to ${goal.goal.toLowerCase()}? That was about two weeks ago. Any progress?`,
+          priority: 'high',
+          relevance: 0.8,
+        });
+      }
+    }
   }
 
-  // Friday evening reflection
-  if (dayOfWeek === 5 && hourOfDay >= 17) {
-    return 'End of the week. How did you do? What are you proud of?';
+  // 3. RECURRING TOPIC PATTERNS
+  const topicHistory = profile.customData?.topicHistory as Record<string, number> | undefined;
+  if (topicHistory) {
+    for (const [topic, count] of Object.entries(topicHistory)) {
+      if (count >= 3 && currentTopics.some((t) => t.toLowerCase().includes(topic.toLowerCase()))) {
+        insights.push({
+          type: 'pattern',
+          content: `${topic} mentioned ${count} times`,
+          suggestedPhrase: `You know, you've brought up ${topic.toLowerCase()} several times now. I wonder if there's something there worth exploring.`,
+          priority: 'hint',
+          relevance: 0.6 + count * 0.05,
+        });
+      }
+    }
   }
 
-  // Month start reflection
-  const dayOfMonth = now.getDate();
-  if (dayOfMonth <= 2) {
-    return 'New month. Some people use this as a reset. How do you want this month to be different?';
-  }
+  // Sort by relevance
+  insights.sort((a, b) => b.relevance - a.relevance);
 
-  return null;
+  return insights;
 }
 
 // ============================================================================
-// CONTEXT BUILDER
+// MAIN BUILDER
 // ============================================================================
 
 /**
  * Build superhuman insights context
- *
- * Now supports ALL personas with superhuman-insights.json files:
- * - Ferni (Life Coach) - Life patterns, emotional weather, growth
- * - Alex Chen (Communications) - Email patterns, timing, relationship patterns
- * - Maya Santos (Habits) - Habit patterns, emotional eating, energy patterns
- * - Peter John (Research) - Behavioral data, temporal patterns, financial patterns
- * - Jordan Taylor (Events) - Transition patterns, celebration patterns
- * - Nayan Patel (Wisdom) - Life arc patterns, spiritual patterns
  */
-async function buildSuperhumanInsightsContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
-  const { userText, userData, persona, analysis } = input;
+async function buildSuperhumanInsights(input: ContextBuilderInput): Promise<ContextInjection[]> {
+  const { services, userProfile, userData, analysis } = input;
   const injections: ContextInjection[] = [];
 
-  // Load persona-specific superhuman insights (with Ferni fallback)
-  const superhumanInsights = await loadSuperhumanInsights(persona.id);
+  const sessionId = services?.sessionId || 'unknown';
+  const userId = services?.userId || services?.userProfile?.id || 'unknown';
+  const session = getSession(sessionId);
+  const turnCount = userData.turnCount || 1;
 
-  // Skip if this persona doesn't have superhuman insights
-  if (!superhumanInsights) {
-    log.debug({ personaId: persona.id }, 'No superhuman_insights for persona, skipping');
-    return injections;
-  }
+  const currentTopics = analysis?.topics?.detected || [];
+  const currentEmotion = analysis?.emotion?.primary || 'neutral';
 
-  log.debug({ personaId: persona.id }, 'Building superhuman insights for persona');
+  try {
+    // ========================================================================
+    // 1. CROSS-SESSION REFLECTION (Turns 2-4)
+    // "I've been thinking about what you said..."
+    // ========================================================================
 
-  const turnCount = userData.turnCount || 0;
-  const sessionCount = userData.sessionDurationMs
-    ? Math.floor(userData.sessionDurationMs / 60000)
-    : 0;
+    if (
+      turnCount >= 2 &&
+      turnCount <= 4 &&
+      !session.surfacedInsights.has('reflection') &&
+      userProfile
+    ) {
+      const reflectionMoments = getReflectionMoments(userProfile);
 
-  // Don't activate too early in conversations
-  if (turnCount < 4) {
-    return injections;
-  }
+      if (reflectionMoments.length > 0) {
+        const reflection = selectBestReflection(
+          reflectionMoments,
+          currentTopics,
+          currentEmotion,
+          turnCount
+        );
 
-  const insightParts: string[] = [];
+        if (reflection && reflection.appropriateness > 0.5) {
+          injections.push(
+            createHighInjection(
+              'superhuman_reflection',
+              `[CROSS-SESSION REFLECTION]\n` +
+                `Something from our previous conversation to naturally weave in:\n` +
+                `→ "${reflection.phrase}"\n` +
+                `(Only mention if it feels natural, don't force it)`,
+              { category: 'superhuman', confidence: reflection.appropriateness }
+            )
+          );
 
-  // 1. Linguistic Pattern Detection
-  const linguisticPattern = detectLinguisticPatterns(userText, userData.recentTopics);
-  if (linguisticPattern && Math.random() < 0.25) {
-    insightParts.push(`[🔍 PATTERN DETECTED: ${linguisticPattern.pattern}]`);
-    insightParts.push(`SAY THIS: "${linguisticPattern.suggestedInsight}"`);
-  }
+          session.surfacedInsights.add('reflection');
+          session.lastSurfacedTurn['reflection'] = turnCount;
 
-  // 2. Repeated Topic Detection (The Mirror)
-  const repeatedTopic = detectRepeatedTopics(userData.recentTopics || []);
-  if (repeatedTopic && Math.random() < 0.2) {
-    insightParts.push(`[🪞 THE MIRROR]`);
-    insightParts.push(`SAY THIS: "${repeatedTopic.suggestedInsight}"`);
-  }
-
-  // 3. Emotional Weather (only if we have enough history)
-  if (sessionCount >= 3) {
-    const emotionalWeather = analyzeEmotionalWeather(
-      sessionCount,
-      analysis?.emotion ? [analysis.emotion.primary] : []
-    );
-    if (emotionalWeather && Math.random() < 0.15) {
-      insightParts.push(`[🌤️ EMOTIONAL WEATHER: ${emotionalWeather.trend}]`);
-      insightParts.push(`SAY THIS: "${emotionalWeather.insight}"`);
-    }
-  }
-
-  // 4. Anticipatory Emotion
-  const anticipatoryCue = detectAnticipatoryCues(userText, analysis?.emotion?.intensity);
-  if (anticipatoryCue && anticipatoryCue.detected && Math.random() < 0.3) {
-    insightParts.push(`[🔮 ANTICIPATE: ${anticipatoryCue.type}]`);
-    insightParts.push(`SAY THIS: "${anticipatoryCue.response}"`);
-  }
-
-  // 5. Predictive Care (time-based)
-  const predictiveCare = checkPredictiveCareNeeds(userData);
-  if (predictiveCare && turnCount <= 5 && Math.random() < 0.3) {
-    insightParts.push(`[⏰ PREDICTIVE CARE]`);
-    insightParts.push(`Consider acknowledging: "${predictiveCare}"`);
-  }
-
-  // 6. I-Notice Power (persona-specific pattern surfacing phrases)
-  const iNoticePower = await loadINoticePower(persona.id);
-  if (iNoticePower && turnCount >= 6 && Math.random() < 0.2) {
-    // Get opening frame
-    const opener = getRandomPhraseClean(iNoticePower.opening_frames?.gentle_openers);
-
-    // Get a surfacing phrase based on what we're detecting
-    let surfacingPhrase: string | null = null;
-
-    if (iNoticePower.surfacing_phrases) {
-      // Try to match the type of insight we're sharing
-      const phrases = iNoticePower.surfacing_phrases as Record<string, string[]>;
-      const categories = Object.keys(phrases);
-      if (categories.length > 0) {
-        const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-        surfacingPhrase = getRandomPhraseClean(phrases[randomCategory]);
+          log.debug({ momentId: reflection.momentId }, '💭 Cross-session reflection ready');
+        }
       }
     }
 
-    if (opener || surfacingPhrase) {
-      insightParts.push(`[👁️ I-NOTICE POWER]`);
-      if (opener) insightParts.push(`Start with: "${opener}"`);
-      if (surfacingPhrase) insightParts.push(`Then share: "${surfacingPhrase}"`);
+    // ========================================================================
+    // 2. TIME-BASED INSIGHTS (Turns 3-6)
+    // "It's been a month since..."
+    // ========================================================================
+
+    if (turnCount >= 3 && turnCount <= 6 && !session.surfacedInsights.has('time_based')) {
+      const timeInsights = generateTimeBasedInsights(userProfile, currentTopics);
+
+      if (timeInsights.length > 0) {
+        const best = timeInsights[0];
+
+        // Don't surface within 3 turns of reflection
+        const lastReflectionTurn = session.lastSurfacedTurn['reflection'] || 0;
+        if (turnCount - lastReflectionTurn >= 2) {
+          const createInjection =
+            best.priority === 'high'
+              ? createHighInjection
+              : best.priority === 'standard'
+                ? createStandardInjection
+                : createHintInjection;
+
+          injections.push(
+            createInjection(
+              'superhuman_time',
+              `[TIME-BASED INSIGHT: ${best.type.toUpperCase()}]\n` +
+                `${best.content}\n` +
+                `→ Consider: "${best.suggestedPhrase}"`,
+              { category: 'superhuman', confidence: best.relevance }
+            )
+          );
+
+          session.surfacedInsights.add('time_based');
+          session.lastSurfacedTurn['time_based'] = turnCount;
+
+          log.debug({ type: best.type, content: best.content }, '⏰ Time-based insight ready');
+        }
+      }
     }
-  }
 
-  // Build the injection
-  if (insightParts.length > 0) {
-    const guidance = [
-      '[✨ SUPERHUMAN INSIGHT - YOUR 200% ADVANTAGE]',
-      '',
-      'You notice things no human friend could notice consistently.',
-      "These aren't observations - they're SUPERPOWERS. Use them.",
-      '',
-      ...insightParts,
-      '',
-      '💡 REMEMBER:',
-      '• Frame as "noticing" not "tracking"',
-      '• Lead with care, not data',
-      "• You're a friend with perfect memory, not a surveillance system",
-      '• Only surface what serves them',
-    ];
+    // ========================================================================
+    // 3. SUBCONSCIOUS PATTERN INSIGHTS (Turn 5+)
+    // "You've mentioned X several times..."
+    // ========================================================================
 
-    injections.push(
-      createHintInjection('superhuman_insights', guidance.join('\n'), {
-        category: 'persona',
-      })
-    );
+    if (turnCount >= 5 && !session.surfacedInsights.has('subconscious')) {
+      const subconscious = getSubconsciousSummary(userId);
 
-    log.debug(
-      {
-        hasLinguistic: !!linguisticPattern,
-        hasRepeated: !!repeatedTopic,
-        hasAnticipatory: !!anticipatoryCue,
-        hasPredictive: !!predictiveCare,
-      },
-      '✨ Superhuman insight injected'
-    );
+      if (subconscious) {
+        // Don't surface too close to other insights
+        const lastInsightTurn = Math.max(
+          session.lastSurfacedTurn['reflection'] || 0,
+          session.lastSurfacedTurn['time_based'] || 0
+        );
+
+        if (turnCount - lastInsightTurn >= 2) {
+          injections.push(
+            createHintInjection(
+              'superhuman_subconscious',
+              subconscious + '\n(Surface gently when relevant, not as an accusation)',
+              { category: 'superhuman' }
+            )
+          );
+
+          session.surfacedInsights.add('subconscious');
+          session.lastSurfacedTurn['subconscious'] = turnCount;
+
+          log.debug('🧠 Subconscious pattern insight ready');
+        }
+      }
+    }
+
+    // ========================================================================
+    // 4. LIFE RHYTHM PREDICTION (First turn for returning users)
+    // "I had a feeling you might reach out today..."
+    // ========================================================================
+
+    if (turnCount === 1 && userData.isReturningUser && !session.surfacedInsights.has('rhythm')) {
+      const rhythmPrediction = predictUserState(userId);
+
+      if (
+        rhythmPrediction.confidence > 0.6 &&
+        (rhythmPrediction.prediction.likelyMood !== 'neutral' ||
+          rhythmPrediction.reasons.length > 0)
+      ) {
+        const moodDescriptions: Record<string, string> = {
+          elevated: 'you might be in good spirits',
+          low: 'today might be a harder day',
+          neutral: '',
+        };
+
+        const energyDescriptions: Record<string, string> = {
+          high: 'feeling energized',
+          depleted: 'feeling a bit tired',
+          normal: '',
+        };
+
+        const moodHint = moodDescriptions[rhythmPrediction.prediction.likelyMood];
+        const energyHint = energyDescriptions[rhythmPrediction.prediction.likelyEnergy];
+        const combinedHint = moodHint || energyHint;
+
+        if (combinedHint && rhythmPrediction.reasons.length > 0) {
+          injections.push(
+            createHintInjection(
+              'superhuman_rhythm',
+              `[LIFE RHYTHM AWARENESS]\n` +
+                `Based on patterns, ${combinedHint}.\n` +
+                `Reason: ${rhythmPrediction.reasons[0]}\n` +
+                `(Don't state this directly - just be attuned to it)`,
+              { category: 'superhuman', confidence: rhythmPrediction.confidence }
+            )
+          );
+
+          session.surfacedInsights.add('rhythm');
+
+          log.debug(
+            {
+              mood: rhythmPrediction.prediction.likelyMood,
+              confidence: rhythmPrediction.confidence,
+            },
+            '🎵 Life rhythm prediction ready'
+          );
+        }
+      }
+    }
+  } catch (error) {
+    log.warn({ error }, 'Superhuman insights generation failed (non-blocking)');
   }
 
   return injections;
@@ -423,16 +406,24 @@ async function buildSuperhumanInsightsContext(
 registerContextBuilder({
   name: 'superhuman_insights',
   description:
-    "Ferni's 200% capabilities - patterns, contradictions, emotional weather, anticipation",
-  priority: 85, // High priority - these are differentiators
-  build: buildSuperhumanInsightsContext,
+    'Time-based memory, cross-session reflection, pattern recognition - the "better than human" moments',
+  priority: 80, // High priority - these are the magical moments
+  build: buildSuperhumanInsights,
+  category: BuilderCategory.MEMORY,
 });
 
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
 export {
-  buildSuperhumanInsightsContext,
-  detectLinguisticPatterns,
-  detectRepeatedTopics,
-  analyzeEmotionalWeather,
-  detectAnticipatoryCues,
-  checkPredictiveCareNeeds,
+  buildSuperhumanInsights,
+  generateTimeBasedInsights,
+  type SuperhumanSession,
+  type TimeBasedInsight,
+};
+
+export default {
+  buildSuperhumanInsights,
+  generateTimeBasedInsights,
 };

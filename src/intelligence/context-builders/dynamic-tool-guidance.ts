@@ -11,18 +11,22 @@
  * @module intelligence/context-builders/dynamic-tool-guidance
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createInjection } from './index.js';
-import { BuilderCategory } from './categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { BuilderCategory } from './categories.js';
+import {
+  createInjection,
+  registerContextBuilder,
+  type ContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+  type ContextPriority,
+} from './index.js';
 
 const log = createLogger({ module: 'context:dynamic-tool-guidance' });
 
 // ============================================================================
 // TOOL TRIGGER PATTERNS
 // ============================================================================
-
-import type { ContextPriority } from './index.js';
 
 interface ToolTrigger {
   patterns: RegExp[];
@@ -97,35 +101,49 @@ const TOOL_TRIGGERS: ToolTrigger[] = [
 
   // TEAM HANDOFFS
   {
-    patterns: [
-      /\b(budget|spending|money|habits?|savings?)\b/i,
-    ],
+    patterns: [/\b(budget|spending|money|habits?|savings?)\b/i],
     toolName: 'handoffToMaya',
     guidance: `[TEAM HINT: Maya specializes in budgets, spending, and habits. Consider handoffToMaya if they need detailed help.]`,
     priority: 'standard',
   },
   {
-    patterns: [
-      /\b(calendar|schedule|appointment|email|meeting)\b/i,
-    ],
+    patterns: [/\b(calendar|schedule|appointment|email|meeting)\b/i],
     toolName: 'handoffToAlex',
     guidance: `[TEAM HINT: Alex handles calendar, email, and scheduling. Consider handoffToAlex for detailed help.]`,
     priority: 'standard',
   },
   {
-    patterns: [
-      /\b(invest|stock|market|portfolio|research)\b/i,
-    ],
+    patterns: [/\b(invest|stock|market|portfolio|research)\b/i],
     toolName: 'handoffToPeter',
     guidance: `[TEAM HINT: Peter specializes in investments and market research. Consider handoffToPeter for detailed help.]`,
     priority: 'standard',
   },
   {
-    patterns: [
-      /\b(milestone|wedding|birthday|graduation|life event|planning)\b/i,
-    ],
+    patterns: [/\b(milestone|wedding|birthday|graduation|life event|planning)\b/i],
     toolName: 'handoffToJordan',
     guidance: `[TEAM HINT: Jordan helps with life events and milestone planning. Consider handoffToJordan for detailed help.]`,
+    priority: 'standard',
+  },
+  {
+    patterns: [
+      /\b(wisdom|philosophy|meaning of life|purpose|existential|deeper questions)\b/i,
+      /\bwhy (am i|are we|do we)\b/i,
+      /\bwhat('s| is) the point\b/i,
+    ],
+    toolName: 'handoffToNayan',
+    guidance: `[TEAM HINT: Nayan specializes in wisdom and philosophy. Consider handoffToNayan for deeper exploration.]`,
+    priority: 'standard',
+  },
+
+  // CAMEOS - Quick pop-ins when full handoff isn't needed
+  {
+    patterns: [
+      /\bwhat would (\w+) (say|think)\b/i,
+      /\bquick (thought|insight|question) (about|on)\b/i,
+      /\bhave (\w+) (weigh in|pop in|chime in)\b/i,
+    ],
+    toolName: 'inviteCameo',
+    guidance: `[CAMEO HINT: A quick team pop-in might add value here! Use inviteCameo for a 1-2 sentence insight from a teammate, then they return to you automatically.]`,
     priority: 'standard',
   },
 ];
@@ -140,6 +158,7 @@ export const dynamicToolGuidanceBuilder: ContextBuilder = {
   priority: 15, // Run early, high priority
   category: BuilderCategory.CONTEXT,
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
     const { userText } = input;
 

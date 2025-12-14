@@ -381,12 +381,12 @@ export {
 export {
   analyze,
   analyzeSync,
-  type BehavioralSignals as UnifiedBehavioralSignals,
   type CombinedEmotion,
   type DeepUnderstandingInsights,
-  type ResponseGuidance as UnifiedResponseGuidance,
   type UnifiedAnalysisInput,
   type UnifiedAnalysisResult,
+  type BehavioralSignals as UnifiedBehavioralSignals,
+  type ResponseGuidance as UnifiedResponseGuidance,
 } from './unified-analyzer.js';
 
 // ============================================================================
@@ -710,8 +710,8 @@ export {
   markTopicEnergy,
   resetEnergyStateInference,
   type EnergyAssessment,
-  type EnergyLevel as EnergyStateLevel,
   type EnergyPattern,
+  type EnergyLevel as EnergyStateLevel,
   type MentalCapacity,
   type MentalEnergyState,
   type PhysicalEnergyState,
@@ -804,13 +804,13 @@ export {
 
 // Deep Understanding Persistence
 export {
+  periodicSync as deepUnderstandingPeriodicSync,
   deleteDeepUnderstandingProfiles,
   exportDeepUnderstandingBundle,
   importDeepUnderstandingBundle,
   loadDeepUnderstandingProfiles,
   onSessionEnd as onDeepUnderstandingSessionEnd,
   onSessionStart as onDeepUnderstandingSessionStart,
-  periodicSync as deepUnderstandingPeriodicSync,
   saveDeepUnderstandingProfiles,
   type DeepUnderstandingBundle,
 } from './deep-understanding-persistence.js';
@@ -836,6 +836,17 @@ export {
   type StoryUsageSignal,
   type UserReactionSignal,
 } from './collective-learning-integration.js';
+
+// ============================================================================
+// COLLECTIVE LEARNING SCHEDULER
+// ============================================================================
+
+export {
+  forceRunAllJobs as forceRunCollectiveLearningJobs,
+  getSchedulerStatus as getCollectiveLearningSchedulerStatus,
+  startCollectiveLearningScheduler,
+  stopCollectiveLearningScheduler,
+} from './collective-learning-scheduler.js';
 
 export default {
   analyzeMessage,

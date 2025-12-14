@@ -15,6 +15,7 @@
  * 8. Repair Intelligence - Fixing misunderstandings
  * 9. Hope Trajectory - Long-term resilience tracking
  * 10. Life Chapter - Major life phases and transitions
+ * 11. Voice-Text Mismatch - Detecting incongruence between words and tone
  *
  * This builder synthesizes all these signals into coherent guidance
  * for truly superhuman emotional intelligence.
@@ -26,7 +27,14 @@ import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Import all intelligence systems
-import { analyzeSilence, formatSilenceForPrompt } from '../silence-intelligence.js';
+import {
+  analyzeSilence,
+  formatSilenceForPrompt,
+  type SilenceAnalysis,
+} from '../silence-intelligence.js';
+
+// Voice-text mismatch detection
+import { buildMismatchGuidance, detectMismatch } from '../voice-text-mismatch.js';
 
 import {
   formatPredictionForPrompt,
@@ -45,7 +53,7 @@ import { analyzeResistance, formatResistanceForPrompt } from '../resistance-dete
 
 import { assessEnergyState, formatEnergyForPrompt } from '../energy-state.js';
 
-import { analyzeSubconscious, formatSubconsciousForPrompt } from '../subconscious-goals.js';
+import { analyzeSubconscious } from '../subconscious-goals.js';
 
 import { analyzeFlow, formatFlowForPrompt } from '../conversational-flow.js';
 
@@ -63,6 +71,7 @@ import { analyzeChapter, formatChapterForPrompt } from '../life-chapter.js';
 import {
   BuilderCategory,
   createCriticalInjection,
+  createHighInjection,
   createHintInjection,
   createStandardInjection,
   registerContextBuilder,
@@ -267,7 +276,7 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     }
 
     // ========================================================================
-    // 6. SUBCONSCIOUS GOALS
+    // 6. SUBCONSCIOUS GOALS (Better Than Human - We see patterns they don't)
     // ========================================================================
 
     const subconscious = analyzeSubconscious(
@@ -277,15 +286,74 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
       currentEmotionIntensity
     );
 
-    // Surface opportunity if ready
-    if (subconscious.surfaceOpportunity.shouldSurface && subconscious.surfaceOpportunity.phrase) {
+    // Enhanced surfacing logic with confidence thresholds
+    const surfaceOpp = subconscious.surfaceOpportunity;
+
+    if (surfaceOpp.shouldSurface && surfaceOpp.phrase && surfaceOpp.desire) {
+      // Only surface high-confidence patterns (3+ signals, 60%+ confidence)
+      const desire = surfaceOpp.desire;
+
+      if (desire.signalCount >= 3 && desire.confidence >= 0.6) {
+        // STANDARD priority for strong patterns
+        injections.push(
+          createStandardInjection(
+            'deep_subconscious',
+            `[SUBCONSCIOUS PATTERN DETECTED]\n` +
+              `You've mentioned "${desire.goal}" ${desire.signalCount} times across conversations.\n` +
+              `Category: ${desire.category}\n` +
+              `→ Consider gently surfacing: "${surfaceOpp.phrase}"\n` +
+              `(Only if the moment feels right - don't force it)`,
+            {
+              category: 'insight',
+              confidence: desire.confidence,
+            }
+          )
+        );
+
+        log.info(
+          {
+            goal: desire.goal,
+            signals: desire.signalCount,
+            confidence: desire.confidence,
+          },
+          '🌱 Subconscious goal ready to surface'
+        );
+      } else if (desire.signalCount >= 2) {
+        // HINT priority for emerging patterns (building awareness)
+        injections.push(
+          createHintInjection(
+            'deep_subconscious_emerging',
+            `[EMERGING PATTERN: ${desire.goal}]\n` +
+              `This theme is recurring (${desire.signalCount} signals, ${Math.round(desire.confidence * 100)}% confidence).\n` +
+              `Keep listening for it - may be worth exploring when confidence grows.`,
+            { category: 'insight' }
+          )
+        );
+      }
+    }
+
+    // Also inject if we detected new desires or reinforced existing ones
+    if (subconscious.reinforcedDesires.length > 0) {
+      const reinforced = subconscious.reinforcedDesires[0];
       injections.push(
         createHintInjection(
-          'deep_subconscious',
-          formatSubconsciousForPrompt(userId, subconscious) || '',
-          {
-            category: 'insight',
-          }
+          'deep_subconscious_reinforced',
+          `[PATTERN REINFORCED] "${reinforced.goal}" (signal #${reinforced.signalCount}).\n` +
+            `This user keeps circling back to this theme.`,
+          { category: 'insight' }
+        )
+      );
+    }
+
+    // Fantasy detection (what-if statements reveal true desires)
+    if (subconscious.fantasyDetected && subconscious.fantasyContent) {
+      injections.push(
+        createHintInjection(
+          'deep_fantasy',
+          `[FANTASY DETECTED] User shared a "what if" scenario:\n` +
+            `"${subconscious.fantasyContent.slice(0, 100)}..."\n` +
+            `Fantasies often reveal unspoken desires. Explore gently.`,
+          { category: 'insight' }
         )
       );
     }
@@ -371,14 +439,36 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     }
 
     // ========================================================================
-    // 10. SILENCE INTELLIGENCE (if silence detected)
+    // 10. SILENCE INTELLIGENCE (from actual voice pipeline when available)
     // ========================================================================
 
-    // This would typically be called from voice processing when silence is detected
-    // Here we check for text signals of pause/silence
-    if (/\.\.\.|um+|uh+|hmm+/i.test(userText)) {
+    // Use ACTUAL silence analysis from voice pipeline if available
+    // This is the superhuman capability - understanding what silences MEAN
+    const actualSilenceAnalysis = (userData as { lastSilenceAnalysis?: SilenceAnalysis })
+      .lastSilenceAnalysis;
+
+    if (actualSilenceAnalysis && actualSilenceAnalysis.confidence > 0.4) {
+      // Use actual analysis from audio pipeline - this is the superhuman insight!
+      injections.push(
+        createStandardInjection('deep_silence', formatSilenceForPrompt(actualSilenceAnalysis), {
+          category: 'presence',
+          confidence: actualSilenceAnalysis.confidence,
+        })
+      );
+
+      log.debug(
+        {
+          type: actualSilenceAnalysis.type,
+          duration: actualSilenceAnalysis.duration,
+          confidence: actualSilenceAnalysis.confidence,
+        },
+        '🤫 Using actual silence analysis from voice pipeline'
+      );
+    }
+    // Fallback: detect hesitation markers in text if no voice silence
+    else if (/\.\.\.|um+|uh+|hmm+/i.test(userText)) {
       const silence = analyzeSilence(
-        2000, // Estimated duration
+        2000, // Estimated duration from text hesitation
         userText,
         currentEmotion,
         currentEmotionIntensity,
@@ -396,12 +486,95 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
     }
 
     // ========================================================================
+    // 11. VOICE-TEXT MISMATCH DETECTION (Better Than Human)
+    // "I hear you saying you're fine, but your voice tells a different story"
+    // ========================================================================
+
+    if (voiceData && voiceData.confidence > 0.4) {
+      const mismatch = detectMismatch(userText, voiceData, {
+        primary: currentEmotion,
+        confidence: analysis?.emotion?.confidence || 0.5,
+      });
+
+      if (mismatch.hasMismatch && mismatch.confidence > 0.5) {
+        const guidance = buildMismatchGuidance(mismatch);
+        if (guidance) {
+          // HIGH priority - this is a key "better than human" insight
+          injections.push(
+            createHighInjection('deep_mismatch', guidance, {
+              category: 'emotional_intelligence',
+              confidence: mismatch.confidence,
+            })
+          );
+
+          log.info(
+            {
+              type: mismatch.type,
+              textEmotion: mismatch.textEmotion,
+              voiceEmotion: mismatch.voiceEmotion,
+              shouldSurface: mismatch.shouldSurface,
+            },
+            '💭 Voice-text mismatch detected - superhuman insight'
+          );
+        }
+      }
+    }
+
+    // ========================================================================
+    // 12. ENERGY-AWARE RESPONSE LENGTH GUIDANCE
+    // When user is depleted, keep responses brief
+    // ========================================================================
+
+    if (
+      energy.physical.level === 'depleted' ||
+      energy.physical.level === 'low' ||
+      energy.mental.capacity === 'overwhelmed'
+    ) {
+      injections.push(
+        createHintInjection(
+          'deep_energy_response',
+          `[ENERGY AWARENESS] User appears ${energy.physical.level === 'depleted' ? 'exhausted' : 'low energy'}. ` +
+            `Keep your response brief and gentle. No complex questions or advice. ` +
+            `Prioritize presence over problem-solving. Consider: "That sounds exhausting" over lengthy responses.`,
+          { category: 'guidance' }
+        )
+      );
+    }
+
+    // ========================================================================
+    // 13. RESISTANCE-AWARE PACING GUIDANCE
+    // When detecting resistance, slow down and offer exits
+    // ========================================================================
+
+    if (resistance.resistanceLevel > 0.6 || resistance.defensesDetected.length >= 2) {
+      injections.push(
+        createStandardInjection(
+          'deep_resistance_pacing',
+          `[RESISTANCE AWARENESS] Strong resistance detected (level: ${resistance.resistanceLevel.toFixed(2)}). ` +
+            `Slow down. Don't push. Offer an exit: "We don't have to talk about this if you'd rather not." ` +
+            `Match their pace. Let them lead. Defenses detected: ${resistance.defensesDetected.join(', ')}`,
+          { category: 'guidance' }
+        )
+      );
+    }
+
+    // ========================================================================
     // UPDATE SESSION STATE
     // ========================================================================
 
     session.previousEmotion = currentEmotion;
     session.previousEmotionIntensity = currentEmotionIntensity;
     session.lastAnalysis = new Date();
+
+    // Store energy level for other builders
+    (userData as { energyLevel?: string }).energyLevel = energy.physical.level;
+
+    // Store resistance topics for other builders
+    if (resistance.avoidedTopic) {
+      (userData as { resistanceTopics?: string[] }).resistanceTopics = [
+        resistance.avoidedTopic.topic,
+      ];
+    }
 
     // Record our response for next turn's repair check
     // (This would typically be set after the response is generated)
@@ -429,7 +602,7 @@ export function recordResponse(sessionId: string, response: string): void {
 registerContextBuilder({
   name: 'deep_understanding',
   description:
-    'Superhuman understanding: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters',
+    'Superhuman understanding: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters, voice-text mismatch',
   priority: 35, // Run early to inform other builders
   build: buildDeepUnderstanding,
   category: BuilderCategory.COGNITIVE,

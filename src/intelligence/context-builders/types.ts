@@ -209,6 +209,40 @@ export interface ContextUserData {
   referencedMemories?: string[];
   /** Whether we've already referenced the last conversation topic */
   hasReferencedLastConversation?: boolean;
+
+  // ============================================================
+  // DEEP UNDERSTANDING - Superhuman Intelligence Signals
+  // ============================================================
+
+  /** Actual silence analysis from voice pipeline (real ms, not estimated) */
+  lastSilenceAnalysis?: {
+    type: string;
+    duration: number;
+    confidence: number;
+    suggestedResponse: string;
+    guidance: string;
+    promptSuggestion?: string;
+  };
+
+  /** Last user message for context builders */
+  lastUserMessage?: string;
+
+  /** Last agent response for repair detection */
+  lastAgentResponse?: string;
+
+  /** Energy level detected from voice/text signals */
+  energyLevel?: 'depleted' | 'low' | 'normal' | 'high' | 'energized';
+
+  /** Resistance signals detected this session */
+  resistanceTopics?: string[];
+
+  /** Voice-text mismatch detected */
+  voiceTextMismatch?: {
+    detected: boolean;
+    type: string;
+    interpretation: string;
+    surfacePhrase?: string;
+  };
 }
 
 // ============================================================================
