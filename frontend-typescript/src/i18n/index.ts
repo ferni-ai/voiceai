@@ -12,6 +12,10 @@
  * - Format utilities for dates, numbers, currencies
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('I18n');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -61,8 +65,20 @@ export const SUPPORTED_LOCALES: readonly LocaleInfo[] = [
   { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', direction: 'ltr' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', direction: 'ltr' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', direction: 'ltr' },
-  { code: 'zh-Hans', name: 'Chinese (Simplified)', nativeName: '简体中文', flag: '🇨🇳', direction: 'ltr' },
-  { code: 'zh-Hant', name: 'Chinese (Traditional)', nativeName: '繁體中文', flag: '🇹🇼', direction: 'ltr' },
+  {
+    code: 'zh-Hans',
+    name: 'Chinese (Simplified)',
+    nativeName: '简体中文',
+    flag: '🇨🇳',
+    direction: 'ltr',
+  },
+  {
+    code: 'zh-Hant',
+    name: 'Chinese (Traditional)',
+    nativeName: '繁體中文',
+    flag: '🇹🇼',
+    direction: 'ltr',
+  },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', direction: 'rtl' },
   { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱', direction: 'rtl' },
 ] as const;
@@ -71,15 +87,15 @@ export const SUPPORTED_LOCALES: readonly LocaleInfo[] = [
 const FALLBACK_CHAIN: Record<SupportedLocale, SupportedLocale[]> = {
   'en-US': [],
   'en-GB': ['en-US'],
-  'es': ['en-US'],
-  'fr': ['en-US'],
-  'de': ['en-US'],
-  'ja': ['en-US'],
-  'ko': ['en-US'],
+  es: ['en-US'],
+  fr: ['en-US'],
+  de: ['en-US'],
+  ja: ['en-US'],
+  ko: ['en-US'],
   'zh-Hans': ['en-US'],
   'zh-Hant': ['zh-Hans', 'en-US'],
-  'ar': ['en-US'],
-  'he': ['en-US'],
+  ar: ['en-US'],
+  he: ['en-US'],
 };
 
 // ============================================================================
@@ -98,34 +114,34 @@ const localeChangeListeners: Set<(locale: SupportedLocale) => void> = new Set();
  * Language code mapping for browser variations
  */
 const LANGUAGE_MAP: Record<string, SupportedLocale> = {
-  'en': 'en-US',
+  en: 'en-US',
   'en-us': 'en-US',
   'en-gb': 'en-GB',
   'en-au': 'en-GB',
-  'es': 'es',
+  es: 'es',
   'es-es': 'es',
   'es-mx': 'es',
-  'fr': 'fr',
+  fr: 'fr',
   'fr-fr': 'fr',
   'fr-ca': 'fr',
-  'de': 'de',
+  de: 'de',
   'de-de': 'de',
   'de-at': 'de',
-  'ja': 'ja',
+  ja: 'ja',
   'ja-jp': 'ja',
-  'ko': 'ko',
+  ko: 'ko',
   'ko-kr': 'ko',
-  'zh': 'zh-Hans',
+  zh: 'zh-Hans',
   'zh-cn': 'zh-Hans',
   'zh-hans': 'zh-Hans',
   'zh-tw': 'zh-Hant',
   'zh-hk': 'zh-Hant',
   'zh-hant': 'zh-Hant',
-  'ar': 'ar',
+  ar: 'ar',
   'ar-sa': 'ar',
-  'he': 'he',
+  he: 'he',
   'he-il': 'he',
-  'iw': 'he',
+  iw: 'he',
 };
 
 /**
@@ -200,12 +216,7 @@ function getLocaleFromBrowser(): SupportedLocale | null {
  * Detect the best locale for the user
  */
 export function detectLocale(): SupportedLocale {
-  return (
-    getLocaleFromURL() ||
-    getPersistedLocale() ||
-    getLocaleFromBrowser() ||
-    DEFAULT_LOCALE
-  );
+  return getLocaleFromURL() || getPersistedLocale() || getLocaleFromBrowser() || DEFAULT_LOCALE;
 }
 
 // ============================================================================
@@ -225,7 +236,7 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
     const module = await import(`./locales/${locale}.json`);
     loadedTranslations.set(locale, module.default as Translations);
   } catch (error) {
-    console.warn(`Failed to load translations for ${locale}, using fallback`);
+    log.warn(`Failed to load translations for ${locale}, using fallback`);
     // Try fallback chain
     for (const fallback of FALLBACK_CHAIN[locale] || []) {
       if (loadedTranslations.has(fallback)) {
@@ -264,7 +275,7 @@ export function getLocale(): SupportedLocale {
 export function getLocaleInfo(locale: SupportedLocale = currentLocale): LocaleInfo {
   const found = SUPPORTED_LOCALES.find((l) => l.code === locale);
   // Fallback to en-US which is always first
-  return found ?? SUPPORTED_LOCALES[0] as LocaleInfo;
+  return found ?? (SUPPORTED_LOCALES[0] as LocaleInfo);
 }
 
 /**
@@ -405,7 +416,7 @@ export function t(key: string, params?: TranslationParams): string {
   }
 
   // Return key if nothing found
-  console.warn(`Missing translation: ${key}`);
+  log.warn(`Missing translation: ${key}`);
   return key;
 }
 
@@ -416,10 +427,7 @@ export function t(key: string, params?: TranslationParams): string {
 /**
  * Format a number according to the current locale
  */
-export function formatNumber(
-  value: number,
-  options?: Intl.NumberFormatOptions
-): string {
+export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat(currentLocale, options).format(value);
 }
 
@@ -429,15 +437,15 @@ export function formatNumber(
 const LOCALE_CURRENCY: Record<SupportedLocale, string> = {
   'en-US': 'USD',
   'en-GB': 'GBP',
-  'es': 'EUR',
-  'fr': 'EUR',
-  'de': 'EUR',
-  'ja': 'JPY',
-  'ko': 'KRW',
+  es: 'EUR',
+  fr: 'EUR',
+  de: 'EUR',
+  ja: 'JPY',
+  ko: 'KRW',
   'zh-Hans': 'CNY',
   'zh-Hant': 'TWD',
-  'ar': 'SAR',
-  'he': 'ILS',
+  ar: 'SAR',
+  he: 'ILS',
 };
 
 /**
@@ -459,20 +467,14 @@ export function formatCurrency(
 /**
  * Format a date according to the current locale
  */
-export function formatDate(
-  date: Date,
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatDate(date: Date, options?: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat(currentLocale, options).format(date);
 }
 
 /**
  * Format a relative time (e.g., "5 minutes ago")
  */
-export function formatRelativeTime(
-  date: Date,
-  baseDate: Date = new Date()
-): string {
+export function formatRelativeTime(date: Date, baseDate: Date = new Date()): string {
   const diff = baseDate.getTime() - date.getTime();
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);

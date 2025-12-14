@@ -1102,6 +1102,18 @@ export function setupAvatarDropZone(onAgentDropped: (agentId: string) => void): 
     return;
   }
 
+  // FIX: Initialize element references if not already set (handles race condition
+  // where setupAvatarDropZone is called before initAvatarFeedback)
+  if (!avatar) {
+    avatar = document.getElementById('coachAvatar');
+  }
+  if (!avatarContainer) {
+    avatarContainer = document.getElementById('coach');
+  }
+  if (!avatarRing) {
+    avatarRing = document.getElementById('avatarRing');
+  }
+
   // Prevent default drag behaviors on the entire drop zone
   dropZoneElement.addEventListener('dragover', (e) => {
     e.preventDefault();

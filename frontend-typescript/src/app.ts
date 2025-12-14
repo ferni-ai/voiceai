@@ -310,7 +310,7 @@ class VoiceAIApp {
    * Initialize the application.
    * Must be called after DOM is ready.
    */
-  initialize(): void {
+  async initialize(): Promise<void> {
     if (this.isInitialized) {
       log.warn('App already initialized');
       return;
@@ -339,8 +339,8 @@ class VoiceAIApp {
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
 
-      // Initialize i18n (internationalization)
-      void initI18n();
+      // Initialize i18n (internationalization) - must await before UI init
+      await initI18n();
 
       // Initialize services (non-blocking)
       this.initializeServices();
