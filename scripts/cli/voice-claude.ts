@@ -671,12 +671,20 @@ ${colors.dim}Commands:${colors.reset}
     output: process.stdout,
   });
 
+  // Cleanup helper for mic process
+  const cleanupMic = () => {
+    if (micProcess && !micProcess.killed) {
+      micProcess.kill();
+    }
+  };
+
   rl.on('line', async (line) => {
     const cmd = line.trim().toLowerCase();
 
     if (cmd === 'exit' || cmd === 'quit') {
       console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
       if (mcpPollInterval) clearInterval(mcpPollInterval);
+      cleanupMic();
       claudeState.process?.kill();
       await room.disconnect();
       dispose();
@@ -698,6 +706,7 @@ ${colors.dim}Commands:${colors.reset}
   process.on('SIGINT', async () => {
     console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
     if (mcpPollInterval) clearInterval(mcpPollInterval);
+    cleanupMic();
     claudeState.process?.kill();
     await room.disconnect();
     dispose();

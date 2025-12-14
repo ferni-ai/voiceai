@@ -175,18 +175,89 @@ async function connectToRoom(
   console.log(`${colors.dim}Room: ${room.name}${colors.reset}`);
   console.log(`${colors.dim}Local: ${room.localParticipant?.identity}${colors.reset}`);
 
-  // Publish microphone
+  // Publish microphone using sox for native audio capture
   console.log(`${colors.dim}Enabling microphone...${colors.reset}`);
 
+  let micProcess: ChildProcess | null = null;
+
   try {
-    const { LocalAudioTrack } = lk;
-    const micTrack = await LocalAudioTrack.createMicrophoneTrack();
-    await room.localParticipant?.publishTrack(micTrack);
+    const { AudioSource, LocalAudioTrack, AudioFrame, TrackPublishOptions, TrackSource } = lk;
+
+    // Check if sox is available
+    try {
+      execSync('which sox', { stdio: 'pipe' });
+    } catch {
+      throw new Error('sox not installed. Install with: brew install sox');
+    }
+
+    // Create audio source (16kHz mono for speech)
+    const SAMPLE_RATE = 16000;
+    const CHANNELS = 1;
+    const source = new AudioSource(SAMPLE_RATE, CHANNELS);
+    const track = LocalAudioTrack.createAudioTrack('microphone', source);
+
+    // Publish track
+    const pubOptions = new TrackPublishOptions();
+    pubOptions.source = TrackSource.SOURCE_MICROPHONE;
+    await room.localParticipant?.publishTrack(track, pubOptions);
+
+    // Start sox to capture mic audio as raw PCM
+    micProcess = spawn(
+      'sox',
+      [
+        '-d', // Default audio device (mic)
+        '-t',
+        'raw', // Output raw PCM
+        '-b',
+        '16', // 16-bit
+        '-e',
+        'signed-integer', // Signed integers
+        '-r',
+        String(SAMPLE_RATE), // Sample rate
+        '-c',
+        String(CHANNELS), // Mono
+        '-', // Output to stdout
+      ],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    );
+
+    // Feed audio frames to LiveKit
+    const FRAME_DURATION_MS = 20; // 20ms frames
+    const SAMPLES_PER_FRAME = (SAMPLE_RATE * FRAME_DURATION_MS) / 1000;
+    const BYTES_PER_FRAME = SAMPLES_PER_FRAME * 2; // 16-bit = 2 bytes per sample
+    let buffer = Buffer.alloc(0);
+
+    micProcess.stdout?.on('data', (data: Buffer) => {
+      buffer = Buffer.concat([buffer, data]);
+
+      while (buffer.length >= BYTES_PER_FRAME) {
+        const frameData = buffer.subarray(0, BYTES_PER_FRAME);
+        buffer = buffer.subarray(BYTES_PER_FRAME);
+
+        const int16Array = new Int16Array(frameData.buffer, frameData.byteOffset, SAMPLES_PER_FRAME);
+        const frame = new AudioFrame(int16Array, SAMPLE_RATE, CHANNELS, SAMPLES_PER_FRAME);
+        source.captureFrame(frame);
+      }
+    });
+
+    micProcess.on('error', (err) => {
+      console.log(`${colors.yellow}Mic process error: ${err.message}${colors.reset}`);
+    });
+
     console.log(`${colors.green}Microphone active - start speaking!${colors.reset}`);
   } catch (err) {
     console.log(`${colors.yellow}Microphone error: ${(err as Error).message}${colors.reset}`);
     console.log(`${colors.dim}The agent may not be able to hear you.${colors.reset}`);
   }
+
+  // Cleanup microphone process on exit
+  const cleanupMic = () => {
+    if (micProcess && !micProcess.killed) {
+      micProcess.kill();
+    }
+  };
 
   // Wait for agent
   const existingAgents = Array.from(room.remoteParticipants?.values() || []).filter((p) =>
@@ -213,6 +284,7 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
   rl.on('line', async (line) => {
     if (line.trim().toLowerCase() === 'exit' || line.trim().toLowerCase() === 'quit') {
       console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
+      cleanupMic();
       await room.disconnect();
       dispose();
       console.log(`${colors.green}Goodbye!${colors.reset}\n`);
@@ -223,6 +295,7 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
   // Handle Ctrl+C
   process.on('SIGINT', async () => {
     console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
+    cleanupMic();
     await room.disconnect();
     dispose();
     console.log(`${colors.green}Goodbye!${colors.reset}\n`);

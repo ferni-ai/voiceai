@@ -222,7 +222,7 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
 
   try {
     // Dynamic import for code splitting
-    const module = await import(`../../../src/i18n/locales/${locale}.json`);
+    const module = await import(`./locales/${locale}.json`);
     loadedTranslations.set(locale, module.default as Translations);
   } catch (error) {
     console.warn(`Failed to load translations for ${locale}, using fallback`);
@@ -236,7 +236,7 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
     // Last resort: load en-US
     if (locale !== 'en-US' && !loadedTranslations.has('en-US')) {
       try {
-        const enModule = await import('../../../src/i18n/locales/en-US.json');
+        const enModule = await import('./locales/en-US.json');
         loadedTranslations.set('en-US', enModule.default as Translations);
         loadedTranslations.set(locale, enModule.default as Translations);
       } catch {

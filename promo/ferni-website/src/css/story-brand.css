@@ -277,7 +277,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 10px 20px;
+  padding: 10px var(--space-5);
   background: var(--color-forest-green);
   color: white;
   border-radius: 100px;
@@ -490,7 +490,7 @@ button {
 .hero__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
@@ -668,7 +668,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 16px 32px;
+  padding: var(--space-4) var(--space-8);
   border-radius: 100px;
   font-family: var(--font-display);
   font-size: var(--text-body-md);
@@ -836,7 +836,7 @@ button {
 .team-card {
   padding: var(--space-6);
   background: var(--color-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-medium);
   transition: all var(--duration-normal) ease;
   display: flex;
@@ -1173,7 +1173,7 @@ button {
   height: 64px;
   margin: 0 auto var(--space-5);
   background: rgba(74, 103, 65, 0.1);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1219,7 +1219,7 @@ button {
 .testimonial {
   padding: var(--space-6);
   background: var(--color-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-medium);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1337,7 +1337,7 @@ button {
 .pricing-card {
   padding: var(--space-8);
   background: var(--color-paper-cream);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border-medium);
   text-align: center;
 }
@@ -1992,7 +1992,7 @@ button {
 .use-case {
   padding: var(--space-6);
   background: var(--color-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-medium);
   transition: all var(--duration-normal) ease;
 }
@@ -2008,7 +2008,7 @@ button {
   height: 48px;
   margin-bottom: var(--space-4);
   background: rgba(74, 103, 65, 0.1);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2081,7 +2081,7 @@ button {
 
 .comparison-card {
   padding: var(--space-6);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .comparison-card--others {
@@ -2310,7 +2310,7 @@ button {
   position: relative;
   padding: var(--space-6);
   background: var(--color-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
   transition: transform var(--duration-normal) ease, box-shadow var(--duration-normal) ease;
 }
@@ -2626,7 +2626,7 @@ html {
   width: 24px;
   height: 36px;
   border: 2px solid currentColor;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   position: relative;
 }
 
@@ -2945,7 +2945,7 @@ html {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   border: 1px solid rgba(74, 103, 65, 0.15);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
   animation: panel-expand 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -3033,7 +3033,7 @@ html {
   
   .hero__demo-panel {
     padding: var(--space-6);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
   }
 }
 
@@ -3190,7 +3190,7 @@ html {
   text-align: center;
   padding: var(--space-6);
   background: var(--color-paper-cream);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
   transition: all 0.3s ease;
 }
@@ -3419,7 +3419,7 @@ a:focus-visible {
 /* Nav link focus */
 .nav__link:focus-visible {
   background: rgba(74, 103, 65, 0.08);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-3));
 }
@@ -3875,7 +3875,7 @@ img[loading="lazy"]:not([data-src]) {
 /* Apple-style cards with subtle depth */
 .memory-demo__card {
   background: var(--color-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: var(--space-5) var(--space-6);
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(44, 37, 32, 0.04);
